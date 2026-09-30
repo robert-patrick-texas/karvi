@@ -357,3 +357,83 @@ protected, `dev` for work; the first public release, 0.24.0, by the release
 sequence: the baseline on a clean clone, the number, the documents, the
 evidence, the tag, the bundle as the release's asset. Then the roadmap's
 first item, the man page.
+
+## 6. The first public release, 0.24.0 (2026-09-30)
+
+The release sequence run for the first time from the public history: the
+fresh tree's first tag, and its bundle the GitHub release's asset.
+
+**What it gains.** A site installs karvi from a published artifact whose
+source, evidence, and executables it can verify against a public tag, and
+the release records under `release/` describe a release the public history
+made. The tree's `bin/` holds released executables again, so the suites'
+default is the release and a lab build lives elsewhere.
+
+**The sequence, as run**, twenty-two minutes ten seconds from the
+baseline's start to the artifacts' end, every commit on the operator's
+"proceed":
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the baseline on a clean clone of `dev` at `7018f3f` | 07:33:53 to 07:39:43 | gofmt, make, the release verifier, exit 0 each; the tree after it as at v0.23.0 |
+| the number in its eight places; the release-identity build | 07:40 | no removed-key row awaited the number; `bin/` was empty, so nothing was protected |
+| the compatibility example | 07:41 | the released v0.23.0 executable, its bytes checked against the old tree's `CHECKSUMS.sha256`, started its daemon; this client read `compatible: false` on the version alone, its run was refused with `daemon_incompatible` (exit 112) before any job, the jobs tree stayed empty, the client's `daemon stop` ended it |
+| 1/3 | 07:41 | `89b8abf` |
+| the core evidence | 07:42 to 07:43:52 | 727 named tests across 75 packages, vet 0, both socket lengths 0 |
+| the documents | 07:45 | `453d45b` (2/3) |
+| the remaining evidence | 07:45:34 to 07:51:08 | the shipped checks exit 0, the release verifier exit 0, the checksums unchanged by its rebuild; the replay skipped, no release differing in daemon IPC schema |
+| 3/3, the tag, `main` | 07:51 | `99607bd`, `karvi-v0.24.0`, `main` at the tag |
+| the artifacts | 07:51:50 to 07:56:03 | the bundle reproducible byte for byte and verified from its own archive with its own verifier; the aggregate lists the bundle |
+| the push and the GitHub release | 07:58 | `dev`, `main`, and the tag pushed; release `karvi-v0.24.0` with the bundle, its checksum, and the aggregate as assets; the asset downloaded back matches |
+
+**What the release settled.** The records are `release/` alone: the build
+result, the artifact index, the scrapligo evidence, the manifest, and
+`evidence/`; no copies at the root, and no status document (the old one
+was 689 lines of status against a gates document that is archived). The
+manifest keeps the identity, the counters, the build, the statistics, the
+executables, the upgrade recovery, and the qualification rows, and loses
+the specification block, the record list, the pointers at the status and
+gates documents, and the patch and baseline fields, since none of those
+exist. The compatibility example's log is in `evidence/` as well as beside
+the tree, because a public reader cannot open the directory beside the
+tree; the baseline logs stay beside it, since the after-check names the
+operator's home. The named-test count fell from 731 to 727 and the package
+count from 76 to 75: the removed traceability tool's package. The stale
+sentences settled at the documents step: a traceability check named in
+the build guide and the qualification document, a `v1.4.1` grep, daemon
+IPC 9 and registry 17 in two places, the build identity's date (2026-09-20
+in three documents, 2026-09-23 in the fourth) to this release's, the bundle
+name and install paths, the runbook's directory, and a patch mention in
+BUILDING.
+
+**Executed.** The example's turning points and the published asset:
+
+```text
+$ grep -E 'client_version|^compatible|^exit=112|^daemon_incompatible' release/evidence/ipc-schema-compat.log | cut -c1-96
+client_version: 0.24.0
+compatible: false
+exit=112
+daemon_incompatible: running daemon version 0.23.0 uses IPC schema 10; karvi 0.24.0 uses schema 10,
+$ sha256sum -c karvi-v0.24.0-artifacts.sha256
+karvi-v0.24.0-source-linux-amd64.tar.gz: OK
+$ curl -sL https://github.com/robert-patrick-texas/karvi/releases/download/karvi-v0.24.0/karvi-v0.24.0-source-linux-amd64.tar.gz | sha256sum | cut -c1-16; cut -c1-16 karvi-v0.24.0-source-linux-amd64.tar.gz.sha256
+3d2c17339b1fd830
+3d2c17339b1fd830
+```
+
+**Found on the way.** The example script's first form built the client's
+argument list with `eval`, which split the quoted command into two words
+(`cli_command_text_mixed`) and left the credential variables unexported
+(`credential_prompt_unavailable`); the script now uses two shell functions
+and exports them. That failed run also showed that a run refused at
+credential resolution leaves the job directory it reserved before the
+draft, where the daemon-incompatible refusal leaves none; noted, not
+changed. `gh release create --verify-tag` must run inside the repository.
+
+**Not taken.** A status document. Root copies of the build result and the
+manifest. The baseline logs in the tree. Recreating the old tags in the
+public repository. A pre-release flag on the GitHub release. Protecting
+`main`, which stays on the operator's word.
+
+**Roadmap.** The man page, the roadmap's first item; `main` protected
+when the operator chooses; the old tree removed when he chooses.
