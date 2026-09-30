@@ -1,19 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.24.0 - 2026-09-30
 
-The tree is being prepared for public release. The cumulative patch stream
-shipped beside each release's bundle since 0.10.0 is retired: a release is
-the source bundle, its checksum, and an aggregate checksum file, and the
-release tools refuse a tree that holds anything git does not track. The
-specification the program was built from is frozen and archived with its
-earlier revisions, the decision records, the worked design sessions, and the
-session hand-offs; `docs/DESIGN.md` states the settled decisions and why, and
-the code and its tests are the reference. Every pointer at the archived
-documents was removed from the tree. No behaviour of the executables
-changed; three messages that named a specification section now say
-"a valid identifier", and the error catalogue's retired codes name the
-release span that retired them.
+The first release from the public repository, on 0.23.0. No behaviour of
+the executables changed, and every counter is 0.23.0's (daemon IPC 10,
+execution plan 9, scoreboard 3, configuration schema 6, registry 22,
+command record 2, job 2, credential package 1, plan report 1); a running
+0.23.0 daemon is `compatible: false` by its version alone and is
+restarted. The tree was prepared for public release. The cumulative patch
+stream shipped beside each release's bundle since 0.10.0 is retired: a
+release is the source bundle, its checksum, and an aggregate checksum
+file, and the release tools refuse a tree that holds anything git does not
+track. The specification the program was built from is frozen and archived
+with its earlier revisions, the decision records, the worked design
+sessions, and the session hand-offs; `docs/DESIGN.md` states the settled
+decisions and why, and the code and its tests are the reference. Every
+pointer at the archived documents was removed from the tree, the module
+path is `github.com/robert-patrick-texas/karvi`, and the public history
+begins at the root commit of this tree. Three messages that named a
+specification section now say "a valid identifier", and the error
+catalogue's retired codes name the release span that retired them.
 
 ## 0.23.0 - 2026-09-29
 
