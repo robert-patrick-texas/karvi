@@ -356,12 +356,13 @@ probe outcomes.
 `karvi stream`, or `karvi -`, reads a run line by line from standard
 input, typed at a terminal or piped from a script: a line beginning with
 `--` is one run option (`--target router1`, `--tl "r1 r2"`, `--dp`), any
-other line is one command sent as written, blank and `!` or `#` lines are
-skipped. `--go` (or `--sendit`) executes the draft as `run` would and
-keeps the targets and options for the next batch of commands; `--reset`
-empties the draft; `--end` (or `--quit`), EOF, or Ctrl-C leave without
-executing. A line the parser refuses is reported by its number and
-dropped. The exit is the last job's.
+other line is one command sent as written (a `--cmd`, `--command`, or
+`--cf` line counts as a command), blank and `!` or `#` lines are skipped.
+`--go` (or `--sendit`) executes the draft as `run` would and keeps the
+targets and options for the next batch of commands; `--clear` drops the
+commands and keeps the rest; `--reset` empties the draft; `--end` (or
+`--quit`), EOF, or Ctrl-C leave without executing. A line the parser
+refuses is reported by its number and dropped. The exit is the last job's.
 
 ```sh
 karvi - <<'EOF'

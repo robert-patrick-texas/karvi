@@ -22,7 +22,7 @@ import (
 // job's.
 func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 	var runs [][]string
-	execute := func(argv []string) int {
+	execute := func(_ int, argv []string) int {
 		runs = append(runs, append([]string{}, argv...))
 		return exitcode.ExitPartialFailure
 	}
@@ -77,7 +77,7 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 // (Ctrl-C) leaves while the reader still waits on the input.
 func TestStreamLoopEndsOnEOFAndCancel(t *testing.T) {
 	ran := 0
-	execute := func([]string) int { ran++; return 0 }
+	execute := func(int, []string) int { ran++; return 0 }
 	var stderr bytes.Buffer
 	if got := streamLoop(context.Background(), strings.NewReader("--target r1\nshow clock\n"), &stderr, execute); got != 0 || ran != 0 {
 		t.Errorf("EOF: exit %d, ran %d", got, ran)
@@ -89,29 +89,117 @@ func TestStreamLoopEndsOnEOFAndCancel(t *testing.T) {
 	if got := streamLoop(ctx, r, &stderr, execute); got != 0 || ran != 0 {
 		t.Errorf("cancel: exit %d, ran %d", got, ran)
 	}
+	// A cancellation outranks lines already read: a --go behind it never runs.
+	if got := streamLoop(ctx, strings.NewReader("--target r1\nshow clock\n--go\n"), &stderr, execute); got != 0 || ran != 0 {
+		t.Errorf("cancel with lines buffered: exit %d, ran %d", got, ran)
+	}
+}
+
+// TestStreamLoopCommandOptionsAndClear: --cmd, --command, --c, and --cf
+// lines are commands, cleared by --go like a bare line; --clear empties the
+// commands and keeps the options; --go and --sendit with nothing to send
+// are skipped with a notice; --cf, --tf, and --tfr naming - are refused in
+// every spelling; a command line loses its trailing blanks.
+func TestStreamLoopCommandOptionsAndClear(t *testing.T) {
+	var runs [][]string
+	execute := func(_ int, argv []string) int {
+		runs = append(runs, append([]string{}, argv...))
+		return exitcode.ExitPartialFailure
+	}
+	var stderr bytes.Buffer
+	in := strings.Join([]string{
+		"--target r1",
+		"--cmd show clock",
+		"--command show version",
+		"--c show ip interface brief",
+		"--cf=/tmp/commands.txt",
+		"--go",
+		"show run  \t",
+		"--clear",
+		"--go",
+		"--sendit",
+		"--tf=-",
+		"--cf -",
+		"--tfr -",
+		"show clock",
+		"--go",
+		"--reset",
+		"--go",
+		"--end",
+	}, "\n") + "\n"
+	if got := streamLoop(context.Background(), strings.NewReader(in), &stderr, execute); got != exitcode.ExitPartialFailure {
+		t.Errorf("exit %d", got)
+	}
+	want := [][]string{
+		{"run", "--target", "r1", "--cmd", "show clock", "--command", "show version", "--c", "show ip interface brief", "--cf=/tmp/commands.txt"},
+		{"run", "--target", "r1", "--cmd", "show clock"},
+	}
+	if !reflect.DeepEqual(runs, want) {
+		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
+	}
+	wantErr := "stream line 9: nothing to send\nstream line 10: nothing to send\n" +
+		"stream line 11: standard input is the stream; --tf - is not accepted\n" +
+		"stream line 12: standard input is the stream; --cf - is not accepted\n" +
+		"stream line 13: standard input is the stream; --tfr - is not accepted\n" +
+		"stream line 17: nothing to send\n"
+	if stderr.String() != wantErr {
+		t.Errorf("stderr:\n%s\nwant:\n%s", stderr.String(), wantErr)
+	}
+}
+
+// TestStreamLoopReadFailure: a line over the limit ends the stream with
+// stream_input_read_failed and its exit, naming the line; the lines behind
+// it are never read.
+func TestStreamLoopReadFailure(t *testing.T) {
+	ran := 0
+	execute := func(int, []string) int { ran++; return 0 }
+	var stderr bytes.Buffer
+	in := "--target r1\n" + strings.Repeat("x", streamLineLimit+1) + "\nshow clock\n--go\n"
+	got := streamLoop(context.Background(), strings.NewReader(in), &stderr, execute)
+	if got != exitcode.ExitGenericError || ran != 0 {
+		t.Errorf("exit %d, ran %d", got, ran)
+	}
+	if !strings.HasPrefix(stderr.String(), "stream_input_read_failed: stream line 2 is longer than the 1048576-byte limit") {
+		t.Errorf("stderr %q", stderr.String())
+	}
 }
 
 // TestStreamOptionArgs: the word alone, word=value, and word then the rest
-// of the line as one value; the three declarations recognised by their
-// prefixes.
+// of the line as one value; the command part recognised through run's
+// table (the declarations, --cmd and its aliases, --cf, by prefix too); the
+// standard-input value named for --cf, --tf, and --tfr in either spelling;
+// a word the table does not resolve is an option line for the probe.
 func TestStreamOptionArgs(t *testing.T) {
 	for _, tc := range []struct {
 		line        string
 		args        []string
-		declaration bool
+		commandPart bool
+		stdinOption string
 	}{
-		{"--dp", []string{"--dp"}, false},
-		{"--target=router1", []string{"--target=router1"}, false},
-		{"--target router1", []string{"--target", "router1"}, false},
-		{"--tl   r1 r2  ", []string{"--tl", "r1 r2"}, false},
-		{"--expect confirm=y", []string{"--expect", "confirm=y"}, true},
-		{"--blind", []string{"--blind"}, true},
-		{"--blind-return 2", []string{"--blind-return", "2"}, true},
-		{"--exp a=b", []string{"--exp", "a=b"}, true},
+		{"--dp", []string{"--dp"}, false, ""},
+		{"--target=router1", []string{"--target=router1"}, false, ""},
+		{"--target router1", []string{"--target", "router1"}, false, ""},
+		{"--tl   r1 r2  ", []string{"--tl", "r1 r2"}, false, ""},
+		{"--expect confirm=y", []string{"--expect", "confirm=y"}, true, ""},
+		{"--blind", []string{"--blind"}, true, ""},
+		{"--blind-return 2", []string{"--blind-return", "2"}, true, ""},
+		{"--exp a=b", []string{"--exp", "a=b"}, true, ""},
+		{"--blind-wait 2s", []string{"--blind-wait", "2s"}, false, ""},
+		{"--cmd show clock", []string{"--cmd", "show clock"}, true, ""},
+		{"--command=show clock", []string{"--command=show clock"}, true, ""},
+		{"--c show clock", []string{"--c", "show clock"}, true, ""},
+		{"--cf /tmp/x", []string{"--cf", "/tmp/x"}, true, ""},
+		{"--cf -", []string{"--cf", "-"}, true, "--cf"},
+		{"--cf=-", []string{"--cf=-"}, true, "--cf"},
+		{"--tf -", []string{"--tf", "-"}, false, "--tf"},
+		{"--tf=-", []string{"--tf=-"}, false, "--tf"},
+		{"--tfr -", []string{"--tfr", "-"}, false, "--tfr"},
+		{"--typo -", []string{"--typo", "-"}, false, ""},
+		{"--t -", []string{"--t", "-"}, false, ""},
 	} {
-		args, declaration := streamOptionArgs(tc.line)
-		if !reflect.DeepEqual(args, tc.args) || declaration != tc.declaration {
-			t.Errorf("%q: %q %v, want %q %v", tc.line, args, declaration, tc.args, tc.declaration)
+		args, commandPart, stdinOption := streamOptionArgs(tc.line)
+		if !reflect.DeepEqual(args, tc.args) || commandPart != tc.commandPart || stdinOption != tc.stdinOption {
+			t.Errorf("%q: %q %v %q, want %q %v %q", tc.line, args, commandPart, stdinOption, tc.args, tc.commandPart, tc.stdinOption)
 		}
 	}
 }

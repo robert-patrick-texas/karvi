@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Stream mode's draft.** A `--cmd`, `--command`, or `--cf` line is a
+  command like a bare line, cleared by `--go` with the rest, where it had
+  stayed among the options and been re-sent by every later job. `--clear`
+  empties the commands and keeps the targets and options. `--go` and
+  `--sendit` with nothing to send print a notice and run nothing, so a
+  stream that sent no job exits 0. `--cf`, `--tf`, and `--tfr` naming `-`
+  are refused in every spelling (`--tf=-` had reached the run). A read
+  failure or a line over 1 MiB ends the stream with the new
+  `stream_input_read_failed` (exit 1) naming the line, where it had ended
+  silently with exit 0. A Ctrl-C outranks lines already read; a command
+  line loses its trailing blanks; a parse error at `--go` names its line.
+
 ## 0.24.0 - 2026-09-30
 
 The first release from the public repository, on 0.23.0. No behaviour of

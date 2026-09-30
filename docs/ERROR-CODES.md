@@ -510,6 +510,7 @@ Active failure causes.
 | `ssh_session_channel_refused` | connection | 110 | no | The SSH server refuses to open a session channel; this is never an authentication failure. |
 | `state_tree_create_failed` | permission | 9 | no | Unclassified. The logs, socket, state, jobs, or transcripts subtree cannot be created or is not acceptable without a more specific code. |
 | `stdin_source_repeated` | usage | 4 | no | More than one input reads standard input (`--cf -` together with `--tf -`). |
+| `stream_input_read_failed` | internal | 1 | no | In stream mode, standard input fails to read or a line exceeds the reader's 1 MiB limit. |
 | `tabular_comment_prefix_invalid` | inventory | 5 | no | A tabular source uses a comment prefix other than `#`. |
 | `tabular_delimiter_invalid` | inventory | 5 | no | A tabular source delimiter is not one valid character. |
 | `tabular_header_blank` | inventory | 5 | no | A tabular source header has a blank column name. |

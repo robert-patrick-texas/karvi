@@ -43,21 +43,26 @@ beginning with -- is one run option: the word, then its value as the rest
 of the line after a space or =, so --target router1, --target=router1,
 --tl "router1 router2", --dispatch parallel, --dp. Any other line is one
 command, sent as written; \r at its end is read as --cmd reads it, and a
-line of \r alone sends a blank line. --expect, --blind, and --blind-return
-lines attach to the command before them. --cf - and --tf - are not
-accepted: standard input is the stream.
+line of \r alone sends a blank line. The targets and options stay from one
+job to the next; the commands are the job's. A --cmd, --command, or --cf
+line is a command like a bare line, and --expect, --blind, and
+--blind-return lines attach to the command before them. --cf, --tf, and
+--tfr may not name -: standard input is the stream.
 
 Directives, each a whole line:
   --go, --sendit                 Execute the draft as run; the targets and
                                  options stay for the next job, the commands
-                                 clear
+                                 clear; with no command to send, a notice
+  --clear                        Empty the commands; the targets and options
+                                 stay
   --reset                        Empty the draft
   --end, --quit                  Leave without executing; so do EOF (Ctrl-D)
                                  and Ctrl-C
 
 A line the parser refuses is reported with its number and dropped. The
-exit is the last executed job's, 0 when none ran. Global options go before
-the word: karvi --quiet --config FILE stream.
+exit is the last executed job's, 0 when none ran; a read failure or a line
+over 1 MiB ends the stream with stream_input_read_failed. Global options go
+before the word: karvi --quiet --config FILE stream.
 
 Options:
   --help, -h                     Show this help

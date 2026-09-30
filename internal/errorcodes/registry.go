@@ -608,6 +608,7 @@ var entries = []Entry{
 	failure("commands_file_is_directory", "usage", exitUsage, false, "The `--cf` path is a folder."),
 	failure("commands_file_empty", "usage", exitUsage, false, "The `--cf` file or standard input has zero bytes."),
 	failure("stdin_source_repeated", "usage", exitUsage, false, "More than one input reads standard input (`--cf -` together with `--tf -`)."),
+	failure("stream_input_read_failed", "internal", exitGen, false, "In stream mode, standard input fails to read or a line exceeds the reader's 1 MiB limit."),
 	failure("target_source_missing", "inventory", exitInv, false, "A `--tf` or `--tfr` file or folder does not exist."),
 	failure("target_source_permission_denied", "inventory", exitInv, false, "A `--tf` or `--tfr` file or folder cannot be read for lack of permission."),
 	failure("target_source_unreadable", "inventory", exitInv, false, "A `--tf` or `--tfr` file or folder fails to read for another reason."),

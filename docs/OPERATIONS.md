@@ -801,17 +801,26 @@ or a heredoc it drives several jobs through one karvi. The rules:
   router1`, `--target=router1`, `--tl router1 router2`, `--dispatch
   parallel`, `--dp`, `--format jsonl`, `--no-daemon`. Any other line is
   one command, sent as written; `\r` at its end is read as `--cmd` reads
-  it, and a line of `\r` alone sends a blank line. `--expect`, `--blind`,
-  and `--blind-return` lines attach to the command before them.
+  it, and a line of `\r` alone sends a blank line. The draft has two
+  parts: the targets and options, which stay from one job to the next,
+  and the commands, which are the job's. A `--cmd`, `--command`, or
+  `--cf` line is a command like a bare line, and `--expect`, `--blind`,
+  and `--blind-return` lines attach to the command before them; the
+  option words mean what they mean on a `run` command line, abbreviations
+  and the `=` spelling included.
 - `--go` or `--sendit` executes the draft; the targets and options stay,
-  the commands clear. `--reset` empties the draft. `--end`, `--quit`, the
-  input's end (Ctrl-D), or Ctrl-C leave without executing. Only `--go`
-  and `--sendit` execute.
+  the commands clear; with no command to send it prints a notice and runs
+  nothing. `--clear` empties the commands and keeps the targets and
+  options. `--reset` empties the draft. `--end`, `--quit`, the input's
+  end (Ctrl-D), or Ctrl-C leave without executing, and a Ctrl-C outranks
+  lines already read. Only `--go` and `--sendit` execute.
 - A line the parser refuses (`--typo`, a declaration before any command)
   is reported on standard error with its line number and dropped; the
-  draft stands. `--cf -` and `--tf -` are refused: standard input is the
-  stream.
-- The exit is the last executed job's, 0 when none ran. Each job is a
+  draft stands. `--cf`, `--tf`, and `--tfr` may not name `-` in any
+  spelling: standard input is the stream.
+- The exit is the last executed job's, 0 when none ran. A read failure,
+  or a line over the reader's 1 MiB limit, ends the stream with
+  `stream_input_read_failed` (exit 1) naming the line. Each job is a
   run: its records, its display, its footer or jsonl summary line, its
   exit. Global options go before the word: `karvi --quiet --config FILE
   stream`.
