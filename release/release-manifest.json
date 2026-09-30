@@ -1,9 +1,9 @@
 {
   "application": "karvi",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "release_date": "2026-09-30",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "the first release from the public repository, on 0.23.0: no behaviour of the executables changed and every counter is 0.23.0's (daemon IPC 10, execution plan 9, scoreboard 3, configuration schema 6, registry 22, command record 2, job 2, credential package 1, plan report 1); the tree was prepared for public release (the cumulative patch stream retired, the specification and its records archived, docs/DESIGN.md stating the settled decisions, the module path github.com/robert-patrick-texas/karvi, the history begun anew at this tree's root commit); a running 0.23.0 daemon is compatible: false on the version alone and is restarted; see CHANGELOG.md",
+  "behavior_change_from_previous": "a minor release on 0.24.0, the same day: every counter is 0.24.0's (daemon IPC 10, execution plan 9, scoreboard 3, configuration schema 6, registry 22, command record 2, job 2, credential package 1, plan report 1); the behaviour change is stream mode's (a --cmd, --command, or --cf line is a command cleared by --go like a bare line; --clear empties the commands alone; an empty --go is skipped with a notice; - refused for --cf, --tf, and --tfr in every spelling; a read failure or a line over 1 MiB ends the stream with stream_input_read_failed; line editing and recall at a terminal through golang.org/x/term, vendored); a running 0.24.0 daemon is compatible: false on the version alone and is restarted; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
@@ -20,7 +20,7 @@
   "build": {
     "go_version": "go1.27.1",
     "official_go_floor": "1.26.0",
-    "source_identity": "source-release-v0.24.0",
+    "source_identity": "source-release-v0.25.0",
     "build_time": "2026-09-30T00:00:00Z",
     "cgo_enabled": false,
     "trimpath": true,
@@ -29,15 +29,15 @@
     "build_tags": "none (every build carries the adapter)"
   },
   "source_statistics": {
-    "go_files_outside_vendor": 385,
-    "go_lines_outside_vendor": 80042,
-    "named_top_level_tests": 727,
+    "go_files_outside_vendor": 386,
+    "go_lines_outside_vendor": 80359,
+    "named_top_level_tests": 730,
     "packages": 75
   },
   "binaries": {
     "karvi-linux-amd64": {
-      "bytes": 11833504,
-      "sha256": "67cef10a4a333d58016c45388c4e8e00cf6e51c1326e2949925c8ff4a2cfdae0",
+      "bytes": 11870368,
+      "sha256": "77b4a8574440f70f07f983e85ccf5f61da41fa2ea299a2f87bd18f054b32e146",
       "reported_ssh_transports": [
         {
           "id": "scrapligo-v1",
@@ -55,15 +55,15 @@
     },
     "karvi-askpass-linux-amd64": {
       "bytes": 3887264,
-      "sha256": "3c1a7e8036d1e19628fe45a29a2c56918c89cd9f3145bd3570e140f5ac7427b9"
+      "sha256": "1fac64a77afd9a42608edc8e48552671f9a50212da15fc61628a0cd3ac4fcf1e"
     },
     "karvi-prune-linux-amd64": {
       "bytes": 3719328,
-      "sha256": "085057327f3f7276e7492dcc5872a6967d0745c7e58b890072630ef9160f399b"
+      "sha256": "456ff10aae760088051bf9e1c7d28be4330154fccf2ab677c8d1b11ffaeaaa35"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.24.0 - 2026-09-30"
+    "changelog": "CHANGELOG.md 0.25.0 - 2026-09-30"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only",
@@ -94,7 +94,7 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "none: the daemon IPC schema has been 10 since v0.20.0 and no release has moved it, so no earlier executable's daemon differs in schema from this client's; the compatibility example ran before the number was committed: the released v0.23.0 daemon reported compatible: false to this client on the version alone, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "none: the daemon IPC schema has been 10 since v0.20.0 and no release has moved it, so no earlier executable's daemon differs in schema from this client's; the compatibility example ran before the number was committed: the released v0.24.0 daemon reported compatible: false to this client on the version alone, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
@@ -130,7 +130,16 @@
     "release_tree_clean_at_tag": "passed (nothing untracked, no empty directory)"
   },
   "previous_release": {
-    "version": "0.23.0",
-    "notes": "made from the maintainer's private history before the tree was prepared for public release; its bundle is not published, and every release is installed as new"
-  }
+    "version": "0.24.0",
+    "git_tag": "karvi-v0.24.0",
+    "notes": "the first release from the public repository; every release is installed as new"
+  },
+  "vendored_modules": [
+    "github.com/scrapli/scrapligo v1.4.2",
+    "github.com/creack/pty v1.1.23",
+    "github.com/sirikothe/gotextfsm v1.0.1-0.20200816110946-6aa2cfd355e4",
+    "golang.org/x/crypto v0.26.0",
+    "golang.org/x/sys v0.23.0",
+    "golang.org/x/term v0.23.0"
+  ]
 }

@@ -1,24 +1,25 @@
-# karvi v0.24.0 build and qualification result
+# karvi v0.25.0 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.24.0 (2026-09-30) is the first release from the public repository, on
-0.23.0. No behaviour of the executables changed and every counter is
-0.23.0's; the tree was prepared for public release: the cumulative patch
-stream retired, the specification and its records archived with
-`docs/DESIGN.md` stating the settled decisions, the module path
-`github.com/robert-patrick-texas/karvi`, and the history begun anew at this
-tree's root commit. The changes are in `CHANGELOG.md`. It is not a
+v0.25.0 (2026-09-30) is a minor release on 0.24.0, the same day. Every
+counter is 0.24.0's; the behaviour change is stream mode's: a `--cmd`,
+`--command`, or `--cf` line is a command cleared by `--go` like a bare line,
+`--clear` empties the commands alone, an empty `--go` is skipped with a
+notice, `-` is refused for `--cf`, `--tf`, and `--tfr` in every spelling, a
+read failure ends the stream with `stream_input_read_failed`, and a line
+typed at a terminal is edited with the usual keys and recalled with the up
+arrow (`golang.org/x/term`, vendored). The changes are in `CHANGELOG.md`. It is not a
 production claim and not a real-device qualification: the native transport
 is proven against the fake IOS XE device built from the tree.
 
 ## Build identity
 
 ```text
-version:                  0.24.0
-commit:                   source-release-v0.24.0
+version:                  0.25.0
+commit:                   source-release-v0.25.0
 build time:               2026-09-30T00:00:00Z
 Go toolchain:             go1.27.1
 build tag:                none (every build carries the adapter)
@@ -45,7 +46,7 @@ transports.
 
 The release source passed, with Go 1.27.1:
 
-- 727 top-level named Go tests across 75 packages in vendor mode, no
+- 730 top-level named Go tests across 75 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -79,8 +80,8 @@ The release source passed, with Go 1.27.1:
   no release has moved it, so no earlier executable's daemon differs in
   schema from this client's, and the release tooling skipped the replay
   and said so; the compatibility example ran before the number was
-  committed: the released v0.23.0 daemon, started from the released
-  executable, reported `compatible: false` to this client on the version
+  committed: the released v0.24.0 daemon, started from the released
+  executable of the tree's `bin/` before the rebuild, reported `compatible: false` to this client on the version
   alone, refused its run with `daemon_incompatible` (exit 112) before any
   job, and was stopped by the client (`evidence/ipc-schema-compat.log`);
 - the host's shared places (the shared scoreboard directory, the shared
@@ -91,7 +92,7 @@ The release source passed, with Go 1.27.1:
   runs, and the bundle verified from its own archive with its own verifier.
 
 The release verifier had first passed on a clean clone of `dev` at
-`7018f3f` before the number was assigned (the maintainer's release tools
+`dcc7a61` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -102,14 +103,14 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 11,833,504 | `67cef10a4a333d58016c45388c4e8e00cf6e51c1326e2949925c8ff4a2cfdae0` |
-| `bin/karvi-askpass-linux-amd64` | 3,887,264 | `3c1a7e8036d1e19628fe45a29a2c56918c89cd9f3145bd3570e140f5ac7427b9` |
-| `bin/karvi-prune-linux-amd64` | 3,719,328 | `085057327f3f7276e7492dcc5872a6967d0745c7e58b890072630ef9160f399b` |
+| `bin/karvi-linux-amd64` | 11,870,368 | `77b4a8574440f70f07f983e85ccf5f61da41fa2ea299a2f87bd18f054b32e146` |
+| `bin/karvi-askpass-linux-amd64` | 3,887,264 | `1fac64a77afd9a42608edc8e48552671f9a50212da15fc61628a0cd3ac4fcf1e` |
+| `bin/karvi-prune-linux-amd64` | 3,719,328 | `456ff10aae760088051bf9e1c7d28be4330154fccf2ab677c8d1b11ffaeaaa35` |
 
 ## Operational upgrade sequence
 
 A daemon is compatible only when its version and its daemon IPC schema both
-equal the client's, so a running v0.23.0 daemon is `compatible: false` to
+equal the client's, so a running v0.24.0 daemon is `compatible: false` to
 this client on the version alone (both at schema 10), and the client
 refuses a job to it with `daemon_incompatible` (exit 112) before any job is
 submitted, naming both pairs and the remediation. Every release restarts

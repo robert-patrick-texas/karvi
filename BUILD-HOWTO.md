@@ -77,10 +77,10 @@ is the `go` directive in karvi's `go.mod`.
 ## 3. Verify and extract the full source bundle
 
 ```bash
-sha256sum -c karvi-v0.24.0-source-linux-amd64.tar.gz.sha256
-tar -tzf karvi-v0.24.0-source-linux-amd64.tar.gz >/dev/null
-tar -xzf karvi-v0.24.0-source-linux-amd64.tar.gz
-cd karvi-v0.24.0
+sha256sum -c karvi-v0.25.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.25.0-source-linux-amd64.tar.gz >/dev/null
+tar -xzf karvi-v0.25.0-source-linux-amd64.tar.gz
+cd karvi-v0.25.0
 ```
 
 Review the release boundary before building:
@@ -374,15 +374,15 @@ Use versioned destinations and an atomic symlink:
 ```bash
 sudo install -d -m 0755 /usr/local/lib/karvi
 sudo install -m 0755 bin/karvi-linux-amd64 \
-  /usr/local/lib/karvi/karvi-v0.24.0
+  /usr/local/lib/karvi/karvi-v0.25.0
 sudo install -m 0755 bin/karvi-askpass-linux-amd64 \
-  /usr/local/lib/karvi/karvi-askpass-v0.24.0
+  /usr/local/lib/karvi/karvi-askpass-v0.25.0
 sudo install -m 0755 bin/karvi-prune-linux-amd64 \
-  /usr/local/lib/karvi/karvi-prune-v0.24.0
-sudo ln -sfn /usr/local/lib/karvi/karvi-v0.24.0 /usr/local/bin/karvi
-sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.24.0 \
+  /usr/local/lib/karvi/karvi-prune-v0.25.0
+sudo ln -sfn /usr/local/lib/karvi/karvi-v0.25.0 /usr/local/bin/karvi
+sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.25.0 \
   /usr/local/bin/karvi-askpass
-sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.24.0 \
+sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.25.0 \
   /usr/local/bin/karvi-prune
 karvi version --format json
 ```

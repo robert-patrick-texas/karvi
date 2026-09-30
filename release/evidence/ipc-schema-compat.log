@@ -1,34 +1,34 @@
-# karvi v0.24.0: the released v0.23.0 daemon against the tree's client, before 1/3; executed 2026-09-30T07:41:29Z under /tmp/nd.Pw3U/c, no device (TEST-NET-1)
-bin/karvi-linux-amd64: OK
+# karvi v0.25.0: the released v0.24.0 daemon against the tree's client, before 1/3; executed 2026-09-30T09:50:26Z under /tmp/nd.MBl4/c, no device (TEST-NET-1)
+the daemon executable: karvi 0.24.0, the released bytes of the tree's bin/ checked against CHECKSUMS.sha256 before the rebuild
 [1] the daemon's executable starts its daemon
-daemon started socket=/tmp/nd.Pw3U/c/base/socket/daemon.sock
+daemon started socket=/tmp/nd.MBl4/c/base/socket/daemon.sock
 daemon running
 exit=0
 {
   "ipc_schema_version": 10,
   "status": "running",
-  "pid": 3809309,
+  "pid": 3909123,
   "uid": 1000,
-  "socket": "/tmp/nd.Pw3U/c/base/socket/daemon.sock",
-  "started_at": "2026-09-30T03:41:29.341141977-04:00",
+  "socket": "/tmp/nd.MBl4/c/base/socket/daemon.sock",
+  "started_at": "2026-09-30T05:50:26.257195434-04:00",
   "active_jobs": 0,
   "accepted_jobs": 0,
-  "version": "0.23.0",
+  "version": "0.24.0",
   "compatible": true,
-  "client_version": "0.23.0",
+  "client_version": "0.24.0",
   "client_ipc_schema": 10
 }
 [2] the client's executable asks the daemon's status
 status: running
-pid: 3809309
+pid: 3909123
 uid: 1000
-socket: /tmp/nd.Pw3U/c/base/socket/daemon.sock
-version: 0.23.0
+socket: /tmp/nd.MBl4/c/base/socket/daemon.sock
+version: 0.24.0
 daemon_ipc_schema: 10
-client_version: 0.24.0
+client_version: 0.25.0
 client_ipc_schema: 10
 compatible: false
-started_at: 2026-09-30T03:41:29.341141977-04:00
+started_at: 2026-09-30T05:50:26.257195434-04:00
 active_jobs: 0
 accepted_jobs: 0
 remediation: karvi daemon restart
@@ -37,10 +37,10 @@ exit=0
 exit=112
 -- stdout
 -- stderr
-daemon_incompatible: running daemon version 0.23.0 uses IPC schema 10; karvi 0.24.0 uses schema 10, and both must match; no job was submitted and the daemon was not replaced automatically; run "karvi daemon status" and, when active_jobs is 0, run "karvi daemon restart", then retry (or use "karvi run --no-daemon ..." for an explicit foreground run)
+daemon_incompatible: running daemon version 0.24.0 uses IPC schema 10; karvi 0.25.0 uses schema 10, and both must match; no job was submitted and the daemon was not replaced automatically; run "karvi daemon status" and, when active_jobs is 0, run "karvi daemon restart", then retry (or use "karvi run --no-daemon ..." for an explicit foreground run)
 [4] the jobs tree
-/tmp/nd.Pw3U/c/base/jobs
+/tmp/nd.MBl4/c/base/jobs
 [5] stop by the client, then the pid is gone
-daemon stopped (version=0.23.0 ipc_schema=10; client_schema=10)
+daemon stopped (version=0.24.0 ipc_schema=10; client_schema=10)
 exit=0
-pid 3809309 gone
+pid 3909123 gone
