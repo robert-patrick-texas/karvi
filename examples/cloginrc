@@ -1,0 +1,21 @@
+# examples/cloginrc — a RANCID .cloginrc read as data (docs/CREDENTIAL-CSV.md
+# for the file backends): karvi takes the add user and add password lines,
+# passes over the other RANCID statements it knows (autoenable, method, ...)
+# with a warning naming the line, and refuses any other; it never runs the
+# file. Copy it to ~/.cloginrc and chmod 600, or declare it
+# as [credential-backend.rancid] in the configuration (examples/config.toml).
+# A # starts a comment; a continuation line (a trailing backslash) is refused.
+#
+# add user PATTERN {USERNAME}            the login name for the devices PATTERN matches
+# add password PATTERN {PASSWORD} {ENABLE}  the login and the enable password
+# The passwords here are placeholders; the first matching line wins.
+
+add user edge-* {svc.edge}
+add password edge-* {edge-placeholder} {enable-placeholder}
+
+add user core-* {svc.core}
+add password core-* {core-placeholder} {enable-placeholder}
+
+# the rest: the operator's own name is not assumed by .cloginrc, so name one
+add user * {svc.default}
+add password * {default-placeholder}

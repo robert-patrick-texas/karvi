@@ -1,0 +1,38 @@
+[Unit]
+Description=karvi per-user orchestration daemon
+Documentation=file:%h/.local/share/doc/karvi/OPERATIONS.md
+After=network-online.target
+
+[Service]
+Type=simple
+# Under systemd the daemon stays: the idle timer (daemon.shutdown-idle-timer,
+# 1h by default) is off, since an idle exit is a clean exit that
+# Restart=on-failure would not restart, and the next client would then launch
+# a daemon outside this unit and its limits. --set outranks every file.
+ExecStart=/usr/bin/karvi --set daemon.shutdown-idle-timer=0 daemon serve
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+# The daemon writes only under these paths: the
+# operator's basedir candidates (the site's users directories
+# under the system roots, the XDG root), the shared
+# trees under the same system roots, the configuration, and the
+# scoreboards and capacity ledger. A collection directory (crun.directory),
+# a basedir, or a spool directory outside them needs a drop-in that adds
+# it: karvi-daemon.service.d/crun.conf.example beside this unit shows the
+# line. The dash before each path makes an absent one ignored (a host with
+# one system root); without it the unit fails to start (226/NAMESPACE). A
+# root the daemon would create (the XDG root) must exist before the unit's
+# first start: the sandbox is fixed at start, and an absent path stays
+# read-only for the run.
+ReadWritePaths=-/opt/karvi -/var/lib/karvi -%h/.local/share/karvi -%h/.config/karvi -/dev/shm/karvi
+LimitNOFILE=131072
+LimitNPROC=65535
+TasksMax=65535
+UMask=0077
+
+[Install]
+WantedBy=default.target

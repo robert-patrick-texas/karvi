@@ -1,0 +1,25 @@
+#!/bin/sh
+# A crun.after hook (docs/COLLECTION.md section 5):
+# commit the files this collection replaced and mail the commit's diff, one
+# mail per collection, in the form rancid-run mails ("HOST config diffs").
+# The repository is the site's, made once over the collection directory; the
+# mail goes through the host's sendmail. Copy it without the .example suffix,
+# make it executable, set the recipient, and name it in the configuration:
+#
+#   [crun]
+#   after = "/etc/karvi/crun-diff-mail"
+#
+# The run's exit code, the counts, and the job ID are in the environment;
+# the devices kept (not reached) are in failed-devices.txt of KARVI_JOB_DIR.
+set -eu
+TO=${KARVI_CRUN_MAIL_TO:-netops@localhost}
+[ "${KARVI_CRUN_REPLACED:-0}" -gt 0 ] || exit 0
+xargs -r -d '\n' git add --
+git diff --cached --quiet && exit 0          # the replaced files are the same bytes
+git commit -q -m "crun $KARVI_JOB_ID: $KARVI_CRUN_REPLACED replaced, $KARVI_CRUN_KEPT kept, exit $KARVI_EXIT"
+{
+  printf 'To: %s\nSubject: %s config diffs (crun %s: %s replaced, %s kept, exit %s)\n\n' \
+    "$TO" "$(hostname)" "$KARVI_JOB_ID" "$KARVI_CRUN_REPLACED" "$KARVI_CRUN_KEPT" "$KARVI_EXIT"
+  [ -z "${KARVI_JOB_DIR:-}" ] || [ ! -s "$KARVI_JOB_DIR/failed-devices.txt" ] || { echo 'Devices kept (not collected):'; cat "$KARVI_JOB_DIR/failed-devices.txt"; echo; }
+  git show --stat -p --format='%s' HEAD
+} | sendmail -t

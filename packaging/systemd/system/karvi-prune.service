@@ -1,0 +1,32 @@
+[Unit]
+Description=Prune finished karvi artifacts of the site
+Documentation=file:/usr/share/doc/karvi/PRUNE.md
+# The site's retention run, as root (docs/PRUNE.md):
+# karvi-prune.timer starts this unit daily. Root removes every eligible item
+# in the private roots the site provisioned under /opt/karvi/users and
+# /var/lib/karvi/users, in the shared trees under /opt/karvi/shared and
+# /var/lib/karvi/shared, and in the scoreboard directory, whoever owns it. A
+# private root under an operator's home is that operator's own
+# karvi-prune.timer's. Install both files under /etc/systemd/system/ and
+# `systemctl enable --now karvi-prune.timer`. Long-term audit retention is
+# journald's and the central forwarder's, not this unit's.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/karvi-prune --basedir auto --sharedroot auto --scoreboards /dev/shm/karvi/scoreboards --days 31 --minfree 5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+# The sandbox: ProtectSystem=strict mounts the
+# whole file system read-only for this process except /dev, /proc, and /sys,
+# ProtectHome=yes hides every home (a root under a home is its operator's
+# own timer's), and ReadWritePaths names the only places it may write: the
+# two system roots, whose users and shared directories the root run walks,
+# and the scoreboard directory. The line names the same places as ExecStart
+# does; a site that gives ExecStart another --basedir, --sharedroot, or
+# --scoreboards adds that path here, or every removal there fails as
+# "read-only file system". The dash before each path makes an absent one
+# ignored (a host with one system root, the scoreboards before the first
+# daemon of the boot); without it the unit fails to start (226/NAMESPACE).
+ReadWritePaths=-/opt/karvi -/var/lib/karvi -/dev/shm/karvi/scoreboards

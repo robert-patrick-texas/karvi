@@ -1,0 +1,127 @@
+# examples/config.toml — a commented site configuration (every key with its
+# range is in configs/reference.toml, generated from the registry). TOML: a #
+# starts a comment. Layers apply in this order, the
+# later winning by key: built-in defaults, /etc/karvi or /opt/karvi,
+# ~/.config/karvi/config.toml, each --config root in order, KARVI__ variables,
+# flags, --set. Try this file from the source root, where the relative
+# paths below resolve:
+#   karvi --config examples/config.toml config validate
+#   karvi --config examples/config.toml run --dry-run --tf examples/targets.txt --cf examples/commands.txt
+
+[config]
+# The schema this file is written to; a binary that supports another major
+# refuses the file and names its own.
+schema-version = 6
+
+# The inventory: one or more CSV sources. Rows are matched by the
+# names given on the command line, by --tf files, or by selectors such as
+# --site nyc and --group access.
+[[inventory-source]]
+name = "site-csv"
+type = "csv"
+path = "examples/inventory.csv"
+required = true
+# header: the first data line names the columns; numeric: no header row and
+# every mapping is a 1-based column number.
+mode = "header"
+delimiter = ","
+# A field must have a column before any row is read.
+mandatory-fields = ["name", "platform"]
+name-transform = "default"
+
+# Which header holds which field; a field may list several headers, the
+# first found wins. credkeyref is found under its own name without a mapping.
+[inventory-source.mappings]
+name = ["name", "hostname"]
+management_address = ["management_address", "management_ip"]
+platform = ["platform"]
+transport = ["transport"]
+site = ["site"]
+groups = ["groups"]
+session_cap = ["session_cap"]
+attributes.owner = ["owner"]
+
+# Every device name is lowercased before matching.
+[name-transform.default]
+operations = [{op = "lowercase"}]
+
+# Credentials come from named backends in a policy's order. This one reads
+# examples/credentials.csv's shape (docs/CREDENTIAL-CSV.md); the file itself
+# is copied to ~/.karvi/credentials.csv at mode 0600, since a user-scoped
+# file must be the operator's own.
+[credential-backend.site-creds]
+type = "csv"
+scope = "user"
+path = "~/.karvi/credentials.csv"
+# An absent optional file is a silent not-found; true makes it an error.
+required = false
+mandatory-fields = ["username", "password"]
+
+# A RANCID .cloginrc read as data (examples/cloginrc), for a site that keeps
+# one; name it in a policy's backend-sequence to use it.
+[credential-backend.rancid]
+type = "cloginrc"
+scope = "user"
+required = false
+path = "~/.cloginrc"
+
+# The environment, last: NETUSER, NETPASS, and NETENABLE, or the templates
+# below with the device's name upper-cased in %s.
+[credential-backend.operator-env]
+type = "env"
+username-var-template = "KARVI_%s_USERNAME"
+password-var-template = "KARVI_%s_PASSWORD"
+enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
+
+# The policy every device takes (the map's name = "*" rule): the CSV first,
+# then the environment. A device pinned by credkeyref takes only the CSV row
+# whose credkey equals it.
+[credential-policy.default]
+backend-sequence = ["site-creds", "operator-env"]
+
+[[credential-policy-map]]
+policy = "default"
+name = "*"
+
+# A platform alias: c9300 is IOS XE with one paging command, its
+# own collection list, and the built-in drop list. Inventory rows name the
+# alias by its own name.
+[platform.c9300]
+driver = "cisco_iosxe"
+paging-commands = ["terminal length 0"]
+crun-commands = ["show running-config", "show version", "show inventory"]
+
+# The transport each mode uses when the inventory row leaves it blank:
+# system is OpenSSH, native is scrapligo-v1 (karvi's own connection).
+[ssh.login]
+transport = "system"
+[ssh.command]
+transport = "system"
+[ssh.run]
+transport = "native"
+
+# The trust store: accept-new enrolls a new host key and refuses a changed
+# one; secure requires prior enrollment; insecure accepts all with warnings.
+[ssh]
+host-key-policy = "accept-new"
+
+# Concurrency for run: serial, parallel, or wave (the CPU-governed ramp);
+# 0 workers means the logical CPU count.
+[dispatch]
+default = "parallel"
+parallel-workers = 0
+# default keeps the inventory's order; sorted, shuffle, and random are the
+# others, and a shuffle is reproducible from its key.
+order = "default"
+
+# The display: the theme, and the header line above each device's output.
+# <target>, <address>, <platform>, <user>, <transport> are placeholders.
+[display]
+theme = "dark"
+color = "auto"
+
+# The job's files under <basedir>/jobs/YYMMDD/<id>: output.TARGET.txt per
+# device, commands.jsonl (the records), summary.json, and the rest. Group
+# read on the folders lets a team follow each other's jobs.
+[output]
+directory-mode = "0750"

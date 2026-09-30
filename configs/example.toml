@@ -1,0 +1,234 @@
+# Example karvi configuration for the bundled documentation-only inventory.
+# Run from the source root so examples/inventory.csv resolves correctly.
+[config]
+schema-version = 6
+
+[ssh.run]
+# The bundled preview executable supports the system transport or explicitly
+# allowed Telnet. An official native build may use the pinned ScrapliGo
+# adapter after platform qualification.
+transport = "system"
+
+[audit]
+# Managed deployments normally keep this true. It is false here so the example
+# can be validated on a container or workstation without a journald socket.
+journald-required = false
+file = "~/.local/share/karvi/audit.jsonl"
+
+[watch]
+# Administrators should provision the shared /dev/shm path in production.
+directory = "~/.local/share/karvi/scoreboards"
+
+[sessions]
+shared-capacity-root = "~/.local/share/karvi/capacity"
+
+[[inventory-source]]
+name = "example-csv"
+type = "csv"
+path = "examples/inventory.csv"
+required = true
+mode = "header"
+delimiter = ","
+mandatory-fields = ["name", "platform"]
+name-transform = "default"
+
+[inventory-source.mappings]
+name = ["name", "hostname"]
+management_address = ["management_address", "management_ip"]
+platform = ["platform"]
+transport = ["transport"]
+site = ["site"]
+groups = ["groups"]
+session_cap = ["session_cap"]
+attributes.owner = ["owner"]
+# A credkeyref column pins a device to the credential CSV row whose credkey
+# it names (docs/CREDENTIAL-CSV.md). The column is found under its own name; map another
+# header with, for example, credkeyref = ["credential_pin"]. The value is a
+# literal key, never a secret: an inventory file holds no secret column.
+
+[name-transform.default]
+operations = [{op = "lowercase"}]
+
+# This named backend demonstrates explicit variable-name templates. For the
+# zero-configuration fallback, omit all policy/backend sections and use
+# NETUSER, NETPASS, and NETENABLE.
+[credential-backend.operator-env]
+type = "env"
+username-var-template = "KARVI_%s_USERNAME"
+password-var-template = "KARVI_%s_PASSWORD"
+enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
+
+# File credential sources.
+# A user-scoped file is the operator's own, mode 0600, and optional unless
+# required = true: an absent or unreadable optional file is a silent
+# not-found. A shared file is always required, needs an absolute path, mode
+# 0640, an owner of root or security.approved-admin-users, and the
+# security.shared-group group. A relative include resolves beside the file
+# that includes it and inherits the scope. Name either backend in a policy's
+# backend-sequence to use it.
+[credential-backend.rancid]
+type = "cloginrc"
+scope = "user"
+required = false
+path = "~/.cloginrc"
+
+[credential-backend.shared-rancid]
+type = "cloginrc"
+scope = "shared"
+required = true
+path = "/etc/karvi/credentials/cloginrc"
+
+# A credential CSV (type = "csv"; the guide is docs/CREDENTIAL-CSV.md)
+# holds device-keyed rows under the same file rules. scope and path are
+# required: the type has no default for either. Rows are read top to bottom
+# and the first matching row wins, so a narrower row goes above a broader
+# one. The selector columns are device_name, address_cidr, platform, site,
+# device_group, and credkey; the result columns are username, password, and
+# enable_password. A header matches its field's own name without a mapping
+# (device_name also matches the header name); mappings.<field> names another
+# header, a list of headers, or, under mode = "numeric", a column number.
+# mandatory-fields lists the fields that must have a column (default
+# ["username"]). A blank username cell means the operator's own name; a
+# blank password is allowed in the file but the row is then refused at
+# resolution wherever a password is needed (always, unless
+# ssh.pubkey-authentication = true). Never put these columns in an
+# inventory file. A device whose inventory row holds a credkeyref takes
+# only the row whose credkey equals it, from the csv backends of its
+# policy's sequence; with no such row it fails with credkeyref_unresolved
+# and never takes a general row, the environment, or a prompt.
+#
+# [credential-backend.site-creds]
+# type = "csv"
+# scope = "user"
+# required = false
+# path = "~/.karvi/credentials.csv"
+# mode = "header"
+# delimiter = ","
+# mandatory-fields = ["username", "password"]
+# mappings.device_name = ["device", "hostname"]
+# mappings.enable_password = "enable"
+#
+# [credential-backend.shared-creds]
+# type = "csv"
+# scope = "shared"
+# path = "/etc/karvi/credentials/credentials.csv"
+#
+# A file such as:
+#   device_name,address_cidr,site,credkey,username,password,enable_password
+#   sw-nyc-01,,,,svc.core,********,********
+#   ,10.1.0.0/16,,,svc.nyc,********,
+#   ,,bos,bos-lab,svc.bos,********,********
+#   *,,,,svc.default,********,
+
+[credential-policy.default]
+backend-sequence = ["operator-env"]
+
+[[credential-policy-map]]
+policy = "default"
+name = "*"
+
+# Session initialization runs a profile's commands after privilege and paging
+# setup and before the requested commands. The map selects one profile per
+# device with the credential policy map's matching and needs a final
+# name = "*" rule; without a map no profile runs. A profile needs commands
+# ([] sends nothing); on-error is fail-device (the default: the requested
+# commands are not attempted) or continue; command-timeout (1s to 12h)
+# overrides execution.command-timeout. The name none is reserved.
+[session-init.default]
+commands = []
+
+# [session-init.iosxe-wide]
+# commands = ["terminal width 511"]
+# on-error = "continue"
+# command-timeout = "15s"
+#
+# [[session-init-map]]
+# profile = "iosxe-wide"
+# platform = "cisco_iosxe"
+
+[[session-init-map]]
+profile = "default"
+name = "*"
+
+# Start statements for generic devices: generic has no paging-commands of its
+# own, so a device that runs as generic (a row set to generic, a row without a
+# platform, a target outside the inventory, or --pg) is sent nothing before
+# the requested commands. This table gives it some; they are set-up lines of
+# output.TARGET.txt and have no command record. A session-init profile mapped
+# with platform = "generic" reaches only rows whose platform is set to generic
+# (docs/OPERATIONS.md "Start statements for generic devices").
+# [platform.generic]
+# paging-commands = ["terminal length 0", "terminal width 512"]
+
+# Platform aliases: a [platform.NAME] table for a name
+# that is not a built-in is an alias of the built-in its driver names and
+# inherits that definition; its own fields override. Here c9300 is IOS XE with
+# one paging command in place of the built-in's two. Inventory rows, source
+# defaults, --platform, and --select-platform all name the alias by its own
+# name (cisco* does not match a c9300 row); names compare without regard to
+# case. A row without a platform runs as platform-resolution.default, else
+# generic, and is selected by no --select-platform value, generic included.
+[platform.c9300]
+driver = "cisco_iosxe"
+paging-commands = ["terminal length 0"]
+# The collection list a crun sends to this platform when its command line
+# names no command (docs/COLLECTION.md); the built-in list is the
+# configuration and the version, and an array here replaces it whole.
+crun-commands = ["show running-config", "show version", "show inventory"]
+# The drop list for the collection file (docs/COLLECTION.md): regular
+# expressions, one per entry, in literal strings so a backslash stays one; a
+# matching output line is left out of the collection file and nowhere else.
+# The built-in list drops the byte count, the clock period, the uptime, and
+# the time of the show, never the last-change stamp; an array here replaces
+# it whole, and [] turns the filter off.
+crun-filters = ['^Building configuration\.\.\.$', '^Current configuration : \d+ bytes$', '^ntp clock-period \d+$', ' uptime is ']
+
+# The collection run (docs/COLLECTION.md): one file per device,
+# named by the device, in one flat directory, replaced only when the
+# device's collection succeeded. The default directory is <basedir>/crun;
+# a site shares one by making it once with chgrp and chmod 2770 or 2775,
+# and karvi fills it (each file at file-mode, in the directory's group).
+[crun]
+directory = "auto"
+directory-mode = "0770"
+file-mode = "0660"
+# after names an executable the client runs once the collection has ended
+# (docs/COLLECTION.md section 5): in the directory,
+# the replaced files on stdin, the job in KARVI_* variables. The shipped
+# examples commit to git and mail the diff. Empty: none.
+after = ""
+after-timeout = "5m"
+
+# Platform resolution: default is the platform
+# of a device whose platform is not set (a blank row without a source default,
+# or a direct target without --platform); the client warns once per source
+# and the device's first record carries the notice platform_not_set. An
+# inventory row naming a platform that is not known refuses the activity at
+# planning (platform_unknown) under on-unknown = "fail"; under "warn" the
+# device runs as unknown-fallback with a warning and the notice
+# platform_unknown_fallback, and is matched by no --select-platform value or
+# map platform rule. Configuration values (these keys, a source's
+# defaults.platform) must name a known platform whatever on-unknown says.
+[platform-resolution]
+default = "cisco_iosxe"
+on-unknown = "fail"
+unknown-fallback = "generic"
+
+# SSH algorithms: [ssh-algorithms] holds the host-key, kex, ciphers, and macs
+# lists both SSH transports offer, strongest first (the defaults are in
+# configs/reference.toml); each transport offers the names it implements.
+# A per-host profile replaces a list (ciphers = [...]) or appends last
+# resorts after the global list (ciphers-append = [...]); only a profile may
+# add diffie-hellman-group1-sha1, diffie-hellman-group-exchange-sha1,
+# AES-192, AES-128, or UMAC-128. [[ssh-algorithms-map]] rules select a
+# profile with the credential policy map's matching; an unmatched device uses
+# [ssh-algorithms], and a catch-all rule is refused. ssh-dss, 3des-cbc, the
+# non-AES CBC ciphers, arcfour, none, and MD5, truncated, or 64-bit MACs are
+# refused everywhere.
+# [ssh-algorithms-profile.legacy-ios]
+# kex-append = ["diffie-hellman-group1-sha1"]
+# ciphers-append = ["aes128-ctr", "aes128-cbc"]
+#
+# [[ssh-algorithms-map]]
+# profile = "legacy-ios"
+# device-group = "legacy-access"

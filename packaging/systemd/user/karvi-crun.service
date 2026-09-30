@@ -1,0 +1,31 @@
+[Unit]
+Description=karvi collection run over the inventory
+Documentation=file:%h/.local/share/doc/karvi/COLLECTION.md
+# The schedule of the collection run (docs/COLLECTION.md section 7):
+# karvi-crun.timer starts this unit, and systemd never starts it
+# while the previous run is still active, so two collections never overlap
+# in one directory. Install both files under ~/.config/systemd/user/ as the
+# collecting operator, whose credential backend answers without a prompt
+# (docs/CREDENTIAL-CSV.md), then `systemctl --user enable --now karvi-crun.timer`.
+After=network-online.target
+
+[Service]
+Type=oneshot
+# --no-daemon: a oneshot's control group ends with its main process, and a
+# daemon this unit launched would be terminated with it; the
+# in-process path needs none. A site whose daemon runs under karvi-daemon.service
+# may drop the option and submit to it instead.
+ExecStart=/usr/bin/karvi crun --all --no-daemon --format jsonl
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+# The basedir candidates, the collection directory (crun.directory; the
+# site's shared crun under either system root when setup shared made it),
+# and the scoreboards. The crun.after hook runs
+# inside this unit, so a git repository over the collection directory is
+# written here too; a collection directory elsewhere is added here. The
+# dash before each path makes an absent one ignored; without it the unit
+# fails to start (226/NAMESPACE).
+ReadWritePaths=-%h/.local/share/karvi -/opt/karvi -/var/lib/karvi -/dev/shm/karvi
+UMask=0007

@@ -1,0 +1,25 @@
+#!/bin/sh
+# The schedule of the collection run under cron (docs/COLLECTION.md
+# section 7). Install per user after reviewing paths, as
+# the collecting operator, whose credential backend answers without a
+# prompt (docs/CREDENTIAL-CSV.md):
+#
+#   # /etc/cron.d/karvi-crun
+#   15 2 * * *  netops  /usr/share/karvi/cron/karvi-crun >> /var/log/karvi-crun.jsonl 2>&1
+#
+# A cron starts a tick whatever the previous one is doing, so the run holds a
+# lock (flock) for its duration: a tick that finds the lock held is skipped
+# with one line on stderr and exit 75 (EX_TEMPFAIL), never queued, and two
+# collections never overlap in one directory. The lock is per user under
+# TMPDIR; KARVI_CRUN_LOCK names another path. The in-process path
+# (--no-daemon) needs no daemon; the crun.after hook runs in this process
+# with the cron's environment. KARVI names the executable; the arguments
+# are appended to the crun line (--select-platform, --cd=PATH, --transport).
+set -u
+lock=${KARVI_CRUN_LOCK:-${TMPDIR:-/tmp}/karvi-crun.$(id -u).lock}
+exec 9>"$lock" || exit 1
+if ! flock -n 9; then
+  echo "karvi-crun: skipped: the previous collection is still running ($lock)" >&2
+  exit 75
+fi
+exec "${KARVI:-karvi}" crun --all --no-daemon --format jsonl "$@"

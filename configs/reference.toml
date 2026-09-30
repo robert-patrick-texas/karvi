@@ -1,0 +1,611 @@
+[config]
+# Must equal supported major 6.
+schema-version = 6
+# Effective global value read before locating user config.
+allow-user-layer = true
+# false disables further directives; equivalent include depth 0.
+includes = true
+# 0–32 directive-chain depth.
+include-depth = 3
+# 0–32 included-directory nesting.
+dir-recursion-depth = 3
+# Reject unknown KARVI__* variables.
+reject-unknown-env = true
+
+# auto uses the private-state order; an explicit path is the exact effective private root,
+# absolute or operator-home-relative, a real directory the operator can write to whatever its
+# owner and mode; it cannot change its own config discovery. The socket and state subtrees
+# under it are the operator's own, so a root is never shared: the shared trees are
+# sharedroot's.
+basedir = "auto"
+# The site's shared root, holding the jobs, crun, and transcripts trees that sudo karvi setup
+# shared creates with group write and setgid: auto consults /opt/karvi/shared, then
+# /var/lib/karvi/shared; none consults nothing; a path consults that directory. A tree that
+# exists there is the default of output.root, crun.directory, or transcript.root in place of
+# the one under basedir, and a tree the operator cannot create files in is refused.
+sharedroot = "auto"
+# auto writable chain or absolute path.
+tempdir = "auto"
+# The directory of the output spools, one file per command in flight whose response has passed
+# output.spool-threshold-bytes. auto tries /tmp/karvi-<uid>, then /var/tmp/karvi-<uid>, each
+# made 0700 for the effective uid, a real directory and not a link, probed with one file; an
+# absolute path replaces the list; no candidate writable is spool_directory_unavailable,
+# before any device is touched. Not tempdir: the scratch is for small, short-lived files and
+# its auto chain prefers /dev/shm, a tmpfs, while a spool is infrequent and possibly large and
+# must cost disk, never memory; a site that wants both on one volume points both keys at
+# explicit paths there. Resolved and swept at the daemon's start and at every job's admission.
+spooldir = "auto"
+# The free-space check of every volume an activity writes, read once per volume at admission
+# before any device is contacted: the job's output root, a crun's collection directory,
+# spooldir, and a recorded login's transcripts root, grouped by the device behind each path.
+# auto (the default) asks each volume for the sum of what the places on it will hold when the
+# job has finished (the output root output.expected-bytes-per-device × devices × its copies
+# × output.reserve-multiplier, the collection directory one copy, the spool directory the
+# job's width × output.max-command-bytes, the transcripts root nothing) plus
+# output.min-free-bytes-after-job once; when the spool's term alone is short but at least one
+# command's limit fits, the job runs narrower with the warning spool_width_narrowed, and below
+# that, or short of the other terms, the job is refused with output_preflight_space naming the
+# volume's paths and both figures. always asks each volume for the floor alone. never reads
+# nothing (the directories are still resolved and probed writable). The audit file, the
+# scoreboard directory, and the state root are not checked: their first write lands before any
+# device and they write kilobytes after. Alerting on free space is the site's monitoring, not
+# this check (docs/SCALE.md).
+freecheck = "auto"
+# auto or loadable IANA zone.
+timezone = "auto"
+
+[name]
+# ipv4 or ipv6.
+address-family-preference = "ipv6"
+# client or daemon; normalized into each target before hashing.
+default-address-authority = "client"
+# Global governance gate; a daemon-authority target fails validation unless enabled.
+allow-daemon-resolution = false
+# Existing name-transform profile.
+default-transform = "default"
+# 1ms–60s; no karvi retry.
+dns-timeout = "2s"
+# V1 only system.
+resolver = "system"
+
+[network]
+# Send exactly two ICMP echo probes to each target's selected address before opening its
+# device transport. One reply proceeds with a packet-loss notice; two misses skip the target
+# as icmp_unreachable with no transport attempt. --ping and --noping override per invocation.
+ping-targets = false
+# Independent timeout for each of the two ICMP probes; 1ms–10s.
+ping-timeout = "500ms"
+# Allow the internal ping-socket pinger, which sends ICMP directly over a Linux ping socket.
+# The kernel grants ping sockets to the groups in the sysctl net.ipv4.ping_group_range (for
+# example net.ipv4.ping_group_range = 1000 9999 covering the operators' groups); widening it
+# is the recommended setup, since the fallback runs a sub-process per gated device.
+ping-socket = true
+# Allow the external system ping executable (found on PATH) as the fallback when ping sockets
+# are refused; less performant because it opens a sub-process per gated device. With both
+# methods disabled while network.ping-targets is true the configuration is rejected.
+ping-system = true
+
+[ssh.login]
+# Named transport selector. default resolves to system for login; preferred resolves to
+# native.
+transport = "default"
+
+[ssh.command]
+# Named transport selector. default resolves to system for command; preferred resolves to
+# native.
+transport = "default"
+
+[ssh.run]
+# Named transport selector. default resolves to native for run; preferred also resolves to
+# native.
+transport = "default"
+
+[ssh.transports]
+# System-SSH executable name or path. Relative paths resolve from the karvi executable
+# directory.
+system = "ssh"
+# Preferred compiled-in SSH implementation. Built-in default unavailability is tolerated until
+# selected; an explicit unavailable value is a configuration error.
+native = "scrapligo-v1"
+
+[ssh]
+# Include ~/.ssh/config after compatibility and managed-default blocks; it supplies only
+# still-unset options such as approved bastion routing.
+include-user-config = true
+# Unified login, command, and run host-key policy: accept-new accepts new keys and rejects
+# changes; secure requires prior enrollment; insecure accepts all keys with warnings. The
+# removed values auto and default are rejected.
+host-key-policy = "accept-new"
+# Unified karvi trust store. auto selects ~/.local/share/karvi/known_hosts.
+known-hosts-file = "auto"
+# When true, the first changed SSH host key stops new run scheduling while allowing in-flight
+# devices to finish.
+halt-run-on-host-key-mismatch = false
+# Default password-oriented fleet behavior.
+pubkey-authentication = false
+# At least one auth mechanism must remain.
+password-authentication = true
+# Supports network-device challenge prompts.
+keyboard-interactive-authentication = true
+# 1s–5m.
+connect-timeout = "10s"
+# 0 disables; otherwise 1s–10m.
+server-alive-interval = "15s"
+# 1–100 when interval nonzero.
+server-alive-count-max = 3
+# Private real directory or auto chain.
+control-path-root = "auto"
+
+[ssh-algorithms]
+# Host-key algorithms both SSH transports offer, strongest first; each transport offers the
+# names it implements, filtered to the key types the trust store holds for the device.
+# ssh-dss, certificate, and security-key algorithms are refused.
+host-key = ["ssh-ed25519", "ecdsa-sha2-nistp521", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp256", "rsa-sha2-512", "rsa-sha2-256", "ssh-rsa"]
+# Key exchanges both SSH transports offer, strongest first. diffie-hellman-group1-sha1 and
+# diffie-hellman-group-exchange-sha1 only in an ssh-algorithms-profile.
+kex = ["mlkem768x25519-sha256", "sntrup761x25519-sha512@openssh.com", "curve25519-sha256", "curve25519-sha256@libssh.org", "ecdh-sha2-nistp521", "ecdh-sha2-nistp384", "ecdh-sha2-nistp256", "diffie-hellman-group18-sha512", "diffie-hellman-group16-sha512", "diffie-hellman-group-exchange-sha256", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"]
+# Ciphers both SSH transports offer, strongest first. AES-192 and AES-128 only in an
+# ssh-algorithms-profile; 3des-cbc, non-AES CBC, arcfour, and none are refused.
+ciphers = ["aes256-gcm@openssh.com", "chacha20-poly1305@openssh.com", "aes256-ctr", "aes256-cbc"]
+# MACs both SSH transports offer, strongest first. UMAC-128 only in an ssh-algorithms-profile;
+# MD5, truncated, and 64-bit MACs are refused.
+macs = ["hmac-sha2-512-etm@openssh.com", "hmac-sha2-256-etm@openssh.com", "hmac-sha2-512", "hmac-sha2-256", "hmac-sha1"]
+
+[native-ssh]
+# 1s–5m.
+connect-timeout = "10s"
+# 1s–5m.
+handshake-timeout = "10s"
+# 0 disables; otherwise 1s–10m.
+keepalive-interval = "15s"
+# 1–100 when enabled.
+keepalive-count-max = 3
+
+[telnet]
+# 1s–5m.
+connect-timeout = "10s"
+# 1s–12h.
+read-timeout = "60s"
+
+[execution]
+# 1s–12h; per-command.
+command-timeout = "120s"
+# 1s–5m; the first prompt after login and the prompt after each paging command. The system
+# transport awaits the first prompt for ssh.connect-timeout plus this value from the start of
+# its ssh process; scrapligo-v1 for this value after its handshake.
+prompt-timeout = "10s"
+# 1s–5m; one privilege level's whole step, from the escalate command to that level's prompt.
+enable-timeout = "10s"
+# 0 disables; otherwise 1s–7d. Bounds one device's whole command list, the session-init
+# profile included, from the prepared session; ends it with device_timeout.
+device-timeout = "0s"
+# 0–10m, enforced when the plan is drafted. The wait for the prompt after a blind send, a
+# command ending in \r sequences or given --blind-return N, in place of its command timeout; 0
+# sends and does not wait. The client's effective value travels in the execution plan, so
+# --blind-wait reaches the daemon.
+blind-wait = "10s"
+# CLI opt-out is explicit.
+halt-device-on-command-error = true
+
+[dispatch]
+# serial, parallel, wave.
+default = "serial"
+# 0 means logical CPU count; otherwise 1–4096, the absolute ceiling.
+parallel-workers = 0
+# 1–4096; hard validation ceiling.
+absolute-max-width = 512
+# 0–4096. The host's cap on device sessions in flight at once, across every job, every
+# operator's daemon, and in-process runs on the host, held as leases in the capacity ledger
+# under sessions.shared-capacity-root; a job's width is also bounded by it. 0 means min(256,
+# max(32, 8 × CPU)): 32 on a host of four logical CPUs, 128 on sixteen, 256 from thirty-two
+# up. A site whose devices and AAA carry more sets the figure it wants, 512 or 1024 among
+# them, together with dispatch.parallel-workers or dispatch.wave-max-width and
+# dispatch.absolute-max-width (docs/SCALE.md).
+server-max-inflight = 0
+# 10ms–1s; ≤ max.
+admission-poll-min = "50ms"
+# 10ms–5s; ≥ min.
+admission-poll-max = "250ms"
+# default, sorted (alias name), shuffle, random; inventory and random-seeded are removed.
+order = "default"
+
+[output]
+# 0700, 0750, or 0770 for folders karvi creates in the job and transcript trees.
+directory-mode = "0750"
+
+[targets]
+# warn or error for a target file or folder that yields no targets.
+empty-source = "error"
+# 1–16; --tfr PATH is level 0.
+recursion-max-depth = 3
+
+[platform-resolution]
+# The platform of a device whose platform is not set (a blank inventory row without a source
+# default, or a direct target without --platform): a known platform, cisco_iosxe as shipped
+# since registry 17, generic or empty for generic, or the platform a site's network is
+# predominantly.
+default = "cisco_iosxe"
+# fail refuses an activity whose target set holds an inventory row naming an unknown platform
+# (platform_unknown); warn runs the device as platform-resolution.unknown-fallback with a
+# warning and the notice platform_unknown_fallback. Configuration values fail validation
+# whatever this says.
+on-unknown = "fail"
+# The known platform an unknown inventory row runs as under on-unknown = "warn"; not read
+# under fail.
+unknown-fallback = "generic"
+
+[dispatch]
+# Key for the shuffle rank; empty allowed; recorded with the order.
+shuffle-key = ""
+# 0 auto; else 1–ceiling.
+wave-start-width = 0
+# 0 auto; else start–absolute max.
+wave-max-width = 0
+# 1s–10m; the CPU sampler's smoothing constant.
+wave-cpu-half-life = "15s"
+# V1 1–60; default 5.
+wave-cpu-warmup-samples = 5
+# >0 and <100.
+wave-cpu-threshold-percent = 75
+# ≥0 and threshold±zone inside 0..100.
+wave-cpu-target-zone-percent = 10
+# >0–1000.
+wave-step-up-percent = 50
+# >0–100.
+wave-step-down-percent = 10
+# 0–100.
+wave-cooldown-waves = 2
+# 1–100.
+wave-depth-multiplier = 4
+# 0 disabled; else ≥1.
+halt-on-error-count = 0
+# 0 disabled; else 1–100.
+halt-on-error-percent = 0
+# 0 disabled; else ≥1.
+wave-gate-error-count = 0
+# 0 disabled; else 1–100.
+wave-gate-error-percent = 0
+# 0–1h.
+wave-gate-timed-delay = "0s"
+
+[sessions]
+# Admin group-shared real directory.
+shared-capacity-root = "/dev/shm/karvi/capacity"
+
+[daemon]
+# Safe per-UID path.
+socket = "auto"
+# 1s–2m.
+start-timeout = "5s"
+# 0–43,200.
+shutdown-grace-seconds = 120
+# 0 never exits; else 1m–30d. The daemon stops itself, as daemon stop would, once this long
+# has passed with no active job, no preparation in progress, and no request but ping and
+# status; checked once a minute. The packaged systemd unit sets 0.
+shutdown-idle-timer = "1h"
+# 0–60; ≤ normal grace unless normal 0.
+forced-grace-seconds = 5
+# 64 KiB–64 MiB.
+max-ipc-frame-bytes = 8388608
+# 10–10,000; terminal jobs leave memory after finalization.
+max-accepted-jobs = 32
+
+[output]
+# auto: the shared jobs tree under sharedroot when one exists, else <basedir>/jobs; an
+# explicit path is that writable real directory.
+root = "auto"
+# Whether the activity keeps a job folder and its files, on every path (command, run
+# --no-daemon, and a run through the daemon); false, or --nof, writes nothing and displays the
+# records from memory or the socket.
+persist-command = true
+
+[output.files]
+# Write every device's output.TARGET.txt, the session as text; false does not create them.
+# Written from the record in memory, so it does not need commands.jsonl.
+output-txt = true
+# Write commands.jsonl, the records; false does not create it, on every path (records travel
+# over the socket). Without it job follow cannot replay the job and a device's text cannot be
+# derived again.
+commands-jsonl = true
+# Write commands.txt, the rerun's command file (--cf); false does not create it.
+commands-txt = true
+# Write failed-devices.txt, the rerun's target file (--tf); false does not create it.
+failed-devices-txt = true
+# Write failures.jsonl, the records that did not succeed (each is also in commands.jsonl);
+# false does not create it.
+failures-jsonl = true
+# Write manifest.json, the job as it was accepted; false does not create it.
+manifest-json = true
+# Write metrics.json; false does not create it.
+metrics-json = true
+# Write summary.json; false does not create it, on every path. A finished job without one is
+# job_orphaned to a later job follow once the daemon has let it go. karvi-prune knows a
+# finished job by it; a folder without one is an orphan, removed by age alone once its day,
+# everything in it, and its scoreboard file are older than the retention age. With all eight
+# keys false no job folder is created.
+summary-json = true
+
+[output]
+# The device name in a file name (output.NAME.txt, crun/NAME) is the canonical name's first
+# label, lowercased; false writes the whole name, lowercased. An address is never cropped: its
+# dots and colons are hyphens. Carried in the plan, so a job's files are named as its
+# invocation said on every path.
+crop-to-dot = true
+
+[crun]
+# The collection directory of crun, one file per device named by the device: auto is the
+# shared crun tree under sharedroot when one exists, else <basedir>/crun; an explicit path is
+# resolved as output.root is (~ expanded, a relative path from the working directory).
+# --cd=PATH sets it for one invocation. Carried in the plan.
+directory = "auto"
+# 0750, 0755, or 0770: the mode of the collection directory when karvi creates it. An existing
+# directory is left as it is in mode, group, and setgid bit; a shared one is made once by the
+# site with chgrp and chmod 2770 or 2775.
+directory-mode = "0770"
+# 0640, 0644, or 0660: the mode of each collection file, applied to the temporary before the
+# rename, so the file appears at that mode and takes the directory's group under setgid.
+file-mode = "0660"
+# An executable the client runs once a crun has ended and its result line is printed, empty
+# for none: in the collection directory, with the replaced files' names on standard input one
+# per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR (empty under --nof),
+# KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACED, KARVI_CRUN_KEPT, and KARVI_EXIT; its output goes
+# to karvi's standard error after the result line. It runs on the in-process and the daemon
+# path alike, not under --detach; a hook that cannot start, exits non-zero, or runs past
+# crun.after-timeout is the warning crun_after_failed, and the run's exit code stands
+# (docs/COLLECTION.md).
+after = ""
+# 1s–1h. How long crun.after may run: on expiry the hook's process group is sent SIGTERM,
+# killed five seconds later if still there, and the warning crun_after_failed says it ran past
+# the timeout.
+after-timeout = "5m"
+
+[output]
+# 1 KiB–1 GiB; the bound on one command's output.
+max-command-bytes = 67108864
+# 0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory
+# up to it and spools to a file under spooldir from the byte that crosses it. 0 spools every
+# response from its first byte; a value at or above output.max-command-bytes means no command
+# spools, since the limit ends a response first, and no rule refuses the pair. The daemon's
+# memory for output is then in flight × (this threshold + a few windows of at most 4 KiB),
+# whatever the responses' sizes.
+spool-threshold-bytes = 1048576
+# ≥ max command; ≤1 TiB. Counts what is written of the devices' output: the commands.jsonl
+# lines and the text blocks of every output.TARGET.txt.
+max-job-bytes = 17179869184
+# 0–1 GiB; capacity estimate.
+expected-bytes-per-device = 262144
+# 1.0–10.0.
+reserve-multiplier = 1.25
+# 0–1 TiB; 2 GiB by default. The floor every volume an activity writes must keep free after
+# the activity's estimate: under freecheck = "auto" it is added once to each volume's sum,
+# under always it is the whole ask.
+min-free-bytes-after-job = 2147483648
+# False requires global lock and durability warning.
+fsync-command-records = true
+# auto, strip, preserve.
+ansi = "auto"
+
+[display]
+# Shared terminal theme: auto, dark, light, or nocolor.
+theme = "dark"
+# Terminal color policy: auto, always, or never.
+color = "auto"
+# Human-facing timestamp pattern. Supports yyyy, yy, MM/month-context mm, dd, hh,
+# minute-context mm, ss, and sss. Stored records remain RFC 3339.
+timestamp = "hh:mm:ss yyyy-mm-dd"
+
+[display.ping]
+# One-line template for the ICMP gate's result of each gated device in text output, before the
+# device's header, styled as the headers are; empty disables it. <rtt1> and <rtt2> are the two
+# probes' round-trip times, timeout, or error; <result> is proceeding or skipped. Suppressed
+# by --quiet; ICMP error details and the packet-loss notice line appear only under --debug.
+header = "! <target> [<address>] ping(1) <rtt1>, ping(2) <rtt2>, <result>"
+
+[display.colors]
+# Color for successful terminal status; default selects the active theme palette.
+success = "default"
+# Color for warning and halted terminal status; default selects the active theme palette.
+warning = "default"
+# Color for failed terminal status; default selects the active theme palette.
+error = "default"
+# Color for stale or secondary terminal information; default selects the active theme palette.
+muted = "default"
+# Color for changing or emphasized terminal information; default selects the active theme
+# palette.
+accent = "default"
+# Color for the <timestamp> placeholder in generated terminal headers and footers; default is
+# gray in the built-in themes.
+timestamp = "default"
+# Color for the target device identity in generated terminal headers and footers; default
+# selects the active theme palette.
+target = "default"
+# Color for the resolved management address in generated terminal headers and footers; default
+# selects the active theme palette.
+address = "default"
+# Color for brackets, punctuation, and element labels such as platform, user, backend, and
+# transport; default is blue under the dark theme and gray under the light theme.
+label = "default"
+# Color for ordinary generated header and footer values; default selects the active theme
+# palette.
+value = "default"
+# Color for generated command border text; default is gray in the built-in themes.
+border = "default"
+# Color for the dash line requested by command or run --border; default is gray in the
+# built-in themes.
+dynamic-border = "default"
+
+[display.login]
+# One-line login header template; empty disables it.
+header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"
+# One-line login footer template; empty disables it.
+footer = ""
+
+[display.command]
+# One-line command header template; empty disables it.
+header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"
+# One-line command footer template; empty disables it. <reference-id> remains available for
+# custom templates but is omitted from the default because the activity ID is already present
+# in the artifacts path.
+footer = "! exit=<exit-code> elapsed=<elapsed> artifacts=<artifacts>"
+# Separator emitted between command outputs. Default is one blank line. Newlines are allowed;
+# <repeat:TEXT:COUNT> expands repeated text, for example <repeat:-:40>\n.
+border = "\n"
+# 1–4096. Dash count used by command --border when no header is displayed. A displayed
+# header instead determines the dynamic border length.
+dynamic-border-length = 72
+# When true, emit the configured or dynamic border after the final command. False suppresses
+# the unnecessary trailing separator.
+last-border = false
+# Show the effective device prompt and sent command before each attempted command result in
+# human text output, including device-reported errors.
+echo = false
+
+[display.run]
+# Per-device header used by run --format text; empty disables it. A failed record still emits
+# an explicit error line.
+header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"
+# One-line footer template that ends a run's text display on every path, the daemon follow,
+# --no-daemon, job follow, and a finished job's replay, from the job's summary (its exit,
+# duration, and job folder); empty disables it. Under --format jsonl the summary document is
+# the stream's last line instead, and nothing ends the run on standard error.
+footer = "! exit=<exit-code> elapsed=<elapsed> artifacts=<artifacts>"
+# Separator emitted between run command records. Default is one blank line. Newlines and
+# <repeat:TEXT:COUNT> are supported.
+border = "\n"
+# 1–4096. Dash count used by run --border when no per-device header is displayed.
+dynamic-border-length = 72
+# When true, emit the configured or dynamic border after the final run command record. False
+# suppresses the trailing separator.
+last-border = false
+# Show the effective device prompt and sent command before each attempted run command result
+# in human text output, including device-reported errors; JSONL remains undecorated.
+echo = false
+
+[display.json]
+# 1–8. Spaces per indentation level for --format json. Compact --format jsonl remains one
+# record per line.
+indent = 2
+
+[transcript]
+# auto: the shared transcripts tree under sharedroot when one exists, else
+# <basedir>/transcripts; an explicit path is that directory.
+root = "auto"
+# text, jsonl, or json; jsonl and json are refused until the transcript event recorder exists.
+format = "text"
+# text, jsonl, or json.
+metadata-format = "jsonl"
+# terminate or continue.
+on-write-error = "terminate"
+
+[audit]
+# Mandatory audit cannot be disabled.
+enabled = true
+# Failure blocks new work when true.
+journald-required = true
+# Empty disables secondary file.
+file = ""
+# Requires nonempty file when true.
+file-required = false
+
+[logging]
+# debug, info, warn, error.
+level = "info"
+# Empty disables; append only.
+file = ""
+# Requires path when true.
+file-required = false
+
+[watch]
+# Applies to snapshot writers.
+enabled = true
+# Admin group-shared real directory.
+directory = "/dev/shm/karvi/scoreboards"
+# 250ms–60s; the screen's refresh, 2s since registry 15.
+refresh = "2s"
+# ≥2× refresh, ≤24h.
+stale-after = "10s"
+# 100–1,000,000.
+max-files = 10000
+
+[metrics]
+# 250ms–1m.
+process-sample-interval = "1s"
+
+[security]
+# Existing group name or configured numeric GID form.
+shared-group = "netops"
+# Nonempty; shared credential-file owners.
+approved-admin-users = ["root"]
+# When true, canonical target still undergoes all checks.
+allow-credential-symlinks = false
+# Explicit second gate.
+allow-telnet = false
+# Startup verifies build/runtime mode.
+require-fips = false
+# Names only; secret values not shown by config explain.
+child-environment-allowlist = ["LANG", "LC_ALL", "LC_CTYPE", "TERM", "COLORTERM", "SSH_AUTH_SOCK"]
+
+[creds]
+# Existing backends; built-in env fallback remains last.
+backend-sequence = []
+# /dev/tty only; after all backends/fallback.
+interactive-prompt = true
+# Prompt missing username when TTY exists.
+prompt-for-username = true
+# Masked prompt.
+prompt-for-password = true
+
+[tabular]
+# 1 KiB–64 MiB; over-limit is hard file error.
+max-physical-line-bytes = 1048576
+
+# Dynamic sections such as [[inventory-source]], [credential-backend.NAME],
+# [credential-policy.NAME], [[credential-policy-map]], [session-init.NAME],
+# [ssh-algorithms-profile.NAME], [[ssh-algorithms-map]], and [platform.NAME]
+# are shown in configs/example.toml.
+#
+# A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,
+# cisco_nxos, juniper_junos, arista_eos, linux) overrides that platform's fields;
+# a table for any other name is an alias and needs driver = "<built-in>", inheriting
+# the whole built-in definition. Names compare without regard to case and are
+# recorded lowercase; a name holds no glob character and does not begin with "!".
+# Fields: driver, default-transport, ssh-port, telnet-port, privileged-level (a
+# level of the base), requires-enable, session-cap, control-master, paging-commands,
+# crun-commands (the collection list a crun sends when its command line names no
+# command), crun-filters (regular expressions whose matching output lines are
+# dropped from the collection file; an empty array turns the built-in list off).
+# A device whose platform is not set runs as platform-resolution.default, else
+# generic, with the notice platform_not_set, and is matched by no --select-platform
+# selector or map platform rule; an inventory row naming an unknown platform
+# refuses the activity (platform_unknown) unless platform-resolution.on-unknown =
+# "warn", when it runs as unknown-fallback with the notice platform_unknown_fallback
+# and is matched by neither.
+#
+# File credential sources declare scope and required, for example:
+#   [credential-backend.rancid]          # optional user file, mode 0600
+#   type = "cloginrc"
+#   scope = "user"
+#   required = false
+#   path = "~/.cloginrc"
+#   [credential-backend.shared-rancid]   # mandatory shared file, mode 0640
+#   type = "cloginrc"
+#   scope = "shared"
+#   required = true
+#   path = "/etc/karvi/credentials/cloginrc"
+#   [credential-backend.site-creds]      # a credential CSV: scope and path are required
+#   type = "csv"
+#   scope = "user"
+#   required = false
+#   path = "~/.karvi/credentials.csv"
+#   mode = "header"                      # or "numeric", with mappings as column numbers
+#   mandatory-fields = ["username"]
+#   mappings.device_name = ["device", "hostname"]
+# Rows match top to bottom, first match wins; the columns are device_name,
+# address_cidr, platform, site, device_group, credkey, username, password,
+# and enable_password. See configs/example.toml.
+#
+# The ICMP gate (network.ping-targets) sends its probes directly over Linux ping
+# sockets when the kernel grants them to the operator's group; set the sysctl
+#   net.ipv4.ping_group_range = 1000 9999    # the range your operators' groups need
+# to use the internal pinger. Without it karvi falls back to the system ping
+# binary, which works but opens a sub-process for every gated device.

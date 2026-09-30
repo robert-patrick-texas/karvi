@@ -1,0 +1,25 @@
+#!/bin/sh
+# The retention run under cron (docs/PRUNE.md; docs/OPERATIONS.md
+# "Retention"). Install after reviewing the values: as root, one line prunes
+# the site (the private roots under /opt/karvi/users and /var/lib/karvi/users,
+# the shared trees, the scoreboards); as an operator, the line prunes what
+# that operator owns under their own basedir and in the shared trees:
+#
+#   # /etc/cron.d/karvi-prune
+#   17 3 * * *  root    /usr/share/karvi/cron/karvi-prune 2>&1 | logger -t karvi-prune
+#   23 3 * * *  netops  /usr/share/karvi/cron/karvi-prune 2>&1 | logger -t karvi-prune
+#
+# A site without a timer or a cron runs the same by hand: `sudo karvi-prune`
+# for the site, `karvi-prune` for one's own, `--dry-run` first.
+#
+# The report is one line per item on standard output with the summary last;
+# the exit is 1 when a removal failed. Long-term audit retention is journald's
+# and the central forwarder's, not this script's. KARVI_PRUNE
+# names the executable; the arguments are appended to the line (--dry-run,
+# --verbose, --days).
+exec "${KARVI_PRUNE:-/usr/bin/karvi-prune}" \
+  --basedir auto \
+  --sharedroot auto \
+  --scoreboards /dev/shm/karvi/scoreboards \
+  --days 31 \
+  --minfree 5 "$@"

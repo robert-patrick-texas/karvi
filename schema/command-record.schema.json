@@ -1,0 +1,645 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record-v2.json",
+  "title": "karvi per-command record schema 2",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "record_id",
+    "activity_id",
+    "activity_type",
+    "sequence",
+    "operator",
+    "device",
+    "input_target",
+    "transformed_name",
+    "dns_suffix_action",
+    "address_candidates",
+    "platform",
+    "transport",
+    "port",
+    "connection_reused",
+    "dispatch",
+    "command_index",
+    "command_count",
+    "command_kind",
+    "command",
+    "command_sha256",
+    "status",
+    "output",
+    "output_encoding",
+    "output_bytes",
+    "output_sha256",
+    "promptbefore",
+    "prompt",
+    "prompt_source",
+    "prompt_observed",
+    "notices",
+    "timing",
+    "error",
+    "retry_eligible",
+    "ping"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "activity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "activity_type": {
+      "enum": [
+        "run",
+        "command"
+      ]
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "username",
+        "uid"
+      ],
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "integer"
+        },
+        "primary_gid": {
+          "type": "integer"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "canonical_name",
+        "groups"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "canonical_name": {
+          "type": "string"
+        },
+        "site": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "risk_tier": {
+          "type": "string"
+        },
+        "deployment_ring": {
+          "type": "string"
+        },
+        "topology_domain": {
+          "type": "string"
+        }
+      }
+    },
+    "address_candidates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "address_source": {
+      "enum": [
+        "inventory",
+        "dns-client",
+        "dns-daemon"
+      ]
+    },
+    "address_authority": {
+      "enum": [
+        "client",
+        "daemon"
+      ]
+    },
+    "client_address_candidates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "daemon_address_candidates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alternate_addresses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "address_resolution_actor": {
+      "type": "string"
+    },
+    "credential": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "policy": {
+          "type": "string"
+        },
+        "device_username": {
+          "type": "string"
+        },
+        "backend": {
+          "type": "string"
+        },
+        "matched_on": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "credential_id": {
+          "type": "string"
+        },
+        "protection": {
+          "enum": [
+            "local-peer",
+            "sealed"
+          ]
+        }
+      }
+    },
+    "platform": {
+      "type": "string"
+    },
+    "transport": {
+      "type": "string",
+      "minLength": 1
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "connection_reused": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "command_index": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "command_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "command_kind": {
+      "enum": [
+        "requested",
+        "session_init"
+      ]
+    },
+    "command": {
+      "type": "string"
+    },
+    "command_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "status": {
+      "enum": [
+        "succeeded",
+        "device_error",
+        "connection_error",
+        "authentication_error",
+        "privilege_error",
+        "timeout",
+        "output_limit_exceeded",
+        "output_error",
+        "not_attempted_prior_command_failure",
+        "not_attempted_session_init_failure",
+        "not_started_halt",
+        "not_started_wave_gate",
+        "cancelled",
+        "incomplete_shutdown",
+        "incomplete_daemon_recovery",
+        "icmp_unreachable",
+        "icmp_capability_unavailable"
+      ]
+    },
+    "output": {
+      "type": "string"
+    },
+    "output_encoding": {
+      "enum": [
+        "utf-8",
+        "base64"
+      ]
+    },
+    "output_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "output_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "promptbefore": {
+      "type": "string"
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "prompt_source": {
+      "enum": [
+        "",
+        "observed",
+        "inferred"
+      ]
+    },
+    "prompt_observed": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "notices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "queued_at",
+        "device_started_at",
+        "command_started_at",
+        "ended_at",
+        "total_ns",
+        "scheduler_wait_ns",
+        "server_capacity_wait_ns",
+        "device_capacity_wait_ns",
+        "dns_ns",
+        "credential_ns",
+        "ping_ns",
+        "connect_ns",
+        "authenticate_ns",
+        "privilege_ns",
+        "session_init_ns",
+        "device_response_ns",
+        "output_persist_ns"
+      ],
+      "properties": {
+        "queued_at": {
+          "type": "string"
+        },
+        "device_started_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "command_started_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ended_at": {
+          "type": "string"
+        },
+        "total_ns": {
+          "type": "integer"
+        },
+        "scheduler_wait_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "server_capacity_wait_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "device_capacity_wait_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "dns_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "credential_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "ping_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "connect_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "authenticate_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "privilege_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "session_init_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "device_response_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "output_persist_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "retry_eligible": {
+      "type": "boolean"
+    },
+    "input_target": {
+      "type": "string"
+    },
+    "transformed_name": {
+      "type": "string"
+    },
+    "dns_query_name": {
+      "type": "string"
+    },
+    "dns_suffix_action": {
+      "type": "string"
+    },
+    "selected_address": {
+      "type": "string"
+    },
+    "address_family": {
+      "enum": [
+        "ipv4",
+        "ipv6"
+      ]
+    },
+    "session_init_profile": {
+      "type": "string"
+    },
+    "dispatch": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "mode",
+        "server_id",
+        "wave_number",
+        "wave_width",
+        "wave_depth",
+        "worker_id",
+        "scope_position",
+        "desired_width",
+        "effective_inflight"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "server_id": {
+          "type": "string"
+        },
+        "wave_number": {
+          "type": "integer"
+        },
+        "wave_width": {
+          "type": "integer"
+        },
+        "wave_depth": {
+          "type": "integer"
+        },
+        "worker_id": {
+          "type": "string"
+        },
+        "scope_position": {
+          "type": "integer"
+        },
+        "desired_width": {
+          "type": "integer"
+        },
+        "effective_inflight": {
+          "type": "integer"
+        },
+        "halt_context": {}
+      }
+    },
+    "dispatch_order": {
+      "type": "string"
+    },
+    "shuffle_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "candidate_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ping": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "address",
+        "family",
+        "method",
+        "execution_endpoint",
+        "probes",
+        "timeout_ns",
+        "outcomes",
+        "replies",
+        "losses",
+        "decision",
+        "total_ns"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "ipv4",
+            "ipv6"
+          ]
+        },
+        "method": {
+          "enum": [
+            "socket",
+            "system"
+          ]
+        },
+        "execution_endpoint": {
+          "type": "string"
+        },
+        "probes": {
+          "const": 2
+        },
+        "timeout_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sequence",
+              "sent_at",
+              "status",
+              "rtt_ns"
+            ],
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2
+              },
+              "sent_at": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "reply",
+                  "timeout",
+                  "error"
+                ]
+              },
+              "rtt_ns": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "from": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "replies": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "decision": {
+          "enum": [
+            "proceed",
+            "proceed_degraded",
+            "skip",
+            "capability_unavailable"
+          ]
+        },
+        "total_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# Local evaluation overlay. This is not a managed-host security baseline.
+[config]
+schema-version = 6
+
+[ssh.run]
+transport = "system"
+
+[audit]
+journald-required = false
+file = "~/.local/share/karvi/audit.jsonl"
+
+[watch]
+directory = "~/.local/share/karvi/scoreboards"
+
+[sessions]
+shared-capacity-root = "~/.local/share/karvi/capacity"

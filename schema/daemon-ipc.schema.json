@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/daemon-ipc-v7.json",
+  "title": "karvi daemon IPC schema 7",
+  "description": "The daemon IPC envelope: the newline-delimited JSON envelope with prepare_job, commit_job (answered at acceptance), follow_job (one request, a stream of responses: the follow_start result, record events each carrying a record_frame with the record itself, then a stream_terminal event carrying follow_terminal; schema 8; schema 10 adds the admission warnings to the receipt and the follow start), and cancel_job (one request, one cancel_result answered at once, the job ID its idempotency key), and the header and receipt of the binary credential frame. The frame prefix is sixteen bytes, big-endian: u32 magic 0x4E444350, u16 frame_version 1, u16 flags 0, u32 header_len, u32 body_len; then the JSON header and the encoded package body. The receipt is u32 length then JSON. Closed: exact major-version negotiation.",
+  "$defs": {
+    "request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ipc_schema_version", "request_id", "operation", "client_pid", "client_version", "payload"],
+      "properties": {
+        "ipc_schema_version": {"const": 10},
+        "request_id": {"type": "string"},
+        "operation": {"enum": ["ping", "status", "drain", "stop", "prepare_job", "commit_job", "follow_job", "cancel_job"]},
+        "client_pid": {"type": "integer"}, "client_version": {"type": "string"},
+        "idempotency_key": {"type": "string"},
+        "payload": {}
+      }
+    },
+    "response": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ipc_schema_version", "request_id"],
+      "properties": {"ipc_schema_version": {"const": 10}, "request_id": {"type": "string"}, "result": {}, "error": {"$ref": "#/$defs/error"}, "event": {"enum": ["record", "stream_terminal"]}}
+    },
+    "error": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "message", "retryable", "details"],
+      "properties": {"code": {"type": "string"}, "message": {"type": "string"}, "retryable": {"type": "boolean"}, "details": {"type": "object"}}
+    },
+    "prepare_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["header", "draft"],
+      "properties": {"header": {"$ref": "execution-plan.schema.json#/$defs/public_job_header"}, "draft": {"$ref": "execution-plan.schema.json#/$defs/execution_plan"}}
+    },
+    "credential_channel": {
+      "type": "object", "additionalProperties": false,
+      "required": ["socket", "token", "expires_at", "max_frame_bytes"],
+      "properties": {
+        "socket": {"type": "string"},
+        "token": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "expires_at": {"$ref": "execution-plan.schema.json#/$defs/timestamp"},
+        "max_frame_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "prepare_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["preparation", "credential_channel"],
+      "properties": {"preparation": {"$ref": "plan-report.schema.json#/$defs/preparation_report"}, "credential_channel": {"$ref": "#/$defs/credential_channel"}}
+    },
+    "preparation_reference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["execution_endpoint", "preparation_id", "preparation_digest"],
+      "properties": {
+        "execution_endpoint": {"type": "string"},
+        "preparation_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "preparation_digest": {"$ref": "execution-plan.schema.json#/$defs/digest"}
+      }
+    },
+    "commit_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["header", "plan", "preparations", "mode"],
+      "properties": {
+        "header": {"$ref": "execution-plan.schema.json#/$defs/public_job_header"},
+        "plan": {"$ref": "execution-plan.schema.json#/$defs/execution_plan"},
+        "preparations": {"type": "array", "items": {"$ref": "#/$defs/preparation_reference"}},
+        "mode": {"enum": ["live", "exercise"]}
+      }
+    },
+    "job_receipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "accepted_at", "artifact_dir", "plan_digest", "mode"],
+      "properties": {
+        "job_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "accepted_at": {"$ref": "execution-plan.schema.json#/$defs/timestamp"},
+        "artifact_dir": {"type": "string"},
+        "plan_digest": {"$ref": "execution-plan.schema.json#/$defs/digest"},
+        "mode": {"enum": ["live", "exercise"]},
+        "report_path": {"type": "string"},
+        "warnings": {"type": "array", "items": {"type": "string"}, "description": "The admission warnings the daemon raised for the job before any device was contacted, each `code: message` (schema 10: spool_width_narrowed); absent when none."}
+      }
+    },
+    "activity_outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["exit_code", "exit_name", "activity_id", "summary"],
+      "properties": {
+        "exit_code": {"type": "integer"}, "exit_name": {"type": "string"}, "activity_id": {"type": "string"},
+        "job_id": {"type": "string"}, "artifact_dir": {"type": "string"},
+        "summary": {"$ref": "job-summary.schema.json"},
+        "error": {"type": "string"}
+      }
+    },
+    "commit_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["receipt"],
+      "properties": {"receipt": {"$ref": "#/$defs/job_receipt"}}
+    },
+    "cursor": {
+      "type": "integer", "minimum": 0,
+      "description": "The sequence of the last record the follower has; zero is the start (schema 8: the sequence alone, where schema 6 carried the byte offset too)."
+    },
+    "follow_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "cursor"],
+      "properties": {"job_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"}, "cursor": {"$ref": "#/$defs/cursor"}}
+    },
+    "follow_start": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "artifact_dir", "highest_durable_sequence", "resume_cursor", "first_sequence"],
+      "properties": {
+        "job_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "artifact_dir": {"type": "string", "description": "The job's folder; empty when the job writes none."},
+        "highest_durable_sequence": {"type": "integer", "minimum": 0},
+        "resume_cursor": {"$ref": "#/$defs/cursor"},
+        "first_sequence": {"type": "integer", "minimum": 1, "description": "The sequence of the first record the stream carries: the cursor plus one, or later when the daemon holds no file to catch the follower up from."},
+        "warnings": {"type": "array", "items": {"type": "string"}, "description": "The job's admission warnings, as the receipt carries them (schema 10), so a follow named by job ID alone sees them too."}
+      }
+    },
+    "record_frame": {
+      "type": "object", "additionalProperties": false,
+      "description": "One durable record (schema 8): the record itself, the bytes of its commands.jsonl line without the LF, and its sequence beside it for the continuity check.",
+      "required": ["sequence", "record"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1},
+        "record": {"$ref": "command-record.schema.json"}
+      }
+    },
+    "follow_terminal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cursor", "outcome"],
+      "properties": {"cursor": {"$ref": "#/$defs/cursor"}, "outcome": {"$ref": "#/$defs/activity_outcome"}}
+    },
+    "cancel_request": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id"],
+      "properties": {
+        "job_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "reason": {"type": "string", "maxLength": 256}
+      }
+    },
+    "cancel_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "artifact_dir", "state"],
+      "properties": {
+        "job_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "artifact_dir": {"type": "string"},
+        "state": {"enum": ["cancelling", "terminal"]},
+        "requested_at": {"$ref": "execution-plan.schema.json#/$defs/timestamp"},
+        "outcome": {"$ref": "#/$defs/activity_outcome"}
+      }
+    },
+    "credential_frame_header": {
+      "type": "object", "additionalProperties": false,
+      "description": "JSON header of the binary credential frame; the body is the encoded package and never appears in JSON.",
+      "required": ["preparation_id", "token", "envelope"],
+      "properties": {
+        "preparation_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "token": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "envelope": {"$ref": "credential-package-envelope.schema.json#/$defs/envelope"}
+      }
+    },
+    "package_receipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["package_id", "package_digest", "grant_count", "binding_count", "accepted", "findings"],
+      "properties": {
+        "package_id": {"$ref": "execution-plan.schema.json#/$defs/identifier"},
+        "package_digest": {"$ref": "execution-plan.schema.json#/$defs/digest"},
+        "grant_count": {"type": "integer"}, "binding_count": {"type": "integer"},
+        "accepted": {"type": "boolean"},
+        "findings": {"type": "array", "items": {"$ref": "plan-report.schema.json#/$defs/finding"}}
+      }
+    }
+  }
+}

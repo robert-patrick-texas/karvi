@@ -1,0 +1,626 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/plan-report-v1.json",
+  "title": "karvi plan inspection and exercise report schema 1",
+  "description": "The plan report: one shape for the dry-run (inspection) and exercise reports, discriminated by kind. Open to additive fields within a version: readers ignore what they do not know.",
+  "$ref": "#/$defs/plan_report",
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "code",
+        "severity",
+        "stage",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ]
+        },
+        "stage": {
+          "enum": [
+            "client_config",
+            "client_inventory",
+            "client_dns",
+            "client_credential",
+            "daemon_probe",
+            "daemon_policy",
+            "daemon_dns",
+            "credential_package",
+            "transport",
+            "host_key",
+            "output",
+            "capacity",
+            "ping",
+            "platform"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "daemon_readiness": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "execution_endpoint",
+        "reachable",
+        "auto_launched",
+        "status",
+        "capabilities",
+        "findings"
+      ],
+      "properties": {
+        "execution_endpoint": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "reachable": {
+          "type": "boolean"
+        },
+        "auto_launched": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "running",
+            "draining",
+            "absent",
+            "incompatible"
+          ]
+        },
+        "pid": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "ipc_schema_version": {
+          "type": "integer"
+        },
+        "execution_policy_digest": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        }
+      }
+    },
+    "preparation_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "preparation_id",
+        "execution_endpoint",
+        "audience",
+        "prepared_at",
+        "expires_at",
+        "draft_digest",
+        "accepted",
+        "evidence",
+        "daemon",
+        "findings"
+      ],
+      "properties": {
+        "preparation_id": {
+          "$ref": "execution-plan.schema.json#/$defs/identifier"
+        },
+        "execution_endpoint": {
+          "type": "string"
+        },
+        "audience": {
+          "type": "string"
+        },
+        "prepared_at": {
+          "$ref": "execution-plan.schema.json#/$defs/timestamp"
+        },
+        "expires_at": {
+          "$ref": "execution-plan.schema.json#/$defs/timestamp"
+        },
+        "draft_digest": {
+          "$ref": "execution-plan.schema.json#/$defs/digest"
+        },
+        "preparation_digest": {
+          "$ref": "execution-plan.schema.json#/$defs/digest"
+        },
+        "accepted": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "$ref": "execution-plan.schema.json#/$defs/preparation_evidence"
+        },
+        "daemon": {
+          "$ref": "#/$defs/daemon_readiness"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        }
+      }
+    },
+    "address_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "authority",
+        "resolution_actor",
+        "client_candidates",
+        "daemon_candidates"
+      ],
+      "properties": {
+        "authority": {
+          "enum": [
+            "client",
+            "daemon"
+          ]
+        },
+        "resolution_actor": {
+          "type": "string"
+        },
+        "client_candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "execution-plan.schema.json#/$defs/address"
+          }
+        },
+        "daemon_candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "execution-plan.schema.json#/$defs/address"
+          }
+        },
+        "selected": {
+          "$ref": "execution-plan.schema.json#/$defs/address"
+        }
+      }
+    },
+    "credential_binding_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "bound",
+            "deferred_to_exercise_or_live_prepare",
+            "unresolved"
+          ]
+        },
+        "credential_id": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "backend": {
+          "type": "string"
+        },
+        "device_username": {
+          "type": "string"
+        },
+        "matched_on": {
+          "$ref": "credential-package-envelope.schema.json#/$defs/match"
+        }
+      }
+    },
+    "intended_ping": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "enabled",
+        "probes",
+        "timeout_ns",
+        "capability"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "probes": {
+          "const": 2
+        },
+        "timeout_ns": {
+          "type": "integer"
+        },
+        "capability": {
+          "enum": [
+            "available",
+            "unavailable",
+            "not_checked"
+          ]
+        },
+        "method": {
+          "enum": [
+            "socket",
+            "system"
+          ]
+        }
+      }
+    },
+    "intended_transport": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "transport",
+        "port",
+        "available"
+      ],
+      "properties": {
+        "transport": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "host_key_policy": {
+          "type": "string"
+        },
+        "session_init_profile": {
+          "type": "string"
+        },
+        "available": {
+          "enum": [
+            "available",
+            "unavailable",
+            "not_checked"
+          ]
+        }
+      }
+    },
+    "target_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "target_id",
+        "readiness",
+        "address",
+        "credential_binding",
+        "intended_ping",
+        "intended_transport",
+        "findings"
+      ],
+      "properties": {
+        "target_id": {
+          "type": "string"
+        },
+        "readiness": {
+          "enum": [
+            "planned",
+            "deferred",
+            "invalid",
+            "ready",
+            "not_ready",
+            "resolution_failed"
+          ]
+        },
+        "address": {
+          "$ref": "#/$defs/address_report"
+        },
+        "credential_binding": {
+          "$ref": "#/$defs/credential_binding_report"
+        },
+        "intended_ping": {
+          "$ref": "#/$defs/intended_ping"
+        },
+        "intended_transport": {
+          "$ref": "#/$defs/intended_transport"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        }
+      }
+    },
+    "report_counts": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "targets",
+        "by_readiness",
+        "by_authority",
+        "commands",
+        "errors",
+        "warnings"
+      ],
+      "properties": {
+        "targets": {
+          "type": "integer"
+        },
+        "by_readiness": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "by_authority": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "commands": {
+          "type": "integer"
+        },
+        "errors": {
+          "type": "integer"
+        },
+        "warnings": {
+          "type": "integer"
+        }
+      }
+    },
+    "report_timing": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "client_config_ns",
+        "client_inventory_ns",
+        "client_dns_ns",
+        "client_credential_ns",
+        "daemon_probe_ns",
+        "daemon_prepare_ns",
+        "daemon_dns_ns",
+        "package_transfer_ns",
+        "commit_ns",
+        "daemon_validation_ns",
+        "total_ns"
+      ],
+      "properties": {
+        "client_config_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "client_inventory_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "client_dns_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "client_credential_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "daemon_probe_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "daemon_prepare_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "daemon_dns_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "package_transfer_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "commit_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "daemon_validation_ns": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "total_ns": {
+          "type": "integer"
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "hostname",
+        "boot_id",
+        "pid",
+        "process_start_identity",
+        "app_version"
+      ],
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "boot_id": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "integer"
+        },
+        "process_start_identity": {
+          "type": "string"
+        },
+        "app_version": {
+          "type": "string"
+        }
+      }
+    },
+    "plan_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schema_version",
+        "kind",
+        "report_id",
+        "generated_at",
+        "producer",
+        "producer_role",
+        "operator",
+        "activity_id",
+        "plan",
+        "plan_digest",
+        "command_plan_digest",
+        "daemons",
+        "preparations",
+        "targets",
+        "counts",
+        "timing",
+        "findings",
+        "outcome",
+        "job_submitted",
+        "target_data_submitted",
+        "device_contacted",
+        "next_operation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "kind": {
+          "enum": [
+            "inspection",
+            "exercise"
+          ]
+        },
+        "report_id": {
+          "$ref": "execution-plan.schema.json#/$defs/identifier"
+        },
+        "generated_at": {
+          "$ref": "execution-plan.schema.json#/$defs/timestamp"
+        },
+        "producer": {
+          "$ref": "#/$defs/producer"
+        },
+        "producer_role": {
+          "enum": [
+            "client",
+            "daemon"
+          ]
+        },
+        "operator": {
+          "$ref": "execution-plan.schema.json#/$defs/operator"
+        },
+        "activity_id": {
+          "$ref": "execution-plan.schema.json#/$defs/identifier"
+        },
+        "job_id": {
+          "$ref": "execution-plan.schema.json#/$defs/identifier"
+        },
+        "plan": {
+          "$ref": "execution-plan.schema.json#/$defs/execution_plan"
+        },
+        "plan_digest": {
+          "$ref": "execution-plan.schema.json#/$defs/digest"
+        },
+        "command_plan_digest": {
+          "$ref": "execution-plan.schema.json#/$defs/digest"
+        },
+        "daemons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/daemon_readiness"
+          }
+        },
+        "preparations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/preparation_report"
+          }
+        },
+        "credential_package": {
+          "$ref": "credential-package-envelope.schema.json#/$defs/safe_package_projection"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target_report"
+          }
+        },
+        "counts": {
+          "$ref": "#/$defs/report_counts"
+        },
+        "timing": {
+          "$ref": "#/$defs/report_timing"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "outcome": {
+          "enum": [
+            "planned",
+            "invalid",
+            "exercised",
+            "not_ready"
+          ]
+        },
+        "job_submitted": {
+          "type": "boolean"
+        },
+        "target_data_submitted": {
+          "type": "boolean"
+        },
+        "device_contacted": {
+          "type": "boolean"
+        },
+        "next_operation": {
+          "enum": [
+            "commit_live_job",
+            "submit_new_live_job"
+          ]
+        }
+      }
+    }
+  }
+}

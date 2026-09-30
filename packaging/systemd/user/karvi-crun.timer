@@ -1,0 +1,14 @@
+[Unit]
+Description=Nightly karvi collection run
+# docs/COLLECTION.md section 7. Persistent runs a
+# missed collection at the next start; RandomizedDelaySec spreads a fleet
+# of collectors; a tick that falls while the previous run is active is
+# dropped, not queued.
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target

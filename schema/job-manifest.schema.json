@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-manifest-v2.json",
+  "title": "karvi job manifest schema 2",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "job_id", "activity_id", "accepted_at", "operator", "app", "mode", "header", "plan", "credential_package", "policy", "selection", "initial_states"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "job_id": {"type": "string"},
+    "activity_id": {"type": "string", "minLength": 1},
+    "accepted_at": {"type": "string", "format": "date-time"},
+    "operator": {"$ref": "execution-plan.schema.json#/$defs/operator"},
+    "app": {"type": "object", "additionalProperties": {}},
+    "mode": {"enum": ["live", "exercise"]},
+    "header": {"$ref": "execution-plan.schema.json#/$defs/public_job_header"},
+    "plan": {"$ref": "execution-plan.schema.json"},
+    "credential_package": {"$ref": "credential-package-envelope.schema.json#/$defs/safe_package_projection"},
+    "policy": {"$ref": "#/$defs/execution_policy"},
+    "selection": {"$ref": "#/$defs/selection"},
+    "initial_states": {"type": "array", "items": {"$ref": "#/$defs/initial_state"}}
+  },
+  "$defs": {
+    "execution_policy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ssh_host_key_policy", "ssh_known_hosts_file", "ssh_halt_run_on_host_key_mismatch", "allow_telnet"],
+      "properties": {
+        "ssh_host_key_policy": {"enum": ["accept-new", "secure", "insecure"]},
+        "ssh_known_hosts_file": {"type": "string"},
+        "ssh_halt_run_on_host_key_mismatch": {"type": "boolean"},
+        "allow_telnet": {"type": "boolean"},
+        "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "target_input": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {"enum": ["target", "names", "site", "device-group", "platform", "all"]},
+        "value": {"type": "string"},
+        "names": {"type": "array", "items": {"type": "string"}},
+        "source": {"type": "string"}
+      }
+    },
+    "selection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inputs", "excludes", "address_authorities"],
+      "properties": {
+        "inputs": {"type": "array", "items": {"$ref": "#/$defs/target_input"}},
+        "excludes": {"type": "array", "items": {"type": "string"}},
+        "management_address": {"type": "string"},
+        "address_authorities": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "initial_state": {
+      "type": "object", "additionalProperties": false,
+      "required": ["device_id", "command_index", "state"],
+      "properties": {
+        "device_id": {"type": "string"},
+        "command_index": {"type": "integer", "minimum": 1},
+        "state": {"enum": ["not_started"]}
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) build
+
+override_dh_auto_test:
+	$(MAKE) test
+
+override_dh_auto_install:
+	install -D -m 0755 bin/karvi-linux-amd64 debian/karvi/usr/bin/karvi
+	# The two helpers beside karvi: karvi finds
+	# karvi-askpass beside its own executable, and an operator runs
+	# karvi-prune by hand.
+	install -D -m 0755 bin/karvi-askpass-linux-amd64 debian/karvi/usr/bin/karvi-askpass
+	install -D -m 0755 bin/karvi-prune-linux-amd64 debian/karvi/usr/bin/karvi-prune

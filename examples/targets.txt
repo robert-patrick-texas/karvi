@@ -1,0 +1,9 @@
+# examples/targets.txt — a target file for --tf (karvi --help: "in a target
+# file, lines beginning with # or ! are comments"). One device name per
+# line, surrounding whitespace removed; blank lines are skipped. A name is an
+# inventory name (matched without regard to case) or an address.
+edge-01
+edge-02
+! a ! line is a comment too, and removes nothing
+core-01
+access-09

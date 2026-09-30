@@ -1,0 +1,15 @@
+Source: karvi
+Section: net
+Priority: optional
+Maintainer: Robert Patrick <rob-karvi@rpatrick.com>
+Build-Depends: debhelper-compat (= 13), golang-1.26-go
+Standards-Version: 4.7.0
+Homepage: https://github.com/robert-patrick-texas/karvi
+Rules-Requires-Root: no
+
+Package: karvi
+Architecture: amd64
+Depends: openssh-client, ${misc:Depends}
+Description: governed network device access and fleet execution
+ karvi provides interactive login, one-device commands, and concurrent governed
+ execution with structured records, audit, and per-user orchestration.

@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-summary-v2.json",
+  "title": "karvi job summary schema 2",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "job_id",
+    "activity_id",
+    "started_at",
+    "ended_at",
+    "duration_ns",
+    "final_status",
+    "primary_exit_code",
+    "primary_exit_name",
+    "terminal_causes",
+    "device_counts",
+    "requested_command_counts",
+    "session_init_counts",
+    "halt",
+    "output",
+    "audit_sink_status",
+    "bottleneck",
+    "recovery",
+    "paths",
+    "plan_id",
+    "plan_digest",
+    "mode",
+    "address_authority_counts",
+    "ping",
+    "dispatch_order"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "primary_exit_code": {
+      "type": "integer"
+    },
+    "final_status": {
+      "type": "string"
+    },
+    "plan_id": {
+      "type": "string"
+    },
+    "plan_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "mode": {
+      "enum": [
+        "live",
+        "exercise"
+      ]
+    },
+    "address_authority_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "activity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": "string"
+    },
+    "duration_ns": {
+      "type": "integer"
+    },
+    "primary_exit_name": {
+      "type": "string"
+    },
+    "terminal_causes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dispatch_order": {
+      "type": "string"
+    },
+    "shuffle_key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "device_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "requested_command_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "session_init_counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "halt": {},
+    "output": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {}
+    },
+    "collection": {
+      "type": "object", "additionalProperties": false, "required": ["directory", "replaced", "kept", "devices"],
+      "properties": {
+        "directory": {"type": "string"}, "replaced": {"type": "integer", "minimum": 0}, "kept": {"type": "integer", "minimum": 0},
+        "devices": {"type": "object", "additionalProperties": {
+          "type": "object", "additionalProperties": false, "required": ["file", "outcome"],
+          "properties": {"file": {"type": "string"}, "outcome": {"enum": ["replaced", "kept"]}}
+        }}
+      }
+    },
+    "audit_sink_status": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {}
+    },
+    "bottleneck": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "primary": {"type": "string"},
+        "confidence": {"type": "string"},
+        "supporting_facts": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "cancellation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": ["requested_at", "reason", "requester", "request_id"],
+      "properties": {
+        "requested_at": {"$ref": "execution-plan.schema.json#/$defs/timestamp"},
+        "reason": {"type": "string", "maxLength": 256},
+        "requester": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pid", "uid"],
+          "properties": {"pid": {"type": "integer"}, "uid": {"type": "integer"}}
+        },
+        "request_id": {"type": "string"}
+      }
+    },
+    "recovery": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {}
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "ping": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "probes",
+        "timeout_ns",
+        "devices",
+        "probes_sent",
+        "replies",
+        "timeouts",
+        "errors",
+        "total_ns"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "method": {
+          "enum": [
+            "socket",
+            "system",
+            "unavailable"
+          ]
+        },
+        "capability": {
+          "enum": [
+            "available",
+            "unavailable",
+            "not_checked"
+          ]
+        },
+        "probes": {
+          "const": 2
+        },
+        "timeout_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "devices": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gated",
+            "proceeded",
+            "degraded",
+            "skipped",
+            "capability_failed"
+          ],
+          "properties": {
+            "gated": {
+              "type": "integer"
+            },
+            "proceeded": {
+              "type": "integer"
+            },
+            "degraded": {
+              "type": "integer"
+            },
+            "skipped": {
+              "type": "integer"
+            },
+            "capability_failed": {
+              "type": "integer"
+            }
+          }
+        },
+        "probes_sent": {
+          "type": "integer"
+        },
+        "replies": {
+          "type": "integer"
+        },
+        "timeouts": {
+          "type": "integer"
+        },
+        "errors": {
+          "type": "integer"
+        },
+        "total_ns": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

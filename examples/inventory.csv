@@ -1,0 +1,29 @@
+# examples/inventory.csv — an inventory file (docs/OPERATIONS.md).
+# A line whose first byte is # is a comment; blank lines are skipped. The
+# first data line is the header: each column is found under the name the
+# [inventory-source.mappings] table of the configuration gives it
+# (examples/config.toml), so a site keeps its own headers. RFC 4180 quoting:
+# a cell that holds the delimiter is quoted ("access;production").
+#
+# name                the device's name; lowercased by [name-transform.default]
+# management_address  the address karvi connects to (IPv4 or IPv6); a name
+#                     resolves through DNS on the client when this is blank
+# platform            a built-in platform or a [platform.NAME] alias of the
+#                     configuration (c9300 below); blank runs as
+#                     platform-resolution.default
+# transport           system (OpenSSH) or native (scrapligo-v1); blank is the
+#                     mode's default
+# site, groups        selectors for credential rows and policy maps; groups
+#                     are separated by ;
+# session_cap         at most this many sessions to the device at once
+# credkeyref          pins the device to the credential CSV row whose credkey
+#                     equals it (examples/credentials.csv); never a secret
+# owner               a free attribute, kept in the records as attributes.owner
+name,management_address,platform,transport,site,groups,session_cap,credkeyref,owner
+edge-01,192.0.2.10,cisco_iosxe,system,nyc,"access;production",3,,netops
+edge-02,192.0.2.11,cisco_iosxe,system,nyc,"access;production",3,,netops
+# the core pair runs on the native transport and pins the break-glass row
+core-01,2001:db8::10,cisco_iosxe,native,iad,"core;production",5,break-glass,backbone
+# an alias platform of examples/config.toml: IOS XE with one paging command
+access-09,192.0.2.19,c9300,system,nyc,"access;lab",2,,netops
+lab-linux-01,192.0.2.50,linux,system,lab,"test;linux",2,,automation

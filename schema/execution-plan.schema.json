@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/execution-plan.json",
+  "title": "karvi execution plan schema",
+  "description": "The execution plan. Closed: an unknown property is a contract change and bumps the counter.",
+  "$ref": "#/$defs/execution_plan",
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "identifier": {"type": "string", "pattern": "^[0-9]{8}T[0-9]{6}\\.[0-9]{6}[+-][0-9]{4}-[0-9a-hjkmnp-tv-z]{20}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "address": {"type": "string", "description": "canonical netip.Addr text, unmapped"},
+    "source_ref": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"name": {"type": "string"}, "path": {"type": "string"}, "line": {"type": "integer"}, "digest": {"type": "string"}}
+    },
+    "operator": {
+      "type": "object", "additionalProperties": false,
+      "required": ["username", "uid"],
+      "properties": {"username": {"type": "string"}, "uid": {"type": "integer"}, "primary_gid": {"type": "integer"}, "groups": {"type": "array", "items": {"type": "string"}}}
+    },
+    "device_projection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "name", "canonical_name", "platform", "transport", "groups", "name_transform", "attributes", "source"],
+      "properties": {
+        "id": {"type": "string"}, "name": {"type": "string"}, "canonical_name": {"type": "string"},
+        "platform": {"type": "string"}, "transport": {"type": "string"}, "transport_selector": {"type": "string"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "site": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}},
+        "name_transform": {"type": "string"}, "session_cap": {"type": "integer", "minimum": 1, "maximum": 32},
+        "risk_tier": {"type": "string"}, "deployment_ring": {"type": "string"}, "topology_domain": {"type": "string"},
+        "attributes": {"type": "object", "additionalProperties": {"type": "string"}},
+        "source": {"$ref": "#/$defs/source_ref"}
+      }
+    },
+    "address_plan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority", "family_preference", "transformed_name", "suffix_action", "client_candidates", "daemon_candidates", "alternates"],
+      "properties": {
+        "authority": {"enum": ["client", "daemon"]},
+        "family_preference": {"enum": ["ipv4", "ipv6"]},
+        "transformed_name": {"type": "string"}, "query_name": {"type": "string"},
+        "suffix_action": {"type": "string", "pattern": "^add-suffix:.+$"},
+        "client_candidates": {"type": "array", "items": {"$ref": "#/$defs/address"}},
+        "daemon_candidates": {"type": "array", "items": {"$ref": "#/$defs/address"}},
+        "selected": {"$ref": "#/$defs/address"},
+        "alternates": {"type": "array", "items": {"$ref": "#/$defs/address"}},
+        "selected_source": {"enum": ["inventory", "dns-client", "dns-daemon"]},
+        "resolver_context": {"type": "string"},
+        "resolution_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "execution_target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["target_id", "input_target", "device", "address_plan", "execution_endpoint", "source_digest"],
+      "properties": {
+        "target_id": {"type": "string"}, "input_target": {"type": "string"},
+        "device": {"$ref": "#/$defs/device_projection"},
+        "address_plan": {"$ref": "#/$defs/address_plan"},
+        "credential_binding_id": {"type": "string"},
+        "session_init_profile": {"type": "string", "minLength": 1},
+        "execution_endpoint": {"type": "string"},
+        "source_digest": {"$ref": "#/$defs/digest"},
+        "notices": {"type": "array", "items": {"$ref": "#/$defs/target_notice"}}
+      }
+    },
+    "target_notice": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "details": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
+    "expectation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["pattern", "response"],
+      "properties": {"pattern": {"type": "string", "minLength": 1}, "response": {"type": "string"}}
+    },
+    "session_init_profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commands", "on_error", "command_timeout_ns"],
+      "properties": {
+        "commands": {"type": "array", "items": {"type": "string"}},
+        "on_error": {"enum": ["fail-device", "continue"]},
+        "command_timeout_ns": {"type": "integer", "minimum": 0, "maximum": 43200000000000}
+      }
+    },
+    "dispatch": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "width", "start_width", "max_width", "dispatch_order", "halt_error_count", "halt_error_percent", "wave_gate_error_count", "wave_gate_error_percent", "wave_gate_timed_delay_ns", "continue_device_on_error"],
+      "properties": {
+        "mode": {"enum": ["serial", "parallel", "wave"]},
+        "width": {"type": "integer", "minimum": 0}, "start_width": {"type": "integer", "minimum": 0}, "max_width": {"type": "integer", "minimum": 0},
+        "dispatch_order": {"enum": ["default", "sorted", "shuffle", "random"]},
+        "shuffle_key": {"type": "string"},
+        "halt_error_count": {"type": "integer", "minimum": 0}, "halt_error_percent": {"type": "integer", "minimum": 0, "maximum": 100},
+        "wave_gate_error_count": {"type": "integer", "minimum": 0}, "wave_gate_error_percent": {"type": "integer", "minimum": 0, "maximum": 100},
+        "wave_gate_timed_delay_ns": {"type": "integer", "minimum": 0},
+        "continue_device_on_error": {"type": "boolean"}
+      }
+    },
+    "output": {
+      "type": "object", "additionalProperties": false,
+      "required": ["format", "echo", "dynamic_border", "no_border", "follow", "max_command_bytes", "max_job_bytes", "persist", "files", "root", "crop_to_dot"],
+      "properties": {
+        "format": {"enum": ["text", "jsonl", "json"]}, "echo": {"type": "boolean"}, "dynamic_border": {"type": "boolean"},
+        "no_border": {"type": "boolean"}, "follow": {"type": "boolean"},
+        "max_command_bytes": {"type": "integer", "minimum": 1}, "max_job_bytes": {"type": "integer", "minimum": 1},
+        "persist": {"type": "boolean"},
+        "files": {
+          "type": "object", "additionalProperties": false,
+          "required": ["commands_jsonl", "commands_txt", "failed_devices_txt", "failures_jsonl", "manifest_json", "metrics_json", "summary_json", "output_txt"],
+          "properties": {
+            "commands_jsonl": {"type": "boolean"}, "commands_txt": {"type": "boolean"}, "failed_devices_txt": {"type": "boolean"}, "failures_jsonl": {"type": "boolean"},
+            "manifest_json": {"type": "boolean"}, "metrics_json": {"type": "boolean"}, "summary_json": {"type": "boolean"}, "output_txt": {"type": "boolean"}
+          }
+        },
+        "root": {"type": "string", "pattern": "^/"},
+        "crop_to_dot": {"type": "boolean"},
+        "collection": {
+          "type": "object", "additionalProperties": false, "required": ["directory", "file_mode"],
+          "properties": {"directory": {"type": "string", "pattern": "^/"}, "file_mode": {"enum": ["0640", "0644", "0660"]}}
+        }
+      }
+    },
+    "ping": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled", "probes", "timeout_ns"],
+      "properties": {"enabled": {"type": "boolean"}, "probes": {"const": 2}, "timeout_ns": {"type": "integer", "minimum": 1}}
+    },
+    "sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["config_digest", "selector_provenance", "inputs"],
+      "properties": {
+        "config_digest": {"type": "string"},
+        "selector_provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sources"],
+          "properties": {"sources": {"type": "array", "items": {"$ref": "#/$defs/source_ref"}}}
+        },
+        "inputs": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"type": "string"}, "value": {"type": "string"}}}}
+      }
+    },
+    "planning": {
+      "type": "object", "additionalProperties": false,
+      "required": ["drafted_at"],
+      "properties": {"drafted_at": {"$ref": "#/$defs/timestamp"}, "prepared_at": {"$ref": "#/$defs/timestamp"}, "finalized_at": {"$ref": "#/$defs/timestamp"}}
+    },
+    "address_evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["target_id", "daemon_candidates", "alternates", "resolver_context", "resolution_digest"],
+      "properties": {
+        "target_id": {"type": "string"},
+        "daemon_candidates": {"type": "array", "items": {"$ref": "#/$defs/address"}},
+        "selected": {"$ref": "#/$defs/address"},
+        "alternates": {"type": "array", "items": {"$ref": "#/$defs/address"}},
+        "selected_source": {"enum": ["inventory", "dns-daemon"]},
+        "resolver_context": {"type": "string"},
+        "resolution_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "preparation_evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["execution_endpoint", "preparation_id", "preparation_digest", "prepared_at", "addresses"],
+      "properties": {
+        "execution_endpoint": {"type": "string"},
+        "preparation_id": {"$ref": "#/$defs/identifier"},
+        "preparation_digest": {"$ref": "#/$defs/digest"},
+        "prepared_at": {"$ref": "#/$defs/timestamp"},
+        "addresses": {"type": "array", "items": {"$ref": "#/$defs/address_evidence"}}
+      }
+    },
+    "execution_plan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "session_init", "dispatch", "output", "ping", "sources", "planning", "preparation"],
+      "properties": {
+        "schema_version": {"const": 9},
+        "plan_id": {"$ref": "#/$defs/identifier"},
+        "plan_digest": {"$ref": "#/$defs/digest"},
+        "operator": {"$ref": "#/$defs/operator"},
+        "targets": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/execution_target"}},
+        "commands": {"type": "array", "items": {"type": "string"}},
+        "commands_file": {"type": "string"},
+        "platform_commands": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
+        "platform_filters": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
+        "command_plan_digest": {"$ref": "#/$defs/digest"},
+        "blind_returns": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 20}},
+        "blind_wait_ns": {"type": "integer", "minimum": 0, "maximum": 600000000000},
+        "blind": {"type": "array", "items": {"type": "boolean"}},
+        "expectations": {"type": "array", "items": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/expectation"}}},
+        "session_init": {"type": "object", "additionalProperties": {"$ref": "#/$defs/session_init_profile"}},
+        "dispatch": {"$ref": "#/$defs/dispatch"},
+        "output": {"$ref": "#/$defs/output"},
+        "ping": {"$ref": "#/$defs/ping"},
+        "sources": {"$ref": "#/$defs/sources"},
+        "planning": {"$ref": "#/$defs/planning"},
+        "preparation": {"type": "array", "items": {"$ref": "#/$defs/preparation_evidence"}}
+      }
+    },
+    "client_identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["app_name", "version", "commit", "pid", "hostname"],
+      "properties": {"app_name": {"type": "string"}, "version": {"type": "string"}, "commit": {"type": "string"}, "pid": {"type": "integer"}, "hostname": {"type": "string"}}
+    },
+    "package_reference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["protection", "digest"],
+      "properties": {"protection": {"enum": ["local-peer", "sealed"]}, "digest": {"$ref": "#/$defs/digest"}}
+    },
+    "public_job_header": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "command_plan_digest", "plan_digest"],
+      "properties": {
+        "schema_version": {"const": 9},
+        "idempotency_key": {"type": "string"},
+        "job_id": {"$ref": "#/$defs/identifier"},
+        "operator": {"$ref": "#/$defs/operator"},
+        "client": {"$ref": "#/$defs/client_identity"},
+        "mode": {"enum": ["live", "exercise"]},
+        "execution_domain": {"type": "string"},
+        "priority": {"const": 0},
+        "command_plan_digest": {"$ref": "#/$defs/digest"},
+        "plan_digest": {"$ref": "#/$defs/digest"},
+        "credential_package": {"$ref": "#/$defs/package_reference"}
+      }
+    }
+  }
+}

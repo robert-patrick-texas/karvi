@@ -1,0 +1,20 @@
+#!/bin/sh
+# A crun.after hook (docs/COLLECTION.md section 5):
+# commit the files this collection replaced, in a git repository the site
+# made once over the collection directory (git init there, the operators'
+# group able to write .git). karvi runs the hook in the collection directory
+# with the replaced files' names on standard input, one per line, and the job
+# in KARVI_JOB_ID, KARVI_JOB_DIR, KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACED,
+# KARVI_CRUN_KEPT, and KARVI_EXIT. Copy it without the .example suffix, make
+# it executable, and name it in the configuration:
+#
+#   [crun]
+#   after = "/etc/karvi/crun-git-commit"
+#
+# A device kept (not reached) leaves its previous file in the working tree,
+# so every commit holds the last good collection of every device.
+set -eu
+[ "${KARVI_CRUN_REPLACED:-0}" -gt 0 ] || exit 0
+xargs -r -d '\n' git add --
+git diff --cached --quiet && exit 0          # the replaced files are the same bytes
+git commit -q -m "crun $KARVI_JOB_ID: $KARVI_CRUN_REPLACED replaced, $KARVI_CRUN_KEPT kept, exit $KARVI_EXIT"

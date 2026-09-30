@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/audit-v1.json",
+  "title": "karvi audit record schema 1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "event_id", "event_name", "timestamp",
+    "outcome", "severity", "operator", "process", "action", "policy",
+    "result", "source", "details"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "outcome": {"enum": ["success", "failure", "denied", "started",
+      "completed", "incomplete", "informational"]},
+    "severity": {"enum": ["info", "warning", "error", "critical"]}
+  }
+}

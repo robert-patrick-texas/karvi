@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/scoreboard-v2.json",
+  "title": "karvi scoreboard snapshot schema 2",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["schema_version", "activity_id", "operator", "activity_type", "mode",
+    "status", "dispatch_mode", "wave_number", "width", "depth", "counts",
+    "targets", "inputs", "daemon", "recording", "started_at", "last_updated_at",
+    "elapsed_ns", "halt", "error_summary", "producer"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "activity_type": {"enum": ["login", "command", "run"]},
+    "mode": {"enum": ["login", "cmd", "run", "crun", "exercise"]},
+    "status": {"enum": ["initializing", "queued", "running", "draining",
+      "completed", "halted", "errored", "cancelled", "incomplete", "exercised"]},
+    "counts": {
+      "type": "object",
+      "required": ["total", "completed", "succeeded", "failed",
+        "not_started", "in_flight", "incomplete"],
+      "properties": {
+        "total": {"type": "integer"}, "completed": {"type": "integer"}, "succeeded": {"type": "integer"},
+        "failed": {"type": "integer"}, "not_started": {"type": "integer"}, "in_flight": {"type": "integer"},
+        "incomplete": {"type": "integer"}, "cancelled": {"type": "integer"}
+      }
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name", "state"],
+        "properties": {"name": {"type": "string"}, "state": {"enum": ["queued", "running", "succeeded", "failed", "cancelled", "incomplete"]}}
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"type": "string"}, "value": {"type": "string"}}}
+    },
+    "commands": {
+      "type": "object", "additionalProperties": false, "required": ["count"],
+      "properties": {"count": {"type": "integer", "minimum": 0}, "file": {"type": "string"}}
+    },
+    "collection": {
+      "type": "object", "additionalProperties": false, "required": ["directory", "replaced", "kept"],
+      "properties": {"directory": {"type": "string"}, "replaced": {"type": "integer"}, "kept": {"type": "integer"}}
+    },
+    "metrics": {
+      "type": "object", "additionalProperties": false, "required": ["output_bytes", "finished", "min_ms", "avg_ms", "max_ms"],
+      "properties": {"output_bytes": {"type": "integer"}, "finished": {"type": "integer"}, "min_ms": {"type": "integer"}, "avg_ms": {"type": "integer"}, "max_ms": {"type": "integer"}}
+    },
+    "daemon": {"type": "boolean"}
+  }
+}
