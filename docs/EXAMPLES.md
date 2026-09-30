@@ -437,3 +437,110 @@ public repository. A pre-release flag on the GitHub release. Protecting
 
 **Roadmap.** The man page, the roadmap's first item; `main` protected
 when the operator chooses; the old tree removed when he chooses.
+
+## 7. Stream mode reviewed: the draft's two parts, `--clear`, and line editing (2026-09-30)
+
+A review of the stream reader after the release, on the operator's request,
+and the fixes agreed one by one; then line editing at a terminal.
+
+**What it gains.** A command typed the way `run` takes it (`--cmd show
+clock`) is sent once, where it had been re-sent by every later job of the
+session without a message; the reader refuses what it cannot serve in
+every spelling; a stream that fails to read says so instead of ending as
+if complete; and an operator at a terminal edits a line before sending it
+and recalls the lines before.
+
+**The review.** Four flaws executed and confirmed, in the order of their
+weight: a `--cmd`, `--command`, or `--cf` line landed among the options,
+which `--go` keeps, so every later job re-sent it; `--tf=-` and `--cf=-`
+passed the check written for the spaced form and reached the run, which
+then read the stream's own standard input; a read error or a line over the
+scanner's buffer ended the stream silently with exit 0, the lines behind it
+never read; and `--go` on an empty draft turned the parser's refusal into
+the stream's exit though no job ran. Smaller: a Ctrl-C with lines already
+read raced them, a command line kept its trailing blanks, a parse error at
+`--go` named no line, the reader goroutine outlives the loop.
+
+**The rules settled.** The draft has two parts, the targets and options
+that stay and the commands that are the job's, and an option line's word
+is resolved through run's own table, so the command option and its
+aliases, the commands file, and the three declarations belong to the
+commands, an abbreviation or an `=` spelling means what it means on a
+command line, and an `=` value runs to the end of the line (the old reader
+split `--command=show version` at the space). `--clear` empties the
+commands and keeps the rest, what `--go` does without sending; `--reset`
+empties everything. `--go` and `--sendit` with nothing to send print a
+notice and run nothing, so the exit stays the last job's. `--cf`, `--tf`,
+and `--tfr` may not name `-` in any spelling. A read failure or a line over
+1 MiB ends the stream with `stream_input_read_failed` (exit 1) naming the
+line: the operator asked whether a generic error with detail would serve;
+the program's rule is one registered code per failure path with the detail
+in the message, and a code costs one registry row, so the rule held.
+
+**Line editing.** The operator asked whether an operator at a terminal
+could edit a line, with Ctrl-A and Ctrl-E among the keys. Three answers
+were weighed: the terminal's own cooked mode already gives backspace,
+Ctrl-U, and Ctrl-W, and nothing more; `rlwrap` gives GNU readline around
+the unchanged program, at no cost to the tree; `golang.org/x/term` gives
+the key set named, the arrows, and per-session history, at the cost of a
+vendored module. The operator chose x/term. The design: the terminal
+reader is used when standard input is a terminal and the controlling
+terminal opens for the echo, the scanner otherwise; the terminal is in raw
+mode for one line's read alone, through the tree's existing raw-mode
+helper, and back in its own mode for every message and every job, so a
+job's display and its Ctrl-C are as they were; Ctrl-C and Ctrl-D at the
+line end the stream as the input's end does. Vendoring x/term v0.23.0,
+already in the module cache, brought `golang.org/x/sys` into `vendor/`
+(its unix, windows, and plan9 packages, about 9 MB in the tree), and `go
+mod tidy` corrected two things beside it: `golang.org/x/crypto` was a
+direct import marked indirect, and `gopkg.in/yaml.v3` was a requirement
+nothing needed; NOTICE and the build guide follow.
+
+**Executed.** The two parts on a lab build, then the editor through a
+pseudo-terminal, where `sion`, Ctrl-A, `show ver`, Ctrl-E, Enter must plan
+the same job as the plain line, and two up arrows recall it:
+
+```text
+$ printf -- '--target 192.0.2.1\n--dry-run\n--cmd show clock\n--go\n--command=show version\n--go\nshow ip route\n--clear\n--go\n--end\n' | karvi --quiet stream 2>&1 | grep -E 'commands|stream line'
+commands: 1 (command_plan_digest 96920875…a51a2e6)
+commands: 1 (command_plan_digest af8efe9a…a20989e)
+stream line 9: nothing to send
+$ printf -- '--tf=-\n--cf -\n--tfr -\n--cf=-\n' | karvi stream
+stream line 1: standard input is the stream; --tf - is not accepted
+stream line 2: standard input is the stream; --cf - is not accepted
+stream line 3: standard input is the stream; --tfr - is not accepted
+stream line 4: standard input is the stream; --cf - is not accepted
+$ (printf -- '--target 192.0.2.1\n'; head -c 1100000 /dev/zero | tr '\0' 'x'; printf '\nshow clock\n--go\n') | karvi stream; echo "exit=$?"
+stream_input_read_failed: stream line 2 is longer than the 1048576-byte limit
+exit=1
+$ printf -- '--target 192.0.2.1\n--dry-run\nsion\x01show ver\x05\n--go\n\x1b[A\x1b[A\n--go\n--end\n' | script -qfc "karvi stream" /dev/null | grep -E 'commands:|stream line'
+commands: 1 (command_plan_digest af8efe9a…a20989e)
+commands: 1 (command_plan_digest af8efe9a…a20989e)
+$ printf -- '--target 192.0.2.1\n--dry-run\nshow clock\n\\r\nshow version\n--go\n--end\n' | karvi --quiet stream 2>&1 | grep commands
+commands: 3 (command_plan_digest b8f7b353…571aa45)
+$ printf -- '--target 192.0.2.1\n--dry-run\nshow clock\n\\r\nshow version\n--go\n--end\n' | script -qfc "karvi --quiet stream" /dev/null | grep commands
+commands: 3 (command_plan_digest b8f7b353…571aa45)
+```
+
+The last two lines answer the operator's question: a line of `\r` is two
+printable characters that stay in the command text and send a blank line
+as before, by pipe or by editor, while the translation touches one control
+byte, the Enter, which the editor consumes; three commands and one digest
+by both paths.
+
+**Found on the way.** The first pseudo-terminal run merged every line into
+one and waited: script(1) fed the whole input while the terminal was still
+in its own mode, which turns Enter into `\n`, and x/term's editor takes
+`\r` alone as Enter. An operator meets the same thing by typing ahead
+during a job. A reader in front of the editor now translates `\n` to `\r`,
+and the test feeds one line each way. The first recall example read the
+last line, `--go`, as history should; the record uses two up arrows.
+
+**Not taken.** A prompt (one constant, when wanted). Raw mode held across
+a job (its Ctrl-C would become a byte to read, as the watch screen reads
+it). GNU readline (not reachable without cgo; `rlwrap` stays an operator's
+choice). A generic error for the read failure. Echo on standard output (a
+redirected `karvi stream > out` would hide what is typed).
+
+**Roadmap.** The man page, the roadmap's first item; `main` protected and
+the old tree removed when the operator chooses.

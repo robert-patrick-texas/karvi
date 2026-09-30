@@ -135,16 +135,35 @@ by construction. *Not taken:* `run --collect`; a new activity type.
 
 **Stream mode.** `karvi stream` (alias `karvi -`) reads standard input line
 by line: a `--` line is one run option, any other line is one command sent as
-written, `--expect`/`--blind`/`--blind-return` lines attach to the command
-before them, blank and `!`/`#` lines are skipped. `--go` (or `--sendit`)
-executes the draft as `run` would and keeps the targets and options while
-clearing the commands; `--reset` empties the draft; `--end`, `--quit`, EOF,
-or Ctrl-C leave. A bad line is reported with its number and dropped, the
-draft standing. The exit is the last job's. *Why:* a job composed line by
-line at a terminal or piped from a script, reusing the table parser and the
-run path so no rule lives twice; a typo must not cost the draft. *Not taken:*
-a prompt with history; directives as table options; shell-style splitting of
-an option line (`--tl r1 r2` gives the case).
+written, blank and `!`/`#` lines are skipped. The draft has two parts: the
+targets and options, which stay from one job to the next, and the commands,
+which are the job's; an option line's word is resolved through run's own
+table, so `--cmd`, `--command`, `--cf`, and the `--expect`/`--blind`/
+`--blind-return` declarations belong to the commands, an abbreviation or an
+`=` spelling means what it means on a command line, and an `=` value runs to
+the end of the line. `--go` (or `--sendit`) executes the draft as `run` would
+and clears the commands, with a notice and no job when there is nothing to
+send; `--clear` empties the commands alone; `--reset` empties the draft;
+`--end`, `--quit`, EOF, or Ctrl-C leave, a Ctrl-C outranking lines already
+read. A bad line is reported with its number and dropped, the draft
+standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any spelling, since
+standard input is the stream; a read failure or a line over 1 MiB ends the
+stream with `stream_input_read_failed`. The exit is the last job's, 0 when
+none ran. Typed at a terminal, a line is edited with the usual keys and the
+up arrow recalls earlier lines (`golang.org/x/term`, vendored): the terminal
+is in raw mode for one line's read alone, through the tree's one raw-mode
+helper, and back in its own mode for every message and every job, so a job's
+display and its Ctrl-C are unchanged; the editing echoes on the controlling
+terminal, and a line typed ahead during a job, which the terminal's own mode
+ends with `\n`, is translated to the Enter the editor takes. *Why:* a job
+composed line by line at a terminal or piped from a script, reusing the table
+parser and the run path so no rule lives twice; a typo must not cost the
+draft; a command typed the way `run` takes it must be sent once, not by every
+later job. *Not taken:* directives as table options; shell-style splitting of
+an option line (`--tl r1 r2` gives the case); a prompt; raw mode held across
+a job (the job's Ctrl-C would become a byte to read); GNU readline (not
+reachable without cgo; `rlwrap` remains an operator's choice); a generic
+error for the read failure (every path carries its own code).
 
 **Help is laid out at print time.** The help texts are constants kept in step
 with the parser table by a drift test; a pass at print time adds blank lines
