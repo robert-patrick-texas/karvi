@@ -544,3 +544,67 @@ redirected `karvi stream > out` would hide what is typed).
 
 **Roadmap.** The man page, the roadmap's first item; `main` protected and
 the old tree removed when the operator chooses.
+
+## 8. The release 0.25.0, and the old tree removed (2026-09-30)
+
+The second release of the day, on the operator's word, carrying chapter 7's
+stream work; and the private line's working tree removed from the host,
+its archive checked first.
+
+**What it gains.** A site installs the stream fixes and the line editor
+from a published artifact the same day they were made, and the host
+carries one working tree, the public one, with the private line reachable
+only through its archive.
+
+**The old tree.** Before its removal the rule was applied: the archive's
+bare mirror holds the same twenty-eight refs at the same objects as the
+tree (`for-each-ref` on both, diffed empty), the tree was clean at
+`3f9b608`, and its only untracked content was `bin/`, the released v0.23.0
+executables that the v0.23.0 bundle beside the tree holds (its checksum
+verified, eight `bin/` entries listed). Then `rm -rf`. The compatibility
+example no longer needs it: the released previous executable is the
+public tree's own `bin/`, checked against `CHECKSUMS.sha256` and copied
+out before the rebuild.
+
+**The sequence, as run**, nineteen minutes twenty-two seconds from the
+baseline's start to the artifacts' end:
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the baseline on a clean clone of `dev` at `dcc7a61` | 09:44:00 to 09:49:52 | gofmt, make, the release verifier, exit 0 each |
+| the number in its eight places; the release-identity build | 09:51 | the changelog's Unreleased block became the release's, under a lead paragraph |
+| the compatibility example | 09:51 | the released v0.24.0 executable from `bin/` started its daemon; this client read `compatible: false` on the version alone, its run was refused with `daemon_incompatible` (exit 112) before any job, the client's `daemon stop` ended it |
+| 1/3 | 09:51 | `efa04c6` |
+| the core evidence | 09:51 to 09:52:27 | 730 named tests across 75 packages, vet 0, both socket lengths 0 |
+| the documents | 09:52 | `4af15ff` (2/3): `release/` from the v0.24.0 pattern by a generator reading the counts from the core log; the manifest lists the vendored modules |
+| the remaining evidence | 09:52:56 to 09:58:26 | the shipped checks exit 0, the release verifier exit 0, the checksums unchanged; the replay skipped |
+| 3/3, the tag, `main` | 09:59 | `74df534`, `karvi-v0.25.0`, `main` at the tag |
+| the artifacts | 09:59:03 to 10:03:22 | the bundle reproducible and verified from its own archive; 12,655,199 bytes, 1.3 MB more than v0.24.0's for the vendored x/term and x/sys |
+| the push and the GitHub release | 10:04 | `dev`, `main`, and the tag pushed; release `karvi-v0.25.0` with the three assets, marked latest; the asset downloaded back matches |
+
+**Executed.** The archive check and the published state:
+
+```text
+$ diff <(git --git-dir=$A/karvi-v0.23.0.git for-each-ref --format='%(refname) %(objectname)' | sed 's#refs/heads/##') <(git -C $OLD for-each-ref --format='%(refname) %(objectname)' | sed 's#refs/heads/##') && echo identical
+identical
+$ git -C $OLD status --short --ignored
+!! bin/
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease)"'
+latest: karvi-v0.25.0 draft=false prerelease=false
+$ curl -sL .../karvi-v0.25.0-source-linux-amd64.tar.gz | sha256sum | cut -c1-16; cut -c1-16 karvi-v0.25.0-source-linux-amd64.tar.gz.sha256
+702cee0bc0023080
+702cee0bc0023080
+```
+
+**Found on the way.** Two releases in one UTC day share a build time
+(`2026-09-30T00:00:00Z`); the build identity still differs by its commit
+string, and the checksums differ. `gh release view` has no `isLatest`
+field; the latest release is read from the releases API.
+
+**Not taken.** A patch number for a release whose only behaviour change
+is stream mode's (the version line's rule is minor for a behaviour
+change). Keeping the old tree for the compatibility example (the public
+tree's `bin/` serves it).
+
+**Roadmap.** The man page, the roadmap's first item; `main` protected when
+the operator chooses.
