@@ -340,7 +340,7 @@ $ cd karvi && git init -q -b main && git config user.name 'Robert Patrick' && gi
 $ git add -A && git commit -q -m 'karvi: the public source tree' && git branch dev
 $ git log --oneline | wc -l; git ls-files | wc -l; git status --short | wc -l
 1
-729
+728
 0
 $ go build ./... && make generated-clean && echo ok
 ok
