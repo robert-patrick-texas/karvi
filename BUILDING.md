@@ -1,7 +1,6 @@
 # Building karvi
 
-See `BUILD-HOWTO.md` for Ubuntu host preparation, patch application, offline
-builds, installation, and rollback.
+See `BUILD-HOWTO.md` for Ubuntu host preparation, offline builds, installation, and rollback.
 
 ## The release build
 
@@ -12,7 +11,7 @@ are committed, so the build needs Go 1.26 or later and no network:
 ```bash
 ./scripts/verify-shipped.sh     # the shipped executables as bytes, in seconds
 ./scripts/verify-bundle.sh      # the shipped executables and source, not rebuilt
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-20T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
 sha256sum -c CHECKSUMS.sha256   # the rebuild reproduces the shipped bytes
 ./scripts/verify-release.sh     # build from source, race run, every suite
 ```

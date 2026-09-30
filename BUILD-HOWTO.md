@@ -77,10 +77,10 @@ is the `go` directive in karvi's `go.mod`.
 ## 3. Verify and extract the full source bundle
 
 ```bash
-sha256sum -c karvi-v0.23.0-source-linux-amd64.tar.gz.sha256
-tar -tzf karvi-v0.23.0-source-linux-amd64.tar.gz >/dev/null
-tar -xzf karvi-v0.23.0-source-linux-amd64.tar.gz
-cd karvi-v0.23.0
+sha256sum -c karvi-v0.24.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.24.0-source-linux-amd64.tar.gz >/dev/null
+tar -xzf karvi-v0.24.0-source-linux-amd64.tar.gz
+cd karvi-v0.24.0
 ```
 
 Review the release boundary before building:
@@ -112,8 +112,8 @@ make deps            # optional on a connected host: download and verify
 the scrapligo-v1 adapter carries karvi's host-key callback on scrapligo's
 custom transport and that the provider opens karvi's device session, and
 fails if that path references `ssh-keyscan`, `os/exec`, or the removed
-pre-scan; runs `go mod verify`, the tests, `go vet`, the race run,
-and the traceability check under `-mod=vendor`; builds the executable and
+pre-scan; runs `go mod verify`, the tests, `go vet`, and the race run
+under `-mod=vendor`; builds the executable and
 checks its module metadata, its version counters, and both transport IDs;
 runs every historical smoke suite; then runs the parity suite
 `scripts/native-smoke-test.sh`, which builds the fake IOS XE server from
@@ -137,7 +137,7 @@ Confirm the dependency in source, vendor metadata, and the executable:
 grep -F 'github.com/scrapli/scrapligo v1.4.2' go.mod
 grep -F '# github.com/scrapli/scrapligo v1.4.2' vendor/modules.txt
 go version -m bin/karvi-linux-amd64 | \
-  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.1'
+  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2'
 ./bin/karvi-linux-amd64 --version | grep -F 'scrapligo: 1.4.2'
 ```
 
@@ -160,7 +160,7 @@ canary suite, and the parity suite against `bin/` as shipped. To reproduce
 the shipped bytes, rebuild with the release identity:
 
 ```bash
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-23T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
 sha256sum -c CHECKSUMS.sha256
 ```
 
@@ -261,8 +261,8 @@ rm -f "$TMP"
 
 ## 8. Confirm the configuration and daemon/display boundary
 
-This release requires configuration schema 6, daemon IPC schema 9, and
-configuration-registry schema 17 (`karvi version`). After replacing the binary,
+This release requires configuration schema 6, daemon IPC schema 10, and
+configuration-registry schema 22 (`karvi version`). After replacing the binary,
 inspect and, when needed, explicitly restart a still-running older per-user
 daemon:
 
@@ -373,15 +373,15 @@ Use versioned destinations and an atomic symlink:
 ```bash
 sudo install -d -m 0755 /usr/local/lib/karvi
 sudo install -m 0755 bin/karvi-linux-amd64 \
-  /usr/local/lib/karvi/karvi-v0.23.0
+  /usr/local/lib/karvi/karvi-v0.24.0
 sudo install -m 0755 bin/karvi-askpass-linux-amd64 \
-  /usr/local/lib/karvi/karvi-askpass-v0.23.0
+  /usr/local/lib/karvi/karvi-askpass-v0.24.0
 sudo install -m 0755 bin/karvi-prune-linux-amd64 \
-  /usr/local/lib/karvi/karvi-prune-v0.23.0
-sudo ln -sfn /usr/local/lib/karvi/karvi-v0.23.0 /usr/local/bin/karvi
-sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.23.0 \
+  /usr/local/lib/karvi/karvi-prune-v0.24.0
+sudo ln -sfn /usr/local/lib/karvi/karvi-v0.24.0 /usr/local/bin/karvi
+sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.24.0 \
   /usr/local/bin/karvi-askpass
-sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.23.0 \
+sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.24.0 \
   /usr/local/bin/karvi-prune
 karvi version --format json
 ```

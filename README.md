@@ -458,7 +458,7 @@ Rebuild with the release identity, which reproduces `CHECKSUMS.sha256` byte
 for byte:
 
 ```bash
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-20T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
 sha256sum -c CHECKSUMS.sha256
 ```
 

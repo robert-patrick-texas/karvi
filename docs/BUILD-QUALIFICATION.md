@@ -6,10 +6,10 @@ The release ships the scrapligo-v1 executable. Both
 verifiers run offline from the committed `vendor/` tree:
 
 ```bash
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-20T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
 make checksums tools-build
 ./scripts/verify-bundle.sh
-COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-20T00:00:00Z ./scripts/verify-release.sh
+COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z ./scripts/verify-release.sh
 ```
 
 `verify-bundle.sh` verifies the executables as they are in `bin/`, without
@@ -17,8 +17,7 @@ rebuilding them: identity and checksums, static Linux binaries, both
 transport IDs in `version` (it refuses an executable without
 `scrapligo-v1`), stateless help/version behavior, script syntax, `gofmt`
 over the Go source outside `vendor/`, the unit tests and vet in vendor mode,
-deterministic generated files, the traceability
-check, the example configurations, removed-key rejection, and every
+deterministic generated files, the example configurations, removed-key rejection, and every
 historical smoke suite through `v090-smoke-test.sh`, plus the k03 parser
 suite, the daemon-upgrade smoke suite, the v0100 suite
 `scripts/v0100-smoke-test.sh` (`make v0100-smoke`), the canary suite
@@ -27,8 +26,7 @@ suite, the daemon-upgrade smoke suite, the v0100 suite
 
 `verify-release.sh` builds from source: the import boundary and host-key
 assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and
-the race detector in vendor mode, the traceability
-check, the build, its module metadata and version counters, and the same
+the race detector in vendor mode, the build, its module metadata and version counters, and the same
 smoke suites. It rebuilds `bin/` and rewrites `CHECKSUMS.sha256`; with the
 release's `COMMIT` and `BUILD_TIME` the bytes do not change.
 
@@ -55,7 +53,7 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   for v0.16.0 to v0.19.0, which keep 9, it stayed v0.14.1, and for v0.20.0,
   which moved the schema to 10, and v0.21.0 and v0.21.1, which keep it,
   it is v0.19.0; for v0.22.0, the karvi line's first release, and
-  v0.23.0, which keeps 10, there is none, and the replay resumes when a
+  v0.23.0 and v0.24.0, which keep 10, there is none, and the replay resumes when a
   karvi release moves the schema from 10).
 - The Go tests and the suites MUST leave the host's shared places as they
   were: both verifiers list the shared scoreboard directory and the shared
@@ -184,9 +182,9 @@ make deps            # optional on a connected host: download and verify
   and fails if either references `ssh-keyscan`, `os/exec`, or the removed
   pre-scan (`PrepareNative`, `InspectRemote`).
 - The tagged tests, `go vet`, and the race run MUST pass under
-  `-mod=vendor` (`tools/tracecheck` is no longer in the tree).
+  `-mod=vendor`.
 - `karvi version --format json` MUST report configuration schema 6, command
-  record schema 2, daemon IPC schema 9, job schema 2, registry schema 17,
+  record schema 2, daemon IPC schema 10, job schema 2, registry schema 22,
   and both transport IDs; the text form's transport line is checked
   verbatim.
 - **The parity suite** (`scripts/native-smoke-test.sh`) MUST pass:

@@ -1,0 +1,136 @@
+{
+  "application": "karvi",
+  "version": "0.24.0",
+  "release_date": "2026-09-30",
+  "release_type": "engineering-candidate-release",
+  "behavior_change_from_previous": "the first release from the public repository, on 0.23.0: no behaviour of the executables changed and every counter is 0.23.0's (daemon IPC 10, execution plan 9, scoreboard 3, configuration schema 6, registry 22, command record 2, job 2, credential package 1, plan report 1); the tree was prepared for public release (the cumulative patch stream retired, the specification and its records archived, docs/DESIGN.md stating the settled decisions, the module path github.com/robert-patrick-texas/karvi, the history begun anew at this tree's root commit); a running 0.23.0 daemon is compatible: false on the version alone and is restarted; see CHANGELOG.md",
+  "design": "docs/DESIGN.md",
+  "roadmap": "ROADMAP.md",
+  "configuration_schema_version": 6,
+  "configuration_registry_schema_version": 22,
+  "command_record_schema_version": 2,
+  "daemon_ipc_schema_version": 10,
+  "scoreboard_schema_version": 3,
+  "audit_schema_version": 1,
+  "job_schema_version": 2,
+  "execution_plan_schema_version": 9,
+  "credential_package_schema_version": 1,
+  "plan_report_schema_version": 1,
+  "included_binary_profile": "scrapligo-v1-native-linux-amd64",
+  "build": {
+    "go_version": "go1.27.1",
+    "official_go_floor": "1.26.0",
+    "source_identity": "source-release-v0.24.0",
+    "build_time": "2026-09-30T00:00:00Z",
+    "cgo_enabled": false,
+    "trimpath": true,
+    "buildvcs": false,
+    "dependencies": "vendored (go.mod, go.sum, vendor/); built with no network",
+    "build_tags": "none (every build carries the adapter)"
+  },
+  "source_statistics": {
+    "go_files_outside_vendor": 385,
+    "go_lines_outside_vendor": 80042,
+    "named_top_level_tests": 727,
+    "packages": 75
+  },
+  "binaries": {
+    "karvi-linux-amd64": {
+      "bytes": 11833504,
+      "sha256": "67cef10a4a333d58016c45388c4e8e00cf6e51c1326e2949925c8ff4a2cfdae0",
+      "reported_ssh_transports": [
+        {
+          "id": "scrapligo-v1",
+          "name": "scrapligo",
+          "version": "1.4.2",
+          "linkage": "compiled-in"
+        },
+        {
+          "id": "system",
+          "name": "system",
+          "linkage": "external-executable"
+        }
+      ],
+      "native_transport": "compiled-in (scrapligo v1.4.2)"
+    },
+    "karvi-askpass-linux-amd64": {
+      "bytes": 3887264,
+      "sha256": "3c1a7e8036d1e19628fe45a29a2c56918c89cd9f3145bd3570e140f5ac7427b9"
+    },
+    "karvi-prune-linux-amd64": {
+      "bytes": 3719328,
+      "sha256": "085057327f3f7276e7492dcc5872a6967d0745c7e58b890072630ef9160f399b"
+    }
+  },
+  "source_changes": {
+    "changelog": "CHANGELOG.md 0.24.0 - 2026-09-30"
+  },
+  "daemon_upgrade_recovery": {
+    "job_submission_schema": "exact-current-only",
+    "lifecycle_compatible_schemas": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "lifecycle_operations": [
+      "ping",
+      "status",
+      "drain",
+      "stop"
+    ],
+    "automatic_replacement": false,
+    "explicit_restart_command": "karvi daemon restart",
+    "restart_refuses_reported_active_jobs": true,
+    "restart_force_option": "--force",
+    "incompatible_run_exit_code": 112,
+    "incompatible_run_error": "daemon_incompatible",
+    "restart_grace_option": "--grace",
+    "restart_after_option": "--after=DURATION",
+    "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
+    "actual_lifecycle_replay": "none: the daemon IPC schema has been 10 since v0.20.0 and no release has moved it, so no earlier executable's daemon differs in schema from this client's; the compatibility example ran before the number was committed: the released v0.23.0 daemon reported compatible: false to this client on the version alone, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
+  },
+  "configuration_migration": {
+    "from_schema": 6,
+    "to_schema": 6,
+    "required": false,
+    "compatibility_alias": false,
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 22 as at v0.23.0; no key added or removed"
+  },
+  "native_dependency": {
+    "module": "github.com/scrapli/scrapligo",
+    "version": "v1.4.2",
+    "compiled_in": true,
+    "reason": "every build carries the scrapligo-v1 adapter; built from the vendored tree",
+    "first_qualification_platform": "Cisco IOS XE Catalyst 9300"
+  },
+  "qualification": {
+    "unit_tests": "passed",
+    "go_vet": "passed",
+    "race_detector": "passed (the release verifier's run, release-qualification.log)",
+    "socket_tests_25_and_145_byte_tmpdir": "passed",
+    "generated_artifacts": "passed",
+    "executable_smoke_suites": "passed (17 suites in three lanes, against the native executable)",
+    "schema2_upgrade_fixture": "passed",
+    "archive_reproducibility": "passed",
+    "native_scrapligo_build": "passed (scripts/verify-release.sh)",
+    "real_cisco_iosxe": "not-run",
+    "production_scale": "not-run",
+    "parity_suite_system_and_scrapligo_v1": "passed (fake IOS XE device)",
+    "gofmt": "passed",
+    "lifecycle_replay": "skipped: no release whose daemon IPC schema differs from this client's",
+    "host_shared_places_unchanged": "passed (scripts/lib/host.sh in both verifiers)",
+    "shipped_executables_as_bytes": "passed (scripts/verify-shipped.sh, bundle-qualification.log)",
+    "release_tree_clean_at_tag": "passed (nothing untracked, no empty directory)"
+  },
+  "previous_release": {
+    "version": "0.23.0",
+    "notes": "made from the maintainer's private history before the tree was prepared for public release; its bundle is not published, and every release is installed as new"
+  }
+}
