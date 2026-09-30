@@ -11,9 +11,7 @@ each with its own licence file at the path given:
 - github.com/sirikothe/gotextfsm (Apache License 2.0), vendor/github.com/sirikothe/gotextfsm/LICENSE
 - golang.org/x/crypto (BSD 3-Clause License, copyright The Go Authors), vendor/golang.org/x/crypto/LICENSE
 - golang.org/x/sys (BSD 3-Clause License, copyright The Go Authors), vendor/golang.org/x/sys/LICENSE
-
-gopkg.in/yaml.v3 appears in go.mod and go.sum as a requirement of the module
-graph and is not vendored: no karvi package imports it.
+- golang.org/x/term (BSD 3-Clause License, copyright The Go Authors), vendor/golang.org/x/term/LICENSE
 
 karvi invokes the system OpenSSH client at runtime when the system transport
 is selected. OpenSSH is separately licensed by its distributors and is not

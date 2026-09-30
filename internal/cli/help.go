@@ -59,10 +59,12 @@ Directives, each a whole line:
   --end, --quit                  Leave without executing; so do EOF (Ctrl-D)
                                  and Ctrl-C
 
-A line the parser refuses is reported with its number and dropped. The
-exit is the last executed job's, 0 when none ran; a read failure or a line
-over 1 MiB ends the stream with stream_input_read_failed. Global options go
-before the word: karvi --quiet --config FILE stream.
+Typed at a terminal, a line is edited with Ctrl-A, Ctrl-E, Ctrl-K, Ctrl-U,
+Ctrl-W, and the arrows, and the up arrow recalls earlier lines. A line the
+parser refuses is reported with its number and dropped. The exit is the
+last executed job's, 0 when none ran; a read failure or a line over 1 MiB
+ends the stream with stream_input_read_failed. Global options go before
+the word: karvi --quiet --config FILE stream.
 
 Options:
   --help, -h                     Show this help

@@ -814,6 +814,12 @@ or a heredoc it drives several jobs through one karvi. The rules:
   options. `--reset` empties the draft. `--end`, `--quit`, the input's
   end (Ctrl-D), or Ctrl-C leave without executing, and a Ctrl-C outranks
   lines already read. Only `--go` and `--sendit` execute.
+- Typed at a terminal, a line is edited before Enter sends it: Ctrl-A and
+  Ctrl-E to the line's ends, Ctrl-K, Ctrl-U, and Ctrl-W to cut, the left
+  and right arrows to move, and the up and down arrows through the lines
+  typed so far. The editing echoes on the controlling terminal, so
+  `karvi stream > out` still shows what is typed. Piped input has no
+  editing to do.
 - A line the parser refuses (`--typo`, a declaration before any command)
   is reported on standard error with its line number and dropped; the
   draft stands. `--cf`, `--tf`, and `--tfr` may not name `-` in any

@@ -103,8 +103,8 @@ func TerminalSize(f *os.File) (rows, columns int) {
 // flow control, one byte at a time. Output processing stays as it was; the
 // screen addresses the cursor and writes no newline. The returned function
 // restores the terminal's settings and is called however the screen ends.
-// It goes through the same ioctl path as ReadTTY: golang.org/x/sys/unix is
-// not vendored and this needs nothing more.
+// It goes through the same ioctl path as ReadTTY, the tree's one raw-mode
+// path; stream mode's line editor (golang.org/x/term) borrows it too.
 func RawMode(f *os.File) (restore func() error, err error) {
 	var old syscall.Termios
 	if err := ioctlTermios(f.Fd(), tcgets, &old); err != nil {

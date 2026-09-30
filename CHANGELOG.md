@@ -13,6 +13,13 @@
   `stream_input_read_failed` (exit 1) naming the line, where it had ended
   silently with exit 0. A Ctrl-C outranks lines already read; a command
   line loses its trailing blanks; a parse error at `--go` names its line.
+- **Line editing in stream mode.** Typed at a terminal, a line is edited
+  with Ctrl-A, Ctrl-E, Ctrl-K, Ctrl-U, Ctrl-W, and the arrows, and the up
+  arrow recalls earlier lines (`golang.org/x/term`, vendored, which
+  brings `golang.org/x/sys` into `vendor/`; `go mod tidy` also marked
+  `golang.org/x/crypto` the direct requirement it is and dropped
+  `gopkg.in/yaml.v3`, which nothing required). Piped input is read as
+  before.
 
 ## 0.24.0 - 2026-09-30
 

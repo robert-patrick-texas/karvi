@@ -62,10 +62,19 @@ func (d *streamDraft) argv() []string {
 	return append(out, d.commands...)
 }
 
-// commandStream is the stream word's handler.
+// commandStream is the stream word's handler. A terminal's lines come
+// through the editing reader (stream_terminal.go); any other input through
+// the scanner.
 func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
-	if f, ok := streams.Stdin.(*os.File); ok && osutil.IsTerminal(f) && !inv.Global.quiet {
-		fmt.Fprintln(streams.Stderr, "stream: one run option (--target NAME) or one command per line; --go sends, --clear drops the commands, --reset clears, --end quits")
+	next := streamScanner(streams.Stdin)
+	if f, ok := streams.Stdin.(*os.File); ok && osutil.IsTerminal(f) {
+		if t, err := newStreamTerminal(f); err == nil {
+			defer t.close()
+			next = t.next
+		}
+		if !inv.Global.quiet {
+			fmt.Fprintln(streams.Stderr, "stream: one run option (--target NAME) or one command per line; --go sends, --clear drops the commands, --reset clears, --end quits")
+		}
 	}
 	execute := func(line int, argv []string) int {
 		sub, err := Parse(argv)
@@ -76,7 +85,7 @@ func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
 		sub.Global = inv.Global
 		return commandRun(ctx, sub, streams)
 	}
-	return streamLoop(ctx, streams.Stdin, streams.Stderr, execute)
+	return streamLoop(ctx, next, streams.Stderr, execute)
 }
 
 // streamRead is one line of the input, or the reader's failure after the
@@ -86,23 +95,44 @@ type streamRead struct {
 	err  error
 }
 
-// streamLoop reads the lines and drives the draft; execute runs one
+// streamScanner reads the lines of a pipe or a file: next gives each line
+// without its ending, then io.EOF, or the scanner's failure (a line over
+// streamLineLimit among them).
+func streamScanner(in io.Reader) func() (string, error) {
+	scanner := bufio.NewScanner(in)
+	scanner.Buffer(make([]byte, 64*1024), streamLineLimit)
+	return func() (string, error) {
+		if scanner.Scan() {
+			return scanner.Text(), nil
+		}
+		if err := scanner.Err(); err != nil {
+			return "", err
+		}
+		return "", io.EOF
+	}
+}
+
+// streamLoop reads the lines and drives the draft; next gives one line, or
+// io.EOF at the input's end, or the input's failure; execute runs one
 // invocation, named by the line that sent it, and gives its exit. It returns
 // when the input ends, a leaving directive is read, the input fails, or ctx
 // is cancelled (Ctrl-C), with the last exit. The reader goroutine blocks in
-// the input's Read, which takes no deadline, so it lives until the input
+// the input's read, which takes no deadline, so it lives until the input
 // ends or the process does; after the loop returns it delivers nowhere.
-func streamLoop(ctx context.Context, in io.Reader, stderr io.Writer, execute func(line int, argv []string) int) int {
+func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writer, execute func(line int, argv []string) int) int {
 	lines := make(chan streamRead, 16)
 	go func() {
 		defer close(lines)
-		scanner := bufio.NewScanner(in)
-		scanner.Buffer(make([]byte, 64*1024), streamLineLimit)
-		for scanner.Scan() {
-			lines <- streamRead{text: scanner.Text()}
-		}
-		if err := scanner.Err(); err != nil {
-			lines <- streamRead{err: err}
+		for {
+			text, err := next()
+			if errors.Is(err, io.EOF) {
+				return
+			}
+			if err != nil {
+				lines <- streamRead{err: err}
+				return
+			}
+			lines <- streamRead{text: text}
 		}
 	}()
 	draft := &streamDraft{}

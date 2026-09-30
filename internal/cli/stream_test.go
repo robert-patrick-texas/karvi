@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/term"
+
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 )
 
@@ -51,7 +53,7 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 		"--go",
 	}, "\n") + "\n")
 	var stderr bytes.Buffer
-	got := streamLoop(context.Background(), in, &stderr, execute)
+	got := streamLoop(context.Background(), streamScanner(in), &stderr, execute)
 	if got != exitcode.ExitPartialFailure {
 		t.Errorf("exit %d, want the last job's %d", got, exitcode.ExitPartialFailure)
 	}
@@ -79,18 +81,18 @@ func TestStreamLoopEndsOnEOFAndCancel(t *testing.T) {
 	ran := 0
 	execute := func(int, []string) int { ran++; return 0 }
 	var stderr bytes.Buffer
-	if got := streamLoop(context.Background(), strings.NewReader("--target r1\nshow clock\n"), &stderr, execute); got != 0 || ran != 0 {
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader("--target r1\nshow clock\n")), &stderr, execute); got != 0 || ran != 0 {
 		t.Errorf("EOF: exit %d, ran %d", got, ran)
 	}
 	r, w := io.Pipe()
 	defer w.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if got := streamLoop(ctx, r, &stderr, execute); got != 0 || ran != 0 {
+	if got := streamLoop(ctx, streamScanner(r), &stderr, execute); got != 0 || ran != 0 {
 		t.Errorf("cancel: exit %d, ran %d", got, ran)
 	}
 	// A cancellation outranks lines already read: a --go behind it never runs.
-	if got := streamLoop(ctx, strings.NewReader("--target r1\nshow clock\n--go\n"), &stderr, execute); got != 0 || ran != 0 {
+	if got := streamLoop(ctx, streamScanner(strings.NewReader("--target r1\nshow clock\n--go\n")), &stderr, execute); got != 0 || ran != 0 {
 		t.Errorf("cancel with lines buffered: exit %d, ran %d", got, ran)
 	}
 }
@@ -127,7 +129,7 @@ func TestStreamLoopCommandOptionsAndClear(t *testing.T) {
 		"--go",
 		"--end",
 	}, "\n") + "\n"
-	if got := streamLoop(context.Background(), strings.NewReader(in), &stderr, execute); got != exitcode.ExitPartialFailure {
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute); got != exitcode.ExitPartialFailure {
 		t.Errorf("exit %d", got)
 	}
 	want := [][]string{
@@ -155,7 +157,7 @@ func TestStreamLoopReadFailure(t *testing.T) {
 	execute := func(int, []string) int { ran++; return 0 }
 	var stderr bytes.Buffer
 	in := "--target r1\n" + strings.Repeat("x", streamLineLimit+1) + "\nshow clock\n--go\n"
-	got := streamLoop(context.Background(), strings.NewReader(in), &stderr, execute)
+	got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute)
 	if got != exitcode.ExitGenericError || ran != 0 {
 		t.Errorf("exit %d, ran %d", got, ran)
 	}
@@ -219,5 +221,44 @@ func TestStreamRunsAJobFromStdin(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "! exit=101 ") || strings.Contains(stderr.String(), "dropped") {
 		t.Fatalf("stdout=%q stderr=%q", stdout.String(), stderr.String())
+	}
+}
+
+// TestStreamTerminalEditsAndHistory: the terminal reader over an in-memory
+// terminal (no raw mode under test): Ctrl-A and Ctrl-E move within the
+// line, the up arrow recalls the line before, Ctrl-C ends the stream as
+// io.EOF, and the loop takes the reader's lines as it takes the scanner's,
+// a line ended by \n (typed ahead through the terminal's own mode) as one
+// ended by \r.
+func TestStreamTerminalEditsAndHistory(t *testing.T) {
+	var echo bytes.Buffer
+	in := strings.NewReader("show clock\x01! \x05 detail\r\x1b[A\r\x03")
+	s := &streamTerminal{t: term.NewTerminal(struct {
+		io.Reader
+		io.Writer
+	}{in, &echo}, "")}
+	var got []string
+	for {
+		line, err := s.next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, line)
+	}
+	if want := []string{"! show clock detail", "! show clock detail"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("lines %q, want %q", got, want)
+	}
+	var runs int
+	execute := func(int, []string) int { runs++; return 0 }
+	var stderr bytes.Buffer
+	s = &streamTerminal{t: term.NewTerminal(struct {
+		io.Reader
+		io.Writer
+	}{enterReader{strings.NewReader("--target r1\nshow clock\r--go\n\x04")}, io.Discard}, "")}
+	if exit := streamLoop(context.Background(), s.next, &stderr, execute); exit != 0 || runs != 1 || stderr.Len() != 0 {
+		t.Errorf("exit %d, runs %d, stderr %q", exit, runs, stderr.String())
 	}
 }

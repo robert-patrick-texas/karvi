@@ -95,7 +95,8 @@ cat go.mod
 ### 4.1 Official native-enabled build
 
 The source carries every module scrapligo-v1 needs: `go.mod` names
-scrapligo v1.4.2 and its five indirect requirements, `go.sum` holds their
+scrapligo v1.4.2, golang.org/x/crypto v0.26.0, and golang.org/x/term v0.23.0
+with their three indirect requirements, `go.sum` holds their
 sums, and `vendor/` holds their sources. A build
 host needs no network. On a host with an approved module proxy, `make deps`
 re-downloads the modules and checks them against `go.sum` first:

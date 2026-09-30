@@ -361,8 +361,10 @@ other line is one command sent as written (a `--cmd`, `--command`, or
 `--go` (or `--sendit`) executes the draft as `run` would and keeps the
 targets and options for the next batch of commands; `--clear` drops the
 commands and keeps the rest; `--reset` empties the draft; `--end` (or
-`--quit`), EOF, or Ctrl-C leave without executing. A line the parser
-refuses is reported by its number and dropped. The exit is the last job's.
+`--quit`), EOF, or Ctrl-C leave without executing. Typed at a terminal,
+a line is edited with the usual keys and the up arrow recalls earlier
+lines. A line the parser refuses is reported by its number and dropped.
+The exit is the last job's.
 
 ```sh
 karvi - <<'EOF'
