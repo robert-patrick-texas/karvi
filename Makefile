@@ -1,5 +1,5 @@
 GO ?= go
-VERSION ?= 0.24.0
+VERSION ?= 0.25.0
 COMMIT ?= development
 BUILD_TIME ?= 1970-01-01T00:00:00Z
 FIPS_MODE ?= false

@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.25.0 - 2026-09-30
+
+A minor release on 0.24.0, the same day. Every counter is 0.24.0's (daemon
+IPC 10, execution plan 9, scoreboard 3, configuration schema 6, registry
+22, command record 2, job 2, credential package 1, plan report 1); a
+running 0.24.0 daemon is `compatible: false` by its version alone and is
+restarted. The behaviour change is stream mode's, below; `run`, `command`,
+and the daemon are 0.24.0's. The module graph gains `golang.org/x/term`.
 
 - **Stream mode's draft.** A `--cmd`, `--command`, or `--cf` line is a
   command like a bare line, cleared by `--go` with the rest, where it had
