@@ -1,0 +1,306 @@
+karvi v0.24.0 release verification (built from source, race run, parity suite)
+2026-09-30T07:45:34Z
+all modules verified
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi	[no test files]
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi-askpass	[no test files]
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi-fake-iosxe	[no test files]
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi-prune	[no test files]
+?   	github.com/robert-patrick-texas/karvi/configschema	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/credentialpackage	0.076s
+ok  	github.com/robert-patrick-texas/karvi/credentials	0.024s
+ok  	github.com/robert-patrick-texas/karvi/dispatch	0.037s
+ok  	github.com/robert-patrick-texas/karvi/executionplan	0.035s
+?   	github.com/robert-patrick-texas/karvi/executionplan/plantest	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/adapters/scrapligov1	8.613s
+ok  	github.com/robert-patrick-texas/karvi/internal/app	0.710s
+ok  	github.com/robert-patrick-texas/karvi/internal/askpass	0.007s
+ok  	github.com/robert-patrick-texas/karvi/internal/audit	0.008s
+ok  	github.com/robert-patrick-texas/karvi/internal/buildinfo	0.003s
+ok  	github.com/robert-patrick-texas/karvi/internal/canary	0.008s
+?   	github.com/robert-patrick-texas/karvi/internal/canary/canarytest	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/capacity	0.051s
+ok  	github.com/robert-patrick-texas/karvi/internal/cli	17.225s
+ok  	github.com/robert-patrick-texas/karvi/internal/completion	0.003s
+ok  	github.com/robert-patrick-texas/karvi/internal/configload	9.943s
+ok  	github.com/robert-patrick-texas/karvi/internal/configload/tomlmini	0.003s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend	0.541s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/cloginrc	0.021s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credcsv	0.044s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credfile	0.009s
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/env	[no test files]
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/envindirect	[no test files]
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/redis	[no test files]
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/vault	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialframe	0.030s
+ok  	github.com/robert-patrick-texas/karvi/internal/daemon	27.638s
+ok  	github.com/robert-patrick-texas/karvi/internal/devsession	19.636s
+ok  	github.com/robert-patrick-texas/karvi/internal/display	0.004s
+ok  	github.com/robert-patrick-texas/karvi/internal/errorcodes	0.413s
+ok  	github.com/robert-patrick-texas/karvi/internal/executor	36.392s
+?   	github.com/robert-patrick-texas/karvi/internal/exitcode	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/fakeiosxe	0.019s
+ok  	github.com/robert-patrick-texas/karvi/internal/hostkey	0.026s
+ok  	github.com/robert-patrick-texas/karvi/internal/icmpgate	3.936s
+ok  	github.com/robert-patrick-texas/karvi/internal/inventoryload	0.438s
+ok  	github.com/robert-patrick-texas/karvi/internal/ipc	0.033s
+ok  	github.com/robert-patrick-texas/karvi/internal/jobexec	0.975s
+ok  	github.com/robert-patrick-texas/karvi/internal/matching	0.004s
+?   	github.com/robert-patrick-texas/karvi/internal/metrics	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/osutil	0.112s
+?   	github.com/robert-patrick-texas/karvi/internal/osutil/osutiltest	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/output	0.543s
+ok  	github.com/robert-patrick-texas/karvi/internal/planner	0.786s
+ok  	github.com/robert-patrick-texas/karvi/internal/prune	0.031s
+ok  	github.com/robert-patrick-texas/karvi/internal/resolver	0.113s
+ok  	github.com/robert-patrick-texas/karvi/internal/scoreboard	0.426s
+?   	github.com/robert-patrick-texas/karvi/internal/secrets	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/sshalgorithms	0.004s
+ok  	github.com/robert-patrick-texas/karvi/internal/targetsource	0.012s
+?   	github.com/robert-patrick-texas/karvi/internal/testsocket	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/transcript	0.030s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/native	2.064s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/systemssh	0.910s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/telnet	0.663s
+ok  	github.com/robert-patrick-texas/karvi/internal/transportselect	0.245s
+ok  	github.com/robert-patrick-texas/karvi/internal/watchui	0.139s
+ok  	github.com/robert-patrick-texas/karvi/inventory	0.006s
+ok  	github.com/robert-patrick-texas/karvi/platform	0.007s
+ok  	github.com/robert-patrick-texas/karvi/records	0.051s
+ok  	github.com/robert-patrick-texas/karvi/tabular	0.004s
+?   	github.com/robert-patrick-texas/karvi/tools/configgen	[no test files]
+?   	github.com/robert-patrick-texas/karvi/tools/configtable	[no test files]
+?   	github.com/robert-patrick-texas/karvi/tools/daemon-fixture	[no test files]
+?   	github.com/robert-patrick-texas/karvi/tools/errorcodegen	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/tools/paritycheck	0.010s
+?   	github.com/robert-patrick-texas/karvi/tools/schema-check	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/tools/secret-scan	0.009s
+?   	github.com/robert-patrick-texas/karvi/tools/textfile	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/transform	0.003s
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi	[no test files]
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi-askpass	[no test files]
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi-fake-iosxe	[no test files]
+?   	github.com/robert-patrick-texas/karvi/cmd/karvi-prune	[no test files]
+?   	github.com/robert-patrick-texas/karvi/configschema	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/credentialpackage	1.311s
+ok  	github.com/robert-patrick-texas/karvi/credentials	1.109s
+ok  	github.com/robert-patrick-texas/karvi/dispatch	1.045s
+ok  	github.com/robert-patrick-texas/karvi/executionplan	1.188s
+?   	github.com/robert-patrick-texas/karvi/executionplan/plantest	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/adapters/scrapligov1	9.581s
+ok  	github.com/robert-patrick-texas/karvi/internal/app	1.992s
+ok  	github.com/robert-patrick-texas/karvi/internal/askpass	1.027s
+ok  	github.com/robert-patrick-texas/karvi/internal/audit	1.030s
+ok  	github.com/robert-patrick-texas/karvi/internal/buildinfo	1.018s
+ok  	github.com/robert-patrick-texas/karvi/internal/canary	1.041s
+?   	github.com/robert-patrick-texas/karvi/internal/canary/canarytest	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/capacity	1.070s
+ok  	github.com/robert-patrick-texas/karvi/internal/cli	32.582s
+ok  	github.com/robert-patrick-texas/karvi/internal/completion	1.017s
+ok  	github.com/robert-patrick-texas/karvi/internal/configload	26.603s
+ok  	github.com/robert-patrick-texas/karvi/internal/configload/tomlmini	1.016s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend	2.614s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/cloginrc	1.051s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credcsv	1.115s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credfile	1.028s
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/env	[no test files]
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/envindirect	[no test files]
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/redis	[no test files]
+?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/vault	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialframe	1.152s
+ok  	github.com/robert-patrick-texas/karvi/internal/daemon	66.770s
+ok  	github.com/robert-patrick-texas/karvi/internal/devsession	26.634s
+ok  	github.com/robert-patrick-texas/karvi/internal/display	1.021s
+ok  	github.com/robert-patrick-texas/karvi/internal/errorcodes	3.060s
+ok  	github.com/robert-patrick-texas/karvi/internal/executor	39.391s
+?   	github.com/robert-patrick-texas/karvi/internal/exitcode	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/fakeiosxe	1.082s
+ok  	github.com/robert-patrick-texas/karvi/internal/hostkey	1.083s
+ok  	github.com/robert-patrick-texas/karvi/internal/icmpgate	4.961s
+ok  	github.com/robert-patrick-texas/karvi/internal/inventoryload	2.290s
+ok  	github.com/robert-patrick-texas/karvi/internal/ipc	1.219s
+ok  	github.com/robert-patrick-texas/karvi/internal/jobexec	5.148s
+ok  	github.com/robert-patrick-texas/karvi/internal/matching	1.018s
+?   	github.com/robert-patrick-texas/karvi/internal/metrics	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/osutil	1.189s
+?   	github.com/robert-patrick-texas/karvi/internal/osutil/osutiltest	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/output	4.315s
+ok  	github.com/robert-patrick-texas/karvi/internal/planner	3.748s
+ok  	github.com/robert-patrick-texas/karvi/internal/prune	1.102s
+ok  	github.com/robert-patrick-texas/karvi/internal/resolver	1.452s
+ok  	github.com/robert-patrick-texas/karvi/internal/scoreboard	1.338s
+?   	github.com/robert-patrick-texas/karvi/internal/secrets	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/sshalgorithms	1.017s
+ok  	github.com/robert-patrick-texas/karvi/internal/targetsource	1.041s
+?   	github.com/robert-patrick-texas/karvi/internal/testsocket	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/internal/transcript	1.046s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/native	3.269s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/systemssh	2.344s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/telnet	1.692s
+ok  	github.com/robert-patrick-texas/karvi/internal/transportselect	1.324s
+ok  	github.com/robert-patrick-texas/karvi/internal/watchui	1.447s
+ok  	github.com/robert-patrick-texas/karvi/inventory	1.019s
+ok  	github.com/robert-patrick-texas/karvi/platform	1.028s
+ok  	github.com/robert-patrick-texas/karvi/records	1.228s
+ok  	github.com/robert-patrick-texas/karvi/tabular	1.024s
+?   	github.com/robert-patrick-texas/karvi/tools/configgen	[no test files]
+?   	github.com/robert-patrick-texas/karvi/tools/configtable	[no test files]
+?   	github.com/robert-patrick-texas/karvi/tools/daemon-fixture	[no test files]
+?   	github.com/robert-patrick-texas/karvi/tools/errorcodegen	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/tools/paritycheck	1.031s
+?   	github.com/robert-patrick-texas/karvi/tools/schema-check	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/tools/secret-scan	1.026s
+?   	github.com/robert-patrick-texas/karvi/tools/textfile	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/transform	1.018s
+mkdir -p bin
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/robert-patrick-texas/karvi/internal/buildinfo.Commit=source-release-v0.24.0 -X github.com/robert-patrick-texas/karvi/internal/buildinfo.BuildTime=2026-09-30T00:00:00Z -X github.com/robert-patrick-texas/karvi/internal/buildinfo.FIPSMode=false' -o bin/karvi-linux-amd64 ./cmd/karvi
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/robert-patrick-texas/karvi/internal/buildinfo.Commit=source-release-v0.24.0 -X github.com/robert-patrick-texas/karvi/internal/buildinfo.BuildTime=2026-09-30T00:00:00Z -X github.com/robert-patrick-texas/karvi/internal/buildinfo.FIPSMode=false' -o bin/karvi-askpass-linux-amd64 ./cmd/karvi-askpass
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/robert-patrick-texas/karvi/internal/buildinfo.Commit=source-release-v0.24.0 -X github.com/robert-patrick-texas/karvi/internal/buildinfo.BuildTime=2026-09-30T00:00:00Z -X github.com/robert-patrick-texas/karvi/internal/buildinfo.FIPSMode=false' -o bin/karvi-prune-linux-amd64 ./cmd/karvi-prune
+ln -sfn karvi-linux-amd64 bin/karvi
+ln -sfn karvi-askpass-linux-amd64 bin/karvi-askpass
+ln -sfn karvi-prune-linux-amd64 bin/karvi-prune
+mkdir -p bin
+CGO_ENABLED=0 GOTOOLCHAIN=local go build -buildvcs=false -trimpath -o bin/secret-scan ./tools/secret-scan
+native smoke: S1 success, a rejected command, success under continue (the daemon path too): parity: 3 records equal in 6 streams
+native smoke: S2 a rejected command under halt: parity: 3 records equal in 4 streams
+native smoke: S3 a timeout under continue: parity: 3 records equal in 4 streams
+native smoke: S4 a session-init profile, fail-device: parity: 4 records equal in 4 streams
+native smoke: S5 a session-init profile, continue: parity: 4 records equal in 4 streams
+native smoke: S6 an alias of cisco_iosxe: parity: 2 records equal in 4 streams
+native smoke: S7 privilege 15 at login, no enable secret: parity: 2 records equal in 4 streams
+native smoke: S8 the device asks for an enable secret, none resolved: parity: 2 records equal in 4 streams
+native smoke: S9 a wrong enable secret: parity: 1 records equal in 4 streams
+native smoke: S10 generic records a rejected command as it comes: parity: 2 records equal in 4 streams
+native smoke: S11 the output limit: parity: 2 records equal in 4 streams
+native smoke: S12a the legacy device under the defaults: parity: 1 records equal in 4 streams
+native smoke: S12b the legacy device through an algorithm profile: parity: 2 records equal in 4 streams
+native smoke: S13 a rejected password: parity: 1 records equal in 4 streams
+native smoke: S14a secure, an empty store: parity: 1 records equal in 4 streams
+native smoke: S14b secure, another key enrolled under the identity: parity: 1 records equal in 4 streams
+native smoke: S14c insecure, another key enrolled (the mismatch warning): parity: 1 records equal in 4 streams
+native smoke: S14d system enrolls, scrapligo-v1 reads under secure: parity: 1 records equal in 2 streams
+native smoke: S14e scrapligo-v1 enrolls, system reads under secure: parity: 1 records equal in 2 streams
+native smoke: S15 no first prompt within the login allowance: parity: 1 records equal in 4 streams
+native smoke: S16 no privileged prompt within the enable timeout: parity: 2 records equal in 4 streams
+native smoke: S17 the device timeout cuts the second command under continue: parity: 3 records equal in 4 streams
+native smoke: S18 a device gone silent is ended by the keepalives: parity: 3 records equal in 4 streams
+native smoke: S19 a [confirm] answered by the escape, the prompt returns: parity: 2 records equal in 4 streams
+native smoke: S20 a [confirm] answered by the escape, the prompt never returns: parity: 1 records equal in 4 streams
+native smoke: S21 a value prompt answered by --expect, the prompt returns: parity: 2 records equal in 4 streams
+native smoke: S22 a mistyped pattern waits out the command timeout: parity: 1 records equal in 4 streams
+native smoke: S23 a blind reload with the save and confirm declarations, unsaved: parity: 1 records equal in 4 streams
+native smoke: S24 a blind reload with the save and confirm declarations, saved: parity: 1 records equal in 4 streams
+native smoke: S25 an alias with its own paging-commands sends one paging line: parity: 1 records equal in 4 streams
+native smoke: S30 a platform-less row receives the generic table start statements: parity: 1 records equal in 4 streams
+native smoke: S26 an unknown row platform falls back under warn with the notice: parity: 1 records equal in 4 streams
+native smoke: S27 promptbefore across a mode change, and a statement with no answer: parity: 4 records equal in 4 streams
+native smoke: S28 an echoed enable secret reaches nothing: parity: 1 records equal in 4 streams
+native smoke: S29 output.files: all false, the daemon, two false, the limit: ok
+native smoke: S32 the invocation decides the files through the daemon: --nof, --of=PATH, two keys false, the refusals: ok
+native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok
+native smoke: pass
+native smoke: S33 the collection run: the file, the kept device, the folder, the summary, a rejected statement, --cd through the daemon, --nof, the crun.after hook on both paths, its exit and its bound, the crun-filters drop list off, a site's, and a bad pattern refused, the packaged cron script's guard: ok
+v0100-smoke: rows
+d1   exit 0
+d2   exit 0
+e1   exit 0
+e2   exit 0
+c    exit 4  (--dry-run --exercise)
+c    exit 4  (--dry-run --detach)
+c    exit 4  (--exercise --detach)
+c    exit 4  (--detach --follow)
+c    exit 4  (--detach --no-daemon)
+c    exit 4  (--exercise --no-daemon)
+f1   exit 0
+t1   exit 0
+t2   exit 0
+i1   exit 113
+p1   exit 111
+s1   exit 0
+s2   exit -  (SIGTERM, grace expired)
+s3   exit -  (SIGTERM, job finished within the grace)
+s4   exit 112
+s4c  exit 4  (daemon stop --grace --force)
+s4c  exit 4  (daemon restart --after=1s --force)
+s4c  exit 4  (daemon stop --after=0s)
+s5   exit 0
+s6   exit 0
+s7   exit 113  (Ctrl-C during --grace)
+s7f  exit 0
+s8   exit 0
+s9   exit 112
+c1c  exit 0
+c2   exit 112
+c3   exit 0
+c4f  exit 113
+w1f  exit 0
+w2   exit 0
+w3   exit 112
+w4f  exit 113
+w5   exit 0
+w6   exit 113
+g1   exit 101
+g2   exit 101
+g3   exit 101
+g4   exit 101
+g5   exit 0
+g6   exit 0
+g7   exit 4
+v0100 smoke (rehearsal, detach, follow, interrupt, the ICMP gate, shutdown accounting, cancel_job, job follow): pass (45 rows)
+smoke: pass
+halt smoke: pass
+host-key smoke: pass
+transcript smoke: pass
+display smoke: pass
+v0.6.0 transport and CLI smoke: pass
+v0.6.1 address-alias smoke: pass
+v0.7.0 command-session, display-color, and debug smoke: pass
+v0.8.0 display, JSON, border, and multi-target smoke: pass
+v0.9.0 family-preference, border, and error-echo smoke: pass
+== the parser acceptance rows
+== aliases and spellings
+== renamed and removed spellings
+== target sets in every mode
+== target folders
+== output folder layout and permissions
+== dispatch order
+== command text in debug output
+== parser codes
+k03-smoke-test: ok
+completion-smoke: the function driven under bash 5.2.21(1)-release with /usr/share/bash-completion/bash_completion
+completion-smoke: ok
+daemon upgrade smoke test: pass
+canary-smoke: rows
+c1   exit 0
+c2   exit 0
+c3   exit 0
+r1   exit 0
+r2   exit 0 (daemon pid 3832904)
+r3   exit 0/0
+s1   exit 0/0 (daemon pid 3833160)
+d1   exit 0
+e1   exit 0
+p1   exit 101
+p2   exit 110
+p3   exit 4
+l1   exit 0
+canary-smoke: scan
+scanned: 144 files, 298304 bytes, 0 processes; 0 hits
+canary-smoke: pass (13 rows, 144 files scanned, 0 hits)
+spool smoke: S1 threshold 0 spools a 34-byte answer, the spool removed
+spool smoke: S2 the 65.7 MB record equal through the spool, in memory, and across a mid-line threshold (bc3e11b9bd650851f811f36ca766bce2b3cdddeb997191e5f6b77af57b4cbd79)
+spool smoke: S3 the failure pattern found through the spool
+spool smoke: S4 the limit (20000 held, 20147 observed), the timeout, the cancel, and the lost session record their settled bytes
+spool smoke: S5 the sweep removed the dead pid's spool and kept the daemon's; karvi-prune left the directory alone
+spool smoke: S6 the follower fed from the file, omitted over the bound, and told when not kept
+spool smoke: S7 --nof displayed the spooled answer without a job folder
+spool smoke: S8 the scoreboard carried 54007297 bytes in flight during the response and 0 at the end
+spool smoke: S9 never read nothing; auto narrowed 61 devices to what 53 GiB holds
+spool smoke: S10 always refused at the floor, the job's folder and the spool named; --nof asked the spool's volume
+spool smoke: S10 the collection directory on /dev/shm refused alone at its floor and written under never
+spool smoke: pass
+sha256sum bin/karvi-linux-amd64 \
+	bin/karvi-askpass-linux-amd64 \
+	bin/karvi-prune-linux-amd64 > CHECKSUMS.sha256
+karvi native release verification passed
+verify-release exit=0
+CHECKSUMS.sha256 unchanged by the rebuild

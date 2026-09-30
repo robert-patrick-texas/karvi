@@ -1,0 +1,16 @@
+karvi 0.24.0
+commit: source-release-v0.24.0
+build_time: 2026-09-30T00:00:00Z
+go: go1.27.1
+config_schema: 6
+command_record_schema: 2
+scoreboard_schema: 3
+audit_schema: 1
+job_schema: 2
+daemon_ipc_schema: 10
+config_registry_schema: 22
+fips_mode: false
+icmp_method: socket
+ssh_transports:
+  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+  system: external (id=system, linkage=external-executable)

@@ -1,0 +1,37 @@
+bin/karvi-linux-amd64: go1.27.1
+	path	github.com/robert-patrick-texas/karvi/cmd/karvi
+	mod	github.com/robert-patrick-texas/karvi	(devel)	
+	dep	github.com/creack/pty	v1.1.23	
+	dep	github.com/scrapli/scrapligo	v1.4.2	
+	dep	github.com/sirikothe/gotextfsm	v1.0.1-0.20200816110946-6aa2cfd355e4	
+	dep	golang.org/x/crypto	v0.26.0	
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	-trimpath=true
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=0
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+bin/karvi-askpass-linux-amd64: go1.27.1
+	path	github.com/robert-patrick-texas/karvi/cmd/karvi-askpass
+	mod	github.com/robert-patrick-texas/karvi	(devel)	
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	-trimpath=true
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=0
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
+bin/karvi-prune-linux-amd64: go1.27.1
+	path	github.com/robert-patrick-texas/karvi/cmd/karvi-prune
+	mod	github.com/robert-patrick-texas/karvi	(devel)	
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	-trimpath=true
+	build	DefaultGODEBUG=tracebacklabels=0,x509sslcertoverrideplatform=0
+	build	CGO_ENABLED=0
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1

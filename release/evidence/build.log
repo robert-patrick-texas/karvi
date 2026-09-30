@@ -1,0 +1,14 @@
+karvi v0.24.0 native build (scrapligo-v1)
+go version go1.27.1 linux/amd64
+mkdir -p bin
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 /usr/local/go/bin/go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/robert-patrick-texas/karvi/internal/buildinfo.Commit=source-release-v0.24.0 -X github.com/robert-patrick-texas/karvi/internal/buildinfo.BuildTime=2026-09-30T00:00:00Z -X github.com/robert-patrick-texas/karvi/internal/buildinfo.FIPSMode=false' -o bin/karvi-linux-amd64 ./cmd/karvi
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 /usr/local/go/bin/go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/robert-patrick-texas/karvi/internal/buildinfo.Commit=source-release-v0.24.0 -X github.com/robert-patrick-texas/karvi/internal/buildinfo.BuildTime=2026-09-30T00:00:00Z -X github.com/robert-patrick-texas/karvi/internal/buildinfo.FIPSMode=false' -o bin/karvi-askpass-linux-amd64 ./cmd/karvi-askpass
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 /usr/local/go/bin/go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/robert-patrick-texas/karvi/internal/buildinfo.Commit=source-release-v0.24.0 -X github.com/robert-patrick-texas/karvi/internal/buildinfo.BuildTime=2026-09-30T00:00:00Z -X github.com/robert-patrick-texas/karvi/internal/buildinfo.FIPSMode=false' -o bin/karvi-prune-linux-amd64 ./cmd/karvi-prune
+ln -sfn karvi-linux-amd64 bin/karvi
+ln -sfn karvi-askpass-linux-amd64 bin/karvi-askpass
+ln -sfn karvi-prune-linux-amd64 bin/karvi-prune
+sha256sum bin/karvi-linux-amd64 \
+	bin/karvi-askpass-linux-amd64 \
+	bin/karvi-prune-linux-amd64 > CHECKSUMS.sha256
+mkdir -p bin
+CGO_ENABLED=0 GOTOOLCHAIN=local /usr/local/go/bin/go build -buildvcs=false -trimpath -o bin/secret-scan ./tools/secret-scan

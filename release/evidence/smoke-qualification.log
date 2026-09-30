@@ -1,0 +1,23 @@
+karvi v0.24.0 executable smoke qualification (from scripts/verify-release.sh)
+native smoke: S29 output.files: all false, the daemon, two false, the limit: ok
+native smoke: S32 the invocation decides the files through the daemon: --nof, --of=PATH, two keys false, the refusals: ok
+native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok
+native smoke: pass
+native smoke: S33 the collection run: the file, the kept device, the folder, the summary, a rejected statement, --cd through the daemon, --nof, the crun.after hook on both paths, its exit and its bound, the crun-filters drop list off, a site's, and a bad pattern refused, the packaged cron script's guard: ok
+v0100 smoke (rehearsal, detach, follow, interrupt, the ICMP gate, shutdown accounting, cancel_job, job follow): pass (45 rows)
+smoke: pass
+halt smoke: pass
+host-key smoke: pass
+transcript smoke: pass
+display smoke: pass
+v0.6.0 transport and CLI smoke: pass
+v0.6.1 address-alias smoke: pass
+v0.7.0 command-session, display-color, and debug smoke: pass
+v0.8.0 display, JSON, border, and multi-target smoke: pass
+v0.9.0 family-preference, border, and error-echo smoke: pass
+k03-smoke-test: ok
+completion-smoke: ok
+daemon upgrade smoke test: pass
+canary-smoke: pass (13 rows, 144 files scanned, 0 hits)
+spool smoke: pass
+karvi native release verification passed
