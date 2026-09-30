@@ -1,7 +1,7 @@
 {
   "application": "karvi",
-  "version": "0.24.0",
-  "commit": "source-release-v0.24.0",
+  "version": "0.25.0",
+  "commit": "source-release-v0.25.0",
   "build_time": "2026-09-30T00:00:00Z",
   "go_version": "go1.27.1",
   "config_schema_version": 6,
