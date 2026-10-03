@@ -27,7 +27,10 @@ karvi crun --all --dry-run                         # each device's list, no devi
 - **The file** is `DIR/NAME`: the device name's first label lowercased
   (`core-nyc-01.example.net` → `core-nyc-01`; `output.crop-to-dot = false`
   keeps the whole name), or an address with its dots and colons as hyphens.
-  Two devices that would share a file name are refused at planning.
+  `--fs=SUFFIX` appends a literal suffix to every file's name (`--fs=.cfg`
+  writes `core-nyc-01.cfg`), never to the directory's; it holds no `/`,
+  NUL, or control character (`crun_suffix_invalid`). Two devices that
+  would share a file name are refused at planning.
 - **The content** is each command's output under a marker line
   `! COMMAND`, a blank line before every marker but the first, and nothing
   else: no header, no prompt, no sent statement, no timestamp, no error
@@ -90,9 +93,28 @@ karvi command --cd=. core-nyc-01 show ip route summary
 - The display ends with the same collection line after the footer; no
   `crun.after` hook runs, whatever the directory; the watch screen shows
   `run` or `cmd`.
-- In a stream, `--cd=PATH` is an option line that stays, `--clear` keeping
-  it and `--reset` removing it; a later job to a device replaces the file
-  an earlier job wrote.
+- `--fs=SUFFIX` without `--cd` is `--cd=.` as well: `karvi run --site nyc
+  --cmd 'show running-config' --fs=.cfg` writes `core-nyc-01.cfg` and its
+  neighbours into the working directory. A failure to resolve or prepare
+  that directory says "the working directory, implied by --fs". On `crun`,
+  `--fs` alone keeps `crun.directory`, so a scheduled `crun --all
+  --fs=.cfg` stays in the site's tree.
+- In a stream, `--cd=PATH` and `--fs=SUFFIX` are option lines that stay,
+  `--clear` keeping them and `--reset` removing them; a later job to a
+  device replaces the file an earlier job wrote, and a new `--fs` line
+  keeps the two apart:
+
+  ```text
+  --target core-nyc-01
+  --fs=.ver
+  show version
+  --go
+  --fs=.run
+  show running-config
+  --go
+  ```
+
+  leaves `core-nyc-01.ver` and `core-nyc-01.run` in the working directory.
 
 ## 2. The built-in lists
 

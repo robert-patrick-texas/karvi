@@ -127,27 +127,59 @@ func checkBorders(inv *Invocation, w io.Writer) (int, bool) {
 
 // collectionOptionsError is the check of the collection options' values,
 // shared by the handlers and by stream mode when a line is read: a bare
-// --cd is refused, its PATH attaching with = alone.
+// --cd or --fs (or one given = and nothing) is refused, the value
+// attaching with = alone, and a suffix that cannot be appended to a file
+// name is crun_suffix_invalid.
 func collectionOptionsError(inv *Invocation) error {
 	if inv.Set(optCd) && inv.String(optCd) == "" {
 		return errorcodes.Errorf("cli_option_value_missing", "--cd takes its PATH with =: --cd=PATH (the next word may be a device)")
 	}
+	if inv.Set(optFs) {
+		// A bare --fs and --fs= are one to the parser, as --cd's are.
+		suffix := inv.String(optFs)
+		if suffix == "" {
+			return errorcodes.Errorf("cli_option_value_missing", "--fs takes its SUFFIX with =: --fs=SUFFIX (the next word may be a device)")
+		}
+		if problem := executionplan.SuffixProblem(suffix); problem != "" {
+			return errorcodes.Errorf("crun_suffix_invalid", "--fs=%q %s; the suffix is appended as written to each collection file's name, so it is not empty and holds no /, NUL, or control character", suffix, problem)
+		}
+	}
 	return nil
+}
+
+// collection is what the collection options ask for: the word (a crun
+// always, a run or command given --cd or --fs, empty otherwise), the
+// suffix, and whether --fs implied --cd=. (named in a directory failure).
+type collection struct {
+	word, suffix string
+	implied      bool
 }
 
 // collectionOptions applies --cd=PATH as crun.directory, a flag-origin
 // value as --of=PATH is output.root (a site that locks the key refuses
-// it), and returns the word that asks for a collection: a crun always,
-// a run or command given --cd, none otherwise.
-func collectionOptions(inv *Invocation, word string, flags map[string]any) string {
+// it); on run and command, --fs without --cd is --cd=., the working
+// directory, while a crun's --fs alone keeps crun.directory.
+func collectionOptions(inv *Invocation, word string, flags map[string]any) collection {
+	c := collection{suffix: inv.String(optFs)}
 	path := inv.String(optCd)
+	if path == "" && c.suffix != "" && word != "crun" {
+		path, c.implied = ".", true
+	}
 	if path != "" {
 		flags["crun.directory"] = path
 	}
 	if word == "crun" || path != "" {
-		return word
+		c.word = word
 	}
-	return ""
+	return c
+}
+
+// impliedDirectory names the directory --fs implied in a failure to
+// resolve or prepare it, so the operator sees which option asked for it.
+func (c collection) impliedDirectory(result *app.ActivityResult) {
+	if c.implied && (strings.HasPrefix(result.Error, "crun_directory_unavailable:") || strings.HasPrefix(result.Error, "crun_directory_not_writable:")) {
+		result.Error += " (the working directory, implied by --fs)"
+	}
 }
 
 // outputOptions applies --nof and --of[=PATH] as flag-origin configuration
@@ -201,7 +233,8 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), ContinueDeviceOnError: inv.Flag(optContinue)}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), ContinueDeviceOnError: inv.Flag(optContinue)}, streams)
+	collection.impliedDirectory(&result)
 	printResultError(result, streams.Stderr)
 	return result.ExitCode
 }
@@ -409,7 +442,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
 	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Dispatch: inv.String(optDispatch), Workers: inv.Int(optWorkers), StartWidth: inv.Int(optStartWidth), MaxWidth: inv.Int(optMaxWidth), HaltErrorCount: inv.Int(optHaltCount), HaltErrorPercent: inv.Int(optHaltPercent), WaveGateErrorCount: inv.Int(optGateCount), WaveGateErrorPercent: inv.Int(optGatePercent), WaveDelay: inv.Duration(optWaveDelay), ContinueDeviceOnError: inv.Flag(optContinue), Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
-	opts.Collection = collection
+	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// A crun runs the device's whole list past a rejected statement;
 		// with no command on the line, each device runs its platform's
@@ -439,6 +472,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	if inv.Flag(optDryRun) {
 		result := app.InspectRun(ctx, opts, !inv.Flag(optNoDaemon), streams)
+		collection.impliedDirectory(&result)
 		printResultError(result, streams.Stderr)
 		return result.ExitCode
 	}
@@ -457,6 +491,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 			runStreams.Stdout = io.Discard
 		}
 		result := app.ExecuteRunLocal(ctx, opts, runStreams)
+		collection.impliedDirectory(&result)
 		printResultError(result, streams.Stderr)
 		if crun {
 			// The hook after the display's end, a crun's alone.
@@ -480,6 +515,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if !common.Quiet && opts.Detach && result.JobID != "" && result.ExitCode == 0 {
 		fmt.Fprintf(streams.Stderr, "%s %s accepted artifacts=%s\n", word, result.JobID, app.ArtifactsLabel(result.ArtifactDir))
 	}
+	collection.impliedDirectory(&result)
 	printResultError(result, streams.Stderr)
 	if crun && !opts.Detach {
 		// The hook after the display's end (the footer and the collection

@@ -1172,3 +1172,38 @@ One consequence surfaced while building, and the operator agreed to it:
 `--cd` is `crun.directory` as a flag-origin value on every word, as
 `--of=PATH` is `output.root`, so a site that locks `crun.directory`
 refuses `run --cd` and `command --cd` as it refuses `crun --cd`.
+
+Section B, `--fs`, the lab build:
+
+```text
+$ cd fs; karvi run --no-daemon --target r1 --cmd 'show clock' --fs=.cfg     # --cd=. implied
+! exit=0 elapsed=719ms artifacts=…/261003-111101-00
+! collection=/tmp/nd.8Nm1/fs replaced=1 kept=0
+$ karvi command --fs=.txt r1 show version
+! collection=/tmp/nd.8Nm1/fs replaced=1 kept=0
+$ ls -A
+r1.cfg r1.txt
+$ karvi crun --no-daemon --target r1 --cmd 'show clock' --fs=.cfg          # crun.directory kept
+! collection=/tmp/nd.8Nm1/base/crun replaced=1 kept=0                     # base/crun/r1.cfg
+$ karvi run --dry-run --no-daemon --target r1 --cmd 'show clock' --fs=.cfg | grep collection
+collection: /tmp/nd.8Nm1/fs (file mode 0660, suffix .cfg)
+$ karvi run --no-daemon --target r1 --cmd 'show clock' --fs=a/b
+crun_suffix_invalid: --fs="a/b" holds /; the suffix is appended as written to each collection file's name, so it is not empty and holds no /, NUL, or control character      (exit 4)
+$ cd ro; karvi run --no-daemon --target r1 --cmd 'show clock' --fs=.cfg      # ro is 0500
+crun_directory_not_writable: /tmp/nd.8Nm1/ro is not writable by the operator: … (the working directory, implied by --fs)      (exit 9)
+$ ls -A                                    # two stale temporaries, then run --fs=.cfg
+.r1.261003-000000-00 .r1.cfg.261003-000000-00 r1.cfg r1.txt
+.r1.261003-000000-00 r1.cfg r1.txt                                        # only r1.cfg's swept
+$ printf -- '--target r1\n--no-daemon\n--fs=.ver\nshow version\n--go\n--fs=.clk\nshow clock\n--go\n--end\n' | karvi stream
+… r1.clk r1.ver beside the others
+```
+
+One point of the agreed rule changed in the build, and the operator
+accepted it as built: `--fs=` with nothing after the sign is
+`cli_option_value_missing`, as `--cd=` is, rather than
+`crun_suffix_invalid`, since the parser gives a bare `--fs` and `--fs=`
+the same empty value; `crun_suffix_invalid` covers `/`, NUL, and control
+characters. The sweep compares names as strings, never as a
+glob, since a suffix may hold a glob's metacharacters (`--fs='[x]*'` is
+tested). The unused `output.CollectionLabel`, the plain line's tail, is
+removed.

@@ -102,6 +102,18 @@
   when read. The execution plan's collection block carries the word that
   asked (`crun`, `run`, or `command`), at plan schema 10; a schema-9 plan
   or daemon is refused.
+- **`--fs=SUFFIX`, a suffix on each collection file's name.** On `crun`,
+  `run`, and `command`, `--fs=.cfg` writes `NAME.cfg` (and its temporary
+  `.NAME.cfg.JOBID`) in the collection directory, never renaming the
+  directory; on `run` and `command` without `--cd` it is `--cd=.` as
+  well, and a failure of that directory says it was implied by `--fs`; on
+  `crun` alone it keeps `crun.directory`. A bare `--fs` or `--fs=` is
+  `cli_option_value_missing`; a suffix holding `/`, NUL, or a control
+  character is the new `crun_suffix_invalid`. The plan's collection block
+  carries `suffix`; the summary, the hook's input, the collision check,
+  and the dry run name the suffixed file. The stale-temporary sweep removes
+  only `.FILE.` and a job ID's form, compared as strings, where its glob
+  `.NAME.*` would have removed a concurrent `--fs=.cfg` run's temporary.
 - **The collection line is a display template.** A job with a collection
   ends its text display with `display.collection.footer`, default `!
   collection=<collection> replaced=<replaced> kept=<kept>`, on standard

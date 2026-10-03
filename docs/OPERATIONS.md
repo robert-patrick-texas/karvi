@@ -868,13 +868,17 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   `packaging/systemd/user/karvi-daemon.service.d/crun.conf.example` is
   that file. `crun --no-daemon` runs in the client process and needs
   nothing of the unit.
+- **`--fs=SUFFIX`** appends a literal suffix to each file's name in the
+  collection directory (`--fs=.cfg` writes `NAME.cfg`), never to the
+  directory's; on `crun` the directory stays `crun.directory`.
 - **`run` and `command` with `--cd=PATH`** write the same file, beside
   their usual job folder (`output.NAME.txt` included), for an operator's
   capture: unfiltered (`crun-filters` are `crun`'s), replaced only when
   the device succeeds, `--continue-device-on-error` their own (without
   it a rejected statement keeps the previous file), the display ending
   with the same collection line, no hook, the watch screen showing `run`
-  or `cmd`; `docs/COLLECTION.md` section 1.1. Through the daemon the
+  or `cmd`; `--fs=SUFFIX` without `--cd` is `--cd=.` as well;
+  `docs/COLLECTION.md` section 1.1. Through the daemon the
   directory meets the unit's sandbox as a `crun`'s does (above): a home
   directory is refused, and a path under `/tmp` would land in the
   daemon's private `/tmp`, so `--no-daemon` or the drop-in serves a

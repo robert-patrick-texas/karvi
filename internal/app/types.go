@@ -46,6 +46,7 @@ type CommandOptions struct {
 	NoBorder              bool                          `json:"no_border"`
 	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
 	Collection            string                        `json:"collection,omitempty"` // command given --cd: the plan carries the collection
+	Suffix                string                        `json:"suffix,omitempty"`     // --fs: the collection file names' suffix
 }
 
 // RunOptions is safe to submit to the same-UID daemon. It deliberately carries
@@ -75,6 +76,7 @@ type RunOptions struct {
 	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
 	PlatformCommands      bool                          `json:"platform_commands,omitempty"` // crun with no command: each device its platform's crun-commands (12.9)
 	Collection            string                        `json:"collection,omitempty"`        // crun, or run given --cd: the word; the plan carries the collection directory, file mode, and word
+	Suffix                string                        `json:"suffix,omitempty"`            // --fs: the collection file names' suffix
 	Transport             string                        `json:"transport,omitempty"`
 	Format                string                        `json:"format"`
 	Echo                  bool                          `json:"echo"`

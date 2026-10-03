@@ -571,6 +571,19 @@ func TestPlatformCommands(t *testing.T) {
 			t.Fatalf("word %s: %v", w, err)
 		}
 	}
+	// The suffix: any text without /, NUL, or a control character.
+	for _, suffix := range []string{".cfg", "..", ".", "-2026 [a]*"} {
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "run", Suffix: suffix}
+		if err := c.Validate(Draft); err != nil {
+			t.Fatalf("suffix %q: %v", suffix, err)
+		}
+	}
+	for _, suffix := range []string{"a/b", "/", "x\x00", "x\n", "\t", "x\x7f"} {
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "run", Suffix: suffix}
+		if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "output.collection.suffix") {
+			t.Fatalf("suffix %q: %v", suffix, err)
+		}
+	}
 	for _, w := range []string{"", "stream", "Crun"} {
 		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: w}
 		if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "output.collection.word") {

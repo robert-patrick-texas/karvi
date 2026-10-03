@@ -289,24 +289,30 @@ func TestDraftCarriesTheDeclarations(t *testing.T) {
 
 // TestCheckFileNames covers the file-name collision rule: two devices whose
 // file names are one are refused naming both; without the crop the same
-// pair is two files; an address and a name never collide.
+// pair is two files; an address and a name never collide; a collection
+// names its suffixed file.
 func TestCheckFileNames(t *testing.T) {
 	target := func(name string) executionplan.ExecutionTarget {
 		return executionplan.ExecutionTarget{Device: executionplan.DeviceProjection{CanonicalName: name}}
 	}
 	pair := []executionplan.ExecutionTarget{target("core.example.net"), target("r1"), target("core.example.com")}
-	err := checkFileNames(pair, true)
+	err := checkFileNames(pair, true, nil)
 	if errorcodes.Of(err) != "output_file_name_collision" || !strings.Contains(err.Error(), "core.example.net and core.example.com") || !strings.Contains(err.Error(), "output.core.txt") {
 		t.Fatalf("the pair under the crop: %v", err)
 	}
-	if err := checkFileNames(pair, false); err != nil {
+	if err := checkFileNames(pair, false, nil); err != nil {
 		t.Fatalf("the pair without the crop: %v", err)
 	}
-	if err := checkFileNames([]executionplan.ExecutionTarget{target("10.1.2.3"), target("10-1-2-3.example.net")}, true); errorcodes.Of(err) != "output_file_name_collision" {
+	if err := checkFileNames([]executionplan.ExecutionTarget{target("10.1.2.3"), target("10-1-2-3.example.net")}, true, nil); errorcodes.Of(err) != "output_file_name_collision" {
 		t.Fatalf("an address and a name that crops to its spelling are one file: %v", err)
 	}
-	if err := checkFileNames([]executionplan.ExecutionTarget{target("Core.example.net"), target("core.example.net")}, false); errorcodes.Of(err) != "output_file_name_collision" {
+	if err := checkFileNames([]executionplan.ExecutionTarget{target("Core.example.net"), target("core.example.net")}, false, nil); errorcodes.Of(err) != "output_file_name_collision" {
 		t.Fatalf("two spellings of one name are one file: %v", err)
+	}
+	// A collection names its own file, the suffix appended.
+	err = checkFileNames(pair, true, &executionplan.CollectionSettings{Suffix: ".cfg"})
+	if errorcodes.Of(err) != "output_file_name_collision" || !strings.Contains(err.Error(), "the file core.cfg;") {
+		t.Fatalf("a collection's file: %v", err)
 	}
 }
 

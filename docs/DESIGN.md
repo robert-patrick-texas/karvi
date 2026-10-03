@@ -1109,9 +1109,10 @@ name).
 `run` and `command` it implies `--cd=.`.** The value is appended as written to
 the device's file name (`r1` and `--fs=.cfg` give `r1.cfg`, its temporary
 `.r1.cfg.JOBID`) and to nothing else: not the directory, the job folder, or
-`output.NAME.txt`. It is written with `=` alone; empty, or holding `/`, NUL, or a
-control character, it is `crun_suffix_invalid`, checked before planning and when
-a stream line is read. On `run` and `command`, `--fs` without `--cd` is `--cd=.`,
+`output.NAME.txt`. It is written with `=` alone; bare or empty (`--fs=`, which the
+parser cannot tell from bare) it is `cli_option_value_missing`, as `--cd` is, and
+holding `/`, NUL, or a control character it is `crun_suffix_invalid`, checked
+before planning and when a stream line is read. On `run` and `command`, `--fs` without `--cd` is `--cd=.`,
 the client's working directory made absolute before planning (and a stream's
 working directory at `--go`); on `crun`, `--fs` alone takes `crun.directory`.
 The directory messages say "the working directory, implied by `--fs`" when it

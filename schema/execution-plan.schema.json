@@ -120,7 +120,7 @@
         "crop_to_dot": {"type": "boolean"},
         "collection": {
           "type": "object", "additionalProperties": false, "required": ["directory", "file_mode", "word"],
-          "properties": {"directory": {"type": "string", "pattern": "^/"}, "file_mode": {"enum": ["0640", "0644", "0660"]}, "word": {"enum": ["crun", "run", "command"]}}
+          "properties": {"directory": {"type": "string", "pattern": "^/"}, "file_mode": {"enum": ["0640", "0644", "0660"]}, "word": {"enum": ["crun", "run", "command"]}, "suffix": {"type": "string", "pattern": "^[^/\\u0000-\\u001f\\u007f]+$"}}
         }
       }
     },

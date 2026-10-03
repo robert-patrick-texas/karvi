@@ -18,6 +18,7 @@ import (
 	"syscall"
 	"unicode/utf8"
 
+	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/platform"
@@ -140,6 +141,15 @@ type CollectionOptions struct {
 	// Filters is the plan's crun-filters per platform (12.19), compiled by
 	// Create; a platform absent from the map has none.
 	Filters map[string][]string
+	// Suffix is --fs, appended as written to each device's file name and
+	// its temporary's (r1 and .cfg give r1.cfg and .r1.cfg.JOBID).
+	Suffix string
+}
+
+// file is a device's collection file name in the directory: the device's
+// file name and the suffix.
+func (c *CollectionOptions) file(name string, crop bool) string {
+	return FileName(name, crop) + c.Suffix
 }
 
 // collectionFile is one device's collection in progress: the hidden
@@ -719,16 +729,13 @@ func (s *Store) appendCollection(r *records.CommandRecord, src Source) {
 }
 
 // writeCollectionBlock opens the device's temporary at its first block
-// (sweeping any temporary a killed process left for the same device, 12.3
-// rule 6) and writes the block: a blank line before every marker but the
-// first, the marker, the output as the device sent it (12.4).
+// (sweeping any temporary a killed process left for the same file) and
+// writes the block: a blank line before every marker but the first, the
+// marker, the output as the device sent it.
 func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records.CommandRecord, src Source) error {
 	if cf.f == nil {
-		file := FileName(name, s.crop)
-		stale, _ := filepath.Glob(filepath.Join(s.collection.Directory, "."+file+".*"))
-		for _, p := range stale {
-			os.Remove(p)
-		}
+		file := s.collection.file(name, s.crop)
+		sweepTemporaries(s.collection.Directory, file)
 		cf.tmp = filepath.Join(s.collection.Directory, "."+file+"."+s.id)
 		f, err := os.OpenFile(cf.tmp, os.O_CREATE|os.O_EXCL|os.O_WRONLY|syscall.O_NOFOLLOW, s.collection.FileMode)
 		if err != nil {
@@ -770,6 +777,23 @@ func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records
 	return nil
 }
 
+// sweepTemporaries removes the temporaries a killed process left for a
+// collection file: .FILE. and a job ID's form, nothing else, so another
+// suffix's temporary (.r1.cfg.JOBID beside r1's) is never matched. Two
+// runs writing one file at once can still sweep each other's; the swept
+// one fails its device (collection_write_failed), its previous file kept.
+// The names are compared as strings, never as a glob, since a suffix or a
+// name may hold a glob's metacharacters.
+func sweepTemporaries(dir, file string) {
+	prefix := "." + file + "."
+	entries, _ := os.ReadDir(dir)
+	for _, e := range entries {
+		if rest, ok := strings.CutPrefix(e.Name(), prefix); ok && executionplan.ValidJobID(rest) {
+			os.Remove(filepath.Join(dir, e.Name()))
+		}
+	}
+}
+
 // EndDevice is the executor's word that a device's records are all
 // appended, the mirror of SetTextSetup before its first: a
 // device whose every record passed has its temporary synced and renamed
@@ -792,7 +816,7 @@ func (s *Store) EndDevice(name string) {
 // when ok, kept otherwise. A rename that fails is a kept file, said once.
 func (s *Store) endCollection(name string, cf *collectionFile, ok bool) {
 	delete(s.collections, name)
-	file := FileName(name, s.crop)
+	file := s.collection.file(name, s.crop)
 	outcome := records.CollectionKept
 	if cf.f != nil {
 		err := cf.w.Flush()
@@ -835,13 +859,4 @@ func (s *Store) CollectionSummary() *records.CollectionSummary {
 		}
 	}
 	return out
-}
-
-// CollectionLabel is the result line's tail for a collection:
-// " collection=DIR replaced=N kept=M", empty for a job without one.
-func CollectionLabel(c *records.CollectionSummary) string {
-	if c == nil {
-		return ""
-	}
-	return fmt.Sprintf(" collection=%s replaced=%d kept=%d", c.Directory, c.Replaced, c.Kept)
 }

@@ -396,7 +396,9 @@ each device is sent its platform's `crun-commands` list. It takes every
 `run` option; the job folder is written as for any run, without
 `output.NAME.txt`; the display ends with a line counting the files
 replaced and kept. `run` and `command` given `--cd=PATH` write the same
-file, unfiltered, beside their usual job folder.
+file, unfiltered, beside their usual job folder; `--fs=SUFFIX` appends a
+suffix to each file's name (`--fs=.cfg`), and on `run` and `command`
+alone writes into the working directory.
 A platform's `crun-filters` drop the output lines that change at every
 collection without the device having changed (the byte count, the clock
 period, the uptime, the time of the show) from the collection file alone,

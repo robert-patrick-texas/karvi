@@ -29,7 +29,7 @@ import (
 // Version 6 output.crop_to_dot, 7 the platform command lists and the
 // collection sub-block, 8 sources.inputs and commands_file for
 // the scoreboard, 10 the collection's word, since run and command
-// collect too.
+// collect too, and its suffix (--fs).
 const SchemaVersion = 10
 
 // Mode is the requested execution mode of a job.
@@ -258,6 +258,27 @@ type CollectionSettings struct {
 	Directory string `json:"directory"`
 	FileMode  string `json:"file_mode"`
 	Word      string `json:"word"`
+	// Suffix is --fs, appended as written to each device's file name;
+	// empty for none.
+	Suffix string `json:"suffix,omitempty"`
+}
+
+// SuffixProblem says why a collection file suffix (--fs) cannot be used,
+// empty when it can: it is not empty, holds no /, and no NUL or other
+// control character (a newline would break the hook's one name per line).
+func SuffixProblem(suffix string) string {
+	switch {
+	case suffix == "":
+		return "is empty"
+	case strings.Contains(suffix, "/"):
+		return "holds /"
+	}
+	for _, r := range suffix {
+		if r < 0x20 || r == 0x7f {
+			return "holds a control character"
+		}
+	}
+	return ""
 }
 
 // CollectionFileModes are the values crun.file-mode takes, the plan's
@@ -544,6 +565,9 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 		}
 		if !slices.Contains(CollectionWords, c.Word) {
 			return planInvalid("output.collection.word", "%q is not one of %s", c.Word, strings.Join(CollectionWords, ", "))
+		}
+		if problem := SuffixProblem(c.Suffix); c.Suffix != "" && problem != "" {
+			return planInvalid("output.collection.suffix", "%q %s", c.Suffix, problem)
 		}
 	}
 	if err := p.validateBlindSends(); err != nil {

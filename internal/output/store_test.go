@@ -491,9 +491,6 @@ func TestCollectionFiles(t *testing.T) {
 	if c == nil || c.Directory != coll || c.Replaced != 1 || c.Kept != 2 || c.Devices["r1.example.net"] != (records.CollectionDevice{File: "r1", Outcome: "replaced"}) || c.Devices["r2"].Outcome != "kept" || c.Devices["r3"].Outcome != "kept" {
 		t.Fatalf("summary %+v", c)
 	}
-	if got := CollectionLabel(c); got != " collection="+coll+" replaced=1 kept=2" {
-		t.Fatalf("label %q", got)
-	}
 	if len(warnings) != 0 {
 		t.Fatalf("warnings %q", warnings)
 	}
@@ -506,4 +503,56 @@ func TestCollectionFiles(t *testing.T) {
 // form every test here needs.
 func appendRecord(s *Store, r *records.CommandRecord) (Notice, error) {
 	return s.AppendRecord(r, FromRecord(r))
+}
+
+// TestCollectionSuffixAndSweep: a suffix goes on the file and its
+// temporary and into the summary; the sweep removes only .FILE. and a job
+// ID's form, so another suffix's temporary, a temporary of another form,
+// and a name holding a glob's metacharacters are left alone.
+func TestCollectionSuffixAndSweep(t *testing.T) {
+	for _, suffix := range []string{".cfg", "[x]*"} {
+		dir := t.TempDir()
+		coll := filepath.Join(dir, "crun")
+		if err := os.MkdirAll(coll, 0o770); err != nil {
+			t.Fatal(err)
+		}
+		keep := []string{".r1.260924-000000-00", ".r1" + suffix + ".notajob", ".r1.other" + suffix + ".260924-000002-00", "r1"}
+		for _, name := range append([]string{".r1" + suffix + ".260924-000001-00"}, keep...) {
+			if err := os.WriteFile(filepath.Join(coll, name), []byte("x"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		s, err := Create(Options{Root: filepath.Join(dir, "job"), ID: "260924-020000-00", Skip: FileSet{OutputTxt: true},
+			Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Suffix: suffix}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "x", Status: "succeeded", Output: "*10:00\n", OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
+		if _, err := appendRecord(s, r); err != nil {
+			t.Fatal(err)
+		}
+		s.EndDevice("r1")
+		if err := s.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := os.ReadFile(filepath.Join(coll, "r1"+suffix)); err != nil || string(got) != "! show clock\n*10:00\n" {
+			t.Fatalf("%q: r1%s: %q %v", suffix, suffix, got, err)
+		}
+		entries, _ := os.ReadDir(coll)
+		names := map[string]bool{}
+		for _, e := range entries {
+			names[e.Name()] = true
+		}
+		if names[".r1"+suffix+".260924-000001-00"] || len(names) != len(keep)+1 {
+			t.Fatalf("%q: the directory holds %v", suffix, names)
+		}
+		for _, k := range keep {
+			if !names[k] {
+				t.Fatalf("%q: %s was swept", suffix, k)
+			}
+		}
+		if d := s.CollectionSummary().Devices["r1"]; d.File != "r1"+suffix || d.Outcome != "replaced" {
+			t.Fatalf("%q: summary %+v", suffix, d)
+		}
+	}
 }

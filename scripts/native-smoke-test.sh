@@ -812,7 +812,7 @@ fi
 # file without --continue and replaces it with; the text display ends with
 # the footer and display.collection.footer on standard output; crun.after
 # does not run, a crun's does after the same ending; command --cd and
-# --nof collect.
+# --nof collect; --fs suffixes the file, implying --cd=. on run.
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S34 ]; then
   s34_run() {  # tag, karvi args...; sets CODE, JOB_DIR
     s34_tag=$1; shift
@@ -863,6 +863,23 @@ after = \"$TMP/after34.sh\""
   s34_run s34f crun --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --cd="$TMP/cd"
   [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34f")" = "! collection=$TMP/cd replaced=1 kept=0" ] && grep -q '^hook ran$' "$TMP/err.s34f" || fail "S34 crun: exit $CODE, $(tail -1 "$TMP/out.s34f"), $(tail -1 "$TMP/err.s34f")"
   rm -f "$AFTER_OUT"; unset AFTER_OUT
+  # --fs: on run without --cd the working directory, the suffix on the file
+  # alone, another suffix's temporary left by the sweep; on crun alone
+  # crun.directory; a suffix holding / refused before any device.
+  rm -rf "${TMP:?}/fsw"; install -d -m 770 "$TMP/fsw"
+  : >"$TMP/fsw/.fake-iosxe.260924-000000-00"; : >"$TMP/fsw/.fake-iosxe.cfg.260924-000000-00"
+  cd "$TMP/fsw"
+  s34_run s34g run --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --fs=.cfg
+  cd "$ROOT"
+  [ "$CODE" -eq 0 ] && [ "$(ls -A "$TMP/fsw" | tr '\n' ' ')" = '.fake-iosxe.260924-000000-00 fake-iosxe.cfg ' ] && [ "$(tail -1 "$TMP/out.s34g")" = "! collection=$TMP/fsw replaced=1 kept=0" ] || fail "S34 --fs: exit $CODE, the directory holds $(ls -A "$TMP/fsw" | tr '\n' ' '), $(tail -1 "$TMP/out.s34g")"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.devices.fake-iosxe.file)" = fake-iosxe.cfg ] && [ "$(json_get "$JOB_DIR/manifest.json" plan.output.collection.suffix)" = .cfg ] || fail "S34 --fs: the summary's file $(json_get "$JOB_DIR/summary.json" collection.devices.fake-iosxe.file)"
+  write_config accept-new "$BUILTIN
+[crun]
+directory = \"$TMP/cd\""
+  s34_run s34h crun --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --fs=.cfg
+  [ "$CODE" -eq 0 ] && [ -f "$TMP/cd/fake-iosxe.cfg" ] && [ ! -e "$TMP/cd.cfg" ] || fail "S34 crun --fs: exit $CODE, $(ls -A "$TMP/cd" | tr '\n' ' ')"
+  s34_run s34i run --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --fs=a/b
+  [ "$CODE" -eq 4 ] && grep -q '^crun_suffix_invalid: ' "$TMP/err.s34i" || fail "S34 --fs=a/b: exit $CODE, $(head -1 "$TMP/err.s34i")"
   stop_fake
-  echo 'native smoke: S34 --cd on run and command: the unfiltered file, the folder'"'"'s text files, the kept device, a rejected statement with and without --continue, the collection line after the footer on both paths, no hook but crun'"'"'s, --nof: ok'
+  echo 'native smoke: S34 --cd and --fs on run and command: the unfiltered file, the folder'"'"'s text files, the kept device, a rejected statement with and without --continue, the collection line after the footer on both paths, no hook but crun'"'"'s, --nof, the suffix and the implied working directory, the sweep, crun'"'"'s --fs, a bad suffix: ok'
 fi

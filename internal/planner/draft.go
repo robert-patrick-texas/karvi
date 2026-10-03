@@ -59,6 +59,9 @@ type DraftOptions struct {
 	// takes its platforms' crun-filters; another word's does neither.
 	PlatformCommands bool
 	Collection       string
+	// Suffix is --fs, carried in the collection sub-block and appended to
+	// each device's collection file name.
+	Suffix string
 	// BlindReturns is empty or one count per command, the client's
 	// interpretation of the trailing \r escapes and --blind-return
 	// flags. Blind is empty or one flag per
@@ -184,7 +187,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		return executionplan.ExecutionPlan{}, err
 	}
 	if out.Persist && out.Files.OutputTxt || out.Collection != nil {
-		if err := checkFileNames(targets, out.CropToDot); err != nil {
+		if err := checkFileNames(targets, out.CropToDot, out.Collection); err != nil {
 			return executionplan.ExecutionPlan{}, err
 		}
 	}
@@ -341,7 +344,7 @@ func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts
 		if err != nil {
 			return executionplan.OutputSettings{}, errorcodes.Ensure(err, "crun_directory_unavailable")
 		}
-		collection = &executionplan.CollectionSettings{Directory: dir, FileMode: cfg.String("crun.file-mode"), Word: opts.Collection}
+		collection = &executionplan.CollectionSettings{Directory: dir, FileMode: cfg.String("crun.file-mode"), Word: opts.Collection, Suffix: opts.Suffix}
 	}
 	return executionplan.OutputSettings{
 		Format: format, Echo: opts.Echo || cfg.Bool(echoKey), DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: opts.Follow,
@@ -401,13 +404,19 @@ func platformFilterLists(targets []executionplan.ExecutionTarget, tables map[str
 // both write output.core.txt under the crop. Refused at planning, before any
 // device is contacted, naming both devices and the file; only when the
 // activity writes the text file, since a job without one has no file to
-// collide on (a collection adds its own file to the rule).
-func checkFileNames(targets []executionplan.ExecutionTarget, crop bool) error {
+// collide on (a collection adds its own file to the rule, and names it,
+// suffix and all, since a suffix appended to every name keeps two names
+// two and one name one).
+func checkFileNames(targets []executionplan.ExecutionTarget, crop bool, collection *executionplan.CollectionSettings) error {
 	seen := map[string]string{}
 	for _, t := range targets {
 		name := output.FileName(t.Device.CanonicalName, crop)
 		if prior, ok := seen[name]; ok {
-			return errorcodes.Errorf("output_file_name_collision", "devices %s and %s would both write the file %s; under output.crop-to-dot the first label of a name is its file name, and two devices need two", prior, t.Device.CanonicalName, output.TextFileName(t.Device.CanonicalName, crop))
+			file := output.TextFileName(t.Device.CanonicalName, crop)
+			if collection != nil {
+				file = name + collection.Suffix
+			}
+			return errorcodes.Errorf("output_file_name_collision", "devices %s and %s would both write the file %s; under output.crop-to-dot the first label of a name is its file name, and two devices need two", prior, t.Device.CanonicalName, file)
 		}
 		seen[name] = t.Device.CanonicalName
 	}

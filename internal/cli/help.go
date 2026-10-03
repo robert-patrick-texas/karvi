@@ -220,6 +220,9 @@ Options:
                                  succeeds (crun.directory; ~ expanded, relative
                                  to the working directory; auto the collection
                                  tree)
+  --fs=SUFFIX                    Append SUFFIX to the collection file's name
+                                 (--fs=.cfg writes NAME.cfg); without --cd it
+                                 is --cd=. as well
   --address-authority client|daemon
                                  Who selects the address: the client at planning
                                  (default) or the daemon at prepare
@@ -242,7 +245,8 @@ platform definition sets control-master = true.
 `
 
 // crunHelpText is run's help under the crun word: the usage
-// lines say what a collection is, and --cd names its directory.
+// lines say what a collection is, --cd names its directory, and --fs
+// never implies one.
 func crunHelpText() string {
 	text := strings.ReplaceAll(runHelpText(), "karvi run ", "karvi crun ")
 	usage := `Usage:
@@ -276,6 +280,9 @@ A recurring collection is the site's systemd timer or cron over this word
 	k := strings.Index(text, "  --follow ")
 	return text[:j] + `  --cd=PATH                      The collection directory for this run
                                  (crun.directory); PATH only with =
+  --fs=SUFFIX                    Append SUFFIX to each file's name in the
+                                 collection directory (--fs=.cfg writes
+                                 NAME.cfg); the directory keeps its name
 ` + text[k:]
 }
 
@@ -368,6 +375,9 @@ Dispatch:
                                  the device succeeds (crun.directory; ~
                                  expanded, relative to the working directory;
                                  auto the collection tree)
+  --fs=SUFFIX                    Append SUFFIX to each collection file's name
+                                 (--fs=.cfg writes NAME.cfg); without --cd it
+                                 is --cd=. as well
   --follow                       Render durable records after completion (default)
 
 Options:

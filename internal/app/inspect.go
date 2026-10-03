@@ -307,7 +307,11 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 	fmt.Fprintf(&b, "commands: %d (command_plan_digest %s)\n", r.Counts.Commands, shortDigest(r.CommandPlanDigest.String()))
 	fmt.Fprintf(&b, "dispatch: %s order=%s\n", dispatchLine, r.Plan.Dispatch.DispatchOrder)
 	if c := r.Plan.Output.Collection; c != nil {
-		fmt.Fprintf(&b, "collection: %s (file mode %s)\n", c.Directory, c.FileMode)
+		suffix := ""
+		if c.Suffix != "" {
+			suffix = ", suffix " + c.Suffix
+		}
+		fmt.Fprintf(&b, "collection: %s (file mode %s%s)\n", c.Directory, c.FileMode, suffix)
 	}
 	fmt.Fprintf(&b, "targets: %d (client %d, daemon %d)\n", r.Counts.Targets, r.Counts.ByAuthority[string(executionplan.AddressByClient)], r.Counts.ByAuthority[string(executionplan.AddressByDaemon)])
 	for i, t := range r.Targets {

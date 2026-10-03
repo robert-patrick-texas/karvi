@@ -166,7 +166,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		if err := osutil.EnsureCollectionDirectory(c.Directory, osutil.DirectoryMode(cfg.String("crun.directory-mode"))); err != nil {
 			return FailedResult("crun_directory_not_writable", err)
 		}
-		collection = &output.CollectionOptions{Directory: c.Directory, FileMode: osutil.FileMode(c.FileMode), Filters: plan.PlatformFilters}
+		collection = &output.CollectionOptions{Directory: c.Directory, FileMode: osutil.FileMode(c.FileMode), Filters: plan.PlatformFilters, Suffix: c.Suffix}
 	}
 	debug := DebugLogger(req.Debug, cfg, streams.Stderr)
 	serverLimit := cfg.Int("dispatch.server-max-inflight")
