@@ -311,5 +311,94 @@ Builds without that adapter reject native transport rather than silently using O
 Set ssh.halt\-run\-on\-host\-key\-mismatch=true to stop new scheduling after the
 first changed host key while allowing already in\-flight devices to finish.
 .\" END GENERATED DESCRIPTION
+.SH COLLECTION
+The directory is
+.B crun.directory
+(\fBauto\fR: the shared
+.I crun
+tree where it exists, else
+.IR BASEDIR/crun ),
+or
+.BI \-\-cd= PATH
+for one run; a missing one is made at
+.B crun.directory\-mode
+(0770), an existing one left as it is.
+Each device's file is named by the device (its name's first label, or an
+address with its dots and colons as hyphens), with
+.BI \-\-fs= SUFFIX
+appended; two devices that would share a name refuse the run at planning.
+The file holds each command's output under a
+.B ! COMMAND
+line, a blank line before every marker but the first, and nothing else.
+.PP
+A device's file is written as a hidden temporary and renamed into place
+only when every command came back, a rejected statement included (its
+error text is the block); a device not reached, timed out, halted, or
+cancelled keeps its previous file.
+The display ends, after the footer, with
+.B ! collection=DIR replaced=N kept=M
+.RB ( display.collection.footer ),
+and
+.I failed\-devices.txt
+in the job folder is the rerun.
+The job folder is a run's without
+.IR output.NAME.txt ,
+.I commands.PLATFORM.txt
+holding each list sent;
+.B \-\-nof
+collects with no folder.
+.PP
+With no command on the line each device is sent its platform's
+.B crun\-commands
+list, and the platform's
+.B crun\-filters
+drop the lines they match from the file alone (the records keep every
+line): the built\-in lists drop the byte count, the clock period, the
+uptime, the free memory, and the time of the show, never when the
+configuration last changed;
+.B []
+turns them off.
+.PP
+In a directory of mode 2770 or 2775 (setgid, no sticky bit) any member of
+its group replaces any file, which is left at
+.B crun.file\-mode
+(0660) in the group;
+.B sudo karvi setup shared
+makes
+.I /opt/karvi/shared/crun
+so.
+.B crun.after
+names an executable the client runs when the collection has ended (never
+for
+.BR \-\-detach ),
+in the directory, with the replaced files' names on its standard input and
+.BR KARVI_JOB_ID ,
+.BR KARVI_JOB_DIR ,
+.BR KARVI_CRUN_DIRECTORY ,
+.BR KARVI_CRUN_REPLACED ,
+.BR KARVI_CRUN_KEPT ,
+and
+.B KARVI_EXIT
+in its environment; one that fails or runs past
+.B crun.after\-timeout
+(5m) is the warning
+.BR crun_after_failed ,
+the exit unchanged.
+A recurring collection is the site's timer or cron over
+.BR "karvi crun \-\-all \-\-no\-daemon" ;
+the dispatch options are
+.BR karvi\-run (1)'s.
+.SH EXAMPLES
+.TP
+.B karvi crun \-\-all
+Each device its platform's list, into the collection directory.
+.TP
+.B karvi crun \-\-select\-platform cisco_iosxe \-\-cf ios\-collect.txt
+One list for every IOS XE device.
+.TP
+.B karvi crun \-\-target core\-01 \-\-cd=. \-\-fs=.cfg
+One device into the working directory, as
+.IR core\-01.cfg .
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-run (1)

@@ -1876,6 +1876,40 @@ so the paragraph says that any word exits with an earlier stage's status.
 terminal under `display.color = "auto"`, `NO_COLOR=1 karvi --help` prints
 in colour. The page states it as built.
 
+Part 2: `karvi-run.1` (DISPATCH, OUTPUT, REHEARSAL, EXAMPLES),
+`karvi-crun.1` (COLLECTION, EXAMPLES), and `karvi-command.1` (OUTPUT,
+EXAMPLES). DISPATCH carries item 4's set-aside material: the widths at 0
+with their formulas and their values on 4, 8, and 32 logical CPUs, the cap
+and how the ceiling compares with it, and the delay as a DURATION of at
+most `1h`. Executed on the lab build:
+
+```text
+run --no-daemon --tl d1,r1 --cmd 'show clock'      exit 101; the folder's eight kinds of file
+run --nof --tf DIR/failed-devices.txt --cf DIR/commands.txt   d1 alone; artifacts=none
+run --tl r1 --cmd 'show clock' --dry-run           address, credential binding, transport, port,
+                                                   "commands: 1 (command_plan_digest …)", dispatch line;
+                                                   no daemon started
+run --tl r1 --cmd 'show clock' --exercise          status: exercised, exit 0, exercise.json kept
+run --tl r1,r2 --cmd 'show clock' --detach         exit 0, job_id and artifact_dir; job follow renders, exit 0
+run --tl r1 --cmd 'show slow', SIGINT at 1.2s      client exit 113; the job completed, exit 0
+run --tl r1,r2 --cmd 'show running-config' --fs=.cfg   r1.cfg, r2.cfg, "Building configuration..." kept
+crun --no-daemon --tl r1,d1 --cd=. --fs=.cfg, crun.after a script
+                                                   exit 101; replaced=1 kept=1; d1.cfg the old file;
+                                                   the platform's list, the byte count and uptime dropped,
+                                                   "Last configuration change" kept; commands.cisco_iosxe.txt,
+                                                   no output.NAME.txt; the hook in the directory, r1.cfg on
+                                                   stdin, KARVI_CRUN_*, KARVI_EXIT=101, KARVI_JOB_*
+command --nof r1 --echo --cmd 'show clock'         "r1#show clock" before the block
+cmd --nof r1 --cmd 'copy running-config startup-config' --expect 'Destination filename='
+                                                   [OK], exit 0
+```
+
+The first draft said the dry run lists each device's commands; it lists
+their count and digest, and the page says so. OPERATIONS "Rehearsal,
+detach, and follow", "Dispatch", "The job's output files", and "The
+collection run", SCALE "Related", and COLLECTION's related documents say
+that the pages restate them.
+
 **The sections.** H, the help changes (items 3 and 4), checked by the
 help outputs captured before and after; K, the Dispatch options as their
 keys' overrides (item 6), with item 7's sentence in the top help; E, the

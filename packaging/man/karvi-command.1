@@ -226,5 +226,38 @@ abbreviations, \-\-, or help flags: "command r1 show clock \-\-echo" sends
 execute sequentially; OpenSSH connection reuse is disabled unless the target's
 platform definition sets control\-master = true.
 .\" END GENERATED DESCRIPTION
+.SH OUTPUT
+.B command
+runs in the client process, never through the daemon, on the first device
+of its target set: one session, the commands in order.
+In text the device's output follows its header line, with the prompt and
+the command before each block under
+.BR \-\-echo ,
+and the display ends with the footer
+.RB ( display.run.footer ,
+.BR "! exit=EXIT elapsed=TIME artifacts=DIR" ).
+A job folder is kept as for a run, its files described in
+.BR karvi\-run (1);
+.B \-\-nof
+keeps none, and
+.BI \-\-cd= PATH
+writes the device's collection file as
+.BR karvi\-crun (1)
+describes, unfiltered.
+.SH EXAMPLES
+.TP
+.B karvi command r1 show version
+One command, the words after the device joined.
+.TP
+.B karvi cmd r1 \-\-cmd "show clock" \-\-cmd "show ip interface brief"
+Two commands in one session.
+.TP
+.B karvi cmd r1 \-\-cmd "copy running\-config startup\-config" \-\-expect "Destination filename="
+A prompt answered with a bare return.
+.TP
+.B karvi command \-\-nof r1 show clock
+No job folder.
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-run (1),
+.BR karvi\-login (1)

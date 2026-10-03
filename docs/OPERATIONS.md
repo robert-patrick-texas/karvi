@@ -106,6 +106,10 @@ that started it; a later `job follow` starts at the edge and says which records
 are not kept. Ctrl-C stops only the follow. Neither `job` verb launches a
 daemon.
 
+`karvi-run(1)` (`man karvi run`), REHEARSAL, restates the dry run, the
+exercise, `--detach`, and Ctrl-C for the terminal; a change to one changes
+both.
+
 ## Dispatch: serial, parallel, and wave
 
 A `run` speaks to its devices one at a time unless told otherwise
@@ -142,6 +146,10 @@ each device's mode, wave, width, and worker (`dispatch` in
 behind each, and the watch screen the job's devices in flight.
 `docs/SCALE.md` "The width" has the defaults by host, the ramp's rules,
 and 100 devices worked through both modes, executed.
+
+`karvi-run(1)`, DISPATCH, restates the modes, the widths at 0 with their
+values on 4, 8, and 32 logical CPUs, the cap, the halts, and the gates for
+the terminal; a change to one changes both.
 
 ## The watch screen
 
@@ -533,6 +541,9 @@ Relationships worth knowing:
 - `exercise.json`, the audit log, the scoreboard, the capacity ledger,
   and login transcripts are not the job's output files and have their
   own settings.
+
+`karvi-run(1)`, OUTPUT, restates the display, the folder's files, and the
+rerun for the terminal; a change to one changes both.
 
 ## The spool directory
 
@@ -927,6 +938,10 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   not refuse one, so an operator's single-device `crun` during the nightly
   run is not turned away. Under a timer the daemon is not launched: a
   oneshot's end would terminate it. `docs/COLLECTION.md` section 7.
+
+`karvi-crun(1)` (`man karvi crun`), COLLECTION, restates the directory,
+the file, the replacement, the lists, the hook, and the shared directory
+for the terminal; a change to one changes both.
 
 ## Stream mode
 

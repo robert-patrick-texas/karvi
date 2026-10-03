@@ -608,6 +608,9 @@ above.
 - `docs/DESIGN.md`, the collection run: the design questions, the hook,
   the drop list, and the schedule, with the reasons.
 - `docs/OPERATIONS.md` "The collection run" and "The shared trees".
+- `karvi-crun(1)` (`man karvi crun`), COLLECTION: the terminal's
+  restatement of section 1, the hook's input, and the drop list; a change
+  to one changes both.
 - `configs/example.toml`: the `[platform.NAME]` tables' shape.
 - `packaging/systemd/user/karvi-crun.service` and `karvi-crun.timer`,
   `packaging/cron/karvi-crun`: the schedule's two forms.

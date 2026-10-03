@@ -283,4 +283,6 @@ threshold saved.
 `docs/OPERATIONS.md` ("The job's output files", "The spool directory",
 "The shared trees", "Retention"); `docs/ARCHITECTURE.md` (the output
 path); `docs/DESIGN.md` (the spool and the memory budget, the free-space
-check per volume); `docs/PRUNE.md`.
+check per volume); `docs/PRUNE.md`. `karvi-run(1)` (`man karvi run`),
+DISPATCH, restates "The width" for the terminal (the modes, the widths at
+0, the cap, the halts, and the gates); a change to one changes both.

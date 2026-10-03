@@ -295,5 +295,192 @@ Builds without that adapter reject native transport rather than silently using O
 Set ssh.halt\-run\-on\-host\-key\-mismatch=true to stop new scheduling after the
 first changed host key while allowing already in\-flight devices to finish.
 .\" END GENERATED DESCRIPTION
+.SH DISPATCH
+.B serial
+runs one device at a time
+.RB ( dispatch.default ).
+.B parallel
+starts a fixed pool of
+.B \-\-workers
+over one queue in the dispatch order: a worker that finishes a device
+takes the next at once, and the pool never changes size.
+.B wave
+runs the devices in waves of the width times
+.B dispatch.wave\-depth\-multiplier
+(4), each with that many workers; a wave ends when its last device ends,
+and before the next one karvi applies the error gate, then the delay, then
+sizes the next width from the host's CPU (the busy share of every CPU,
+smoothed): under the band around
+.B dispatch.wave\-cpu\-threshold\-percent
+(75, the band 65 to 85) the width grows by half, never past the ceiling;
+over it the width shrinks by a tenth, never under the start width, and the
+next two decisions keep it.
+.PP
+At 0 the widths follow the number of the host's logical CPUs,
+.IR CPUs :
+the pool has
+.I CPUs
+workers, the start width is
+.RI min(64,\ max(16,\ 4\(mu CPUs )),
+and the ceiling
+.RI min(256,\ max(32,\ 8\(mu CPUs )).
+With 4 logical CPUs a wave job starts at 16 devices and widens to at most
+32; with 8, from 32 to 64; with 32 or more, from 64 to 256.
+The ceiling's formula is also the host's cap,
+.B dispatch.server\-max\-inflight
+at 0 (32, 64, and 256 on those hosts): the device sessions in flight at
+once across every job and every operator on the host, held as leases.
+One wave job at its ceiling can fill the cap alone; beside other jobs a
+worker past the cap waits for a lease before it connects, so a pool or a
+ceiling above the cap adds workers and no sessions.
+.PP
+The halts apply in every mode:
+.B \-\-halt\-on\-error\-count
+.I N
+starts no further device once
+.I N
+have failed, and
+.B \-\-halt\-on\-error\-percent
+.I N
+once the failed are
+.I N
+percent or more of the devices ended so far, checked as each ends, so a
+first device's failure halts at any
+.IR N ;
+the devices in flight finish, the rest are recorded
+.BR not_started_halt ,
+and the exit is 102 or 103.
+The gates apply between waves:
+.B \-\-wave\-gate\-error\-count
+and
+.B \-\-wave\-gate\-error\-percent
+stop a wave job when the wave just ended had that many failed devices, or
+that share of its own, the rest recorded
+.BR not_started_wave_gate ,
+exit 104 or 105.
+.B \-\-wave\-delay
+pauses between waves, a
+.I DURATION
+.RB ( karvi (1)
+VALUES) of at most
+.BR 1h .
+.B ssh.halt\-run\-on\-host\-key\-mismatch
+stops new devices after the first changed host key, exit 114.
+.PP
+Each record names its device's mode, wave, width, and worker
+.RB ( dispatch
+in
+.IR commands.jsonl ),
+.I metrics.json
+holds each wave's decision and the CPU signal behind it, and a dry run's
+.B dispatch:
+line names the mode and its widths.
+.SH OUTPUT
+In text, each device's output follows its header line, and the display
+ends with the footer
+.RB ( display.run.footer ,
+.BR "! exit=EXIT elapsed=TIME artifacts=DIR" );
+.B \-\-format jsonl
+prints the records one per line and the job's summary as the last line;
+.B \-\-format json
+an indented array.
+.PP
+The job folder is
+.IB output.root /YYMMDD/ JOB\-ID
+(\fBoutput.root\fR \fBauto\fR: the shared jobs tree where it exists, else
+.IR BASEDIR/jobs ).
+It holds, each under an
+.B output.files
+key and all kept by default:
+.TP
+.I output.NAME.txt
+each device's session as a terminal would show it, NAME the device name's
+first label;
+.TP
+.I commands.jsonl
+every record, one JSON object per line: the authority;
+.TP
+.IR failures.jsonl ", " failed\-devices.txt
+the records that did not succeed, and the devices to run again;
+.TP
+.I commands.txt
+the commands as requested;
+.TP
+.IR manifest.json ", " metrics.json ", " summary.json
+the job as accepted, its measurements, and its result.
+.PP
+.B karvi run \-\-tf
+.IB DIR /failed\-devices.txt
+.B \-\-cf
+.IB DIR /commands.txt
+runs the failures again.
+.B \-\-nof
+keeps no folder (the footer says
+.BR artifacts=none );
+.BI \-\-of= PATH
+writes it under
+.IR PATH .
+.BI \-\-cd= PATH
+and
+.BI \-\-fs= SUFFIX
+also write each device's collection file, as
+.BR karvi\-crun (1)
+describes, unfiltered and with no hook.
+.SH REHEARSAL
+.B \-\-dry\-run
+plans in the client and probes the daemon without starting one: it prints
+the inspection report (each device's address, credential binding with no
+value, transport, and port; the commands' count and digest; the dispatch
+line) and submits nothing.
+.B \-\-exercise
+submits the plan and the credential package and has the daemon check
+everything but the device: the report is printed and kept as
+.I exercise.json
+in the job folder, the summary reads
+.BR exercised ,
+and the exit is 0 when every target is ready, else the first finding's.
+Neither sends a probe, opens a session, or runs a command; they exclude
+each other, and neither combines with
+.BR \-\-detach .
+.PP
+.B \-\-detach
+prints the job ID and the folder once the daemon accepts the job and exits
+0;
+.B karvi job follow
+.I JOB\-ID
+renders it,
+.B karvi watch
+shows it.
+.B \-\-follow=false
+waits for the result without rendering.
+Ctrl\-C during a run stops the follow alone: the job goes on in the
+daemon, the client names it, and exits 113;
+.B karvi job cancel
+.I JOB\-ID
+stops the job.
+.SH EXAMPLES
+.TP
+.B karvi run \-\-site nyc \-\-cmd "show version" \-\-dp
+Every device of the site, in a pool of the host's logical CPUs.
+.TP
+.B karvi run \-\-tf edge.txt \-\-cf change.txt \-\-dw \-\-halt\-on\-error\-percent 20
+A wave job that starts no more devices once a fifth of those ended have
+failed.
+.TP
+.B karvi run \-\-all \-\-cmd "show running\-config" \-\-fs=.cfg
+Each device's configuration as
+.I NAME.cfg
+in the working directory, beside the job folder.
+.TP
+.B karvi run \-\-tl "r1 r2" \-\-cmd "show clock" \-\-dry\-run
+What the run would do, contacting no device.
+.TP
+.B karvi run \-\-site nyc \-\-cmd "show clock" \-\-detach
+Accepted and left to the daemon; follow it with
+.BR "karvi job follow" .
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-crun (1),
+.BR karvi\-job (1),
+.BR karvi\-watch (1),
+.BR karvi\-prune (8)
