@@ -7,13 +7,12 @@ order the operator has set. A settled decision is an entry in
 
 ## Next
 
-1. **A man page installed with the distribution packages.** `karvi-prune.8`
-   first, as roff written directly (the build host's groff renders it, no
-   converter is needed), its flag section generated from the helper's one
-   flag definition under `make generate` and checked by `make generated-clean`,
-   one install line in the debian rules; then `karvi.1` and `karvi-askpass.1`,
-   whose option sections come from the help constants already kept in step
-   with the parser table, so the page cannot drift from `--help`.
+1. **Man pages for `karvi` and `karvi-askpass`.** `karvi.1` and
+   `karvi-askpass.1` in the form `karvi-prune.8` set (roff by hand, the
+   generated regions written by `tools/mangen`, no version or date, one
+   install line each), their option sections from the help constants
+   already kept in step with the parser table, so a page cannot drift from
+   `--help`.
 2. **The documentation as HTML.** A script that converts `docs/*.md` to
    `.html` with an index page and a left column of links, links between
    documents rewritten, the output a build product and never committed. The

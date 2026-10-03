@@ -102,6 +102,15 @@
   when read. The execution plan's collection block carries the word that
   asked (`crun`, `run`, or `command`), at plan schema 10; a schema-9 plan
   or daemon is refused.
+- **A manual page for `karvi-prune`.** `packaging/man/karvi-prune.8`,
+  installed by the debian rules as `/usr/share/man/man8/karvi-prune.8`,
+  is the terminal reference: what goes and never goes, the flags, where it
+  looks, the report, the exits, the files, and examples. Its SYNOPSIS and
+  OPTIONS are generated from the helper's flag definition by the new
+  `tools/mangen` under `make generate`; `make generated-clean` and the
+  bundle verifier compare them, and a test lints the page with groff.
+  `make generated-clean` now fails on any stale generated file, where only
+  the last one compared (`docs/ERROR-CODES.md`) could fail it.
 - **`karvi-prune -h` reads as karvi's help does.** `-h` and `--help` print
   to standard output in karvi's layout: a title line, `Usage:` with the
   synopsis wrapped at 79 columns, and `Options:` with each flag in the

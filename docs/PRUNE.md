@@ -242,6 +242,11 @@ operator's path.
 
 ## Related documents
 
+- `packaging/man/karvi-prune.8`, installed as `man karvi-prune`: the
+  terminal reference. It restates this guide's rules, the report, and the
+  exits (not the schedules), so a change to the helper changes both; its
+  SYNOPSIS and OPTIONS are generated from the helper's flag definition
+  (`make generate`).
 - `docs/OPERATIONS.md` "Retention": the operator's short form; "Tab
   completion" for the helper's flags under Tab.
 - `docs/DESIGN.md`: the retention rules and the reasons behind them.

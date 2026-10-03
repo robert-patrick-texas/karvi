@@ -1,0 +1,349 @@
+.\" karvi-prune(8): the retention helper's manual page. Written by hand
+.\" except the two generated regions, which tools/mangen rewrites from the
+.\" helper's flag definition (make generate); docs/PRUNE.md is the guide and
+.\" states the same rules, the report, and the exits, so a change to the
+.\" helper changes both.
+.TH KARVI-PRUNE 8 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-prune \- remove finished karvi work older than the retention age
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there
+.B karvi\-prune
+.RB [ "\-\-basedir \fIauto|PATH\fP" ]
+.RB [ "\-\-sharedroot \fIauto|none|PATH\fP" ]
+.RB [ "\-\-scoreboards \fIPATH\fP" ]
+.RB [ "\-\-days \fIN\fP" ]
+.RB [ "\-\-minfree \fIPERCENT\fP" ]
+.RB [ \-\-dry\-run ]
+.RB [ \-\-verbose ]
+.RB [ "\-\-format \fItext|jsonl\fP" ]
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.B karvi\-prune
+removes finished work older than the retention age from the trees karvi
+writes, and leaves everything else where it is: the job folders of
+finished jobs, recorded login transcripts, final scoreboard files, the
+folders a job left without its summary, the scoreboard files a crashed
+daemon left at a running status, and the day folders those leave empty.
+The per-operator timer, the site's root timer, the cron script, and a
+hand run all invoke it with the same flags, so they make the same
+decisions.
+.PP
+It never removes a running job, a transcript still being recorded, a
+folder whose name is not a
+.I YYMMDD
+day folder, a symbolic link, a file it cannot read, the collection
+directory of
+.BR "karvi crun" ,
+the audit log, or anything in journald.
+.PP
+It reads no configuration: its flags carry the settings' words
+.RB ( auto ,
+.BR none ,
+a path), and a timer's or cron line holds a site's values.
+.B HOME
+does not move the private root; the home is the password database's.
+.PP
+A run removes what its user owns, wherever it is, and passes every other
+user's item by, counted as
+.BR not_owned ;
+a run as root removes everything eligible.
+In a shared tree a job folder is mode 2750 in its operator's name, so a
+colleague can read it and cannot empty it, while root can.
+.PP
+A removal that fails is reported as a
+.B failed
+line with its reason and the run goes on to the next item; the summary
+counts it and the exit is 1.
+.SH OPTIONS
+.\" BEGIN GENERATED OPTIONS: tools/mangen from internal/prune; edit there
+.TP
+.BI \-\-basedir " auto|PATH"
+The private root whose jobs and transcripts trees are pruned: auto (the operator's own, as karvi resolves it) or a path.
+Default: \fBauto\fP.
+.TP
+.BI \-\-sharedroot " auto|none|PATH"
+The site's shared root whose jobs and transcripts trees are pruned too: auto, none, or a path.
+Default: \fBauto\fP.
+.TP
+.BI \-\-scoreboards " PATH"
+The scoreboard directory (watch.directory).
+Default: \fB/dev/shm/karvi/scoreboards\fP.
+.TP
+.BI \-\-days " N"
+The retention age in days, one or more.
+Default: \fB31\fP.
+.TP
+.BI \-\-minfree " PERCENT"
+The free\-space floor in percent, under which the oldest eligible items go before their age; 0 turns pressure off.
+Default: \fB5\fP.
+.TP
+.B \-\-dry\-run
+Report what would go and remove nothing.
+.TP
+.B \-\-verbose
+Add one kept line per examined item that stays, with the reason.
+.TP
+.BI \-\-format " text|jsonl"
+The report's form: text (an event word and key=value fields per line) or jsonl (one JSON document per line, the same fields, the summary last).
+Default: \fBtext\fP.
+.\" END GENERATED OPTIONS
+.SH WHAT GOES
+Each kind is judged against the retention age,
+.BR \-\-days ;
+the cutoff is now less that many days.
+.TP
+.B activity
+A job folder whose
+.I summary.json
+has a final status
+.RB ( completed ,
+.BR halted ,
+.BR errored ,
+.BR cancelled ,
+.BR incomplete ,
+or
+.BR exercised ).
+Goes when its
+.I ended_at
+is before the cutoff; pressure takes it, oldest first.
+.TP
+.B transcript
+A recorded login: the metadata file with its end record and the
+transcript that shares its name.
+Goes when its
+.I ended_at
+is before the cutoff; pressure takes it.
+.TP
+.B scoreboard
+A scoreboard file at a final status.
+Goes when its
+.I last_updated_at
+is before the cutoff; pressure takes it.
+.TP
+.B orphan
+A job folder without
+.IR summary.json :
+a job the daemon's death cut short, or one run with
+.B output.files.summary\-json
+false.
+Goes when its day folder's date is before the cutoff, nothing in it is
+newer, and its scoreboard file, if any, is final or older than the age;
+pressure never takes it.
+.TP
+.B stale\-scoreboard
+A scoreboard file at a running status that nothing has touched for the
+age, the file a crashed daemon's job leaves.
+Goes when its
+.I last_updated_at
+is before the cutoff; pressure never takes it.
+.TP
+.B day
+A
+.I YYMMDD
+day folder that holds nothing.
+Goes when its date is before the cutoff, after the run's other removals,
+with a plain
+.BR rmdir ,
+so a folder that gained a job in the meantime stays; pressure never
+takes it.
+.PP
+.B Pressure.
+.B \-\-minfree
+is a free-space floor in percent.
+A tree whose filesystem is under the floor gives up its oldest finished
+items
+.RB ( activity ,
+.BR transcript ,
+.BR scoreboard )
+before their age, one at a time until the floor is met, the newest kept.
+The floor is judged on each tree's own filesystem.
+.B "\-\-minfree 0"
+turns pressure off.
+.SH WHERE IT LOOKS
+As an operator, with nothing given:
+.IP 1. 4
+The private root,
+.BR "\-\-basedir auto" ,
+the first that exists of
+.IR /opt/karvi/users/USER ,
+.IR /var/lib/karvi/users/USER ,
+and
+.IR \(ti/.local/share/karvi :
+its
+.I jobs
+tree, then its
+.I transcripts
+tree.
+.IP 2. 4
+The shared trees,
+.BR "\-\-sharedroot auto" :
+for each tree the first root that holds it,
+.I /opt/karvi/shared
+else
+.IR /var/lib/karvi/shared ,
+its
+.I jobs
+then its
+.IR transcripts .
+A shared tree the operator cannot write to is reported as skipped.
+.IP 3. 4
+The scoreboard directory,
+.BR \-\-scoreboards .
+.PP
+As root, a run walks instead every private root under
+.I /opt/karvi/users
+and then under
+.IR /var/lib/karvi/users ,
+then the shared trees and the scoreboards as above.
+A private root under an operator's home is that operator's own, and a
+root run does not look there.
+The collection directory is never walked.
+Candidates from every tree are removed oldest first.
+.SH OUTPUT
+One line per item on standard output, the summary last; standard error
+carries a usage error, or an error that stops the run, alone.
+.PP
+.nf
+.RS
+removed kind=activity path=/opt/karvi/shared/jobs/260817/260817\-153859\-00 age=40d bytes=14151
+failed kind=activity path=/opt/karvi/shared/jobs/260817/260817\-153859\-02 error=unlinkat .../summary.json: permission denied
+examined=31 removed=15 skipped=4 not_owned=0 failed=1 bytes=137313 dry_run=false
+.RE
+.fi
+.PP
+The event words are
+.B removed
+.RB ( would\-remove
+under
+.BR \-\-dry\-run ),
+.BR failed ,
+and, under
+.BR \-\-verbose ,
+.B kept
+with one reason
+.RB ( young ,
+.BR live ,
+.BR not\-owned ,
+.BR not\-a\-day\-folder ,
+.BR symlink ,
+.BR unreadable )
+and
+.B walk
+for every place looked at;
+.B skipped
+names a tree not walked.
+The age is whole days, hours under a day, minutes under an hour; a job's
+age counts from its end, an orphan's from the newest thing in it, a day
+folder's from its date.
+The summary counts the records
+.BR examined ,
+the items
+.B removed
+(or that would be), the entries
+.B skipped
+(a name that is not a day folder, a live record, a tree not walked),
+the items another user owns
+.RB ( not_owned ),
+the removals that
+.BR failed ,
+and the
+.B bytes
+removed.
+.PP
+.B "\-\-format jsonl"
+writes the same report as one JSON document per line: the event word
+under
+.B event
+.RB ( summary
+for the last line), the fields under the keys the text form prints, the
+age as
+.B age_days
+(a whole number), the counts and
+.B dry_run
+as numbers and a boolean.
+.SH EXIT STATUS
+.TP
+.B 0
+Everything eligible went, or would have under
+.BR \-\-dry\-run .
+.TP
+.B 1
+A removal failed or a tree could not be walked; the report says which.
+.TP
+.B 2
+A usage error: an unknown flag, a positional argument,
+.B \-\-days
+below one,
+.B \-\-minfree
+outside 0 to 100, or a
+.B \-\-format
+that is neither
+.B text
+nor
+.BR jsonl .
+The message and the help go to standard error.
+.SH FILES
+.TP
+.I /opt/karvi/users/USER\fR, \fI/var/lib/karvi/users/USER
+An operator's private root, provisioned by the site
+.RB ( "sudo karvi setup shared" ).
+.TP
+.I \(ti/.local/share/karvi
+An operator's private root otherwise.
+.TP
+.I /opt/karvi/shared\fR, \fI/var/lib/karvi/shared
+The shared trees,
+.I jobs
+and
+.IR transcripts .
+.TP
+.I /dev/shm/karvi/scoreboards
+The scoreboard directory.
+.SH EXAMPLES
+What would go, as this operator, then remove it:
+.PP
+.nf
+.RS
+karvi\-prune \-\-dry\-run
+karvi\-prune
+.RE
+.fi
+.PP
+Also why each item stays, and the places looked at:
+.PP
+.nf
+.RS
+karvi\-prune \-\-dry\-run \-\-verbose
+.RE
+.fi
+.PP
+The site, every operator's, as root:
+.PP
+.nf
+.RS
+sudo karvi\-prune \-\-dry\-run
+sudo karvi\-prune
+.RE
+.fi
+.PP
+Two weeks' retention, the report to the journal as JSON:
+.PP
+.nf
+.RS
+karvi\-prune \-\-days 14 \-\-format jsonl | logger \-t karvi\-prune
+.RE
+.fi
+.SH SEE ALSO
+.BR karvi\-prune.timer ,
+the per-operator and the site's systemd timers, and the cron script
+.IR karvi\-prune ,
+shipped with karvi's packaging;
+.I docs/PRUNE.md
+(the guide: the reasons and the schedules) and
+.I docs/OPERATIONS.md
+"Retention" in the karvi source.

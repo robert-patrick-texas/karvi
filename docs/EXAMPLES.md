@@ -1364,3 +1364,59 @@ paths, colour on and off, 60 outputs) was captured from the build at
 `b50d227`; after the move, `diff -r` found them identical. The unknown
 flag's line is the flag package's own, `flag provided but not defined:
 -bogus`, as before.
+
+Section M2, the page, the lab:
+
+```text
+$ go run ./tools/mangen; groff -man -Tutf8 -ww -z packaging/man/karvi-prune.8      # no warning
+$ man -l packaging/man/karvi-prune.8
+KARVI-PRUNE(8)              System Manager's Manual              KARVI-PRUNE(8)
+NAME
+       karvi-prune - remove finished karvi work older than the retention age
+SYNOPSIS
+       karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH]
+       [--scoreboards PATH] [--days N] [--minfree PERCENT] [--dry-run]
+       [--verbose] [--format text|jsonl]
+…
+OPTIONS
+       --basedir auto|PATH
+              The private root whose jobs and transcripts trees are pruned:
+              auto (the operator's own, as karvi resolves it) or a path.
+              Default: auto.
+…
+karvi                                                             KARVI-PRUNE(8)
+$ install -D -m 0644 packaging/man/karvi-prune.8 ROOT/usr/share/man/man8/karvi-prune.8; gzip -9n …   # the rules' line, then dh_compress
+$ man -M ROOT/usr/share/man karvi-prune                                                              # found, the same page
+```
+
+The first rendering hyphenated paths and options across lines
+(`De‐fault`, `~/.lo‐cal`, `--ver‐bose`) and stretched lines to the margin;
+the page sets `.nh`, and `.ds AD l` with `.ad l`, since groff's man macros
+restore the adjustment at every paragraph from `AD`.
+
+*Found on the way.* `make generated-clean` ran its comparisons as one
+shell line without `set -e`, so its exit was the last `cmp`'s alone: with
+`configs/reference.toml` made stale it printed the difference and exited
+0, and only `docs/ERROR-CODES.md`, compared last, could fail it. With
+`set -e` a stale reference, error-code table, or generated page line each
+exits 2; a hand-written line of the page is kept by the generator and is
+not staleness. The bundle verifier runs under `set -eu` and was not
+affected.
+
+**The sections, as committed.** M1 (`b50d227`) the value names and the
+order defined once, with the design records; M1b (`ec019b4`) the helper's
+help in karvi's layout, the layout shared; M2 `tools/mangen`, the page,
+`make generate` and `generated-clean` (with `set -e`), the bundle
+verifier, the groff lint, the install line, the notes in PRUNE.md and
+OPERATIONS, and this chapter. Battery: the seventeen suites on a lab
+build after M2 (16:59:22 to 17:02:46 UTC), pass; `go test ./...`, vet,
+gofmt, and `make generated-clean` at each section.
+
+**Not taken.** A `.8.in` template; a Markdown-to-roff converter;
+generating the whole page; Go's backquoted value names; alphabetical
+order; the page or the guide pointing to the other for the rules; a
+version or a date in `.TH`; a colour flag on the helper; reading
+`display.*` in the helper.
+
+**Roadmap.** `karvi.1` and `karvi-askpass.1` in the same form, their
+option sections from the help constants.

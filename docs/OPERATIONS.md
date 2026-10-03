@@ -701,7 +701,9 @@ folders without a summary and scoreboard files a crashed daemon left at
 a running job, the collection directory, the audit log, or journald, and
 long-term audit retention is the central forwarder's, not the helper's.
 `docs/PRUNE.md` holds the detail: what goes and why, every place looked
-at in sequence, the report's lines, the exits, and the schedules.
+at in sequence, the report's lines, the exits, and the schedules; on an
+installed host, `man karvi-prune` holds the rules, the report, and the
+exits.
 
 Any operator cleans their own folders:
 

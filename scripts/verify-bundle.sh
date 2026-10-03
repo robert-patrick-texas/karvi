@@ -42,6 +42,9 @@ cmp configs/reference.toml "$TMP/reference.toml"
 GOTOOLCHAIN=local go run -mod=vendor ./tools/errorcodegen \
   -output "$TMP/ERROR-CODES.md"
 cmp docs/ERROR-CODES.md "$TMP/ERROR-CODES.md"
+GOTOOLCHAIN=local go run -mod=vendor ./tools/mangen \
+  -output "$TMP/karvi-prune.8"
+cmp packaging/man/karvi-prune.8 "$TMP/karvi-prune.8"
 # The suites, the one list of scripts/lib/suites.sh (the canary suite needs
 # bin/secret-scan, shipped beside the executables; the parity suite builds the
 # fake IOS XE device from the tree).

@@ -2,8 +2,8 @@
 // run it daily, and an operator runs it by hand, `karvi-prune --dry-run`
 // first. It reads no configuration: its flags carry the settings' words
 // (basedir, sharedroot) and the unit's line holds a site's values; the flags
-// are defined once in the prune package, which the helper's tab completion
-// reads too. The report is one line per item on standard output with the
+// are defined once in the prune package, which the helper's help, its tab
+// completion, and its man page (tools/mangen) read too. The report is one line per item on standard output with the
 // summary last (`--format jsonl` the same lines as JSON documents),
 // `--verbose` adds why an item stays, and the exit is 0 when everything
 // eligible went, 1 when a removal failed or a tree could not be walked, 2 for

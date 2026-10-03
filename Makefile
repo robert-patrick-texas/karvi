@@ -33,14 +33,19 @@ fmt:
 generate:
 	$(GO) run ./tools/configgen
 	$(GO) run ./tools/errorcodegen
+	$(GO) run ./tools/mangen
 
+# Every comparison counts: set -e, since the recipe is one shell line and
+# its exit would otherwise be the last command's alone.
 generated-clean:
-	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	@set -e; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	$(GO) run ./tools/configgen -schema "$$tmp/config-schema.json" -reference "$$tmp/reference.toml"; \
 	$(GO) run ./tools/errorcodegen -output "$$tmp/ERROR-CODES.md"; \
+	$(GO) run ./tools/mangen -output "$$tmp/karvi-prune.8"; \
 	cmp schema/config-schema.json "$$tmp/config-schema.json"; \
 	cmp configs/reference.toml "$$tmp/reference.toml"; \
-	cmp docs/ERROR-CODES.md "$$tmp/ERROR-CODES.md"
+	cmp docs/ERROR-CODES.md "$$tmp/ERROR-CODES.md"; \
+	cmp packaging/man/karvi-prune.8 "$$tmp/karvi-prune.8"
 
 test:
 	$(GO) test ./...
