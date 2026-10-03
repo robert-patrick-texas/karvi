@@ -1,0 +1,299 @@
+.\" karvi-run(1): the manual page of karvi's run word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-RUN 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-run \- run commands against an explicit scope
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBrun\fR [target inputs] [options] <device command words...>
+.br
+\fBkarvi\fR \fBrun\fR [target inputs] [options] \-\-cmd TEXT [\-\-cmd TEXT...]
+.br
+\fBkarvi\fR \fBrun\fR [target inputs] [options] \-\-cf PATH|\-
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.SS "Target inputs (at least one; command\-line order is kept, the first occurrence of a name keeps its position, names are lowercase)"
+.TP
+\fB\-\-target\fR \fINAME\fR, \fB\-\-host\fR, \fB\-\-t\fR
+Repeatable inventory or direct target, or glob
+.TP
+\fB\-\-tl\fR \fILIST\fR
+Targets in one argument, separated by commas
+or whitespace (quote a whitespace list); each
+is a \-\-target at this position
+.TP
+\fB\-\-tf\fR \fIFILE|PATH|\-\fR
+Target file, or the files directly in a
+folder; \- reads stdin
+.TP
+\fB\-\-tfr\fR \fIPATH\fR
+Target file, or a folder and its subfolders
+(targets.recursion\-max\-depth, default 3)
+.TP
+\fB\-\-site\fR \fIGLOB\fR, \fB\-\-device\-group\fR \fIGLOB\fR, \fB\-\-select\-platform\fR \fIGLOB\fR, \fB\-\-all\fR
+Inventory selectors, matches at this position
+.TP
+\fB\-\-exclude\fR \fIGLOB\fR
+Remove name matches after duplicate removal
+.PP
+A GLOB matches the whole value without regard to case: * ? [a\-c] [!a\-c],
+and \e escapes the next character; ^ and $ are refused. A selector value
+beginning with ! removes the devices it matches and selects none; in a
+target file, lines beginning with # or ! are comments.
+A \-\-select\-platform value is a selector over the known platforms (the
+built\-ins and the configured [platform.NAME] tables) and matches the
+platform set on a device's row or source default, before any \-\-platform
+acts; a value reaching no known platform is refused. A device whose platform
+is not set, or falls back under platform\-resolution.on\-unknown = "warn", is
+matched by no \-\-select\-platform value (it stays reachable by name, site,
+group, and \-\-all).
+An unknown row platform in the set refuses the run under the default, fail.
+.TP
+\fB\-\-order\fR \fIdefault|sorted|shuffle|random\fR
+Dispatch order for this invocation (sets the
+lock\-aware dispatch.order; the shuffle key
+comes from dispatch.shuffle\-key)
+.PP
+Folder reads skip names beginning with . readme or disabled, and editor
+backups (~ .bak .swp .orig .rej #name#); an empty source follows
+targets.empty\-source (error or warn).
+.SS "Device commands (one form per invocation)"
+.PP
+Positional words are joined with one space into one command.
+.TP
+\fB\-\-cmd\fR \fITEXT\fR, \fB\-\-command\fR, \fB\-\-c\fR
+Separate command; repeatable
+.TP
+\fB\-\-cf\fR \fIPATH|\-\fR
+One command per line, sent as written; at most once
+.PP
+A command ending in \er sequences is sent without them, followed by that
+many carriage returns before the prompt is read (a [confirm] answer), and is
+blind; nothing else in the text is interpreted.
+.SS "Interactive prompts (each attaches to the \-\-cmd it follows, or to the one freeform command; a command takes blind returns or \-\-expect, not both)"
+.TP
+\fB\-\-expect\fR \fIPATTERN=RESPONSE\fR
+When a line matching PATTERN (RE2) appears,
+type RESPONSE and a return; consumed once, in
+declared order; empty RESPONSE is a bare
+return; at most 20 per command. A response is
+device text, recorded in clear: not for a
+password
+.TP
+\fB\-\-blind\fR
+The prompt may not return: await the blind
+wait in place of the command timeout, and a
+prompt never seen is still a success with the
+notice prompt_not_observed_after_blind_send
+.TP
+\fB\-\-blind\-return\fR \fIN\fR
+Send N carriage returns with the command
+(0..20), before any read, and treat it as
+\-\-blind
+.TP
+\fB\-\-blind\-wait\fR \fIDURATION\fR
+Prompt\-return wait for a blind command, in
+place of the command timeout (0 does not wait;
+sets the lock\-aware execution.blind\-wait)
+.TP
+\fB\-\-literal\fR
+Send every command as written; no \er
+interpretation; a RESPONSE is always as written
+.SS "Platform"
+.TP
+\fB\-\-platform\fR \fINAME\fR
+The platform the devices of this invocation run
+as, whatever their inventory rows say: a
+built\-in or a configured [platform.NAME]
+table; a name, never a pattern. login and
+command apply it to their one device, run to
+every device of the set (a direct target in no
+inventory runs as generic without it).
+Without it an inventory row's platform
+applies, then the source default, then
+platform\-resolution.default (else generic); an
+unknown row platform is refused unless
+platform\-resolution.on\-unknown = "warn"
+.TP
+\fB\-\-pi\fR, \fB\-\-pn\fR, \fB\-\-pr\fR, \fB\-\-pj\fR, \fB\-\-pa\fR, \fB\-\-pg\fR
+Short for \-\-platform cisco_iosxe, cisco_nxos,
+cisco_iosxr, juniper_junos, arista_eos, generic
+.SS "Dispatch"
+.TP
+\fB\-\-dispatch\fR \fIserial|parallel|wave\fR
+How the devices run (dispatch.default, serial
+by default): one at a time; a fixed pool of
+workers over one queue; or waves whose width
+follows the host's CPU
+.TP
+\fB\-\-dp\fR, \fB\-\-dw\fR, \fB\-\-ds\fR
+Short for \-\-dispatch parallel, wave, serial
+.TP
+\fB\-\-workers\fR \fIN\fR
+The parallel pool's size
+(dispatch.parallel\-workers; 0 the host's
+logical CPUs)
+.TP
+\fB\-\-start\-width\fR \fIN\fR
+A wave job's first width, and its floor
+(dispatch.wave\-start\-width; 0 from the host's
+CPUs)
+.TP
+\fB\-\-max\-width\fR \fIN\fR
+A wave job's widest wave
+(dispatch.wave\-max\-width; 0 from the host's
+CPUs)
+.TP
+\fB\-\-halt\-on\-error\-count\fR \fIN\fR
+Start no further device once N have failed;
+those in flight finish
+(dispatch.halt\-on\-error\-count; 0 off)
+.TP
+\fB\-\-halt\-on\-error\-percent\fR \fIN\fR
+Start no further device once the failed are
+N percent or more of the devices ended so
+far, checked as each ends, so a first
+device's failure halts at any N
+(dispatch.halt\-on\-error\-percent; 0 off)
+.TP
+\fB\-\-wave\-gate\-error\-count\fR \fIN\fR
+Between waves, stop a wave job whose last
+wave had N failed devices
+(dispatch.wave\-gate\-error\-count; 0 off)
+.TP
+\fB\-\-wave\-gate\-error\-percent\fR \fIN\fR
+The same at N percent of that wave's devices
+(dispatch.wave\-gate\-error\-percent; 0 off)
+.TP
+\fB\-\-wave\-delay\fR \fIDURATION\fR
+A pause between waves
+(dispatch.wave\-gate\-timed\-delay; 0s none)
+.TP
+\fB\-\-continue\-device\-on\-error\fR
+Do not stop later commands after a device error
+.TP
+\fB\-\-no\-daemon\fR
+Execute in the client process
+.TP
+\fB\-\-nof\fR
+No output files: run and display, create no job
+folder (output.persist\-command=false); not with
+\-\-detach or \-\-exercise
+.TP
+\fB\-\-of[=PATH]\fR
+Output files on (output.persist\-command=true),
+to the configured folder or to PATH
+(output.root), on every path; PATH only with =
+(a path as the next word is refused)
+.TP
+\fB\-\-cd=PATH\fR
+Also write each device's output to PATH/NAME,
+one file per device named by the device, a
+"! COMMAND" marker before each command's
+output and nothing else, replaced only when
+the device succeeds (crun.directory; ~
+expanded, relative to the working directory;
+auto the collection tree)
+.TP
+\fB\-\-fs=SUFFIX\fR
+Append SUFFIX to each collection file's name
+(\-\-fs=.cfg writes NAME.cfg); without \-\-cd it
+is \-\-cd=. as well
+.TP
+\fB\-\-follow\fR
+Render durable records after completion (default)
+.SS "Options"
+.TP
+\fB\-\-transport\fR \fISELECTOR\fR
+default, system, native, preferred, telnet,
+or a configured [ssh.transports] slot
+.TP
+\fB\-\-management\-address\fR \fIIP\fR, \fB\-\-address\fR, \fB\-\-a\fR
+Override the address for exactly one selected device
+.TP
+\fB\-\-address\-authority\fR \fITARGET=client|daemon\fR
+Who selects TARGET's address: the client at
+planning (default) or the daemon at prepare;
+repeatable, TARGET names a device of the set
+.TP
+\fB\-\-ssh\-host\-key\-policy\fR \fIaccept\-new|secure|insecure\fR
+The host\-key policy (ssh.host\-key\-policy):
+accept\-new accepts and persists a new key and
+rejects a changed one (the default); secure
+requires a matching pre\-enrolled key before
+access; insecure accepts unknown or changed
+keys with prominent warnings
+.TP
+\fB\-\-ssh\-known\-hosts\-file\fR \fIPATH|auto\fR
+Unified karvi trust store
+.TP
+\fB\-\-format\fR \fItext|jsonl|json\fR
+Text (default), compact JSON Lines, or an
+indented JSON array for human inspection
+.TP
+\fB\-\-echo\fR
+Show prompt plus sent command in text output
+.TP
+\fB\-\-border\fR
+Replace the configured run border with dashes
+.TP
+\fB\-\-noborder\fR
+Disable configured and dynamic run borders
+.TP
+\fB\-\-ipv4\fR, \fB\-\-4\fR
+Prefer IPv4 when both families are available
+.TP
+\fB\-\-ipv6\fR, \fB\-\-6\fR
+Prefer IPv6 when both families are available
+.TP
+\fB\-\-detach\fR
+Submit and print the job ID and artifact directory;
+do not follow; exit 0 means accepted
+.TP
+\fB\-\-follow\fR, \fB\-\-follow=false\fR
+Render records as they become durable (default);
+false waits for the result without rendering
+.TP
+\fB\-\-dry\-run\fR
+Plan on the client and probe the daemon; submit
+no job, send no target data, contact no device;
+print the inspection report in the \-\-format
+.TP
+\fB\-\-exercise\fR
+Submit the plan and package for daemon\-side
+validation of everything but the device; no
+ICMP, session, askpass, or command; print the
+exercise report in the \-\-format
+.TP
+\fB\-\-ping\fR
+Send two ICMP probes to each target before its
+transport; skip a target that answers neither
+.TP
+\fB\-\-noping\fR
+Send no ICMP probes (the default unless
+network.ping\-targets is true)
+.TP
+\fB\-\-debug\fR
+Safe transport, resolution, and timing diagnostics
+.TP
+\fB\-\-help\fR, \fB\-\-h\fR
+Show this help
+.PP
+Options are recognized until the first device command word; after it every
+argument is device text. Run uses the per\-user daemon unless \-\-no\-daemon is
+supplied.
+.PP
+The preferred native slot maps to scrapligo\-v1 by default; status: available (scrapligo 1.4.2 compiled in).
+Builds without that adapter reject native transport rather than silently using OpenSSH.
+.PP
+Set ssh.halt\-run\-on\-host\-key\-mismatch=true to stop new scheduling after the
+first changed host key while allowing already in\-flight devices to finish.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

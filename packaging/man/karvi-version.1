@@ -1,0 +1,22 @@
+.\" karvi-version(1): the manual page of karvi's version word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-VERSION 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-version \- print build, schema, and SSH transport versions
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBversion\fR [\-\-format text|json] [\-\-help]
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.PP
+Reports the exact SSH transports available to this executable. Optional native
+adapters appear only when they were included in the build.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

@@ -1,0 +1,230 @@
+.\" karvi-command(1): the manual page of karvi's command word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-COMMAND 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-command \- run commands on one device
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBcommand\fR [options] DEVICE <device command words...>
+.br
+\fBkarvi\fR \fBcommand\fR [options] \-\-target DEVICE \-\-cmd TEXT [\-\-cmd TEXT...]
+.br
+\fBkarvi\fR \fBcmd\fR [options] DEVICE \-\-cf PATH|\-
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.SS "Target inputs (command\-line order is kept; command connects to the first device of the assembled set)"
+.TP
+\fIDEVICE\fR
+Positional device: the first positional word,
+unless a target input precedes it
+.TP
+\fB\-\-target\fR \fIDEVICE\fR, \fB\-\-host\fR, \fB\-\-t\fR
+Repeatable inventory or direct target, or glob
+.TP
+\fB\-\-tl\fR \fILIST\fR
+Targets in one argument, separated by commas
+or whitespace (quote a whitespace list); each
+is a \-\-target at this position
+.TP
+\fB\-\-tf\fR \fIFILE|PATH|\-\fR
+Target file, or the files directly in a
+folder; \- reads stdin
+.TP
+\fB\-\-tfr\fR \fIPATH\fR
+Target file, or a folder and its subfolders
+(targets.recursion\-max\-depth, default 3)
+.TP
+\fB\-\-site\fR \fIGLOB\fR, \fB\-\-device\-group\fR \fIGLOB\fR, \fB\-\-select\-platform\fR \fIGLOB\fR, \fB\-\-all\fR
+Inventory selectors, matches at this position
+.TP
+\fB\-\-exclude\fR \fIGLOB\fR
+Remove name matches after duplicate removal
+.PP
+A GLOB matches the whole value without regard to case: * ? [a\-c] [!a\-c],
+and \e escapes the next character; ^ and $ are refused. A selector value
+beginning with ! removes the devices it matches and selects none; in a
+target file, lines beginning with # or ! are comments.
+A \-\-select\-platform value is a selector over the known platforms (the
+built\-ins and the configured [platform.NAME] tables) and matches the
+platform set on a device's row or source default, before any \-\-platform
+acts; a value reaching no known platform is refused. A device whose platform
+is not set, or falls back under platform\-resolution.on\-unknown = "warn", is
+matched by no \-\-select\-platform value (it stays reachable by name, site,
+group, and \-\-all).
+.TP
+\fB\-\-order\fR \fIdefault|sorted|shuffle|random\fR
+Dispatch order for this invocation (sets the
+lock\-aware dispatch.order; the shuffle key
+comes from dispatch.shuffle\-key)
+.PP
+Folder reads skip names beginning with . readme or disabled, and editor
+backups (~ .bak .swp .orig .rej #name#); an empty source follows
+targets.empty\-source (error or warn).
+.SS "Device commands (one form per invocation)"
+.PP
+Positional words after the device are joined with one space into one command.
+.TP
+\fB\-\-cmd\fR \fITEXT\fR, \fB\-\-command\fR, \fB\-\-c\fR
+Separate command; repeatable
+.TP
+\fB\-\-cf\fR \fIPATH|\-\fR
+One command per line, sent as written; at most
+once; \- reads standard input
+.PP
+A command ending in \er sequences is sent without them, followed by that
+many carriage returns before the prompt is read (a [confirm] answer), and is
+blind; nothing else in the text is interpreted.
+.SS "Interactive prompts (each attaches to the \-\-cmd it follows, or to the one freeform command; a command takes blind returns or \-\-expect, not both)"
+.TP
+\fB\-\-expect\fR \fIPATTERN=RESPONSE\fR
+When a line matching PATTERN (RE2) appears,
+type RESPONSE and a return; consumed once, in
+declared order; empty RESPONSE is a bare
+return; at most 20 per command. A response is
+device text, recorded in clear: not for a
+password
+.TP
+\fB\-\-blind\fR
+The prompt may not return: await the blind
+wait in place of the command timeout, and a
+prompt never seen is still a success with the
+notice prompt_not_observed_after_blind_send
+.TP
+\fB\-\-blind\-return\fR \fIN\fR
+Send N carriage returns with the command
+(0..20), before any read, and treat it as
+\-\-blind
+.TP
+\fB\-\-blind\-wait\fR \fIDURATION\fR
+Prompt\-return wait for a blind command, in
+place of the command timeout (0 does not wait;
+sets the lock\-aware execution.blind\-wait)
+.TP
+\fB\-\-literal\fR
+Send every command as written; no \er
+interpretation; a RESPONSE is always as written
+.SS "Options"
+.TP
+\fB\-\-platform\fR \fINAME\fR
+The platform the devices of this invocation run
+as, whatever their inventory rows say: a
+built\-in or a configured [platform.NAME]
+table; a name, never a pattern. login and
+command apply it to their one device, run to
+every device of the set (a direct target in no
+inventory runs as generic without it).
+Without it an inventory row's platform
+applies, then the source default, then
+platform\-resolution.default (else generic); an
+unknown row platform is refused unless
+platform\-resolution.on\-unknown = "warn"
+.TP
+\fB\-\-pi\fR, \fB\-\-pn\fR, \fB\-\-pr\fR, \fB\-\-pj\fR, \fB\-\-pa\fR, \fB\-\-pg\fR
+Short for \-\-platform cisco_iosxe, cisco_nxos,
+cisco_iosxr, juniper_junos, arista_eos, generic
+.TP
+\fB\-\-management\-address\fR \fIIP\fR, \fB\-\-address\fR, \fB\-\-a\fR
+Literal management IP; does not select the target
+.TP
+\fB\-\-port\fR \fIN\fR
+Device service port
+.TP
+\fB\-\-transport\fR \fISELECTOR\fR
+default, system, native, preferred, telnet,
+or a configured [ssh.transports] slot
+.TP
+\fB\-\-ssh\-host\-key\-policy\fR \fIaccept\-new|secure|insecure\fR
+The host\-key policy (ssh.host\-key\-policy):
+accept\-new accepts and persists a new key and
+rejects a changed one (the default); secure
+requires a matching pre\-enrolled key before
+access; insecure accepts unknown or changed
+keys with prominent warnings
+.TP
+\fB\-\-ssh\-known\-hosts\-file\fR \fIPATH|auto\fR
+Unified karvi trust store
+.TP
+\fB\-\-format\fR \fItext|jsonl|json\fR
+Text (default), compact JSON Lines, or an
+indented JSON array for human inspection
+.TP
+\fB\-\-echo\fR
+Show prompt plus sent command in text output,
+including device\-reported command errors
+.TP
+\fB\-\-border\fR
+Replace the configured border with dashes
+.TP
+\fB\-\-noborder\fR
+Disable configured and dynamic borders
+.TP
+\fB\-\-continue\-device\-on\-error\fR
+Do not stop later commands after a device error
+.TP
+\fB\-\-nof\fR
+No output files: run and display, create no job
+folder (output.persist\-command=false)
+.TP
+\fB\-\-of[=PATH]\fR
+Output files on (output.persist\-command=true),
+to the configured folder or to PATH
+(output.root); PATH only with =, as the next
+word is the device (a path there is refused).
+The opposite of \-\-nof
+.TP
+\fB\-\-cd=PATH\fR
+Also write the device's output to PATH/NAME,
+one file named by the device, a "! COMMAND"
+marker before each command's output and
+nothing else, replaced only when the device
+succeeds (crun.directory; ~ expanded, relative
+to the working directory; auto the collection
+tree)
+.TP
+\fB\-\-fs=SUFFIX\fR
+Append SUFFIX to the collection file's name
+(\-\-fs=.cfg writes NAME.cfg); without \-\-cd it
+is \-\-cd=. as well
+.TP
+\fB\-\-address\-authority\fR \fIclient|daemon\fR
+Who selects the address: the client at planning
+(default) or the daemon at prepare
+.TP
+\fB\-\-quiet\fR
+Suppress configured header, footer, and border
+.TP
+\fB\-\-debug\fR
+Safe transport, resolution, and timing diagnostics
+.TP
+\fB\-\-ping\fR
+Send two ICMP probes to each target before its
+transport; skip a target that answers neither
+.TP
+\fB\-\-noping\fR
+Send no ICMP probes (the default unless
+network.ping\-targets is true)
+.TP
+\fB\-\-ipv4\fR, \fB\-\-4\fR
+Prefer IPv4 when both families are available
+.TP
+\fB\-\-ipv6\fR, \fB\-\-6\fR
+Prefer IPv6 when both families are available
+.TP
+\fB\-\-help\fR, \fB\-\-h\fR
+Show this help
+.PP
+Options are recognized before the device and between the device and the first
+device command word. Once device text begins, karvi recognizes no options,
+abbreviations, \-\-, or help flags: "command r1 show clock \-\-echo" sends
+"show clock \-\-echo". All commands use one authenticated SSH session and
+execute sequentially; OpenSSH connection reuse is disabled unless the target's
+platform definition sets control\-master = true.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

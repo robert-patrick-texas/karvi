@@ -41,11 +41,11 @@ generated-clean:
 	@set -e; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	$(GO) run ./tools/configgen -schema "$$tmp/config-schema.json" -reference "$$tmp/reference.toml"; \
 	$(GO) run ./tools/errorcodegen -output "$$tmp/ERROR-CODES.md"; \
-	$(GO) run ./tools/mangen -output "$$tmp/karvi-prune.8"; \
+	$(GO) run ./tools/mangen -dir "$$tmp/man"; \
 	cmp schema/config-schema.json "$$tmp/config-schema.json"; \
 	cmp configs/reference.toml "$$tmp/reference.toml"; \
 	cmp docs/ERROR-CODES.md "$$tmp/ERROR-CODES.md"; \
-	cmp packaging/man/karvi-prune.8 "$$tmp/karvi-prune.8"
+	for f in "$$tmp"/man/*; do cmp "packaging/man/$${f##*/}" "$$f"; done
 
 test:
 	$(GO) test ./...

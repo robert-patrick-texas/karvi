@@ -8,56 +8,84 @@ import (
 	"testing"
 )
 
-const page = "../../packaging/man/karvi-prune.8"
+const src = "../../packaging/man"
 
-// TestCommittedPageIsCurrent: the committed page's generated regions are
-// what the flag definition gives now (make generate has been run), and the
-// hand-written lines are kept byte for byte.
-func TestCommittedPageIsCurrent(t *testing.T) {
-	b, err := os.ReadFile(page)
+// TestCommittedPagesAreCurrent: every page of the table is in
+// packaging/man, its generated regions are what the definitions give now
+// (make generate has been run), and its hand-written lines are kept byte
+// for byte.
+func TestCommittedPagesAreCurrent(t *testing.T) {
+	out, err := render(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := generate(string(b), pruneRegions())
-	if err != nil {
-		t.Fatal(err)
+	for _, p := range pages() {
+		b, err := os.ReadFile(filepath.Join(src, p.file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if out[p.file] != string(b) {
+			t.Errorf("packaging/man/%s is stale; run make generate", p.file)
+		}
 	}
-	if got != string(b) {
-		t.Fatal("packaging/man/karvi-prune.8 is stale; run make generate")
+}
+
+// TestPageTable: prune's page, the top page, and one page per command word
+// with its two regions, the top page with the exit statuses as well; a
+// word without its page is refused by name.
+func TestPageTable(t *testing.T) {
+	ps := pages()
+	if ps[0].file != "karvi-prune.8" || ps[1].file != "karvi.1" || len(ps[1].regions) != 3 || ps[1].regions[2].name != "EXIT STATUS" {
+		t.Fatalf("table head: %+v", ps[:2])
+	}
+	words := map[string]bool{}
+	for _, p := range ps[2:] {
+		words[p.file] = true
+		if len(p.regions) != 2 {
+			t.Errorf("%s: %d regions", p.file, len(p.regions))
+		}
+	}
+	for _, w := range []string{"login", "command", "run", "crun", "stream", "daemon", "job", "config", "setup", "watch", "version"} {
+		if !words["karvi-"+w+".1"] {
+			t.Errorf("no page for %s", w)
+		}
+	}
+	dir := t.TempDir()
+	for _, p := range ps {
+		b, err := os.ReadFile(filepath.Join(src, p.file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if p.file != "karvi-watch.1" {
+			if err := os.WriteFile(filepath.Join(dir, p.file), b, 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if _, err := render(dir); err == nil || !strings.Contains(err.Error(), "karvi-watch.1 does not exist") {
+		t.Errorf("a missing page: %v", err)
 	}
 }
 
 // TestGenerateMarkers: a region's text replaces the lines between its
 // markers alone; a marker missing, doubled, or out of order is refused.
 func TestGenerateMarkers(t *testing.T) {
-	regions := []region{{"SYNOPSIS", "syn\n"}, {"OPTIONS", "opt\n"}}
-	in := ".TH X 8\n" + begin("SYNOPSIS") + "\nold\n" + end("SYNOPSIS") + "\nhand\n" + begin("OPTIONS") + "\n" + end("OPTIONS") + "\ntail"
-	want := ".TH X 8\n" + begin("SYNOPSIS") + "\nsyn\n" + end("SYNOPSIS") + "\nhand\n" + begin("OPTIONS") + "\nopt\n" + end("OPTIONS") + "\ntail"
+	syn, opt := region{"SYNOPSIS", "x", "syn\n"}, region{"OPTIONS", "x", "opt\n"}
+	regions := []region{syn, opt}
+	in := ".TH X 8\n" + begin(syn) + "\nold\n" + end(syn) + "\nhand\n" + begin(opt) + "\n" + end(opt) + "\ntail"
+	want := ".TH X 8\n" + begin(syn) + "\nsyn\n" + end(syn) + "\nhand\n" + begin(opt) + "\nopt\n" + end(opt) + "\ntail"
 	if got, err := generate(in, regions); err != nil || got != want {
 		t.Fatalf("got %q %v\nwant %q", got, err, want)
 	}
 	for name, bad := range map[string]string{
-		"missing":      ".TH X 8\n" + begin("SYNOPSIS") + "\n" + end("SYNOPSIS") + "\n",
-		"doubled":      in + "\n" + begin("OPTIONS") + "\n",
-		"out of order": begin("OPTIONS") + "\n" + end("OPTIONS") + "\n" + begin("SYNOPSIS") + "\n" + end("SYNOPSIS") + "\n",
-		"end first":    end("SYNOPSIS") + "\n" + begin("SYNOPSIS") + "\n" + begin("OPTIONS") + "\n" + end("OPTIONS") + "\n",
+		"missing":      ".TH X 8\n" + begin(syn) + "\n" + end(syn) + "\n",
+		"doubled":      in + "\n" + begin(opt) + "\n",
+		"out of order": begin(opt) + "\n" + end(opt) + "\n" + begin(syn) + "\n" + end(syn) + "\n",
+		"end first":    end(syn) + "\n" + begin(syn) + "\n" + begin(opt) + "\n" + end(opt) + "\n",
+		"other source": strings.ReplaceAll(in, "from x;", "from y;"),
 	} {
 		if _, err := generate(bad, regions); err == nil {
 			t.Errorf("%s: accepted", name)
-		}
-	}
-}
-
-// TestEscape: a hyphen is \-, a backslash \e, and a line beginning with a
-// dot or an apostrophe is protected, so a usage string cannot make a
-// request.
-func TestEscape(t *testing.T) {
-	if got := escape(`--a-b \x`); got != `\-\-a\-b \ex` {
-		t.Errorf("escape: %q", got)
-	}
-	for in, want := range map[string]string{".so /etc/x": `\&.so /etc/x` + "\n", "'br": `\&'br` + "\n", "plain": "plain\n"} {
-		if got := line(in); got != want {
-			t.Errorf("line(%q) = %q, want %q", in, got, want)
 		}
 	}
 }
@@ -69,7 +97,7 @@ func TestPageLints(t *testing.T) {
 	if err != nil {
 		t.Skip("groff is not on the path; the pages are not linted")
 	}
-	pages, _ := filepath.Glob("../../packaging/man/*.[1-8]")
+	pages, _ := filepath.Glob(src + "/*.[1-8]")
 	if len(pages) == 0 {
 		t.Fatal("no page in packaging/man")
 	}

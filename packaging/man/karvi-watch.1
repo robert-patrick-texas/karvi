@@ -1,0 +1,42 @@
+.\" karvi-watch(1): the manual page of karvi's watch word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-WATCH 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-watch \- render safe activity scoreboards
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBwatch\fR [\-\-format tui|table|json] [\-\-theme auto|dark|light|nocolor]
+[\-\-color auto|always|never] [\-\-refresh DURATION]
+[\-\-stale\-after DURATION] [\-\-filter TEXT] [\-\-sort KEY]
+[\-\-once] [\-\-help]
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.PP
+The screen shows one row per job from the shared scoreboard directory
+(watch.directory), refreshed every watch.refresh (2s): JOB\-ID, TIME (the
+running duration, then the end time), STATUS, OPERATOR, MODE, DONE as
+done/total, FAIL, ACTV (devices in flight), and TARGET, with a line under
+the headings. Running jobs stand above a rule, finished jobs below it
+newest first; the running rows and the rule stay on the screen while the
+finished rows scroll; ! flags a stale running job, ? an unreadable file.
+Keys: q or Ctrl\-C leave; arrows or j/k select a row, PgUp/PgDn a screen,
+Home/End the ends; Enter opens the detail pane on the selected job and
+Escape closes it; left/right scroll the pane's devices; / filters the rows
+by words, each a case\-insensitive substring that must occur in operator, job
+ID, target, mode, or status (Enter keeps it, Escape clears it); s cycles the sort key in the
+columns' order (time, status, operator, mode, fail, target) within each
+section and S reverses it; t toggles dark and light for this screen; ?
+lists the keys. \-\-filter TEXT and \-\-sort KEY start the screen with them and apply to
+\-\-format table, which prints the columns once; \-\-format json prints every
+snapshot and refuses both; the TUI needs a terminal on stdout. Human
+timestamps, themes, and role colors are configured under [display].
+Specified, not yet available: \-\-all\-retained.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

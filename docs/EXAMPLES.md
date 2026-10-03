@@ -1794,6 +1794,56 @@ defined. `docs/ERROR-CODES.md` opens with the table:
 `karvi.1`'s EXIT STATUS region is section G's, with the page table.
 `go test ./...`, vet, gofmt, and `make generated-clean`.
 
+Section G, the accessor, the renderer, the page table, and the twelve
+frames. `Layout`'s line analysis moved into `analyze`, which `Roff` reads
+too; the 60 help outputs and `karvi-prune -h` on a pipe and at a terminal,
+captured before and after, are identical. `tools/mangen` takes `-src` and
+`-dir` in place of `-input` and `-output`; `karvi-prune.8` regenerates byte
+for byte, its markers now built from each region's source. The frames are
+NAME, the marker pairs, and SEE ALSO, `.TH KARVI-RUN 1 "" "karvi"` as
+prune's. Every page passes `groff -man -ww -z`. Rendered:
+
+```text
+$ man -l packaging/man/karvi.1
+SYNOPSIS
+       karvi [global-options] <command> [options] [payload]
+DESCRIPTION
+   Commands
+       login  Open one interactive SSH session
+       command, cmd
+              Run commands on one device
+…
+EXIT STATUS
+       0      ExitSuccess: Every device succeeded, or the command did what it
+              was asked.
+…
+$ man -l packaging/man/karvi-watch.1        # a Usage line continued
+SYNOPSIS
+       karvi watch [--format tui|table|json] [--theme auto|dark|light|nocolor]
+       [--color auto|always|never] [--refresh DURATION] [--stale-after
+       DURATION] [--filter TEXT] [--sort KEY] [--once] [--help]
+$ man -l packaging/man/karvi-setup.1
+SYNOPSIS
+       sudo karvi setup shared [--group NAME] [--mode 2770|2775]
+       sudo karvi setup tab
+```
+
+The rules' lines into a simulated package root, gzipped:
+
+```text
+$ install -D -m 0644 -t ROOT/usr/share/man/man1 packaging/man/*.1      # thirteen pages
+$ man -M ROOT/usr/share/man -w karvi run        → man1/karvi-run.1.gz
+$ man -M ROOT/usr/share/man -w karvi setup      → man1/karvi-setup.1.gz
+$ man -M ROOT/usr/share/man -w karvi-prune      → man8/karvi-prune.8.gz
+```
+
+`make generated-clean` with one generated line of `karvi-config.1`
+edited: `packaging/man/karvi-config.1 … differ: byte 861, line 24`, exit
+2; restored, exit 0. Tests: the page table and a missing page refused by
+name (`karvi-watch.1 does not exist`); `Roff` over a text of every shape;
+`HelpPages` against the table, every subcommand sharing its word's text.
+`go test ./...`, vet, gofmt, and `make generated-clean`.
+
 **The sections.** H, the help changes (items 3 and 4), checked by the
 help outputs captured before and after; K, the Dispatch options as their
 keys' overrides (item 6), with item 7's sentence in the top help; E, the

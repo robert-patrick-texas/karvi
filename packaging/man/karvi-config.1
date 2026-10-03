@@ -1,0 +1,31 @@
+.\" karvi-config(1): the manual page of karvi's config word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-CONFIG 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-config \- configuration tools
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBconfig generate\fR [\-\-minimal|\-\-full] [\-\-force] [file]
+.br
+\fBkarvi\fR \fBconfig validate\fR [\-\-format text|json] [file|dir]
+.br
+\fBkarvi\fR \fBconfig show\fR [\-\-format toml|json] [\-\-explain] [\-\-show\-sources] [key]
+.br
+\fBkarvi\fR \fBconfig colors\fR
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.PP
+Options may appear before or after the positional argument; \-\- makes a later
+argument beginning with a dash positional. \-\-help shows this text. config
+colors prints every display.colors role in its colour, the configured theme
+first and then the other: the key, the colour, what set it, and the escape.
+Specified, not yet available: config validate \-\-internal.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

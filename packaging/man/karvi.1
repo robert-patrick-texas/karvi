@@ -1,0 +1,187 @@
+.\" karvi(1): karvi's manual page, what every word shares. Written by hand
+.\" except the regions between the markers, which tools/mangen rewrites from
+.\" the top help text and the exit statuses (make generate).
+.TH KARVI 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi \- run the fleet, gather the output
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR [global\-options] \fI<command>\fR [options] [payload]
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.SS "Commands"
+.TP
+\fBlogin\fR
+Open one interactive SSH session
+.TP
+\fBcommand\fR, \fBcmd\fR
+Run commands on one device
+.TP
+\fBrun\fR
+Run commands against an explicit scope
+.TP
+\fBcrun\fR
+Collect commands from a scope into one file per device
+.TP
+\fBstream\fR, \fB\-\fR
+Read a run line by line from standard input
+.TP
+\fBdaemon\fR \fBstart|stop|restart|status|serve\fR
+Manage the private per\-user daemon
+.TP
+\fBjob\fR \fBfollow|cancel\fR
+Follow or cancel one accepted job by its ID
+.TP
+\fBconfig\fR \fBgenerate|validate|show|colors\fR
+Configuration tools
+.TP
+\fBsetup\fR \fBshared|tab\fR
+Site preparations as root: the shared trees, tab completion
+.TP
+\fBwatch\fR
+Render safe activity scoreboards
+.TP
+\fBversion\fR
+Print build, schema, and SSH transport versions
+.SS "Global options (before the command word)"
+.TP
+\fB\-\-config\fR \fIPATH\fR, \fB\-\-cfg\fR \fIPATH\fR
+Add a config root (repeatable)
+.TP
+\fB\-\-set\fR \fIKEY=VALUE\fR
+Highest\-precedence override (repeatable, lock\-aware)
+.TP
+\fB\-\-quiet\fR
+Suppress routine narration
+.TP
+\fB\-\-debug\fR
+Safe provenance diagnostics
+.TP
+\fB\-\-debug\-show\-secrets\fR
+Console\-only bounded hints; requires \-\-debug
+.TP
+\fB\-\-timezone\fR \fIZONE\fR
+Override timezone
+.TP
+\fB\-\-ansi\fR \fIauto|strip|preserve\fR
+Device stdout ANSI behavior
+.TP
+\fB\-\-ipv4\fR, \fB\-\-4\fR
+Prefer IPv4 when both families are available
+.TP
+\fB\-\-ipv6\fR, \fB\-\-6\fR
+Prefer IPv6 when both families are available
+.TP
+\fB\-\-version\fR
+Print version without creating state
+.TP
+\fB\-\-help\fR, \fB\-\-h\fR
+Print this help without creating state
+.PP
+Every command word, subcommand word, and option may be abbreviated to any
+prefix that names exactly one word valid at that position; a full name or
+alias always matches exactly, so \-\-t is \-\-target and \-\-h is \-\-help. Options
+take one or two leading dashes (\-echo and \-\-echo are the same), and a value
+may be attached with =. In command and run, options are recognized only until
+device command text begins; after that every argument, including \-h and \-\-,
+is sent to the device. Use \-\- to begin device text with a dash.
+.PP
+An option that stands for a configuration key, such as \-\-order for
+dispatch.order or \-\-workers for dispatch.parallel\-workers, sets that key for
+the invocation, above the files and the environment and below \-\-set: a key
+the site has locked refuses the option, and the key's range applies.
+.\" END GENERATED DESCRIPTION
+.SH EXIT STATUS
+.\" BEGIN GENERATED EXIT STATUS: tools/mangen from internal/exitcode; edit there
+.TP
+.B 0
+\fIExitSuccess\fR: Every device succeeded, or the command did what it was asked.
+.TP
+.B 1
+\fIExitGenericError\fR: An internal failure with no more specific status.
+.TP
+.B 2
+\fIExitConfigValidationError\fR: The configuration did not load: a file, a key, a value, or its range.
+.TP
+.B 3
+\fIExitConfigLockViolation\fR: A site lock refused a write to a key: \-\-set, an option, the environment, or a lower file.
+.TP
+.B 4
+\fIExitUsageError\fR: The command line was refused: an option, a value, a command, or a file it names.
+.TP
+.B 5
+\fIExitInventoryError\fR: The target set could not be built: an inventory source, a target file, a row, or a platform is unreadable or invalid, or nothing was selected.
+.TP
+.B 6
+\fIExitCredentialResolutionError\fR: No credential could be resolved for a device, or a credential source is invalid or unsafe.
+.TP
+.B 7
+\fIExitNameResolutionError\fR: A device name did not resolve to an address of a usable family.
+.TP
+.B 8
+\fIExitDependencyError\fR: A program, transport, or facility karvi needs is missing or would not start.
+.TP
+.B 9
+\fIExitPermissionError\fR: A file or directory karvi must use is missing, unsafe, or not writable, or an action needs root or is not allowed.
+.TP
+.B 101
+\fIExitPartialFailure\fR: A run in which one or more devices failed or did not start, no halt or gate applying.
+.TP
+.B 102
+\fIExitHaltErrorCount\fR: A run stopped starting devices at its failure count (dispatch.halt\-on\-error\-count).
+.TP
+.B 103
+\fIExitHaltErrorPercent\fR: A run stopped starting devices at its failure percent (dispatch.halt\-on\-error\-percent).
+.TP
+.B 104
+\fIExitWaveGateErrorCount\fR: A wave job stopped between waves at the gate's count (dispatch.wave\-gate\-error\-count).
+.TP
+.B 105
+\fIExitWaveGateErrorPercent\fR: A wave job stopped between waves at the gate's percent (dispatch.wave\-gate\-error\-percent).
+.TP
+.B 106
+\fIExitShutdownIncomplete\fR: The daemon stopped before the job ended, or a stop did not finish in time.
+.TP
+.B 107
+\fIExitDeviceFailure\fR: The device refused a command, a command or the device timed out, or the session's set\-up failed.
+.TP
+.B 108
+\fIExitAuthenticationFailure\fR: The device refused the login.
+.TP
+.B 109
+\fIExitHostKeyFailure\fR: The device's host key was refused, or the trust store could not be used.
+.TP
+.B 110
+\fIExitConnectionFailure\fR: A connection to a device or to the daemon failed or was lost.
+.TP
+.B 111
+\fIExitOutputFailure\fR: Output could not be written: a record, a file, the audit, or standard output.
+.TP
+.B 112
+\fIExitJobRejected\fR: The daemon refused the request, or the exchange with it failed.
+.TP
+.B 113
+\fIExitCancelled\fR: Cancelled: job cancel, Ctrl\-C, or an interrupted wait.
+.TP
+.B 114
+\fIExitHaltHostKeyMismatch\fR: A run stopped starting devices after a changed host key (ssh.halt\-run\-on\-host\-key\-mismatch).
+.\" END GENERATED EXIT STATUS
+.SH SEE ALSO
+.BR karvi\-login (1),
+.BR karvi\-command (1),
+.BR karvi\-run (1),
+.BR karvi\-stream (1),
+.BR karvi\-crun (1),
+.BR karvi\-daemon (1),
+.BR karvi\-job (1),
+.BR karvi\-config (1),
+.BR karvi\-setup (1),
+.BR karvi\-watch (1),
+.BR karvi\-version (1),
+.BR karvi\-askpass (1),
+.BR karvi\-prune (8)

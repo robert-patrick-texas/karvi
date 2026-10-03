@@ -159,6 +159,51 @@ func helpEntryWords(line string) string {
 	return words
 }
 
+// analyze splits a help text into its lines and reads each line's shape:
+// its class, an entry's words (the part the terminal colours and the page
+// sets in bold), and whether it belongs to a heading. The terminal layout
+// and the manual page read the same analysis, so they cannot read a line
+// differently.
+func analyze(text string) (lines []string, kinds []helpLineKind, words []string, heading []bool) {
+	lines = strings.Split(strings.TrimSuffix(text, "\n"), "\n")
+	kinds = make([]helpLineKind, len(lines))
+	words = make([]string, len(lines))
+	for i, l := range lines {
+		kinds[i] = classifyHelpLine(l)
+		if kinds[i] == helpEntry {
+			words[i] = helpEntryWords(l)
+		}
+	}
+	// A command entry too long for its column (daemon start|stop|restart)
+	// has its description on the line under it, which is what tells it
+	// from a line of prose: a short line over a continuation is an entry.
+	for i := range lines {
+		if kinds[i] == helpProse && i+1 < len(lines) && kinds[i+1] == helpContinuation && len(strings.Fields(lines[i])) <= 3 {
+			kinds[i], words[i] = helpEntry, lines[i]
+		}
+	}
+	// A run of unindented lines is a heading when its last line ends in a
+	// colon; the run is marked as a whole.
+	heading = make([]bool, len(lines))
+	for i := 0; i < len(lines); {
+		if kinds[i] != helpUnindented {
+			i++
+			continue
+		}
+		j := i
+		for j < len(lines) && kinds[j] == helpUnindented {
+			j++
+		}
+		if strings.HasSuffix(lines[j-1], ":") {
+			for k := i; k < j; k++ {
+				heading[k] = true
+			}
+		}
+		i = j
+	}
+	return lines, kinds, words, heading
+}
+
 // Irregular is the lines of a help text in a shape the layout does not
 // know: words separated by two or more spaces anywhere but where the
 // description column begins. Such a line is a table of its own, which the
@@ -194,42 +239,7 @@ func Irregular(text string) []string {
 // three lines or more, so that the next entry does not read as its
 // continuation. Blank lines already in the text are kept and never doubled.
 func Layout(text string, st Style) string {
-	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
-	kinds := make([]helpLineKind, len(lines))
-	words := make([]string, len(lines)) // an entry's words, coloured
-	for i, l := range lines {
-		kinds[i] = classifyHelpLine(l)
-		if kinds[i] == helpEntry {
-			words[i] = helpEntryWords(l)
-		}
-	}
-	// A command entry too long for its column (daemon start|stop|restart)
-	// has its description on the line under it, which is what tells it
-	// from a line of prose: a short line over a continuation is an entry.
-	for i := range lines {
-		if kinds[i] == helpProse && i+1 < len(lines) && kinds[i+1] == helpContinuation && len(strings.Fields(lines[i])) <= 3 {
-			kinds[i], words[i] = helpEntry, lines[i]
-		}
-	}
-	// A run of unindented lines is a heading when its last line ends in a
-	// colon; the run is marked as a whole.
-	heading := make([]bool, len(lines))
-	for i := 0; i < len(lines); {
-		if kinds[i] != helpUnindented {
-			i++
-			continue
-		}
-		j := i
-		for j < len(lines) && kinds[j] == helpUnindented {
-			j++
-		}
-		if strings.HasSuffix(lines[j-1], ":") {
-			for k := i; k < j; k++ {
-				heading[k] = true
-			}
-		}
-		i = j
-	}
+	lines, kinds, words, heading := analyze(text)
 	var out strings.Builder
 	entryLines := 0 // lines of the entry being written, 0 outside one
 	prev := helpBlank

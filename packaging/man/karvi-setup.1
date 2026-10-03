@@ -1,0 +1,59 @@
+.\" karvi-setup(1): the manual page of karvi's setup word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-SETUP 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-setup \- site preparations as root: the shared trees, tab completion
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+sudo \fBkarvi\fR \fBsetup shared\fR [\-\-group NAME] [\-\-mode 2770|2775]
+.br
+sudo \fBkarvi\fR \fBsetup tab\fR
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.PP
+setup shared prepares the site once, as root. Under /opt/karvi (0755) it
+makes shared, and under that jobs, crun, and transcripts, the four in the
+operators' group with group write and search and the setgid bit (2770, or
+2775 with \-\-mode), so every member writes into them and what is made below
+stays in the group; beside shared, users (1770), where each operator's
+private root is made. On /dev/shm it makes the scratch root /dev/shm/karvi
+and its scoreboards (3770: the sticky bit too, so no member removes
+another's folder or file) and capacity (2770, the host\-wide session ledger
+every member writes), and it writes /etc/tmpfiles.d/karvi.conf, so
+systemd\-tmpfiles makes the scratch root again at every boot. \-\-group NAME
+is the group; without it the primary group of the operator who ran sudo is
+taken. Each directory is reported as created, exists, or repaired (another
+group or mode set right, what it had named); a path that is not a real
+directory is reported and left (setup_directory_mismatch). The rule is
+reported as created, exists, or updated; a file there that karvi did not
+write is reported and left (setup_tmpfiles_mismatch). Run it again after
+changing the group or the mode.
+.PP
+An operator's run never creates the scratch root: on a host without it,
+the scratch, the control sockets, the scoreboards, and the capacity leases
+stay under basedir, one operator's.
+.PP
+Once the trees exist, every operator's output.root, crun.directory, and
+transcript.root default to them (sharedroot auto consults
+/opt/karvi/shared, then /var/lib/karvi/shared) in place of the trees under
+basedir; a tree the operator cannot write to is refused with the group
+named. sharedroot none keeps the trees under basedir.
+.PP
+setup tab places karvi's bash completion under /etc/bash_completion.d, which
+the bash\-completion package reads at every login, so Tab completes karvi's
+command words, options, values, device names from the inventory, and job
+IDs from the scoreboard; the words come from the executable at each Tab, so
+the file needs no change when karvi changes. The file is reported as
+created, exists, or updated; a file there that karvi did not write is
+reported and left as it is (setup_completion_mismatch), and a host without
+the bash\-completion package is told (setup_completion_dir_missing). \-\-help
+shows this text.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

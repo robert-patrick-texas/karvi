@@ -1,0 +1,42 @@
+.\" karvi-daemon(1): the manual page of karvi's daemon word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-DAEMON 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-daemon \- manage the private per\-user daemon
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBdaemon start\fR [\-\-foreground]
+.br
+\fBkarvi\fR \fBdaemon stop\fR [\-\-grace | \-\-after=DURATION | \-\-force]
+.br
+\fBkarvi\fR \fBdaemon restart\fR [\-\-grace | \-\-after=DURATION | \-\-force]
+.br
+\fBkarvi\fR \fBdaemon status\fR [\-\-format text|json]
+.br
+\fBkarvi\fR \fBdaemon serve\fR
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.PP
+Without an option, stop and restart refuse while the daemon reports active
+jobs. \-\-grace drains the daemon, so it rejects new jobs, and waits for active
+jobs to finish. \-\-after=DURATION drains and waits until jobs finish or DURATION
+elapses, whichever comes first, then forces the stop. \-\-force stops at once;
+unfinished work still receives terminal records. Interrupting a wait leaves the
+daemon draining. \-\-help shows this text. Specified, not yet available:
+daemon start \-\-start\-timeout DURATION.
+.PP
+A daemon is compatible when its version and its IPC schema both equal the
+client's; either difference is incompatible. An upgraded client never submits
+a job to, kills, or silently replaces an incompatible running daemon. Status
+and explicit stop/restart use the stable same\-UID lifecycle envelope for
+released IPC schemas, allowing an operator to recover after an upgrade without
+reinstalling the older karvi executable.
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)

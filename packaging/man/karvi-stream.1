@@ -1,0 +1,61 @@
+.\" karvi-stream(1): the manual page of karvi's stream word. Written by hand except
+.\" the regions between the markers, which tools/mangen rewrites from the
+.\" word's help text (make generate).
+.TH KARVI-STREAM 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-stream \- read a run line by line from standard input
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBstream\fR
+.br
+\fBkarvi\fR \fB\-\fR
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
+.PP
+Reads a run line by line from standard input and executes it as run would.
+A line is skipped when blank or when its first character is ! or #. A line
+beginning with \-\- is one run option: the word, then its value as the rest
+of the line after a space or =, so \-\-target router1, \-\-target=router1,
+\-\-tl "router1 router2", \-\-dispatch parallel, \-\-dp. Any other line is one
+command, sent as written; \er at its end is read as \-\-cmd reads it, and a
+line of \er alone sends a blank line. The targets and options stay from one
+job to the next; the commands are the job's. A \-\-cmd, \-\-command, or \-\-cf
+line is a command like a bare line, and \-\-expect, \-\-blind, and
+\-\-blind\-return lines attach to the command before them. \-\-cf, \-\-tf, and
+\-\-tfr may not name \-: standard input is the stream.
+.SS "Directives, each a whole line"
+.TP
+\fB\-\-go\fR, \fB\-\-sendit\fR
+Execute the draft as run; the targets and
+options stay for the next job, the commands
+clear; with no command to send, a notice
+.TP
+\fB\-\-clear\fR
+Empty the commands; the targets and options
+stay
+.TP
+\fB\-\-reset\fR
+Empty the draft
+.TP
+\fB\-\-end\fR, \fB\-\-quit\fR
+Leave without executing; so do EOF (Ctrl\-D)
+and Ctrl\-C
+.PP
+Typed at a terminal, a line is edited with Ctrl\-A, Ctrl\-E, Ctrl\-K, Ctrl\-U,
+Ctrl\-W, and the arrows, and the up arrow recalls earlier lines. A line the
+parser refuses is reported with its number and dropped. The exit is the
+last executed job's, 0 when none ran; a read failure or a line over 1 MiB
+ends the stream with stream_input_read_failed. Global options go before
+the word: karvi \-\-quiet \-\-config FILE stream.
+.SS "Options"
+.TP
+\fB\-\-help\fR, \fB\-h\fR
+Show this help
+.\" END GENERATED DESCRIPTION
+.SH SEE ALSO
+.BR karvi (1)
