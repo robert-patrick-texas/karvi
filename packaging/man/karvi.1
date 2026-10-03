@@ -13,6 +13,33 @@ karvi \- run the fleet, gather the output
 \fBkarvi\fR [global\-options] \fI<command>\fR [options] [payload]
 .\" END GENERATED SYNOPSIS
 .SH DESCRIPTION
+.B karvi
+runs commands on network devices over SSH and keeps what they answer.
+.B login
+opens one interactive session;
+.B command
+runs commands on one device;
+.B run
+runs them across a set of devices, from the inventory or named directly,
+one at a time, in a fixed pool, or in waves;
+.B crun
+collects them into one file per device; and
+.B stream
+reads runs line by line from standard input.
+A run goes to the operator's private daemon, which holds the job and its
+records, unless
+.B \-\-no\-daemon
+runs it in the client;
+.B job
+follows or cancels it, and
+.B watch
+shows every job on the host.
+.PP
+Each command word has its own page,
+.BR karvi\-WORD (1),
+which
+.B man karvi WORD
+finds; this page states what every word shares.
 .\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
 .SS "Commands"
 .TP
@@ -96,7 +123,230 @@ dispatch.order or \-\-workers for dispatch.parallel\-workers, sets that key for
 the invocation, above the files and the environment and below \-\-set: a key
 the site has locked refuses the option, and the key's range applies.
 .\" END GENERATED DESCRIPTION
+.SH CONFIGURATION
+karvi reads its configuration in layers, each later one setting what an
+earlier one set:
+.IP 1. 4
+the built\-in defaults;
+.IP 2. 4
+the global file,
+.I /etc/karvi/config.toml
+or, when it does not exist,
+.IR /opt/karvi/config.toml ,
+the only place a lock may be declared
+.RB ( [config\-lock] );
+.IP 3. 4
+the operator's file,
+.IR \(ti/.config/karvi/config.toml ,
+unless the global file sets
+.B config.allow\-user\-layer
+to
+.BR false ;
+.IP 4. 4
+each
+.B \-\-config
+.IR PATH ,
+in order: a file, or a directory whose
+.I .toml
+files are read;
+.IP 5. 4
+the environment,
+.B KARVI__SECTION__KEY
+(see ENVIRONMENT);
+.IP 6. 4
+the options that stand for a key, such as
+.B \-\-order
+for
+.B dispatch.order
+or
+.B \-\-workers
+for
+.BR dispatch.parallel\-workers ;
+.IP 7. 4
+.B \-\-set
+.IR KEY = VALUE ,
+in order.
+.PP
+A key the global file locks refuses every later layer's write, an option's
+included, with
+.B config_lock_violation
+(exit 3), even a write of the value it holds.
+A file may include others
+.RB ( config.includes ).
+.B karvi config show
+.I KEY
+.B \-\-explain
+prints a key's value, its source, its default, its range, its lock, and the
+layers it overrode;
+.B karvi config validate
+checks a file;
+.B karvi config generate
+writes one.
+The home in
+.I \(ti
+is the password database's, so
+.B HOME
+moves neither the operator's file nor the private root.
+.SH VALUES
+.TP
+.I DURATION
+A number and its unit,
+.BR h ,
+.BR m ,
+.BR s ,
+.BR ms ,
+.BR us ,
+or
+.BR ns ,
+such as
+.BR 500ms ,
+.BR 45s ,
+or
+.BR 5m ;
+the parts combine
+.RB ( 1h30m ).
+A bare number and a
+.B d
+are refused.
+The key behind the option sets the range
+.RB ( \-\-wave\-delay
+at most
+.BR 1h ),
+which
+.B karvi config show
+.I KEY
+.B \-\-explain
+prints.
+.TP
+.I N
+A whole number; what 0 means is each option's own, as its entry says
+("0 off", "0 the host's logical CPUs").
+.SH ENVIRONMENT
+.TP
+.B KARVI__SECTION__KEY
+Sets a configuration key, above the files and below the options and
+.BR \-\-set :
+the key's dots as two underscores and its hyphens as one, in capitals
+.RB ( KARVI__DISPATCH__ORDER
+sets
+.BR dispatch.order ,
+.B KARVI__SPOOLDIR
+sets
+.BR spooldir ).
+An unknown name is refused unless
+.B config.reject\-unknown\-env
+is
+.BR false .
+.TP
+.BR NETUSER ", " NETPASS ", " NETENABLE
+The device username, password, and enable password of the built\-in
+credential fallback, read by the client that submits the job and never by
+the daemon; one that is not set is asked at the terminal.
+.TP
+.B KARVI_ASKPASS_PATH
+The
+.BR karvi\-askpass (1)
+helper, before the one beside the executable and the one on
+.BR PATH .
+.TP
+.B COLORFGBG
+Under
+.B display.theme
+.BR auto ,
+a last field of 7 or more takes the light theme, anything else the dark.
+.TP
+.B NO_COLOR
+Set and not empty, the watch screen draws without colour; the other
+words' colour is
+.BR display.color 's.
+.TP
+.B SUDO_GID
+.B sudo karvi setup shared
+takes its group as the trees' group when
+.B \-\-group
+is not given.
+.SH FILES
+.TP
+.I /etc/karvi/config.toml\fR, \fI/opt/karvi/config.toml
+The global configuration, the first that exists.
+.TP
+.I \(ti/.config/karvi/config.toml
+The operator's configuration.
+.TP
+.I /opt/karvi/users/USER\fR, \fI/var/lib/karvi/users/USER
+The operator's private root
+.RB ( basedir ),
+where the site made the
+.I users
+directory
+.RB ( "sudo karvi setup shared" ).
+.TP
+.I \(ti/.local/share/karvi
+The operator's private root otherwise.
+Under the root:
+.I jobs
+and
+.I transcripts
+(where no shared tree exists),
+.I crun
+(the collection directory, likewise),
+.I socket/daemon.sock
+(the daemon's socket),
+.I state/daemon.json
+and
+.I logs/daemon.log
+(the daemon's state and log).
+.TP
+.I \(ti/.local/share/karvi/known_hosts
+The trust store
+.RB ( ssh.known\-hosts\-file
+.BR auto ).
+.TP
+.I /opt/karvi/shared\fR, \fI/var/lib/karvi/shared
+The shared trees,
+.IR jobs ,
+.IR crun ,
+and
+.IR transcripts ,
+in the operators' group: the defaults of
+.BR output.root ,
+.BR crun.directory ,
+and
+.B transcript.root
+where they exist.
+.TP
+.I /dev/shm/karvi
+The scratch root, made by
+.BR "sudo karvi setup shared" :
+.I scoreboards
+(what
+.B karvi watch
+reads),
+.I capacity
+(the host's session ledger), and each operator's scratch and control
+sockets.
+.TP
+.I /tmp/karvi\-UID\fR, \fI/var/tmp/karvi\-UID
+The spool directory, the first that can be written
+.RB ( spooldir
+.BR auto ).
+.TP
+.I /etc/tmpfiles.d/karvi.conf\fR, \fI/etc/bash_completion.d/karvi
+Written by
+.B sudo karvi setup shared
+and
+.BR "sudo karvi setup tab" .
 .SH EXIT STATUS
+Loading the configuration exits 2, or 3 for a lock, whatever the cause.
+A run (\fBrun\fR, \fBcrun\fR, a job of \fBstream\fR) exits 0 when every
+device succeeded and 101 when any failed or did not start, every device
+included, unless a halt or a gate stopped it; \fBlogin\fR and \fBcommand\fR,
+on one device, exit with the device's failure (107 to 110).
+Any word exits with an earlier stage's status when that stage fails: the
+configuration, the target set (5), a credential (6), a name (7).
+When more than one applies, the first of 111, 106, 113, 114, 102, 103, 104,
+and 105 is the exit.
+A failure's message begins with its error code, and the records carry it.
 .\" BEGIN GENERATED EXIT STATUS: tools/mangen from internal/exitcode; edit there
 .TP
 .B 0

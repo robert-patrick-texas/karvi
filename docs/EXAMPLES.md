@@ -1844,6 +1844,38 @@ name (`karvi-watch.1 does not exist`); `Roff` over a text of every shape;
 `HelpPages` against the table, every subcommand sharing its word's text.
 `go test ./...`, vet, gofmt, and `make generated-clean`.
 
+Section P, the hand-written sections, part 1: `karvi.1`. An opening
+paragraph before the generated DESCRIPTION; CONFIGURATION, VALUES,
+ENVIRONMENT, and FILES; the choice of exit above the generated list. Each
+claim was read in the code and executed on the lab build:
+
+```text
+--config file, then KARVI__DISPATCH__ORDER=shuffle      value "shuffle", overridden: <builtin>, k2.toml:2
+KARVI__… shuffle, run --order sorted                      dispatch: … order=sorted
+KARVI__… shuffle, --set dispatch.order=random, --order sorted   order=random
+KARVI__SPOOLDIR=…/sp                                      source: KARVI__SPOOLDIR
+KARVI__BOGUS_KEY=1                                        config_unknown_environment
+--config DIR (a.toml inside)                              source: …/cdir/a.toml:2
+config show --explain dispatch.wave-gate-timed-delay      validation: 0–1h. lock: none
+command --nof nosuchdevice.invalid show clock             exit 7
+run --tl nosuchdevice.invalid,r1                          dns_nxdomain, exit 7 (planning refuses the set)
+```
+
+The layers are the defaults, the first existing global file (the only
+place for locks), the operator's `~/.config/karvi/config.toml` unless the
+global file sets `config.allow-user-layer = false`, each `--config` root (a
+file, or a directory of `.toml` files), the environment, the options, and
+`--set`; the home is the password database's. The private root is
+`/opt/karvi/users/USER`, then `/var/lib/karvi/users/USER` where the site
+made `users`, else `~/.local/share/karvi`; the trust store's `auto` is
+`~/.local/share/karvi/known_hosts`. The first draft said `login` and
+`command` exit 107 to 110; an unresolvable name exits 7 before the device,
+so the paragraph says that any word exits with an earlier stage's status.
+
+*Found, for later.* `NO_COLOR` is read by the watch screen alone: at a
+terminal under `display.color = "auto"`, `NO_COLOR=1 karvi --help` prints
+in colour. The page states it as built.
+
 **The sections.** H, the help changes (items 3 and 4), checked by the
 help outputs captured before and after; K, the Dispatch options as their
 keys' overrides (item 6), with item 7's sentence in the top help; E, the
