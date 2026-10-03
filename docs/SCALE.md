@@ -26,27 +26,153 @@ cannot hold, before any device is contacted.
 
 ## The width
 
-A job's width is the smallest of three figures: the mode's width, the
-device count, and the host's cap.
+Two figures bound how many devices a job speaks to at once, and they are
+not the same thing:
+
+- **The job's workers**, set by its dispatch mode: one for `serial` (and
+  for every `command`), a fixed pool for `parallel`, and for `wave` a
+  width that starts at one figure and moves between waves within a
+  ceiling. A worker takes one device at a time and holds it to its end.
+- **The host's cap**, `dispatch.server-max-inflight`: the device sessions
+  in flight at once on the host, across every job, every operator's
+  daemon, and in-process runs. It is enforced per session, not by
+  trimming a job's workers: each worker takes a lease in the capacity
+  ledger before it connects, and while the ledger is full it waits there,
+  polling every 50 to 250 ms (`dispatch.admission-poll-min`, `-max`), its
+  device counted in the record's `server_capacity_wait_ns`. A device also
+  takes a lease of its own, against the inventory row's `session_cap` or
+  else its platform's `session-cap` (3 by default), so jobs together never
+  hold more sessions on one device than that.
+
+So the sessions a job holds at once are at most the smallest of its
+workers, its device count, and what the cap leaves after every other job's
+leases. The keys:
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `dispatch.default` | `serial` | `serial`, `parallel`, `wave` | The mode a job runs in; `serial` is width 1 whatever the host has. |
-| `dispatch.parallel-workers` | `0` | 0 to 4096 | The parallel width; `0` is the logical CPU count. |
-| `dispatch.wave-start-width`, `dispatch.wave-max-width` | `0` | `0` auto, else 1 to the ceiling | The wave mode's start and ceiling. |
+| `dispatch.default` | `serial` | `serial`, `parallel`, `wave` | The mode a `run` takes without `--dispatch` (`--dp`, `--dw`, `--ds`); `serial` is one worker whatever the host has; `command` is always serial. |
+| `dispatch.parallel-workers` | `0` | 0 to 4096 | The parallel pool (`--workers N`); `0` is the logical CPU count. |
+| `dispatch.wave-start-width` | `0` | `0` auto, else 1 to the ceiling | The wave's first width and its floor (`--start-width N`); `0` is `min(64, max(16, 4 × CPU))`. |
+| `dispatch.wave-max-width` | `0` | `0` auto, else start to `absolute-max-width` | The wave's ceiling (`--max-width N`); `0` is `min(256, max(32, 8 × CPU))`, the cap's own default, so one wave job may fill the host. |
 | `dispatch.server-max-inflight` | `0` | 0 to 4096 | The host's cap on device sessions in flight across every job, every operator's daemon, and in-process runs, held as leases in the capacity ledger under `sessions.shared-capacity-root`, across operators where the site made the scratch root (`sudo karvi setup shared`) and per operator where it did not; `0` is `min(256, max(32, 8 × CPU))`. |
-| `dispatch.absolute-max-width` | `512` | 1 to 4096 | The hard ceiling the dispatcher applies to any job's width; a wave ceiling above it is refused at load. |
+| `dispatch.absolute-max-width` | `512` | 1 to 4096 | The hard ceiling on any job's workers: a parallel pool above it is cut to it, a wave ceiling above it is refused at load. |
 
-The cap's default by host, and the width a job gets under `parallel`
-with `parallel-workers = 0`:
+The defaults by host:
 
-| Logical CPUs | `server-max-inflight` at `0` | A 10-device job | A 1,000-device job |
+| Logical CPUs | `parallel` workers | `wave` start → ceiling | `server-max-inflight` |
 |---:|---:|---:|---:|
-| 4 | 32 | 4 | 4 |
-| 16 | 128 | 10 | 16 |
-| 64 | 256 | 10 | 64 |
-| 128 | 256 | 10 | 128 |
-| 512 | 256 | 10 | 256 |
+| 4 | 4 | 16 → 32 | 32 |
+| 8 | 8 | 32 → 64 | 64 |
+| 16 | 16 | 64 → 128 | 128 |
+| 32 | 32 | 64 → 256 | 256 |
+| 64 | 64 | 64 → 256 | 256 |
+| 128 | 128 | 64 → 256 | 256 |
+| 512 | 512 | 64 → 256 | 256 |
+
+### `parallel`: a fixed pool
+
+The job starts its workers once and feeds them one queue, the devices in
+the dispatch order (`dispatch.order`). A worker that finishes a device
+takes the next at once, so there are no batches and no pauses: a slow
+device holds its own worker and nobody else, and the job ends when the
+last device does. The pool's size never changes during the job, whatever
+the host's load; only the cap's leases can hold a worker back. A halt
+(`--halt-on-error-count`, `--halt-on-error-percent`) stops the queue: no
+further device starts, and the devices in flight finish.
+
+### `wave`: cohorts, and a width that follows the host's CPU
+
+The job runs its devices in waves. A wave takes the next *depth* devices
+in the dispatch order, depth being the wave's width times
+`dispatch.wave-depth-multiplier` (4), or the devices left if fewer, and
+runs them with *width* workers as the parallel pool does. The wave ends
+when its last device ends, so a slow device holds the next wave back;
+then, before the next wave:
+
+1. **The error gate.** When the wave's failures reach
+   `dispatch.wave-gate-error-count` or `dispatch.wave-gate-error-percent`
+   (both off by default), the job stops, the devices not started
+   recorded `not_started_wave_gate`. A halt stops a wave job as it stops
+   a parallel one, at once.
+2. **The timed delay**, `dispatch.wave-gate-timed-delay` (`--wave-delay`,
+   none by default), a pause between waves for a change window.
+3. **The width for the next wave**, from the host's CPU: the busy share of
+   every CPU on the host from `/proc/stat` (all processes, not karvi's
+   alone), sampled every `metrics.process-sample-interval` (1 s),
+   averaged over its first `dispatch.wave-cpu-warmup-samples` (5) and
+   then smoothed with a half-life of `dispatch.wave-cpu-half-life` (15 s).
+   Around `dispatch.wave-cpu-threshold-percent` (75) a band of
+   `dispatch.wave-cpu-target-zone-percent` (10) either side, 65 to 85 by
+   default:
+
+   | The CPU signal | The next width | Then |
+   |---|---|---|
+   | below the band (under 65 %) | up by `wave-step-up-percent` (50 %) of the width, rounded up, at most the ceiling | |
+   | in the band (65 % to 85 %) | unchanged | |
+   | above the band (over 85 %) | down by `wave-step-down-percent` (10 %), rounded up, at least the start width | the next `wave-cooldown-waves` (2) decisions keep the width |
+
+The start width is also the floor: a wave job never runs narrower than it
+began. Each decision is in `metrics.json` (`wave_decisions`: the wave, the
+signal, the next width, the reason), and every record names its wave,
+width, depth, and worker (`dispatch.wave_number`, `wave_width`,
+`wave_depth`, `worker_id`). The right-sizing reads the host's CPU only:
+not the cap's ledger, not other jobs' widths, not the devices' or the
+network's latency; a host whose CPU stays low runs a wave job at its
+ceiling, and the cap's leases then decide how many of those workers
+connect.
+
+Against `parallel` at the same width, a wave job pays the waits at its
+wave boundaries (each wave waits for its slowest device); it buys the
+ramp from a cautious start, the error gate between waves, and the timed
+delay.
+
+### 100 devices, worked
+
+On the reference host of these figures (4 logical CPUs; the fake device
+answering `show clock`, a session of 0.61 s on average), 100 devices with
+every setting at its default but the mode:
+
+| | `--dispatch parallel` | `--dispatch wave` |
+|---|---|---|
+| Workers | 4, for the whole job | 16 in wave 1, 24 in wave 2 |
+| The queue | one: 100 devices, a free worker takes the next | wave 1: devices 1 to 64 (16 × 4); wave 2: devices 65 to 100 (36 left, under 24 × 4 = 96) |
+| Waves | none | 2; CPU 12.9 % after wave 1 (under 65 %), so 16 + 8 = 24 |
+| Sessions in flight, most | 4 | 16, then 24 |
+| The host's cap | 32, not reached | 32, not reached |
+| Device-times in turn | 25 (100 ÷ 4) | 4 in wave 1 (64 ÷ 16), 2 in wave 2 (36 ÷ 24) |
+| Executed | 17.2 s | 4.7 s (wave 1 +0.0 to +3.1 s, wave 2 +3.2 to +4.7 s) |
+
+The same 100 devices on larger hosts, by the defaults' arithmetic:
+
+| Logical CPUs | `parallel`: workers, device-times | `wave`: waves (width × devices) |
+|---:|---|---|
+| 8 | 8, 13 (12 full turns and 4) | 1 (32 × 100: depth 128 holds every device), 4 device-times |
+| 16 | 16, 7 (6 full turns and 4) | 1 (64 × 100), 2 device-times |
+| 32 and up | the CPU count, 4 or fewer | 1 (64 × 100), 2 device-times |
+
+On 8 logical CPUs and up a 100-device wave job is one wave, so it never
+changes width: the ramp needs more devices than the first wave's depth.
+A larger job on the reference host, 1,000 devices under `--dispatch
+wave`, executed: widths 16, 24, then 32 (the ceiling) for seven waves, the
+CPU between 13 % and 20 % throughout, 9 waves in 33 s:
+
+| Wave | Width | Depth (devices) | Window | CPU after | Next width |
+|---:|---:|---:|---|---:|---:|
+| 1 | 16 | 64 | +0.0 to +3.7 s | 13.3 % | 24 |
+| 2 | 24 | 96 | +3.7 to +7.5 s | 14.7 % | 32 |
+| 3 to 8 | 32 | 128 each | +7.6 to +30.3 s | 15.9 % to 19.5 % | 32 (the ceiling) |
+| 9 | 32 | 72 | +30.4 to +32.7 s | 19.7 % | — |
+
+Had the CPU risen above 85 % after a wave at 32, the next would have run
+at 28 (32 less 10 %, rounded up to 4), and the two decisions after it kept
+28; it would never have gone under 16.
+
+**The cap in action.** The same 100 devices under `--dispatch parallel
+--workers 64` on the reference host, whose cap is 32: 64 workers, never
+more than 32 sessions in flight; 68 devices waited for a lease, the
+longest 1.9 s; 3.1 s in all. A second job beside a wave job at its
+ceiling meets the same: the default ceiling is the default cap, so the
+two share the host's 32 and each waits on the other's leases.
 
 A site whose devices and AAA carry more than 256 sessions at once sets
 `dispatch.server-max-inflight` to the figure it wants (512, 1024, up to

@@ -106,6 +106,36 @@ live by the client that started it; a later `job follow` starts at the
 edge and says which records are not kept. Ctrl-C stops only
 the follow. Neither `job` verb launches a daemon.
 
+## Dispatch: serial, parallel, and wave
+
+A `run` speaks to its devices one at a time unless told otherwise
+(`dispatch.default = "serial"`); `command` is always one device at a
+time. Two modes widen it:
+
+- `--dispatch parallel` (`--dp`) starts a fixed pool of workers,
+  `--workers N` or `dispatch.parallel-workers` (the host's logical CPU
+  count at `0`), over one queue in the dispatch order: a worker that
+  finishes a device takes the next at once, and the pool never changes
+  size during the job.
+- `--dispatch wave` (`--dw`) runs the devices in waves of `width × 4`
+  (`dispatch.wave-depth-multiplier`), each with `width` workers, and
+  sizes the next wave by the host's CPU: up by half while the host is
+  under 65 % busy, down by a tenth over 85 %, never under the start width
+  (`--start-width`) and never over the ceiling (`--max-width`); between
+  waves the error gate (`--wave-gate-error-count`,
+  `--wave-gate-error-percent`) can stop the job and `--wave-delay` can
+  pause it.
+
+Whichever the mode, the host's cap `dispatch.server-max-inflight` bounds
+the sessions in flight across every job and every operator on the host:
+a worker past the cap waits for a lease before it connects, so a wide job
+beside another shares the cap rather than exceeding it. The records name
+each device's mode, wave, width, and worker (`dispatch` in
+`commands.jsonl`), `metrics.json` the wave decisions with the CPU signal
+behind each, and the watch screen the job's devices in flight.
+`docs/SCALE.md` "The width" has the defaults by host, the ramp's rules,
+and 100 devices worked through both modes, executed.
+
 ## The watch screen
 
 `karvi watch` is a screen to keep open through a maintenance window. It
