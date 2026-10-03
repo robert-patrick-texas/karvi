@@ -13,29 +13,40 @@ import (
 
 // RenderReference emits deterministic TOML containing every fixed key and its
 // documented default. It is generated from the registry, not a second schema.
+// The rows are grouped by table: the top-level keys first, with no table
+// header (a key after one would belong to that table), then each table once,
+// in the order of its first row, with all its rows in registry order. TOML
+// refuses a table opened twice, so a table whose rows lie apart in the
+// registry is still opened once.
 func RenderReference() string {
 	var b strings.Builder
-	lastTable := ""
+	var tables []string
+	rows := map[string][]configschema.Entry{}
 	for _, e := range configschema.Entries() {
-		parts := strings.Split(e.Path, ".")
 		table := ""
-		key := parts[len(parts)-1]
-		if len(parts) > 1 {
-			table = strings.Join(parts[:len(parts)-1], ".")
+		if i := strings.LastIndexByte(e.Path, '.'); i >= 0 {
+			table = e.Path[:i]
 		}
-		if table != lastTable {
-			if b.Len() > 0 {
-				b.WriteByte('\n')
+		if _, ok := rows[table]; !ok {
+			tables = append(tables, table)
+		}
+		rows[table] = append(rows[table], e)
+	}
+	sort.SliceStable(tables, func(i, j int) bool { return tables[i] == "" && tables[j] != "" })
+	for _, table := range tables {
+		if b.Len() > 0 {
+			b.WriteByte('\n')
+		}
+		if table != "" {
+			fmt.Fprintf(&b, "[%s]\n", table)
+		}
+		for _, e := range rows[table] {
+			key := e.Path[strings.LastIndexByte(e.Path, '.')+1:]
+			for _, line := range wrapComment(e.Documentation, 92) {
+				fmt.Fprintf(&b, "# %s\n", line)
 			}
-			if table != "" {
-				fmt.Fprintf(&b, "[%s]\n", table)
-			}
-			lastTable = table
+			fmt.Fprintf(&b, "%s = %s\n", quoteKey(key), e.DefaultLiteral)
 		}
-		for _, line := range wrapComment(e.Documentation, 92) {
-			fmt.Fprintf(&b, "# %s\n", line)
-		}
-		fmt.Fprintf(&b, "%s = %s\n", quoteKey(key), e.DefaultLiteral)
 	}
 	b.WriteString("\n# Dynamic sections such as [[inventory-source]], [credential-backend.NAME],\n# [credential-policy.NAME], [[credential-policy-map]], [session-init.NAME],\n# [ssh-algorithms-profile.NAME], [[ssh-algorithms-map]], and [platform.NAME]\n# are shown in configs/example.toml.\n")
 	b.WriteString("#\n# A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,\n# cisco_nxos, juniper_junos, arista_eos, linux) overrides that platform's fields;\n# a table for any other name is an alias and needs driver = \"<built-in>\", inheriting\n# the whole built-in definition. Names compare without regard to case and are\n# recorded lowercase; a name holds no glob character and does not begin with \"!\".\n# Fields: driver, default-transport, ssh-port, telnet-port, privileged-level (a\n# level of the base), requires-enable, session-cap, control-master, paging-commands,\n# crun-commands (the collection list a crun sends when its command line names no\n# command), crun-filters (regular expressions whose matching output lines are\n# dropped from the collection file; an empty array turns the built-in list off).\n# A device whose platform is not set runs as platform-resolution.default, else\n# generic, with the notice platform_not_set, and is matched by no --select-platform\n# selector or map platform rule; an inventory row naming an unknown platform\n# refuses the activity (platform_unknown) unless platform-resolution.on-unknown =\n# \"warn\", when it runs as unknown-fallback with the notice platform_unknown_fallback\n# and is matched by neither.\n")

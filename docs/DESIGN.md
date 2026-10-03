@@ -1385,6 +1385,22 @@ compared byte for byte by the verifiers. Layers apply in order: files, the
 auto-discovered global configuration. *Why:* the registry is the operator's
 view of what karvi reads, and a row nothing reads misleads.
 
+**The reference configuration is rendered table by table, and it loads.**
+`configs/reference.toml` and `karvi config generate` give the top-level keys
+first, with no table, then each table once, in the order of its first row in
+the registry, with all its rows in registry order, each key under its
+documentation. A test loads the rendered reference and holds that every
+registry key is read from it, from its own line, at its default. The registry's
+rows are written by hand in `configschema/registry_data.go`, and its header
+says so. *Why:* the renderer opened a table whenever the table changed in row
+order, so `[dispatch]`, `[output]`, and `[display.run]`, whose rows lie apart,
+were opened more than once and TOML refused the file, and the top-level keys
+after `[config]` were read as `config.basedir` and the rest; the reference had
+not loaded since the public tree began, and `generated-clean` compared it with
+the generator alone. *Not taken:* reordering the registry (the next row splits
+a table again); dotted keys without tables; a suite running `config validate`
+on the generated file.
+
 **Every documented range is enforced by one loop.** A row carries `Min`,
 `Max`, and `ZeroDisables`; one loop applies them to every bounded row after
 the type check, refusing as `config_value_out_of_range` in the row's words.

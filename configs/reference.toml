@@ -1,17 +1,3 @@
-[config]
-# Must equal supported major 6.
-schema-version = 6
-# Effective global value read before locating user config.
-allow-user-layer = true
-# false disables further directives; equivalent include depth 0.
-includes = true
-# 0–32 directive-chain depth.
-include-depth = 3
-# 0–32 included-directory nesting.
-dir-recursion-depth = 3
-# Reject unknown KARVI__* variables.
-reject-unknown-env = true
-
 # auto uses the private-state order; an explicit path is the exact effective private root,
 # absolute or operator-home-relative, a real directory the operator can write to whatever its
 # owner and mode; it cannot change its own config discovery. The socket and state subtrees
@@ -57,6 +43,20 @@ spooldir = "auto"
 freecheck = "auto"
 # auto or loadable IANA zone.
 timezone = "auto"
+
+[config]
+# Must equal supported major 6.
+schema-version = 6
+# Effective global value read before locating user config.
+allow-user-layer = true
+# false disables further directives; equivalent include depth 0.
+includes = true
+# 0–32 directive-chain depth.
+include-depth = 3
+# 0–32 included-directory nesting.
+dir-recursion-depth = 3
+# Reject unknown KARVI__* variables.
+reject-unknown-env = true
 
 [name]
 # ipv4 or ipv6.
@@ -215,33 +215,6 @@ admission-poll-min = "50ms"
 admission-poll-max = "250ms"
 # default, sorted (alias name), shuffle, random; inventory and random-seeded are removed.
 order = "default"
-
-[output]
-# 0700, 0750, or 0770 for folders karvi creates in the job and transcript trees.
-directory-mode = "0750"
-
-[targets]
-# warn or error for a target file or folder that yields no targets.
-empty-source = "error"
-# 1–16; --tfr PATH is level 0.
-recursion-max-depth = 3
-
-[platform-resolution]
-# The platform of a device whose platform is not set (a blank inventory row without a source
-# default, or a direct target without --platform): a known platform, cisco_iosxe as shipped
-# since registry 17, generic or empty for generic, or the platform a site's network is
-# predominantly.
-default = "cisco_iosxe"
-# fail refuses an activity whose target set holds an inventory row naming an unknown platform
-# (platform_unknown); warn runs the device as platform-resolution.unknown-fallback with a
-# warning and the notice platform_unknown_fallback. Configuration values fail validation
-# whatever this says.
-on-unknown = "fail"
-# The known platform an unknown inventory row runs as under on-unknown = "warn"; not read
-# under fail.
-unknown-fallback = "generic"
-
-[dispatch]
 # Key for the shuffle rank; empty allowed; recorded with the order.
 shuffle-key = ""
 # 0 auto; else 1–ceiling.
@@ -275,6 +248,67 @@ wave-gate-error-percent = 0
 # 0–1h.
 wave-gate-timed-delay = "0s"
 
+[output]
+# 0700, 0750, or 0770 for folders karvi creates in the job and transcript trees.
+directory-mode = "0750"
+# auto: the shared jobs tree under sharedroot when one exists, else <basedir>/jobs; an
+# explicit path is that writable real directory.
+root = "auto"
+# Whether the activity keeps a job folder and its files, on every path (command, run
+# --no-daemon, and a run through the daemon); false, or --nof, writes nothing and displays the
+# records from memory or the socket.
+persist-command = true
+# The device name in a file name (output.NAME.txt, crun/NAME) is the canonical name's first
+# label, lowercased; false writes the whole name, lowercased. An address is never cropped: its
+# dots and colons are hyphens. Carried in the plan, so a job's files are named as its
+# invocation said on every path.
+crop-to-dot = true
+# 1 KiB–1 GiB; the bound on one command's output.
+max-command-bytes = 67108864
+# 0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory
+# up to it and spools to a file under spooldir from the byte that crosses it. 0 spools every
+# response from its first byte; a value at or above output.max-command-bytes means no command
+# spools, since the limit ends a response first, and no rule refuses the pair. The daemon's
+# memory for output is then in flight × (this threshold + a few windows of at most 4 KiB),
+# whatever the responses' sizes.
+spool-threshold-bytes = 1048576
+# ≥ max command; ≤1 TiB. Counts what is written of the devices' output: the commands.jsonl
+# lines and the text blocks of every output.TARGET.txt.
+max-job-bytes = 17179869184
+# 0–1 GiB; capacity estimate.
+expected-bytes-per-device = 262144
+# 1.0–10.0.
+reserve-multiplier = 1.25
+# 0–1 TiB; 2 GiB by default. The floor every volume an activity writes must keep free after
+# the activity's estimate: under freecheck = "auto" it is added once to each volume's sum,
+# under always it is the whole ask.
+min-free-bytes-after-job = 2147483648
+# False requires global lock and durability warning.
+fsync-command-records = true
+# auto, strip, preserve.
+ansi = "auto"
+
+[targets]
+# warn or error for a target file or folder that yields no targets.
+empty-source = "error"
+# 1–16; --tfr PATH is level 0.
+recursion-max-depth = 3
+
+[platform-resolution]
+# The platform of a device whose platform is not set (a blank inventory row without a source
+# default, or a direct target without --platform): a known platform, cisco_iosxe as shipped
+# since registry 17, generic or empty for generic, or the platform a site's network is
+# predominantly.
+default = "cisco_iosxe"
+# fail refuses an activity whose target set holds an inventory row naming an unknown platform
+# (platform_unknown); warn runs the device as platform-resolution.unknown-fallback with a
+# warning and the notice platform_unknown_fallback. Configuration values fail validation
+# whatever this says.
+on-unknown = "fail"
+# The known platform an unknown inventory row runs as under on-unknown = "warn"; not read
+# under fail.
+unknown-fallback = "generic"
+
 [sessions]
 # The capacity ledger every operator on the host shares, made by sudo karvi setup shared at
 # 2770 in the operators' group; its files take the root's group modes. A missing directory is
@@ -302,15 +336,6 @@ max-ipc-frame-bytes = 8388608
 # 10–10,000; terminal jobs leave memory after finalization.
 max-accepted-jobs = 32
 
-[output]
-# auto: the shared jobs tree under sharedroot when one exists, else <basedir>/jobs; an
-# explicit path is that writable real directory.
-root = "auto"
-# Whether the activity keeps a job folder and its files, on every path (command, run
-# --no-daemon, and a run through the daemon); false, or --nof, writes nothing and displays the
-# records from memory or the socket.
-persist-command = true
-
 [output.files]
 # Write every device's output.TARGET.txt, the session as text; false does not create them.
 # Written from the record in memory, so it does not need commands.jsonl.
@@ -336,13 +361,6 @@ metrics-json = true
 # everything in it, and its scoreboard file are older than the retention age. With all eight
 # keys false no job folder is created.
 summary-json = true
-
-[output]
-# The device name in a file name (output.NAME.txt, crun/NAME) is the canonical name's first
-# label, lowercased; false writes the whole name, lowercased. An address is never cropped: its
-# dots and colons are hyphens. Carried in the plan, so a job's files are named as its
-# invocation said on every path.
-crop-to-dot = true
 
 [crun]
 # The collection directory, one file per device named by the device, of crun and of run or
@@ -371,32 +389,6 @@ after = ""
 # killed five seconds later if still there, and the warning crun_after_failed says it ran past
 # the timeout.
 after-timeout = "5m"
-
-[output]
-# 1 KiB–1 GiB; the bound on one command's output.
-max-command-bytes = 67108864
-# 0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory
-# up to it and spools to a file under spooldir from the byte that crosses it. 0 spools every
-# response from its first byte; a value at or above output.max-command-bytes means no command
-# spools, since the limit ends a response first, and no rule refuses the pair. The daemon's
-# memory for output is then in flight × (this threshold + a few windows of at most 4 KiB),
-# whatever the responses' sizes.
-spool-threshold-bytes = 1048576
-# ≥ max command; ≤1 TiB. Counts what is written of the devices' output: the commands.jsonl
-# lines and the text blocks of every output.TARGET.txt.
-max-job-bytes = 17179869184
-# 0–1 GiB; capacity estimate.
-expected-bytes-per-device = 262144
-# 1.0–10.0.
-reserve-multiplier = 1.25
-# 0–1 TiB; 2 GiB by default. The floor every volume an activity writes must keep free after
-# the activity's estimate: under freecheck = "auto" it is added once to each volume's sum,
-# under always it is the whole ask.
-min-free-bytes-after-job = 2147483648
-# False requires global lock and durability warning.
-fsync-command-records = true
-# auto, strip, preserve.
-ansi = "auto"
 
 [display]
 # Shared terminal theme: auto, dark, light, or nocolor.
@@ -491,16 +483,6 @@ header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-b
 # duration, and job folder); empty disables it. Under --format jsonl the summary document is
 # the stream's last line instead, and nothing ends the run on standard error.
 footer = "! exit=<exit-code> elapsed=<elapsed> artifacts=<artifacts>"
-
-[display.collection]
-# One-line template after the footer of a job with a collection (crun, or run or command with
-# --cd), on standard output under --format text on every path: <collection> the absolute
-# collection directory, <replaced> and <kept> the devices whose files were replaced and kept.
-# Under json and jsonl nothing is printed (the summary carries the collection block). Empty
-# disables it.
-footer = "! collection=<collection> replaced=<replaced> kept=<kept>"
-
-[display.run]
 # Separator emitted between run command records. Default is one blank line. Newlines and
 # <repeat:TEXT:COUNT> are supported.
 border = "\n"
@@ -512,6 +494,14 @@ last-border = false
 # Show the effective device prompt and sent command before each attempted run command result
 # in human text output, including device-reported errors; JSONL remains undecorated.
 echo = false
+
+[display.collection]
+# One-line template after the footer of a job with a collection (crun, or run or command with
+# --cd), on standard output under --format text on every path: <collection> the absolute
+# collection directory, <replaced> and <kept> the devices whose files were replaced and kept.
+# Under json and jsonl nothing is printed (the summary carries the collection block). Empty
+# disables it.
+footer = "! collection=<collection> replaced=<replaced> kept=<kept>"
 
 [display.json]
 # 1–8. Spaces per indentation level for --format json. Compact --format jsonl remains one

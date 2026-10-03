@@ -214,6 +214,16 @@
   at 0 by CPU count against the host's cap, the halts, the output, and the
   rehearsal; `karvi-crun.1` the collection; `karvi-login.1` the
   transcripts and the host keys), and the guides it restates say so.
+- **The reference configuration loads.** `karvi config generate` and
+  `configs/reference.toml` opened `[dispatch]` twice, `[output]` four
+  times, and `[display.run]` twice, so `karvi config validate` refused the
+  file a site starts from (`table redefined: dispatch`), and the top-level
+  keys (`basedir`, `sharedroot`, `tempdir`, `spooldir`, `freecheck`,
+  `timezone`) stood under `[config]`, where an edit was refused as
+  `config.basedir`. The reference is now written table by table, the
+  top-level keys first; no key's value changes, and a test holds that every
+  key loads from its own line at its default. The 0.24.0 and 0.25.0
+  references have the same fault.
 
 ## 0.25.0 - 2026-09-30
 

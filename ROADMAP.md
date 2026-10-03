@@ -7,19 +7,14 @@ order the operator has set. A settled decision is an entry in
 
 ## Next
 
-1. **The reference configuration loads.** `karvi config generate` writes,
-   and `configs/reference.toml` holds, a `[dispatch]` table twice, where the
-   registry's dispatch rows are interrupted by other rows, so `config
-   validate` refuses the file a site starts from (`config_toml_syntax …
-   table redefined: dispatch`); the released 0.25.0 generates the same.
-2. **The documentation as HTML.** A script that converts `docs/*.md` to
+1. **The documentation as HTML.** A script that converts `docs/*.md` to
    `.html` with an index page and a left column of links, links between
    documents rewritten, the output a build product and never committed. The
    converter is a vendoring decision (a Go Markdown library under `tools/`
    keeps the build self-contained); the man pages are roff and need none.
-3. **The package's contents.** The debian rules install the three executables
+2. **The package's contents.** The debian rules install the three executables
    and the manual pages alone. The documents go under `/usr/share/doc/karvi`
-   (the Markdown, or the HTML of item 2, and the `examples/` files); the
+   (the Markdown, or the HTML of item 1, and the `examples/` files); the
    supplemental material (the units and timers, the drop-in and `crun` hook
    examples, the cron scripts, tmpfiles, sysctl, the completion file, the
    reference configuration, the schema) goes to a place of its own under
@@ -27,9 +22,9 @@ order the operator has set. A settled decision is an entry in
    into that style of operation. The units' `Documentation=` lines and the
    cron scripts' comments then name what the package installs; the control
    file's maintainer and homepage are placeholders until then.
-4. **Build numbers in the version.** A build identity beyond the version and
+3. **Build numbers in the version.** A build identity beyond the version and
    the commit, for telling two builds of one tree apart.
-5. **The packaged user unit's sandbox where it does not apply.** On an Ubuntu
+4. **The packaged user unit's sandbox where it does not apply.** On an Ubuntu
    24.04 host (systemd 255, `kernel.apparmor_restrict_unprivileged_userns=1`)
    a user unit given `PrivateTmp=yes`, `ProtectSystem=strict`, and
    `ProtectHome=read-only` ran in the client's own mount namespace and wrote

@@ -1985,3 +1985,82 @@ the meanings of the exits written by hand; the precedence generated.
 their own issues: `NO_COLOR` read by the watch screen alone; an override's
 error naming `command-line` and not the option; a login to the fake ended
 with `exit` reporting 110.
+
+## 15. The reference configuration that does not load (2026-10-03)
+
+The roadmap's first item, found while `karvi-config.1` was written
+(chapter 14, part 3): `karvi config generate` writes a file `karvi config
+validate` refuses.
+
+**What it gains.** A site's documented starting point is `karvi config
+generate`, the full reference with every key, its default, and its
+comment; it was refused at its first load. It waits on nothing outside the
+tree.
+
+**The review.** Against the tree at `3dca45c`, a lab build:
+
+```text
+$ karvi config validate configs/reference.toml        (config generate's output, the same bytes)
+config_toml_syntax: … TOML line 244 column 1: table redefined: dispatch
+the committed reference at 010a963 (the public root), karvi-v0.24.0, karvi-v0.25.0: the same refusal
+config generate --minimal, configs/example.toml: load, warnings 0
+```
+
+`RenderReference` opened a `[table]` whenever the table changed in the
+registry's row order. Two faults follow: the tables whose rows lie apart
+are opened more than once (`[dispatch]` twice, `[output]` four times,
+`[display.run]` twice), which TOML refuses; and the six top-level keys
+(`basedir`, `sharedroot`, `tempdir`, `spooldir`, `freecheck`, `timezone`)
+come after `[config]`, silently, until the first fault is gone:
+
+```text
+[config] … basedir = "/srv/karvi"   →  config_unknown_key: … config.basedir
+```
+
+No test loaded the reference; `generated-clean` compares it with the
+generator alone. `configschema/registry_data.go`'s first line said "Code
+generated from the fixed-key table by tools/configgen; DO NOT EDIT", where
+its rows are written by hand (`7f17885` and before).
+
+A renderer grouping the rows by table, run through `go test -overlay` (the
+tree untouched):
+
+```text
+config validate grouped.toml                          warnings: 0   (37 tables, none twice; [config] at line 47)
+config show --format json, loaded vs defaults alone   177 keys, equal
+config show --explain basedir                         source: grouped.toml:6
+                      dispatch.shuffle-key            source: grouped.toml:219
+                      display.run.border              source: grouped.toml:488
+```
+
+**The rule settled.** The operator agreed: the reference is rendered table
+by table, the top-level keys first and each table once, in the order of
+its first row, with all its rows in registry order; a test in `configload`
+loads it and holds every registry key read from its own line at its
+default; `configs/reference.toml` regenerated (keys move, no value
+changes); the registry's header says the rows are written by hand. Not
+taken: reordering the registry (the next row added splits a table again);
+dotted keys with no tables; a suite running `config validate` on the
+generated file. Built as one section.
+
+**Executed.** The renderer groups the rows (the overlay's code, now in
+`internal/configload/render.go`); `configs/reference.toml` regenerated is
+the overlay's output byte for byte, its lines the former ones sorted, less
+five table headers and their five blank lines (42 headers to 37); the
+schema is unchanged. The new test, run through an overlay against the
+committed renderer, fails as the review did (`the reference does not
+load: … TOML line 244`). On the lab build:
+
+```text
+$ karvi config generate site.toml; karvi config validate site.toml
+warnings: 0
+$ sed -i 's|^basedir = "auto"|basedir = "/srv/karvi"|' site.toml
+$ karvi --config site.toml config show --explain basedir
+value:      "/srv/karvi"
+source:     site.toml:6
+```
+
+`go test ./...`, vet, gofmt, `make generated-clean`, and the k03 suite
+(the one suite that runs `config generate`), pass. The roadmap's first
+item leaves Next.
+

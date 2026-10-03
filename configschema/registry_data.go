@@ -1,4 +1,7 @@
-// Code generated from the fixed-key table by tools/configgen; DO NOT EDIT.
+// The registry's rows, one per fixed key, written by hand: tools/configgen
+// renders schema/config-schema.json and configs/reference.toml from them, and
+// Entries serves them to the loader.
+
 package configschema
 
 var fixedEntries = []Entry{
