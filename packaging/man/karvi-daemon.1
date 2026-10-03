@@ -38,5 +38,44 @@ and explicit stop/restart use the stable same\-UID lifecycle envelope for
 released IPC schemas, allowing an operator to recover after an upgrade without
 reinstalling the older karvi executable.
 .\" END GENERATED DESCRIPTION
+.SH FILES
+.TP
+.I BASEDIR/socket/daemon.sock
+The daemon's socket, the operator's alone
+.RB ( daemon.socket ).
+.TP
+.IR BASEDIR/state/daemon.json ", " BASEDIR/logs/daemon.log
+Its state and its log.
+.PP
+A daemon a client launched passes on a filtered environment:
+.BR HOME ,
+.BR USER ,
+.BR LOGNAME ,
+.BR PATH ,
+the names in
+.BR security.child\-environment\-allowlist ,
+every
+.B KARVI__
+variable,
+.BR KARVI_ASKPASS_PATH ,
+.BR TZ ,
+and
+.BR TMPDIR ,
+so
+.B NETPASS
+never reaches it; the client resolves credentials and hands them over per
+job.
+After
+.B daemon.shutdown\-idle\-timer
+(1h) with no job and no request but a status, the daemon stops itself,
+exit 0, with a
+.B stopping: idle
+line in its log, and the next run launches another; 0 never stops.
+A service unit runs it with the timer at 0, since
+.B Restart=on\-failure
+does not restart a clean exit.
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-job (1),
+.BR karvi\-watch (1),
+.BR systemd.exec (5)

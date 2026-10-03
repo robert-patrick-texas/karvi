@@ -55,5 +55,39 @@ reported and left as it is (setup_completion_mismatch), and a host without
 the bash\-completion package is told (setup_completion_dir_missing). \-\-help
 shows this text.
 .\" END GENERATED DESCRIPTION
+.SH FILES
+.TP
+.I /opt/karvi
+Made 0755 by
+.BR "setup shared" ,
+holding
+.I shared
+and, under it,
+.IR jobs ,
+.IR crun ,
+and
+.IR transcripts ,
+the four at 2770 (2775 with
+.BR "\-\-mode 2775" )
+in the operators' group, and
+.I users
+(1770), where each operator's private root is made.
+.TP
+.I /dev/shm/karvi
+The scratch root (3770), with
+.I scoreboards
+(3770) and
+.I capacity
+(2770).
+.TP
+.I /etc/tmpfiles.d/karvi.conf
+The rule that makes the scratch root again at every boot.
+.TP
+.I /etc/bash_completion.d/karvi
+The completion file
+.B setup tab
+writes, read by the bash\-completion package at every login.
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-prune (8),
+.BR tmpfiles.d (5)

@@ -27,5 +27,25 @@ colors prints every display.colors role in its colour, the configured theme
 first and then the other: the key, the colour, what set it, and the escape.
 Specified, not yet available: config validate \-\-internal.
 .\" END GENERATED DESCRIPTION
+.SH FILES
+.B config generate
+with no file, or
+.BR \- ,
+writes the full reference configuration to standard output, every key with
+its default and its comment;
+.B \-\-minimal
+a short starting file.
+Given a file it writes it at 0600 and refuses one that exists unless
+.BR \-\-force .
+.B config validate
+checks a file, a directory of
+.I .toml
+files, or, with neither, the configuration karvi would load;
+.B config show
+prints the effective configuration, a key's sources and lock with
+.BR \-\-explain .
+The files karvi reads and their order are in
+.BR karvi (1)
+CONFIGURATION.
 .SH SEE ALSO
 .BR karvi (1)

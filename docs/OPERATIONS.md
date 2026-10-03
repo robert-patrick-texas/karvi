@@ -208,6 +208,9 @@ an activity sets `watch.directory` under its own work directory, as it
 sets `basedir`, so the shared directory holds only real jobs; the files a
 host already holds are yours to remove (`karvi-prune`).
 
+`karvi-watch(1)` (`man karvi watch`), FILES, restates the scoreboard
+directory and its fallback for the terminal; a change to one changes both.
+
 ## The ICMP gate
 
 `karvi run --ping ...`, `karvi command --ping ...`, and `karvi login --ping
@@ -313,6 +316,10 @@ ends a daemon at logout: a host whose logind has
 `KillUserProcesses=yes` ends every process of the session, a running job
 included, with or without the timer; `loginctl enable-linger` or the
 unit keeps a daemon through logout there.
+
+`karvi-daemon(1)` (`man karvi daemon`), FILES, restates the daemon's
+places, its filtered environment, and the idle exit for the terminal; a
+change to one changes both.
 
 ## The credential prompts
 
@@ -804,6 +811,10 @@ word matches; the helper answers from its own flag set through its own
 hidden word, `karvi-prune __complete`, which resolves no root and writes
 nothing. A host that holds the file from before the helper was added runs
 `sudo karvi setup tab` once more, which reports `updated`.
+
+`karvi-setup(1)` (`man karvi setup`), FILES, restates what `setup shared`
+and `setup tab` make, with the modes, for the terminal; a change to one
+changes both.
 
 ## The collection run
 

@@ -82,3 +82,7 @@ so a session killed before then keeps those two lines.
 
 Cleanup: `karvi-prune` recognizes an ended session by the end record in its
 metadata file and removes the transcript and metadata together.
+
+`karvi-login(1)` (`man karvi login`), TRANSCRIPTS, restates the
+destination, the names, the two lines, and what the transcript holds for
+the terminal; a change to one changes both.

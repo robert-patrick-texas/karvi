@@ -57,5 +57,19 @@ the word: karvi \-\-quiet \-\-config FILE stream.
 \fB\-\-help\fR, \fB\-h\fR
 Show this help
 .\" END GENERATED DESCRIPTION
+.SH EXAMPLES
+.TP
+.B printf "\-\-site nyc\enshow clock\en\-\-go\en" | karvi stream
+One job, the site's devices and one command.
+.TP
+.B karvi \-
+Lines typed at the terminal: targets and options stay from one job to
+the next, and
+.B \-\-go
+sends the commands typed since the last one.
+.TP
+.B karvi \-\-quiet stream <change.txt
+A file of runs, global options before the word.
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-run (1)

@@ -218,6 +218,10 @@ This control is orthogonal to `dispatch.halt-on-error-count`,
 `dispatch.halt-on-error-percent`, and wave-local gates. It is checked as a
 specific error-code halt before generic count/percentage evaluation.
 
+`karvi-login(1)` (`man karvi login`), HOST KEYS, restates the policies,
+the trust store, the identity, and the controlled enrollment for the
+terminal; a change to one changes both.
+
 ## Breaking changes in v0.10.0
 
 Configuration schema 6 renames the default policy from `auto` to `accept-new`.

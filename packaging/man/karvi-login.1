@@ -138,5 +138,76 @@ Show this help
 .PP
 Specified, not yet available:  \-\-ssh\-option KEY=VALUE
 .\" END GENERATED DESCRIPTION
+.SH TRANSCRIPTS
+.B \-\-record
+writes the session below
+.B transcript.root
+(the shared transcripts tree where it exists, else
+.IR BASEDIR/transcripts ),
+or below
+.I PATH
+for
+.BI \-\-record= PATH ,
+in a folder of the start day,
+.IR YYMMDD :
+the transcript
+.I DEVICE\-HHMMSS.log
+and its metadata
+.I DEVICE\-HHMMSS.meta.jsonl
+side by side, folders at
+.B output.directory\-mode
+and files at 0640.
+The terminal names the transcript before the session and again as its last
+line,
+.B ! transcript=PATH
+.RB ( display.record.header ,
+.BR display.record.footer ).
+The transcript holds what the device returns, its echo and prompts
+included; the operator's keystrokes are not recorded, so a password typed
+at a prompt that does not echo is not written.
+A locked
+.B transcript.root
+refuses
+.BI \-\-record= PATH .
+.SH HOST KEYS
+.BR login ,
+.BR command ,
+and
+.B run
+share one policy,
+.BR ssh.host\-key\-policy ,
+and one trust store,
+.B ssh.known\-hosts\-file
+.RI ( \(ti/.local/share/karvi/known_hosts
+at
+.BR auto ,
+mode 0600, its directory 0700).
+A device's key is kept under its name, or
+.I [NAME]:PORT
+on a port other than 22, never under its address.
+.B accept\-new
+enrols an unknown key and refuses a changed one;
+.B secure
+refuses a key not enrolled
+.RB ( host_key_not_enrolled );
+a changed key is
+.B host_key_changed
+under both, exit 109.
+.B insecure
+accepts every key with a warning.
+To enrol by hand, scan the device and write its name in the host field,
+checking the fingerprint through another channel before appending the line:
+.PP
+.nf
+.RS
+ssh\-keyscan \-p 22 192.0.2.10 | sed "s/^[^ ]* /router1 /" >key
+ssh\-keygen \-lf key
+cat key >>\(ti/.local/share/karvi/known_hosts
+.RE
+.fi
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-command (1),
+.BR karvi\-run (1),
+.BR ssh (1),
+.BR script (1)

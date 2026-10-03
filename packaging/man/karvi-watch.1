@@ -38,5 +38,18 @@ snapshot and refuses both; the TUI needs a terminal on stdout. Human
 timestamps, themes, and role colors are configured under [display].
 Specified, not yet available: \-\-all\-retained.
 .\" END GENERATED DESCRIPTION
+.SH FILES
+.TP
+.I /dev/shm/karvi/scoreboards
+The scoreboard directory
+.RB ( watch.directory ):
+every operator's jobs write a file there, and the screen reads them all.
+On a host without the scratch root
+.RB ( "sudo karvi setup shared" )
+the operator's private
+.I BASEDIR/state/scoreboards
+is used, and the screen shows that operator's jobs alone.
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-job (1),
+.BR karvi\-prune (8)

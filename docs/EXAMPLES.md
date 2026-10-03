@@ -1910,6 +1910,54 @@ detach, and follow", "Dispatch", "The job's output files", and "The
 collection run", SCALE "Related", and COLLECTION's related documents say
 that the pages restate them.
 
+Part 3: the remaining eight pages. `karvi-login.1` TRANSCRIPTS and HOST
+KEYS; `karvi-stream.1` and `karvi-job.1` EXAMPLES; `karvi-daemon.1`,
+`karvi-config.1`, `karvi-setup.1`, and `karvi-watch.1` FILES;
+`karvi-version.1` nothing more. Executed on the lab build:
+
+```text
+login --record=DIR r1, driven under script     ! transcript=DIR/261003/r1-161737.log before and after;
+                                               the .log and .meta.jsonl at 0640, folders 0750;
+                                               no "Script started" line left
+the trust store after accept-new               [r1]:38933 ssh-ed25519 …, mode 0600
+ssh-keyscan -p PORT 127.0.0.1 | sed "s/^[^ ]* /[r1]:PORT /"   the line accept-new wrote
+command r1 with another key for [r1]:PORT      host_key_changed, exit 109
+--set ssh.host-key-policy=secure, command --address 127.0.0.1 newdev
+                                               host_key_not_enrolled, exit 109; nothing enrolled
+stream: --target r1, show clock, --go          one job; --quiet stream <file: the output alone
+job follow JOB --format jsonl | tail -n 1      the summary document
+job cancel JOB --reason '…' --follow           exit 113; "reason": "wrong change window"
+config generate | config generate --minimal    199 key lines | 20 lines; to a file 0600, again
+                                               config_generate_destination_unavailable, --force writes
+daemon start --set daemon.shutdown-idle-timer=1m   msg="stopping: idle" idle=1m58s
+                                               key=daemon.shutdown-idle-timer; the socket removed
+sudo unshare --mount (tmpfs over /opt, /dev/shm, /etc/tmpfiles.d,
+/etc/bash_completion.d): setup shared --group netops; setup tab
+                                               /opt/karvi 755, shared and its three trees 2770,
+                                               users 1770, /dev/shm/karvi 3770, scoreboards 3770,
+                                               capacity 2770, the two files 644
+--set watch.directory=/dev/shm/karvi/scoreboards, no scratch root
+                                               the scoreboard in BASEDIR/state/scoreboards;
+                                               watch --format table shows it; nothing on /dev/shm
+```
+
+The first draft of `karvi-setup.1` gave the mode to the three trees alone
+and not to `shared` or the scratch root; both are stated now. LOGIN-
+TRANSCRIPTS, SSH-HOST-KEY-POLICY, and OPERATIONS "The daemon's idle exit",
+"The watch screen", and "Tab completion" say that the pages restate them.
+
+*Found, for later.* (1) A login to the fake ended with `exit` exits 110
+(`ExitConnectionFailure`): the fake closes the channel without an exit
+status, OpenSSH reports a closed connection, and the login's classifier
+takes it as a connection failure; whether an IOS XE device does the same is
+a question for the device-qualification track, and the page states no exit
+for a login. (2) The full reference configuration does not load: `config
+validate` on `config generate`'s output, and on `configs/reference.toml`,
+is `config_toml_syntax … table redefined: dispatch`, the renderer starting
+`[dispatch]` again where the registry's dispatch rows are interrupted
+(`platform-resolution` among them); the released v0.25.0 executable
+generates the same.
+
 **The sections.** H, the help changes (items 3 and 4), checked by the
 help outputs captured before and after; K, the Dispatch options as their
 keys' overrides (item 6), with item 7's sentence in the top help; E, the

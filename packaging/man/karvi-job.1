@@ -33,5 +33,17 @@ at once and the job's unfinished work is recorded cancelled (exit 113).
 and exits with the job's own exit. A job that already ended is reported with
 its outcome; an unknown job ID is job_unknown. \-\-help shows this text.
 .\" END GENERATED DESCRIPTION
+.SH EXAMPLES
+.TP
+.B karvi job follow 261003\-143005\-00
+Render a detached job from its beginning; it exits with the job's exit.
+.TP
+.B karvi job follow 261003\-143005\-00 \-\-format jsonl
+The job's records and its summary, one JSON document per line.
+.TP
+.B karvi job cancel 261003\-143005\-00 \-\-reason "wrong change window" \-\-follow
+Stop it, record why, and wait for its end (exit 113).
 .SH SEE ALSO
-.BR karvi (1)
+.BR karvi (1),
+.BR karvi\-run (1),
+.BR karvi\-watch (1)
