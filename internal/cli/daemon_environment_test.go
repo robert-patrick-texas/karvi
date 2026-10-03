@@ -23,10 +23,13 @@ func TestMain(m *testing.M) {
 	// shared roots, and every activity a test starts writes its scoreboard
 	// under a directory of this run; the daemon this binary serves
 	// inherits the variable and the
-	// same guard, since it runs this TestMain too.
+	// same guard, since it runs this TestMain too, and removes the scratch
+	// root its guard made when it ends.
 	done := osutiltest.Isolate()
 	if n := len(os.Args); n >= 3 && os.Args[n-2] == "daemon" && os.Args[n-1] == "serve" {
-		os.Exit(Main(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+		code := Main(os.Args[1:], os.Stdin, os.Stdout, os.Stderr)
+		done()
+		os.Exit(code)
 	}
 	code := m.Run()
 	done()

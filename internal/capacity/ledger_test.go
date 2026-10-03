@@ -214,3 +214,23 @@ func TestOwnPrivateDirectoryWidened(t *testing.T) {
 		t.Fatalf("devices is %v, want 2770", fi.Mode())
 	}
 }
+
+// TestAbsentSharedRootFallsBackQuietly: a shared root whose parent is absent
+// (a host without the scratch root) takes the private fallback without a
+// warning, and the scratch root is not made.
+func TestAbsentSharedRootFallsBackQuietly(t *testing.T) {
+	dir := t.TempDir()
+	shared := filepath.Join(dir, "shm", "capacity")
+	fallback := filepath.Join(dir, "private")
+	var warned []string
+	m, err := New(shared, fallback, "job", 4, func(s string) { warned = append(warned, s) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Root != fallback || len(warned) != 0 {
+		t.Fatalf("root %s, warnings %q", m.Root, warned)
+	}
+	if _, err := os.Stat(filepath.Dir(shared)); !os.IsNotExist(err) {
+		t.Fatalf("the scratch root was made: %v", err)
+	}
+}

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -33,8 +34,10 @@ type Writer struct {
 	mu sync.Mutex
 }
 
-// NewWriter resolves the scoreboard directory: the shared one, or the
-// private fallback with a warning when the shared one cannot be made. A
+// NewWriter resolves the scoreboard directory: the shared one
+// (osutil.MakeSharedDirectory), or the private fallback, without a word
+// when the shared one and its parent are absent (a host without the
+// scratch root) and with a warning when it exists but cannot be written. A
 // disabled writer (watch.enabled false) resolves nothing and writes nothing.
 func NewWriter(directory, fallback string, enabled bool, warn func(string)) (*Writer, error) {
 	w := &Writer{Enabled: enabled}
@@ -43,12 +46,18 @@ func NewWriter(directory, fallback string, enabled bool, warn func(string)) (*Wr
 	}
 	chosen := directory
 	mode := os.FileMode(0640)
-	if err := os.MkdirAll(chosen, 0770); err != nil {
+	err := osutil.MakeSharedDirectory(chosen, 0770)
+	if err == nil {
+		if fi, e := os.Stat(chosen); e == nil && fi.IsDir() {
+			err = syscall.Access(chosen, 0o3) // W_OK|X_OK
+		}
+	}
+	if err != nil {
 		if fallback == "" {
 			return nil, err
 		}
-		if warn != nil {
-			warn(fmt.Sprintf("shared scoreboard directory unavailable (%v); using private fallback %s", err, fallback))
+		if warn != nil && !errors.Is(err, osutil.ErrSharedDirectoryAbsent) {
+			warn(fmt.Sprintf("shared scoreboard directory unavailable (%s: %v); using private fallback %s", chosen, err, fallback))
 		}
 		chosen = fallback
 		mode = 0600

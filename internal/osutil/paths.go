@@ -521,10 +521,10 @@ func CreateExclusive(path string, flags int) (*os.File, error) {
 
 // ResolveScratch resolves tempdir, the scratch directory of the askpass
 // socket and the system transport's ssh configuration: "auto"
-// is the chain /dev/shm/karvi/<username>, <basedir>/tmp, /tmp/karvi-<uid>,
-// /var/tmp/karvi-<uid>, the first that firstWritableDirectory accepts; an
-// explicit path replaces the chain. The output spool never lives here
-// (ResolveSpoolDir).
+// is the chain <ScratchRoot>/<username> (when the scratch root exists),
+// <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the first that
+// firstWritableDirectory accepts; an explicit path replaces the chain. The
+// output spool never lives here (ResolveSpoolDir).
 func ResolveScratch(raw, base, home, username string, uid int) (string, error) {
 	if raw != "" && raw != "auto" {
 		p, err := expandHome(raw, home)
@@ -534,10 +534,33 @@ func ResolveScratch(raw, base, home, username string, uid int) (string, error) {
 		return firstWritableDirectory([]string{p}, "scratch_directory_unavailable", "no writable scratch directory")
 	}
 	own := fmt.Sprintf("karvi-%d", uid)
-	candidates := []string{filepath.Join("/dev/shm/karvi", username), filepath.Join(base, "tmp"), filepath.Join("/tmp", own), filepath.Join("/var/tmp", own)}
+	var candidates []string
+	if scratchRootPresent() {
+		candidates = append(candidates, filepath.Join(ScratchRoot, username))
+	}
+	candidates = append(candidates, filepath.Join(base, "tmp"), filepath.Join("/tmp", own), filepath.Join("/var/tmp", own))
 	return firstWritableDirectory(candidates, "scratch_directory_unavailable", "no writable scratch directory")
 }
 
+// ScratchRoot is the site's scratch root on tmpfs, made in the operators'
+// group by sudo karvi setup shared and, at every boot, by the tmpfiles rule
+// it writes. An operator's process never creates it, since the operator
+// who did would close it to every other: each makes only its own folder
+// inside it, and on a host without it the chains move on to their private
+// candidates. A test points the variable at a directory of its own
+// (osutiltest.Isolate).
+var ScratchRoot = "/dev/shm/karvi"
+
+// scratchRootPresent says whether ScratchRoot is a directory.
+func scratchRootPresent() bool {
+	fi, err := os.Stat(ScratchRoot)
+	return err == nil && fi.IsDir()
+}
+
+// ControlPathRoot resolves ssh.control-path-root: "auto" is
+// <ScratchRoot>/<username>/sockets when the scratch root exists and the
+// folder is the operator's private one, else <basedir>/socket/ssh; an
+// explicit path replaces both.
 func ControlPathRoot(raw, base, username string, uid int) (string, error) {
 	if raw != "" && raw != "auto" {
 		p, err := expandHome(raw, filepath.Dir(filepath.Dir(base)))
@@ -546,9 +569,10 @@ func ControlPathRoot(raw, base, username string, uid int) (string, error) {
 		}
 		return safePrivateDirectory(p, uid, true)
 	}
-	preferred := filepath.Join("/dev/shm/karvi", username, "sockets")
-	if p, err := safePrivateDirectory(preferred, uid, true); err == nil {
-		return p, nil
+	if scratchRootPresent() {
+		if p, err := safePrivateDirectory(filepath.Join(ScratchRoot, username, "sockets"), uid, true); err == nil {
+			return p, nil
+		}
 	}
 	return safePrivateDirectory(filepath.Join(base, "socket", "ssh"), uid, true)
 }

@@ -17,6 +17,20 @@
   lock it cannot use) is said once as the new `capacity_root_unusable` in
   the fallback warning, and the private root is taken, where every device
   had met the refusal.
+- **No operator creates the scratch root.** `/dev/shm/karvi` is the
+  site's: an operator's process makes only its own folder inside it and a
+  missing `scoreboards` or `capacity` folder in an existing parent (with a
+  setgid parent's group bits), and never a missing parent. The first
+  operator's run had created `/dev/shm/karvi` at 0700, closing it to every
+  other, whose scratch, control sockets, scoreboards, and capacity leases
+  then fell to private places, so `karvi watch` showed one operator's work
+  and the host-wide cap held per operator. On a host without the scratch
+  root the private places are taken without a warning; a shared folder
+  that exists but cannot be written is taken with one, naming it. The Go
+  tests no longer reach the host's `/dev/shm/karvi`: the test isolation
+  gives each test binary a scratch root and a capacity root of its own.
+  The documentation of `tempdir`, `ssh.control-path-root`,
+  `sessions.shared-capacity-root`, and `watch.directory` says so.
 
 ## 0.25.0 - 2026-09-30
 

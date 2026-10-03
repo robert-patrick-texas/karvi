@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -48,7 +49,7 @@ func New(root, fallback, jobID string, limit int, warn func(string)) (*Manager, 
 		if fallback == "" {
 			return nil, err
 		}
-		if warn != nil {
+		if warn != nil && !errors.Is(err, osutil.ErrSharedDirectoryAbsent) {
 			warn(fmt.Sprintf("shared capacity root unavailable (%v); using private fallback %s", err, fallback))
 		}
 		m.Root = fallback
@@ -59,8 +60,10 @@ func New(root, fallback, jobID string, limit int, warn func(string)) (*Manager, 
 	return m, nil
 }
 
-// ensureRoot prepares m.Root and takes its modes: the root and its devices
-// directory are made, and the root must be one this operator can lease in,
+// ensureRoot prepares m.Root and takes its modes: the root is made only in
+// a parent that exists (osutil.MakeSharedDirectory; a host without the
+// scratch root takes the private fallback without a word), its devices
+// directory is made, and the root must be one this operator can lease in,
 // so a shared root that is present but closed to the operator is said once
 // here and the fallback taken, not met by every device's admission. Under
 // the sticky bit a ledger another operator wrote could not be replaced.
@@ -68,7 +71,7 @@ func (m *Manager) ensureRoot() error {
 	if m.Root == "" {
 		return errorcodes.Errorf("capacity_root_blank", "capacity root is blank")
 	}
-	if err := os.MkdirAll(m.Root, 0700); err != nil {
+	if err := osutil.MakeSharedDirectory(m.Root, 0o700); err != nil {
 		return err
 	}
 	m.dirMode, m.fileMode = ledgerModes(m.Root)

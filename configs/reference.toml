@@ -24,7 +24,11 @@ basedir = "auto"
 # exists there is the default of output.root, crun.directory, or transcript.root in place of
 # the one under basedir, and a tree the operator cannot create files in is refused.
 sharedroot = "auto"
-# auto writable chain or absolute path.
+# The scratch directory of the askpass socket and the system transport's ssh configuration.
+# auto is the chain /dev/shm/karvi/<username> (only when the site's scratch root
+# /dev/shm/karvi exists: sudo karvi setup shared makes it, and karvi never does),
+# <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the first that is a writable real
+# directory, made 0700 in its existing parent; an absolute path replaces the chain.
 tempdir = "auto"
 # The directory of the output spools, one file per command in flight whose response has passed
 # output.spool-threshold-bytes. auto tries /tmp/karvi-<uid>, then /var/tmp/karvi-<uid>, each
@@ -133,7 +137,9 @@ connect-timeout = "10s"
 server-alive-interval = "15s"
 # 1–100 when interval nonzero.
 server-alive-count-max = 3
-# Private real directory or auto chain.
+# The directory of the system transport's control sockets, a private real directory (0700, the
+# operator's). auto is /dev/shm/karvi/<username>/sockets when the site's scratch root exists,
+# else <basedir>/socket/ssh; an absolute path replaces both.
 control-path-root = "auto"
 
 [ssh-algorithms]
@@ -269,7 +275,12 @@ wave-gate-error-percent = 0
 wave-gate-timed-delay = "0s"
 
 [sessions]
-# Admin group-shared real directory.
+# The capacity ledger every operator on the host shares, made by sudo karvi setup shared at
+# 2770 in the operators' group; its files take the root's group modes. A missing directory is
+# made only inside an existing parent, with a setgid parent's bits. With its parent absent (a
+# host without the scratch root) the private <basedir>/state/capacity is taken without a
+# warning; present but not usable by the operator (the sticky bit on another's directory, a
+# closed directory or lock file), it is taken with one (capacity_root_unusable).
 shared-capacity-root = "/dev/shm/karvi/capacity"
 
 [daemon]
@@ -518,7 +529,12 @@ file-required = false
 [watch]
 # Applies to snapshot writers.
 enabled = true
-# Admin group-shared real directory.
+# The scoreboard directory every operator's activities write and karvi watch reads, made by
+# sudo karvi setup shared at 3770 in the operators' group. A missing directory is made only
+# inside an existing parent, with a setgid parent's bits. With its parent absent (a host
+# without the scratch root) the private <basedir>/state/scoreboards is taken without a
+# warning, and karvi watch reads it; present but not writable by the operator, it is taken
+# with one.
 directory = "/dev/shm/karvi/scoreboards"
 # 250ms–60s; the screen's refresh, 2s since registry 15.
 refresh = "2s"

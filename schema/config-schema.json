@@ -120,7 +120,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__TEMPDIR",
       "cli_flags": null,
-      "documentation": "`auto` writable chain or absolute path.",
+      "documentation": "The scratch directory of the askpass socket and the system transport's ssh configuration. `auto` is the chain `/dev/shm/karvi/\u003cusername\u003e` (only when the site's scratch root `/dev/shm/karvi` exists: `sudo karvi setup shared` makes it, and karvi never does), `\u003cbasedir\u003e/tmp`, `/tmp/karvi-\u003cuid\u003e`, `/var/tmp/karvi-\u003cuid\u003e`, the first that is a writable real directory, made 0700 in its existing parent; an absolute path replaces the chain.",
       "since": "0.2.0"
     },
     {
@@ -529,7 +529,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__CONTROL_PATH_ROOT",
       "cli_flags": null,
-      "documentation": "Private real directory or auto chain.",
+      "documentation": "The directory of the system transport's control sockets, a private real directory (0700, the operator's). `auto` is `/dev/shm/karvi/\u003cusername\u003e/sockets` when the site's scratch root exists, else `\u003cbasedir\u003e/socket/ssh`; an absolute path replaces both.",
       "since": "0.2.0"
     },
     {
@@ -1215,7 +1215,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SESSIONS__SHARED_CAPACITY_ROOT",
       "cli_flags": null,
-      "documentation": "Admin group-shared real directory.",
+      "documentation": "The capacity ledger every operator on the host shares, made by `sudo karvi setup shared` at 2770 in the operators' group; its files take the root's group modes. A missing directory is made only inside an existing parent, with a setgid parent's bits. With its parent absent (a host without the scratch root) the private `\u003cbasedir\u003e/state/capacity` is taken without a warning; present but not usable by the operator (the sticky bit on another's directory, a closed directory or lock file), it is taken with one (`capacity_root_unusable`).",
       "since": "0.2.0"
     },
     {
@@ -2425,7 +2425,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__WATCH__DIRECTORY",
       "cli_flags": null,
-      "documentation": "Admin group-shared real directory.",
+      "documentation": "The scoreboard directory every operator's activities write and `karvi watch` reads, made by `sudo karvi setup shared` at 3770 in the operators' group. A missing directory is made only inside an existing parent, with a setgid parent's bits. With its parent absent (a host without the scratch root) the private `\u003cbasedir\u003e/state/scoreboards` is taken without a warning, and `karvi watch` reads it; present but not writable by the operator, it is taken with one.",
       "since": "0.2.0"
     },
     {

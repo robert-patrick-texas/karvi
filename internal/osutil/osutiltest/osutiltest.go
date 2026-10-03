@@ -2,8 +2,9 @@
 // whose dependencies reach osutil.ResolveSharedTree (through planner.draft,
 // app.reserve, app.jobdir, or cli.login_record: the app, cli, daemon, and
 // planner packages) calls Isolate from its TestMain, so that no test
-// consults the host's shared roots and every activity a test starts writes
-// its scoreboard under a directory of the run. A `sudo karvi setup shared`
+// consults the host's shared roots or its scratch root, and every activity
+// a test starts writes its scoreboard and its capacity leases under
+// directories of the run. A `sudo karvi setup shared`
 // on the development host must take no test's job: the first verifier run
 // after the operator's found the daemon package's jobs in /opt/karvi/jobs,
 // its TestMain being the one without the guard. Both verifiers now count
@@ -19,7 +20,13 @@ import (
 )
 
 // Isolate points osutil.SharedRoots at a directory that does not exist,
-// KARVI__WATCH__DIRECTORY at a scoreboard directory of this run, and the
+// osutil.ScratchRoot at a scratch root of this process (short, under the
+// temporary directory, so an askpass socket in an operator's folder there
+// stays within the socket path limit; a test whose configuration reads no
+// environment resolves the auto chain), KARVI__WATCH__DIRECTORY at a
+// scoreboard directory and
+// KARVI__SESSIONS__SHARED_CAPACITY_ROOT at a capacity root of this run,
+// and the
 // spool directory's auto chain (osutil.SpoolRoots; /tmp/karvi-<uid> on
 // the host, the operator's own daemon's place) and
 // KARVI__SPOOLDIR at a spool directory of this run. A process the binary
@@ -29,13 +36,21 @@ import (
 // TestMain calls it after m.Run.
 func Isolate() func() {
 	osutil.SharedRoots = []string{filepath.Join(os.TempDir(), "karvi-test-no-shared-root")}
-	var made []string
-	if os.Getenv("KARVI__WATCH__DIRECTORY") == "" {
-		dir, err := os.MkdirTemp("", "karvi-test-scoreboards-")
+	scratch, err := os.MkdirTemp("", "karvi-test-scratch-")
+	if err != nil {
+		panic(err)
+	}
+	osutil.ScratchRoot = scratch
+	made := []string{scratch}
+	for name, pattern := range map[string]string{"KARVI__WATCH__DIRECTORY": "karvi-test-scoreboards-", "KARVI__SESSIONS__SHARED_CAPACITY_ROOT": "karvi-test-capacity-"} {
+		if os.Getenv(name) != "" {
+			continue
+		}
+		dir, err := os.MkdirTemp("", pattern)
 		if err != nil {
 			panic(err)
 		}
-		os.Setenv("KARVI__WATCH__DIRECTORY", dir)
+		os.Setenv(name, dir)
 		made = append(made, dir)
 	}
 	spool := os.Getenv("KARVI__SPOOLDIR")
