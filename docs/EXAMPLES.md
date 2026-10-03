@@ -831,3 +831,60 @@ the wrong read). Raw mode held across a job, as before.
 
 **Roadmap.** The `--record` footer, then `--cd` and `--fs` for `run` and
 `command`, then the man page.
+
+## 11. The `--record` footer (2026-10-03)
+
+The third of the five objectives: a recorded login names its transcript
+when the session ends, as its header did when it began.
+
+**What it gains.** An operator leaving a long recorded session reads where
+it was kept on the last line, where the header had scrolled away; and the
+two lines read as karvi's other headers and footers do, in their style and
+colors, set and silenced the same way.
+
+**The rule.** The first form printed a plain `Login transcript saved to
+PATH` after the plain header `Recording login transcript to PATH`. The
+operator asked whether the footer matched the header exactly, prefixed
+with `! ` and colored like the other headers and footers; it did not, and
+neither line followed the display. The rule agreed: the two lines are
+display templates, `display.record.header` before the session and
+`display.record.footer` after its last output (the marker lines stripped,
+the metadata's end record written), with one default,
+`! transcript=<transcript>`, rendered by the display's formatter in the
+login header's roles, on standard error, never into the transcript; a
+failed session is named too, `--quiet` suppresses both, an empty template
+prints nothing, and a template that does not render refuses the login
+before a transcript is claimed. The registry moves from 22 to 23 and the
+K03 draft's golden digest, which covers the configuration digest, is
+re-pinned.
+
+**Executed.** A recorded login with `display.color=always` against a fake
+`ssh` that prints a prompt and exits: the two record lines are the same
+bytes, in the roles of the login's header (`label` for the literals,
+`value` for the path):
+
+```text
+^[[34m! transcript=^[[0m^[[37mstate/transcripts/261003/router01-075320.log^[[0m
+^[[34m! ^[[0m^[[1;33mrouter01^[[0m^[[34m [^[[0m^[[1;35m127.0.0.1^[[0m^[[34m] platform=^[[0m^[[37mgeneric^[[0m …
+router01#
+^[[34m! transcript=^[[0m^[[37mstate/transcripts/261003/router01-075320.log^[[0m
+```
+
+The transcript suite asserts the header first and the footer last, a
+session failing with 255 named, `--quiet` naming nothing, and an unknown
+placeholder refused with no transcript made; the released v0.25.0 fails
+it at the header:
+
+```text
+$ KARVI=lab/bin/karvi ./scripts/transcript-smoke-test.sh
+transcript smoke: pass
+$ sh -x ./scripts/transcript-smoke-test.sh    # the released v0.25.0
++ [ Recording login transcript to …/transcript-device-075355.log = ! transcript=…/transcript-device-075355.log ]
+```
+
+**Not taken.** Two different texts for the two lines (the operator asked
+for one); the lines outside the display's templates (they could not be
+styled, silenced, or set as the others are); naming the metadata file
+beside the transcript (they sit side by side).
+
+**Roadmap.** `--cd` and `--fs` for `run` and `command`, then the man page.

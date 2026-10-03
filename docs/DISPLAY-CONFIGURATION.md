@@ -1,4 +1,4 @@
-# Display configuration — karvi v0.9.0
+# Display configuration
 
 Display settings affect human-facing terminal projections only. JSONL, JSON
 records, audit events, logs, manifests, summaries, and persisted scoreboards do
@@ -27,6 +27,10 @@ border = "\n"
 dynamic-border-length = 72
 last-border = false
 echo = false
+
+[display.record]
+header = "! transcript=<transcript>"
+footer = "! transcript=<transcript>"
 
 [display.json]
 indent = 2
@@ -59,6 +63,21 @@ for `skipped`. The default is
 empty template prints no line; `--quiet` suppresses it; `--debug` adds the
 error details and the packet-loss notice after it. `login` prints the same
 line on standard error. The template replaced a boolean switch.
+
+## The recorded login's lines
+
+`display.record.header` and `display.record.footer` name a recorded
+login's transcript (`login --record`, `docs/LOGIN-TRANSCRIPTS.md`): the
+header before the session's first line, the footer as its last, after the
+device's last output and for a session that failed as well. Both default
+to `"! transcript=<transcript>"`, so the two lines match; `<transcript>` is
+the file's path, in the `value` role with the literals in the `label`
+role, as the login's header is rendered. The templates may also use
+`<timestamp>`, `<target>`, `<platform>`, and `<transport>`, and the footer
+`<exit-status>`, `<exit-code>`, and `<elapsed>`. They go to standard error,
+on the terminal and never into the transcript; an empty template prints no
+line; `--quiet` suppresses both; a template that does not render refuses
+the login before a transcript is created (`config_display_template_invalid`).
 
 ## Borders as separators
 

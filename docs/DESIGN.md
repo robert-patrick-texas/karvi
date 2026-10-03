@@ -1164,8 +1164,14 @@ directory, whose parent exists).
 exclusively created and bumped together on collision; the transcript holds what
 the device returned and never operator keystrokes, so a password typed at a
 non-echoing prompt is not written. `transcript.format` values other than text
-are refused rather than silently falling back. *Why:* the operator declined
-recording the input stream; a JSON document is valid only when complete.
+are refused rather than silently falling back. The terminal names the file
+before the session and again as its last line, a failed session included,
+with one display template each (`display.record.header`,
+`display.record.footer`) whose defaults match, `! transcript=<transcript>`,
+rendered and colored as every header and footer.
+*Why:* the operator declined recording the input stream; a JSON document is
+valid only when complete; the header scrolls away in a long session, and
+the operator leaving it wants the path where it ends.
 
 **Retention is a helper of its own, walking `YYMMDD` day folders under both
 roots.** `karvi-prune` reads no configuration; its eight flags carry the

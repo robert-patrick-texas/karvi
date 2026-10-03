@@ -13,9 +13,11 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/app"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
@@ -52,7 +54,9 @@ func recorderDiagnostics() *os.File {
 // it assembles the target set to learn the device, claims the transcript and
 // metadata pair under the day folder, writes the metadata start record,
 // launches the child with the original arguments, and at the end strips the
-// script(1) marker lines and writes the metadata end record. The child parses
+// script(1) marker lines, writes the metadata end record, and names the
+// transcript again as the header did (display.record.header and
+// display.record.footer, one line each by default). The child parses
 // the same invocation, uses the session ID given here, and does not record.
 func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	streams := app.IO{Stdin: stdin, Stdout: stdout, Stderr: stderr}
@@ -114,6 +118,18 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	selection, err := transportselect.Resolve(cfg, "login", inv.String(optTransport))
 	if err != nil {
 		return reportError(stderr, "transport_unavailable", err)
+	}
+	// The two lines naming the transcript are display templates, checked
+	// here with the formatter so a bad one creates no transcript and
+	// launches no child.
+	formatter, err := display.NewFormatter(cfg.String("display.timestamp"), cfg.String("timezone"))
+	if err != nil {
+		return reportError(stderr, "config_display_timestamp_invalid", err)
+	}
+	for _, key := range []string{"display.record.header", "display.record.footer"} {
+		if err := display.ValidateLineTemplate(cfg.String(key)); err != nil {
+			return reportError(stderr, "config_display_template_invalid", err)
+		}
 	}
 	started := time.Now()
 	dest, err := transcript.Resolve(*inv.Record, cfg.String("transcript.root"), cfg.String("sharedroot"), base, operator.Home, cfg.Locked("transcript.root"), started, location)
@@ -179,7 +195,10 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		cmd.ExtraFiles = []*os.File{f} // descriptor 3 in the child
 		cmd.Env = append(cmd.Env, loginDiagnosticsFDEnv+"=3")
 	}
-	fmt.Fprintf(stderr, "Recording login transcript to %s\n", pair.Transcript)
+	values := display.Values{Timestamp: started, Target: device.CanonicalName, Platform: platformName, Transport: selection.Implementation, Transcript: pair.Transcript}
+	if !inv.Global.quiet {
+		writeRecordLine(cfg, formatter, "display.record.header", values, stderr)
+	}
 	exit := 0
 	recordingFailed := false
 	if err := cmd.Run(); err != nil {
@@ -210,7 +229,32 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 			exit = code
 		}
 	}
+	// The header's line once more at the end, after the device's last
+	// output, so the operator leaving the session reads where it was kept;
+	// a failed session has its transcript too.
+	if !inv.Global.quiet {
+		values.Timestamp, values.Elapsed = meta.EndedAt, meta.EndedAt.Sub(started)
+		values.ExitCode, values.ExitStatus = exit, fmt.Sprintf("%s(%d)", exitcode.ExitName(exit), exit)
+		writeRecordLine(cfg, formatter, "display.record.footer", values, stderr)
+	}
 	return exit
+}
+
+// writeRecordLine renders a display.record template as the login's header
+// and footer are rendered, with the display's formatter, colors, and
+// width, for the terminal on w; an empty template writes nothing. The
+// formatter and both templates were checked before the transcript was
+// claimed, so nothing here can refuse, and the session's outcome stands.
+func writeRecordLine(cfg configload.Snapshot, formatter display.Formatter, key string, values display.Values, w io.Writer) {
+	lines, err := formatter.RenderStyledLines(cfg.String(key), values, jobexec.DisplayLineStyle(cfg, jobexec.DisplayTerminal(w)), jobexec.DisplayTerminalWidth(w))
+	if err != nil {
+		return
+	}
+	for _, line := range lines {
+		if line != "" {
+			fmt.Fprintln(w, line)
+		}
+	}
 }
 
 func shellQuote(value string) string {

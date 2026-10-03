@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 22,
+  "registry_schema_version": 23,
   "config_schema_version": 6,
   "keys": [
     {
@@ -2063,6 +2063,32 @@
       "cli_flags": null,
       "documentation": "One-line login footer template; empty disables it.",
       "since": "0.5.0"
+    },
+    {
+      "path": "display.record.header",
+      "kind": "string",
+      "default_literal": "\"! transcript=\u003ctranscript\u003e\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__DISPLAY__RECORD__HEADER",
+      "cli_flags": null,
+      "documentation": "One-line template naming a recorded login's transcript (`login --record`) before the session, rendered as the login header is; `\u003ctranscript\u003e` is the file's path. Empty disables it.",
+      "since": "0.26.0"
+    },
+    {
+      "path": "display.record.footer",
+      "kind": "string",
+      "default_literal": "\"! transcript=\u003ctranscript\u003e\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__DISPLAY__RECORD__FOOTER",
+      "cli_flags": null,
+      "documentation": "One-line template naming a recorded login's transcript after the session's last output, a failed session included; the same default as `display.record.header`, so the two lines match. Empty disables it.",
+      "since": "0.26.0"
     },
     {
       "path": "display.command.header",

@@ -61,6 +61,7 @@ if [ "$FLOOR" -lt 1099511627776 ]; then
   # read from both streams with the terminal's carriage returns dropped.
   cat "$TMP/floor.out" "$TMP/floor.err" | tr -d '\r' | grep -q "output_preflight_space: $BASE/transcripts: need $FLOOR bytes free, only [0-9]* free"
   [ ! -d "$BASE/transcripts/$DAY" ]
+  absent '! transcript=' "$TMP/floor.out"                     # nothing recorded, nothing named
   recorded floornever "--set output.min-free-bytes-after-job=$FLOOR --set 'freecheck=\"never\"'" "--record --address 127.0.0.1 transcript-device"
   [ "$(ls "$BASE/transcripts/$DAY"/transcript-device-*.log | wc -l)" = 1 ]
   rm -rf "${BASE:?}/transcripts"
@@ -84,6 +85,11 @@ absent '^Script started on' "$transcript"               # script(1) markers stri
 absent 'Script done on' "$transcript"
 absent 'transcript-device \[127\.0\.0\.1\]' "$transcript"   # karvi's header is not device stream
 grep -q 'transcript-device \[127\.0\.0\.1\] platform=generic user=smoke' "$TMP/before.out"   # it went to the terminal
+# display.record.header names the transcript first, before the login's
+# header, and display.record.footer, the same line, last, after the
+# device's output.
+[ "$(tr -d '\r' <"$TMP/before.out" | head -1)" = "! transcript=$transcript" ]
+[ "$(tr -d '\r' <"$TMP/before.out" | tail -1)" = "! transcript=$transcript" ]
 [ "$(wc -l <"$meta")" = 2 ]
 head -1 "$meta" | grep -q '^{"schema_version":1,"record":"start","session_id":"[^"]*","operator":{"username":"[^"]*","uid":[0-9]*},"input_target":"transcript-device","device":{"name":"transcript-device","canonical_name":"transcript-device","platform":"generic"},"transport":"system","dispatch_order":"default","candidate_count":1,"transcript_file":"'"$(basename "$transcript")"'","transcript_format":"text","terminal":{"rows":[0-9]*,"columns":[0-9]*},"started_at":"'
 tail -1 "$meta" | grep -q '"record":"end"'
@@ -117,6 +123,29 @@ grep -q "$MARKER" "$TMP/rec/$DAY"/transcript-device-*.log
 recorded text "--set 'transcript.metadata-format=\"text\"'" "--record=$TMP/rec-text --address 127.0.0.1 transcript-device"
 tmeta=$(ls "$TMP/rec-text/$DAY"/transcript-device-*.meta.txt)
 grep -q '^record: start$' "$tmeta"; grep -q '^ended_at: ' "$tmeta"; grep -q '^device.canonical_name: transcript-device$' "$tmeta"
+# A session that fails keeps its transcript, and the footer names it: the
+# device answered, then the connection ended with 255.
+cat > "$TMP/fake-ssh-fail" <<EOF_INNER
+#!/bin/sh
+printf '%s\r\n' '$MARKER'
+exit 255
+EOF_INNER
+chmod 755 "$TMP/fake-ssh-fail"
+recorded failed "--set 'ssh.transports.system=\"$TMP/fake-ssh-fail\"'" "--record=$TMP/rec-failed --address 127.0.0.1 transcript-device" && code=0 || code=$?
+[ "$code" -ne 0 ]
+failed=$(ls "$TMP/rec-failed/$DAY"/transcript-device-*.log)
+grep -q "$MARKER" "$failed"
+[ "$(tr -d '\r' <"$TMP/failed.out" | tail -1)" = "! transcript=$failed" ]
+# --quiet suppresses both lines, as every header and footer; a record
+# template that does not render refuses the login before a transcript.
+recorded quiet "--quiet" "--record=$TMP/rec-quiet --address 127.0.0.1 transcript-device"
+absent '! transcript=' "$TMP/quiet.out"
+[ "$(ls "$TMP/rec-quiet/$DAY"/transcript-device-*.log | wc -l)" = 1 ]
+recorded badtemplate "--set 'display.record.footer=\"! <nosuch>\"'" "--record=$TMP/rec-bad --address 127.0.0.1 transcript-device" && code=0 || code=$?
+[ "$code" -ne 0 ]
+cat "$TMP/badtemplate.out" "$TMP/badtemplate.err" | grep -q 'config_display_template_invalid\|display_placeholder_unsupported'
+[ ! -e "$TMP/rec-bad" ]
+
 recorded json "--set 'transcript.metadata-format=\"json\"'" "--record=$TMP/rec-json --address 127.0.0.1 transcript-device"
 jmeta=$(ls "$TMP/rec-json/$DAY"/transcript-device-*.meta.json)
 grep -q '"record":"end"' "$jmeta"; [ "$(wc -l <"$jmeta")" = 1 ]

@@ -33,6 +33,23 @@ the same way for itself.
   `.`, `_`, and `-` replaced by `_`. When either name is taken, both are
   bumped together: `router01-143005.1.log` and
   `router01-143005.1.meta.jsonl`, then `.2`.
+- The terminal names the transcript twice, with one line in the display's
+  style: `display.record.header` before the session and
+  `display.record.footer` as the last line, after the device's last
+  output, a session that failed included. Both default to
+  `! transcript=<transcript>`, so the two lines match, colored as the
+  login's header is (`docs/DISPLAY-CONFIGURATION.md` "The recorded login's
+  lines"); `--quiet` suppresses them. A login refused before the recording
+  starts (a free-space floor, a refused option) names none, since none was
+  written.
+
+  ```text
+  ! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log
+  ! router01 [10.0.0.1] platform=cisco_iosxe user=netops backend=interactive-tty transport=system
+  ...
+  router01#exit
+  ! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log
+  ```
 - Folders karvi creates take `output.directory-mode` (default `0750`); files
   are `0640`, created exclusively without following links. An existing folder
   is accepted when the operator can create files in it, else

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	RegistrySchemaVersion = 22
+	RegistrySchemaVersion = 23
 	ConfigSchemaVersion   = 6
 )
 

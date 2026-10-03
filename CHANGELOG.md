@@ -69,6 +69,17 @@
   stream for the operator's keys. The reader now reads a line when the
   loop asks for it, so a Ctrl-C during a job is the signal it is: the
   follow stops, a daemon's job continues, and the stream ends.
+- **A recorded login names its transcript at the end too, in the
+  display's style.** `login --record` prints the transcript's path before
+  the session and again as its last line, after the device's last output,
+  a failed session included, where the header had been a plain
+  `Recording login transcript to PATH` that a long session scrolled away.
+  Both lines are display templates, the new `display.record.header` and
+  `display.record.footer`, with one default, `! transcript=<transcript>`
+  (the new `<transcript>` placeholder), rendered and colored as every
+  header and footer and suppressed by `--quiet`; a template that does not
+  render refuses the login before a transcript is created. The
+  configuration registry moves from 22 to 23.
 
 ## 0.25.0 - 2026-09-30
 

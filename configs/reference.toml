@@ -452,6 +452,15 @@ header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-b
 # One-line login footer template; empty disables it.
 footer = ""
 
+[display.record]
+# One-line template naming a recorded login's transcript (login --record) before the session,
+# rendered as the login header is; <transcript> is the file's path. Empty disables it.
+header = "! transcript=<transcript>"
+# One-line template naming a recorded login's transcript after the session's last output, a
+# failed session included; the same default as display.record.header, so the two lines match.
+# Empty disables it.
+footer = "! transcript=<transcript>"
+
 [display.command]
 # One-line command header template; empty disables it.
 header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"

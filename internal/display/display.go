@@ -44,6 +44,9 @@ type Values struct {
 	RTT1   string
 	RTT2   string
 	Result string
+	// A recorded login's transcript (display.record.header and
+	// display.record.footer): the file's path.
+	Transcript string
 }
 
 var allowedPlaceholders = map[string]bool{
@@ -52,6 +55,7 @@ var allowedPlaceholders = map[string]bool{
 	"reference-id": true, "exit-status": true, "exit-code": true, "artifacts": true,
 	"status": true, "elapsed": true,
 	"rtt1": true, "rtt2": true, "result": true,
+	"transcript": true,
 }
 
 var repeatRE = regexp.MustCompile(`<repeat:([^:>]*)\:([0-9]+)>`)
@@ -386,6 +390,7 @@ func (f Formatter) placeholderValues(values Values) map[string]string {
 		"rtt1":         values.RTT1,
 		"rtt2":         values.RTT2,
 		"result":       values.Result,
+		"transcript":   values.Transcript,
 	}
 }
 

@@ -94,7 +94,9 @@ func draftOptions(commands []string) DraftOptions {
 // every host; the draft's own fields did not change.
 // Re-pinned at registry 22: display.ping.header,
 // a template, replaced the boolean display.ping; the plan schema stays 9.
-const goldenK03Draft = "3c6ea9917098955f20e0bc8cde12c6546e2447cc4e982788b4cee6049ee34463"
+// Re-pinned at registry 23: display.record.header and
+// display.record.footer were added; the plan schema stays 9.
+const goldenK03Draft = "1131f77f1cfc664e97b9a2a50aea7472ae56af1260136bfd467415d6b6cd5546"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
