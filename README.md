@@ -485,6 +485,11 @@ Only `internal/adapters/scrapligov1` imports ScrapliGo.
 
 Operator guides:
 
+- `packaging/man/`: the manual pages the package installs: `man karvi`
+  (the configuration, the values, the environment, the files, the exit
+  statuses), `man karvi WORD` for each command word (`man karvi run`), `man
+  karvi-prune`, and `man karvi-askpass`; each word's SYNOPSIS and DESCRIPTION
+  are its `--help`, generated (`make generate`).
 - `docs/QUICKSTART.md`: inspect the executable, first configuration, first commands.
 - `docs/OPERATIONS.md`: upgrade, the daemon, retention, credential files.
 - `docs/PRUNE.md`: what `karvi-prune` removes, where it looks, the timers, the hand run.

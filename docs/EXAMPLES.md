@@ -1958,10 +1958,30 @@ is `config_toml_syntax … table redefined: dispatch`, the renderer starting
 (`platform-resolution` among them); the released v0.25.0 executable
 generates the same.
 
-**The sections.** H, the help changes (items 3 and 4), checked by the
-help outputs captured before and after; K, the Dispatch options as their
-keys' overrides (item 6), with item 7's sentence in the top help; E, the
-exit statuses (item 8); G, `HelpPages`, `helplayout.Roff`, the page table
-in `tools/mangen`, and the twelve pages' frames with their generated
-regions; P, the hand-written sections page by page. The design records
-were committed before H.
+**The sections, as committed.** The design records (`19b0119`); H
+(`da8d049`) the host-key policy and the Dispatch options in the help, the
+shape test; K (`c8fbac5`) the Dispatch options as their keys' overrides,
+the top help's sentence; E (`599b6f6`) the exit statuses defined once; G
+(`166fcd4`) `HelpPages`, `helplayout.Roff`, the page table, the twelve
+frames, the install line; P in three parts (`3fa8bde` `karvi.1`, `2059f95`
+run, crun, and command, `aa21556` the rest); and the close: README's
+documents, the roadmap, and the changelog. Battery: the seventeen suites
+on lab builds after K (19:13:59 to 19:17:23 UTC) and at the close
+(20:31:10 to 20:34:29), pass; `go test ./...`, vet, gofmt, and `make
+generated-clean` at each section.
+
+**Not taken.** One page for every word; pages for the large words alone;
+section 8 for `karvi-setup`; a page per alias; an OPTIONS region from the
+entries alone; the whole page generated; the twelve constants exported;
+the generator as a test inside `internal/cli`; a built executable's
+`--help` as the source; the Host-key modes kept as a section; a second
+column width; a pointer to SCALE.md in place of the Dispatch entries; the
+command line checking the keys' ranges itself; clamping with a notice;
+the shared sections on every page; the duration's form in each entry;
+the meanings of the exits written by hand; the precedence generated.
+
+**Roadmap.** `karvi.1` leaves Next; the reference configuration's doubled
+`[dispatch]` table (found in part 3) enters it first. Found and left for
+their own issues: `NO_COLOR` read by the watch screen alone; an override's
+error naming `command-line` and not the option; a login to the fake ended
+with `exit` reporting 110.

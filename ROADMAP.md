@@ -7,27 +7,26 @@ order the operator has set. A settled decision is an entry in
 
 ## Next
 
-1. **A man page for `karvi`.** `karvi.1` in the form `karvi-prune.8` set
-   (roff by hand, the generated regions written by `tools/mangen`, no
-   version or date, one install line), its option sections from the help
-   constants already kept in step with the parser table, so the page cannot
-   drift from `--help`.
+1. **The reference configuration loads.** `karvi config generate` writes,
+   and `configs/reference.toml` holds, a `[dispatch]` table twice, where the
+   registry's dispatch rows are interrupted by other rows, so `config
+   validate` refuses the file a site starts from (`config_toml_syntax …
+   table redefined: dispatch`); the released 0.25.0 generates the same.
 2. **The documentation as HTML.** A script that converts `docs/*.md` to
    `.html` with an index page and a left column of links, links between
    documents rewritten, the output a build product and never committed. The
    converter is a vendoring decision (a Go Markdown library under `tools/`
-   keeps the build self-contained) shared with the man page if one is used
-   there.
+   keeps the build self-contained); the man pages are roff and need none.
 3. **The package's contents.** The debian rules install the three executables
-   alone. The documents go under `/usr/share/doc/karvi` (the Markdown, or the
-   HTML of item 2, and the `examples/` files); the supplemental material (the
-   units and timers, the drop-in and `crun` hook examples, the cron scripts,
-   tmpfiles, sysctl, the completion file, the reference configuration, the
-   schema) goes to a place of its own under `/usr/share/karvi` with a script
-   that installs it for a site that opts into that style of operation. The
-   units' `Documentation=` lines and the cron scripts' comments then name
-   what the package installs; the control file's maintainer and homepage are
-   placeholders until then.
+   and the manual pages alone. The documents go under `/usr/share/doc/karvi`
+   (the Markdown, or the HTML of item 2, and the `examples/` files); the
+   supplemental material (the units and timers, the drop-in and `crun` hook
+   examples, the cron scripts, tmpfiles, sysctl, the completion file, the
+   reference configuration, the schema) goes to a place of its own under
+   `/usr/share/karvi` with a script that installs it for a site that opts
+   into that style of operation. The units' `Documentation=` lines and the
+   cron scripts' comments then name what the package installs; the control
+   file's maintainer and homepage are placeholders until then.
 4. **Build numbers in the version.** A build identity beyond the version and
    the commit, for telling two builds of one tree apart.
 5. **The packaged user unit's sandbox where it does not apply.** On an Ubuntu

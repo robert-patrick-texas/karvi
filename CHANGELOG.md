@@ -207,7 +207,13 @@
   drift from `--help`; `karvi.1`'s EXIT STATUS is the list of
   `internal/exitcode`. A command word without its page fails `make
   generate`, and `make generated-clean` and the bundle verifier compare
-  every page.
+  every page. `karvi.1` states once what every word shares: the
+  configuration's layers and locks, the values (DURATION, N), the
+  environment, the files, and how the exit is chosen; each word's page adds
+  what its help does not say (`karvi-run.1` the dispatch modes, the widths
+  at 0 by CPU count against the host's cap, the halts, the output, and the
+  rehearsal; `karvi-crun.1` the collection; `karvi-login.1` the
+  transcripts and the host keys), and the guides it restates say so.
 
 ## 0.25.0 - 2026-09-30
 
