@@ -15,6 +15,39 @@ configuration stage has one exit contract. `—` means the code does not set the
 itself. **Unclassified** codes are fallbacks used only when no specific cause is
 known.
 
+## Exit statuses
+
+Every status karvi exits with, from `internal/exitcode`; the name is the one
+the records and the audit carry. When more than one applies to a job, the first
+of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.
+
+| Exit | Name | Meaning |
+|---:|---|---|
+| 0 | `ExitSuccess` | Every device succeeded, or the command did what it was asked. |
+| 1 | `ExitGenericError` | An internal failure with no more specific status. |
+| 2 | `ExitConfigValidationError` | The configuration did not load: a file, a key, a value, or its range. |
+| 3 | `ExitConfigLockViolation` | A site lock refused a write to a key: --set, an option, the environment, or a lower file. |
+| 4 | `ExitUsageError` | The command line was refused: an option, a value, a command, or a file it names. |
+| 5 | `ExitInventoryError` | The target set could not be built: an inventory source, a target file, a row, or a platform is unreadable or invalid, or nothing was selected. |
+| 6 | `ExitCredentialResolutionError` | No credential could be resolved for a device, or a credential source is invalid or unsafe. |
+| 7 | `ExitNameResolutionError` | A device name did not resolve to an address of a usable family. |
+| 8 | `ExitDependencyError` | A program, transport, or facility karvi needs is missing or would not start. |
+| 9 | `ExitPermissionError` | A file or directory karvi must use is missing, unsafe, or not writable, or an action needs root or is not allowed. |
+| 101 | `ExitPartialFailure` | A run in which one or more devices failed or did not start, no halt or gate applying. |
+| 102 | `ExitHaltErrorCount` | A run stopped starting devices at its failure count (dispatch.halt-on-error-count). |
+| 103 | `ExitHaltErrorPercent` | A run stopped starting devices at its failure percent (dispatch.halt-on-error-percent). |
+| 104 | `ExitWaveGateErrorCount` | A wave job stopped between waves at the gate's count (dispatch.wave-gate-error-count). |
+| 105 | `ExitWaveGateErrorPercent` | A wave job stopped between waves at the gate's percent (dispatch.wave-gate-error-percent). |
+| 106 | `ExitShutdownIncomplete` | The daemon stopped before the job ended, or a stop did not finish in time. |
+| 107 | `ExitDeviceFailure` | The device refused a command, a command or the device timed out, or the session's set-up failed. |
+| 108 | `ExitAuthenticationFailure` | The device refused the login. |
+| 109 | `ExitHostKeyFailure` | The device's host key was refused, or the trust store could not be used. |
+| 110 | `ExitConnectionFailure` | A connection to a device or to the daemon failed or was lost. |
+| 111 | `ExitOutputFailure` | Output could not be written: a record, a file, the audit, or standard output. |
+| 112 | `ExitJobRejected` | The daemon refused the request, or the exchange with it failed. |
+| 113 | `ExitCancelled` | Cancelled: job cancel, Ctrl-C, or an interrupted wait. |
+| 114 | `ExitHaltHostKeyMismatch` | A run stopped starting devices after a changed host key (ssh.halt-run-on-host-key-mismatch). |
+
 ## Errors
 
 Active failure causes.

@@ -1774,6 +1774,26 @@ v0.26.0, the expected next minor, as the registry's new rows are. Battery:
 the seventeen suites on a lab build after K (19:13:59 to 19:17:23 UTC),
 pass; `go test ./...`, vet, gofmt, and `make generated-clean`.
 
+Section E, the exit statuses (item 8). The meanings were checked against
+each status's codes in the registry before they were written, and three
+drafts widened: 4 covers a file the command line names
+(`commands_file_unreadable`), 5 a target file, an unknown platform, and an
+empty selection as well as the inventory, 9 an action that needs root or
+is not allowed (`setup_requires_root`, `telnet_not_allowed`). The test
+parses `exitcode.go` for its constants and holds `Statuses` to them; run
+against a copy without 114's entry it fails (`23 statuses, 24
+constants`). `errorcodes.Validate` refuses a code whose exit is not
+defined. `docs/ERROR-CODES.md` opens with the table:
+
+```text
+| 101 | `ExitPartialFailure` | A run in which one or more devices failed or did not start, no halt or gate applying. |
+| 102 | `ExitHaltErrorCount` | A run stopped starting devices at its failure count (dispatch.halt-on-error-count). |
+…
+```
+
+`karvi.1`'s EXIT STATUS region is section G's, with the page table.
+`go test ./...`, vet, gofmt, and `make generated-clean`.
+
 **The sections.** H, the help changes (items 3 and 4), checked by the
 help outputs captured before and after; K, the Dispatch options as their
 keys' overrides (item 6), with item 7's sentence in the top help; E, the

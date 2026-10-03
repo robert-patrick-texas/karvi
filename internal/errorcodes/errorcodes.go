@@ -224,6 +224,9 @@ func Validate() []error {
 		default:
 			errs = append(errs, fmt.Errorf("%s has unknown kind %q", e.Code, e.Kind))
 		}
+		if _, ok := exitcode.Lookup(e.Exit); e.Exit != 0 && !ok {
+			errs = append(errs, fmt.Errorf("%s names exit %d, which internal/exitcode does not define", e.Code, e.Exit))
+		}
 		switch e.Status {
 		case Active, Planned:
 			if e.Category == "" {
@@ -266,6 +269,16 @@ func RenderMarkdown() string {
 	b.WriteString("configuration stage has one exit contract. `—` means the code does not set the exit by\n")
 	b.WriteString("itself. **Unclassified** codes are fallbacks used only when no specific cause is\n")
 	b.WriteString("known.\n\n")
+
+	b.WriteString("## Exit statuses\n\n")
+	b.WriteString("Every status karvi exits with, from `internal/exitcode`; the name is the one\n")
+	b.WriteString("the records and the audit carry. When more than one applies to a job, the first\n")
+	b.WriteString("of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.\n\n")
+	b.WriteString("| Exit | Name | Meaning |\n|---:|---|---|\n")
+	for _, s := range exitcode.Statuses {
+		fmt.Fprintf(&b, "| %d | `%s` | %s |\n", s.Code, s.Name, s.Meaning)
+	}
+	b.WriteString("\n")
 
 	section := func(title, intro string, match func(Entry) bool) {
 		var rows []Entry

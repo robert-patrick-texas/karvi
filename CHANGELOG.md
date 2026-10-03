@@ -190,6 +190,13 @@
   are retired; `--set` still outranks an option, and `--halt-on-error-count
   0` now turns a configured halt off. The top help says so for every
   option that stands for a key.
+- **Every exit status has a written meaning.** `docs/ERROR-CODES.md`
+  opens with an "Exit statuses" table: the 24 statuses, the name the
+  records and the audit carry (`ExitPartialFailure`), and what each means,
+  with the order in which they apply to a job, where the statuses had names
+  alone and only the error codes said which exit they set. The list is
+  defined once in `internal/exitcode`, a test holds every constant to it,
+  and the error registry refuses a code naming an undefined exit.
 
 ## 0.25.0 - 2026-09-30
 
