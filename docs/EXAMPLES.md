@@ -1714,9 +1714,34 @@ For scale, rendered at 80 columns: `ssh(1)` 1056 lines, `git(1)` 1541,
    writing the same list into ERROR-CODES. Not taken: the meanings by hand
    in the page; the precedence generated; renaming `ExitPartialFailure`.
 
-**The sections.** H, the help changes (items 3, 4, and 7's sentence),
-checked by the help outputs captured before and after; K, the Dispatch
-options as their keys' overrides (item 6); E, the exit statuses (item 8);
-G, `HelpPages`, `helplayout.Roff`, the page table in `tools/mangen`, and
-the twelve pages' frames with their generated regions; P, the hand-written
-sections page by page. The design records were committed before H.
+**Executed.** Section H, the help changes (items 3 and 4; item 7's sentence
+moved to section K, where it becomes true for the Dispatch options). The
+shape test, `helplayout.Irregular` over every help text, run through an
+overlay against the committed `help.go`, failed on the three Host-key mode
+lines and also on `  --dispatch serial|parallel|wave  --workers N` in `run`
+and `crun`, which the review's scan had passed over (it skipped lines
+beginning with a dash); both are gone in H. The 60 help outputs captured
+from the lab build before and after: `login`, `command`, `run`, and `crun`
+differ, under both colours, and nothing else:
+
+```text
+$ diff before/login.never after/login.never
+65a66,72
+>                                  The host-key policy (ssh.host-key-policy):
+>                                  accept-new accepts and persists a new key and
+…
+85,89d91
+< Host-key modes:
+<   accept-new  Accept and persist a new key; reject a changed key (default)
+…
+$ grep -- --wave-delay after/run.always | cat -v
+  ^[[36m--wave-delay DURATION^[[0m          A pause between waves
+```
+
+**The sections.** H, the help changes (items 3 and 4), checked by the
+help outputs captured before and after; K, the Dispatch options as their
+keys' overrides (item 6), with item 7's sentence in the top help; E, the
+exit statuses (item 8); G, `HelpPages`, `helplayout.Roff`, the page table
+in `tools/mangen`, and the twelve pages' frames with their generated
+regions; P, the hand-written sections page by page. The design records
+were committed before H.

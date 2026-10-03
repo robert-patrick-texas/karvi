@@ -164,6 +164,16 @@
   at every job. Any other word after a bare `--of` keeps its meaning
   (`command --of r1 'show clock'`), so a relative path is written
   `--of=out`.
+- **`--ssh-host-key-policy` and `run`'s Dispatch options say what they
+  do.** `login`, `command`, and `run` (and `crun`) share one entry for
+  `--ssh-host-key-policy`, naming `ssh.host-key-policy` and the three
+  modes with the default; `login`'s separate "Host-key modes" table is
+  gone, and the other two had said nothing. `run`'s `--dispatch`,
+  `--workers`, `--start-width`, `--max-width`, the two halts, the two wave
+  gates, and `--wave-delay` each have an entry with its key and what 0
+  means, where eight of them were listed without a word; the percent halt
+  is described as built, against the devices ended so far. A test fails
+  on a help line in a shape the layout does not know.
 
 ## 0.25.0 - 2026-09-30
 

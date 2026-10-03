@@ -159,6 +159,34 @@ func helpEntryWords(line string) string {
 	return words
 }
 
+// Irregular is the lines of a help text in a shape the layout does not
+// know: words separated by two or more spaces anywhere but where the
+// description column begins. Such a line is a table of its own, which the
+// terminal shows as prose and the manual page runs into a paragraph; an
+// option's values are explained in its entry instead.
+func Irregular(text string) []string {
+	var out []string
+	for _, l := range strings.Split(text, "\n") {
+		body := strings.TrimLeft(l, " ")
+		start := len(l) - len(body)
+		for i := 0; i+1 < len(body); i++ {
+			if body[i] != ' ' || body[i+1] != ' ' {
+				continue
+			}
+			j := i
+			for j < len(body) && body[j] == ' ' {
+				j++
+			}
+			if j < len(body) && start+j != helpDescriptionColumn {
+				out = append(out, l)
+				break
+			}
+			i = j
+		}
+	}
+	return out
+}
+
 // Layout lays a help text out for the terminal: headings in bold, the
 // entries' words in the accent colour, the Usage lines' action words in the
 // action colour, and a blank line between a prose paragraph and its

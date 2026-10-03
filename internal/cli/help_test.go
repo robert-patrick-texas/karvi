@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 )
 
 var helpOptionToken = regexp.MustCompile(`--([a-z0-9][a-z0-9-]*)`)
@@ -106,4 +108,19 @@ func label(name string, cmds []*command) string {
 		paths = append(paths, c.path)
 	}
 	return strings.Join(paths, "/")
+}
+
+// TestHelpShapesRegular: no help text holds a line in a shape the layout
+// does not know (helplayout.Irregular), which the terminal would show as
+// prose and the manual page would run into a paragraph.
+func TestHelpShapesRegular(t *testing.T) {
+	texts := []string{topHelp}
+	for _, c := range commandTable {
+		texts = append(texts, c.help())
+	}
+	for _, text := range texts {
+		for _, l := range helplayout.Irregular(text) {
+			t.Errorf("help line in no known shape: %q", l)
+		}
+	}
 }

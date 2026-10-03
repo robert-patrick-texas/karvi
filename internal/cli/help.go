@@ -33,6 +33,17 @@ const platformOptionHelp = `  --platform NAME                The platform the de
                                  cisco_iosxr, juniper_junos, arista_eos, generic
 `
 
+// hostKeyPolicyHelp is --ssh-host-key-policy's entry, shared by login,
+// command, and run: ssh.host-key-policy is one policy for the three.
+const hostKeyPolicyHelp = `  --ssh-host-key-policy accept-new|secure|insecure
+                                 The host-key policy (ssh.host-key-policy):
+                                 accept-new accepts and persists a new key and
+                                 rejects a changed one (the default); secure
+                                 requires a matching pre-enrolled key before
+                                 access; insecure accepts unknown or changed
+                                 keys with prominent warnings
+`
+
 const streamHelp = `Usage:
   karvi stream
   karvi -
@@ -196,8 +207,7 @@ Options:
   --port N                       Device service port
   --transport SELECTOR           default, system, native, preferred, telnet,
                                  or a configured [ssh.transports] slot
-  --ssh-host-key-policy accept-new|secure|insecure
-  --ssh-known-hosts-file PATH|auto
+` + hostKeyPolicyHelp + `  --ssh-known-hosts-file PATH|auto
                                  Unified karvi trust store
   --format text|jsonl|json       Text (default), compact JSON Lines, or an
                                  indented JSON array for human inspection
@@ -354,11 +364,36 @@ freeform command; a command takes blind returns or --expect, not both):
 Platform:
 `+platformOptionHelp+`
 Dispatch:
-  --dispatch serial|parallel|wave  --workers N
+  --dispatch serial|parallel|wave
+                                 How the devices run (dispatch.default, serial
+                                 by default): one at a time; a fixed pool of
+                                 workers over one queue; or waves whose width
+                                 follows the host's CPU
   --dp, --dw, --ds               Short for --dispatch parallel, wave, serial
-  --start-width N --max-width N --halt-on-error-count N
-  --halt-on-error-percent N --wave-gate-error-count N
-  --wave-gate-error-percent N --wave-delay DURATION
+  --workers N                    The parallel pool's size
+                                 (dispatch.parallel-workers; 0 the host's
+                                 logical CPUs)
+  --start-width N                A wave job's first width, and its floor
+                                 (dispatch.wave-start-width; 0 from the host's
+                                 CPUs)
+  --max-width N                  A wave job's widest wave
+                                 (dispatch.wave-max-width; 0 from the host's
+                                 CPUs)
+  --halt-on-error-count N        Start no further device once N have failed;
+                                 those in flight finish
+                                 (dispatch.halt-on-error-count; 0 off)
+  --halt-on-error-percent N      Start no further device once the failed are
+                                 N percent or more of the devices ended so
+                                 far, checked as each ends, so a first
+                                 device's failure halts at any N
+                                 (dispatch.halt-on-error-percent; 0 off)
+  --wave-gate-error-count N      Between waves, stop a wave job whose last
+                                 wave had N failed devices
+                                 (dispatch.wave-gate-error-count; 0 off)
+  --wave-gate-error-percent N    The same at N percent of that wave's devices
+                                 (dispatch.wave-gate-error-percent; 0 off)
+  --wave-delay DURATION          A pause between waves
+                                 (dispatch.wave-gate-timed-delay; 0s none)
   --continue-device-on-error     Do not stop later commands after a device error
   --no-daemon                    Execute in the client process
   --nof                          No output files: run and display, create no job
@@ -389,8 +424,7 @@ Options:
                                  Who selects TARGET's address: the client at
                                  planning (default) or the daemon at prepare;
                                  repeatable, TARGET names a device of the set
-  --ssh-host-key-policy accept-new|secure|insecure
-  --ssh-known-hosts-file PATH|auto
+`+hostKeyPolicyHelp+`  --ssh-known-hosts-file PATH|auto
                                  Unified karvi trust store
   --format text|jsonl|json       Text (default), compact JSON Lines, or an
                                  indented JSON array for human inspection
@@ -466,8 +500,7 @@ Options:
   --port N                       Destination port
   --transport SELECTOR           Default resolves to system; the interactive
                                  implementation requires a system-compatible slot
-  --ssh-host-key-policy accept-new|secure|insecure
-  --ssh-known-hosts-file PATH|auto
+` + hostKeyPolicyHelp + `  --ssh-known-hosts-file PATH|auto
                                  Unified karvi trust store
   --record[=PATH], --rec[=PATH]  Record the session; PATH only with = (a path
                                  as the next word is refused)
@@ -484,11 +517,6 @@ Options:
   --debug                        Safe transport, resolution, and timing diagnostics
   --help, --h                    Show this help
   Specified, not yet available:  --ssh-option KEY=VALUE
-
-Host-key modes:
-  accept-new  Accept and persist a new key; reject a changed key (default)
-  secure      Require a matching pre-enrolled key before access
-  insecure    Accept unknown or changed keys; emit prominent warnings
 `
 
 const configHelp = `Usage:

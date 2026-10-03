@@ -137,3 +137,24 @@ func TestTitleTag(t *testing.T) {
 		t.Errorf("styled title: %q", got)
 	}
 }
+
+// TestIrregular: a line whose words are separated by two or more spaces
+// anywhere but at the description column is irregular; an entry, its long
+// form, a continuation, prose, and a gap at the column are not.
+func TestIrregular(t *testing.T) {
+	text := `Heading:
+  --one VALUE                    An entry
+  --a-long-option-list VALUE --other VALUE
+                                 Its description under it
+  A prose line with single spaces.
+  Specified, not yet available:  --pending VALUE
+Modes:
+  first       A table of its own
+  second      Another row
+`
+	got := Irregular(text)
+	want := []string{"  first       A table of its own", "  second      Another row"}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("Irregular = %q, want %q", got, want)
+	}
+}
