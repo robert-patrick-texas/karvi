@@ -1,0 +1,122 @@
+.\" karvi-askpass(1): the askpass helper's manual page, written by hand; the
+.\" helper takes no flags, so no region is generated. The behaviour it
+.\" states is internal/askpass's.
+.TH KARVI-ASKPASS 1 "" "karvi"
+.\" Paths and names are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-askpass \- deliver one credential field from karvi to OpenSSH
+.SH SYNOPSIS
+.B karvi\-askpass
+.RI [ PROMPT ]
+.PP
+.BR ssh (1)
+runs it for karvi; an operator does not.
+.SH DESCRIPTION
+When karvi opens a device session through its system transport, it starts
+.B ssh
+with
+.B SSH_ASKPASS
+naming this helper and
+.B SSH_ASKPASS_REQUIRE=force
+in the environment, and
+.B ssh
+runs the helper with its prompt as the one argument whenever it needs an
+answer.
+The helper sends the one\-use token from
+.B KARVI_ASKPASS_TOKEN
+and the prompt to the broker karvi holds open at the socket
+.BR KARVI_ASKPASS_SOCKET ,
+and writes the one answer and a newline to standard output, which
+.B ssh
+reads.
+.PP
+The broker classifies the prompt as a username, a password, an enable
+password, or a host\-key question, and answers with the credential field
+karvi resolved for the session, or with
+.B yes
+to the host\-key question, karvi's host\-key policy having decided it
+already.
+Any other prompt is refused.
+.PP
+Run by hand, without the two variables, the helper prints nothing and
+exits 2.
+.PP
+karvi finds the helper at
+.B KARVI_ASKPASS_PATH
+when that names a regular file, else beside the
+.B karvi
+executable
+.RB ( karvi\-askpass ,
+or
+.B karvi\-askpass\-linux\-amd64
+in a release tree), else on
+.BR PATH .
+.SH ENVIRONMENT
+.TP
+.BR KARVI_ASKPASS_SOCKET ", " KARVI_ASKPASS_TOKEN
+The broker's socket and the session's one\-use token; karvi sets them for
+the one
+.B ssh
+process.
+.TP
+.B KARVI_ASKPASS_PATH
+The helper's path; karvi reads it, and the daemon's launcher passes it
+through the environment filter that keeps an operator's shell secrets out
+of the daemon.
+.SH SECURITY
+The token is 32 random bytes, compared in constant time.
+The socket is mode 0600 in the operator's scratch directory.
+The broker accepts one connection per session, then closes and removes
+the socket; it waits at most five minutes for that connection, and the
+exchange is bounded to ten seconds.
+Both sides wipe their copy of the secret.
+The broker refuses with
+.B askpass_auth_failed
+(a wrong token),
+.B askpass_request_invalid
+(a request it cannot decode),
+.B askpass_prompt_unrecognized
+(a prompt it does not classify), and
+.BR askpass_username_unset ,
+.BR askpass_password_unset ,
+or
+.B askpass_enable_password_unset
+(a field the session did not resolve).
+.SH EXIT STATUS
+.TP
+.B 0
+The answer was written.
+.TP
+.B 2
+The socket or the token is not set.
+.TP
+.B 3
+The socket was not reached within five seconds.
+.TP
+.B 4
+The request was not sent.
+.TP
+.B 5
+No answer came, or the broker refused.
+.TP
+.B 6
+The answer was not written.
+.SH FILES
+.TP
+.I askpass\-*.sock
+The broker's socket, in the scratch directory
+.RB ( tempdir ;
+.I /dev/shm/karvi/USER
+first in its
+.B auto
+chain).
+.SH SEE ALSO
+.BR karvi\-prune (8),
+.BR ssh (1);
+.I docs/OPERATIONS.md
+"Daemon environment" and
+.I docs/ARCHITECTURE.md
+in the karvi source.

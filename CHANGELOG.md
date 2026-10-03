@@ -102,6 +102,11 @@
   when read. The execution plan's collection block carries the word that
   asked (`crun`, `run`, or `command`), at plan schema 10; a schema-9 plan
   or daemon is refused.
+- **A manual page for `karvi-askpass`.** `packaging/man/karvi-askpass.1`,
+  installed as `/usr/share/man/man1/karvi-askpass.1`: what the helper is,
+  that `ssh` runs it for karvi and an operator does not, how karvi finds
+  it, its environment, its one-use token and socket, and its exits; the
+  groff lint now covers every page.
 - **A manual page for `karvi-prune`.** `packaging/man/karvi-prune.8`,
   installed by the debian rules as `/usr/share/man/man8/karvi-prune.8`,
   is the terminal reference: what goes and never goes, the flags, where it

@@ -1418,5 +1418,39 @@ order; the page or the guide pointing to the other for the rules; a
 version or a date in `.TH`; a colour flag on the helper; reading
 `display.*` in the helper.
 
-**Roadmap.** `karvi.1` and `karvi-askpass.1` in the same form, their
-option sections from the help constants.
+**Roadmap.** `karvi.1` in the same form, its option sections from the
+help constants, in the next session; `karvi-askpass.1` followed in this
+one (item 6 below).
+
+6. *`karvi-askpass.1`.* The operator asked for a simple page for the
+   askpass helper, `karvi.1` left for the next session. Executed: run by
+   hand, with or without `--help`, the helper prints nothing and exits 2.
+   Agreed: a page written by hand alone (NAME, SYNOPSIS, DESCRIPTION,
+   ENVIRONMENT, SECURITY, EXIT STATUS, FILES, SEE ALSO), the helper taking
+   no flags so no region is generated; the groff lint over every page in
+   `packaging/man/`; one install line to `man1`; the executable unchanged.
+   Not taken: a `--help` on the helper. Built in one section:
+
+   ```text
+   $ man -l packaging/man/karvi-askpass.1
+   KARVI-ASKPASS(1)            General Commands Manual           KARVI-ASKPASS(1)
+   NAME
+          karvi-askpass - deliver one credential field from karvi to OpenSSH
+   SYNOPSIS
+          karvi-askpass [PROMPT]
+
+          ssh(1) runs it for karvi; an operator does not.
+   …
+   EXIT STATUS
+          0      The answer was written.
+          2      The socket or the token is not set.
+   …
+   $ man -M ROOT/usr/share/man -w karvi-askpass karvi-prune     # after the rules' lines and gzip
+   ROOT/usr/share/man/man1/karvi-askpass.1.gz
+   ROOT/usr/share/man/man8/karvi-prune.8.gz
+   ```
+
+   The page's claims were read against `internal/askpass` and the system
+   transport: one broker per session open, one accepted connection, a
+   five-minute wait and a ten-second exchange, a five-second dial; the lint
+   was shown to fail on a page with an undefined macro.

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -61,14 +62,21 @@ func TestEscape(t *testing.T) {
 	}
 }
 
-// TestPageLints: groff reads the committed page without a warning.
+// TestPageLints: groff reads every page in packaging/man without a
+// warning, the hand-written ones as well as the generated ones.
 func TestPageLints(t *testing.T) {
 	groff, err := exec.LookPath("groff")
 	if err != nil {
-		t.Skip("groff is not on the path; the page is not linted")
+		t.Skip("groff is not on the path; the pages are not linted")
 	}
-	out, err := exec.Command(groff, "-man", "-Tutf8", "-ww", "-z", page).CombinedOutput()
-	if err != nil || strings.TrimSpace(string(out)) != "" {
-		t.Fatalf("groff: %v\n%s", err, out)
+	pages, _ := filepath.Glob("../../packaging/man/*.[1-8]")
+	if len(pages) == 0 {
+		t.Fatal("no page in packaging/man")
+	}
+	for _, p := range pages {
+		out, err := exec.Command(groff, "-man", "-Tutf8", "-ww", "-z", p).CombinedOutput()
+		if err != nil || strings.TrimSpace(string(out)) != "" {
+			t.Errorf("groff %s: %v\n%s", filepath.Base(p), err, out)
+		}
 	}
 }

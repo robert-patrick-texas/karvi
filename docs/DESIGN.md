@@ -1477,6 +1477,17 @@ wrong from the day after its release until it is edited. *Not taken:* the
 version and date edited at each release; a build step stamping them (no
 release date exists in the packaging until it has a `debian/changelog`).
 
+**A helper without flags has a page written by hand alone.**
+`packaging/man/karvi-askpass.1` (`.TH KARVI-ASKPASS 1 "" "karvi"`, `.nh`, `AD l`)
+states what the helper is, that `ssh` runs it and an operator does not, how
+karvi finds it, its environment, its security, its exits, and its socket; no
+region is generated, and `tools/mangen` does not read it. The groff lint covers
+every page in `packaging/man/`, and the debian rules install it to
+`/usr/share/man/man1/`. The executable is unchanged: started without its
+environment it prints nothing and exits 2, as OpenSSH needs of a helper.
+*Why:* an administrator who meets the executable learns from the page what it
+is. *Not taken:* a `--help` on the helper.
+
 ## 17. What this document is not
 
 It is not the operator's how (`docs/OPERATIONS.md` and the guides), not the
