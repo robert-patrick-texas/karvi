@@ -69,7 +69,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	defer release()
 	draft := planner.DraftOptions{
 		ActivityType: "command", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations,
-		Transport: opts.Transport, ContinueDeviceOnError: opts.ContinueDeviceOnError,
+		Transport: opts.Transport, ContinueDeviceOnError: opts.ContinueDeviceOnError, Collection: opts.Collection,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: true,
 		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { warning(streams.Stderr, s) }},
 		Warn:    func(s string) { warning(streams.Stderr, s) },

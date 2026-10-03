@@ -92,8 +92,8 @@ karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder
 It renders the job from its beginning as the foreground run would have,
 live until the job ends or at once for a job that has ended, ends the
 display as a run's ends (the footer from the job's summary in text, the
-summary document as the last line under `jsonl`; no result line on
-standard error, a `crun` excepted), and exits with the job's own exit (0
+summary document as the last line under `jsonl`, a collection's line
+after the footer in text; no result line on standard error), and exits with the job's own exit (0
 completed, 113 cancelled, 106 incomplete). Under `jsonl` the output is the
 job's `commands.jsonl` byte for byte, then its summary. The daemon serves the job while it holds it;
 a finished job the daemon no longer holds (after a restart, or evicted from
@@ -815,8 +815,9 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   hidden temporary and renamed into place when every one of its commands
   came back, a rejected statement included (its error text is the
   block); a device not reached, timed out, halted, or cancelled keeps its
-  previous file and leaves nothing behind. The result line ends with
-  `collection=DIR replaced=N kept=M`, the summary's `collection` block
+  previous file and leaves nothing behind. The text display ends, after
+  the footer, with `! collection=DIR replaced=N kept=M`
+  (`display.collection.footer`), the summary's `collection` block
   names each device's file and outcome, and `failed-devices.txt` is the
   rerun as for any run. A `crun` runs a device's whole list past a
   rejected statement.
@@ -867,13 +868,24 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   `packaging/systemd/user/karvi-daemon.service.d/crun.conf.example` is
   that file. `crun --no-daemon` runs in the client process and needs
   nothing of the unit.
+- **`run` and `command` with `--cd=PATH`** write the same file, beside
+  their usual job folder (`output.NAME.txt` included), for an operator's
+  capture: unfiltered (`crun-filters` are `crun`'s), replaced only when
+  the device succeeds, `--continue-device-on-error` their own (without
+  it a rejected statement keeps the previous file), the display ending
+  with the same collection line, no hook, the watch screen showing `run`
+  or `cmd`; `docs/COLLECTION.md` section 1.1. Through the daemon the
+  directory meets the unit's sandbox as a `crun`'s does (above): a home
+  directory is refused, and a path under `/tmp` would land in the
+  daemon's private `/tmp`, so `--no-daemon` or the drop-in serves a
+  capture there; `command` runs in the client process and meets neither.
 - **The hook.** `crun.after` names an executable the client runs once the
-  collection has ended and the result line is printed, on the in-process
+  collection has ended and its display is printed, on the in-process
   path and through the daemon alike, never for `--detach`: in the
   collection directory, the replaced files' names on stdin one per line,
   and `KARVI_JOB_ID`, `KARVI_JOB_DIR`, `KARVI_CRUN_DIRECTORY`,
   `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT`, and `KARVI_EXIT` in its
-  environment; its output follows the result line on stderr. A hook that
+  environment; its output follows the display on stderr. A hook that
   fails, cannot start, or runs past `crun.after-timeout` (`5m`) is the
   warning `crun_after_failed`, the run's exit code unchanged, and the
   audit holds a `crun.after` event either way. The shipped examples under

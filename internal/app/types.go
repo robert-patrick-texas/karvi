@@ -45,6 +45,7 @@ type CommandOptions struct {
 	DynamicBorder         bool                          `json:"dynamic_border"`
 	NoBorder              bool                          `json:"no_border"`
 	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
+	Collection            string                        `json:"collection,omitempty"` // command given --cd: the plan carries the collection
 }
 
 // RunOptions is safe to submit to the same-UID daemon. It deliberately carries
@@ -73,7 +74,7 @@ type RunOptions struct {
 	WaveDelay             time.Duration                 `json:"wave_delay,omitempty"`
 	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
 	PlatformCommands      bool                          `json:"platform_commands,omitempty"` // crun with no command: each device its platform's crun-commands (12.9)
-	Collection            bool                          `json:"collection,omitempty"`        // crun: the plan carries the collection directory and file mode (12.7)
+	Collection            string                        `json:"collection,omitempty"`        // crun, or run given --cd: the word; the plan carries the collection directory, file mode, and word
 	Transport             string                        `json:"transport,omitempty"`
 	Format                string                        `json:"format"`
 	Echo                  bool                          `json:"echo"`

@@ -50,6 +50,7 @@ type recordRenderer struct {
 	formatter            display.Formatter
 	headerTemplate       string
 	footerTemplate       string
+	collectionTemplate   string // display.collection.footer, after the footer for a job with a collection
 	border               string
 	activityID           string
 	artifact             string
@@ -127,7 +128,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 		out: out, format: format, stripANSI: strip, quiet: quiet, debug: debug, pingTemplate: cfg.String("display.ping.header"), echo: echo, activityType: activityType,
 		colorEnabled: style.Enabled, lineStyle: style, borderColor: DisplayBorderColor(cfg),
 		dynamicBorderColor: DisplayDynamicBorderColor(cfg),
-		formatter:          formatter, headerTemplate: headerTemplate, footerTemplate: footerTemplate, border: border,
+		formatter:          formatter, headerTemplate: headerTemplate, footerTemplate: footerTemplate, collectionTemplate: cfg.String("display.collection.footer"), border: border,
 		activityID: activityID, artifact: artifact, terminalWidth: terminalWidth,
 		dynamicBorder: dynamicBorder, noBorder: noBorder, lastBorder: lastBorder, dynamicBorderDefault: dynamicDefault,
 		jsonIndent: cfg.Int("display.json.indent"), requested: map[string]int{}, sessionInit: map[string]int{}, seenDevices: map[string]bool{}, errors: map[string]int{},
@@ -490,9 +491,11 @@ func (a *ansiStripper) flush() error {
 }
 
 // WriteFooter renders the invocation-level command footer after all command
-// records have been emitted. JSONL output is never decorated; JSON output is a
-// valid indented array for human inspection.
-func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Duration) error {
+// records have been emitted, then, for a job with a collection, the
+// collection's line (display.collection.footer) directly after it, on the
+// same stream. JSONL output is never decorated; JSON output is a valid
+// indented array for human inspection.
+func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Duration, collection *records.CollectionSummary) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.err != nil {
@@ -519,7 +522,7 @@ func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Dur
 		r.pendingBorder = ""
 		r.pendingBorderColor = ""
 	}
-	if r.err != nil || r.quiet || r.footerTemplate == "" {
+	if r.err != nil || r.quiet {
 		return r.err
 	}
 	values := r.lastValues
@@ -530,13 +533,25 @@ func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Dur
 	values.Artifacts = r.artifact
 	values.Status = strings.ToLower(strings.TrimPrefix(exitcode.ExitName(code), "Exit"))
 	values.Elapsed = elapsed
-	lines, err := r.formatter.RenderStyledLines(r.footerTemplate, values, r.lineStyle, r.terminalWidth)
-	if err != nil {
-		return err
-	}
 	var data []byte
-	for _, line := range lines {
-		data = appendLine(data, line)
+	templates := []string{r.footerTemplate}
+	if collection != nil {
+		values.Collection = collection.Directory
+		values.Replaced = collection.Replaced
+		values.Kept = collection.Kept
+		templates = append(templates, r.collectionTemplate)
+	}
+	for _, template := range templates {
+		if template == "" {
+			continue
+		}
+		lines, err := r.formatter.RenderStyledLines(template, values, r.lineStyle, r.terminalWidth)
+		if err != nil {
+			return err
+		}
+		for _, line := range lines {
+			data = appendLine(data, line)
+		}
 	}
 	r.write(data)
 	return r.err
@@ -755,9 +770,9 @@ func (r *recordRenderer) finish(summary *records.Summary) error {
 		r.mu.Lock()
 		r.footerTemplate = ""
 		r.mu.Unlock()
-		return r.WriteFooter(time.Time{}, 0, 0)
+		return r.WriteFooter(time.Time{}, 0, 0, nil)
 	}
-	return r.WriteFooter(summary.EndedAt, summary.ExitCode, time.Duration(summary.DurationNS))
+	return r.WriteFooter(summary.EndedAt, summary.ExitCode, time.Duration(summary.DurationNS), summary.Collection)
 }
 
 // SummaryLine is the summary as one JSONL line, the stream's last under

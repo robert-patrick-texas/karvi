@@ -221,7 +221,13 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 			if len(candidate.commands) == 0 {
 				probe = append(probe, "--cmd", "probe")
 			}
-			if _, err := Parse(probe); err != nil {
+			probed, err := Parse(probe)
+			if err == nil {
+				// The collection options' values are checked as the line
+				// is read, so a bad one never stays in the draft.
+				err = collectionOptionsError(probed)
+			}
+			if err != nil {
 				fmt.Fprintf(stderr, "stream line %d dropped: %s\n", n, errorcodes.Message(err))
 				continue
 			}

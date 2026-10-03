@@ -25,7 +25,7 @@ file bin/karvi-prune-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 2'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"daemon_ipc_schema_version": 10'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"job_schema_version": 2'
-./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 23'
+./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 24'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  system: external (id=system, linkage=external-executable)$'
 # The shipped executable is the native one. (This line was once a bare

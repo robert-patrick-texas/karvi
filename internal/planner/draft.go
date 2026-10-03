@@ -52,11 +52,13 @@ type DraftOptions struct {
 	// PlatformCommands makes the plan carry each target platform's
 	// crun-commands list when Commands is empty; a platform without a
 	// list refuses the draft.
-	// Collection makes the plan's output carry the collection sub-block:
-	// crun.directory resolved, crun.file-mode. Both are
-	// what the crun word sets.
+	// Collection is the word that asks for a collection (crun, or run or
+	// command given --cd), empty for none: the plan's output then carries
+	// the collection sub-block, crun.directory resolved, crun.file-mode,
+	// and the word. A crun's collection replaces output.NAME.txt and
+	// takes its platforms' crun-filters; another word's does neither.
 	PlatformCommands bool
-	Collection       bool
+	Collection       string
 	// BlindReturns is empty or one count per command, the client's
 	// interpretation of the trailing \r escapes and --blind-return
 	// flags. Blind is empty or one flag per
@@ -193,7 +195,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		}
 	}
 	var filters map[string][]string
-	if opts.Collection {
+	if opts.Collection == "crun" {
 		filters = platformFilterLists(targets, cfg.NamedTables("platform"))
 	}
 	plan := executionplan.ExecutionPlan{
@@ -327,15 +329,19 @@ func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts
 	}
 	files := outputFiles(cfg)
 	var collection *executionplan.CollectionSettings
-	if opts.Collection {
-		// The collection file is the text rendered once more,
-		// so a crun writes no output.NAME.txt whatever the switch says.
-		files.OutputTxt = false
+	if opts.Collection != "" {
+		if opts.Collection == "crun" {
+			// The collection file is the text rendered once more, so a
+			// crun writes no output.NAME.txt whatever the switch says; a
+			// run's folder stays as it is without --cd, since a kept
+			// collection file is the previous one.
+			files.OutputTxt = false
+		}
 		dir, err := osutil.ResolveCrunDirectory(cfg.String("crun.directory"), cfg.String("sharedroot"), base, operator.Home)
 		if err != nil {
 			return executionplan.OutputSettings{}, errorcodes.Ensure(err, "crun_directory_unavailable")
 		}
-		collection = &executionplan.CollectionSettings{Directory: dir, FileMode: cfg.String("crun.file-mode")}
+		collection = &executionplan.CollectionSettings{Directory: dir, FileMode: cfg.String("crun.file-mode"), Word: opts.Collection}
 	}
 	return executionplan.OutputSettings{
 		Format: format, Echo: opts.Echo || cfg.Bool(echoKey), DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: opts.Follow,

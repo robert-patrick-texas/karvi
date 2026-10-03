@@ -28,8 +28,9 @@ import (
 // the header's validator requires and a schema 4 daemon refuses.
 // Version 6 output.crop_to_dot, 7 the platform command lists and the
 // collection sub-block, 8 sources.inputs and commands_file for
-// the scoreboard.
-const SchemaVersion = 9
+// the scoreboard, 10 the collection's word, since run and command
+// collect too.
+const SchemaVersion = 10
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -241,23 +242,34 @@ type OutputSettings struct {
 	// first label, so a job's files are named as its invocation said on
 	// every path.
 	CropToDot bool `json:"crop_to_dot"`
-	// Collection is present for a crun (schema 7): the resolved
-	// collection directory and the file
-	// mode, decided by the invocation and carried to whoever runs the job.
+	// Collection is present for a crun, and for a run or command given
+	// --cd (schema 7, its word schema 10): the resolved collection
+	// directory, the file mode, and the word that asked, decided by the
+	// invocation and carried to whoever runs the job.
 	Collection *CollectionSettings `json:"collection,omitempty"`
 }
 
 // CollectionSettings is the output block's collection sub-block: Directory
 // is absolute (crun.directory resolved by the client), FileMode is
-// crun.file-mode as configured ("0640", "0644", or "0660").
+// crun.file-mode as configured ("0640", "0644", or "0660"), Word the
+// operator's word (crun, run, or command): the daemon receives every job
+// as a run, and a crun's hook, filters, and scoreboard mode are its own.
 type CollectionSettings struct {
 	Directory string `json:"directory"`
 	FileMode  string `json:"file_mode"`
+	Word      string `json:"word"`
 }
 
 // CollectionFileModes are the values crun.file-mode takes, the plan's
 // validator and the registry's enum in one place.
 var CollectionFileModes = []string{"0640", "0644", "0660"}
+
+// CollectionWords are the words that ask for a collection.
+var CollectionWords = []string{"crun", "run", "command"}
+
+// Crun reports whether the plan is a crun's: a collection its word asked
+// for as crun.
+func (o OutputSettings) Crun() bool { return o.Collection != nil && o.Collection.Word == "crun" }
 
 // CommandsFor is the command list a device of platform runs: its platform's
 // list when the plan holds one, else the plan's Commands.
@@ -509,8 +521,8 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 		}
 	}
 	for name, list := range p.PlatformFilters {
-		if p.Output.Collection == nil {
-			return planInvalid("platform_filters", "present without a collection")
+		if !p.Output.Crun() {
+			return planInvalid("platform_filters", "present without a crun's collection")
 		}
 		// Compiled here with the standard library alone (this package imports
 		// only inventory): the same regexp the platform's compiler uses.
@@ -529,6 +541,9 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 		}
 		if !slices.Contains(CollectionFileModes, c.FileMode) {
 			return planInvalid("output.collection.file_mode", "%q is not one of %s", c.FileMode, strings.Join(CollectionFileModes, ", "))
+		}
+		if !slices.Contains(CollectionWords, c.Word) {
+			return planInvalid("output.collection.word", "%q is not one of %s", c.Word, strings.Join(CollectionWords, ", "))
 		}
 	}
 	if err := p.validateBlindSends(); err != nil {

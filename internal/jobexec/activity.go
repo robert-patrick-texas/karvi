@@ -434,7 +434,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		if req.ActivityType == "run" && renderer.format == "jsonl" {
 			return renderer.finish(&recordSummary)
 		}
-		return renderer.WriteFooter(ended, exit, ended.Sub(now))
+		return renderer.WriteFooter(ended, exit, ended.Sub(now), recordSummary.Collection)
 	}
 	if err := endDisplay(); err != nil {
 		exit = exitcode.ExitOutputFailure
@@ -460,12 +460,6 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 				break
 			}
 		}
-	}
-	if !req.Quiet && req.ActivityType == "run" && plan.Output.Collection != nil {
-		// A run's display ends with its footer; a crun keeps its result
-		// line, which carries the collection's counts and precedes the
-		// hook (the record stays a run, the word is the operator's).
-		fmt.Fprintf(streams.Stderr, "crun %s exit=%s(%d) artifacts=%s%s\n", id, result.ExitName, result.ExitCode, shownArtifact, output.CollectionLabel(result.Summary.Collection))
 	}
 	return result
 }

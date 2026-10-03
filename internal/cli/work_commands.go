@@ -14,7 +14,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
-	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
 )
 
@@ -126,6 +125,31 @@ func checkBorders(inv *Invocation, w io.Writer) (int, bool) {
 	return checkExclusive(inv, w, "border_options_conflict", optBorder, optNoBorder)
 }
 
+// collectionOptionsError is the check of the collection options' values,
+// shared by the handlers and by stream mode when a line is read: a bare
+// --cd is refused, its PATH attaching with = alone.
+func collectionOptionsError(inv *Invocation) error {
+	if inv.Set(optCd) && inv.String(optCd) == "" {
+		return errorcodes.Errorf("cli_option_value_missing", "--cd takes its PATH with =: --cd=PATH (the next word may be a device)")
+	}
+	return nil
+}
+
+// collectionOptions applies --cd=PATH as crun.directory, a flag-origin
+// value as --of=PATH is output.root (a site that locks the key refuses
+// it), and returns the word that asks for a collection: a crun always,
+// a run or command given --cd, none otherwise.
+func collectionOptions(inv *Invocation, word string, flags map[string]any) string {
+	path := inv.String(optCd)
+	if path != "" {
+		flags["crun.directory"] = path
+	}
+	if word == "crun" || path != "" {
+		return word
+	}
+	return ""
+}
+
 // outputOptions applies --nof and --of[=PATH] as flag-origin configuration
 // values, so a site that locks a key refuses the option as it refuses any
 // other origin
@@ -156,6 +180,9 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkExclusive(inv, streams.Stderr, "output_options_conflict", optOf, optNof); !ok {
 		return code
 	}
+	if err := collectionOptionsError(inv); err != nil {
+		return reportError(streams.Stderr, errorcodes.Of(err), err)
+	}
 	inputs, code, ok := targetInputs(inv, streams)
 	if !ok {
 		return code
@@ -169,11 +196,12 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 		common.ConfigFlags["execution.blind-wait"] = inv.Duration(optBlindWait).String()
 	}
 	outputOptions(inv, common.ConfigFlags)
+	collection := collectionOptions(inv, "command", common.ConfigFlags)
 	format := inv.String(optFormat)
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), ContinueDeviceOnError: inv.Flag(optContinue)}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), ContinueDeviceOnError: inv.Flag(optContinue)}, streams)
 	printResultError(result, streams.Stderr)
 	return result.ExitCode
 }
@@ -317,14 +345,14 @@ func declarationLists(commands []string, decls []Declaration, literal bool) (dec
 
 func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	// The word: run, or crun, the collection run: the same handler with the
-	// collection switched on.
+	// collection switched on, as --cd switches it on for a run.
 	word := inv.Path
-	collect := word == "crun"
+	crun := word == "crun"
 	if code, ok := checkBorders(inv, streams.Stderr); !ok {
 		return code
 	}
-	if collect && inv.Set(optCd) && inv.String(optCd) == "" {
-		return usageError(streams.Stderr, "cli_option_value_missing", "--cd takes its PATH with =: --cd=PATH (the next word may be a device)")
+	if err := collectionOptionsError(inv); err != nil {
+		return reportError(streams.Stderr, errorcodes.Of(err), err)
 	}
 	if code, ok := checkExclusive(inv, streams.Stderr, "output_options_conflict", optOf, optNof); !ok {
 		return code
@@ -373,9 +401,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		common.ConfigFlags["execution.blind-wait"] = inv.Duration(optBlindWait).String()
 	}
 	outputOptions(inv, common.ConfigFlags)
-	if path := inv.String(optCd); collect && path != "" {
-		common.ConfigFlags["crun.directory"] = path
-	}
+	collection := collectionOptions(inv, word, common.ConfigFlags)
 	format := inv.String(optFormat)
 	if format == "" {
 		format = "text"
@@ -383,11 +409,12 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
 	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Dispatch: inv.String(optDispatch), Workers: inv.Int(optWorkers), StartWidth: inv.Int(optStartWidth), MaxWidth: inv.Int(optMaxWidth), HaltErrorCount: inv.Int(optHaltCount), HaltErrorPercent: inv.Int(optHaltPercent), WaveGateErrorCount: inv.Int(optGateCount), WaveGateErrorPercent: inv.Int(optGatePercent), WaveDelay: inv.Duration(optWaveDelay), ContinueDeviceOnError: inv.Flag(optContinue), Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
-	if collect {
+	opts.Collection = collection
+	if crun {
 		// A crun runs the device's whole list past a rejected statement;
 		// with no command on the line, each device runs its platform's
-		// list; the plan carries the collection.
-		opts.ContinueDeviceOnError, opts.Collection, opts.PlatformCommands = true, true, len(commands) == 0
+		// list. A run's --continue stays its own.
+		opts.ContinueDeviceOnError, opts.PlatformCommands = true, len(commands) == 0
 	}
 	// The rehearsal flags exclude one another, neither detaches, and an
 	// exercise needs a
@@ -431,8 +458,8 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		}
 		result := app.ExecuteRunLocal(ctx, opts, runStreams)
 		printResultError(result, streams.Stderr)
-		if collect {
-			// The hook after the result line.
+		if crun {
+			// The hook after the display's end, a crun's alone.
 			app.RunCollectionHook(ctx, common, result, streams.Stderr)
 		}
 		return result.ExitCode
@@ -452,16 +479,12 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	result := app.RunViaDaemon(ctx, opts, rt.Socket, rt.MaxFrame, ensure, streams)
 	if !common.Quiet && opts.Detach && result.JobID != "" && result.ExitCode == 0 {
 		fmt.Fprintf(streams.Stderr, "%s %s accepted artifacts=%s\n", word, result.JobID, app.ArtifactsLabel(result.ArtifactDir))
-	} else if !common.Quiet && result.JobID != "" && collect {
-		// A run's display ends with its footer, or the summary line in
-		// jsonl; a crun keeps its result line, which carries the
-		// collection's counts and precedes the hook.
-		fmt.Fprintf(streams.Stderr, "%s %s exit=%s(%d) artifacts=%s%s\n", word, result.JobID, result.ExitName, result.ExitCode, app.ArtifactsLabel(result.ArtifactDir), output.CollectionLabel(result.Summary.Collection))
 	}
 	printResultError(result, streams.Stderr)
-	if collect && !opts.Detach {
-		// The hook after the result line, on the daemon path as on the
-		// in-process one; a detached run has no client at its end (12.18).
+	if crun && !opts.Detach {
+		// The hook after the display's end (the footer and the collection
+		// line), on the daemon path as on the in-process one; a detached
+		// run has no client at its end.
 		app.RunCollectionHook(ctx, common, result, streams.Stderr)
 	}
 	return result.ExitCode

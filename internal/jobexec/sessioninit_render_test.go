@@ -51,7 +51,7 @@ func renderKinds(t *testing.T, activity string, quiet, echo bool, sets []string,
 	for _, rec := range recs {
 		r.OnRecord(rec)
 	}
-	if err := r.WriteFooter(time.Now(), 0, time.Second); err != nil {
+	if err := r.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
 	return out.String(), r

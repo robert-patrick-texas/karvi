@@ -47,6 +47,11 @@ type Values struct {
 	// A recorded login's transcript (display.record.header and
 	// display.record.footer): the file's path.
 	Transcript string
+	// A job's collection (display.collection.footer): the directory and
+	// how many devices' files were replaced and kept.
+	Collection string
+	Replaced   int
+	Kept       int
 }
 
 var allowedPlaceholders = map[string]bool{
@@ -56,6 +61,7 @@ var allowedPlaceholders = map[string]bool{
 	"status": true, "elapsed": true,
 	"rtt1": true, "rtt2": true, "result": true,
 	"transcript": true,
+	"collection": true, "replaced": true, "kept": true,
 }
 
 var repeatRE = regexp.MustCompile(`<repeat:([^:>]*)\:([0-9]+)>`)
@@ -391,6 +397,9 @@ func (f Formatter) placeholderValues(values Values) map[string]string {
 		"rtt2":         values.RTT2,
 		"result":       values.Result,
 		"transcript":   values.Transcript,
+		"collection":   values.Collection,
+		"replaced":     strconv.Itoa(values.Replaced),
+		"kept":         strconv.Itoa(values.Kept),
 	}
 }
 

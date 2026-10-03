@@ -13,7 +13,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
-	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -139,7 +138,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		signal.Ignore(syscall.SIGPIPE)
 		terminal, artifactDir, err := app.FollowJobRendering(ctx, g.common(), jobID, render, streams.Stdout, streams.Stderr)
 		if err == nil {
-			return jobFollowResult(g, streams, jobID, terminal.Outcome.ArtifactDir, terminal.Outcome.Summary, terminal.Outcome.ExitCode, terminal.Outcome.ExitName)
+			return jobFollowResult(g, streams, jobID, terminal.Outcome.ArtifactDir, terminal.Outcome.Summary, terminal.Outcome.ExitCode)
 		}
 		if ctx.Err() != nil {
 			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, artifactDir, "continues in the daemon"))
@@ -170,7 +169,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		if err != nil {
 			return reportError(streams.Stderr, "run_output_records_unreadable", err)
 		}
-		return jobFollowResult(g, streams, jobID, dir, summary, summary.ExitCode, summary.ExitName)
+		return jobFollowResult(g, streams, jobID, dir, summary, summary.ExitCode)
 	case app.JobDirectoryOrphaned:
 		return reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no summary and no running daemon holds the job (%v); the daemon that ran it is gone, or output.files.summary-json was false for the job", jobID, dir, daemonErr))
 	}
@@ -182,16 +181,13 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 }
 
 // jobFollowResult prints the cancelled line when the job ended cancelled
-// (records.Summary.CancelledBy, not the block alone), then a crun's result
-// line (a run's display ended with its footer or its summary line; a crun's
-// line carries the collection's counts), and returns the job's exit.
-func jobFollowResult(g globalOptions, streams app.IO, jobID, artifactDir string, summary records.Summary, exit int, exitName string) int {
+// (records.Summary.CancelledBy, not the block alone) and returns the job's
+// exit; the display ended with its footer and a collection's line, or its
+// summary line.
+func jobFollowResult(g globalOptions, streams app.IO, jobID, artifactDir string, summary records.Summary, exit int) int {
 	if !g.quiet {
 		if c := summary.CancelledBy(); c != nil {
 			fmt.Fprintln(streams.Stderr, app.CancelledLine(jobID, c.Reason, artifactDir))
-		}
-		if summary.Collection != nil {
-			fmt.Fprintf(streams.Stderr, "crun %s exit=%s(%d) artifacts=%s%s\n", jobID, exitName, exit, app.ArtifactsLabel(artifactDir), output.CollectionLabel(summary.Collection))
 		}
 	}
 	return exit

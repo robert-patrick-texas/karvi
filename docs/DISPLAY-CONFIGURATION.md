@@ -32,6 +32,9 @@ echo = false
 header = "! transcript=<transcript>"
 footer = "! transcript=<transcript>"
 
+[display.collection]
+footer = "! collection=<collection> replaced=<replaced> kept=<kept>"
+
 [display.json]
 indent = 2
 ```
@@ -42,13 +45,35 @@ indent = 2
 ends a run's text display on every path, the daemon follow, `--no-daemon`,
 `job follow`, and a finished job's replay, with the job's exit, elapsed
 time, and job folder from its summary; nothing ends a run on standard
-error (a `crun` keeps its result
-line for the collection's counts). Under `--format jsonl` the summary
+error. Under `--format jsonl` the summary
 document is the stream's last line instead, and `--format json` stays the
 records' array. An empty template disables either footer. With `cmd
 --nof`, or with all eight
 `output.files` keys false (`docs/OPERATIONS.md` "The job's output
 files"), `<artifacts>` is `none`.
+
+## The collection line
+
+`display.collection.footer` follows the footer of a job with a collection
+(`crun`, or `run` or `command` given `--cd`, `docs/COLLECTION.md`), on
+standard output directly after it, on every text path: `--no-daemon`, the
+daemon follow, `job follow`, and a finished job's replay. The default,
+`"! collection=<collection> replaced=<replaced> kept=<kept>"`, renders
+`<collection>` (the absolute collection directory), `<replaced>`, and
+`<kept>` (the devices whose files were replaced and kept) in the `value`
+role, the literals in the `label` role, as the footer is rendered:
+
+```text
+! exit=101 elapsed=900ms artifacts=/srv/karvi/jobs/261003/261003-103623-00
+! collection=/srv/configs replaced=1 kept=1
+```
+
+Under `--format json` and `--format jsonl` nothing is printed; the jsonl
+summary document and `summary.json` carry the `collection` block. An empty
+template prints no line, `--quiet` suppresses it, and a template that does
+not render refuses the configuration (`config_display_template_invalid`).
+It replaced the plain `crun JOB-ID exit=… collection=…` line on standard
+error.
 
 ## The ping line
 

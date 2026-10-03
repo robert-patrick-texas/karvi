@@ -202,10 +202,11 @@ var (
 	// --of is the device, and in run it may be device text, so a
 	// space-separated PATH could not be told from either.
 	optOf = &option{name: "of", kind: kindOptional, placeholder: "[=PATH]"}
-	// --cd=PATH names the collection directory of a crun for one invocation
-	// (crun.directory as a flag-origin value), = form only for the reason
-	// of --of: the next word may be a device.
-	// The handler refuses the bare form.
+	// --cd=PATH names the collection directory for one invocation
+	// (crun.directory as a flag-origin value): a crun's in place of the
+	// configured one, and on run and command the switch that writes a
+	// collection at all. = form only for the reason of --of: the next
+	// word may be a device. The handler refuses the bare form.
 	optCd = &option{name: "cd", kind: kindOptional, placeholder: "=PATH"}
 )
 
@@ -305,17 +306,17 @@ var commandTable = []*command{
 	{path: "login", word: "login", shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
 		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthority, optHelp}},
 	{path: "command", word: "command", aliases: []string{"cmd"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
-		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optBlindWait, optLiteral, optNof, optOf, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthority, optHelp}},
+		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optBlindWait, optLiteral, optNof, optOf, optCd, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthority, optHelp}},
 	{path: "run", word: "run", shape: shapeFreeform, help: runHelpText, options: runOptions},
 	// stream, or -, reads a run line by line from standard input: the
 	// lines carry run's options and the commands; the word itself takes
 	// --help alone.
 	{path: "stream", word: "stream", aliases: []string{"-"}, shape: shapePlain, options: []*option{optHelp}, help: func() string { return streamHelp }},
-	// crun, the collection run: a command word sharing run's option slice
-	// plus --cd=PATH, so every run
-	// option means on crun what it means on run and a new one reaches crun
-	// by construction; the handler is run's with the collection on.
-	{path: "crun", word: "crun", shape: shapeFreeform, textOptional: true, help: crunHelpText, options: append(append([]*option{}, runOptions...), optCd)},
+	// crun, the collection run: a command word sharing run's option slice,
+	// --cd=PATH among them, so every run option means on crun what it
+	// means on run and a new one reaches crun by construction; the handler
+	// is run's with the collection on.
+	{path: "crun", word: "crun", shape: shapeFreeform, textOptional: true, help: crunHelpText, options: runOptions},
 	{path: "daemon", word: "daemon", shape: shapePlain, options: []*option{optHelp}, help: func() string { return daemonHelp },
 		subs: []*command{
 			{path: "daemon start", word: "start", shape: shapePlain, options: []*option{optForeground, optStartTimeout, optHelp}, help: func() string { return daemonHelp }},
@@ -372,4 +373,4 @@ func lookupCommand(path string) *command {
 }
 
 // runOptions is run's option slice, shared with crun.
-var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthorityRun, optHelp}
+var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthorityRun, optHelp}

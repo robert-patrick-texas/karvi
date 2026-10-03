@@ -96,7 +96,9 @@ func draftOptions(commands []string) DraftOptions {
 // a template, replaced the boolean display.ping; the plan schema stays 9.
 // Re-pinned at registry 23: display.record.header and
 // display.record.footer were added; the plan schema stays 9.
-const goldenK03Draft = "1131f77f1cfc664e97b9a2a50aea7472ae56af1260136bfd467415d6b6cd5546"
+// Re-pinned at registry 24 and plan schema 10: display.collection.footer
+// was added and the collection's word entered the plan.
+const goldenK03Draft = "e0988f2f2066c1229eb4a520379e32f07f1214dd93fce3719c2b9a801e697a04"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -313,11 +315,12 @@ func TestCheckFileNames(t *testing.T) {
 // plan carries each target platform's list and the digest covers it; a
 // platform without a list refuses the draft naming it; with a command
 // the lists are not consulted; Collection fills the output's sub-block
-// from crun.directory (auto is <basedir>/crun) and crun.file-mode.
+// from crun.directory (auto is <basedir>/crun), crun.file-mode, and the
+// word, and a crun's alone turns output.NAME.txt off.
 func TestDraftPlatformCommands(t *testing.T) {
 	operator := credentials.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Home: t.TempDir()}
 	opts := draftOptions(nil)
-	opts.PlatformCommands, opts.Collection = true, true
+	opts.PlatformCommands, opts.Collection = true, "crun"
 	cfg := testConfig(t, `platform.generic.crun-commands=["show version", "show clock"]`, "crun.file-mode=\"0644\"")
 	draft, err := Draft(context.Background(), cfg, operator, k03Set(t), opts, plantest.DraftedAt)
 	if err != nil {
@@ -333,8 +336,11 @@ func TestDraftPlatformCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := draft.Output.Collection
-	if c == nil || !strings.HasSuffix(c.Directory, "/crun") || c.FileMode != "0644" {
+	if c == nil || !strings.HasSuffix(c.Directory, "/crun") || c.FileMode != "0644" || c.Word != "crun" {
 		t.Fatalf("collection: %+v", c)
+	}
+	if draft.Output.Files.OutputTxt {
+		t.Fatal("a crun's plan writes output.NAME.txt")
 	}
 	if !strings.HasPrefix(c.Directory, "/") {
 		t.Fatalf("the directory is not absolute: %s", c.Directory)
@@ -356,5 +362,18 @@ func TestDraftPlatformCommands(t *testing.T) {
 	draft, err = Draft(context.Background(), cfg, operator, k03Set(t), opts, plantest.DraftedAt)
 	if err != nil || !filepath.IsAbs(draft.Output.Collection.Directory) || filepath.Base(draft.Output.Collection.Directory) != "configs" || draft.Output.Collection.FileMode != "0660" {
 		t.Fatalf("an explicit directory: %v %+v", err, draft.Output.Collection)
+	}
+	// A run's or a command's collection (--cd): the word carried, the
+	// folder's output.NAME.txt kept as it is without one.
+	for _, word := range []string{"run", "command"} {
+		o := draftOptions(plantest.Commands[:1])
+		o.ActivityType, o.Collection = word, word
+		draft, err = Draft(context.Background(), cfg, operator, k03Set(t), o, plantest.DraftedAt)
+		if err != nil || draft.Output.Collection == nil || draft.Output.Collection.Word != word || !draft.Output.Files.OutputTxt {
+			t.Fatalf("%s's collection: %v %+v %+v", word, err, draft.Output.Collection, draft.Output.Files)
+		}
+		if err := draft.Validate(executionplan.Draft); err != nil {
+			t.Fatalf("%s's collection: %v", word, err)
+		}
 	}
 }

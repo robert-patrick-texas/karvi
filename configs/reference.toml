@@ -345,10 +345,11 @@ summary-json = true
 crop-to-dot = true
 
 [crun]
-# The collection directory of crun, one file per device named by the device: auto is the
-# shared crun tree under sharedroot when one exists, else <basedir>/crun; an explicit path is
-# resolved as output.root is (~ expanded, a relative path from the working directory).
-# --cd=PATH sets it for one invocation. Carried in the plan.
+# The collection directory, one file per device named by the device, of crun and of run or
+# command given --cd: auto is the shared crun tree under sharedroot when one exists, else
+# <basedir>/crun; an explicit path is resolved as output.root is (~ expanded, a relative path
+# from the working directory). --cd=PATH sets it for one invocation, and on run and command
+# asks for the collection. Carried in the plan.
 directory = "auto"
 # 0750, 0755, or 0770: the mode of the collection directory when karvi creates it. An existing
 # directory is left as it is in mode, group, and setgid bit; a shared one is made once by the
@@ -357,14 +358,14 @@ directory-mode = "0770"
 # 0640, 0644, or 0660: the mode of each collection file, applied to the temporary before the
 # rename, so the file appears at that mode and takes the directory's group under setgid.
 file-mode = "0660"
-# An executable the client runs once a crun has ended and its result line is printed, empty
-# for none: in the collection directory, with the replaced files' names on standard input one
-# per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR (empty under --nof),
-# KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACED, KARVI_CRUN_KEPT, and KARVI_EXIT; its output goes
-# to karvi's standard error after the result line. It runs on the in-process and the daemon
-# path alike, not under --detach; a hook that cannot start, exits non-zero, or runs past
-# crun.after-timeout is the warning crun_after_failed, and the run's exit code stands
-# (docs/COLLECTION.md).
+# An executable the client runs once a crun has ended and its display is printed (never after
+# a run or command given --cd), empty for none: in the collection directory, with the replaced
+# files' names on standard input one per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR
+# (empty under --nof), KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACED, KARVI_CRUN_KEPT, and
+# KARVI_EXIT; its output goes to karvi's standard error after the display. It runs on the
+# in-process and the daemon path alike, not under --detach; a hook that cannot start, exits
+# non-zero, or runs past crun.after-timeout is the warning crun_after_failed, and the run's
+# exit code stands (docs/COLLECTION.md).
 after = ""
 # 1s–1h. How long crun.after may run: on expiry the hook's process group is sent SIGTERM,
 # killed five seconds later if still there, and the warning crun_after_failed says it ran past
@@ -490,6 +491,16 @@ header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-b
 # duration, and job folder); empty disables it. Under --format jsonl the summary document is
 # the stream's last line instead, and nothing ends the run on standard error.
 footer = "! exit=<exit-code> elapsed=<elapsed> artifacts=<artifacts>"
+
+[display.collection]
+# One-line template after the footer of a job with a collection (crun, or run or command with
+# --cd), on standard output under --format text on every path: <collection> the absolute
+# collection directory, <replaced> and <kept> the devices whose files were replaced and kept.
+# Under json and jsonl nothing is printed (the summary carries the collection block). Empty
+# disables it.
+footer = "! collection=<collection> replaced=<replaced> kept=<kept>"
+
+[display.run]
 # Separator emitted between run command records. Default is one blank line. Newlines and
 # <repeat:TEXT:COUNT> are supported.
 border = "\n"

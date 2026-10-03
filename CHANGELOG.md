@@ -91,6 +91,27 @@
   start width over it `cpu_above_zone_at_floor`, where both had read
   `cpu_in_zone`; `metrics.json`'s `wave_decisions` carry the width before
   each decision, which had been 0.
+- **`--cd=PATH` on `run` and `command`.** A run or command given `--cd`
+  writes each device's collection file into PATH, in `crun`'s shape (a
+  `! COMMAND` marker before each command's output and nothing else),
+  unfiltered, replaced only when the device succeeds, its
+  `--continue-device-on-error` its own; the job folder is the run's,
+  `output.NAME.txt` included; `--nof` collects with no folder; no
+  `crun.after` hook runs and the watch screen shows `run` or `cmd`. In a
+  stream `--cd=PATH` is a line that stays, and a bare `--cd` is dropped
+  when read. The execution plan's collection block carries the word that
+  asked (`crun`, `run`, or `command`), at plan schema 10; a schema-9 plan
+  or daemon is refused.
+- **The collection line is a display template.** A job with a collection
+  ends its text display with `display.collection.footer`, default `!
+  collection=<collection> replaced=<replaced> kept=<kept>`, on standard
+  output directly after the footer and in its colors, on every path
+  (`--no-daemon`, the daemon follow, `job follow`, a replay); `--quiet` or
+  an empty template suppresses it. It replaces `crun`'s plain `crun
+  JOB-ID exit=… artifacts=… collection=…` line on standard error, which
+  was printed under every format: under json and jsonl nothing is printed
+  now, and the jsonl summary document and `summary.json` carry the
+  counts. The configuration registry moves from 23 to 24.
 - **An option that takes its value with `=` alone refuses a detached
   value.** `--of[=PATH]`, `--record[=PATH]`, and `--cd=PATH` are written
   alone or as `--NAME=VALUE`. A bare `--of` or `--record` followed by a

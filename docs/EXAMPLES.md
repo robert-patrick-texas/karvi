@@ -983,6 +983,17 @@ time:
    plain result line goes with it (breaking, accepted); the registry moves
    from 23 to 24. Not taken: the plain line kept beside the footer; a
    `<collection>` placeholder in the run footer.
+
+   Corrected when section A was begun: the rule had put the line on
+   standard error, but the footer is on standard output, on the
+   in-process and the daemon path alike (`2>/dev/null` kept the header,
+   the output, and the footer; `2>&1 >/dev/null` kept `crun`'s plain
+   line), and under `--format json` the footer is not printed either,
+   which the rule had not considered. The operator agreed: the line is
+   written by the footer's renderer to standard output directly after it,
+   under text alone, never under json or jsonl, accepting that a `crun`
+   under json or jsonl prints the counts nowhere but its summary. Not
+   taken: a plain counts line on standard error under json and jsonl.
 3. *What stays `crun`'s.* Executed: the watch screen showed MODE `crun`
    for every plan with a collection, since the daemon receives every job as
    a `run`, and `RunCollectionHook` ran for any result with a collection
@@ -1101,3 +1112,63 @@ stream line 3 dropped: cli_option_value_detached: --of takes its PATH with =: --
 No `x`, `y`, or `c` was made. A Go test of the transcript wrapper had
 written `login --record DIR --platform cisco_iosx r1`, the detached form;
 it now writes `--record=DIR`, which is what it meant.
+
+Section A, `--cd` on `run` and `command`, the lab build against the fake
+`r1` and `dead`, with `old r1` and `old dead` in the directory before:
+
+```text
+$ cd cap; karvi run --no-daemon --target r1 --target dead --cmd 'show clock' --cmd 'show version' --cd=.
+…
+! exit=101 elapsed=900ms artifacts=/tmp/nd.8Nm1/base/jobs/261003/261003-103623-00
+! collection=/tmp/nd.8Nm1/cap replaced=1 kept=1
+$ cat r1                                   # unfiltered: the uptime line kept
+! show clock
+*10:00:00.000 UTC Tue Sep 15 2026
+
+! show version
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+$ cat dead
+old dead
+$ ls …/261003-103623-00                    # the run's folder, output.NAME.txt kept
+commands.jsonl commands.txt failed-devices.txt failures.jsonl manifest.json metrics.json output.dead.txt output.r1.txt summary.json
+$ karvi run --no-daemon --target r1 --cmd 'show bogus' --cmd 'show clock' --cd=.
+! collection=/tmp/nd.8Nm1/cap replaced=0 kept=1
+$ karvi run --no-daemon --continue --target r1 --cmd 'show bogus' --cmd 'show clock' --cd=.
+! collection=/tmp/nd.8Nm1/cap replaced=1 kept=0      # r1: "! show bogus", the rejection, "! show clock", the clock
+$ karvi command --nof --cd=../cmdcap r1 show clock
+! exit=0 elapsed=815ms artifacts=none
+! collection=/tmp/nd.8Nm1/cmdcap replaced=1 kept=0
+$ karvi run --target r1 --cmd 'show clock' --cd=.          # through the daemon
+! exit=0 elapsed=669ms artifacts=…/261003-103639-00
+! collection=/tmp/nd.8Nm1/cap replaced=1 kept=0
+$ karvi job follow 261003-103640-00                         # a detached run's
+! exit=0 elapsed=672ms artifacts=…/261003-103640-00
+! collection=/tmp/nd.8Nm1/cap replaced=1 kept=0
+$ karvi crun --no-daemon --format jsonl … 2>&1 >/dev/null   # nothing on stderr
+$ printf -- '--target r1\n--no-daemon\n--cd\n--cd=.\nshow clock\n--go\n--end\n' | karvi stream
+stream line 3 dropped: cli_option_value_missing: --cd takes its PATH with =: --cd=PATH (the next word may be a device)
+…
+! collection=/tmp/nd.8Nm1/cap replaced=1 kept=0
+$ karvi --set display.color=always run … --cd=. | tail -2 | cat -v
+^[[34m! exit=^[[0m^[[37m0^[[0m^[[34m elapsed=^[[0m^[[37m682ms^[[0m^[[34m artifacts=^[[0m^[[37m…^[[0m
+^[[34m! collection=^[[0m^[[37m/tmp/nd.8Nm1/cap^[[0m^[[34m replaced=^[[0m^[[37m1^[[0m^[[34m kept=^[[0m^[[37m0^[[0m
+$ karvi watch --format table
+  JOB-ID            TIME      STATUS      OPERATOR  MODE        DONE   FAIL  ACTV  TARGET
+  261003-103642-00  10:36:42  completed   netops    crun        1/1       0     0  r1
+  261003-103639-00  10:36:40  completed   netops    run         1/1       0     0  r1
+  261003-103631-00  10:36:32  completed   netops    cmd         1/1       0     0  r1
+```
+
+The native suite's S33 had asserted `crun`'s plain line on standard error
+under jsonl; it now reads the counts from the stream's summary document,
+and the new S34 asserts the run's file, folder, kept device, rejected
+statement both ways, the line after the footer on both paths, and that
+only a `crun` runs the hook. The packaged cron script and timer run
+`crun --format jsonl`, so their mail carries the summary document's
+counts where it carried the plain line.
+
+One consequence surfaced while building, and the operator agreed to it:
+`--cd` is `crun.directory` as a flag-origin value on every word, as
+`--of=PATH` is `output.root`, so a site that locks `crun.directory`
+refuses `run --cd` and `command --cd` as it refuses `crun --cd`.

@@ -394,7 +394,9 @@ file replaced only when every command of the device came back, so a
 device not reached keeps its previous file. With no command on the line
 each device is sent its platform's `crun-commands` list. It takes every
 `run` option; the job folder is written as for any run, without
-`output.NAME.txt`; the result line counts the files replaced and kept.
+`output.NAME.txt`; the display ends with a line counting the files
+replaced and kept. `run` and `command` given `--cd=PATH` write the same
+file, unfiltered, beside their usual job folder.
 A platform's `crun-filters` drop the output lines that change at every
 collection without the device having changed (the byte count, the clock
 period, the uptime, the time of the show) from the collection file alone,

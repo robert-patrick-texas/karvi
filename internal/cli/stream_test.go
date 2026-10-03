@@ -20,7 +20,8 @@ import (
 // line as the word and the rest of the line; a command line as written,
 // with its declarations after it; a line the parser refuses reported by
 // its number and dropped (--typo, a declaration before any command);
-// --cf - refused; --of with its path after a space refused and dropped;
+// --cf - refused; --of with its path after a space refused and dropped, a
+// bare --cd dropped when read, --cd=PATH an option that stays;
 // --go executing the draft and clearing the commands
 // alone; --sendit the same; --reset clearing everything; --end leaving
 // without executing what follows or what is drafted; the exit the last
@@ -46,6 +47,8 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 		`\r`,
 		"--cf -",
 		"--of /tmp/x",
+		"--cd",
+		"--cd=/tmp/c",
 		"--go",
 		"show ip route",
 		"--sendit",
@@ -62,19 +65,19 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 		t.Errorf("exit %d, want the last job's %d", got, exitcode.ExitPartialFailure)
 	}
 	want := [][]string{
-		{"run", "--target", "router1", "--tl", "r2,r3", "--dispatch", "parallel", "--cmd", "show clock", "--expect", "confirm=y", "--cmd", `  show version\r`, "--cmd", `\r`},
-		{"run", "--target", "router1", "--tl", "r2,r3", "--dispatch", "parallel", "--cmd", "show ip route"},
+		{"run", "--target", "router1", "--tl", "r2,r3", "--dispatch", "parallel", "--cd=/tmp/c", "--cmd", "show clock", "--expect", "confirm=y", "--cmd", `  show version\r`, "--cmd", `\r`},
+		{"run", "--target", "router1", "--tl", "r2,r3", "--dispatch", "parallel", "--cd=/tmp/c", "--cmd", "show ip route"},
 	}
 	if !reflect.DeepEqual(runs, want) {
 		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
 	}
-	for _, m := range []string{"stream line 7 dropped: ", "stream line 8 dropped: ", "stream line 13: standard input is the stream; --cf - is not accepted", "stream line 14 dropped: cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x"} {
+	for _, m := range []string{"stream line 7 dropped: ", "stream line 8 dropped: ", "stream line 13: standard input is the stream; --cf - is not accepted", "stream line 14 dropped: cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x", "stream line 15 dropped: cli_option_value_missing: --cd takes its PATH with =: --cd=PATH"} {
 		if !strings.Contains(stderr.String(), m) {
 			t.Errorf("stderr lacks %q:\n%s", m, stderr.String())
 		}
 	}
-	if strings.Count(stderr.String(), "\n") != 4 {
-		t.Errorf("stderr has lines beyond the four reports:\n%s", stderr.String())
+	if strings.Count(stderr.String(), "\n") != 5 {
+		t.Errorf("stderr has lines beyond the five reports:\n%s", stderr.String())
 	}
 }
 

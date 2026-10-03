@@ -56,7 +56,7 @@ func TestRendererStreamsASpooledRecordInEveryFormat(t *testing.T) {
 						t.Fatal(err)
 					}
 					r.OnRecordFrom(rec, src)
-					if err := r.WriteFooter(time.Time{}, 0, 0); err != nil {
+					if err := r.WriteFooter(time.Time{}, 0, 0, nil); err != nil {
 						t.Fatal(err)
 					}
 					if err := r.Error(); err != nil {

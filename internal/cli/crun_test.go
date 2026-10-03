@@ -11,9 +11,9 @@ import (
 )
 
 // TestCrunWordParses covers the crun word at the parser: crun is a word
-// sharing run's options plus --cd=PATH,
-// abbreviated cr, needing no command text; a bare --cd is refused by the
-// handler; c stays ambiguous.
+// sharing run's options, --cd=PATH among them (run and command take it
+// too), abbreviated cr, needing no command text; a bare --cd is refused by
+// the handler; c stays ambiguous.
 func TestCrunWordParses(t *testing.T) {
 	inv, err := Parse([]string{"crun", "--all"})
 	if err != nil || inv.Path != "crun" || len(inv.Commands) != 0 || len(inv.Targets) != 1 {
@@ -23,8 +23,11 @@ func TestCrunWordParses(t *testing.T) {
 	if err != nil || inv.Path != "crun" || inv.String(optCd) != "/srv/karvi/crun" || len(inv.Commands) != 1 {
 		t.Fatalf("cr with --cd=PATH: %v %+v", err, inv)
 	}
-	if _, err := Parse([]string{"run", "--all", "--cd=/x", "show", "version"}); errorcodes.Of(err) != "cli_option_unknown" {
-		t.Fatalf("run has no --cd: %v", err)
+	if inv, err := Parse([]string{"run", "--all", "--cd=/x", "show", "version"}); err != nil || inv.String(optCd) != "/x" {
+		t.Fatalf("run --cd=PATH: %v", err)
+	}
+	if inv, err := Parse([]string{"command", "--cd=/x", "r1", "show", "version"}); err != nil || inv.String(optCd) != "/x" {
+		t.Fatalf("command --cd=PATH: %v", err)
 	}
 	if _, err := Parse([]string{"run", "--all"}); errorcodes.Of(err) != "cli_command_text_missing" {
 		t.Fatalf("run still needs its text: %v", err)
@@ -36,13 +39,16 @@ func TestCrunWordParses(t *testing.T) {
 		if c.path != "crun" {
 			continue
 		}
-		if len(c.options) != len(runOptions)+1 || c.options[len(c.options)-1] != optCd {
-			t.Fatalf("crun's options are run's plus --cd: %d vs %d", len(c.options), len(runOptions))
+		if len(c.options) != len(runOptions) {
+			t.Fatalf("crun's options are run's: %d vs %d", len(c.options), len(runOptions))
 		}
 	}
 	var stdout, stderr bytes.Buffer
-	if got := Main([]string{"crun", "--all", "--cd", "--no-daemon"}, strings.NewReader(""), &stdout, &stderr); got != 4 || !strings.Contains(stderr.String(), "cli_option_value_missing") || !strings.Contains(stderr.String(), "--cd=PATH") {
-		t.Fatalf("a bare --cd: exit=%d stderr=%q", got, stderr.String())
+	for _, args := range [][]string{{"crun", "--all", "--cd", "--no-daemon"}, {"run", "--all", "--cd", "--no-daemon", "--cmd", "show clock"}, {"command", "--cd", "--target", "r1", "show", "clock"}} {
+		stderr.Reset()
+		if got := Main(args, strings.NewReader(""), &stdout, &stderr); got != 4 || !strings.HasPrefix(stderr.String(), "cli_option_value_missing: ") || !strings.Contains(stderr.String(), "--cd=PATH") {
+			t.Fatalf("%q, a bare --cd: exit=%d stderr=%q", args, got, stderr.String())
+		}
 	}
 	if got := Main([]string{"crun", "--help"}, strings.NewReader(""), &stdout, &stderr); got != 0 || !strings.Contains(stdout.String(), "karvi crun [target inputs] [options]\n") || !strings.Contains(stdout.String(), "--cd=PATH") {
 		t.Fatalf("crun --help: exit=%d\n%s", got, stdout.String())

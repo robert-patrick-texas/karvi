@@ -103,7 +103,7 @@ func (l *loader) validate() error {
 		return l.semanticErr("config_display_timestamp_invalid", "display.timestamp", err)
 	}
 	_ = formatter
-	for _, key := range []string{"display.login.header", "display.login.footer", "display.command.header", "display.command.footer", "display.run.header", "display.run.footer", "display.ping.header"} {
+	for _, key := range []string{"display.login.header", "display.login.footer", "display.command.header", "display.command.footer", "display.run.header", "display.run.footer", "display.collection.footer", "display.ping.header"} {
 		if err := display.ValidateLineTemplate(l.snap.String(key)); err != nil {
 			return l.semanticErr("config_display_template_invalid", key, err)
 		}

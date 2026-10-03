@@ -33,12 +33,13 @@ type scoreboardState struct {
 }
 
 // scoreboardMode is the MODE the screen shows: what the
-// operator ran, not the activity type alone.
+// operator ran, not the activity type alone; a crun is told by its
+// collection's word, since a run or command with --cd collects too.
 func scoreboardMode(req Request) string {
 	switch {
 	case req.Mode == executionplan.ModeExercise:
 		return "exercise"
-	case req.Plan.Output.Collection != nil:
+	case req.Plan.Output.Crun():
 		return "crun"
 	case req.ActivityType == "command":
 		return "cmd"

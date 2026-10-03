@@ -1095,7 +1095,9 @@ one made with its missing parents at `crun.directory-mode`, and one that is not
 a folder, cannot take a new file, or has the sticky bit and another owner is
 `crun_directory_not_writable`; files take `crun.file-mode` and, under setgid,
 the directory's group. The `crun.*` keys and the `crun_directory_*` codes keep
-their names and document every collection. Under a daemon sandbox that applies,
+their names and document every collection; `--cd` is `crun.directory` as a
+flag-origin value on every word, so a site that locks the key refuses `run
+--cd` and `command --cd` as it refuses `crun --cd`. Under a daemon sandbox that applies,
 the daemon writes only where `ReadWritePaths` allows: a home directory is
 refused loudly, a `/tmp` path lands in the daemon's private `/tmp` silently;
 the remedy is the unit's drop-in or `--no-daemon`, and `command` never meets
@@ -1180,13 +1182,17 @@ records then the summary. A run with a collection (`crun`, or `run` or
 `command` with `--cd`) adds one line after the footer, the template
 `display.collection.footer` (default `! collection=<collection>
 replaced=<replaced> kept=<kept>`, `<collection>` the absolute collection
-directory), in the footer's roles, on every text path, never under jsonl,
-whose summary document carries the collection block; `--quiet` or an empty
-template suppresses it. *Why:* a run through the daemon ended with a plain
+directory), in the footer's roles, written by the footer's renderer to
+standard output directly after it on every text path (`--no-daemon`, the
+daemon follow, `job follow`, a finished job's replay), and under json and jsonl
+never, as the footer is not (the jsonl summary document and `summary.json`
+carry the collection block); `--quiet` or an empty template suppresses it. *Why:* a run through the daemon ended with a plain
 stderr line while a `command` ended in the footer's colours; values belong on
 stdout in the chosen format; `crun`'s plain result line repeated the footer's
-exit and folder and could be neither styled nor set. *Not taken:* the result
-line beside the footer; a `<collection>` placeholder in the run footer (empty
+exit and folder and could be neither styled nor set; on the footer's stream
+the line cannot part from it. *Not taken:* the result line beside the footer;
+a plain counts line on standard error under json and jsonl (the unstyled line
+replaced); a `<collection>` placeholder in the run footer (empty
 for every run without one).
 
 **Debug output shows each command once and never a payload.** Debug never

@@ -140,16 +140,19 @@ func TestCancelledLineOnlyForAJobThatEndedCancelled(t *testing.T) {
 			t.Errorf("%s with block=%v: CancelledBy=%v", c.status, c.block != nil, got)
 		}
 		var stdout, stderr bytes.Buffer
-		exit := jobFollowResult(globalOptions{}, app.IO{Stdout: &stdout, Stderr: &stderr}, "j", "/a", summary, c.exit, exitcode.ExitName(c.exit))
-		// A run prints no result line after it (28.4); a crun does, below.
+		exit := jobFollowResult(globalOptions{}, app.IO{Stdout: &stdout, Stderr: &stderr}, "j", "/a", summary, c.exit)
+		// No result line after the display: its footer and a
+		// collection's line end it.
 		if exit != c.exit || strings.Contains(stderr.String(), "job j cancelled") != c.wantLine || strings.Contains(stderr.String(), " exit=") {
 			t.Errorf("%s with block=%v: exit=%d stderr=%q", c.status, c.block != nil, exit, stderr.String())
 		}
 	}
+	// A crun's follow prints nothing after the display either: the
+	// collection's line is the display's (display.collection.footer).
 	var stderr bytes.Buffer
 	crun := records.Summary{FinalStatus: "completed", Collection: &records.CollectionSummary{Directory: "/c", Replaced: 2, Kept: 1}}
-	jobFollowResult(globalOptions{}, app.IO{Stdout: &bytes.Buffer{}, Stderr: &stderr}, "j", "/a", crun, 0, exitcode.ExitName(0))
-	if want := "crun j exit=ExitSuccess(0) artifacts=/a collection=/c replaced=2 kept=1\n"; stderr.String() != want {
-		t.Errorf("crun: stderr=%q want %q", stderr.String(), want)
+	jobFollowResult(globalOptions{}, app.IO{Stdout: &bytes.Buffer{}, Stderr: &stderr}, "j", "/a", crun, 0)
+	if stderr.Len() != 0 {
+		t.Errorf("crun: stderr=%q", stderr.String())
 	}
 }

@@ -11,19 +11,15 @@ import (
 )
 
 const (
-	fixturePlanID  = "20260914T120000.000000+0000-0123456789abcdefghjk"
-	fixtureJobID   = "260914-120001-00"
-	fixturePrepID  = "20260914T120002.000000+0000-0123456789abcdefghjk"
-	goldenDraft    = "c5255dd9d9faefe7730f2022f4ac088b9c16d01188536ef44e2cee6f2d2e3f5c"
-	goldenPrepared = "6c39955cc287e9db5a61957196e0ec2d124d47b8952daa82e8af674ee188210d"
-	// The three pins moved at plan schema 5: the schema number is in every
-	// stage's digest; goldenFinal moved once more at the same release when
-	// fixtureJobID took the job form, since the package reference binds
-	// the job ID.
-	// The three moved again at the rename to karvi: the plan's output root
-	// and its configuration digest carry the executable's name; no counter
-	// moved.
-	goldenFinal = "794ecdded7403f314bb9f79085512389f4d477e69a67048c0c1069d283dcbee7"
+	fixturePlanID = "20260914T120000.000000+0000-0123456789abcdefghjk"
+	fixtureJobID  = "260914-120001-00"
+	fixturePrepID = "20260914T120002.000000+0000-0123456789abcdefghjk"
+	// The schema number is in every stage's digest, so the three pins move
+	// at each plan schema bump; goldenFinal also binds the job ID through
+	// the package reference.
+	goldenDraft    = "520c03e60de9c6907a36bfdefec880102e3144fedf41c117ce9c63bf4556636c"
+	goldenPrepared = "683350207c583a521f42673226be9822de2aef1c01136b141055698cc4d22109"
+	goldenFinal    = "42ec124e16c698d6ae7107a607e0e7c1f8f82cd289599eb7484cf8fce418f9fe"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -556,16 +552,29 @@ func TestPlatformCommands(t *testing.T) {
 	}
 	// The collection sub-block.
 	c := base
-	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660"}
+	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "crun"}
 	if err := c.Validate(Draft); err != nil {
 		t.Fatalf("a collection: %v", err)
 	}
-	c.Output.Collection = &CollectionSettings{Directory: "crun", FileMode: "0660"}
+	c.Output.Collection = &CollectionSettings{Directory: "crun", FileMode: "0660", Word: "crun"}
 	if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "not absolute") {
 		t.Fatalf("a relative directory: %v", err)
 	}
-	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0600"}
+	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0600", Word: "crun"}
 	if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "file_mode") {
 		t.Fatalf("a mode outside the enum: %v", err)
+	}
+	// The word: crun, run, or command, and nothing else (schema 10).
+	for _, w := range []string{"run", "command"} {
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: w}
+		if err := c.Validate(Draft); err != nil {
+			t.Fatalf("word %s: %v", w, err)
+		}
+	}
+	for _, w := range []string{"", "stream", "Crun"} {
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: w}
+		if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "output.collection.word") {
+			t.Fatalf("word %q: %v", w, err)
+		}
 	}
 }

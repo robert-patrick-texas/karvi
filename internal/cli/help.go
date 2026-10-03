@@ -213,6 +213,13 @@ Options:
                                  (output.root); PATH only with =, as the next
                                  word is the device (a path there is refused).
                                  The opposite of --nof
+  --cd=PATH                      Also write the device's output to PATH/NAME,
+                                 one file named by the device, a "! COMMAND"
+                                 marker before each command's output and
+                                 nothing else, replaced only when the device
+                                 succeeds (crun.directory; ~ expanded, relative
+                                 to the working directory; auto the collection
+                                 tree)
   --address-authority client|daemon
                                  Who selects the address: the client at planning
                                  (default) or the daemon at prepare
@@ -235,7 +242,7 @@ platform definition sets control-master = true.
 `
 
 // crunHelpText is run's help under the crun word: the usage
-// lines say what a collection is, and --cd joins the output options.
+// lines say what a collection is, and --cd names its directory.
 func crunHelpText() string {
 	text := strings.ReplaceAll(runHelpText(), "karvi run ", "karvi crun ")
 	usage := `Usage:
@@ -265,9 +272,11 @@ A recurring collection is the site's systemd timer or cron over this word
 `
 	i := strings.Index(text, "Target inputs")
 	text = usage + "\n" + text[i:]
-	return strings.Replace(text, `  --follow                       Render durable records`, `  --cd=PATH                      The collection directory for this run
+	j := strings.Index(text, "  --cd=PATH ")
+	k := strings.Index(text, "  --follow ")
+	return text[:j] + `  --cd=PATH                      The collection directory for this run
                                  (crun.directory); PATH only with =
-  --follow                       Render durable records`, 1)
+` + text[k:]
 }
 
 func runHelpText() string {
@@ -352,6 +361,13 @@ Dispatch:
                                  to the configured folder or to PATH
                                  (output.root), on every path; PATH only with =
                                  (a path as the next word is refused)
+  --cd=PATH                      Also write each device's output to PATH/NAME,
+                                 one file per device named by the device, a
+                                 "! COMMAND" marker before each command's
+                                 output and nothing else, replaced only when
+                                 the device succeeds (crun.directory; ~
+                                 expanded, relative to the working directory;
+                                 auto the collection tree)
   --follow                       Render durable records after completion (default)
 
 Options:

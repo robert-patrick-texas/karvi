@@ -89,7 +89,7 @@ func TestRecordRendererColorsHeaderFooterAndBorderBySemanticRole(t *testing.T) {
 		Command:         "show clock", Status: "succeeded", Output: "clock-output\n", OutputEncoding: "utf-8",
 		Timing: records.Timing{EndedAt: now},
 	})
-	if err := renderer.WriteFooter(now, 0, time.Second); err != nil {
+	if err := renderer.WriteFooter(now, 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
 	got := out.String()
@@ -187,7 +187,7 @@ func TestPrettyJSONRendererProducesIndentedArray(t *testing.T) {
 	for i := 1; i <= 2; i++ {
 		renderer.OnRecord(records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: fmt.Sprintf("r%d", i), ActivityID: "activity-1", ActivityType: "command", Sequence: int64(i), Device: records.DeviceProjection{Groups: []string{}}, AddressCandidates: []string{}, Dispatch: records.DispatchContext{}, CommandIndex: i, CommandCount: 2, CommandKind: "requested", Command: "show clock", Status: "succeeded", Output: "ok\n", OutputEncoding: "utf-8", Notices: []records.Notice{}, Timing: records.Timing{EndedAt: time.Now()}})
 	}
-	if err := renderer.WriteFooter(time.Now(), 0, time.Second); err != nil {
+	if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(out.String(), "\x1b[") {
@@ -296,7 +296,7 @@ func TestDefaultBlankBorderSeparatesRecordsButDoesNotTrail(t *testing.T) {
 	}
 	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "two\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-	if err := renderer.WriteFooter(time.Now(), 0, time.Second); err != nil {
+	if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
 	if got, want := out.String(), "one\n\ntwo\n"; got != want {
@@ -329,7 +329,7 @@ func TestLastBorderOptInAndNoBorderOverride(t *testing.T) {
 				t.Fatal(err)
 			}
 			renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-			if err := renderer.WriteFooter(time.Now(), 0, time.Second); err != nil {
+			if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 				t.Fatal(err)
 			}
 			if got := out.String(); got != tc.want {
@@ -383,7 +383,7 @@ func TestRunBorderDefaultsMatchCommandSemantics(t *testing.T) {
 	}
 	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "two\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-	if err := renderer.WriteFooter(time.Now(), 0, time.Second); err != nil {
+	if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
 	// The run's footer (display.run.footer, the command footer's default)

@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 23,
+  "registry_schema_version": 24,
   "config_schema_version": 6,
   "keys": [
     {
@@ -1475,7 +1475,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CRUN__DIRECTORY",
       "cli_flags": null,
-      "documentation": "The collection directory of `crun`, one file per device named by the device: `auto` is the shared `crun` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/crun`; an explicit path is resolved as `output.root` is (`~` expanded, a relative path from the working directory). `--cd=PATH` sets it for one invocation. Carried in the plan.",
+      "documentation": "The collection directory, one file per device named by the device, of `crun` and of `run` or `command` given `--cd`: `auto` is the shared `crun` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/crun`; an explicit path is resolved as `output.root` is (`~` expanded, a relative path from the working directory). `--cd=PATH` sets it for one invocation, and on `run` and `command` asks for the collection. Carried in the plan.",
       "since": "0.15.0"
     },
     {
@@ -1524,7 +1524,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CRUN__AFTER",
       "cli_flags": null,
-      "documentation": "An executable the client runs once a `crun` has ended and its result line is printed, empty for none: in the collection directory, with the replaced files' names on standard input one per line and the job in `KARVI_JOB_ID`, `KARVI_JOB_DIR` (empty under `--nof`), `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT`, and `KARVI_EXIT`; its output goes to karvi's standard error after the result line. It runs on the in-process and the daemon path alike, not under `--detach`; a hook that cannot start, exits non-zero, or runs past `crun.after-timeout` is the warning `crun_after_failed`, and the run's exit code stands (docs/COLLECTION.md).",
+      "documentation": "An executable the client runs once a `crun` has ended and its display is printed (never after a `run` or `command` given `--cd`), empty for none: in the collection directory, with the replaced files' names on standard input one per line and the job in `KARVI_JOB_ID`, `KARVI_JOB_DIR` (empty under `--nof`), `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT`, and `KARVI_EXIT`; its output goes to karvi's standard error after the display. It runs on the in-process and the daemon path alike, not under `--detach`; a hook that cannot start, exits non-zero, or runs past `crun.after-timeout` is the warning `crun_after_failed`, and the run's exit code stands (docs/COLLECTION.md).",
       "since": "0.19.0"
     },
     {
@@ -2195,6 +2195,19 @@
       "cli_flags": null,
       "documentation": "One-line footer template that ends a run's text display on every path, the daemon follow, --no-daemon, job follow, and a finished job's replay, from the job's summary (its exit, duration, and job folder); empty disables it. Under --format jsonl the summary document is the stream's last line instead, and nothing ends the run on standard error.",
       "since": "0.13.0"
+    },
+    {
+      "path": "display.collection.footer",
+      "kind": "string",
+      "default_literal": "\"! collection=\u003ccollection\u003e replaced=\u003creplaced\u003e kept=\u003ckept\u003e\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__DISPLAY__COLLECTION__FOOTER",
+      "cli_flags": null,
+      "documentation": "One-line template after the footer of a job with a collection (`crun`, or `run` or `command` with `--cd`), on standard output under `--format text` on every path: `\u003ccollection\u003e` the absolute collection directory, `\u003creplaced\u003e` and `\u003ckept\u003e` the devices whose files were replaced and kept. Under json and jsonl nothing is printed (the summary carries the collection block). Empty disables it.",
+      "since": "0.26.0"
     },
     {
       "path": "display.run.border",

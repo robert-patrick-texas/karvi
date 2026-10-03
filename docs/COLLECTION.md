@@ -35,9 +35,10 @@ karvi crun --all --dry-run                         # each device's list, no devi
 - **Replacement only on success.** The file is written as a hidden
   temporary and renamed into place when every command of the device came
   back; a device not reached, timed out, halted, or cancelled keeps its
-  previous file and leaves nothing behind. The result line ends
-  `collection=DIR replaced=N kept=M`; `failed-devices.txt` in the job
-  folder is the rerun.
+  previous file and leaves nothing behind. The display ends, after the
+  footer, with `! collection=DIR replaced=N kept=M`
+  (`display.collection.footer`; under jsonl the summary document carries
+  the counts); `failed-devices.txt` in the job folder is the rerun.
 - **The directory** is `crun.directory`: `auto` is the site's shared
   `/opt/karvi/shared/crun` when `sudo karvi setup shared` made it, else
   `<basedir>/crun`; `--cd=PATH` names another for one run. A shared
@@ -55,9 +56,43 @@ karvi crun --all --dry-run                         # each device's list, no devi
   of the collection file the output lines that change at every collection
   without the device having changed (section 6); the record keeps them.
 - **The hook** `crun.after` is an executable the client runs once the
-  collection has ended and the result line is printed (section 5): in the
+  collection has ended and its display is printed (section 5): in the
   collection directory, the replaced files' names on stdin, the job in the
   environment. A failure is a warning; the run's exit code stands.
+
+### 1.1 A run's collection: `--cd` on `run` and `command`
+
+`run` and `command` given `--cd=PATH` write the same file into PATH beside
+their usual job folder, for an operator's capture rather than the site's
+nightly collection:
+
+```bash
+cd ~/change-4411
+karvi run --site nyc --cmd 'show running-config' --cmd 'show version' --cd=.
+karvi command --cd=. core-nyc-01 show ip route summary
+```
+
+- The file's name, shape, and replacement are the collection's above;
+  `--cd=PATH` is resolved as `crun.directory` is (`~` expanded, a relative
+  path from the working directory, `auto` the collection tree) and checked
+  once before any device, and a site that locks `crun.directory` refuses
+  it.
+- The file is **unfiltered**: `crun-filters` are `crun`'s, so the uptime
+  and byte-count lines a `crun` drops are kept. A run's file written into
+  the `crun` tree therefore differs from the next `crun`'s by those lines.
+- `--continue-device-on-error` stays the run's own: without it a rejected
+  statement ends the device, its later commands are not attempted, and
+  the previous file is kept; with it the file is replaced, the rejection
+  in its block. A `crun` always continues.
+- The job folder is the run's as without `--cd`, `output.NAME.txt`
+  included, so a device whose file was kept has the folder's text file
+  saying what happened this time; `--nof --cd` collects with no folder.
+- The display ends with the same collection line after the footer; no
+  `crun.after` hook runs, whatever the directory; the watch screen shows
+  `run` or `cmd`.
+- In a stream, `--cd=PATH` is an option line that stays, `--clear` keeping
+  it and `--reset` removing it; a later job to a device replaces the file
+  an earlier job wrote.
 
 ## 2. The built-in lists
 
@@ -364,7 +399,7 @@ so that no device collects an error block every day.
 ## 5. The commit and the diff mail: the hook
 
 `crun.after` names one executable the client runs once a `crun` has ended
-and its result line is printed, on the in-process path and through the
+and its display is printed, on the in-process path and through the
 daemon alike, never for `--detach` (a detached run has no client at its
 end; a cron does not detach). The hook runs in the collection directory,
 reads the replaced files' names on standard input, one per line, sorted
@@ -375,10 +410,10 @@ reads the replaced files' names on standard input, one per line, sorted
 | `KARVI_JOB_ID` | the job's ID |
 | `KARVI_JOB_DIR` | the job folder (empty under `--nof`) |
 | `KARVI_CRUN_DIRECTORY` | the collection directory, the working directory too |
-| `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT` | the counts of the result line |
+| `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT` | the counts of the collection line |
 | `KARVI_EXIT` | the run's exit code |
 
-Its output, both streams, follows the result line on karvi's stderr, so a
+Its output, both streams, goes to karvi's stderr after the display, so a
 `--format jsonl` stdout stays records. A hook that cannot start, exits
 non-zero, or runs past `crun.after-timeout` (`5m` by default, `1s` to
 `1h`; the hook's process group is sent SIGTERM, then killed) is the warning
@@ -408,7 +443,9 @@ after-timeout = "5m"
 
 ```text
 $ karvi crun --all
-crun 260926-103409-00 exit=ExitSuccess(0) artifacts=… collection=/opt/karvi/shared/crun replaced=212 kept=3
+…
+! exit=101 elapsed=4m12s artifacts=/opt/karvi/shared/jobs/260926/260926-103409-00
+! collection=/opt/karvi/shared/crun replaced=212 kept=3
 $ git -C /opt/karvi/shared/crun log --oneline -1
 10738a1 crun 260926-103409-00: 212 replaced, 3 kept, exit 101
 ```

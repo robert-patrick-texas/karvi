@@ -679,7 +679,11 @@ directory = \"$TMP/crun\""
   [ "$(job_files)" = 'commands.cisco_iosxe.txt commands.dead.txt commands.jsonl failed-devices.txt failures.jsonl manifest.json metrics.json summary.json ' ] || fail "S33: the job folder holds $(job_files)"
   [ "$(json_get "$JOB_DIR/summary.json" collection.replaced)" = 1 ] && [ "$(json_get "$JOB_DIR/summary.json" collection.kept)" = 1 ] || fail "S33: the summary's collection block: $(json_get "$JOB_DIR/summary.json" collection.replaced) replaced, $(json_get "$JOB_DIR/summary.json" collection.kept) kept"
   [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = kept ] || fail "S33: dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
-  grep -q "^crun .* collection=$TMP/crun replaced=1 kept=1\$" "$TMP/err.s33" || fail "S33: the result line is $(tail -1 "$TMP/err.s33")"
+  # Under jsonl the stream's last line is the summary, which carries the
+  # counts; no line follows on stderr (display.collection.footer is text's).
+  tail -1 "$TMP/out.s33" >"$TMP/s33.last"
+  [ "$(json_get "$TMP/s33.last" collection.replaced)" = 1 ] && [ "$(json_get "$TMP/s33.last" collection.kept)" = 1 ] || fail "S33: the stream's summary: $(cat "$TMP/s33.last" | head -c 300)"
+  ! grep -q 'collection=' "$TMP/err.s33" || fail "S33: a collection line on stderr: $(grep 'collection=' "$TMP/err.s33")"
   s33_run s33b run --target fake-iosxe --cmd 'show bogus' --cmd 'show clock'
   [ "$CODE" -eq 101 ] || fail "S33 rejected: exit $CODE"
   printf '! show bogus\n     ^\n%% Invalid input detected at '"'"'^'"'"' marker.\n\n! show clock\n*10:00:00.000 UTC Tue Sep 15 2026\n' >"$TMP/s33b.want"
@@ -689,7 +693,7 @@ directory = \"$TMP/crun\""
   [ "$CODE" -eq 0 ] || fail "S33 daemon --cd: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s33c" | head -1)"
   cmp -s "$TMP/crun2/fake-iosxe" "$TMP/s33.want" || fail "S33 daemon --cd: the file differs"
   [ "$(stat -c %a "$TMP/crun2")" = 770 ] || fail "S33 daemon --cd: the directory was made at $(stat -c %a "$TMP/crun2"), expected 770"
-  grep -q "^crun .* collection=$TMP/crun2 replaced=1 kept=0\$" "$TMP/err.s33c" || fail "S33 daemon --cd: the result line is $(tail -1 "$TMP/err.s33c")"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.directory)" = "$TMP/crun2" ] && [ "$(json_get "$JOB_DIR/summary.json" collection.replaced)" = 1 ] || fail "S33 daemon --cd: the summary's collection: $(json_get "$JOB_DIR/summary.json" collection.directory)"
   rm -f "$TMP/crun2/fake-iosxe"
   s33_run s33d run --target fake-iosxe --nof --cd="$TMP/crun2"
   [ "$CODE" -eq 0 ] && [ -z "$JOB_DIR" ] && cmp -s "$TMP/crun2/fake-iosxe" "$TMP/s33.want" || fail "S33 --nof: exit $CODE, folder '$JOB_DIR'"
@@ -796,7 +800,69 @@ directory = \"$TMP/crun\""
   [ "$(ls -d "$TMP"/base/jobs/*/* | wc -l)" -eq 1 ] || fail "S33 schedule: $(ls -d "$TMP"/base/jobs/*/* | wc -l) jobs, expected the one tick's"
   grep -q '^! show slow$' "$TMP/crun/fake-iosxe" || fail "S33 schedule: the tick's file lacks its block"
   CODE=0; KARVI="$TMP/bin/nd" KARVI_CRUN_LOCK="$TMP/crun.lock" sh "$ROOT/packaging/cron/karvi-crun" --transport native </dev/null >"$TMP/out.s33lc" 2>"$TMP/err.s33lc" || CODE=$?
-  [ "$CODE" -eq 0 ] && grep -q '^crun .* replaced=1 kept=0$' "$TMP/err.s33lc" && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(grep '^crun ' "$TMP/err.s33lc")"
+  tail -1 "$TMP/out.s33lc" >"$TMP/s33lc.last"
+  [ "$CODE" -eq 0 ] && [ "$(json_get "$TMP/s33lc.last" collection.replaced)" = 1 ] && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(head -c 300 "$TMP/s33lc.last")"
   stop_fake
   echo 'native smoke: S33 the collection run: the file, the kept device, the folder, the summary, a rejected statement, --cd through the daemon, --nof, the crun.after hook on both paths, its exit and its bound, the crun-filters drop list off, a site'"'"'s, and a bad pattern refused, the packaged cron script'"'"'s guard: ok'
+fi
+
+# S34: --cd on run and command. A run's collection file is crun's shape,
+# unfiltered (the uptime line kept); the job folder keeps output.NAME.txt;
+# a dead device keeps its previous file; a rejected statement keeps the
+# file without --continue and replaces it with; the text display ends with
+# the footer and display.collection.footer on standard output; crun.after
+# does not run, a crun's does after the same ending; command --cd and
+# --nof collect.
+if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S34 ]; then
+  s34_run() {  # tag, karvi args...; sets CODE, JOB_DIR
+    s34_tag=$1; shift
+    rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
+    CODE=0
+    env NETENABLE=en HOME="$TMP/home" NETUSER=netops NETPASS=pw \
+      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
+      >"$TMP/out.$s34_tag" 2>"$TMP/err.$s34_tag" || CODE=$?
+    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+  }
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
+  start_fake -port 0 -hostname fake-iosxe
+  : >"$KH"; chmod 600 "$KH"
+  rm -rf "${TMP:?}/cd"; install -d -m 770 "$TMP/cd"
+  echo 'old dead' >"$TMP/cd/dead"
+  export AFTER_OUT="$TMP/after34.out"
+  printf '#!/bin/sh\n: >"$AFTER_OUT"\necho "hook ran"\n' >"$TMP/after34.sh"; chmod 755 "$TMP/after34.sh"
+  write_config accept-new "$BUILTIN
+[platform.dead]
+driver = \"cisco_iosxe\"
+ssh-port = 1
+[crun]
+after = \"$TMP/after34.sh\""
+  s34_run s34 run --no-daemon --transport native --target fake-iosxe --target dead --cmd 'show clock' --cmd 'show version' --cd="$TMP/cd"
+  [ "$CODE" -eq 101 ] || fail "S34: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s34" | head -1)"
+  printf '! show clock\n*10:00:00.000 UTC Tue Sep 15 2026\n\n! show version\nCisco IOS XE Software, Version 17.09.04a\nfake-iosxe uptime is 1 day\n' >"$TMP/s34.want"
+  cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34.want" || fail "S34: the file differs: $(diff "$TMP/s34.want" "$TMP/cd/fake-iosxe" | head -3)"
+  [ "$(cat "$TMP/cd/dead")" = 'old dead' ] || fail "S34: dead's previous file was touched"
+  [ -f "$JOB_DIR/output.fake-iosxe.txt" ] && [ -f "$JOB_DIR/output.dead.txt" ] || fail "S34: the folder holds $(ls "$JOB_DIR" | tr '\n' ' ')"
+  [ "$(tail -2 "$TMP/out.s34" | head -1 | cut -c1-8)" = '! exit=1' ] && [ "$(tail -1 "$TMP/out.s34")" = "! collection=$TMP/cd replaced=1 kept=1" ] || fail "S34: the display ends $(tail -2 "$TMP/out.s34")"
+  ! grep -q 'collection=\|hook ran' "$TMP/err.s34" && [ ! -e "$AFTER_OUT" ] || fail "S34: stderr $(tail -2 "$TMP/err.s34"), or the hook ran"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = kept ] || fail "S34: the summary's dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
+  [ "$(json_get "$JOB_DIR/manifest.json" plan.output.collection.word)" = run ] || fail "S34: the plan's word is $(json_get "$JOB_DIR/manifest.json" plan.output.collection.word)"
+  # A rejected statement: kept without --continue, replaced with it.
+  s34_run s34b run --no-daemon --transport native --target fake-iosxe --cmd 'show bogus' --cmd 'show clock' --cd="$TMP/cd"
+  [ "$CODE" -ne 0 ] && cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34.want" && [ "$(tail -1 "$TMP/out.s34b")" = "! collection=$TMP/cd replaced=0 kept=1" ] || fail "S34 rejected: exit $CODE, $(tail -1 "$TMP/out.s34b")"
+  s34_run s34c run --no-daemon --continue --transport native --target fake-iosxe --cmd 'show bogus' --cmd 'show clock' --cd="$TMP/cd"
+  printf '! show bogus\n     ^\n%% Invalid input detected at '"'"'^'"'"' marker.\n\n! show clock\n*10:00:00.000 UTC Tue Sep 15 2026\n' >"$TMP/s34c.want"
+  cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34c.want" || fail "S34 --continue: the file differs: $(diff "$TMP/s34c.want" "$TMP/cd/fake-iosxe" | head -3)"
+  # Through the daemon: the line follows the footer on stdout.
+  s34_run s34d run --transport native --target fake-iosxe --cmd 'show clock' --cd="$TMP/cd"
+  stop_daemon
+  [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34d")" = "! collection=$TMP/cd replaced=1 kept=0" ] || fail "S34 daemon: exit $CODE, $(tail -1 "$TMP/out.s34d")"
+  # command --cd with --nof: no folder, the file and the line.
+  s34_run s34e command --nof --transport native --cd="$TMP/cd2" fake-iosxe show clock
+  [ "$CODE" -eq 0 ] && [ -z "$JOB_DIR" ] && [ "$(cat "$TMP/cd2/fake-iosxe")" = "$(printf '! show clock\n*10:00:00.000 UTC Tue Sep 15 2026')" ] && [ "$(tail -1 "$TMP/out.s34e")" = "! collection=$TMP/cd2 replaced=1 kept=0" ] || fail "S34 command: exit $CODE, folder '$JOB_DIR', $(tail -1 "$TMP/out.s34e")"
+  # A crun's text display ends the same way, and its hook runs after it.
+  s34_run s34f crun --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --cd="$TMP/cd"
+  [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34f")" = "! collection=$TMP/cd replaced=1 kept=0" ] && grep -q '^hook ran$' "$TMP/err.s34f" || fail "S34 crun: exit $CODE, $(tail -1 "$TMP/out.s34f"), $(tail -1 "$TMP/err.s34f")"
+  rm -f "$AFTER_OUT"; unset AFTER_OUT
+  stop_fake
+  echo 'native smoke: S34 --cd on run and command: the unfiltered file, the folder'"'"'s text files, the kept device, a rejected statement with and without --continue, the collection line after the footer on both paths, no hook but crun'"'"'s, --nof: ok'
 fi
