@@ -18,7 +18,7 @@ func TestDefineFlags(t *testing.T) {
 	var names []string
 	fs.VisitAll(func(fl *flag.Flag) {
 		names = append(names, fl.Name)
-		if !strings.Contains(Usage, "--"+fl.Name) {
+		if !strings.Contains(Usage(), "--"+fl.Name) {
 			t.Errorf("--%s is not on the usage line", fl.Name)
 		}
 	})

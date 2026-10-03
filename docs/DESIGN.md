@@ -1199,6 +1199,21 @@ taken:* the result line beside the footer; a plain counts line on standard
 error under json and jsonl (the unstyled line replaced); a `<collection>`
 placeholder in the run footer (empty for every run without one).
 
+**The helper's help is karvi's layout, coloured without configuration.**
+`internal/helplayout` holds the one help layout (the title tag in the label
+colour, headings in bold, option words in the accent colour, a Usage line's
+action word in the success colour), which karvi and `karvi-prune` both use;
+karvi decides its colour from `display.*` as before. `karvi-prune -h` and
+`--help` print to standard output, exit 0: a title line, `Usage:` with the
+synopsis wrapped at 79, and `Options:` with each flag in `FlagOrder`, its
+placeholder in a 31-column field and its usage string beside it, the default
+after; a usage error prints its message and the text on standard error, exit
+2. The helper reads no configuration, so its colour is the defaults' (on when
+the stream is a terminal, the dark theme's roles) and a site's `display.*` does
+not reach it. *Why:* one look across karvi's executables; the helper's
+no-configuration rule stands. *Not taken:* Go's `PrintDefaults` form; a colour
+flag on the helper; reading `display.*` in the helper.
+
 **Debug output shows each command once and never a payload.** Debug never
 contains passwords, tokens, or device output; it shows each command sent
 exactly once, from the plan and never from the device's echo, with a marked
@@ -1406,6 +1421,61 @@ under its own work directory; every test binary that reaches the shared-tree
 resolver isolates it; a must-not-appear check stops the script. *Why:* fifteen
 scripts once enrolled into the operator's real trust store, and a verifier run
 left job folders in a site's shared tree.
+
+**A man page is roff written by hand, its SYNOPSIS and OPTIONS generated.**
+`packaging/man/karvi-prune.8` is one committed file; between the comment lines
+`.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there`
+and `.\" END GENERATED SYNOPSIS`, and the same pair for OPTIONS, `tools/mangen`
+writes the synopsis from `prune.Usage()`'s parts and one entry per flag from
+the helper's flag set (the placeholder, the usage string, and the default, roff
+escaped: `-` as `\-`, `\` as `\e`, a leading `.` or `'` behind `\&`) and leaves
+every other byte as it was, refusing a page with a pair missing, doubled, or
+out of order. `make
+generate` rewrites it in place; `make generated-clean` and the bundle verifier
+regenerate into a temporary file and compare. A Go test runs `groff -man -ww
+-z` on the page and fails on a warning, skipping without groff; the debian
+rules install it to `/usr/share/man/man8/`, gzipped by `dh_compress`. *Why:*
+the flags are defined once and the page cannot drift from them, as the
+registry's reference cannot; the prose is not in any definition. *Not taken:*
+a `.8.in` template beside a generated `.8`; a Markdown-to-roff converter (a
+vendored dependency, left to the HTML documents); generating the whole page.
+
+**The helper's value names and flag order are defined once.** `internal/prune`
+holds each flag's completion words, whether it takes a path, and, for a value
+that is neither, its name (`days` `N`, `minfree` `PERCENT`); the placeholder is
+the words joined with `|` and `|PATH`, or the name, none for a switch; and
+`FlagOrder` is the synopsis's order. The synopsis (`prune.Usage()`, pinned to
+the former constant), `-h` (`prune.PrintUsage`, double dash, the placeholder,
+the usage string, an unquoted default; replacing Go's `PrintDefaults`), the man
+page's OPTIONS, and Tab all read them; tests hold the order and the table to
+the defined flags. *Why:* the synopsis said `auto|PATH`, `N`, and `PERCENT`
+where `-h` said `string`, `int`, and `float` with one dash, and a page
+generated from the flag set alone would have said the latter. *Not taken:* Go's
+backquoted value names in the usage strings; parsing the hand-written
+synopsis; alphabetical order.
+
+**The page is the terminal reference; the guide stays the guide.**
+`karvi-prune.8` states in full what an operator needs at the shell: NAME,
+SYNOPSIS, DESCRIPTION (what goes and never goes, no configuration read, the
+ownership rule, a failure as a line), OPTIONS, WHAT GOES (the six kinds and the
+pressure floor), WHERE IT LOOKS (as an operator and as root), OUTPUT (the event
+words, the kept reasons, the summary, jsonl), EXIT STATUS, FILES, EXAMPLES, and
+SEE ALSO; `docs/PRUNE.md` keeps the same facts with the reasons and the
+schedules, and says the page restates the rules, the report, and the exits, so
+a change to the helper changes both. No test holds the page to the helper's
+words, which are literals with no list. *Why:* an installed host has the page
+and not the guide; GitHub renders the guide and not the page. *Not taken:* the
+page pointing to the guide for the rules; the guide pointing to the page; a
+list of the helper's words for a test.
+
+**A man page names no version and no date.** The header is `.TH KARVI-PRUNE 8 ""
+"karvi"` (and `.TH KARVI 1 "" "karvi"`, `.TH KARVI-ASKPASS 1 "" "karvi"` after
+it): the date empty, the source `karvi`, groff supplying the manual's name; no
+hand, generator, or install step writes either, and the installed package and
+`karvi version` identify the release. *Why:* a version in a living page is
+wrong from the day after its release until it is edited. *Not taken:* the
+version and date edited at each release; a build step stamping them (no
+release date exists in the packaging until it has a `debian/changelog`).
 
 ## 17. What this document is not
 

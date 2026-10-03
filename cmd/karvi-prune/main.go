@@ -34,10 +34,7 @@ func run(args []string, stdout, stderr *os.File) int {
 	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	f := prune.DefineFlags(fs)
-	fs.Usage = func() {
-		fmt.Fprintln(stderr, prune.Usage)
-		fs.PrintDefaults()
-	}
+	fs.Usage = func() { prune.PrintUsage(stderr, fs) }
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
 			return 0

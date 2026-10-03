@@ -102,6 +102,14 @@
   when read. The execution plan's collection block carries the word that
   asked (`crun`, `run`, or `command`), at plan schema 10; a schema-9 plan
   or daemon is refused.
+- **`karvi-prune -h` names the values as the synopsis does.** The help
+  lists each flag in the synopsis's order with a double dash and its
+  value's name (`--basedir auto|PATH`, `--days N`, `--minfree PERCENT`,
+  `--format text|jsonl`) and an unquoted default, where Go's own printer
+  had listed `-basedir string`, `-days int`, and `-minfree float`
+  alphabetically. The names, the order, and the synopsis are defined once
+  in the helper's flag definition, which Tab and the man page read too;
+  the flags parse as before.
 - **`--fs=SUFFIX`, a suffix on each collection file's name.** On `crun`,
   `run`, and `command`, `--fs=.cfg` writes `NAME.cfg` (and its temporary
   `.NAME.cfg.JOBID`) in the collection directory, never renaming the

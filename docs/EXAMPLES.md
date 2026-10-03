@@ -1234,3 +1234,105 @@ template, or a length bound for the suffix; `--fs` implying `--cd=.` on
 does not apply went to the roadmap as its own item. At the next release
 (0.26.0 expected): the registry is 24 and the execution plan 10, and the
 two `crun.*` codes' and keys' documentation names every collection.
+
+## 13. The man page: `karvi-prune.8` (2026-10-03)
+
+The roadmap's first item, after objectives 4 and 5: a manual page
+installed with the distribution packages, `karvi-prune.8` first.
+
+**What it gains.** On a host with the package, `man karvi-prune` gives an
+operator the flags, what goes, the report, and the exits offline, beside
+the one command they run under `sudo`, where that reference lived in
+`docs/PRUNE.md` in the source tree alone and the package installs no
+document. It waits on nothing outside the tree: groff is on the build
+host, and the package needs one install line.
+
+**The review.** A throwaway generator over `prune.DefineFlags` rendered an
+OPTIONS section that `groff -man -ww` passed without a warning, and showed
+the one gap: Go's flag package names the values `string`, `int`, and
+`float`, where the synopsis says `auto|PATH`, `N`, and `PERCENT`.
+
+```text
+OPTIONS
+       --basedir string
+              The private root whose jobs and transcripts trees are pruned:
+              auto (the operator's own, as karvi resolves it) or a path. Default: auto.
+       --days int
+              The retention age in days, one or more. Default: 31.
+```
+
+**The rules settled.**
+
+1. *How the page is made.* The operator agreed: one committed file,
+   `packaging/man/karvi-prune.8`, roff by hand, its OPTIONS section
+   between two comment markers rewritten by `tools/mangen` from the flag
+   set (escaped, every other byte kept, a missing or doubled marker
+   refused); `make generate` in place, `make generated-clean` and the
+   bundle verifier by comparison; a Go test running `groff -man -ww -z`,
+   skipping without groff; one install line in the debian rules,
+   `dh_compress` gzipping. Not taken: a `.8.in` template; a
+   Markdown-to-roff converter; generating the whole page.
+2. *The value names in one place.* The helper named each flag's value in
+   four places that disagreed: the synopsis constant (`auto|PATH`, `N`,
+   `PERCENT`), `-h` through Go's `PrintDefaults` (`-basedir string`,
+   `-days int`, `-minfree float`), the throwaway page (the same), and the
+   completion table (words and a path, no names). The operator agreed: the
+   completion table gains a name for a value that is neither words nor a
+   path, `FlagOrder` keeps the synopsis's order, and the synopsis, `-h`
+   (double dash, placeholder, unquoted default), the page's OPTIONS, and Tab
+   read them; tests hold them to the defined flags. Not taken: backquoted
+   value names in the usage strings; parsing the synopsis; alphabetical
+   order.
+3. *The hand-written sections.* The package installs no documents yet,
+   and the units' `Documentation=` lines name a `PRUNE.md` an installed host
+   does not have. The operator agreed: the page is the terminal reference,
+   NAME to SEE ALSO, stating the rules, the report, and the exits in full;
+   PRUNE.md stays the guide with the reasons and the schedules and says
+   that the page restates them; the SYNOPSIS is a second generated region
+   (amending item 1's "the only generated part"), from `prune.Usage()`.
+   Not taken: either document pointing to the other for the rules; a list
+   of the helper's words for a test.
+4. *The header.* Executed: `.TH KARVI-PRUNE 8 "" "karvi"` gives the footer
+   `karvi … KARVI-PRUNE(8)` with a blank centre, and a version and a date
+   fill it; groff passes both. The operator agreed: no version or date in
+   any page, the package and `karvi version` naming the release. Not taken:
+   editing them at each release; stamping them at the build (the packaging
+   has no `debian/changelog` to take a date from).
+
+**Executed.** Section M1, the value names, the lab build:
+
+```text
+$ karvi-prune -h
+usage: karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH] [--scoreboards PATH] [--days N] [--minfree PERCENT] [--dry-run] [--verbose] [--format text|jsonl]
+  --basedir auto|PATH
+        the private root whose jobs and transcripts trees are pruned: auto (the operator's own, as karvi resolves it) or a path (default auto)
+  …
+  --days N
+        the retention age in days, one or more (default 31)
+  --minfree PERCENT
+        the free-space floor in percent, under which the oldest eligible items go before their age; 0 turns pressure off (default 5)
+  --dry-run
+        report what would go and remove nothing
+  …
+$ karvi-prune --days 0
+karvi-prune: --days takes one or more, not 0          (exit 2)
+$ karvi-prune __complete 2 --days ''                  # a number: nothing offered, as before
+```
+
+The synopsis built from the order and the placeholders is the former
+constant byte for byte (a test pins it); the completion suite passes
+unchanged.
+
+5. *The helper's help in karvi's shape.* The operator asked whether
+   `karvi-prune -h` and `--help` print as karvi's help does, in its layout
+   and colours. They did not: one lowercase `usage:` line, each
+   description on its own line unwrapped (one 150 columns), no colour, on
+   standard error, where karvi's help has a bold `Usage:` heading, option
+   words in a 31-column field in the accent colour, descriptions wrapped at
+   79, colour from `display.*`, on standard output. Agreed: the layout
+   moves into `internal/helplayout` for both executables, karvi's output
+   unchanged by a byte; the helper's text has karvi's shape, built from
+   the flag definition; `-h` to standard output, a usage error with the
+   text to standard error; the colour decided without configuration (the
+   defaults: on at a terminal, the dark theme's roles). Not taken: a colour
+   flag; reading `display.*` in the helper. Built as section M1b, after M1.
