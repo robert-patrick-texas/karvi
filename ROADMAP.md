@@ -32,6 +32,14 @@ order the operator has set. A settled decision is an entry in
    placeholders until then.
 4. **Build numbers in the version.** A build identity beyond the version and
    the commit, for telling two builds of one tree apart.
+5. **The packaged user unit's sandbox where it does not apply.** On an Ubuntu
+   24.04 host (systemd 255, `kernel.apparmor_restrict_unprivileged_userns=1`)
+   a user unit given `PrivateTmp=yes`, `ProtectSystem=strict`, and
+   `ProtectHome=read-only` ran in the client's own mount namespace and wrote
+   into the home and `/tmp` as if unsandboxed. The question is what the
+   packaged `karvi-daemon.service` and `karvi-prune.service` actually get on
+   such hosts, what the documents promise, and whether the units need
+   `PrivateUsers=`, a system unit, or a statement of the limit.
 
 ## Later
 

@@ -888,3 +888,193 @@ styled, silenced, or set as the others are); naming the metadata file
 beside the transcript (they sit side by side).
 
 **Roadmap.** `--cd` and `--fs` for `run` and `command`, then the man page.
+
+## 12. `--cd` and `--fs` for `run` and `command` (2026-10-03)
+
+The fourth and fifth of the five objectives, taken together as one design
+and one execution-plan schema change: `--cd=PATH` on `run` and `command`,
+writing one file per device in the collection's shape, and `--fs=PATTERN`,
+a suffix on that file's name.
+
+**What it gains.** An operator's ad hoc capture, `karvi run --site X --cmd
+'show run' --cd=.`, lands as one clean file per device in a directory of
+their choosing, in the shape a `crun` writes, where the output reached only
+`output.NAME.txt` inside a job folder under a header; with `--fs=.cfg` the
+files carry a suffix an editor or a diff tool recognises. It waits on
+nothing outside the tree: the daemon receives every job as a `run` and took
+any plan with a collection for a `crun`, so the plan must say which word
+asked for it (execution plan schema 9 to 10).
+
+**The review.** Against the tree at `ddb1a82`, a lab build of the four
+executables, the fake `r1` and `dead`, an alias of `cisco_iosxe` on port 1:
+
+```text
+$ cd crun; karvi crun --no-daemon --target r1 --target dead --cmd 'show clock' --cmd 'show version' --cd=.
+crun 261003-085053-00 exit=ExitPartialFailure(101) artifacts=… collection=/tmp/nd.8Nm1/crun replaced=1 kept=1
+$ cat r1                       # the uptime line dropped by cisco_iosxe's crun-filters
+! show clock
+*10:00:00.000 UTC Tue Sep 15 2026
+
+! show version
+Cisco IOS XE Software, Version 17.09.04a
+$ karvi run --no-daemon --target r1 --cmd 'show clock' --cd=.
+cli_option_unknown: unknown option --cd in run                      (exit 4)
+$ karvi command --cd=. r1 'show clock'
+cli_option_unknown: unknown option --cd in command                  (exit 4)
+$ karvi command r1 'show clock' --cd=.      # after the device, it is command text
+"command":"show clock --cd=."  → device_command_error, exit 107
+$ karvi crun … --fs=.cfg
+cli_option_unknown: unknown option --fs in crun                     (exit 4)
+```
+
+A rejected statement in a `run`, as the records have it; `crun` turns
+`--continue` on, so the second line is a `crun`'s:
+
+```text
+run --cmd 'show bogus' --cmd 'show clock'             device_error, not_attempted_prior_command_failure
+run --continue --cmd 'show bogus' --cmd 'show clock'  device_error, succeeded
+```
+
+**The rules settled.** The operator had agreed before the session that
+`--fs` is the option alone, with no configuration key. Then, one issue at a
+time:
+
+1. *What a run's file holds and when it is replaced.* The operator agreed:
+   the collection's shape exactly (a `! COMMAND` marker before each
+   requested command's block, a blank line before every marker but the
+   first, nothing else), named as a `crun` names it, a collision refused at
+   planning (`output_file_name_collision`), written as the hidden temporary
+   `.NAME.JOBID` and renamed at the device's last record; no `crun-filters`,
+   so `run --cmd 'show version' --cd=.` keeps `r1 uptime is 1 day` where a
+   `crun` drops it; replaced only when every record succeeded or is a
+   statement the device rejected, the previous file untouched otherwise
+   (connection, login, timeout, not attempted, halt, cancel, interrupt, a
+   block that cannot be written); and `--continue` the run's own, so without
+   it a rejected statement keeps the previous file and with it the file is
+   replaced with the rejection in its block. Not taken: the filters (a `run
+   --cd` into the `crun` tree then differs from the next `crun` by the
+   dropped lines, accepted); `--cd` turning `--continue` on; a failed
+   device's partial output.
+2. *The job folder, `--nof`, and the report.* Executed: a `crun`'s folder
+   has no `output.NAME.txt`, a `run`'s has; `crun --nof` collects with
+   `artifacts=none`; the result line is a plain line beside the colored
+   footer:
+
+   ```text
+   ^[[34m! exit=^[[0m^[[37m0^[[0m^[[34m elapsed=^[[0m^[[37m705ms^[[0m^[[34m artifacts=^[[0m^[[37m…/261003-090625-00^[[0m
+   crun 261003-090625-00 exit=ExitSuccess(0) artifacts=…/261003-090625-00 collection=/tmp/nd.8Nm1/crun replaced=1 kept=0
+   ```
+
+   The operator agreed: the run's folder stays as it is without `--cd`,
+   `output.NAME.txt` included (a kept file is the previous one, so the
+   folder's text file is the one place that says what happened this time);
+   `summary.json` and the jsonl summary document carry the `collection`
+   block for `run` and `command` as for `crun`; `--nof --cd` collects with
+   no folder. The operator then asked whether the result line was prefixed
+   with `! ` and colored; it was neither, the gap chapter 11 closed for the
+   record lines, and the rule was amended the same way: the line becomes the
+   template `display.collection.footer`, default `! collection=<collection>
+   replaced=<replaced> kept=<kept>`, `<collection>` the absolute collection
+   directory (`--cd=.` from `/tmp/nd.8Nm1/crun` gives
+   `collection=/tmp/nd.8Nm1/crun`), in the footer's roles, after the footer
+   on every text path, never under jsonl (the summary document carries the
+   block), `--quiet` or an empty template suppressing it; the exit, the
+   folder, and the word, which the footer already says, leave it. `crun`'s
+   plain result line goes with it (breaking, accepted); the registry moves
+   from 23 to 24. Not taken: the plain line kept beside the footer; a
+   `<collection>` placeholder in the run footer.
+3. *What stays `crun`'s.* Executed: the watch screen showed MODE `crun`
+   for every plan with a collection, since the daemon receives every job as
+   a `run`, and `RunCollectionHook` ran for any result with a collection
+   summary. The operator agreed: no `crun.after` for `run` or `command`,
+   whatever the directory (a run's file in the `crun` tree reaches the next
+   `crun`'s commit); MODE the operator's word, the audit names unchanged;
+   `crun-commands` and `crun-filters` `crun`'s alone, so `run --cd` still
+   needs a command; the plan's collection block carries `word` (`crun`,
+   `run`, `command`) at execution plan schema 10, which MODE and the hook
+   read. Not taken: the hook for every collection; MODE `crun` for any.
+4. *Stream mode.* The operator asked whether `stream`, a loop handing each
+   draft to `run`, gains the options. It does by construction: the reader
+   resolves an option line through `run`'s table and executes `run`'s
+   handler. Agreed: `--cd` and `--fs` are lines of the part that stays,
+   kept by `--go` and `--clear`, removed by `--reset`, the last value
+   winning; `--cd=.` is the stream's working directory; a later job to a
+   device replaces the earlier job's file, and `--fs` keeps them apart
+   (`--fs=.ver`, `show version`, `--go`, `--fs=.run`, `show
+   running-config`, `--go` leaves `r1.ver` and `r1.run`).
+5. *The directory, the modes, the keys, and the codes.* Executed:
+   `--cd=…/new/deep` made both missing folders at 0770. The operator
+   agreed: `--cd` resolved by the client as `crun.directory` is (`~`,
+   relative to the working directory, `auto` the collection tree), checked
+   once before any device with `crun.directory-mode` for what it makes,
+   `crun.file-mode` for the files, `crun_directory_unavailable` and
+   `crun_directory_not_writable` as for a `crun`; the `crun.*` keys and
+   codes keep their names and document every collection. Not taken:
+   renaming them `collection.*` and `collection_directory_*`.
+
+   *Found on the way.* The hand-off had a known limit: under the packaged
+   user unit a home directory is hidden, so `--cd=.` from a home through
+   the daemon fails. Run under `systemd-run --user -p PrivateTmp=yes -p
+   ProtectSystem=strict -p ProtectHome=read-only`, the lab daemon wrote
+   `--cd=/tmp/…` and a folder in the home as if unsandboxed, in the
+   client's own mount namespace (`mnt:[4026531841]` for both), on a host
+   with `kernel.apparmor_restrict_unprivileged_userns = 1`. The limit is
+   recorded for a sandbox that applies (a home refused loudly, a `/tmp`
+   path landing in the daemon's private `/tmp` silently), and the unit's
+   sandbox on such hosts went to the roadmap. The probe's folder in the
+   home was removed at once.
+6. *`=` in every mode.* Checking the stream rule as restated, two of its
+   claims failed: a value check made by the handler is reported at `--go`
+   without the line's number and stays in the draft, repeated at every
+   `--go` until `--reset`
+   (`--halt-on-error-percent 200` twice, then a dry run); and a stream line
+   `--of PATH` sent the path to the device as command text at every job.
+   On the command line the same:
+
+   ```text
+   $ karvi run --no-daemon --target r1 --of /tmp/nd.8Nm1/x --cmd 'show clock'
+     sent: "/tmp/nd.8Nm1/x --cmd show clock"    → device_command_error, exit 101
+   $ karvi command --of /tmp/nd.8Nm1/x r1 show clock
+     dns_nxdomain: … name:/tmp/nd.8nm1/x
+   $ karvi login --record /tmp/nd.8Nm1/y r1
+     dns_nxdomain: lookup /tmp/nd.8nm1/y …
+     ! transcript=…/transcripts/261003/_tmp_nd.8nm1_y-094125.log
+   ```
+
+   The first proposal gave the stream's spaced text to the option as its
+   value. The operator asked instead for `=` in every mode: `--of` alone a
+   switch, `--of=PATH` the switch and the root, never `--of PATH`. Agreed:
+   an `=`-only option refuses a detached value with the new
+   `cli_option_value_detached` (`--of takes its PATH with =:
+   --of=/tmp/nd.8Nm1/x`), on a stream line any text after a space, on the
+   command line a word of a path's form after a bare `--of` or `--record`;
+   other words keep their position's meaning, so `--of out` still reaches
+   the device and the documents say `--of=out`. The earlier entry refusing
+   a slash heuristic stands, since the form decides a refusal and never a
+   meaning (the proposal did not cite that entry; it was found when this
+   item was recorded). In a stream the value checks of `--cd` and `--fs`
+   run when the line is read, a bad line dropped with its number (`--fs`'s
+   need of `--cd`, first left for `--go`, was withdrawn at item 7). Built
+   first, as its own section A0.
+7. *`--fs`.* Executed: the stale-temporary sweep's glob `.NAME.*` matched a
+   concurrent `--fs=.cfg` run's temporary (`.r1.cfg.261003-094501-00`
+   under `ls -A .r1.*`). Agreed: `--fs=SUFFIX` (the operator chose
+   `SUFFIX` over `PATTERN`), a literal suffix on each device's file name
+   and on nothing else, `=` alone, `crun_suffix_invalid` for an empty value
+   or one holding `/`, NUL, or a control character (a newline would break
+   the hook's one name per line); `suffix` in the plan's collection block;
+   the suffixed name in the collision check, the summary, the hook's input,
+   and the dry run; the sweep tightened to `.FILE.` and a job ID's form.
+   The operator asked whether `crun --fs` renames the directory: it does
+   not, the suffix goes on the files inside it. The operator then asked for
+   a smart default: `--fs` without `--cd` is `--cd=.`, where the first
+   proposal had refused it (`crun_suffix_unpaired`, withdrawn). Checked
+   against the earlier items, one conflict: `crun` always has a directory,
+   and `--cd=.` implied there would move a scheduled `crun --all
+   --fs=.cfg` out of the site's tree into the scheduler's working
+   directory; so the default is the word's own, `crun.directory` for
+   `crun`, the working directory for `run` and `command`. The directory
+   messages say "the working directory, implied by `--fs`" when it was.
+   Not taken: a key; a template; the suffix on `output.NAME.txt`; refusing
+   `.` and `..` (a suffix follows a name); a length bound; `--cd=.` implied
+   on `crun`.
