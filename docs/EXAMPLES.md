@@ -746,3 +746,88 @@ repaired scratch root to root at setup.
 **Roadmap.** The credential prompt's line editing and Ctrl-C, then the
 `--record` footer, then `--cd` and `--fs` for `run` and `command` (one
 design, one execution-plan schema change), then the man page.
+
+## 10. The credential prompts: line editing, Ctrl-C, and the stream reader (2026-10-03)
+
+The second of the five objectives: the username and password prompts edit
+as a stream line does, and Ctrl-C at either returns to the shell.
+
+**What it gains.** An operator who mistypes a username fixes it with the
+keys a terminal offers everywhere else, Ctrl-H and the Delete key
+included, where those had gone into the username as bytes and failed the
+login; an operator who presses Ctrl-C at a prompt has the shell back at
+once, in a stream too, where karvi had held the key until the input ended;
+and a Ctrl-C during a stream's job stops the job's follow, as it does for
+`run`, where it had been lost.
+
+**The review.** The prompt read the terminal in its own mode with echo off
+for a password: Backspace as DEL worked there, but Ctrl-H, the Delete
+key, and the arrows went into the answer as bytes; and the interrupt was
+caught by the process's signal context while the read went on, so Ctrl-C
+did nothing until the input ended, then gave `credential_prompt_unavailable`
+(`EOF`).
+
+**The rules settled.** The operator agreed: Ctrl-D on an empty prompt
+keeps `credential_prompt_unavailable`; no job can run without the
+credential, so an empty answer or Ctrl-C ends karvi. The prompt reads
+through one line editor with stream mode (`internal/termline`, x/term in
+raw mode for one line's read), the Delete key as a forward delete and
+Ctrl-C told apart from Ctrl-D, one editor on the controlling terminal for
+the process so a password typed ahead is read. Ctrl-C is the new
+`credential_prompt_interrupted` (exit 113, the registry's cancelled exit);
+since raw mode takes the key from the terminal's signal, it is given back
+to the process as the interrupt, and the run stops as at any other moment.
+An empty answer is the field's missing code at once
+(`credential_username_missing`, `credential_password_missing`,
+`credential_enable_missing`), so a password is not asked after an empty
+username. A prompt that failed is not asked again for the targets
+resolving beside the first.
+
+**Found on the way.** The first stream example lost the Ctrl-C typed at
+the prompt: the stream's reader read the next line while each job ran,
+holding the terminal in raw mode through the job, so its editor took the
+prompt's keys and a job's Ctrl-C as a key. Chapter 7's rule, raw mode for
+one line's read alone, had not held since the reader was written; the
+released executable shows it (below). The reader now reads a line when
+the loop asks for it; a test counts the lines read at each job's start
+(3 and 5, where the old loop had read all 6 before the first job).
+
+**Executed.** Through `script(1)` against the fake device (user `abd`,
+password `xy`), no credential in the environment; the keys arrive 1.5
+seconds after the start:
+
+```text
+                         released v0.25.0                             lab
+Ctrl-H: abc^Hd           user=abc^Hd, exit 110                        user=abd, the login succeeds
+Delete: abdd ← ← Delete  user=abdd[D[D[3~, exit 110                   user=abd
+Ctrl-C at the username   karvi-exit=6 after 14.5s (the input's end)  karvi-exit=113 after 1.50s
+Ctrl-C at the password                                                karvi-exit=113 after 2.50s
+an empty username                                                     credential_username_missing, no password prompt, exit 6
+Ctrl-D at the username                                                credential_prompt_unavailable (the username prompt was ended by Ctrl-D or the terminal's end), exit 6
+abd⏎xy⏎ in one write                                                  both read; show clock runs, exit 0
+```
+
+```text
+$ karvi stream        # --target fake, "show clockx" ← Delete, --go, then Ctrl-C at the prompt
+show clock
+Username for fake:
+credential_prompt_interrupted: client planning: 1 of 1 targets failed credential resolution: name:fake (interrupted at the username prompt policy=default)
+karvi-exit=113 after 5.51s
+$ karvi stream        # show slow, --go, Ctrl-C two seconds into the job, then --end; released v0.25.0
+! fake [127.0.0.1] platform=cisco_iosxe user=abd backend=builtin-env-fallback transport=native
+slow output
+! exit=0 elapsed=4.66s
+karvi-exit=0 after 7.23s
+$ karvi stream        # the same, lab
+^Cinterrupted: job 261003-071933-00 continues in the daemon; …
+cancelled: the follow of job 261003-071933-00 was interrupted; the job continues
+karvi-exit=113 after 4.50s
+```
+
+**Not taken.** Asking again after an empty answer. A generic code for the
+ways a prompt ends. Ctrl-D as an interrupt. A flag set by the reader
+rather than a count of Ctrl-C keys (a key typed ahead would be charged to
+the wrong read). Raw mode held across a job, as before.
+
+**Roadmap.** The `--record` footer, then `--cd` and `--fs` for `run` and
+`command`, then the man page.

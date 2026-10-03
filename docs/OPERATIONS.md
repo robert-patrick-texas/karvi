@@ -269,6 +269,38 @@ ends a daemon at logout: a host whose logind has
 included, with or without the timer; `loginctl enable-linger` or the
 unit keeps a daemon through logout there.
 
+## The credential prompts
+
+When no backend of the policy answers for a device, the built-in fallback
+reads `NETUSER`, `NETPASS`, and `NETENABLE`, and asks at the controlling
+terminal for what is missing and needed (`creds.interactive-prompt`,
+`creds.prompt-for-username`, `creds.prompt-for-password`): `Username for
+router1: `, then `Password for router1: `, and the enable secret only where
+the platform requires one. A run of several targets asks once and names
+the count (`Password for 3 targets: `); the daemon never asks. The answer
+is edited as a stream line is: Backspace (DEL or Ctrl-H) and the Delete
+key, the arrows, Ctrl-A and Ctrl-E, Ctrl-K, Ctrl-U, and Ctrl-W; a password
+is not echoed. A username and password typed or pasted together are both
+read.
+
+No job runs without the credential a prompt asks for, so the prompt is
+the run's last chance and its refusals end karvi at once, returning to the
+shell, before any later prompt and with no job made:
+
+| At the prompt | Code | Exit |
+|---|---|---|
+| Ctrl-C (in a stream too, which ends) | `credential_prompt_interrupted` | 113 |
+| Enter on an empty answer | `credential_username_missing`, `credential_password_missing`, or `credential_enable_missing` | 6 |
+| Ctrl-D on an empty line, or no controlling terminal | `credential_prompt_unavailable` | 6 |
+
+```text
+Username for router1:
+credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name:router1 (interrupted at the username prompt policy=default)
+```
+
+A script that runs karvi without a terminal sets the three variables, or
+names a backend, since nothing can be asked.
+
 ## Credential files
 
 A `cloginrc` backend declares `scope = "user"` (the default) or
@@ -864,12 +896,18 @@ or a heredoc it drives several jobs through one karvi. The rules:
   options. `--reset` empties the draft. `--end`, `--quit`, the input's
   end (Ctrl-D), or Ctrl-C leave without executing, and a Ctrl-C outranks
   lines already read. Only `--go` and `--sendit` execute.
-- Typed at a terminal, a line is edited before Enter sends it: Ctrl-A and
-  Ctrl-E to the line's ends, Ctrl-K, Ctrl-U, and Ctrl-W to cut, the left
-  and right arrows to move, and the up and down arrows through the lines
-  typed so far. The editing echoes on the controlling terminal, so
+- Typed at a terminal, a line is edited before Enter sends it: Backspace
+  (DEL or Ctrl-H) and the Delete key to erase, Ctrl-A and Ctrl-E to the
+  line's ends, Ctrl-K, Ctrl-U, and Ctrl-W to cut, the left and right
+  arrows to move, and the up and down arrows through the lines typed so
+  far. The editing echoes on the controlling terminal, so
   `karvi stream > out` still shows what is typed. Piped input has no
-  editing to do.
+  editing to do. A line is read when the stream is ready for it and never
+  while a job runs, so the terminal is its own through the job: a Ctrl-C
+  during a job is the interrupt it is for `run` (the follow stops, a
+  daemon's job continues) and ends the stream, a credential prompt the
+  job asks reads the keys typed at it ("The credential prompts"), and a
+  line typed during the job waits for the stream.
 - A line the parser refuses (`--typo`, a declaration before any command)
   is reported on standard error with its line number and dropped; the
   draft stands. `--cf`, `--tf`, and `--tfr` may not name `-` in any

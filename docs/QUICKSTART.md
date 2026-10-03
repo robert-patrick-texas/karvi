@@ -35,7 +35,9 @@ transport = "system"
 ```
 
 Use `NETUSER`, `NETPASS`, and when required `NETENABLE` for the built-in
-zero-configuration credential fallback.
+zero-configuration credential fallback; at a terminal, karvi asks for what
+they do not give, and Ctrl-C at the prompt returns to the shell
+(`docs/OPERATIONS.md` "The credential prompts").
 
 ## Login
 

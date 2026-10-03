@@ -149,19 +149,24 @@ read. A bad line is reported with its number and dropped, the draft
 standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any spelling, since
 standard input is the stream; a read failure or a line over 1 MiB ends the
 stream with `stream_input_read_failed`. The exit is the last job's, 0 when
-none ran. Typed at a terminal, a line is edited with the usual keys and the
-up arrow recalls earlier lines (`golang.org/x/term`, vendored): the terminal
-is in raw mode for one line's read alone, through the tree's one raw-mode
-helper, and back in its own mode for every message and every job, so a job's
-display and its Ctrl-C are unchanged; the editing echoes on the controlling
-terminal, and a line typed ahead during a job, which the terminal's own mode
-ends with `\n`, is translated to the Enter the editor takes. *Why:* a job
+none ran. Typed at a terminal, a line is edited with the usual keys, the
+Delete key among them, and the up arrow recalls earlier lines (the line
+editor `internal/termline` over `golang.org/x/term`, vendored, which the
+credential prompts share): the terminal is in raw mode for one line's read
+alone, through the tree's one raw-mode helper, and back in its own mode for
+every message and every job, so a job's display, its Ctrl-C, and its
+credential prompt are unchanged; the reader reads a line when the loop asks
+for it and never beside a job, which would hold the raw mode through it;
+the editing echoes on the controlling terminal, and a line typed ahead
+during a job, which the terminal's own mode ends with `\n`, is translated
+to the Enter the editor takes. *Why:* a job
 composed line by line at a terminal or piped from a script, reusing the table
 parser and the run path so no rule lives twice; a typo must not cost the
 draft; a command typed the way `run` takes it must be sent once, not by every
 later job. *Not taken:* directives as table options; shell-style splitting of
 an option line (`--tl r1 r2` gives the case); a prompt; raw mode held across
-a job (the job's Ctrl-C would become a byte to read); GNU readline (not
+a job (the job's Ctrl-C would become a byte to read), which a reader
+reading ahead had done until the credential prompts showed it; GNU readline (not
 reachable without cgo; `rlwrap` remains an operator's choice); a generic
 error for the read failure (every path carries its own code).
 
@@ -400,12 +405,24 @@ fails for its absence; the session's one attempt then decides. *Why:* many
 organisations deliver privilege 15 at login or configure enable without a
 secret.
 
-**Prompting once per invocation.** The client's input provider caches by
-field: the first target needing a username, password, or enable secret asks,
-naming the device or the count, and every later target reuses the answer; the
-daemon has no provider and prompts for nothing. *Why:* under the daemon there
+**Prompting once per invocation, and a prompt left unanswered ends the
+run.** The client's input provider caches by field: the first target
+needing a username, password, or enable secret asks, naming the device or
+the count, and every later target reuses the answer, or the failure; the
+daemon has no provider and prompts for nothing. The prompt reads through
+the line editor stream mode uses. Ctrl-C at it is
+`credential_prompt_interrupted` (exit 113), the key given back to the
+process as the interrupt it would have been outside raw mode, so the run
+stops as at any other moment and a stream ends; an empty answer is the
+field's missing code at once, before any later prompt; Ctrl-D on an empty
+line stays `credential_prompt_unavailable`. *Why:* under the daemon there
 is no terminal; under the client, per-target prompting would ask once per
-target.
+target; a prompt is asked only for a field the device needs, so no job can
+run past one left unanswered, and the operator who presses Ctrl-C there
+expects the shell back, where the prompt had held the key until the input
+ended. *Not taken:* asking again after an empty answer; a generic code for
+the three ways a prompt ends (each is its own cause); Ctrl-D as an
+interrupt (it is the input's end, as everywhere else).
 
 **The credential CSV has its own guide.** `docs/CREDENTIAL-CSV.md` is the text
 an operator works from with the file open; the shared file rules stay in
