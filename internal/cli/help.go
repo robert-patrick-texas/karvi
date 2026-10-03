@@ -519,15 +519,27 @@ const setupHelp = `Usage:
   sudo karvi setup shared [--group NAME] [--mode 2770|2775]
   sudo karvi setup tab
 
-setup shared prepares the site's shared trees once, as root: /opt/karvi
-(0755), under it shared, and under that jobs, crun, and transcripts, the
-four in the operators' group with group write and search and the setgid
-bit (2770, or 2775 with --mode), so every member writes into them and what
-is made below stays in the group. --group NAME is the group; without it
-the primary group of the operator who ran sudo is taken. Each directory is
-reported as created or exists; one that exists with another group or mode
-is reported and left as it is (setup_directory_mismatch), since karvi
-never changes what a site made.
+setup shared prepares the site once, as root. Under /opt/karvi (0755) it
+makes shared, and under that jobs, crun, and transcripts, the four in the
+operators' group with group write and search and the setgid bit (2770, or
+2775 with --mode), so every member writes into them and what is made below
+stays in the group; beside shared, users (1770), where each operator's
+private root is made. On /dev/shm it makes the scratch root /dev/shm/karvi
+and its scoreboards (3770: the sticky bit too, so no member removes
+another's folder or file) and capacity (2770, the host-wide session ledger
+every member writes), and it writes /etc/tmpfiles.d/karvi.conf, so
+systemd-tmpfiles makes the scratch root again at every boot. --group NAME
+is the group; without it the primary group of the operator who ran sudo is
+taken. Each directory is reported as created, exists, or repaired (another
+group or mode set right, what it had named); a path that is not a real
+directory is reported and left (setup_directory_mismatch). The rule is
+reported as created, exists, or updated; a file there that karvi did not
+write is reported and left (setup_tmpfiles_mismatch). Run it again after
+changing the group or the mode.
+
+An operator's run never creates the scratch root: on a host without it,
+the scratch, the control sockets, the scoreboards, and the capacity leases
+stay under basedir, one operator's.
 
 Once the trees exist, every operator's output.root, crun.directory, and
 transcript.root default to them (sharedroot auto consults

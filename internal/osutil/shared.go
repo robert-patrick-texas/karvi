@@ -51,17 +51,18 @@ type sharedPlace struct {
 
 // SetupSharedTrees creates the parent of shared when it is missing
 // (SharedRootMode, the caller's owner), then shared itself and each of
-// SharedTrees under it with mode plus the setgid bit in group gid, and the
+// SharedTrees under it with mode plus the setgid bit in group gid, the
 // system root's `users` directory (the operators' private roots' parent,
-// UsersDirMode plus the sticky bit) in the same group, applying
+// UsersDirMode plus the sticky bit), and the scratch root's places
+// (scratchPlaces) in the same group, applying
 // group and mode explicitly so the umask cannot narrow them. A directory
 // that exists is kept when it is a real directory in gid at its mode, and
 // repaired to them when it is not (setup shared may fix a broken group or
 // mode, since it made the layout); one
 // that is not a real directory is refused (setup_directory_mismatch) and
 // nothing is changed. Every directory is reported, the shared one first,
-// users last.
-func SetupSharedTrees(shared string, gid int, mode os.FileMode) ([]SharedSetup, error) {
+// then users, then the scratch root's.
+func SetupSharedTrees(shared, scratch string, gid int, mode os.FileMode) ([]SharedSetup, error) {
 	group := strconv.Itoa(gid)
 	if gr, err := user.LookupGroupId(group); err == nil {
 		group = gr.Name
@@ -75,6 +76,7 @@ func SetupSharedTrees(shared string, gid int, mode os.FileMode) ([]SharedSetup, 
 		places = append(places, sharedPlace{filepath.Join(shared, sub), os.ModeSetgid | mode})
 	}
 	places = append(places, sharedPlace{filepath.Join(root, "users"), os.ModeSticky | UsersDirMode})
+	places = append(places, scratchPlaces(scratch, mode)...)
 	var results []SharedSetup
 	var mismatch []string
 	for _, pl := range places {
@@ -128,6 +130,46 @@ func setupSharedDirectory(p string, gid int, group string, mode os.FileMode) (r 
 	}
 	return SharedSetup{Path: p, State: "created", Group: group, Mode: mode}, "", nil
 }
+
+// scratchPlaces are the scratch root's directories setup shared makes and
+// the tmpfiles rule makes again at every boot, with their modes: the root
+// and its scoreboards with the setgid and the sticky bit, so every member
+// makes its own folder or scoreboard file there and none removes
+// another's; capacity with the setgid bit alone, since every member
+// replaces the ledger files another wrote. mode is setup shared's (0770,
+// or 0775).
+func scratchPlaces(scratch string, mode os.FileMode) []sharedPlace {
+	return []sharedPlace{
+		{scratch, os.ModeSetgid | os.ModeSticky | mode},
+		{filepath.Join(scratch, "scoreboards"), os.ModeSetgid | os.ModeSticky | mode},
+		{filepath.Join(scratch, "capacity"), os.ModeSetgid | mode},
+	}
+}
+
+// TmpfilesRule is the systemd-tmpfiles rule setup shared writes
+// (TmpfilesPath): one line per scratchPlaces directory, owned by root in
+// group, so the scratch root, which lives on a tmpfs emptied at every
+// boot, is made again at each as setup shared made it. Its first line is
+// the marker of a file karvi wrote.
+func TmpfilesRule(scratch, group string, mode os.FileMode) string {
+	var b strings.Builder
+	b.WriteString(TmpfilesMarker + "\n")
+	b.WriteString("# systemd-tmpfiles makes it again at every boot (/dev/shm is a tmpfs), in\n")
+	b.WriteString("# the operators' group. Run setup shared again to change the group or the\n")
+	b.WriteString("# mode; this file is then replaced.\n")
+	for _, pl := range scratchPlaces(scratch, mode) {
+		fmt.Fprintf(&b, "d %s %s root %s - -\n", pl.path, modeString(pl.mode), group)
+	}
+	return b.String()
+}
+
+// TmpfilesMarker is the first line of every rule karvi wrote: a file at
+// TmpfilesPath without it is the site's and is left as it is.
+const TmpfilesMarker = "# karvi's scratch root, written by: sudo karvi setup shared"
+
+// TmpfilesPath is where setup shared writes TmpfilesRule; a test points it
+// elsewhere.
+var TmpfilesPath = "/etc/tmpfiles.d/karvi.conf"
 
 // applyGroupAndMode sets a directory's group and its mode with its bits,
 // explicitly, so neither the umask nor what the site had stands.

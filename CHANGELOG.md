@@ -31,6 +31,22 @@
   gives each test binary a scratch root and a capacity root of its own.
   The documentation of `tempdir`, `ssh.control-path-root`,
   `sessions.shared-capacity-root`, and `watch.directory` says so.
+- **`setup shared` makes the scratch root and its boot rule.** Beside the
+  shared trees and `users`, `sudo karvi setup shared` makes
+  `/dev/shm/karvi` and its `scoreboards` (3770: setgid and sticky, so no
+  member removes another's folder or file) and `capacity` (2770, the
+  ledger every member rewrites) in the operators' group, repairing a group
+  or mode found otherwise, such as the 0700 root an earlier release's run
+  left. It writes `/etc/tmpfiles.d/karvi.conf` in that group, so
+  systemd-tmpfiles makes the scratch root again at every boot, and reports
+  it as created, exists, or updated; a rule karvi did not write is
+  reported and left (`setup_tmpfiles_mismatch`), and a host without
+  `/etc/tmpfiles.d` is told (`setup_tmpfiles_dir_missing`), the
+  directories made either way. `packaging/tmpfiles.d/karvi.conf` is the
+  rule for the default group, where it had given `capacity` the sticky
+  bit, under which no member could replace a ledger another wrote. The
+  setup help says what the command does, which had still described a
+  mismatched directory as left alone.
 
 ## 0.25.0 - 2026-09-30
 

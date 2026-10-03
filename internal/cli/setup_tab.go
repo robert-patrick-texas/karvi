@@ -90,7 +90,7 @@ func setupTab(inv *Invocation, streams app.IO) int {
 		return reportError(streams.Stderr, "setup_completion_write_failed", errorcodes.Errorf("setup_completion_write_failed", "%s: %v", path, err))
 	}
 	if state != "exists" {
-		if err := writeCompletion(path); err != nil {
+		if err := writeSiteFile(path, completionScript, completionMode); err != nil {
 			return reportError(streams.Stderr, "setup_completion_write_failed", errorcodes.Errorf("setup_completion_write_failed", "write %s: %v", path, err))
 		}
 	}
@@ -100,15 +100,15 @@ func setupTab(inv *Invocation, streams app.IO) int {
 	return 0
 }
 
-// writeCompletion writes the script whole at the mode, replacing a file in
-// place: a reader of the old file sees the old or the new script, never a
-// part.
-func writeCompletion(path string) error {
+// writeSiteFile writes a file setup places under /etc (the completion
+// script, the tmpfiles rule) whole at mode, replacing a file in place: a
+// reader of the old file sees the old or the new content, never a part.
+func writeSiteFile(path, content string, mode os.FileMode) error {
 	tmp := path + ".karvi-tmp"
-	if err := os.WriteFile(tmp, []byte(completionScript), completionMode); err != nil {
+	if err := os.WriteFile(tmp, []byte(content), mode); err != nil {
 		return err
 	}
-	if err := os.Chmod(tmp, completionMode); err != nil {
+	if err := os.Chmod(tmp, mode); err != nil {
 		os.Remove(tmp)
 		return err
 	}
