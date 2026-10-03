@@ -89,22 +89,22 @@ To see a detached or interrupted job again, from any later invocation:
 karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder]
 ```
 
-It renders the job from its beginning as the foreground run would have,
-live until the job ends or at once for a job that has ended, ends the
-display as a run's ends (the footer from the job's summary in text, the
-summary document as the last line under `jsonl`, a collection's line
-after the footer in text; no result line on standard error), and exits with the job's own exit (0
-completed, 113 cancelled, 106 incomplete). Under `jsonl` the output is the
-job's `commands.jsonl` byte for byte, then its summary. The daemon serves the job while it holds it;
-a finished job the daemon no longer holds (after a restart, or evicted from
-the bounded job table) is read from its directory, found by the job ID
-under `output.root`. A directory without a summary whose job no daemon
-holds is `job_orphaned`: the daemon that ran it is gone, or the job was
-run with `output.files.summary-json` false and has no terminal fact on
-disk. A job run with `output.files.commands-jsonl` false is followed
-live by the client that started it; a later `job follow` starts at the
-edge and says which records are not kept. Ctrl-C stops only
-the follow. Neither `job` verb launches a daemon.
+It renders the job from its beginning as the foreground run would have, live
+until the job ends or at once for a job that has ended, ends the display as a
+run's ends (the footer from the job's summary in text, the summary document as
+the last line under `jsonl`, a collection's line after the footer in text; no
+result line on standard error), and exits with the job's own exit (0 completed,
+113 cancelled, 106 incomplete). Under `jsonl` the output is the job's
+`commands.jsonl` byte for byte, then its summary. The daemon serves the job
+while it holds it; a finished job the daemon no longer holds (after a restart,
+or evicted from the bounded job table) is read from its directory, found by the
+job ID under `output.root`. A directory without a summary whose job no daemon
+holds is `job_orphaned`: the daemon that ran it is gone, or the job was run
+with `output.files.summary-json` false and has no terminal fact on disk. A job
+run with `output.files.commands-jsonl` false is followed live by the client
+that started it; a later `job follow` starts at the edge and says which records
+are not kept. Ctrl-C stops only the follow. Neither `job` verb launches a
+daemon.
 
 ## Dispatch: serial, parallel, and wave
 

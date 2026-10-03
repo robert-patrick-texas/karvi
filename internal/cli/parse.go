@@ -268,7 +268,7 @@ func pathForm(word string) bool {
 }
 
 // detachedValue is the refusal of a value given to an option that takes
-// its value with = alone (--of, --record, --cd) as a separate word: on the
+// its value with = alone (--of, --record, --cd, --fs) as a separate word: on the
 // command line a word of a path's form, on a stream line any text after a
 // space.
 func detachedValue(o *option, value string) error {

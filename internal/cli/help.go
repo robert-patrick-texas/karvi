@@ -534,7 +534,8 @@ ID a detached run prints and karvi watch shows). No job verb launches a daemon.
 
 follow renders the job's records from its beginning as the foreground run
 would have, live until the job ends or at once for a job that has ended,
-then prints the run's result line and exits with the job's own exit.
+ends as the run's display ends (the footer, and a collection's line), and
+exits with the job's own exit.
 --format, --echo, --border, and --noborder mean what they mean for run.
 Ctrl-C stops only the follow; the job continues.
 

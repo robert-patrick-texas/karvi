@@ -479,7 +479,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if inv.Flag(optNoDaemon) {
 		// The run executes in this process and is displayed as command is:
 		// each record rendered from memory as its device answers, then the
-		// footer (display.run.footer), then the result line. Nothing is read
+		// footer (display.run.footer) and a collection's line. Nothing is read
 		// back from commands.jsonl (through v0.12.1 the display was discarded
 		// during the job and the file rendered at its end). A broken standard
 		// output must be a write error that the job outlives, never a SIGPIPE

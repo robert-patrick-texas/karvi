@@ -90,7 +90,8 @@ func cancelResultLine(res ipc.CancelResult) string {
 // jobFollow is karvi job follow JOB-ID [--format text|jsonl|json] [--echo]
 // [--border | --noborder]: the whole
 // job from the zero cursor through the run's own follow loop, rendered as
-// the foreground run renders it, then the run's result line; the exit is
+// the foreground run renders it, ending with the footer and a collection's
+// line; the exit is
 // the job's own. The daemon serves the job when it holds it; otherwise the
 // job's directory, derived from the ID, is read for a finished job. The
 // verb never launches a daemon.

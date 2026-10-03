@@ -22,11 +22,12 @@ import (
 )
 
 // The collection hook, crun.after: one executable a
-// site names, run by the client once a crun has ended and its result line is
-// printed, on the in-process path and the daemon path alike. It runs in the
+// site names, run by the client once a crun has ended and its display is
+// printed, on the in-process path and the daemon path alike, never after a
+// run or command given --cd. It runs in the
 // collection directory with the replaced files' names on standard input, one
 // per line, and the job in the environment; its output goes to karvi's
-// standard error, after the result line, so a --format jsonl standard output
+// standard error, after the display, so a --format jsonl standard output
 // stays records only. A hook that cannot start, exits non-zero, or runs past
 // crun.after-timeout is the warning crun_after_failed; the collection stands
 // and the run's exit code is unchanged. The audit holds a crun.after event

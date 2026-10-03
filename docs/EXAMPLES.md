@@ -1207,3 +1207,30 @@ characters. The sweep compares names as strings, never as a
 glob, since a suffix may hold a glob's metacharacters (`--fs='[x]*'` is
 tested). The unused `output.CollectionLabel`, the plain line's tail, is
 removed.
+
+**The sections, as committed.** The design (`55f2f03`, the DESIGN entries
+and this chapter's items 1 to 7); A0 (`efef847`) an `=`-only option
+refuses a detached value; A (`7f17885`) `--cd` on `run` and `command`, the
+plan's word at schema 10, the collection line a display template; B
+(`a2ed6e4`) `--fs=SUFFIX` and the sweep by job ID; C the documents read
+against the build (the `job follow` help and four comments still named a
+result line; the DESIGN entries now name `--fs` among the `=`-only
+options and say the client, not the plan, gates the hook) and this
+chapter's close. Batteries: the seventeen suites on lab builds after A
+(14:40:51 to 14:44:10 UTC) and after B (15:13:12 to 15:16:31 UTC), pass;
+`go test ./...`, vet, gofmt, and `make generated-clean` at each section.
+
+**Not taken.** The filters on a run's file; `--cd` turning `--continue`
+on; a failed device's partial output; turning a run's `output.NAME.txt`
+off; the hook for every collection; MODE `crun` for any collection; the
+`collection.*` keys and `collection_directory_*` codes; a plain counts
+line on standard error under json and jsonl; the spaced value on a stream
+line; refusing every word after a bare switch; a configuration key, a
+template, or a length bound for the suffix; `--fs` implying `--cd=.` on
+`crun`; a lock on `crun.directory` that binds `crun` alone.
+
+**Roadmap.** The man page next (`karvi-prune.8`, then `karvi.1` and
+`karvi-askpass.1`); the packaged user unit's sandbox on hosts where it
+does not apply went to the roadmap as its own item. At the next release
+(0.26.0 expected): the registry is 24 and the execution plan 10, and the
+two `crun.*` codes' and keys' documentation names every collection.

@@ -120,23 +120,23 @@ would make one line mean two things. *Not taken:* the space form; a new
 parser kind.
 
 **An option that takes its value with `=` alone refuses a detached value.**
-`--of[=PATH]`, `--record[=PATH]`, and `--cd=PATH` are written alone (`--cd`
-never) or as `--NAME=VALUE`. On a stream line, which holds one option, any text
-after a space is refused, the line dropped with its number; on the command
-line, a bare `--of` or `--record` followed by a word of a path's form (`/`,
-`~`, `./`, `../` at its start, or `.` or `..` whole) is refused before any
-device is contacted or transcript claimed. Both are
-`cli_option_value_detached`, the message naming `--NAME=WORD`; a bare `--cd`
-stays `cli_option_value_missing`. Any other word keeps its position's meaning
-(`command --of r1 'show clock'`), so a relative path without a prefix still
-reaches the device as text, and the documents say to write `--of=out`. *Why:*
-executed, `run --of /x --cmd 'show clock'` sent `/x --cmd show clock` to the
-device, `command --of /x r1` and `login --record /y r1` took the path for the
-device (the latter naming a transcript after it), and a stream's `--of PATH`
-line did the first at every job. The path form decides a refusal, never a
-meaning, so the entry above stands: a line still means one thing. *Not
-taken:* refusing every word after a bare switch (`command --of r1 …` would
-break); the spaced value on a stream line.
+`--of[=PATH]`, `--record[=PATH]`, `--cd=PATH`, and `--fs=SUFFIX` are written
+alone (`--cd` and `--fs` never) or as `--NAME=VALUE`. On a stream line, which
+holds one option, any text after a space is refused, the line dropped with its
+number; on the command line, a bare `--of`, `--record`, `--cd`, or `--fs`
+followed by a word of a path's form (`/`, `~`, `./`, `../` at its start, or `.`
+or `..` whole) is refused before any device is contacted or transcript claimed.
+Both are `cli_option_value_detached`, the message naming `--NAME=WORD`; a bare
+`--cd` or `--fs` stays `cli_option_value_missing`. Any other word keeps its
+position's meaning (`command --of r1 'show clock'`), so a relative path without
+a prefix still reaches the device as text, and the documents say to write
+`--of=out`. *Why:* executed, `run --of /x --cmd 'show clock'` sent `/x --cmd
+show clock` to the device, `command --of /x r1` and `login --record /y r1` took
+the path for the device (the latter naming a transcript after it), and a
+stream's `--of PATH` line did the first at every job. The path form decides a
+refusal, never a meaning, so the entry above stands: a line still means one
+thing. *Not taken:* refusing every word after a bare switch (`command --of r1
+…` would break); the spaced value on a stream line.
 
 **The `job` word.** Every operation on one accepted job lives under `job`:
 `job follow JOB-ID` and `job cancel JOB-ID`, each taking one ID and never
@@ -146,11 +146,12 @@ JOB-ID` (`--follow` is a boolean); `watch JOB-ID` (the watch screen shows
 counts, never records); `daemon cancel`.
 
 **`crun` is a command word sharing `run`'s grammar.** It takes `run`'s option
-slice, `--cd=PATH` and `--fs=PATTERN` among them, may name no command, and dispatches to `run`'s
-handler with the collection set. The record's activity type stays `run`.
-*Why:* the site's most frequent invocation deserves its own verb rather than
-a 44th option, and one shared slice means a new `run` option reaches `crun`
-by construction. *Not taken:* `run --collect`; a new activity type.
+slice, `--cd=PATH` and `--fs=SUFFIX` among them, may name no command, and
+dispatches to `run`'s handler with the collection set. The record's activity
+type stays `run`. *Why:* the site's most frequent invocation deserves its own
+verb rather than a 44th option, and one shared slice means a new `run` option
+reaches `crun` by construction. *Not taken:* `run --collect`; a new activity
+type.
 
 **Stream mode.** `karvi stream` (alias `karvi -`) reads standard input line
 by line: a `--` line is one run option, any other line is one command sent as
@@ -1081,53 +1082,55 @@ names are unchanged; `crun-commands` and `crun-filters` stay `crun`'s, so `run
 --cd` and `command --cd` still need a command. The plan says which word asked:
 the collection block carries `word` (`crun`, `run`, or `command`; execution plan
 schema 10), any other value `execution_plan_invalid`, and no older plan or
-daemon is accepted; MODE and the client's hook read it. *Why:* the daemon
+daemon is accepted; MODE and the filters' validator read it, and the client
+runs the hook for the `crun` word alone. *Why:* the daemon
 receives every job as a `run`, and the code had taken a collection for a
 `crun`; the hook is a site's nightly commit or mail, not an operator's capture.
 *Not taken:* the hook for every collection; MODE `crun` for any collection.
 
-**Every collection directory is resolved, made, and checked as a `crun`'s.** The
-client resolves `--cd=PATH` before planning (`~` expanded, a relative path made
-absolute against its working directory, `auto` the collection tree on every
-word), `crun_directory_unavailable` when it cannot, `cli_option_value_missing`
-for a bare `--cd`; the directory is checked once before any device, a missing
-one made with its missing parents at `crun.directory-mode`, and one that is not
-a folder, cannot take a new file, or has the sticky bit and another owner is
-`crun_directory_not_writable`; files take `crun.file-mode` and, under setgid,
-the directory's group. The `crun.*` keys and the `crun_directory_*` codes keep
-their names and document every collection; `--cd` is `crun.directory` as a
-flag-origin value on every word, so a site that locks the key refuses `run
---cd` and `command --cd` as it refuses `crun --cd`. Under a daemon sandbox that applies,
-the daemon writes only where `ReadWritePaths` allows: a home directory is
-refused loudly, a `/tmp` path lands in the daemon's private `/tmp` silently;
-the remedy is the unit's drop-in or `--no-daemon`, and `command` never meets
-it. *Why:* one rule for one kind of directory. *Not taken:* `collection.*` keys
-and `collection_directory_*` codes (every site's configuration broken for a
-name).
+**Every collection directory is resolved, made, and checked as a `crun`'s.**
+The client resolves `--cd=PATH` before planning (`~` expanded, a relative path
+made absolute against its working directory, `auto` the collection tree on
+every word), `crun_directory_unavailable` when it cannot,
+`cli_option_value_missing` for a bare `--cd`; the directory is checked once
+before any device, a missing one made with its missing parents at
+`crun.directory-mode`, and one that is not a folder, cannot take a new file, or
+has the sticky bit and another owner is `crun_directory_not_writable`; files
+take `crun.file-mode` and, under setgid, the directory's group. The `crun.*`
+keys and the `crun_directory_*` codes keep their names and document every
+collection; `--cd` is `crun.directory` as a flag-origin value on every word, so
+a site that locks the key refuses `run --cd` and `command --cd` as it refuses
+`crun --cd`. Under a daemon sandbox that applies, the daemon writes only where
+`ReadWritePaths` allows: a home directory is refused loudly, a `/tmp` path
+lands in the daemon's private `/tmp` silently; the remedy is the unit's drop-in
+or `--no-daemon`, and `command` never meets it. *Why:* one rule for one kind of
+directory. *Not taken:* `collection.*` keys and `collection_directory_*` codes
+(every site's configuration broken for a name).
 
 **`--fs=SUFFIX` appends a literal suffix to each collection file's name; on
 `run` and `command` it implies `--cd=.`.** The value is appended as written to
 the device's file name (`r1` and `--fs=.cfg` give `r1.cfg`, its temporary
 `.r1.cfg.JOBID`) and to nothing else: not the directory, the job folder, or
-`output.NAME.txt`. It is written with `=` alone; bare or empty (`--fs=`, which the
-parser cannot tell from bare) it is `cli_option_value_missing`, as `--cd` is, and
-holding `/`, NUL, or a control character it is `crun_suffix_invalid`, checked
-before planning and when a stream line is read. On `run` and `command`, `--fs` without `--cd` is `--cd=.`,
-the client's working directory made absolute before planning (and a stream's
-working directory at `--go`); on `crun`, `--fs` alone takes `crun.directory`.
-The directory messages say "the working directory, implied by `--fs`" when it
-was. The plan's collection block carries `suffix` beside `word` (schema 10),
-validated alike (`execution_plan_invalid`, `output.collection.suffix`); the
-collision check, the summary's `devices[].file`, the hook's standard input, and
-the dry run's `collection:` line carry the suffixed name. The stale-temporary
-sweep removes only `.FILE.` followed by a job ID's form, `FILE` the suffixed
-name; two concurrent runs over one file can still sweep each other's
-temporary, the swept device `collection_write_failed`. *Why:* a suffix an
-editor or a diff tool recognises; an operator who asks for suffixed files with
-no directory wants them here; a scheduled `crun` must stay in the site's tree.
-*Not taken:* a configuration key; a template; the suffix on `output.NAME.txt`;
-refusing `.` and `..` (a suffix follows a name); a length bound;
-`crun_suffix_unpaired`; `--fs` implying `--cd=.` on `crun`.
+`output.NAME.txt`. It is written with `=` alone; bare or empty (`--fs=`, which
+the parser cannot tell from bare) it is `cli_option_value_missing`, as `--cd`
+is, and holding `/`, NUL, or a control character it is `crun_suffix_invalid`,
+checked before planning and when a stream line is read. On `run` and `command`,
+`--fs` without `--cd` is `--cd=.`, the client's working directory made absolute
+before planning (and a stream's working directory at `--go`); on `crun`, `--fs`
+alone takes `crun.directory`. The directory messages say "the working
+directory, implied by `--fs`" when it was. The plan's collection block carries
+`suffix` beside `word` (schema 10), validated alike (`execution_plan_invalid`,
+`output.collection.suffix`); the collision check, the summary's
+`devices[].file`, the hook's standard input, and the dry run's `collection:`
+line carry the suffixed name. The stale-temporary sweep removes only `.FILE.`
+followed by a job ID's form, `FILE` the suffixed name; two concurrent runs over
+one file can still sweep each other's temporary, the swept device
+`collection_write_failed`. *Why:* a suffix an editor or a diff tool recognises;
+an operator who asks for suffixed files with no directory wants them here; a
+scheduled `crun` must stay in the site's tree. *Not taken:* a configuration
+key; a template; the suffix on `output.NAME.txt`; refusing `.` and `..` (a
+suffix follows a name); a length bound; `crun_suffix_unpaired`; `--fs` implying
+`--cd=.` on `crun`.
 
 **The command list per platform lives on the platform table.** `crun-commands`
 is a string array beside `paging-commands`, with built-in lists for the
@@ -1183,18 +1186,18 @@ records then the summary. A run with a collection (`crun`, or `run` or
 `command` with `--cd`) adds one line after the footer, the template
 `display.collection.footer` (default `! collection=<collection>
 replaced=<replaced> kept=<kept>`, `<collection>` the absolute collection
-directory), in the footer's roles, written by the footer's renderer to
-standard output directly after it on every text path (`--no-daemon`, the
-daemon follow, `job follow`, a finished job's replay), and under json and jsonl
-never, as the footer is not (the jsonl summary document and `summary.json`
-carry the collection block); `--quiet` or an empty template suppresses it. *Why:* a run through the daemon ended with a plain
-stderr line while a `command` ended in the footer's colours; values belong on
-stdout in the chosen format; `crun`'s plain result line repeated the footer's
-exit and folder and could be neither styled nor set; on the footer's stream
-the line cannot part from it. *Not taken:* the result line beside the footer;
-a plain counts line on standard error under json and jsonl (the unstyled line
-replaced); a `<collection>` placeholder in the run footer (empty
-for every run without one).
+directory), in the footer's roles, written by the footer's renderer to standard
+output directly after it on every text path (`--no-daemon`, the daemon follow,
+`job follow`, a finished job's replay), and under json and jsonl never, as the
+footer is not (the jsonl summary document and `summary.json` carry the
+collection block); `--quiet` or an empty template suppresses it. *Why:* a run
+through the daemon ended with a plain stderr line while a `command` ended in
+the footer's colours; values belong on stdout in the chosen format; `crun`'s
+plain result line repeated the footer's exit and folder and could be neither
+styled nor set; on the footer's stream the line cannot part from it. *Not
+taken:* the result line beside the footer; a plain counts line on standard
+error under json and jsonl (the unstyled line replaced); a `<collection>`
+placeholder in the run footer (empty for every run without one).
 
 **Debug output shows each command once and never a payload.** Debug never
 contains passwords, tokens, or device output; it shows each command sent
