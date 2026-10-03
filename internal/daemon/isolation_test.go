@@ -57,8 +57,8 @@ func TestConcurrentJobsOfOneOperatorKeepTheirGrants(t *testing.T) {
 		}
 		terminal := f.followToEnd(results[i].Receipt.JobID)
 		if terminal.Outcome.ExitCode != 0 {
-			failures, _ := os.ReadFile(filepath.Join(results[i].Receipt.ArtifactDir, "failures.jsonl"))
-			t.Fatalf("job %s: outcome=%+v failures=%s", name, terminal.Outcome, failures)
+			errs, _ := os.ReadFile(filepath.Join(results[i].Receipt.ArtifactDir, "errors.jsonl"))
+			t.Fatalf("job %s: outcome=%+v errors=%s", name, terminal.Outcome, errs)
 		}
 		assertAccounting(t, results[i].Receipt.ArtifactDir, 1, 1)
 	}

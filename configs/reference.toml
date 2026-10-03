@@ -346,11 +346,11 @@ output-txt = true
 commands-jsonl = true
 # Write commands.txt, the rerun's command file (--cf); false does not create it.
 commands-txt = true
+# Write errors.jsonl, the records that did not succeed (each is also in commands.jsonl); false
+# does not create it.
+errors-jsonl = true
 # Write failed-devices.txt, the rerun's target file (--tf); false does not create it.
 failed-devices-txt = true
-# Write failures.jsonl, the records that did not succeed (each is also in commands.jsonl);
-# false does not create it.
-failures-jsonl = true
 # Write manifest.json, the job as it was accepted; false does not create it.
 manifest-json = true
 # Write metrics.json; false does not create it.

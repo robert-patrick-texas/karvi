@@ -244,6 +244,14 @@
   laboratory device. Against the fake, which sends no exit status, a login
   ended with `exit` exits 110 (`ssh_process_failed`); the roadmap holds the
   rule to take if a device does the same.
+- **The failures file is `errors.jsonl`.** A job folder's file of the
+  records that did not succeed, device and command errors alike, is
+  `errors.jsonl`, where it was `failures.jsonl`; its switch is
+  `output.files.errors-jsonl` (`KARVI__OUTPUT__FILES__ERRORS_JSONL`), the
+  execution plan's field `errors_jsonl`, and the summary's path
+  `errors_jsonl`. `output.files.failures-jsonl` is refused from a file,
+  the environment, and `--set` with `config_key_removed`, naming the new
+  key.
 
 ## 0.25.0 - 2026-09-30
 

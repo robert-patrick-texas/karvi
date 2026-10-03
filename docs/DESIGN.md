@@ -922,7 +922,7 @@ membership and setgid folders with no copying and no karvi-managed ACLs; karvi
 sets permissions only on what it creates.
 
 **The record is the authority; every file derives from it.** `commands.jsonl`
-holds one record per command, `failures.jsonl` the non-succeeded ones,
+holds one record per command, `errors.jsonl` the non-succeeded ones,
 `output.TARGET.txt` one readable terminal session per device (header, prompt
 and statement on one line, the answer, karvi's own lines as `!` comments), and
 `tools/textfile` derives the text file from the records. Every command record
@@ -980,9 +980,9 @@ memory budget key or a check against available memory.
 
 **One output source every consumer streams from, verified before commit.** The
 record's output is a source (the string, plain text, or the spool file with its
-count and digest) that the `commands.jsonl` line, the failures line, the text
-block, the collection block, and the counting pass stream through, escaping 32
-KiB at a time; the measuring pass hashes a spool as it reads and refuses the
+count and digest) that the `commands.jsonl` line, the `errors.jsonl` line, the
+text block, the collection block, and the counting pass stream through, escaping
+32 KiB at a time; the measuring pass hashes a spool as it reads and refuses the
 record with `output_spool_mismatch` before any byte of the line is committed.
 The executor removes the spool once, after the append and the display's hand-over,
 on every ending. Every ending before the prompt returns (timeouts, a lost

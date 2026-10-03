@@ -79,6 +79,9 @@ var removedKeys = []removedKey{
 	// the ping line became a template, display.ping.header, whose empty
 	// value is the switch the boolean was.
 	{path: "display.ping", environment: "KARVI__DISPLAY__PING", removedIn: "v0.23.0", code: "config_key_removed", hint: "display.ping.header is the ping line's template; set it empty to print no line"},
+	// v0.26.0: the job folder's file of the records that did not succeed
+	// became errors.jsonl, and its key with it.
+	{path: "output.files.failures-jsonl", environment: "KARVI__OUTPUT__FILES__FAILURES_JSONL", removedIn: "v0.26.0", code: "config_key_removed", hint: "the file is errors.jsonl now; its switch is output.files.errors-jsonl"},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
 }
 

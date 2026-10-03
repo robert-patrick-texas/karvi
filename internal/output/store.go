@@ -29,13 +29,13 @@ import (
 // path of a skipped file is empty, so that a reader (the summary's "paths")
 // is told of no file that will not exist. With every file skipped Root is
 // empty too.
-type Paths struct{ Root, Manifest, CommandsJSONL, CommandsText, FailuresJSONL, FailedDevices, Metrics, Summary string }
+type Paths struct{ Root, Manifest, CommandsJSONL, CommandsText, ErrorsJSONL, FailedDevices, Metrics, Summary string }
 
 // FileSet names the job's output files, one field per file, shaped like
 // the file names. OutputTxt is every
 // device's output.TARGET.txt.
 type FileSet struct {
-	CommandsJSONL, CommandsTxt, FailedDevicesTxt, FailuresJSONL, ManifestJSON, MetricsJSON, SummaryJSON, OutputTxt bool
+	CommandsJSONL, CommandsTxt, ErrorsJSONL, FailedDevicesTxt, ManifestJSON, MetricsJSON, SummaryJSON, OutputTxt bool
 }
 
 // AllFiles is every output file: as Options.Skip, a store that writes
@@ -99,18 +99,18 @@ type Notice struct {
 	RecordID   string `json:"record_id"`
 }
 type Store struct {
-	mu                 sync.Mutex
-	skip               FileSet
-	crop               bool // CropNames
-	id                 string
-	paths              Paths
-	commands, failures *os.File
-	fsync              bool
-	sequence           int64
-	bytes              int64 // commands.jsonl, what Bytes reports
-	textBytes          int64 // every output.TARGET.txt; counted with bytes against maxBytes
-	maxBytes           int64
-	stamp              Timestamp // the text files' header time
+	mu             sync.Mutex
+	skip           FileSet
+	crop           bool // CropNames
+	id             string
+	paths          Paths
+	commands, errs *os.File
+	fsync          bool
+	sequence       int64
+	bytes          int64 // commands.jsonl, what Bytes reports
+	textBytes      int64 // every output.TARGET.txt; counted with bytes against maxBytes
+	maxBytes       int64
+	stamp          Timestamp // the text files' header time
 	// err is the first record that could not be appended (Err).
 	err    error
 	failed map[string]bool
@@ -218,7 +218,7 @@ func Create(opts Options) (*Store, error) {
 		return filepath.Join(opts.Root, name)
 	}
 	skip := opts.Skip
-	p := Paths{Root: opts.Root, Manifest: file(skip.ManifestJSON, "manifest.json"), CommandsJSONL: file(skip.CommandsJSONL, "commands.jsonl"), CommandsText: file(skip.CommandsTxt, "commands.txt"), FailuresJSONL: file(skip.FailuresJSONL, "failures.jsonl"), FailedDevices: file(skip.FailedDevicesTxt, "failed-devices.txt"), Metrics: file(skip.MetricsJSON, "metrics.json"), Summary: file(skip.SummaryJSON, "summary.json")}
+	p := Paths{Root: opts.Root, Manifest: file(skip.ManifestJSON, "manifest.json"), CommandsJSONL: file(skip.CommandsJSONL, "commands.jsonl"), CommandsText: file(skip.CommandsTxt, "commands.txt"), ErrorsJSONL: file(skip.ErrorsJSONL, "errors.jsonl"), FailedDevices: file(skip.FailedDevicesTxt, "failed-devices.txt"), Metrics: file(skip.MetricsJSON, "metrics.json"), Summary: file(skip.SummaryJSON, "summary.json")}
 	s := &Store{skip: opts.Skip, crop: opts.CropNames, collection: opts.Collection, filters: filters, collections: map[string]*collectionFile{}, outcomes: map[string]records.CollectionDevice{}, id: opts.ID, paths: p, fsync: opts.Fsync, maxBytes: opts.MaxJobBytes, failed: map[string]bool{}, texts: map[string]textState{}, setups: map[string][]platform.SetupLine{}, warn: opts.Warn, onDurable: opts.OnDurable, stamp: opts.Timestamp}
 	mode := opts.DirectoryMode
 	if mode == 0 {
@@ -234,8 +234,8 @@ func Create(opts Options) (*Store, error) {
 			return nil, err
 		}
 	}
-	if !opts.Skip.FailuresJSONL {
-		if s.failures, err = osutil.CreateExclusive(p.FailuresJSONL, os.O_APPEND); err != nil {
+	if !opts.Skip.ErrorsJSONL {
+		if s.errs, err = osutil.CreateExclusive(p.ErrorsJSONL, os.O_APPEND); err != nil {
 			if s.commands != nil {
 				s.commands.Close()
 			}
@@ -297,7 +297,7 @@ func (s *Store) WriteMetrics(v any) error {
 	return osutil.AtomicJSON(s.paths.Metrics, v, osutil.OutputFileMode)
 }
 
-// AppendRecord appends r's line to commands.jsonl (and failures.jsonl), then
+// AppendRecord appends r's line to commands.jsonl (and errors.jsonl), then
 // r's block to its device's output.TARGET.txt: "a statement's block is
 // appended when its record is appended".
 //
@@ -312,7 +312,7 @@ func (s *Store) WriteMetrics(v any) error {
 // string, or the command's spool file, which every consumer here streams
 // from and which the executor removes once AppendRecord and afterRecord
 // have returned. A spooled record's Output is
-// empty on the way in; the line, the failures line, the text block, and
+// empty on the way in; the line, the errors.jsonl line, the text block, and
 // the collection block are written from the file, its digest checked on
 // the measuring pass first (4.3).
 func (s *Store) AppendRecord(r *records.CommandRecord, src Source) (Notice, error) {
@@ -516,12 +516,12 @@ func (s *Store) appendLine(r *records.CommandRecord, src Source) (notice Notice,
 			return Notice{}, textAbsent, err
 		}
 	}
-	if failed && s.failures != nil {
-		if _, err := writeLine(s.failures, line); err != nil {
+	if failed && s.errs != nil {
+		if _, err := writeLine(s.errs, line); err != nil {
 			return Notice{}, textAbsent, err
 		}
 		if s.fsync {
-			if err := s.failures.Sync(); err != nil {
+			if err := s.errs.Sync(); err != nil {
 				return Notice{}, textAbsent, err
 			}
 		}
@@ -607,7 +607,7 @@ func (s *Store) Close() error {
 	}
 	// Close on a nil *os.File (a skipped file) is os.ErrInvalid, not a fault.
 	var first error
-	for _, f := range []*os.File{s.commands, s.failures} {
+	for _, f := range []*os.File{s.commands, s.errs} {
 		if f == nil {
 			continue
 		}

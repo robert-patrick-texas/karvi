@@ -98,7 +98,9 @@ func draftOptions(commands []string) DraftOptions {
 // display.record.footer were added; the plan schema stays 9.
 // Re-pinned at registry 24 and plan schema 10: display.collection.footer
 // was added and the collection's word entered the plan.
-const goldenK03Draft = "e0988f2f2066c1229eb4a520379e32f07f1214dd93fce3719c2b9a801e697a04"
+// Re-pinned when output.files.failures-jsonl became errors-jsonl, and the
+// plan's failures_jsonl errors_jsonl; registry 24 and plan schema 10 stay.
+const goldenK03Draft = "58eee171548c2404f2f76aebaa41dd7a2b2c0da233de2bc9030f5a61c4556a56"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

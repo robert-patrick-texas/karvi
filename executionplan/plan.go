@@ -29,7 +29,8 @@ import (
 // Version 6 output.crop_to_dot, 7 the platform command lists and the
 // collection sub-block, 8 sources.inputs and commands_file for
 // the scoreboard, 10 the collection's word, since run and command
-// collect too, and its suffix (--fs).
+// collect too, and its suffix (--fs), and, without another bump (10 was
+// unreleased), output.files' failures_jsonl renamed errors_jsonl.
 const SchemaVersion = 10
 
 // Mode is the requested execution mode of a job.
@@ -319,8 +320,8 @@ func (p *ExecutionPlan) CommandCount() int {
 type OutputFiles struct {
 	CommandsJSONL    bool `json:"commands_jsonl"`
 	CommandsTxt      bool `json:"commands_txt"`
+	ErrorsJSONL      bool `json:"errors_jsonl"`
 	FailedDevicesTxt bool `json:"failed_devices_txt"`
-	FailuresJSONL    bool `json:"failures_jsonl"`
 	ManifestJSON     bool `json:"manifest_json"`
 	MetricsJSON      bool `json:"metrics_json"`
 	SummaryJSON      bool `json:"summary_json"`

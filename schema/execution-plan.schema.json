@@ -110,9 +110,9 @@
         "persist": {"type": "boolean"},
         "files": {
           "type": "object", "additionalProperties": false,
-          "required": ["commands_jsonl", "commands_txt", "failed_devices_txt", "failures_jsonl", "manifest_json", "metrics_json", "summary_json", "output_txt"],
+          "required": ["commands_jsonl", "commands_txt", "errors_jsonl", "failed_devices_txt", "manifest_json", "metrics_json", "summary_json", "output_txt"],
           "properties": {
-            "commands_jsonl": {"type": "boolean"}, "commands_txt": {"type": "boolean"}, "failed_devices_txt": {"type": "boolean"}, "failures_jsonl": {"type": "boolean"},
+            "commands_jsonl": {"type": "boolean"}, "commands_txt": {"type": "boolean"}, "errors_jsonl": {"type": "boolean"}, "failed_devices_txt": {"type": "boolean"},
             "manifest_json": {"type": "boolean"}, "metrics_json": {"type": "boolean"}, "summary_json": {"type": "boolean"}, "output_txt": {"type": "boolean"}
           }
         },

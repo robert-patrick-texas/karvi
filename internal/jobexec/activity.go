@@ -521,7 +521,7 @@ func skippedFiles(o executionplan.OutputSettings) output.FileSet {
 	}
 	f := o.Files
 	return output.FileSet{
-		CommandsJSONL: !f.CommandsJSONL, CommandsTxt: !f.CommandsTxt, FailedDevicesTxt: !f.FailedDevicesTxt, FailuresJSONL: !f.FailuresJSONL,
+		CommandsJSONL: !f.CommandsJSONL, CommandsTxt: !f.CommandsTxt, ErrorsJSONL: !f.ErrorsJSONL, FailedDevicesTxt: !f.FailedDevicesTxt,
 		ManifestJSON: !f.ManifestJSON, MetricsJSON: !f.MetricsJSON, SummaryJSON: !f.SummaryJSON, OutputTxt: !f.OutputTxt,
 	}
 }
@@ -533,7 +533,7 @@ func skippedFiles(o executionplan.OutputSettings) output.FileSet {
 // name follows from the device's (output.TextFileName).
 func summaryFiles(paths output.Paths, outputBytes int64) (files map[string]string, out map[string]any) {
 	files = map[string]string{}
-	for key, path := range map[string]string{"commands_jsonl": paths.CommandsJSONL, "commands_txt": paths.CommandsText, "failures_jsonl": paths.FailuresJSONL, "failed_devices": paths.FailedDevices, "metrics": paths.Metrics, "summary": paths.Summary, "manifest": paths.Manifest} {
+	for key, path := range map[string]string{"commands_jsonl": paths.CommandsJSONL, "commands_txt": paths.CommandsText, "errors_jsonl": paths.ErrorsJSONL, "failed_devices": paths.FailedDevices, "metrics": paths.Metrics, "summary": paths.Summary, "manifest": paths.Manifest} {
 		if path != "" {
 			files[key] = path
 		}

@@ -1388,6 +1388,19 @@
       "since": "0.13.0"
     },
     {
+      "path": "output.files.errors-jsonl",
+      "kind": "boolean",
+      "default_literal": "true",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__OUTPUT__FILES__ERRORS_JSONL",
+      "cli_flags": null,
+      "documentation": "Write `errors.jsonl`, the records that did not succeed (each is also in `commands.jsonl`); false does not create it.",
+      "since": "0.26.0"
+    },
+    {
       "path": "output.files.failed-devices-txt",
       "kind": "boolean",
       "default_literal": "true",
@@ -1398,19 +1411,6 @@
       "environment": "KARVI__OUTPUT__FILES__FAILED_DEVICES_TXT",
       "cli_flags": null,
       "documentation": "Write `failed-devices.txt`, the rerun's target file (`--tf`); false does not create it.",
-      "since": "0.13.0"
-    },
-    {
-      "path": "output.files.failures-jsonl",
-      "kind": "boolean",
-      "default_literal": "true",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__OUTPUT__FILES__FAILURES_JSONL",
-      "cli_flags": null,
-      "documentation": "Write `failures.jsonl`, the records that did not succeed (each is also in `commands.jsonl`); false does not create it.",
       "since": "0.13.0"
     },
     {

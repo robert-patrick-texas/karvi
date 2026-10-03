@@ -488,7 +488,7 @@ breaks the writing of another; what you lose is what reads it.
 |---|---|---|---|
 | `output-txt` | `output.NAME.txt`, one per device; NAME is the device name's first label, lowercased (`output.crop-to-dot`, true; `false` writes the whole name), or an address with its dots and colons as hyphens | the session as you would read it in a terminal; its header's time is `display.timestamp` in the effective `timezone` | the readable copy; it can be derived again from `commands.jsonl` (`tools/textfile`, given the same two settings) |
 | `commands-jsonl` | `commands.jsonl` | every record, one JSON object per line: the authority | `karvi job follow` cannot replay the job; a device's text cannot be derived again; tools that read records |
-| `failures-jsonl` | `failures.jsonl` | the records that did not succeed, each also in `commands.jsonl` | the short list of failures |
+| `errors-jsonl` | `errors.jsonl` | the records that did not succeed, each also in `commands.jsonl` | the short list of failures |
 | `failed-devices-txt` | `failed-devices.txt` | the devices to run again | the rerun's `--tf` file |
 | `commands-txt` | `commands.txt` | the commands as requested | the rerun's `--cf` file |
 | `manifest-json` | `manifest.json` | the job as it was accepted | the record of what was asked, by whom, under which configuration |
@@ -1009,6 +1009,6 @@ or a heredoc it drives several jobs through one karvi. The rules:
 
 ## Structured evidence
 
-Treat `commands.jsonl`, `failures.jsonl`, `summary.json`, `manifest.json`, audit
+Treat `commands.jsonl`, `errors.jsonl`, `summary.json`, `manifest.json`, audit
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.

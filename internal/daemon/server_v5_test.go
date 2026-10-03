@@ -316,8 +316,8 @@ func TestSchema5SequenceRunsAJob(t *testing.T) {
 	}
 	terminal := f.followToEnd(jobID)
 	if terminal.Outcome.ExitCode != 0 || terminal.Outcome.JobID != jobID {
-		failures, _ := os.ReadFile(filepath.Join(result.Receipt.ArtifactDir, "failures.jsonl"))
-		t.Fatalf("outcome=%+v failures=%s", terminal.Outcome, failures)
+		errs, _ := os.ReadFile(filepath.Join(result.Receipt.ArtifactDir, "errors.jsonl"))
+		t.Fatalf("outcome=%+v errors=%s", terminal.Outcome, errs)
 	}
 	if len(f.s.Preparations()) != 0 {
 		t.Fatalf("preparation retained after commit: %v", f.s.Preparations())

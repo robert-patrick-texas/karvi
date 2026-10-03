@@ -182,7 +182,7 @@ karvi-qualification-c9300-lab-20260921T140000Z/
   D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml,
                         and TAG.base/ (audit.jsonl, score/, and the job directory:
                         commands.jsonl, output.TARGET.txt (the session as text, on a
-                        build that writes it), failures.jsonl, failed-devices.txt,
+                        build that writes it), errors.jsonl, failed-devices.txt,
                         summary.json, metrics.json, manifest.json with the digests)
   D7/*.known_hosts      the scratch trust store as each step left it
   D15/                  by hand: ssh.exit, ssh-verbose.log, known_hosts (the

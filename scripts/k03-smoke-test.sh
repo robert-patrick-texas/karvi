@@ -202,7 +202,7 @@ case "$job" in "$R"/jobs/[0-9][0-9][0-9][0-9][0-9][0-9]/[0-9][0-9][0-9][0-9][0-9
 [ "$(stat -c %a "$R/logs")" = 750 ] || fail "p1: logs $(stat -c %a "$R/logs")"
 [ "$(stat -c %a "$R/socket")" = 700 ] && [ "$(stat -c %a "$R/state")" = 700 ] || fail "p1: socket/state not 0700"
 [ "$(stat -c %a "$R/jobs")" = 750 ] && [ "$(stat -c %a "$(dirname "$job")")" = 750 ] && [ "$(stat -c %a "$job")" = 750 ] || fail "p1: folder modes $(stat -c %a "$R/jobs" "$(dirname "$job")" "$job" | tr '\n' ' ')"
-for f in manifest.json summary.json commands.jsonl commands.txt failures.jsonl; do [ "$(stat -c %a "$job/$f")" = 640 ] || fail "p1: $f mode $(stat -c %a "$job/$f")"; done
+for f in manifest.json summary.json commands.jsonl commands.txt errors.jsonl; do [ "$(stat -c %a "$job/$f")" = 640 ] || fail "p1: $f mode $(stat -c %a "$job/$f")"; done
 # output.directory-mode 0700 applies to folders karvi creates; existing ones stay.
 run p2 0 -- --set 'output.directory-mode="0700"' run --no-daemon --target 127.0.0.1 show clock
 job=$(sed -n 's/^! exit=.* artifacts=//p' "$TMP/out" | tail -1)

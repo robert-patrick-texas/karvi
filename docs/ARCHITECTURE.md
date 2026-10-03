@@ -298,7 +298,7 @@ and every ending, a prompt's return or a cut, hands the executor what
 settled and where it is. The record's output has one source
 (`output.Source`): the record's string, or the spool file with its count,
 digest, and encoding. The store streams every file from it (the
-`commands.jsonl` and `failures.jsonl` lines escaped 32 KiB at a time, the
+`commands.jsonl` and `errors.jsonl` lines escaped 32 KiB at a time, the
 text block, the collection block), verifying the spool's bytes against the
 reader's digest on the measuring pass before any byte of the line reaches
 a file (`output_spool_mismatch`); the follower's queue carries the line's

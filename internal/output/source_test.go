@@ -128,7 +128,7 @@ func TestSpoolMismatchRefusesTheRecord(t *testing.T) {
 }
 
 // TestSpooledRecordFilesEqualTheStringForm is the spooled record at the store:
-// the commands.jsonl line, the failures.jsonl line, the text block, and
+// the commands.jsonl line, the errors.jsonl line, the text block, and
 // the collection block of a spooled record are those of the same record
 // carrying its output as a string; the record leaves the append with its
 // Output still empty (the renderer and the follower take the
@@ -138,7 +138,7 @@ func TestSpooledRecordFilesEqualTheStringForm(t *testing.T) {
 	base := func() records.CommandRecord {
 		return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", ActivityType: "command", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "d", Name: "d", CanonicalName: "d", Groups: []string{}}, InputTarget: "d", TransformedName: "d", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "generic", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show running-config", CommandSHA256: "x", Status: "timeout", PromptBefore: "r1#", OutputEncoding: "utf-8", OutputBytes: int64(len(raw)), Notices: []records.Notice{}, Error: &records.StructuredError{Code: "command_timeout", Category: "timeout", Message: "cut"}}
 	}
-	run := func(spooled bool) (jsonl, failures, text, collected string, filled string) {
+	run := func(spooled bool) (jsonl, errs, text, collected string, filled string) {
 		dir := t.TempDir()
 		coll := filepath.Join(dir, "coll")
 		os.MkdirAll(coll, 0o700)
@@ -190,7 +190,7 @@ func TestSpooledRecordFilesEqualTheStringForm(t *testing.T) {
 			t.Fatal(err)
 		}
 		read := func(p string) string { b, _ := os.ReadFile(p); return string(b) }
-		return read(s.Paths().CommandsJSONL), read(s.Paths().FailuresJSONL), read(filepath.Join(s.Paths().Root, TextFileName("d", false))), read(filepath.Join(coll, "e")), r.Output
+		return read(s.Paths().CommandsJSONL), read(s.Paths().ErrorsJSONL), read(filepath.Join(s.Paths().Root, TextFileName("d", false))), read(filepath.Join(coll, "e")), r.Output
 	}
 	j1, f1, t1, c1, _ := run(false)
 	j2, f2, t2, c2, filled := run(true)
@@ -198,7 +198,7 @@ func TestSpooledRecordFilesEqualTheStringForm(t *testing.T) {
 	// first block on.
 	after := func(s string) string { i := strings.Index(s, "r1#show"); return s[i:] }
 	if j1 != j2 || f1 != f2 || after(t1) != after(t2) || c1 != c2 {
-		t.Fatalf("the spooled record's files differ from the string form's:\ncommands equal %v\nfailures equal %v\ntext equal %v\ncollection equal %v", j1 == j2, f1 == f2, after(t1) == after(t2), c1 == c2)
+		t.Fatalf("the spooled record's files differ from the string form's:\ncommands equal %v\nerrors equal %v\ntext equal %v\ncollection equal %v", j1 == j2, f1 == f2, after(t1) == after(t2), c1 == c2)
 	}
 	if filled != "" {
 		t.Fatalf("after the append the spooled record's Output is %q, want it empty", filled)

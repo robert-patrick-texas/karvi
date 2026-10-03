@@ -1131,7 +1131,7 @@ fake-iosxe uptime is 1 day
 $ cat dead
 old dead
 $ ls …/261003-103623-00                    # the run's folder, output.NAME.txt kept
-commands.jsonl commands.txt failed-devices.txt failures.jsonl manifest.json metrics.json output.dead.txt output.r1.txt summary.json
+commands.jsonl commands.txt errors.jsonl failed-devices.txt manifest.json metrics.json output.dead.txt output.r1.txt summary.json
 $ karvi run --no-daemon --target r1 --cmd 'show bogus' --cmd 'show clock' --cd=.
 ! collection=/tmp/nd.8Nm1/cap replaced=0 kept=1
 $ karvi run --no-daemon --continue --target r1 --cmd 'show bogus' --cmd 'show clock' --cd=.
@@ -2258,3 +2258,58 @@ karvi --debug login --record=./transcripts … 2>karvi.err      karvi.exit 110, 
 karvi.err              code=ssh_process_failed; ssh_process_failed: exit status 255
 transcripts/…meta.jsonl  "exit_classification":"ExitConnectionFailure"
 ```
+
+## 19. `errors.jsonl` (2026-10-03)
+
+The operator's word: the job folder's file of device and command failure
+details is `errors.jsonl`, where it was `failures.jsonl`, in the code,
+the documentation, and the manual pages.
+
+**What it gains.** The file's name says what an operator opens it for:
+the errors of the job, device and command alike. Nothing waits on it.
+
+**The rule.** One name per file, carried by everything shaped after it:
+the file `errors.jsonl`, its switch `output.files.errors-jsonl`
+(`KARVI__OUTPUT__FILES__ERRORS_JSONL`, `Since` 0.26.0), the execution
+plan's `output.files.errors_jsonl`, the summary's `paths.errors_jsonl`,
+and the Go names (`ErrorsJSONL`). The lists ordered by name take the new
+name's place (before `failed-devices`). The old key is refused from every
+layer with `config_key_removed`, as every removed key is, its hint naming
+the new one. The registry stays 24 and the plan schema 10: both are
+unreleased since v0.25.0 (registry 22, plan 9), so the rename rides on
+their numbers; the plan's pinned digests moved. Not taken: the old key
+kept as an alias (no backwards compatibility); the key left as
+`failures-jsonl` beside a file named `errors.jsonl` (each key is shaped
+like its file's name); a plan schema bump for an unreleased number. Left
+as they were: the specification in the archive and the v0.24.0 release
+evidence (`release/evidence/default-config.toml`), which record their
+releases.
+
+**Executed.** Against a lab build of the tree, the fake, and the
+unreachable `dead`:
+
+```text
+$ karvi run --no-daemon --target r1 --target dead --cmd 'show bogus' --cmd 'show clock'   # exit 101
+$ ls …/261003-182508-00
+commands.jsonl commands.txt errors.jsonl failed-devices.txt manifest.json metrics.json output.dead.txt output.r1.txt summary.json
+$ jq -c '{device: .device.name, command, status, code: .error.code}' errors.jsonl
+{"device":"r1","command":"show bogus","status":"device_error","code":"device_command_error"}
+{"device":"r1","command":"show clock","status":"not_attempted_prior_command_failure","code":null}
+{"device":"dead","command":"show bogus","status":"connection_error","code":"native_session_open_failed"}
+{"device":"dead","command":"show clock","status":"not_attempted_prior_command_failure","code":null}
+$ jq -c '.paths | keys' summary.json
+["commands_jsonl","commands_txt","errors_jsonl","failed_devices","manifest","metrics","summary"]
+$ karvi --set output.files.errors-jsonl=false run --no-daemon --target r1 --cmd 'show bogus'   # no errors.jsonl
+commands.jsonl commands.txt failed-devices.txt manifest.json metrics.json output.r1.txt summary.json
+$ karvi --set output.files.failures-jsonl=false config show                                  # exit 2
+config_key_removed: removed in v0.26.0; the file is errors.jsonl now; its switch is output.files.errors-jsonl for output.files.failures-jsonl at --set[2]
+```
+
+The environment variable and a file's `[output.files] failures-jsonl`
+are refused the same way, at `KARVI__OUTPUT__FILES__FAILURES_JSONL` and
+at the file's line. Changed: `internal/output` (the file and the store's
+handle), `executionplan`, `internal/planner`, `internal/jobexec`, the
+registry row and the removed-key table, the plan schema, the generated
+reference and configuration schema, the native and k03 suites, OPERATIONS,
+DESIGN, ARCHITECTURE, the runbook, `karvi-run.1`, and chapter 12's
+listing.

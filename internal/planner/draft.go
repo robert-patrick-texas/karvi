@@ -414,7 +414,7 @@ func checkFileNames(targets []executionplan.ExecutionTarget, crop bool, collecti
 func outputFiles(cfg configload.Snapshot) executionplan.OutputFiles {
 	on := func(file string) bool { return cfg.Bool("output.files." + file) }
 	return executionplan.OutputFiles{
-		CommandsJSONL: on("commands-jsonl"), CommandsTxt: on("commands-txt"), FailedDevicesTxt: on("failed-devices-txt"), FailuresJSONL: on("failures-jsonl"),
+		CommandsJSONL: on("commands-jsonl"), CommandsTxt: on("commands-txt"), ErrorsJSONL: on("errors-jsonl"), FailedDevicesTxt: on("failed-devices-txt"),
 		ManifestJSON: on("manifest-json"), MetricsJSON: on("metrics-json"), SummaryJSON: on("summary-json"), OutputTxt: on("output-txt"),
 	}
 }

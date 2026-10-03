@@ -9,7 +9,7 @@ import (
 )
 
 // outputFileFields is OutputFiles' fields, in FileSet's field order.
-var outputFileFields = []string{"CommandsJSONL", "CommandsTxt", "FailedDevicesTxt", "FailuresJSONL", "ManifestJSON", "MetricsJSON", "SummaryJSON", "OutputTxt"}
+var outputFileFields = []string{"CommandsJSONL", "CommandsTxt", "ErrorsJSONL", "FailedDevicesTxt", "ManifestJSON", "MetricsJSON", "SummaryJSON", "OutputTxt"}
 
 // outputWith is the plan's output settings with the named files off.
 func outputWith(off ...string) executionplan.OutputSettings {

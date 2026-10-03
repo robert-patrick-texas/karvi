@@ -489,8 +489,8 @@ S29_ALL='[output.files]
 output-txt = false
 commands-jsonl = false
 commands-txt = false
+errors-jsonl = false
 failed-devices-txt = false
-failures-jsonl = false
 manifest-json = false
 metrics-json = false
 summary-json = false'
@@ -535,7 +535,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S29 ]; then
   job_run s29 run '[output.files]
 commands-jsonl = false
 metrics-json = false' '' --cmd 'show clock'
-  [ "$(job_files)" = 'commands.txt failed-devices.txt failures.jsonl manifest.json output.fake-iosxe.txt summary.json ' ] || fail "S29 two false: the folder holds $(job_files)"
+  [ "$(job_files)" = 'commands.txt errors.jsonl failed-devices.txt manifest.json output.fake-iosxe.txt summary.json ' ] || fail "S29 two false: the folder holds $(job_files)"
   grep -q '^Router#show clock$' "$JOB_DIR/output.fake-iosxe.txt" || fail "S29 two false: the text file is not written without commands.jsonl"
   for s29_path in paths.commands_jsonl paths.metrics output.commands_jsonl; do
     if json_has "$JOB_DIR/summary.json" "$s29_path"; then fail "S29 two false: the summary names $s29_path, a file not written"; fi
@@ -587,7 +587,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S32 ]; then
 commands-jsonl = false
 metrics-json = false' '' --cmd 'show clock'
   [ "$CODE" -eq 0 ] || fail "S32 two false: exit $CODE"
-  [ "$(job_files)" = 'commands.txt failed-devices.txt failures.jsonl manifest.json output.fake-iosxe.txt summary.json ' ] || fail "S32 two false through the daemon: the folder holds $(job_files)"
+  [ "$(job_files)" = 'commands.txt errors.jsonl failed-devices.txt manifest.json output.fake-iosxe.txt summary.json ' ] || fail "S32 two false through the daemon: the folder holds $(job_files)"
   [ "$(wc -l <"$TMP/out.s32")" -eq 2 ] || fail "S32 two false: $(wc -l <"$TMP/out.s32") lines displayed, expected the record and the summary"
   for s32_pair in '--nof --detach' '--nof --exercise' '--nof --of'; do
     # shellcheck disable=SC2086
@@ -676,7 +676,7 @@ directory = \"$TMP/crun\""
   [ "$(stat -c %a "$TMP/crun/fake-iosxe")" = 660 ] || fail "S33: the file's mode is $(stat -c %a "$TMP/crun/fake-iosxe"), expected 660"
   [ "$(cat "$TMP/crun/dead")" = 'old dead' ] || fail "S33: dead's previous file was touched"
   [ "$(ls -A "$TMP/crun" | tr '\n' ' ')" = 'dead fake-iosxe ' ] || fail "S33: the directory holds $(ls -A "$TMP/crun" | tr '\n' ' ')"
-  [ "$(job_files)" = 'commands.cisco_iosxe.txt commands.dead.txt commands.jsonl failed-devices.txt failures.jsonl manifest.json metrics.json summary.json ' ] || fail "S33: the job folder holds $(job_files)"
+  [ "$(job_files)" = 'commands.cisco_iosxe.txt commands.dead.txt commands.jsonl errors.jsonl failed-devices.txt manifest.json metrics.json summary.json ' ] || fail "S33: the job folder holds $(job_files)"
   [ "$(json_get "$JOB_DIR/summary.json" collection.replaced)" = 1 ] && [ "$(json_get "$JOB_DIR/summary.json" collection.kept)" = 1 ] || fail "S33: the summary's collection block: $(json_get "$JOB_DIR/summary.json" collection.replaced) replaced, $(json_get "$JOB_DIR/summary.json" collection.kept) kept"
   [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = kept ] || fail "S33: dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
   # Under jsonl the stream's last line is the summary, which carries the

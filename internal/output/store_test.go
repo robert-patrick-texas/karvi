@@ -35,7 +35,7 @@ func TestAppend(t *testing.T) {
 	}
 }
 
-// TestFailedDevicesFollowRequestedRecords: failures.jsonl takes every
+// TestFailedDevicesFollowRequestedRecords: errors.jsonl takes every
 // non-succeeded record of either kind;
 // failed-devices.txt lists a device only for a non-succeeded requested one.
 func TestFailedDevicesFollowRequestedRecords(t *testing.T) {
@@ -65,9 +65,9 @@ func TestFailedDevicesFollowRequestedRecords(t *testing.T) {
 	if string(failed) != "stopped\n" {
 		t.Errorf("failed-devices.txt %q, want only the device with a failed requested record", failed)
 	}
-	failures, _ := os.ReadFile(s.Paths().FailuresJSONL)
-	if n := len(strings.Split(strings.TrimSpace(string(failures)), "\n")); n != 3 {
-		t.Errorf("failures.jsonl has %d lines, want 3", n)
+	errs, _ := os.ReadFile(s.Paths().ErrorsJSONL)
+	if n := len(strings.Split(strings.TrimSpace(string(errs)), "\n")); n != 3 {
+		t.Errorf("errors.jsonl has %d lines, want 3", n)
 	}
 }
 
@@ -211,7 +211,7 @@ func TestSkippedFiles(t *testing.T) {
 		}
 	}
 
-	s, err = Create(Options{Skip: FileSet{FailuresJSONL: true, OutputTxt: true, MetricsJSON: true}, Root: root, ID: "id", MaxJobBytes: 1 << 20})
+	s, err = Create(Options{Skip: FileSet{ErrorsJSONL: true, OutputTxt: true, MetricsJSON: true}, Root: root, ID: "id", MaxJobBytes: 1 << 20})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,12 +220,12 @@ func TestSkippedFiles(t *testing.T) {
 		t.Fatalf("three files skipped: the folder holds %q, want %q", got, want)
 	}
 	if got, _ := os.ReadFile(root + "/failed-devices.txt"); string(got) != "r1\n" {
-		t.Fatalf("failed-devices.txt %q: a device is listed whether or not failures.jsonl is written", got)
+		t.Fatalf("failed-devices.txt %q: a device is listed whether or not errors.jsonl is written", got)
 	}
 	// Paths names the files that are written and no other: the summary's
 	// "paths" is made from it.
 	p := s.Paths()
-	if p.FailuresJSONL != "" || p.Metrics != "" {
+	if p.ErrorsJSONL != "" || p.Metrics != "" {
 		t.Fatalf("paths %+v name a skipped file", p)
 	}
 	for _, written := range []string{p.CommandsJSONL, p.CommandsText, p.FailedDevices, p.Manifest, p.Summary} {
