@@ -1242,6 +1242,20 @@ their keys' registry entries give ranges alone, and SCALE.md, which explains
 them, is not installed. *Not taken:* the compact lines with a pointer to
 SCALE.md; changing the percent rule in a help change.
 
+**`NO_COLOR` turns colour off under `auto`, on every path.** `display.color`
+is `auto` (the default), `always`, or `never`; under `auto`, colour is on at a
+terminal unless `NO_COLOR` is set and not empty. The rule is
+`display.ColorEnabled`'s, so the help, a run's display on both paths,
+`config colors`, the watch screen, and `karvi-prune -h` (whose mode is `auto`
+alone) follow it; `always` and `never` are explicit choices `NO_COLOR` does
+not override, watch's `--color` among them. *Why:* the convention (no-color.org)
+asks a program that colours by default to honour a non-empty `NO_COLOR` and
+lets a configuration or a per-invocation option override it; the watch screen
+alone read it, beating even its own `--color always`, and every other path
+ignored it. *Not taken:* `NO_COLOR` over `always`; `NO_COLOR` as a
+configuration layer setting `display.color = "never"` (locks, and an order
+above the files); a karvi variable of its own.
+
 **Debug output shows each command once and never a payload.** Debug never
 contains passwords, tokens, or device output; it shows each command sent
 exactly once, from the plan and never from the device's echo, with a marked

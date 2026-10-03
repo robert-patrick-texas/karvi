@@ -393,7 +393,8 @@ after-timeout = "5m"
 [display]
 # Shared terminal theme: auto, dark, light, or nocolor.
 theme = "dark"
-# Terminal color policy: auto, always, or never.
+# Terminal color policy: auto, always, or never. auto colours at a terminal unless NO_COLOR is
+# set and not empty; always and never are explicit and NO_COLOR does not override them.
 color = "auto"
 # Human-facing timestamp pattern. Supports yyyy, yy, MM/month-context mm, dd, hh,
 # minute-context mm, ss, and sss. Stored records remain RFC 3339.

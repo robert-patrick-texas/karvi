@@ -811,7 +811,10 @@ func formatElapsed(value time.Duration) string {
 	return value.Round(10 * time.Millisecond).String()
 }
 
-// ColorEnabled applies the central terminal color policy.
+// ColorEnabled applies the central terminal color policy: never, or the
+// nocolor theme, is off; always is on; auto is on at a terminal unless
+// NO_COLOR is set and not empty (no-color.org). always and never are
+// explicit choices NO_COLOR does not override.
 func ColorEnabled(mode, theme string, terminal bool) bool {
 	if strings.EqualFold(theme, "nocolor") || strings.EqualFold(mode, "never") {
 		return false
@@ -819,7 +822,7 @@ func ColorEnabled(mode, theme string, terminal bool) bool {
 	if strings.EqualFold(mode, "always") {
 		return true
 	}
-	return terminal
+	return terminal && os.Getenv("NO_COLOR") == ""
 }
 
 // EffectiveTheme resolves auto using the widely supported COLORFGBG hint.

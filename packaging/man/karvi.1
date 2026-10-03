@@ -256,9 +256,18 @@ Under
 a last field of 7 or more takes the light theme, anything else the dark.
 .TP
 .B NO_COLOR
-Set and not empty, the watch screen draws without colour; the other
-words' colour is
-.BR display.color 's.
+Set and not empty, karvi adds no colour under
+.B display.color
+.BR auto ,
+the default, on any word and in
+.BR karvi\-prune (8)'s
+help;
+.B always
+and
+.BR never ,
+and the watch screen's
+.BR \-\-color ,
+are explicit and it does not override them.
 .TP
 .B SUDO_GID
 .B sudo karvi setup shared

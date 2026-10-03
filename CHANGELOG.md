@@ -224,6 +224,13 @@
   top-level keys first; no key's value changes, and a test holds that every
   key loads from its own line at its default. The 0.24.0 and 0.25.0
   references have the same fault.
+- **`NO_COLOR` turns colour off everywhere under `auto`.** With
+  `display.color` at `auto`, the default, a non-empty `NO_COLOR` now keeps
+  karvi's colour off on every path: the help, a run's display, `config
+  colors`, the watch screen, and `karvi-prune -h`, where the watch screen
+  alone had read it. `display.color = "always"` (or `--set`) and the
+  watch screen's `--color always` now win over `NO_COLOR`, where the
+  screen had dropped colour even under `--color always`.
 
 ## 0.25.0 - 2026-09-30
 

@@ -244,3 +244,25 @@ func TestCropLinesKeepsEscapesWhole(t *testing.T) {
 		t.Errorf("plain %q", got)
 	}
 }
+
+// TestColorEnabledNoColor: under auto, colour is on at a terminal unless
+// NO_COLOR is set and not empty; always and never are explicit choices
+// NO_COLOR does not override; the nocolor theme is off whatever the mode.
+func TestColorEnabledNoColor(t *testing.T) {
+	for _, tc := range []struct {
+		mode, theme, noColor string
+		terminal, want       bool
+	}{
+		{"auto", "dark", "", true, true},
+		{"auto", "dark", "1", true, false},
+		{"auto", "dark", "", false, false},
+		{"always", "dark", "1", false, true},
+		{"never", "dark", "", true, false},
+		{"always", "nocolor", "", true, false},
+	} {
+		t.Setenv("NO_COLOR", tc.noColor)
+		if got := ColorEnabled(tc.mode, tc.theme, tc.terminal); got != tc.want {
+			t.Errorf("ColorEnabled(%s, %s, terminal=%v) with NO_COLOR=%q = %v, want %v", tc.mode, tc.theme, tc.terminal, tc.noColor, got, tc.want)
+		}
+	}
+}

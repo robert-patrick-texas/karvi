@@ -131,6 +131,14 @@ light theme does), labels and brackets blue, values white, success green, and
 borders gray. Timestamp and dynamic-border roles
 are independently configurable.
 
+Colour is `display.color`'s: `auto`, the default, colours at a terminal
+and not on a pipe or in a file, unless `NO_COLOR` is set and not empty
+(the no-color.org convention); `always` colours wherever the output goes
+and `never` nowhere, and `NO_COLOR` overrides neither. The rule is one,
+for the help, a run's display on both paths, `config colors`, the watch
+screen (whose `--color` sets it for the screen), and `karvi-prune -h`,
+which reads no configuration and colours under `auto` alone.
+
 `karvi config colors` prints the colour test:
 every `display.colors.*` role under the configured theme first and then
 the other, each line the key rendered as a display line renders that role

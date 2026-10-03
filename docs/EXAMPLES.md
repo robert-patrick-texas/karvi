@@ -2064,3 +2064,68 @@ source:     site.toml:6
 (the one suite that runs `config generate`), pass. The roadmap's first
 item leaves Next.
 
+
+## 16. `NO_COLOR` (2026-10-03)
+
+Found while `karvi.1`'s ENVIRONMENT was written (chapter 14, part 1): the
+watch screen alone reads `NO_COLOR`.
+
+**What it gains.** `NO_COLOR` is the common convention (no-color.org) by
+which a terminal user turns colour off in every program at once; an
+operator who set it got plain output from the watch screen and colour from
+everything else. It waits on nothing outside the tree.
+
+**The review.** Against the tree at `aded4f3`, a lab build, at a terminal
+(`script`, the live screen at 40×120), `display.color` at its default
+`auto`, colour sequences counted:
+
+```text
+                                   no NO_COLOR   NO_COLOR=1   NO_COLOR=1 + color always
+karvi --help                            27            27              27
+run --no-daemon / through the daemon     2 / 2         2 / 2           2 / 2
+config colors                           24            24              24
+karvi-prune --help                      11            11               –
+watch (live screen)                     74             0               0   (--color always)
+```
+
+Every colour decision is `display.ColorEnabled(mode, theme, terminal)`,
+which read no `NO_COLOR`; `watch_command.go` set the theme to `nocolor`
+when it was set, which beat an explicit `--color always`. The convention
+asks a program that colours by default to honour a non-empty `NO_COLOR`,
+and lets a configuration or a per-invocation option override it.
+
+**The rule settled.** The operator agreed: under `display.color = "auto"`,
+a non-empty `NO_COLOR` turns colour off, in `display.ColorEnabled`, so
+every path follows, `karvi-prune -h` (mode `auto` alone, still reading no
+configuration) among them; `always` and `never` are explicit choices it
+does not override, watch's `--color always` among them, its own override
+removed; the `display.color` row's documentation, DISPLAY-CONFIGURATION,
+and `karvi.1`'s ENVIRONMENT say so; a test of `ColorEnabled` per mode with
+and without `NO_COLOR`; the matrix again after the change. `config colors`
+under `NO_COLOR` shows each role's escape as text and no colour;
+`--set display.color=always` shows them. Not taken: `NO_COLOR` over
+`always`; `NO_COLOR` as a configuration layer; a variable of karvi's own.
+Built as one section.
+
+**Executed.** The rule in `display.ColorEnabled`; watch's own override
+removed; the `display.color` row's documentation (the reference and the
+schema regenerated); DISPLAY-CONFIGURATION states the rule, which its
+`config colors` paragraph had called "the rule above" with no rule above;
+`karvi.1`'s ENVIRONMENT entry. The matrix on the new build:
+
+```text
+                                   no NO_COLOR   NO_COLOR=1   NO_COLOR=1 + color always
+karvi --help                            27             0              27
+run --no-daemon / through the daemon     2 / 2         0 / 0           2 / 2
+config colors                           24             0              24
+karvi-prune --help                      11             0               –
+watch (live screen)                    109             0             109   (--color always)
+NO_COLOR= (empty), --help               27
+```
+
+The test of `ColorEnabled` covers each mode with and without `NO_COLOR`;
+`go test ./...` passes with `NO_COLOR=1` in the environment as well, so no
+test depends on the host's setting. Battery: the seventeen suites on a lab
+build (21:03:02 to 21:06:20 UTC), pass; vet, gofmt, and `make
+generated-clean`.
+

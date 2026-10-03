@@ -1697,7 +1697,7 @@
         "always",
         "never"
       ],
-      "documentation": "Terminal color policy: `auto`, `always`, or `never`.",
+      "documentation": "Terminal color policy: `auto`, `always`, or `never`. `auto` colours at a terminal unless `NO_COLOR` is set and not empty; `always` and `never` are explicit and `NO_COLOR` does not override them.",
       "since": "0.5.0"
     },
     {

@@ -56,9 +56,6 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if color == "" {
 		color = cfg.String("display.color")
 	}
-	if os.Getenv("NO_COLOR") != "" {
-		theme = "nocolor"
-	}
 	once := inv.Flag(optOnce) || format != "tui"
 	// The twelve display.colors.* overrides by role.
 	colors := map[string]string{}
