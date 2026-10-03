@@ -570,6 +570,23 @@ a unit test. The real device matrix is the only proof of interoperability.
 *Why:* a fake that imitates state invites tests that pass against the
 imitation.
 
+**A login's normal end is qualified on the devices before karvi classifies it
+differently.** A device that ends a session on `exit` without an exit status,
+as the fake does, makes OpenSSH exit 255, and `karvi login` reports it as
+`ssh_process_failed`, exit 110, `ExitConnectionFailure` in its transcript's
+metadata and audit; from the client such an end and a device dying mid-session
+are the same, even in OpenSSH's own verbose log. The runbook's row D15 records,
+on each laboratory device, plain `ssh`'s exit after `exit` and `karvi login`'s.
+If the device sends a status, the fake learns to send one and karvi is
+unchanged; if it closes without one, an interactive login that authenticated
+and ended with the device closing the session is a completed session, exit 0,
+with the notice `login_closed_without_status`, "authenticated" read from
+OpenSSH's log (`-E` at `VERBOSE`), and a device that dies mid-session ends 0
+too. *Why:* either change made without the device is a guess: the classifier
+loosened for a behaviour IOS XE may not have, or the fake changed to match a
+device nobody observed. *Not taken:* every 255 a success (a refused or lost
+connection is 255 as well); the fake changed now.
+
 ## 6. Host keys and SSH algorithms
 
 **One host-key policy for every mode and transport.** `ssh.host-key-policy` is

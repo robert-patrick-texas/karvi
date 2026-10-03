@@ -19,7 +19,7 @@ so a failure in the laboratory is the device's answer and not the script's.
 | `python3` | the script's one JSON read (`scripts/lib/json.sh`: the executable's transports) | A prerequisite of `BUILD-HOWTO.md` §1; the script stops at its start without it |
 | `bin/secret-scan` (`make tools-build`) | the final scan | Without it the scan is marked skip and the evidence must not leave the host unreviewed |
 | The device's inventory name, management address, and SSH port | every row | `DEVICE`, `ADDRESS`, `PORT` |
-| A laboratory account that reaches privilege 15 by `enable`, and its enable secret | D1–D4, D7–D14 | `NETUSER`, `NETPASS`, `NETENABLE` in the environment. If the account lands at privilege 15 at login, leave `NETENABLE` unset: that is the matrix's "nothing sent" row |
+| A laboratory account that reaches privilege 15 by `enable`, and its enable secret | D1–D4, D7–D15 | `NETUSER`, `NETPASS`, `NETENABLE` in the environment. If the account lands at privilege 15 at login, leave `NETENABLE` unset: that is the matrix's "nothing sent" row |
 | A restricted account refused `terminal length 0` (for example privilege 1 with no `terminal` command authorized) | D5 | `RESTRICTED_USER`, `RESTRICTED_PASS`; the row is skipped without them |
 | The number of vty lines free on the device | D8 | `CONCURRENCY` at or below it; a 9300's default is 16 (`line vty 0 15`), less the operator's own sessions |
 | A read-only command with a large output | D9 | `BIG_COMMAND="show tech-support"` runs for minutes and produces megabytes; the row's command timeout is 600 s |
@@ -127,6 +127,49 @@ Rows the script does not run, and how they are done:
 - **An entry left from an earlier release for a non-22 port**: only where
   `PORT` is not 22; write `ADDRESS ssh-ed25519 KEY` (the old form) into a
   scratch store and run D7 d's command: `host_key_not_enrolled`.
+- **D15, how a login ends.** Whether the device sends an exit status when
+  a session ends with `exit`, and what `karvi login` makes of it. `login` is
+  interactive and runs on the system transport alone, and the script drives
+  no interactive session, so the row is done by hand, on each laboratory
+  device of the run (the ISR 4451-X and the Catalyst 9300), as the
+  laboratory account, in the evidence directory:
+
+  ```bash
+  mkdir D15 && cd D15
+  # 1. The device, karvi aside: plain OpenSSH, its own log at VERBOSE in a
+  #    file (the terminal unchanged), a scratch trust store.
+  ssh -tt -E ./ssh-verbose.log -o LogLevel=VERBOSE \
+    -o UserKnownHostsFile=./known_hosts -o StrictHostKeyChecking=accept-new \
+    -p "$PORT" "$NETUSER@$ADDRESS"
+  # at the device: show clock, then exit
+  echo $? >ssh.exit
+  # 2. karvi: the same session, recorded, its debug stream in a file.
+  karvi --debug login --record=./transcripts "$DEVICE" 2>karvi.err
+  # at the device: show clock, then exit
+  echo $? >karvi.exit
+  ```
+
+  Read, and write one line `D15  login-end  observe  ssh.exit=N
+  karvi.exit=M` into `results.tsv` by hand:
+
+  - `ssh.exit`: 0 is a device that sends an exit status when the session
+    ends; 255 is one that closes the session without it.
+  - `ssh-verbose.log`: the `Authenticated to …` and `Transferred: …` lines,
+    which the roadmap's rule reads to tell an authenticated session's end
+    from a failure before authentication.
+  - `karvi.exit`, `karvi.err` (the `system SSH interactive session` lines,
+    and `ssh_process_failed: exit status 255` when it fails so), and the
+    `exit_classification` in the end line of the transcript's
+    `.meta.jsonl` under `transcripts/`.
+
+  The fake, for comparison, closes without a status: `ssh.exit` 255, both
+  log lines present, `karvi.exit` 110, `ssh_process_failed`,
+  `ExitConnectionFailure`. A device that sends a status should give 0 and 0;
+  the fake is then corrected to send one, and karvi is unchanged. A device
+  that gives the fake's figures takes the rule on the roadmap's
+  device-qualification track (`ROADMAP.md`, item 5): an authenticated
+  login the device closed is a completed session, exit 0, with the notice
+  `login_closed_without_status`.
 
 ## 5. The evidence
 
@@ -142,6 +185,9 @@ karvi-qualification-c9300-lab-20260921T140000Z/
                         build that writes it), failures.jsonl, failed-devices.txt,
                         summary.json, metrics.json, manifest.json with the digests)
   D7/*.known_hosts      the scratch trust store as each step left it
+  D15/                  by hand: ssh.exit, ssh-verbose.log, known_hosts (the
+                        scratch store), karvi.exit, karvi.err, transcripts/
+                        (the transcript and its .meta.jsonl)
   SHA256SUMS            every file above
 ```
 

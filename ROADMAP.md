@@ -96,6 +96,17 @@ device; the laboratory run needs the operator and a device:
 4. Complete the Catalyst 9300 matrix of `docs/CISCO-IOSXE-QUALIFICATION.md`
    on both transports before other IOS XE families; the rows the fake
    already evidences are marked there.
+5. Qualify how a login ends (runbook row D15, by hand): whether the
+   device sends an exit status when a session ends with `exit`. If it
+   does, the fake learns to send one, and nothing changes in karvi. If it
+   closes the session without one, as the fake does (OpenSSH exits 255,
+   and `karvi login` exits 110 as `ssh_process_failed`), the rule is: an
+   interactive login that authenticated and ended with the device closing
+   the session is a completed session, exit 0, with the notice
+   `login_closed_without_status` in its metadata and audit, "authenticated"
+   read from OpenSSH's own log (`-E` at `VERBOSE`, the terminal unchanged);
+   a device that dies mid-session then ends 0 too, accepted for an
+   interactive session whose operator saw it end.
 
 Production activation of the daemon, the shared trees, the timers, and the
 2,500-device accounting gate waits on that run and on review by the network

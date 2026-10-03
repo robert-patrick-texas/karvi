@@ -75,7 +75,8 @@ A row marked **device** is laboratory work only.
 against one laboratory device on both transports and collects the
 evidence of "Required evidence" into one directory;
 `docs/DEVICE-QUALIFICATION-RUNBOOK.md` says what the run needs, maps each
-script row (D1 to D14) to its line here, and lists the rows done by hand.
+script row (D1 to D14) to its line here, and lists the rows done by hand
+(D15 among them).
 With `FAKE=1` the same rows run against the fake, which is how the script
 itself is checked before a laboratory run. Every
 mismatch row writes a wrong entry into a scratch trust store; the device's
@@ -144,6 +145,10 @@ Record evidence, on both transports, for:
 - the legacy device under the defaults and through an algorithm profile
   (**fake**; a real SHA-1-only train **device**);
 - ANSI and line-ending handling from a real terminal (**device**);
+- an interactive `login` ended with `exit`: whether the device sends an
+  exit status when the session ends (plain `ssh`'s exit), and `karvi
+  login`'s exit and the transcript's classification (**device**, D15 by
+  hand; the fake sends none, so its login ends 110);
 - typical output and output at the limit (`output.max-command-bytes`, 64 MiB
   by default; **fake** at a lowered limit, **device** at the default);
 - concurrent sessions up to the configured session cap (**device**);

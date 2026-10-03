@@ -239,6 +239,11 @@
   `command-line`. An unknown zone is reported against `timezone` at its
   source (`--timezone`, the environment, a file's line), where it was
   `display.timestamp` at `<builtin>`.
+- **The device-qualification runbook records how a login ends.** Row D15,
+  by hand: plain `ssh`'s exit and `karvi login`'s after `exit` on each
+  laboratory device. Against the fake, which sends no exit status, a login
+  ended with `exit` exits 110 (`ssh_process_failed`); the roadmap holds the
+  rule to take if a device does the same.
 
 ## 0.25.0 - 2026-09-30
 

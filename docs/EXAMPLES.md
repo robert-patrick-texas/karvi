@@ -2198,3 +2198,63 @@ Dispatch option by its long name, `--dw` as `--dispatch` (`cli`). Battery:
 the seventeen suites on a lab build (21:27:14 to 21:30:36 UTC), pass;
 `go test ./...`, vet, gofmt, and `make generated-clean`.
 
+
+## 18. How a login ends (2026-10-03)
+
+Found while `karvi-login.1` was written (chapter 14, part 3): a login to
+the fake ended with `exit` exits 110.
+
+**What it gains.** A login the operator ended normally is not recorded as
+a failure in its exit, its transcript's metadata, its audit record, and
+the watch screen. It waits on one fact outside the tree: whether IOS XE
+sends an exit status when a session ends with `exit`.
+
+**The review.** Against the tree at `f275725`, a lab build, the fake, and
+OpenSSH 9.6p1:
+
+```text
+ssh (plain) … then exit                    "Connection to 127.0.0.1 closed."   SSH_EXIT=255
+karvi --debug login r1 … then exit         system SSH interactive session failed code=ssh_process_failed
+                                           ssh_process_failed: exit status 255          KARVI_EXIT=110
+ssh -E log -o LogLevel=VERBOSE:
+  1 exit typed                    255   Authenticated to …; Transferred: sent 2364, received 1516 bytes
+  2 the device's process killed   255   Authenticated to …; Transferred: sent 2316, received 1396 bytes
+  3 nothing listening             255   connect to host 127.0.0.1 port 1: Connection refused
+```
+
+The fake sends no exit status when the session ends; OpenSSH treats a
+channel closed so as 255; the login's classifier maps an unexplained 255
+to `ExitConnectionFailure`. A device closing the session on `exit` and a
+device dying mid-session are the same to the client, OpenSSH's own
+verbose log included; only a failure before authentication differs. The
+interactive login runs `ssh` at `LogLevel ERROR`, and the runbook had no
+login row.
+
+**The rule settled.** The operator agreed: a login's normal end is
+qualified on the devices first. Row D15 (by hand) records plain `ssh`'s
+exit after `exit` and `karvi login`'s, with the transcript's
+classification. If the device sends a status, the fake learns to send one
+and karvi is unchanged; if it closes without one, an interactive login
+that authenticated and ended with the device closing the session is a
+completed session, exit 0, with the notice `login_closed_without_status`,
+"authenticated" read from OpenSSH's log (`-E` at `VERBOSE`), a device dying
+mid-session ending 0 too; no code change now. Not taken: deciding without
+the device; every 255 a success; the fake changed now.
+
+**Executed.** The runbook's D15 (the steps, the evidence `D15/`, the
+account's row in section 1), the qualification matrix's session line, and
+the roadmap's device-qualification item 5 with the rule; DESIGN's entry in
+section 5. The operator then asked that the instructions carry every
+point of the review: D15 now keeps OpenSSH's own log at `VERBOSE` in a
+file (the lines the rule reads), karvi's debug stream in `karvi.err`, a
+scratch trust store, the reading of each file, the fake's figures for
+comparison, the line for `results.tsv`, and both laboratory devices. Its
+steps, executed against the fake under `script`:
+
+```text
+ssh -tt -E ./ssh-verbose.log -o LogLevel=VERBOSE … ; exit     ssh.exit 255
+ssh-verbose.log        Authenticated to 127.0.0.1 …; Transferred: sent 3380, received 2756 bytes
+karvi --debug login --record=./transcripts … 2>karvi.err      karvi.exit 110, the session usable at the terminal
+karvi.err              code=ssh_process_failed; ssh_process_failed: exit status 255
+transcripts/…meta.jsonl  "exit_classification":"ExitConnectionFailure"
+```
