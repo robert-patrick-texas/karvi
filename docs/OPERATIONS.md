@@ -514,7 +514,11 @@ Relationships worth knowing:
   true`; `--of=PATH` also sets `output.root` for that invocation (`~`
   expanded, a relative path from the working directory), so the job's
   folder is `PATH/YYMMDD/<id>`. PATH attaches with `=` only, since
-  the word after a bare `--of` is the device. `run --of=PATH` does the
+  the word after a bare `--of` is the device: a word there of a path's
+  form (beginning with `/`, `~`, `./`, or `../`, or `.` or `..`) is
+  refused as `cli_option_value_detached`, naming `--of=PATH`, and any
+  other word keeps its meaning, so a relative path is written
+  `--of=out`. `run --of=PATH` does the
   same for a run on every path: the root travels in the plan, so a job
   through the daemon is written where the invocation said. Both are
   flag-origin values: a site that
@@ -919,7 +923,10 @@ or a heredoc it drives several jobs through one karvi. The rules:
   `--cf` line is a command like a bare line, and `--expect`, `--blind`,
   and `--blind-return` lines attach to the command before them; the
   option words mean what they mean on a `run` command line, abbreviations
-  and the `=` spelling included.
+  and the `=` spelling included. An option whose value attaches with
+  `=` alone takes it that way here too: a line `--of /tmp/x` is dropped
+  with its number as `cli_option_value_detached`, and `--of=/tmp/x` is
+  the line.
 - `--go` or `--sendit` executes the draft; the targets and options stay,
   the commands clear; with no command to send it prints a notice and runs
   nothing. `--clear` empties the commands and keeps the targets and

@@ -50,7 +50,8 @@ func TestOfOptionParses(t *testing.T) {
 
 // TestOfOptionRefusals: --of with --nof is output_options_conflict, as
 // --border with --noborder is, on command and run; run --nof with --detach
-// or --exercise is run_mode_conflict. All
+// or --exercise is run_mode_conflict; a bare --of followed by a word of a
+// path's form is cli_option_value_detached. All
 // are usage errors before any device is planned.
 func TestOfOptionRefusals(t *testing.T) {
 	for _, tc := range []struct {
@@ -62,6 +63,10 @@ func TestOfOptionRefusals(t *testing.T) {
 		{[]string{"run", "--of", "--nof", "--target", "router1", "--cmd", "show clock"}, "output_options_conflict"},
 		{[]string{"run", "--nof", "--detach", "--target", "router1", "--cmd", "show clock"}, "run_mode_conflict"},
 		{[]string{"run", "--nof", "--exercise", "--target", "router1", "--cmd", "show clock"}, "run_mode_conflict"},
+		// The path after a space was meant as the value, which attaches
+		// with = alone: refused, never sent to the device or taken for one.
+		{[]string{"run", "--of", "/tmp/x", "--target", "router1", "--cmd", "show clock"}, "cli_option_value_detached"},
+		{[]string{"command", "--of", "../x", "router1", "show", "clock"}, "cli_option_value_detached"},
 	} {
 		var stdout, stderr bytes.Buffer
 		got := Main(tc.args, strings.NewReader(""), &stdout, &stderr)

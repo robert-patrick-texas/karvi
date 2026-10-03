@@ -58,6 +58,7 @@ Active failure causes.
 | `cli_option_ambiguous` | usage | 4 | no | An option prefix matches more than one option; the message names every candidate. |
 | `cli_option_unavailable` | usage | 4 | no | An option, or a combination of options, that is specified but this executable does not implement yet. |
 | `cli_option_unknown` | usage | 4 | no | An option matches no option valid at its position. |
+| `cli_option_value_detached` | usage | 4 | no | An option that takes its value with `=` alone (`--of`, `--record`, `--cd`) is followed by its value as a separate word: on the command line a word of a path's form after a bare `--of` or `--record` (beginning with `/`, `~`, `./`, or `../`, or `.` or `..` whole), on a stream line any text after a space. The message names the `--NAME=VALUE` form; refused before any device is contacted or transcript claimed. |
 | `cli_option_value_invalid` | usage | 4 | no | An option value does not fit the option's declared type: an on/off option given an inline value other than `true` or `false`, or an integer, duration, or enumerated option given a value outside its type. |
 | `cli_option_value_missing` | usage | 4 | no | An option that takes a value is the last argument. |
 | `cli_positional_missing` | usage | 4 | no | A command that requires a positional argument receives none (`job cancel JOB-ID`, `job follow JOB-ID`). |

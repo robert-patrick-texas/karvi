@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/termline"
 )
@@ -19,7 +20,8 @@ import (
 // line as the word and the rest of the line; a command line as written,
 // with its declarations after it; a line the parser refuses reported by
 // its number and dropped (--typo, a declaration before any command);
-// --cf - refused; --go executing the draft and clearing the commands
+// --cf - refused; --of with its path after a space refused and dropped;
+// --go executing the draft and clearing the commands
 // alone; --sendit the same; --reset clearing everything; --end leaving
 // without executing what follows or what is drafted; the exit the last
 // job's.
@@ -43,6 +45,7 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 		`  show version\r`,
 		`\r`,
 		"--cf -",
+		"--of /tmp/x",
 		"--go",
 		"show ip route",
 		"--sendit",
@@ -65,13 +68,13 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 	if !reflect.DeepEqual(runs, want) {
 		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
 	}
-	for _, m := range []string{"stream line 7 dropped: ", "stream line 8 dropped: ", "stream line 13: standard input is the stream; --cf - is not accepted"} {
+	for _, m := range []string{"stream line 7 dropped: ", "stream line 8 dropped: ", "stream line 13: standard input is the stream; --cf - is not accepted", "stream line 14 dropped: cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x"} {
 		if !strings.Contains(stderr.String(), m) {
 			t.Errorf("stderr lacks %q:\n%s", m, stderr.String())
 		}
 	}
-	if strings.Count(stderr.String(), "\n") != 3 {
-		t.Errorf("stderr has lines beyond the three reports:\n%s", stderr.String())
+	if strings.Count(stderr.String(), "\n") != 4 {
+		t.Errorf("stderr has lines beyond the four reports:\n%s", stderr.String())
 	}
 }
 
@@ -171,38 +174,52 @@ func TestStreamLoopReadFailure(t *testing.T) {
 // of the line as one value; the command part recognised through run's
 // table (the declarations, --cmd and its aliases, --cf, by prefix too); the
 // standard-input value named for --cf, --tf, and --tfr in either spelling;
-// a word the table does not resolve is an option line for the probe.
+// a word the table does not resolve is an option line for the probe; an
+// option whose value attaches with = alone refuses text after a space.
 func TestStreamOptionArgs(t *testing.T) {
 	for _, tc := range []struct {
 		line        string
 		args        []string
 		commandPart bool
 		stdinOption string
+		detached    string
 	}{
-		{"--dp", []string{"--dp"}, false, ""},
-		{"--target=router1", []string{"--target=router1"}, false, ""},
-		{"--target router1", []string{"--target", "router1"}, false, ""},
-		{"--tl   r1 r2  ", []string{"--tl", "r1 r2"}, false, ""},
-		{"--expect confirm=y", []string{"--expect", "confirm=y"}, true, ""},
-		{"--blind", []string{"--blind"}, true, ""},
-		{"--blind-return 2", []string{"--blind-return", "2"}, true, ""},
-		{"--exp a=b", []string{"--exp", "a=b"}, true, ""},
-		{"--blind-wait 2s", []string{"--blind-wait", "2s"}, false, ""},
-		{"--cmd show clock", []string{"--cmd", "show clock"}, true, ""},
-		{"--command=show clock", []string{"--command=show clock"}, true, ""},
-		{"--c show clock", []string{"--c", "show clock"}, true, ""},
-		{"--cf /tmp/x", []string{"--cf", "/tmp/x"}, true, ""},
-		{"--cf -", []string{"--cf", "-"}, true, "--cf"},
-		{"--cf=-", []string{"--cf=-"}, true, "--cf"},
-		{"--tf -", []string{"--tf", "-"}, false, "--tf"},
-		{"--tf=-", []string{"--tf=-"}, false, "--tf"},
-		{"--tfr -", []string{"--tfr", "-"}, false, "--tfr"},
-		{"--typo -", []string{"--typo", "-"}, false, ""},
-		{"--t -", []string{"--t", "-"}, false, ""},
+		{"--dp", []string{"--dp"}, false, "", ""},
+		{"--target=router1", []string{"--target=router1"}, false, "", ""},
+		{"--target router1", []string{"--target", "router1"}, false, "", ""},
+		{"--tl   r1 r2  ", []string{"--tl", "r1 r2"}, false, "", ""},
+		{"--expect confirm=y", []string{"--expect", "confirm=y"}, true, "", ""},
+		{"--blind", []string{"--blind"}, true, "", ""},
+		{"--blind-return 2", []string{"--blind-return", "2"}, true, "", ""},
+		{"--exp a=b", []string{"--exp", "a=b"}, true, "", ""},
+		{"--blind-wait 2s", []string{"--blind-wait", "2s"}, false, "", ""},
+		{"--cmd show clock", []string{"--cmd", "show clock"}, true, "", ""},
+		{"--command=show clock", []string{"--command=show clock"}, true, "", ""},
+		{"--c show clock", []string{"--c", "show clock"}, true, "", ""},
+		{"--cf /tmp/x", []string{"--cf", "/tmp/x"}, true, "", ""},
+		{"--cf -", []string{"--cf", "-"}, true, "--cf", ""},
+		{"--cf=-", []string{"--cf=-"}, true, "--cf", ""},
+		{"--tf -", []string{"--tf", "-"}, false, "--tf", ""},
+		{"--tf=-", []string{"--tf=-"}, false, "--tf", ""},
+		{"--tfr -", []string{"--tfr", "-"}, false, "--tfr", ""},
+		{"--typo -", []string{"--typo", "-"}, false, "", ""},
+		{"--t -", []string{"--t", "-"}, false, "", ""},
+		{"--of", []string{"--of"}, false, "", ""},
+		{"--of=/tmp/x", []string{"--of=/tmp/x"}, false, "", ""},
+		{"--of=/tmp/a b", []string{"--of=/tmp/a b"}, false, "", ""},
+		{"--of /tmp/x", []string{"--of", "/tmp/x"}, false, "", "cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x"},
+		{"--of out", []string{"--of", "out"}, false, "", "cli_option_value_detached: --of takes its PATH with =: --of=out"},
 	} {
-		args, commandPart, stdinOption := streamOptionArgs(tc.line)
+		args, commandPart, stdinOption, detached := streamOptionArgs(tc.line)
 		if !reflect.DeepEqual(args, tc.args) || commandPart != tc.commandPart || stdinOption != tc.stdinOption {
 			t.Errorf("%q: %q %v %q, want %q %v %q", tc.line, args, commandPart, stdinOption, tc.args, tc.commandPart, tc.stdinOption)
+		}
+		got := ""
+		if detached != nil {
+			got = errorcodes.Message(detached)
+		}
+		if got != tc.detached {
+			t.Errorf("%q: detached %q, want %q", tc.line, got, tc.detached)
 		}
 	}
 }

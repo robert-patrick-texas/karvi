@@ -238,6 +238,13 @@ func (p *parser) takeOption(opts []*option, where string, i *int) (*option, stri
 		if hasInline {
 			return o, inline, nil
 		}
+		// The value attaches with = alone: a following word of a
+		// path's form was meant as the value and is refused, never taken
+		// for a device or command text; any other word keeps its
+		// position's meaning.
+		if *i+1 < len(p.args) && pathForm(p.args[*i+1]) {
+			return nil, "", detachedValue(o, p.args[*i+1])
+		}
 		return o, "", nil
 	}
 	value := inline
@@ -252,6 +259,21 @@ func (p *parser) takeOption(opts []*option, where string, i *int) (*option, stri
 		return nil, "", err
 	}
 	return o, value, nil
+}
+
+// pathForm reports whether a word has a path's form: it begins with /, ~,
+// ./, or ../, or is . or .. whole. A device name or a command never does.
+func pathForm(word string) bool {
+	return word == "." || word == ".." || strings.HasPrefix(word, "/") || strings.HasPrefix(word, "~") || strings.HasPrefix(word, "./") || strings.HasPrefix(word, "../")
+}
+
+// detachedValue is the refusal of a value given to an option that takes
+// its value with = alone (--of, --record, --cd) as a separate word: on the
+// command line a word of a path's form, on a stream line any text after a
+// space.
+func detachedValue(o *option, value string) error {
+	name := strings.Trim(o.placeholder, "[]=")
+	return errorcodes.Errorf("cli_option_value_detached", "--%s takes its %s with =: --%s=%s", o.name, name, o.name, value)
 }
 
 func checkValueType(o *option, value string) error {

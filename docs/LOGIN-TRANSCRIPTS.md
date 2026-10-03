@@ -21,7 +21,9 @@ the same way for itself.
 - Without PATH, sessions record below `transcript.root` (default
   `<basedir>/transcripts`). `--record=PATH` uses PATH in its place; when
   `transcript.root` is locked, `--record=PATH` is refused with
-  `transcript_root_locked`. No environment variable selects a destination.
+  `transcript_root_locked`. PATH attaches with `=` only: `--record /x r1`
+  is refused as `cli_option_value_detached`, where the path had been taken
+  for the device. No environment variable selects a destination.
 - A session writes into `<destination>/YYMMDD/`, named from the start
   date in the effective `timezone`; a session that crosses midnight stays in
   its start-day folder. `--record=session.log` therefore creates a folder

@@ -1078,3 +1078,26 @@ time:
    Not taken: a key; a template; the suffix on `output.NAME.txt`; refusing
    `.` and `..` (a suffix follows a name); a length bound; `--cd=.` implied
    on `crun`.
+
+**Executed.** Section A0, the lab build against the fake `r1`:
+
+```text
+$ karvi run --no-daemon --target r1 --of /tmp/nd.8Nm1/x --cmd 'show clock'
+cli_option_value_detached: --of takes its PATH with =: --of=/tmp/nd.8Nm1/x       (exit 4)
+$ karvi command --of .. r1 show clock
+cli_option_value_detached: --of takes its PATH with =: --of=..
+$ karvi login --record /tmp/nd.8Nm1/y r1
+cli_option_value_detached: --record takes its PATH with =: --record=/tmp/nd.8Nm1/y
+$ karvi crun --all --cd /tmp/nd.8Nm1/c
+cli_option_value_detached: --cd takes its PATH with =: --cd=/tmp/nd.8Nm1/c
+$ karvi command --of r1 show clock                    # the switch, then the device
+! exit=0 elapsed=900ms artifacts=/tmp/nd.8Nm1/base/jobs/261003/261003-101849-00
+$ printf -- '--target r1\n--no-daemon\n--of /tmp/nd.8Nm1/x\n--of=/tmp/nd.8Nm1/of\nshow clock\n--go\n--end\n' | karvi stream
+stream line 3 dropped: cli_option_value_detached: --of takes its PATH with =: --of=/tmp/nd.8Nm1/x
+! r1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+! exit=0 elapsed=666ms artifacts=/tmp/nd.8Nm1/of/261003/261003-101850-00
+```
+
+No `x`, `y`, or `c` was made. A Go test of the transcript wrapper had
+written `login --record DIR --platform cisco_iosx r1`, the detached form;
+it now writes `--record=DIR`, which is what it meant.

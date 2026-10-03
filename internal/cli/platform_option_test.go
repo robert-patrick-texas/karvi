@@ -46,7 +46,7 @@ func TestPlatformOptionRefusedBeforeInventory(t *testing.T) {
 		{"run_unknown", []string{"run", "--no-daemon", "--target", "r1", "--platform", "cisco_iosx", "--cmd", "show clock"}},
 		{"run_glob", []string{"run", "--no-daemon", "--target", "r1", "--platform", "cisco*", "--cmd", "show clock"}},
 		{"run_dry_run_unknown", []string{"run", "--dry-run", "--target", "r1", "--platform", "cisco_iosx", "--cmd", "show clock"}},
-		{"login_record", []string{"login", "--record", recordDir, "--platform", "cisco_iosx", "r1"}},
+		{"login_record", []string{"login", "--record=" + recordDir, "--platform", "cisco_iosx", "r1"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, stderr := run(tc.args...)

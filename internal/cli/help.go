@@ -211,7 +211,8 @@ Options:
   --of[=PATH]                    Output files on (output.persist-command=true),
                                  to the configured folder or to PATH
                                  (output.root); PATH only with =, as the next
-                                 word is the device. The opposite of --nof
+                                 word is the device (a path there is refused).
+                                 The opposite of --nof
   --address-authority client|daemon
                                  Who selects the address: the client at planning
                                  (default) or the daemon at prepare
@@ -350,6 +351,7 @@ Dispatch:
   --of[=PATH]                    Output files on (output.persist-command=true),
                                  to the configured folder or to PATH
                                  (output.root), on every path; PATH only with =
+                                 (a path as the next word is refused)
   --follow                       Render durable records after completion (default)
 
 Options:
@@ -441,7 +443,8 @@ Options:
   --ssh-host-key-policy accept-new|secure|insecure
   --ssh-known-hosts-file PATH|auto
                                  Unified karvi trust store
-  --record[=PATH], --rec[=PATH]  Record the session; PATH only with =
+  --record[=PATH], --rec[=PATH]  Record the session; PATH only with = (a path
+                                 as the next word is refused)
   --address-authority client|daemon
                                  Who selects the address: the client (default)
                                  or the daemon

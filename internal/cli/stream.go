@@ -29,7 +29,8 @@ import (
 // draft and clears the commands (with nothing to send, a notice and no
 // job); --clear empties the commands alone; --reset empties the draft;
 // --end, --quit, EOF, or Ctrl-C leave without executing. A line the parser
-// refuses is reported with its number and dropped. Standard input is the
+// refuses is reported with its number and dropped, as is an option whose
+// value attaches with = alone given text after a space. Standard input is the
 // stream, so --cf, --tf, and --tfr may not name - in any spelling. The exit
 // is the last executed job's, 0 when none ran; a read failure or a line
 // over the scanner's limit ends the stream with stream_input_read_failed.
@@ -199,9 +200,13 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 				}
 				continue
 			}
-			args, commandPart, stdinOption := streamOptionArgs(text)
+			args, commandPart, stdinOption, detached := streamOptionArgs(text)
 			if stdinOption != "" {
 				fmt.Fprintf(stderr, "stream line %d: standard input is the stream; %s - is not accepted\n", n, stdinOption)
+				continue
+			}
+			if detached != nil {
+				fmt.Fprintf(stderr, "stream line %d dropped: %s\n", n, errorcodes.Message(detached))
 				continue
 			}
 			candidate := &streamDraft{options: draft.options, commands: draft.commands}
@@ -238,9 +243,11 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 // alias, or a prefix naming one option): commandPart says the option
 // belongs to the draft's commands (--cmd and its aliases, --cf, and the
 // three declarations), and stdinOption names the option when a --cf, --tf,
-// or --tfr line gives - as its value, which the stream cannot serve. A word
-// the table does not resolve is an option line for the probe to refuse.
-func streamOptionArgs(text string) (args []string, commandPart bool, stdinOption string) {
+// or --tfr line gives - as its value, which the stream cannot serve;
+// detached is the refusal of an option whose value attaches with = alone
+// (--of) given text after a space. A word the table does not resolve is an
+// option line for the probe to refuse.
+func streamOptionArgs(text string) (args []string, commandPart bool, stdinOption string, detached error) {
 	word, rest, spaced := strings.Cut(text, " ")
 	if spaced && strings.IndexByte(word, '=') >= 0 {
 		// An = value runs to the end of the line, spaces included.
@@ -266,10 +273,16 @@ func streamOptionArgs(text string) (args []string, commandPart bool, stdinOption
 		if value == "-" && (o == optCf || o == optTf || o == optTfr) {
 			stdinOption = "--" + o.name
 		}
+		if o.kind == kindOptional && spaced && rest != "" {
+			// A stream line is one option, so the text after the space
+			// can only have been meant as the value, which attaches
+			// with = alone.
+			detached = detachedValue(o, rest)
+		}
 		break
 	}
 	if spaced && rest != "" {
-		return []string{word, rest}, commandPart, stdinOption
+		return []string{word, rest}, commandPart, stdinOption, detached
 	}
-	return []string{word}, commandPart, stdinOption
+	return []string{word}, commandPart, stdinOption, detached
 }

@@ -91,6 +91,18 @@
   start width over it `cpu_above_zone_at_floor`, where both had read
   `cpu_in_zone`; `metrics.json`'s `wave_decisions` carry the width before
   each decision, which had been 0.
+- **An option that takes its value with `=` alone refuses a detached
+  value.** `--of[=PATH]`, `--record[=PATH]`, and `--cd=PATH` are written
+  alone or as `--NAME=VALUE`. A bare `--of` or `--record` followed by a
+  word of a path's form (beginning with `/`, `~`, `./`, or `../`, or `.`
+  or `..`) is the new `cli_option_value_detached`, naming the `=` form,
+  where `run --of /x --cmd 'show clock'` had sent `/x --cmd show clock` to
+  the device and `command --of /x r1` and `login --record /y r1` had taken
+  the path for the device. A stream line `--of PATH` is dropped with its
+  number for the same code, where the path had been sent as command text
+  at every job. Any other word after a bare `--of` keeps its meaning
+  (`command --of r1 'show clock'`), so a relative path is written
+  `--of=out`.
 
 ## 0.25.0 - 2026-09-30
 
