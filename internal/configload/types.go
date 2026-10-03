@@ -52,12 +52,20 @@ type Snapshot struct {
 	EffectiveCPU int              `json:"effective_cpu_count,omitempty"`
 }
 
+// FlagValue is one value an option sets for its key, and what set it: the
+// option by its long name (--blind-wait), or the word that implies it
+// (crun). The value's source names it, in every message and in config show.
+type FlagValue struct {
+	Value  any
+	Option string
+}
+
 // Options describes non-file layers. FlagValues are already-associated
 // registry keys; Sets preserve command-line order and use key=value grammar.
 type Options struct {
 	ExplicitRoots []string
 	Environment   []string
-	FlagValues    map[string]any
+	FlagValues    map[string]FlagValue
 	Sets          []string
 	HomeDir       string
 	SkipAuto      bool

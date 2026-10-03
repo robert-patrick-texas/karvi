@@ -50,7 +50,7 @@ func TestV0100PingKeys(t *testing.T) {
 		}
 	}
 	// The environment mapping and the flag layer reach the same keys.
-	snap, err = Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{"KARVI__NETWORK__PING_TARGETS=true"}, FlagValues: map[string]any{"network.ping-targets": false}})
+	snap, err = Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{"KARVI__NETWORK__PING_TARGETS=true"}, FlagValues: cliFlags(map[string]any{"network.ping-targets": false})})
 	if err != nil {
 		t.Fatal(err)
 	}

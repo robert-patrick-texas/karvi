@@ -1447,6 +1447,23 @@ reached the plan's validation. *Not taken:* the command line checking each
 range itself (a second copy of the registry's ranges, the locks still passed);
 clamping with a notice; `--dispatch` outside the rule.
 
+**A value an option sets is sourced to that option.** The flag layer carries
+each value with the option that set it, so a message and `config show` name the
+option by its long name where they named `command-line`: `… for
+execution.blind-wait at --blind-wait`, `source: --ipv4`; `--fs` implying
+`--cd=.` is `--fs`, `--dp`, `--dw`, and `--ds` are `--dispatch` (the parser hands
+the option stood for), and `--continue-device-on-error`, which writes
+`execution.halt-device-on-command-error`, names itself. An error is reported
+against the key whose value failed: an unknown zone is `timezone`'s, at its
+source (`--timezone`, a file's line, the environment), where the timestamp
+formatter's check had reported it against `display.timestamp`. *Why:* one
+source, `command-line`, stood for 21 options, so a lock's refusal of
+`--continue-device-on-error` named a key the operator never typed and nothing
+they did; `--set` and the files already named themselves. *Not taken:* a
+second map of option names beside the values; each message in the option's
+own words (the range and the lock are the key's); both sides of a cross-key
+check; `--dp` naming itself.
+
 **A removed key is refused from every layer.** One table of removed keys, one
 code (`config_key_removed`), the message naming the key, the release, and the
 replacement; the environment form is refused even when unknown variables are

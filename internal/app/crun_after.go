@@ -67,7 +67,7 @@ func RunCollectionHook(ctx context.Context, common CommonOptions, result Activit
 	if c == nil {
 		return
 	}
-	cfg, operator, err := prepareConfig(common, true)
+	cfg, operator, err := prepareConfig(common)
 	if err != nil {
 		warning(stderr, errorcodes.Message(errorcodes.Errorf("crun_after_failed", "the configuration could not be loaded for crun.after: %s", safeError(err))))
 		return

@@ -55,7 +55,7 @@ func jobDirectoryFor(cfg configload.Snapshot, base, home, jobID string) (string,
 // configuration: the ID's instant in the effective timezone
 // gives the day folder the runner most likely wrote.
 func JobDirectoryFor(common CommonOptions, jobID string) (string, error) {
-	cfg, operator, err := prepareConfig(common, false)
+	cfg, operator, err := prepareConfig(common)
 	if err != nil {
 		return "", err
 	}
@@ -77,7 +77,7 @@ func JobDirectoryFor(common CommonOptions, jobID string) (string, error) {
 // ID is job_request_malformed. The derived day folder is returned when
 // nothing exists, so a caller can name where it looked.
 func LocateJobDirectory(common CommonOptions, jobID string) (dir string, found bool, err error) {
-	cfg, operator, err := prepareConfig(common, false)
+	cfg, operator, err := prepareConfig(common)
 	if err != nil {
 		return "", false, err
 	}

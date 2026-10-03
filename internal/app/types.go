@@ -5,6 +5,7 @@ package app
 
 import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -14,12 +15,12 @@ type IO = jobexec.IO
 
 // CommonOptions are shared by direct and daemon-backed work.
 type CommonOptions struct {
-	ConfigRoots     []string       `json:"config_roots,omitempty"`
-	Sets            []string       `json:"sets,omitempty"`
-	ConfigFlags     map[string]any `json:"config_flags,omitempty"`
-	Quiet           bool           `json:"quiet"`
-	Debug           bool           `json:"debug"`
-	DebugShowSecret bool           `json:"debug_show_secrets"`
+	ConfigRoots     []string                        `json:"config_roots,omitempty"`
+	Sets            []string                        `json:"sets,omitempty"`
+	ConfigFlags     map[string]configload.FlagValue `json:"config_flags,omitempty"`
+	Quiet           bool                            `json:"quiet"`
+	Debug           bool                            `json:"debug"`
+	DebugShowSecret bool                            `json:"debug_show_secrets"`
 }
 
 // CommandOptions describes scripted work on the first device of a target

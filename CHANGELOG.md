@@ -231,6 +231,14 @@
   alone had read it. `display.color = "always"` (or `--set`) and the
   watch screen's `--color always` now win over `NO_COLOR`, where the
   screen had dropped colour even under `--color always`.
+- **A refused option names itself.** A value an option sets is now
+  sourced to the option: `--blind-wait 20m` is `… for execution.blind-wait
+  at --blind-wait`, a lock's refusal of `--continue-device-on-error` names
+  it (and a `crun`'s, which continues by itself, names `crun`), and
+  `config show --explain` says `source: --ipv4`, where every option had been
+  `command-line`. An unknown zone is reported against `timezone` at its
+  source (`--timezone`, the environment, a file's line), where it was
+  `display.timestamp` at `<builtin>`.
 
 ## 0.25.0 - 2026-09-30
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 )
@@ -64,11 +65,15 @@ func TestFsImpliesCdOnRunAndCommand(t *testing.T) {
 		{[]string{"run", "--target", "r1", "--cmd", "x"}, "run", "", "", false, true},
 	} {
 		inv := mustParse(t, c.args...)
-		flags := map[string]any{}
+		flags := map[string]configload.FlagValue{}
 		got := collectionOptions(inv, c.word, flags)
 		dir, set := flags["crun.directory"]
-		if got.word != c.want || got.implied != c.implied || set == c.none || (set && dir != c.dir) {
-			t.Errorf("%q: %+v crun.directory=%v (%v)", c.args, got, dir, set)
+		source := "--cd"
+		if c.implied {
+			source = "--fs"
+		}
+		if got.word != c.want || got.implied != c.implied || set == c.none || (set && (dir.Value != c.dir || dir.Option != source)) {
+			t.Errorf("%q: %+v crun.directory=%+v (%v)", c.args, got, dir, set)
 		}
 	}
 }

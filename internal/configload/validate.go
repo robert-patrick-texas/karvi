@@ -100,7 +100,13 @@ func (l *loader) validate() error {
 	}
 	formatter, err := display.NewFormatter(l.snap.String("display.timestamp"), l.snap.String("timezone"))
 	if err != nil {
-		return l.semanticErr("config_display_timestamp_invalid", "display.timestamp", err)
+		// The formatter checks the zone too; an unknown zone is the
+		// timezone key's, at its own source.
+		key := "display.timestamp"
+		if errorcodes.Of(err) == "display_timezone_invalid" {
+			key = "timezone"
+		}
+		return l.semanticErr("config_display_timestamp_invalid", key, err)
 	}
 	_ = formatter
 	for _, key := range []string{"display.login.header", "display.login.footer", "display.command.header", "display.command.footer", "display.run.header", "display.run.footer", "display.collection.footer", "display.ping.header"} {

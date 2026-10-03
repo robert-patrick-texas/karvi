@@ -88,7 +88,8 @@ func Load(opts Options) (Snapshot, error) {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		if err := l.assign(k, opts.FlagValues[k], SourceRef{Layer: "cli", Path: "command-line"}, false); err != nil {
+		f := opts.FlagValues[k]
+		if err := l.assign(k, f.Value, SourceRef{Layer: "cli", Path: f.Option}, false); err != nil {
 			return Snapshot{}, err
 		}
 	}

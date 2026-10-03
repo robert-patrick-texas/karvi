@@ -30,7 +30,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
-	cfg, operator, err := prepareConfig(opts.CommonOptions, opts.ContinueDeviceOnError)
+	cfg, operator, err := prepareConfig(opts.CommonOptions)
 	if err != nil {
 		return failedResult("config_load_failed", err)
 	}
@@ -99,7 +99,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
-	cfg, operator, err := prepareConfig(opts.CommonOptions, opts.ContinueDeviceOnError)
+	cfg, operator, err := prepareConfig(opts.CommonOptions)
 	if err != nil {
 		return failedResult("config_load_failed", err)
 	}
@@ -164,7 +164,7 @@ func RenderRunOutput(common CommonOptions, artifactDir, format string, echo, dyn
 	if format == "jsonl" {
 		return jobexec.RenderRunOutput(configload.Snapshot{}, common.Quiet, common.Debug, artifactDir, format, echo, dynamicBorder, noBorder, summary, out)
 	}
-	cfg, _, err := prepareConfig(common, false)
+	cfg, _, err := prepareConfig(common)
 	if err != nil {
 		return err
 	}
@@ -244,19 +244,12 @@ func firstDevice(set TargetSet, platformName, transport string, port int) invent
 
 // prepareConfig loads the operator and configuration; every error it returns
 // carries a registered code.
-func prepareConfig(common CommonOptions, continueOnError bool) (configload.Snapshot, credentials.Operator, error) {
+func prepareConfig(common CommonOptions) (configload.Snapshot, credentials.Operator, error) {
 	operator, err := osutil.CurrentOperator()
 	if err != nil {
 		return configload.Snapshot{}, credentials.Operator{}, errorcodes.Ensure(err, "operator_identity_unavailable")
 	}
-	flags := map[string]any{}
-	for k, v := range common.ConfigFlags {
-		flags[k] = v
-	}
-	if continueOnError {
-		flags["execution.halt-device-on-command-error"] = false
-	}
-	cfg, err := configload.Load(configload.Options{ExplicitRoots: common.ConfigRoots, Sets: common.Sets, FlagValues: flags, HomeDir: operator.Home})
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: common.ConfigRoots, Sets: common.Sets, FlagValues: common.ConfigFlags, HomeDir: operator.Home})
 	if err == nil {
 		err = transportselect.ValidateConfigured(cfg)
 	}

@@ -47,7 +47,7 @@ func resolveOrder(cfg configload.Snapshot, now func() time.Time) (order string, 
 // set for inputs. The login recorder wrapper uses
 // it to learn the device a session will connect to.
 func AssembleTargets(ctx context.Context, common CommonOptions, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
-	cfg, operator, err := prepareConfig(common, false)
+	cfg, operator, err := prepareConfig(common)
 	if err != nil {
 		return TargetSet{}, errorcodes.Ensure(err, "config_load_failed")
 	}
@@ -58,7 +58,7 @@ func AssembleTargets(ctx context.Context, common CommonOptions, inputs []TargetI
 // connecting. The command line reads --tf and --tfr sources with it, so the
 // daemon never opens an operator file.
 func LoadConfig(common CommonOptions) (configload.Snapshot, error) {
-	cfg, _, err := prepareConfig(common, false)
+	cfg, _, err := prepareConfig(common)
 	return cfg, err
 }
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
@@ -628,7 +629,7 @@ func TestParseFreeformBoundary(t *testing.T) {
 		{[]string{"run", "--target", "r1", "show", "clock"}, ""},
 	} {
 		inv = mustParse(t, tc.args...)
-		got, _ := inv.common().ConfigFlags["dispatch.order"].(string)
+		got, _ := inv.common().ConfigFlags["dispatch.order"].Value.(string)
 		if got != tc.want {
 			t.Fatalf("%v: dispatch.order flag=%q, want %q", tc.args, got, tc.want)
 		}
@@ -712,7 +713,7 @@ func TestParseGlobalRegion(t *testing.T) {
 		t.Fatalf("%+v", c)
 	}
 	inv = mustParse(t, "command", "r1", "--ssh-host-key-policy", "insecure", "--ssh-known-hosts-file", "auto", "show", "clock")
-	if c := inv.common(); c.ConfigFlags["ssh.host-key-policy"] != "insecure" || c.ConfigFlags["ssh.known-hosts-file"] != "auto" {
+	if c := inv.common(); c.ConfigFlags["ssh.host-key-policy"] != (configload.FlagValue{Value: "insecure", Option: "--ssh-host-key-policy"}) || c.ConfigFlags["ssh.known-hosts-file"].Value != "auto" {
 		t.Fatalf("%+v", c.ConfigFlags)
 	}
 }

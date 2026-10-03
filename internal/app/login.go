@@ -37,7 +37,7 @@ import (
 // wrapper in cmd/karvi supplies the controlling PTY when transcript recording
 // is requested; askpass remains outside the recorded terminal data path.
 func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityResult {
-	cfg, operator, err := prepareConfig(opts.CommonOptions, false)
+	cfg, operator, err := prepareConfig(opts.CommonOptions)
 	if err != nil {
 		return failedResult("config_load_failed", err)
 	}

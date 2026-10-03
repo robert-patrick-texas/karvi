@@ -13,6 +13,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/app"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
 )
@@ -159,14 +160,14 @@ type collection struct {
 // value as --of=PATH is output.root (a site that locks the key refuses
 // it); on run and command, --fs without --cd is --cd=., the working
 // directory, while a crun's --fs alone keeps crun.directory.
-func collectionOptions(inv *Invocation, word string, flags map[string]any) collection {
+func collectionOptions(inv *Invocation, word string, flags map[string]configload.FlagValue) collection {
 	c := collection{suffix: inv.String(optFs)}
-	path := inv.String(optCd)
+	path, source := inv.String(optCd), longName(optCd)
 	if path == "" && c.suffix != "" && word != "crun" {
-		path, c.implied = ".", true
+		path, c.implied, source = ".", true, longName(optFs)
 	}
 	if path != "" {
-		flags["crun.directory"] = path
+		setKey(flags, source, "crun.directory", path)
 	}
 	if word == "crun" || path != "" {
 		c.word = word
@@ -190,15 +191,28 @@ func (c collection) impliedDirectory(result *app.ActivityResult) {
 // carries the value to whoever runs the job. --of=PATH is output.root for
 // the invocation, resolved as the key is: ~ expanded, a relative path from
 // the working directory.
-func outputOptions(inv *Invocation, flags map[string]any) {
+func outputOptions(inv *Invocation, flags map[string]configload.FlagValue) {
 	if inv.Flag(optNof) {
-		flags["output.persist-command"] = false
+		setKey(flags, longName(optNof), "output.persist-command", false)
 	}
 	if inv.Set(optOf) {
-		flags["output.persist-command"] = true
+		setKey(flags, longName(optOf), "output.persist-command", true)
 	}
 	if path := inv.String(optOf); path != "" {
-		flags["output.root"] = path
+		setKey(flags, longName(optOf), "output.root", path)
+	}
+}
+
+// continueOptions writes execution.halt-device-on-command-error false
+// when the device's later commands run past an error: for
+// --continue-device-on-error, or for the crun word, which always does,
+// each named as the source a lock's refusal or config show gives.
+func continueOptions(inv *Invocation, word string, flags map[string]configload.FlagValue) {
+	switch {
+	case word == "crun":
+		setKey(flags, "crun", "execution.halt-device-on-command-error", false)
+	case inv.Flag(optContinue):
+		setKey(flags, longName(optContinue), "execution.halt-device-on-command-error", false)
 	}
 }
 
@@ -225,9 +239,10 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	common := inv.common()
 	if inv.Set(optBlindWait) {
-		common.ConfigFlags["execution.blind-wait"] = inv.Duration(optBlindWait).String()
+		setKey(common.ConfigFlags, longName(optBlindWait), "execution.blind-wait", inv.Duration(optBlindWait).String())
 	}
 	outputOptions(inv, common.ConfigFlags)
+	continueOptions(inv, "command", common.ConfigFlags)
 	collection := collectionOptions(inv, "command", common.ConfigFlags)
 	format := inv.String(optFormat)
 	if format == "" {
@@ -421,9 +436,10 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	common := inv.common()
 	if inv.Set(optBlindWait) {
-		common.ConfigFlags["execution.blind-wait"] = inv.Duration(optBlindWait).String()
+		setKey(common.ConfigFlags, longName(optBlindWait), "execution.blind-wait", inv.Duration(optBlindWait).String())
 	}
 	outputOptions(inv, common.ConfigFlags)
+	continueOptions(inv, word, common.ConfigFlags)
 	collection := collectionOptions(inv, word, common.ConfigFlags)
 	format := inv.String(optFormat)
 	if format == "" {

@@ -39,7 +39,7 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, streams IO) Ac
 		// the unreserved ID of its second, in the job
 		// form every activity ID takes. The configuration is loaded twice
 		// on this path, once for the zone and once by the draft.
-		cfg, _, err := prepareConfig(opts.CommonOptions, opts.ContinueDeviceOnError)
+		cfg, _, err := prepareConfig(opts.CommonOptions)
 		if err != nil {
 			return failedResult("config_load_failed", fmt.Errorf("client planning: %w", err))
 		}

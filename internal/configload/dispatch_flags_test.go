@@ -32,7 +32,7 @@ func TestDispatchKeysFromTheCLILayer(t *testing.T) {
 		{map[string]any{"dispatch.wave-start-width": int64(9)}, "config_dispatch_wave_max_below_start"},
 		{map[string]any{"dispatch.wave-start-width": int64(8), "dispatch.halt-on-error-count": int64(0)}, ""},
 	} {
-		_, err := Load(Options{HomeDir: t.TempDir(), Environment: []string{}, FlagValues: tc.flags})
+		_, err := Load(Options{HomeDir: t.TempDir(), Environment: []string{}, FlagValues: cliFlags(tc.flags)})
 		if got := errorcodes.Of(err); got != tc.code {
 			t.Errorf("%v: %q (%v), want %q", tc.flags, got, err, tc.code)
 		}

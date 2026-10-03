@@ -2129,3 +2129,72 @@ test depends on the host's setting. Battery: the seventeen suites on a lab
 build (21:03:02 to 21:06:20 UTC), pass; vet, gofmt, and `make
 generated-clean`.
 
+
+## 17. An override's error names its option (2026-10-03)
+
+Found while section K was built (chapter 14, item 6): an option's value
+refused by its key's range or lock is reported `at command-line`.
+
+**What it gains.** An operator whose option is refused learns which option
+it was. It waits on nothing outside the tree.
+
+**The review.** Against the tree at `4eb961c`, a lab build:
+
+```text
+run … --blind-wait 20m           … must be 0s..10m for execution.blind-wait at command-line
+run … --dw --wave-delay 2h       … must be 0s..1h for dispatch.wave-gate-timed-delay at command-line
+run … --dp --workers 5000        … must be 0..4096 for dispatch.parallel-workers at command-line
+--ipv4 config show --explain name.address-family-preference      source: command-line
+under a global lock (sudo unshare --mount, a tmpfs over /opt):
+run … --blind-wait 9s                  write blocked by lock "execution.blind-wait" … at command-line
+run … --continue-device-on-error       write blocked by lock "execution.halt-device-on-command-error"
+                                       … for execution.halt-device-on-command-error at command-line
+--timezone Mars/Olympus …        display_timezone_invalid: … for display.timestamp at <builtin>
+```
+
+The flag layer recorded one source, `command-line`, for the 21 options
+that set a key (`root.go`, `work_commands.go`, `activity.go`), where
+`--set` names itself (`--set[2]`) and a file its line. The timezone is
+checked inside the timestamp formatter's check, and its failure was
+reported against `display.timestamp` and that key's source.
+
+**The rule settled.** The operator agreed: the flag layer carries each
+value with its option, named by its long name (`--fs` implying `--cd=.`
+is `--fs`; `--dp` is `--dispatch`; `--continue-device-on-error` names
+itself), in every message and in `config show`; an unknown zone is
+reported against `timezone` at its source; tests for an option's source,
+a lock's refusal, `--continue-device-on-error`, and `--timezone`. Not
+taken: a second map of option names; each message in the option's words;
+both sides of a cross-key check; `--dp` naming itself. Built as one
+section.
+
+**Executed.** `configload.FlagValue` carries each value with its option, and
+the cli layer's writers go through one helper, `setKey`, with the option's
+long name (`longName`); `--continue-device-on-error`'s write moved from
+`prepareConfig` (which loses its parameter) to the command line,
+`continueOptions`, where the operator's option and the `crun` word are told
+apart: a `crun` under a lock of `execution.halt-device-on-command-error`
+names `crun`, as it never typed the option. The zone's failure is the
+`timezone` key's. On the lab build:
+
+```text
+run … --blind-wait 20m           … must be 0s..10m for execution.blind-wait at --blind-wait
+run … --dw --wave-delay 2h       … must be 0s..1h for dispatch.wave-gate-timed-delay at --wave-delay
+run … --dp --workers 5000        … must be 0..4096 for dispatch.parallel-workers at --workers
+--timezone Mars/Olympus …        display_timezone_invalid: … for timezone at --timezone
+KARVI__TIMEZONE=Mars/Olympus     … for timezone at KARVI__TIMEZONE
+timezone = "Mars/Olympus" in a file   … for timezone at …/tz.toml:1
+--ipv4 config show --explain name.address-family-preference      source: --ipv4
+under the global lock:
+run … --blind-wait 9s                  … for execution.blind-wait at --blind-wait
+run … --continue-device-on-error       … for execution.halt-device-on-command-error at --continue-device-on-error
+crun …                                 … for execution.halt-device-on-command-error at crun
+```
+
+Tests: an option's source in the snapshot, a range error, a lock's
+refusal, and the zone (`configload`); the global options,
+`--continue-device-on-error`, `crun`, a run without the option, and every
+Dispatch option by its long name, `--dw` as `--dispatch` (`cli`). Battery:
+the seventeen suites on a lab build (21:27:14 to 21:30:36 UTC), pass;
+`go test ./...`, vet, gofmt, and `make generated-clean`.
+

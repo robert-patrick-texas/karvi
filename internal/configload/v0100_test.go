@@ -64,7 +64,7 @@ func TestV0100HostKeyPolicyLock(t *testing.T) {
 		opts Options
 	}{
 		{"set", Options{Sets: []string{`ssh.host-key-policy="insecure"`}}},
-		{"cli", Options{FlagValues: map[string]any{"ssh.host-key-policy": "insecure"}}},
+		{"cli", Options{FlagValues: cliFlags(map[string]any{"ssh.host-key-policy": "insecure"})}},
 		{"env", Options{Environment: []string{"KARVI__SSH__HOST_KEY_POLICY=insecure"}}},
 	}
 	for _, body := range []string{locked, unlocked} {
@@ -149,7 +149,7 @@ func TestPersistCommandLockRefusesNof(t *testing.T) {
 		if err := os.WriteFile(global, []byte(tc.body), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		snap, err := Load(Options{FlagValues: tc.flags, HomeDir: dir, Environment: []string{}})
+		snap, err := Load(Options{FlagValues: cliFlags(tc.flags), HomeDir: dir, Environment: []string{}})
 		code := ""
 		var ce *Error
 		if errors.As(err, &ce) {

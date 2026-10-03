@@ -54,7 +54,7 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 		opts.Format = "text"
 	}
 	t0 := time.Now()
-	cfg, operator, err := prepareConfig(opts.CommonOptions, opts.ContinueDeviceOnError)
+	cfg, operator, err := prepareConfig(opts.CommonOptions)
 	if err != nil {
 		return nil, "config_load_failed", err
 	}

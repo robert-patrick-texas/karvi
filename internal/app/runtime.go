@@ -24,7 +24,7 @@ type DaemonRuntime struct {
 // Callers use this only for daemon lifecycle actions, never for help/version.
 // Every returned error carries a registered code.
 func ResolveDaemonRuntime(common CommonOptions) (DaemonRuntime, error) {
-	cfg, operator, err := prepareConfig(common, false)
+	cfg, operator, err := prepareConfig(common)
 	if err != nil {
 		return DaemonRuntime{}, err
 	}

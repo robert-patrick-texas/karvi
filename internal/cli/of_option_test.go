@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 )
 
@@ -35,14 +36,14 @@ func TestOfOptionParses(t *testing.T) {
 		if len(inv.Commands) != 1 || inv.Commands[0] != tc.cmd {
 			t.Errorf("%q: commands %q, want %q", tc.args, inv.Commands, tc.cmd)
 		}
-		flags := map[string]any{}
+		flags := map[string]configload.FlagValue{}
 		outputOptions(inv, flags)
 		if len(flags) != len(tc.flags) {
 			t.Errorf("%q: flags %v, want %v", tc.args, flags, tc.flags)
 		}
 		for k, v := range tc.flags {
-			if flags[k] != v {
-				t.Errorf("%q: %s=%v, want %v", tc.args, k, flags[k], v)
+			if flags[k].Value != v || (flags[k].Option != "--of" && flags[k].Option != "--nof") {
+				t.Errorf("%q: %s=%+v, want %v from --of or --nof", tc.args, k, flags[k], v)
 			}
 		}
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/completion"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
@@ -31,17 +32,17 @@ type globalOptions struct {
 }
 
 func (g globalOptions) common() app.CommonOptions {
-	values := map[string]any{}
+	values := map[string]configload.FlagValue{}
 	if g.timezone != "" {
-		values["timezone"] = g.timezone
+		setKey(values, "--timezone", "timezone", g.timezone)
 	}
 	if g.ansi != "" {
-		values["output.ansi"] = g.ansi
+		setKey(values, "--ansi", "output.ansi", g.ansi)
 	}
 	if g.ipv4 {
-		values["name.address-family-preference"] = "ipv4"
+		setKey(values, "--ipv4", "name.address-family-preference", "ipv4")
 	} else if g.ipv6 {
-		values["name.address-family-preference"] = "ipv6"
+		setKey(values, "--ipv6", "name.address-family-preference", "ipv6")
 	}
 	return app.CommonOptions{ConfigRoots: append([]string(nil), g.configs...), Sets: append([]string(nil), g.sets...), ConfigFlags: values, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow}
 }
@@ -166,36 +167,48 @@ func (inv *Invocation) common() app.CommonOptions {
 	g.ipv6 = g.ipv6 || inv.Flag(optIPv6)
 	common := g.common()
 	if inv.Set(optHostKeyPolicy) {
-		common.ConfigFlags["ssh.host-key-policy"] = inv.String(optHostKeyPolicy)
+		setKey(common.ConfigFlags, longName(optHostKeyPolicy), "ssh.host-key-policy", inv.String(optHostKeyPolicy))
 	}
 	if inv.Set(optKnownHosts) {
-		common.ConfigFlags["ssh.known-hosts-file"] = inv.String(optKnownHosts)
+		setKey(common.ConfigFlags, longName(optKnownHosts), "ssh.known-hosts-file", inv.String(optKnownHosts))
 	}
 	if inv.Set(optOrder) {
-		common.ConfigFlags["dispatch.order"] = inv.String(optOrder)
+		setKey(common.ConfigFlags, longName(optOrder), "dispatch.order", inv.String(optOrder))
 	}
 	for _, d := range dispatchOptionKeys {
 		if !inv.Set(d.opt) {
 			continue
 		}
+		var v any = inv.String(d.opt)
 		switch d.opt.typ {
 		case typeInt:
-			common.ConfigFlags[d.key] = int64(inv.Int(d.opt))
+			v = int64(inv.Int(d.opt))
 		case typeDuration:
-			common.ConfigFlags[d.key] = inv.Duration(d.opt).String()
-		default:
-			common.ConfigFlags[d.key] = inv.String(d.opt)
+			v = inv.Duration(d.opt).String()
 		}
+		setKey(common.ConfigFlags, longName(d.opt), d.key, v)
 	}
 	// --ping and --noping set the effective network.ping-targets through the
 	// lock-aware cli layer.
 	if inv.Flag(optPing) {
-		common.ConfigFlags["network.ping-targets"] = true
+		setKey(common.ConfigFlags, longName(optPing), "network.ping-targets", true)
 	} else if inv.Flag(optNoPing) {
-		common.ConfigFlags["network.ping-targets"] = false
+		setKey(common.ConfigFlags, longName(optNoPing), "network.ping-targets", false)
 	}
 	return common
 }
+
+// setKey records the value an option sets for its configuration key in the
+// lock-aware cli layer, sourced to what set it: the option by its long name
+// (longName), or the word that implies it (crun), which every message and
+// config show then name.
+func setKey(flags map[string]configload.FlagValue, source, key string, value any) {
+	flags[key] = configload.FlagValue{Value: value, Option: source}
+}
+
+// longName is an option as a source names it: --NAME, the long name, which a
+// shortcut (--dp) reaches as the option it stands for (--dispatch).
+func longName(o *option) string { return "--" + o.name }
 
 // dispatchOptionKeys are run's Dispatch options and the keys they stand
 // for. Each is its key's override in the lock-aware cli layer, as --order
