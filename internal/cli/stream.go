@@ -116,14 +116,20 @@ func streamScanner(in io.Reader) func() (string, error) {
 // io.EOF at the input's end, or the input's failure; execute runs one
 // invocation, named by the line that sent it, and gives its exit. It returns
 // when the input ends, a leaving directive is read, the input fails, or ctx
-// is cancelled (Ctrl-C), with the last exit. The reader goroutine blocks in
-// the input's read, which takes no deadline, so it lives until the input
-// ends or the process does; after the loop returns it delivers nowhere.
+// is cancelled (Ctrl-C), with the last exit. The reader goroutine reads one
+// line when the loop asks for it and none ahead: at a terminal a read is
+// the editor's, in raw mode, and one running beside a job would hold the
+// terminal in raw mode through it, taking the job's Ctrl-C as a key and its
+// credential prompt's answer as the next line. It blocks in the input's
+// read, which takes no deadline, so it lives until the input ends or the
+// process does; after the loop returns it delivers nowhere.
 func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writer, execute func(line int, argv []string) int) int {
-	lines := make(chan streamRead, 16)
+	want := make(chan struct{})
+	defer close(want)
+	lines := make(chan streamRead, 1)
 	go func() {
 		defer close(lines)
-		for {
+		for range want {
 			text, err := next()
 			if errors.Is(err, io.EOF) {
 				return
@@ -144,6 +150,11 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 		case <-ctx.Done():
 			return last
 		default:
+		}
+		select {
+		case <-ctx.Done():
+			return last
+		case want <- struct{}{}:
 		}
 		var r streamRead
 		var ok bool

@@ -235,7 +235,8 @@ Active failure causes.
 | `credential_password_missing` | credential | 6 | no | The authentication policy requires a password and none was resolved. |
 | `credential_policy_prefix_ambiguous` | credential | 6 | no | Two CIDR credential policy rules match the device with the same prefix length. |
 | `credential_policy_unmatched` | credential | 6 | no | No credential policy rule matches the device. |
-| `credential_prompt_unavailable` | credential | 6 | no | An interactive credential prompt is needed but no controlling terminal is available. |
+| `credential_prompt_interrupted` | credential | 113 | no | The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits. |
+| `credential_prompt_unavailable` | credential | 6 | no | An interactive credential prompt is needed but no controlling terminal is available, or the operator ended the prompt with Ctrl-D on an empty line. |
 | `credential_resolution_failed` | credential | 6 | no | Unclassified. Credential resolution failed with an error that carries no specific code. |
 | `credential_transform_error` | credential | 6 | no | A credential transform cannot be applied to the username. |
 | `credential_transform_operation_not_table` | config | 2 | no | A `credential-transform` operation is not an inline table. |

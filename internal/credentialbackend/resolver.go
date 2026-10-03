@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/secrets"
+	"github.com/robert-patrick-texas/karvi/internal/termline"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/transform"
@@ -203,10 +205,24 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 			username, password, enable = "", "", ""
 		}
 		allowPrompt := r.cfg.Bool("creds.interactive-prompt")
+		// A prompt is asked only for a field the device needs, so no job
+		// runs past one left unanswered: Ctrl-C (or a signal) at the
+		// prompt is credential_prompt_interrupted, an empty answer the
+		// field's missing code, at once and before any later prompt;
+		// Ctrl-D on an empty line, like a missing terminal, is
+		// credential_prompt_unavailable.
 		prompt := func(field string, masked bool) (string, error) {
-			v, e := r.input.Prompt(ctx, PromptRequest{Field: field, Masked: masked, Target: device.CanonicalName})
-			if e != nil {
+			req := PromptRequest{Field: field, Masked: masked, Target: device.CanonicalName}
+			v, e := r.input.Prompt(ctx, req)
+			switch {
+			case errors.Is(e, termline.ErrInterrupt) || errors.Is(e, context.Canceled):
+				return "", &Error{Code: "credential_prompt_interrupted", Message: fmt.Sprintf("interrupted at the %s prompt", strings.ToLower(req.Label())), Policy: p.Name}
+			case errors.Is(e, io.EOF):
+				return "", &Error{Code: "credential_prompt_unavailable", Message: fmt.Sprintf("the %s prompt was ended by Ctrl-D or the terminal's end", strings.ToLower(req.Label())), Policy: p.Name}
+			case e != nil:
 				return "", &Error{Code: "credential_prompt_unavailable", Message: e.Error(), Policy: p.Name}
+			case v == "":
+				return "", &Error{Code: emptyAnswerCodes[field], Message: fmt.Sprintf("nothing was entered at the %s prompt", strings.ToLower(req.Label())), Policy: p.Name}
 			}
 			source = "interactive-tty"
 			return v, nil
@@ -232,6 +248,14 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 	}
 	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: source, Policy: p.Name, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: source}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: source, Path: source}, "password": {Backend: source, Path: source}, "enable_password": {Backend: source, Path: source}}}
 	return r.finalize(cred, source, p.Name, requiredEnable, requirePassword, true)
+}
+
+// emptyAnswerCodes are the codes of a prompt answered with nothing, by
+// field: the codes of the same field missing from every source.
+var emptyAnswerCodes = map[string]string{
+	FieldUsername:       "credential_username_missing",
+	FieldPassword:       "credential_password_missing",
+	FieldEnablePassword: "credential_enable_missing",
 }
 
 // keyed reports whether a sequence entry can honour a credential key

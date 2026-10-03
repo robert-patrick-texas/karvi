@@ -6,11 +6,12 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
-
-	"golang.org/x/term"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/termline"
 )
 
 // TestStreamLoopDraftsAndDirectives is stream mode's line grammar:
@@ -233,10 +234,7 @@ func TestStreamRunsAJobFromStdin(t *testing.T) {
 func TestStreamTerminalEditsAndHistory(t *testing.T) {
 	var echo bytes.Buffer
 	in := strings.NewReader("show clock\x01! \x05 detail\r\x1b[A\r\x03")
-	s := &streamTerminal{t: term.NewTerminal(struct {
-		io.Reader
-		io.Writer
-	}{in, &echo}, "")}
+	s := &streamTerminal{line: termline.FromReader(in, &echo)}
 	var got []string
 	for {
 		line, err := s.next()
@@ -254,11 +252,40 @@ func TestStreamTerminalEditsAndHistory(t *testing.T) {
 	var runs int
 	execute := func(int, []string) int { runs++; return 0 }
 	var stderr bytes.Buffer
-	s = &streamTerminal{t: term.NewTerminal(struct {
-		io.Reader
-		io.Writer
-	}{enterReader{strings.NewReader("--target r1\nshow clock\r--go\n\x04")}, io.Discard}, "")}
+	s = &streamTerminal{line: termline.FromReader(strings.NewReader("--target r1\nshow clock\r--go\n\x04"), io.Discard)}
 	if exit := streamLoop(context.Background(), s.next, &stderr, execute); exit != 0 || runs != 1 || stderr.Len() != 0 {
 		t.Errorf("exit %d, runs %d, stderr %q", exit, runs, stderr.String())
+	}
+}
+
+// TestStreamLoopReadsNoLineAhead: the loop asks for a line only when it is
+// ready for it, so no read runs beside a job; at a terminal such a read
+// would hold the terminal in raw mode through the job, taking its Ctrl-C
+// as a key and its credential prompt's answer as the next line.
+func TestStreamLoopReadsNoLineAhead(t *testing.T) {
+	input := []string{"--target r1", "show clock", "--go", "show version", "--go"}
+	var reads int32
+	next := func() (string, error) {
+		i := int(atomic.AddInt32(&reads, 1)) - 1
+		if i >= len(input) {
+			return "", io.EOF
+		}
+		return input[i], nil
+	}
+	// The reads made when each job starts and when it ends: the job's own
+	// lines, and not one more.
+	var seen [][2]int32
+	execute := func(int, []string) int {
+		start := atomic.LoadInt32(&reads)
+		time.Sleep(20 * time.Millisecond)
+		seen = append(seen, [2]int32{start, atomic.LoadInt32(&reads)})
+		return 0
+	}
+	var stderr bytes.Buffer
+	if exit := streamLoop(context.Background(), next, &stderr, execute); exit != 0 {
+		t.Fatalf("exit %d: %s", exit, stderr.String())
+	}
+	if want := [][2]int32{{3, 3}, {5, 5}}; !reflect.DeepEqual(seen, want) {
+		t.Fatalf("reads at each job's start and end %v, want %v", seen, want)
 	}
 }

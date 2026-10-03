@@ -3,6 +3,7 @@ package planner
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -20,8 +21,10 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/resolver"
 	"github.com/robert-patrick-texas/karvi/internal/secrets"
+	"github.com/robert-patrick-texas/karvi/internal/termline"
 	"github.com/robert-patrick-texas/karvi/inventory"
 )
 
@@ -53,6 +56,9 @@ func (b *fakeBackend) Resolve(_ context.Context, req credentials.ResolveRequest)
 type fakeInput struct {
 	prompts []string
 	noEnv   bool
+	// reply, when set, answers in place of the one password: an empty
+	// answer, or a prompt ended by Ctrl-C or Ctrl-D.
+	reply func(field string) (string, error)
 }
 
 func (f *fakeInput) LookupEnv(_ context.Context, name string) (string, bool, error) {
@@ -64,6 +70,9 @@ func (f *fakeInput) LookupEnv(_ context.Context, name string) (string, bool, err
 
 func (f *fakeInput) Prompt(_ context.Context, req credentialbackend.PromptRequest) (string, error) {
 	f.prompts = append(f.prompts, req.Label()+" for "+req.Target)
+	if f.reply != nil {
+		return f.reply(req.Field)
+	}
 	return "pw-" + req.Field, nil
 }
 
@@ -232,6 +241,46 @@ func TestPromptOnceForThreeTargets(t *testing.T) {
 	defer p1.Destroy()
 	if err := p1.Resolve(context.Background(), planFor(t, cfg, devices[:1], nil)); err != nil || len(one.prompts) != 1 || one.prompts[0] != "Password for 10.0.0.1" {
 		t.Fatalf("prompts=%v err=%v", one.prompts, err)
+	}
+}
+
+// TestPromptStopsTheRun: no job runs without the credential a prompt asks
+// for, so Ctrl-C at the prompt is credential_prompt_interrupted (exit 113),
+// Ctrl-D on an empty line credential_prompt_unavailable, and an empty
+// answer the field's missing code; each is asked once for three targets,
+// the targets resolving beside the first are not asked again, and no
+// later prompt follows the one left unanswered.
+func TestPromptStopsTheRun(t *testing.T) {
+	cfg := testConfig(t, `creds.backend-sequence=[]`, "ssh.pubkey-authentication=false", "creds.interactive-prompt=true")
+	devices := []inventory.Device{direct("10.0.0.1"), direct("10.0.0.2"), direct("10.0.0.3")}
+	plan := planFor(t, cfg, devices, nil)
+	for _, c := range []struct {
+		name  string
+		noEnv bool
+		reply func(string) (string, error)
+		code  string
+		exit  int
+		asked string
+	}{
+		{"Ctrl-C at the username", true, func(string) (string, error) { return "", termline.ErrInterrupt }, "credential_prompt_interrupted", exitcode.ExitCancelled, "Username for 3 targets"},
+		{"Ctrl-C at the password", false, func(string) (string, error) { return "", termline.ErrInterrupt }, "credential_prompt_interrupted", exitcode.ExitCancelled, "Password for 3 targets"},
+		{"Ctrl-D at the username", true, func(string) (string, error) { return "", io.EOF }, "credential_prompt_unavailable", exitcode.ExitCredentialResolutionError, "Username for 3 targets"},
+		{"an empty username", true, func(string) (string, error) { return "", nil }, "credential_username_missing", exitcode.ExitCredentialResolutionError, "Username for 3 targets"},
+		{"an empty password", false, func(string) (string, error) { return "", nil }, "credential_password_missing", exitcode.ExitCredentialResolutionError, "Password for 3 targets"},
+	} {
+		input := &fakeInput{noEnv: c.noEnv, reply: c.reply}
+		p, err := NewCredentialPlanner(cfg, operator, devices, plantest.DraftedAt, CredentialOptions{Resolver: newResolver(t, cfg, nil), Input: input})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = p.Resolve(context.Background(), plan)
+		p.Destroy()
+		if errorcodes.Of(err) != c.code || errorcodes.ExitAt(err, "credential_resolution_failed") != c.exit {
+			t.Errorf("%s: %v (exit %d)", c.name, err, errorcodes.ExitAt(err, "credential_resolution_failed"))
+		}
+		if len(input.prompts) != 1 || input.prompts[0] != c.asked {
+			t.Errorf("%s: prompts %q, want one: %s", c.name, input.prompts, c.asked)
+		}
 	}
 }
 

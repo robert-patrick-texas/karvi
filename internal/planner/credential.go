@@ -72,7 +72,7 @@ func NewCredentialPlanner(cfg configload.Snapshot, operator credentials.Operator
 	if opts.Input != nil {
 		inner = opts.Input
 	}
-	prompts := &promptOnce{inner: inner, targets: len(devices), answers: map[string]string{}}
+	prompts := &promptOnce{inner: inner, targets: len(devices), answers: map[string]string{}, failed: map[string]error{}}
 	r.SetInput(prompts)
 	newID := opts.NewID
 	if newID == nil {
@@ -90,12 +90,16 @@ func NewCredentialPlanner(cfg configload.Snapshot, operator credentials.Operator
 }
 
 // promptOnce asks for each field once per invocation and reuses the answer
-// for every later target; prompts are serialized.
+// for every later target; prompts are serialized. A prompt that failed
+// (Ctrl-C, Ctrl-D, no terminal) fails every later target's ask of the
+// field the same way, so the targets resolving beside the first are not
+// asked again after the operator has stopped.
 type promptOnce struct {
 	inner   credentialbackend.InputProvider
 	targets int
 	mu      sync.Mutex
 	answers map[string]string
+	failed  map[string]error
 }
 
 func (p *promptOnce) LookupEnv(ctx context.Context, name string) (string, bool, error) {
@@ -108,11 +112,15 @@ func (p *promptOnce) Prompt(ctx context.Context, req credentialbackend.PromptReq
 	if v, ok := p.answers[req.Field]; ok {
 		return v, nil
 	}
+	if err, ok := p.failed[req.Field]; ok {
+		return "", err
+	}
 	if p.targets > 1 {
 		req.Target = fmt.Sprintf("%d targets", p.targets)
 	}
 	v, err := p.inner.Prompt(ctx, req)
 	if err != nil {
+		p.failed[req.Field] = err
 		return "", err
 	}
 	p.answers[req.Field] = v

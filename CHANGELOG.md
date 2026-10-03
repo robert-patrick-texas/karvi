@@ -47,6 +47,28 @@
   bit, under which no member could replace a ledger another wrote. The
   setup help says what the command does, which had still described a
   mismatched directory as left alone.
+- **The credential prompts edit as stream mode does, and Ctrl-C there
+  exits.** The username and password prompts read through the line
+  editor stream mode uses (`internal/termline`, shared by both):
+  Backspace as DEL or Ctrl-H, the Delete key, the arrows, Ctrl-A, Ctrl-E,
+  Ctrl-K, Ctrl-U, Ctrl-W; the password without echo. Ctrl-H and the
+  Delete key had gone into the username as bytes. Ctrl-C at a prompt ends
+  karvi at once with the new `credential_prompt_interrupted` (exit 113),
+  in a stream too, where it had been held until the input ended; an empty
+  answer ends it at once with the field's missing code
+  (`credential_username_missing`, `credential_password_missing`,
+  `credential_enable_missing`), before any later prompt; Ctrl-D on an
+  empty line stays `credential_prompt_unavailable`. A prompt that failed
+  is not asked again for the targets resolving beside the first, and a
+  username and password typed or pasted ahead are both read. In stream
+  mode the Delete key deletes forward.
+- **Stream mode reads no line ahead.** At a terminal the reader had read
+  the next line while a job ran, holding the terminal in raw mode
+  through the job, so the job's Ctrl-C was taken as a key (the job ran
+  on and the stream with it) and a credential prompt competed with the
+  stream for the operator's keys. The reader now reads a line when the
+  loop asks for it, so a Ctrl-C during a job is the signal it is: the
+  follow stops, a daemon's job continues, and the stream ends.
 
 ## 0.25.0 - 2026-09-30
 

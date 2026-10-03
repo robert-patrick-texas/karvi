@@ -1,11 +1,8 @@
 package osutil
 
 import (
-	"bufio"
-	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -29,38 +26,6 @@ func ioctlTermios(fd uintptr, req uintptr, t *syscall.Termios) error {
 		return errno
 	}
 	return nil
-}
-func ReadTTY(prompt string, masked bool) (string, error) {
-	f, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
-	if err != nil {
-		// The caller attaches credential_prompt_unavailable; repeating the code
-		// here rendered it twice.
-		return "", fmt.Errorf("no controlling terminal: %w", err)
-	}
-	defer f.Close()
-	if _, err := fmt.Fprint(f, prompt); err != nil {
-		return "", err
-	}
-	var old syscall.Termios
-	if masked {
-		if err := ioctlTermios(f.Fd(), tcgets, &old); err != nil {
-			return "", err
-		}
-		next := old
-		next.Lflag &^= syscall.ECHO
-		if err := ioctlTermios(f.Fd(), tcsets, &next); err != nil {
-			return "", err
-		}
-		defer ioctlTermios(f.Fd(), tcsets, &old)
-	}
-	line, err := bufio.NewReader(f).ReadString('\n')
-	if masked {
-		fmt.Fprintln(f)
-	}
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimRight(line, "\r\n"), nil
 }
 func IsTerminal(f *os.File) bool {
 	var t syscall.Termios
@@ -103,8 +68,8 @@ func TerminalSize(f *os.File) (rows, columns int) {
 // flow control, one byte at a time. Output processing stays as it was; the
 // screen addresses the cursor and writes no newline. The returned function
 // restores the terminal's settings and is called however the screen ends.
-// It goes through the same ioctl path as ReadTTY, the tree's one raw-mode
-// path; stream mode's line editor (golang.org/x/term) borrows it too.
+// It is the tree's one raw-mode path: the line editor (termline, stream
+// mode's lines and the credential prompts) borrows it too.
 func RawMode(f *os.File) (restore func() error, err error) {
 	var old syscall.Termios
 	if err := ioctlTermios(f.Fd(), tcgets, &old); err != nil {

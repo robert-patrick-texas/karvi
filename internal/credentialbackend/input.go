@@ -2,10 +2,12 @@ package credentialbackend
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"syscall"
 
-	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/termline"
 )
 
 // Prompt fields of the built-in fallback.
@@ -56,8 +58,18 @@ func (TTYInput) LookupEnv(_ context.Context, name string) (string, bool, error) 
 	return v, ok, nil
 }
 
-func (TTYInput) Prompt(_ context.Context, req PromptRequest) (string, error) {
-	return osutil.ReadTTY(fmt.Sprintf("%s for %s: ", req.Label(), req.Target), req.Masked)
+// Prompt asks on the controlling terminal through the line editor
+// (termline.Prompt): the answer is edited as a stream line is, and Ctrl-C
+// or the context's end interrupts it. The editor reads in raw mode, where
+// Ctrl-C is a key and not the signal, so the key is given back to the
+// process as the interrupt it would have been: the run stops as at any
+// other moment, and a stream ends with it.
+func (TTYInput) Prompt(ctx context.Context, req PromptRequest) (string, error) {
+	answer, err := termline.Prompt(ctx, fmt.Sprintf("%s for %s: ", req.Label(), req.Target), req.Masked)
+	if errors.Is(err, termline.ErrInterrupt) {
+		_ = syscall.Kill(os.Getpid(), syscall.SIGINT)
+	}
+	return answer, err
 }
 
 // SetInput replaces the provider; nil disables the environment fallback and
