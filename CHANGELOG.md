@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **The capacity ledger is shared across operators.** Under a group-shared
+  capacity root (setgid, `sessions.shared-capacity-root`), the ledger's
+  directory and files take the root's group modes (2770 gives 0660), where
+  they were 0700 and 0600 whatever the root: the second operator's every
+  device failed with `capacity_admission_failed` (`open …/server.lock:
+  permission denied`). An operator's own files left private by an earlier
+  release are widened at their next use. The reaper counts another user's
+  process as alive, where it reaped every other operator's live lease and
+  so let each operator fill the host-wide cap alone. A ledger that cannot
+  be read is an error, never an empty ledger whose write would replace
+  another operator's leases. A shared root that exists but is closed to
+  the operator (the sticky bit on another's directory, or a directory or
+  lock it cannot use) is said once as the new `capacity_root_unusable` in
+  the fallback warning, and the private root is taken, where every device
+  had met the refusal.
+
 ## 0.25.0 - 2026-09-30
 
 A minor release on 0.24.0, the same day. Every counter is 0.24.0's (daemon

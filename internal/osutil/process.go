@@ -162,11 +162,16 @@ func ProcessStartIdentity(pid int) string {
 	}
 	return ""
 }
+
+// ProcessAlive reports whether pid is a live process and, when start is
+// given, the one that started then (ProcessStartIdentity). A process of
+// another user is alive: the signal check answers EPERM for it, and the
+// shared capacity ledger holds every operator's leases.
 func ProcessAlive(pid int, start string) bool {
 	if pid <= 0 {
 		return false
 	}
-	if err := syscall.Kill(pid, 0); err != nil {
+	if err := syscall.Kill(pid, 0); err != nil && err != syscall.EPERM {
 		return false
 	}
 	return start == "" || ProcessStartIdentity(pid) == start

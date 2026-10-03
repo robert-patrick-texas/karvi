@@ -24,6 +24,9 @@ type Manager struct {
 	ServerLimit      int
 	PollMin, PollMax time.Duration
 	Warn             func(string)
+	// dirMode and fileMode are what the ledger creates under Root
+	// (ledgerModes).
+	dirMode, fileMode os.FileMode
 }
 type Lease struct {
 	manager                        *Manager
@@ -40,27 +43,118 @@ func New(root, fallback, jobID string, limit int, warn func(string)) (*Manager, 
 	if limit < 1 {
 		limit = 32
 	}
-	chosen := root
-	if err := ensureRoot(chosen); err != nil {
+	m := &Manager{Root: root, JobID: jobID, ServerLimit: limit, PollMin: 50 * time.Millisecond, PollMax: 250 * time.Millisecond, Warn: warn}
+	if err := m.ensureRoot(); err != nil {
 		if fallback == "" {
 			return nil, err
 		}
 		if warn != nil {
 			warn(fmt.Sprintf("shared capacity root unavailable (%v); using private fallback %s", err, fallback))
 		}
-		chosen = fallback
-		if err := ensureRoot(chosen); err != nil {
+		m.Root = fallback
+		if err := m.ensureRoot(); err != nil {
 			return nil, err
 		}
 	}
-	return &Manager{Root: chosen, JobID: jobID, ServerLimit: limit, PollMin: 50 * time.Millisecond, PollMax: 250 * time.Millisecond, Warn: warn}, nil
+	return m, nil
 }
-func ensureRoot(root string) error {
-	if root == "" {
+
+// ensureRoot prepares m.Root and takes its modes: the root and its devices
+// directory are made, and the root must be one this operator can lease in,
+// so a shared root that is present but closed to the operator is said once
+// here and the fallback taken, not met by every device's admission. Under
+// the sticky bit a ledger another operator wrote could not be replaced.
+func (m *Manager) ensureRoot() error {
+	if m.Root == "" {
 		return errorcodes.Errorf("capacity_root_blank", "capacity root is blank")
 	}
-	if err := os.MkdirAll(filepath.Join(root, "devices"), 0700); err != nil {
+	if err := os.MkdirAll(m.Root, 0700); err != nil {
 		return err
+	}
+	m.dirMode, m.fileMode = ledgerModes(m.Root)
+	fi, err := os.Stat(m.Root)
+	if err != nil {
+		return err
+	}
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok && fi.Mode()&os.ModeSticky != 0 && int(st.Uid) != os.Geteuid() {
+		return errorcodes.Errorf("capacity_root_unusable", "%s has the sticky bit and is owned by uid %d, not %d: a ledger another operator wrote could not be replaced; %s", m.Root, st.Uid, os.Geteuid(), sharedRootShape)
+	}
+	devices := filepath.Join(m.Root, "devices")
+	if err := m.ensureDir(devices); err != nil {
+		return errorcodes.Errorf("capacity_root_unusable", "create %s: %v; %s", devices, err, sharedRootShape)
+	}
+	if err := syscall.Access(devices, 0o3); err != nil { // W_OK|X_OK
+		return errorcodes.Errorf("capacity_root_unusable", "%s: %v; %s", devices, err, sharedRootShape)
+	}
+	if _, err := m.readLedger(filepath.Join(m.Root, "server")); err != nil {
+		return errorcodes.Errorf("capacity_root_unusable", "%v; %s", err, sharedRootShape)
+	}
+	return nil
+}
+
+const sharedRootShape = "a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it"
+
+// ledgerModes are the modes of what the ledger creates under root: under a
+// root carrying the setgid bit, the group-shared root, the root's own
+// permission bits for a directory and the same without search for a file,
+// so that every member of the group takes and releases leases in a ledger
+// another member made (2770 gives 0660); elsewhere 0700 and 0600, one
+// operator's.
+func ledgerModes(root string) (dir, file os.FileMode) {
+	if fi, err := os.Stat(root); err == nil && fi.IsDir() && fi.Mode()&os.ModeSetgid != 0 {
+		perm := fi.Mode().Perm()
+		return os.ModeSetgid | perm, perm &^ 0o111
+	}
+	return 0o700, 0o600
+}
+
+// ensureDir makes a directory of the ledger at dirMode, explicitly so the
+// umask cannot narrow it. One that exists is set to dirMode when this
+// operator owns it at other permission bits, as openLock sets a lock file;
+// another member's is left as it is.
+func (m *Manager) ensureDir(dir string) error {
+	err := os.Mkdir(dir, m.dirMode.Perm())
+	if err == nil {
+		return os.Chmod(dir, m.dirMode)
+	}
+	if !os.IsExist(err) {
+		return err
+	}
+	fi, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) == os.Geteuid() && fi.Mode().Perm() != m.dirMode.Perm() {
+		return os.Chmod(dir, m.dirMode)
+	}
+	return nil
+}
+
+// openLock opens a ledger's lock file, created at fileMode when missing. A
+// file this operator owns at another mode (made under the umask, or by an
+// earlier release at 0600) is set to fileMode; another member's is
+// left as it is.
+func (m *Manager) openLock(path string) (*os.File, error) {
+	f, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, m.fileMode)
+	if err != nil {
+		return nil, err
+	}
+	if err := ownMode(f, m.fileMode); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
+}
+
+// ownMode sets mode on f when this process owns it and its permission bits
+// differ.
+func ownMode(f *os.File, mode os.FileMode) error {
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) == os.Geteuid() && fi.Mode().Perm() != mode.Perm() {
+		return f.Chmod(mode)
 	}
 	return nil
 }
@@ -115,7 +209,7 @@ func (m *Manager) try(path string, limit int) (string, bool, error) {
 	}
 	id = hex.EncodeToString(raw)
 	ok := false
-	err := withLedger(path, func(entries []entry) ([]entry, error) {
+	err := m.withLedger(path, func(entries []entry) ([]entry, error) {
 		entries = reap(entries)
 		if len(entries) >= limit {
 			return entries, nil
@@ -139,7 +233,7 @@ func (l *Lease) Release() error {
 	return e2
 }
 func (m *Manager) release(path, id string) error {
-	return withLedger(path, func(entries []entry) ([]entry, error) {
+	return m.withLedger(path, func(entries []entry) ([]entry, error) {
 		out := entries[:0]
 		for _, e := range entries {
 			if e.ID != id {
@@ -159,11 +253,11 @@ func reap(entries []entry) []entry {
 	}
 	return out
 }
-func withLedger(path string, fn func([]entry) ([]entry, error)) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+func (m *Manager) withLedger(path string, fn func([]entry) ([]entry, error)) error {
+	if err := m.ensureDir(filepath.Dir(path)); err != nil {
 		return err
 	}
-	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0600)
+	lock, err := m.openLock(path)
 	if err != nil {
 		return err
 	}
@@ -172,11 +266,9 @@ func withLedger(path string, fn func([]entry) ([]entry, error)) error {
 		return err
 	}
 	defer syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)
-	entries := []entry{}
-	if b, err := os.ReadFile(path + ".json"); err == nil && len(b) > 0 {
-		if err := json.Unmarshal(b, &entries); err != nil {
-			return errorcodes.Errorf("capacity_ledger_malformed", "malformed capacity ledger %s: %w", path, err)
-		}
+	entries, err := loadEntries(path)
+	if err != nil {
+		return err
 	}
 	next, err := fn(entries)
 	if err != nil {
@@ -195,7 +287,7 @@ func withLedger(path string, fn func([]entry) ([]entry, error)) error {
 	}
 	name := tmp.Name()
 	defer os.Remove(name)
-	if err := tmp.Chmod(0600); err != nil {
+	if err := tmp.Chmod(m.fileMode); err != nil {
 		tmp.Close()
 		return err
 	}
@@ -232,7 +324,7 @@ type DeviceAssessment struct {
 // under a shared lock with the reaper applied.
 func (m *Manager) Assess(caps map[string]int) (Assessment, error) {
 	a := Assessment{ServerLimit: m.ServerLimit, Devices: map[string]DeviceAssessment{}}
-	n, err := readLedger(filepath.Join(m.Root, "server"))
+	n, err := m.readLedger(filepath.Join(m.Root, "server"))
 	if err != nil {
 		return a, err
 	}
@@ -242,7 +334,7 @@ func (m *Manager) Assess(caps map[string]int) (Assessment, error) {
 			cap = 1
 		}
 		deviceSum := sha256.Sum256([]byte(device))
-		n, err := readLedger(filepath.Join(m.Root, "devices", hex.EncodeToString(deviceSum[:])))
+		n, err := m.readLedger(filepath.Join(m.Root, "devices", hex.EncodeToString(deviceSum[:])))
 		if err != nil {
 			return a, err
 		}
@@ -252,8 +344,8 @@ func (m *Manager) Assess(caps map[string]int) (Assessment, error) {
 }
 
 // readLedger counts a ledger's live entries without writing it.
-func readLedger(path string) (int, error) {
-	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0600)
+func (m *Manager) readLedger(path string) (int, error) {
+	lock, err := m.openLock(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return 0, nil
@@ -265,11 +357,29 @@ func readLedger(path string) (int, error) {
 		return 0, err
 	}
 	defer syscall.Flock(int(lock.Fd()), syscall.LOCK_UN)
-	entries := []entry{}
-	if b, err := os.ReadFile(path + ".json"); err == nil && len(b) > 0 {
-		if err := json.Unmarshal(b, &entries); err != nil {
-			return 0, errorcodes.Errorf("capacity_ledger_malformed", "malformed capacity ledger %s: %w", path, err)
-		}
+	entries, err := loadEntries(path)
+	if err != nil {
+		return 0, err
 	}
 	return len(reap(entries)), nil
+}
+
+// loadEntries reads a ledger's entries; a missing or empty file has none.
+// A file that cannot be read is an error, never an empty ledger: the
+// write that follows would replace another operator's leases.
+func loadEntries(path string) ([]entry, error) {
+	entries := []entry{}
+	b, err := os.ReadFile(path + ".json")
+	if os.IsNotExist(err) {
+		return entries, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(b) > 0 {
+		if err := json.Unmarshal(b, &entries); err != nil {
+			return nil, errorcodes.Errorf("capacity_ledger_malformed", "malformed capacity ledger %s: %w", path, err)
+		}
+	}
+	return entries, nil
 }

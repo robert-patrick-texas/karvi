@@ -453,6 +453,7 @@ var entries = []Entry{
 	failure("audit_write_failed", "output", exitOutput, false, "An audit record cannot be written to a required journald or file sink."),
 	failure("capacity_ledger_malformed", "dependency", exitDep, false, "A capacity ledger file is not valid JSON."),
 	failure("capacity_root_blank", "internal", exitGen, false, "The capacity manager was given a blank root directory."),
+	failure("capacity_root_unusable", "permission", exitPerm, false, "The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, or a directory or lock file closed to the operator. The private fallback is taken with a warning naming the cause."),
 	failure("shared_capacity_unavailable", "permission", exitPerm, false, "Neither the shared nor the private capacity root can be created."),
 
 	// Inventory, tabular sources, devices, name transforms, platforms.

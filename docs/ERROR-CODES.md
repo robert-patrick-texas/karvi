@@ -48,6 +48,7 @@ Active failure causes.
 | `capacity_admission_failed` | capacity | 110 | yes | A device session slot cannot be acquired before the activity is cancelled. |
 | `capacity_ledger_malformed` | dependency | 8 | no | A capacity ledger file is not valid JSON. |
 | `capacity_root_blank` | internal | 1 | no | The capacity manager was given a blank root directory. |
+| `capacity_root_unusable` | permission | 9 | no | The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, or a directory or lock file closed to the operator. The private fallback is taken with a warning naming the cause. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
 | `cli_command_text_missing` | usage | 4 | no | `command` or `run` has neither freeform text nor an explicit command. |
 | `cli_command_text_mixed` | usage | 4 | no | Freeform text is combined with `--cmd` or `--cf`. |

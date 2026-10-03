@@ -31,3 +31,22 @@ func TestProcessCommandName(t *testing.T) {
 		t.Fatalf("pid 0: %q", got)
 	}
 }
+
+// TestProcessAliveOtherUser: init belongs to root, so an unprivileged
+// signal check answers EPERM; the process is alive all the same, as another
+// operator's lease holder is to the capacity ledger's reaper.
+func TestProcessAliveOtherUser(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root signals every process")
+	}
+	start := ProcessStartIdentity(1)
+	if start == "" {
+		t.Skip("no /proc/1/stat")
+	}
+	if !ProcessAlive(1, start) {
+		t.Fatal("pid 1 judged dead: EPERM from the signal check is a live process of another user")
+	}
+	if ProcessAlive(1, start+"0") {
+		t.Fatal("pid 1 with another start identity judged alive")
+	}
+}
