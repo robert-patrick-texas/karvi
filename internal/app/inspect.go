@@ -78,7 +78,8 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, streams IO) Ac
 	if err := report.Validate(); err != nil {
 		return failedResult("plan_report_invalid", err)
 	}
-	if err := renderInspection(streams.Stdout, opts.Format, report, socket); err != nil {
+	dispatchLine := jobexec.DispatchPlan(cd.cfg, "run", report.Plan.Dispatch).Describe()
+	if err := renderInspection(streams.Stdout, opts.Format, report, socket, dispatchLine); err != nil {
 		return failedResult("terminal_write_failed", err)
 	}
 	result := ActivityResult{ExitCode: exitcode.ExitSuccess, ExitName: exitcode.ExitName(exitcode.ExitSuccess), ActivityID: opts.ActivityID}
@@ -261,8 +262,10 @@ func effectivePort(t executionplan.ExecutionTarget) uint16 {
 }
 
 // renderInspection writes the report in the run's --format: json
-// indented, jsonl on one line, text in the inspection report's shape.
-func renderInspection(out io.Writer, format string, r records.PlanReport, socket string) error {
+// indented, jsonl on one line, text in the inspection report's shape, its
+// dispatch line dispatchLine, the dispatch as the job would run it
+// (dispatch.Plan.Describe), which the plan's settings alone cannot say.
+func renderInspection(out io.Writer, format string, r records.PlanReport, socket, dispatchLine string) error {
 	switch format {
 	case "json":
 		b, err := json.MarshalIndent(r, "", "  ")
@@ -302,7 +305,7 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		fmt.Fprintf(&b, "finding: %s %s %s\n", f.Severity, f.Code, f.Message)
 	}
 	fmt.Fprintf(&b, "commands: %d (command_plan_digest %s)\n", r.Counts.Commands, shortDigest(r.CommandPlanDigest.String()))
-	fmt.Fprintf(&b, "dispatch: %s width=%d order=%s\n", r.Plan.Dispatch.Mode, r.Plan.Dispatch.Width, r.Plan.Dispatch.DispatchOrder)
+	fmt.Fprintf(&b, "dispatch: %s order=%s\n", dispatchLine, r.Plan.Dispatch.DispatchOrder)
 	if c := r.Plan.Output.Collection; c != nil {
 		fmt.Fprintf(&b, "collection: %s (file mode %s)\n", c.Directory, c.FileMode)
 	}

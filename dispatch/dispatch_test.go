@@ -139,3 +139,120 @@ func TestSerialFailureContinuesWithoutHaltPolicy(t *testing.T) {
 		t.Fatalf("dispatcher did not continue in task order: %+v", s.Results)
 	}
 }
+
+// TestStartWidthAndDescribe: the width a job starts at and its one-line
+// description, after Execute's normalization: serial is one worker
+// whatever the pool says, parallel its pool cut to the absolute ceiling,
+// wave its start width (and neither names the parallel pool, which a wave
+// job never uses).
+func TestStartWidthAndDescribe(t *testing.T) {
+	for _, c := range []struct {
+		plan     Plan
+		width    int
+		describe string
+	}{
+		{Plan{Mode: "serial", Width: 4}, 1, "serial width=1"},
+		{Plan{Mode: "parallel", Width: 4}, 4, "parallel width=4"},
+		{Plan{Mode: "parallel", Width: 600, AbsoluteMaxWidth: 512}, 512, "parallel width=512"},
+		{Plan{Mode: "wave", Width: 4, WaveStartWidth: 16, WaveMaxWidth: 32}, 16, "wave start-width=16 max-width=32 depth-multiplier=4"},
+		{Plan{Mode: "wave", Width: 4, WaveStartWidth: 16, WaveMaxWidth: 32, WaveDepthMultiplier: 2}, 16, "wave start-width=16 max-width=32 depth-multiplier=2"},
+	} {
+		if got := c.plan.StartWidth(); got != c.width {
+			t.Errorf("%+v: start width %d, want %d", c.plan, got, c.width)
+		}
+		if got := c.plan.Describe(); got != c.describe {
+			t.Errorf("%+v: %q, want %q", c.plan, got, c.describe)
+		}
+	}
+}
+
+// TestWaveDecisionReasons: each decision names where the CPU stood and
+// what the width did, with the width before it: a signal under the band
+// steps up, then at the ceiling holds as cpu_below_zone_at_ceiling (not
+// cpu_in_zone); a signal over the band at the start width holds as
+// cpu_above_zone_at_floor; in the band it holds as cpu_in_zone.
+func TestWaveDecisionReasons(t *testing.T) {
+	run := func(signal float64, start, ceiling, devices int) []Event {
+		tasks := make([]Task, devices)
+		for i := range tasks {
+			tasks[i] = Task{Key: string(rune('a' + i%26)), Position: i + 1}
+		}
+		var mu sync.Mutex
+		var decisions []Event
+		sink := EventSinkFunc(func(e Event) {
+			if e.Kind == "wave_decision" {
+				mu.Lock()
+				decisions = append(decisions, e)
+				mu.Unlock()
+			}
+		})
+		LocalDispatcher{Signal: SignalFunc(func() float64 { return signal })}.Execute(context.Background(), Plan{Mode: "wave", Tasks: tasks, WaveStartWidth: start, WaveMaxWidth: ceiling, WaveDepthMultiplier: 1}, fake{}, sink)
+		return decisions
+	}
+	type step struct {
+		previous, width int
+		reason          string
+	}
+	steps := func(es []Event) []step {
+		out := make([]step, len(es))
+		for i, e := range es {
+			out[i] = step{e.PreviousWidth, e.Width, e.Reason}
+		}
+		return out
+	}
+	for _, c := range []struct {
+		name   string
+		signal float64
+		want   []step
+	}{
+		{"under the band", 10, []step{{2, 3, "cpu_below_zone"}, {3, 4, "cpu_below_zone"}, {4, 4, "cpu_below_zone_at_ceiling"}}},
+		{"over the band at the floor", 95, []step{{2, 2, "cpu_above_zone_at_floor"}, {2, 2, "cpu_above_zone_at_floor"}, {2, 2, "cpu_above_zone_at_floor"}}},
+		{"in the band", 75, []step{{2, 2, "cpu_in_zone"}, {2, 2, "cpu_in_zone"}, {2, 2, "cpu_in_zone"}}},
+	} {
+		// Depth equals width (multiplier 1); devices for three decisions
+		// and a last wave: 2+3+4+4 under the band, 2+2+2+2 otherwise.
+		devices := 8
+		if c.signal < 65 {
+			devices = 13
+		}
+		got := steps(run(c.signal, 2, 4, devices))
+		if len(got) < 3 {
+			t.Errorf("%s: decisions %+v", c.name, got)
+			continue
+		}
+		for i, w := range c.want {
+			if got[i] != w {
+				t.Errorf("%s: decision %d %+v, want %+v (all %+v)", c.name, i+1, got[i], w, got)
+			}
+		}
+	}
+	// A step up, then over the band: a step down, two cooldown decisions
+	// that keep the width, a step down to the start width with its own two,
+	// and the floor.
+	signals := []float64{10, 95, 95, 95, 95, 95}
+	var n int
+	var seq []Event
+	tasks := make([]Task, 40)
+	for i := range tasks {
+		tasks[i] = Task{Key: "d", Position: i + 1}
+	}
+	LocalDispatcher{Signal: SignalFunc(func() float64 {
+		v := signals[min(n, len(signals)-1)]
+		n++
+		return v
+	})}.Execute(context.Background(), Plan{Mode: "wave", Tasks: tasks, WaveStartWidth: 4, WaveMaxWidth: 8, WaveDepthMultiplier: 1, CooldownWaves: 2}, fake{}, EventSinkFunc(func(e Event) {
+		if e.Kind == "wave_decision" {
+			seq = append(seq, e)
+		}
+	}))
+	want := []step{{4, 6, "cpu_below_zone"}, {6, 5, "cpu_above_zone"}, {5, 5, "cooldown"}, {5, 5, "cooldown"}, {5, 4, "cpu_above_zone"}, {4, 4, "cooldown"}, {4, 4, "cooldown"}, {4, 4, "cpu_above_zone_at_floor"}}
+	if got := steps(seq); len(got) < len(want) {
+		t.Fatalf("decisions %+v", got)
+	} else {
+		for i, w := range want {
+			if got[i] != w {
+				t.Errorf("down and cooldown: decision %d %+v, want %+v (all %+v)", i+1, got[i], w, got)
+			}
+		}
+	}
+}

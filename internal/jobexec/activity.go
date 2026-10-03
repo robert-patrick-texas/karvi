@@ -271,7 +271,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// The scoreboard's schema 2 state: the
 	// targets with their states, the inputs and the commands from the plan,
 	// the metrics and the collection counts from the store at each write.
-	board := newScoreboardState(req, id, jobID, now, producer, store)
+	// The scoreboard's first width is the one the job starts at (one for
+	// serial, the pool, the wave's start), after any narrowing above.
+	board := newScoreboardState(req, id, jobID, now, producer, store, buildPlan(cfg, req.ActivityType, dispatchSettings, nil).StartWidth())
 	initial := board.snapshot()
 	if err := scoreboardWriter.Write(initial); err != nil {
 		return FailedResult("scoreboard_write_failed", err)
@@ -319,7 +321,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	dispatchPlan := buildPlan(cfg, req.ActivityType, dispatchSettings, tasks)
 	eventSink := dispatch.EventSinkFunc(func(e dispatch.Event) {
 		if e.Kind == "wave_decision" {
-			sampler.RecordWave(e.Wave, 0, e.Width, e.Reason)
+			sampler.RecordWave(e.Wave, e.PreviousWidth, e.Width, e.Reason)
 		}
 		board.apply(e, now)
 		if err := scoreboardWriter.Write(board.snapshot()); err != nil {

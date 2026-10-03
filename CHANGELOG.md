@@ -80,6 +80,17 @@
   header and footer and suppressed by `--quiet`; a template that does not
   render refuses the login before a transcript is created. The
   configuration registry moves from 22 to 23.
+- **The dispatch reports say what a job runs.** A dry run's `dispatch:`
+  line printed the parallel width whatever the mode, `width=4` on a
+  4-CPU host for a serial job (one worker) and for a wave job (16 to 32);
+  it now reads `serial width=1`, `parallel width=N`, or `wave
+  start-width=N max-width=N depth-multiplier=N`, as does the exercise's
+  `dispatch_assessment`, and the scoreboard's first snapshot takes the
+  width the job starts at. A wave decision held at the ceiling with the
+  CPU under the band is `cpu_below_zone_at_ceiling`, and one held at the
+  start width over it `cpu_above_zone_at_floor`, where both had read
+  `cpu_in_zone`; `metrics.json`'s `wave_decisions` carry the width before
+  each decision, which had been 0.
 
 ## 0.25.0 - 2026-09-30
 

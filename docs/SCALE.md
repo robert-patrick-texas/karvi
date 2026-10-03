@@ -113,7 +113,11 @@ then, before the next wave:
 
 The start width is also the floor: a wave job never runs narrower than it
 began. Each decision is in `metrics.json` (`wave_decisions`: the wave, the
-signal, the next width, the reason), and every record names its wave,
+signal, the width before and after, and the reason: `cpu_below_zone`,
+`cpu_below_zone_at_ceiling`, `cpu_in_zone`, `cpu_above_zone`,
+`cpu_above_zone_at_floor`, or `cooldown`), a dry run's `dispatch:` line
+names the wave's start, ceiling, and depth multiplier, and every record
+names its wave,
 width, depth, and worker (`dispatch.wave_number`, `wave_width`,
 `wave_depth`, `worker_id`). The right-sizing reads the host's CPU only:
 not the cap's ledger, not other jobs' widths, not the devices' or the
@@ -160,7 +164,7 @@ CPU between 13 % and 20 % throughout, 9 waves in 33 s:
 |---:|---:|---:|---|---:|---:|
 | 1 | 16 | 64 | +0.0 to +3.7 s | 13.3 % | 24 |
 | 2 | 24 | 96 | +3.7 to +7.5 s | 14.7 % | 32 |
-| 3 to 8 | 32 | 128 each | +7.6 to +30.3 s | 15.9 % to 19.5 % | 32 (the ceiling) |
+| 3 to 8 | 32 | 128 each | +7.6 to +30.3 s | 15.9 % to 19.5 % | 32 (`cpu_below_zone_at_ceiling`) |
 | 9 | 32 | 72 | +30.4 to +32.7 s | 19.7 % | — |
 
 Had the CPU risen above 85 % after a wave at 32, the next would have run

@@ -38,9 +38,12 @@ type Event struct {
 	Result *Result
 	Wave   int
 	Width  int
-	Depth  int
-	Reason string
-	Counts Counts
+	// PreviousWidth is a wave decision's width before it: the wave just
+	// ended ran at it, the next runs at Width.
+	PreviousWidth int
+	Depth         int
+	Reason        string
+	Counts        Counts
 }
 type EventSink interface{ OnEvent(Event) }
 type EventSinkFunc func(Event)
@@ -142,11 +145,34 @@ func (p Plan) Effective() Plan {
 	return p
 }
 
+// StartWidth is the number of workers the plan starts with, after that
+// normalization: one for serial, the pool for parallel, the first wave's
+// width for wave.
+func (p Plan) StartWidth() int {
+	normalize(&p)
+	if p.Mode == "wave" {
+		return p.WaveStartWidth
+	}
+	return p.Width
+}
+
+// Describe is the plan's dispatch in one line of key=value words, as a dry
+// run and an exercise report it: serial and parallel by their width, wave
+// by its start, its ceiling, and its depth multiplier, since a wave job
+// never runs at the parallel width.
+func (p Plan) Describe() string {
+	normalize(&p)
+	if p.Mode == "wave" {
+		return fmt.Sprintf("wave start-width=%d max-width=%d depth-multiplier=%d", p.WaveStartWidth, p.WaveMaxWidth, p.WaveDepthMultiplier)
+	}
+	return fmt.Sprintf("%s width=%d", p.Mode, p.Width)
+}
+
 func normalize(p *Plan) {
 	if p.Mode == "" {
 		p.Mode = "serial"
 	}
-	if p.Width < 1 {
+	if p.Width < 1 || p.Mode == "serial" {
 		p.Width = 1
 	}
 	if p.AbsoluteMaxWidth < 1 {
@@ -361,22 +387,20 @@ func (d LocalDispatcher) executeWaves(ctx context.Context, p Plan, x Executor, s
 			}
 		}
 		signal := d.Signal.Current()
-		reason := "cpu_in_zone"
 		old := width
+		var reason string
 		if cooldown > 0 {
 			cooldown--
 			reason = "cooldown"
 		} else {
 			width = ramp.NextWidth(width, signal, ceiling, floor)
-			if width > old {
-				reason = "cpu_below_zone"
-			} else if width < old {
-				reason = "cpu_above_zone"
+			reason = decisionReason(signal, ramp, old, width)
+			if width < old {
 				cooldown = p.CooldownWaves
 			}
 		}
 		st.summary.FinalWidth = width
-		sink.OnEvent(Event{Kind: "wave_decision", Wave: wave, Width: width, Depth: min(width*p.WaveDepthMultiplier, len(p.Tasks)-offset), Reason: reason, Counts: st.snapshot()})
+		sink.OnEvent(Event{Kind: "wave_decision", Wave: wave, Width: width, PreviousWidth: old, Depth: min(width*p.WaveDepthMultiplier, len(p.Tasks)-offset), Reason: reason, Counts: st.snapshot()})
 	}
 	if ctx.Err() != nil && st.summary.HaltReason == "" {
 		st.summary.HaltReason = "cancelled"
@@ -384,6 +408,25 @@ func (d LocalDispatcher) executeWaves(ctx context.Context, p Plan, x Executor, s
 	sink.OnEvent(Event{Kind: "complete", Width: st.summary.FinalWidth, Counts: st.summary.Counts, Reason: firstNonEmpty(st.summary.HaltReason, st.summary.GateReason)})
 	return st.summary
 }
+
+// decisionReason names a wave decision by where the CPU signal stood
+// against the ramp's band and what the width did: a signal outside the
+// band that left the width where it was found it at the ceiling (below the
+// band) or at the floor (above it), not in the band.
+func decisionReason(signal float64, r BoundedRamp, old, width int) string {
+	switch {
+	case signal < r.Threshold-r.Zone && width > old:
+		return "cpu_below_zone"
+	case signal < r.Threshold-r.Zone:
+		return "cpu_below_zone_at_ceiling"
+	case signal > r.Threshold+r.Zone && width < old:
+		return "cpu_above_zone"
+	case signal > r.Threshold+r.Zone:
+		return "cpu_above_zone_at_floor"
+	}
+	return "cpu_in_zone"
+}
+
 func firstNonEmpty(a, b string) string {
 	if a != "" {
 		return a

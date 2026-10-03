@@ -166,6 +166,13 @@ func finalScoreboardStatus(code int, d dispatch.Summary) string {
 	}
 }
 
+// DispatchPlan is the dispatcher's plan for d under cfg, without its
+// tasks: what a job would run with, for a report (a dry run's dispatch
+// line) to describe.
+func DispatchPlan(cfg configload.Snapshot, activityType string, d executionplan.DispatchSettings) dispatch.Plan {
+	return buildPlan(cfg, activityType, d, nil)
+}
+
 func buildPlan(cfg configload.Snapshot, activityType string, d executionplan.DispatchSettings, tasks []dispatch.Task) dispatch.Plan {
 	plan := dispatch.Plan{Mode: d.Mode, Tasks: tasks, Width: d.Width, AbsoluteMaxWidth: cfg.Int("dispatch.absolute-max-width"), WaveStartWidth: d.StartWidth, WaveMaxWidth: d.MaxWidth, WaveDepthMultiplier: cfg.Int("dispatch.wave-depth-multiplier"), CPUThreshold: cfg.Float("dispatch.wave-cpu-threshold-percent"), CPUTargetZone: cfg.Float("dispatch.wave-cpu-target-zone-percent"), StepUpPercent: cfg.Float("dispatch.wave-step-up-percent"), StepDownPercent: cfg.Float("dispatch.wave-step-down-percent"), CooldownWaves: cfg.Int("dispatch.wave-cooldown-waves"), HaltErrorCount: d.HaltErrorCount, HaltErrorPercent: d.HaltErrorPercent, WaveGateErrorCount: d.WaveGateErrorCount, WaveGateErrorPercent: d.WaveGateErrorPercent, WaveDelay: time.Duration(d.WaveGateTimedDelayNS)}
 	if activityType == "run" && cfg.Bool("ssh.halt-run-on-host-key-mismatch") {

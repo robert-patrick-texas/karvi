@@ -109,7 +109,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 		findings = append(findings, exerciseFinding("capacity", executionplan.SeverityError, "", err, nil))
 	} else {
 		eff := dp.Effective()
-		findings = append(findings, exerciseFinding("capacity", executionplan.SeverityInfo, "", errorcodes.Errorf("dispatch_assessment", "dispatch %s width %d", eff.Mode, eff.Width), map[string]string{
+		findings = append(findings, exerciseFinding("capacity", executionplan.SeverityInfo, "", errorcodes.Errorf("dispatch_assessment", "dispatch %s", dp.Describe()), map[string]string{
 			"mode": eff.Mode, "width": strconv.Itoa(eff.Width), "wave_start_width": strconv.Itoa(eff.WaveStartWidth), "wave_max_width": strconv.Itoa(eff.WaveMaxWidth), "absolute_max_width": strconv.Itoa(eff.AbsoluteMaxWidth),
 		}))
 	}
