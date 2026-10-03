@@ -2,23 +2,24 @@
 
 karvi is a Go program for network operations against Cisco IOS XE and similar
 devices: interactive login, one-device commands, and governed concurrent runs
-through a per-operator daemon. `docs/DESIGN.md` states the settled decisions
-and why; `docs/OPERATIONS.md` and the guides beside it say how it is used;
-the code and its tests are the reference for what it does.
+through a per-operator daemon. [`docs/DESIGN.md`](docs/DESIGN.md) states the
+settled decisions and why; [`docs/OPERATIONS.md`](docs/OPERATIONS.md) and the
+guides beside it say how it is used; the code and its tests are the reference
+for what it does.
 
 ## Principles a change must keep
 
 Truthful accounting (every device and command ends in exactly one recorded
-state, and the counts partition the total), no silent policy bypass (a value
-the reader cannot honour is refused, never ignored), one mechanism per
-concern, secret-safe diagnostics (no secret in a log, a record, a message,
-or a debug line), deterministic selection, and bounded concurrency.
-`docs/DESIGN.md` section 1 spells each out with its reasons.
+state, and the counts partition the total), no silent policy bypass (a value the
+reader cannot honour is refused, never ignored), one mechanism per concern,
+secret-safe diagnostics (no secret in a log, a record, a message, or a debug
+line), deterministic selection, and bounded concurrency. [`docs/DESIGN.md`
+section 1](docs/DESIGN.md#1-principles) spells each out with its reasons.
 
 Do not add a credential fallback, a transport fallback, an automatic command
 retry, or a compatibility alias without a decision recorded in
-`docs/DESIGN.md`. Do not log a secret to make a test easier. Fixtures use
-conspicuous non-production sentinels.
+[`docs/DESIGN.md`](docs/DESIGN.md). Do not log a secret to make a test easier.
+Fixtures use conspicuous non-production sentinels.
 
 ## Building and testing
 
@@ -44,12 +45,12 @@ end of a body of work.
 ## Writing code
 
 Exported identifiers carry useful Go documentation. Non-obvious invariants,
-security boundaries, record cardinality, and failure precedence carry
-comments that explain why, not only what. New behaviour comes with
-table-driven tests and, where it settles a design question, an entry in
-`docs/DESIGN.md` and a chapter in `docs/EXAMPLES.md` recording the session
-that built it: what it gains, the rule, the executed example, what was not
-taken.
+security boundaries, record cardinality, and failure precedence carry comments
+that explain why, not only what. New behaviour comes with table-driven tests
+and, where it settles a design question, an entry in
+[`docs/DESIGN.md`](docs/DESIGN.md) and a chapter in
+[`docs/EXAMPLES.md`](docs/EXAMPLES.md) recording the session that built it: what
+it gains, the rule, the executed example, what was not taken.
 
 Every distinct error cause has its own registered code in
 `internal/errorcodes`; a test fails the build when a code is emitted but not
@@ -69,4 +70,4 @@ commit `karvi-vX.Y.Z`. A release ships a source bundle, its checksum, and an
 aggregate checksum file, and the release tools refuse a tree that holds
 anything git does not track. Breaking changes are accepted before 1.0: a
 renamed option or removed key is not aliased, and every release restarts the
-daemon. `ROADMAP.md` lists what is open, in order.
+daemon. [`ROADMAP.md`](ROADMAP.md) lists what is open, in order.

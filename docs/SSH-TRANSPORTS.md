@@ -76,9 +76,10 @@ directly, but named slots are preferred because governance can remap them.
 
 A configured executable must be a regular executable file. An explicitly
 configured built-in must be present in this exact binary. Validation fails
-before any network connection with the code for the specific cause — for
-example `transport_mapping_missing`, `transport_system_executable_unavailable`,
-or `native_transport_unavailable`. `docs/ERROR-CODES.md` lists every code.
+before any network connection with the code for the specific cause — for example
+`transport_mapping_missing`, `transport_system_executable_unavailable`, or
+`native_transport_unavailable`. [`docs/ERROR-CODES.md`](ERROR-CODES.md) lists
+every code.
 
 One exception keeps an executable usable when its default native
 implementation has no registered provider (no shipped executable is in that
@@ -123,22 +124,23 @@ document only points there:
 - **Host keys.** The unified policy (`ssh.host-key-policy`) runs in the
   handshake on both transports: OpenSSH's own check on `system`, karvi's
   callback in x/crypto's handshake on `scrapligo-v1`, which runs no
-  `ssh-keyscan` pre-scan and no subprocess. `docs/SSH-HOST-KEY-POLICY.md`.
-- **Algorithms.** Both transports offer karvi's lists under
-  `[ssh-algorithms]`, strongest first, with per-host profiles
-  (`[ssh-algorithms-profile.NAME]`) selected by `[[ssh-algorithms-map]]`
-  rules for devices that need an allowed-only name; each transport offers
-  the names it implements. `configs/reference.toml` holds the lists and
-  their comments; `docs/SSH-HOST-KEY-POLICY.md` the rules.
-- **Timeouts and keepalives.** `docs/TIMEOUTS.md`.
-- **Blind sends and expectations.** A command ending in `\r` sequences or
-  given `--blind-return` is sent and waited for `execution.blind-wait`; an
-  `--expect` declaration answers a prompt the platform's pattern does not
-  match. `docs/TIMEOUTS.md` for the wait; `docs/COMMAND-SESSION.md` for the
-  declarations.
+  `ssh-keyscan` pre-scan and no subprocess.
+  [`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md).
+- **Algorithms.** Both transports offer karvi's lists under `[ssh-algorithms]`,
+  strongest first, with per-host profiles (`[ssh-algorithms-profile.NAME]`)
+  selected by `[[ssh-algorithms-map]]` rules for devices that need an
+  allowed-only name; each transport offers the names it implements.
+  `configs/reference.toml` holds the lists and their comments;
+  [`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md) the rules.
+- **Timeouts and keepalives.** [`docs/TIMEOUTS.md`](TIMEOUTS.md).
+- **Blind sends and expectations.** A command ending in `\r` sequences or given
+  `--blind-return` is sent and waited for `execution.blind-wait`; an `--expect`
+  declaration answers a prompt the platform's pattern does not match.
+  [`docs/TIMEOUTS.md`](TIMEOUTS.md) for the wait;
+  [`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md) for the declarations.
 - **Session-init.** A `[session-init.NAME]` profile, selected for the device
   by `[[session-init-map]]`, runs after paging and before the requested
-  commands (`docs/COMMAND-SESSION.md`).
+  commands ([`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md)).
 - **Platform admission.** The platform definition comes from
   `platform.Lookup`; `scrapligo-v1` admits every built-in
   platform, so `native_platform_not_qualified` is unreachable on it. An
@@ -178,9 +180,9 @@ other import. scrapligo's channel and network driver are not used, and
 Interactive login requires a system-compatible slot because it hands the
 terminal to OpenSSH; another kind is refused as
 `login_transport_not_interactive`. Every built-in platform is admitted on
-`scrapligo-v1`; its engineering evidence is the fake and the parity suite,
-and what stands between the build and production use is the laboratory
-matrix (`docs/CISCO-IOSXE-QUALIFICATION.md`) and the
-open production gates of `ROADMAP.md`. External `exec:` slots use the
-system process contract; a future device-handler protocol will require its
-own versioned interface before general third-party handlers are advertised.
+`scrapligo-v1`; its engineering evidence is the fake and the parity suite, and
+what stands between the build and production use is the laboratory matrix
+([`docs/CISCO-IOSXE-QUALIFICATION.md`](CISCO-IOSXE-QUALIFICATION.md)) and the
+open production gates of [`ROADMAP.md`](../ROADMAP.md). External `exec:` slots
+use the system process contract; a future device-handler protocol will require
+its own versioned interface before general third-party handlers are advertised.

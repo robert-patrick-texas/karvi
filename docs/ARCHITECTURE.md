@@ -54,62 +54,59 @@ Boundary rules: ordinary job requests contain no plaintext credentials; the
 daemon never inherits device secrets from its startup environment; named,
 durable, queue, or network handoffs require authenticated envelope encryption.
 `run --dry-run` stops at client planning plus an observational daemon probe;
-`run --exercise` stops immediately before target network contact. The
-reasoning is `docs/DESIGN.md` (the plan, the daemon, and the credential channel).
+`run --exercise` stops immediately before target network contact. The reasoning
+is [`docs/DESIGN.md`](DESIGN.md) (the plan, the daemon, and the credential
+channel).
 
-**Where a platform is resolved.** A device's
-platform has two values with one boundary between them. The *set* platform
-is what the inventory row, the source's `defaults.platform`, or `--platform`
-gave, normalised (trimmed, lowercase) by the loader, `inventory.Direct`, and
-the `--platform` override (`app.withPlatform`: the first device in `login`
-and `command`, every device of the assembled set in `run`,
-`app.overridePlatform`); a device without one stays blank, and the loader
-never reads the resolution keys. What a device is *matched on* is `planner.SetPlatformFunc` over the
-set platform: blank for a blank field and, under
-`platform-resolution.on-unknown = "warn"`, for an unknown name; the
+**Where a platform is resolved.** A device's platform has two values with one
+boundary between them. The *set* platform is what the inventory row, the
+source's `defaults.platform`, or `--platform` gave, normalised (trimmed,
+lowercase) by the loader, `inventory.Direct`, and the `--platform` override
+(`app.withPlatform`: the first device in `login` and `command`, every device of
+the assembled set in `run`, `app.overridePlatform`); a device without one stays
+blank, and the loader never reads the resolution keys. What a device is *matched
+on* is `planner.SetPlatformFunc` over the set platform: blank for a blank field
+and, under `platform-resolution.on-unknown = "warn"`, for an unknown name; the
 target-set assembly's `--select-platform` selector and the credential planner's
-device view (which the credential-policy and session-init maps read) are
-its two readers, so a not-set or fallen-back device is matched by no
-`--select-platform` selector and no map `platform` rule. The two readers
-stand on either side of the override: the selector matches while the set is
-assembled, on what the inventory gave, and `--platform` acts on the
-assembled set, so the maps, the plan, and every record see the platform
-the device runs as (`--select-platform generic --platform cisco_iosxe`
-runs the inventory's generic rows as IOS XE). The *platform used* is
-produced once, over the whole set, by `planner.ResolvePlatforms`, first in
-the plan draft before the daemon gate, the transport preflight, and the
-address plan: a known set platform as named; an unknown one refused with
-`platform_unknown` under `fail`, every unknown value in one message, or run
-as `platform-resolution.unknown-fallback` under `warn`; a blank one, and a
-direct target without `--platform`, as `platform-resolution.default`
-(`cisco_iosxe` as shipped), `generic` when
-the key is empty. Each resolution carries at
-most one notice (`platform_not_set` for an inventory row, none for a
-direct target; `platform_unknown_fallback`), which the draft puts on the
-plan target's `notices` (present only when nonempty) and prints as a
-grouped warning line through the draft's `Warn` hook on every client path.
-The plan's `device.platform` and effective port carry the platform used to
-the daemon, the executor, the SSH algorithms map, and every record; the
-executor writes the target's notices on the device's first record whatever
-its kind or status, and the dry-run and exercise reports show them as
-warning findings, stage `platform`. The credential resolver's enable rule
-reads the platform used through the device view's `PlatformUsed`, not the
-set platform. `login` resolves at the same point of its own sequence,
-before the definition is fetched, and the `login --record` wrapper for its
-metadata. The executor, `login`, and the exercise refuse a platform their
-configuration does not know (`platform.Lookup`, `platform_unknown`), the
-backstop for a daemon whose configuration lacks the client's alias table.
-Two checks run before the inventory is read: `--platform` in `login`,
-`command`, and `run` must name a known platform
+device view (which the credential-policy and session-init maps read) are its two
+readers, so a not-set or fallen-back device is matched by no `--select-platform`
+selector and no map `platform` rule. The two readers stand on either side of the
+override: the selector matches while the set is assembled, on what the inventory
+gave, and `--platform` acts on the assembled set, so the maps, the plan, and
+every record see the platform the device runs as (`--select-platform generic
+--platform cisco_iosxe` runs the inventory's generic rows as IOS XE). The
+*platform used* is produced once, over the whole set, by
+`planner.ResolvePlatforms`, first in the plan draft before the daemon gate, the
+transport preflight, and the address plan: a known set platform as named; an
+unknown one refused with `platform_unknown` under `fail`, every unknown value in
+one message, or run as `platform-resolution.unknown-fallback` under `warn`; a
+blank one, and a direct target without `--platform`, as
+`platform-resolution.default` (`cisco_iosxe` as shipped), `generic` when the key
+is empty. Each resolution carries at most one notice (`platform_not_set` for an
+inventory row, none for a direct target; `platform_unknown_fallback`), which the
+draft puts on the plan target's `notices` (present only when nonempty) and
+prints as a grouped warning line through the draft's `Warn` hook on every client
+path. The plan's `device.platform` and effective port carry the platform used to
+the daemon, the executor, the SSH algorithms map, and every record; the executor
+writes the target's notices on the device's first record whatever its kind or
+status, and the dry-run and exercise reports show them as warning findings,
+stage `platform`. The credential resolver's enable rule reads the platform used
+through the device view's `PlatformUsed`, not the set platform. `login` resolves
+at the same point of its own sequence, before the definition is fetched, and the
+`login --record` wrapper for its metadata. The executor, `login`, and the
+exercise refuse a platform their configuration does not know (`platform.Lookup`,
+`platform_unknown`), the backstop for a daemon whose configuration lacks the
+client's alias table. Two checks run before the inventory is read: `--platform`
+in `login`, `command`, and `run` must name a known platform
 (`app.CheckPlatformOption`; the shortcuts `--pi`, `--pn`, `--pr`, `--pj`,
 `--pa`, and `--pg` are that option with its value, made so by the parser table's
 `standsFor`, which also makes `--dp`, `--dw`, and `--ds` `--dispatch` with a
-value; `--tl LIST` is each of its names as a `--target` at the list's
-position, `parser.addTarget`), and each `--select-platform` selector must reach one
-(`checkPlatformSelectors`), the
-known set being `platform.KnownNames` over the configured tables; the
-three `platform-resolution` keys and a source's `defaults.platform` are
-validated against the same set at load, whatever `on-unknown` says.
+value; `--tl LIST` is each of its names as a `--target` at the list's position,
+`parser.addTarget`), and each `--select-platform` selector must reach one
+(`checkPlatformSelectors`), the known set being `platform.KnownNames` over the
+configured tables; the three `platform-resolution` keys and a source's
+`defaults.platform` are validated against the same set at load, whatever
+`on-unknown` says.
 
 Stream mode (`karvi stream`, `karvi -`; `internal/cli/stream.go`) is a
 front to `run`: the lines of standard input build a `run` argument list,
@@ -218,8 +215,8 @@ default, named slot, and concrete adapter. The executor sees only a
 IDs; build-tagged providers register adapters. `internal/buildinfo` separately
 reports the exact transport composition of the executable.
 
-Only `internal/adapters/scrapligov1` imports ScrapliGo. The source admission gate
-currently allows canonical `cisco_iosxe`; compilation does not constitute
+Only `internal/adapters/scrapligov1` imports ScrapliGo. The source admission
+gate currently allows canonical `cisco_iosxe`; compilation does not constitute
 platform qualification.
 
 ### One shape of the source
@@ -247,85 +244,76 @@ implementation without a registered provider is
 ## Daemon and storage
 
 The daemon is per effective UID, uses two owner-only Unix sockets in the
-`socket` subtree, and checks peer credentials on both. Protocol schema 9
-carries `prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `daemon.sock`
-beside the lifecycle operations of schemas 3 and 4, and the credential
-package crosses
-`credentials.sock` as one length-prefixed frame per connection under a
-one-use token; `submit_job` is
-gone. The daemon holds at most 128 preparations for ten minutes each,
-retains 1,024 commit receipts for idempotent replay, logs one `slog` line
-per request outcome to `logs/daemon.log` with the token redacted, and runs
-every job under its own configuration and operator. It stops itself after
-`daemon.shutdown-idle-timer` (default one hour; `Server.IdleTimeout`) with
-no active job, no live preparation, and no request but `ping` and
-`status`: the check `stopIfIdle` runs on the minute ticker that sweeps
-preparations, takes `beginStop(if_idle)` under the admission lock as
-`daemon stop` does, and cancels the serve, so the drain and the
-accounting are the ordinary ones and the exit is 0. The idle clock
-(`lastActive`) is restarted by every request that
-is not `ping` or `status` and by a job's end. On the client's side
-`RunViaDaemon` takes an `ensure` step and calls it just before
-`prepare_job`, after planning, and once more with the same plan if that
-request finds the socket gone or the daemon draining (`daemonGone`), so
-the timer has the least room to end a daemon between the probe and the
-request. Every error returned to
-a client carries a registered code (`internal/errorcodes`).
-`commit_job` answers at acceptance and the job runs on its own goroutine;
-the client follows it through `follow_job`. The
-`socket` and `state` subtrees are
+`socket` subtree, and checks peer credentials on both. Protocol schema 9 carries
+`prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `daemon.sock`
+beside the lifecycle operations of schemas 3 and 4, and the credential package
+crosses `credentials.sock` as one length-prefixed frame per connection under a
+one-use token; `submit_job` is gone. The daemon holds at most 128 preparations
+for ten minutes each, retains 1,024 commit receipts for idempotent replay, logs
+one `slog` line per request outcome to `logs/daemon.log` with the token
+redacted, and runs every job under its own configuration and operator. It stops
+itself after `daemon.shutdown-idle-timer` (default one hour;
+`Server.IdleTimeout`) with no active job, no live preparation, and no request
+but `ping` and `status`: the check `stopIfIdle` runs on the minute ticker that
+sweeps preparations, takes `beginStop(if_idle)` under the admission lock as
+`daemon stop` does, and cancels the serve, so the drain and the accounting are
+the ordinary ones and the exit is 0. The idle clock (`lastActive`) is restarted
+by every request that is not `ping` or `status` and by a job's end. On the
+client's side `RunViaDaemon` takes an `ensure` step and calls it just before
+`prepare_job`, after planning, and once more with the same plan if that request
+finds the socket gone or the daemon draining (`daemonGone`), so the timer has
+the least room to end a daemon between the probe and the request. Every error
+returned to a client carries a registered code (`internal/errorcodes`).
+`commit_job` answers at acceptance and the job runs on its own goroutine; the
+client follows it through `follow_job`. The `socket` and `state` subtrees are
 mode 0700; a state root and `logs` are 0750; job and transcript folders take
-`output.directory-mode` (default 0750) and their files are 0640.
-`cancel_job` cancels one accepted job through its own context;
-crash reconstruction is a roadmap capability: a job whose daemon died is `job_orphaned` to `job follow`, as
-is a finished job whose invocation had `output.files.summary-json` false.
+`output.directory-mode` (default 0750) and their files are 0640. `cancel_job`
+cancels one accepted job through its own context; crash reconstruction is a
+roadmap capability: a job whose daemon died is `job_orphaned` to `job follow`,
+as is a finished job whose invocation had `output.files.summary-json` false.
 
-**A command's output is bounded in memory from the device's first byte to
-the record's write.** The device session (`internal/devsession/settle.go`) cleans the
-response as it arrives into settled bytes, the recorded bytes: carriage
-returns dropped per chunk, the echoed first line dropped at its newline,
-the returned prompt and the trailing blanks given up at the end. What
-settles goes to memory up to `output.spool-threshold-bytes` (1 MiB by
-default) and from the byte that would cross it to the command's spool, one
-file `<activity>.<device>.<index>.<pid>.spool` under `spooldir` (never the
-scratch directory: `tempdir`'s chain prefers a tmpfs by design), the
-settled head written first so the file holds the response whole. The
-session holds per command the settled bytes up to the threshold, the
-unsettled tail of at most 4 KiB where a prompt or a declaration is
-matched, the failure-pattern and UTF-8 carries, the running SHA-256, and
-its read chunks; the limit `output.max-command-bytes` counts settled bytes,
-and every ending, a prompt's return or a cut, hands the executor what
-settled and where it is. The record's output has one source
-(`output.Source`): the record's string, or the spool file with its count,
-digest, and encoding. The store streams every file from it (the
-`commands.jsonl` and `errors.jsonl` lines escaped 32 KiB at a time, the
-text block, the collection block), verifying the spool's bytes against the
-reader's digest on the measuring pass before any byte of the line reaches
-a file (`output_spool_mismatch`); the follower's queue carries the line's
-offset and length and is fed from the file; the in-process renderer
-streams every format from the source; the daemon formats nothing; and the
-executor removes the spool once the record is durable and handed on, on
-every return of the command's path. Abandoned spools (a process that died
-mid-command) are swept at the daemon's start and at every admission by the
-name's pid and owner. At admission the volumes behind the job's folder,
-a `crun`'s collection directory, and `spooldir` (and, for a recorded login,
-the transcripts root) are read once each and judged by `freecheck`
-(`auto`, the default: the sum of the places' finished sizes plus the 2 GiB
-floor, the spool's width narrowed to what fits with `spool_width_narrowed`
-on the receipt; `always`: the floor alone; `never`), one `statfs` per
-volume (`internal/output/preflight.go`). The scoreboard's target
+**A command's output is bounded in memory from the device's first byte to the
+record's write.** The device session (`internal/devsession/settle.go`) cleans
+the response as it arrives into settled bytes, the recorded bytes: carriage
+returns dropped per chunk, the echoed first line dropped at its newline, the
+returned prompt and the trailing blanks given up at the end. What settles goes
+to memory up to `output.spool-threshold-bytes` (1 MiB by default) and from the
+byte that would cross it to the command's spool, one file
+`<activity>.<device>.<index>.<pid>.spool` under `spooldir` (never the scratch
+directory: `tempdir`'s chain prefers a tmpfs by design), the settled head
+written first so the file holds the response whole. The session holds per
+command the settled bytes up to the threshold, the unsettled tail of at most 4
+KiB where a prompt or a declaration is matched, the failure-pattern and UTF-8
+carries, the running SHA-256, and its read chunks; the limit
+`output.max-command-bytes` counts settled bytes, and every ending, a prompt's
+return or a cut, hands the executor what settled and where it is. The record's
+output has one source (`output.Source`): the record's string, or the spool file
+with its count, digest, and encoding. The store streams every file from it (the
+`commands.jsonl` and `errors.jsonl` lines escaped 32 KiB at a time, the text
+block, the collection block), verifying the spool's bytes against the reader's
+digest on the measuring pass before any byte of the line reaches a file
+(`output_spool_mismatch`); the follower's queue carries the line's offset and
+length and is fed from the file; the in-process renderer streams every format
+from the source; the daemon formats nothing; and the executor removes the spool
+once the record is durable and handed on, on every return of the command's path.
+Abandoned spools (a process that died mid-command) are swept at the daemon's
+start and at every admission by the name's pid and owner. At admission the
+volumes behind the job's folder, a `crun`'s collection directory, and `spooldir`
+(and, for a recorded login, the transcripts root) are read once each and judged
+by `freecheck` (`auto`, the default: the sum of the places' finished sizes plus
+the 2 GiB floor, the spool's width narrowed to what fits with
+`spool_width_narrowed` on the receipt; `always`: the floor alone; `never`), one
+`statfs` per volume (`internal/output/preflight.go`). The scoreboard's target
 row carries the running byte count and the snapshot is rewritten every
-`watch.refresh` while an activity runs, so the watch screen shows a
-response growing. Measured (`scripts/output-scale-run.sh`): the daemon's
-peak at 128 responses of 5 MiB in flight
-is 287 MiB on the native transport and 130 MiB on the system transport
-(1.39 and 1.43 GiB before the spool), one 65.7 MB response 28 and 23 MiB
-(284 and 302 MiB before), and the responses are on disk under `spooldir`
-while they arrive, at most the bytes in flight. So the daemon's memory for
-output is the width in flight times the threshold plus the windows, a
-figure of two keys; there is no memory key and no memory check. The width
-in flight is `dispatch.server-max-inflight`, by default `min(256, max(32,
-8×CPU))`.
+`watch.refresh` while an activity runs, so the watch screen shows a response
+growing. Measured (`scripts/output-scale-run.sh`): the daemon's peak at 128
+responses of 5 MiB in flight is 287 MiB on the native transport and 130 MiB on
+the system transport (1.39 and 1.43 GiB before the spool), one 65.7 MB response
+28 and 23 MiB (284 and 302 MiB before), and the responses are on disk under
+`spooldir` while they arrive, at most the bytes in flight. So the daemon's
+memory for output is the width in flight times the threshold plus the windows, a
+figure of two keys; there is no memory key and no memory check. The width in
+flight is `dispatch.server-max-inflight`, by default `min(256, max(32, 8×CPU))`.
 
 **Which files a job writes is one value, `output.FileSet`,** one field
 per file, the zero value writing them all. The invocation decides it on
@@ -388,24 +376,23 @@ on what that `Mkdir` made, existing components untouched. A new `Chmod`
 on a path, as opposed to a handle karvi has just created, is a review
 question.
 
-Retention is outside the daemon: `karvi-prune`
-(`cmd/karvi-prune`, `internal/prune`) is one executable behind the
-per-operator timer, the site's root timer, the cron script, and the hand
-run, and it reads no configuration. It walks the `jobs` and `transcripts`
-trees under the operator's basedir and under the site's shared root
-(the `sharedroot` resolution of `osutil.ResolveSharedTree`, the same the
-writers use), never the collection directory, and the scoreboard
-directory; a root run walks the private roots the site provisioned under
-the system roots (`osutil.SiteUserRoots`) in place of its own. It shares
-with the readers the one list of final statuses (`records.FinalStatuses`)
-and the one day-folder matcher (`osutil.IsDayFolder`), so what the watch
-screen calls finished and what the tree calls a day are what the prune
-removes: finished jobs, ended transcripts, and terminal scoreboard files
-older than the retention age (or the oldest of them under free-space
-pressure, judged per filesystem), orphans and stale snapshots by age
-alone, and then the day folders left empty. Ownership decides what a
-run may remove, and a failure is a line, never the end of the run.
-`docs/PRUNE.md` is the guide; `docs/DESIGN.md` the record.
+Retention is outside the daemon: `karvi-prune` (`cmd/karvi-prune`,
+`internal/prune`) is one executable behind the per-operator timer, the site's
+root timer, the cron script, and the hand run, and it reads no configuration. It
+walks the `jobs` and `transcripts` trees under the operator's basedir and under
+the site's shared root (the `sharedroot` resolution of
+`osutil.ResolveSharedTree`, the same the writers use), never the collection
+directory, and the scoreboard directory; a root run walks the private roots the
+site provisioned under the system roots (`osutil.SiteUserRoots`) in place of its
+own. It shares with the readers the one list of final statuses
+(`records.FinalStatuses`) and the one day-folder matcher (`osutil.IsDayFolder`),
+so what the watch screen calls finished and what the tree calls a day are what
+the prune removes: finished jobs, ended transcripts, and terminal scoreboard
+files older than the retention age (or the oldest of them under free-space
+pressure, judged per filesystem), orphans and stale snapshots by age alone, and
+then the day folders left empty. Ownership decides what a run may remove, and a
+failure is a line, never the end of the run. [`docs/PRUNE.md`](PRUNE.md) is the
+guide; [`docs/DESIGN.md`](DESIGN.md) the record.
 
 ## Credential delivery
 
@@ -487,26 +474,24 @@ the file backends, the reader keys to `csv`
 `path` for `csv`, and `validateCredentialCSV` types the reader keys for the
 declared mode. Nothing at validation touches the file.
 
-The credential CSV backend is `internal/credentialbackend/credcsv`
-(the operator's guide is
-`docs/CREDENTIAL-CSV.md`, whose section 11 maps each rule to its package),
-and it owns little: `credfile.Rules.Open` and
-`Classify` for the file, `credfile.Cache[*table]` for the one read,
-`tabular.CSVReader` with `Trim: false` and `ShortRowPolicy: "error"` for the
-parse, `matching.CompileRow` and `FirstRow` for the selectors. `New` builds
-the backend from the validated table. The load checks every row (the
-selectors, a result of some kind, a unique folded `credkey`) and moves the
-secret cells into `secrets.Value` before anything else can see them; a
-reader failure is reported under `credential_csv_malformed` with the
-reader's reason and without its `tabular_*` code, since those codes are
-inventory's (category and exit). `Resolve` builds the device view the
-policy map is matched against, takes the first matching row, and answers
-with a copy of its secrets, so destroying the material after sealing leaves
-the cache whole. Completeness is the resolver's `finalize`, as for every
-backend. No message quotes a cell, which is why `matching.RowError` reasons
-are value-free and the reader's duplicate-header reason is restated.
-Environment indirection for a new backend is
-`internal/credentialbackend/envindirect`; the env, Redis, and Vault
+The credential CSV backend is `internal/credentialbackend/credcsv` (the
+operator's guide is [`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md), whose
+[section 11](CREDENTIAL-CSV.md#11-where-it-lives-in-the-code) maps each rule to
+its package), and it owns little: `credfile.Rules.Open` and `Classify` for the
+file, `credfile.Cache[*table]` for the one read, `tabular.CSVReader` with `Trim:
+false` and `ShortRowPolicy: "error"` for the parse, `matching.CompileRow` and
+`FirstRow` for the selectors. `New` builds the backend from the validated table.
+The load checks every row (the selectors, a result of some kind, a unique folded
+`credkey`) and moves the secret cells into `secrets.Value` before anything else
+can see them; a reader failure is reported under `credential_csv_malformed` with
+the reader's reason and without its `tabular_*` code, since those codes are
+inventory's (category and exit). `Resolve` builds the device view the policy map
+is matched against, takes the first matching row, and answers with a copy of its
+secrets, so destroying the material after sealing leaves the cache whole.
+Completeness is the resolver's `finalize`, as for every backend. No message
+quotes a cell, which is why `matching.RowError` reasons are value-free and the
+reader's duplicate-header reason is restated. Environment indirection for a new
+backend is `internal/credentialbackend/envindirect`; the env, Redis, and Vault
 backends still hold their private copies (a roadmap line).
 
 The inventory's `credkeyref` column is a
@@ -559,13 +544,12 @@ the same function of every `mappings.attributes.NAME`
 attribute is copied into the plan and the records. Neither message prints
 the header's text or a cell.
 
-Match evidence is `credentials.Match`, a comparable struct the planner
-compares whole when it merges grants; it gained `CredKey`
-(`credkey`, omitted when blank), which travels in the plan report, the
-grant, and the package's wire form (`schema/credential-package-envelope.schema.json`,
-an optional property). The command record's `matched_on` is a map the
-executor writes by hand: its five keys are always present, and `credkey`
-is added only when set.
+Match evidence is `credentials.Match`, a comparable struct the planner compares
+whole when it merges grants; it gained `CredKey` (`credkey`, omitted when
+blank), which travels in the plan report, the grant, and the package's wire form
+(`schema/credential-package-envelope.schema.json`, an optional property). The
+command record's `matched_on` is a map the executor writes by hand: its five
+keys are always present, and `credkey` is added only when set.
 
 ## Inspection, exercise, and follow
 
@@ -580,63 +564,57 @@ to stdout in the run's format, and writes nothing under the jobs tree. A
 failure before the draft exists aborts as a live run would, the stage named
 after the code.
 
-A live or exercise run continues: prepare, the frame, and `commit_job`.
-The commit answers with the receipt the moment the job is
-accepted (`jobexec.Run`'s `OnAccepted`, after the manifest is durable and
-the started audit record written), and the job runs on its own goroutine.
-The daemon keeps a bounded job table (`internal/daemon/jobs.go`): the
-receipt, the path of the canonical `commands.jsonl`, the durable edge, the
-outcome when done, and the live subscribers. It holds no record history.
-**Since daemon IPC schema 8 the records themselves travel in the follow
-stream**: `follow_job` validates the
-cursor, a sequence, sends `FollowStart` (the job's folder, the edge, and
-the first sequence the stream carries), subscribes the follower, catches
-it up from the daemon's own file to the edge at subscription by reading
-each line and sending it as a `record` frame, feeds it the live records
-`OnDurable` hands over (the record with the store's notice, after the
-durability barrier), and ends with `stream_terminal` carrying the outcome
-and the summary. A record frame is written in pieces through the one
-record-line writer (`output.WriteRecordJSON` inside `ipc.WriteRecordFrame`),
-never marshalled whole, and its `record` is the `commands.jsonl` line
-without its LF, so a follower's `jsonl` output equals the file. The frame
-is bounded by `daemon.max-ipc-frame-bytes` (`ipc.RecordFrameSize`, exact):
-a record whose frame would pass the bound is sent with its output left out
-and the notice `follow_output_omitted` in its place, `output_bytes` and
-`output_sha256` intact (`omitOutput`, on the live path and the catch-up
-path alike); the text renderer
-prints the notice's message where the output would stand, `jsonl` carries
-the record as sent, and `commands.jsonl` holds the whole line.
-The subscriber's queue holds the records, bounded by 1,024 of them and by
-the 30 second write timeout; a follower dropped for either resumes from
-its last delivered sequence, the daemon reading the records after it from
-the file; a finished job is served the same way. A job that writes no
-`commands.jsonl` (`job.open` keeps no path) has no catch-up: the start's
-`first_sequence` is the edge plus one, the follower that started with the
-job had every record live, and a later or resumed follower prints one
-line naming the records that were before it and are not kept
-(`app.NotKeptLine`). The client
-(`internal/app/follow.go`) opens no file: it checks each frame's
-continuity and renders its record through `jobexec.RunRenderer`.
-`--detach` returns at acceptance with the receipt; `--follow=false`
-follows for the terminal only. `karvi job follow JOB-ID` runs
-the same follow loop from the zero cursor for a job named by its ID, so the
-daemon catches it up from the file and feeds it live; a job the daemon no
-longer holds is read from its directory, located by the unique ID under the
-output root (`internal/app/jobdir.go`, with the checked open of the file),
-and `job_orphaned` names a directory without a summary. `karvi job cancel JOB-ID` sends
-`cancel_job`: each job runs under its own child of the daemon's
-job context, the request cancels that child with a cause carrying the
-reason, time, and requester, every unfinished unit is recorded `cancelled`
-(a command already sent is never recorded succeeded or errored), the
-devices are counted `cancelled`, the summary carries a `cancellation`
-block, the audit trail a `run.cancel_requested` record, and the follow
-stream's terminal delivers the outcome to any following client. The block
+A live or exercise run continues: prepare, the frame, and `commit_job`. The
+commit answers with the receipt the moment the job is accepted (`jobexec.Run`'s
+`OnAccepted`, after the manifest is durable and the started audit record
+written), and the job runs on its own goroutine. The daemon keeps a bounded job
+table (`internal/daemon/jobs.go`): the receipt, the path of the canonical
+`commands.jsonl`, the durable edge, the outcome when done, and the live
+subscribers. It holds no record history. **Since daemon IPC schema 8 the records
+themselves travel in the follow stream**: `follow_job` validates the cursor, a
+sequence, sends `FollowStart` (the job's folder, the edge, and the first
+sequence the stream carries), subscribes the follower, catches it up from the
+daemon's own file to the edge at subscription by reading each line and sending
+it as a `record` frame, feeds it the live records `OnDurable` hands over (the
+record with the store's notice, after the durability barrier), and ends with
+`stream_terminal` carrying the outcome and the summary. A record frame is
+written in pieces through the one record-line writer (`output.WriteRecordJSON`
+inside `ipc.WriteRecordFrame`), never marshalled whole, and its `record` is the
+`commands.jsonl` line without its LF, so a follower's `jsonl` output equals the
+file. The frame is bounded by `daemon.max-ipc-frame-bytes`
+(`ipc.RecordFrameSize`, exact): a record whose frame would pass the bound is
+sent with its output left out and the notice `follow_output_omitted` in its
+place, `output_bytes` and `output_sha256` intact (`omitOutput`, on the live path
+and the catch-up path alike); the text renderer prints the notice's message
+where the output would stand, `jsonl` carries the record as sent, and
+`commands.jsonl` holds the whole line. The subscriber's queue holds the records,
+bounded by 1,024 of them and by the 30 second write timeout; a follower dropped
+for either resumes from its last delivered sequence, the daemon reading the
+records after it from the file; a finished job is served the same way. A job
+that writes no `commands.jsonl` (`job.open` keeps no path) has no catch-up: the
+start's `first_sequence` is the edge plus one, the follower that started with
+the job had every record live, and a later or resumed follower prints one line
+naming the records that were before it and are not kept (`app.NotKeptLine`). The
+client (`internal/app/follow.go`) opens no file: it checks each frame's
+continuity and renders its record through `jobexec.RunRenderer`. `--detach`
+returns at acceptance with the receipt; `--follow=false` follows for the
+terminal only. `karvi job follow JOB-ID` runs the same follow loop from the zero
+cursor for a job named by its ID, so the daemon catches it up from the file and
+feeds it live; a job the daemon no longer holds is read from its directory,
+located by the unique ID under the output root (`internal/app/jobdir.go`, with
+the checked open of the file), and `job_orphaned` names a directory without a
+summary. `karvi job cancel JOB-ID` sends `cancel_job`: each job runs under its
+own child of the daemon's job context, the request cancels that child with a
+cause carrying the reason, time, and requester, every unfinished unit is
+recorded `cancelled` (a command already sent is never recorded succeeded or
+errored), the devices are counted `cancelled`, the summary carries a
+`cancellation` block, the audit trail a `run.cancel_requested` record, and the
+follow stream's terminal delivers the outcome to any following client. The block
 records an accepted request, not its effect: the exercise branch reads its
-context once, for the block, and never observes it, so an exercise never
-ends `cancelled`, and a live job whose work had finished keeps its result.
-Clients therefore print the cancelled line from
-`records.Summary.CancelledBy`, which answers the block only under the final
-status `cancelled`.
+context once, for the block, and never observes it, so an exercise never ends
+`cancelled`, and a live job whose work had finished keeps its result. Clients
+therefore print the cancelled line from `records.Summary.CancelledBy`, which
+answers the block only under the final status `cancelled`.
 
 In exercise mode `jobexec.Run` branches after acceptance
 (`internal/jobexec/exercise.go`) and builds no executor: per target it
@@ -676,13 +654,12 @@ method switches are executor policy from the executor's own configuration.
 enabled job with no method as `icmp_capability_unavailable`. In
 `executor.Execute` the gate runs after the credential grant's safe projection
 and before the capacity lease: two replies proceed, one proceeds with the
-`icmp_packet_loss` notice on the device's first record, none emits the
-failure set with `icmp_unreachable` on command 1 and the rest not attempted,
-before the open request and its password callbacks exist. Every record of a
-gated device carries the same `ping` object and `ping_ns`; the summary
-carries the block; the `ping` stage feeds the metrics histogram. `login`
-runs the same gate after credential resolution and before the open. The two
-rehearsals detect the capability without probing and report it as
-`intended_ping.capability` and `method`. Text output prints one line per
-gated device from the `display.ping.header` template, with details and the notice under
-`--debug`.
+`icmp_packet_loss` notice on the device's first record, none emits the failure
+set with `icmp_unreachable` on command 1 and the rest not attempted, before the
+open request and its password callbacks exist. Every record of a gated device
+carries the same `ping` object and `ping_ns`; the summary carries the block; the
+`ping` stage feeds the metrics histogram. `login` runs the same gate after
+credential resolution and before the open. The two rehearsals detect the
+capability without probing and report it as `intended_ping.capability` and
+`method`. Text output prints one line per gated device from the
+`display.ping.header` template, with details and the notice under `--debug`.

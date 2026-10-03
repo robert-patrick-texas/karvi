@@ -32,20 +32,21 @@ karvi command router1 -- show running-config | include --echo
 ## History: one shell, since v0.7.0
 
 The v0.6 command path prepared an OpenSSH ControlMaster and requested a new
-session channel per command. Cisco IOS XE accepts the authentication and
-refuses the extra channel (`Master refused session request: Permission
-denied`), which the text classifier then read as an authentication
-failure. Since v0.7.0 the command path opens one fresh interactive shell
-per device and sends every command through it; that diagnostic, should it
-appear, is `ssh_session_channel_refused` in the `connection` category,
-never `authentication_failed`. `docs/TRANSPORT-DRIVER-ARCHITECTURE.md`
+session channel per command. Cisco IOS XE accepts the authentication and refuses
+the extra channel (`Master refused session request: Permission denied`), which
+the text classifier then read as an authentication failure. Since v0.7.0 the
+command path opens one fresh interactive shell per device and sends every
+command through it; that diagnostic, should it appear, is
+`ssh_session_channel_refused` in the `connection` category, never
+`authentication_failed`.
+[`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](TRANSPORT-DRIVER-ARCHITECTURE.md)
 states the ControlMaster rule.
 
 ## Lifecycle
 
 The session (`internal/devsession`) is the same on both SSH transports;
 only the connection beneath it differs. Each bound is one configuration
-key, listed with its relations in `docs/TIMEOUTS.md`.
+key, listed with its relations in [`docs/TIMEOUTS.md`](TIMEOUTS.md).
 
 ```text
 resolve target/address/credential/transport/platform definition
@@ -95,11 +96,12 @@ command, both from the platform definition:
    `not_attempted_prior_command_failure`. A shell that starts at the level
    or above it is left where it is; nothing ever steps down. A platform
    without levels (`generic`, `linux`) has no privilege step.
-2. **Paging.** The definition's `paging-commands` in order (the platform's
-   start statements: `generic` has none until a `[platform.generic]`
-   table gives it some, `docs/OPERATIONS.md` "Start statements for
-   generic devices"), each read to the prompt; a rejected one is `paging_disable_failed` and the device's
-   first record is `device_error`.
+2. **Paging.** The definition's `paging-commands` in order (the platform's start
+   statements: `generic` has none until a `[platform.generic]` table gives it
+   some, [`docs/OPERATIONS.md`](OPERATIONS.md) ["Start statements for generic
+   devices"](OPERATIONS.md#start-statements-for-generic-devices)), each read to
+   the prompt; a rejected one is `paging_disable_failed` and the device's first
+   record is `device_error`.
 3. **Session-init.** A `[session-init.NAME]` profile (`commands`,
    `on-error` = `fail-device` or `continue`, `command-timeout`), selected
    for the device by `[[session-init-map]]`, runs its commands as the
@@ -123,7 +125,7 @@ written. `--expect PATTERN=RESPONSE` answers a device prompt the platform's
 pattern does not match, as it appears, consumed once in declared order;
 `--blind` declares that the prompt may not return. Every declaration
 attaches to the `--cmd` it follows or to the freeform command. The waits
-are `docs/TIMEOUTS.md`.
+are [`docs/TIMEOUTS.md`](TIMEOUTS.md).
 
 ## Prompt detection
 

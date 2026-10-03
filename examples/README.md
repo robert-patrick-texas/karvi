@@ -30,7 +30,7 @@ karvi --config examples/config.toml config validate
 karvi --config examples/config.toml run --dry-run --tf examples/targets.txt --cf examples/commands.txt
 ```
 
-The dry run plans on the client: it reads the inventory, selects the
-targets, resolves each device's credential row, and stops before any
-network contact, reporting per device which row answered and why
-(`--format json` for the record). `docs/QUICKSTART.md` takes it from there.
+The dry run plans on the client: it reads the inventory, selects the targets,
+resolves each device's credential row, and stops before any network contact,
+reporting per device which row answered and why (`--format json` for the
+record). [`docs/QUICKSTART.md`](../docs/QUICKSTART.md) takes it from there.

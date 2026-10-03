@@ -1,8 +1,9 @@
 # SSH host-key policy
 
-karvi retains one host-key policy and one karvi-owned trust store for
-`login`, `command`, and `run`, independent of whether the implementation is
-system OpenSSH or a configured native adapter. Transport selection is documented in `SSH-TRANSPORTS.md`.
+karvi retains one host-key policy and one karvi-owned trust store for `login`,
+`command`, and `run`, independent of whether the implementation is system
+OpenSSH or a configured native adapter. Transport selection is documented in
+[`SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md).
 
 ## Configuration
 
@@ -100,7 +101,7 @@ device prefers. A store that holds only types the configured list does not
 offer is `host_key_changed` before any connection. Under `insecure`, or for
 an unknown device, the whole configured list is offered. The list is
 `[ssh-algorithms] host-key` in `configs/reference.toml`; both transports
-offer the names they implement (`docs/SSH-TRANSPORTS.md`).
+offer the names they implement ([`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)).
 
 ## Trust-store selection and permissions
 

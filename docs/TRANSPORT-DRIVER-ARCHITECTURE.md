@@ -66,20 +66,20 @@ it hands the terminal to OpenSSH.
 
 ## ScrapliGo v1
 
-The provider file in `internal/transport/native` registers implementation
-ID `scrapligo-v1` at init in every build (the `scrapligo_v1` build tag that
-once made it optional is gone). `internal/adapters/scrapligov1` is karvi's connection: an
-x/crypto SSH connection through scrapligo's transport wrapper, with the
-unified host-key policy as the handshake's callback, karvi's algorithm
+The provider file in `internal/transport/native` registers implementation ID
+`scrapligo-v1` at init in every build (the `scrapligo_v1` build tag that once
+made it optional is gone). `internal/adapters/scrapligov1` is karvi's
+connection: an x/crypto SSH connection through scrapligo's transport wrapper,
+with the unified host-key policy as the handshake's callback, karvi's algorithm
 lists, the connect and handshake timeouts, and the keepalives, exposed as a
-`devsession.Stream`. scrapligo's channel and network driver are not used,
-and no subprocess runs (no `ssh`, `ssh-keyscan`, or askpass). The provider
-in `internal/transport/native` opens the session on that stream, so both
-transports give the same records for the same commands. The provider
-admits every built-in platform: `generic`, `cisco_iosxe`, `cisco_iosxr`,
-`cisco_nxos`, `juniper_junos`, `arista_eos`, and `linux`; an alias table
-resolves to its built-in, so `native_platform_not_qualified` is unreachable
-on `scrapligo-v1`. `docs/SSH-TRANSPORTS.md` holds the build composition and
+`devsession.Stream`. scrapligo's channel and network driver are not used, and no
+subprocess runs (no `ssh`, `ssh-keyscan`, or askpass). The provider in
+`internal/transport/native` opens the session on that stream, so both transports
+give the same records for the same commands. The provider admits every built-in
+platform: `generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
+`juniper_junos`, `arista_eos`, and `linux`; an alias table resolves to its
+built-in, so `native_platform_not_qualified` is unreachable on `scrapligo-v1`.
+[`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md) holds the build composition and
 the import boundary.
 
 ## Build identity

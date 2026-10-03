@@ -1,15 +1,15 @@
 # The credential CSV
 
-A credential CSV is a credential backend of `type = "csv"`: a file of rows,
-each saying which devices it serves and what username, password, and enable
-password they take. This guide covers declaring one, the file's format and
-fields, how a row is chosen, keys and pins (`credkey` in the file,
-`credkeyref` in inventory), secrets in the file and in the environment, a
-formula over a credential CSV, the file's owner and mode rules, what an
-inventory file may not hold, and every error with its remedy. The decisions,
-the reasoning, and the alternatives not taken are `docs/DESIGN.md`;
-`docs/ERROR-CODES.md` holds the codes and `configs/example.toml` a commented
-example. Every message and table below was run on the built binary.
+A credential CSV is a credential backend of `type = "csv"`: a file of rows, each
+saying which devices it serves and what username, password, and enable password
+they take. This guide covers declaring one, the file's format and fields, how a
+row is chosen, keys and pins (`credkey` in the file, `credkeyref` in inventory),
+secrets in the file and in the environment, a formula over a credential CSV, the
+file's owner and mode rules, what an inventory file may not hold, and every
+error with its remedy. The decisions, the reasoning, and the alternatives not
+taken are [`docs/DESIGN.md`](DESIGN.md); [`docs/ERROR-CODES.md`](ERROR-CODES.md)
+holds the codes and `configs/example.toml` a commented example. Every message
+and table below was run on the built binary.
 
 ## 1. A file, end to end
 
@@ -48,21 +48,21 @@ under each target's `credential_binding`:
 | `sw-oob-01` 192.0.2.10 | line 8 | `netops`, the operator | `pattern: device_name=*`, `credkey: site-creds:8` |
 | `sw-nyc-09`, inventory `credkeyref = Break-Glass` | line 4 | `emergency` | `pattern: credkey=break-glass`, `credkey: break-glass` |
 
-Line 3 comes first, so the core pair never reaches the site row. `NYC`
-matches `nyc`: case never matters. `sw-nyc-lab` is in the `lab` group, so
-line 5's `!lab` excludes it and the next row that matches, the /16, answers.
-Line 4 holds a key and nothing else, so it serves only a device pinned to
-it (section 5); `sw-nyc-09` is at site `nyc` and would otherwise have taken
-line 5. Line 8's blank `username` means the operator's own name. Each
-`matched_on` also carries `category: csv_row`, the file's path as `source`,
-and the row's `line`.
+Line 3 comes first, so the core pair never reaches the site row. `NYC` matches
+`nyc`: case never matters. `sw-nyc-lab` is in the `lab` group, so line 5's
+`!lab` excludes it and the next row that matches, the /16, answers. Line 4 holds
+a key and nothing else, so it serves only a device pinned to it ([section
+5](#5-keys-and-pins-credkey-and-credkeyref)); `sw-nyc-09` is at site `nyc` and
+would otherwise have taken line 5. Line 8's blank `username` means the
+operator's own name. Each `matched_on` also carries `category: csv_row`, the
+file's path as `source`, and the row's `line`.
 
 ## 2. Declaring the backend
 
 | Key | Value | Default |
 |---|---|---|
 | `type` | `"csv"` | |
-| `scope` | `"user"` or `"shared"` (section 8) | **none: required** |
+| `scope` | `"user"` or `"shared"` ([section 8](#8-the-files-owner-and-mode)) | **none: required** |
 | `path` | the file; `~/` is allowed under `user` scope, a shared file's path is absolute | **none: required** |
 | `required` | a user file only: `true` makes an absent file an error | `false`; a shared file is always required |
 | `mode` | `"header"` or `"numeric"` (no header row; every mapping is a column number) | `"header"` |
@@ -70,7 +70,7 @@ and the row's `line`.
 | `mappings.<field>` | header mode: a header name or a list of them; numeric mode: a column number from 1 | a field's own name |
 | `mandatory-fields` | the fields that must have a column | `["username"]` |
 | `transform` | the operator-name transform, as for any backend | |
-| `env-indirection.username`, `.password`, `.enable-password` | `true` lets a cell name an environment variable (section 6) | `false` |
+| `env-indirection.username`, `.password`, `.enable-password` | `true` lets a cell name an environment variable ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) | `false` |
 
 Unlike `cloginrc`, `scope` and `path` have no default. A shared file read
 under an assumed user scope would fail its mode check with the advice
@@ -104,9 +104,9 @@ at the first resolution that reaches the backend.
 | `platform` | the device's platform, as the policy maps match it | a selector |
 | `site` | the device's site | a selector |
 | `device_group` | any one of the device's groups | a selector |
-| `credkey` | the inventory row's `credkeyref` (section 5); also the row's label in evidence | a literal |
+| `credkey` | the inventory row's `credkeyref` ([section 5](#5-keys-and-pins-credkey-and-credkeyref)); also the row's label in evidence | a literal |
 | `username` | the login name; blank means the operator's own name, after the backend's `transform` | trimmed |
-| `password` | the login password; may be blank (section 4) | **kept exactly as written** |
+| `password` | the login password; may be blank ([section 4](#4-how-a-row-is-chosen)) | **kept exactly as written** |
 | `enable_password` | the enable password; may be blank | **kept exactly as written** |
 
 **Headers.** In header mode a column is found under its field's own name,
@@ -140,10 +140,10 @@ the moment the row is read.
 
 ## 4. How a row is chosen
 
-1. **Rows are read top to bottom and the first matching row wins.** Nothing
-   else orders them: there is no longest-prefix rule, so a /16 that should
-   win over a /8 goes above it (section 1, lines 6 and 7). The policy maps
-   do prefer the longer prefix; a file read top to bottom does not.
+1. **Rows are read top to bottom and the first matching row wins.** Nothing else
+   orders them: there is no longest-prefix rule, so a /16 that should win over a
+   /8 goes above it ([section 1](#1-a-file-end-to-end), lines 6 and 7). The
+   policy maps do prefer the longer prefix; a file read top to bottom does not.
 2. **A row matches when every filled selector cell agrees.** A blank cell
    says nothing. One cell holds one selector; "or" is another row.
 3. **A selector** is the policy maps' grammar: the whole field, `*`, `?`,
@@ -219,14 +219,14 @@ its reference, and nothing else.
 
 - The row's other filled cells still apply: a key beside `site = nyc`
   serves a pinned device only at that site.
-- The row is judged by section 4's completeness rules, and is never passed
-  over for a later backend.
-- The device's policy is selected as usual and its `backend-sequence` is
-  walked in order, but only backends that can honour a key are asked:
-  today the `csv` type. An `env`, `cloginrc`, Redis, Vault, or formula
-  backend is skipped for a pinned device, a formula over a `csv` source
-  included (section 7). A `csv` backend without the key is passed over and
-  the next is asked.
+- The row is judged by [section 4](#4-how-a-row-is-chosen)'s completeness rules,
+  and is never passed over for a later backend.
+- The device's policy is selected as usual and its `backend-sequence` is walked
+  in order, but only backends that can honour a key are asked: today the `csv`
+  type. An `env`, `cloginrc`, Redis, Vault, or formula backend is skipped for a
+  pinned device, a formula over a `csv` source included ([section
+  7](#7-a-formula-over-a-credential-csv)). A `csv` backend without the key is
+  passed over and the next is asked.
 - A failure of a keyed backend (an unsafe file, a bad row) stops a pinned
   device as it stops any other.
 - If the sequence ends without the key, the device fails with
@@ -243,18 +243,18 @@ honour a key: none); the key is absent, or its row's other selectors exclude the
 device; a pinned device takes no general credential policy=default)
 ```
 
-(Run with `NETUSER` and `NETPASS` set and section 1's catch-all row in the
-file.) The remedies are the message's: correct the reference or the key;
-add the keyed backend to the policy the device selects ("asked: none" says
-the policy has none); or clear the cell to unpin the device. The key is
-quoted because it came from inventory, which holds no secret, and a typing
-mistake shows only when the key does.
+(Run with `NETUSER` and `NETPASS` set and [section 1](#1-a-file-end-to-end)'s
+catch-all row in the file.) The remedies are the message's: correct the
+reference or the key; add the keyed backend to the policy the device selects
+("asked: none" says the policy has none); or clear the cell to unpin the device.
+The key is quoted because it came from inventory, which holds no secret, and a
+typing mistake shows only when the key does.
 
 **A device with no reference ignores the key column.** A row with a key and
-another positive cell serves both kinds: pinned devices by the key, the
-rest by its other cells (section 1, line 5). A row whose only positive cell
-is its key serves pinned devices alone (line 4): otherwise it would be a
-catch-all nobody wrote.
+another positive cell serves both kinds: pinned devices by the key, the rest by
+its other cells ([section 1](#1-a-file-end-to-end), line 5). A row whose only
+positive cell is its key serves pinned devices alone (line 4): otherwise it
+would be a catch-all nobody wrote.
 
 **What a pin leaves no trace in.** The execution plan, the manifest, and
 the command records do not carry `credkeyref`; the key a device took is
@@ -341,8 +341,9 @@ secrets.
 ## 8. The file's owner and mode
 
 The rules are every credential file's, `.cloginrc` included
-(`docs/OPERATIONS.md`, "Credential files"), and run before a byte is
-parsed. karvi opens the file first and checks the file it opened.
+([`docs/OPERATIONS.md`, "Credential files"](OPERATIONS.md#credential-files)),
+and run before a byte is parsed. karvi opens the file first and checks the file
+it opened.
 
 | | `scope = "user"` | `scope = "shared"` |
 |---|---|---|

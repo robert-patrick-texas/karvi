@@ -4,16 +4,16 @@
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.25.0 (2026-09-30) is a minor release on 0.24.0, the same day. Every
-counter is 0.24.0's; the behaviour change is stream mode's: a `--cmd`,
-`--command`, or `--cf` line is a command cleared by `--go` like a bare line,
-`--clear` empties the commands alone, an empty `--go` is skipped with a
-notice, `-` is refused for `--cf`, `--tf`, and `--tfr` in every spelling, a
-read failure ends the stream with `stream_input_read_failed`, and a line
-typed at a terminal is edited with the usual keys and recalled with the up
-arrow (`golang.org/x/term`, vendored). The changes are in `CHANGELOG.md`. It is not a
-production claim and not a real-device qualification: the native transport
-is proven against the fake IOS XE device built from the tree.
+v0.25.0 (2026-09-30) is a minor release on 0.24.0, the same day. Every counter
+is 0.24.0's; the behaviour change is stream mode's: a `--cmd`, `--command`, or
+`--cf` line is a command cleared by `--go` like a bare line, `--clear` empties
+the commands alone, an empty `--go` is skipped with a notice, `-` is refused for
+`--cf`, `--tf`, and `--tfr` in every spelling, a read failure ends the stream
+with `stream_input_read_failed`, and a line typed at a terminal is edited with
+the usual keys and recalled with the up arrow (`golang.org/x/term`, vendored).
+The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It is not a production
+claim and not a real-device qualification: the native transport is proven
+against the fake IOS XE device built from the tree.
 
 ## Build identity
 
@@ -55,7 +55,7 @@ The release source passed, with Go 1.27.1:
   (`evidence/socket-tmpdir-qualification.log`);
 - `gofmt` listing nothing outside `vendor/`;
 - deterministic regeneration of `schema/config-schema.json`,
-  `configs/reference.toml`, and `docs/ERROR-CODES.md`;
+  `configs/reference.toml`, and [`docs/ERROR-CODES.md`](../docs/ERROR-CODES.md);
 - example configuration validation and removed-key rejection;
 - all seventeen executable suites against the native executable, in three
   lanes (`scripts/lib/suites.sh`): the parity suite (`command` and `run`
@@ -76,14 +76,14 @@ The release source passed, with Go 1.27.1:
   shipped bytes (`evidence/release-qualification.log`): the adapter's
   import boundary and host-key assertions, `go mod verify`, the module
   metadata of the executable;
-- no lifecycle replay: the daemon IPC schema has been 10 since v0.20.0 and
-  no release has moved it, so no earlier executable's daemon differs in
-  schema from this client's, and the release tooling skipped the replay
-  and said so; the compatibility example ran before the number was
-  committed: the released v0.24.0 daemon, started from the released
-  executable of the tree's `bin/` before the rebuild, reported `compatible: false` to this client on the version
-  alone, refused its run with `daemon_incompatible` (exit 112) before any
-  job, and was stopped by the client (`evidence/ipc-schema-compat.log`);
+- no lifecycle replay: the daemon IPC schema has been 10 since v0.20.0 and no
+  release has moved it, so no earlier executable's daemon differs in schema from
+  this client's, and the release tooling skipped the replay and said so; the
+  compatibility example ran before the number was committed: the released
+  v0.24.0 daemon, started from the released executable of the tree's `bin/`
+  before the rebuild, reported `compatible: false` to this client on the version
+  alone, refused its run with `daemon_incompatible` (exit 112) before any job,
+  and was stopped by the client (`evidence/ipc-schema-compat.log`);
 - the host's shared places (the shared scoreboard directory, the shared
   directories `/opt/karvi/shared` and `/var/lib/karvi/shared`) as they
   were after the Go tests and the suites, in both verifiers
@@ -131,8 +131,8 @@ is shipped.
 
 ## Remaining boundary
 
-What karvi does not do yet is `ROADMAP.md`, none of which this release
-claims. Cisco IOS XE laboratory qualification on real devices was not
+What karvi does not do yet is [`ROADMAP.md`](../ROADMAP.md), none of which this
+release claims. Cisco IOS XE laboratory qualification on real devices was not
 performed and follows on this executable
-(`docs/DEVICE-QUALIFICATION-RUNBOOK.md`); the man page is the roadmap's
-first item.
+([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](../docs/DEVICE-QUALIFICATION-RUNBOOK.md));
+the man page is the roadmap's first item.

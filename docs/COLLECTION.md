@@ -2,16 +2,15 @@
 
 `karvi crun` collects the output of one or more commands from one or more
 devices and stores, per device, one file named by the device in one flat
-directory, replaced only when that device's collection succeeded. It is
-karvi's replacement for `rancid-run` and for the Oxidized collector: one
-directory of one file per device, ready for `git diff`, a cron, and an
-operator's before-and-after look around a change. The design is
-`docs/DESIGN.md`, the collection run; the operator's short form is
-`docs/OPERATIONS.md` "The collection run". This document is the guide to
-what to collect: the command
-lists RANCID and Oxidized send to each platform, consolidated per karvi
-platform as examples, and how a site sets its own lists per platform and
-per device model.
+directory, replaced only when that device's collection succeeded. It is karvi's
+replacement for `rancid-run` and for the Oxidized collector: one directory of
+one file per device, ready for `git diff`, a cron, and an operator's
+before-and-after look around a change. The design is
+[`docs/DESIGN.md`](DESIGN.md), the collection run; the operator's short form is
+[`docs/OPERATIONS.md` "The collection run"](OPERATIONS.md#the-collection-run).
+This document is the guide to what to collect: the command lists RANCID and
+Oxidized send to each platform, consolidated per karvi platform as examples, and
+how a site sets its own lists per platform and per device model.
 
 ## 1. What a collection is
 
@@ -55,13 +54,15 @@ karvi crun --all --dry-run                         # each device's list, no devi
   record, `summary.json` with the `collection` block naming each device's
   file and outcome, `manifest.json` with the plan. `--nof` collects with no
   job folder.
-- **The drop list** `crun-filters` of the device's platform leaves out
-  of the collection file the output lines that change at every collection
-  without the device having changed (section 6); the record keeps them.
-- **The hook** `crun.after` is an executable the client runs once the
-  collection has ended and its display is printed (section 5): in the
-  collection directory, the replaced files' names on stdin, the job in the
-  environment. A failure is a warning; the run's exit code stands.
+- **The drop list** `crun-filters` of the device's platform leaves out of the
+  collection file the output lines that change at every collection without the
+  device having changed ([section 6](#6-the-volatile-lines-the-drop-list)); the
+  record keeps them.
+- **The hook** `crun.after` is an executable the client runs once the collection
+  has ended and its display is printed ([section
+  5](#5-the-commit-and-the-diff-mail-the-hook)): in the collection directory,
+  the replaced files' names on stdin, the job in the environment. A failure is a
+  warning; the run's exit code stands.
 
 ### 1.1 A run's collection: `--cd` on `run` and `command`
 
@@ -263,10 +264,11 @@ crun-commands = [
 ```
 
 Oxidized adds `show chassis fabric reachability` on an MX960, `show
-virtual-chassis` on EX and QFX, and `show chassis cluster status` on an
-SRX: model lists, which is what section 4's sub-platform tables are for.
-Not carried: RANCID's `show chassis clocks`, `show chassis scb`, `sfm`,
-`ssb`, `feb`, `cfeb` (M and T series hardware).
+virtual-chassis` on EX and QFX, and `show chassis cluster status` on an SRX:
+model lists, which is what [section
+4](#4-a-sites-lists-per-platform-and-per-model-as-sub-platforms)'s sub-platform
+tables are for. Not carried: RANCID's `show chassis clocks`, `show chassis scb`,
+`sfm`, `ssb`, `feb`, `cfeb` (M and T series hardware).
 
 ### 3.5 `arista_eos` (Arista EOS)
 
@@ -287,7 +289,7 @@ crun-commands = [
 
 Oxidized's `| exclude ! Time:` drops the stamp line on the device; on
 karvi the built-in `crun-filters` of `arista_eos` drop it in the file
-(section 6).
+([section 6](#6-the-volatile-lines-the-drop-list)).
 
 ## 4. A site's lists: per platform, and per model as sub-platforms
 
@@ -472,9 +474,9 @@ $ git -C /opt/karvi/shared/crun log --oneline -1
 10738a1 crun 260926-103409-00: 212 replaced, 3 kept, exit 101
 ```
 
-The schedule that runs the collection every night is section 7; the hook
-runs in the tick's process, so git's identity and the mail transport are
-the collecting operator's.
+The schedule that runs the collection every night is [section
+7](#7-the-schedule); the hook runs in the tick's process, so git's identity and
+the mail transport are the collecting operator's.
 
 ## 6. The volatile lines: the drop list
 
@@ -560,21 +562,21 @@ systemctl --user list-timers karvi-crun.timer
 journalctl --user -u karvi-crun.service --since today
 ```
 
-`karvi-crun.timer` fires at 02:15 with up to fifteen minutes of random
-delay, and `Persistent=true` runs a collection the host missed at its next
-start. `karvi-crun.service` is a oneshot over `karvi crun --all
---no-daemon --format jsonl`: systemd never starts it while the previous
-run is still active, and a tick that elapses meanwhile is dropped, not
-queued, so two collections never overlap in one directory. `--no-daemon`
-is deliberate: a oneshot's control group ends with its main process, and
-a daemon the tick launched would be terminated with it; a site whose
-daemon runs under `karvi-daemon.service` may drop the option and submit
-to it instead. The unit's `ReadWritePaths` cover the basedir candidates,
-the shared trees under both system roots, and the scoreboards, each path
-with the dash that ignores an absent one; a collection directory elsewhere
-is added there the same way (`docs/OPERATIONS.md` "Retention" says what
-the sandbox is). The hook runs inside the unit, so a git
-repository over the collection directory is written there too.
+`karvi-crun.timer` fires at 02:15 with up to fifteen minutes of random delay,
+and `Persistent=true` runs a collection the host missed at its next start.
+`karvi-crun.service` is a oneshot over `karvi crun --all --no-daemon --format
+jsonl`: systemd never starts it while the previous run is still active, and a
+tick that elapses meanwhile is dropped, not queued, so two collections never
+overlap in one directory. `--no-daemon` is deliberate: a oneshot's control group
+ends with its main process, and a daemon the tick launched would be terminated
+with it; a site whose daemon runs under `karvi-daemon.service` may drop the
+option and submit to it instead. The unit's `ReadWritePaths` cover the basedir
+candidates, the shared trees under both system roots, and the scoreboards, each
+path with the dash that ignores an absent one; a collection directory elsewhere
+is added there the same way ([`docs/OPERATIONS.md`
+"Retention"](OPERATIONS.md#retention) says what the sandbox is). The hook runs
+inside the unit, so a git repository over the collection directory is written
+there too.
 
 **The cron**, where a site schedules with cron:
 
@@ -605,12 +607,13 @@ above.
 
 ## 8. Related documents
 
-- `docs/DESIGN.md`, the collection run: the design questions, the hook,
-  the drop list, and the schedule, with the reasons.
-- `docs/OPERATIONS.md` "The collection run" and "The shared trees".
-- `karvi-crun(1)` (`man karvi crun`), COLLECTION: the terminal's
-  restatement of section 1, the hook's input, and the drop list; a change
-  to one changes both.
+- [`docs/DESIGN.md`](DESIGN.md), the collection run: the design questions, the
+  hook, the drop list, and the schedule, with the reasons.
+- [`docs/OPERATIONS.md` "The collection run"](OPERATIONS.md#the-collection-run)
+  and ["The shared trees"](OPERATIONS.md#the-shared-trees).
+- `karvi-crun(1)` (`man karvi crun`), COLLECTION: the terminal's restatement of
+  [section 1](#1-what-a-collection-is), the hook's input, and the drop list; a
+  change to one changes both.
 - `configs/example.toml`: the `[platform.NAME]` tables' shape.
 - `packaging/systemd/user/karvi-crun.service` and `karvi-crun.timer`,
   `packaging/cron/karvi-crun`: the schedule's two forms.

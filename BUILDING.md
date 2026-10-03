@@ -1,6 +1,7 @@
 # Building karvi
 
-See `BUILD-HOWTO.md` for Ubuntu host preparation, offline builds, installation, and rollback.
+See [`BUILD-HOWTO.md`](BUILD-HOWTO.md) for Ubuntu host preparation, offline
+builds, installation, and rollback.
 
 ## The release build
 
@@ -34,5 +35,6 @@ and `BUILD_TIME` (a development identity if they are unset) and rewrites
 `CHECKSUMS.sha256`; pass the release's values to keep the shipped bytes.
 
 A compiled adapter is not device qualification. Complete the Cisco IOS XE
-qualification plan (`docs/CISCO-IOSXE-QUALIFICATION.md`) before relying on
-the native transport in production.
+qualification plan
+([`docs/CISCO-IOSXE-QUALIFICATION.md`](docs/CISCO-IOSXE-QUALIFICATION.md))
+before relying on the native transport in production.

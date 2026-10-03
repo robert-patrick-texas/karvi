@@ -266,9 +266,9 @@ func RenderMarkdown() string {
 	b.WriteString("dispatch). Inside `run`, per-device failures are recorded and the job exits 101\n")
 	b.WriteString("unless a halt or wave gate applies. Configuration loading exits 2 for every\n")
 	b.WriteString("cause (3 for `config_lock_violation`), whatever the code's own exit, because the\n")
-	b.WriteString("configuration stage has one exit contract. `—` means the code does not set the exit by\n")
-	b.WriteString("itself. **Unclassified** codes are fallbacks used only when no specific cause is\n")
-	b.WriteString("known.\n\n")
+	b.WriteString("configuration stage has one exit contract. `—` means the code does not set the\n")
+	b.WriteString("exit by itself. **Unclassified** codes are fallbacks used only when no specific\n")
+	b.WriteString("cause is known.\n\n")
 
 	b.WriteString("## Exit statuses\n\n")
 	b.WriteString("Every status karvi exits with, from `internal/exitcode`; the name is the one\n")

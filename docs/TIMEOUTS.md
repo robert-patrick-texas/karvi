@@ -1,11 +1,11 @@
 # Timeouts and keepalives
 
-What bounds a device session in karvi, which configuration key sets each
-bound, how the values relate, what each expiry records, and where each lives
-in the code, the blind wait among them. The decisions are `docs/DESIGN.md`;
-`docs/ERROR-CODES.md` holds the codes, `configs/reference.toml` the keys.
-The `system` transport is OpenSSH's `ssh`; `scrapligo-v1` is karvi's
-own connection.
+What bounds a device session in karvi, which configuration key sets each bound,
+how the values relate, what each expiry records, and where each lives in the
+code, the blind wait among them. The decisions are
+[`docs/DESIGN.md`](DESIGN.md); [`docs/ERROR-CODES.md`](ERROR-CODES.md) holds the
+codes, `configs/reference.toml` the keys. The `system` transport is OpenSSH's
+`ssh`; `scrapligo-v1` is karvi's own connection.
 
 No timer ends an open session on its total age except
 `execution.device-timeout`. The others bound one step each, prove the peer

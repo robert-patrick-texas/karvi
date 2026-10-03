@@ -1,12 +1,12 @@
 # karvi-prune: retention
 
 `karvi-prune` is the retention helper: the one executable behind the
-per-operator timer, the site's root timer, the cron script, and the hand
-run. It removes finished work older than the retention age from the trees
-karvi writes and leaves everything else where it is. This guide says what
-it removes and why, where it looks and in which order, how a site
-schedules it, and how an operator runs it by hand. The design, with the
-decision that keeps retention outside the daemon, is `docs/DESIGN.md`.
+per-operator timer, the site's root timer, the cron script, and the hand run. It
+removes finished work older than the retention age from the trees karvi writes
+and leaves everything else where it is. This guide says what it removes and why,
+where it looks and in which order, how a site schedules it, and how an operator
+runs it by hand. The design, with the decision that keeps retention outside the
+daemon, is [`docs/DESIGN.md`](DESIGN.md).
 
 ## The short form
 
@@ -90,8 +90,9 @@ as a `walk` line. The defaults, with nothing given:
 
 1. The private root, `--basedir auto`, resolved as karvi resolves
    `basedir`, the first that exists:
-   1. `/opt/karvi/users/<username>` (created there when the site has
-      provisioned `/opt/karvi/users`, `docs/OPERATIONS.md` "The shared trees")
+   1. `/opt/karvi/users/<username>` (created there when the site has provisioned
+      `/opt/karvi/users`, [`docs/OPERATIONS.md` "The shared
+      trees"](OPERATIONS.md#the-shared-trees))
    2. `/var/lib/karvi/users/<username>` (the same under that root)
    3. `~/.local/share/karvi` (created when neither exists)
 
@@ -199,25 +200,24 @@ karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH] [--scoreboards P
 | `--verbose` | off | add the `walk` and `kept` lines |
 | `--format` | `text` | the report's form: `text`, or `jsonl` for one JSON document per line with the same fields |
 
-Tab completes the flags, their words, and a path once the site has run
-`sudo karvi setup tab` (`docs/OPERATIONS.md` "Tab completion"); the
-candidates come from the helper's own flag set, so they are these and no
-others.
+Tab completes the flags, their words, and a path once the site has run `sudo
+karvi setup tab` ([`docs/OPERATIONS.md` "Tab
+completion"](OPERATIONS.md#tab-completion)); the candidates come from the
+helper's own flag set, so they are these and no others.
 
 ## The schedules
 
 The release ships three forms over the one executable; a site picks one
 per host, or none and runs the helper by hand.
 
-**Per operator, systemd.** `packaging/systemd/user/karvi-prune.service`
-and `karvi-prune.timer`: install under `~/.config/systemd/user/` and
-`systemctl --user enable --now karvi-prune.timer`. Daily, persistent
-across a missed day, a randomized delay of up to thirty minutes. The
-unit's sandbox may write only under the operator's basedir candidates,
-the two system roots, and the scoreboards (`ReadWritePaths`, each path
-with the dash that ignores an absent one; `docs/OPERATIONS.md`
-"Retention" says what the sandbox is and what a site adds when it moves
-a place).
+**Per operator, systemd.** `packaging/systemd/user/karvi-prune.service` and
+`karvi-prune.timer`: install under `~/.config/systemd/user/` and `systemctl
+--user enable --now karvi-prune.timer`. Daily, persistent across a missed day, a
+randomized delay of up to thirty minutes. The unit's sandbox may write only
+under the operator's basedir candidates, the two system roots, and the
+scoreboards (`ReadWritePaths`, each path with the dash that ignores an absent
+one; [`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention) says what the
+sandbox is and what a site adds when it moves a place).
 
 **The site, systemd.** `packaging/systemd/system/karvi-prune.service`
 and `karvi-prune.timer`: install under `/etc/systemd/system/` and
@@ -247,12 +247,16 @@ operator's path.
   exits (not the schedules), so a change to the helper changes both; its
   SYNOPSIS and OPTIONS are generated from the helper's flag definition
   (`make generate`).
-- `docs/OPERATIONS.md` "Retention": the operator's short form; "Tab
-  completion" for the helper's flags under Tab.
-- `docs/DESIGN.md`: the retention rules and the reasons behind them.
-- `docs/OPERATIONS.md` "The shared trees": the shared root and the modes
-  the ownership rule rests on.
-- `docs/COLLECTION.md` section 7: the collection run's schedule, the
-  same timer pattern; the collection directory is not pruned.
-- `docs/ARCHITECTURE.md` "Daemon and storage": the helper's place beside
-  the daemon.
+- [`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention): the operator's
+  short form; ["Tab completion"](OPERATIONS.md#tab-completion) for the helper's
+  flags under Tab.
+- [`docs/DESIGN.md`](DESIGN.md): the retention rules and the reasons behind
+  them.
+- [`docs/OPERATIONS.md` "The shared trees"](OPERATIONS.md#the-shared-trees): the
+  shared root and the modes the ownership rule rests on.
+- [`docs/COLLECTION.md` section 7](COLLECTION.md#7-the-schedule): the collection
+  run's schedule, the same timer pattern; the collection directory is not
+  pruned.
+- [`docs/ARCHITECTURE.md` "Daemon and
+  storage"](ARCHITECTURE.md#daemon-and-storage): the helper's place beside the
+  daemon.

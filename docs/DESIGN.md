@@ -2,11 +2,12 @@
 
 This document states the settled design decisions of karvi in present tense:
 what the program does, why that was chosen, and what was not taken. It is the
-distillation of the decision records and worked design sessions that built
-the program; those records are kept whole in the operator's private archive
-and are not needed to read this. `docs/ARCHITECTURE.md` describes the
-structure, `docs/OPERATIONS.md` and the guides beside it describe how to
-operate, and the code and its tests are the reference for what karvi does.
+distillation of the decision records and worked design sessions that built the
+program; those records are kept whole in the operator's private archive and are
+not needed to read this. [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) describes the
+structure, [`docs/OPERATIONS.md`](OPERATIONS.md) and the guides beside it
+describe how to operate, and the code and its tests are the reference for what
+karvi does.
 
 Each entry gives the rule, the reason, and the alternatives rejected. Where a
 decision was amended, the entry states the rule as it stands.
@@ -92,9 +93,9 @@ abbreviation stability across releases; one place declares what a value may
 be.
 
 **One error code per parser rule.** Each rule the parser applies has its own
-code, all exiting as usage errors before any connection; ambiguity messages
-name every candidate. *Why:* the unique-error-code rule of the whole program
-(see §15). *Not taken:* a single `cli_usage` code.
+code, all exiting as usage errors before any connection; ambiguity messages name
+every candidate. *Why:* the unique-error-code rule of the whole program (see
+[§15](#15-configuration-and-errors)). *Not taken:* a single `cli_usage` code.
 
 **Shortcuts stand for an option with its value.** `--pi`, `--pn`, `--pr`,
 `--pj`, `--pa`, `--pg` stand for `--platform` with a built-in platform name;
@@ -454,10 +455,11 @@ ended. *Not taken:* asking again after an empty answer; a generic code for
 the three ways a prompt ends (each is its own cause); Ctrl-D as an
 interrupt (it is the input's end, as everywhere else).
 
-**The credential CSV has its own guide.** `docs/CREDENTIAL-CSV.md` is the text
-an operator works from with the file open; the shared file rules stay in
-OPERATIONS with a table saying where in the guide to look. *Why:* two texts
-stating the same rules would have to be kept equal.
+**The credential CSV has its own guide.**
+[`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md) is the text an operator works from
+with the file open; the shared file rules stay in OPERATIONS with a table saying
+where in the guide to look. *Why:* two texts stating the same rules would have
+to be kept equal.
 
 ## 5. Transports and the device session
 
@@ -498,17 +500,17 @@ loading patterns from scrapligo's assets at run time.
 `[session-init.NAME]` profiles (commands, `on-error` of `fail-device` or
 `continue`, an optional command timeout) are selected per target by the
 `session-init-map` at the step that binds the target's credential; the plan
-carries the selected profiles and each target's choice, the daemon validates
-and never evaluates the map. Profile commands run through the same `Execute`
-as requested commands and write `session_init` records in the same file with
-their own index; under `continue` a profile failure does not fail the device
-and puts a notice on the first requested record; under `fail-device`, or after
-a session-ending failure, the requested commands are `not_attempted_session_init_failure`.
-*Why:* a daemon keeps the configuration it started with, so an edited profile
-or a client's `--set` would not be what runs, and the plan would not show what
-was sent; the administrator who writes `continue` declared the profile
-optional. *Not taken:* the name alone in the plan with the daemon looking the
-commands up.
+carries the selected profiles and each target's choice, the daemon validates and
+never evaluates the map. Profile commands run through the same `Execute` as
+requested commands and write `session_init` records in the same file with their
+own index; under `continue` a profile failure does not fail the device and puts
+a notice on the first requested record; under `fail-device`, or after a
+session-ending failure, the requested commands are
+`not_attempted_session_init_failure`. *Why:* a daemon keeps the configuration it
+started with, so an edited profile or a client's `--set` would not be what runs,
+and the plan would not show what was sent; the administrator who writes
+`continue` declared the profile optional. *Not taken:* the name alone in the
+plan with the daemon looking the commands up.
 
 **A session-ending failure ends the device's commands under every setting.** A
 timeout, a lost stream, or output over the limit before the prompt makes the
@@ -710,16 +712,16 @@ still checked on both sockets. *Why:* consuming before verification closes
 replay; the token gates the frame but is not itself a secret worth refusing
 serialization.
 
-**The frame is refused early with its rule named; commit validates in full.** The
-frame handler checks peer UID, decodes, finds the preparation, consumes the
+**The frame is refused early with its rule named; commit validates in full.**
+The frame handler checks peer UID, decodes, finds the preparation, consumes the
 token, unprotects, then runs every package rule that does not need the final
 plan; a parity test asserts the same vectors are refused at both stages except
 the two that need the plan. `commit_job` verifies the plan digest, the package
 reference, and the whole package before running the job; the package lives in
 daemon memory only from the frame to the job's end. A repeated commit under the
 same key and digest replays the receipt; a different digest is a conflict.
-*Why:* the daemon verifies rather than trusts; a package the commit would
-refuse is refused at the frame.
+*Why:* the daemon verifies rather than trusts; a package the commit would refuse
+is refused at the frame.
 
 **Two jobs of one operator against one device are isolated by structure.**
 Target IDs are deterministic, so concurrent jobs share one; isolation comes
@@ -984,12 +986,12 @@ count and digest) that the `commands.jsonl` line, the `errors.jsonl` line, the
 text block, the collection block, and the counting pass stream through, escaping
 32 KiB at a time; the measuring pass hashes a spool as it reads and refuses the
 record with `output_spool_mismatch` before any byte of the line is committed.
-The executor removes the spool once, after the append and the display's hand-over,
-on every ending. Every ending before the prompt returns (timeouts, a lost
-session, a cancel, a forced stop, the limit) records the settled bytes with its
-status. *Why:* five readers of a string became five callers of one method;
-verifying on the measuring pass is free; a `show tech-support` a timeout cut
-is what the operator wants to see. *Not taken:* a record type that carries the
+The executor removes the spool once, after the append and the display's
+hand-over, on every ending. Every ending before the prompt returns (timeouts, a
+lost session, a cancel, a forced stop, the limit) records the settled bytes with
+its status. *Why:* five readers of a string became five callers of one method;
+verifying on the measuring pass is free; a `show tech-support` a timeout cut is
+what the operator wants to see. *Not taken:* a record type that carries the
 file; recording nothing at a cut.
 
 **The spool lives under `spooldir`, never the scratch directory, named for its
@@ -1003,18 +1005,18 @@ without opening a file; a signature keyed by nothing proves nothing about a
 same-uid file in a 0700 directory. *Not taken:* the job's own folder (no folder
 under `--nof`); metadata inside the file; a sweep by age.
 
-**One free-space check of every volume the activity writes, before any
-device.** The output root, a collection directory, `spooldir`, and a
-transcripts root are grouped by volume and each volume read once. `freecheck`
-is `auto` (the sum of what the places will hold plus `output.min-free-bytes-after-job`,
-2 GiB, once; a volume short only by the spool's term narrows the job's width
-with the warning `spool_width_narrowed`), `always` (the floor alone), or
-`never`. A refusal names every path on the short volume. The audit file,
-scoreboard, and state root take no check. *Why:* a full disk on the collection
-or transcripts volume was found by the write, after the devices had run;
-narrowing keeps the common job running on a small `/tmp`; the small writers'
-first write lands before any device. *Not taken:* a key per place; refusing
-whenever the worst case does not fit; `fallocate` per command.
+**One free-space check of every volume the activity writes, before any device.**
+The output root, a collection directory, `spooldir`, and a transcripts root are
+grouped by volume and each volume read once. `freecheck` is `auto` (the sum of
+what the places will hold plus `output.min-free-bytes-after-job`, 2 GiB, once; a
+volume short only by the spool's term narrows the job's width with the warning
+`spool_width_narrowed`), `always` (the floor alone), or `never`. A refusal names
+every path on the short volume. The audit file, scoreboard, and state root take
+no check. *Why:* a full disk on the collection or transcripts volume was found
+by the write, after the devices had run; narrowing keeps the common job running
+on a small `/tmp`; the small writers' first write lands before any device. *Not
+taken:* a key per place; refusing whenever the worst case does not fit;
+`fallocate` per command.
 
 **The daemon formats nothing; the in-process renderer streams.** Under the
 daemon the renderer keeps the counts the summary needs and returns before the
@@ -1247,17 +1249,17 @@ the classifier.
 
 **`run`'s Dispatch options each have an entry.** `--dispatch`, `--workers`,
 `--start-width`, `--max-width`, the two halts, the two wave gates, and
-`--wave-delay` each have an entry at the column saying what the option does,
-its key, and what 0 means (the widths at 0 from the host's CPUs, the halts and
-gates off, the delay none). The percent halt is stated as built: against the
-devices ended so far, checked as each ends, so a first device's failure halts
-at any N. What a duration's units are, the auto widths' formulas with their
-values by CPU count, and how the ceiling compares with the host's cap
+`--wave-delay` each have an entry at the column saying what the option does, its
+key, and what 0 means (the widths at 0 from the host's CPUs, the halts and gates
+off, the delay none). The percent halt is stated as built: against the devices
+ended so far, checked as each ends, so a first device's failure halts at any N.
+What a duration's units are, the auto widths' formulas with their values by CPU
+count, and how the ceiling compares with the host's cap
 `dispatch.server-max-inflight` are placed with the man pages' hand-written
 sections. *Why:* the block listed eight options with no word of what they do,
-their keys' registry entries give ranges alone, and SCALE.md, which explains
-them, is not installed. *Not taken:* the compact lines with a pointer to
-SCALE.md; changing the percent rule in a help change.
+their keys' registry entries give ranges alone, and [SCALE.md](SCALE.md), which
+explains them, is not installed. *Not taken:* the compact lines with a pointer
+to [SCALE.md](SCALE.md); changing the percent rule in a help change.
 
 **`NO_COLOR` turns colour off under `auto`, on every path.** `display.color`
 is `auto` (the default), `always`, or `never`; under `auto`, colour is on at a
@@ -1407,14 +1409,14 @@ line per item, daily.
 
 ## 15. Configuration and errors
 
-**The registry is the source; everything else is generated.** Every fixed key
-is a row of the configuration registry with its kind, default, lock
-eligibility, environment name, documentation, and range; `configs/reference.toml`,
+**The registry is the source; everything else is generated.** Every fixed key is
+a row of the configuration registry with its kind, default, lock eligibility,
+environment name, documentation, and range; `configs/reference.toml`,
 `schema/config-schema.json`, and the key table are generated from it and
 compared byte for byte by the verifiers. Layers apply in order: files, the
 `KARVI__` environment, flags, `--set`. Locks may be declared only by the
-auto-discovered global configuration. *Why:* the registry is the operator's
-view of what karvi reads, and a row nothing reads misleads.
+auto-discovered global configuration. *Why:* the registry is the operator's view
+of what karvi reads, and a row nothing reads misleads.
 
 **The reference configuration is rendered table by table, and it loads.**
 `configs/reference.toml` and `karvi config generate` give the top-level keys
@@ -1441,10 +1443,10 @@ beside the loop.
 
 **An option that stands for a key is that key's override.** Every command-line
 option that stands for one configuration key is applied as an override of the
-key in the lock-aware layer (`ConfigFlags`), so the key's type, range,
-cross-key checks, and lock apply to it as to `--set`: `--order`, `--blind-wait`,
-`--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--ping` and `--noping`, `--4`
-and `--6`, `--of` and `--nof`, and `--cd` as before, and `run`'s Dispatch
+key in the lock-aware layer (`ConfigFlags`), so the key's type, range, cross-key
+checks, and lock apply to it as to `--set`: `--order`, `--blind-wait`,
+`--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--ping` and `--noping`,
+`--4` and `--6`, `--of` and `--nof`, and `--cd` as before, and `run`'s Dispatch
 options with them: `--dispatch` and `--dp`, `--dw`, `--ds` (`dispatch.default`),
 `--workers` (`dispatch.parallel-workers`), `--start-width` and `--max-width`
 (`dispatch.wave-start-width`, `dispatch.wave-max-width`), the two halts and the
@@ -1455,31 +1457,31 @@ and the planner reads the keys alone; the plan's dispatch block is unchanged.
 The command line's own dispatch checks, `dispatch_value_negative` and
 `dispatch_percent_out_of_range`, are retired to `config_value_out_of_range`.
 `--address-authority` is not one: it names a device's authority, above the
-inventory row, and `name.default-address-authority` is the default beneath
-both. *Why:* the Dispatch options went to the planner beside the configuration,
-so a site's lock on any of the nine lock-eligible keys was passed by the
-option (`--max-width 64` planned under a lock of 8; `--wave-delay 5m` under a
-lock of `0s`), and values the keys refuse were clamped without a word or
-reached the plan's validation. *Not taken:* the command line checking each
-range itself (a second copy of the registry's ranges, the locks still passed);
-clamping with a notice; `--dispatch` outside the rule.
+inventory row, and `name.default-address-authority` is the default beneath both.
+*Why:* the Dispatch options went to the planner beside the configuration, so a
+site's lock on any of the nine lock-eligible keys was passed by the option
+(`--max-width 64` planned under a lock of 8; `--wave-delay 5m` under a lock of
+`0s`), and values the keys refuse were clamped without a word or reached the
+plan's validation. *Not taken:* the command line checking each range itself (a
+second copy of the registry's ranges, the locks still passed); clamping with a
+notice; `--dispatch` outside the rule.
 
 **A value an option sets is sourced to that option.** The flag layer carries
 each value with the option that set it, so a message and `config show` name the
 option by its long name where they named `command-line`: `… for
 execution.blind-wait at --blind-wait`, `source: --ipv4`; `--fs` implying
-`--cd=.` is `--fs`, `--dp`, `--dw`, and `--ds` are `--dispatch` (the parser hands
-the option stood for), and `--continue-device-on-error`, which writes
+`--cd=.` is `--fs`, `--dp`, `--dw`, and `--ds` are `--dispatch` (the parser
+hands the option stood for), and `--continue-device-on-error`, which writes
 `execution.halt-device-on-command-error`, names itself. An error is reported
 against the key whose value failed: an unknown zone is `timezone`'s, at its
 source (`--timezone`, a file's line, the environment), where the timestamp
 formatter's check had reported it against `display.timestamp`. *Why:* one
 source, `command-line`, stood for 21 options, so a lock's refusal of
 `--continue-device-on-error` named a key the operator never typed and nothing
-they did; `--set` and the files already named themselves. *Not taken:* a
-second map of option names beside the values; each message in the option's
-own words (the range and the lock are the key's); both sides of a cross-key
-check; `--dp` naming itself.
+they did; `--set` and the files already named themselves. *Not taken:* a second
+map of option names beside the values; each message in the option's own words
+(the range and the lock are the key's); both sides of a cross-key check; `--dp`
+naming itself.
 
 **A removed key is refused from every layer.** One table of removed keys, one
 code (`config_key_removed`), the message naming the key, the release, and the
@@ -1491,12 +1493,12 @@ tolerated. *Why:* ignoring a removed key would drop a site's intent silently.
 enforced.** Two causes never share a code, a code is never reused, a retired
 code stays with a named successor, and a fallback code is registered as
 unclassified. `internal/errorcodes` holds every code with kind, status,
-category, exit, and cause; `docs/ERROR-CODES.md` is generated from it; a test
-parses every Go file and fails when a code is emitted but not registered or
-registered but not emitted; another fails on a new uncoded error. Process exits
-come from the registry. *Why:* the catalogue and the source had drifted, and
-nothing prevented two causes sharing a code; a table generated from one
-registry cannot drift from behaviour. *Not taken:* a hand-maintained table.
+category, exit, and cause; [`docs/ERROR-CODES.md`](ERROR-CODES.md) is generated
+from it; a test parses every Go file and fails when a code is emitted but not
+registered or registered but not emitted; another fails on a new uncoded error.
+Process exits come from the registry. *Why:* the catalogue and the source had
+drifted, and nothing prevented two causes sharing a code; a table generated from
+one registry cannot drift from behaviour. *Not taken:* a hand-maintained table.
 
 **Schema counters are independent and never reused.** Each serialized
 contract (configuration, command record, scoreboard, audit, job, daemon IPC,
@@ -1577,13 +1579,13 @@ SYNOPSIS, DESCRIPTION (what goes and never goes, no configuration read, the
 ownership rule, a failure as a line), OPTIONS, WHAT GOES (the six kinds and the
 pressure floor), WHERE IT LOOKS (as an operator and as root), OUTPUT (the event
 words, the kept reasons, the summary, jsonl), EXIT STATUS, FILES, EXAMPLES, and
-SEE ALSO; `docs/PRUNE.md` keeps the same facts with the reasons and the
-schedules, and says the page restates the rules, the report, and the exits, so
-a change to the helper changes both. No test holds the page to the helper's
+SEE ALSO; [`docs/PRUNE.md`](PRUNE.md) keeps the same facts with the reasons and
+the schedules, and says the page restates the rules, the report, and the exits,
+so a change to the helper changes both. No test holds the page to the helper's
 words, which are literals with no list. *Why:* an installed host has the page
 and not the guide; GitHub renders the guide and not the page. *Not taken:* the
-page pointing to the guide for the rules; the guide pointing to the page; a
-list of the helper's words for a test.
+page pointing to the guide for the rules; the guide pointing to the page; a list
+of the helper's words for a test.
 
 **A man page names no version and no date.** The header is `.TH KARVI-PRUNE 8 ""
 "karvi"` (and `.TH KARVI 1 "" "karvi"`, `.TH KARVI-ASKPASS 1 "" "karvi"` after
@@ -1631,46 +1633,46 @@ six pages, the prose rules lost); generating the whole page; a hand-written
 DESCRIPTION with OPTIONS generated on the pages with entries alone.
 
 **The generator reaches the help through one accessor and one renderer.**
-`internal/cli` exports `HelpPages()`, the parser table's help texts in its
-order as `{Word, Text}`: the top help first (Word empty), then each visible
-top-level word with its `help()` (a subcommand shares its word's text), the
-constants staying unexported, so the table is the page set. `internal/helplayout`
-renders a help text to roff (`Roff`: the SYNOPSIS and DESCRIPTION bodies) with
-the classifier its terminal layout uses, and holds the one roff escape (`\` as
-`\e`, `-` as `\-`, a leading `.` or `'` behind `\&`), which the prune regions use
-too. `tools/mangen` works from a page table, each page with its path, its marker
+`internal/cli` exports `HelpPages()`, the parser table's help texts in its order
+as `{Word, Text}`: the top help first (Word empty), then each visible top-level
+word with its `help()` (a subcommand shares its word's text), the constants
+staying unexported, so the table is the page set. `internal/helplayout` renders
+a help text to roff (`Roff`: the SYNOPSIS and DESCRIPTION bodies) with the
+classifier its terminal layout uses, and holds the one roff escape (`\` as `\e`,
+`-` as `\-`, a leading `.` or `'` behind `\&`), which the prune regions use too.
+`tools/mangen` works from a page table, each page with its path, its marker
 source, and its regions: `karvi-prune.8` from `internal/prune` as before, and
 `karvi.1` and `karvi-WORD.1` from `HelpPages()` with the markers `.\" BEGIN
 GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there` and
-`DESCRIPTION`; a word without its page file is refused, naming the file;
-`-dir DIR` writes every generated page into DIR for `make generated-clean` and
-the bundle verifier to compare, and without it the pages are rewritten in
-place. `karvi-askpass.1` is outside the table. *Why:* the help texts and the
-classifier are unexported, and a new word becomes a new page with no list to
-keep by hand. *Not taken:* exporting the twelve constants (a list in the
-generator kept by hand); the generator as a test inside `internal/cli` (a test
-that changes the tree); reading a built executable's `--help` (a build first,
-and the terminal layout and the configuration's colour between the text and the
-page); prune's page rebuilt from its help text (a page already agreed).
+`DESCRIPTION`; a word without its page file is refused, naming the file; `-dir
+DIR` writes every generated page into DIR for `make generated-clean` and the
+bundle verifier to compare, and without it the pages are rewritten in place.
+`karvi-askpass.1` is outside the table. *Why:* the help texts and the classifier
+are unexported, and a new word becomes a new page with no list to keep by hand.
+*Not taken:* exporting the twelve constants (a list in the generator kept by
+hand); the generator as a test inside `internal/cli` (a test that changes the
+tree); reading a built executable's `--help` (a build first, and the terminal
+layout and the configuration's colour between the text and the page); prune's
+page rebuilt from its help text (a page already agreed).
 
 **`karvi.1` states what the words share; a word's page adds only what its help
 does not state.** `karvi.1` writes by hand, around its generated regions, an
 opening paragraph and CONFIGURATION (the global files `/etc/karvi/config.toml`
 then `/opt/karvi/config.toml`, the only place locks are declared; `--config`,
 `KARVI__SECTION__KEY`, and `--set`; `config show --explain`), VALUES (DURATION:
-a number and its unit, `h`, `m`, `s`, `ms`, `us`, `ns`, such as `500ms`, `45s`, or
-`5m`, the parts combinable, `1h30m`, a bare number or `d` refused, each key's
+a number and its unit, `h`, `m`, `s`, `ms`, `us`, `ns`, such as `500ms`, `45s`,
+or `5m`, the parts combinable, `1h30m`, a bare number or `d` refused, each key's
 range applying; N: a whole number whose 0 each option defines), ENVIRONMENT,
 FILES, EXIT STATUS, and SEE ALSO. The top help gains one sentence: an option
 that names a configuration key sets it through the lock-aware layer, and a lock
 refuses it; the key-backed entries name their key in parentheses. Each word's
-page has NAME, its two generated regions, the hand sections whose facts its
-help does not state, and SEE ALSO naming `karvi(1)`, to which it refers for the
-exit statuses; it restates the facts of its guide's section, and that section
-says so, as `docs/PRUNE.md` does. `karvi-run.1` has a DISPATCH section: the
-modes, the auto start width `min(64, max(16, 4*CPUs))` and ceiling
-`min(256, max(32, 8*CPUs))` with their values on 4, 8, and 32 logical CPUs
-(16 to 32, 32 to 64, 64 to 256), the ceiling's formula being the host's cap
+page has NAME, its two generated regions, the hand sections whose facts its help
+does not state, and SEE ALSO naming `karvi(1)`, to which it refers for the exit
+statuses; it restates the facts of its guide's section, and that section says
+so, as [`docs/PRUNE.md`](PRUNE.md) does. `karvi-run.1` has a DISPATCH section:
+the modes, the auto start width `min(64, max(16, 4*CPUs))` and ceiling `min(256,
+max(32, 8*CPUs))` with their values on 4, 8, and 32 logical CPUs (16 to 32, 32
+to 64, 64 to 256), the ceiling's formula being the host's cap
 `dispatch.server-max-inflight` at 0 (one wave job at its ceiling can fill the
 cap alone; workers past it wait for a lease), the halts as built and the gates,
 and the delay; `karvi-crun.1` refers to it. The per-word sections, drafted
@@ -1693,33 +1695,56 @@ holds the statuses as one ordered list of code, name, and a one-line meaning;
 number, the name the records and the audit carry, the meaning), with the choice
 of exit written by hand above it: configuration loading exits 2, or 3 for a
 lock, whatever the cause; a `run` exits 101 when any device failed or did not
-start, even every device; another word takes its first failure's status (107
-to 110); and when more than one applies, 111, then 106, 113, 114, 102, 103,
+start, even every device; another word takes its first failure's status (107 to
+110); and when more than one applies, 111, then 106, 113, 114, 102, 103,
 104, 105. `tools/errorcodegen` writes the same list as the "Exit statuses"
-section of `docs/ERROR-CODES.md`, before the code tables. *Why:* the 24
-statuses had names and no meaning anywhere, while the error registry said which
-code sets which exit, so an operator holding an exit had no page to read it
-in. *Not taken:* the meanings written by hand in the page; the precedence
-generated (it is `determineExit`'s code, and the paragraph is checked by
-execution); renaming `ExitPartialFailure` for a run in which every device
+section of [`docs/ERROR-CODES.md`](ERROR-CODES.md), before the code tables.
+*Why:* the 24 statuses had names and no meaning anywhere, while the error
+registry said which code sets which exit, so an operator holding an exit had no
+page to read it in. *Not taken:* the meanings written by hand in the page; the
+precedence generated (it is `determineExit`'s code, and the paragraph is checked
+by execution); renaming `ExitPartialFailure` for a run in which every device
 failed (the names are in the records; the meaning says one or more).
 
 **A helper without flags has a page written by hand alone.**
-`packaging/man/karvi-askpass.1` (`.TH KARVI-ASKPASS 1 "" "karvi"`, `.nh`, `AD l`)
-states what the helper is, that `ssh` runs it and an operator does not, how
+`packaging/man/karvi-askpass.1` (`.TH KARVI-ASKPASS 1 "" "karvi"`, `.nh`, `AD
+l`) states what the helper is, that `ssh` runs it and an operator does not, how
 karvi finds it, its environment, its security, its exits, and its socket; no
 region is generated, and `tools/mangen` does not read it. The groff lint covers
 every page in `packaging/man/`, and the debian rules install it to
 `/usr/share/man/man1/`. The executable is unchanged: started without its
-environment it prints nothing and exits 2, as OpenSSH needs of a helper.
-*Why:* an administrator who meets the executable learns from the page what it
-is. *Not taken:* a `--help` on the helper.
+environment it prints nothing and exits 2, as OpenSSH needs of a helper. *Why:*
+an administrator who meets the executable learns from the page what it is. *Not
+taken:* a `--help` on the helper.
+
+**The documentation cross-references by relative links.** The documentation is
+every Markdown file the tree tracks outside `vendor/` (the root's, `docs/`,
+`examples/README.md`, and `release/`). A document named in another's prose is
+a relative link, its code span the link's text
+(`` [`docs/OPERATIONS.md`](OPERATIONS.md) `` from `docs/`); a name with a
+section (a quoted heading, "section N", "§N") links to that heading, the
+qualifier inside the link; a numbered section or chapter of a document links
+to its heading. The anchor is the heading's id as GitHub derives it. Left as
+text: names in fenced code, a document naming itself without a section, a
+manual page's section, and what the tree does not hold (the archived
+specification and records). *Why:* a reader follows a reference where it is
+made, on GitHub and in the HTML alike, and one form serves both. *Not taken:*
+links added by the converter alone (GitHub's reader would not have them);
+every key and error code linked to its entry (a wider pass, not made).
+
+**The documents' prose wraps at 80 columns.** A paragraph or list item is
+wrapped to 80, its list indentation kept, a link's target never broken, and no
+line begun with a word Markdown would read as a block's opening. Code, tables,
+HTML, and headings are not wrapped, and a link longer than the line stands on
+its own. ERROR-CODES' prose is wrapped in its generator. *Why:* the documents
+are read in a terminal and an editor as well as rendered, and a rewrap must
+leave the rendering as it was. *Not taken:* a gate on the width.
 
 ## 17. What this document is not
 
-It is not the operator's how (`docs/OPERATIONS.md` and the guides), not the
-structure (`docs/ARCHITECTURE.md`), and not the record of what changed when
-(`CHANGELOG.md`). The requirement identifiers, decision numbers, and worked
-sessions behind these entries are in the operator's private archive; a reader
-who needs a rule's evidence finds it in the code and its tests, which are the
-reference.
+It is not the operator's how ([`docs/OPERATIONS.md`](OPERATIONS.md) and the
+guides), not the structure ([`docs/ARCHITECTURE.md`](ARCHITECTURE.md)), and not
+the record of what changed when ([`CHANGELOG.md`](../CHANGELOG.md)). The
+requirement identifiers, decision numbers, and worked sessions behind these
+entries are in the operator's private archive; a reader who needs a rule's
+evidence finds it in the code and its tests, which are the reference.

@@ -244,17 +244,17 @@ write lands before any device is contacted, they write kilobytes after,
 and the scoreboard directory is a tmpfs by default where a 2 GiB floor
 would refuse a small host.
 
-**Monitoring is the site's.** The check is a guard against writing into
-a full disk at the moment a job starts, not an alert. Watch the volumes
-behind `basedir`, `sharedroot`, `spooldir`, and `watch.directory` with
-the site's monitoring, and let `karvi-prune --minfree` (`docs/PRUNE.md`)
-age the job and transcript trees under a free-space floor of its own.
+**Monitoring is the site's.** The check is a guard against writing into a full
+disk at the moment a job starts, not an alert. Watch the volumes behind
+`basedir`, `sharedroot`, `spooldir`, and `watch.directory` with the site's
+monitoring, and let `karvi-prune --minfree` ([`docs/PRUNE.md`](PRUNE.md)) age
+the job and transcript trees under a free-space floor of its own.
 
 ## The memory budget
 
 The daemon's memory for output is the width in flight times
 `output.spool-threshold-bytes`, plus a few windows of at most 4 KiB per
-command (`docs/ARCHITECTURE.md`): there is no memory key. At
+command ([`docs/ARCHITECTURE.md`](ARCHITECTURE.md)): there is no memory key. At
 the default threshold, 128 commands in flight hold at most 128 MiB of
 response in memory; the measured peak of the whole daemon at 128 responses
 of 5 MiB in flight was 287 MiB on the native transport and 130 MiB on the
@@ -280,9 +280,13 @@ threshold saved.
 
 ## Related
 
-`docs/OPERATIONS.md` ("The job's output files", "The spool directory",
-"The shared trees", "Retention"); `docs/ARCHITECTURE.md` (the output
-path); `docs/DESIGN.md` (the spool and the memory budget, the free-space
-check per volume); `docs/PRUNE.md`. `karvi-run(1)` (`man karvi run`),
-DISPATCH, restates "The width" for the terminal (the modes, the widths at
+[`docs/OPERATIONS.md`](OPERATIONS.md) (["The job's output
+files"](OPERATIONS.md#the-jobs-output-files), ["The spool
+directory"](OPERATIONS.md#the-spool-directory), ["The shared
+trees"](OPERATIONS.md#the-shared-trees),
+["Retention"](OPERATIONS.md#retention));
+[`docs/ARCHITECTURE.md`](ARCHITECTURE.md) (the output path);
+[`docs/DESIGN.md`](DESIGN.md) (the spool and the memory budget, the free-space
+check per volume); [`docs/PRUNE.md`](PRUNE.md). `karvi-run(1)` (`man karvi
+run`), DISPATCH, restates "The width" for the terminal (the modes, the widths at
 0, the cap, the halts, and the gates); a change to one changes both.

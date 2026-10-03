@@ -23,16 +23,17 @@ the limit before forcing, and `--force` stops immediately for an operator who
 intentionally accepts interruption; forced work still receives terminal
 records. Interrupting a `--grace` or `--after` wait leaves the daemon draining.
 
-Error messages begin with a registered code; `docs/ERROR-CODES.md` lists each
-code with its cause and exit status.
+Error messages begin with a registered code;
+[`docs/ERROR-CODES.md`](ERROR-CODES.md) lists each code with its cause and exit
+status.
 
-A daemon left by a v0.10.0 preview before schema 6 (pre4 and earlier)
-answers the same way: `compatible: false`, stop it with its own executable
-or `karvi daemon restart`. The new client uses lifecycle-only compatibility
-to stop the older same-UID daemon and then starts the current executable. Job requests are never downgraded, and a normal
-`karvi run` never kills or silently replaces an incompatible daemon. Operators
-who need a one-shot foreground run before restarting may explicitly use
-`karvi run --no-daemon ...`.
+A daemon left by a v0.10.0 preview before schema 6 (pre4 and earlier) answers
+the same way: `compatible: false`, stop it with its own executable or `karvi
+daemon restart`. The new client uses lifecycle-only compatibility to stop the
+older same-UID daemon and then starts the current executable. Job requests are
+never downgraded, and a normal `karvi run` never kills or silently replaces an
+incompatible daemon. Operators who need a one-shot foreground run before
+restarting may explicitly use `karvi run --no-daemon ...`.
 
 For a planned upgrade, stopping before binary replacement remains valid:
 
@@ -137,15 +138,15 @@ site has locked refuses the option (`config_lock_violation`, exit 3), and
 a value outside the key's range is the key's own error, exit 2
 (`--wave-delay 2h` is `config_value_out_of_range`, `0s..1h`).
 
-Whichever the mode, the host's cap `dispatch.server-max-inflight` bounds
-the sessions in flight across every job and every operator on the host:
-a worker past the cap waits for a lease before it connects, so a wide job
-beside another shares the cap rather than exceeding it. The records name
-each device's mode, wave, width, and worker (`dispatch` in
-`commands.jsonl`), `metrics.json` the wave decisions with the CPU signal
-behind each, and the watch screen the job's devices in flight.
-`docs/SCALE.md` "The width" has the defaults by host, the ramp's rules,
-and 100 devices worked through both modes, executed.
+Whichever the mode, the host's cap `dispatch.server-max-inflight` bounds the
+sessions in flight across every job and every operator on the host: a worker
+past the cap waits for a lease before it connects, so a wide job beside another
+shares the cap rather than exceeding it. The records name each device's mode,
+wave, width, and worker (`dispatch` in `commands.jsonl`), `metrics.json` the
+wave decisions with the CPU signal behind each, and the watch screen the job's
+devices in flight. [`docs/SCALE.md` "The width"](SCALE.md#the-width) has the
+defaults by host, the ramp's rules, and 100 devices worked through both modes,
+executed.
 
 `karvi-run(1)`, DISPATCH, restates the modes, the widths at 0 with their
 values on 4, 8, and 32 logical CPUs, the cap, the halts, and the gates for
@@ -197,16 +198,16 @@ redraws the screen; a terminal narrower than 40 columns or shorter than 8
 lines shows one line saying so until it grows. The colours are the twelve
 `display.colors.*` roles under `display.theme`, dark by default.
 
-For a script, `--format table` prints the same columns once and
-`--format json` every snapshot; the TUI refuses a stdout that is not a
-terminal (`watch_tui_requires_terminal`). `--filter TEXT` and `--sort
-KEY` start the screen with them and apply the same rule to `--format
-table`; `--format json` refuses both (`watch_json_filter_unsupported`),
-since it prints whole snapshots for the script to filter itself. Neither
-has a configuration key: the filter and the sort are the session's. A test or a script that starts
-an activity sets `watch.directory` under its own work directory, as it
-sets `basedir`, so the shared directory holds only real jobs; the files a
-host already holds are yours to remove (`karvi-prune`).
+For a script, `--format table` prints the same columns once and `--format json`
+every snapshot; the TUI refuses a stdout that is not a terminal
+(`watch_tui_requires_terminal`). `--filter TEXT` and `--sort KEY` start the
+screen with them and apply the same rule to `--format table`; `--format json`
+refuses both (`watch_json_filter_unsupported`), since it prints whole snapshots
+for the script to filter itself. Neither has a configuration key: the filter and
+the sort are the session's. A test or a script that starts an activity sets
+`watch.directory` under its own work directory, as it sets `basedir`, so the
+shared directory holds only real jobs; the files a host already holds are yours
+to remove (`karvi-prune`).
 
 `karvi-watch(1)` (`man karvi watch`), FILES, restates the scoreboard
 directory and its fallback for the terminal; a change to one changes both.
@@ -254,16 +255,16 @@ Text output prints one line per gated device before its header:
 ! edge-b [192.0.2.1] ping(1) timeout, ping(2) error, skipped
 ```
 
-The line is the `display.ping.header` template, rendered and coloured as
-the headers are (`<rtt1>`, `<rtt2>`, `<result>`; `docs/DISPLAY-CONFIGURATION.md`);
-an empty template turns the line off and `--quiet` suppresses it;
-`--debug` adds the ICMP error details and the packet-loss notice. Every
-record of a gated device carries a `ping` object (address, method, the two
-outcomes with round-trip times, the decision) and `ping_ns`; the job's
-`summary.json` carries a `ping` block counting gated, proceeded, degraded,
-skipped, and capability-failed devices and the probes sent, replies,
-timeouts, and errors. With the gate disabled every such field is null and
-no ICMP socket or process is created.
+The line is the `display.ping.header` template, rendered and coloured as the
+headers are (`<rtt1>`, `<rtt2>`, `<result>`;
+[`docs/DISPLAY-CONFIGURATION.md`](DISPLAY-CONFIGURATION.md)); an empty template
+turns the line off and `--quiet` suppresses it; `--debug` adds the ICMP error
+details and the packet-loss notice. Every record of a gated device carries a
+`ping` object (address, method, the two outcomes with round-trip times, the
+decision) and `ping_ns`; the job's `summary.json` carries a `ping` block
+counting gated, proceeded, degraded, skipped, and capability-failed devices and
+the probes sent, replies, timeouts, and errors. With the gate disabled every
+such field is null and no ICMP socket or process is created.
 
 ## Daemon environment
 
@@ -383,28 +384,28 @@ code each, the message naming the backend and the path and never a value:
 | `credential_file_shared_group_mismatch` | is a shared file in another group |
 
 karvi opens the file first and checks the file it opened, so the file that
-passed the checks is the file that is read. A file that is present but
-cannot be opened (mode `0000`, say) is reported by its check and is not
-treated as absent. These codes replaced the `cloginrc_*` check codes of
-v0.10.0 and v0.11.0; `docs/ERROR-CODES.md` lists the retired names.
+passed the checks is the file that is read. A file that is present but cannot be
+opened (mode `0000`, say) is reported by its check and is not treated as absent.
+These codes replaced the `cloginrc_*` check codes of v0.10.0 and v0.11.0;
+[`docs/ERROR-CODES.md`](ERROR-CODES.md) lists the retired names.
 
 ### The credential CSV
 
 A `csv` backend is the second file backend: device-keyed rows of username,
 password, and enable password under the file rules above.
-`docs/CREDENTIAL-CSV.md` is its guide and this section only says where to
-look in it:
+[`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md) is its guide and this section only
+says where to look in it:
 
-| Task or symptom | `docs/CREDENTIAL-CSV.md` |
+| Task or symptom | [`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md) |
 |---|---|
-| Declaring the backend; `scope` and `path` have no default; the `config validate` codes | section 2 |
-| The nine fields, headers and mappings, numeric mode, quoting, verbatim secret cells | section 3 |
-| Which row a device takes (top to bottom, first match, no longest prefix); a blank password; `matched_on` for a `csv_row` | section 4 |
-| Pinning a device to a row with the inventory's `credkeyref`; `credkeyref_unresolved`, `inventory_credkeyref_invalid` | section 5 |
-| Cells that name environment variables, and the unset-variable hazard | section 6 |
-| A formula whose password source is a credential CSV; the row's username is dropped | section 7 |
-| `inventory_secret_column`, `config_inventory_source_secret_mapping`: an inventory file holds no secrets, there is no override, and what the check does not find | section 9 |
-| `credential_csv_malformed`, `credential_csv_row_invalid`, `credential_csv_credkey_duplicate`: the messages, which never quote a cell | section 10 |
+| Declaring the backend; `scope` and `path` have no default; the `config validate` codes | [section 2](CREDENTIAL-CSV.md#2-declaring-the-backend) |
+| The nine fields, headers and mappings, numeric mode, quoting, verbatim secret cells | [section 3](CREDENTIAL-CSV.md#3-the-file) |
+| Which row a device takes (top to bottom, first match, no longest prefix); a blank password; `matched_on` for a `csv_row` | [section 4](CREDENTIAL-CSV.md#4-how-a-row-is-chosen) |
+| Pinning a device to a row with the inventory's `credkeyref`; `credkeyref_unresolved`, `inventory_credkeyref_invalid` | [section 5](CREDENTIAL-CSV.md#5-keys-and-pins-credkey-and-credkeyref) |
+| Cells that name environment variables, and the unset-variable hazard | [section 6](CREDENTIAL-CSV.md#6-secrets-in-the-environment-instead-of-the-file) |
+| A formula whose password source is a credential CSV; the row's username is dropped | [section 7](CREDENTIAL-CSV.md#7-a-formula-over-a-credential-csv) |
+| `inventory_secret_column`, `config_inventory_source_secret_mapping`: an inventory file holds no secrets, there is no override, and what the check does not find | [section 9](CREDENTIAL-CSV.md#9-an-inventory-file-holds-no-secrets) |
+| `credential_csv_malformed`, `credential_csv_row_invalid`, `credential_csv_credkey_duplicate`: the messages, which never quote a cell | [section 10](CREDENTIAL-CSV.md#10-what-a-bad-credential-csv-says) |
 
 Two things to know at an upgrade. An inventory file with a column named
 like a secret (`password`, `enable-password`, `api_token`) no longer loads
@@ -554,11 +555,11 @@ rerun for the terminal; a change to one changes both.
 
 ## The spool directory
 
-A command's response is held in memory up to `output.spool-threshold-bytes`
-(1 MiB by default) and continues into a file, the spool, above it: one
-file per command in flight under `spooldir`, removed as soon as the
-command's record is written and handed on (`docs/DESIGN.md`, the output
-spool). The record is the same whether the response spooled or not.
+A command's response is held in memory up to `output.spool-threshold-bytes` (1
+MiB by default) and continues into a file, the spool, above it: one file per
+command in flight under `spooldir`, removed as soon as the command's record is
+written and handed on ([`docs/DESIGN.md`](DESIGN.md), the output spool). The
+record is the same whether the response spooled or not.
 
 **Where.** `spooldir` is `"auto"` by default, which tries `/tmp/karvi-<uid>`
 and then `/var/tmp/karvi-<uid>`, each made 0700 for the effective user;
@@ -571,29 +572,27 @@ reads its own configuration for its jobs: a `--set` of `spooldir` or of
 the threshold on a `run` through the daemon does not reach the job, an
 in-process `cmd` or `run --no-daemon` it does.
 
-**Free space.** `freecheck` decides what free space every volume an
-activity writes must have at admission, before any device is contacted:
-the job's folder, a `crun`'s collection directory, `spooldir`, and a
-recorded login's transcripts root, read once per volume however many of
-them share it. `auto` (the default) asks each volume for the sum of what
-its places will hold when the job has finished (the folder
-`output.expected-bytes-per-device` per device per file it writes, times
-`output.reserve-multiplier`; the collection directory one copy; the spool
-the job's width times `output.max-command-bytes`) plus the floor
-`output.min-free-bytes-after-job` (2 GiB) once; when the spool's share is
-short but at least one command fits, the job runs narrower with the
-warning `spool_width_narrowed` on standard error and on the receipt and
-the follow start under the daemon; otherwise the job is refused with
-`output_preflight_space`, which names the volume's paths and both
-figures. `always` asks each volume for the floor alone. `never` skips the
-free-space check (the directories are still resolved and probed
-writable). The check costs one `stat` per place and one `statfs` per
-volume, a few microseconds; it is a guard against writing into a full
-disk, not an alert: watch the volumes behind `basedir`, `sharedroot`,
+**Free space.** `freecheck` decides what free space every volume an activity
+writes must have at admission, before any device is contacted: the job's folder,
+a `crun`'s collection directory, `spooldir`, and a recorded login's transcripts
+root, read once per volume however many of them share it. `auto` (the default)
+asks each volume for the sum of what its places will hold when the job has
+finished (the folder `output.expected-bytes-per-device` per device per file it
+writes, times `output.reserve-multiplier`; the collection directory one copy;
+the spool the job's width times `output.max-command-bytes`) plus the floor
+`output.min-free-bytes-after-job` (2 GiB) once; when the spool's share is short
+but at least one command fits, the job runs narrower with the warning
+`spool_width_narrowed` on standard error and on the receipt and the follow start
+under the daemon; otherwise the job is refused with `output_preflight_space`,
+which names the volume's paths and both figures. `always` asks each volume for
+the floor alone. `never` skips the free-space check (the directories are still
+resolved and probed writable). The check costs one `stat` per place and one
+`statfs` per volume, a few microseconds; it is a guard against writing into a
+full disk, not an alert: watch the volumes behind `basedir`, `sharedroot`,
 `spooldir`, and `watch.directory` with the site's monitoring, and let
-`karvi-prune --minfree` keep them clear (`docs/SCALE.md`). The daemon's
-memory for output is the width in flight times the threshold, plus a few
-KiB per command; there is no memory key.
+`karvi-prune --minfree` keep them clear ([`docs/SCALE.md`](SCALE.md)). The
+daemon's memory for output is the width in flight times the threshold, plus a
+few KiB per command; there is no memory key.
 
 **What you see.** The watch screen's detail pane shows the bytes settled
 so far beside a running target and the in-flight total on the job's
@@ -693,20 +692,19 @@ operator's state is split across two roots. A root the site provisioned
 by hand for an operator is taken as it is, whatever its mode.
 
 Once a tree exists, every operator's `output.root`, `crun.directory`, and
-`transcript.root` at `auto` default to it in place of the tree under
-`basedir`: `sharedroot` (`auto`) consults `/opt/karvi/shared`, then
-`/var/lib/karvi/shared`, tree by tree, so a site may share the collections
-and not the jobs. Jobs land in `/opt/karvi/shared/jobs/YYMMDD/ID`, the day folder
-with the tree's own mode so any member can add a job folder to it, the
-job folder at `output.directory-mode` and its files 0640 in the group, so
-`karvi job follow ID` reads another operator's job from any member's
-shell. A tree the operator cannot create files in is refused, not passed
-by (`output_directory_not_writable` and its siblings, the message naming
-the group and the setting); `sharedroot = "none"` keeps every tree under
-`basedir`, as every test suite sets it. `basedir` itself is never shared:
-its `socket` and `state` are one operator's daemon. `job cancel` reaches
-only the caller's own daemon, so another operator's job is cancelled by
-its owner.
+`transcript.root` at `auto` default to it in place of the tree under `basedir`:
+`sharedroot` (`auto`) consults `/opt/karvi/shared`, then
+`/var/lib/karvi/shared`, tree by tree, so a site may share the collections and
+not the jobs. Jobs land in `/opt/karvi/shared/jobs/YYMMDD/ID`, the day folder
+with the tree's own mode so any member can add a job folder to it, the job
+folder at `output.directory-mode` and its files 0640 in the group, so `karvi job
+follow ID` reads another operator's job from any member's shell. A tree the
+operator cannot create files in is refused, not passed by
+(`output_directory_not_writable` and its siblings, the message naming the group
+and the setting); `sharedroot = "none"` keeps every tree under `basedir`, as
+every test suite sets it. `basedir` itself is never shared: its `socket` and
+`state` are one operator's daemon. `job cancel` reaches only the caller's own
+daemon, so another operator's job is cancelled by its owner.
 
 Under the packaged systemd user unit the daemon may write only under the
 places its `ReadWritePaths` names: the basedir candidates, the shared
@@ -718,17 +716,16 @@ needs nothing of the unit.
 
 ## Retention
 
-`karvi-prune` removes finished work older than the retention age
-(thirty-one days by default) from the trees karvi writes: finished jobs,
-ended transcripts, and terminal scoreboard files by their end time; job
-folders without a summary and scoreboard files a crashed daemon left at
-`running`, by age alone; then the day folders left empty. It never touches
-a running job, the collection directory, the audit log, or journald, and
-long-term audit retention is the central forwarder's, not the helper's.
-`docs/PRUNE.md` holds the detail: what goes and why, every place looked
-at in sequence, the report's lines, the exits, and the schedules; on an
-installed host, `man karvi-prune` holds the rules, the report, and the
-exits.
+`karvi-prune` removes finished work older than the retention age (thirty-one
+days by default) from the trees karvi writes: finished jobs, ended transcripts,
+and terminal scoreboard files by their end time; job folders without a summary
+and scoreboard files a crashed daemon left at `running`, by age alone; then the
+day folders left empty. It never touches a running job, the collection
+directory, the audit log, or journald, and long-term audit retention is the
+central forwarder's, not the helper's. [`docs/PRUNE.md`](PRUNE.md) holds the
+detail: what goes and why, every place looked at in sequence, the report's
+lines, the exits, and the schedules; on an installed host, `man karvi-prune`
+holds the rules, the report, and the exits.
 
 Any operator cleans their own folders:
 
@@ -820,10 +817,10 @@ changes both.
 
 `karvi crun` collects one or more commands from a scope into one file per
 device, named by the device, in one flat directory: a replacement for
-`rancid-run` and the Oxidized collector; `docs/COLLECTION.md` is the guide
-to what to collect (the
-command lists of both tools per platform, and sub-platform tables per
-device model). The daily invocation is one word and a scope:
+`rancid-run` and the Oxidized collector; [`docs/COLLECTION.md`](COLLECTION.md)
+is the guide to what to collect (the command lists of both tools per platform,
+and sub-platform tables per device model). The daily invocation is one word and
+a scope:
 
 ```bash
 karvi crun --all                       # each device its platform's crun-commands list
@@ -902,53 +899,55 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
 - **`--fs=SUFFIX`** appends a literal suffix to each file's name in the
   collection directory (`--fs=.cfg` writes `NAME.cfg`), never to the
   directory's; on `crun` the directory stays `crun.directory`.
-- **`run` and `command` with `--cd=PATH`** write the same file, beside
-  their usual job folder (`output.NAME.txt` included), for an operator's
-  capture: unfiltered (`crun-filters` are `crun`'s), replaced only when
-  the device succeeds, `--continue-device-on-error` their own (without
-  it a rejected statement keeps the previous file), the display ending
-  with the same collection line, no hook, the watch screen showing `run`
-  or `cmd`; `--fs=SUFFIX` without `--cd` is `--cd=.` as well;
-  `docs/COLLECTION.md` section 1.1. Through the daemon the
-  directory meets the unit's sandbox as a `crun`'s does (above): a home
-  directory is refused, and a path under `/tmp` would land in the
-  daemon's private `/tmp`, so `--no-daemon` or the drop-in serves a
-  capture there; `command` runs in the client process and meets neither.
+- **`run` and `command` with `--cd=PATH`** write the same file, beside their
+  usual job folder (`output.NAME.txt` included), for an operator's capture:
+  unfiltered (`crun-filters` are `crun`'s), replaced only when the device
+  succeeds, `--continue-device-on-error` their own (without it a rejected
+  statement keeps the previous file), the display ending with the same
+  collection line, no hook, the watch screen showing `run` or `cmd`;
+  `--fs=SUFFIX` without `--cd` is `--cd=.` as well; [`docs/COLLECTION.md`
+  section 1.1](COLLECTION.md#11-a-runs-collection---cd-on-run-and-command).
+  Through the daemon the directory meets the unit's sandbox as a `crun`'s does
+  (above): a home directory is refused, and a path under `/tmp` would land in
+  the daemon's private `/tmp`, so `--no-daemon` or the drop-in serves a capture
+  there; `command` runs in the client process and meets neither.
 - **The hook.** `crun.after` names an executable the client runs once the
-  collection has ended and its display is printed, on the in-process
-  path and through the daemon alike, never for `--detach`: in the
-  collection directory, the replaced files' names on stdin one per line,
-  and `KARVI_JOB_ID`, `KARVI_JOB_DIR`, `KARVI_CRUN_DIRECTORY`,
-  `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT`, and `KARVI_EXIT` in its
-  environment; its output follows the display on stderr. A hook that
-  fails, cannot start, or runs past `crun.after-timeout` (`5m`) is the
-  warning `crun_after_failed`, the run's exit code unchanged, and the
-  audit holds a `crun.after` event either way. The shipped examples under
-  `packaging/crun/` commit the replaced files to a git repository over the
-  directory and mail the commit's diff (`docs/COLLECTION.md` section 5).
+  collection has ended and its display is printed, on the in-process path and
+  through the daemon alike, never for `--detach`: in the collection directory,
+  the replaced files' names on stdin one per line, and `KARVI_JOB_ID`,
+  `KARVI_JOB_DIR`, `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACED`,
+  `KARVI_CRUN_KEPT`, and `KARVI_EXIT` in its environment; its output follows the
+  display on stderr. A hook that fails, cannot start, or runs past
+  `crun.after-timeout` (`5m`) is the warning `crun_after_failed`, the run's exit
+  code unchanged, and the audit holds a `crun.after` event either way. The
+  shipped examples under `packaging/crun/` commit the replaced files to a git
+  repository over the directory and mail the commit's diff
+  ([`docs/COLLECTION.md` section
+  5](COLLECTION.md#5-the-commit-and-the-diff-mail-the-hook)).
 - **The drop list.** A platform's `crun-filters` (`[platform.NAME]
-  crun-filters = ['^Building configuration\.\.\.$', ...]`, regular
-  expressions in literal strings) drop the output lines that match from the
-  collection file alone: the record and the job's files keep every line, a
-  `! COMMAND` marker is never matched, and an emptied block keeps its
-  marker. The built-in lists drop the byte count, the NTP clock period, the
-  uptime, the free memory, and the time of the show, never the stamp that
-  says when the configuration last changed; an array replaces the list
-  whole, `[]` turns it off, and an alias inherits its driver's built-in
-  list. The lists travel in the plan, so the daemon path drops the same
-  lines and the manifest shows them; a pattern that does not compile
-  refuses the configuration (`config_platform_crun_filter_invalid`).
-  `docs/COLLECTION.md` section 6 has the lists per platform.
-- **The schedule.** A recurring collection is the site's systemd timer or
-  cron over `karvi crun --all --no-daemon`, not a configuration key or a
+  crun-filters = ['^Building configuration\.\.\.$', ...]`, regular expressions
+  in literal strings) drop the output lines that match from the collection file
+  alone: the record and the job's files keep every line, a `! COMMAND` marker is
+  never matched, and an emptied block keeps its marker. The built-in lists drop
+  the byte count, the NTP clock period, the uptime, the free memory, and the
+  time of the show, never the stamp that says when the configuration last
+  changed; an array replaces the list whole, `[]` turns it off, and an alias
+  inherits its driver's built-in list. The lists travel in the plan, so the
+  daemon path drops the same lines and the manifest shows them; a pattern that
+  does not compile refuses the configuration
+  (`config_platform_crun_filter_invalid`). [`docs/COLLECTION.md` section
+  6](COLLECTION.md#6-the-volatile-lines-the-drop-list) has the lists per
+  platform.
+- **The schedule.** A recurring collection is the site's systemd timer or cron
+  over `karvi crun --all --no-daemon`, not a configuration key or a
   daemon-resident schedule: `packaging/systemd/user/karvi-crun.service` and
-  `karvi-crun.timer` (a oneshot, one instance at a time, a missed tick run
-  at the next start), and `packaging/cron/karvi-crun`, which holds a lock
-  for the run and skips a tick that finds it held (one line, exit 75). Two
-  collections never overlap in one directory that way; karvi itself does
-  not refuse one, so an operator's single-device `crun` during the nightly
-  run is not turned away. Under a timer the daemon is not launched: a
-  oneshot's end would terminate it. `docs/COLLECTION.md` section 7.
+  `karvi-crun.timer` (a oneshot, one instance at a time, a missed tick run at
+  the next start), and `packaging/cron/karvi-crun`, which holds a lock for the
+  run and skips a tick that finds it held (one line, exit 75). Two collections
+  never overlap in one directory that way; karvi itself does not refuse one, so
+  an operator's single-device `crun` during the nightly run is not turned away.
+  Under a timer the daemon is not launched: a oneshot's end would terminate it.
+  [`docs/COLLECTION.md` section 7](COLLECTION.md#7-the-schedule).
 
 `karvi-crun(1)` (`man karvi crun`), COLLECTION, restates the directory,
 the file, the replacement, the lists, the hook, and the shared directory

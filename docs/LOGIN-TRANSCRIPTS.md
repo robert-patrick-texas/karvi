@@ -35,15 +35,15 @@ the same way for itself.
   `.`, `_`, and `-` replaced by `_`. When either name is taken, both are
   bumped together: `router01-143005.1.log` and
   `router01-143005.1.meta.jsonl`, then `.2`.
-- The terminal names the transcript twice, with one line in the display's
-  style: `display.record.header` before the session and
-  `display.record.footer` as the last line, after the device's last
-  output, a session that failed included. Both default to
-  `! transcript=<transcript>`, so the two lines match, colored as the
-  login's header is (`docs/DISPLAY-CONFIGURATION.md` "The recorded login's
-  lines"); `--quiet` suppresses them. A login refused before the recording
-  starts (a free-space floor, a refused option) names none, since none was
-  written.
+- The terminal names the transcript twice, with one line in the display's style:
+  `display.record.header` before the session and `display.record.footer` as the
+  last line, after the device's last output, a session that failed included.
+  Both default to `! transcript=<transcript>`, so the two lines match, colored
+  as the login's header is
+  ([`docs/DISPLAY-CONFIGURATION.md`](DISPLAY-CONFIGURATION.md) ["The recorded
+  login's lines"](DISPLAY-CONFIGURATION.md#the-recorded-logins-lines));
+  `--quiet` suppresses them. A login refused before the recording starts (a
+  free-space floor, a refused option) names none, since none was written.
 
   ```text
   ! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log

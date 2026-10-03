@@ -107,15 +107,15 @@
   that `ssh` runs it for karvi and an operator does not, how karvi finds
   it, its environment, its one-use token and socket, and its exits; the
   groff lint now covers every page.
-- **A manual page for `karvi-prune`.** `packaging/man/karvi-prune.8`,
-  installed by the debian rules as `/usr/share/man/man8/karvi-prune.8`,
-  is the terminal reference: what goes and never goes, the flags, where it
-  looks, the report, the exits, the files, and examples. Its SYNOPSIS and
-  OPTIONS are generated from the helper's flag definition by the new
-  `tools/mangen` under `make generate`; `make generated-clean` and the
-  bundle verifier compare them, and a test lints the page with groff.
-  `make generated-clean` now fails on any stale generated file, where only
-  the last one compared (`docs/ERROR-CODES.md`) could fail it.
+- **A manual page for `karvi-prune`.** `packaging/man/karvi-prune.8`, installed
+  by the debian rules as `/usr/share/man/man8/karvi-prune.8`, is the terminal
+  reference: what goes and never goes, the flags, where it looks, the report,
+  the exits, the files, and examples. Its SYNOPSIS and OPTIONS are generated
+  from the helper's flag definition by the new `tools/mangen` under `make
+  generate`; `make generated-clean` and the bundle verifier compare them, and a
+  test lints the page with groff. `make generated-clean` now fails on any stale
+  generated file, where only the last one compared
+  ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) could fail it.
 - **`karvi-prune -h` reads as karvi's help does.** `-h` and `--help` print
   to standard output in karvi's layout: a title line, `Usage:` with the
   synopsis wrapped at 79 columns, and `Options:` with each flag in the
@@ -190,13 +190,14 @@
   are retired; `--set` still outranks an option, and `--halt-on-error-count
   0` now turns a configured halt off. The top help says so for every
   option that stands for a key.
-- **Every exit status has a written meaning.** `docs/ERROR-CODES.md`
-  opens with an "Exit statuses" table: the 24 statuses, the name the
-  records and the audit carry (`ExitPartialFailure`), and what each means,
+- **Every exit status has a written meaning.**
+  [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md) opens with an ["Exit
+  statuses"](docs/ERROR-CODES.md#exit-statuses) table: the 24 statuses, the name
+  the records and the audit carry (`ExitPartialFailure`), and what each means,
   with the order in which they apply to a job, where the statuses had names
-  alone and only the error codes said which exit they set. The list is
-  defined once in `internal/exitcode`, a test holds every constant to it,
-  and the error registry refuses a code naming an undefined exit.
+  alone and only the error codes said which exit they set. The list is defined
+  once in `internal/exitcode`, a test holds every constant to it, and the error
+  registry refuses a code naming an undefined exit.
 - **Manual pages for `karvi` and each of its words.** `karvi.1` and
   `karvi-login.1`, `karvi-command.1`, `karvi-run.1`, `karvi-crun.1`,
   `karvi-stream.1`, `karvi-daemon.1`, `karvi-job.1`, `karvi-config.1`,
@@ -252,6 +253,11 @@
   `errors_jsonl`. `output.files.failures-jsonl` is refused from a file,
   the environment, and `--set` with `config_key_removed`, naming the new
   key.
+- **The documents link to each other.** A document named in another,
+  with or without a section, is a relative link to it or to the heading,
+  where it was a code span; numbered sections and chapters link to their
+  headings. The documents' prose is wrapped at 80 columns, ERROR-CODES'
+  in its generator.
 
 ## 0.25.0 - 2026-09-30
 
@@ -283,24 +289,23 @@ and the daemon are 0.24.0's. The module graph gains `golang.org/x/term`.
 
 ## 0.24.0 - 2026-09-30
 
-The first release from the public repository, on 0.23.0. No behaviour of
-the executables changed, and every counter is 0.23.0's (daemon IPC 10,
-execution plan 9, scoreboard 3, configuration schema 6, registry 22,
-command record 2, job 2, credential package 1, plan report 1); a running
-0.23.0 daemon is `compatible: false` by its version alone and is
-restarted. The tree was prepared for public release. The cumulative patch
-stream shipped beside each release's bundle since 0.10.0 is retired: a
-release is the source bundle, its checksum, and an aggregate checksum
-file, and the release tools refuse a tree that holds anything git does not
-track. The specification the program was built from is frozen and archived
-with its earlier revisions, the decision records, the worked design
-sessions, and the session hand-offs; `docs/DESIGN.md` states the settled
-decisions and why, and the code and its tests are the reference. Every
-pointer at the archived documents was removed from the tree, the module
-path is `github.com/robert-patrick-texas/karvi`, and the public history
-begins at the root commit of this tree. Three messages that named a
-specification section now say "a valid identifier", and the error
-catalogue's retired codes name the release span that retired them.
+The first release from the public repository, on 0.23.0. No behaviour of the
+executables changed, and every counter is 0.23.0's (daemon IPC 10, execution
+plan 9, scoreboard 3, configuration schema 6, registry 22, command record 2, job
+2, credential package 1, plan report 1); a running 0.23.0 daemon is `compatible:
+false` by its version alone and is restarted. The tree was prepared for public
+release. The cumulative patch stream shipped beside each release's bundle since
+0.10.0 is retired: a release is the source bundle, its checksum, and an
+aggregate checksum file, and the release tools refuse a tree that holds anything
+git does not track. The specification the program was built from is frozen and
+archived with its earlier revisions, the decision records, the worked design
+sessions, and the session hand-offs; [`docs/DESIGN.md`](docs/DESIGN.md) states
+the settled decisions and why, and the code and its tests are the reference.
+Every pointer at the archived documents was removed from the tree, the module
+path is `github.com/robert-patrick-texas/karvi`, and the public history begins
+at the root commit of this tree. Three messages that named a specification
+section now say "a valid identifier", and the error catalogue's retired codes
+name the release span that retired them.
 
 ## 0.23.0 - 2026-09-29
 

@@ -13,22 +13,22 @@ COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z ./scripts/
 ```
 
 `verify-bundle.sh` verifies the executables as they are in `bin/`, without
-rebuilding them: identity and checksums, static Linux binaries, both
-transport IDs in `version` (it refuses an executable without
-`scrapligo-v1`), stateless help/version behavior, script syntax, `gofmt`
-over the Go source outside `vendor/`, the unit tests and vet in vendor mode,
-deterministic generated files, the example configurations, removed-key rejection, and every
-historical smoke suite through `v090-smoke-test.sh`, plus the k03 parser
-suite, the daemon-upgrade smoke suite, the v0100 suite
-`scripts/v0100-smoke-test.sh` (`make v0100-smoke`), the canary suite
-`scripts/canary-smoke-test.sh`, and the parity suite
-`scripts/native-smoke-test.sh`.
+rebuilding them: identity and checksums, static Linux binaries, both transport
+IDs in `version` (it refuses an executable without `scrapligo-v1`), stateless
+help/version behavior, script syntax, `gofmt` over the Go source outside
+`vendor/`, the unit tests and vet in vendor mode, deterministic generated files,
+the example configurations, removed-key rejection, and every historical smoke
+suite through `v090-smoke-test.sh`, plus the k03 parser suite, the
+daemon-upgrade smoke suite, the v0100 suite `scripts/v0100-smoke-test.sh` (`make
+v0100-smoke`), the canary suite `scripts/canary-smoke-test.sh`, and the parity
+suite `scripts/native-smoke-test.sh`.
 
 `verify-release.sh` builds from source: the import boundary and host-key
-assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and
-the race detector in vendor mode, the build, its module metadata and version counters, and the same
-smoke suites. It rebuilds `bin/` and rewrites `CHECKSUMS.sha256`; with the
-release's `COMMIT` and `BUILD_TIME` the bytes do not change.
+assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and the
+race detector in vendor mode, the build, its module metadata and version
+counters, and the same smoke suites. It rebuilds `bin/` and rewrites
+`CHECKSUMS.sha256`; with the release's `COMMIT` and `BUILD_TIME` the bytes do
+not change.
 
 A must-not-appear check in a script MUST be able to stop it: a bare
 `! command` line is exempt from `set -e`. The
@@ -45,16 +45,15 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   and no empty directory (`release-tools/artifacts.sh` refuses otherwise): the
   bundle is packaged from the tree as it stands. This gate replaced the
   cumulative patch's equivalence check when the patch stream was retired.
-- `scripts/daemon-lifecycle-replay.sh` passes against the newest release
-  whose daemon IPC schema differs from the new client's (it refuses a
-  same-schema executable; for v0.12.0, v0.12.1, and v0.13.0 that release was
-  v0.10.0, for v0.14.0, which moved the schema to 8, and v0.14.1 it was
-  v0.13.0, for v0.15.0, which moved the schema to 9, it was v0.14.1, and
-  for v0.16.0 to v0.19.0, which keep 9, it stayed v0.14.1, and for v0.20.0,
-  which moved the schema to 10, and v0.21.0 and v0.21.1, which keep it,
-  it is v0.19.0; for v0.22.0, the karvi line's first release, and
-  v0.23.0 to v0.25.0, which keep 10, there is none, and the replay resumes when a
-  karvi release moves the schema from 10).
+- `scripts/daemon-lifecycle-replay.sh` passes against the newest release whose
+  daemon IPC schema differs from the new client's (it refuses a same-schema
+  executable; for v0.12.0, v0.12.1, and v0.13.0 that release was v0.10.0, for
+  v0.14.0, which moved the schema to 8, and v0.14.1 it was v0.13.0, for v0.15.0,
+  which moved the schema to 9, it was v0.14.1, and for v0.16.0 to v0.19.0, which
+  keep 9, it stayed v0.14.1, and for v0.20.0, which moved the schema to 10, and
+  v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
+  line's first release, and v0.23.0 to v0.25.0, which keep 10, there is none,
+  and the replay resumes when a karvi release moves the schema from 10).
 - The Go tests and the suites MUST leave the host's shared places as they
   were: both verifiers list the shared scoreboard directory and the shared
   trees under `/opt/karvi` and `/var/lib/karvi` before the tests and fail
@@ -82,18 +81,18 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
 
 ## v0.10.0 ICMP-gate expectations
 
-- The canary suite runs twelve rows (thirteen with shutdown accounting): p1 runs `--ping` over `127.0.0.1` and
-  `192.0.2.1` with the real pinger and asserts one new session at the fake
-  device, the TEST-NET record `icmp_unreachable` with decision `skip`, the
-  loopback record `succeeded` with decision `proceed`, the summary block,
-  and the skipped gate within two timeouts plus one second; p2 runs
-  `login --ping` against `192.0.2.1` and asserts exit 110 with no session;
-  p3 asserts `ping_flag_conflict`. The final scan covers 106
-  files.
-- The v0100 suite runs twenty-two rows (twenty-five with shutdown accounting): g1–g7 assert the one-line text
-  result for a proceeding and a skipped device, an empty `display.ping.header`,
-  `--quiet`, the `--debug` gate line, the dry-run's and the exercise's
-  capability lines with the fake device untouched, and the conflict.
+- The canary suite runs twelve rows (thirteen with shutdown accounting): p1 runs
+  `--ping` over `127.0.0.1` and `192.0.2.1` with the real pinger and asserts one
+  new session at the fake device, the TEST-NET record `icmp_unreachable` with
+  decision `skip`, the loopback record `succeeded` with decision `proceed`, the
+  summary block, and the skipped gate within two timeouts plus one second; p2
+  runs `login --ping` against `192.0.2.1` and asserts exit 110 with no session;
+  p3 asserts `ping_flag_conflict`. The final scan covers 106 files.
+- The v0100 suite runs twenty-two rows (twenty-five with shutdown accounting):
+  g1–g7 assert the one-line text result for a proceeding and a skipped device,
+  an empty `display.ping.header`, `--quiet`, the `--debug` gate line, the
+  dry-run's and the exercise's capability lines with the fake device untouched,
+  and the conflict.
 - Both suites read `icmp_method` from `karvi version --format json` first
   and skip their gate rows with the reason when the host grants this
   process no ICMP method (no ping socket for its group and no `ping` on
@@ -111,12 +110,12 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   passwords, and asserts the device received each job's own password, the
   daemon's pid unchanged, and no canary in the daemon process. The
   final scan covers 133 files and six canaries.
-- The v0100 suite runs twenty-five rows (thirty-five with s4–s9): s1 forces a stop with a job in
-  flight, s2 sends SIGTERM under a one-second grace, and s3 sends SIGTERM
-  under the default grace; s1 and s2 assert four `incomplete_shutdown`
-  records, the summary `incomplete` at exit 106 under `shutdown_forced` or
-  `shutdown_grace_expired`, and the audit reason; s3 asserts the job
-  completed before the stop.
+- The v0100 suite runs twenty-five rows (thirty-five with s4–s9): s1 forces a
+  stop with a job in flight, s2 sends SIGTERM under a one-second grace, and s3
+  sends SIGTERM under the default grace; s1 and s2 assert four
+  `incomplete_shutdown` records, the summary `incomplete` at exit 106 under
+  `shutdown_forced` or `shutdown_grace_expired`, and the audit reason; s3
+  asserts the job completed before the stop.
 - The v0100 suite runs forty-five rows: s4–s9 run the stop
   and restart cases against the real daemon with a held device,
   c1–c4 cancel a held job, an unknown job, and a finished job and follow a
@@ -137,12 +136,12 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
 
 ## v0.10.0 credential-delivery expectations
 
-- The canary suite runs nine rows (d1 the dry-run and e1 the exercise,
-  each asserting the fake device's log unchanged): row r2 scans the auto-launched daemon's
-  command line and environment and reports one process and no hits (gate
-  7); row r3 runs two parallel `run` clients with different canaries and
-  the fake device records that each session authenticated with its own
-  job's password; the final scan covers 79 files and four canaries.
+- The canary suite runs nine rows (d1 the dry-run and e1 the exercise, each
+  asserting the fake device's log unchanged): row r2 scans the auto-launched
+  daemon's command line and environment and reports one process and no hits
+  (gate 7); row r3 runs two parallel `run` clients with different canaries and
+  the fake device records that each session authenticated with its own job's
+  password; the final scan covers 79 files and four canaries.
 - A package fault is refused at the credential frame with its rule
   (`credential_package_invalid: rule=...`) before commit; only a wrong plan
   digest or a binding that differs from the final plan waits for commit.
@@ -206,5 +205,5 @@ make deps            # optional on a connected host: download and verify
   one case.
 
 A passing verifier qualifies the executable, not native production use:
-`docs/CISCO-IOSXE-QUALIFICATION.md` holds the laboratory matrix and
-`ROADMAP.md` the open production gates.
+[`docs/CISCO-IOSXE-QUALIFICATION.md`](CISCO-IOSXE-QUALIFICATION.md) holds the
+laboratory matrix and [`ROADMAP.md`](../ROADMAP.md) the open production gates.

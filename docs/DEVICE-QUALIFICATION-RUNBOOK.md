@@ -1,11 +1,12 @@
 # Device qualification runbook
 
-The laboratory run of `docs/CISCO-IOSXE-QUALIFICATION.md`'s rows marked
-**device**, on both transports, with `scripts/device-qualification.sh`
+The laboratory run of
+[`docs/CISCO-IOSXE-QUALIFICATION.md`](CISCO-IOSXE-QUALIFICATION.md)'s rows
+marked **device**, on both transports, with `scripts/device-qualification.sh`
 collecting the evidence (the production gates listed in
-`ROADMAP.md`). The Catalyst 9300 is run first, then the
-ISR 4451-X, then the other approved families; one run qualifies one device
-on one software release.
+[`ROADMAP.md`](../ROADMAP.md)). The Catalyst 9300 is run first, then the ISR
+4451-X, then the other approved families; one run qualifies one device on one
+software release.
 
 The script is checked against the fake IOS XE device before every lab run
 (`FAKE=1`, step 2): every row it sends to a device has first passed there,
@@ -16,7 +17,7 @@ so a failure in the laboratory is the device's answer and not the script's.
 | Need | For | Notes |
 |---|---|---|
 | A host that reaches the device's management address over SSH, with the released bundle unpacked and `scripts/verify-bundle.sh` passed | every row | The OpenSSH client for `system`; `go` only to build `tools/paritycheck` (without it the comparison is marked skip and is run afterwards over the kept streams) |
-| `python3` | the script's one JSON read (`scripts/lib/json.sh`: the executable's transports) | A prerequisite of `BUILD-HOWTO.md` §1; the script stops at its start without it |
+| `python3` | the script's one JSON read (`scripts/lib/json.sh`: the executable's transports) | A prerequisite of [`BUILD-HOWTO.md` §1](../BUILD-HOWTO.md#1-install-operating-system-prerequisites); the script stops at its start without it |
 | `bin/secret-scan` (`make tools-build`) | the final scan | Without it the scan is marked skip and the evidence must not leave the host unreviewed |
 | The device's inventory name, management address, and SSH port | every row | `DEVICE`, `ADDRESS`, `PORT` |
 | A laboratory account that reaches privilege 15 by `enable`, and its enable secret | D1–D4, D7–D15 | `NETUSER`, `NETPASS`, `NETENABLE` in the environment. If the account lands at privilege 15 at login, leave `NETENABLE` unset: that is the matrix's "nothing sent" row |
@@ -108,13 +109,13 @@ device).
 
 Rows the script does not run, and how they are done:
 
-- **A device that rotates from RSA to ECDSA**, and **a real SHA-1-only
-  train**: they need that device. With one, D7 a's store shows the key
-  types enrolled; regenerate the key on the laboratory unit
-  (`crypto key generate ec keysize 256`, then remove the RSA key), run
-  `ROWS=D7`, and the expectation is `host_key_changed` before
-  authentication (the enrolled-type filter). For the legacy train, add the
-  algorithm profile of `docs/SSH-TRANSPORTS.md` to a copy of a row's
+- **A device that rotates from RSA to ECDSA**, and **a real SHA-1-only train**:
+  they need that device. With one, D7 a's store shows the key types enrolled;
+  regenerate the key on the laboratory unit (`crypto key generate ec keysize
+  256`, then remove the RSA key), run `ROWS=D7`, and the expectation is
+  `host_key_changed` before authentication (the enrolled-type filter). For the
+  legacy train, add the algorithm profile of
+  [`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md) to a copy of a row's
   `karvi.toml` kept in the evidence and run the row's command by hand.
 - **Wrong owner, symlink, non-`0700` directory**: unit tests hold the
   rules; the operator's message for mode is D7 i. The others need root or
@@ -162,13 +163,13 @@ Rows the script does not run, and how they are done:
     `exit_classification` in the end line of the transcript's
     `.meta.jsonl` under `transcripts/`.
 
-  The fake, for comparison, closes without a status: `ssh.exit` 255, both
-  log lines present, `karvi.exit` 110, `ssh_process_failed`,
-  `ExitConnectionFailure`. A device that sends a status should give 0 and 0;
-  the fake is then corrected to send one, and karvi is unchanged. A device
-  that gives the fake's figures takes the rule on the roadmap's
-  device-qualification track (`ROADMAP.md`, item 5): an authenticated
-  login the device closed is a completed session, exit 0, with the notice
+  The fake, for comparison, closes without a status: `ssh.exit` 255, both log
+  lines present, `karvi.exit` 110, `ssh_process_failed`,
+  `ExitConnectionFailure`. A device that sends a status should give 0 and 0; the
+  fake is then corrected to send one, and karvi is unchanged. A device that
+  gives the fake's figures takes the rule on the roadmap's device-qualification
+  track ([`ROADMAP.md`](../ROADMAP.md), item 5): an authenticated login the
+  device closed is a completed session, exit 0, with the notice
   `login_closed_without_status`.
 
 ## 5. The evidence
@@ -212,7 +213,7 @@ laboratory.
 Not a device run: `scripts/output-scale-run.sh` has N fake devices answer
 a 5 MiB `show big` at once through one daemon and reads the daemon's
 resident memory from `/proc`. The measurements and what they show are
-`docs/SCALE.md`.
+[`docs/SCALE.md`](SCALE.md).
 
 ```bash
 N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
@@ -226,9 +227,10 @@ N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
 3. Run the row alone: `ROWS=D7 ...`. Every invocation's configuration is
    kept as `TAG.karvi.toml`; with the scratch store recreated, the same
    command can be repeated by hand with `--debug`.
-4. `docs/COMMAND-TROUBLESHOOTING.md` reads the codes. A prompt the
-   platform's patterns miss shows as `command_session_prompt_timeout` with
-   the last line seen: keep that line; it is what the device teaches.
+4. [`docs/COMMAND-TROUBLESHOOTING.md`](COMMAND-TROUBLESHOOTING.md) reads the
+   codes. A prompt the platform's patterns miss shows as
+   `command_session_prompt_timeout` with the last line seen: keep that line; it
+   is what the device teaches.
 5. Keep the failed evidence directory. A re-run is a new directory, and
    the pair is the record.
 
@@ -243,7 +245,7 @@ script that breaks one is a defect:
    wrong entry into a scratch trust store under the evidence directory;
    the device presents its own key and karvi refuses before
    authentication. No key is regenerated and no second endpoint is used
-   (a real rotation stays the hand step of section 4).
+   (a real rotation stays the hand step of [section 4](#4-the-rows)).
 2. **The operator's files and the device's state are never changed.**
    Every karvi call names a configuration, a trust store
    (`ssh.known-hosts-file`), and a base directory under `work/`; the

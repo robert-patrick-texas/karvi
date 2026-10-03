@@ -11,9 +11,9 @@ activity (`login`, `command`, `config`, `daemon`, or a job rejected before
 dispatch). Inside `run`, per-device failures are recorded and the job exits 101
 unless a halt or wave gate applies. Configuration loading exits 2 for every
 cause (3 for `config_lock_violation`), whatever the code's own exit, because the
-configuration stage has one exit contract. `—` means the code does not set the exit by
-itself. **Unclassified** codes are fallbacks used only when no specific cause is
-known.
+configuration stage has one exit contract. `—` means the code does not set the
+exit by itself. **Unclassified** codes are fallbacks used only when no specific
+cause is known.
 
 ## Exit statuses
 

@@ -1,9 +1,9 @@
 # Roadmap
 
-What karvi does not do yet and has decided to do, or to consider, in the
-order the operator has set. A settled decision is an entry in
-`docs/DESIGN.md`; a session that builds an item is a chapter of
-`docs/EXAMPLES.md`. Nothing here is a promise of a date.
+What karvi does not do yet and has decided to do, or to consider, in the order
+the operator has set. A settled decision is an entry in
+[`docs/DESIGN.md`](docs/DESIGN.md); a session that builds an item is a chapter
+of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
@@ -82,7 +82,8 @@ order the operator has set. A settled decision is an entry in
 
 ## The device-qualification track
 
-Independent of the items above. The runbook (`docs/DEVICE-QUALIFICATION-RUNBOOK.md`)
+Independent of the items above. The runbook
+([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](docs/DEVICE-QUALIFICATION-RUNBOOK.md))
 and the evidence-collecting script (`scripts/device-qualification.sh`) cover
 both transports as rows D1 to D14, and the script passes against the fake
 device; the laboratory run needs the operator and a device:
@@ -93,9 +94,10 @@ device; the laboratory run needs the operator and a device:
    against the ISR 4451-X and Catalyst 9300 with `--echo` and safe `--debug`.
 3. Qualify paging, privilege, and prompt and error behaviour on both
    transports, `command` and `run` sharing one device session on each.
-4. Complete the Catalyst 9300 matrix of `docs/CISCO-IOSXE-QUALIFICATION.md`
-   on both transports before other IOS XE families; the rows the fake
-   already evidences are marked there.
+4. Complete the Catalyst 9300 matrix of
+   [`docs/CISCO-IOSXE-QUALIFICATION.md`](docs/CISCO-IOSXE-QUALIFICATION.md) on
+   both transports before other IOS XE families; the rows the fake already
+   evidences are marked there.
 5. Qualify how a login ends (runbook row D15, by hand): whether the
    device sends an exit status when a session ends with `exit`. If it
    does, the fake learns to send one, and nothing changes in karvi. If it

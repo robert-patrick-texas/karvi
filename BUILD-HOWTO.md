@@ -1,8 +1,9 @@
 # BUILD-HOWTO
 
 This procedure covers Ubuntu 24.04 LTS and Ubuntu 26.04 LTS, initial source
-installation, official and isolated builds, verification, and rollback. Run builds as an ordinary release-engineering account; use
-`sudo` only for operating-system packages, `/usr/local`, and final installation.
+installation, official and isolated builds, verification, and rollback. Run
+builds as an ordinary release-engineering account; use `sudo` only for
+operating-system packages, `/usr/local`, and final installation.
 
 ## 1. Install operating-system prerequisites
 
@@ -124,7 +125,7 @@ comparing the records path by path (about a minute; no fake or daemon is
 left running and the operator's trust store is unchanged); then the canary
 suite. `make native-smoke` runs the parity suite alone after `make build`;
 `ONLY=S21 scripts/native-smoke-test.sh` runs one case.
-`docs/BUILD-QUALIFICATION.md` states the gates.
+[`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md) states the gates.
 
 The release must contain exactly:
 
@@ -146,8 +147,9 @@ Do not use `go get ...@latest` in a release tree.
 
 ### 4.2 Verify the shipped executables without rebuilding
 
-The bundle's `bin/` holds the scrapligo-v1 executables of §4.1, built with
-the release identity, and `CHECKSUMS.sha256` names them:
+The bundle's `bin/` holds the scrapligo-v1 executables of
+[§4.1](#41-official-native-enabled-build), built with the release identity, and
+`CHECKSUMS.sha256` names them:
 
 ```bash
 ./scripts/verify-bundle.sh
@@ -221,10 +223,13 @@ The supplied smoke suite proves the following observable behavior:
   OpenSSH shell, with ControlMaster and ControlPath explicitly disabled;
 - semantic colors distinguish target, resolved address, labels/brackets,
   values, status, and borders; and
-- `--debug` emits safe session/timing/hash diagnostics without passwords or raw command text;
-- terminal-width layout ignores ANSI, splits complete display elements, relocates artifacts, and crops only borders;
+- `--debug` emits safe session/timing/hash diagnostics without passwords or raw
+  command text;
+- terminal-width layout ignores ANSI, splits complete display elements,
+  relocates artifacts, and crops only borders;
 - `--format json` emits valid pretty JSON using the configured indent; and
-- two-target daemon execution persists and visibly reports both success and an outputless later-target failure.
+- two-target daemon execution persists and visibly reports both success and an
+  outputless later-target failure.
 
 ## 7. SSH host-key configuration
 
@@ -343,7 +348,8 @@ Confirm human and machine projections:
 ./bin/karvi run --target DEVICE --transport system --format json --cmd 'show clock' | python3 -m json.tool >/dev/null
 ```
 
-Review `docs/DISPLAY-CONFIGURATION.md` and `docs/OPERATIONS.md`.
+Review [`docs/DISPLAY-CONFIGURATION.md`](docs/DISPLAY-CONFIGURATION.md) and
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 ## 9. Refresh dependencies
 

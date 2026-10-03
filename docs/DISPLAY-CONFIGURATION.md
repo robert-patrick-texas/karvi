@@ -41,27 +41,26 @@ indent = 2
 
 ## The footer
 
-`display.command.footer` ends a `command`'s display. `display.run.footer`
-ends a run's text display on every path, the daemon follow, `--no-daemon`,
-`job follow`, and a finished job's replay, with the job's exit, elapsed
-time, and job folder from its summary; nothing ends a run on standard
-error. Under `--format jsonl` the summary
-document is the stream's last line instead, and `--format json` stays the
-records' array. An empty template disables either footer. With `cmd
---nof`, or with all eight
-`output.files` keys false (`docs/OPERATIONS.md` "The job's output
-files"), `<artifacts>` is `none`.
+`display.command.footer` ends a `command`'s display. `display.run.footer` ends a
+run's text display on every path, the daemon follow, `--no-daemon`, `job
+follow`, and a finished job's replay, with the job's exit, elapsed time, and job
+folder from its summary; nothing ends a run on standard error. Under `--format
+jsonl` the summary document is the stream's last line instead, and `--format
+json` stays the records' array. An empty template disables either footer. With
+`cmd --nof`, or with all eight `output.files` keys false
+([`docs/OPERATIONS.md`](OPERATIONS.md) ["The job's output
+files"](OPERATIONS.md#the-jobs-output-files)), `<artifacts>` is `none`.
 
 ## The collection line
 
 `display.collection.footer` follows the footer of a job with a collection
-(`crun`, or `run` or `command` given `--cd`, `docs/COLLECTION.md`), on
-standard output directly after it, on every text path: `--no-daemon`, the
-daemon follow, `job follow`, and a finished job's replay. The default,
-`"! collection=<collection> replaced=<replaced> kept=<kept>"`, renders
-`<collection>` (the absolute collection directory), `<replaced>`, and
-`<kept>` (the devices whose files were replaced and kept) in the `value`
-role, the literals in the `label` role, as the footer is rendered:
+(`crun`, or `run` or `command` given `--cd`,
+[`docs/COLLECTION.md`](COLLECTION.md)), on standard output directly after it, on
+every text path: `--no-daemon`, the daemon follow, `job follow`, and a finished
+job's replay. The default, `"! collection=<collection> replaced=<replaced>
+kept=<kept>"`, renders `<collection>` (the absolute collection directory),
+`<replaced>`, and `<kept>` (the devices whose files were replaced and kept) in
+the `value` role, the literals in the `label` role, as the footer is rendered:
 
 ```text
 ! exit=101 elapsed=900ms artifacts=/srv/karvi/jobs/261003/261003-103623-00
@@ -91,18 +90,19 @@ line on standard error. The template replaced a boolean switch.
 
 ## The recorded login's lines
 
-`display.record.header` and `display.record.footer` name a recorded
-login's transcript (`login --record`, `docs/LOGIN-TRANSCRIPTS.md`): the
-header before the session's first line, the footer as its last, after the
-device's last output and for a session that failed as well. Both default
-to `"! transcript=<transcript>"`, so the two lines match; `<transcript>` is
-the file's path, in the `value` role with the literals in the `label`
-role, as the login's header is rendered. The templates may also use
-`<timestamp>`, `<target>`, `<platform>`, and `<transport>`, and the footer
-`<exit-status>`, `<exit-code>`, and `<elapsed>`. They go to standard error,
-on the terminal and never into the transcript; an empty template prints no
-line; `--quiet` suppresses both; a template that does not render refuses
-the login before a transcript is created (`config_display_template_invalid`).
+`display.record.header` and `display.record.footer` name a recorded login's
+transcript (`login --record`,
+[`docs/LOGIN-TRANSCRIPTS.md`](LOGIN-TRANSCRIPTS.md)): the header before the
+session's first line, the footer as its last, after the device's last output and
+for a session that failed as well. Both default to `"!
+transcript=<transcript>"`, so the two lines match; `<transcript>` is the file's
+path, in the `value` role with the literals in the `label` role, as the login's
+header is rendered. The templates may also use `<timestamp>`, `<target>`,
+`<platform>`, and `<transport>`, and the footer `<exit-status>`, `<exit-code>`,
+and `<elapsed>`. They go to standard error, on the terminal and never into the
+transcript; an empty template prints no line; `--quiet` suppresses both; a
+template that does not render refuses the login before a transcript is created
+(`config_display_template_invalid`).
 
 ## Borders as separators
 

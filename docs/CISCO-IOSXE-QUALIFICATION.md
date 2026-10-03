@@ -25,17 +25,16 @@ escalate once, and record alike.
 ## What the fixture already shows
 
 The engineering fixture is the fake IOS XE SSH server (`internal/fakeiosxe`,
-`cmd/karvi-fake-iosxe`). It models the `>` and
-`#` prompts, `enable` with and without a secret, the paging commands, the
-`% Invalid input` line, delays before the first prompt, the secret's
-answer, and a command's answer, a peer gone silent (`show mute`), the
-`[confirm]` of `reload`, the `Destination filename` value prompt of `copy`,
-the `Save? [yes/no]:` prompt of an unsaved configuration, global
-configuration mode with its `(config)#` prompt (`configure terminal`,
-`end`; no configuration line is modelled), `show privilege`, `show users`,
-a large output (`show big`), a fixed or changed host key, extra key types, a SHA-1-only
-RSA key, and a restricted algorithm offer. It refuses exec requests and
-records every PTY request and every line received.
+`cmd/karvi-fake-iosxe`). It models the `>` and `#` prompts, `enable` with and
+without a secret, the paging commands, the `% Invalid input` line, delays before
+the first prompt, the secret's answer, and a command's answer, a peer gone
+silent (`show mute`), the `[confirm]` of `reload`, the `Destination filename`
+value prompt of `copy`, the `Save? [yes/no]:` prompt of an unsaved
+configuration, global configuration mode with its `(config)#` prompt (`configure
+terminal`, `end`; no configuration line is modelled), `show privilege`, `show
+users`, a large output (`show big`), a fixed or changed host key, extra key
+types, a SHA-1-only RSA key, and a restricted algorithm offer. It refuses exec
+requests and records every PTY request and every line received.
 
 The fixture grows on demand and only as far as the prompt: a command is
 added when a suite or a script
@@ -71,15 +70,14 @@ A row marked **device** is laboratory work only.
 
 ## The laboratory run
 
-`scripts/device-qualification.sh` runs the rows marked **device** below
-against one laboratory device on both transports and collects the
-evidence of "Required evidence" into one directory;
-`docs/DEVICE-QUALIFICATION-RUNBOOK.md` says what the run needs, maps each
-script row (D1 to D14) to its line here, and lists the rows done by hand
-(D15 among them).
-With `FAKE=1` the same rows run against the fake, which is how the script
-itself is checked before a laboratory run. Every
-mismatch row writes a wrong entry into a scratch trust store; the device's
+`scripts/device-qualification.sh` runs the rows marked **device** below against
+one laboratory device on both transports and collects the evidence of "Required
+evidence" into one directory;
+[`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](DEVICE-QUALIFICATION-RUNBOOK.md) says
+what the run needs, maps each script row (D1 to D14) to its line here, and lists
+the rows done by hand (D15 among them). With `FAKE=1` the same rows run against
+the fake, which is how the script itself is checked before a laboratory run.
+Every mismatch row writes a wrong entry into a scratch trust store; the device's
 key and the operator's own store are never touched.
 
 ## Host-key matrix
@@ -91,11 +89,11 @@ targeting, test on both transports:
    key (**fake**); an entry enrolled by one transport accepted by the other
    (**fake**); concurrent first enrollment from two clients (**device**);
    hashed entries written by hand (**device**).
-2. The identity (`docs/SSH-HOST-KEY-POLICY.md`): a device on port 22 is
-   enrolled under its canonical name, a device on another port as
-   `[name]:PORT`, on both transports (**fake**); a manual enrollment under
-   the identity accepted under `secure` (**device**); an entry left from an
-   earlier release for a non-22 port not matched (**device**).
+2. The identity ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)): a
+   device on port 22 is enrolled under its canonical name, a device on another
+   port as `[name]:PORT`, on both transports (**fake**); a manual enrollment
+   under the identity accepted under `secure` (**device**); an entry left from
+   an earlier release for a non-22 port not matched (**device**).
 3. `secure`: missing file, unknown host, matching host, changed key
    (**fake**); wrong owner, symlink, non-`0700` directory, non-`0600` file
    (unit tests; **device** for the message an operator sees).
@@ -164,10 +162,11 @@ Record evidence, on both transports, for:
 ## Required evidence
 
 For each qualified combination retain the karvi version and commit, the Go
-version, the ScrapliGo version, the fake's commit where a row was
-confirmed against it, the device model, the IOS XE release, the command
-plan digest, sanitized records and debug output, resource measurements,
-and the pass/fail disposition (the script's evidence directory,
-`docs/DEVICE-QUALIFICATION-RUNBOOK.md` §5). Production activation requires review by
-the network operations and security owners; the open gates are listed in
-`ROADMAP.md`.
+version, the ScrapliGo version, the fake's commit where a row was confirmed
+against it, the device model, the IOS XE release, the command plan digest,
+sanitized records and debug output, resource measurements, and the pass/fail
+disposition (the script's evidence directory,
+[`docs/DEVICE-QUALIFICATION-RUNBOOK.md`
+§5](DEVICE-QUALIFICATION-RUNBOOK.md#5-the-evidence)). Production activation
+requires review by the network operations and security owners; the open gates
+are listed in [`ROADMAP.md`](../ROADMAP.md).

@@ -3,9 +3,9 @@
 Each chapter records one design session as it was executed against the tree:
 what it gains, the rule that was settled, the executed example, what was not
 taken, and what it leaves for later. A decision the session settles is also an
-entry in `docs/DESIGN.md`, which states the settled decisions of the whole
-program. The chapters written before the tree was prepared for public release
-are kept, with the decision records they cite, in the operator's private
+entry in [`docs/DESIGN.md`](DESIGN.md), which states the settled decisions of
+the whole program. The chapters written before the tree was prepared for public
+release are kept, with the decision records they cite, in the operator's private
 archive; this file starts where that preparation stands.
 
 ## 1. The public-repository preparation (2026-09-30)
@@ -40,11 +40,11 @@ irrelevant is published.
    the code and its tests are the reference for what karvi does.
 3. **The hand-offs archived.** Every session hand-off and the start prompt,
    written for one operator and one assistant.
-4. **The design distilled.** `docs/DESIGN.md`: the settled decisions in
-   present tense, each as the rule, the reason, and the alternatives not
-   taken, organised by area, drawn from the seventeen decision records and
-   the worked-examples chapters through parallel extraction of the settled
-   rules and a check of the doubtful ones against the code.
+4. **The design distilled.** [`docs/DESIGN.md`](DESIGN.md): the settled
+   decisions in present tense, each as the rule, the reason, and the
+   alternatives not taken, organised by area, drawn from the seventeen decision
+   records and the worked-examples chapters through parallel extraction of the
+   settled rules and a check of the doubtful ones against the code.
 5. **The citations swept.** Every pointer at the archived documents, the
    specification's identifiers, the records' sections, the release gates,
    the session dates, and the hand-offs removed from the living tree, about
@@ -57,16 +57,16 @@ irrelevant is published.
    this file begins.
 
 **The rules from here.** Archive first, then remove: a bare mirror of the
-repository is refreshed after every commit, and a file about to leave the
-tree is copied into the archive before its removal. A removal is recorded in
-the chapter that makes it, with the commit before, and the archive's git
-history holds the bytes; there is no running removal log in the tree. The
-specification is frozen: no revision follows it, no requirement number is
-minted, and a design decision is an entry in `docs/DESIGN.md` with its worked
-example here. Verification is proportionate to what a change touches: grep
-checks for documents, gofmt and vet and build for comments, `go test ./...`
-for code, and the full battery of tests and suites at the boundary of a body
-of work or for a change of behaviour.
+repository is refreshed after every commit, and a file about to leave the tree
+is copied into the archive before its removal. A removal is recorded in the
+chapter that makes it, with the commit before, and the archive's git history
+holds the bytes; there is no running removal log in the tree. The specification
+is frozen: no revision follows it, no requirement number is minted, and a design
+decision is an entry in [`docs/DESIGN.md`](DESIGN.md) with its worked example
+here. Verification is proportionate to what a change touches: grep checks for
+documents, gofmt and vet and build for comments, `go test ./...` for code, and
+the full battery of tests and suites at the boundary of a body of work or for a
+change of behaviour.
 
 **Executed.** The check that the archive holds what leaves, then the
 removal, then the pointer sweep over what remains:
@@ -100,12 +100,12 @@ The two documents that carried the effort's history as living text were
 reset: the changelog to the current release, and the release notes to a
 roadmap of what is open.
 
-**What it gains.** A public reader of CHANGELOG.md finds what the release
-they install contains and what the tree in front of them changes, not
-twenty-eight releases of a private line described against a specification
-they cannot open; a reader of ROADMAP.md finds what is not built yet in the
-order it will be taken up, not 2,400 lines of items, most of them done,
-numbered by a session's bookkeeping.
+**What it gains.** A public reader of [CHANGELOG.md](../CHANGELOG.md) finds what
+the release they install contains and what the tree in front of them changes,
+not twenty-eight releases of a private line described against a specification
+they cannot open; a reader of [ROADMAP.md](../ROADMAP.md) finds what is not
+built yet in the order it will be taken up, not 2,400 lines of items, most of
+them done, numbered by a session's bookkeeping.
 
 **The changelog.** The top block is "Unreleased" and says what the
 preparation changed in the tree (the patch stream retired, the specification
@@ -118,19 +118,20 @@ before the tree was prepared for public release, that their changelog is in
 the operator's private archive, and that every release is installed as new.
 The archive holds the changelog as it was.
 
-**The roadmap.** ROADMAP.md replaces the release notes. Its "Next" list is
-the operator's order: the man page, the documentation as HTML, the package's
-contents, build numbers. Its "Later" list is every roadmap item of the notes
-that is still open, stated as a design question with the relationships the
-notes had recorded: macro files, job files, the credential items, the digest
-review, a no-algorithm-lists setting, sealed packages, crash recovery, a
-follow from the live edge, filter field prefixes. The device-qualification
-track keeps its four steps. Items the notes still listed as roadmap but which
-were built since (the configuration review, the shorter job ID, the spool and
-memory budget) are not carried. The release rules that were the notes'
-preamble are either DESIGN.md's (the release's artifacts, the clean-tree
-gate, breaking changes accepted) or the project's process (commit on the
-operator's word, `dev` and `main`), which CONTRIBUTING takes up at its reset.
+**The roadmap.** [ROADMAP.md](../ROADMAP.md) replaces the release notes. Its
+["Next"](../ROADMAP.md#next) list is the operator's order: the man page, the
+documentation as HTML, the package's contents, build numbers. Its
+["Later"](../ROADMAP.md#later) list is every roadmap item of the notes that is
+still open, stated as a design question with the relationships the notes had
+recorded: macro files, job files, the credential items, the digest review, a
+no-algorithm-lists setting, sealed packages, crash recovery, a follow from the
+live edge, filter field prefixes. The device-qualification track keeps its four
+steps. Items the notes still listed as roadmap but which were built since (the
+configuration review, the shorter job ID, the spool and memory budget) are not
+carried. The release rules that were the notes' preamble are either
+[DESIGN.md](DESIGN.md)'s (the release's artifacts, the clean-tree gate, breaking
+changes accepted) or the project's process (commit on the operator's word, `dev`
+and `main`), which CONTRIBUTING takes up at its reset.
 
 **Found on the way.** Two bullets of OPERATIONS still said a run through the
 daemon writes `commands.jsonl` and `summary.json` whatever their keys say,
@@ -258,16 +259,16 @@ in many packages, the fake device's default user, and the shipped default of
 `security.shared-group`, a team name by shape and the program's own default,
 not a person.
 
-**The release records.** `release/` (the build result, the release status,
-the downloads index, the scrapligo evidence, the manifest, and fourteen
-evidence logs), `BUILD-RESULT.md`, and `release-manifest.json` described the
-v0.23.0 release as executed from the private history, naming the lab
-directory, the operator's home, and the retired patch. They are in the archive
-under `release-v0.23.0/` and out of the tree; the next release writes them
-anew, and the release tool that writes the evidence now creates its
-directory first. The two documents that pointed a reader at them (the build
-guide's "review the release boundary" step, the qualification document's
-replay sentence) read without them.
+**The release records.** `release/` (the build result, the release status, the
+downloads index, the scrapligo evidence, the manifest, and fourteen evidence
+logs), [`BUILD-RESULT.md`](../release/BUILD-RESULT.md), and
+`release-manifest.json` described the v0.23.0 release as executed from the
+private history, naming the lab directory, the operator's home, and the retired
+patch. They are in the archive under `release-v0.23.0/` and out of the tree; the
+next release writes them anew, and the release tool that writes the evidence now
+creates its directory first. The two documents that pointed a reader at them
+(the build guide's "review the release boundary" step, the qualification
+document's replay sentence) read without them.
 
 **Executed.** Class: code (test fixtures) and scripts (two suites' executed
 username), so the package's tests and the two suites on a lab build:
@@ -547,9 +548,10 @@ the old tree removed when the operator chooses.
 
 ## 8. The release 0.25.0, and the old tree removed (2026-09-30)
 
-The second release of the day, on the operator's word, carrying chapter 7's
-stream work; and the private line's working tree removed from the host,
-its archive checked first.
+The second release of the day, on the operator's word, carrying [chapter
+7](#7-stream-mode-reviewed-the-drafts-two-parts---clear-and-line-editing-2026-09-30)'s
+stream work; and the private line's working tree removed from the host, its
+archive checked first.
 
 **What it gains.** A site installs the stream fixes and the line editor
 from a published artifact the same day they were made, and the host
@@ -966,23 +968,23 @@ time:
    ```
 
    The operator agreed: the run's folder stays as it is without `--cd`,
-   `output.NAME.txt` included (a kept file is the previous one, so the
-   folder's text file is the one place that says what happened this time);
-   `summary.json` and the jsonl summary document carry the `collection`
-   block for `run` and `command` as for `crun`; `--nof --cd` collects with
-   no folder. The operator then asked whether the result line was prefixed
-   with `! ` and colored; it was neither, the gap chapter 11 closed for the
-   record lines, and the rule was amended the same way: the line becomes the
+   `output.NAME.txt` included (a kept file is the previous one, so the folder's
+   text file is the one place that says what happened this time); `summary.json`
+   and the jsonl summary document carry the `collection` block for `run` and
+   `command` as for `crun`; `--nof --cd` collects with no folder. The operator
+   then asked whether the result line was prefixed with `! ` and colored; it was
+   neither, the gap [chapter 11](#11-the---record-footer-2026-10-03) closed for
+   the record lines, and the rule was amended the same way: the line becomes the
    template `display.collection.footer`, default `! collection=<collection>
    replaced=<replaced> kept=<kept>`, `<collection>` the absolute collection
    directory (`--cd=.` from `/tmp/nd.8Nm1/crun` gives
-   `collection=/tmp/nd.8Nm1/crun`), in the footer's roles, after the footer
-   on every text path, never under jsonl (the summary document carries the
-   block), `--quiet` or an empty template suppressing it; the exit, the
-   folder, and the word, which the footer already says, leave it. `crun`'s
-   plain result line goes with it (breaking, accepted); the registry moves
-   from 23 to 24. Not taken: the plain line kept beside the footer; a
-   `<collection>` placeholder in the run footer.
+   `collection=/tmp/nd.8Nm1/crun`), in the footer's roles, after the footer on
+   every text path, never under jsonl (the summary document carries the block),
+   `--quiet` or an empty template suppressing it; the exit, the folder, and the
+   word, which the footer already says, leave it. `crun`'s plain result line
+   goes with it (breaking, accepted); the registry moves from 23 to 24. Not
+   taken: the plain line kept beside the footer; a `<collection>` placeholder in
+   the run footer.
 
    Corrected when section A was begun: the rule had put the line on
    standard error, but the footer is on standard output, on the
@@ -1243,7 +1245,7 @@ installed with the distribution packages, `karvi-prune.8` first.
 **What it gains.** On a host with the package, `man karvi-prune` gives an
 operator the flags, what goes, the report, and the exits offline, beside
 the one command they run under `sudo`, where that reference lived in
-`docs/PRUNE.md` in the source tree alone and the package installs no
+[`docs/PRUNE.md`](PRUNE.md) in the source tree alone and the package installs no
 document. It waits on nothing outside the tree: groff is on the build
 host, and the package needs one install line.
 
@@ -1283,15 +1285,15 @@ OPTIONS
    read them; tests hold them to the defined flags. Not taken: backquoted
    value names in the usage strings; parsing the synopsis; alphabetical
    order.
-3. *The hand-written sections.* The package installs no documents yet,
-   and the units' `Documentation=` lines name a `PRUNE.md` an installed host
-   does not have. The operator agreed: the page is the terminal reference,
-   NAME to SEE ALSO, stating the rules, the report, and the exits in full;
-   PRUNE.md stays the guide with the reasons and the schedules and says
-   that the page restates them; the SYNOPSIS is a second generated region
-   (amending item 1's "the only generated part"), from `prune.Usage()`.
-   Not taken: either document pointing to the other for the rules; a list
-   of the helper's words for a test.
+3. *The hand-written sections.* The package installs no documents yet, and the
+   units' `Documentation=` lines name a [`PRUNE.md`](PRUNE.md) an installed host
+   does not have. The operator agreed: the page is the terminal reference, NAME
+   to SEE ALSO, stating the rules, the report, and the exits in full;
+   [PRUNE.md](PRUNE.md) stays the guide with the reasons and the schedules and
+   says that the page restates them; the SYNOPSIS is a second generated region
+   (amending item 1's "the only generated part"), from `prune.Usage()`. Not
+   taken: either document pointing to the other for the rules; a list of the
+   helper's words for a test.
 4. *The header.* Executed: `.TH KARVI-PRUNE 8 "" "karvi"` gives the footer
    `karvi … KARVI-PRUNE(8)` with a blank centre, and a version and a date
    fill it; groff passes both. The operator agreed: no version or date in
@@ -1394,23 +1396,22 @@ The first rendering hyphenated paths and options across lines
 the page sets `.nh`, and `.ds AD l` with `.ad l`, since groff's man macros
 restore the adjustment at every paragraph from `AD`.
 
-*Found on the way.* `make generated-clean` ran its comparisons as one
-shell line without `set -e`, so its exit was the last `cmp`'s alone: with
-`configs/reference.toml` made stale it printed the difference and exited
-0, and only `docs/ERROR-CODES.md`, compared last, could fail it. With
-`set -e` a stale reference, error-code table, or generated page line each
-exits 2; a hand-written line of the page is kept by the generator and is
-not staleness. The bundle verifier runs under `set -eu` and was not
-affected.
+*Found on the way.* `make generated-clean` ran its comparisons as one shell line
+without `set -e`, so its exit was the last `cmp`'s alone: with
+`configs/reference.toml` made stale it printed the difference and exited 0, and
+only [`docs/ERROR-CODES.md`](ERROR-CODES.md), compared last, could fail it. With
+`set -e` a stale reference, error-code table, or generated page line each exits
+2; a hand-written line of the page is kept by the generator and is not
+staleness. The bundle verifier runs under `set -eu` and was not affected.
 
-**The sections, as committed.** M1 (`b50d227`) the value names and the
-order defined once, with the design records; M1b (`ec019b4`) the helper's
-help in karvi's layout, the layout shared; M2 `tools/mangen`, the page,
-`make generate` and `generated-clean` (with `set -e`), the bundle
-verifier, the groff lint, the install line, the notes in PRUNE.md and
-OPERATIONS, and this chapter. Battery: the seventeen suites on a lab
-build after M2 (16:59:22 to 17:02:46 UTC), pass; `go test ./...`, vet,
-gofmt, and `make generated-clean` at each section.
+**The sections, as committed.** M1 (`b50d227`) the value names and the order
+defined once, with the design records; M1b (`ec019b4`) the helper's help in
+karvi's layout, the layout shared; M2 `tools/mangen`, the page, `make generate`
+and `generated-clean` (with `set -e`), the bundle verifier, the groff lint, the
+install line, the notes in [PRUNE.md](PRUNE.md) and OPERATIONS, and this
+chapter. Battery: the seventeen suites on a lab build after M2 (16:59:22 to
+17:02:46 UTC), pass; `go test ./...`, vet, gofmt, and `make generated-clean` at
+each section.
 
 **Not taken.** A `.8.in` template; a Markdown-to-roff converter;
 generating the whole page; Go's backquoted value names; alphabetical
@@ -1615,7 +1616,7 @@ For scale, rendered at 80 columns: `ssh(1)` 1056 lines, `git(1)` 1541,
    sections are consolidated (item 7): the help keeps the entries first
    proposed, each option's key and what 0 means (the widths at 0 "from the
    host's CPUs", the delay "0s none"), and the draft above is the material
-   for that item. Not taken: a pointer to SCALE.md in place of the
+   for that item. Not taken: a pointer to [SCALE.md](SCALE.md) in place of the
    entries; changing the percent rule in a help change.
 
    Found while checking the words, taken as its own issue: the options do
@@ -1783,7 +1784,7 @@ is not allowed (`setup_requires_root`, `telnet_not_allowed`). The test
 parses `exitcode.go` for its constants and holds `Statuses` to them; run
 against a copy without 114's entry it fails (`23 statuses, 24
 constants`). `errorcodes.Validate` refuses a code whose exit is not
-defined. `docs/ERROR-CODES.md` opens with the table:
+defined. [`docs/ERROR-CODES.md`](ERROR-CODES.md) opens with the table:
 
 ```text
 | 101 | `ExitPartialFailure` | A run in which one or more devices failed or did not start, no halt or gate applying. |
@@ -1970,15 +1971,15 @@ on lab builds after K (19:13:59 to 19:17:23 UTC) and at the close
 (20:31:10 to 20:34:29), pass; `go test ./...`, vet, gofmt, and `make
 generated-clean` at each section.
 
-**Not taken.** One page for every word; pages for the large words alone;
-section 8 for `karvi-setup`; a page per alias; an OPTIONS region from the
-entries alone; the whole page generated; the twelve constants exported;
-the generator as a test inside `internal/cli`; a built executable's
-`--help` as the source; the Host-key modes kept as a section; a second
-column width; a pointer to SCALE.md in place of the Dispatch entries; the
-command line checking the keys' ranges itself; clamping with a notice;
-the shared sections on every page; the duration's form in each entry;
-the meanings of the exits written by hand; the precedence generated.
+**Not taken.** One page for every word; pages for the large words alone; section
+8 for `karvi-setup`; a page per alias; an OPTIONS region from the entries alone;
+the whole page generated; the twelve constants exported; the generator as a test
+inside `internal/cli`; a built executable's `--help` as the source; the Host-key
+modes kept as a section; a second column width; a pointer to
+[SCALE.md](SCALE.md) in place of the Dispatch entries; the command line checking
+the keys' ranges itself; clamping with a notice; the shared sections on every
+page; the duration's form in each entry; the meanings of the exits written by
+hand; the precedence generated.
 
 **Roadmap.** `karvi.1` leaves Next; the reference configuration's doubled
 `[dispatch]` table (found in part 3) enters it first. Found and left for
@@ -1988,9 +1989,9 @@ with `exit` reporting 110.
 
 ## 15. The reference configuration that does not load (2026-10-03)
 
-The roadmap's first item, found while `karvi-config.1` was written
-(chapter 14, part 3): `karvi config generate` writes a file `karvi config
-validate` refuses.
+The roadmap's first item, found while `karvi-config.1` was written ([chapter
+14](#14-the-man-page-karvi1-2026-10-03), part 3): `karvi config generate` writes
+a file `karvi config validate` refuses.
 
 **What it gains.** A site's documented starting point is `karvi config
 generate`, the full reference with every key, its default, and its
@@ -2067,8 +2068,9 @@ item leaves Next.
 
 ## 16. `NO_COLOR` (2026-10-03)
 
-Found while `karvi.1`'s ENVIRONMENT was written (chapter 14, part 1): the
-watch screen alone reads `NO_COLOR`.
+Found while `karvi.1`'s ENVIRONMENT was written ([chapter
+14](#14-the-man-page-karvi1-2026-10-03), part 1): the watch screen alone reads
+`NO_COLOR`.
 
 **What it gains.** `NO_COLOR` is the common convention (no-color.org) by
 which a terminal user turns colour off in every program at once; an
@@ -2132,8 +2134,9 @@ generated-clean`.
 
 ## 17. An override's error names its option (2026-10-03)
 
-Found while section K was built (chapter 14, item 6): an option's value
-refused by its key's range or lock is reported `at command-line`.
+Found while section K was built ([chapter
+14](#14-the-man-page-karvi1-2026-10-03), item 6): an option's value refused by
+its key's range or lock is reported `at command-line`.
 
 **What it gains.** An operator whose option is refused learns which option
 it was. It waits on nothing outside the tree.
@@ -2201,8 +2204,9 @@ the seventeen suites on a lab build (21:27:14 to 21:30:36 UTC), pass;
 
 ## 18. How a login ends (2026-10-03)
 
-Found while `karvi-login.1` was written (chapter 14, part 3): a login to
-the fake ended with `exit` exits 110.
+Found while `karvi-login.1` was written ([chapter
+14](#14-the-man-page-karvi1-2026-10-03), part 3): a login to the fake ended with
+`exit` exits 110.
 
 **What it gains.** A login the operator ended normally is not recorded as
 a failure in its exit, its transcript's metadata, its audit record, and
@@ -2241,14 +2245,15 @@ completed session, exit 0, with the notice `login_closed_without_status`,
 mid-session ending 0 too; no code change now. Not taken: deciding without
 the device; every 255 a success; the fake changed now.
 
-**Executed.** The runbook's D15 (the steps, the evidence `D15/`, the
-account's row in section 1), the qualification matrix's session line, and
-the roadmap's device-qualification item 5 with the rule; DESIGN's entry in
-section 5. The operator then asked that the instructions carry every
-point of the review: D15 now keeps OpenSSH's own log at `VERBOSE` in a
-file (the lines the rule reads), karvi's debug stream in `karvi.err`, a
-scratch trust store, the reading of each file, the fake's figures for
-comparison, the line for `results.tsv`, and both laboratory devices. Its
+**Executed.** The runbook's D15 (the steps, the evidence `D15/`, the account's
+row in [section 1](DEVICE-QUALIFICATION-RUNBOOK.md#1-what-the-run-needs)), the
+qualification matrix's session line, and the roadmap's device-qualification item
+5 with the rule; DESIGN's entry in [section
+5](DESIGN.md#5-transports-and-the-device-session). The operator then asked that
+the instructions carry every point of the review: D15 now keeps OpenSSH's own
+log at `VERBOSE` in a file (the lines the rule reads), karvi's debug stream in
+`karvi.err`, a scratch trust store, the reading of each file, the fake's figures
+for comparison, the line for `results.tsv`, and both laboratory devices. Its
 steps, executed against the fake under `script`:
 
 ```text
@@ -2305,11 +2310,109 @@ $ karvi --set output.files.failures-jsonl=false config show                     
 config_key_removed: removed in v0.26.0; the file is errors.jsonl now; its switch is output.files.errors-jsonl for output.files.failures-jsonl at --set[2]
 ```
 
-The environment variable and a file's `[output.files] failures-jsonl`
-are refused the same way, at `KARVI__OUTPUT__FILES__FAILURES_JSONL` and
-at the file's line. Changed: `internal/output` (the file and the store's
-handle), `executionplan`, `internal/planner`, `internal/jobexec`, the
-registry row and the removed-key table, the plan schema, the generated
-reference and configuration schema, the native and k03 suites, OPERATIONS,
-DESIGN, ARCHITECTURE, the runbook, `karvi-run.1`, and chapter 12's
-listing.
+The environment variable and a file's `[output.files] failures-jsonl` are
+refused the same way, at `KARVI__OUTPUT__FILES__FAILURES_JSONL` and at the
+file's line. Changed: `internal/output` (the file and the store's handle),
+`executionplan`, `internal/planner`, `internal/jobexec`, the registry row and
+the removed-key table, the plan schema, the generated reference and
+configuration schema, the native and k03 suites, OPERATIONS, DESIGN,
+ARCHITECTURE, the runbook, `karvi-run.1`, and [chapter
+12](#12---cd-and---fs-for-run-and-command-2026-10-03)'s listing.
+
+## 20. The documentation as HTML: the converter and the links (2026-10-03)
+
+The roadmap's Next item 1, on the operator's word: a script that converts
+the documentation to HTML with an index and a left column of links, the
+output a build product.
+
+**What it gains.** The documents read in a browser on any host, a site's
+intranet or a laptop without GitHub or a Markdown viewer. The package's
+contents (Next 2) wait on it, to install the Markdown or the HTML under
+`/usr/share/doc/karvi`. It waits on nothing.
+
+**The review.** Against the tree at `f456a0f`: 32 tracked Markdown files
+outside `vendor/` (seven at the root, 21 in `docs/`, `examples/README.md`,
+three in `release/`), 323 headings, about 1,100 table lines, raw HTML only in
+the README's banner `<img>` and ERROR-CODES' generated comment, and no
+Markdown link at all: a document cited another as a code span,
+`` `docs/OPERATIONS.md` `` (166 times), 25 of them with a section (a quoted
+heading, "section N", "§N"), beside a few bare names in prose. The host has
+pandoc and no Python Markdown; no vendored module converts Markdown.
+goldmark v1.8.6 with its GitHub extension, in a scratch module, converted
+all 28 root and `docs/` documents:
+
+```text
+CREDENTIAL-CSV.md   tables=11  rows=87   (10 by a grep for separators: one table is indented in a list item)
+SCALE.md            tables=8   rows=51   (7 by the grep: the CPU band's table is in a list item)
+ERROR-CODES.md      tables=6   rows=713
+…                   no paragraph begins with "|", no "**" left unrendered
+```
+
+**The converter, agreed.** goldmark vendored (MIT, pure Go, no
+dependencies of its own, about 13,700 lines), used by a command under
+`tools/` alone, never by a shipped executable. Not taken: pandoc (not a Go
+build dependency, its output varies by version); a hand-written converter
+(tables in list items, fenced code in lists); the HTML committed. A module
+nothing imports is dropped by `go mod tidy`, so goldmark enters with the
+converter's section.
+
+**The scope, agreed.** Every tracked Markdown file; `vendor/`'s five are the
+modules' own and stay out.
+
+**The links, agreed.** The operator asked that the span references become proper
+links and that the documentation cross-reference where it applies. The rule
+([DESIGN section 16](DESIGN.md#16-build-verification-and-release)): a reference
+to a document is a relative link with the span as its text; a name with a
+section links to that heading's GitHub id, the qualifier inside the link; a
+numbered section or chapter links to its heading; fenced code, a document naming
+itself, a manual section (`karvi-setup` in section 8), and the archive
+(`REMOVED-LOG.md`) stay text. Not taken: links added by the converter alone;
+every key and error code linked to its entry.
+
+**Executed.** A script turned 112 paragraphs' references into links (a span may
+cross a line, so it worked by paragraph), then 38 numbered references by
+hand-checked list: each a document's own (COLLECTION's, CREDENTIAL-CSV's,
+EXAMPLES' chapters) or another's (OPERATIONS' table of CREDENTIAL-CSV sections,
+ARCHITECTURE's "section 11", DOWNLOADS' "§10" of BUILD-HOWTO, [chapter
+18](#18-how-a-login-ends-2026-10-03)'s DESIGN "section 5" and runbook "section
+1"). A check resolves every relative link to a tracked file and every anchor to
+a heading id:
+
+```text
+214 relative links, 0 unresolved
+README.md with #upgrade made #upgrades, docs/SCALE.md made SCALES.md:
+BAD anchor README.md docs/OPERATIONS.md#upgrades
+BAD file README.md docs/SCALE.md
+214 relative links, 2 unresolved
+```
+
+A section named in quotes after its document's link was a second form the
+first pass had not taken (SCALE's `docs/OPERATIONS.md` ("The job's output
+files", "The spool directory", …)): 12 more, each linked to its heading,
+ROADMAP's "Next" and "Later" among them.
+
+**The width.** The links had lengthened lines past the width the documents
+keep (DESIGN's 99th percentile is 80 columns, OPERATIONS' 79): prose lines
+over 80, outside code, tables, and HTML, were 70 in 15 files before and 213
+in 30 after. On the operator's word, every paragraph and list item holding a
+line over 80 is rewrapped to 80, those from before the links included: the
+list item's indentation kept, a link's target never broken, no line begun
+with a word Markdown would read as a list marker, heading, or quote, and a
+paragraph with a hard break or a code span holding two spaces left (none
+was). ERROR-CODES' one long line is rewrapped in its generator
+(`internal/errorcodes`). pandoc rendered every file before and after the
+rewrap; the two are equal with whitespace collapsed, and a wrap made to open
+a list in a copy is told:
+
+```text
+rewrapped units: 183, then 7 after the quoted titles
+render check: 31 files equal; SCALE.md with "\n- the" made: differs
+prose lines over 80: 70 before the links, 213 after, 8 now
+relative links: 229, 0 unresolved
+```
+
+The eight are four headings (chapters 3, 7, 9, and 10 here; a heading is
+one line, and its words are its anchor) and four lines that are one link
+longer than the line (chapter 7's anchor, and three document links at
+their indentation). The checks become the converter's own in its section,
+the links against the ids the HTML carries.

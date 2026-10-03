@@ -3,8 +3,8 @@
 # karvi
 
 `karvi` is a Go network-operations tool for interactive login, one-device
-commands, and governed concurrent command execution. The code and its
-tests are the reference for what karvi does; `docs/DESIGN.md` states the
+commands, and governed concurrent command execution. The code and its tests are
+the reference for what karvi does; [`docs/DESIGN.md`](docs/DESIGN.md) states the
 settled decisions, the reasons behind them, and the alternatives not taken.
 
 ## Development status
@@ -17,19 +17,19 @@ credential plane, `run --dry-run`, `run --exercise`, `--detach` and
 with `karvi job cancel`, one device session driving both SSH transports
 with scrapligo-v1 as karvi's own connection, and platform names and their
 resolution.
-Items still open are listed in `ROADMAP.md`. The sections below
+Items still open are listed in [`ROADMAP.md`](ROADMAP.md). The sections below
 describe the behavior of the code as it exists; `VERSION` names the release.
 
 ## Release status
 
-`CHANGELOG.md` lists every release's changes, the breaking ones first in
-each release's block. A running daemon of another release accepts no job
-from the new client until `karvi daemon restart`: a daemon is compatible
+[`CHANGELOG.md`](CHANGELOG.md) lists every release's changes, the breaking ones
+first in each release's block. A running daemon of another release accepts no
+job from the new client until `karvi daemon restart`: a daemon is compatible
 only when its version and its daemon IPC schema both equal the client's
-(`docs/OPERATIONS.md`, "Upgrade"); since v0.14.0 the records of a run
-travel over the socket, the invocation decides the job's files on every
-path, and the configuration keys nothing read are refused. The breaking
-changes of v0.10.0 from v0.9.2 remain in force:
+([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)); since v0.14.0
+the records of a run travel over the socket, the invocation decides the job's
+files on every path, and the configuration keys nothing read are refused. The
+breaking changes of v0.10.0 from v0.9.2 remain in force:
 
 1. `ssh.host-key-policy` accepts `accept-new` (the default), `secure`, and
    `insecure`; `auto` and `default` are rejected.
@@ -37,9 +37,11 @@ changes of v0.10.0 from v0.9.2 remain in force:
    table's `control-master` key is accepted and inert).
 3. `karvi daemon stop` and `karvi daemon restart` refuse while jobs are active
    unless `--grace`, `--after=DURATION`, or `--force` is given.
-4. Every error carries one registered code, listed in `docs/ERROR-CODES.md`.
-5. Configuration schema 6, registry schema 10, and job manifest schema 2
-   (this tree: registry schema 22, daemon IPC schema 10, execution plan 9, scoreboard 3).
+4. Every error carries one registered code, listed in
+   [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
+5. Configuration schema 6, registry schema 10, and job manifest schema 2 (this
+   tree: registry schema 22, daemon IPC schema 10, execution plan 9, scoreboard
+   3).
 
 A newer client still inspects, stops, and restarts a daemon launched by an
 older executable. Job submission remains exact-schema only; `karvi run` never
@@ -114,12 +116,12 @@ karvi command router1 -- show running-config | include --echo
 ```
 
 One device session drives `command` and `run` on both SSH transports: on
-`system` one fresh `ssh -tt` process with ControlMaster off, on
-`scrapligo-v1` one connection with no subprocess. Every requested command
-runs sequentially through that one authenticated interactive shell, after
-one privilege escalation and the platform's paging commands
-(`docs/COMMAND-SESSION.md`). This avoids Cisco IOS XE devices that accept
-login but reject secondary SSH session channels.
+`system` one fresh `ssh -tt` process with ControlMaster off, on `scrapligo-v1`
+one connection with no subprocess. Every requested command runs sequentially
+through that one authenticated interactive shell, after one privilege escalation
+and the platform's paging commands
+([`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)). This avoids Cisco IOS XE
+devices that accept login but reject secondary SSH session channels.
 
 ## Prompt and command echo
 
@@ -197,9 +199,9 @@ indent = 2
 ```
 
 With dark-theme defaults, target is bold yellow, resolved address is bold
-magenta (in both themes), labels/brackets are blue, values are white, success
-is green, warnings are bold orange (in both themes), and borders are gray. Each role is independently
-configurable; `orange` is the 256-colour index 208.
+magenta (in both themes), labels/brackets are blue, values are white, success is
+green, warnings are bold orange (in both themes), and borders are gray. Each
+role is independently configurable; `orange` is the 256-colour index 208.
 
 A border separates adjacent command records. By default one blank line appears
 between records and no border follows the final record. Set the relevant
@@ -252,7 +254,7 @@ enable passwords, raw command text, or device output.
 ## SSH transport configuration
 
 Configuration schema **6** and registry schema **13** use per-mode selectors and
-named implementation slots (`docs/SSH-TRANSPORTS.md`):
+named implementation slots ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)):
 
 ```toml
 [config]
@@ -294,7 +296,8 @@ karvi login --host router1 --address 192.0.2.10
 
 Recording uses a controlling PTY, propagates terminal resize, restores terminal
 state, and writes a `0640` transcript and metadata pair below
-`transcript.root/YYMMDD/` (see `docs/LOGIN-TRANSCRIPTS.md`).
+`transcript.root/YYMMDD/` (see
+[`docs/LOGIN-TRANSCRIPTS.md`](docs/LOGIN-TRANSCRIPTS.md)).
 
 One host-key policy governs login, command, and run:
 
@@ -310,9 +313,9 @@ halt-run-on-host-key-mismatch = false
 - `insecure`: accept unknown or changed keys with prominent warnings.
 
 The automatic trust store is `~/.local/share/karvi/known_hosts`, in the
-operator's own root. Both transports check the key in the SSH
-handshake and enrol it under the device's canonical name, or `[name]:PORT`
-on a port other than 22 (`docs/SSH-HOST-KEY-POLICY.md`).
+operator's own root. Both transports check the key in the SSH handshake and
+enrol it under the device's canonical name, or `[name]:PORT` on a port other
+than 22 ([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
 
 ## Fleet run
 
@@ -345,13 +348,13 @@ leaves the job running in the daemon. `karvi job follow JOB-ID` renders a
 detached or interrupted job again from its beginning, live or finished, and
 `karvi job cancel JOB-ID` stops one job.
 
-`--ping` sends two ICMP probes to each target before its transport and skips
-a target that answers neither (`icmp_unreachable`); `--noping` sends none.
-The gate is off unless `network.ping-targets` is true. Widen
-`net.ipv4.ping_group_range` to your operators' groups so the probes go over
-a ping socket; otherwise the system `ping` binary is used. Text output shows
-one line per gated device (the `display.ping.header` template), and every record carries the
-probe outcomes.
+`--ping` sends two ICMP probes to each target before its transport and skips a
+target that answers neither (`icmp_unreachable`); `--noping` sends none. The
+gate is off unless `network.ping-targets` is true. Widen
+`net.ipv4.ping_group_range` to your operators' groups so the probes go over a
+ping socket; otherwise the system `ping` binary is used. Text output shows one
+line per gated device (the `display.ping.header` template), and every record
+carries the probe outcomes.
 
 ## Stream mode
 
@@ -386,34 +389,33 @@ karvi crun --all                                   # each device its platform's 
 karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
 ```
 
-`crun` collects one or more commands from a scope into one file per
-device, named by the device, in one flat directory (`crun.directory`,
-`<basedir>/crun` unless configured; `--cd=PATH` for one run): each
-command's output under a `! COMMAND` marker line and nothing else, the
-file replaced only when every command of the device came back, so a
-device not reached keeps its previous file. With no command on the line
-each device is sent its platform's `crun-commands` list. It takes every
-`run` option; the job folder is written as for any run, without
-`output.NAME.txt`; the display ends with a line counting the files
-replaced and kept. `run` and `command` given `--cd=PATH` write the same
-file, unfiltered, beside their usual job folder; `--fs=SUFFIX` appends a
-suffix to each file's name (`--fs=.cfg`), and on `run` and `command`
-alone writes into the working directory.
-A platform's `crun-filters` drop the output lines that change at every
-collection without the device having changed (the byte count, the clock
-period, the uptime, the time of the show) from the collection file alone,
-the last-change stamp kept; a site's array replaces the built-in list.
-`crun.after` names a hook the client runs when the collection has ended,
-in the directory with the replaced files on stdin; the shipped examples
-commit them to git and mail the diff (`docs/COLLECTION.md`). A
-recurring collection is the site's systemd timer or cron over the word
+`crun` collects one or more commands from a scope into one file per device,
+named by the device, in one flat directory (`crun.directory`, `<basedir>/crun`
+unless configured; `--cd=PATH` for one run): each command's output under a `!
+COMMAND` marker line and nothing else, the file replaced only when every command
+of the device came back, so a device not reached keeps its previous file. With
+no command on the line each device is sent its platform's `crun-commands` list.
+It takes every `run` option; the job folder is written as for any run, without
+`output.NAME.txt`; the display ends with a line counting the files replaced and
+kept. `run` and `command` given `--cd=PATH` write the same file, unfiltered,
+beside their usual job folder; `--fs=SUFFIX` appends a suffix to each file's
+name (`--fs=.cfg`), and on `run` and `command` alone writes into the working
+directory. A platform's `crun-filters` drop the output lines that change at
+every collection without the device having changed (the byte count, the clock
+period, the uptime, the time of the show) from the collection file alone, the
+last-change stamp kept; a site's array replaces the built-in list. `crun.after`
+names a hook the client runs when the collection has ended, in the directory
+with the replaced files on stdin; the shipped examples commit them to git and
+mail the diff ([`docs/COLLECTION.md`](docs/COLLECTION.md)). A recurring
+collection is the site's systemd timer or cron over the word
 (`packaging/systemd/user/karvi-crun.timer`, `packaging/cron/karvi-crun`;
-`docs/COLLECTION.md` section 7). A
-shared directory of mode `2770` or `2775` lets every member of its group
-collect; `sudo karvi setup shared` makes it once as `/opt/karvi/shared/crun` with
-the shared job and transcript trees, which every operator's run then uses
-by default (`docs/OPERATIONS.md` "The shared trees"). `docs/OPERATIONS.md`
-"The collection run" has the rest.
+[`docs/COLLECTION.md` section 7](docs/COLLECTION.md#7-the-schedule)). A shared
+directory of mode `2770` or `2775` lets every member of its group collect; `sudo
+karvi setup shared` makes it once as `/opt/karvi/shared/crun` with the shared
+job and transcript trees, which every operator's run then uses by default
+([`docs/OPERATIONS.md` "The shared
+trees"](docs/OPERATIONS.md#the-shared-trees)). [`docs/OPERATIONS.md` "The
+collection run"](docs/OPERATIONS.md#the-collection-run) has the rest.
 
 ## Context help
 
@@ -430,28 +432,34 @@ karvi version --help
 ```
 
 Tab completes the words, options, values, device names, and job IDs, and
-`karvi-prune`'s flags and their words, once the site has run `sudo karvi
-setup tab` (`docs/OPERATIONS.md` "Tab completion").
+`karvi-prune`'s flags and their words, once the site has run `sudo karvi setup
+tab` ([`docs/OPERATIONS.md` "Tab
+completion"](docs/OPERATIONS.md#tab-completion)).
 
 ## Implemented foundation and remaining boundary
 
 The candidate includes layered TOML configuration with include graphs, locks,
 macros, validation and provenance; CSV inventory and deterministic DNS;
-credential policies and authenticated askpass; one device session over
-system OpenSSH and the compiled scrapligo-v1 connection, gated Telnet;
-serial, parallel, and adaptive-wave dispatch; durable JSONL and summaries;
-audit, scoreboards, metrics, per-user daemon IPC, capacity admission,
-retention (`karvi-prune`, `docs/PRUNE.md`), PTY login recording, shared display formatting, and
-the watch screen (`karvi watch`: the running jobs above a rule, the
-finished ones below, a detail pane per job, the `/` filter and the `s`
-sort, `docs/OPERATIONS.md` "The watch screen"), the site's shared trees, the operators' roots under `/opt/karvi/users/<username>`, and the scratch root `/dev/shm/karvi` with its rule for every boot (`sudo karvi setup shared`;
-`docs/OPERATIONS.md` "The shared trees").
+credential policies and authenticated askpass; one device session over system
+OpenSSH and the compiled scrapligo-v1 connection, gated Telnet; serial,
+parallel, and adaptive-wave dispatch; durable JSONL and summaries; audit,
+scoreboards, metrics, per-user daemon IPC, capacity admission, retention
+(`karvi-prune`, [`docs/PRUNE.md`](docs/PRUNE.md)), PTY login recording, shared
+display formatting, and the watch screen (`karvi watch`: the running jobs above
+a rule, the finished ones below, a detail pane per job, the `/` filter and the
+`s` sort, [`docs/OPERATIONS.md` "The watch
+screen"](docs/OPERATIONS.md#the-watch-screen)), the site's shared trees, the
+operators' roots under `/opt/karvi/users/<username>`, and the scratch root
+`/dev/shm/karvi` with its rule for every boot (`sudo karvi setup shared`;
+[`docs/OPERATIONS.md` "The shared trees"](docs/OPERATIONS.md#the-shared-trees)).
 
-Scaling up (a wide parallel host, a large network, the free-space check per volume, the daemon's memory budget) is `docs/SCALE.md`; the settings it names are in the configuration reference.
+Scaling up (a wide parallel host, a large network, the free-space check per
+volume, the daemon's memory budget) is [`docs/SCALE.md`](docs/SCALE.md); the
+settings it names are in the configuration reference.
 
 Cisco IOS XE laboratory qualification, durable daemon recovery, signed
 packages/SBOM/FIPS evidence, and the 2,500-device performance/accounting
-gate remain incomplete. See `ROADMAP.md`.
+gate remain incomplete. See [`ROADMAP.md`](ROADMAP.md).
 
 ## Build paths
 
@@ -490,34 +498,59 @@ Operator guides:
   statuses), `man karvi WORD` for each command word (`man karvi run`), `man
   karvi-prune`, and `man karvi-askpass`; each word's SYNOPSIS and DESCRIPTION
   are its `--help`, generated (`make generate`).
-- `docs/QUICKSTART.md`: inspect the executable, first configuration, first commands.
-- `docs/OPERATIONS.md`: upgrade, the daemon, retention, credential files.
-- `docs/PRUNE.md`: what `karvi-prune` removes, where it looks, the timers, the hand run.
-- `docs/COLLECTION.md`: the collection run `crun`: what a collection is, the command lists RANCID and Oxidized send per platform as examples, and sub-platform tables per device model.
-- `docs/CREDENTIAL-CSV.md`: the credential CSV backend: declaring it, the file's fields, how a row is chosen, keys and pins (`credkey`, `credkeyref`), variables instead of secrets, a formula over it, the file rules, why an inventory file holds no secrets, the errors.
-- `docs/TIMEOUTS.md`: every bound on a device session, its key, and what its expiry records.
-- `docs/COMMAND-SESSION.md`: the command grammar and the device session's lifecycle.
-- `docs/COMMAND-TROUBLESHOOTING.md`: what to capture and how to read it.
-- `docs/DISPLAY-CONFIGURATION.md`: human-facing output settings.
-- `docs/LOGIN-TRANSCRIPTS.md`: `login --record`.
-- `docs/SSH-HOST-KEY-POLICY.md`: the unified host-key policy, the identity a key is enrolled under, controlled enrollment.
-- `docs/SSH-TRANSPORTS.md`: transport selection, slots, build composition.
-- `docs/ERROR-CODES.md`: every registered code (generated).
+- [`docs/QUICKSTART.md`](docs/QUICKSTART.md): inspect the executable, first
+  configuration, first commands.
+- [`docs/OPERATIONS.md`](docs/OPERATIONS.md): upgrade, the daemon, retention,
+  credential files.
+- [`docs/PRUNE.md`](docs/PRUNE.md): what `karvi-prune` removes, where it looks,
+  the timers, the hand run.
+- [`docs/COLLECTION.md`](docs/COLLECTION.md): the collection run `crun`: what a
+  collection is, the command lists RANCID and Oxidized send per platform as
+  examples, and sub-platform tables per device model.
+- [`docs/CREDENTIAL-CSV.md`](docs/CREDENTIAL-CSV.md): the credential CSV
+  backend: declaring it, the file's fields, how a row is chosen, keys and pins
+  (`credkey`, `credkeyref`), variables instead of secrets, a formula over it,
+  the file rules, why an inventory file holds no secrets, the errors.
+- [`docs/TIMEOUTS.md`](docs/TIMEOUTS.md): every bound on a device session, its
+  key, and what its expiry records.
+- [`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md): the command grammar and
+  the device session's lifecycle.
+- [`docs/COMMAND-TROUBLESHOOTING.md`](docs/COMMAND-TROUBLESHOOTING.md): what to
+  capture and how to read it.
+- [`docs/DISPLAY-CONFIGURATION.md`](docs/DISPLAY-CONFIGURATION.md): human-facing
+  output settings.
+- [`docs/LOGIN-TRANSCRIPTS.md`](docs/LOGIN-TRANSCRIPTS.md): `login --record`.
+- [`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md): the unified
+  host-key policy, the identity a key is enrolled under, controlled enrollment.
+- [`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md): transport selection,
+  slots, build composition.
+- [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md): every registered code
+  (generated).
 
 Design:
 
-- `docs/ARCHITECTURE.md`: the packages and their boundaries.
-- `docs/DESIGN.md`: why karvi does what it does, the settled decisions with their reasons and the alternatives not taken.
-- `docs/EXAMPLES.md`: the worked design sessions, one chapter each, from the public-repository preparation on.
-- `docs/TRANSPORT-DRIVER-ARCHITECTURE.md`: the driver contract, the session layer, the transports, the extension rule.
-- `examples/`: one commented example of each file karvi reads (a configuration, an inventory, a credential CSV, a `.cloginrc`, a target file, a commands file) and how to try them with a dry run.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): the packages and their
+  boundaries.
+- [`docs/DESIGN.md`](docs/DESIGN.md): why karvi does what it does, the settled
+  decisions with their reasons and the alternatives not taken.
+- [`docs/EXAMPLES.md`](docs/EXAMPLES.md): the worked design sessions, one
+  chapter each, from the public-repository preparation on.
+- [`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](docs/TRANSPORT-DRIVER-ARCHITECTURE.md):
+  the driver contract, the session layer, the transports, the extension rule.
+- `examples/`: one commented example of each file karvi reads (a configuration,
+  an inventory, a credential CSV, a `.cloginrc`, a target file, a commands file)
+  and how to try them with a dry run.
 
 Qualification and release:
 
-- `docs/BUILD-QUALIFICATION.md`: the build, release, and native session gates.
-- `docs/CISCO-IOSXE-QUALIFICATION.md`: what the fixture shows and the laboratory matrix.
-- `ROADMAP.md`, `CHANGELOG.md`: what is not built yet, what each release changed.
-- `BUILD-HOWTO.md`, `BUILDING.md`: building from source.
+- [`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md): the build,
+  release, and native session gates.
+- [`docs/CISCO-IOSXE-QUALIFICATION.md`](docs/CISCO-IOSXE-QUALIFICATION.md): what
+  the fixture shows and the laboratory matrix.
+- [`ROADMAP.md`](ROADMAP.md), [`CHANGELOG.md`](CHANGELOG.md): what is not built
+  yet, what each release changed.
+- [`BUILD-HOWTO.md`](BUILD-HOWTO.md), [`BUILDING.md`](BUILDING.md): building
+  from source.
 
 ## Repository map
 
