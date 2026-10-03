@@ -110,7 +110,9 @@ the follow. Neither `job` verb launches a daemon.
 
 `karvi watch` is a screen to keep open through a maintenance window. It
 reads the shared scoreboard directory
-(`watch.directory`, `/dev/shm/karvi/scoreboards`) every `watch.refresh`
+(`watch.directory`, `/dev/shm/karvi/scoreboards`; on a host without the
+scratch root, the operator's own under `basedir`, "The shared trees")
+every `watch.refresh`
 (`2s`) and shows one row per job: `JOB-ID`, `TIME` (the running duration,
 then the end time), `STATUS`, `OPERATOR`, `MODE` (`login`, `cmd`, `run`,
 `crun`, `exercise`), `DONE` as `done/total`, `FAIL`, `ACTV` (devices in
@@ -527,14 +529,62 @@ sudo karvi setup shared --group netops --mode 2775
 That creates `/opt/karvi` (0755), under it `shared`, and under that
 `jobs`, `crun`, and `transcripts`, the four in the group with group write
 and search and the setgid bit (2770, or 2775 with `--mode`), so the trees
-carry the shared directory's own group and mode; and beside `shared` the
+carry the shared directory's own group and mode; beside `shared` the
 operators' `users` directory in the same group at 1770 (group write and
-search, the sticky bit). Each is reported as `created`, `exists`, or
+search, the sticky bit); and the scratch root with its rule for every
+boot (below). Each is reported as `created`, `exists`, or
 `repaired`: a real directory with another group or mode is set right and
 the line says what it had, so the command is also the way to fix a broken
 layout; only a path that is not a real directory (a file, a link) is left
 as it is and reported (`setup_directory_mismatch`). Without root the
 command is refused before anything is looked at (`setup_requires_root`).
+
+**The scratch root.** On the tmpfs `/dev/shm`, setup makes
+`/dev/shm/karvi` and its `scoreboards` at 3770 (setgid and sticky: every
+member makes its own folder or scoreboard file there and none removes
+another's) and its `capacity` at 2770 (setgid alone: every member
+rewrites the ledger files another wrote), all in the group, and writes
+`/etc/tmpfiles.d/karvi.conf` naming the same three with the same group
+and modes, owned by root:
+
+```text
+created  /dev/shm/karvi  group netops  mode 3770
+created  /dev/shm/karvi/scoreboards  group netops  mode 3770
+created  /dev/shm/karvi/capacity  group netops  mode 2770
+created  /etc/tmpfiles.d/karvi.conf  mode 0644
+```
+
+`/dev/shm` is emptied at every boot, and systemd-tmpfiles makes the three
+again from the rule; `systemd-tmpfiles --create /etc/tmpfiles.d/karvi.conf`
+does it at once. The rule is reported as `created`, `exists`, or `updated`
+(another group or mode: run setup again after changing either); a file
+there without karvi's first line is the site's and is reported and left
+(`setup_tmpfiles_mismatch`), and a host without `/etc/tmpfiles.d` is told
+(`setup_tmpfiles_dir_missing`), the directories made either way.
+`packaging/tmpfiles.d/karvi.conf` is the rule for the group `netops`.
+
+In the scratch root each operator's runs make the operator's own folder,
+`/dev/shm/karvi/<username>` (0700), for the askpass socket, the system
+transport's ssh configuration (`tempdir`), and the control sockets
+(`ssh.control-path-root`); every operator's activities write their
+scoreboards to `scoreboards`, so `karvi watch` shows the team's work; and
+the session leases of `dispatch.server-max-inflight` are held in
+`capacity`, so the cap holds across every operator on the host.
+
+No operator's run creates the scratch root: the first operator to create
+it would close it to every other. On a host without it, the scratch and
+the control sockets are under `basedir` (`tmp`, `socket/ssh`), and the
+scoreboards and the leases in `basedir/state`, one operator's: `karvi
+watch` shows the operator's own jobs and the cap holds per operator, with
+no warning, since nothing the site made is wrong. A `scoreboards` or
+`capacity` folder missing from a scratch root that exists is made by the
+first run that needs it, in the root's group. One that exists but the
+operator cannot use is passed by with one warning naming it and the
+private place taken: `shared scoreboard directory unavailable`, or
+`capacity_root_unusable` in `shared capacity root unavailable`, whose
+message names the shape it needs. A scratch root an earlier release left
+behind (0700, the first operator's) is set right by `sudo karvi setup
+shared`, which reports it `repaired`.
 
 **The operators' roots.** Once `/opt/karvi/users` exists, an operator's
 first activity that needs the private root creates

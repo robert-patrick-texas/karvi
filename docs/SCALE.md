@@ -34,7 +34,7 @@ device count, and the host's cap.
 | `dispatch.default` | `serial` | `serial`, `parallel`, `wave` | The mode a job runs in; `serial` is width 1 whatever the host has. |
 | `dispatch.parallel-workers` | `0` | 0 to 4096 | The parallel width; `0` is the logical CPU count. |
 | `dispatch.wave-start-width`, `dispatch.wave-max-width` | `0` | `0` auto, else 1 to the ceiling | The wave mode's start and ceiling. |
-| `dispatch.server-max-inflight` | `0` | 0 to 4096 | The host's cap on device sessions in flight across every job, every operator's daemon, and in-process runs, held as leases in the capacity ledger under `sessions.shared-capacity-root`; `0` is `min(256, max(32, 8 × CPU))`. |
+| `dispatch.server-max-inflight` | `0` | 0 to 4096 | The host's cap on device sessions in flight across every job, every operator's daemon, and in-process runs, held as leases in the capacity ledger under `sessions.shared-capacity-root`, across operators where the site made the scratch root (`sudo karvi setup shared`) and per operator where it did not; `0` is `min(256, max(32, 8 × CPU))`. |
 | `dispatch.absolute-max-width` | `512` | 1 to 4096 | The hard ceiling the dispatcher applies to any job's width; a wave ceiling above it is refused at load. |
 
 The cap's default by host, and the width a job gets under `parallel`

@@ -608,3 +608,141 @@ tree's `bin/` serves it).
 
 **Roadmap.** The man page, the roadmap's first item; `main` protected when
 the operator chooses.
+
+## 9. The scratch root shared: the capacity ledger, the root's creation, and `setup shared` (2026-10-03)
+
+The first of five objectives the operator set after the release 0.25.0
+(the credential prompt's line editing, the `--record` footer, `--cd` for
+`run` and `command`, and `--fs` follow): scratch directories under
+`/dev/shm/karvi` made with the group and modes that let every member of
+the operators' group work there, and a helper that makes them again at
+every boot.
+
+**What it gains.** On a host the site prepared, every operator's
+scoreboards reach the one watch screen and every operator's sessions count
+against the one host-wide cap, where the second operator's devices had
+failed, or had fallen silently to private places; a reboot keeps the
+layout; and on a host the site did not prepare, an operator's run no
+longer claims the scratch root for itself.
+
+**The review.** What existed: `setup shared` made the trees under
+`/opt/karvi` and nothing on `/dev/shm`; `packaging/tmpfiles.d/karvi.conf`
+existed, named by no document, installed by nothing, its group fixed and
+its `capacity` line carrying the sticky bit. Executed with the lab's
+second account `netops.test` in the operators' group, three faults
+showed, then two more under the first fixes:
+
+1. the first operator's run created `/dev/shm/karvi` at 0700 (the scratch
+   chain and the control path made the missing parent with the leaf);
+2. the capacity ledger made its lock and ledger files 0600 and `devices`
+   0700 whatever its root, so under a root made right (2770 in the group)
+   the second operator's every device failed with
+   `capacity_admission_failed: open …/server.lock: permission denied`;
+3. the tmpfiles line's sticky bit on `capacity` would refuse a member's
+   rename over a ledger another wrote;
+4. the ledger's reaper read the signal check's EPERM, the answer for
+   another user's live process, as death, so each operator removed every
+   other's leases and filled the cap alone;
+5. a ledger the operator could not read was taken as empty, and the write
+   after it would have replaced another operator's leases.
+
+**The rules settled.** The ledger's directories and files take its root's
+group modes under a setgid root (2770 gives 0660), the operator's own
+files left private being widened at their next use; another user's
+process is alive; an unreadable ledger is an error; a shared root present
+but closed to the operator is said once (`capacity_root_unusable`) and the
+private root taken. The operator agreed that a missing shared directory
+means the private place without a warning and one that exists but cannot
+be used means the private place with one. The rule was then refined before
+it was recorded, since the suites point `watch.directory` and the capacity
+root at folders of their work directories that nothing makes beforehand:
+an operator's process never creates a missing parent, and makes a
+directory only inside a parent that exists, so it never creates the
+scratch root, makes its own `<username>` folder in it, and makes a
+missing `scoreboards` or `capacity` folder with a setgid parent's bits.
+`setup shared` makes the root and its two folders and writes the tmpfiles
+rule from the same list of places, in the group it is given.
+
+**The sections, as committed.** A (`a14bae0`) the ledger; B (`fd5acf3`)
+no operator creates the scratch root; C (`db157e1`) setup and the boot
+rule; D the documents and this chapter.
+
+**Executed.** The ledger, operator A as `netops` and B as `netops.test`
+sharing one 2770 root with a host cap of one session (A holds `show
+slow`, four seconds; B starts a second later):
+
+```text
+released v0.25.0:  B  karvi: target=fake status=connection_error error=capacity_admission_failed: open cap/server.lock: permission denied
+                      ! exit=101 elapsed=51ms
+lab, A's 0600 files:  B  warning: shared capacity root unavailable (capacity_root_unusable: cap/devices: permission denied; a shared capacity root needs mode 2770 in the operators' group …); using private fallback t/b/state/capacity
+lab, together:        B  ! exit=0 elapsed=4.31s   (B done +5.37s, A done +4.72s: B waited for A's lease)
+lab without EPERM:    B  ! exit=0 elapsed=677ms   (B done +1.73s, A done +4.76s: A's live lease reaped)
+```
+
+The scratch root, with the scratch, socket, scoreboard, and capacity keys
+at their defaults:
+
+```text
+$ karvi run ...            # released v0.25.0, no /dev/shm/karvi before
+drwx------ netops:netops /dev/shm/karvi
+drwxrwx--- netops:netops /dev/shm/karvi/scoreboards
+drwx------ netops:netops /dev/shm/karvi/capacity
+drwx------ netops:netops /dev/shm/karvi/netops
+$ karvi run ...            # the lab build, no /dev/shm/karvi before
+! exit=0 elapsed=715ms
+ls: cannot access '/dev/shm/karvi': No such file or directory
+$ karvi run ...            # B, scoreboards remade 0700 by A
+warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: permission denied); using private fallback t/b/state/scoreboards
+```
+
+`setup shared` in a private mount namespace (`sudo unshare --mount`, a
+tmpfs over `/opt`, `/dev/shm`, and `/etc/tmpfiles.d`), so the host was
+not touched; then the boot rule, then both operators:
+
+```text
+$ sudo karvi setup shared
+created  /opt/karvi/shared  group netops  mode 2770
+created  /opt/karvi/shared/jobs  group netops  mode 2770
+created  /opt/karvi/shared/crun  group netops  mode 2770
+created  /opt/karvi/shared/transcripts  group netops  mode 2770
+created  /opt/karvi/users  group netops  mode 1770
+created  /dev/shm/karvi  group netops  mode 3770
+created  /dev/shm/karvi/scoreboards  group netops  mode 3770
+created  /dev/shm/karvi/capacity  group netops  mode 2770
+created  /etc/tmpfiles.d/karvi.conf  mode 0644
+$ rm -rf /dev/shm/karvi; systemd-tmpfiles --create /etc/tmpfiles.d/karvi.conf
+drwxrws--T root:netops /dev/shm/karvi
+drwxrws--- root:netops /dev/shm/karvi/capacity
+drwxrws--T root:netops /dev/shm/karvi/scoreboards
+$ karvi watch --format table      # B, after a run by A and one by B
+  JOB-ID            TIME      STATUS      OPERATOR     MODE        DONE   FAIL  ACTV  TARGET
+  261003-024044-00  02:40:44  completed   netops.test  run         1/1       0     0  fake
+  261003-024043-00  02:40:44  completed   netops       run         1/1       0     0  fake
+$ sudo karvi setup shared         # over the root a v0.25.0 run left
+repaired /dev/shm/karvi  group netops  mode 3770  (was group netops mode 0700)
+repaired /dev/shm/karvi/scoreboards  group netops  mode 3770  (was group netops mode 0750)
+repaired /dev/shm/karvi/capacity  group netops  mode 2770  (was group netops mode 0700)
+created  /etc/tmpfiles.d/karvi.conf  mode 0644
+```
+
+**Found on the way.** The Go tests reached the host's `/dev/shm/karvi`
+(the `cli` and `daemon` packages created it with a capacity ledger and a
+socket folder), and one daemon test passed only because of it: without
+it, its askpass socket under Go's long test directory passed the socket
+path limit (`bind: invalid argument`). The test isolation now gives each
+test binary a short scratch root and a capacity root of its own, and the
+`cli` package's re-executed daemon removes what its isolation made. The
+setup help still described a mismatched directory as left alone, though
+setup had repaired it for some time. A repaired scratch root keeps the
+owner who made it until the boot rule makes it root's; noted, not changed.
+
+**Not taken.** The root created from an operator's run with a group mode
+(the group is the site's word, given to setup). A warning on a host
+without the root. A packaged tmpfiles file installed with a fixed group.
+The sticky bit on `capacity`. Never creating an explicit path's folder
+(the suites' parents exist; the rule is about parents). Chowning a
+repaired scratch root to root at setup.
+
+**Roadmap.** The credential prompt's line editing and Ctrl-C, then the
+`--record` footer, then `--cd` and `--fs` for `run` and `command` (one
+design, one execution-plan schema change), then the man page.

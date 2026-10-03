@@ -438,7 +438,7 @@ audit, scoreboards, metrics, per-user daemon IPC, capacity admission,
 retention (`karvi-prune`, `docs/PRUNE.md`), PTY login recording, shared display formatting, and
 the watch screen (`karvi watch`: the running jobs above a rule, the
 finished ones below, a detail pane per job, the `/` filter and the `s`
-sort, `docs/OPERATIONS.md` "The watch screen"), the site's shared trees and the operators' roots under `/opt/karvi/users/<username>` (`sudo karvi setup shared`;
+sort, `docs/OPERATIONS.md` "The watch screen"), the site's shared trees, the operators' roots under `/opt/karvi/users/<username>`, and the scratch root `/dev/shm/karvi` with its rule for every boot (`sudo karvi setup shared`;
 `docs/OPERATIONS.md` "The shared trees").
 
 Scaling up (a wide parallel host, a large network, the free-space check per volume, the daemon's memory budget) is `docs/SCALE.md`; the settings it names are in the configuration reference.

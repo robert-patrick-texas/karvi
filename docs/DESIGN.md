@@ -1114,6 +1114,34 @@ finds the shift's work in one place; an operator outside the group is told, not
 diverted to a private tree. *Not taken:* a silent fall back; a `[shared]`
 table; moving a site's old trees.
 
+**The scratch root is the site's; an operator makes only its own folder
+in it.** `sudo karvi setup shared` makes `/dev/shm/karvi` and its
+`scoreboards` at 3770 and its `capacity` at 2770 in the operators' group,
+and writes `/etc/tmpfiles.d/karvi.conf` from the same list of places, so
+the boot makes them again on the emptied tmpfs. An operator's process
+never creates a missing parent: it makes its own `<username>` folder
+(0700) inside an existing root, and a missing `scoreboards` or `capacity`
+folder inside an existing parent with a setgid parent's bits. A root that
+is absent gives the private places under `basedir` without a word; a
+folder that exists but is closed to the operator gives them with one
+warning naming it. The capacity ledger's files take its root's group modes
+(2770 gives 0660), another user's process is a live lease holder, and a
+ledger that cannot be read is an error. *Why:* the first operator's run
+had created the root at 0700 and closed it to every other, whose
+scoreboards and leases fell silently to private places, so the team's
+watch showed one operator and the host's cap held per operator; under a
+root made right, the ledger's private files refused the second operator's
+every device, and the reaper, reading EPERM as death, took every other
+operator's live lease; a boot empties `/dev/shm`, so a one-time setup
+alone would last until the next. *Not taken:* creating the root from an
+operator's run with a group mode (the group is the site's word, given to
+setup); a warning on a host without the root (nothing the site made is
+wrong there); a packaged tmpfiles file with a fixed group (the site's group
+is setup's `--group`); the sticky bit on `capacity` (a member could not
+replace a ledger another wrote); a suite-wide rule that an explicit path is
+never created (the suites point these keys at folders of their work
+directory, whose parent exists).
+
 **Login transcripts record the device stream only.** `--record[=PATH]` writes
 `<device>-<HHMMSS>.log` and its metadata side by side in a day folder,
 exclusively created and bumped together on collision; the transcript holds what
