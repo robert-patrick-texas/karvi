@@ -56,6 +56,7 @@ const (
 	retiredV0100Catalog = "v0.10.0 (catalog name)"
 	retiredV0100b       = "v0.10.0"
 	retiredV0100a       = "v0.10.0"
+	retiredV0260        = "v0.26.0"
 )
 
 var entries = []Entry{
@@ -654,8 +655,6 @@ var entries = []Entry{
 	failure("border_options_conflict", "usage", exitUsage, false, "`--border` and `--noborder` are both given."),
 	failure("output_options_conflict", "usage", exitUsage, false, "`command` is given both `--of` and `--nof`; the one says output files on, the other off."),
 	failure("port_out_of_range", "usage", exitUsage, false, "`--port` is outside 1..65535."),
-	failure("dispatch_percent_out_of_range", "usage", exitUsage, false, "A `run` error-percent option is outside 0..100."),
-	failure("dispatch_value_negative", "usage", exitUsage, false, "A `run` worker, width, or error-count option is negative."),
 	failure("blind_return_out_of_range", "usage", exitUsage, false, "`--blind-return` is outside 0..20, or a command ends in more than twenty `\\r` sequences."),
 	failure("blind_return_conflict", "usage", exitUsage, false, "One command both ends in `\\r` sequences and is given `--blind-return`, or is given `--blind-return` more than once; the two counts contradict, and one form is written."),
 	failure("declaration_before_command", "usage", exitUsage, false, "`--expect`, `--blind`, or `--blind-return` is given before the first `--cmd`; each attaches to the `--cmd` it follows (or to the one freeform command) and is written after it."),
@@ -802,4 +801,6 @@ var entries = []Entry{
 	retired("cloginrc_shared_mode_invalid", retiredV011to017, "A shared credential file's mode is not 0640. One code per condition for every credential file backend.", "credential_file_shared_mode_invalid"),
 	retired("cloginrc_shared_owner_unapproved", retiredV011to017, "A shared credential file is owned by a user not in `security.approved-admin-users`. One code per condition for every credential file backend.", "credential_file_shared_owner_unapproved"),
 	retired("cloginrc_symlink_rejected", retiredV011to017, "A `.cloginrc` path is a symlink while credential symlinks are not allowed. One code per condition for every credential file backend.", "credential_file_symlink_rejected"),
+	retired("dispatch_percent_out_of_range", retiredV0260, "A `run` error-percent option was outside 0..100; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value.", "config_value_out_of_range"),
+	retired("dispatch_value_negative", retiredV0260, "A `run` worker, width, or error-count option was negative; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value.", "config_value_out_of_range"),
 }

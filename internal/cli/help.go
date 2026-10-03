@@ -130,6 +130,11 @@ take one or two leading dashes (-echo and --echo are the same), and a value
 may be attached with =. In command and run, options are recognized only until
 device command text begins; after that every argument, including -h and --,
 is sent to the device. Use -- to begin device text with a dash.
+
+An option that stands for a configuration key, such as --order for
+dispatch.order or --workers for dispatch.parallel-workers, sets that key for
+the invocation, above the files and the environment and below --set: a key
+the site has locked refuses the option, and the key's range applies.
 `
 
 const versionHelp = `Usage:

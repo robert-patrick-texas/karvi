@@ -126,6 +126,13 @@ time. Two modes widen it:
   `--wave-gate-error-percent`) can stop the job and `--wave-delay` can
   pause it.
 
+Each of these options sets its key for the one run (`--dispatch` and its
+shortcuts `dispatch.default`, `--workers` `dispatch.parallel-workers`, and
+so on), above the files and the environment and below `--set`: a key the
+site has locked refuses the option (`config_lock_violation`, exit 3), and
+a value outside the key's range is the key's own error, exit 2
+(`--wave-delay 2h` is `config_value_out_of_range`, `0s..1h`).
+
 Whichever the mode, the host's cap `dispatch.server-max-inflight` bounds
 the sessions in flight across every job and every operator on the host:
 a worker past the cap waits for a lease before it connects, so a wide job

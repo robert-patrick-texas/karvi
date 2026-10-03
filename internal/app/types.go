@@ -4,8 +4,6 @@
 package app
 
 import (
-	"time"
-
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -64,15 +62,6 @@ type RunOptions struct {
 	BlindReturns          []int                         `json:"blind_returns,omitempty"` // empty, or one count per command
 	Blind                 []bool                        `json:"blind,omitempty"`         // empty, or one tolerance flag per command
 	Expectations          [][]executionplan.Expectation `json:"expectations,omitempty"`  // empty, or one expect-and-send list per command
-	Dispatch              string                        `json:"dispatch,omitempty"`
-	Workers               int                           `json:"workers,omitempty"`
-	StartWidth            int                           `json:"start_width,omitempty"`
-	MaxWidth              int                           `json:"max_width,omitempty"`
-	HaltErrorCount        int                           `json:"halt_error_count,omitempty"`
-	HaltErrorPercent      int                           `json:"halt_error_percent,omitempty"`
-	WaveGateErrorCount    int                           `json:"wave_gate_error_count,omitempty"`
-	WaveGateErrorPercent  int                           `json:"wave_gate_error_percent,omitempty"`
-	WaveDelay             time.Duration                 `json:"wave_delay,omitempty"`
 	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
 	PlatformCommands      bool                          `json:"platform_commands,omitempty"` // crun with no command: each device its platform's crun-commands (12.9)
 	Collection            string                        `json:"collection,omitempty"`        // crun, or run given --cd: the word; the plan carries the collection directory, file mode, and word

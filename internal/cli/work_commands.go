@@ -403,16 +403,6 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 			return usageError(streams.Stderr, "cli_option_value_invalid", "--address-authority %q must be TARGET=client|daemon", raw)
 		}
 	}
-	for _, o := range []*option{optHaltPercent, optGatePercent} {
-		if v := inv.Int(o); v < 0 || v > 100 {
-			return usageError(streams.Stderr, "dispatch_percent_out_of_range", "--%s must be 0..100, got %d", o.name, v)
-		}
-	}
-	for _, o := range []*option{optWorkers, optStartWidth, optMaxWidth, optHaltCount, optGateCount} {
-		if v := inv.Int(o); v < 0 {
-			return usageError(streams.Stderr, "dispatch_value_negative", "--%s cannot be negative, got %d", o.name, v)
-		}
-	}
 	if len(inv.Targets) == 0 {
 		// run's --platform was once the selector; say where it went.
 		hint := ""
@@ -441,7 +431,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Dispatch: inv.String(optDispatch), Workers: inv.Int(optWorkers), StartWidth: inv.Int(optStartWidth), MaxWidth: inv.Int(optMaxWidth), HaltErrorCount: inv.Int(optHaltCount), HaltErrorPercent: inv.Int(optHaltPercent), WaveGateErrorCount: inv.Int(optGateCount), WaveGateErrorPercent: inv.Int(optGatePercent), WaveDelay: inv.Duration(optWaveDelay), ContinueDeviceOnError: inv.Flag(optContinue), Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, ContinueDeviceOnError: inv.Flag(optContinue), Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
 	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// A crun runs the device's whole list past a rejected statement;

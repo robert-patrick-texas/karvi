@@ -135,9 +135,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	defer release()
 	draft := planner.DraftOptions{
 		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations,
-		Dispatch: opts.Dispatch, Workers: opts.Workers, StartWidth: opts.StartWidth, MaxWidth: opts.MaxWidth,
-		HaltErrorCount: opts.HaltErrorCount, HaltErrorPercent: opts.HaltErrorPercent, WaveGateErrorCount: opts.WaveGateErrorCount, WaveGateErrorPercent: opts.WaveGateErrorPercent,
-		WaveDelay: opts.WaveDelay, ContinueDeviceOnError: opts.ContinueDeviceOnError, Transport: opts.Transport,
+		ContinueDeviceOnError: opts.ContinueDeviceOnError, Transport: opts.Transport,
 		PlatformCommands: opts.PlatformCommands, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: !opts.Detach,
 		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { warning(streams.Stderr, s) }},

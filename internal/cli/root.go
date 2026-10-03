@@ -174,6 +174,19 @@ func (inv *Invocation) common() app.CommonOptions {
 	if inv.Set(optOrder) {
 		common.ConfigFlags["dispatch.order"] = inv.String(optOrder)
 	}
+	for _, d := range dispatchOptionKeys {
+		if !inv.Set(d.opt) {
+			continue
+		}
+		switch d.opt.typ {
+		case typeInt:
+			common.ConfigFlags[d.key] = int64(inv.Int(d.opt))
+		case typeDuration:
+			common.ConfigFlags[d.key] = inv.Duration(d.opt).String()
+		default:
+			common.ConfigFlags[d.key] = inv.String(d.opt)
+		}
+	}
 	// --ping and --noping set the effective network.ping-targets through the
 	// lock-aware cli layer.
 	if inv.Flag(optPing) {
@@ -182,6 +195,26 @@ func (inv *Invocation) common() app.CommonOptions {
 		common.ConfigFlags["network.ping-targets"] = false
 	}
 	return common
+}
+
+// dispatchOptionKeys are run's Dispatch options and the keys they stand
+// for. Each is its key's override in the lock-aware cli layer, as --order
+// is, so the key's range, its cross-key checks, and a site's lock apply to
+// the option as they do to --set; the planner reads the keys alone.
+// --dp, --dw, and --ds reach here as --dispatch.
+var dispatchOptionKeys = []struct {
+	opt *option
+	key string
+}{
+	{optDispatch, "dispatch.default"},
+	{optWorkers, "dispatch.parallel-workers"},
+	{optStartWidth, "dispatch.wave-start-width"},
+	{optMaxWidth, "dispatch.wave-max-width"},
+	{optHaltCount, "dispatch.halt-on-error-count"},
+	{optHaltPercent, "dispatch.halt-on-error-percent"},
+	{optGateCount, "dispatch.wave-gate-error-count"},
+	{optGatePercent, "dispatch.wave-gate-error-percent"},
+	{optWaveDelay, "dispatch.wave-gate-timed-delay"},
 }
 
 func renderVersion(format string, stdout, stderr io.Writer) int {

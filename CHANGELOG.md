@@ -174,6 +174,22 @@
   means, where eight of them were listed without a word; the percent halt
   is described as built, against the devices ended so far. A test fails
   on a help line in a shape the layout does not know.
+- **`run`'s Dispatch options obey their keys' locks and ranges.**
+  `--dispatch` (and `--dp`, `--dw`, `--ds`), `--workers`, `--start-width`,
+  `--max-width`, the two halts, the two wave gates, and `--wave-delay` set
+  their `dispatch.*` keys through the lock-aware layer, as `--order` and
+  `--blind-wait` do, where they had gone to the planner beside the
+  configuration: a site's lock on any of those keys was passed by the
+  option (`--max-width 64` under a lock of 8 ran at 64), and values the
+  keys refuse were clamped without a word (`--max-width 600` ran at 512,
+  `--start-width 100 --max-width 10` at 10) or accepted (`--wave-delay
+  2h`, past the key's `0s..1h`). A locked key now refuses its option
+  (`config_lock_violation`, exit 3), and an out-of-range value is the
+  key's own error (`config_value_out_of_range`, exit 2), where
+  `dispatch_value_negative` and `dispatch_percent_out_of_range` (exit 4)
+  are retired; `--set` still outranks an option, and `--halt-on-error-count
+  0` now turns a configured halt off. The top help says so for every
+  option that stands for a key.
 
 ## 0.25.0 - 2026-09-30
 

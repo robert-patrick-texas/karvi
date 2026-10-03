@@ -1738,6 +1738,42 @@ $ grep -- --wave-delay after/run.always | cat -v
   ^[[36m--wave-delay DURATION^[[0m          A pause between waves
 ```
 
+Section K, the Dispatch options as their keys' overrides (item 6), with
+item 7's sentence in the top help. Under a global file placed inside
+`sudo unshare --mount` as in item 6, the lab build:
+
+```text
+== locked: wave-max-width = 8, wave-gate-timed-delay = 0s
+--dw --max-width 64       config_lock_violation: … lock "dispatch.wave-max-width" declared at /opt/karvi/config.toml   exit 3
+--dw --wave-delay 5m      config_lock_violation: … lock "dispatch.wave-gate-timed-delay" …                             exit 3
+--dw --max-width 8        config_lock_violation (an equal value too, as --set dispatch.default=serial is)              exit 3
+== locked: default = serial
+--dp, --dispatch=wave, --ds                         config_lock_violation: … lock "dispatch.default" …                exit 3
+```
+
+and without a lock:
+
+```text
+--dw --wave-delay 2h                      config_value_out_of_range: … must be 0s..1h        exit 2
+--dw --wave-delay -1s                     config_duration_negative                           exit 2
+--dw --max-width 600                      config_dispatch_wave_max_exceeds_absolute          exit 2
+--dw --start-width 100 --max-width 10     config_dispatch_wave_max_below_start               exit 2
+--halt-on-error-percent 101               config_value_out_of_range: … must be 0..100        exit 2
+--set dispatch.wave-max-width=20 … --dw --max-width 64    dispatch: wave start-width=16 max-width=20
+KARVI__DISPATCH__HALT_ON_ERROR_COUNT=1, --tl d1,r1        exit 102; with --halt-on-error-count 0, exit 101
+a stream: --workers -1, show clock, --go   config_value_out_of_range, the next job run at --workers 1
+```
+
+The flag layer took Go `int` values as `config_type_error`; the new
+configuration test found it before the lab did, and the command line
+writes the integer keys as `int64`. `--halt-on-error-count 0` now turns a
+configured halt off, where a 0 had fallen back to the configuration. A
+lock refuses an option whose value equals the locked one, as it refuses
+`--set` with it. The two command-line dispatch codes are retired at
+v0.26.0, the expected next minor, as the registry's new rows are. Battery:
+the seventeen suites on a lab build after K (19:13:59 to 19:17:23 UTC),
+pass; `go test ./...`, vet, gofmt, and `make generated-clean`.
+
 **The sections.** H, the help changes (items 3 and 4), checked by the
 help outputs captured before and after; K, the Dispatch options as their
 keys' overrides (item 6), with item 7's sentence in the top help; E, the

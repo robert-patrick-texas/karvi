@@ -287,8 +287,6 @@ Active failure causes.
 | `device_session_cap_out_of_range` | inventory | 5 | no | A device `session_cap` is outside 1..32. |
 | `device_timeout` | timeout | 107 | yes | A device's command list, its session-init profile included, does not complete within `execution.device-timeout`; the session ends and the remaining commands are not attempted. |
 | `device_transport_selector_invalid` | usage | 4 | no | A device transport selector is not `default`, `preferred`, `telnet`, or a valid slot name. |
-| `dispatch_percent_out_of_range` | usage | 4 | no | A `run` error-percent option is outside 0..100. |
-| `dispatch_value_negative` | usage | 4 | no | A `run` worker, width, or error-count option is negative. |
 | `display_border_render_too_long` | config | 2 | no | A rendered border exceeds the maximum display length. |
 | `display_border_template_too_long` | config | 2 | no | A border template exceeds the maximum display length. |
 | `display_line_too_long` | config | 2 | no | A rendered header or footer line exceeds the maximum display length. |
@@ -690,6 +688,8 @@ No longer emitted. A retired code is never reused for another cause.
 | `daemon_ipc_incompatible` | v0.18.0 to v0.22.0 | `daemon_incompatible` | The daemon's IPC schema alone decided compatibility, so an execution plan that moved under an unchanged schema left `compatible: true` and the first run refused at `prepare_job` (v0.16.0, v0.19.0); the version and the schema now both decide. |
 | `daemon_restart_active_jobs` | v0.10.0 | `daemon_active_jobs` | Restart refused while jobs are active. |
 | `device_capacity_timeout` | v0.10.0 (catalog name) | `capacity_admission_failed` | Device capacity wait timed out. |
+| `dispatch_percent_out_of_range` | v0.26.0 | `config_value_out_of_range` | A `run` error-percent option was outside 0..100; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value. |
+| `dispatch_value_negative` | v0.26.0 | `config_value_out_of_range` | A `run` worker, width, or error-count option was negative; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value. |
 | `enable_credential_missing` | v0.10.0 (catalog name) | `credential_enable_missing` | Enable credential missing. |
 | `follow_record_invalid` | v0.11.0 to v0.17.0 | `ipc_result_malformed` | A record read from the canonical file at an announced range failed verification (LF, length, SHA-256, schema, sequence, or record ID); since daemon IPC schema 8 the record travels in the follow stream and the client reads no file, so a frame that does not continue the stream or a record that fails its validation is `ipc_result_malformed`. |
 | `host_key_comparison_invalid` | v0.11.0 to v0.17.0 | `host_key_changed`, `host_key_not_enrolled` | A pre-connection key comparison had no result; the handshake's check decides. |

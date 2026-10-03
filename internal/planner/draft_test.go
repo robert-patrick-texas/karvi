@@ -131,7 +131,8 @@ func TestDraftFromK03PinsDigest(t *testing.T) {
 	}
 }
 
-// TestDraftSettingsPrecedence: each CLI value wins over configuration, and
+// TestDraftSettingsPrecedence: the dispatch settings are the configuration's
+// keys (run's Dispatch options reach them as overrides in the cli layer),
 // configuration over the CPU default.
 func TestDraftSettingsPrecedence(t *testing.T) {
 	sets := []string{"dispatch.default=wave", "dispatch.parallel-workers=8", "dispatch.wave-start-width=20", "dispatch.wave-max-width=40", "dispatch.halt-on-error-count=5", "dispatch.halt-on-error-percent=50", "dispatch.wave-gate-error-count=6", "dispatch.wave-gate-error-percent=60", `dispatch.wave-gate-timed-delay="7s"`, "display.run.echo=true"}
@@ -145,11 +146,9 @@ func TestDraftSettingsPrecedence(t *testing.T) {
 	}{
 		{"cpu defaults", nil, nil, executionplan.DispatchSettings{Mode: "serial", Width: 4, StartWidth: 16, MaxWidth: 32, DispatchOrder: "default"}, false},
 		{"configuration beats cpu", sets, nil, executionplan.DispatchSettings{Mode: "wave", Width: 8, StartWidth: 20, MaxWidth: 40, DispatchOrder: "default", HaltErrorCount: 5, HaltErrorPercent: 50, WaveGateErrorCount: 6, WaveGateErrorPercent: 60, WaveGateTimedDelayNS: int64(7 * time.Second)}, true},
-		{"command line beats configuration", sets, func(o *DraftOptions) {
-			o.Dispatch, o.Workers, o.StartWidth, o.MaxWidth = "parallel", 3, 9, 11
-			o.HaltErrorCount, o.HaltErrorPercent, o.WaveGateErrorCount, o.WaveGateErrorPercent, o.WaveDelay = 1, 2, 3, 4, time.Second
+		{"continue-device-on-error from the run", sets, func(o *DraftOptions) {
 			o.ContinueDeviceOnError = true
-		}, executionplan.DispatchSettings{Mode: "parallel", Width: 3, StartWidth: 9, MaxWidth: 11, DispatchOrder: "default", HaltErrorCount: 1, HaltErrorPercent: 2, WaveGateErrorCount: 3, WaveGateErrorPercent: 4, WaveGateTimedDelayNS: int64(time.Second), ContinueDeviceOnError: true}, true},
+		}, executionplan.DispatchSettings{Mode: "wave", Width: 8, StartWidth: 20, MaxWidth: 40, DispatchOrder: "default", HaltErrorCount: 5, HaltErrorPercent: 50, WaveGateErrorCount: 6, WaveGateErrorPercent: 60, WaveGateTimedDelayNS: int64(7 * time.Second), ContinueDeviceOnError: true}, true},
 	} {
 		opts := draftOptions(plantest.Commands)
 		if tc.opts != nil {

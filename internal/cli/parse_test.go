@@ -741,8 +741,6 @@ func TestMainParserDiagnostics(t *testing.T) {
 		{[]string{"login", "r1", "--tf", "-", "--tf", "-"}, "stdin_source_repeated"},
 		{[]string{"login", "r1", "--port", "70000"}, "port_out_of_range"},
 		{[]string{"command", "r1", "--port", "0", "show", "clock"}, "port_out_of_range"},
-		{[]string{"run", "--target", "r1", "--halt-on-error-percent", "101", "show", "clock"}, "dispatch_percent_out_of_range"},
-		{[]string{"run", "--target", "r1", "--workers", "-1", "show", "clock"}, "dispatch_value_negative"},
 		{[]string{"command", "r1", "--blind-return", "-1", "show", "clock"}, "blind_return_out_of_range"},
 		{[]string{"command", "r1", "--blind-return", "21", "reload"}, "blind_return_out_of_range"},
 		{[]string{"run", "--target", "r1", "--cmd", `reload` + strings.Repeat(`\r`, 21)}, "blind_return_out_of_range"},

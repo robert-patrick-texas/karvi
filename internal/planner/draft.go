@@ -75,15 +75,9 @@ type DraftOptions struct {
 	Blind        []bool
 	Expectations [][]executionplan.Expectation
 
-	Dispatch              string
-	Workers               int
-	StartWidth            int
-	MaxWidth              int
-	HaltErrorCount        int
-	HaltErrorPercent      int
-	WaveGateErrorCount    int
-	WaveGateErrorPercent  int
-	WaveDelay             time.Duration
+	// The dispatch settings are the configuration's dispatch.* keys alone:
+	// run's Dispatch options reach them as overrides in the lock-aware cli
+	// layer.
 	ContinueDeviceOnError bool
 
 	// Transport is the --transport override applied to every target.
@@ -272,17 +266,10 @@ func dispatchSettings(cfg configload.Snapshot, set TargetSet, opts DraftOptions)
 	if cpus <= 0 {
 		cpus = osutil.EffectiveCPU().EffectiveCPUs
 	}
-	mode := opts.Dispatch
-	if mode == "" {
-		mode = cfg.String("dispatch.default")
-	}
-	width := firstPositive(opts.Workers, cfg.Int("dispatch.parallel-workers"), cpus, 1)
-	startWidth := firstPositive(opts.StartWidth, cfg.Int("dispatch.wave-start-width"), minInt(64, maxInt(16, 4*cpus)))
-	maxWidth := firstPositive(opts.MaxWidth, cfg.Int("dispatch.wave-max-width"), minInt(256, maxInt(32, 8*cpus)))
-	delay := opts.WaveDelay
-	if delay == 0 {
-		delay = cfg.Duration("dispatch.wave-gate-timed-delay")
-	}
+	mode := cfg.String("dispatch.default")
+	width := firstPositive(cfg.Int("dispatch.parallel-workers"), cpus, 1)
+	startWidth := firstPositive(cfg.Int("dispatch.wave-start-width"), minInt(64, maxInt(16, 4*cpus)))
+	maxWidth := firstPositive(cfg.Int("dispatch.wave-max-width"), minInt(256, maxInt(32, 8*cpus)))
 	if opts.ActivityType == "command" {
 		mode, width = executionplan.DispatchSerial, 1
 	}
@@ -293,9 +280,9 @@ func dispatchSettings(cfg configload.Snapshot, set TargetSet, opts DraftOptions)
 	return executionplan.DispatchSettings{
 		Mode: mode, Width: width, StartWidth: startWidth, MaxWidth: maxWidth,
 		DispatchOrder: order, ShuffleKey: set.ShuffleKey,
-		HaltErrorCount: valueOr(opts.HaltErrorCount, cfg.Int("dispatch.halt-on-error-count")), HaltErrorPercent: valueOr(opts.HaltErrorPercent, cfg.Int("dispatch.halt-on-error-percent")),
-		WaveGateErrorCount: valueOr(opts.WaveGateErrorCount, cfg.Int("dispatch.wave-gate-error-count")), WaveGateErrorPercent: valueOr(opts.WaveGateErrorPercent, cfg.Int("dispatch.wave-gate-error-percent")),
-		WaveGateTimedDelayNS: int64(delay), ContinueDeviceOnError: opts.ContinueDeviceOnError,
+		HaltErrorCount: cfg.Int("dispatch.halt-on-error-count"), HaltErrorPercent: cfg.Int("dispatch.halt-on-error-percent"),
+		WaveGateErrorCount: cfg.Int("dispatch.wave-gate-error-count"), WaveGateErrorPercent: cfg.Int("dispatch.wave-gate-error-percent"),
+		WaveGateTimedDelayNS: int64(cfg.Duration("dispatch.wave-gate-timed-delay")), ContinueDeviceOnError: opts.ContinueDeviceOnError,
 	}
 }
 
@@ -480,13 +467,6 @@ func firstPositive(values ...int) int {
 		}
 	}
 	return 1
-}
-
-func valueOr(v, fallback int) int {
-	if v != 0 {
-		return v
-	}
-	return fallback
 }
 
 func minInt(a, b int) int {
