@@ -258,6 +258,9 @@
   where it was a code span; numbered sections and chapters link to their
   headings. The documents' prose is wrapped at 80 columns, ERROR-CODES'
   in its generator.
+- **The README's image is in the tree.**
+  `images/karvi-viking-fleet-command.png`, where the README had named GitHub's
+  attachment storage.
 
 ## 0.25.0 - 2026-09-30
 

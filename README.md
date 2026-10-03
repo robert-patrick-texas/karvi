@@ -1,4 +1,4 @@
-<img width="1733" height="907" alt="KARVI-viking-fleet-command" src="https://github.com/user-attachments/assets/efdbb64f-5778-468d-b9b6-cf035052f9f4" />
+<img width="1733" height="907" alt="KARVI-viking-fleet-command" src="images/karvi-viking-fleet-command.png" />
 
 # karvi
 

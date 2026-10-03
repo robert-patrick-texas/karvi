@@ -2416,3 +2416,27 @@ one line, and its words are its anchor) and four lines that are one link
 longer than the line (chapter 7's anchor, and three document links at
 their indentation). The checks become the converter's own in its section,
 the links against the ids the HTML carries.
+
+**The converter's first decisions, agreed.** With the links pushed
+(`5027666`), GitHub's Markdown API (`POST /markdown`, mode `markdown`)
+rendered the 32 documents: its 304 heading ids equal the rule the links
+were made by, every one. goldmark's own ids differ in 6, an underscore
+made a hyphen (`31-cisco_iosxe-…`, chapter 16's `16-no_color-2026-10-03`),
+so the converter gives the headings GitHub's ids itself, pinned by a table
+of awkward headings with the ids the API gave. The command is
+`tools/md-to-html`; its output is the tree's parent's `html/`
+(`/home/netops/karvi/html` beside the tree `/home/netops/karvi/karvi`),
+never the tree; the pages mirror the tree (`html/docs/OPERATIONS.html`), so
+a relative link means the same in both with `.md` made `.html`; images go to
+`html/images/`; the main page is an index of its own, not the README, and
+carries the README's image.
+
+**The image.** It was a 2,498,962-byte PNG (1733 × 907) on GitHub's
+attachment storage alone. A page that fetches it from there breaks offline
+and asks GitHub at every reading, so its bytes are in the tree:
+`images/karvi-viking-fleet-command.png`, as GitHub served them, mirrored to
+`html/images/`, and the README's `src` is that relative path, which GitHub
+renders the same. The source bundle packages the tree, so it carries the
+image (the v0.25.0 bundle was 12,655,199 bytes). Not taken: fetching it at
+build time (the network); the remote URL kept in the HTML; re-encoding the
+artwork; `docs/images/`, whose paths would be rewritten on the way out.
