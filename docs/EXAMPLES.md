@@ -1454,3 +1454,269 @@ one (item 6 below).
    transport: one broker per session open, one accepted connection, a
    five-minute wait and a ten-second exchange, a five-second dial; the lint
    was shown to fail on a page with an undefined macro.
+
+## 14. The man page: `karvi.1` (2026-10-03)
+
+The roadmap's first item, in the form `karvi-prune.8` set: roff by hand,
+the generated regions written by `tools/mangen`, no version or date, the
+install in the debian rules.
+
+**What it gains.** On a host with the package, `man karvi` answered "No
+manual entry"; the page gives the command words, the global options, each
+word's options as `--help` prints them, and the prose that lived in
+README and OPERATIONS alone, which the package does not install. It waits
+on nothing outside the tree.
+
+**The review.** Against the tree at `9e144cd`, a lab build of the four
+executables:
+
+```text
+help outputs (the top and 11 words)   803 lines; 401 repeat a line printed elsewhere
+                                      (the target-input, platform, and transport blocks
+                                      of login, command, run, crun); crun's target
+                                      inputs are run's byte for byte
+option entries                        login 22, command 38, run 47, crun 47
+the smallest                          version 5 lines, config 11, job 19, daemon 21
+```
+
+man-db 2.12 joins the words, on a throwaway tree holding `karvi.1`,
+`karvi-run.1`, and `karvi-setup.8`:
+
+```text
+$ man -w karvi run          → man1/karvi-run.1
+$ man -w karvi crun         → man1/karvi.1, then "No manual entry for crun"   (exit 16)
+$ man -w karvi setup        → man8/karvi-setup.8
+```
+
+For scale, rendered at 80 columns: `ssh(1)` 1056 lines, `git(1)` 1541,
+`systemctl(1)` 2263.
+
+**The rules settled.**
+
+1. *One page or a page per word.* The operator agreed: a page per help
+   text of the parser table, `karvi.1` from the top help and
+   `karvi-WORD.1` from each word's (login, command, run, crun, stream,
+   daemon, job, config, setup, watch, version), all in section 1, each the
+   terminal reference for its word, `man karvi WORD` reaching it through
+   man-db; no page for an alias; the cost twelve files, some thin. Not
+   taken: one page (the shared blocks once per word, or a structure the
+   help texts do not have); pages for the four large words alone; section
+   8 for `karvi-setup`; a page per alias.
+2. *The generated regions.* Executed: the twelve help texts classified by
+   `helplayout`'s line classes; config, daemon, job, setup, version, and
+   watch have no option entry (their options are in the Usage lines and the
+   prose), and the others hold rules in prose between their entries. A
+   throwaway converter over the captured texts (the Usage lines as the
+   SYNOPSIS; the rest as the DESCRIPTION, headings as `.SS`, entries as
+   `.TP` with the words bold, prose as paragraphs) gave twelve pages that
+   `groff -man -ww -z` passed without a warning:
+
+   ```text
+   SYNOPSIS
+          karvi run [target inputs] [options] <device command words...>
+   …
+   DESCRIPTION
+      Target inputs (at least one; command-line order is kept, the first
+          occurrence of a name keeps its position, names are lowercase)
+          --target NAME, --host, --t
+                 Repeatable inventory or direct target, or glob
+   …
+   rendered lines before any hand section: top 83, login 123, command 200,
+   run 230, crun 247, stream 49, setup 50, watch 34, daemon 31, job 30,
+   config 21, version 13
+   ```
+
+   The operator agreed: two generated regions per page, both from the
+   word's help text, the SYNOPSIS (the Usage lines, the action words bold)
+   and the DESCRIPTION (the rest, laid out by the help's own line classes,
+   the words byte for byte); NAME and every other line by hand; `run`'s
+   adapter status (`scrapligo 1.4.2 compiled in`) on the page as in the
+   help. Not taken: an OPTIONS region from the entries alone (empty on six
+   pages, the prose rules lost); the whole page generated; a hand
+   DESCRIPTION with OPTIONS generated where there are entries.
+
+   Found by the converter, two help defects a page would inherit, taken
+   each as its own issue: `login`'s "Host-key modes" lines and `run`'s
+   Dispatch options without a description.
+3. *`login`'s Host-key modes.* Executed: the section's three lines are the
+   only lines of any help text with a gap anywhere but the description
+   column, so the terminal shows them as prose (no accent colour) and the
+   converter ran them into one paragraph; `--ssh-host-key-policy` has no
+   description in `login`, `command`, or `run`, though the registry calls
+   `ssh.host-key-policy` the unified policy of the three. The operator
+   agreed: one shared entry, `hostKeyPolicyHelp`, in the three texts
+   (`crun` through `run`'s), naming the key and the modes with the default,
+   the section removed; a test failing on a help line with a gap anywhere
+   but the column; the 60 help outputs captured before and after, only
+   `login`, `command`, `run`, and `crun` changing. Through the converter:
+
+   ```text
+   --ssh-host-key-policy accept-new|secure|insecure
+          The host-key policy (ssh.host-key-policy): accept-new accepts
+          and persists a new key and rejects a changed one (the default);
+          secure requires a matching pre-enrolled key before access;
+          insecure accepts unknown or changed keys with prominent warnings
+   ```
+
+   Not taken: the section rewritten at the column in `login` alone; a
+   second column width in the classifier.
+4. *`run`'s Dispatch options.* The block listed eight options without a
+   description (`--start-width N --max-width N --halt-on-error-count N` on
+   one line), and their keys' registry entries give ranges alone.
+   Executed on the fake `r1` and an unreachable `d1`, `--no-daemon --nof
+   --cmd 'show clock'`:
+
+   ```text
+   --tl 'd1 r1 r2 r3 r4 r5' --halt-on-error-percent 50          (serial)
+      d1 connection_error; r1..r5 not_started_halt                       exit 103
+   --tl 'r1 r2 d1 r3 r4 r5' --halt-on-error-percent 50
+      no halt (1 failed of 3 ended)                                      exit 101
+   --tl 'r1 r2 d1 r3 r4 r5' --dp --workers 2 --halt-on-error-count 1
+      d1 connection_error; r3, in flight, finished; r4 r5 not_started_halt
+   --tl 'd1 r1 …' --dw --start-width 1 --max-width 1 --wave-gate-error-count 1
+      the wave of 4 ran out; r4 r5 not_started_wave_gate                 exit 104
+   --wave-delay 30        cli_option_value_invalid: --wave-delay takes a duration such as 30s or 5m, not "30"
+   --wave-delay 1d        the same; 1.5s, 500ms, 2m, 1h30m, 100us planned
+   ```
+
+   The operator agreed to an entry per option, its key, and what 0 means,
+   the percent halt described as built, and asked for more: what unit a
+   `--wave-delay` duration is in, with three values; the auto formulas of
+   the start and the ceiling, with the widths on 4, 8, and 32 logical CPUs;
+   and how they compare with the host's maximum. Read in the code: the cap
+   `dispatch.server-max-inflight` at 0 is `min(256, max(32, 8*CPUs))` over
+   the effective CPUs, the ceiling's own formula. The draft:
+
+   ```text
+     --start-width N                A wave job's first width, and its floor
+                                    (dispatch.wave-start-width; 0 is
+                                    min(64, max(16, 4*CPUs)), CPUs the host's
+                                    logical CPUs)
+     --max-width N                  A wave job's widest wave
+                                    (dispatch.wave-max-width; 0 is
+                                    min(256, max(32, 8*CPUs)))
+   …
+     --wave-delay DURATION          A pause between waves
+                                    (dispatch.wave-gate-timed-delay; 0s none): a
+                                    number and its unit, h, m, s, ms, us, or ns,
+                                    such as 500ms, 45s, or 5m, the parts
+                                    combinable (1m30s); a bare number is refused
+     At auto the wave widths follow the host's logical CPUs: with 4 a wave job
+     starts at 16 devices and widens to at most 32; with 8, from 32 to 64; with
+     32 or more, from 64 to 256. The ceiling's formula is also the host's cap,
+     dispatch.server-max-inflight at 0 (32, 64, and 256 on those hosts): the
+     device sessions in flight at once across every job and operator on the
+     host. One wave job at its ceiling can fill the cap alone; beside other
+     jobs its workers past the cap wait for a lease before they connect, so a
+     ceiling above the cap adds workers and no sessions.
+   ```
+
+   The operator then set the additions aside until the hand-written
+   sections are consolidated (item 7): the help keeps the entries first
+   proposed, each option's key and what 0 means (the widths at 0 "from the
+   host's CPUs", the delay "0s none"), and the draft above is the material
+   for that item. Not taken: a pointer to SCALE.md in place of the
+   entries; changing the percent rule in a help change.
+
+   Found while checking the words, taken as its own issue: the options do
+   not hold the keys' ranges. `--wave-delay 2h` is planned where `--set
+   dispatch.wave-gate-timed-delay=2h` is `config_value_out_of_range`
+   (`0s..1h`); `--wave-delay -1s` reaches `execution_plan_invalid`;
+   `--max-width 600` runs at 512 where `--set dispatch.wave-max-width=600`
+   is `config_dispatch_wave_max_exceeds_absolute`; `--start-width 100
+   --max-width 10` starts at 10 without a word.
+5. *How `tools/mangen` reaches `internal/cli`.* Executed: a probe test
+   added through `go test -overlay` (the tree untouched) walked
+   `commandTable`: the top help and the eleven visible top-level words, 192
+   to 11094 bytes, every subcommand of daemon, job, config, and setup
+   sharing its word's text, the hidden `help` no page; exactly the twelve
+   pages of item 1. `internal/cli` has no init function, and importing it
+   takes `tools/mangen` from 14 of the module's packages to 59;
+   `helplayout` exports `Style` and `Layout` alone. The operator agreed:
+   `cli.HelpPages()` returns the twelve as `{Word, Text}` in the table's
+   order; `helplayout.Roff` renders a help text's SYNOPSIS and DESCRIPTION
+   with the terminal layout's classifier and holds the one roff escape,
+   which prune's regions use too; `tools/mangen` works from a page table
+   (path, marker source, regions), a word without its page refused, `-dir
+   DIR` writing every generated page for `generated-clean` and the
+   verifier. Not taken: the twelve constants exported; the generator as a
+   test inside `internal/cli`; a built executable's `--help` as the
+   source; prune's page rebuilt from its help text.
+6. *The options and their keys' ranges and locks.* Executed: a global
+   `/opt/karvi/config.toml` placed only inside `sudo unshare --mount` (a
+   tmpfs over `/opt`; the host has no `/opt/karvi`), locking
+   `dispatch.wave-max-width = 8` and `dispatch.wave-gate-timed-delay =
+   "0s"`, the operator's runs:
+
+   ```text
+   --set dispatch.wave-max-width=64        config_lock_violation: … declared at /opt/karvi/config.toml:5
+   --max-width 64                          planned: dispatch: wave start-width=16 max-width=64
+   --set dispatch.wave-gate-timed-delay=5m config_lock_violation: … declared at /opt/karvi/config.toml:6
+   --wave-delay 5m                         planned: "wave_gate_timed_delay_ns": 300000000000
+   ```
+
+   and an option already in the lock-aware layer:
+
+   ```text
+   --blind-wait 20m     config_value_out_of_range: … must be 0s..10m for execution.blind-wait at command-line
+   ```
+
+   The nine Dispatch options went to the planner beside the configuration,
+   so a lock was passed and the ranges were clamped or left to the plan's
+   validation (item 4's findings). The operator agreed: every option that
+   stands for one key is that key's override in the lock-aware layer, the
+   Dispatch options and `--dispatch` with its shortcuts among them; a lock
+   refuses the option; the planner reads the keys alone; the two command
+   line dispatch codes retired to `config_value_out_of_range` (their exit
+   moving from usage to configuration, breaking, accepted);
+   `--address-authority` outside the rule, a device's authority above its
+   row. Not taken: the command line checking the ranges itself; clamping
+   with a notice; `--dispatch` outside the rule. Found, for later: an
+   override's error names its source `command-line` and not the option.
+7. *The hand-written sections.* Executed and read: `internal/exitcode`
+   defines 24 exit statuses with names alone, and no document says what
+   each means (ERROR-CODES maps codes to exits); six options in four words
+   take a DURATION (`--blind-wait`, `--wave-delay`, `daemon --after` and
+   `--start-timeout`, `watch --refresh` and `--stale-after`) through one
+   parser rule; karvi reads `/etc/karvi/config.toml` then
+   `/opt/karvi/config.toml` (the only place for locks), `KARVI__SECTION__KEY`,
+   `NETUSER`, `NETPASS`, `NETENABLE`, `NO_COLOR`, `TERM`, `COLORFGBG`, and
+   `HOME`, none of them in a help text; README and OPERATIONS hold the
+   per-word material, and the package installs neither. The operator
+   agreed: `karvi.1` states once what the words share (CONFIGURATION,
+   VALUES with DURATION and N, ENVIRONMENT, FILES, EXIT STATUS); the top
+   help gains the sentence on key-backed options; each word's page writes
+   only what its help does not state, ends with SEE ALSO naming `karvi(1)`,
+   and restates its guide's section, which says so; `karvi-run.1`'s
+   DISPATCH carries item 4's set-aside material (the auto widths and their
+   values on 4, 8, and 32 logical CPUs, the cap, the halts and gates as
+   built, the delay); the per-word sections drafted against the build.
+   Not taken: the shared sections on every page; the duration's form in
+   each DURATION entry; width tables in the help; pointers to the guides
+   in place of the facts; pages for the guides' other material.
+8. *The EXIT STATUS.* Executed:
+
+   ```text
+   $ karvi command --nof d1 show clock            exit 110   (the device's cause)
+   $ karvi run --no-daemon --nof --tl d1 --cmd …  exit 101   (every device failed; a run is 101 still)
+   $ karvi run --bogus                            exit 4
+   ```
+
+   and read: the 24 statuses have constants and names (the names in the
+   records and the audit) and no meaning; the registry's codes set 2 (151
+   codes), 4 (65), 6 (62), 112 (42, everything between the client and the
+   daemon), and the rest; `determineExit` takes 111, then 106, 113, 114,
+   102, 103, 104, 105, then 0, then 101 for a `run`, then another word's
+   first failure with an exit. The operator agreed: `internal/exitcode`
+   defines each status once with its name and a one-line meaning, a test
+   holding the constants to it; `karvi.1`'s EXIT STATUS a third generated
+   region from it, the choice of exit by hand above; `tools/errorcodegen`
+   writing the same list into ERROR-CODES. Not taken: the meanings by hand
+   in the page; the precedence generated; renaming `ExitPartialFailure`.
+
+**The sections.** H, the help changes (items 3, 4, and 7's sentence),
+checked by the help outputs captured before and after; K, the Dispatch
+options as their keys' overrides (item 6); E, the exit statuses (item 8);
+G, `HelpPages`, `helplayout.Roff`, the page table in `tools/mangen`, and
+the twelve pages' frames with their generated regions; P, the hand-written
+sections page by page. The design records were committed before H.

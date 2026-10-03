@@ -1214,6 +1214,34 @@ not reach it. *Why:* one look across karvi's executables; the helper's
 no-configuration rule stands. *Not taken:* Go's `PrintDefaults` form; a colour
 flag on the helper; reading `display.*` in the helper.
 
+**An option's values are explained in its own entry.** A help text has two line
+shapes for an option: an entry, its words then the description at column 33
+(or under them when the words are too long), and prose; no line separates words
+by two or more spaces anywhere but at that column, and a test holds every help
+text to it. `--ssh-host-key-policy` has one shared entry (`hostKeyPolicyHelp`)
+in `login`, `command`, and `run`, naming `ssh.host-key-policy` and the three
+modes with the default, where `login` alone had a "Host-key modes:" section in a
+12-column field and the other two said nothing. *Why:* the policy is one key
+for the three words; a line in a shape the layout does not know is prose to the
+terminal (no accent colour) and to the man page (three modes run into one
+paragraph). *Not taken:* the section kept in the entry shape (the modes read as
+options, and `command` and `run` still say nothing); a second column width in
+the classifier.
+
+**`run`'s Dispatch options each have an entry.** `--dispatch`, `--workers`,
+`--start-width`, `--max-width`, the two halts, the two wave gates, and
+`--wave-delay` each have an entry at the column saying what the option does,
+its key, and what 0 means (the widths at 0 from the host's CPUs, the halts and
+gates off, the delay none). The percent halt is stated as built: against the
+devices ended so far, checked as each ends, so a first device's failure halts
+at any N. What a duration's units are, the auto widths' formulas with their
+values by CPU count, and how the ceiling compares with the host's cap
+`dispatch.server-max-inflight` are placed with the man pages' hand-written
+sections. *Why:* the block listed eight options with no word of what they do,
+their keys' registry entries give ranges alone, and SCALE.md, which explains
+them, is not installed. *Not taken:* the compact lines with a pointer to
+SCALE.md; changing the percent rule in a help change.
+
 **Debug output shows each command once and never a payload.** Debug never
 contains passwords, tokens, or device output; it shows each command sent
 exactly once, from the plan and never from the device's echo, with a marked
@@ -1364,6 +1392,31 @@ the type check, refusing as `config_value_out_of_range` in the row's words.
 disagreed on what an unbounded value meant. *Not taken:* hand-written rules
 beside the loop.
 
+**An option that stands for a key is that key's override.** Every command-line
+option that stands for one configuration key is applied as an override of the
+key in the lock-aware layer (`ConfigFlags`), so the key's type, range,
+cross-key checks, and lock apply to it as to `--set`: `--order`, `--blind-wait`,
+`--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--ping` and `--noping`, `--4`
+and `--6`, `--of` and `--nof`, and `--cd` as before, and `run`'s Dispatch
+options with them: `--dispatch` and `--dp`, `--dw`, `--ds` (`dispatch.default`),
+`--workers` (`dispatch.parallel-workers`), `--start-width` and `--max-width`
+(`dispatch.wave-start-width`, `dispatch.wave-max-width`), the two halts and the
+two wave gates (`dispatch.halt-on-error-*`, `dispatch.wave-gate-error-*`), and
+`--wave-delay` (`dispatch.wave-gate-timed-delay`). A locked key refuses its
+option (`config_lock_violation`), an out-of-range value is the key's own error,
+and the planner reads the keys alone; the plan's dispatch block is unchanged.
+The command line's own dispatch checks, `dispatch_value_negative` and
+`dispatch_percent_out_of_range`, are retired to `config_value_out_of_range`.
+`--address-authority` is not one: it names a device's authority, above the
+inventory row, and `name.default-address-authority` is the default beneath
+both. *Why:* the Dispatch options went to the planner beside the configuration,
+so a site's lock on any of the nine lock-eligible keys was passed by the
+option (`--max-width 64` planned under a lock of 8; `--wave-delay 5m` under a
+lock of `0s`), and values the keys refuse were clamped without a word or
+reached the plan's validation. *Not taken:* the command line checking each
+range itself (a second copy of the registry's ranges, the locks still passed);
+clamping with a notice; `--dispatch` outside the rule.
+
 **A removed key is refused from every layer.** One table of removed keys, one
 code (`config_key_removed`), the message naming the key, the release, and the
 replacement; the environment form is refused even when unknown variables are
@@ -1476,6 +1529,116 @@ hand, generator, or install step writes either, and the installed package and
 wrong from the day after its release until it is edited. *Not taken:* the
 version and date edited at each release; a build step stamping them (no
 release date exists in the packaging until it has a `debian/changelog`).
+
+**karvi's manual is a page per help text.** The parser table's help texts are
+the page set: `karvi.1` from the top help (the command words, the global
+options, the abbreviation rule) and `karvi-WORD.1` from each command word's
+help (`karvi-login.1`, `karvi-command.1`, `karvi-run.1`, `karvi-crun.1`,
+`karvi-stream.1`, `karvi-daemon.1`, `karvi-job.1`, `karvi-config.1`,
+`karvi-setup.1`, `karvi-watch.1`, `karvi-version.1`), all in section 1, each the
+terminal reference for its word; an alias has no page. `man karvi WORD` reaches
+a word's page through man-db's joining of the words, as `man karvi-WORD` does.
+*Why:* each help text is one page, so a page is the unit the help already has
+and a new word without a page is found; one page would print the target-input,
+platform, and transport blocks that `login`, `command`, `run`, and `crun` share
+once per word, or need a structure the help texts do not have. *Not taken:* one
+page for every word; pages for the large words alone with the small ones in
+`karvi.1`; `karvi-setup` in section 8 (it is a word of `/usr/bin/karvi`, where
+`karvi-prune` is a program of its own run by root's timer); a page per alias.
+
+**A word's page generates its SYNOPSIS and DESCRIPTION from its help text.**
+Each of karvi's pages has two generated regions, both from the one help text
+its word prints: the SYNOPSIS, the Usage lines one invocation to a line with
+their action words in bold (the words the terminal layout colours), the rest as
+written; and the DESCRIPTION, the help's body after the Usage block laid out by
+the help's own line classes (`internal/helplayout`: a heading as a subsection,
+an entry as a tagged paragraph with its option words in bold and its
+description refilled, a prose run as a paragraph), the words byte for byte and
+the line breaks groff's. The top help's title line is NAME's, written by hand,
+as is everything outside the two regions. Build-dependent help text (`run`'s
+native adapter status) is the page's as it is the help's, regenerated with it.
+*Why:* six of the twelve help texts (config, daemon, job, setup, version,
+watch) have no option entries and carry their options in the Usage lines and
+the prose, and the others hold rules in prose between their entries (the GLOB
+syntax, the `\r` rule), so the help is the unit, not its entries; one
+classifier serves the terminal and the page, so they cannot read a line
+differently. *Not taken:* an OPTIONS region from the entries alone (empty on
+six pages, the prose rules lost); generating the whole page; a hand-written
+DESCRIPTION with OPTIONS generated on the pages with entries alone.
+
+**The generator reaches the help through one accessor and one renderer.**
+`internal/cli` exports `HelpPages()`, the parser table's help texts in its
+order as `{Word, Text}`: the top help first (Word empty), then each visible
+top-level word with its `help()` (a subcommand shares its word's text), the
+constants staying unexported, so the table is the page set. `internal/helplayout`
+renders a help text to roff (`Roff`: the SYNOPSIS and DESCRIPTION bodies) with
+the classifier its terminal layout uses, and holds the one roff escape (`\` as
+`\e`, `-` as `\-`, a leading `.` or `'` behind `\&`), which the prune regions use
+too. `tools/mangen` works from a page table, each page with its path, its marker
+source, and its regions: `karvi-prune.8` from `internal/prune` as before, and
+`karvi.1` and `karvi-WORD.1` from `HelpPages()` with the markers `.\" BEGIN
+GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there` and
+`DESCRIPTION`; a word without its page file is refused, naming the file;
+`-dir DIR` writes every generated page into DIR for `make generated-clean` and
+the bundle verifier to compare, and without it the pages are rewritten in
+place. `karvi-askpass.1` is outside the table. *Why:* the help texts and the
+classifier are unexported, and a new word becomes a new page with no list to
+keep by hand. *Not taken:* exporting the twelve constants (a list in the
+generator kept by hand); the generator as a test inside `internal/cli` (a test
+that changes the tree); reading a built executable's `--help` (a build first,
+and the terminal layout and the configuration's colour between the text and the
+page); prune's page rebuilt from its help text (a page already agreed).
+
+**`karvi.1` states what the words share; a word's page adds only what its help
+does not state.** `karvi.1` writes by hand, around its generated regions, an
+opening paragraph and CONFIGURATION (the global files `/etc/karvi/config.toml`
+then `/opt/karvi/config.toml`, the only place locks are declared; `--config`,
+`KARVI__SECTION__KEY`, and `--set`; `config show --explain`), VALUES (DURATION:
+a number and its unit, `h`, `m`, `s`, `ms`, `us`, `ns`, such as `500ms`, `45s`, or
+`5m`, the parts combinable, `1h30m`, a bare number or `d` refused, each key's
+range applying; N: a whole number whose 0 each option defines), ENVIRONMENT,
+FILES, EXIT STATUS, and SEE ALSO. The top help gains one sentence: an option
+that names a configuration key sets it through the lock-aware layer, and a lock
+refuses it; the key-backed entries name their key in parentheses. Each word's
+page has NAME, its two generated regions, the hand sections whose facts its
+help does not state, and SEE ALSO naming `karvi(1)`, to which it refers for the
+exit statuses; it restates the facts of its guide's section, and that section
+says so, as `docs/PRUNE.md` does. `karvi-run.1` has a DISPATCH section: the
+modes, the auto start width `min(64, max(16, 4*CPUs))` and ceiling
+`min(256, max(32, 8*CPUs))` with their values on 4, 8, and 32 logical CPUs
+(16 to 32, 32 to 64, 64 to 256), the ceiling's formula being the host's cap
+`dispatch.server-max-inflight` at 0 (one wave job at its ceiling can fill the
+cap alone; workers past it wait for a lease), the halts as built and the gates,
+and the delay; `karvi-crun.1` refers to it. The per-word sections, drafted
+against the build with their claims executed: run DISPATCH, OUTPUT, REHEARSAL,
+EXAMPLES; command OUTPUT, EXAMPLES; crun COLLECTION, EXAMPLES; login
+TRANSCRIPTS, HOST KEYS; stream and job EXAMPLES; daemon, config, setup, and
+watch FILES; version nothing more. *Why:* six options in four words take a
+duration through one parser rule; the configuration's files, layers, locks,
+environment, and exit statuses are the same for every word and stated in no
+help; an installed host has the pages and not the guides. *Not taken:* the
+shared sections on every word's page; the duration's form in each DURATION
+entry; tables of widths in the help; the word pages pointing to the guides;
+pages for the guides' other material (the spool, the shared trees in full, the
+error codes).
+
+**Each exit status is defined once, with its meaning.** `internal/exitcode`
+holds the statuses as one ordered list of code, name, and a one-line meaning;
+`ExitName` reads it, and a test holds every constant to exactly one entry.
+`karvi.1`'s EXIT STATUS is a third generated region, one entry per status (the
+number, the name the records and the audit carry, the meaning), with the choice
+of exit written by hand above it: configuration loading exits 2, or 3 for a
+lock, whatever the cause; a `run` exits 101 when any device failed or did not
+start, even every device; another word takes its first failure's status (107
+to 110); and when more than one applies, 111, then 106, 113, 114, 102, 103,
+104, 105. `tools/errorcodegen` writes the same list as the "Exit statuses"
+section of `docs/ERROR-CODES.md`, before the code tables. *Why:* the 24
+statuses had names and no meaning anywhere, while the error registry said which
+code sets which exit, so an operator holding an exit had no page to read it
+in. *Not taken:* the meanings written by hand in the page; the precedence
+generated (it is `determineExit`'s code, and the paragraph is checked by
+execution); renaming `ExitPartialFailure` for a run in which every device
+failed (the names are in the records; the meaning says one or more).
 
 **A helper without flags has a page written by hand alone.**
 `packaging/man/karvi-askpass.1` (`.TH KARVI-ASKPASS 1 "" "karvi"`, `.nh`, `AD l`)
