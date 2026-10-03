@@ -16,6 +16,8 @@ import (
 	"os"
 
 	"github.com/robert-patrick-texas/karvi/internal/completion"
+	"github.com/robert-patrick-texas/karvi/internal/display"
+	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/prune"
 )
@@ -34,29 +36,37 @@ func run(args []string, stdout, stderr *os.File) int {
 	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	f := prune.DefineFlags(fs)
-	fs.Usage = func() { prune.PrintUsage(stderr, fs) }
+	// The help is printed here, not by the flag package: -h and --help to
+	// standard output, a usage error's text after its message on standard
+	// error, laid out as karvi's help is.
+	fs.Usage = func() {}
+	help := func(w *os.File) { fmt.Fprint(w, helplayout.Layout(prune.Help(fs), helpStyle(w))) }
+	usageError := func(format string, a ...any) int {
+		if format != "" {
+			fmt.Fprintf(stderr, "karvi-prune: "+format+"\n", a...)
+		}
+		help(stderr)
+		return 2
+	}
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
+			help(stdout)
 			return 0
 		}
-		return 2
+		// The flag package has said what was wrong.
+		return usageError("")
 	}
 	if len(fs.Args()) != 0 {
-		fmt.Fprintln(stderr, "karvi-prune: no positional argument is taken")
-		fs.Usage()
-		return 2
+		return usageError("no positional argument is taken")
 	}
 	if *f.Days < 1 {
-		fmt.Fprintf(stderr, "karvi-prune: --days takes one or more, not %d\n", *f.Days)
-		return 2
+		return usageError("--days takes one or more, not %d", *f.Days)
 	}
 	if *f.MinFree < 0 || *f.MinFree > 100 {
-		fmt.Fprintf(stderr, "karvi-prune: --minfree takes a percentage from 0 to 100, not %g\n", *f.MinFree)
-		return 2
+		return usageError("--minfree takes a percentage from 0 to 100, not %g", *f.MinFree)
 	}
 	if *f.Format != prune.FormatText && *f.Format != prune.FormatJSONL {
-		fmt.Fprintf(stderr, "karvi-prune: --format takes text or jsonl, not %q\n", *f.Format)
-		return 2
+		return usageError("--format takes text or jsonl, not %q", *f.Format)
 	}
 	root := *f.Basedir
 	var siteRoots []string
@@ -97,4 +107,17 @@ func run(args []string, stdout, stderr *os.File) int {
 		return 1
 	}
 	return 0
+}
+
+// helpStyle is the help's colour, decided without configuration, which the
+// helper never reads: display.color's default, auto (colour when w is a
+// terminal), and display.theme's default, dark, for the roles.
+func helpStyle(w *os.File) helplayout.Style {
+	const theme = "dark"
+	return helplayout.Style{
+		Enabled: display.ColorEnabled("auto", theme, osutil.IsTerminal(w)),
+		Accent:  display.RoleColor(theme, "accent", "default"),
+		Action:  display.RoleColor(theme, "success", "default"),
+		Label:   display.RoleColor(theme, "label", "default"),
+	}
 }

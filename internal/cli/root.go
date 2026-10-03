@@ -18,6 +18,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/completion"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 	"github.com/robert-patrick-texas/karvi/internal/icmpgate"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
@@ -69,14 +70,14 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 		return reportError(stderr, "cli_option_unknown", err)
 	}
 	if inv.Help {
-		fmt.Fprint(stdout, layoutHelp(inv.helpText(), helpStyleFor(inv.Global, stdout)))
+		fmt.Fprint(stdout, helplayout.Layout(inv.helpText(), helpStyleFor(inv.Global, stdout)))
 		return exitcode.ExitSuccess
 	}
 	if inv.Global.version {
 		return renderVersion("text", stdout, stderr)
 	}
 	if inv.Path == "" {
-		fmt.Fprint(stdout, layoutHelp(topHelp, helpStyleFor(inv.Global, stdout)))
+		fmt.Fprint(stdout, helplayout.Layout(topHelp, helpStyleFor(inv.Global, stdout)))
 		return exitcode.ExitSuccess
 	}
 	if len(inv.Pending) > 0 {

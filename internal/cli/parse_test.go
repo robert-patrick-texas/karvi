@@ -11,6 +11,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 )
 
 func mustParse(t *testing.T, args ...string) *Invocation {
@@ -799,7 +800,7 @@ func TestMainParserDiagnostics(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	// The command help, laid out for the terminal (help_layout.go): on a
 	// pipe under display.color=auto, plain.
-	if got := Main([]string{"cmd", "--help"}, strings.NewReader(""), &stdout, &stderr); got != 0 || stdout.String() != layoutHelp(commandHelp, helpStyle{}) {
+	if got := Main([]string{"cmd", "--help"}, strings.NewReader(""), &stdout, &stderr); got != 0 || stdout.String() != helplayout.Layout(commandHelp, helplayout.Style{}) {
 		t.Fatalf("cmd --help must print the command help")
 	}
 }

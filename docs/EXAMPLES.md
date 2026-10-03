@@ -1336,3 +1336,31 @@ unchanged.
    text to standard error; the colour decided without configuration (the
    defaults: on at a terminal, the dark theme's roles). Not taken: a colour
    flag; reading `display.*` in the helper. Built as section M1b, after M1.
+
+Section M1b, the helper's help in karvi's shape, the lab build:
+
+```text
+$ script -qfec "karvi-prune --help" /dev/null | cat -v | head -9
+karvi-prune ^[[34m- remove finished karvi work older than the retention age^[[0m
+^[[1mUsage:^[[0m
+  karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH]
+              [--scoreboards PATH] [--days N] [--minfree PERCENT] [--dry-run]
+              [--verbose] [--format text|jsonl]
+^[[1mOptions:^[[0m
+  ^[[36m--basedir auto|PATH^[[0m            The private root whose jobs and transcripts
+                                 trees are pruned: auto (the operator's own, as
+$ karvi-prune -h | grep -c $'\x1b'           # a pipe: plain
+0
+$ karvi-prune --bogus >/dev/null              # exit 2, the help on stderr
+flag provided but not defined: -bogus
+karvi-prune - remove finished karvi work older than the retention age
+$ karvi-prune --days 0
+karvi-prune: --days takes one or more, not 0
+karvi-prune - remove finished karvi work older than the retention age
+```
+
+Before the layout moved, every karvi help text (the top and 29 command
+paths, colour on and off, 60 outputs) was captured from the build at
+`b50d227`; after the move, `diff -r` found them identical. The unknown
+flag's line is the flag package's own, `flag provided but not defined:
+-bogus`, as before.

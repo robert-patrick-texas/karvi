@@ -2,13 +2,11 @@ package prune
 
 import (
 	"flag"
-	"fmt"
-	"io"
 	"strings"
 )
 
 // The helper's command line lives here once: the helper's main defines its
-// flag set through DefineFlags and prints PrintUsage, the completer
+// flag set through DefineFlags and prints Help, the completer
 // (complete.go) walks the same set, and the man page's SYNOPSIS and OPTIONS
 // are generated from it (tools/mangen), so Tab cannot offer a flag the
 // helper does not take and no text can name a value otherwise. The helper
@@ -19,8 +17,8 @@ import (
 // offers them alphabetically. TestFlagOrder holds it to the defined flags.
 var FlagOrder = []string{"basedir", "sharedroot", "scoreboards", "days", "minfree", "dry-run", "verbose", "format"}
 
-// Placeholder is the name of a flag's value, as the synopsis, -h, and the
-// man page print it: its words joined with |, then PATH when it names a
+// Placeholder is the name of a flag's value, as the synopsis, the help,
+// and the man page print it: its words joined with |, then PATH when it names a
 // path, or its name; empty for a switch.
 func Placeholder(name string) string {
 	v := flagValues[name]
@@ -49,26 +47,88 @@ func Usage() string {
 	return b.String()
 }
 
-// PrintUsage is -h: the synopsis, then each flag in FlagOrder with its
-// placeholder, its usage string, and its default when it has one (not
-// empty, not false), unquoted.
-func PrintUsage(w io.Writer, fs *flag.FlagSet) {
-	fmt.Fprintln(w, Usage())
+// Title is the help's first line, the helper's name and what it does.
+const Title = "karvi-prune - remove finished karvi work older than the retention age"
+
+// The help's columns, karvi's: an option's words after two spaces, its
+// description from helpColumn (two spaces at least between them), every
+// line wrapped at helpWidth.
+const (
+	helpColumn = 33
+	helpWidth  = 79
+)
+
+// Help is -h and --help, in karvi's shape for helplayout to lay out: the
+// title, the Usage section with the synopsis wrapped under its first
+// bracket, and the Options section, each flag in FlagOrder with its
+// placeholder and its usage string beside it, the default after.
+func Help(fs *flag.FlagSet) string {
+	var b strings.Builder
+	b.WriteString(Title + "\n\nUsage:\n")
+	lead := "  karvi-prune "
+	line := lead
+	for i, name := range FlagOrder {
+		group := "[--" + name
+		if p := Placeholder(name); p != "" {
+			group += " " + p
+		}
+		group += "]"
+		if i > 0 && len(line)+1+len(group) > helpWidth {
+			b.WriteString(line + "\n")
+			line = strings.Repeat(" ", len(lead)) + group
+			continue
+		}
+		if i > 0 {
+			line += " "
+		}
+		line += group
+	}
+	b.WriteString(line + "\n\nOptions:\n")
 	for _, name := range FlagOrder {
 		f := fs.Lookup(name)
 		if f == nil {
 			continue
 		}
-		line := "  --" + name
+		words := "  --" + name
 		if p := Placeholder(name); p != "" {
-			line += " " + p
+			words += " " + p
 		}
-		usage := f.Usage
+		text := f.Usage
 		if d := Default(f); d != "" {
-			usage += " (default " + d + ")"
+			text += " (default " + d + ")"
 		}
-		fmt.Fprintf(w, "%s\n        %s\n", line, usage)
+		lines := wrap(text, helpWidth-helpColumn)
+		if len(words)+2 > helpColumn {
+			// Too long for the field: the description under it.
+			b.WriteString(words + "\n")
+		} else {
+			b.WriteString(words + strings.Repeat(" ", helpColumn-len(words)) + lines[0] + "\n")
+			lines = lines[1:]
+		}
+		for _, l := range lines {
+			b.WriteString(strings.Repeat(" ", helpColumn) + l + "\n")
+		}
 	}
+	return b.String()
+}
+
+// wrap breaks text into lines of at most width at spaces; a word longer
+// than width has a line of its own.
+func wrap(text string, width int) []string {
+	var lines []string
+	line := ""
+	for _, w := range strings.Fields(text) {
+		switch {
+		case line == "":
+			line = w
+		case len(line)+1+len(w) <= width:
+			line += " " + w
+		default:
+			lines = append(lines, line)
+			line = w
+		}
+	}
+	return append(lines, line)
 }
 
 // Default is a flag's default as the helper's texts print it: empty for an
@@ -96,14 +156,14 @@ type Flags struct {
 // texts, and returns where their values land.
 func DefineFlags(fs *flag.FlagSet) *Flags {
 	return &Flags{
-		Basedir:     fs.String("basedir", "auto", "the private root whose jobs and transcripts trees are pruned: auto (the operator's own, as karvi resolves it) or a path"),
-		Sharedroot:  fs.String("sharedroot", "auto", "the site's shared root whose jobs and transcripts trees are pruned too: auto, none, or a path"),
-		Scoreboards: fs.String("scoreboards", "/dev/shm/karvi/scoreboards", "the scoreboard directory (watch.directory)"),
-		Days:        fs.Int("days", 31, "the retention age in days, one or more"),
-		MinFree:     fs.Float64("minfree", 5, "the free-space floor in percent, under which the oldest eligible items go before their age; 0 turns pressure off"),
-		DryRun:      fs.Bool("dry-run", false, "report what would go and remove nothing"),
-		Verbose:     fs.Bool("verbose", false, "add one kept line per examined item that stays, with the reason"),
-		Format:      fs.String("format", FormatText, "the report's form: text (an event word and key=value fields per line) or jsonl (one JSON document per line, the same fields, the summary last)"),
+		Basedir:     fs.String("basedir", "auto", "The private root whose jobs and transcripts trees are pruned: auto (the operator's own, as karvi resolves it) or a path"),
+		Sharedroot:  fs.String("sharedroot", "auto", "The site's shared root whose jobs and transcripts trees are pruned too: auto, none, or a path"),
+		Scoreboards: fs.String("scoreboards", "/dev/shm/karvi/scoreboards", "The scoreboard directory (watch.directory)"),
+		Days:        fs.Int("days", 31, "The retention age in days, one or more"),
+		MinFree:     fs.Float64("minfree", 5, "The free-space floor in percent, under which the oldest eligible items go before their age; 0 turns pressure off"),
+		DryRun:      fs.Bool("dry-run", false, "Report what would go and remove nothing"),
+		Verbose:     fs.Bool("verbose", false, "Add one kept line per examined item that stays, with the reason"),
+		Format:      fs.String("format", FormatText, "The report's form: text (an event word and key=value fields per line) or jsonl (one JSON document per line, the same fields, the summary last)"),
 	}
 }
 
