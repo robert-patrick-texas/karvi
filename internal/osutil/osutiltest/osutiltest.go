@@ -20,9 +20,10 @@ import (
 )
 
 // Isolate points osutil.SharedRoots at a directory that does not exist,
-// osutil.ScratchRoot at a scratch root of this process (short, under the
-// temporary directory, so an askpass socket in an operator's folder there
-// stays within the socket path limit; a test whose configuration reads no
+// osutil.ScratchRoot at a scratch root of this process (under /tmp and not
+// TMPDIR, so an askpass or control socket in an operator's folder there
+// stays within the socket path limit however long TMPDIR is, as the release's
+// 145-byte TMPDIR run requires; a test whose configuration reads no
 // environment resolves the auto chain), KARVI__WATCH__DIRECTORY at a
 // scoreboard directory and
 // KARVI__SESSIONS__SHARED_CAPACITY_ROOT at a capacity root of this run,
@@ -36,7 +37,7 @@ import (
 // TestMain calls it after m.Run.
 func Isolate() func() {
 	osutil.SharedRoots = []string{filepath.Join(os.TempDir(), "karvi-test-no-shared-root")}
-	scratch, err := os.MkdirTemp("", "karvi-test-scratch-")
+	scratch, err := os.MkdirTemp("/tmp", "karvi-test-scratch-")
 	if err != nil {
 		panic(err)
 	}
