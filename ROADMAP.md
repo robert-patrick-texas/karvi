@@ -74,6 +74,38 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   saying what it left out.
 - **Field prefixes in the watch screen's filter** (`op:`, `mode:`), if the
   word filter proves too broad.
+- **Control sockets for the system transport (`ssh.control-path-root`).** The
+  key's directory is made at every activity and stays empty: the system
+  transport runs `ssh` with `ControlMaster no` and `ControlPath none`
+  ([`docs/FILES.md`, section 5](docs/FILES.md#5-places-made-and-not-used)).
+  The decision is whether control masters get a use (one authenticated
+  connection reused across a device's sessions) or the key is removed. If they
+  get one, where the sockets go is part of it:
+  - **Why `/dev/shm`.** In shared mode `auto` is
+    `/dev/shm/karvi/<user>/sockets`, a short path on the tmpfs, because a Unix
+    socket's path is limited to 108 bytes and OpenSSH's socket name (a
+    40-character `%C` hash, plus a temporary suffix while a master starts)
+    leaves the directory about 50; a socket is gone at reboot with the tmpfs. In
+    individual mode `auto` is `<basedir>/socket/ssh`, inside the daemon's socket
+    directory.
+  - **Under `basedir` in both modes** (as the trust store is): the operator's
+    private state in one place, but the path length depends on the home or an
+    explicit `basedir`, and a long one fails at the first master.
+  - **A sweep.** A master outlives its job (`ControlPersist`), so a socket whose
+    master has died stays on disk under `basedir`; a sweep removes them, at the
+    daemon's start and at admission as the spool's is. In its own subdirectory
+    the sweep takes everything there; in the daemon's socket directory itself it
+    must match names and never touch `daemon.sock` or `credentials.sock`, so the
+    two share the parent, not the directory. Both directories need the same
+    rule (real, the operator's, `0700`), and a control socket grants an
+    authenticated session as `daemon.sock` grants the daemon, so sharing the
+    parent moves no trust boundary.
+  - **The `~` bug.** An explicit `ssh.control-path-root` expands `~` against
+    `filepath.Dir(filepath.Dir(base))`, not the home
+    (`osutil.ControlPathRoot`): `~/ctl` is `~/.local/ctl` in individual mode and
+    `/opt/karvi/ctl` under `/opt/karvi/users/<user>`. It has no effect while
+    the directory is unused, and is fixed with the decision, or goes with the
+    key.
 - **The resolved path of every place key.** `config show --explain` names
   the path the next activity would use for `basedir` and
   `ssh.known-hosts-file`; the same `resolved:` line for the other keys whose
