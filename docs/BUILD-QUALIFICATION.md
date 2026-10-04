@@ -52,7 +52,7 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   which moved the schema to 9, it was v0.14.1, and for v0.16.0 to v0.19.0, which
   keep 9, it stayed v0.14.1, and for v0.20.0, which moved the schema to 10, and
   v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
-  line's first release, and v0.23.0 to v0.25.0, which keep 10, there is none,
+  line's first release, and v0.23.0 to v0.26.0, which keep 10, there is none,
   and the replay resumes when a karvi release moves the schema from 10).
 - The Go tests and the suites MUST leave the host's shared places as they
   were: both verifiers list the shared scoreboard directory and the shared

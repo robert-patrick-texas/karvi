@@ -40,7 +40,7 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
 5. Configuration schema 6, registry schema 10, and job manifest schema 2 (this
-   tree: registry schema 22, daemon IPC schema 10, execution plan 9, scoreboard
+   tree: registry schema 24, daemon IPC schema 10, execution plan 10, scoreboard
    3).
 
 A newer client still inspects, stops, and restarts a daemon launched by an

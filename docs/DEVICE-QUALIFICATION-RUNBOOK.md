@@ -39,7 +39,7 @@ command line or in a file.
 ## 2. Before the laboratory: the script against the fake
 
 ```bash
-cd karvi-v0.25.0
+cd karvi-v0.26.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
 FAKE=1 CONFIG_ROW=1 RELOAD="system scrapligo-v1" scripts/device-qualification.sh

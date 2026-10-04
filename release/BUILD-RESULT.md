@@ -1,36 +1,42 @@
-# karvi v0.25.0 build and qualification result
+# karvi v0.26.0 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.25.0 (2026-09-30) is a minor release on 0.24.0, the same day. Every counter
-is 0.24.0's; the behaviour change is stream mode's: a `--cmd`, `--command`, or
-`--cf` line is a command cleared by `--go` like a bare line, `--clear` empties
-the commands alone, an empty `--go` is skipped with a notice, `-` is refused for
-`--cf`, `--tf`, and `--tfr` in every spelling, a read failure ends the stream
-with `stream_input_read_failed`, and a line typed at a terminal is edited with
-the usual keys and recalled with the up arrow (`golang.org/x/term`, vendored).
-The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It is not a production
-claim and not a real-device qualification: the native transport is proven
-against the fake IOS XE device built from the tree.
+v0.26.0 (2026-10-04) is a minor release on 0.25.0. The configuration registry
+moves from 22 to 24 (`display.record.header`, `display.record.footer`, and
+`display.collection.footer` added; `output.files.failures-jsonl` replaced by
+`output.files.errors-jsonl`, the job's `errors.jsonl`) and the execution plan
+from 9 to 10 (the collection block's word and suffix); the daemon IPC schema
+and every other counter are 0.25.0's. Among the changes: the scratch root and
+the capacity ledger shared across operators, made by `setup shared`; the
+credential prompts edited as stream mode is, Ctrl-C there ending karvi; `--cd`
+and `--fs` on `run` and `command`; the collection line a display template;
+`run`'s Dispatch options under their keys' locks and ranges; manual pages for
+every executable and command word; a reference configuration that loads;
+`NO_COLOR`; and the documentation as HTML (`make html`, `tools/md-to-html`,
+goldmark vendored for the tool alone). The changes are in
+[`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
+real-device qualification: the native transport is proven against the fake IOS
+XE device built from the tree.
 
 ## Build identity
 
 ```text
-version:                  0.25.0
-commit:                   source-release-v0.25.0
-build time:               2026-09-30T00:00:00Z
+version:                  0.26.0
+commit:                   source-release-v0.26.0
+build time:               2026-10-04T00:00:00Z
 Go toolchain:             go1.27.1
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
 configuration schema:    6
-configuration registry:  22
+configuration registry:  24
 command record schema:   2
 daemon IPC schema:       10
 job manifest/summary:    2
-execution plan:          9
+execution plan:          10
 scoreboard:              3
 credential package:      1
 plan report:             1
@@ -46,7 +52,7 @@ transports.
 
 The release source passed, with Go 1.27.1:
 
-- 730 top-level named Go tests across 75 packages in vendor mode, no
+- 783 top-level named Go tests across 79 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -55,7 +61,8 @@ The release source passed, with Go 1.27.1:
   (`evidence/socket-tmpdir-qualification.log`);
 - `gofmt` listing nothing outside `vendor/`;
 - deterministic regeneration of `schema/config-schema.json`,
-  `configs/reference.toml`, and [`docs/ERROR-CODES.md`](../docs/ERROR-CODES.md);
+  `configs/reference.toml`, [`docs/ERROR-CODES.md`](../docs/ERROR-CODES.md),
+  and the manual pages under `packaging/man`;
 - example configuration validation and removed-key rejection;
 - all seventeen executable suites against the native executable, in three
   lanes (`scripts/lib/suites.sh`): the parity suite (`command` and `run`
@@ -80,7 +87,7 @@ The release source passed, with Go 1.27.1:
   release has moved it, so no earlier executable's daemon differs in schema from
   this client's, and the release tooling skipped the replay and said so; the
   compatibility example ran before the number was committed: the released
-  v0.24.0 daemon, started from the released executable of the tree's `bin/`
+  v0.25.0 daemon, started from the released executable of the tree's `bin/`
   before the rebuild, reported `compatible: false` to this client on the version
   alone, refused its run with `daemon_incompatible` (exit 112) before any job,
   and was stopped by the client (`evidence/ipc-schema-compat.log`);
@@ -92,7 +99,7 @@ The release source passed, with Go 1.27.1:
   runs, and the bundle verified from its own archive with its own verifier.
 
 The release verifier had first passed on a clean clone of `dev` at
-`dcc7a61` before the number was assigned (the maintainer's release tools
+`3ab5a74` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -103,14 +110,14 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 11,870,368 | `77b4a8574440f70f07f983e85ccf5f61da41fa2ea299a2f87bd18f054b32e146` |
-| `bin/karvi-askpass-linux-amd64` | 3,887,264 | `1fac64a77afd9a42608edc8e48552671f9a50212da15fc61628a0cd3ac4fcf1e` |
-| `bin/karvi-prune-linux-amd64` | 3,719,328 | `456ff10aae760088051bf9e1c7d28be4330154fccf2ab677c8d1b11ffaeaaa35` |
+| `bin/karvi-linux-amd64` | 11,931,808 | `7ef14c28fb4cc61d7b399b1692e463fe364408672705a1d93f2da5fe846b97ed` |
+| `bin/karvi-askpass-linux-amd64` | 3,895,456 | `0c6e968d29dcdce910f8450060938a1a031cd325324fd5008f118118a7bcfccb` |
+| `bin/karvi-prune-linux-amd64` | 3,760,288 | `a5c31e6e767d55ba610772e77553999ff27a958d24d5b142dd98081ebf38cae1` |
 
 ## Operational upgrade sequence
 
 A daemon is compatible only when its version and its daemon IPC schema both
-equal the client's, so a running v0.24.0 daemon is `compatible: false` to
+equal the client's, so a running v0.25.0 daemon is `compatible: false` to
 this client on the version alone (both at schema 10), and the client
 refuses a job to it with `daemon_incompatible` (exit 112) before any job is
 submitted, naming both pairs and the remediation. Every release restarts
@@ -135,4 +142,4 @@ What karvi does not do yet is [`ROADMAP.md`](../ROADMAP.md), none of which this
 release claims. Cisco IOS XE laboratory qualification on real devices was not
 performed and follows on this executable
 ([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](../docs/DEVICE-QUALIFICATION-RUNBOOK.md));
-the man page is the roadmap's first item.
+the package's contents is the roadmap's first item.
