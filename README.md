@@ -312,10 +312,12 @@ halt-run-on-host-key-mismatch = false
 - `secure`: require pre-enrollment; and
 - `insecure`: accept unknown or changed keys with prominent warnings.
 
-The automatic trust store is `~/.local/share/karvi/known_hosts`, in the
-operator's own root. Both transports check the key in the SSH handshake and
-enrol it under the device's canonical name, or `[name]:PORT` on a port other
-than 22 ([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
+The automatic trust store is `known_hosts` in the operator's private root
+(`basedir`): `/opt/karvi/users/<user>/known_hosts` where the site made the
+operators' roots, `~/.local/share/karvi/known_hosts` otherwise. Both transports
+check the key in the SSH handshake and enrol it under the device's canonical
+name, or `[name]:PORT` on a port other than 22
+([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
 
 ## Fleet run
 

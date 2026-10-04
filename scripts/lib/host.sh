@@ -9,11 +9,13 @@
 #   ... the tests and the suites ...
 #   host_shared_unchanged "$before"
 #
-# And the operator's own trust store: a script that
-# sets no ssh.known-hosts-file enrols into the operator's real store (the
-# policy resolves the home from the passwd entry, not $HOME), so every
-# script calls host_trust_store with its work directory as soon as it has
-# one.
+# And the operator's own trust store: under ssh.known-hosts-file "auto" the
+# store is <basedir>/known_hosts, so a script that sets neither the store nor
+# basedir enrols into the operator's real store (basedir's automatic root is
+# under the home of the passwd entry, not $HOME); every script calls
+# host_trust_store with its work directory as soon as it has one, and the
+# suites that compare the operator's store before and after name it with
+# host_own_store.
 
 # host_shared_entries prints one line per entry under the host's shared
 # places (a place that does not exist contributes nothing), sorted, so two
@@ -50,4 +52,20 @@ host_shared_unchanged() {
 host_trust_store() {
   KARVI__SSH__KNOWN_HOSTS_FILE=$1/known_hosts
   export KARVI__SSH__KNOWN_HOSTS_FILE
+}
+
+# host_own_store KARVI prints the operator's own trust store as KARVI
+# resolves it for the operator's own configuration (`config show --explain`,
+# its resolved line), the work directory's variables left out; an executable
+# without the line gives the automatic store of a host without users roots.
+host_own_store() {
+  hos_path=$(env -u KARVI__SSH__KNOWN_HOSTS_FILE -u KARVI__BASEDIR "$1" config show --explain ssh.known-hosts-file 2>/dev/null | sed -n 's/^resolved: *//p')
+  [ -n "$hos_path" ] || hos_path=${HOME:-/nonexistent}/.local/share/karvi/known_hosts
+  printf '%s\n' "$hos_path"
+}
+
+# host_store_digest FILE prints the store's checksum, or "absent", so two
+# calls compare as text.
+host_store_digest() {
+  if [ -f "$1" ]; then cksum <"$1"; else echo absent; fi
 }

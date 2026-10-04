@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **The trust store follows the private root.** Under `ssh.known-hosts-file =
+  "auto"` the store is `<basedir>/known_hosts`: on a host where the site made
+  the operators' roots (`sudo karvi setup shared`),
+  `/opt/karvi/users/<user>/known_hosts`, where it had been
+  `~/.local/share/karvi/known_hosts` whatever `basedir` was; on any other host
+  the same file as before. A store an earlier release made in the home is not
+  read on such a host: `accept-new` enrolls each device again, and `secure`
+  needs its store in the new place. An explicit path is unchanged.
+  `host_key_trust_store_candidates_exhausted` is retired; a store that cannot
+  be made reports its own step's code.
+- **`config show --explain` names the private root and the trust store.**
+  `karvi config show --explain basedir` and `karvi config show --explain
+  ssh.known-hosts-file` print `resolved: PATH`, the path the next activity
+  would use, found without creating anything; the host-key guide's enrollment
+  recipe takes the store from it.
 - **`docs/FILES.md`, every place karvi uses.** One reference for the
   directories and files karvi reads and writes in shared and in individual
   mode, each with its mode, owner, group, writer, and purpose, and the rule by

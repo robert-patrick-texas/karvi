@@ -45,9 +45,9 @@ install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).
-OWN_STORE=${HOME:-/nonexistent}/.local/share/karvi/known_hosts
-store_digest() { if [ -f "$OWN_STORE" ]; then cksum <"$OWN_STORE"; else echo absent; fi; }
-OWN_BEFORE=$(store_digest)
+. "$ROOT/scripts/lib/host.sh"
+OWN_STORE=$(host_own_store "$KARVI")
+OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
 # start_fake: the fake on the port it took first (a restart is the same
 # device), `show big` at 65.7 MB, `show slow` at three seconds; its pid is
@@ -387,5 +387,5 @@ fi
 stop_daemon
 stop_fake
 grep -q "^connections=" "$TMP/fake.err" || fail "the fake left no summary"
-[ "$(store_digest)" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
+[ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 echo "spool smoke: pass"

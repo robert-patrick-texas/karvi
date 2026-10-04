@@ -105,16 +105,27 @@ offer the names they implement ([`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)).
 
 ## Trust-store selection and permissions
 
-`known-hosts-file = "auto"` selects:
+`known-hosts-file = "auto"` selects `<basedir>/known_hosts`, the operator's
+private root
+([`docs/FILES.md`, section 1](FILES.md#1-how-karvi-chooses-each-place)):
 
-1. `~/.local/share/karvi/known_hosts`, the operator's own root as the
-   path resolver creates it (mode 0750; the directory rule refuses one
-   that group or others can write). There is no fallback location.
+| The host | The store under `auto` |
+|---|---|
+| the site made `/opt/karvi/users` (`sudo karvi setup shared`) | `/opt/karvi/users/<user>/known_hosts` |
+| the site made `/var/lib/karvi/users` alone | `/var/lib/karvi/users/<user>/known_hosts` |
+| neither | `~/.local/share/karvi/known_hosts` |
+| `basedir` set to a path | `<that path>/known_hosts` |
 
-In `accept-new` policy, karvi creates the preferred usable location. In `secure`
-policy, absence is a hard failure. The containing karvi directory must be real,
-operator-owned, and mode `0700`; the file must be regular, operator-owned,
-and non-symlink.
+There is no fallback location, and a store elsewhere, such as one an earlier
+release made in the home on a host with `users`, is not read.
+`karvi config show --explain ssh.known-hosts-file` names the file on its
+`resolved:` line, before anything exists.
+
+In `accept-new` policy, karvi creates the store. In `secure` policy, absence is
+a hard failure. The containing directory must be real, operator-owned, and
+writable by neither group nor others (the private root karvi makes is `0750`);
+the file must be regular, operator-owned, and non-symlink. One store for every
+operator cannot pass these checks, so each operator has an own store.
 
 karvi sets permissions only on what it creates and never changes the
 permissions of a file that exists: an unacceptable mode is refused, not
@@ -131,11 +142,11 @@ The directory, the file's type, and its owner are checked under all three
 policies. A symbolic link at the store's path is refused and nothing is
 created through it.
 
-An explicit path may be configured:
+An explicit path may be configured; `~` and a relative path are the home's:
 
 ```toml
 [ssh]
-known-hosts-file = "~/.local/share/karvi/known_hosts"
+known-hosts-file = "~/trust/known_hosts"
 ```
 
 ## Controlled enrollment
@@ -146,8 +157,9 @@ and port, rewrite the host field, and verify the fingerprint before
 appending:
 
 ```bash
-install -d -m 0700 "$HOME/.local/share/karvi"
-install -m 0600 /dev/null "$HOME/.local/share/karvi/known_hosts"
+STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: *//p')
+mkdir -p -m 0700 "$(dirname "$STORE")"   # an existing one is left as it is
+[ -e "$STORE" ] || install -m 0600 /dev/null "$STORE"
 
 ADDRESS=192.0.2.10
 PORT=22
@@ -162,8 +174,8 @@ Verify the fingerprint through an independent authoritative channel before
 accepting it:
 
 ```bash
-cat "$TMP" >>"$HOME/.local/share/karvi/known_hosts"
-chmod 0600 "$HOME/.local/share/karvi/known_hosts"
+cat "$TMP" >>"$STORE"
+chmod 0600 "$STORE"
 rm -f "$TMP"
 ```
 
@@ -257,6 +269,6 @@ karvi config validate /path/to/config.toml
 karvi config show --explain ssh.host-key-policy
 karvi config show --explain ssh.known-hosts-file
 karvi config show --explain ssh.halt-run-on-host-key-mismatch
-stat -c '%U %a %n' "$HOME/.local/share/karvi" \
-  "$HOME/.local/share/karvi/known_hosts"
+STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: *//p')
+stat -c '%U %a %n' "$(dirname "$STORE")" "$STORE"
 ```

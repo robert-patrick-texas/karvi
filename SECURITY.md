@@ -54,34 +54,24 @@ karvi-owned file remains available only as a comparison source for warnings.
 
 ## Trust-store ownership and permissions
 
-The automatic location is:
+The automatic location is `known_hosts` in the operator's private root
+(`basedir`), and nowhere else: `/opt/karvi/users/<user>/known_hosts` where the
+site made the operators' roots, `~/.local/share/karvi/known_hosts` otherwise.
+`karvi config show --explain ssh.known-hosts-file` names it on its `resolved:`
+line.
 
-```text
-~/.local/share/karvi/known_hosts
-```
+The immediate directory must be a real, operator-owned directory that neither
+group nor others can write. The file must be a real, operator-owned,
+non-symlink regular file with mode `0600`. An explicit path is subject to the
+same checks. Existing but invalid state is a hard error rather than a fallback
+trigger.
 
-in the operator's own root, and nowhere else.
+## Secure enrollment
 
-The immediate directory must be a real, operator-owned `0700` directory. The
-file must be a real, operator-owned, non-symlink regular file with mode `0600`.
-An explicit path is subject to the same checks. Existing but invalid state is a
-hard error rather than a fallback trigger.
-
-## Secure enrollment example
-
-```bash
-install -d -m 0700 "$HOME/.local/share/karvi"
-install -m 0600 /dev/null "$HOME/.local/share/karvi/known_hosts"
-
-DEVICE=192.0.2.10
-TMP="$(mktemp)"
-ssh-keyscan -T 5 -H "$DEVICE" >"$TMP"
-ssh-keygen -lf "$TMP"
-# Verify the fingerprint through an independent authoritative channel.
-cat "$TMP" >>"$HOME/.local/share/karvi/known_hosts"
-chmod 0600 "$HOME/.local/share/karvi/known_hosts"
-rm -f "$TMP"
-```
+The recipe is
+[`docs/SSH-HOST-KEY-POLICY.md`, "Controlled enrollment"](docs/SSH-HOST-KEY-POLICY.md#controlled-enrollment):
+it finds the store by the `resolved:` line, writes each key under the device's
+identity, and has the fingerprint verified before the line is appended.
 
 `ssh-keyscan` discovers a key but does not authenticate it.
 

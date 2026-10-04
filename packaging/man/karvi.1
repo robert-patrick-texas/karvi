@@ -306,10 +306,13 @@ and
 .I logs/daemon.log
 (the daemon's state and log).
 .TP
-.I \(ti/.local/share/karvi/known_hosts
+.I BASEDIR/known_hosts
 The trust store
 .RB ( ssh.known\-hosts\-file
-.BR auto ).
+.BR auto ),
+in the operator's private root above;
+.B karvi config show \-\-explain ssh.known\-hosts\-file
+names it.
 .TP
 .I /opt/karvi/shared\fR, \fI/var/lib/karvi/shared
 The shared trees,

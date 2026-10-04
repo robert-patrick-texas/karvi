@@ -3,14 +3,14 @@
 Every place karvi reads or writes on a host: which directories it uses in
 shared mode and in individual mode, how it chooses between them, and each file
 with its mode, owner, group, writer, and purpose. The modes and owners below
-are the ones karvi 0.26.0 left on a host, observed in both modes with two
+are the ones karvi left on a host, observed in both modes with two
 operators (`netops` and `netops.test`, both in the group `netops`).
 
 Two facts govern the rest:
 
 - **The operator's home is the password database's**, not `$HOME`. Every `~`
-  below, the private root under `~/.local/share/karvi`, and the trust store
-  are the home `getent passwd USER` names, whatever `HOME` holds.
+  below, and the private root under `~/.local/share/karvi` with the trust
+  store in it, are the home `getent passwd USER` names, whatever `HOME` holds.
 - **There is no shared switch.** Each place is chosen at the start of each
   activity by looking at what exists ([section
   1](#1-how-karvi-chooses-each-place)). A site turns shared mode on by making
@@ -39,7 +39,7 @@ one warning, since a job can run without them.
 | Scoreboards | `watch.directory` | `/dev/shm/karvi/scoreboards` | `<basedir>/state/scoreboards` | the fallback, with one warning: `shared scoreboard directory unavailable` |
 | Session ledger | `sessions.shared-capacity-root` | `/dev/shm/karvi/capacity` | `<basedir>/state/capacity` | the fallback, with one warning: `capacity_root_unusable` |
 | Spool | `spooldir` | none: never shared | `/tmp/karvi-<uid>`, then `/var/tmp/karvi-<uid>` | the next candidate |
-| Trust store | `ssh.known-hosts-file` | none: never shared | `~/.local/share/karvi/known_hosts` | `known_hosts` errors |
+| Trust store | `ssh.known-hosts-file` | none: never shared; it follows the private root, `<basedir>/known_hosts` | `<basedir>/known_hosts` | `known_hosts` errors |
 | Daemon socket | `daemon.socket` | none: never shared | `<basedir>/socket/daemon.sock` | the daemon does not start |
 
 An explicit value of any key replaces its chain: the path is used as given,
@@ -58,8 +58,11 @@ from the rule `setup shared` writes; a host where the rule did not run is in
 individual mode for the scratch, the scoreboards, and the ledger until it
 does.
 
-**A quick look at a host.** The shared places and their modes, here as `sudo
-karvi setup shared --group netops` leaves them (`--mode 2775` gives
+**A quick look at a host.** `karvi config show --explain basedir` and `karvi
+config show --explain ssh.known-hosts-file` name the operator's private root
+and trust store on their `resolved:` lines, by the rule above and without
+creating anything. The shared places and their modes, here as `sudo karvi
+setup shared --group netops` leaves them (`--mode 2775` gives
 `drwxrwsr-x` to the four 2770 directories under `/opt/karvi`):
 
 ```bash
@@ -106,7 +109,7 @@ member from removing or renaming another's entry.
 | `transcripts/YYMMDD` | `2770` | the first operator that day | operators | the first recorded login of the day | that day's transcripts |
 | `/opt/karvi/shared/crun` | `2770` | root | operators | `setup shared` | the collection files, one per device |
 | `/opt/karvi/users` | `1770` | root | operators | `setup shared` | the operators' private roots |
-| `/opt/karvi/users/<user>` | `0750` | the operator | `<group>` | the operator's first activity | the private root (`basedir`) |
+| `/opt/karvi/users/<user>` | `0750` | the operator | `<group>` | the operator's first activity | the private root (`basedir`) and the trust store |
 | `<basedir>/socket` | `0700` | the operator | `<group>` | the private root's first use | the daemon's two sockets |
 | `<basedir>/state` | `0700` | the operator | `<group>` | the same | the daemon's state file |
 | `<basedir>/logs` | `0750` | the operator | `<group>` | the same | the daemon's log |
@@ -117,8 +120,10 @@ member from removing or renaming another's entry.
 | `capacity/devices` | `2770` | the first operator to run | operators | the first activity | one ledger per device |
 | `/dev/shm/karvi/<user>` | `2700` (setgid inherited) | the operator | operators | the operator's first activity | the operator's scratch (`tempdir`) |
 | `/dev/shm/karvi/<user>/sockets` | `2700` | the operator | operators | the same | nothing ([section 5](#5-places-made-and-not-used)) |
-| `~/.local/share/karvi` | `0700` | the operator | `<group>` | the first trust-store write | the trust store alone |
 | `/tmp/karvi-<uid>` | `0700` | the operator | `<group>` | each activity | the output spool |
+
+In shared mode the operator's home holds nothing of karvi's but the operator's
+configuration (`~/.config/karvi/config.toml`), when there is one.
 
 `/var/lib/karvi` takes the place of `/opt/karvi` throughout on a site that
 made its trees and `users` there by hand; `setup shared` makes `/opt/karvi`.
@@ -171,13 +176,13 @@ in a shared place and the operator's primary group in a private one.
 | An inventory source | `[[inventory-source]] path` | readable | the devices: name, address, platform, groups |
 | A credential file (CSV, `.cloginrc`) | its backend's `path` | user scope: the operator, `0600`; shared scope: root or an approved admin, `0640`, `security.shared-group` | the devices' credentials ([`docs/CREDENTIAL-CSV.md`, section 8](CREDENTIAL-CSV.md#8-the-files-owner-and-mode)) |
 | A command or target file | `--cf PATH`, `--tf PATH`, `--tfr PATH` | readable | the commands or targets of one run |
-| The trust store | `~/.local/share/karvi/known_hosts` | written by karvi, `0600` | read before every SSH session (4.2) |
+| The trust store | `<basedir>/known_hosts` | written by karvi, `0600` | read before every SSH session (4.2) |
 
 ### 4.2 The operator's own files
 
 | File | Where | Shared | Individual | Lifetime | Purpose |
 |---|---|---|---|---|---|
-| `known_hosts` | `~/.local/share/karvi/` (`ssh.known-hosts-file`) | `0600` | `0600` | kept | the trust store: every host key karvi accepted ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)) |
+| `known_hosts` | `<basedir>/` (`ssh.known-hosts-file`) | `0600` | `0600` | kept | the trust store: every host key karvi accepted ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)) |
 | `daemon.sock` | `<basedir>/socket/` | `0600` socket | `0600` socket | while the daemon runs | the client's requests to the daemon; peer credentials checked |
 | `credentials.sock` | `<basedir>/socket/` | `0600` socket | `0600` socket | while the daemon runs | the credential package, one frame per connection under a one-use token |
 | `daemon.json` | `<basedir>/state/` | `0600` | `0600` | while the daemon runs | the running daemon's status (pid, socket, version, schema, jobs), removed when it stops |

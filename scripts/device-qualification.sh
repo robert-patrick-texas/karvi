@@ -120,9 +120,9 @@ install -d -m 700 "$EVIDENCE" "$WORK" "$WORK/bin" "$WORK/store" "$WORK/home"
 printf 'row\tcheck\tdisposition\tdetail\n' >"$RESULTS"
 
 # The operator's own trust store must not change.
-OWN_STORE=${HOME:-/nonexistent}/.local/share/karvi/known_hosts
-store_digest() { if [ -f "$OWN_STORE" ]; then cksum <"$OWN_STORE"; else echo absent; fi; }
-OWN_BEFORE=$(store_digest)
+. "$ROOT/scripts/lib/host.sh"
+OWN_STORE=$(host_own_store "$KARVI")
+OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
 if [ -z "${PARITYCHECK:-}" ] && command -v "$GO" >/dev/null 2>&1; then
   (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/paritycheck" ./tools/paritycheck) && PARITYCHECK=$WORK/bin/paritycheck
@@ -500,7 +500,7 @@ if [ -x "$SECRET_SCAN" ]; then
   if scan=$("$SECRET_SCAN" $scan_env "$EVIDENCE" 2>&1); then result ALL 'no secret in the evidence' pass "$scan"
   else printf '%s\n' "$scan" >"$EVIDENCE/secret-scan.findings"; result ALL 'no secret in the evidence' fail 'see secret-scan.findings; do not share this directory'; fi
 else result ALL 'no secret in the evidence' skip "no $SECRET_SCAN (make tools-build)"; fi
-[ "$(store_digest)" = "$OWN_BEFORE" ] && result ALL "the operator's trust store unchanged" pass '' || result ALL "the operator's trust store unchanged" fail "$OWN_STORE changed"
+[ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] && result ALL "the operator's trust store unchanged" pass '' || result ALL "the operator's trust store unchanged" fail "$OWN_STORE changed"
 
 cleanup; FAKE_PID=
 rm -rf "$WORK"

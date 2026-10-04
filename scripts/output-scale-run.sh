@@ -51,9 +51,9 @@ install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base"
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).
-OWN_STORE=${HOME:-/nonexistent}/.local/share/karvi/known_hosts
-store_digest() { if [ -f "$OWN_STORE" ]; then cksum <"$OWN_STORE"; else echo absent; fi; }
-OWN_BEFORE=$(store_digest)
+. "$ROOT/scripts/lib/host.sh"
+OWN_STORE=$(host_own_store "$KARVI")
+OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
 : >"$TMP/port"
 "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -big-lines "$BIG_LINES" 2>"$TMP/fake.err" >"$TMP/port" &
@@ -154,7 +154,7 @@ ok=$(grep -c "\"status\":\"succeeded\".*\"output_bytes\":$WANT_BYTES\|\"output_b
 karvi --quiet daemon stop --force >/dev/null 2>&1 || true
 kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
 grep -q "^connections=$N sessions=$N\$" "$TMP/fake.err" || fail "the fake saw $(grep '^connections=' "$TMP/fake.err"), expected $N connections and $N shells"
-[ "$(store_digest)" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
+[ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 
 # The responses held at once: N, or the server's cap when it is lower; an
 # INFLIGHT of 0 is the daemon's default, computed here as the registry

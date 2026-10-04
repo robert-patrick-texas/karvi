@@ -42,9 +42,9 @@ install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store"
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP in every configuration here; HOME does not move the store).
-OWN_STORE=${HOME:-/nonexistent}/.local/share/karvi/known_hosts
-store_digest() { if [ -f "$OWN_STORE" ]; then cksum <"$OWN_STORE"; else echo absent; fi; }
-OWN_BEFORE=$(store_digest)
+. "$ROOT/scripts/lib/host.sh"
+OWN_STORE=$(host_own_store "$KARVI")
+OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
 start_fake() {  # fake flags...; sets PORT
   : >"$TMP/port"
@@ -625,7 +625,7 @@ max-ipc-frame-bytes = 65536' '' --cmd 'show big' --cmd 'show clock'
   echo 'native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok'
 fi
 
-[ "$(store_digest)" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
+[ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 stop_fake
 if pgrep -f "$TMP/bin/fake" >/dev/null 2>&1 || pgrep -f "daemon serve.*$TMP" >/dev/null 2>&1; then
   fail "a fake or a daemon is still running"

@@ -242,27 +242,15 @@ host-key-policy = "accept-new"
 known-hosts-file = "auto"
 ```
 
-The removed values `auto` and `default` are rejected. The automatic trust-store
-order is:
+The removed values `auto` and `default` are rejected. Under `known-hosts-file =
+"auto"` the trust store is `known_hosts` in the operator's private root:
+`/opt/karvi/users/<user>/known_hosts` where the site made the operators' roots,
+`~/.local/share/karvi/known_hosts` otherwise; `karvi config show --explain
+ssh.known-hosts-file` names it on its `resolved:` line.
 
-1. `~/.local/share/karvi/known_hosts` (the only automatic location)
-
-For authenticated pre-enrollment, select `secure` and populate the file before
-using `login`, `command`, or `run`:
-
-```bash
-install -d -m 0700 "$HOME/.local/share/karvi"
-install -m 0600 /dev/null "$HOME/.local/share/karvi/known_hosts"
-
-DEVICE=192.0.2.10
-TMP="$(mktemp)"
-ssh-keyscan -T 5 -H "$DEVICE" >"$TMP"
-ssh-keygen -lf "$TMP"
-# Verify the fingerprint through an independent authoritative channel.
-cat "$TMP" >>"$HOME/.local/share/karvi/known_hosts"
-chmod 0600 "$HOME/.local/share/karvi/known_hosts"
-rm -f "$TMP"
-```
+For authenticated pre-enrollment, select `secure` and populate the store before
+using `login`, `command`, or `run`, by
+[`docs/SSH-HOST-KEY-POLICY.md`, "Controlled enrollment"](docs/SSH-HOST-KEY-POLICY.md#controlled-enrollment).
 
 `ssh-keyscan` discovers a presented key; it does not authenticate that key.
 

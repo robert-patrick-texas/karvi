@@ -69,12 +69,13 @@ common_args() {
 }
 
 # Auto/default: first device reports a changed key, but the second still runs.
+# The store is "auto" here, without the work directory's variable: under the
+# basedir the run sets, never the operator's own.
 # shellcheck disable=SC2046
 set +e
-HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" $(common_args) \
+env -u KARVI__SSH__KNOWN_HOSTS_FILE HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" $(common_args) \
   run --no-daemon --target 127.0.0.1 --target 127.0.0.2 \
-  --transport system --dispatch serial --format jsonl \
-  --ssh-known-hosts-file "$HOME_DIR/.local/share/karvi/known_hosts" 'show clock' \
+  --transport system --dispatch serial --format jsonl 'show clock' \
   >"$TMP/auto.jsonl" 2>"$TMP/auto.err"
 auto_code=$?
 set -e
@@ -87,7 +88,8 @@ set -e
 [ "$(grep -c '"code":"host_key_changed"' "$TMP/auto.jsonl")" -eq 1 ]
 [ "$(grep -c '"status":"succeeded"' "$TMP/auto.jsonl")" -eq 1 ]
 grep -q 'StrictHostKeyChecking accept-new' "$CAPTURE"
-AUTO_KNOWN=$HOME_DIR/.local/share/karvi/known_hosts
+AUTO_KNOWN=$BASE/known_hosts
+grep -q "UserKnownHostsFile \"$AUTO_KNOWN\"" "$CAPTURE"
 [ -f "$AUTO_KNOWN" ]
 [ "$(stat -c '%a' "$(dirname "$AUTO_KNOWN")")" = 700 ]
 [ "$(stat -c '%a' "$AUTO_KNOWN")" = 600 ]
