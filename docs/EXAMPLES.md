@@ -2848,3 +2848,183 @@ local and read-only, calls the host-key resolution that creates a missing
 store under `accept-new`, as it did before; noted, not changed. A namespace
 script's `kill %1` does nothing in `sh`, which has no job control, so the
 fakes outlived the runs until stopped by their process IDs.
+
+## 24. Jobs across Linux servers (2026-10-04)
+
+The operator asked for the design of running jobs across generic Linux
+servers, with an option to run each command over an SSH control path (one
+connection, a non-interactive exec channel per command) in place of an
+interactive login; then, during the session, for the removal of terminal
+control characters from `login --record` transcripts, as the Linux shell's
+colours must leave a recorded output.
+
+**What it gains.** A command's own verdict: under exec each command returns
+an exit status, with stdout and stderr apart, which no failure pattern can
+match on a server's free text. Clean output, with no prompt to find, no echo to
+remove, and nothing of the terminal or the login shell's start files. One
+authentication for many commands. A use for `ssh.control-path-root`, which the
+roadmap holds open ([`ROADMAP.md`](../ROADMAP.md), "Control sockets for the
+system transport"). And the server fleet gets what the network fleet has (the
+plan, the daemon, the records, `errors.jsonl`, the ledger, `watch`, `crun`)
+without a second tool. It waits on nothing outside the tree: this host's
+OpenSSH serves the executed examples, and the suites need a fake that answers
+exec requests, built here. It needs the operator's facts about the servers:
+how they authenticate, whether `sudo` is needed, and which shells they run.
+
+**Executed: today.** A lab build under `/tmp/nd.7MvZ` (`basedir`, the trust
+store, the spool, the scratch, the scoreboards, and the ledger all under it),
+`karvi command 127.0.0.1 --platform linux` against this host's OpenSSH with
+four commands. Over the system transport, with `ssh.pubkey-authentication =
+true` (off by default), the operator's key logged in and the run exited 0 with
+every record `succeeded`:
+
+```text
+'command': 'ls /nonexistent', 'status': 'succeeded',
+'output': "\x1b[?2004l/usr/bin/ls: cannot access '/nonexistent': No such file or directory\n
+           \x1b[?2004h\x1b]0;netops@dev: ~\x07\x1b[01;32mnetops@dev\x1b[00m:\x1b[01;34m~\x1b[00m$\n"
+'command': 'false',           'status': 'succeeded'
+'command': 'echo status=$?',  'output': '...status=1\n...'
+```
+
+Three faults: a failed command is a success (`linux` has no failure patterns,
+and the shell hides the exit status); the output keeps bash's bracketed-paste
+switches, the window title, and the coloured prompt, the trailing prompt left
+in because the bytes carry colours the matched prompt does not, and the
+`prompt` fields keep the title; the login shell's aliases apply (`/usr/bin/ls`
+in the message). Over `scrapligo-v1` the same run is `authentication_failed`,
+exit 108: the adapter offers password and keyboard-interactive alone, and this
+host, like most servers, has `passwordauthentication no`, so `run`'s default
+transport cannot reach a key-only server.
+
+**Executed: one master, an exec channel per command,** plain OpenSSH with the
+lab's trust store:
+
+```text
+[uname -s]        exit=0 stdout=Linux| stderr=
+[ls /nonexistent] exit=2 stdout= stderr=ls: cannot access '/nonexistent': No such file or directory|
+[false]           exit=1 stdout= stderr=
+Master running (pid=645286)    -> -O exit, socket gone
+```
+
+This host's `sshd` has `MaxSessions 10`, the default: one connection carries at
+most ten channels at once, and `linux`'s session cap is also 10.
+
+**The issues, in the order proposed.**
+
+1. Scope: one platform or one per distribution, and the fleet's facts.
+2. Terminal text: the transcripts and the shell's output rendered as the
+   terminal showed them (inserted at the operator's word; it and the shell
+   mode's own output share one renderer, so they are one issue).
+3. Where exec lives: a platform property, a transport, or a per-run option,
+   and what selects it per device.
+4. The record of an exec command: the exit status, stderr, the code of a
+   non-zero exit, the device-error policy, the prompt fields.
+5. Key authentication on both transports, and what the credential backends
+   supply then.
+6. The connection beneath exec: OpenSSH's ControlMaster (the sockets' place,
+   the sweep, `ControlPersist`, the `~` bug) or the native transport's own
+   channels over one connection; for one job or across jobs.
+7. Privilege: `sudo` in place of `enable`.
+8. What exec keeps of the shell model: blind sends, `--expect`, paging,
+   session-init, exit commands, timeouts, cancel, the output limit, the spool.
+9. `crun` for servers: collection commands and filters.
+10. The fake and the parity run.
+11. The daemon, the ledger (`MaxSessions` against the session cap), `watch`.
+
+**Issue 1, agreed.** One built-in `linux` platform, no definition per
+distribution; a class of servers that needs other collection commands, caps,
+or ports is a `[platform.NAME]` alias with `driver = "linux"`, as `c9300` is
+for IOS XE. The fleet's facts (authentication, `sudo`, shells) are still to
+come from the operator and are taken where issues 5 and 7 need them.
+
+**Executed: a recorded login.** `karvi login 127.0.0.1 --platform linux
+--record`, driven through a pseudo-terminal: a coloured `ls`, a word corrected
+with two backspaces, `exit`. The transcript, shown by `cat -v`:
+
+```text
+^[[?2004h^[]0;netops@dev: ~^G^[[01;32mnetops@dev^[[00m:^[[01;34m~^[[00m$ ls --color=auto -d /etc /bin^M
+^[[?2004l^M^[[0m^[[01;36m/bin^[[0m  ^[[01;34m/etc^[[0m^M
+^[[?2004h^[]0;netops@dev: ~^G^[[01;32mnetops@dev^[[00m:^[[01;34m~^[[00m$ echo helo^H^[[K^H^[[Klo^M
+^[[?2004l^Mhelo^M
+```
+
+Every line ends in a carriage return, and the line editor's corrections are
+backspaces and erase-to-end sequences. Deleting the sequences and the control
+characters records a command never sent:
+
+```text
+netops@dev:~$ echo helolo
+```
+
+A prototype that applies them as the terminal does (a carriage return to the
+line's start, a backspace one column left, erase to the end of the line, the
+cursor moved within the line; every other sequence and control dropped, tabs
+kept) gives what the operator saw:
+
+```text
+netops@dev:~$ ls --color=auto -d /etc /bin
+/bin  /etc
+netops@dev:~$ echo helo
+helo
+netops@dev:~$ exit
+logout
+```
+
+The tree holds two partial removers and no renderer: `devsession`'s prompt
+matcher removes CSI sequences alone (why the `prompt` fields keep the window
+title), and `display.StripANSI` removes CSI and OSC for karvi's own colours;
+neither applies a backspace, an erase, or a carriage return. The transcript is
+rewritten once at the session's end (`transcript.StripScriptMarkers`, then its
+SHA-256 for the metadata).
+
+**Executed: the editing keys.** The operator asked whether the rendering
+accounts for Ctrl-A and Ctrl-E, Home and End, and the like. The transcript
+never holds the keys, only the far end's echo of them, so the question is what
+the remote editor sends. A recorded login at 80 columns, each edit ending in an
+`echo` whose output proves the command sent:
+
+| Keys | The line model | The width-aware renderer |
+|---|---|---|
+| Ctrl-A, Ctrl-E, Home, End, the arrows, Delete | right | right |
+| Ctrl-K, Ctrl-U, Ctrl-W, history (Up), Ctrl-R | right | right |
+| a 95-character line typed through | right | right |
+| Ctrl-A and an insert in a line wrapped past 80 | garbled: bash moved up a row (`ESC[A`) | `echo X` and 90 `b`, as its output |
+| Ctrl-L, at an empty prompt and inside a typed line | the prompt doubled | `echo cleared` |
+| a wrapped line: an insert, Delete, Ctrl-E | | `echo YZ`, 84 `c`, `!`, as its output |
+
+A line longer than the terminal wraps with no control at all, so the width is
+needed. `script(1)`'s advanced timing log (`-T FILE -m advanced`, util-linux
+2.39 here) records it, with each resize between the output's byte counts:
+
+```text
+H 0.000000 COLUMNS 80
+O 1.010129 4
+S 0.300926 SIGWINCH ROWS=30 COLS=132
+O 0.702328 5
+```
+
+**Issue 2, agreed.** One renderer of terminal text. It holds the line being
+written as rows of the terminal's width: text wraps at the width, a carriage
+return goes to the row's start, a newline ends the line on its last row and
+moves down a row otherwise, a backspace and the cursor's left, right, and
+column moves stay in the row, cursor up and down move between the line's rows,
+erase in line, erase below, insert character, and delete character apply, the
+screen cleared discards the unfinished line, and any other cursor positioning
+ends the line; a finished line is written whole. Every other sequence and
+control is dropped, tabs kept. A transcript is rendered at the session's end,
+in the rewrite that removes the marker lines and before its digest, its widths
+from the timing log, written into the scratch and removed after; no raw copy
+is kept, and a session killed before its end keeps its raw bytes. The shell's
+output and prompts in `command` and `run` are rendered by the same function on
+every platform; the width each transport asks of the far end is checked when
+built. The limits are stated in the guide: a key the far end does not echo
+cannot appear, a full-screen program is its text in the order drawn, and a
+device showing a long line as a scrolled window records the window. The fake
+has no line editor, so IOS XE's editing is a laboratory question: a new
+runbook row, D16, records it on the ISR and the Catalyst.
+
+**Not taken.** Deleting the sequences (`echo helolo`). A line model without
+the width. The operator's keystrokes recorded to rebuild each command
+(`script --log-in`), which would write a password typed at a prompt that does
+not echo. A raw copy beside the transcript, a switch to turn rendering off,
+`TERM=dumb` asked of the server, and a terminal-emulator library.

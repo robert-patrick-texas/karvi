@@ -293,6 +293,15 @@ ad hoc configuration, decides parser behaviour. *Not taken:* lowercasing table
 names in the loader (it would change the configuration digest for a naming
 rule the platform package owns).
 
+**One `linux` platform; a class of servers is an alias.** Every Linux server is
+the built-in `linux`, and karvi has no definition per distribution. A site that
+wants other collection commands, caps, or ports for a class of servers writes a
+`[platform.NAME]` alias with `driver = "linux"`, as for any built-in. *Why:* a
+server runs the command in its own shell, and what karvi reads back does not
+differ in kind between distributions; an alias already carries what a class of
+servers needs. *Not taken:* a built-in per distribution (`ubuntu`, `rhel`),
+each a copy of `linux` with nothing of its own.
+
 **A device's platform is resolved once, at planning, in a fixed order.**
 `--platform NAME` on the command line, else the inventory row's value, else
 the source's `defaults.platform`, else `platform-resolution.default`, whose
@@ -1404,6 +1413,36 @@ rendered and colored as every header and footer.
 *Why:* the operator declined recording the input stream; a JSON document is
 valid only when complete; the header scrolls away in a long session, and
 the operator leaving it wants the path where it ends.
+
+**Terminal text is rendered as the terminal showed it.** One renderer turns a
+terminal's bytes into text, for a login's transcript and for the shell's output
+and prompts in `command` and `run` on every platform. It holds the line being
+written as rows of the terminal's width: text wraps at the width, a carriage
+return goes to the row's start, a newline ends the line on its last row and
+moves down a row otherwise, a backspace and the cursor's left, right, and column
+moves stay in the row, cursor up and down move between the line's rows, erase
+in line, erase below, insert character, and delete character apply, the screen
+cleared discards the unfinished line (the editor redraws it), and any other
+cursor positioning ends the line; a finished line is written whole, its rows
+joined. Every other sequence and control is dropped, tabs kept. A transcript is
+rendered at the session's end, in the rewrite that removes `script(1)`'s marker
+lines and before its digest, its widths taken from `script(1)`'s advanced
+timing log (the starting columns and each resize), written into the scratch
+and removed after; no raw copy is kept, and a session killed before its end
+keeps its raw bytes. The limits: a key the far end does not echo cannot appear,
+a full-screen program comes out as its text in the order drawn, and a device
+that shows a long line as a scrolled window records the window (runbook row
+D16 records IOS XE's). *Why:* the echo of a line editor's keys is backspaces,
+erases, cursor moves, and reprinted tails, so deleting the controls records
+commands never sent (`echo helo` corrected by two backspaces became `echo
+helolo`); bash edits a line longer than the terminal by moving between its
+rows, which only the width explains; colours and window titles are no part of
+a record. *Not taken:* deleting the sequences; a line model without the width
+(it garbled an insert into a wrapped line and doubled the prompt at Ctrl-L); the
+operator's keystrokes recorded to rebuild each command (`script --log-in`
+writes a password typed at a prompt that does not echo); a raw copy beside the
+transcript; a switch to turn rendering off; `TERM=dumb` asked of the server; a
+terminal-emulator library.
 
 **Retention is a helper of its own, walking `YYMMDD` day folders under both
 roots.** `karvi-prune` reads no configuration; its eight flags carry the
