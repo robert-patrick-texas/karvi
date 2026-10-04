@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **`docs/FILES.md`, every place karvi uses.** One reference for the
+  directories and files karvi reads and writes in shared and in individual
+  mode, each with its mode, owner, group, writer, and purpose, and the rule by
+  which each place is chosen (the shared candidate first, what a missing or an
+  unusable one does), as karvi 0.26.0 leaves them on a host with two
+  operators. It names two settings with no use in this release:
+  `ssh.control-path-root`, whose directory is made and stays empty, and
+  `logging.file`, to which nothing is written.
+
 ## 0.26.0 - 2026-10-04
 
 A minor release on 0.25.0. The configuration registry moves from 22 to 24

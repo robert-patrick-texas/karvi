@@ -35,6 +35,7 @@ var documents = []document{
 	{"docs/SSH-TRANSPORTS.md", "Operating karvi", "The two SSH transports, `system` and `scrapligo-v1`, and how one is selected."},
 	{"docs/TIMEOUTS.md", "Operating karvi", "What bounds a device session: the keys, how they relate, what each expiry records."},
 
+	{"docs/FILES.md", "Reference", "Every directory and file karvi reads or writes, shared and individual: mode, owner, group, and how each place is chosen."},
 	{"docs/ERROR-CODES.md", "Reference", "Every exit status, error code, record reason, and notice, generated from the registry."},
 
 	{"docs/ARCHITECTURE.md", "Design and records", "How the implementation is built: planning, execution, display, transports, the daemon and storage."},

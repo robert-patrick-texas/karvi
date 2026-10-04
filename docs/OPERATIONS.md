@@ -609,7 +609,8 @@ notice `follow_output_omitted` saying where the output is.
 ## The shared trees
 
 A team keeps one job tree, one collection directory, and one transcript
-tree. The site makes them once, as root:
+tree. The site makes them once, as root ([`docs/FILES.md`](FILES.md) lists
+every directory and file with its mode, owner, and group):
 
 ```bash
 sudo karvi setup shared            # the group of the operator who ran sudo

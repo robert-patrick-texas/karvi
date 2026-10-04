@@ -506,6 +506,9 @@ Operator guides:
   configuration, first commands.
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md): upgrade, the daemon, retention,
   credential files.
+- [`docs/FILES.md`](docs/FILES.md): every directory and file karvi reads or
+  writes, in shared and in individual mode, with its mode, owner, and group,
+  and how karvi chooses each place.
 - [`docs/PRUNE.md`](docs/PRUNE.md): what `karvi-prune` removes, where it looks,
   the timers, the hand run.
 - [`docs/COLLECTION.md`](docs/COLLECTION.md): the collection run `crun`: what a
