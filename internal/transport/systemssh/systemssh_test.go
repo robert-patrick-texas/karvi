@@ -21,7 +21,7 @@ func TestManagedOptionsPrecedeUserInclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	text, err := (Factory{Config: cfg, Home: home, ControlRoot: filepath.Join(home, "ctl")}).renderConfig()
+	text, err := (Factory{Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ControlRoot: filepath.Join(home, "ctl")}).renderConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

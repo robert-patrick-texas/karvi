@@ -120,7 +120,10 @@ include-user-config = true
 # changes; secure requires prior enrollment; insecure accepts all keys with warnings. The
 # removed values auto and default are rejected.
 host-key-policy = "accept-new"
-# Unified karvi trust store. auto selects ~/.local/share/karvi/known_hosts.
+# The karvi trust store, the one known_hosts file both transports trust. auto is
+# <basedir>/known_hosts: the operator's root under the site's users directory, else
+# ~/.local/share/karvi/known_hosts; an explicit path is taken as given, ~ the home. config
+# show --explain ssh.known-hosts-file names the file.
 known-hosts-file = "auto"
 # When true, the first changed SSH host key stops new run scheduling while allowing in-flight
 # devices to finish.

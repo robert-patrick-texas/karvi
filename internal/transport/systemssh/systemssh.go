@@ -32,7 +32,10 @@ type Factory struct {
 	Binary                                     string
 	Config                                     configload.Snapshot
 	ScratchDir, ControlRoot, Home, AskpassPath string
-	MaxOutputBytes                             int64
+	// BaseDir is the operator's private root, which holds the trust store
+	// under ssh.known-hosts-file "auto".
+	BaseDir        string
+	MaxOutputBytes int64
 	// Spool is the session's spool: the directory,
 	// the threshold, and the activity; the device is filled per session.
 	Spool   devsession.Spool
@@ -58,7 +61,7 @@ type Driver struct {
 }
 
 func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.Driver, error) {
-	policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home)
+	policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home, f.BaseDir)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +255,7 @@ func (d *Driver) controlArgs() []string {
 func (f Factory) renderConfig() (string, error) {
 	var b strings.Builder
 	if f.hostKey.Mode == "" {
-		policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home)
+		policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home, f.BaseDir)
 		if err != nil {
 			return "", err
 		}
@@ -445,7 +448,7 @@ func (f Factory) offeredAlgorithms(implements func(sshalgorithms.Kind, string) b
 		return nil, err
 	}
 	if f.hostKey.Mode == "" {
-		policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home)
+		policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home, f.BaseDir)
 		if err != nil {
 			return nil, err
 		}

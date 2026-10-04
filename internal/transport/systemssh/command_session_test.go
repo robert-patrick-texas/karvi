@@ -64,7 +64,7 @@ done
 	if err != nil {
 		t.Fatal(err)
 	}
-	factory := Factory{Binary: bin, Config: cfg, Home: home, ScratchDir: scratch, ControlRoot: filepath.Join(home, "control"), AskpassPath: "/bin/true"}
+	factory := Factory{Binary: bin, Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: scratch, ControlRoot: filepath.Join(home, "control"), AskpassPath: "/bin/true"}
 	driver, err := factory.Open(context.Background(), platform.OpenRequest{
 		Address: "192.0.2.10", Port: 22, Username: "operator",
 		Definition: platform.Definition{Name: "cisco_iosxe"},

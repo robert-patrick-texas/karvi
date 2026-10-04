@@ -142,9 +142,14 @@ func tomlValue(v any) string {
 	}
 }
 
+// Resolver names the path a key's value comes to on this host, for the keys
+// whose place depends on what the host holds; ok is false for any other key.
+type Resolver func(key string) (path string, ok bool, err error)
+
 // Explain renders one or every key with source, default, overrides, lock, and
-// macro trace. Sensitive keys are metadata-only.
-func (s Snapshot) Explain(key string) string {
+// macro trace, and the resolved path where resolve names one (nil names
+// none). Sensitive keys are metadata-only.
+func (s Snapshot) Explain(key string, resolve Resolver) string {
 	keys := []string{}
 	if key != "" {
 		keys = []string{key}
@@ -165,6 +170,13 @@ func (s Snapshot) Explain(key string) string {
 			b.WriteByte('\n')
 		}
 		fmt.Fprintf(&b, "key:        %s\nvalue:      %s\nsource:     %s\ndefault:    %s\n", k, tomlValue(v.Data), v.Source.String(), tomlValue(v.Default))
+		if resolve != nil {
+			if path, ok, err := resolve(k); ok && err != nil {
+				fmt.Fprintf(&b, "resolved:   error: %v\n", err)
+			} else if ok {
+				fmt.Fprintf(&b, "resolved:   %s\n", path)
+			}
+		}
 		if e, ok := configschema.Lookup(k); ok {
 			fmt.Fprintf(&b, "environment: %s\nreload:      %s\nvalidation:  %s\n", e.Environment, e.ReloadClass, e.Documentation)
 		}

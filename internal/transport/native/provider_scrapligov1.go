@@ -21,7 +21,7 @@ func init() {
 // openScrapliGoV1 resolves the host-key policy; the connection and the
 // device session open in Prepare.
 func openScrapliGoV1(_ context.Context, f Factory, req platform.OpenRequest) (platform.Driver, error) {
-	policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home)
+	policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home, f.BaseDir)
 	if err != nil {
 		return nil, err
 	}

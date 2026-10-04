@@ -45,7 +45,7 @@ func TestGeneratedConfigOffersTheDeviceListsTheBinaryImplements(t *testing.T) {
 		t.Fatalf("answered %v", caps.answered)
 	}
 	lists := sshalgorithms.Apply(cfg.SSHAlgorithms(), map[string]any{"ciphers-append": []any{"aes128-ctr", "aes128-cbc"}})
-	f := Factory{Config: cfg, Home: home, Algorithms: lists}
+	f := Factory{Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), Algorithms: lists}
 	f.offered, err = f.offeredAlgorithms(caps.implements)
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func TestGeneratedConfigOffersTheDeviceListsTheBinaryImplements(t *testing.T) {
 	}
 
 	// A list the binary implements none of fails before any connection.
-	f = Factory{Binary: bin, Config: cfg, Home: home, ScratchDir: t.TempDir(), Algorithms: sshalgorithms.Apply(cfg.SSHAlgorithms(), map[string]any{"kex": []any{"mlkem768x25519-sha256"}})}
+	f = Factory{Binary: bin, Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: t.TempDir(), Algorithms: sshalgorithms.Apply(cfg.SSHAlgorithms(), map[string]any{"kex": []any{"mlkem768x25519-sha256"}})}
 	_, err = f.Open(context.Background(), platform.OpenRequest{Address: "192.0.2.10", Port: 22, Username: "operator", Metadata: map[string]string{"canonical_name": "switch01"}})
 	if errorcodes.Of(err) != "ssh_algorithms_unavailable" || !strings.Contains(err.Error(), "key exchange algorithms (mlkem768x25519-sha256) is implemented by system") {
 		t.Fatalf("unavailable: %v", err)
@@ -100,7 +100,7 @@ func TestHostKeyAliasIsTheIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 	for port, want := range map[uint16]string{22: "HostKeyAlias=switch01", 2222: "HostKeyAlias=[switch01]:2222"} {
-		f := Factory{Binary: fakeQueryBinary(t), Config: cfg, Home: home, ScratchDir: t.TempDir()}
+		f := Factory{Binary: fakeQueryBinary(t), Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: t.TempDir()}
 		driver, err := f.Open(context.Background(), platform.OpenRequest{Address: "192.0.2.10", Port: port, Username: "operator", Metadata: map[string]string{"canonical_name": "switch01"}})
 		if err != nil {
 			t.Fatal(err)

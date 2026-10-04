@@ -418,7 +418,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__KNOWN_HOSTS_FILE",
       "cli_flags": null,
-      "documentation": "Unified karvi trust store. auto selects ~/.local/share/karvi/known_hosts.",
+      "documentation": "The karvi trust store, the one `known_hosts` file both transports trust. `auto` is `\u003cbasedir\u003e/known_hosts`: the operator's root under the site's `users` directory, else `~/.local/share/karvi/known_hosts`; an explicit path is taken as given, `~` the home. `config show --explain ssh.known-hosts-file` names the file.",
       "since": "0.4.0"
     },
     {

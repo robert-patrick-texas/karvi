@@ -208,45 +208,86 @@ const UsersDirMode os.FileMode = 0o770
 // and a fall-through would split the operator's state across two roots.
 // An absent `users` directory is passed by: only the site makes it.
 func ResolveBaseDir(raw, home, username string) (string, error) {
+	choice, err := chooseBaseDir(raw, home, username)
+	if err != nil {
+		return "", err
+	}
+	switch choice.make {
+	case makeUsersLeaf:
+		if err := makeDirectories(choice.path, RootMode); err != nil {
+			return "", errorcodes.Errorf("private_directory_not_writable", "create %s: %w", choice.path, err)
+		}
+	case makeXDG:
+		if err := makeDirectories(choice.path, RootMode); err != nil {
+			return "", err
+		}
+	}
+	return writableDirectory(choice.path, "private_directory_not_writable")
+}
+
+// BaseDirPath is the private root ResolveBaseDir picks, by the same rule and
+// with the same refusals of a `users` directory, without creating anything:
+// where the site's `users` exists and the operator's folder does not yet,
+// the folder the first activity makes. `config show --explain basedir` names
+// it.
+func BaseDirPath(raw, home, username string) (string, error) {
+	choice, err := chooseBaseDir(raw, home, username)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(choice.path)
+}
+
+// baseDirChoice is the private root the rule picks and what ResolveBaseDir
+// makes when it is absent.
+type baseDirChoice struct {
+	path string
+	make baseDirMake
+}
+
+type baseDirMake int
+
+const (
+	makeNothing   baseDirMake = iota // explicit, or an operator's folder that exists
+	makeUsersLeaf                    // <root>/users/<username> in a users directory the site made
+	makeXDG                          // ~/.local/share/karvi
+)
+
+// chooseBaseDir is the rule of ResolveBaseDir; it reads the file system and
+// changes nothing.
+func chooseBaseDir(raw, home, username string) (baseDirChoice, error) {
 	if raw != "" && raw != "auto" {
 		p, err := expandHome(raw, home)
 		if err != nil {
-			return "", err
+			return baseDirChoice{}, err
 		}
-		return writableDirectory(p, "private_directory_not_writable")
+		return baseDirChoice{path: p}, nil
 	}
 	if username == "" || username == "." || username == ".." || strings.ContainsRune(username, '/') {
-		return "", errorcodes.Errorf("operator_identity_unavailable", "the operator's username %q cannot name a private root", username)
+		return baseDirChoice{}, errorcodes.Errorf("operator_identity_unavailable", "the operator's username %q cannot name a private root", username)
 	}
 	for _, root := range SystemRoots {
 		users := filepath.Join(root, "users")
 		leaf := filepath.Join(users, username)
 		if _, err := os.Lstat(leaf); err == nil {
-			return writableDirectory(leaf, "private_directory_not_writable")
+			return baseDirChoice{path: leaf}, nil
 		} else if !os.IsNotExist(err) && !errors.Is(err, syscall.ENOTDIR) {
 			// ENOTDIR: users is a file, which the check below names.
-			return "", err
+			return baseDirChoice{}, err
 		}
 		fi, err := os.Lstat(users)
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue
 			}
-			return "", err
+			return baseDirChoice{}, err
 		}
 		if err := checkUsersDirectory(users, fi); err != nil {
-			return "", err
+			return baseDirChoice{}, err
 		}
-		if err := makeDirectories(leaf, RootMode); err != nil {
-			return "", errorcodes.Errorf("private_directory_not_writable", "create %s: %w", leaf, err)
-		}
-		return writableDirectory(leaf, "private_directory_not_writable")
+		return baseDirChoice{path: leaf, make: makeUsersLeaf}, nil
 	}
-	xdg := filepath.Join(home, ".local/share/karvi")
-	if err := makeDirectories(xdg, RootMode); err != nil {
-		return "", err
-	}
-	return writableDirectory(xdg, "private_directory_not_writable")
+	return baseDirChoice{path: filepath.Join(home, ".local/share/karvi"), make: makeXDG}, nil
 }
 
 // checkUsersDirectory is the hard check of a present `users` directory

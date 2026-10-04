@@ -294,7 +294,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if req.Mode == executionplan.ModeExercise {
 		// The exercise branch: everything above is
 		// the accepted job; nothing below it is built.
-		return runExercise(ctx, req, exerciseState{id: id, jobID: jobID, artifact: artifact, started: now, store: store, auditSink: auditSink, scoreboardWriter: scoreboardWriter, initial: initial, capManager: capManager, sampler: sampler})
+		return runExercise(ctx, req, exerciseState{id: id, jobID: jobID, artifact: artifact, started: now, store: store, auditSink: auditSink, scoreboardWriter: scoreboardWriter, initial: initial, capManager: capManager, sampler: sampler, base: base})
 	}
 	renderer, err := newRecordRenderer(streams.Stdout, plan.Output.Format, cfg, req.Quiet, req.Debug, id, shownArtifact, req.ActivityType, plan.Output.Echo, plan.Output.DynamicBorder, plan.Output.NoBorder)
 	if err != nil {
@@ -310,7 +310,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		Grants: req.Grants, Protection: req.Protection, HaltOnCommandError: cfg.Bool("execution.halt-device-on-command-error") && !plan.Dispatch.ContinueDeviceOnError,
 		Ping: plan.Ping, Pinger: pinger,
 		Capacity: capManager, Store: store, Audit: auditSink, Metrics: sampler,
-		ScratchDir: scratch, ControlRoot: controlRoot, Home: req.Operator.Home, SpoolDir: spoolDir, InFlight: board.inFlight,
+		ScratchDir: scratch, ControlRoot: controlRoot, Home: req.Operator.Home, BaseDir: base, SpoolDir: spoolDir, InFlight: board.inFlight,
 		OnRecord: renderer.OnRecordFrom, Warn: warn, Debug: debug,
 	})
 	tasks := make([]dispatch.Task, len(plan.Targets))

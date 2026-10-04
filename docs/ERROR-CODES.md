@@ -373,7 +373,6 @@ Active failure causes.
 | `host_key_policy_invalid` | config | 109 | no | The host-key policy value is not `accept-new`, `secure`, or `insecure`. |
 | `host_key_scan_empty` | connection | 109 | yes | `ssh-keyscan` returns no usable host keys. |
 | `host_key_scan_key_invalid` | connection | 109 | no | `ssh-keyscan` returns key data that is not valid base64. |
-| `host_key_trust_store_candidates_exhausted` | permission | 109 | no | The karvi trust store cannot be created in the operator's root. |
 | `host_key_trust_store_chmod_failed` | permission | 109 | no | A newly created trust store cannot be set to mode 0600. |
 | `host_key_trust_store_close_failed` | output | 109 | no | A newly created trust store cannot be closed. |
 | `host_key_trust_store_create_failed` | permission | 109 | no | A trust store file cannot be created. |
@@ -729,6 +728,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `host_key_failure` | v0.10.0 | `host_key_not_enrolled`, `host_key_trust_store_unavailable` | Executor wrapper for any other host-key failure. |
 | `host_key_path_invalid` | v0.10.0 | `path_other_user_home_unsupported` | The configured known-hosts path cannot be expanded. |
 | `host_key_scan_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | ssh-keyscan failed before a native connection; scrapligo-v1 checks the key in its own handshake. |
+| `host_key_trust_store_candidates_exhausted` | v0.27.0 | `host_key_trust_store_create_failed`, `host_key_directory_invalid`, `host_key_directory_permission` | The automatic trust store could not be created at any of its candidates; under `auto` the store is one path, `<basedir>/known_hosts`, and a failure to make it is the step's own code. |
 | `host_key_unknown_strict` | v0.10.0 | `host_key_not_enrolled` | Strict policy without a known key. |
 | `include_cycle` | v0.10.0 (catalog name) | `config_include_cycle` | Include cycle. |
 | `include_duplicate_diamond` | v0.10.0 (catalog name) | `config_include_duplicate_diamond` | File reached twice through includes. |

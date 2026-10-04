@@ -57,6 +57,7 @@ const (
 	retiredV0100b       = "v0.10.0"
 	retiredV0100a       = "v0.10.0"
 	retiredV0260        = "v0.26.0"
+	retiredV0270        = "v0.27.0"
 )
 
 var entries = []Entry{
@@ -277,7 +278,6 @@ var entries = []Entry{
 	failure("host_key_not_enrolled", "connection", exitHost, false, "`secure` policy is in effect and no matching key or trust store is enrolled."),
 
 	failure("host_key_policy_invalid", "config", exitHost, false, "The host-key policy value is not `accept-new`, `secure`, or `insecure`."),
-	failure("host_key_trust_store_candidates_exhausted", "permission", exitHost, false, "The karvi trust store cannot be created in the operator's root."),
 	failure("host_key_trust_store_chmod_failed", "permission", exitHost, false, "A newly created trust store cannot be set to mode 0600."),
 	failure("host_key_trust_store_close_failed", "output", exitHost, false, "A newly created trust store cannot be closed."),
 	failure("host_key_trust_store_create_failed", "permission", exitHost, false, "A trust store file cannot be created."),
@@ -803,4 +803,5 @@ var entries = []Entry{
 	retired("cloginrc_symlink_rejected", retiredV011to017, "A `.cloginrc` path is a symlink while credential symlinks are not allowed. One code per condition for every credential file backend.", "credential_file_symlink_rejected"),
 	retired("dispatch_percent_out_of_range", retiredV0260, "A `run` error-percent option was outside 0..100; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value.", "config_value_out_of_range"),
 	retired("dispatch_value_negative", retiredV0260, "A `run` worker, width, or error-count option was negative; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value.", "config_value_out_of_range"),
+	retired("host_key_trust_store_candidates_exhausted", retiredV0270, "The automatic trust store could not be created at any of its candidates; under `auto` the store is one path, `<basedir>/known_hosts`, and a failure to make it is the step's own code.", "host_key_trust_store_create_failed", "host_key_directory_invalid", "host_key_directory_permission"),
 }

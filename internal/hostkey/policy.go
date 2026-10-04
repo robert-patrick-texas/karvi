@@ -74,87 +74,81 @@ func Parse(value string) (Mode, error) {
 	}
 }
 
-// Resolve selects and validates the karvi-owned trust store: the automatic
-// location is ~/.local/share/karvi/known_hosts, in the XDG root the path
-// resolver creates at its own mode (0750), which the directory rule
-// accepts; an explicit path overrides it. The fallback ~/karvi/known_hosts
-// left with the karvi line's fresh start: on a fresh host it was created whenever the XDG root came first, and a
-// present ~/karvi then became the operator's base.
-func Resolve(modeValue, configuredPath, home string) (Policy, error) {
+// Resolve selects and validates the karvi-owned trust store at StorePath:
+// under "auto" <base>/known_hosts, in the operator's private root, whose
+// directory the path resolver makes at its own mode (0750), which the
+// directory rule accepts; an explicit path is taken as given. accept-new
+// creates a missing store, secure requires one, and insecure creates none.
+func Resolve(modeValue, configuredPath, home, base string) (Policy, error) {
 	mode, err := Parse(modeValue)
 	if err != nil {
 		return Policy{}, &Error{Code: "host_key_policy_invalid", Err: err}
 	}
-	if strings.TrimSpace(home) == "" {
-		home, err = os.UserHomeDir()
-		if err != nil {
-			return Policy{}, &Error{Code: "host_key_home_unavailable", Err: err}
-		}
+	path, err := StorePath(configuredPath, home, base)
+	if err != nil {
+		return Policy{}, err
 	}
-
-	explicit := strings.TrimSpace(configuredPath)
-	if explicit != "" && !strings.EqualFold(explicit, "auto") {
-		path, expandErr := expandHome(explicit, home)
-		if expandErr != nil {
-			return Policy{}, expandErr
+	p := Policy{Mode: mode, KnownHostsFile: path}
+	switch mode {
+	case Insecure:
+		// Insecure mode may use a missing file only for best-effort mismatch
+		// comparison; the actual SSH connection does not trust this file.
+		if _, statErr := os.Lstat(path); errors.Is(statErr, os.ErrNotExist) {
+			return p, nil
 		}
-		p := Policy{Mode: mode, KnownHostsFile: filepath.Clean(path)}
-		if mode == Insecure {
-			// Insecure mode may use a missing file only for best-effort mismatch
-			// comparison; the actual SSH connection does not trust this file.
-			if _, statErr := os.Lstat(p.KnownHostsFile); errors.Is(statErr, os.ErrNotExist) {
-				return p, nil
-			}
+	case Secure:
+		// Report the policy condition before validating the parent directory.
+		// Operators selecting secure mode need the actionable answer that the
+		// host-key store has not been enrolled, even when its directory has not
+		// been created yet.
+		if _, statErr := os.Lstat(path); errors.Is(statErr, os.ErrNotExist) {
+			return Policy{}, &Error{Code: "host_key_not_enrolled", Path: path, Err: fmt.Errorf("secure mode requires a pre-populated known_hosts file")}
+		} else if statErr != nil {
+			return Policy{}, &Error{Code: "host_key_trust_store_unavailable", Path: path, Err: statErr}
 		}
-		if mode == Secure {
-			// Report the policy condition before validating the parent directory.
-			// Operators selecting secure mode need the actionable answer that the
-			// host-key store has not been enrolled, even when its directory has not
-			// been created yet.
-			if _, statErr := os.Lstat(p.KnownHostsFile); errors.Is(statErr, os.ErrNotExist) {
-				return Policy{}, &Error{Code: "host_key_not_enrolled", Path: p.KnownHostsFile, Err: fmt.Errorf("secure mode requires a pre-populated known_hosts file")}
-			} else if statErr != nil {
-				return Policy{}, &Error{Code: "host_key_trust_store_unavailable", Path: p.KnownHostsFile, Err: statErr}
-			}
-		}
-		if mode == AcceptNew {
-			if err := ensureTrustFile(p.KnownHostsFile); err != nil {
-				return Policy{}, err
-			}
-		} else if err := validateTrustFile(p.KnownHostsFile, mode); err != nil {
+	case AcceptNew:
+		if err := ensureTrustFile(path); err != nil {
 			return Policy{}, err
 		}
 		return p, nil
 	}
-
-	candidates := []string{
-		filepath.Join(home, ".local", "share", "karvi", "known_hosts"),
+	if err := validateTrustFile(path, mode); err != nil {
+		return Policy{}, err
 	}
-	for _, candidate := range candidates {
-		if _, statErr := os.Lstat(candidate); statErr == nil {
-			if err := validateTrustFile(candidate, mode); err != nil {
-				return Policy{}, err
+	return p, nil
+}
+
+// StoreUsesBase says whether a configured ssh.known-hosts-file places the
+// store in the private root: "auto", in any case, or empty.
+func StoreUsesBase(configuredPath string) bool {
+	v := strings.TrimSpace(configuredPath)
+	return v == "" || strings.EqualFold(v, "auto")
+}
+
+// StorePath names the trust store without creating or checking anything:
+// under "auto" (or empty) <base>/known_hosts, base the operator's private
+// root (osutil.ResolveBaseDir, or osutil.BaseDirPath where nothing may be
+// made); an explicit path with ~ the home and a relative path under it.
+// `config show --explain ssh.known-hosts-file` names it.
+func StorePath(configuredPath, home, base string) (string, error) {
+	if !StoreUsesBase(configuredPath) {
+		explicit := strings.TrimSpace(configuredPath)
+		if strings.TrimSpace(home) == "" {
+			var err error
+			if home, err = os.UserHomeDir(); err != nil {
+				return "", &Error{Code: "host_key_home_unavailable", Err: err}
 			}
-			return Policy{Mode: mode, KnownHostsFile: candidate}, nil
-		} else if !errors.Is(statErr, os.ErrNotExist) {
-			return Policy{}, &Error{Code: "host_key_trust_store_unavailable", Path: candidate, Err: statErr}
 		}
-	}
-
-	if mode == Secure {
-		return Policy{}, &Error{Code: "host_key_not_enrolled", Path: candidates[0], Err: fmt.Errorf("secure mode requires a pre-populated known_hosts file")}
-	}
-	if mode == Insecure {
-		// Return the preferred comparison path without creating persistent
-		// state. The caller may still warn that no prior key was available.
-		return Policy{Mode: mode, KnownHostsFile: candidates[0]}, nil
-	}
-	for _, candidate := range candidates {
-		if err := ensureTrustFile(candidate); err == nil {
-			return Policy{Mode: mode, KnownHostsFile: candidate}, nil
+		path, err := expandHome(explicit, home)
+		if err != nil {
+			return "", err
 		}
+		return filepath.Clean(path), nil
 	}
-	return Policy{}, &Error{Code: "host_key_trust_store_candidates_exhausted", Path: candidates[0], Err: fmt.Errorf("could not create the karvi trust store")}
+	if strings.TrimSpace(base) == "" {
+		return "", &Error{Code: "host_key_trust_store_unavailable", Err: fmt.Errorf("no private root to hold the trust store")}
+	}
+	return filepath.Join(base, "known_hosts"), nil
 }
 
 // OpenSSHSettings maps the normalized policy to managed ssh_config values.

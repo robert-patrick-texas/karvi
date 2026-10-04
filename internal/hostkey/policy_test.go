@@ -23,20 +23,23 @@ func TestParseModes(t *testing.T) {
 	}
 }
 
-func TestResolveAcceptNewCreatesPreferredStore(t *testing.T) {
+func TestResolveAcceptNewCreatesTheStoreInTheBase(t *testing.T) {
 	home := t.TempDir()
-	policy, err := Resolve("accept-new", "auto", home)
+	base := filepath.Join(t.TempDir(), "users", "op")
+	if err := os.MkdirAll(base, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	policy, err := Resolve("accept-new", "auto", home, base)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(home, ".local", "share", "karvi", "known_hosts")
+	want := filepath.Join(base, "known_hosts")
 	if policy.Mode != AcceptNew || policy.KnownHostsFile != want {
 		t.Fatalf("policy=%+v want path=%s", policy, want)
 	}
-	// A present ~/karvi is not a candidate: with the XDG root
-	// unusable the store is not created there.
-	if _, err := os.Lstat(filepath.Join(home, "karvi")); !os.IsNotExist(err) {
-		t.Fatalf("~/karvi consulted or created: %v", err)
+	// The home is not the store's under "auto" when the base is elsewhere.
+	if entries, _ := os.ReadDir(home); len(entries) != 0 {
+		t.Fatalf("the home holds %v", entries)
 	}
 	fileInfo, err := os.Stat(want)
 	if err != nil {
@@ -45,18 +48,37 @@ func TestResolveAcceptNewCreatesPreferredStore(t *testing.T) {
 	if fileInfo.Mode().Perm() != 0o600 {
 		t.Fatalf("file mode=%04o", fileInfo.Mode().Perm())
 	}
-	dirInfo, err := os.Stat(filepath.Dir(want))
-	if err != nil {
-		t.Fatal(err)
+}
+
+// StorePath names the store without making anything: "auto" is the base's
+// known_hosts, an explicit path is the home's for ~ and a relative path.
+func TestStorePath(t *testing.T) {
+	home, base := "/home/op", "/opt/karvi/users/op"
+	for _, c := range []struct{ configured, want string }{
+		{"auto", "/opt/karvi/users/op/known_hosts"},
+		{"", "/opt/karvi/users/op/known_hosts"},
+		{"AUTO", "/opt/karvi/users/op/known_hosts"},
+		{"~/kh", "/home/op/kh"},
+		{"kh", "/home/op/kh"},
+		{"/srv/kh/../known_hosts", "/srv/known_hosts"},
+	} {
+		got, err := StorePath(c.configured, home, base)
+		if err != nil || got != c.want {
+			t.Fatalf("StorePath(%q) = %q, %v; want %q", c.configured, got, err, c.want)
+		}
 	}
-	if dirInfo.Mode().Perm() != 0o700 {
-		t.Fatalf("dir mode=%04o", dirInfo.Mode().Perm())
+	var hostErr *Error
+	if _, err := StorePath("auto", home, ""); !errors.As(err, &hostErr) || hostErr.Code != "host_key_trust_store_unavailable" {
+		t.Fatalf("auto without a base: %v", err)
+	}
+	if got, err := StorePath("/srv/kh", home, ""); err != nil || got != "/srv/kh" {
+		t.Fatalf("an explicit path needs no base: %q %v", got, err)
 	}
 }
 
 func TestResolveRejectsRemovedModes(t *testing.T) {
 	for _, removed := range []string{"auto", "default"} {
-		_, err := Resolve(removed, "auto", t.TempDir())
+		_, err := Resolve(removed, "auto", t.TempDir(), t.TempDir())
 		var hostErr *Error
 		if !errors.As(err, &hostErr) || hostErr.Code != "host_key_policy_invalid" {
 			t.Fatalf("Resolve(%q) expected host_key_policy_invalid, got %v", removed, err)
@@ -65,7 +87,7 @@ func TestResolveRejectsRemovedModes(t *testing.T) {
 }
 
 func TestResolveSecureRequiresEnrollment(t *testing.T) {
-	_, err := Resolve("secure", "auto", t.TempDir())
+	_, err := Resolve("secure", "auto", t.TempDir(), t.TempDir())
 	var hostErr *Error
 	if !errors.As(err, &hostErr) || hostErr.Code != "host_key_not_enrolled" {
 		t.Fatalf("expected host_key_not_enrolled, got %v", err)
@@ -106,7 +128,7 @@ func TestExistingTrustFileRequiresPrivateParentDirectory(t *testing.T) {
 		if err := os.Chmod(dir, mode); err != nil {
 			t.Fatal(err)
 		}
-		_, err := Resolve("secure", known, home)
+		_, err := Resolve("secure", known, home, "")
 		if err == nil || !strings.Contains(err.Error(), "host_key_directory_permission") {
 			t.Fatalf("mode %04o: expected private-directory permission failure, got %v", mode, err)
 		}
@@ -114,7 +136,7 @@ func TestExistingTrustFileRequiresPrivateParentDirectory(t *testing.T) {
 	if err := os.Chmod(dir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Resolve("secure", known, home); err != nil {
+	if _, err := Resolve("secure", known, home, ""); err != nil {
 		t.Fatalf("mode 0750: %v", err)
 	}
 }
@@ -151,7 +173,7 @@ func TestExistingStoreModeIsRefusedOrIgnoredNeverRepaired(t *testing.T) {
 		for _, mode := range []Mode{AcceptNew, Secure, Insecure} {
 			home := t.TempDir()
 			configured, known := storeOfMode(t, home, auto, 0o644)
-			policy, err := Resolve(string(mode), configured, home)
+			policy, err := Resolve(string(mode), configured, home, filepath.Dir(known))
 			if mode == Insecure {
 				if err != nil || policy.KnownHostsFile != known {
 					t.Fatalf("auto=%v insecure: policy=%+v err=%v; want the store accepted whatever its mode", auto, policy, err)
@@ -174,7 +196,7 @@ func TestExistingStoreModeIsRefusedOrIgnoredNeverRepaired(t *testing.T) {
 func TestAcceptNewKeepsAnExistingPrivateStore(t *testing.T) {
 	home := t.TempDir()
 	configured, known := storeOfMode(t, home, false, 0o600)
-	if _, err := Resolve("accept-new", configured, home); err != nil {
+	if _, err := Resolve("accept-new", configured, home, ""); err != nil {
 		t.Fatal(err)
 	}
 	if data, err := os.ReadFile(known); err != nil || string(data) != "r1 ssh-ed25519 AAAA\n" {
@@ -187,7 +209,7 @@ func TestAcceptNewKeepsAnExistingPrivateStore(t *testing.T) {
 func TestAcceptNewCreatesExplicitStorePrivate(t *testing.T) {
 	home := t.TempDir()
 	known := filepath.Join(home, "store", "known_hosts")
-	if _, err := Resolve("accept-new", known, home); err != nil {
+	if _, err := Resolve("accept-new", known, home, ""); err != nil {
 		t.Fatal(err)
 	}
 	if info, err := os.Stat(known); err != nil || info.Mode().Perm() != 0o600 {
@@ -208,7 +230,7 @@ func TestAcceptNewRefusesASymbolicLinkStore(t *testing.T) {
 	if err := os.Symlink(target, known); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Resolve("accept-new", known, home)
+	_, err := Resolve("accept-new", known, home, "")
 	var hostErr *Error
 	if !errors.As(err, &hostErr) || hostErr.Code != "host_key_trust_store_invalid" {
 		t.Fatalf("expected host_key_trust_store_invalid, got %v", err)
@@ -227,7 +249,7 @@ func TestResolveAcceptNewInResolverRoot(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	policy, err := Resolve("accept-new", "auto", home)
+	policy, err := Resolve("accept-new", "auto", home, dir)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -35,7 +35,7 @@ func TestControlMasterAlwaysDisabled(t *testing.T) {
 				t.Fatal(err)
 			}
 			root := filepath.Join(home, "control")
-			factory := Factory{Binary: bin, Config: cfg, Home: home, ScratchDir: testsocket.Dir(t), ControlRoot: root, AskpassPath: "/bin/true"}
+			factory := Factory{Binary: bin, Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: testsocket.Dir(t), ControlRoot: root, AskpassPath: "/bin/true"}
 			def, _ := platform.Builtin("linux")
 			def.ControlMaster = tc.enabled
 			opened, err := factory.Open(context.Background(), platform.OpenRequest{

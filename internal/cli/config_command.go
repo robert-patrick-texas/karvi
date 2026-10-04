@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/transportselect"
@@ -179,7 +180,7 @@ func configShow(inv *Invocation, streams app.IO) int {
 		if len(inv.Positional) == 1 {
 			key = inv.Positional[0]
 		}
-		fmt.Fprint(streams.Stdout, snap.Explain(key))
+		fmt.Fprint(streams.Stdout, snap.Explain(key, privatePlaces(snap)))
 		return 0
 	}
 	switch format {
@@ -227,3 +228,27 @@ journald-required = true
 
 # Credential zero-config fallback reads NETUSER, NETPASS, and NETENABLE. Dynamic inventory examples are in configs/example.toml.
 `
+
+// privatePlaces resolves the two private places `config show --explain`
+// names, by the activities' own rules and without creating anything:
+// basedir, and the trust store under it ("auto") or as configured.
+func privatePlaces(snap configload.Snapshot) configload.Resolver {
+	return func(key string) (string, bool, error) {
+		if key != "basedir" && key != "ssh.known-hosts-file" {
+			return "", false, nil
+		}
+		op, err := osutil.CurrentOperator()
+		if err != nil {
+			return "", true, err
+		}
+		base, err := osutil.BaseDirPath(snap.String("basedir"), op.Home, op.Username)
+		if key == "basedir" {
+			return base, true, err
+		}
+		if err != nil && hostkey.StoreUsesBase(snap.String("ssh.known-hosts-file")) {
+			return "", true, err
+		}
+		path, err := hostkey.StorePath(snap.String("ssh.known-hosts-file"), op.Home, base)
+		return path, true, err
+	}
+}

@@ -223,7 +223,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	} else {
 		debug(fmt.Sprintf("login ssh algorithms target=%q profile=%s rule=ssh-algorithms-map.%d %s", d.CanonicalName, algorithms.Profile, algorithms.Rule, algorithms.Lists.Describe()))
 	}
-	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Warn: func(message string) { warning(streams.Stderr, message) }, Debug: debug, Algorithms: algorithms.Lists}
+	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Warn: func(message string) { warning(streams.Stderr, message) }, Debug: debug, Algorithms: algorithms.Lists}
 	debug(fmt.Sprintf("login transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, resolution.SelectedAddress.String(), port, definition.Name))
 	driver, err := factory.Open(ctx, platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, Password: func(fn func([]byte) error) error { return resolved.Credential.Material.WithPassword(fn) }, EnablePassword: func(fn func([]byte) error) error { return resolved.Credential.Material.WithEnablePassword(fn) }, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName, "activity_type": "login", "transport_selector": selection.Selector}})
 	if err != nil {

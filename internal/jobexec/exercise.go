@@ -42,6 +42,8 @@ type exerciseState struct {
 	initial             records.ScoreboardSnapshot
 	capManager          *capacity.Manager
 	sampler             *metrics.Sampler
+	// base is the operator's private root, the trust store's under "auto".
+	base string
 }
 
 // runExercise is the exercise branch of Run: every
@@ -64,7 +66,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	stopHeartbeat := st.scoreboardWriter.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return st.initial })
 
 	// Host-key inputs once per job, the transport's own call.
-	hk := exerciseHostKey(cfg, req.Operator.Home)
+	hk := exerciseHostKey(cfg, req.Operator.Home, st.base)
 	// The askpass helper once per job, located and never run.
 	askpass, askpassErr := systemssh.FindAskpass("")
 	// The ICMP gate's capability once per job when the gate is enabled:
@@ -281,8 +283,8 @@ type hostKeyState struct {
 
 func exerciseHostKey(cfg interface {
 	String(string) string
-}, home string) hostKeyState {
-	p, err := hostkey.Resolve(cfg.String("ssh.host-key-policy"), cfg.String("ssh.known-hosts-file"), home)
+}, home, base string) hostKeyState {
+	p, err := hostkey.Resolve(cfg.String("ssh.host-key-policy"), cfg.String("ssh.known-hosts-file"), home, base)
 	return hostKeyState{policy: p, err: err}
 }
 

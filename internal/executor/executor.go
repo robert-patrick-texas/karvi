@@ -98,6 +98,9 @@ type Options struct {
 	Audit                                      *audit.Sink
 	Metrics                                    *metrics.Sampler
 	ScratchDir, ControlRoot, Home, AskpassPath string
+	// BaseDir is the operator's private root, which holds the trust store
+	// under ssh.known-hosts-file "auto".
+	BaseDir string
 	// SpoolDir is spooldir resolved at admission,
 	// where a command's response goes once its settled bytes pass
 	// output.spool-threshold-bytes; "" keeps every response
@@ -710,11 +713,11 @@ type factory interface {
 func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms sshalgorithms.Lists) factory {
 	switch selection.Kind {
 	case transportselect.KindSystem:
-		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes"), Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
+		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes"), Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
 	case transportselect.KindTelnet:
 		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes")}
 	default:
-		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes"), Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
+		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes"), Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
 	}
 }
 

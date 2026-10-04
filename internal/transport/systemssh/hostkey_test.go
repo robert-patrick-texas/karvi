@@ -20,12 +20,17 @@ func loadPolicyConfig(t *testing.T, home string, sets ...string) configload.Snap
 
 func TestAutoPolicyUsesKarviTrustStore(t *testing.T) {
 	home := t.TempDir()
+	// The store follows the private root, here the site's users directory.
+	base := filepath.Join(t.TempDir(), "users", "op")
+	if err := os.MkdirAll(base, 0o750); err != nil {
+		t.Fatal(err)
+	}
 	cfg := loadPolicyConfig(t, home)
-	text, err := (Factory{Config: cfg, Home: home}).renderConfig()
+	text, err := (Factory{Config: cfg, Home: home, BaseDir: base}).renderConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := filepath.Join(home, ".local", "share", "karvi", "known_hosts")
+	expected := filepath.Join(base, "known_hosts")
 	for _, want := range []string{
 		"StrictHostKeyChecking accept-new",
 		"UserKnownHostsFile \"" + expected + "\"",
@@ -48,7 +53,7 @@ func TestSecurePolicyRequiresAndUsesEnrolledStore(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := loadPolicyConfig(t, home, "ssh.host-key-policy=secure")
-	text, err := (Factory{Config: cfg, Home: home}).renderConfig()
+	text, err := (Factory{Config: cfg, Home: home, BaseDir: dir}).renderConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +65,7 @@ func TestSecurePolicyRequiresAndUsesEnrolledStore(t *testing.T) {
 func TestInsecurePolicyUsesNoTrustFileForConnection(t *testing.T) {
 	home := t.TempDir()
 	cfg := loadPolicyConfig(t, home, "ssh.host-key-policy=insecure")
-	text, err := (Factory{Config: cfg, Home: home}).renderConfig()
+	text, err := (Factory{Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi")}).renderConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +119,7 @@ func TestHostKeyAlgorithmsStrongestFirstFilteredByAlias(t *testing.T) {
 		{name: "insecure", policy: "insecure", identity: "switch1", want: whole},
 	} {
 		cfg := loadPolicyConfig(t, home, "ssh.host-key-policy="+c.policy)
-		text, err := (Factory{Config: cfg, Home: home, hostKeyIdentity: c.identity}).renderConfig()
+		text, err := (Factory{Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), hostKeyIdentity: c.identity}).renderConfig()
 		if err != nil {
 			t.Fatal(err)
 		}

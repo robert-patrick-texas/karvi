@@ -147,6 +147,46 @@ func TestResolveBaseDirAcceptsSharedRoot(t *testing.T) {
 // is; an absent users directory passed by to the XDG root; a users
 // directory that is not a real directory, is writable by everyone, or
 // cannot be written by the operator hard-fails.
+// BaseDirPath names what ResolveBaseDir picks and makes nothing: the XDG
+// root, then an operator's folder a users directory would receive, and the
+// refusal of a users directory that is not right.
+func TestBaseDirPathCreatesNothing(t *testing.T) {
+	saved := SystemRoots
+	t.Cleanup(func() { SystemRoots = saved })
+	opt := filepath.Join(t.TempDir(), "opt", "karvi")
+	SystemRoots = []string{opt}
+	home := t.TempDir()
+	got, err := BaseDirPath("auto", home, "alice")
+	if err != nil || got != filepath.Join(home, ".local/share/karvi") {
+		t.Fatalf("no users directory: %q %v", got, err)
+	}
+	if _, err := os.Lstat(got); !os.IsNotExist(err) {
+		t.Fatalf("the XDG root was made: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(opt, "users"), 0o770); err != nil {
+		t.Fatal(err)
+	}
+	got, err = BaseDirPath("auto", home, "alice")
+	if err != nil || got != filepath.Join(opt, "users", "alice") {
+		t.Fatalf("under users: %q %v", got, err)
+	}
+	if _, err := os.Lstat(got); !os.IsNotExist(err) {
+		t.Fatalf("the operator's folder was made: %v", err)
+	}
+	if made, err := ResolveBaseDir("auto", home, "alice"); err != nil || made != got {
+		t.Fatalf("ResolveBaseDir took %q (%v), BaseDirPath named %q", made, err, got)
+	}
+	if err := os.Chmod(filepath.Join(opt, "users"), 0o777); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := BaseDirPath("auto", home, "bob"); errorcodes.Of(err) != "private_directory_not_writable" {
+		t.Fatalf("a users directory writable by everyone: %v", err)
+	}
+	if got, err := BaseDirPath("~/root", home, "alice"); err != nil || got != filepath.Join(home, "root") {
+		t.Fatalf("explicit: %q %v", got, err)
+	}
+}
+
 func TestResolveBaseDirUnderUsers(t *testing.T) {
 	saved := SystemRoots
 	t.Cleanup(func() { SystemRoots = saved })

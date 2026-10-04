@@ -23,6 +23,9 @@ type Factory struct {
 	Implementation string
 	Config         configload.Snapshot
 	Home           string
+	// BaseDir is the operator's private root, which holds the trust store
+	// under ssh.known-hosts-file "auto".
+	BaseDir        string
 	MaxOutputBytes int64
 	// Spool is the session's spool: the directory,
 	// the threshold, and the activity; the device is filled per session.
