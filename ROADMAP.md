@@ -74,6 +74,24 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   saying what it left out.
 - **Field prefixes in the watch screen's filter** (`op:`, `mode:`), if the
   word filter proves too broad.
+- **ScrapliGo v2.** `github.com/scrapli/scrapligo/v2` (v2.0.0, 2026-10-03) is a
+  Go binding, through `ebitengine/purego`, to `libscrapli`, a Zig shared library
+  (0.0.1, released the same day; 14.6 MB for x86_64 Linux) that holds the
+  session, the channel, and the SSH (libssh2) and Telnet transports. It loads
+  the library from `LIBSCRAPLI_PATH`, else from `~/.cache/scrapli`, downloading
+  it there from GitHub at first use without checking the published `.sha256`.
+  karvi stays on v1.4.2, whose line is maintained, until four questions are
+  answered: whether a release can ship the library beside the static executables
+  and always names it, so no session reaches the network or writes into the
+  operator's home; whether karvi's host-key policy, today inside its own SSH
+  handshake under v1's driver and channel ([`SECURITY.md`](SECURITY.md)), has a
+  place in v2 beyond a known-hosts file; the adapter's shape, with the session
+  in the library and not shared with `system`
+  ([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](docs/TRANSPORT-DRIVER-ARCHITECTURE.md));
+  and what it gains for a fleet karvi qualifies on `cisco_iosxe` over SSH
+  (NETCONF, Telnet, more platform definitions). A v2 adapter registers
+  `scrapligo-v2` beside `scrapligo-v1`
+  ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)).
 
 ## The device-qualification track
 
