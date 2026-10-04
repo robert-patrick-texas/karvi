@@ -132,6 +132,19 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   (NETCONF, Telnet, more platform definitions). A v2 adapter registers
   `scrapligo-v2` beside `scrapligo-v1`
   ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)).
+- **NETCONF.** NETCONF over SSH (RFC 6242): the `netconf` subsystem on the
+  session channel, port 830 by default, in place of a shell or an exec. The
+  platform's `channel` word has room for it (`channel = "subsystem"` or
+  `"netconf"`), and both transports can ask for a subsystem (`ssh -s`, and
+  x/crypto's `RequestSubsystem`). The questions: the hello exchange and the two
+  framings (the 1.0 end-of-message marker and 1.1's chunks); an RPC as the
+  command and its `<rpc-reply>` as the record, with `<rpc-error>` as the
+  device's failure in place of a pattern; how an operator writes an RPC on the
+  command line, in a command file, and in `crun`; and which platforms get it
+  (IOS XE's `netconf-yang`, Junos, EOS, IOS XR). It waits on the exec channel
+  for Linux servers ([`docs/EXAMPLES.md`, chapter
+  24](docs/EXAMPLES.md#24-jobs-across-linux-servers-2026-10-04)), whose record
+  of a command without a prompt it would build on.
 
 ## The device-qualification track
 

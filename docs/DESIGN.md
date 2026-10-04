@@ -278,29 +278,60 @@ failover. *Why:* implicit failover would repeat a non-idempotent command on a
 device the operator did not choose.
 
 **The known platform set has one definition.** A known platform is one of the
-seven built-ins (`generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
-`juniper_junos`, `arista_eos`, `linux`) or a configured `[platform.NAME]`
-table; names compare after trimming and case folding and are recorded
-lowercase. A table for a built-in overrides that built-in's allowed fields; a
-table for a new name is an alias whose `driver` must name a built-in and which
-inherits that built-in's whole compiled definition (prompt levels, prompt and
-failure patterns, paging, exit commands, ports, session cap), its own fields
-overriding. A table name is a literal (no glob character, no leading `!`), and
-prompt and error patterns are compiled data, never configuration. *Why:*
-before this rule a table's `driver` was only a label: a new name ran as
+eight built-ins (`generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
+`juniper_junos`, `arista_eos`, `linux`, `linux_shell`) or a configured
+`[platform.NAME]` table; names compare after trimming and case folding and are
+recorded lowercase. A table for a built-in overrides that built-in's allowed
+fields; a table for a new name is an alias whose `driver` must name a built-in
+and which inherits that built-in's whole compiled definition (prompt levels,
+prompt and failure patterns, paging, exit commands, ports, session cap), its own
+fields overriding. A table name is a literal (no glob character, no leading
+`!`), and prompt and error patterns are compiled data, never configuration.
+*Why:* before this rule a table's `driver` was only a label: a new name ran as
 `generic`, so a rejected command was recorded as succeeded. Reviewed data, not
 ad hoc configuration, decides parser behaviour. *Not taken:* lowercasing table
-names in the loader (it would change the configuration digest for a naming
-rule the platform package owns).
+names in the loader (it would change the configuration digest for a naming rule
+the platform package owns).
 
 **One `linux` platform; a class of servers is an alias.** Every Linux server is
-the built-in `linux`, and karvi has no definition per distribution. A site that
-wants other collection commands, caps, or ports for a class of servers writes a
-`[platform.NAME]` alias with `driver = "linux"`, as for any built-in. *Why:* a
-server runs the command in its own shell, and what karvi reads back does not
-differ in kind between distributions; an alias already carries what a class of
-servers needs. *Not taken:* a built-in per distribution (`ubuntu`, `rhel`),
-each a copy of `linux` with nothing of its own.
+the built-in `linux`, or `linux_shell` where it refuses exec, and karvi has no
+definition per distribution. A site that wants other collection commands, caps,
+or ports for a class of servers writes a `[platform.NAME]` alias with `driver =
+"linux"`, as for any built-in. *Why:* a server runs the command in its own
+shell, and what karvi reads back does not differ in kind between
+distributions; an alias already carries what a class of servers needs. *Not
+taken:* a built-in per distribution (`ubuntu`, `rhel`), each a copy of `linux`
+with nothing of its own.
+
+**A platform's `channel` says what karvi asks of the SSH session channel.**
+`channel = "shell"` is the interactive shell of the device session; `channel =
+"exec"` is one exec request per command. Built-in `linux` is `exec` and every
+other built-in `shell`; an eighth built-in, `linux_shell`, is `linux`'s
+definition with `channel = "shell"` and `linux` as its base driver, so it is
+admitted wherever `linux` is and its records name `linux_shell`, and a table may
+name it as its driver. Any `[platform.NAME]` table may set either word on any
+driver, unchecked: an alias of `arista_eos` or `cisco_iosxr` with `channel =
+"exec"` runs as asked, and a device that refuses the channel fails with
+`ssh_session_channel_refused`. A definition that leaves `channel` unset is
+`shell`. The channel is resolved once per target at planning and carried in
+the plan and the manifest, shown on a dry run's `intended:` line; the daemon
+does not re-evaluate it, and no option sets it for one run (`--platform NAME`
+does). A target planned over telnet whose platform says `exec` is refused at
+planning, naming both. `login` is always interactive; `crun` follows the
+platform. The platform field `control-master`, read by nothing, is removed.
+*Why:* whether a device takes an exec channel is the device's nature, which is
+what the platform carries, while the transport is only the SSH implementation
+and either can open both; one job mixes routers, servers, and servers that
+refuse exec, so the choice is per target, and an inventory row naming
+`linux_shell` makes it without a table; what a vendor's later releases accept
+is the operator's to decide, not a list karvi keeps; telnet has no exec in any
+version, and a shell run in its place would record no exit status while
+looking like a record with one. *Not taken:* exec as a transport or an
+implementation ID; a per-run `--exec`; an admission list limiting `exec` to
+`linux`; `session` as the field's name (`session-cap` and `session-init` use
+the word for the whole device session); a boolean (the word leaves room for a
+NETCONF subsystem); `linux_shell` as an alias in a shipped configuration file,
+which a site's own global file would replace.
 
 **A device's platform is resolved once, at planning, in a fixed order.**
 `--platform NAME` on the command line, else the inventory row's value, else
@@ -486,9 +517,10 @@ session (no escalation, no paging) against scrapligo's driver (extra returns, a
 secret sent nine times) showed; with one engine each transport is only a
 connection. *Not taken:* two engines held equal by a conformance suite.
 
-**One connection and one shell per device.** Each device gets one connection
-and one interactive shell for its whole command list, on both transports and in
-`command` and `run` alike; OpenSSH ControlMaster reuse is off. *Why:* Cisco IOS
+**One connection and one shell per device.** Each device whose platform's
+`channel` is `shell` gets one connection and one interactive shell for its
+whole command list, on both transports and in `command` and `run` alike;
+OpenSSH ControlMaster reuse is off. *Why:* Cisco IOS
 XE rejects secondary session channels; the contract the operator agreed is one
 connection, no probes, no extra sessions. *Not taken:* a process per command;
 mandatory ControlMaster reuse.

@@ -3028,3 +3028,44 @@ the width. The operator's keystrokes recorded to rebuild each command
 (`script --log-in`), which would write a password typed at a prompt that does
 not echo. A raw copy beside the transcript, a switch to turn rendering off,
 `TERM=dumb` asked of the server, and a terminal-emulator library.
+
+**Executed: what selects behaviour per device.** The platform definition
+already had a field for connection reuse, `control-master`, accepted,
+validated (`config_platform_control_master_not_boolean`), and read by
+nothing: the system transport always passes `ControlMaster=no`, and
+ARCHITECTURE's sentence that a platform's `control-master = true` turns reuse
+on is stale. The fake refuses every exec request (it records it and replies
+false). A dry run over an inventory of a `linux` server, an alias of it, and an
+IOS XE router shows the plan settling each target before any contact:
+
+```text
+- name:srv1: planned
+  intended: ping=disabled transport=native port=22 platform=linux
+- name:app1: planned
+  intended: ping=disabled transport=native port=22 platform=appliance
+- name:rtr1: planned
+  intended: ping=disabled transport=system port=22 platform=cisco_iosxe
+```
+
+**Issue 3, agreed.** A platform field, `channel = "shell" | "exec"`: what
+karvi asks of the SSH session channel. Built-in `linux` is `exec`, every other
+built-in `shell`. Any `[platform.NAME]` table may set either word on any
+driver, unchecked: the operator decides what a vendor's later releases accept
+(an alias of `arista_eos` or `cisco_iosxr` with `channel = "exec"`), and a
+device that refuses the channel fails with `ssh_session_channel_refused`. An
+eighth built-in, `linux_shell`, is `linux` with `channel = "shell"`, its base
+driver `linux`: an inventory row names it for a server whose security refuses
+exec, so one job runs IOS XE devices, `linux` servers, and `linux_shell`
+servers together, with no table. A definition that leaves `channel` unset is
+`shell`, the case of a custom platform that inherits from no built-in. The
+channel is resolved per target at planning, carried in the plan and the
+manifest, and shown on the dry run's `intended:` line; no option sets it for
+one run. A target over telnet whose platform says `exec` is refused at
+planning, naming both (telnet has no exec). `login` stays interactive, `crun`
+follows the platform, and `control-master` is removed with its error code.
+NETCONF, which the word leaves room for, went to the roadmap at the operator's
+word ([`ROADMAP.md`](../ROADMAP.md), "NETCONF").
+
+**Not taken.** Exec as a transport or an implementation ID; a per-run
+`--exec`; an admission list for `exec`; `session` as the field's name; a
+boolean; `linux_shell` shipped as an alias in a configuration file.
