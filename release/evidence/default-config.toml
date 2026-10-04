@@ -1,17 +1,3 @@
-[config]
-# Must equal supported major 6.
-schema-version = 6
-# Effective global value read before locating user config.
-allow-user-layer = true
-# false disables further directives; equivalent include depth 0.
-includes = true
-# 0–32 directive-chain depth.
-include-depth = 3
-# 0–32 included-directory nesting.
-dir-recursion-depth = 3
-# Reject unknown KARVI__* variables.
-reject-unknown-env = true
-
 # auto uses the private-state order; an explicit path is the exact effective private root,
 # absolute or operator-home-relative, a real directory the operator can write to whatever its
 # owner and mode; it cannot change its own config discovery. The socket and state subtrees
@@ -24,7 +10,11 @@ basedir = "auto"
 # exists there is the default of output.root, crun.directory, or transcript.root in place of
 # the one under basedir, and a tree the operator cannot create files in is refused.
 sharedroot = "auto"
-# auto writable chain or absolute path.
+# The scratch directory of the askpass socket and the system transport's ssh configuration.
+# auto is the chain /dev/shm/karvi/<username> (only when the site's scratch root
+# /dev/shm/karvi exists: sudo karvi setup shared makes it, and karvi never does),
+# <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the first that is a writable real
+# directory, made 0700 in its existing parent; an absolute path replaces the chain.
 tempdir = "auto"
 # The directory of the output spools, one file per command in flight whose response has passed
 # output.spool-threshold-bytes. auto tries /tmp/karvi-<uid>, then /var/tmp/karvi-<uid>, each
@@ -53,6 +43,20 @@ spooldir = "auto"
 freecheck = "auto"
 # auto or loadable IANA zone.
 timezone = "auto"
+
+[config]
+# Must equal supported major 6.
+schema-version = 6
+# Effective global value read before locating user config.
+allow-user-layer = true
+# false disables further directives; equivalent include depth 0.
+includes = true
+# 0–32 directive-chain depth.
+include-depth = 3
+# 0–32 included-directory nesting.
+dir-recursion-depth = 3
+# Reject unknown KARVI__* variables.
+reject-unknown-env = true
 
 [name]
 # ipv4 or ipv6.
@@ -133,7 +137,9 @@ connect-timeout = "10s"
 server-alive-interval = "15s"
 # 1–100 when interval nonzero.
 server-alive-count-max = 3
-# Private real directory or auto chain.
+# The directory of the system transport's control sockets, a private real directory (0700, the
+# operator's). auto is /dev/shm/karvi/<username>/sockets when the site's scratch root exists,
+# else <basedir>/socket/ssh; an absolute path replaces both.
 control-path-root = "auto"
 
 [ssh-algorithms]
@@ -196,11 +202,12 @@ parallel-workers = 0
 absolute-max-width = 512
 # 0–4096. The host's cap on device sessions in flight at once, across every job, every
 # operator's daemon, and in-process runs on the host, held as leases in the capacity ledger
-# under sessions.shared-capacity-root; a job's width is also bounded by it. 0 means min(256,
-# max(32, 8 × CPU)): 32 on a host of four logical CPUs, 128 on sixteen, 256 from thirty-two
-# up. A site whose devices and AAA carry more sets the figure it wants, 512 or 1024 among
-# them, together with dispatch.parallel-workers or dispatch.wave-max-width and
-# dispatch.absolute-max-width (docs/SCALE.md).
+# under sessions.shared-capacity-root (across operators where the site made the scratch root
+# with sudo karvi setup shared, per operator where it did not); a job's width is also bounded
+# by it. 0 means min(256, max(32, 8 × CPU)): 32 on a host of four logical CPUs, 128 on
+# sixteen, 256 from thirty-two up. A site whose devices and AAA carry more sets the figure it
+# wants, 512 or 1024 among them, together with dispatch.parallel-workers or
+# dispatch.wave-max-width and dispatch.absolute-max-width (docs/SCALE.md).
 server-max-inflight = 0
 # 10ms–1s; ≤ max.
 admission-poll-min = "50ms"
@@ -208,33 +215,6 @@ admission-poll-min = "50ms"
 admission-poll-max = "250ms"
 # default, sorted (alias name), shuffle, random; inventory and random-seeded are removed.
 order = "default"
-
-[output]
-# 0700, 0750, or 0770 for folders karvi creates in the job and transcript trees.
-directory-mode = "0750"
-
-[targets]
-# warn or error for a target file or folder that yields no targets.
-empty-source = "error"
-# 1–16; --tfr PATH is level 0.
-recursion-max-depth = 3
-
-[platform-resolution]
-# The platform of a device whose platform is not set (a blank inventory row without a source
-# default, or a direct target without --platform): a known platform, cisco_iosxe as shipped
-# since registry 17, generic or empty for generic, or the platform a site's network is
-# predominantly.
-default = "cisco_iosxe"
-# fail refuses an activity whose target set holds an inventory row naming an unknown platform
-# (platform_unknown); warn runs the device as platform-resolution.unknown-fallback with a
-# warning and the notice platform_unknown_fallback. Configuration values fail validation
-# whatever this says.
-on-unknown = "fail"
-# The known platform an unknown inventory row runs as under on-unknown = "warn"; not read
-# under fail.
-unknown-fallback = "generic"
-
-[dispatch]
 # Key for the shuffle rank; empty allowed; recorded with the order.
 shuffle-key = ""
 # 0 auto; else 1–ceiling.
@@ -268,29 +248,9 @@ wave-gate-error-percent = 0
 # 0–1h.
 wave-gate-timed-delay = "0s"
 
-[sessions]
-# Admin group-shared real directory.
-shared-capacity-root = "/dev/shm/karvi/capacity"
-
-[daemon]
-# Safe per-UID path.
-socket = "auto"
-# 1s–2m.
-start-timeout = "5s"
-# 0–43,200.
-shutdown-grace-seconds = 120
-# 0 never exits; else 1m–30d. The daemon stops itself, as daemon stop would, once this long
-# has passed with no active job, no preparation in progress, and no request but ping and
-# status; checked once a minute. The packaged systemd unit sets 0.
-shutdown-idle-timer = "1h"
-# 0–60; ≤ normal grace unless normal 0.
-forced-grace-seconds = 5
-# 64 KiB–64 MiB.
-max-ipc-frame-bytes = 8388608
-# 10–10,000; terminal jobs leave memory after finalization.
-max-accepted-jobs = 32
-
 [output]
+# 0700, 0750, or 0770 for folders karvi creates in the job and transcript trees.
+directory-mode = "0750"
 # auto: the shared jobs tree under sharedroot when one exists, else <basedir>/jobs; an
 # explicit path is that writable real directory.
 root = "auto"
@@ -298,68 +258,11 @@ root = "auto"
 # --no-daemon, and a run through the daemon); false, or --nof, writes nothing and displays the
 # records from memory or the socket.
 persist-command = true
-
-[output.files]
-# Write every device's output.TARGET.txt, the session as text; false does not create them.
-# Written from the record in memory, so it does not need commands.jsonl.
-output-txt = true
-# Write commands.jsonl, the records; false does not create it, on every path (records travel
-# over the socket). Without it job follow cannot replay the job and a device's text cannot be
-# derived again.
-commands-jsonl = true
-# Write commands.txt, the rerun's command file (--cf); false does not create it.
-commands-txt = true
-# Write failed-devices.txt, the rerun's target file (--tf); false does not create it.
-failed-devices-txt = true
-# Write failures.jsonl, the records that did not succeed (each is also in commands.jsonl);
-# false does not create it.
-failures-jsonl = true
-# Write manifest.json, the job as it was accepted; false does not create it.
-manifest-json = true
-# Write metrics.json; false does not create it.
-metrics-json = true
-# Write summary.json; false does not create it, on every path. A finished job without one is
-# job_orphaned to a later job follow once the daemon has let it go. karvi-prune knows a
-# finished job by it; a folder without one is an orphan, removed by age alone once its day,
-# everything in it, and its scoreboard file are older than the retention age. With all eight
-# keys false no job folder is created.
-summary-json = true
-
-[output]
 # The device name in a file name (output.NAME.txt, crun/NAME) is the canonical name's first
 # label, lowercased; false writes the whole name, lowercased. An address is never cropped: its
 # dots and colons are hyphens. Carried in the plan, so a job's files are named as its
 # invocation said on every path.
 crop-to-dot = true
-
-[crun]
-# The collection directory of crun, one file per device named by the device: auto is the
-# shared crun tree under sharedroot when one exists, else <basedir>/crun; an explicit path is
-# resolved as output.root is (~ expanded, a relative path from the working directory).
-# --cd=PATH sets it for one invocation. Carried in the plan.
-directory = "auto"
-# 0750, 0755, or 0770: the mode of the collection directory when karvi creates it. An existing
-# directory is left as it is in mode, group, and setgid bit; a shared one is made once by the
-# site with chgrp and chmod 2770 or 2775.
-directory-mode = "0770"
-# 0640, 0644, or 0660: the mode of each collection file, applied to the temporary before the
-# rename, so the file appears at that mode and takes the directory's group under setgid.
-file-mode = "0660"
-# An executable the client runs once a crun has ended and its result line is printed, empty
-# for none: in the collection directory, with the replaced files' names on standard input one
-# per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR (empty under --nof),
-# KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACED, KARVI_CRUN_KEPT, and KARVI_EXIT; its output goes
-# to karvi's standard error after the result line. It runs on the in-process and the daemon
-# path alike, not under --detach; a hook that cannot start, exits non-zero, or runs past
-# crun.after-timeout is the warning crun_after_failed, and the run's exit code stands
-# (docs/COLLECTION.md).
-after = ""
-# 1s–1h. How long crun.after may run: on expiry the hook's process group is sent SIGTERM,
-# killed five seconds later if still there, and the warning crun_after_failed says it ran past
-# the timeout.
-after-timeout = "5m"
-
-[output]
 # 1 KiB–1 GiB; the bound on one command's output.
 max-command-bytes = 67108864
 # 0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory
@@ -385,10 +288,113 @@ fsync-command-records = true
 # auto, strip, preserve.
 ansi = "auto"
 
+[targets]
+# warn or error for a target file or folder that yields no targets.
+empty-source = "error"
+# 1–16; --tfr PATH is level 0.
+recursion-max-depth = 3
+
+[platform-resolution]
+# The platform of a device whose platform is not set (a blank inventory row without a source
+# default, or a direct target without --platform): a known platform, cisco_iosxe as shipped
+# since registry 17, generic or empty for generic, or the platform a site's network is
+# predominantly.
+default = "cisco_iosxe"
+# fail refuses an activity whose target set holds an inventory row naming an unknown platform
+# (platform_unknown); warn runs the device as platform-resolution.unknown-fallback with a
+# warning and the notice platform_unknown_fallback. Configuration values fail validation
+# whatever this says.
+on-unknown = "fail"
+# The known platform an unknown inventory row runs as under on-unknown = "warn"; not read
+# under fail.
+unknown-fallback = "generic"
+
+[sessions]
+# The capacity ledger every operator on the host shares, made by sudo karvi setup shared at
+# 2770 in the operators' group; its files take the root's group modes. A missing directory is
+# made only inside an existing parent, with a setgid parent's bits. With its parent absent (a
+# host without the scratch root) the private <basedir>/state/capacity is taken without a
+# warning; present but not usable by the operator (the sticky bit on another's directory, a
+# closed directory or lock file), it is taken with one (capacity_root_unusable).
+shared-capacity-root = "/dev/shm/karvi/capacity"
+
+[daemon]
+# Safe per-UID path.
+socket = "auto"
+# 1s–2m.
+start-timeout = "5s"
+# 0–43,200.
+shutdown-grace-seconds = 120
+# 0 never exits; else 1m–30d. The daemon stops itself, as daemon stop would, once this long
+# has passed with no active job, no preparation in progress, and no request but ping and
+# status; checked once a minute. The packaged systemd unit sets 0.
+shutdown-idle-timer = "1h"
+# 0–60; ≤ normal grace unless normal 0.
+forced-grace-seconds = 5
+# 64 KiB–64 MiB.
+max-ipc-frame-bytes = 8388608
+# 10–10,000; terminal jobs leave memory after finalization.
+max-accepted-jobs = 32
+
+[output.files]
+# Write every device's output.TARGET.txt, the session as text; false does not create them.
+# Written from the record in memory, so it does not need commands.jsonl.
+output-txt = true
+# Write commands.jsonl, the records; false does not create it, on every path (records travel
+# over the socket). Without it job follow cannot replay the job and a device's text cannot be
+# derived again.
+commands-jsonl = true
+# Write commands.txt, the rerun's command file (--cf); false does not create it.
+commands-txt = true
+# Write errors.jsonl, the records that did not succeed (each is also in commands.jsonl); false
+# does not create it.
+errors-jsonl = true
+# Write failed-devices.txt, the rerun's target file (--tf); false does not create it.
+failed-devices-txt = true
+# Write manifest.json, the job as it was accepted; false does not create it.
+manifest-json = true
+# Write metrics.json; false does not create it.
+metrics-json = true
+# Write summary.json; false does not create it, on every path. A finished job without one is
+# job_orphaned to a later job follow once the daemon has let it go. karvi-prune knows a
+# finished job by it; a folder without one is an orphan, removed by age alone once its day,
+# everything in it, and its scoreboard file are older than the retention age. With all eight
+# keys false no job folder is created.
+summary-json = true
+
+[crun]
+# The collection directory, one file per device named by the device, of crun and of run or
+# command given --cd: auto is the shared crun tree under sharedroot when one exists, else
+# <basedir>/crun; an explicit path is resolved as output.root is (~ expanded, a relative path
+# from the working directory). --cd=PATH sets it for one invocation, and on run and command
+# asks for the collection. Carried in the plan.
+directory = "auto"
+# 0750, 0755, or 0770: the mode of the collection directory when karvi creates it. An existing
+# directory is left as it is in mode, group, and setgid bit; a shared one is made once by the
+# site with chgrp and chmod 2770 or 2775.
+directory-mode = "0770"
+# 0640, 0644, or 0660: the mode of each collection file, applied to the temporary before the
+# rename, so the file appears at that mode and takes the directory's group under setgid.
+file-mode = "0660"
+# An executable the client runs once a crun has ended and its display is printed (never after
+# a run or command given --cd), empty for none: in the collection directory, with the replaced
+# files' names on standard input one per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR
+# (empty under --nof), KARVI_CRUN_DIRECTORY, KARVI_CRUN_REPLACED, KARVI_CRUN_KEPT, and
+# KARVI_EXIT; its output goes to karvi's standard error after the display. It runs on the
+# in-process and the daemon path alike, not under --detach; a hook that cannot start, exits
+# non-zero, or runs past crun.after-timeout is the warning crun_after_failed, and the run's
+# exit code stands (docs/COLLECTION.md).
+after = ""
+# 1s–1h. How long crun.after may run: on expiry the hook's process group is sent SIGTERM,
+# killed five seconds later if still there, and the warning crun_after_failed says it ran past
+# the timeout.
+after-timeout = "5m"
+
 [display]
 # Shared terminal theme: auto, dark, light, or nocolor.
 theme = "dark"
-# Terminal color policy: auto, always, or never.
+# Terminal color policy: auto, always, or never. auto colours at a terminal unless NO_COLOR is
+# set and not empty; always and never are explicit and NO_COLOR does not override them.
 color = "auto"
 # Human-facing timestamp pattern. Supports yyyy, yy, MM/month-context mm, dd, hh,
 # minute-context mm, ss, and sss. Stored records remain RFC 3339.
@@ -440,6 +446,15 @@ header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-b
 # One-line login footer template; empty disables it.
 footer = ""
 
+[display.record]
+# One-line template naming a recorded login's transcript (login --record) before the session,
+# rendered as the login header is; <transcript> is the file's path. Empty disables it.
+header = "! transcript=<transcript>"
+# One-line template naming a recorded login's transcript after the session's last output, a
+# failed session included; the same default as display.record.header, so the two lines match.
+# Empty disables it.
+footer = "! transcript=<transcript>"
+
 [display.command]
 # One-line command header template; empty disables it.
 header = "! <target> [<address>] platform=<platform> user=<user> backend=<auth-backend> transport=<transport>"
@@ -481,6 +496,14 @@ last-border = false
 # in human text output, including device-reported errors; JSONL remains undecorated.
 echo = false
 
+[display.collection]
+# One-line template after the footer of a job with a collection (crun, or run or command with
+# --cd), on standard output under --format text on every path: <collection> the absolute
+# collection directory, <replaced> and <kept> the devices whose files were replaced and kept.
+# Under json and jsonl nothing is printed (the summary carries the collection block). Empty
+# disables it.
+footer = "! collection=<collection> replaced=<replaced> kept=<kept>"
+
 [display.json]
 # 1–8. Spaces per indentation level for --format json. Compact --format jsonl remains one
 # record per line.
@@ -518,7 +541,12 @@ file-required = false
 [watch]
 # Applies to snapshot writers.
 enabled = true
-# Admin group-shared real directory.
+# The scoreboard directory every operator's activities write and karvi watch reads, made by
+# sudo karvi setup shared at 3770 in the operators' group. A missing directory is made only
+# inside an existing parent, with a setgid parent's bits. With its parent absent (a host
+# without the scratch root) the private <basedir>/state/scoreboards is taken without a
+# warning, and karvi watch reads it; present but not writable by the operator, it is taken
+# with one.
 directory = "/dev/shm/karvi/scoreboards"
 # 250ms–60s; the screen's refresh, 2s since registry 15.
 refresh = "2s"

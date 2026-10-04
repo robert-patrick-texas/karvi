@@ -1,6 +1,6 @@
-karvi 0.25.0
-commit: source-release-v0.25.0
-build_time: 2026-09-30T00:00:00Z
+karvi 0.26.0
+commit: source-release-v0.26.0
+build_time: 2026-10-04T00:00:00Z
 go: go1.27.1
 config_schema: 6
 command_record_schema: 2
@@ -8,7 +8,7 @@ scoreboard_schema: 3
 audit_schema: 1
 job_schema: 2
 daemon_ipc_schema: 10
-config_registry_schema: 22
+config_registry_schema: 24
 fips_mode: false
 icmp_method: socket
 ssh_transports:
