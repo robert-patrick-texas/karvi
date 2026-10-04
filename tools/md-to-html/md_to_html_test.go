@@ -186,10 +186,33 @@ func TestTreeConverts(t *testing.T) {
 			t.Errorf("the index does not link %s", href)
 		}
 	}
-	for _, want := range []string{`src="images/karvi-viking-fleet-command.png"`, `href="images/index.html"`} {
-		if !strings.Contains(index, want) {
-			t.Errorf("the index lacks %s", want)
+	if !strings.Contains(index, `src="images/karvi-viking-fleet-command.png"`) {
+		t.Error("the index lacks the README's image")
+	}
+	// Every directory below the root sends the browser to its parent's page.
+	for _, d := range []string{"docs", "examples", "release", "images"} {
+		b, err := os.ReadFile(filepath.Join(out, d, "index.html"))
+		if err != nil || !strings.Contains(string(b), `content="0; url=../index.html"`) || !strings.Contains(string(b), `location.replace("../index.html")`) || !strings.Contains(string(b), "<body><p>&nbsp;</p></body>") {
+			t.Errorf("%s/index.html is not the redirect: err=%v\n%s", d, err, b)
 		}
+	}
+}
+
+func TestRedirectsClimbAndRefuseToHideAPage(t *testing.T) {
+	out := site{"a/b/page.html": nil, "top.html": nil}
+	if err := addRedirects(out); err != nil {
+		t.Fatal(err)
+	}
+	if out["a/index.html"] == nil || out["a/b/index.html"] == nil || out["index.html"] != nil {
+		t.Fatalf("redirects: a %v, a/b %v, root %v", out["a/index.html"] != nil, out["a/b/index.html"] != nil, out["index.html"] != nil)
+	}
+	if err := addRedirects(site{"docs/x.html": nil, "docs/index.html": []byte("a document")}); err == nil {
+		t.Fatal("a document's page named index.html was replaced by a redirect")
+	}
+	// A redirect whose target is missing is reported like a link.
+	dir := writeSite(t, map[string]string{"sub/index.html": string(redirectPage)})
+	if got := check(dir); len(got) != 1 || !strings.Contains(got[0], `sub/index.html: refresh "../index.html" names no file of the site`) {
+		t.Fatalf("check: %v", got)
 	}
 }
 

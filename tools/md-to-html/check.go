@@ -14,8 +14,9 @@ import (
 )
 
 // attribute is an href, src, or id in the pages this tool writes, whose
-// attributes are always double-quoted and escaped.
-var attribute = regexp.MustCompile(`\s(href|src|id)="([^"]*)"`)
+// attributes are always double-quoted and escaped; a refresh's target is
+// read as an href.
+var attribute = regexp.MustCompile(`\s(href|src|id)="([^"]*)"|\scontent="\d+; *(url)=([^"]*)"`)
 
 // check reads every page under dir and reports each link or image that
 // does not resolve inside the site: a relative path to a file the site
@@ -38,6 +39,9 @@ func check(dir string) []string {
 		}
 		ids[rel] = map[string]bool{}
 		for _, m := range attribute.FindAllStringSubmatch(string(b), -1) {
+			if m[3] == "url" {
+				m[1], m[2] = "refresh", m[4]
+			}
 			v := html.UnescapeString(m[2])
 			if m[1] == "id" {
 				if ids[rel][v] {

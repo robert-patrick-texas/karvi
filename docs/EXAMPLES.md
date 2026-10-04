@@ -2484,3 +2484,25 @@ broken (`docs/SCALE.html: href "OPERATIONS.html#retentions" names no
 heading of docs/OPERATIONS.html`). The roadmap's item is closed; the
 package's contents (now its Next item 1) choose between the Markdown and
 this HTML.
+
+**Every directory a page.** The operator then asked that each directory of
+the site below its root hold a minimal `index.html` sending the browser to
+the parent, by a refresh and a short script in the head, with a blank body
+for a crawler, so no server lists a directory and no browser shows an
+error; `images/`' page, which had linked back, became the same. The target
+is the parent's `index.html`, not the bare directory: a copy opened from
+the disk (`file://`) sent to `../` shows the browser's own listing of it.
+The page is also `noindex`. The tool makes one for every directory its
+files fall in (a deeper one climbs a level at a time), refuses to put one
+over a document's page named `index.html`, and its check reads the
+refresh's target as a link. The index's footer link to `images/`, now a
+way back to the index, was removed; the index shows the image.
+
+```text
+md-to-html: 37 pages and 3 other files in ../html
+docs/, examples/, release/, images/: the same index.html, byte for byte:
+  <meta http-equiv="refresh" content="0; url=../index.html">
+  <meta name="robots" content="noindex">
+  <script>location.replace("../index.html");</script>
+  <body><p>&nbsp;</p></body>
+```

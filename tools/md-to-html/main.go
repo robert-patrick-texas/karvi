@@ -2,10 +2,12 @@
 // file of the tree outside vendor/ (the table in docs.go) as a page at the
 // same path with .html, an index page (index.html) with the README's image
 // and opening paragraph and every document by group, the tree's images/,
-// and one stylesheet. The pages are GitHub's Markdown with GitHub's heading
-// ids, so a link written for GitHub reaches the same heading here; a link to
-// a document names its page. Every link is relative, so the directory reads
-// the same wherever it is copied, and none needs a script or the network.
+// and one stylesheet; every directory below the root has an index.html that
+// sends the browser to the parent's, so no server lists it. The pages are
+// GitHub's Markdown with GitHub's heading ids, so a link written for GitHub
+// reaches the same heading here; a link to a document names its page. Every
+// link is relative, so the directory reads the same wherever it is copied,
+// and no document page needs a script or the network.
 //
 //	md-to-html [-src DIR] [-out DIR] [-commit ID]
 //

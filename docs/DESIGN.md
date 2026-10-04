@@ -1747,8 +1747,8 @@ contains it. Its table names each document once with its group and a line, and
 it refuses a tree whose Markdown files are not the table's. The output is the
 tree's parent's `html/` (`HTMLDIR`), never the tree: a page per document at the
 tree's path with `.html`, `index.html` (the README's image and opening
-paragraph, then the documents by group), `images/` as the tree's, with an
-`index.html` of its own so a server lists no files, and one stylesheet. *Why:*
+paragraph, then the documents by group), `images/` as the tree's, and one
+stylesheet. *Why:*
 the documents read in a browser on any host, and the package can install them.
 *Not taken:* pandoc (not a Go build dependency); a converter written here; the
 HTML committed; the README as the index.
@@ -1763,12 +1763,17 @@ line, turn an underscore into a hyphen.
 
 **The site is relative and needs nothing outside itself.** Every link and image
 between its files is a relative path, a document's link names its page (`.md`
-made `.html`), the tree's image is a file of the site, and no page loads a
-script, a font, or anything from the network. The left column holds the groups
-and every document, the current page's sections under it; a narrow screen folds
-the same links into "Documents" above the page. *Why:* the directory can be
-copied anywhere and read offline. *Not taken:* syntax highlighting (a second
-module); a stylesheet in every page; a search box.
+made `.html`), the tree's image is a file of the site, and no document page
+loads a script, a font, or anything from the network. Every directory below the
+root holds an `index.html` that sends the browser to the parent's `index.html`
+(a refresh and one line of script, both relative) over a blank body marked
+`noindex`. The parent's page and not the bare directory, so a copy opened from
+the disk reaches a page too. The left column holds the groups and every
+document, the current page's sections under it; a narrow screen folds the same
+links into "Documents" above the page. *Why:* the directory can be copied
+anywhere and read offline, and a server shows a reader of a directory a page,
+never a listing or an error. *Not taken:* syntax highlighting (a second module);
+a stylesheet in every page; a search box.
 
 **The site is replaced whole, and only when it is the tool's.** The tool writes
 the site beside `html/`, checks it there, and renames it into place, the old
