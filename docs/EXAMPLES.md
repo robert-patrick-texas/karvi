@@ -2506,3 +2506,100 @@ docs/, examples/, release/, images/: the same index.html, byte for byte:
   <script>location.replace("../index.html");</script>
   <body><p>&nbsp;</p></body>
 ```
+
+## 21. The release 0.26.0, and `LICENSE.md` (2026-10-04)
+
+The third public release, on the operator's word, carrying chapters 9 to 20;
+before it, the licence made a document of the site. The release date is the
+build identity's UTC date: the session ran on the evening of 2026-10-03 in the
+operator's zone and past midnight in UTC.
+
+**What it gains.** A site installs the shared scratch root, the prompts' line
+editing, `--cd` and `--fs`, the manual pages, and the rest of chapters 9 to 20
+from a published artifact, with the documentation and its licence readable as
+HTML beside the tree.
+
+**The licence, as done.** The operator asked for `LICENSE.md` in the HTML and a
+link to it from README's License section. `LICENSE` was renamed `LICENSE.md`,
+not copied: two copies of one text would drift, and GitHub reads
+`LICENSE.md` as the licence as it read `LICENSE`. The converter titles a page
+from its first top-level heading, so the text's first line, `MIT License`,
+became `# MIT License`; the rest is the text unchanged. Its row in
+`tools/md-to-html/docs.go` is in "The project", README's line is ``MIT. See
+[`LICENSE.md`](LICENSE.md).``, and `NOTICE` names it. Nothing else named the
+file: the debian `copyright` carries the text itself, and no release tool
+copies it.
+
+**The sequence, as run**, 51 minutes 31 seconds from the baseline's start to
+the artifacts' end, about 27 of them the stop for the operator's review:
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the baseline on a clean clone of `dev` at `3ab5a74` | 00:28:36 to 00:34:51 | gofmt, make, the release verifier, exit 0 each |
+| the number in its eight places; the release-identity build | 00:35 | `BUILD_TIME=2026-10-04T00:00:00Z` given to every tool; the changelog's Unreleased block became the release's, under a lead paragraph naming what a site has to change |
+| the compatibility example | 00:35:35 | the released v0.25.0 executable, copied out of `bin/` and checked against `CHECKSUMS.sha256` before the rebuild, started its daemon; this client read `compatible: false` on the version alone, its run was refused with `daemon_incompatible` (exit 112) before any job, the client's `daemon stop` ended it |
+| 1/3 | 00:35:42 | `ee089d5` |
+| the core evidence | 00:35:46 to 00:38:35 | 783 named tests across 79 packages, vet 0; the socket tests at a 25-byte `TMPDIR` exit 0, at 145 bytes **exit 1**: the release stopped for the operator |
+| the fix, on the operator's word | 01:06 | `d4b89d1`, below |
+| the core evidence again | to 01:08:01 | the same counts, both socket lengths exit 0 |
+| the documents | 01:09:16 | `f1f1b6b` (2/3): `release/` from the v0.25.0 pattern; README's counter line, stale since registry 24 |
+| the remaining evidence | 01:09:20 to 01:15:15 | the shipped checks exit 0, the release verifier exit 0, the checksums unchanged by its rebuild; the replay skipped |
+| 3/3, the tag, `main` | 01:15:31 | `72bf32d`, `karvi-v0.26.0`, `main` at the tag |
+| the artifacts | 01:15:34 to 01:20:07 | the bundle reproducible byte for byte and verified from its own archive; 15,449,238 bytes, 2.8 MB more than v0.25.0's for goldmark's vendored tree and `images/` |
+| the push and the GitHub release | 01:33 | `dev`, `main` (a fast-forward from `39b2831`, the README image commit), and the tag pushed; release `karvi-v0.26.0` with the three assets, marked latest; the asset downloaded back matches |
+
+**The socket-length failure.** Four `internal/cli` tests and sixteen
+`internal/daemon` tests failed at the 145-byte `TMPDIR` with
+`askpass_start_failed` (`listen unix …/askpass-….sock: bind: invalid argument`)
+for a socket under `/tmp/yyy…/karvi-test-scratch-N/netops/`, its path past the
+kernel's limit. [Chapter
+9](#9-the-scratch-root-shared-the-capacity-ledger-the-roots-creation-and-setup-shared-2026-10-03)
+(`fd5acf3`) had given each test binary a scratch root of its own, made by
+`os.MkdirTemp("", …)` and so under `TMPDIR`, where the tests had used the host's
+`/dev/shm/karvi`; its comment called the root short, which a long `TMPDIR` makes
+false. The executables were not touched by it: their `tempdir` chain
+(`/dev/shm/karvi/<user>`, `<basedir>/tmp`, `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`) never reads `TMPDIR`. The release stopped at the
+finding, as the operator had asked of any error; a trial on the tree, then
+reverted, showed the four socket packages passing at 145 bytes with the root
+made under `/tmp`, and on his word that change was committed between 1/3 and
+2/3. The executables and `CHECKSUMS.sha256` did not move, since the package is a
+test helper.
+
+**Executed.** The finding, the trial, and the published state:
+
+```text
+$ grep -E '^\[TMPDIR|^exit=' socket-tmpdir-qualification.log    # before d4b89d1
+[TMPDIR length 25]
+exit=0
+[TMPDIR length 145]
+exit=1
+$ TMPDIR=$d go test -count=1 -mod=vendor ./internal/askpass ./internal/cli ./internal/ipc ./internal/daemon    # ${#d} = 145, the root under /tmp
+ok  	github.com/robert-patrick-texas/karvi/internal/askpass	0.008s
+ok  	github.com/robert-patrick-texas/karvi/internal/cli	13.947s
+ok  	github.com/robert-patrick-texas/karvi/internal/ipc	0.056s
+ok  	github.com/robert-patrick-texas/karvi/internal/daemon	26.073s
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease)"'
+latest: karvi-v0.26.0 draft=false prerelease=false
+$ curl -sL .../karvi-v0.26.0-source-linux-amd64.tar.gz | sha256sum | cut -c1-16; cut -c1-16 karvi-v0.26.0-source-linux-amd64.tar.gz.sha256
+83408fcf77d2531b
+83408fcf77d2531b
+$ gh api repos/robert-patrick-texas/karvi/license --jq '"\(.path) \(.license.spdx_id)"'
+LICENSE.md MIT
+```
+
+**Found on the way.** The compatibility example's script, rewritten from
+[chapter 6](#6-the-first-public-release-0240-2026-09-30)'s shape, first ran
+without making the base directory, and every command answered
+`base_directory_unavailable` (exit 9); the script now makes it at 0700 before
+the daemon starts. README's counter line still read registry 22 and plan 9 after
+both had moved; the 2/3 sweep settled it, as it settles the release documents.
+The suites' count is still seventeen.
+
+**Not taken.** A copy of the licence beside `LICENSE`. A patch number for the
+socket fix, or rebuilding 1/3 to put the fix before it: the fix is a test
+helper's, the executables did not change, and the history shows where it was
+found. Making the long-`TMPDIR` run optional: it is the evidence that every
+Unix socket the tests open stays within the limit.
+
+**Roadmap.** The package's contents, the roadmap's first item.

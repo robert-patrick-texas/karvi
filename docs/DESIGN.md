@@ -1537,9 +1537,12 @@ site built from one, and the diff between two tags is one command).
 **Suites and tests keep off the host.** Every suite sets its trust store,
 base directory, spool directory, scoreboard directory, and `sharedroot none`
 under its own work directory; every test binary that reaches the shared-tree
-resolver isolates it; a must-not-appear check stops the script. *Why:* fifteen
+resolver isolates it, with a scratch root of its own made under `/tmp`, never
+`TMPDIR`, so a socket in it stays within the path limit at the release's
+145-byte `TMPDIR`; a must-not-appear check stops the script. *Why:* fifteen
 scripts once enrolled into the operator's real trust store, and a verifier run
-left job folders in a site's shared tree.
+left job folders in a site's shared tree; a root under `TMPDIR` failed twenty
+socket tests at the 0.26.0 release.
 
 **A man page is roff written by hand, its SYNOPSIS and OPTIONS generated.**
 `packaging/man/karvi-prune.8` is one committed file; between the comment lines
@@ -1791,6 +1794,14 @@ fetched; an id given twice is reported. The same conversion runs in `go test`,
 so a document edit that breaks a link fails the tests. *Why:* a reader never
 meets a dead link, and the tool's own rewriting is checked with the documents.
 *Not taken:* a check of the Markdown alone; fetching external links.
+
+**The licence is one document, `LICENSE.md`.** The MIT text is the tree's
+`LICENSE.md`, its first line the heading `# MIT License` that titles its page,
+the rest the text unchanged; README's License section links to it and `NOTICE`
+names it. *Why:* the site carries the licence like any document, GitHub reads
+`LICENSE.md` as the repository's licence, and one copy cannot drift from
+another. *Not taken:* a `LICENSE.md` beside `LICENSE`; a converter exception
+for a file without a heading.
 
 ## 17. What this document is not
 
