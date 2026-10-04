@@ -566,4 +566,4 @@ operating-system, secret, and third-party adapters remain under
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE.md`](LICENSE.md).

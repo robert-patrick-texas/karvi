@@ -268,6 +268,9 @@
   replaced. Each directory below the root has an `index.html` that sends the
   browser to the parent's, so a server lists none. goldmark is vendored for the
   tool alone.
+- **The licence is `LICENSE.md`.** The MIT License, where it was `LICENSE`,
+  with its title a heading, so the HTML has it as a page; README's License
+  section links to it, and `NOTICE` names it.
 
 ## 0.25.0 - 2026-09-30
 
