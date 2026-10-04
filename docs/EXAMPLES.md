@@ -2603,3 +2603,99 @@ found. Making the long-`TMPDIR` run optional: it is the evidence that every
 Unix socket the tests open stays within the limit.
 
 **Roadmap.** The package's contents, the roadmap's first item.
+
+## 22. `docs/FILES.md`: every directory and file, shared and individual (2026-10-04)
+
+The operator asked what `server.json` and `server.lock` under
+`/dev/shm/karvi/capacity` are, whether there is one pair for the host or one
+per operator, and what their permissions should be; then for one document
+listing every directory and file karvi uses in shared and in individual mode,
+with mode, owner, and group, and how karvi chooses the mode, or advice if such
+a document already existed.
+
+**What it gains.** An operator or an administrator looks up any path karvi
+made, or should have made, in one place, and tells from a host's directories
+which mode each place is in, without reading the code or six guides.
+
+**The review.** The facts were spread: the shared trees, the scratch root, and
+the private roots in [`docs/OPERATIONS.md`](OPERATIONS.md); the job's files
+and the spool there too; the sockets and the state modes in
+[`docs/ARCHITECTURE.md`](ARCHITECTURE.md); the storage layout in
+[`docs/SCALE.md`](SCALE.md); the credential files' rules in
+[`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md); and a FILES list of nine
+entries in `karvi.1`. None gave a file's owner and group, and none stated the
+selection as one rule. A new document under "Reference", beside
+[`docs/ERROR-CODES.md`](ERROR-CODES.md), was the answer, linked from README
+and from OPERATIONS' shared trees.
+
+**The rule, as the document states it.** There is no shared switch: each place
+is chosen at each activity, its shared candidate first. A missing candidate is
+passed by silently; one present but unusable is refused for the private root
+and the three trees (the site made them for the operator, and a fall-through
+would split the work), and passed by with one warning for the scratch root's
+`scoreboards` and `capacity`. The spool, the trust store, and the daemon's
+sockets are never shared. The operator's home is the password database's, not
+`$HOME`.
+
+**Executed.** The modes were taken from runs, not from the code: a lab build
+of the four executables under `/var/tmp/nd.thgz` and one script as root in a
+private mount namespace (`sudo -n unshare --mount --propagation private`),
+with a tmpfs over `/opt`, `/dev/shm`, `/tmp`, `/etc/tmpfiles.d`, and
+`/etc/bash_completion.d`. Each mode ran a `command`, a daemon `run`, a `crun`,
+a `login --record`, and a system-transport `run` held three seconds, listed
+during it; shared mode followed `karvi setup shared --group netops`, and the
+second operator, `netops.test` (in the group `netops`), ran a job and a
+collection after the first. The ledger after both:
+
+```text
+-rw-rw---- netops:netops 0 /dev/shm/karvi/capacity/server.lock
+-rw-rw---- netops.test:netops 3 /dev/shm/karvi/capacity/server.json
+drwxr-x--- netops:netops 140 /opt/karvi/users/netops
+drwxr-x--- netops.test:netops.test 140 /opt/karvi/users/netops.test
+drwx--S--- netops.test:netops 60 /dev/shm/karvi/netops.test
+drwx--S--- netops.test:netops 40 /dev/shm/karvi/netops.test/sockets
+```
+
+One pair for the host, both `0660` in the operators' group: `server.json` is
+rewritten through a temporary file and renamed, so it takes the last writer as
+its owner, while `server.lock` is never replaced and keeps its creator. An
+operator's private root under `users` is in the operator's primary group (the
+`users` directory has the sticky bit, not setgid), and the operator's scratch
+folder inherits the setgid bit and the operators' group from
+`/dev/shm/karvi`.
+
+**Found on the way.** Three things:
+
+1. **The lab reached the real homes.** The first run set `HOME` to a lab
+   directory; karvi takes the home from the password database, so the
+   individual-mode activities made `/home/netops/.local/share/karvi` (jobs, a
+   trust store, the daemon's log) and the shared-mode trust store made
+   `/home/netops.test/.local`, neither of which existed before (their birth
+   times were the run's). Both were listed and copied into the lab directory;
+   the removal was refused by the session's permission check and left to the
+   operator, who removed them. The later runs mounted a tmpfs over
+   `/home/netops/.local/share` and `/home/netops.test` inside the namespace,
+   so the defaults acted as they do and nothing reached the disk; a lab that
+   needs the default places must cover the account's real home, since `HOME`
+   moves nothing.
+2. **`ssh.control-path-root` has no use.** Its directory is made at every
+   activity and stays empty: the system transport runs `ssh` with
+   `ControlMaster no` and `ControlPath none`, and the factory's `ControlRoot`
+   field is read by nothing.
+3. **`logging.file` and `logging.level` have no use.** Both are validated, and
+   `logging.file-required` requires a path, but nothing opens the file or reads
+   the level.
+
+The document states both as they are ([`docs/FILES.md`, section
+5](FILES.md#5-places-made-and-not-used)); what to do with them waits on the
+operator's word.
+
+**Not taken.** A section of OPERATIONS in place of a document: the guide
+explains how to operate, and an index of paths is looked up, not read. Modes
+written from the code alone: the inherited setgid bits, the ledger's owners,
+and the private root's group are what the kernel and the order of the writers
+make, and only a run shows them. A longer FILES section in `karvi.1`: the man
+page names the places, and the document holds the table.
+
+**Roadmap.** The two settings with no use, removed or given their use, one
+issue at a time.

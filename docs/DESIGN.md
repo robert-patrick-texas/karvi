@@ -1803,6 +1803,18 @@ names it. *Why:* the site carries the licence like any document, GitHub reads
 another. *Not taken:* a `LICENSE.md` beside `LICENSE`; a converter exception
 for a file without a heading.
 
+**One document indexes every place karvi uses.** [`docs/FILES.md`](FILES.md)
+lists each directory and file karvi reads or writes, in shared and in
+individual mode, with its mode, owner, group, writer, and purpose, and states
+how each place is chosen: the shared candidate first, a missing one passed by,
+an unusable one refused for the private root and the trees and passed by with a
+warning for the scratch root's folders. Its modes and owners are a run's, on a
+host with two operators, and change with the code that makes them. *Why:* an
+operator looks a path up; the guides explain how to operate and named the
+places piecemeal. *Not taken:* a section of the operations guide; the table
+written from the code alone, which cannot show inherited setgid bits or which
+writer owns a rewritten file.
+
 ## 17. What this document is not
 
 It is not the operator's how ([`docs/OPERATIONS.md`](OPERATIONS.md) and the
