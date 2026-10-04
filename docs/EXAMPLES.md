@@ -2797,7 +2797,54 @@ applies. A new command word for paths. The rule repeated in shell in each
 site's scripts. A refusal, a move, or a fallback for a store an earlier
 release left in the home (issue 2).
 
-**Status.** Designed; built in sections: the code (the rule, the callers, the
-non-creating twins, the `resolved:` line, the registry's text), the documents
-([`docs/FILES.md`](FILES.md), the host-key guide and its recipe, SECURITY,
-BUILD-HOWTO, README, the manual pages, the changelog), and the verification.
+**Built**, each section committed on the operator's word: the design
+(`c17548b`); the code (`8923c02`): `osutil.chooseBaseDir` holds the private
+root's rule, read-only, with `ResolveBaseDir` making what it picks and
+`BaseDirPath` only naming it; `hostkey.Resolve` takes `basedir` and
+`hostkey.StorePath` names the store; the two transports, login, and the
+exercise pass `basedir`; `Snapshot.Explain` takes a `Resolver` from the cli
+layer, which answers for the two keys alone; the registry's text follows;
+`host_key_trust_store_candidates_exhausted` is retired at v0.27.0, one
+candidate being left; the documents and the suites (`61472e7`): the host-key
+guide's table of places and its recipe on the `resolved:` line, SECURITY's
+and BUILD-HOWTO's own outdated recipes replaced by a pointer to it, the two
+manual pages, `scripts/lib/host.sh`'s `host_own_store` and
+`host_store_digest` in place of four copies of the guard, and the host-key
+suite's first run under a real `auto`.
+
+**Executed.** On a lab build in a private mount namespace, the home under a
+tmpfs, individual mode first and then after `setup shared`:
+
+```text
+== individual: before any activity
+resolved:   /home/netops/.local/share/karvi
+resolved:   /home/netops/.local/share/karvi/known_hosts
+  ls: cannot access '/home/netops/.local/share/karvi': No such file or directory
+run exit=0
+  -rw------- netops:netops /home/netops/.local/share/karvi/known_hosts
+== shared: before any activity
+resolved:   /opt/karvi/users/netops
+resolved:   /opt/karvi/users/netops/known_hosts
+  ls: cannot access '/opt/karvi/users/netops': No such file or directory
+run exit=0
+  -rw------- netops:netops /opt/karvi/users/netops/known_hosts
+== an explicit path
+resolved:   /home/netops/kh
+```
+
+The `resolved:` lines named both places before either existed, and `config
+show` made nothing; in shared mode the store was made under `users`, the
+individual phase's store in the home left as it was (issue 2). Verification:
+gofmt, vet, every Go test, `make generated-clean`, the groff lint, and the
+seventeen suites on the lab build (16:17:18 to 16:20:41 UTC), the released
+`bin/` unchanged.
+
+**Found on the way.** SECURITY and BUILD-HOWTO each kept an enrollment recipe
+of their own that hashed the host field and wrote the address there, where the
+guide requires the device's identity; one recipe is left. The guide had
+stated the store's directory as `0700` while the code's rule is "not writable
+by group or others" (the private root is `0750`). The exercise, described as
+local and read-only, calls the host-key resolution that creates a missing
+store under `accept-new`, as it did before; noted, not changed. A namespace
+script's `kill %1` does nothing in `sh`, which has no job control, so the
+fakes outlived the runs until stopped by their process IDs.
