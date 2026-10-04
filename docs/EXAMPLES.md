@@ -2699,3 +2699,105 @@ page names the places, and the document holds the table.
 
 **Roadmap.** The two settings with no use, removed or given their use, one
 issue at a time.
+
+## 23. The trust store under `basedir` (2026-10-04)
+
+The operator asked whether the trust store is always the `known_hosts` file,
+whether it is always made under the home in both modes, and what it takes to
+put it in the operator's directory under `/opt/karvi/users` on a shared host;
+then for the design of the first remedy offered, `auto` preferring
+`<basedir>/known_hosts`.
+
+**What it gains.** In shared mode an operator's private state already lives
+under `/opt/karvi/users/<user>`: the daemon's sockets, state, and log, and the
+fallbacks of the scoreboards and the ledger. The trust store was the one piece
+left in the home. Under `basedir` the site sees, backs up, and for the `secure`
+policy provisions every operator's store where it keeps the operators' roots,
+and the home holds nothing of karvi's but the configuration. It waits on
+nothing.
+
+**The answers, as found.** The store is one file in OpenSSH's format, the only
+one either transport trusts: the system transport's `ssh` configuration sets
+`UserKnownHostsFile` to it and `GlobalKnownHostsFile` to `/dev/null`, and the
+native handshake checks the same file; under `insecure` nothing is trusted and
+the store is read only to warn of a change. Under `auto` it was
+`~/.local/share/karvi/known_hosts` in both modes, `basedir` notwithstanding,
+and it is made only under `accept-new` (at the first SSH activity), never
+under `secure` (absent is `host_key_not_enrolled`) or `insecure`. A per-user
+path took each operator's own setting, since `~` and a relative path resolve
+against the home and the key has no `<user>` placeholder, and one store for
+every operator is refused by the owner checks. Executed in a private mount
+namespace after `setup shared`, the home under a tmpfs:
+
+```text
+[1] KARVI__SSH__KNOWN_HOSTS_FILE in the operator's environment; a daemon run
+exit=0
+drwxr-x--- netops:netops /opt/karvi/users/netops
+-rw------- netops:netops /opt/karvi/users/netops/known_hosts
+the home's karvi folder:
+[2] one store for every operator in the shared tree (root's, 0660)
+host_key_directory_owner: command failed for name:fake
+```
+
+and, before any setting, chapter 22's shared-mode run had left the second
+operator's store alone in the home while its `basedir` was
+`/opt/karvi/users/netops.test`.
+
+**Issue 1, the rule, agreed.** Under `ssh.known-hosts-file = "auto"` the trust
+store is `<basedir>/known_hosts`, `basedir` resolved as for every activity:
+`/opt/karvi/users/<user>` or `/var/lib/karvi/users/<user>` where the site made
+`users`, else `~/.local/share/karvi`, or an explicit `basedir` as given. An
+explicit `ssh.known-hosts-file` is unchanged, `~` still the home. In
+individual mode the file is the same as before. The directory rule stands
+(operator-owned, not writable by group or others): `users/<user>` at 0750 and
+the XDG root at 0750 pass, and a site-made `basedir` writable by its group is
+refused for the store as it was when named explicitly. The execution policy
+records the configured word, not the path, so no plan, digest, or schema
+moves. `hostkey.Resolve` takes `basedir` for `auto`, the home only for `~`;
+its callers (the two transports, login, the exercise) pass it.
+
+**Issue 2, a store left in the home, settled by the operator.** Nothing is
+done about it: no refusal, no move, no fallback. The operator removes the
+earlier stores on the production host, installs the release, and lets
+`accept-new` enroll the devices afresh, which this stage accepts; breaking
+changes are not a cost until the operator says so.
+
+**Issue 3, finding the path, agreed.** `karvi config show --explain basedir`
+and `karvi config show --explain ssh.known-hosts-file` each add `resolved:
+PATH`, the path the next activity would use, found by the same rule without
+creating anything (the `basedir` resolver makes the folder it picks, and the
+store's resolver creates the file under `accept-new`, so each gets a twin that
+only names the path, the candidates shared). The view had nothing to show:
+
+```text
+$ karvi config show --explain basedir
+key:        basedir
+value:      "auto"
+source:     <builtin>
+default:    "auto"
+...
+```
+
+The enrollment recipe of
+[`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md) takes its path from
+the line:
+
+```bash
+STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: *//p')
+```
+
+Limited to the two keys; the same line for every other place key (`tempdir`,
+`spooldir`, the three trees, the scoreboards, the ledger, the daemon's socket)
+is a roadmap item, so that an operator reads from the host itself each place
+[`docs/FILES.md`](FILES.md) describes.
+
+**Not taken.** A `<user>` placeholder in `ssh.known-hosts-file`, set once in
+the global file: it would leave each site to write the rule `basedir` already
+applies. A new command word for paths. The rule repeated in shell in each
+site's scripts. A refusal, a move, or a fallback for a store an earlier
+release left in the home (issue 2).
+
+**Status.** Designed; built in sections: the code (the rule, the callers, the
+non-creating twins, the `resolved:` line, the registry's text), the documents
+([`docs/FILES.md`](FILES.md), the host-key guide and its recipe, SECURITY,
+BUILD-HOWTO, README, the manual pages, the changelog), and the verification.

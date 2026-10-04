@@ -603,14 +603,35 @@ safe default that cannot be weakened silently. *Not taken:* aliases `auto` and
 `default` (removed outright).
 
 **A karvi-owned trust store, created 0600, never repaired.** The store is
-`~/.local/share/karvi/known_hosts` under `auto`, resolved from the passwd
-entry, in an operator-owned directory group and others cannot write; karvi
-creates it exclusively at first enrollment and never changes the mode of a
-store it did not make: a wrong mode halts `accept-new` and `secure` with the
-remedy in the message. *Why:* `accept-new` used to repair a 0644 store silently
-while `insecure` under an explicit path refused it, so the paths disagreed;
-a legacy `~/karvi` candidate once won the chain by accident and split the
-operator's state. *Not taken:* repairing with a warning; a shared trust store.
+`<basedir>/known_hosts` under `auto`: `/opt/karvi/users/<user>/known_hosts`
+where the site made `users`, `~/.local/share/karvi/known_hosts` otherwise (the
+home from the passwd entry), or under an explicit `basedir`; an explicit
+`ssh.known-hosts-file` is taken as given, `~` the home. Its directory must be
+operator-owned and not writable by group or others; karvi creates the store
+exclusively at first enrollment and never changes the mode of a store it did
+not make: a wrong mode halts `accept-new` and `secure` with the remedy in the
+message. *Why:* the store is the operator's private state and lives with the
+rest of it, so in shared mode the site sees, backs up, and for `secure`
+provisions every operator's store under `users`, and the home holds nothing of
+karvi's but the configuration; `accept-new` used to repair a 0644 store
+silently while `insecure` under an explicit path refused it, so the paths
+disagreed; a legacy `~/karvi` candidate once won the chain by accident and
+split the operator's state. *Not taken:* repairing with a warning; a shared
+trust store (the owner checks refuse one); the home under `auto` whatever
+`basedir` is, which left the store alone in the home on a shared host; a
+`<user>` placeholder in the key, which would leave each site to write the rule
+`basedir` already applies; a refusal or a move for a store left in the home by
+an earlier release (the operator re-enrolls under `accept-new`).
+
+**`config show --explain` names the resolved path of the two private places.**
+For `basedir` and `ssh.known-hosts-file` the explain view adds `resolved:
+PATH`, the path the operator's next activity would use, found by the same rule
+without creating anything: where the site's `users` exists and the operator's
+folder does not yet, the folder the first activity makes. A controlled
+enrollment takes the store's path from it. *Why:* under `auto` the store's path
+depends on what the host holds, and nothing printed it. *Not taken:* a new
+command word for paths; the rule repeated in shell in each site's scripts; the
+line for every place key at once (on the roadmap).
 
 **The host-key identity is the canonical name and, off port 22, the port.**
 Both transports enroll and look up `name` on port 22 and `[name]:PORT`
