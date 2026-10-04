@@ -493,6 +493,10 @@ Only `internal/adapters/scrapligov1` imports ScrapliGo.
 
 Operator guides:
 
+- The documentation as HTML: `make html` writes every document below, an
+  index, and the images into `../html`, beside the tree; open
+  `html/index.html`. Every link in it is relative, so the directory can be
+  copied anywhere and read without the network.
 - `packaging/man/`: the manual pages the package installs: `man karvi`
   (the configuration, the values, the environment, the files, the exit
   statuses), `man karvi WORD` for each command word (`man karvi run`), `man

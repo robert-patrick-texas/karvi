@@ -1740,6 +1740,53 @@ its own. ERROR-CODES' prose is wrapped in its generator. *Why:* the documents
 are read in a terminal and an editor as well as rendered, and a rewrap must
 leave the rendering as it was. *Not taken:* a gate on the width.
 
+**The documentation as HTML is a build product beside the tree.**
+`tools/md-to-html` (`make html`) converts every Markdown file of the tree with
+goldmark, vendored for the tool alone, in GitHub's dialect; no executable
+contains it. Its table names each document once with its group and a line, and
+it refuses a tree whose Markdown files are not the table's. The output is the
+tree's parent's `html/` (`HTMLDIR`), never the tree: a page per document at the
+tree's path with `.html`, `index.html` (the README's image and opening
+paragraph, then the documents by group), `images/` as the tree's, with an
+`index.html` of its own so a server lists no files, and one stylesheet. *Why:*
+the documents read in a browser on any host, and the package can install them.
+*Not taken:* pandoc (not a Go build dependency); a converter written here; the
+HTML committed; the README as the index.
+
+**Headings take GitHub's ids, from their rendered text.** The converter sets
+each heading's id itself: the text as it reads, lowercased, every character but
+a letter, digit, mark, hyphen, underscore, or space removed, each space a
+hyphen, a repeat numbered as GitHub numbers it. A test pins the rule to the ids
+GitHub's API gave a table of awkward headings. *Why:* a link written for GitHub
+reaches the same heading in the HTML; goldmark's own ids, made from the source
+line, turn an underscore into a hyphen.
+
+**The site is relative and needs nothing outside itself.** Every link and image
+between its files is a relative path, a document's link names its page (`.md`
+made `.html`), the tree's image is a file of the site, and no page loads a
+script, a font, or anything from the network. The left column holds the groups
+and every document, the current page's sections under it; a narrow screen folds
+the same links into "Documents" above the page. *Why:* the directory can be
+copied anywhere and read offline. *Not taken:* syntax highlighting (a second
+module); a stylesheet in every page; a search box.
+
+**The site is replaced whole, and only when it is the tool's.** The tool writes
+the site beside `html/`, checks it there, and renames it into place, the old
+one renamed aside and removed; `html/` is replaced when it is missing, empty, or
+carries the tool's `.md-to-html` file, and any other directory, a symbolic
+link, or a failed build or check leaves it as it was. *Why:* `html/` is always
+one whole build, and a directory the tool did not make is never removed; what
+it removes is made again by `make html`.
+
+**Every link of the site resolves, or nothing is published.** Before the swap
+the tool reads every page it wrote, the index and the column included: a
+relative link must name a file of the site and its anchor an id on that page;
+an absolute path or another scheme is refused; http, https, and mailto are not
+fetched; an id given twice is reported. The same conversion runs in `go test`,
+so a document edit that breaks a link fails the tests. *Why:* a reader never
+meets a dead link, and the tool's own rewriting is checked with the documents.
+*Not taken:* a check of the Markdown alone; fetching external links.
+
 ## 17. What this document is not
 
 It is not the operator's how ([`docs/OPERATIONS.md`](OPERATIONS.md) and the

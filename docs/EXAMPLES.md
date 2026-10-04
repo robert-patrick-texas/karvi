@@ -2440,3 +2440,47 @@ renders the same. The source bundle packages the tree, so it carries the
 image (the v0.25.0 bundle was 12,655,199 bytes). Not taken: fetching it at
 build time (the network); the remote URL kept in the HTML; re-encoding the
 artwork; `docs/images/`, whose paths would be rewritten on the way out.
+
+**The rest, agreed.** The index's content (the image, the name, the README's
+opening paragraph, the 32 documents in six groups with a line each from a
+table in the tool, which refuses a tree whose Markdown files are not its
+own); the page (the left column with every document and the current page's
+sections, folded above the page on a narrow screen, one stylesheet, system
+fonts, a dark set, no script, the README's `<img>` let through, a `#` link
+on each heading, a footer naming the source and the commit); the
+replacement (built and checked beside `html/`, then renamed into place;
+only a missing, empty, or marked `html/` is replaced); the check (every
+link of the written pages, the index and the column included, a file of
+the site and an id on its page, in `go test` too). The operator added:
+every link and image relative, so the directory can be copied anywhere,
+`index.html` the way into the documents and `images/`, and an `index.html`
+in `images/` so a server lists no files.
+
+**Executed.** goldmark v1.8.6 vendored (`vendor/github.com/yuin`, 12,840
+lines; `go list -deps ./cmd/...` names none of it); `tools/md-to-html`
+built, then `make html`:
+
+```text
+md-to-html: 34 pages and 3 other files in ../html
+the heading ids of 32 pages against the 304 GitHub's API gave: 0 files differ
+a second run: html/ a new directory (inode 2384004 to 2384047), a stale page gone,
+  no html.new-* or html.old-* beside it
+HTMLDIR=…/foreign (a file of its own, no marker):
+  md-to-html: …/foreign holds files and was not made by md-to-html (no
+  .md-to-html); it is not replaced: move it away or name another -out
+```
+
+Its tests pin the ids to GitHub's for 17 headings (underscores, code
+spans, emphasis, a link, accents, a tab, three repeats and a "Repeated 1");
+show the check reporting a missing anchor, a missing page, a missing image,
+an absolute path, a file URL, a link out of the site, a link to a Markdown
+file, a missing same-page anchor, and a repeated id; and show the
+replacement refusing a foreign directory and a symbolic link, using an
+empty one at 0755, and leaving the site as it was after a failed check. Made
+to fail, they did: the id rule with an underscore made a hyphen
+(`` "16. `NO_COLOR` (2026-10-03)": id "16-no-color-2026-10-03", GitHub's
+"16-no_color-2026-10-03" ``), and SCALE's link to OPERATIONS' "Retention"
+broken (`docs/SCALE.html: href "OPERATIONS.html#retentions" names no
+heading of docs/OPERATIONS.html`). The roadmap's item is closed; the
+package's contents (now its Next item 1) choose between the Markdown and
+this HTML.

@@ -2,6 +2,7 @@ GO ?= go
 VERSION ?= 0.25.0
 COMMIT ?= development
 BUILD_TIME ?= 1970-01-01T00:00:00Z
+HTMLDIR ?= ../html
 FIPS_MODE ?= false
 GOOS ?= linux
 GOARCH ?= amd64
@@ -12,7 +13,7 @@ LDFLAGS := -s -w \
 	-X $(MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME) \
 	-X $(MODULE)/internal/buildinfo.FIPSMode=$(FIPS_MODE)
 
-.PHONY: all fmt generate generated-clean deps vendor test vet build native-build checksums smoke halt-smoke k03-smoke native-smoke clean
+.PHONY: all fmt generate generated-clean deps vendor test vet build native-build checksums html smoke halt-smoke k03-smoke native-smoke clean
 
 all: generate test vet build
 
@@ -46,6 +47,12 @@ generated-clean:
 	cmp configs/reference.toml "$$tmp/reference.toml"; \
 	cmp docs/ERROR-CODES.md "$$tmp/ERROR-CODES.md"; \
 	for f in "$$tmp"/man/*; do cmp "packaging/man/$${f##*/}" "$$f"; done
+
+# The documentation as HTML (tools/md-to-html): every Markdown file of the
+# tree, an index, and images/, in HTMLDIR beside the tree, replaced whole.
+# The footers name the checkout's commit, or COMMIT outside a git checkout.
+html:
+	$(GO) run ./tools/md-to-html -src . -out "$(HTMLDIR)" -commit "$$(git describe --always --dirty 2>/dev/null || echo '$(COMMIT)')"
 
 test:
 	$(GO) test ./...

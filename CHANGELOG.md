@@ -261,6 +261,11 @@
 - **The README's image is in the tree.**
   `images/karvi-viking-fleet-command.png`, where the README had named GitHub's
   attachment storage.
+- **The documentation as HTML.** `make html` writes every Markdown file of
+  the tree as a page, an index with the documents by group, and the images
+  into `../html`, beside the tree, by the new `tools/md-to-html`; every link
+  is relative and every link and anchor is checked before the directory is
+  replaced. goldmark is vendored for the tool alone.
 
 ## 0.25.0 - 2026-09-30
 

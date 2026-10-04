@@ -28,7 +28,11 @@ build needs no network. `make build` produces the executables under `bin/`;
 `make test` and `make vet` run the Go tests and vet; `make generate` writes
 the generated files (the reference configuration, the configuration schema,
 the error catalogue) from the registries, and `make generated-clean` fails
-when they are stale. `make fmt` formats.
+when they are stale. `make fmt` formats. `make html` writes the
+documentation as HTML beside the tree (`../html`, by `tools/md-to-html`);
+`go test` converts the tree too, so a link between documents that does not
+resolve fails it, and a new document waits for its line in the converter's
+table.
 
 The executable suites live under `scripts/` and run against a built
 executable named by `KARVI` (default: the tree's `bin/karvi-linux-amd64`);
