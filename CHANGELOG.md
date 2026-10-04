@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.26.0 - 2026-10-04
+
+A minor release on 0.25.0. The configuration registry moves from 22 to 24
+and the execution plan from 9 to 10; the daemon IPC schema and every other
+counter are 0.25.0's (scoreboard 3, configuration schema 6, command record
+2, job 2, credential package 1, plan report 1), and a running 0.25.0 daemon
+is `compatible: false` by its version alone and is restarted. A site has
+something to change where it set `output.files.failures-jsonl` (now
+`output.files.errors-jsonl`, the job's `errors.jsonl`), relied on `run`'s
+Dispatch options passing a lock or a range, or read `crun`'s result line on
+standard error (now the display's collection footer). The module graph gains
+`github.com/yuin/goldmark`, for `tools/md-to-html` alone.
 
 - **The capacity ledger is shared across operators.** Under a group-shared
   capacity root (setgid, `sessions.shared-capacity-root`), the ledger's
