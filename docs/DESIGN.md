@@ -997,6 +997,36 @@ first; the returned prompt is the wrong one whenever a statement changes the
 mode. *Not taken:* device output inside `commands.txt` (it is the rerun's
 input); building the text at the job's end.
 
+**An exec command's record carries its exit and both streams.** Every record
+carries `channel` (`shell` or `exec`); an exec record adds `exit_status` (null
+when none came back), `exit_signal` (the signal's name, or null), and `stderr`
+with `stderr_bytes` and `stderr_sha256`, the stream spooled past the threshold
+as `output` is; on a shell record the new fields are null (record schema 3).
+Exec output is recorded as the program wrote it, with no terminal between to
+render. Exit 0 is `succeeded` whatever stderr holds; a non-zero exit is
+`device_error` with `command_exit_nonzero`, a signal `command_exit_signal`,
+and a channel closed without a status on a live connection
+`command_exit_missing`, each in the `device` category, exit 107, external and
+not retryable, so `errors.jsonl`, `failed-devices.txt`, the summary, and the
+run's exit treat them as any device error; a lost connection keeps its session
+codes. The platform's failure patterns apply to both streams after the exit
+status, so status 0 with a match is `device_command_error`. The device-error
+policy is unchanged: later commands are not attempted unless
+`--continue-device-on-error`, and the connection stays usable. `promptbefore`
+and `prompt` are empty, `prompt_source` is `none`, and `prompt_observed` is
+false; `--echo` and `output.TARGET.txt` show the inferred prompt (`srv1$
+uname -s`), then stdout, then stderr, then a `!` line on failure, both streams
+on karvi's stdout, their interleaving lost (`2>&1` in the command keeps it).
+*Why:* the exit status is the command's own verdict, which no pattern over a
+server's free text can give, and one status for "the device said no" keeps
+every consumer as it is; patterns after the status keep an operator's exec
+alias of a network driver honest when its device exits 0 on an error; an
+inferred prompt in the record would be a prompt the device never sent. *Not
+taken:* stderr folded into `output`; a pty under exec to keep the streams'
+order (the terminal back); a non-zero exit as a success with a notice; a new
+status value; accepted exit codes per command (`grep … || true` serves, and a
+declaration beside `--expect` could follow).
+
 **The set-up lines are in the text file; the enable secret is never kept.**
 The text file opens as the session did, `enable` and the paging commands at
 their prompts, and nothing read between sending the secret and the next

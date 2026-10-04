@@ -3069,3 +3069,50 @@ word ([`ROADMAP.md`](../ROADMAP.md), "NETCONF").
 **Not taken.** Exec as a transport or an implementation ID; a per-run
 `--exec`; an admission list for `exec`; `session` as the field's name; a
 boolean; `linux_shell` shipped as an alias in a configuration file.
+
+**Executed: what an exec returns.** Through one OpenSSH master and over
+x/crypto (the native transport's library), from a probe built outside the
+tree:
+
+| Command | OpenSSH through a master | x/crypto |
+|---|---|---|
+| `echo warn >&2; echo data` | 0, stderr `warn` | 0, stderr `warn` |
+| `kill -TERM $$` | 255, as its own failures | status 143, signal `TERM` |
+| `exit 300` | 44 | 44 |
+| `cat`, no stdin | 0 (end of input) | 0 (end of input) |
+| `echo one; echo two >&2; echo three` | stdout `one three`, stderr `two` | |
+
+The order between the two streams is lost, and OpenSSH's client reports a
+remote signal as it reports its own failures (held for issue 6). Today's
+device error, against the fake, for comparison: `status: device_error`, `code:
+device_command_error`, category `device`, exit 107, and in the text file:
+
+```text
+Router#show bogus
+% Invalid input detected at '^' marker.
+! device_command_error: device reported a command error
+! not sent: show version
+```
+
+**Issue 4, agreed.** Every record carries `channel`; an exec record adds
+`exit_status`, `exit_signal`, and `stderr` with its size and digest, spooled
+as `output` is, null on a shell record (record schema 3); exec output is kept
+as the program wrote it. Exit 0 is `succeeded` whatever stderr holds; a
+non-zero exit is `device_error` with `command_exit_nonzero`, a signal
+`command_exit_signal`, a channel closed without a status
+`command_exit_missing`, all `device`, exit 107. The failure patterns apply to
+both streams after the status. The device-error policy is unchanged. The
+record's prompt fields are empty with `prompt_source` `none`; the echo and
+the text file show the inferred prompt, stdout, stderr, and a `!` line:
+
+```text
+srv1$ ls /nonexistent
+ls: cannot access '/nonexistent': No such file or directory
+! command_exit_nonzero: exited 2
+```
+
+A second spool per command reaches the record's write path, so the build is
+measured at width (N=32) before it is committed.
+
+**Not taken.** stderr folded into `output`; a pty under exec; a non-zero exit
+as a success with a notice; a new status; accepted exit codes per command.
