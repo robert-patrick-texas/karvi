@@ -29,7 +29,7 @@ var setupIsRoot = func() bool { return os.Geteuid() == 0 }
 // crun, and transcripts
 // in the group with the mode and the setgid bit, /opt/karvi/users in
 // the group at 1770, and the scratch root /dev/shm/karvi with its
-// scoreboards (3770) and capacity (2770); report each as created, exists,
+// scoreboards (3770), capacity, and capacity/devices (2770); report each as created, exists,
 // or repaired (a wrong group or mode set right, what it had in the line);
 // refuse only a path that is not a real directory; then write the
 // scratch root's tmpfiles rule (setupTmpfiles). The group is --group, else the primary group of the operator

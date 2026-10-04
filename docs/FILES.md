@@ -117,7 +117,7 @@ member from removing or renaming another's entry.
 | `/dev/shm/karvi` | `3770` | root | operators | `setup shared`; at boot, `systemd-tmpfiles` | the scratch root |
 | `/dev/shm/karvi/scoreboards` | `3770` | root | operators | the same | every operator's scoreboards, what `karvi watch` reads |
 | `/dev/shm/karvi/capacity` | `2770` | root | operators | the same | the host's session ledger |
-| `capacity/devices` | `2770` | the first operator to run | operators | the first activity | one ledger per device |
+| `capacity/devices` | `2770` | root | operators | `setup shared`; at boot, `systemd-tmpfiles` | one ledger per device |
 | `/dev/shm/karvi/<user>` | `2700` (setgid inherited) | the operator | operators | the operator's first activity | the operator's scratch (`tempdir`) |
 | `/dev/shm/karvi/<user>/sockets` | `2700` | the operator | operators | the same | nothing ([section 5](#5-places-made-and-not-used)) |
 | `/tmp/karvi-<uid>` | `0700` | the operator | `<group>` | each activity | the output spool |

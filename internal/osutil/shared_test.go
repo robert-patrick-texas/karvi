@@ -36,8 +36,8 @@ func TestSetupSharedTrees(t *testing.T) {
 	if m := mode(t, filepath.Dir(root)); m != 0o755 {
 		t.Fatalf("system root mode %o, want 0755", m)
 	}
-	if len(results) != 8 {
-		t.Fatalf("results %+v, want eight", results)
+	if len(results) != 9 {
+		t.Fatalf("results %+v, want nine", results)
 	}
 	for i, sub := range append([]string{""}, SharedTrees...) {
 		p := filepath.Join(root, sub)
@@ -91,8 +91,8 @@ func TestSetupSharedTrees(t *testing.T) {
 	if !strings.Contains(msg, "transcripts exists and is not a real directory") || !strings.Contains(msg, "nothing was changed there") || strings.Contains(msg, "crun") {
 		t.Errorf("message: %s", msg)
 	}
-	if len(results) != 7 || results[2].State != "repaired" || filepath.Base(results[2].Path) != "crun" || results[2].Was != "group "+group+" mode 2775" {
-		t.Errorf("the shared directory, jobs, the repaired crun, users, and the scratch root's three are reported: %+v", results)
+	if len(results) != 8 || results[2].State != "repaired" || filepath.Base(results[2].Path) != "crun" || results[2].Was != "group "+group+" mode 2775" {
+		t.Errorf("the shared directory, jobs, the repaired crun, users, and the scratch root's four are reported: %+v", results)
 	}
 	if results[3].State != "repaired" || results[3].Path != users || results[3].Was != "group "+group+" mode 0777" {
 		t.Errorf("users repaired: %+v", results[3])
@@ -110,7 +110,7 @@ func TestSetupSharedTrees(t *testing.T) {
 		t.Fatal(err)
 	}
 	results, err = SetupSharedTrees(root, scratch, gid, 0o770)
-	if err != nil || len(results) != 8 || results[0].State != "repaired" || results[3].State != "created" {
+	if err != nil || len(results) != 9 || results[0].State != "repaired" || results[3].State != "created" {
 		t.Errorf("the shared directory repaired and the tree remade: %v %+v", err, results)
 	}
 	if modeString(os.ModeSetgid|0o770) != "2770" || modeString(0o750) != "0750" || modeString(os.ModeSticky|0o770) != "1770" {
@@ -145,6 +145,7 @@ func TestSetupScratchRoot(t *testing.T) {
 		{scratch, "repaired", "3770"},
 		{filepath.Join(scratch, "scoreboards"), "created", "3770"},
 		{filepath.Join(scratch, "capacity"), "created", "2770"},
+		{filepath.Join(scratch, "capacity", "devices"), "created", "2770"},
 	}
 	for i, w := range want {
 		r := results[5+i]
@@ -175,6 +176,7 @@ func TestTmpfilesRule(t *testing.T) {
 		"d /dev/shm/karvi 3770 root netops - -\n",
 		"d /dev/shm/karvi/scoreboards 3770 root netops - -\n",
 		"d /dev/shm/karvi/capacity 2770 root netops - -\n",
+		"d /dev/shm/karvi/capacity/devices 2770 root netops - -\n",
 	} {
 		if !strings.Contains(rule, line) {
 			t.Errorf("the rule lacks %q:\n%s", line, rule)

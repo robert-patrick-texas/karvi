@@ -1364,9 +1364,10 @@ table; moving a site's old trees.
 
 **The scratch root is the site's; an operator makes only its own folder
 in it.** `sudo karvi setup shared` makes `/dev/shm/karvi` and its
-`scoreboards` at 3770 and its `capacity` at 2770 in the operators' group,
-and writes `/etc/tmpfiles.d/karvi.conf` from the same list of places, so
-the boot makes them again on the emptied tmpfs. An operator's process
+`scoreboards` at 3770 and its `capacity` and `capacity/devices` at 2770 in
+the operators' group, root's, and writes `/etc/tmpfiles.d/karvi.conf` from
+the same list of places, so the boot makes them again on the emptied tmpfs
+(`devices` among them, so no operator's first run after a boot owns it). An operator's process
 never creates a missing parent: it makes its own `<username>` folder
 (0700) inside an existing root, and a missing `scoreboards` or `capacity`
 folder inside an existing parent with a setgid parent's bits. A root that

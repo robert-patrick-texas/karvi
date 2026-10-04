@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **`setup shared` makes the ledger's `devices` folder, and the boot rule
+  remakes it.** `/dev/shm/karvi/capacity/devices` is made at 2770, root's, in
+  the operators' group, after `capacity`, and `/etc/tmpfiles.d/karvi.conf`
+  (and `packaging/tmpfiles.d/karvi.conf`) names it, where the first activity
+  after each boot had made it, owned by that operator, who could close it to
+  the rest.
 - **The trust store follows the private root.** Under `ssh.known-hosts-file =
   "auto"` the store is `<basedir>/known_hosts`: on a host where the site made
   the operators' roots (`sudo karvi setup shared`),

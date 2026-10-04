@@ -64,6 +64,7 @@ func TestSetupShared(t *testing.T) {
 		"created  " + scratch + "  group " + gr.Name + "  mode 3770\n" +
 		"created  " + filepath.Join(scratch, "scoreboards") + "  group " + gr.Name + "  mode 3770\n" +
 		"created  " + filepath.Join(scratch, "capacity") + "  group " + gr.Name + "  mode 2770\n" +
+		"created  " + filepath.Join(scratch, "capacity", "devices") + "  group " + gr.Name + "  mode 2770\n" +
 		"created  " + tmpfiles + "  mode 0644\n"
 	if out != want {
 		t.Fatalf("report:\n%s\nwant:\n%s", out, want)
@@ -72,12 +73,12 @@ func TestSetupShared(t *testing.T) {
 		t.Fatalf("the tmpfiles rule: %v\n%s", err, rule)
 	}
 	code, out, _ = run("setup", "shared", "--group", gr.Name)
-	if code != 0 || strings.Count(out, "exists   ") != 9 {
+	if code != 0 || strings.Count(out, "exists   ") != 10 {
 		t.Fatalf("second run: %d\n%s", code, out)
 	}
 	// The group from sudo's environment.
 	t.Setenv("SUDO_GID", gid)
-	if code, out, _ = run("setup", "shared"); code != 0 || strings.Count(out, "group "+gr.Name) != 8 {
+	if code, out, _ = run("setup", "shared"); code != 0 || strings.Count(out, "group "+gr.Name) != 9 {
 		t.Fatalf("SUDO_GID: %d\n%s", code, out)
 	}
 	t.Setenv("SUDO_GID", "")
@@ -88,9 +89,9 @@ func TestSetupShared(t *testing.T) {
 		t.Fatalf("unknown group: %d %q", code, errText)
 	}
 	// Another mode over the existing trees repairs them and says what they
-	// had, the scratch root's three among them, and updates the rule;
+	// had, the scratch root's four among them, and updates the rule;
 	// users keeps its own mode.
-	if code, out, errText = run("setup", "shared", "--mode", "2775", "--group", gr.Name); code != 0 || strings.Count(out, "repaired ") != 7 || !strings.Contains(out, "mode 2775  (was group "+gr.Name+" mode 2770)") || !strings.Contains(out, "mode 3775  (was group "+gr.Name+" mode 3770)") || !strings.Contains(out, "exists   "+filepath.Join(filepath.Dir(root), "users")) || !strings.Contains(out, "updated  "+tmpfiles) {
+	if code, out, errText = run("setup", "shared", "--mode", "2775", "--group", gr.Name); code != 0 || strings.Count(out, "repaired ") != 8 || !strings.Contains(out, "mode 2775  (was group "+gr.Name+" mode 2770)") || !strings.Contains(out, "mode 3775  (was group "+gr.Name+" mode 3770)") || !strings.Contains(out, "exists   "+filepath.Join(filepath.Dir(root), "users")) || !strings.Contains(out, "updated  "+tmpfiles) {
 		t.Fatalf("another mode over existing trees: %d %q\n%s", code, errText, out)
 	}
 	// A rule the site wrote is reported and left, after the directories.
@@ -98,7 +99,7 @@ func TestSetupShared(t *testing.T) {
 	if err := os.WriteFile(tmpfiles, []byte(site), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if code, out, errText = run("setup", "shared", "--group", gr.Name); code != exitcode.ExitPermissionError || !strings.Contains(errText, "setup_tmpfiles_mismatch") || strings.Count(out, "\n") != 8 {
+	if code, out, errText = run("setup", "shared", "--group", gr.Name); code != exitcode.ExitPermissionError || !strings.Contains(errText, "setup_tmpfiles_mismatch") || strings.Count(out, "\n") != 9 {
 		t.Fatalf("the site's rule: %d %q\n%s", code, errText, out)
 	}
 	if rule, _ := os.ReadFile(tmpfiles); string(rule) != site {

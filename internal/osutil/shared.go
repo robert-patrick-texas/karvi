@@ -135,14 +135,17 @@ func setupSharedDirectory(p string, gid int, group string, mode os.FileMode) (r 
 // the tmpfiles rule makes again at every boot, with their modes: the root
 // and its scoreboards with the setgid and the sticky bit, so every member
 // makes its own folder or scoreboard file there and none removes
-// another's; capacity with the setgid bit alone, since every member
-// replaces the ledger files another wrote. mode is setup shared's (0770,
-// or 0775).
+// another's; capacity and its devices with the setgid bit alone, since
+// every member replaces the ledger files another wrote. devices is made
+// here, root's, and not by the first activity after a boot, whose operator
+// would own it and could close it to the rest. mode is setup shared's
+// (0770, or 0775).
 func scratchPlaces(scratch string, mode os.FileMode) []sharedPlace {
 	return []sharedPlace{
 		{scratch, os.ModeSetgid | os.ModeSticky | mode},
 		{filepath.Join(scratch, "scoreboards"), os.ModeSetgid | os.ModeSticky | mode},
 		{filepath.Join(scratch, "capacity"), os.ModeSetgid | mode},
+		{filepath.Join(scratch, "capacity", "devices"), os.ModeSetgid | mode},
 	}
 }
 

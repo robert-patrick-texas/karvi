@@ -633,19 +633,20 @@ command is refused before anything is looked at (`setup_requires_root`).
 **The scratch root.** On the tmpfs `/dev/shm`, setup makes
 `/dev/shm/karvi` and its `scoreboards` at 3770 (setgid and sticky: every
 member makes its own folder or scoreboard file there and none removes
-another's) and its `capacity` at 2770 (setgid alone: every member
-rewrites the ledger files another wrote), all in the group, and writes
-`/etc/tmpfiles.d/karvi.conf` naming the same three with the same group
-and modes, owned by root:
+another's) and its `capacity` and `capacity/devices` at 2770 (setgid
+alone: every member rewrites the ledger files another wrote), all in the
+group and root's, and writes `/etc/tmpfiles.d/karvi.conf` naming the same
+four with the same group and modes:
 
 ```text
 created  /dev/shm/karvi  group netops  mode 3770
 created  /dev/shm/karvi/scoreboards  group netops  mode 3770
 created  /dev/shm/karvi/capacity  group netops  mode 2770
+created  /dev/shm/karvi/capacity/devices  group netops  mode 2770
 created  /etc/tmpfiles.d/karvi.conf  mode 0644
 ```
 
-`/dev/shm` is emptied at every boot, and systemd-tmpfiles makes the three
+`/dev/shm` is emptied at every boot, and systemd-tmpfiles makes the four
 again from the rule; `systemd-tmpfiles --create /etc/tmpfiles.d/karvi.conf`
 does it at once. The rule is reported as `created`, `exists`, or `updated`
 (another group or mode: run setup again after changing either); a file
