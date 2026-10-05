@@ -3543,3 +3543,41 @@ this host, each record's `credential.auth` is `publickey`, and the audit:
 as counts in `summary.json` or the job's closing audit event; the method on the
 device's first audit event alone; `login` at `VERBOSE`, which would print the
 closing lines on the operator's terminal.
+
+**During the build: the fake's Linux persona.** The persona as built, run
+from plain OpenSSH through one ControlMaster (`ssh -M -S`, the master at
+`DEBUG1` with `-E`), a client per command:
+
+```text
+uname -snrm      exit 0    stdout "Linux fake 6.8.0-0-generic x86_64"
+both             exit 0    stdout "to stdout"   stderr "to stderr"
+fail 3           exit 3    stderr "failing with 3"
+signal TERM      exit 255
+nostatus         exit 255
+sudo -n id -u    exit 0    stdout "0"
+ls /nonexistent  exit 127  stderr "sh: 1: ls: not found"
+slow, the client killed after 1s: exit 255; the next command served
+fake:   left running: "slow"   connections=1 sessions=0   channels=9
+master: rtype exit-status for six, rtype exit-signal for signal TERM, none for nostatus
+```
+
+One connection carried nine channels; the killed client left `slow` running,
+as it left `sleep 47` on this host; and the master's log tells a signal from
+a channel closed without a status, the ground of the system transport's 255
+decision. Over x/crypto, a `KILL` signal request ended `slow` (status 137,
+signal `KILL`) and the connection served the next command. `karvi command`
+over `linux_shell` to the shell persona, plain and with bash's decorations,
+recorded the same three outputs on both transports, `credential.auth`
+`publickey`.
+
+**Agreed.** Three points DESIGN left open: the shell's `exit` writes `logout`
+and sends status 0, as a login shell does (the IOS XE persona still closes
+without one); a command the shell does not know is bash's `-bash: NAME:
+command not found`, while the exec table keeps `sh`'s; the options are
+`-sudo-asks` (`sudo -n` refused) and `-decorations` (bash's bracketed paste,
+title, and colours). The fake's stderr adds `signal: NAME`, `left running:
+"LINE"`, and a closing `channels=N,…` line, the `connections=` line unchanged.
+
+**Not taken.** The shell ending without a status as the IOS XE persona does;
+one not-found message for the shell and exec; the channel counts on the
+`connections=` line, which the suites match whole.

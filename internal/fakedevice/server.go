@@ -1,12 +1,17 @@
 // Package fakedevice is an in-process SSH server, the engineering fixture for
-// both transports. It answers like a Cisco IOS XE device: password
-// authentication, a PTY shell, the user-exec and privilege-exec prompts,
-// enable with a secret, paging commands, a few show commands, the device's
-// "% Invalid input" line, the [confirm] and value prompts of a few interactive
-// commands, and exit. It refuses exec requests, as a device session never
-// makes one (contract rule 1), and records them and every PTY request so a
-// test can assert what a transport asked for. It needs golang.org/x/crypto/ssh,
-// which go.mod and vendor/ carry for the scrapligo-v1 adapter.
+// both transports, with two personas sharing its host keys, algorithms,
+// keepalives, and recording. The IOS XE persona, the default, answers like a
+// Cisco IOS XE device: password authentication, a PTY shell, the user-exec
+// and privilege-exec prompts, enable with a secret, paging commands, a few
+// show commands, the device's "% Invalid input" line, the [confirm] and value
+// prompts of a few interactive commands, and exit; it refuses exec requests,
+// as a device session never makes one (contract rule 1). The Linux persona
+// (linux.go) answers exec requests from a fixed table and has a bash-like
+// shell for linux_shell. Both record every input line and exec request, every
+// PTY request, the session channels per connection, and every signal request,
+// so a test can assert what a transport asked for. It needs
+// golang.org/x/crypto/ssh, which go.mod and vendor/ carry for the scrapligo-v1
+// adapter.
 package fakedevice
 
 import (
@@ -30,9 +35,17 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// The personas.
+const (
+	PersonaIOSXE = "iosxe" // the default
+	PersonaLinux = "linux"
+)
+
 // Options configure a server.
 type Options struct {
-	Hostname string // prompt stem; default "Router"
+	// Persona is PersonaIOSXE (also "") or PersonaLinux.
+	Persona  string
+	Hostname string // prompt stem; default "Router", or "fake" under PersonaLinux
 	Username string // default "netops"
 	Password string // default "pw"
 	Enable   string // the enable secret; "" means enable needs no secret
@@ -76,6 +89,12 @@ type Options struct {
 	// NoKeyboardInteractive refuses the keyboard-interactive method, as a
 	// server that takes the password method alone.
 	NoKeyboardInteractive bool
+	// SudoAsks makes the Linux persona's sudo need a password, so "sudo -n
+	// id -u" is refused.
+	SudoAsks bool
+	// Decorations gives the Linux persona's shell bash's: the bracketed-paste
+	// switches, the window title, and the coloured prompt.
+	Decorations bool
 }
 
 // PTYRequest is one pty-req a client sent.
@@ -99,6 +118,9 @@ type Server struct {
 	sessions    int
 	lines       []string
 	ptys        []PTYRequest
+	channels    []int    // session channels per authenticated connection
+	signals     []string // signal requests, "NAME" each
+	leftRunning []string // exec lines whose channel closed while they ran
 	wg          sync.WaitGroup
 	// muted, set by "show mute", is a peer gone silent with the connection
 	// up: nothing more is answered, keepalive requests included.
@@ -108,8 +130,18 @@ type Server struct {
 
 // Start listens on 127.0.0.1 and serves until Close.
 func Start(opts Options) (*Server, error) {
+	switch opts.Persona {
+	case "":
+		opts.Persona = PersonaIOSXE
+	case PersonaIOSXE, PersonaLinux:
+	default:
+		return nil, fmt.Errorf("unknown persona %q", opts.Persona)
+	}
 	if opts.Hostname == "" {
 		opts.Hostname = "Router"
+		if opts.Persona == PersonaLinux {
+			opts.Hostname = "fake"
+		}
 	}
 	if opts.Username == "" {
 		opts.Username = "netops"
@@ -276,8 +308,8 @@ func (s *Server) Sessions() int {
 }
 
 // Lines returns every input line the shells received, in order; a hidden
-// (secret) line is recorded as "<secret>" and a refused exec request as
-// "exec: TEXT".
+// (secret) line is recorded as "<secret>" and an exec request, refused or
+// run, as "exec: TEXT".
 func (s *Server) Lines() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -289,6 +321,29 @@ func (s *Server) KeyLogins() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return append([]string(nil), s.keyLogins...)
+}
+
+// Channels returns the session channels each authenticated connection
+// opened, in the order the connections authenticated.
+func (s *Server) Channels() []int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]int(nil), s.channels...)
+}
+
+// Signals returns the name of every signal request received, in order.
+func (s *Server) Signals() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.signals...)
+}
+
+// LeftRunning returns each exec line whose channel closed while the command
+// still ran (a slow command no signal ended), in order.
+func (s *Server) LeftRunning() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.leftRunning...)
 }
 
 // PTYRequests returns every pty-req received, in order.
@@ -325,11 +380,13 @@ func (s *Server) handleConn(conn net.Conn) {
 		return // a key scan or a failed authentication
 	}
 	defer serverConn.Close()
+	s.mu.Lock()
 	if serverConn.Permissions != nil && serverConn.Permissions.Extensions["key"] != "" {
-		s.mu.Lock()
 		s.keyLogins = append(s.keyLogins, serverConn.Permissions.Extensions["key"])
-		s.mu.Unlock()
 	}
+	index := len(s.channels)
+	s.channels = append(s.channels, 0)
+	s.mu.Unlock()
 	go func() {
 		for req := range reqs {
 			if req.Type == "keepalive@openssh.com" {
@@ -352,40 +409,66 @@ func (s *Server) handleConn(conn net.Conn) {
 		if err != nil {
 			return
 		}
+		s.mu.Lock()
+		s.channels[index]++
+		s.mu.Unlock()
 		go s.channelRequests(channel, requests)
 	}
 }
 
 func (s *Server) channelRequests(channel ssh.Channel, requests <-chan *ssh.Request) {
+	// signals carries the channel's signal requests to its exec command;
+	// gone closes when the channel closes, from either end, or the
+	// connection ends.
+	signals := make(chan string, 8)
+	gone := make(chan struct{})
+	defer close(gone)
 	for req := range requests {
 		switch req.Type {
 		case "exec":
-			s.record("exec: " + sshString(req.Payload))
-			if req.WantReply {
-				req.Reply(false, nil)
+			line := sshString(req.Payload)
+			s.record("exec: " + line)
+			if s.opts.Persona != PersonaLinux {
+				reply(req, false)
+				continue
 			}
+			reply(req, true)
+			go s.exec(channel, line, signals, gone)
+		case "signal":
+			name := sshString(req.Payload)
+			s.mu.Lock()
+			s.signals = append(s.signals, name)
+			s.mu.Unlock()
+			select {
+			case signals <- name:
+			default:
+			}
+			reply(req, true)
 		case "pty-req":
 			s.recordPTY(req.Payload)
-			if req.WantReply {
-				req.Reply(true, nil)
-			}
+			reply(req, true)
 		case "shell":
-			if req.WantReply {
-				req.Reply(true, nil)
-			}
+			reply(req, true)
 			s.mu.Lock()
 			s.sessions++
 			s.mu.Unlock()
-			go s.shell(channel)
+			if s.opts.Persona == PersonaLinux {
+				go s.linuxShell(channel)
+			} else {
+				go s.shell(channel)
+			}
 		case "env", "window-change":
-			if req.WantReply {
-				req.Reply(true, nil)
-			}
+			reply(req, true)
 		default:
-			if req.WantReply {
-				req.Reply(false, nil)
-			}
+			reply(req, false)
 		}
+	}
+}
+
+// reply answers a request that wants an answer.
+func reply(req *ssh.Request, ok bool) {
+	if req.WantReply {
+		req.Reply(ok, nil)
 	}
 }
 
