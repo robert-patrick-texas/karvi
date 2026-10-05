@@ -1725,8 +1725,12 @@ joined. Every other sequence and control is dropped, tabs kept. A transcript is
 rendered at the session's end, in the rewrite that removes `script(1)`'s marker
 lines and before its digest, its widths taken from `script(1)`'s advanced
 timing log (the starting columns and each resize), written into the scratch
-and removed after; no raw copy is kept, and a session killed before its end
-keeps its raw bytes. The limits: a key the far end does not echo cannot appear,
+and removed after; no raw copy is kept. A timing log that cannot be read leaves
+the transcript rendered at the columns the session started with and no resize,
+under the notice `transcript_timing_unreadable`. A session killed before its end
+keeps its raw bytes and leaves its timing log in the scratch, as it leaves its
+`ssh` configuration there; nothing sweeps the scratch. The limits: a key the far
+end does not echo cannot appear,
 a full-screen program comes out as its text in the order drawn, and a device
 that shows a long line as a scrolled window records the window (runbook row
 D16 records IOS XE's). *Why:* the echo of a line editor's keys is backspaces,
