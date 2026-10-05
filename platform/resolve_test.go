@@ -155,7 +155,8 @@ func TestValidatePrivilegedLevel(t *testing.T) {
 // TestCrunCommands: every built-in with
 // a configuration ships a collection list, the configuration first; an
 // alias inherits it; a table's crun-commands replaces it whole, an empty
-// array included; generic and linux have none.
+// array included; generic has none. linux and linux_shell share a server's
+// list, the version first and the enabled units last, with no drop list.
 func TestCrunCommands(t *testing.T) {
 	for _, name := range []string{"cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos"} {
 		def, _ := Builtin(name)
@@ -163,9 +164,13 @@ func TestCrunCommands(t *testing.T) {
 			t.Fatalf("%s: crun-commands %q", name, def.CrunCommands)
 		}
 	}
-	for _, name := range []string{"generic", "linux"} {
-		if def, _ := Builtin(name); len(def.CrunCommands) != 0 {
-			t.Fatalf("%s has a collection list: %q", name, def.CrunCommands)
+	if def, _ := Builtin("generic"); len(def.CrunCommands) != 0 {
+		t.Fatalf("generic has a collection list: %q", def.CrunCommands)
+	}
+	server := "cat /etc/os-release|uname -snrm|ip -br address|ip route show table all|systemctl list-unit-files --state=enabled --no-pager --no-legend"
+	for _, name := range []string{"linux", "linux_shell"} {
+		if def, _ := Builtin(name); strings.Join(def.CrunCommands, "|") != server || len(def.CrunFilters) != 0 {
+			t.Fatalf("%s: crun-commands %q crun-filters %q", name, def.CrunCommands, def.CrunFilters)
 		}
 	}
 	tables := map[string]map[string]any{

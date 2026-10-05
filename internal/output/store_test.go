@@ -499,6 +499,65 @@ func TestCollectionFiles(t *testing.T) {
 	}
 }
 
+// TestCollectionExecBlocks: under exec a block is the marker, stdout, then
+// stderr; a non-zero exit leaves its error text in the block and the file
+// is replaced, the status staying in the record; a command ended by a
+// signal keeps the previous file.
+func TestCollectionExecBlocks(t *testing.T) {
+	dir := t.TempDir()
+	coll := filepath.Join(dir, "crun")
+	if err := os.MkdirAll(coll, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(coll, "s2"), []byte("old s2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Create(Options{Root: filepath.Join(dir, "job"), ID: "260924-020000-00", Skip: FileSet{OutputTxt: true},
+		Collection: &CollectionOptions{Directory: coll, FileMode: 0o660}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := func(device, command, code, out, stderr string, index int, status *int, signal *string) *records.CommandRecord {
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "linux", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: index, CommandCount: 3, CommandKind: "requested", Command: command, CommandSHA256: "x", Status: "succeeded", Output: out, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()},
+			Channel: records.ChannelExec, ExitStatus: status, ExitSignal: signal, PromptSource: "none"}
+		encoding, size, sum := "utf-8", int64(len(stderr)), "x"
+		r.Stderr, r.StderrEncoding, r.StderrBytes, r.StderrSHA256 = &stderr, &encoding, &size, &sum
+		if code != "" {
+			r.Status, r.Error = "device_error", &records.StructuredError{Code: code, Category: "device", Message: "m", Operation: "command"}
+		}
+		return r
+	}
+	zero, one := 0, 1
+	for _, r := range []*records.CommandRecord{
+		rec("s1", "uname -snrm", "", "Linux s1 6.8.0 x86_64\n", "", 1, &zero, nil),
+		rec("s1", "both", "", "to stdout\n", "to stderr", 2, &zero, nil),
+		rec("s1", "systemctl list-unit-files", "command_exit_nonzero", "", "System has not been booted with systemd as init system (PID 1). Can't operate.\n", 3, &one, nil),
+	} {
+		if _, err := appendRecord(s, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s.EndDevice("s1")
+	want := "! uname -snrm\nLinux s1 6.8.0 x86_64\n\n! both\nto stdout\nto stderr\n\n! systemctl list-unit-files\nSystem has not been booted with systemd as init system (PID 1). Can't operate.\n"
+	if got, err := os.ReadFile(filepath.Join(coll, "s1")); err != nil || string(got) != want {
+		t.Fatalf("s1: %q %v", got, err)
+	}
+	unnamed := "unnamed"
+	if _, err := appendRecord(s, rec("s2", "uname -snrm", "command_exit_signal", "", "", 1, nil, &unnamed)); err != nil {
+		t.Fatal(err)
+	}
+	s.EndDevice("s2")
+	if got, _ := os.ReadFile(filepath.Join(coll, "s2")); string(got) != "old s2\n" {
+		t.Fatalf("s2 was touched: %q", got)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if c := s.CollectionSummary(); c == nil || c.Replaced != 1 || c.Kept != 1 {
+		t.Fatalf("summary %+v", c)
+	}
+}
+
 // appendRecord appends r with its output where the record carries it, the
 // form every test here needs.
 func appendRecord(s *Store, r *records.CommandRecord) (Notice, error) {

@@ -686,14 +686,17 @@ func atomicBytes(path string, data []byte, mode os.FileMode) error {
 }
 
 // collectionOK is the collection rule for one record: succeeded, or a statement the
-// device rejected (device_error with the code device_command_error). A
-// rejected paging command at set-up is device_error with another code and
-// is a session error.
+// device rejected (device_error with the code device_command_error), or an
+// exec command that exited non-zero (command_exit_nonzero), whose error
+// text is its block as a rejected statement's is, the status staying in
+// the record. A rejected paging command at set-up is device_error with
+// another code and is a session error, and an exec command ended by a
+// signal or closed without a status is a failure.
 func collectionOK(r *records.CommandRecord) bool {
 	if r.Status == "succeeded" {
 		return true
 	}
-	return r.Status == "device_error" && r.Error != nil && r.Error.Code == "device_command_error"
+	return r.Status == "device_error" && r.Error != nil && (r.Error.Code == "device_command_error" || r.Error.Code == "command_exit_nonzero")
 }
 
 // appendCollection is the collection's part of AppendRecord (12.3, 12.4):
@@ -731,7 +734,8 @@ func (s *Store) appendCollection(r *records.CommandRecord, src Source) {
 // writeCollectionBlock opens the device's temporary at its first block
 // (sweeping any temporary a killed process left for the same file) and
 // writes the block: a blank line before every marker but the first, the
-// marker, the output as the device sent it.
+// marker, the output as the device sent it, and an exec command's stderr
+// after its stdout.
 func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records.CommandRecord, src Source) error {
 	if cf.f == nil {
 		file := s.collection.file(name, s.crop)
@@ -767,6 +771,11 @@ func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records
 	}
 	if err := writeTextAnswer(w, src); err != nil {
 		return err
+	}
+	if stderr, ok := src.Stderr(); ok {
+		if err := writeTextAnswer(w, stderr); err != nil {
+			return err
+		}
 	}
 	if lf != nil {
 		if err := lf.flush(); err != nil {

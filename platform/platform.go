@@ -433,6 +433,11 @@ var (
 	eosFailures   = []string{"% Ambiguous command", "% Error", "% Incomplete command", "% Invalid input", "% Cannot commit", "% Unavailable command"}
 )
 
+// linuxCrun is a server's collection, linux's and linux_shell's: the
+// version first and the configuration last, each portable, answered without
+// root, and stable while nothing changes; no drop list.
+var linuxCrun = []string{"cat /etc/os-release", "uname -snrm", "ip -br address", "ip route show table all", "systemctl list-unit-files --state=enabled --no-pager --no-legend"}
+
 // The built-ins' fallbacks: the network fleet's variables and prompts, and
 // a server's operator keys alone (the variables an operator exports for
 // routers never reach a server unasked).
@@ -448,11 +453,11 @@ var builtins = map[string]Definition{
 	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
 	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
 	"arista_eos":    {Name: "arista_eos", Driver: "arista_eos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^! Time: `, `^Uptime: `, `^Free memory: `}, ExitCommands: []string{"exit"}, PrivilegeLevels: aristaEOSLevels, FailurePatterns: eosFailures},
-	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelExec, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelExec, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, CrunCommands: linuxCrun, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 	// linux_shell is linux's definition on the shell channel, for a server
 	// whose security refuses exec: linux is its base, so it is admitted
 	// wherever linux is, and its records name linux_shell.
-	"linux_shell": {Name: "linux_shell", Driver: "linux_shell", Base: "linux", DefaultTransport: "native", Channel: ChannelShell, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	"linux_shell": {Name: "linux_shell", Driver: "linux_shell", Base: "linux", DefaultTransport: "native", Channel: ChannelShell, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, CrunCommands: linuxCrun, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 }
 
 // Builtin is the named built-in definition, its Base filled: the built-in's

@@ -3771,3 +3771,20 @@ directory` and `command_exit_nonzero: exited 2`, exit 107, where the shell had
 recorded `succeeded` with bash's sequences and the login shell's
 `/usr/bin/ls`. The dry run reads `platform=linux channel=exec`, while
 `linux_shell` and IOS XE keep `channel=shell`.
+
+**Executed after section 9, a server's collection.** `karvi crun --target
+srv1` (built-in `linux`, this host) and `--target bast1` (`linux_shell`) with
+no command each wrote the five blocks, `! cat /etc/os-release` to `! systemctl
+list-unit-files --state=enabled --no-pager --no-legend`, and the two files
+differed in one line: `ip -br address` pads its columns, exec keeps the
+trailing blanks, and the shell's last line before a prompt loses them, the old
+rule. A site's list with `cat /etc/missing` replaced the file, its block `cat:
+/etc/missing: No such file or directory`, the run exit 101; against the fake,
+a list with `signal TERM` kept the previous file (`replaced=0 kept=1`). The
+guide's alias example, `[platform.debian]` with `dpkg-query` and `sudo -n nft
+list ruleset` added, collected both on this host. A daemon started with
+another configuration answered the alias's device `platform_unknown`: the
+daemon resolves the definition from its own configuration; with the daemon
+stopped, the client's started one served it. `crun_platform_commands_missing`
+no longer names `linux`, and `docs/COLLECTION.md` gains the servers' list in
+its two tables and section 2.1.

@@ -120,7 +120,8 @@ karvi command --cd=. core-nyc-01 show ip route summary
 ## 2. The built-in lists
 
 Every built-in platform with a configuration ships the shortest list that
-makes a collection worth committing: the configuration, then the version.
+makes a collection worth committing: the configuration, then the version. A
+server's list is its own ([section 2.1](#21-servers-linux-and-linux_shell)).
 
 | Platform | Built-in `crun-commands` |
 |---|---|
@@ -129,10 +130,77 @@ makes a collection worth committing: the configuration, then the version.
 | `cisco_nxos` | `show running-config`, `show version` |
 | `juniper_junos` | `show configuration`, `show version` |
 | `arista_eos` | `show running-config`, `show version` |
-| `generic`, `linux` | none: a `crun` over such a device names its commands |
+| `linux`, `linux_shell` | `cat /etc/os-release`, `uname -snrm`, `ip -br address`, `ip route show table all`, `systemctl list-unit-files --state=enabled --no-pager --no-legend` |
+| `generic` | none: a `crun` over such a device names its commands |
 
 A site's `[platform.NAME] crun-commands` replaces the built-in list whole;
 the lists below are what to replace it with.
+
+### 2.1 Servers: `linux` and `linux_shell`
+
+A server's list is the version first and the configuration last, each command
+portable across distributions, answered without root, and stable while
+nothing changes: the distribution (`/etc/os-release`), the kernel and the
+hostname (`uname -snrm`), the addresses (`ip -br address`), every routing
+table, IPv6 and `local` included (`ip route show table all`), and the enabled
+systemd units. Two collections of the list seconds apart are identical, so
+there is no built-in drop list. RANCID and Oxidized collect no servers, so
+section 3 has no list to compare.
+
+`linux` runs each command on an exec channel of its own, and a block is the
+`! COMMAND` marker, then what the command wrote to stdout, then what it wrote
+to stderr (their interleaving is lost). A command that exits non-zero is a
+rejected statement: its block is its error text and the file is still
+replaced, the exit status staying in the record; a server without systemd
+answers `systemctl` with an error block, as a router model lacks a command. A
+command ended by a signal or closed without a status keeps the previous file,
+as a lost session does. A collection with a missing file in a site's list:
+
+```text
+$ karvi crun --target srv1 --cmd 'uname -r' --cmd 'cat /etc/missing'
+! srv1 [192.0.2.10] platform=linux user=netops backend=builtin-operator-keys transport=native
+6.8.0-146-generic
+cat: /etc/missing: No such file or directory
+karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 1
+! exit=101 …
+! collection=/opt/karvi/shared/crun replaced=1 kept=0
+```
+
+leaves the file
+
+```text
+! uname -r
+6.8.0-146-generic
+
+! cat /etc/missing
+cat: /etc/missing: No such file or directory
+```
+
+`linux_shell` sends the same list through the server's interactive shell,
+whose output is stdout and stderr together as the terminal showed them; a
+failed command is not a failure there, since the shell does not report a
+status. The two differ in one more way: the shell's last line before a prompt
+loses its trailing blanks (`ip -br address` pads its columns), so a server
+moved between `linux` and `linux_shell` shows that one line in its next diff.
+
+A command that needs root is written `sudo -n …` in a site's list, which fails
+cleanly with `sudo`'s message where a password would be asked. The
+distribution's own state (the package list, the firewall rules) is a site's
+list on an alias:
+
+```toml
+[platform.debian]
+driver = "linux"
+crun-commands = [
+  "cat /etc/os-release",
+  "uname -snrm",
+  "ip -br address",
+  "ip route show table all",
+  "systemctl list-unit-files --state=enabled --no-pager --no-legend",
+  "dpkg-query -W -f '${Package} ${Version}\\n'",
+  "sudo -n nft list ruleset",
+]
+```
 
 ## 3. What RANCID and Oxidized collect, per karvi platform
 
@@ -505,7 +573,8 @@ the configuration last changed (`! Last configuration change at …`,
 | `cisco_nxos` | `^!Time: `, ` uptime is ` |
 | `arista_eos` | `^! Time: `, `^Uptime: `, `^Free memory: ` |
 | `juniper_junos` | none: `show version` has no uptime, and `## Last commit:` is a stamp worth keeping |
-| `generic`, `linux` | none |
+| `linux`, `linux_shell` | none: the list is stable while nothing changes |
+| `generic` | none |
 
 A site's array replaces the built-in list whole, `crun-filters = []` turns
 the filter off for that platform, and an alias (a model table of section
