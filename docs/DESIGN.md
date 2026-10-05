@@ -598,6 +598,39 @@ XE rejects secondary session channels; the contract the operator agreed is one
 connection, no probes, no extra sessions. *Not taken:* a process per command;
 mandatory ControlMaster reuse.
 
+**An exec device has one connection for its command list, a channel per
+command.** A device whose `channel` is `exec` gets one connection for its
+command list, as a shell device does; each command is one exec channel on it,
+in order, without a pty and with standard input at its end, and the connection
+closes when the device's commands end: no `ControlPersist`, no reuse across
+jobs. On `scrapligo-v1` the channel is a session on karvi's connection, and
+x/crypto's exit error gives the status and the signal's name. On `system` the
+connection is an OpenSSH ControlMaster: one `ssh -M -N` per device session,
+with the managed configuration, host-key policy, and algorithms of the shell,
+karvi's own child (never backgrounded by `-f`) set to die with its parent; one
+`ssh -S SOCKET -n` client per command; `ssh -O exit` at the end, and the master
+killed on an abort. Its socket is in `ssh.control-path-root` under a
+16-hex-character name karvi picks (`/dev/shm/karvi/<user>/sockets/NAME` in
+shared mode, `<basedir>/socket/ssh/NAME` in individual), a root too long for
+the 108-byte limit with OpenSSH's 17-character binding suffix refused at
+planning, naming the root and its length; a socket left by a killed master is
+swept at the daemon's start and at admission, only names karvi made and only
+when nothing answers. `~` in the root is the home. The client's exit is the
+command's status; on 255 the master's log, written with `-E` at `DEBUG1` into
+the scratch and read from where the command started, decides: `exit-status`
+is the command's own 255, `exit-signal` a signal (`exit_signal` `unnamed`, since
+OpenSSH names none), and neither a connection failure. The shell keeps
+`ControlMaster no`. *Why:* a fresh `ssh` per command took ten times as long as
+a master and authenticated once per command; a channel at a time never meets
+`MaxSessions`, and the ledger counts connections as before; a connection kept
+across jobs would run a later job under the earlier job's authentication,
+whatever credential the later job resolved; OpenSSH's client reports a remote
+signal as it reports its own failure, while the master's log tells them apart,
+and the commands on one master run one at a time; OpenSSH's `%C` name spends
+40 of the 108 bytes. *Not taken:* a fresh `ssh` per command; masters kept
+across jobs; exec on `scrapligo-v1` alone (the operator's framing names the
+control path, and the parity run needs both transports); the `%C` name.
+
 **The platform definition is the authority for privilege and paging.** Every
 built-in carries its privilege levels, prompt pattern, failure patterns, paging
 commands, and exit commands as compiled data; the session validates the
@@ -1072,7 +1105,8 @@ input); building the text at the job's end.
 
 **An exec command's record carries its exit and both streams.** Every record
 carries `channel` (`shell` or `exec`); an exec record adds `exit_status` (null
-when none came back), `exit_signal` (the signal's name, or null), and `stderr`
+when none came back), `exit_signal` (the signal's name, `unnamed` where the
+transport gives none, or null), and `stderr`
 with `stderr_bytes` and `stderr_sha256`, the stream spooled past the threshold
 as `output` is; on a shell record the new fields are null (record schema 3).
 Exec output is recorded as the program wrote it, with no terminal between to

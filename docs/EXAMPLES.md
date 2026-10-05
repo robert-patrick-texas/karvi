@@ -3218,3 +3218,32 @@ by the operator until issue 7.
 **Not taken.** A glob over `id_*`; bare file names; the order in the code; the
 operator's own `~/.ssh/config`; `ssh-agent` first; the fingerprint comparison
 (`credential_key_changed`).
+
+**Executed: the connection beneath exec.** Ten `true` commands to this host:
+
+| Way | Time, connection included | Authentications | A remote signal |
+|---|---|---|---|
+| a fresh `ssh` per command | 3,909 ms | 10 | 255; the client's `DEBUG1` log shows `rtype exit-signal` |
+| one ControlMaster, an `ssh` client per command | 408 ms | 1 | 255; the client logs nothing, the master's log shows `exit-signal` (its channel numbers repeat) |
+| one x/crypto connection, a channel per command | 211 ms | 1 | status 143, signal `TERM` |
+
+A command's own `exit 255` logs `rtype exit-status` and `Exit status 255`; a
+failure of `ssh` logs neither. OpenSSH names no signal, even at `DEBUG3`. A
+first try showed empty logs: OpenSSH takes the first value of an option, and
+an earlier `LogLevel=ERROR` on the same command line won.
+
+**Issue 6, agreed.** One connection per exec device for its command list, a
+channel per command in order, closed at the device's end; no `ControlPersist`
+and no reuse across jobs, since a reused master would run a later job under the
+earlier job's authentication. On `scrapligo-v1`, a session per command on
+karvi's connection. On `system`, a ControlMaster per device session as karvi's
+own child, an `ssh -S` client per command, `ssh -O exit` at the end; its socket
+in `ssh.control-path-root` under a 16-hex-character name, a root too long for
+the 108-byte limit refused at planning, dead sockets swept at the daemon's
+start and at admission, the `~` bug fixed. On 255 the master's `DEBUG1` log
+decides between the command's own 255, a signal (`exit_signal` `unnamed`), and
+a connection failure. The roadmap's control-socket item is decided by this and
+goes when built.
+
+**Not taken.** A fresh `ssh` per command; masters kept across jobs; exec on
+`scrapligo-v1` alone; OpenSSH's `%C` name.

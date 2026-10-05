@@ -99,7 +99,12 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   ([`docs/FILES.md`, section 5](docs/FILES.md#5-places-made-and-not-used)).
   The decision is whether control masters get a use (one authenticated
   connection reused across a device's sessions) or the key is removed. If they
-  get one, where the sockets go is part of it:
+  get one, where the sockets go is part of it. **Decided** for the exec channel
+  ([`docs/EXAMPLES.md`, chapter
+  24](docs/EXAMPLES.md#24-jobs-across-linux-servers-2026-10-04), issue 6): one
+  master per exec device session, no `ControlPersist`, a short socket name in
+  the key's directory, the sweep below, and the `~` bug fixed; this item goes
+  when that is built. The notes it was decided from:
   - **Why `/dev/shm`.** In shared mode `auto` is
     `/dev/shm/karvi/<user>/sockets`, a short path on the tmpfs, because a Unix
     socket's path is limited to 108 bytes and OpenSSH's socket name (a
