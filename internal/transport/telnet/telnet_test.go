@@ -187,3 +187,16 @@ func TestTelnetPromptBeforeAndAfter(t *testing.T) {
 		t.Fatalf("show slow: code=%q promptbefore=%q prompt=%q", r.ErrorCode, r.PromptBefore, r.Prompt)
 	}
 }
+
+// The telnet shell's output and prompt are rendered as the terminal showed
+// them, as the SSH shell's are: a colour dropped, a correction applied, a
+// return overwriting, a space the device wrote on an inner line kept.
+func TestOutputRendered(t *testing.T) {
+	buf := []byte("show clokc\b\b\x1b[Kck\r\n\x1b[1m12:00\x1b[0m\r\nabc\rX\r\ndesc \r\nend\r\n\x1b]0;t\x07Router#")
+	if got := string(cleanOutput(buf, "show clock", []byte("Router#"))); got != "12:00\nXbc\ndesc \nend" {
+		t.Errorf("cleanOutput: %q", got)
+	}
+	if got := string(lastPrompt(buf)); got != "Router#" {
+		t.Errorf("lastPrompt: %q", got)
+	}
+}

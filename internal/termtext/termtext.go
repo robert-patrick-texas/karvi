@@ -7,8 +7,12 @@
 // between the line's rows; erase in line, erase below, insert character, and
 // delete character apply; the screen cleared discards the unfinished line (the
 // editor redraws it); any other cursor positioning ends the line. A finished
-// line is written whole, its rows joined and its trailing blanks removed.
-// Every other sequence and control is dropped, tabs kept.
+// line is written whole, its rows joined: by default it ends at its last
+// character other than a blank, as a transcript does; with KeepSpaces it ends
+// at the last cell the far end wrote, so a space a device wrote stays, as a
+// record does. A cell nothing was written to, or that an erase blanked, is a
+// blank inside the line and never ends one. Every other sequence and control
+// is dropped, tabs kept.
 //
 // The limits are the terminal's: a key the far end does not echo cannot
 // appear, a full-screen program comes out as its text in the order drawn, and
@@ -63,6 +67,10 @@ const (
 // Renderer renders a stream written to it, a finished line at a time, onto
 // out. It is not safe for concurrent use.
 type Renderer struct {
+	// KeepSpaces ends a finished line at the last cell written, a written
+	// space included; unset, at the last character other than a blank.
+	KeepSpaces bool
+
 	out   io.Writer
 	err   error
 	width int
@@ -80,9 +88,12 @@ type Renderer struct {
 	params  []byte
 	private bool
 	utf     []byte
+	line    []byte // the bytes of the line being written out, reused
 }
 
-// New is a Renderer writing to out for a terminal of the given columns.
+// New is a Renderer writing to out for a terminal of the given columns. Each
+// line is written from a buffer the renderer reuses, so out keeps no slice
+// it is given, as io.Writer's contract has it.
 func New(out io.Writer, columns int) *Renderer {
 	return &Renderer{out: out, width: max(columns, 0)}
 }
@@ -97,8 +108,23 @@ func (r *Renderer) Resize(columns int) {
 // Write renders p, writing each line it finishes. A sequence or a character
 // split between two writes is joined. The error is the first from out.
 func (r *Renderer) Write(p []byte) (int, error) {
-	for _, b := range p {
-		r.byte(b)
+	for i := 0; i < len(p); {
+		// The common case at no width: printable ASCII written at the line's
+		// end, appended as a run; anything else goes a byte at a time.
+		if r.width == 0 && r.state == ground && len(r.utf) == 0 && !r.held && r.idx == len(r.cells) {
+			j := i
+			for j < len(p) && p[j] >= 0x20 && p[j] < 0x7f {
+				r.cells = append(r.cells, rune(p[j]))
+				j++
+			}
+			if j > i {
+				r.idx = len(r.cells)
+				i = j
+				continue
+			}
+		}
+		r.byte(p[i])
+		i++
 	}
 	return len(p), r.err
 }
@@ -179,6 +205,14 @@ func (r *Renderer) flushUTF() {
 // rawCell holds a byte that is not UTF-8 as a negative cell, so the line is
 // written back with the byte as it came.
 func rawCell(b byte) rune { return -1 - rune(b) }
+
+// unwritten is a cell nothing was written to, or that an erase blanked: a
+// blank inside a line, never its end. seeded is a cell of Seed's text: it
+// holds its column and is never written out.
+const (
+	unwritten rune = -0x1000
+	seeded    rune = -0x1001
+)
 
 func (r *Renderer) ground(c rune) {
 	switch {
@@ -395,7 +429,7 @@ func (r *Renderer) fix() {
 
 func (r *Renderer) grow(n int) {
 	for len(r.cells) < n {
-		r.cells = append(r.cells, ' ')
+		r.cells = append(r.cells, unwritten)
 	}
 }
 
@@ -411,7 +445,7 @@ func (r *Renderer) put(c rune) {
 
 func (r *Renderer) blank(from, to int) {
 	for i := from; i < min(to, len(r.cells)); i++ {
-		r.cells[i] = ' '
+		r.cells[i] = unwritten
 	}
 }
 
@@ -433,21 +467,64 @@ func (r *Renderer) insert(n int) {
 	r.blank(r.idx, r.idx+n)
 }
 
-// emit writes the finished line and starts the next.
-func (r *Renderer) emit() {
+// Seed puts text on the unfinished line as what the terminal already showed
+// there, for a stream taken up after it (a command's answer after the prompt
+// it was typed at): the text holds its columns, so the far end's cursor moves
+// land where they did, and is never written out, nor part of Pending; what
+// the far end writes over it is.
+func (r *Renderer) Seed(text string) {
+	for range text {
+		r.put(seeded)
+	}
+}
+
+// Pending is the unfinished line as it stands, its written spaces kept: the
+// line a prompt or a device's question is matched against.
+func (r *Renderer) Pending() string {
+	return string(r.text(true))
+}
+
+// Break writes the unfinished line as it stands, written spaces kept and
+// without a newline, and goes on with an empty line at its start: a line too
+// long to hold gives up its front.
+func (r *Renderer) Break() error {
+	r.held = false
+	if len(r.cells) > 0 && r.err == nil {
+		_, r.err = r.out.Write(r.text(true))
+	}
+	r.cells, r.idx, r.pending = r.cells[:0], 0, false
+	return r.err
+}
+
+// text is the line's bytes: to the last cell written when keep is set, else
+// to the last character other than a blank; an unwritten cell inside it is a
+// space.
+func (r *Renderer) text(keep bool) []byte {
 	end := len(r.cells)
-	for end > 0 && r.cells[end-1] == ' ' {
+	for end > 0 && (r.cells[end-1] == unwritten || r.cells[end-1] == seeded || (!keep && r.cells[end-1] == ' ')) {
 		end--
 	}
-	line := make([]byte, 0, end+1)
+	line := r.line[:0]
 	for _, c := range r.cells[:end] {
-		if c < 0 {
+		switch {
+		case c >= 0 && c < utf8.RuneSelf:
+			line = append(line, byte(c))
+		case c == seeded:
+		case c == unwritten:
+			line = append(line, ' ')
+		case c < 0:
 			line = append(line, byte(-1-c))
-		} else {
+		default:
 			line = utf8.AppendRune(line, c)
 		}
 	}
-	line = append(line, '\n')
+	r.line = line
+	return line
+}
+
+// emit writes the finished line and starts the next.
+func (r *Renderer) emit() {
+	line := append(r.text(r.KeepSpaces), '\n')
 	if r.err == nil {
 		_, r.err = r.out.Write(line)
 	}

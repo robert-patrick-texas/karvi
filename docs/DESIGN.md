@@ -1274,12 +1274,13 @@ nothing digests a `.json` file's bytes, and every reader decodes; text matches
 held for one layout only.
 
 **A response is cleaned as it arrives into settled bytes, held in memory to a
-threshold and spooled above it.** Carriage returns and the echo are dropped
-chunk by chunk; the first `output.spool-threshold-bytes` (default 1 MiB, range
-0 to 1 GiB) stay in memory and the byte that would cross opens one spool file
-per command under `spooldir` and moves the head into it. The session holds per
-command only the settled bytes to the threshold, a 4 KiB tail where prompts and
-declarations are matched, small carries, and the running digest. The output
+threshold and spooled above it.** The bytes are rendered (termtext) and the echo
+dropped chunk by chunk; the first `output.spool-threshold-bytes` (default 1 MiB,
+range 0 to 1 GiB) stay in memory and the byte that would cross opens one spool
+file per command under `spooldir` and moves the head into it. The session holds
+per command only the settled bytes to the threshold, a 4 KiB tail and an
+unfinished line of at most 4 KiB, where prompts and declarations are matched,
+small carries, and the running digest. The output
 limit counts settled bytes. *Why:* the daemon's memory was in-flight responses
 times output size times several whole copies; with the spool it is width times
 the threshold plus small windows, a figure of keys the operator has, and a

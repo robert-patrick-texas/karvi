@@ -129,8 +129,10 @@ are [`docs/TIMEOUTS.md`](TIMEOUTS.md).
 
 ## Prompt detection
 
-The session matches the final visible line of the received bytes (carriage
-returns and terminal control sequences removed) against the platform's
+The session renders the received bytes as the terminal showed them
+(`internal/termtext`, at no width: carriage returns, backspaces, and erases
+applied, colours, window titles, and every other sequence dropped) and matches
+the unfinished last line, without its trailing blanks, against the platform's
 prompt patterns: the levels' patterns for a platform that declares them
 (scrapligo-v1's platform definitions, carried in `platform.go` for the
 built-ins), `generic`'s prompt pattern otherwise, and a broad line ending
@@ -139,8 +141,11 @@ remain the final content for a short settle period so a banner line ending
 with a prompt character is not accepted prematurely. The prompt timeout and
 command timeout remain bounded configuration values.
 
-The collected response removes one echoed command line and the trailing
-prompt, and normalises line endings to `\n`. A repeated line matching the
+The collected response is the rendered text: one echoed command line and
+the trailing prompt removed, every line ending in `\n`, a space the device
+wrote kept on an inner line, and the last line before the prompt without its
+trailing blanks. The prompt the command was typed at holds its columns on the
+first line and is no part of the text. A repeated line matching the
 command later in legitimate device output is not silently discarded. A
 device-reported command error is the platform definition's failure
 patterns (`% Invalid input detected` and its siblings for `cisco_iosxe`);

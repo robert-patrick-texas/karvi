@@ -663,6 +663,14 @@ func TestCleanResponseKeepsLegitimateOutput(t *testing.T) {
 	}
 }
 
+// renderedLastLine is the last line of data as a read sees it: rendered,
+// without its trailing blanks.
+func renderedLastLine(data string) string {
+	r := newResponse("", "", newSettled(1<<20, Spool{}, 0, nil, nil))
+	_ = r.feed([]byte(data))
+	return r.lastLine()
+}
+
 func TestPromptMatchingShapes(t *testing.T) {
 	p, err := compile(iosxe(t))
 	if err != nil {
@@ -676,8 +684,11 @@ func TestPromptMatchingShapes(t *testing.T) {
 		"banner ends in #":      "",
 		"Router# ":              "privilege-exec",
 		"\x1b[0mRouter#\x1b[0m": "privilege-exec",
+		// a window title and a mode switch, as bash's prompt carries them
+		"\x1b[?2004h\x1b]0;netops@dev: ~\x07Router#": "privilege-exec",
+		"Routx\ber#": "privilege-exec",
 	} {
-		_, level, ok := p.match([]byte("stuff\r\n" + line))
+		_, level, ok := p.match(renderedLastLine("stuff\r\n" + line))
 		if (want == "") == ok || level != want {
 			t.Fatalf("%q: level=%q ok=%v want %q", line, level, ok, want)
 		}
@@ -685,7 +696,7 @@ func TestPromptMatchingShapes(t *testing.T) {
 	generic, _ := platform.Builtin("generic")
 	g, _ := compile(generic)
 	for line, want := range map[string]bool{"dev#": true, "server01$": true, "user@host:~$": false, "Ready.": false} {
-		if _, _, ok := g.match([]byte("x\n" + line)); ok != want {
+		if _, _, ok := g.match(renderedLastLine("x\n" + line)); ok != want {
 			t.Fatalf("generic %q: ok=%v want %v", line, ok, want)
 		}
 	}

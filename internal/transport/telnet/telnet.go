@@ -16,6 +16,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
@@ -367,14 +368,24 @@ func filterTelnet(in []byte, state, verb byte) ([]byte, []byte, byte, byte) {
 	}
 	return out, resp, state, verb
 }
+
+// rendered is buf as the terminal showed it (termtext): no width, the spaces
+// the device wrote kept, as the session layer renders the SSH shell's
+// output and prompts.
+func rendered(buf []byte) []byte {
+	var out bytes.Buffer
+	r := termtext.New(&out, 0)
+	r.KeepSpaces = true
+	r.Write(buf)
+	r.Close()
+	return out.Bytes()
+}
 func lastPrompt(buf []byte) []byte {
-	m := promptRE.Find(buf)
+	m := promptRE.Find(rendered(buf))
 	return append([]byte(nil), bytes.TrimSpace(m)...)
 }
 func cleanOutput(buf []byte, command string, prompt []byte) []byte {
-	s := strings.ReplaceAll(string(buf), "\r\n", "\n")
-	s = strings.ReplaceAll(s, "\r", "\n")
-	lines := strings.Split(s, "\n")
+	lines := strings.Split(string(rendered(buf)), "\n")
 	if len(lines) > 0 && strings.TrimSpace(lines[0]) == strings.TrimSpace(command) {
 		lines = lines[1:]
 	}

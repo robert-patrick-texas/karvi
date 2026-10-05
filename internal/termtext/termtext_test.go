@@ -221,3 +221,90 @@ func TestParseTiming(t *testing.T) {
 		}
 	}
 }
+
+// With KeepSpaces a line ends at the last cell written, a space the far end
+// wrote included; a cell never written or blanked by an erase does not end
+// it. Without, every trailing blank goes.
+func TestKeepSpaces(t *testing.T) {
+	for _, tc := range []struct{ in, keep, trim string }{
+		{"desc \r\n", "desc \n", "desc\n"},
+		{"abc\b \b\r\n", "ab \n", "ab\n"},
+		{"abc\x1b[2D\x1b[K\r\n", "a\n", "a\n"},
+		{"ab\x1b[5Gc \r\n", "ab  c \n", "ab  c\n"},
+		{"abcdef\x1b[3D\x1b[9P\r\n", "abc\n", "abc\n"},
+		{"ab\tc\t\r\n", "ab\tc\t\n", "ab\tc\t\n"},
+		{"   \r\n", "   \n", "\n"},
+	} {
+		for _, keep := range []bool{true, false} {
+			var out bytes.Buffer
+			r := New(&out, 0)
+			r.KeepSpaces = keep
+			r.Write([]byte(tc.in))
+			r.Close()
+			want := tc.trim
+			if keep {
+				want = tc.keep
+			}
+			if out.String() != want {
+				t.Errorf("%q keep=%t: %q, want %q", tc.in, keep, out.String(), want)
+			}
+		}
+	}
+}
+
+// Pending is the unfinished line with its written spaces, whatever
+// KeepSpaces says; Break writes it without a newline and starts afresh.
+func TestPendingAndBreak(t *testing.T) {
+	var out bytes.Buffer
+	r := New(&out, 0)
+	r.Write([]byte("one\r\n\x1b[01;32mSave?\x1b[0m [yes/no]: "))
+	if got := r.Pending(); got != "Save? [yes/no]: " {
+		t.Errorf("Pending %q", got)
+	}
+	r.Write([]byte("\x1b[K"))
+	if got := r.Pending(); got != "Save? [yes/no]: " {
+		t.Errorf("Pending after an erase at the end: %q", got)
+	}
+	if err := r.Break(); err != nil {
+		t.Fatal(err)
+	}
+	if got := out.String(); got != "one\nSave? [yes/no]: " {
+		t.Errorf("after Break: %q", got)
+	}
+	if r.Pending() != "" {
+		t.Errorf("Pending after Break: %q", r.Pending())
+	}
+	r.Write([]byte("no\r\n"))
+	r.Close()
+	if got := out.String(); got != "one\nSave? [yes/no]: no\n" {
+		t.Errorf("at the end: %q", got)
+	}
+	f := New(&failing{}, 0)
+	f.Write([]byte("abc"))
+	if err := f.Break(); err == nil {
+		t.Error("Break to a failing writer: no error")
+	}
+}
+
+// Seeded text holds its columns and is never written out; what the far end
+// writes over it is.
+func TestSeed(t *testing.T) {
+	for _, tc := range []struct{ seed, in, want, pending string }{
+		{"router#", "show clock\r\n12:00\r\nrouter#", "show clock\n12:00\n", "router#"},
+		{"router#", "\rxyz\r\n", "xyz\n", ""},
+		{"router#", "\rrouter#show clock\r\n", "router#show clock\n", ""},
+		{"router#", "\r\n", "\n", ""},
+		{"router#", "\b\bX\r\n", "X\n", ""},
+		{"router#", "abc", "", "abc"},
+		{"$ ", "", "", ""},
+	} {
+		var out bytes.Buffer
+		r := New(&out, 0)
+		r.KeepSpaces = true
+		r.Seed(tc.seed)
+		r.Write([]byte(tc.in))
+		if out.String() != tc.want || r.Pending() != tc.pending {
+			t.Errorf("seed %q, %q: wrote %q, pending %q; want %q, %q", tc.seed, tc.in, out.String(), r.Pending(), tc.want, tc.pending)
+		}
+	}
+}

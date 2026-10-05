@@ -14,14 +14,16 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/output"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
 // The streaming reader. A command's
 // response is cleaned as it arrives into settled bytes, the recorded bytes
-// in the order and values the whole-buffer cleanResponse of v0.12.1 gave
-// (the reference kept in clean_response_test.go): carriage returns dropped
-// chunk by chunk; the first line held until its newline and dropped when it
+// in the order and values the whole-buffer cleanResponse of v0.12.1 gives
+// over the rendered text (the reference kept in clean_response_test.go): the
+// bytes rendered as the terminal showed them, chunk by chunk (termtext);
+// the first line held until its newline and dropped when it
 // is the echoed command, alone or after the previous prompt; the unsettled
 // tail, the last line and the trailing whitespace before it, the only place
 // a prompt, an escalate prompt, or a declaration is matched, held up to
@@ -334,31 +336,42 @@ func (f *failureScan) scan(p []byte) {
 	}
 }
 
-// response is one read's streaming cleaner: the tail holds
-// what the ending may still trim, everything before it has settled into
-// the sink.
+// response is one read's streaming cleaner. The device's bytes are rendered
+// as the terminal showed them (termtext, at no width, the spaces the device
+// wrote kept), the prompt the read starts after seeded on the first line so
+// the device's cursor moves land where they did; each finished line goes
+// through the cleaner, and the unfinished line stays in the renderer, where a
+// prompt or a declared question is matched. The tail holds what the ending
+// may still trim; everything before it has settled into the sink.
 type response struct {
 	echo, promptEcho []byte // the echoed command, alone and after the previous prompt, trimmed
 	sink             *settled
-	// tail is the unsettled bytes: while first, the held first line; after
-	// it, the trailing whitespace and the last line, never longer than
-	// tailMax (plus the echo's own length while first).
+	render           *termtext.Renderer
+	// tail is the unsettled finished lines: while first, the held first
+	// line; after it, the trailing whitespace and the front of a last line
+	// that gave it up (Break), never longer than tailMax (plus the echo's
+	// own length while first).
 	tail  []byte
 	first bool
 	// dropNL drops leading newlines while the tail is empty: the reference's
 	// TrimLeft before the first line and again after the echo is removed.
 	dropNL bool
-	// overflow says the last line settled from its front: it is no prompt
+	// overflow says the last line gave up its front: it is no prompt
 	// candidate until its newline arrives.
 	overflow bool
-	// mark is the expecter's mark, an offset into tail: a declaration is
-	// matched on the last line after it.
-	mark int
-	err  error
+	// lines counts the finished lines; markLines and markCol are the
+	// expecter's mark, the line and the offset in it a declaration is
+	// matched after.
+	lines, markLines, markCol int
+	// rendered collects what the renderer finishes during one feed, taken
+	// as one piece when the feed's bytes are rendered.
+	rendered []byte
+	err      error
 }
 
 // newResponse starts a cleaner for one read of command sent at previous
-// (both "" for the login read, which has no echo to remove).
+// (both "" for the login read and the read after the enable secret, which
+// have no echo to remove and start a line of their own).
 func newResponse(command, previous string, sink *settled) *response {
 	r := &response{sink: sink, first: true, dropNL: true}
 	if t := strings.TrimSpace(command); t != "" {
@@ -367,7 +380,18 @@ func newResponse(command, previous string, sink *settled) *response {
 			r.promptEcho = []byte(strings.TrimSpace(previous + command))
 		}
 	}
+	r.render = termtext.New(lineTaker{r}, 0)
+	r.render.KeepSpaces = true
+	r.render.Seed(previous)
 	return r
+}
+
+// lineTaker collects the renderer's finished lines for the cleaner.
+type lineTaker struct{ r *response }
+
+func (t lineTaker) Write(p []byte) (int, error) {
+	t.r.rendered = append(t.r.rendered, p...)
+	return len(p), nil
 }
 
 // isEcho says whether the first line, trimmed, is the echoed command alone
@@ -381,14 +405,41 @@ func (r *response) isEcho(line []byte) bool {
 	return bytes.Equal(t, r.echo) || (r.promptEcho != nil && bytes.Equal(t, r.promptEcho))
 }
 
-// feed takes one chunk of the device's bytes, which it owns from here (the
-// pump's copy): the carriage returns go, the first line is decided at its
-// newline, and what the ending can no longer trim settles.
+// feed takes one chunk of the device's bytes: rendered, the lines it
+// finished taken as one piece, and an unfinished line past the bound made
+// to give up its front.
 func (r *response) feed(c []byte) error {
 	if r.err != nil {
 		return r.err
 	}
-	c = dropCarriageReturns(c)
+	r.render.Write(c)
+	limit := tailMax
+	if r.first {
+		limit += len(r.promptEcho) + len(r.echo)
+	}
+	broke := len(r.render.Pending()) > limit
+	if broke {
+		r.render.Break()
+	}
+	err := r.take(r.rendered)
+	r.rendered = r.rendered[:0]
+	if broke {
+		r.overflow = true
+	}
+	return err
+}
+
+// take is the rendered text of one feed: finished lines, and the front a
+// long line gave up (no newline). The first line is decided at its newline,
+// and what the ending can no longer trim settles.
+func (r *response) take(c []byte) error {
+	if r.err != nil {
+		return r.err
+	}
+	if len(c) == 0 {
+		return nil
+	}
+	r.lines += bytes.Count(c, []byte{'\n'})
 	if r.dropNL && len(r.tail) == 0 {
 		c = bytes.TrimLeft(c, "\n")
 		if len(c) == 0 {
@@ -420,7 +471,8 @@ func (r *response) feed(c []byte) error {
 
 // settle moves to the sink what the ending can no longer trim: everything
 // up to the last non-blank byte that a newline follows. What remains is
-// the trailing whitespace and the last line, bounded by tailMax.
+// the trailing whitespace and the front of a last line that gave it up,
+// bounded by tailMax.
 func (r *response) settle() error {
 	nl := bytes.LastIndexByte(r.tail, '\n')
 	if nl >= 0 {
@@ -434,10 +486,10 @@ func (r *response) settle() error {
 	return r.bound()
 }
 
-// bound settles the tail's front past tailMax. While the
-// first line is held the bound allows the echo's own length, so a long
-// command's echo is still recognised whole; a line longer than that is
-// not the echo and is output. A last line cut here is no prompt candidate.
+// bound settles the tail's front past tailMax. While the first line is
+// held the bound allows the echo's own length, so a long command's echo is
+// still recognised whole; a line longer than that is not the echo and is
+// output.
 func (r *response) bound() error {
 	limit := tailMax
 	if r.first {
@@ -446,12 +498,8 @@ func (r *response) bound() error {
 	if len(r.tail) <= limit {
 		return nil
 	}
-	k := len(r.tail) - limit
-	if bytes.LastIndexByte(r.tail, '\n') < k {
-		r.overflow = true
-	}
 	r.first = false
-	return r.settleFront(k)
+	return r.settleFront(len(r.tail) - limit)
 }
 
 // settleFront writes the tail's first k bytes to the sink and drops them.
@@ -464,44 +512,77 @@ func (r *response) settleFront(k int) error {
 	return nil
 }
 
-// dropFront removes the tail's first k bytes, the mark moving with them.
+// dropFront removes the tail's first k bytes.
 func (r *response) dropFront(k int) {
 	n := copy(r.tail, r.tail[k:])
 	r.tail = r.tail[:n]
-	r.mark = max(0, r.mark-k)
 }
 
-// candidate says whether the tail ends in a prompt of the platform's, or in
-// the level's escalate prompt when a level is given (atSecret); a last
-// line settled from its front is none.
+// line is the last line as it stands, its trailing blanks kept: the
+// unfinished line, after the front it gave up when it was too long. An
+// expectation is matched against it, so a device's value prompt ending in a
+// space ("Destination filename [startup-config]? ") is seen as the device
+// wrote it and only a $-anchored pattern must account for the space.
+func (r *response) line() string {
+	front := r.tail
+	if i := bytes.LastIndexByte(front, '\n'); i >= 0 {
+		front = front[i+1:]
+	}
+	return string(front) + r.render.Pending()
+}
+
+// lastLine is the last line without its trailing blanks: the line a prompt
+// is, and the line a diagnostic names.
+func (r *response) lastLine() string { return strings.TrimRight(r.line(), " \t") }
+
+// markHere moves the expecter's mark to the end of the last line.
+func (r *response) markHere() {
+	r.markLines, r.markCol = r.lines, len(r.line())
+}
+
+// sinceMark is the last line after the expecter's mark: the whole line once
+// a newline has passed the mark.
+func (r *response) sinceMark() string {
+	line := r.line()
+	if r.lines == r.markLines {
+		line = line[min(r.markCol, len(line)):]
+	}
+	return line
+}
+
+// candidate says whether the last line is a prompt of the platform's, or
+// the level's escalate prompt when a level is given (atSecret); a last line
+// that gave up its front is none.
 func (r *response) candidate(level *compiledLevel, p *prompts) (prompt, observedLevel string, atSecret bool) {
 	if r.overflow {
 		return "", "", false
 	}
-	if level != nil && level.escalatePromptAtEnd(r.tail) {
-		return lastLine(r.tail), "", true
+	line := r.lastLine()
+	if level != nil && level.escalatePrompt(line) {
+		return line, "", true
 	}
-	prompt, observedLevel, ok := p.match(r.tail)
+	prompt, observedLevel, ok := p.match(line)
 	if !ok {
 		return "", "", false
 	}
 	return prompt, observedLevel, false
 }
 
-// lastLine is the tail's last line, the line a diagnostic names.
-func (r *response) lastLine() string { return lastLine(r.tail) }
-
-// finish ends the read: the tail gives up the returned
-// prompt and the trailing blanks, a held first line that is the echo goes,
-// what remains settles, and the closing newline follows any settled byte.
-// The error is the sink's: a limit passed by this last settling is the
-// limit after the prompt, and the store holds exactly the first limit
-// bytes.
+// finish ends the read: the unfinished line joins the tail, which gives up
+// the returned prompt and the trailing blanks, a held first line that is the
+// echo goes, what remains settles, and the closing newline follows any
+// settled byte. The error is the sink's: a limit passed by this last
+// settling is the limit after the prompt, and the store holds exactly the
+// first limit bytes.
 func (r *response) finish(returned string) error {
 	if r.err != nil {
 		return r.err
 	}
-	t := bytes.TrimRight(r.tail, " \t\n")
+	t := []byte(r.render.Pending())
+	if r.dropNL && len(r.tail) == 0 {
+		t = bytes.TrimLeft(t, "\n")
+	}
+	t = bytes.TrimRight(append(r.tail, t...), " \t\n")
 	if returned != "" {
 		t = bytes.TrimRight(bytes.TrimSuffix(t, []byte(returned)), " \t\n")
 	}

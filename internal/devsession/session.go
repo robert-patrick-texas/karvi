@@ -560,8 +560,8 @@ func (s *Session) pump() {
 // during its read. The declarations are
 // tried in declared order on the last line received since the mark, each
 // consumed once; the mark starts at the command's write and moves to the
-// tail's end at each answer (response.mark), so no pattern fires twice on
-// the same prompt line once the echo of its answer lands there. Two
+// last line's end at each answer (response.markHere), so no pattern fires
+// twice on the same prompt line once the echo of its answer lands there. Two
 // declarations with the same pattern answer a twice-asked prompt in turn; a
 // prompt the device does not ask leaves its declaration unconsumed, no
 // notice.
@@ -578,7 +578,7 @@ func (ex *expecter) match(r *response) int {
 	if ex == nil || r.overflow {
 		return -1 // a read without declarations
 	}
-	line := lastLineUntrimmed(r.tail[r.mark:])
+	line := r.sinceMark()
 	if line == "" {
 		return -1
 	}
@@ -653,7 +653,7 @@ func (s *Session) readUntil(ctx context.Context, level *compiledLevel, r *respon
 					d := ex.declarations[i]
 					ex.consumed[i] = true
 					ex.answered++
-					r.mark = len(r.tail)
+					r.markHere()
 					stopSettle()
 					s.debugf("device session expectation answered index=%d pattern=%q response_bytes=%d", i+1, d.Pattern.String(), len(d.Response))
 					if err := s.write(d.Response + "\r"); err != nil {

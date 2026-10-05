@@ -1,21 +1,38 @@
 package devsession
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"math/rand"
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 )
 
+// rendered is raw as the terminal showed it after previousPrompt, the
+// whole response at once: no width, the spaces the device wrote kept, the
+// prompt holding its columns and never part of the text.
+func rendered(raw []byte, previousPrompt string) string {
+	var out bytes.Buffer
+	r := termtext.New(&out, 0)
+	r.KeepSpaces = true
+	r.Seed(previousPrompt)
+	r.Write(raw)
+	r.Close()
+	return out.String()
+}
+
 // cleanResponseReference is cleanResponse as it stood through v0.12.1, the
-// whole response cleaned in one pass at the end. It is kept as the
-// statement of the recorded bytes: the streaming
-// cleaner must answer byte for byte what this does, however the response
-// is cut into chunks.
+// whole response cleaned in one pass at the end, over the rendered text in
+// place of the bytes with their carriage returns dropped. It is kept as the
+// statement of the recorded bytes: the streaming cleaner must answer byte
+// for byte what this does, however the response is cut into chunks.
 func cleanResponseReference(raw []byte, command, previousPrompt, returnedPrompt string) []byte {
-	text := strings.ReplaceAll(string(raw), "\r", "")
+	text := rendered(raw, previousPrompt)
 	text = strings.TrimLeft(text, "\n")
 	trimmedRight := strings.TrimRight(text, " \t\n")
 	if returnedPrompt != "" && strings.HasSuffix(trimmedRight, returnedPrompt) {
@@ -107,6 +124,10 @@ func TestCleanResponseMatchesTheReference(t *testing.T) {
 		"  \r\nabc\r\nrouter#",                                 // a blank first line before output stays
 		"show clockrouter#",                                    // the echo and the prompt on one line
 		"show clock\r\né\r\nrouter#",
+		"show clock\r\nabc\rX\r\nrouter#",                          // a return overwrites, as the terminal showed it
+		"show clokc\b\b\x1b[Kck\r\n\x1b[1m12:00\x1b[0m\r\nrouter#", // a correction and a colour
+		"\x1b]0;title\x07show clock\r\nrouter#",                    // a window title before the echo
+		"show clock\r\ndesc \r\nrouter#",                           // a space the device wrote
 	}
 	pieces := []string{"\r", "\n", "\r\n", " ", "\t", prompt, command, "x", "12:00:00 UTC", "\xff", "é", "#", "router"}
 	rng := rand.New(rand.NewSource(1))
@@ -128,7 +149,10 @@ func TestCleanResponseMatchesTheReference(t *testing.T) {
 			// forms are given; a response whose last line is not the prompt
 			// is compared as the session would record it, without one.
 			returned := p[1]
-			if returned != "" && !strings.HasSuffix(lastLine(raw), returned) {
+			last := termtext.New(io.Discard, 0)
+			last.Seed(p[0])
+			last.Write(raw)
+			if returned != "" && !strings.HasSuffix(strings.TrimRight(last.Pending(), " \t"), returned) {
 				returned = ""
 			}
 			want := cleanResponseReference(raw, command, p[0], returned)
@@ -155,5 +179,25 @@ func TestCleanResponseMatchesTheReference(t *testing.T) {
 	}
 	for _, c := range random {
 		check(c, false)
+	}
+}
+
+// TestRenderedShellResponse: bash's decorations around a command's answer,
+// as this host's shell sent them, leave the answer and a prompt without its
+// window title or colours (the record kept every sequence before the shell's
+// output was rendered); an inner line keeps the spaces the device wrote, and
+// the last line before the prompt gives up its trailing blanks, as it always
+// has.
+func TestRenderedShellResponse(t *testing.T) {
+	const prompt = "netops@dev:~$"
+	raw := "echo hi\r\n\x1b[?2004l\rhi\r\n\x1b[?2004h\x1b]0;netops@dev: ~\x07\x1b[01;32mnetops@dev\x1b[00m:\x1b[01;34m~\x1b[00m$ "
+	if got := renderedLastLine(raw); got != prompt {
+		t.Fatalf("the prompt line is %q", got)
+	}
+	if got, _ := settleChunks(t, [][]byte{[]byte(raw)}, "echo hi", prompt, prompt); string(got) != "hi\n" {
+		t.Fatalf("the answer is %q", got)
+	}
+	if got, _ := settleChunks(t, [][]byte{[]byte("printf 'desc \\n'\r\n\x1b[?2004l\rdesc \r\nabc\b \b\r\nend \r\n" + prompt + " ")}, "printf 'desc \\n'", prompt, prompt); string(got) != "desc \nab \nend\n" {
+		t.Fatalf("the written spaces: %q", got)
 	}
 }

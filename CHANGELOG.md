@@ -31,6 +31,19 @@
   operators. It names two settings with no use in this release:
   `ssh.control-path-root`, whose directory is made and stays empty, and
   `logging.file`, to which nothing is written.
+- **The shell's output and prompts are the text the terminal showed.** In
+  `command`, `run`, and `crun`, on every platform and over SSH and telnet, a
+  command's output and the prompts in its record are rendered as the terminal
+  showed them, where only carriage returns were dropped and only CSI sequences
+  were removed from the prompt line: colours, window titles, terminal modes,
+  and bash's bracketed-paste switches are gone, a backspace or an erase is
+  applied, and a carriage return returns to the line's start. A record of a
+  Linux server's shell that held `\x1b[?2004l…\x1b]0;netops@dev: ~\x07…` now
+  holds the command's text alone, and its `prompt` is `netops@dev:~$`, no
+  longer carrying the window title. The stream is rendered at no width, as the
+  transports ask the far end for no size; a space the device wrote is kept on
+  an inner line. Records and their digests move wherever a device sent such
+  bytes; the IOS XE fake sends none, and its records are unchanged.
 - **A recorded login's transcript is the text the terminal showed.** It had
   been the bytes the terminal was sent, colours, window titles, and the line
   editor's controls included, so a word corrected with two backspaces read
