@@ -3301,3 +3301,34 @@ off for the password.
 
 **Not taken.** The declarations dropped silently; a timeout ending the device
 under every setting; a pty to hang up a command; a remote watchdog.
+
+**Executed: a server's collection.** Today, over the shell, `karvi crun
+--target srv1 --cmd 'uname -r' --cmd 'cat /etc/missing' --cmd 'ip -br link
+show lo'` replaced the file, and every block carried the shell's sequences and
+prompt:
+
+```text
+! uname -r
+^[[?2004l6.8.0-146-generic
+^[[?2004h^[]0;netops@dev: ~^G^[[01;32mnetops@dev^[[00m:^[[01;34m~^[[00m$
+```
+
+A candidate list run twice over exec, a few seconds apart, without root: every
+command exited 0, and only `uptime`, added as the control, differed. At the
+operator's word `/etc/hosts` and `/etc/resolv.conf` left the list, `ip route`
+became `ip route show table all` (the IPv6 routes and the `local` table, 18
+lines here), and `uname -srm` became `uname -snrm` for the hostname (`Linux
+dev.16k.net 6.8.0-146-generic x86_64`); the amended list's two collections were
+identical.
+
+**Issue 9, agreed.** `linux` and `linux_shell` collect `cat /etc/os-release`,
+`uname -snrm`, `ip -br address`, `ip route show table all`, and `systemctl
+list-unit-files --state=enabled --no-pager --no-legend`, with no built-in drop
+list. Under exec a block is stdout then stderr; a non-zero exit leaves its error
+text and the file is replaced, the status kept in the record. Root's commands
+are `sudo -n` in a site's list until `--sudo`.
+[`docs/COLLECTION.md`](COLLECTION.md) gains `linux` in its two tables and a
+section on servers.
+
+**Not taken.** No built-in list; root-only commands; package lists; the two
+`/etc` files; the exit status in the file.

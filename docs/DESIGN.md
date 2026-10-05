@@ -1414,6 +1414,26 @@ device's platform list, so `karvi crun --all` is the whole nightly invocation.
 *Why:* the platform table is the one place a platform is described. *Not
 taken:* a list under `[crun]` keyed by platform; a per-device inventory column.
 
+**A server's collection is a portable list, its blocks both streams.** `linux`
+and `linux_shell` carry a built-in `crun-commands`: `cat /etc/os-release`,
+`uname -snrm`, `ip -br address`, `ip route show table all`, and `systemctl
+list-unit-files --state=enabled --no-pager --no-legend`, the version first and
+the configuration last, each portable, answered without root, and stable while
+nothing changes; there is no built-in `crun-filters`. Under exec a block is the
+`! COMMAND` marker, then stdout, then stderr; a non-zero exit leaves its error
+text in the block and the file is replaced, as a rejected statement's is, the
+exit status staying in the record. A command that needs root is written `sudo
+-n …` in a site's list until `--sudo` is built, when a list entry's way of
+declaring it is settled. Distribution-specific state (the package list, the
+firewall rules) is a site's alias list. *Why:* with no list, `crun --all` over
+a fleet with servers refused every server at planning; two collections of the
+list seconds apart were identical, and the hostname (`uname -n`), the IPv6 and
+local routing tables (`table all`), and the enabled units are what an operator
+diffs; one list must serve every distribution, and a server without systemd
+answers `systemctl` with an error block, as a model that lacks a command does.
+*Not taken:* no built-in list; root-only commands in it; package lists;
+`/etc/hosts` and `/etc/resolv.conf`; the exit status in the file.
+
 **Replacement needs the directory's write bit only; the directory is checked
 once.** An operator replaces a file another wrote whatever its mode, because
 the write is a new temporary and one rename; the directory must be a real
