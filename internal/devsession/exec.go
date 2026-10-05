@@ -292,6 +292,12 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 			result.ErrorCategory, result.Retryable = entry.Category, entry.Retryable
 		}
 		result.Err = errors.New(errorcodes.Message(coded))
+		if code == "ssh_session_channel_refused" {
+			// A refused exec request, which the system transport learns
+			// only at the end: the command never ran, as when Start is
+			// refused, so the record carries no exec fields.
+			result.Exec = nil
+		}
 		s.debugf("device session exec failed sha256=%s code=%s output_bytes=%d", tag, code, shared)
 		return result
 	}

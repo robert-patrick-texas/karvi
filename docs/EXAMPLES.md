@@ -3788,3 +3788,46 @@ daemon resolves the definition from its own configuration; with the daemon
 stopped, the client's started one served it. `crun_platform_commands_missing`
 no longer names `linux`, and `docs/COLLECTION.md` gains the servers' list in
 its two tables and section 2.1.
+
+**During the build: the parity run over exec.** Before the suite's cases, the
+lab build at `9ca3808` against the fake's Linux persona (a login by key), each
+case over `command` and `run` on both transports, compared by
+`tools/paritycheck` as it stood:
+
+| Case | The four streams | `paritycheck` |
+|---|---|---|
+| `uname -snrm`, `both`, `fail 3`, `signal TERM`, `nostatus`, `slow`, `ls /nonexistent`, `sudo -n id -u`, under continue | succeeded twice, `command_exit_nonzero`, `command_exit_signal`, `command_exit_missing`, `command_timeout`, `command_exit_nonzero` (127), succeeded; exit 107 and 101; one connection, 8 channels | record 3's `exit_signal` and message (`unnamed`, `TERM`); record 5's notice `remote_command_not_stopped` on `system` alone |
+| `big`, `bigerr` under a 2,000-byte limit, then `uname -snrm` | `output_limit_exceeded` twice, 2,000 bytes on the one stream each, then succeeded; exit 111 | the same notice on records 0 and 1 on `system` |
+| both streams past a 4 KB spool threshold | 219,000 bytes on each, succeeded | equal |
+| `sudo -n id -u` refused (`-sudo-asks`), under halt | `command_exit_nonzero`, `sudo`'s message in `stderr` | equal |
+| `linux_shell` over the shell persona, plain and with bash's decorations | every command succeeded, the outputs alike with and without the decorations, one pty | equal |
+| an alias of `cisco_iosxe` with `channel = "exec"` (the IOS XE persona refuses every exec request) | `ssh_session_channel_refused`, then not attempted; exit 110 | record 0: `system` `stderr` `""` with its encoding, count, and digest, `prompt_source` `none`, `prompt_observed` false; `scrapligo-v1` all null |
+
+The last row is a defect: a refused exec request never ran, and the rule is
+that a null `stderr` says so. `scrapligo-v1` learns of the refusal when it
+starts the channel; `system` learns of it when the client exits and the master
+has written its sign, after the session had filled the exec fields.
+
+**Agreed.** A connection error of `ssh_session_channel_refused` at the end of a
+command leaves the record as a refused start leaves it, with no exec fields; a
+connection lost under a command keeps what it settled. A difference by design
+is pinned: `paritycheck -pin N.PATH=TRANSPORT:JSON;TRANSPORT:JSON` names the
+record's position from 0, a path and everything under it, and the value each
+transport (the record's own `transport`, `system` or `native`) must hold
+there, JSON or `absent`; the path is checked in every stream and left out of
+the comparison across them. The suite gains `PIN` and `CHANNELS` (the exec
+channels on the one connection, and no shell) as per-case settings, and the
+cases S35a to S35f: the eight commands with `exit_signal`, its message, and
+the notice pinned; the limit with the notice pinned; the two spools; `sudo`
+refused; `linux_shell` with bash's decorations; the refused exec request.
+
+**Not taken.** The notice or `exit_signal` excluded; pins keyed by the
+implementation's name, which the record does not carry; the refusal of
+`--expect` on an exec target as a parity case (it stops at planning, exit 4,
+with no record); a plain `linux_shell` row beside the decorated one.
+
+**Executed after 10a, the parity run.** S35a to S35f pass on the tree's build,
+each four streams equal with the pins held; the `9ca3808` build fails S35f on
+record 0's six fields above. The pins are tested on their own: a wrong value,
+a transport the pin does not name, and a pin past the records are each a
+finding, and a `;` inside a value does not end it.

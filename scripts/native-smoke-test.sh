@@ -126,8 +126,10 @@ run_karvi() {  # tag, activity (command|run|daemon), transport, enable, karvi ar
 # SSH (further [ssh] lines), KEYLOGIN (the fingerprint of the one key the
 # fake must have logged in by), AUTH (the method each stream's first
 # record names, credential.auth),
-# SHELL_OPENED (a shell that opens and receives no line). ONLY=S7 runs the
-# cases whose label begins so.
+# SHELL_OPENED (a shell that opens and receives no line), CHANNELS (the exec
+# channels the one connection carried, and no shell), PIN (paritycheck's
+# -pin, one per line: a difference between the transports by design).
+# ONLY=S7 runs the cases whose label begins so.
 parity_case() {
   case $1 in "${ONLY:-}"*) ;; *) return 0 ;; esac
   label=$1; policy=$2; row=$3; tables=$4; enable=$5; fflags=$6; expect=$7; cexit=$8; lines=$9
@@ -151,6 +153,10 @@ parity_case() {
     counts=$(grep '^connections=' "$TMP/fake.err") || fail "$label $tag: the fake reported no counts"
     sessions=${counts##*sessions=}
     if [ -n "$lines" ] || [ -n "${SHELL_OPENED:-}" ]; then wantsessions=1; else wantsessions=0; fi
+    if [ -n "${CHANNELS:-}" ]; then
+      wantsessions=0
+      grep -qx "channels=$CHANNELS" "$TMP/fake.err" || fail "$label $tag: $(grep '^channels=' "$TMP/fake.err"), expected channels=$CHANNELS"
+    fi
     [ "$sessions" -eq "$wantsessions" ] || fail "$label $tag: $counts, expected sessions=$wantsessions"
     if [ -z "${KEYSCAN:-}" ] || [ "$tr" = native ]; then
       [ "${counts%% *}" = connections=1 ] || fail "$label $tag: $counts, expected one connection"
@@ -163,8 +169,14 @@ parity_case() {
     [ -z "${KEYLOGIN:-}" ] || [ "$(sed -n 's/^key: //p' "$TMP/fake.err")" = "$KEYLOGIN" ] || fail "$label $tag: the fake's key logins: $(sed -n 's/^key: //p' "$TMP/fake.err" | tr '\n' ' '), expected $KEYLOGIN"
     streams="$streams $TMP/out.$tag"
   done
+  set --
+  while IFS= read -r pin; do
+    [ -z "$pin" ] || set -- "$@" -pin "$pin"
+  done <<EOF_PIN
+${PIN:-}
+EOF_PIN
   # shellcheck disable=SC2086
-  result=$("$TMP/bin/paritycheck" -expect "$expect" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
+  result=$("$TMP/bin/paritycheck" -expect "$expect" "$@" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
   echo "native smoke: $label: $result"
 }
 
@@ -279,6 +291,63 @@ parity_case 'S13d a server without keyboard-interactive takes the password metho
   'succeeded' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 unset AUTH
+
+# S35: the exec channel over the Linux persona, logged in by the operator's
+# key (S13b's), one connection carrying a channel per command. Two
+# differences are by design and pinned: OpenSSH's client names no signal
+# (exit_signal unnamed on system, the name on scrapligo-v1), and a command
+# given up on system carries remote_command_not_stopped, since its client
+# cannot ask the device to end it.
+LINUX='[platform.linux]
+ssh-port = PORT'
+LINUXFLAGS="-persona linux -user $OPERATOR -authorized-keys $TMP/opkey.pub"
+NOT_STOPPED="[{\"code\":\"remote_command_not_stopped\",\"message\":\"the command's channel was closed and the command may still be running on the device: OpenSSH's client cannot ask the device to end it\"}]"
+SSH="identities = [\"$TMP/opkey\"]"
+KEYLOGIN=$OPKEY AUTH=publickey
+CHANNELS=8
+PIN='3.exit_signal=system:"unnamed";native:"TERM"
+3.error.message=system:"ended by signal unnamed";native:"ended by signal TERM"
+5.notices=system:'"$NOT_STOPPED"';native:[]'
+parity_case 'S35a exec: each way a command ends, under continue' accept-new linux "$LINUX" '' "$LINUXFLAGS" \
+  'succeeded,succeeded,device_error:command_exit_nonzero,device_error:command_exit_signal,device_error:command_exit_missing,timeout:command_timeout,device_error:command_exit_nonzero,succeeded' 107 \
+  '"exec: uname -snrm"|"exec: both"|"exec: fail 3"|"exec: signal TERM"|"exec: nostatus"|"exec: slow"|"exec: ls /nonexistent"|"exec: sudo -n id -u"|' \
+  -- --continue-device-on-error --cmd 'uname -snrm' --cmd both --cmd 'fail 3' --cmd 'signal TERM' --cmd nostatus \
+  --cmd slow --cmd 'ls /nonexistent' --cmd 'sudo -n id -u'
+CHANNELS=3
+PIN='0.notices=system:'"$NOT_STOPPED"';native:[]
+1.notices=system:'"$NOT_STOPPED"';native:[]'
+parity_case 'S35b exec: the output limit across both streams, the connection serving the next' accept-new linux "$LINUX
+[output]
+max-command-bytes = 2000" '' "$LINUXFLAGS" \
+  'output_limit_exceeded:output_limit_exceeded,output_limit_exceeded:output_limit_exceeded,succeeded' 111 \
+  '"exec: big"|"exec: bigerr"|"exec: uname -snrm"|' \
+  -- --continue-device-on-error --cmd big --cmd bigerr --cmd 'uname -snrm'
+PIN=
+parity_case 'S35c exec: each stream spooled past the threshold' accept-new linux "$LINUX
+[output]
+spool-threshold-bytes = 4096" '' "$LINUXFLAGS -big-lines 3000" \
+  'succeeded,succeeded,succeeded' 0 '"exec: big"|"exec: bigerr"|"exec: both"|' \
+  -- --cmd big --cmd bigerr --cmd both
+CHANNELS=1
+parity_case 'S35d exec: sudo refused, under halt' accept-new linux "$LINUX" '' "$LINUXFLAGS -sudo-asks" \
+  "device_error:command_exit_nonzero,$NOT_ATTEMPTED" 107 '"exec: sudo -n id -u"|' \
+  -- --cmd 'sudo -n id -u' --cmd 'uname -snrm'
+CHANNELS=
+parity_case 'S35e linux_shell over the Linux persona'"'"'s shell, with bash'"'"'s decorations' accept-new linux_shell '[platform.linux_shell]
+ssh-port = PORT' '' "$LINUXFLAGS -decorations" \
+  'succeeded,succeeded,succeeded,succeeded' 0 '"uname -snrm"|"both"|"fail 3"|"ls /nonexistent"|"exit"|' \
+  -- --continue-device-on-error --cmd 'uname -snrm' --cmd both --cmd 'fail 3' --cmd 'ls /nonexistent'
+unset SSH KEYLOGIN AUTH
+# The IOS XE persona refuses every exec request: an alias asking for exec
+# is refused at its first command, which never ran, and the session ends.
+CHANNELS=1 AUTH=keyboard-interactive
+parity_case 'S35f exec: a refused exec request' accept-new iosexec '[platform.iosexec]
+driver = "cisco_iosxe"
+channel = "exec"
+ssh-port = PORT' en '' \
+  "connection_error:ssh_session_channel_refused,$NOT_ATTEMPTED" 110 '"exec: show clock"|' \
+  -- --continue-device-on-error --cmd 'show clock' --cmd 'show version'
+unset CHANNELS AUTH PIN
 
 # S14: host keys. Another device's key for the changed and mismatch cases.
 ssh-keygen -q -t ed25519 -N '' -f "$TMP/other" >/dev/null

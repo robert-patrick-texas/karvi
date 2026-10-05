@@ -202,6 +202,13 @@ func TestExecConnectionEnds(t *testing.T) {
 	if r.ErrorCode != "ssh_session_channel_refused" || r.ErrorCategory != "connection" || r.Exec != nil || s.Usable() || !f.closed {
 		t.Fatalf("refused: code %q category %q exec %+v usable %t", r.ErrorCode, r.ErrorCategory, r.Exec, s.Usable())
 	}
+	// The system transport learns of a refused exec request at the end:
+	// the record is the refused start's, no exec fields.
+	s, _ = execSession(map[string]fakeRun{"x": {waitErr: errorcodes.Errorf("ssh_session_channel_refused", "the device refused the exec request")}}, ExecOptions{})
+	r = s.Execute(context.Background(), platform.Command{Text: "x", Timeout: time.Second})
+	if r.ErrorCode != "ssh_session_channel_refused" || r.ErrorCategory != "connection" || r.Exec != nil || s.Usable() {
+		t.Fatalf("refused at the end: code %q category %q exec %+v usable %t", r.ErrorCode, r.ErrorCategory, r.Exec, s.Usable())
+	}
 	s, _ = execSession(map[string]fakeRun{"x": {stdout: "half", waitErr: errorcodes.Errorf("session_keepalive_timeout", "no answer")}}, ExecOptions{})
 	r = s.Execute(context.Background(), platform.Command{Text: "x", Timeout: time.Second})
 	if r.ErrorCode != "session_keepalive_timeout" || string(r.Output) != "half" || s.Usable() {

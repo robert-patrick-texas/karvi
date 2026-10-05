@@ -865,9 +865,13 @@ a suite sends it, with a unit test. The renderer is tested on byte fixtures:
 transcripts captured from a host, its names and addresses replaced by
 documentation values, the editing keys with their expected text, wrapped lines,
 and a resize from a timing log. The parity run compares the four combinations
-over the exec persona path by path, `exit_signal`'s difference (`TERM` on
-`scrapligo-v1`, `unnamed` on `system`) pinned and not excluded, one connection
-with a channel per command, and a `linux_shell` row over the shell persona. The
+over the exec persona path by path, one connection with a channel per command,
+and a `linux_shell` row over the shell persona. A difference by design is
+pinned, not excluded: `tools/paritycheck -pin` names a record, a path and
+everything under it, and the value each transport must hold there, checked in
+every stream and left out of the comparison across them; the exec cases pin
+`exit_signal` (`TERM` on `scrapligo-v1`, `unnamed` on `system`) with its
+message, and `remote_command_not_stopped` on a command `system` gave up. The
 suites never reach the host's `sshd`; a server's evidence is each build
 section's run against a real OpenSSH and the qualification runbook's rows for a
 production server. The real device matrix is the only proof of
@@ -1296,10 +1300,11 @@ transport gives none, or null), and `stderr` with `stderr_encoding` (`utf-8` or
 spooled past the threshold as `output` is and streamed into the record's line as
 `output` is; on a shell record the new fields are null (record schema 3). On an
 exec record a null `stderr` says the command did not run (its channel never
-opened: a not-attempted record, a connection that failed first), an empty one
-that it ran and wrote nothing there; the text file and the echo show `! not
-sent:` by it. Exec output is recorded as the program wrote it, with no terminal
-between to render. Exit 0 is `succeeded` whatever stderr holds; a non-zero exit
+opened, or the device refused its exec request: a not-attempted record, a
+connection that failed first, `ssh_session_channel_refused` on either
+transport), an empty one that it ran and wrote nothing there; the text file and
+the echo show `! not sent:` by it. Exec output is recorded as the program wrote
+it, with no terminal between to render. Exit 0 is `succeeded` whatever stderr holds; a non-zero exit
 is `device_error` with `command_exit_nonzero`, a signal `command_exit_signal`,
 and a channel closed without a status on a live connection
 `command_exit_missing`, each in the `device` category, exit 107, external and

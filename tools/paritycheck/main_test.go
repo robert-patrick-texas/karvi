@@ -99,3 +99,73 @@ func TestExcludedPaths(t *testing.T) {
 		}
 	}
 }
+
+// A pin's value per transport is read by the JSON decoder, so a ';' inside
+// a value does not end it; absent is no value.
+func TestParsePin(t *testing.T) {
+	p, err := parsePin(`5.notices=system:[{"code":"x","message":"a; b"}];native:absent`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := pin{Index: 5, Path: "notices", Values: map[string]map[string]string{
+		"system": {"notices[0].code": `"x"`, "notices[0].message": `"a; b"`},
+		"native": {},
+	}}
+	if !reflect.DeepEqual(p, want) {
+		t.Fatalf("pin=%+v", p)
+	}
+	for _, bad := range []string{"exit_signal=system:1", "x.exit_signal=system:1", "3.=system:1", "3.exit_signal", "3.exit_signal=", "3.exit_signal=system", "3.exit_signal=system:nope", "3.exit_signal=system:1 native:2", "3.exit_signal=:1"} {
+		if _, err := parsePin(bad); err == nil {
+			t.Errorf("parsePin(%q) accepted", bad)
+		}
+	}
+}
+
+// A pinned path is checked against each stream's transport's value and is
+// not compared across the streams; a wrong value, a transport with none,
+// and a pin past the records are findings.
+func TestComparePins(t *testing.T) {
+	sys := `{"transport":"system","command_index":0,"status":"device_error","exit_signal":"unnamed","notices":[{"code":"remote_command_not_stopped"}],"error":{"code":"command_exit_signal","message":"ended by signal unnamed"}}`
+	nat := `{"transport":"native","command_index":0,"status":"device_error","exit_signal":"TERM","notices":[],"error":{"code":"command_exit_signal","message":"ended by signal TERM"}}`
+	names := []string{"command.system", "command.native", "run.system", "run.native"}
+	streams := [][]map[string]any{stream(t, sys), stream(t, nat), stream(t, sys), stream(t, nat)}
+	pins := func(texts ...string) []pin {
+		var out []pin
+		for _, text := range texts {
+			p, err := parsePin(text)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out = append(out, p)
+		}
+		return out
+	}
+	signal := pins(`0.exit_signal=system:"unnamed";native:"TERM"`, `0.error.message=system:"ended by signal unnamed";native:"ended by signal TERM"`, `0.notices=system:[{"code":"remote_command_not_stopped"}];native:[]`)
+	if findings := compare(names, streams, []string{"device_error:command_exit_signal"}, signal...); len(findings) != 0 {
+		t.Fatalf("findings=%q", findings)
+	}
+	if findings := compare(names, streams, nil, signal[:2]...); !reflect.DeepEqual(findings, []string{
+		`record 0 notices: command.system=<absent>, command.native=[]`,
+		`record 0 notices[0].code: command.system="remote_command_not_stopped", command.native=<absent>`,
+		`record 0 notices: command.system=<absent>, run.native=[]`,
+		`record 0 notices[0].code: command.system="remote_command_not_stopped", run.native=<absent>`,
+	}) {
+		t.Fatalf("unpinned notices: %q", findings)
+	}
+	wrong := pins(`0.exit_signal=system:"unnamed";native:"KILL"`, `0.error.message=system:"ended by signal unnamed"`, `1.notices=system:[];native:[]`)
+	want := []string{
+		`record 0 exit_signal: command.native=exit_signal="TERM", pinned native=exit_signal="KILL"`,
+		`record 0 error.message: command.native's transport "native" has no pinned value`,
+		`record 0 exit_signal: run.native=exit_signal="TERM", pinned native=exit_signal="KILL"`,
+		`record 0 error.message: run.native's transport "native" has no pinned value`,
+		`record 1 notices: pinned, command.system has 1 records`,
+		`record 0 notices: command.system=<absent>, command.native=[]`,
+		`record 0 notices[0].code: command.system="remote_command_not_stopped", command.native=<absent>`,
+		`record 0 notices: command.system=<absent>, run.native=[]`,
+		`record 0 notices[0].code: command.system="remote_command_not_stopped", run.native=<absent>`,
+	}
+	findings := compare(names, streams, nil, wrong...)
+	if !reflect.DeepEqual(findings, want) {
+		t.Fatalf("findings=%q", findings)
+	}
+}
