@@ -530,46 +530,63 @@ matching base drivers (every existing alias would change policy); `ssh-agent`
 in the first build (it follows the key files as a `keys` source).
 
 **The operator's keys are a list in order, judged at planning, and the record
-names the key that logged in.** `ssh.identities` names the files, offered in its
-order: by default `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`, `~`
-the home the password database names; a site may lock it. A file that does not
-exist is passed over; one that exists is judged in the client at planning: the
-operator's own regular file with no group or other access (`0600` or `0400`), a
-symbolic link under the credential file rule, parsed without a passphrase, of a
-type both transports sign with (no hardware-backed `_sk` key). A key that fails
-is skipped with the notice `operator_key_skipped`, naming the file and the
-reason and never the contents, on the device's first record and in the dry run;
-with no key left the device fails with `credential_operator_keys_missing` (exit
-6), listing the files examined. The credential is the operator's login name and
-the keys' paths, its backend `builtin-operator-keys`; the dry run shows each
-key's fingerprint as seen at planning. At the connection the connecting process
-(the daemon for `run`, the client for `command`) reads the files as they are
-then, compared with nothing: the system transport's managed configuration sets
-`PubkeyAuthentication yes`, `IdentitiesOnly yes`, `IdentityAgent none`, and one
-`IdentityFile` per key, with password and keyboard-interactive off when the
-credential has no password; the native adapter offers the keys as signers, the
-password methods only beside a password. The record's credential projection
-carries the path and fingerprint of the key that authenticated: OpenSSH's log at
-`DEBUG1`, written with `-E` into the scratch and removed after, names the
-accepted key, and the native adapter's signers note which one signed. The
+names the method that authenticated.** `ssh.identities` names the files, offered
+in its order: by default `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`,
+`~/.ssh/id_rsa`, `~` the home the password database names; a site may lock it. A
+file that does not exist is passed over; one that exists is judged in the client
+at planning: the operator's own regular file with no group or other access
+(`0600` or `0400`), a symbolic link under the credential file rule, parsed
+without a passphrase, of a type both transports sign with (no hardware-backed
+`_sk` key). A key that fails is skipped with the notice `operator_key_skipped`,
+naming the file and the reason and never the contents, on the device's first
+record and in the dry run; with no key left the device fails with
+`credential_operator_keys_missing` (exit 6), listing the files examined. The
+credential is the operator's login name and the keys' paths, its backend
+`builtin-operator-keys`; the dry run shows each key's fingerprint as seen at
+planning. At the connection the connecting process (the daemon for `run`, the
+client for `command`) reads the files as they are then, compared with nothing:
+the system transport's managed configuration sets `PubkeyAuthentication yes`,
+`IdentitiesOnly yes`, `IdentityAgent none`, and one `IdentityFile` per key, with
+password and keyboard-interactive off when the credential has no password; the
+native adapter offers the keys as signers, the password methods only beside a
+password. Both transports try the methods in one order, `publickey`,
+`keyboard-interactive`, then `password`, the last two answered with the
+password, since some servers allow keyboard-interactive and refuse password
+(`PreferredAuthentications` in the managed configuration). The record's
+credential projection names the method that authenticated, `auth` (`publickey`,
+`keyboard-interactive`, or `password`, absent where the session never
+authenticated), and every `command_completed` audit event names it beside the
+device username and the credential backend: the system transport runs its
+command sessions at `LogLevel VERBOSE` and takes OpenSSH's `Authenticated to …
+using "M".` line from the stderr it already reads, keeping it from the
+diagnostics, and the native adapter notes the last of its callbacks x/crypto
+called before succeeding. `login` stays at `ERROR`, its stderr being the
+operator's terminal, and names no method. Which key authenticated is not
+recorded; OpenSSH's `DEBUG1` lines on the same stderr would name it, a later
+goal ([`ROADMAP.md`](../ROADMAP.md), "The key that authenticated"). The
 `Include` of the operator's `~/.ssh/config` (`ssh.include-user-config`) stays:
 OpenSSH adds that file's `IdentityFile` lines after karvi's even under
 `IdentitiesOnly`, so a key of the operator's own configuration may be offered
-once karvi's are refused, and the record names whatever key OpenSSH reports. No
-`sudo` support is added with the first build: a command written `sudo -n …` runs
-as written. *Why:* each key offered spends one of the server's authentication
-attempts (`MaxAuthTries`, 6 by default) and the first authorized key offered is
-the one that logs in, so the order is the operator's choice, defaulting to the
-strongest and fastest first; a key whose passphrase is missing would cost every
-device a refused prompt and an error naming neither; whoever can replace the
-operator's key file holds the account already, and a key rotated while a long
-job runs is the operator's normal work, so a comparison with the plan would
-protect nothing and fail the remaining devices, while the server's refusal names
-a key it does not accept. *Not taken:* a glob over `id_*` (it takes
-`id_rsa.old`); bare file names under `~/.ssh`; the order fixed in the code;
-leaving out the `Include` of the operator's `~/.ssh/config` for a credential
-with keys; `ssh-agent` before the files; a fingerprint comparison at the
-connection (`credential_key_changed`).
+once karvi's are refused. No `sudo` support is added with the first build: a
+command written `sudo -n …` runs as written. *Why:* each key offered spends one
+of the server's authentication attempts (`MaxAuthTries`, 6 by default) and the
+first authorized key offered is the one that logs in, so the order is the
+operator's choice, defaulting to the strongest and fastest first; a key whose
+passphrase is missing would cost every device a refused prompt and an error
+naming neither; whoever can replace the operator's key file holds the account
+already, and a key rotated while a long job runs is the operator's normal work,
+so a comparison with the plan would protect nothing and fail the remaining
+devices, while the server's refusal names a key it does not accept; OpenSSH's
+`-E` moves its errors off the stderr the transport classifies and the terminal
+`login` shows, and `VERBOSE` names the method with no change to either; the
+method is what the operator asked to know, the key a further change. *Not
+taken:* OpenSSH's log written with `-E` into the scratch; the key that
+authenticated in the first build; the method in the job's summary or its closing
+audit event as counts; the method on the device's first audit event alone; a
+glob over `id_*` (it takes `id_rsa.old`); bare file names under `~/.ssh`; the
+order fixed in the code; leaving out the `Include` of the operator's
+`~/.ssh/config` for a credential with keys; `ssh-agent` before the files; a
+fingerprint comparison at the connection (`credential_key_changed`).
 
 **The fallback is walked in order; what a source cannot use it passes.**
 `netvars` fills the fields still empty from `NETUSER`, `NETPASS`, and
@@ -1025,27 +1042,27 @@ with a scrubbed environment; refusing to start.
 
 **Exec devices need no new ledger, column, or lease; the daemon parents the
 masters.** An exec device session is one connection: one lease against the
-host's cap and one against the device's `session_cap`, as a shell session's,
-its master and one client at a time being one session's processes; `linux`'s
-cap stays 10. The daemon parents the system transport's masters for `run`, the
+host's cap and one against the device's `session_cap`, as a shell session's, its
+master and one client at a time being one session's processes; `linux`'s cap
+stays 10. The daemon parents the system transport's masters for `run`, the
 client for `command`, each started with a death signal (`SIGTERM`) from a
 goroutine that holds its OS thread for the master's life, since the signal
 follows the thread that started the child; a master killed outright regardless
 leaves its socket to the sweep at the daemon's start. The daemon checks the
-plan's exec rules (the channel per target, no blind sends or `--expect` for
-exec targets, no exec over telnet) as it checks the rest and evaluates no
-platform; the execution plan's schema moves to 11 and the record's to 3, and a
-daemon refuses a plan of another version as before. `watch` gains no column, a
-row's bytes counting both streams. A device session's audit event names the key
-that authenticated, its path and fingerprint, beside the credential backend.
-`metrics.json` is unchanged. *Why:* a connection runs one channel at a time, so
-`MaxSessions` is never reached and a lease per channel would count nothing new;
-an `-N` master reads nothing and does not end with its parent: killed outright,
-the parent left its master serving an authenticated session through its socket
-(executed), while a master ended by `SIGTERM` removes its socket; the security
-owners read the audit, which should name what the record names. *Not taken:* a
-lease per channel; masters left to end with their parent; a `watch` column for
-the channel.
+plan's exec rules (the channel per target, no blind sends or `--expect` for exec
+targets, no exec over telnet) as it checks the rest and evaluates no platform;
+the execution plan's schema moves to 11 and the record's to 3, and a daemon
+refuses a plan of another version as before. `watch` gains no column, a row's
+bytes counting both streams. Every `command_completed` audit event names the
+device username, the credential backend, and the method that authenticated the
+session. `metrics.json` is unchanged. *Why:* a connection runs one channel at a
+time, so `MaxSessions` is never reached and a lease per channel would count
+nothing new; an `-N` master reads nothing and does not end with its parent:
+killed outright, the parent left its master serving an authenticated session
+through its socket (executed), while a master ended by `SIGTERM` removes its
+socket; the security owners read the audit, which should name what the record
+names. *Not taken:* a lease per channel; masters left to end with their parent;
+a `watch` column for the channel.
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live

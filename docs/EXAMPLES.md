@@ -3497,3 +3497,49 @@ even under `IdentitiesOnly`.
 **Not taken.** A partial `netvars` failing at once; keys over telnet; the
 mechanisms check as "a password method must remain"; key parsing in the
 credential code; the `Include` left out for a credential with keys.
+
+**During the build: the method, not the key.** DESIGN had the record name the
+key that authenticated, from OpenSSH's `DEBUG1` log written with `-E` into the
+scratch. Executed, with a key this host refuses:
+
+```text
+-E e.log at DEBUG1:   exit 255, stderr: []      (empty)
+  e.log:  netops@127.0.0.1: Permission denied (publickey,keyboard-interactive).
+today, INFO, no -E:   netops@127.0.0.1: Permission denied (publickey,keyboard-interactive).
+```
+
+`-E` moves OpenSSH's errors off the stderr the system transport classifies and
+the terminal `login` shows. On that stderr `DEBUG1` names the key
+(`debug1: Server accepts key: /home/netops/.ssh/id_ed25519 ED25519
+SHA256:lCkD25f/…`, 65 lines and 4.5 KB a session, none for keepalives), and
+`VERBOSE` names only the method:
+
+```text
+Authenticated to 127.0.0.1 ([127.0.0.1]:22) using "publickey".
+Connection to 127.0.0.1 closed.
+Transferred: sent 3776, received 4776 bytes, in 0.8 seconds
+```
+
+**Agreed.** No `-E` file. The record names the method, `credential.auth`
+(`publickey`, `keyboard-interactive`, or `password`), not the key: the system
+transport's command sessions run at `VERBOSE`, the `Authenticated to …` line
+taken from the stderr and kept from the diagnostics; the native adapter notes
+the last of its callbacks called. Both transports try `publickey`, then
+`keyboard-interactive`, then `password`, the last two answered with the
+password, since some Linux servers allow keyboard-interactive and refuse
+password. `login` stays at `ERROR` and names no method. Every
+`command_completed` audit event names the method with the device username and
+the backend, repeated per command as the policy and the transport are. The key
+that authenticated went to the roadmap ([`ROADMAP.md`](../ROADMAP.md), "The
+key that authenticated"). Executed after the build, over both transports to
+this host, each record's `credential.auth` is `publickey`, and the audit:
+
+```text
+1 {"auth": "publickey", "backend": "builtin-operator-keys", "device_username": "netops", "selected_address": "127.0.0.1"}
+2 {"auth": "publickey", "backend": "builtin-operator-keys", "device_username": "netops", "selected_address": "127.0.0.1"}
+```
+
+**Not taken.** `-E` into the scratch; the key in the first build; the method
+as counts in `summary.json` or the job's closing audit event; the method on the
+device's first audit event alone; `login` at `VERBOSE`, which would print the
+closing lines on the operator's terminal.

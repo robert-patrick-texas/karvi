@@ -73,6 +73,9 @@ type Options struct {
 	// AuthorizedKeys, in authorized_keys form, are the public keys that log
 	// in as Username beside the password; empty accepts no key.
 	AuthorizedKeys []byte
+	// NoKeyboardInteractive refuses the keyboard-interactive method, as a
+	// server that takes the password method alone.
+	NoKeyboardInteractive bool
 }
 
 // PTYRequest is one pty-req a client sent.
@@ -155,6 +158,9 @@ func Start(opts Options) (*Server, error) {
 			}
 			return nil, fmt.Errorf("password rejected for %q", meta.User())
 		},
+	}
+	if opts.NoKeyboardInteractive {
+		s.config.KeyboardInteractiveCallback = nil
 	}
 	s.config.Config.KeyExchanges = opts.KeyExchanges
 	s.config.Config.Ciphers = opts.Ciphers

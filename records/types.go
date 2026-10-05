@@ -57,6 +57,10 @@ type CredentialProjection struct {
 	// the credential.
 	CredentialID string `json:"credential_id,omitempty"`
 	Protection   string `json:"protection,omitempty"`
+	// Auth is the method the device took: publickey, keyboard-interactive,
+	// or password (OpenSSH's names); absent where the session never
+	// authenticated or the transport cannot tell (telnet).
+	Auth string `json:"auth,omitempty"`
 }
 
 // Notice is a non-fatal fact about a record, carried on it (the ICMP

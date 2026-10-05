@@ -38,6 +38,8 @@ type scrapligoDriver struct {
 	req     platform.OpenRequest
 	policy  hostkey.Policy
 	session *devsession.Session
+	// auth is the connection's own account of how it authenticated.
+	auth platform.AuthReporter
 }
 
 func (d *scrapligoDriver) debugf(format string, args ...any) {
@@ -77,6 +79,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 		d.debugf("native SSH session open failed target=%q code=%s", host, errorcodes.Of(err))
 		return err
 	}
+	d.auth, _ = stream.(platform.AuthReporter)
 	session, err := devsession.Open(ctx, stream, devsession.Options{
 		Definition: d.req.Definition, EnableSecret: d.req.EnablePassword, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes,
 		LoginTimeout: promptTimeout, EnableTimeout: durationOr(d.f.Config.Duration("execution.enable-timeout"), 10*time.Second), PromptTimeout: promptTimeout,
@@ -100,6 +103,17 @@ var _ platform.SetupReporter = (*scrapligoDriver)(nil)
 
 // SetupLines is the session's set-up as it was sent (platform.SetupReporter).
 func (d *scrapligoDriver) SetupLines() []platform.SetupLine { return d.session.SetupLines() }
+
+var _ platform.AuthReporter = (*scrapligoDriver)(nil)
+
+// AuthMethod is the method that authenticated karvi's connection
+// (platform.AuthReporter).
+func (d *scrapligoDriver) AuthMethod() string {
+	if d.auth == nil {
+		return ""
+	}
+	return d.auth.AuthMethod()
+}
 
 // Execute sends one command through the prepared session.
 func (d *scrapligoDriver) Execute(ctx context.Context, c platform.Command) platform.Result {

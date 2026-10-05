@@ -437,6 +437,11 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if reporter, ok := driver.(platform.SetupReporter); ok {
 		e.opts.Store.SetTextSetup(d.CanonicalName, reporter.SetupLines())
 	}
+	// How the device authenticated the session, on every record that
+	// follows a session that opened.
+	if reporter, ok := driver.(platform.AuthReporter); ok && err == nil {
+		cred.Auth = reporter.AuthMethod()
+	}
 	if err != nil {
 		if driver != nil {
 			driver.Close()
@@ -1160,6 +1165,21 @@ func rttString(ns *int64) string {
 	return fmt.Sprintf("%.1fms", ms)
 }
 
+// auditIdentity is a command_completed event's device identity: the
+// address and, from the record's credential projection, the device
+// username, the credential backend, and the method that authenticated the
+// session (absent where it never authenticated), on every command.
+func auditIdentity(r records.CommandRecord) map[string]any {
+	id := map[string]any{"selected_address": r.SelectedAddress}
+	if c := r.Credential; c != nil {
+		id["device_username"], id["backend"] = c.DeviceUsername, c.Backend
+		if c.Auth != "" {
+			id["auth"] = c.Auth
+		}
+	}
+	return id
+}
+
 // afterRecord is what follows an appended record: the display and the
 // audit. The record's notice is not among them: the store gives it to the
 // followers itself, in sequence (output.Options.OnDurable).
@@ -1168,7 +1188,7 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 		e.opts.OnRecord(r, src)
 	}
 	if e.opts.Audit != nil {
-		_ = e.opts.Audit.WriteAudit(records.AuditRecord{SchemaVersion: 1, EventID: r.RecordID, EventName: "command_completed", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, Process: map[string]any{"pid": 0}, ActivityID: r.ActivityID, JobID: r.JobID, Device: map[string]any{"id": r.Device.ID, "canonical_name": r.Device.CanonicalName, "platform": r.Platform}, DeviceIdentity: map[string]any{"selected_address": r.SelectedAddress}, Action: map[string]any{"command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
+		_ = e.opts.Audit.WriteAudit(records.AuditRecord{SchemaVersion: 1, EventID: r.RecordID, EventName: "command_completed", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, Process: map[string]any{"pid": 0}, ActivityID: r.ActivityID, JobID: r.JobID, Device: map[string]any{"id": r.Device.ID, "canonical_name": r.Device.CanonicalName, "platform": r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
 			if r.Credential != nil {
 				return r.Credential.Policy
 			}

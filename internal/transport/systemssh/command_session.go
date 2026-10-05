@@ -76,11 +76,12 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	// another channel on Cisco IOS XE, yielding "Master refused session
 	// request: Permission denied".
 	args := d.baseArgs()
-	// INFO, over the generated file's ERROR, so a failed algorithm
-	// negotiation ("Unable to negotiate ...") reaches the diagnostics; login
-	// keeps ERROR for the operator's terminal.
+	// VERBOSE, over the generated file's ERROR, so a failed algorithm
+	// negotiation ("Unable to negotiate ...") reaches the diagnostics and
+	// the line naming the method that authenticated reaches authFilter;
+	// login keeps ERROR for the operator's terminal.
 	args = append(args,
-		"-o", "LogLevel=INFO",
+		"-o", "LogLevel=VERBOSE",
 		"-o", "BatchMode=no",
 		"-tt",
 		d.req.Address,
@@ -123,8 +124,9 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	}
 
 	diagnostics := &synchronizedBuffer{maxBytes: 64 << 10}
+	auth := &authFilter{next: diagnostics}
 	done := make(chan struct{})
-	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, done: done, cancel: cancel, offered: d.f.offered,
+	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, auth: auth, done: done, cancel: cancel, offered: d.f.offered,
 		aliveInterval: time.Duration(ceilSeconds(d.f.Config.Duration("ssh.server-alive-interval"))) * time.Second, aliveCountMax: d.f.Config.Int("ssh.server-alive-count-max")}
 	if policy := d.f.hostKey; policy.Mode != hostkey.Insecure {
 		if types, err := hostkey.EnrolledTypes(policy.KnownHostsFile, d.f.hostKeyIdentity); err == nil && len(types) > 0 {
@@ -138,7 +140,8 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	// an empty buffer.
 	stderrCopied := make(chan struct{})
 	go func() {
-		_, _ = io.Copy(diagnostics, stderr)
+		_, _ = io.Copy(auth, stderr)
+		auth.Flush()
 		close(stderrCopied)
 	}()
 	go func() {

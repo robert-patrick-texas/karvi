@@ -38,8 +38,9 @@ func main() {
 	unsaved := flag.Bool("unsaved", false, "start each shell with the running configuration modified: 'reload' asks to save first, 'copy running-config startup-config' clears it")
 	port := flag.Int("port", 0, "127.0.0.1 port to listen on; 0 takes a free one (a restart that is to be the same device, port included)")
 	authorizedKeys := flag.String("authorized-keys", "", "authorized_keys file whose keys log in as -user beside the password")
+	noKbd := flag.Bool("no-keyboard-interactive", false, "refuse the keyboard-interactive method (a server that takes the password method alone)")
 	flag.Parse()
-	opts := fakedevice.Options{Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved}
+	opts := fakedevice.Options{Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
 	split := func(v string) []string {
 		if v == "" {
 			return nil

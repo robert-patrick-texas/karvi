@@ -197,6 +197,13 @@
             "local-peer",
             "sealed"
           ]
+        },
+        "auth": {
+          "enum": [
+            "publickey",
+            "keyboard-interactive",
+            "password"
+          ]
         }
       }
     },

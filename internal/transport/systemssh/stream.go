@@ -24,6 +24,8 @@ type processStream struct {
 	stdin  io.WriteCloser
 	stdout io.ReadCloser
 	stderr *synchronizedBuffer
+	// auth holds the method OpenSSH said authenticated.
+	auth   *authFilter
 	done   chan struct{}
 	cancel func()
 	// typesNotOffered, set when the offered host-key algorithms were

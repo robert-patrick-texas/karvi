@@ -115,7 +115,10 @@ func TestSSHIdentities(t *testing.T) {
 			t.Fatalf("%s: %v", bad, err)
 		}
 	}
-	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"ssh.pubkey-authentication=true"}}); err == nil || !strings.Contains(err.Error(), "config_unknown_key") {
+	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"ssh.pubkey-authentication=true"}}); err == nil || !strings.Contains(err.Error(), "config_key_removed") || !strings.Contains(err.Error(), "ssh.identities") {
 		t.Fatalf("the removed key: %v", err)
+	}
+	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{"KARVI__SSH__PUBKEY_AUTHENTICATION=true"}}); err == nil || !strings.Contains(err.Error(), "config_key_removed") {
+		t.Fatalf("the removed key's variable: %v", err)
 	}
 }

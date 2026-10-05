@@ -374,6 +374,21 @@ no prompt. Under `ssh.include-user-config` (the default) the operator's
 `IdentityFile` lines after karvi's keys even under `IdentitiesOnly`: the system
 transport may offer such a key once karvi's are refused.
 
+Both transports try the methods in one order: `publickey`, then
+`keyboard-interactive`, then `password`, the last two answered with the
+password, since some servers allow keyboard-interactive and refuse password.
+Each record's `credential.auth` names the method that authenticated the session
+(`publickey`, `keyboard-interactive`, or `password`; absent where the session
+never authenticated), and every `command_completed` audit event names it in
+`device_identity` beside `device_username` and `backend`:
+
+```text
+1 {"auth": "publickey", "backend": "builtin-operator-keys", "device_username": "netops", "selected_address": "127.0.0.1"}
+2 {"auth": "publickey", "backend": "builtin-operator-keys", "device_username": "netops", "selected_address": "127.0.0.1"}
+```
+
+Which key authenticated is not recorded. `login` names no method.
+
 ## The credential prompts
 
 When the platform's fallback reaches `prompt` (after `netvars` on the

@@ -124,7 +124,8 @@ run_karvi() {  # tag, activity (command|run|daemon), transport, enable, karvi ar
 # too), WARNING (text each combination's stderr must hold), COMMAND_TIMEOUT
 # and EXECUTION (the [execution] table's command-timeout and further lines),
 # SSH (further [ssh] lines), KEYLOGIN (the fingerprint of the one key the
-# fake must have logged in by),
+# fake must have logged in by), AUTH (the method each stream's first
+# record names, credential.auth),
 # SHELL_OPENED (a shell that opens and receives no line). ONLY=S7 runs the
 # cases whose label begins so.
 parity_case() {
@@ -155,6 +156,10 @@ parity_case() {
       [ "${counts%% *}" = connections=1 ] || fail "$label $tag: $counts, expected one connection"
     fi
     [ -z "${WARNING:-}" ] || grep -q "$WARNING" "$TMP/err.$tag" || fail "$label $tag: no warning holding '$WARNING'"
+    if [ -n "${AUTH:-}" ]; then
+      grep '"credential"' "$TMP/out.$tag" | head -1 >"$TMP/first.$tag"
+      json_is "$TMP/first.$tag" credential.auth "$AUTH" || fail "$label $tag: the record's credential.auth is $(json_get "$TMP/first.$tag" credential.auth 2>&1), expected $AUTH"
+    fi
     [ -z "${KEYLOGIN:-}" ] || [ "$(sed -n 's/^key: //p' "$TMP/fake.err")" = "$KEYLOGIN" ] || fail "$label $tag: the fake's key logins: $(sed -n 's/^key: //p' "$TMP/fake.err" | tr '\n' ' '), expected $KEYLOGIN"
     streams="$streams $TMP/out.$tag"
   done
@@ -191,10 +196,11 @@ NOT_ATTEMPTED=not_attempted_prior_command_failure
 REJECTED=device_error:device_command_error
 
 COMBOS='command:system command:native run:system run:native daemon:system daemon:native'
+AUTH=keyboard-interactive
 parity_case 'S1 success, a rejected command, success under continue (the daemon path too)' accept-new cisco_iosxe "$BUILTIN" en '' \
   "succeeded,$REJECTED,succeeded" 107 "$OPEN"'"show clock"|"show bogus"|"show version"|"exit"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show bogus' --cmd 'show version'
-unset COMBOS
+unset COMBOS AUTH
 parity_case 'S2 a rejected command under halt' accept-new cisco_iosxe "$BUILTIN" en '' \
   "succeeded,$REJECTED,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show bogus' --cmd 'show version'
@@ -255,16 +261,24 @@ ssh-port = PORT
 fallback = [\"keys\"]"
 OPERATOR=$(id -un)
 SSH="identities = [\"$TMP/stranger\", \"$TMP/opkey\"]"
-KEYLOGIN=$OPKEY
+KEYLOGIN=$OPKEY AUTH=publickey
 parity_case 'S13b a login by the operator'"'"'s key, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
   'succeeded' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
   -- --cmd 'show clock'
 SSH="identities = [\"$TMP/stranger\"]"
-KEYLOGIN=
+KEYLOGIN= AUTH=
 parity_case 'S13c a key the device refuses, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
   'authentication_error:authentication_failed' 108 '' \
   -- --cmd 'show clock'
-unset SSH KEYLOGIN
+unset SSH KEYLOGIN AUTH
+# S13d: keyboard-interactive is tried before the password method, both
+# answered with the password; a server that refuses keyboard-interactive
+# takes the password method.
+AUTH=password
+parity_case 'S13d a server without keyboard-interactive takes the password method' accept-new cisco_iosxe "$BUILTIN" en '-no-keyboard-interactive' \
+  'succeeded' 0 "$OPEN"'"show clock"|"exit"|' \
+  -- --cmd 'show clock'
+unset AUTH
 
 # S14: host keys. Another device's key for the changed and mismatch cases.
 ssh-keygen -q -t ed25519 -N '' -f "$TMP/other" >/dev/null

@@ -69,6 +69,15 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   daemon may run it for an unattended job, where no prompt can; and how it
   relates to the environment-indirection helper above and to the helper
   protocols operators know (git's credential helpers, `SSH_ASKPASS`).
+- **The key that authenticated.** A record names the method that
+  authenticated its session (`credential.auth`) and not which of the
+  credential's keys the server accepted. OpenSSH names the key at `DEBUG1`
+  (`Server accepts key: PATH TYPE FINGERPRINT`) on the stderr the system
+  transport already reads, so a line filter could take it and drop every other
+  `debug1:` line before the diagnostics; the native adapter could note the
+  signer that signed. The questions: the record's field (path and fingerprint
+  beside `auth`), the audit's, and `login`, whose stderr is the operator's
+  terminal ([`docs/DESIGN.md`, section 4](docs/DESIGN.md#4-credentials)).
 - **A review of every digest.** No digest over an output that does not
   declare one as required for its consumption. The review lists each digest
   the program computes or records with who computes it, who reads it, and

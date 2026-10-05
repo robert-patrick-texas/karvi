@@ -63,6 +63,8 @@ type Driver struct {
 	req                              platform.OpenRequest
 	binary, configPath, configDigest string
 	session                          *devsession.Session
+	// stream is the OpenSSH process Prepare started, for AuthMethod.
+	stream *processStream
 }
 
 func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.Driver, error) {
@@ -136,6 +138,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	d.stream = stream
 	connectTimeout := d.req.Timeout
 	if connectTimeout <= 0 {
 		connectTimeout = d.f.Config.Duration("ssh.connect-timeout")
@@ -193,6 +196,17 @@ func (d *Driver) Usable() bool { return d.session != nil && d.session.Usable() }
 // The executor finds the set-up lines by a type assertion, which a renamed
 // method would fail silently; this fails the build instead.
 var _ platform.SetupReporter = (*Driver)(nil)
+
+var _ platform.AuthReporter = (*Driver)(nil)
+
+// AuthMethod is the method OpenSSH said authenticated the session
+// (platform.AuthReporter).
+func (d *Driver) AuthMethod() string {
+	if d.stream == nil || d.stream.auth == nil {
+		return ""
+	}
+	return d.stream.auth.Method()
+}
 
 // SetupLines is the session's set-up as it was sent (platform.SetupReporter).
 func (d *Driver) SetupLines() []platform.SetupLine { return d.session.SetupLines() }
@@ -304,6 +318,10 @@ func (f Factory) renderConfig() (string, error) {
 			fmt.Fprintf(&b, "  IdentityFile %s\n", sshQuote(path))
 		}
 	}
+	// The methods in karvi's order on both transports: the keys, then
+	// keyboard-interactive and password, both answered with the password
+	// (a server may allow keyboard-interactive and refuse password).
+	b.WriteString("  PreferredAuthentications publickey,keyboard-interactive,password\n")
 	fmt.Fprintf(&b, "  PasswordAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.password-authentication")))
 	fmt.Fprintf(&b, "  KbdInteractiveAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.keyboard-interactive-authentication")))
 	fmt.Fprintf(&b, "  ConnectTimeout %d\n", ceilSeconds(f.Config.Duration("ssh.connect-timeout")))

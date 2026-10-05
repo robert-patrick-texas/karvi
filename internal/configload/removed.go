@@ -82,6 +82,9 @@ var removedKeys = []removedKey{
 	// v0.26.0: the job folder's file of the records that did not succeed
 	// became errors.jsonl, and its key with it.
 	{path: "output.files.failures-jsonl", environment: "KARVI__OUTPUT__FILES__FAILURES_JSONL", removedIn: "v0.26.0", code: "config_key_removed", hint: "the file is errors.jsonl now; its switch is output.files.errors-jsonl"},
+	// v0.27.0: whether keys are offered is the credential's, the operator's
+	// own keys through ssh.identities and the platform's fallback.
+	{path: "ssh.pubkey-authentication", environment: "KARVI__SSH__PUBKEY_AUTHENTICATION", removedIn: "v0.27.0", code: "config_key_removed", hint: "a credential with keys offers them; the operator's own keys are ssh.identities, reached where a platform's fallback lists keys"},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
 }
 

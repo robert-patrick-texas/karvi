@@ -97,7 +97,7 @@ func Dial(ctx context.Context, req DialRequest) (devsession.Stream, error) {
 		_ = c.Close()
 		return nil, err
 	}
-	return &stream{t: t, ended: make(chan struct{})}, nil
+	return &stream{t: t, c: c, ended: make(chan struct{})}, nil
 }
 
 // connection is karvi's scrapligo transport implementation over x/crypto.
@@ -122,9 +122,37 @@ type connection struct {
 
 	closed    chan struct{}
 	closeOnce sync.Once
+	// auth is the method of the last authentication callback x/crypto
+	// called: it tries the methods in order and stops at the first that
+	// succeeds, so once the handshake ends it names the method that did.
+	auth atomic.Value
 }
 
 var _ scraplitransport.Implementation = (*connection)(nil)
+
+// The authentication methods, OpenSSH's names.
+const (
+	authPublicKey           = "publickey"
+	authKeyboardInteractive = "keyboard-interactive"
+	authPassword            = "password"
+)
+
+// AuthMethod is the method that authenticated, "" before authentication.
+func (c *connection) AuthMethod() string {
+	v, _ := c.auth.Load().(string)
+	return v
+}
+
+// noteSigner notes a public-key signature when its signer signs.
+type noteSigner struct {
+	ssh.Signer
+	c *connection
+}
+
+func (s noteSigner) Sign(rand io.Reader, data []byte) (*ssh.Signature, error) {
+	s.c.auth.Store(authPublicKey)
+	return s.Signer.Sign(rand, data)
+}
 
 func (c *connection) debugf(format string, args ...any) {
 	if c.req.Debug != nil {
@@ -171,15 +199,18 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 		}
 	}()
 
-	// The keys first, in the credential's order; the password methods
-	// beside a password, or alone for a credential without keys (whose
-	// missing password the callback reports).
+	// The keys first, in the credential's order, then keyboard-interactive
+	// and password, both answered with the password (a server may allow
+	// keyboard-interactive and refuse password), as the system transport's
+	// PreferredAuthentications; the password methods beside a password, or
+	// alone for a credential without keys (whose missing password the
+	// callbacks report).
 	var auth []ssh.AuthMethod
 	if len(req.Keys) > 0 {
 		auth = append(auth, ssh.PublicKeysCallback(c.signers))
 	}
 	if req.Password != nil || len(req.Keys) == 0 {
-		auth = append(auth, ssh.PasswordCallback(c.password), ssh.KeyboardInteractive(c.keyboardInteractive))
+		auth = append(auth, ssh.KeyboardInteractive(c.keyboardInteractive), ssh.PasswordCallback(c.passwordMethod))
 	}
 	config := &ssh.ClientConfig{
 		User:              req.Username,
@@ -314,9 +345,15 @@ func (c *connection) signers() ([]ssh.Signer, error) {
 			c.debugf("native SSH connection key passed over path=%q: %v", path, err)
 			continue
 		}
-		out = append(out, signer)
+		out = append(out, noteSigner{Signer: signer, c: c})
 	}
 	return out, nil
+}
+
+// passwordMethod is the password method's callback: the password, noted.
+func (c *connection) passwordMethod() (string, error) {
+	c.auth.Store(authPassword)
+	return c.password()
 }
 
 func (c *connection) password() (string, error) {
@@ -335,6 +372,7 @@ func (c *connection) keyboardInteractive(_, _ string, questions []string, _ []bo
 	if len(questions) == 0 {
 		return nil, nil
 	}
+	c.auth.Store(authKeyboardInteractive)
 	password, err := c.password()
 	if err != nil {
 		return nil, err
@@ -530,6 +568,7 @@ const shellEndGrace = 2 * time.Second
 // read lock a blocked read holds, so every close is Close(true).
 type stream struct {
 	t       *scraplitransport.Transport
+	c       *connection
 	pending []byte
 	err     error
 
@@ -584,3 +623,7 @@ func (s *stream) Close() error {
 func (s *stream) Abort() {
 	s.closeOnce.Do(func() { _ = s.t.Close(true) })
 }
+
+// AuthMethod is the method that authenticated the connection beneath the
+// stream (platform.AuthReporter, through the provider).
+func (s *stream) AuthMethod() string { return s.c.AuthMethod() }

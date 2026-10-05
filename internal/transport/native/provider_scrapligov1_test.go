@@ -204,6 +204,9 @@ func TestProviderOffersKeys(t *testing.T) {
 	if got := srv.KeyLogins(); len(got) != 1 || got[0] != heldFP {
 		t.Fatalf("key logins %v, want %s", got, heldFP)
 	}
+	if m := d.(platform.AuthReporter).AuthMethod(); m != "publickey" {
+		t.Fatalf("method %q", m)
+	}
 	refused, err := f.Open(context.Background(), keyOnly(otherPath))
 	if err != nil {
 		t.Fatal(err)
@@ -214,8 +217,30 @@ func TestProviderOffersKeys(t *testing.T) {
 	}
 	both := request(srv, "cisco_iosxe", "en")
 	both.Keys = []string{otherPath}
-	prepared(t, f, both).Close()
+	bd := prepared(t, f, both)
 	if got := srv.KeyLogins(); len(got) != 1 {
 		t.Fatalf("the password login took a key: %v", got)
+	}
+	if m := bd.(platform.AuthReporter).AuthMethod(); m != "keyboard-interactive" {
+		t.Fatalf("after the refused key: method %q", m)
+	}
+	bd.Close()
+}
+
+// TestProviderPasswordMethods: keyboard-interactive is tried before the
+// password method, both answered with the password; a server that refuses
+// keyboard-interactive takes the password method.
+func TestProviderPasswordMethods(t *testing.T) {
+	for _, tc := range []struct {
+		noKbd bool
+		want  string
+	}{{false, "keyboard-interactive"}, {true, "password"}} {
+		srv := startFake(t, fakedevice.Options{Enable: "en", NoKeyboardInteractive: tc.noKbd})
+		f, _ := factory(t, "accept-new")
+		d := prepared(t, f, request(srv, "cisco_iosxe", "en"))
+		if m := d.(platform.AuthReporter).AuthMethod(); m != tc.want {
+			t.Errorf("no keyboard-interactive %t: method %q, want %q", tc.noKbd, m, tc.want)
+		}
+		d.Close()
 	}
 }

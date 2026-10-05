@@ -65,11 +65,17 @@
   order, read at the connection: the system transport with `IdentitiesOnly yes`,
   `IdentityAgent none`, and an `IdentityFile` per key, `scrapligo-v1` as
   signers, so `run`'s default transport now reaches a key-only server; a
-  credential with keys and no password offers no password method. The fake
-  device takes `-authorized-keys PATH`. `ssh.pubkey-authentication` is removed:
-  a backend's credential holds no key and needs a password, so a backend row
-  without one is `credential_password_missing` where that setting had let it
-  pass; `config_ssh_auth_mechanisms_disabled` is retired.
+  credential with keys and no password offers no password method. Both try the
+  methods in the order `publickey`, `keyboard-interactive`, `password`
+  (`scrapligo-v1` had tried password first). Each record's `credential.auth`
+  names the method that authenticated the session, and every `command_completed`
+  audit event names it with the device username and the credential backend. The
+  fake device takes `-authorized-keys PATH` and `-no-keyboard-interactive`.
+  `ssh.pubkey-authentication` is removed and refused at load
+  (`config_key_removed`): a backend's credential holds no key and needs a
+  password, so a backend row without one is `credential_password_missing` where
+  that setting had let it pass; `config_ssh_auth_mechanisms_disabled` is
+  retired.
 - **The shell's output and prompts are the text the terminal showed.** In
   `command`, `run`, and `crun`, on every platform and over SSH and telnet, a
   command's output and the prompts in its record are rendered as the terminal

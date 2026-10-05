@@ -333,6 +333,14 @@ type SetupLine struct {
 type SetupReporter interface {
 	SetupLines() []SetupLine
 }
+
+// AuthReporter is implemented by a Driver that can say how the device
+// authenticated it: "publickey", "keyboard-interactive", or "password"
+// (OpenSSH's names), "" when it cannot tell. It is asked after a Prepare
+// that succeeded.
+type AuthReporter interface {
+	AuthMethod() string
+}
 type Capabilities struct {
 	Reusable      bool
 	Interactive   bool
