@@ -3762,3 +3762,12 @@ previous build refuses it), exec on `scrapligo-v1` 95 and 80 MB before, 76
 and 93 after; the shell on `system` 84 and 80 before, 83 and 75 after, on
 `scrapligo-v1` 154 and 159 before, 130 and 172 after: level, the spread the
 runs' own.
+
+**Executed after 8c, built-in `linux` on exec.** The chapter's first run
+again, `karvi command srv1` (built-in `linux`) to this host with `id -un`, a
+line to each stream, and `ls /nonexistent`, over both transports: `netops`,
+`out`, `err`, then `ls: cannot access '/nonexistent': No such file or
+directory` and `command_exit_nonzero: exited 2`, exit 107, where the shell had
+recorded `succeeded` with bash's sequences and the login shell's
+`/usr/bin/ls`. The dry run reads `platform=linux channel=exec`, while
+`linux_shell` and IOS XE keep `channel=shell`.

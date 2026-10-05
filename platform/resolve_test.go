@@ -185,20 +185,25 @@ func TestCrunCommands(t *testing.T) {
 	}
 }
 
-// linux_shell is linux's definition on the shell channel with linux as its
-// base, and an alias of it is based on linux too; a table sets channel on
-// any driver, and a definition that leaves it unset validates as shell.
+// linux is the one built-in on the exec channel; linux_shell is linux's
+// definition on the shell channel with linux as its base, and an alias of
+// it is based on linux too; a table sets channel on any driver, an alias of
+// linux taking exec from it, and a definition that leaves it unset
+// validates as shell.
 func TestChannelAndLinuxShell(t *testing.T) {
 	tables := map[string]map[string]any{
-		"bastion":  {"driver": "linux_shell"},
-		"eos-exec": {"driver": "arista_eos", "channel": "exec"},
-		"linux":    {"channel": "exec"},
+		"bastion":   {"driver": "linux_shell"},
+		"appliance": {"driver": "linux"},
+		"jump":      {"driver": "linux", "channel": "shell"},
+		"eos-exec":  {"driver": "arista_eos", "channel": "exec"},
 	}
 	for _, tc := range []struct{ name, base, driver, channel string }{
+		{"linux", "linux", "linux", ChannelExec},
+		{"appliance", "linux", "linux", ChannelExec},
+		{"jump", "linux", "linux", ChannelShell},
 		{"linux_shell", "linux", "linux_shell", ChannelShell},
 		{"bastion", "linux", "linux_shell", ChannelShell},
 		{"eos-exec", "arista_eos", "arista_eos", ChannelExec},
-		{"linux", "linux", "linux", ChannelExec},
 		{"cisco_iosxe", "cisco_iosxe", "cisco_iosxe", ChannelShell},
 	} {
 		def := Resolve(tc.name, tables)
@@ -207,7 +212,11 @@ func TestChannelAndLinuxShell(t *testing.T) {
 		}
 	}
 	for _, d := range Builtins() {
-		if d.Channel != ChannelShell || d.Base == "" {
+		want := ChannelShell
+		if d.Name == "linux" {
+			want = ChannelExec
+		}
+		if d.Channel != want || d.Base == "" {
 			t.Errorf("built-in %s: channel %q base %q", d.Name, d.Channel, d.Base)
 		}
 	}

@@ -43,9 +43,9 @@ type Definition struct {
 	SessionCap      int    `json:"session_cap"`
 	// Channel is what karvi asks of the SSH session channel: ChannelShell,
 	// the interactive shell of the device session, or ChannelExec, one exec
-	// request per command. Every built-in is shell (linux becomes exec when
-	// the exec channel is built); a [platform.NAME] table may set either
-	// word on any driver, and a definition that leaves it unset is shell.
+	// request per command. linux is exec and every other built-in shell; a
+	// [platform.NAME] table may set either word on any driver, and a
+	// definition that leaves it unset is shell.
 	Channel string `json:"channel"`
 	// Fallback is what follows the credential policy's backends, in order:
 	// FallbackNetvars (NETUSER, NETPASS, NETENABLE), FallbackKeys (the
@@ -448,7 +448,7 @@ var builtins = map[string]Definition{
 	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
 	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
 	"arista_eos":    {Name: "arista_eos", Driver: "arista_eos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^! Time: `, `^Uptime: `, `^Free memory: `}, ExitCommands: []string{"exit"}, PrivilegeLevels: aristaEOSLevels, FailurePatterns: eosFailures},
-	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelShell, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelExec, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 	// linux_shell is linux's definition on the shell channel, for a server
 	// whose security refuses exec: linux is its base, so it is admitted
 	// wherever linux is, and its records name linux_shell.

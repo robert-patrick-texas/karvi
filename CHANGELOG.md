@@ -31,17 +31,17 @@
   operators. It names a setting with no use in this release, `logging.file`,
   to which nothing is written.
 - **A platform's `channel`, and the built-in `linux_shell`.** A
-  `[platform.NAME]` table takes `channel = "shell"` or `"exec"`, what karvi
-  asks of the SSH session channel; every built-in is `shell`, and a table that
-  leaves it unset is `shell`. Each target's channel is resolved at planning,
-  carried in the plan (execution plan schema 11) and the manifest, and shown
-  on the dry run's `intended:` line (`channel=shell`). A target whose
-  platform says `exec` over telnet, which has no exec, is refused at planning
-  with `channel_exec_over_telnet`. An eighth built-in, `linux_shell`, is
-  `linux` on the shell channel with `linux` as its base, so it is admitted
-  wherever `linux` is and its records name `linux_shell`. The platform field
-  `control-master`, read by nothing, is removed: a table that sets it is
-  refused as `config_unknown_key`, and
+  `[platform.NAME]` table takes `channel = "shell"` or `"exec"`, what karvi asks
+  of the SSH session channel; built-in `linux` is `exec`, every other built-in
+  `shell`, and a table that leaves it unset is `shell`. Each target's channel is
+  resolved at planning, carried in the plan (execution plan schema 11) and the
+  manifest, and shown on the dry run's `intended:` line (`channel=shell`). A
+  target whose platform says `exec` over telnet, which has no exec, is refused
+  at planning with `channel_exec_over_telnet`. An eighth built-in,
+  `linux_shell`, is `linux` on the shell channel with `linux` as its base, so it
+  is admitted wherever `linux` is and its records name `linux_shell`. The
+  platform field `control-master`, read by nothing, is removed: a table that
+  sets it is refused as `config_unknown_key`, and
   `config_platform_control_master_not_boolean` is retired. The configuration
   registry moves to 25.
 - **A platform's `fallback`, and the operator's own keys for servers.** What
