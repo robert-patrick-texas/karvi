@@ -3332,3 +3332,26 @@ section on servers.
 
 **Not taken.** No built-in list; root-only commands; package lists; the two
 `/etc` files; the exit status in the file.
+
+**Executed: the fixtures' ground.** The fake is one x/crypto server whose
+IOS XE persona answers a fixed table and refuses every exec request; fifteen
+files outside `vendor/` name it. The vendored x/crypto (v0.26.0) has the
+server's `PartialSuccessError`, so a key-then-password login can be tested
+without a real server. The two transcripts captured in this chapter carry this
+host's public IPv4 and IPv6 addresses in the login banner.
+
+**Issue 10, agreed.** One fake, renamed `karvi-fake-device`
+(`internal/fakedevice`) in a section of its own, with a Linux persona: an exec
+table (the collection list, `fail N`, `both`, `big`, `bigerr`, `slow`, `signal
+TERM`, `nostatus`, `sudo -n id -u`, exit 127 for an unknown command), key and
+password logins and later both, and a shell for `linux_shell` with bash's
+decorations under an option; it records exec lines, pty requests, channels, and
+signal requests. The renderer's tests are byte fixtures, the captured
+transcripts with documentation addresses and names. The parity run covers exec
+on the four combinations with `exit_signal`'s difference pinned, and a
+`linux_shell` row. The suites use the fake alone; a server's evidence is the
+build's runs against this host's OpenSSH and new runbook rows for a production
+server.
+
+**Not taken.** A second fake; the `iosxe` name kept; the suites against the
+host's `sshd`; the transcripts as captured; `exit_signal` excluded.

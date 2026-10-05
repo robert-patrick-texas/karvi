@@ -768,13 +768,40 @@ base driver, never a table's label; a platform not admitted is
 serves a later connector with its own admission list; with every built-in's
 patterns compiled in and one session layer, nothing holds a built-in back.
 
-**The fake IOS XE device is the engineering fixture.** It models what the
+**The fake device is the engineering fixture.** One SSH server,
+`karvi-fake-device` (`internal/fakedevice`, renamed from the IOS XE fake in a
+section of its own), with two personas sharing its host keys, algorithms,
+keepalives, and recording. The IOS XE persona, the default, models what the
 session layer sees (prompts, enable, paging, confirm and value prompts, a slow
-command, a large one, silence, reload, configuration mode, a syntax error) and
-records every line it receives; a command is added when a suite sends it, with
-a unit test. The real device matrix is the only proof of interoperability.
-*Why:* a fake that imitates state invites tests that pass against the
-imitation.
+command, a large one, silence, reload, configuration mode, a syntax error). The
+Linux persona (`-persona linux`) answers exec channels from a fixed table (the
+collection list; `fail N` on stderr with exit N; `both` on each stream; `big`
+and `bigerr` for the two spools; `slow`, ended by a `KILL` request and recorded
+as left running when its channel closes; `signal TERM`; `nostatus`; `sudo -n id
+-u`, or `a password is required` under an option; an unknown command `sh: 1:
+NAME: not found`, exit 127), logs in by key (`-authorized-keys PATH`), by
+password, and later by a key and then a password (`PartialSuccessError`), and
+has a shell for `linux_shell` (`netops@fake:~$`, bash's decorations under an
+option). Both record every line or exec request received, every pty request,
+the channels per connection, and every signal request; a command is added when
+a suite sends it, with a unit test. The renderer is tested on byte fixtures:
+transcripts captured from a host, its names and addresses replaced by
+documentation values, the editing keys with their expected text, wrapped lines,
+and a resize from a timing log. The parity run compares the four combinations
+over the exec persona path by path, `exit_signal`'s difference (`TERM` on
+`scrapligo-v1`, `unnamed` on `system`) pinned and not excluded, one connection
+with a channel per command, and a `linux_shell` row over the shell persona. The
+suites never reach the host's `sshd`; a server's evidence is each build
+section's run against a real OpenSSH and the qualification runbook's rows for a
+production server. The real device matrix is the only proof of
+interoperability. *Why:* a fake that imitates state invites tests that pass
+against the imitation; a second server would copy the first; a build host may
+have no `sshd`, and a suite must never change an operator's `authorized_keys`;
+a transcript as captured carries the host's public addresses; an expected
+difference pinned is checked, while one excluded is hidden. *Not taken:* a
+second fake for Linux; the `iosxe` name for a fake that is also a server; the
+suites against the host's `sshd`; captured transcripts committed as they are;
+`exit_signal` excluded from the comparison.
 
 **A login's normal end is qualified on the devices before karvi classifies it
 differently.** A device that ends a session on `exit` without an exit status,
