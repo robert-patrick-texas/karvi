@@ -105,18 +105,33 @@ fallback from a missing native adapter to system OpenSSH.
 
 ## The device session
 
-`command` and `run` over the system implementation open one fresh interactive
-`ssh -tt` process per device, with ControlMaster, ControlPath, and
-ControlPersist pinned off on the command line (the `ssh.control-*` keys are
-inert). One karvi session
-(`internal/devsession`) drives that shell: it waits for
-the first prompt, reaches the platform's privileged level with one enable
-attempt when the shell starts below it, sends the platform's paging commands,
-then sends every requested command and reads until the prompt returns. The
-same session drives scrapligo-v1's connection, so the two transports give the
-same records for the same commands. This avoids Cisco IOS XE servers that
-authenticate a master but refuse another session channel, and it never
-requests a second session channel or a replacement login between commands.
+The platform's `channel` decides what a device's session asks of SSH, on
+either transport ([`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md)).
+
+- **The shell** (every built-in but `linux`, `linux_shell` among them).
+  `command` and `run` over the system implementation open one fresh interactive
+  `ssh -tt` process per device, with ControlMaster, ControlPath, and
+  ControlPersist pinned off on the command line. One karvi session
+  (`internal/devsession`) drives that shell: it waits for the first prompt,
+  reaches the platform's privileged level with one enable attempt when the shell
+  starts below it, sends the platform's paging commands, then sends every
+  requested command and reads until the prompt returns. The same session drives
+  scrapligo-v1's connection, so the two transports give the same records for the
+  same commands. This avoids Cisco IOS XE servers that authenticate a master but
+  refuse another session channel, and it never requests a second session channel
+  or a replacement login between commands.
+- **The exec channel** (built-in `linux`, and any table that sets `channel =
+  "exec"`). One connection per device for its command list and one exec channel
+  per command: on `system` an OpenSSH ControlMaster, its socket in
+  `ssh.control-path-root` (at most 73 bytes, `control_path_root_too_long` at
+  planning otherwise), and an `ssh -S` client per command; on `scrapligo-v1` a
+  session channel per command on karvi's own connection. One exec session
+  (`internal/devsession`) settles both streams and classifies each command by
+  its exit status, so the two transports give the same records but for what
+  OpenSSH's client cannot do: name a signal (`exit_signal` `unnamed` on
+  `system`) and ask the device to end a command given up (the notice
+  `remote_command_not_stopped`). Telnet has no exec channel, and a target
+  planned over telnet whose platform says `exec` is refused at planning.
 
 What the session does beyond that is documented once, elsewhere; this
 document only points there:
@@ -146,9 +161,11 @@ document only points there:
   platform, so `native_platform_not_qualified` is unreachable on it. An
   unknown platform is refused before any connection (`platform_unknown`).
 - **Parity.** `scripts/native-smoke-test.sh` runs every case as `command`
-  and `run` over both transports against the fake and compares the
-  requested-command records path by path (`tools/paritycheck`); the cases
-  are listed in the script.
+  and `run` over both transports against the fake, its IOS XE persona and its
+  Linux persona for the exec channel and `linux_shell`, and compares the
+  requested-command records path by path (`tools/paritycheck`); a difference
+  by design is pinned per transport (`-pin`), not excluded. The cases are
+  listed in the script.
 
 ## Build composition
 

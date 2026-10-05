@@ -40,7 +40,10 @@ command through it; that diagnostic, should it appear, is
 `ssh_session_channel_refused` in the `connection` category, never
 `authentication_failed`.
 [`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](TRANSPORT-DRIVER-ARCHITECTURE.md)
-states the ControlMaster rule.
+states the ControlMaster rule. A platform whose `channel` is `exec` (built-in
+`linux`) takes a channel per command again, on a device that accepts it,
+under its own rules ([The exec channel](#the-exec-channel)); the shell stays
+the path for every other platform.
 
 ## Lifecycle
 
@@ -95,7 +98,7 @@ command, both from the platform definition:
    the first command records `privilege_error` and the rest
    `not_attempted_prior_command_failure`. A shell that starts at the level
    or above it is left where it is; nothing ever steps down. A platform
-   without levels (`generic`, `linux`) has no privilege step.
+   without levels (`generic`, `linux_shell`) has no privilege step.
 2. **Paging.** The definition's `paging-commands` in order (the platform's start
    statements: `generic` has none until a `[platform.generic]` table gives it
    some, [`docs/OPERATIONS.md`](OPERATIONS.md) ["Start statements for generic
@@ -113,6 +116,56 @@ command, both from the platform definition:
    and the code.
 
 Then the requested commands, then the definition's `exit-commands` at close.
+
+## The exec channel
+
+A platform whose `channel` is `exec` (built-in `linux`, or any
+`[platform.NAME]` table that says so) gets one connection for its command
+list and one exec channel per command on it, in order, with no pty and with
+standard input at its end ([`docs/DESIGN.md`, section
+5](DESIGN.md#5-transports-and-the-device-session)):
+
+```text
+resolve target/address/credential/transport/platform definition
+  -> open the connection, the host-key policy in the handshake
+       system: one ssh -M -N master per device, its stderr read at DEBUG1;
+               ready when it answers -O check
+       scrapligo-v1: one x/crypto connection; ready when it has authenticated
+                                           (ssh.connect-timeout and execution.prompt-timeout)
+  -> session-init profile, if one matches  (each command on its own channel)
+  -> for each requested command:           (execution.device-timeout over the whole list)
+       open an exec channel and start the command
+         system: one ssh -S client of the master, LogLevel QUIET, ProxyCommand false
+       read stdout and stderr, each spooled past the threshold on its own
+       wait for the exit status or signal   (its command timeout, from the channel's opening)
+       emit one command record
+       stop or continue according to the device-error policy
+  -> close: system ssh -O exit, the master killed on an abort;
+            scrapligo-v1 closes its connection
+```
+
+There is no first prompt, no privilege step, no paging command, and no exit
+command, and nothing carries from one command to the next (`cd`, variables,
+`umask`): the remote shell is not interactive. Blind sends, `\r` endings,
+`--blind-return`, and `--expect` are refused at planning for an exec target
+(`channel_exec_declaration_refused`, exit 4); `--literal` is accepted.
+
+How a command ends is its exit status: 0 is `succeeded` whatever stderr holds,
+then the platform's failure patterns are searched in both streams; a non-zero
+status is `command_exit_nonzero`, a signal `command_exit_signal`, and a channel
+closed without a status on a live connection `command_exit_missing`, each a
+device error. On `system` a client's exit of 255 is read from the master's
+lines: the command's own 255, a signal (`exit_signal` `unnamed`, since OpenSSH
+names none), a channel closed without a status, or the master gone, the
+session's failure. A device that refuses the channel or the exec request is
+`ssh_session_channel_refused`; the command did not run and the session ends.
+
+A command timeout, a cancel, and the output limit (stdout and stderr counted
+together) stop the command and close its channel, and the connection serves
+the next command: `scrapligo-v1` asks the device for `KILL` first; `system`,
+whose client cannot send a signal, kills the client and records the notice
+`remote_command_not_stopped`, the command possibly still running on the
+device.
 
 ## Blind sends and expectations
 
@@ -172,8 +225,24 @@ router1#show clock
 01:20:19.849 EDT Thu Sep 10 2026
 ```
 
+On an exec target the prompt is inferred from the target's name, since the
+device sends none, and stdout comes before stderr, their interleaving lost
+(`2>&1` in the command keeps it):
+
+```text
+srv1$ echo out; echo err >&2
+out
+err
+
+srv1$ ls /nonexistent
+ls: cannot access '/nonexistent': No such file or directory
+karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 2
+```
+
 The command record persists `promptbefore`, `prompt`, `prompt_source`, and
-`prompt_observed`. `promptbefore` is the prompt the device showed when the
+`prompt_observed`; an exec record's are empty, `none`, and false, and it carries
+`channel`, `exit_status`, `exit_signal`, and `stderr` with its encoding, count,
+and digest instead. `promptbefore` is the prompt the device showed when the
 statement was sent and `prompt` the one that came back after it: for `configure
 terminal` they are `router1#` and `router1(config)#`. Both are the device's own
 bytes, never inferred; `promptbefore` is empty only on a record whose statement
@@ -198,16 +267,21 @@ Debug lines come in three families, one prefix each:
   start (index, hash, size, blind flags, expectation count) and completion
   (status, code, output bytes, elapsed, prompt source), and how the
   session ended.
-- `system SSH command session …` or `native SSH connection …` (the
-  transport): the binary or implementation, the address and port, the
-  host-key policy and identity, the process ID or the shell's start, an
-  open failure's code and diagnostic, a keepalive expiry.
+- `system SSH command session …`, `system SSH exec master …`, or `native SSH
+  connection …` (the transport): the binary or implementation, the address
+  and port, the host-key policy and identity, the process ID or the shell's
+  start, an exec master's socket and the method that authenticated, an open
+  failure's code and diagnostic, a keepalive expiry.
 - `device session …` (the session): the first prompt and level, an
   escalation, each paging command, each send, each expectation answered,
-  each completion, a blind send whose prompt did not return.
+  each completion, a blind send whose prompt did not return; on an exec
+  target, each command's start, completion, and spool, and a command given
+  up.
 
-No line carries a password, an enable secret, command text, or device
-output; a command appears as its hash and size.
+No line carries a password, an enable secret, or device output. The
+executor's start line shows each command once, as the plan holds it, never
+from the device's echo; every other line names a command by its hash and
+size.
 
 ## Device-error behavior
 
@@ -221,3 +295,10 @@ lost or failed read, output over the limit before the prompt returned, the
 device timeout, or a keepalive expiry ends the session, and nothing more is
 sent under any setting; the failed command carries the code and the rest
 are not-attempted records. There is no hidden reconnect.
+
+On an exec target the exit outcomes (`command_exit_nonzero`,
+`command_exit_signal`, `command_exit_missing`) are device errors under the same
+policy, and a command timeout and the output limit leave the session usable,
+the connection serving the next command, so the policy applies to them too. A
+refused channel or exec request, a lost connection, the device timeout, and a
+keepalive expiry end the session.

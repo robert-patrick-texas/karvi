@@ -120,7 +120,12 @@ one connection with no subprocess. Every requested command runs sequentially
 through that one authenticated interactive shell, after one privilege escalation
 and the platform's paging commands
 ([`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)). This avoids Cisco IOS XE
-devices that accept login but reject secondary SSH session channels.
+devices that accept login but reject secondary SSH session channels. A Linux
+server on the built-in `linux` platform takes an exec channel per command
+instead, on one connection per device (on `system` an OpenSSH ControlMaster of
+karvi's own), each command's exit status its verdict, with stdout and stderr
+apart ([`docs/COMMAND-SESSION.md`, "The exec
+channel"](docs/COMMAND-SESSION.md#the-exec-channel)).
 
 ## Prompt and command echo
 

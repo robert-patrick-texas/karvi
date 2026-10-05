@@ -22,18 +22,20 @@ device results; stderr contains safe karvi diagnostics and mandatory warnings.
 - observed prompt, command index, command byte count, command SHA-256 prefix,
   output byte count, elapsed time, and stable error code.
 
-It does not contain password values, enable-password values, raw command text,
-or device output. Before sharing a diagnostic capture, still review it for
-organization-sensitive hostnames, addresses, usernames, paths, and policy
-names.
+It does not contain password values, enable-password values, or device output;
+each command appears once, on the executor's start line, as the plan holds it.
+Before sharing a diagnostic capture, still review it for organization-sensitive
+hostnames, addresses, usernames, paths, and policy names.
 
 ## `Master refused session request: Permission denied`
 
 This diagnostic indicates that an already authenticated OpenSSH master could
 not open an additional session channel. It is not evidence that the password
-was rejected. Karvi v0.7.0 command mode avoids that topology by opening one
-fresh interactive shell with ControlMaster and ControlPath disabled, and
-reuse is off for every mode.
+was rejected. A shell device's session avoids that topology by opening one
+fresh interactive shell with ControlMaster and ControlPath disabled. An exec
+device (built-in `linux`) has a ControlMaster of karvi's own, one per device
+session and never kept across jobs; a device that refuses its exec requests
+records `ssh_session_channel_refused` and is run as `linux_shell`.
 
 When this text appears from another path, karvi classifies it as
 `ssh_session_channel_refused` in the connection category. Do not rotate

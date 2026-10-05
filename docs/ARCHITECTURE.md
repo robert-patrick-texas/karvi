@@ -183,11 +183,14 @@ records for untouched work. `command` and `run --no-daemon` take the same
 path with the local process as the execution endpoint.
 
 Direct system `command` mode uses one fresh `ssh -tt` process with
-`ControlMaster=no`, `ControlPath=none`, and `ControlPersist=no`; all commands
-use that one authenticated interactive shell. Login remains operator-attached
-system OpenSSH, optionally behind the transcript PTY; a recorded session's
-transcript is rendered at its end as the terminal showed it
-(`internal/termtext`), at the widths `script(1)`'s timing log records.
+`ControlMaster=no`, `ControlPath=none`, and `ControlPersist=no` for a shell
+device; all commands use that one authenticated interactive shell. An exec
+device (`linux`) has one OpenSSH ControlMaster for its session, the client's
+(`command`) or the daemon's (`run`) child, and an `ssh -S` client per command
+([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](TRANSPORT-DRIVER-ARCHITECTURE.md)).
+Login remains operator-attached system OpenSSH, optionally behind the transcript
+PTY; a recorded session's transcript is rendered at its end as the terminal
+showed it (`internal/termtext`), at the widths `script(1)`'s timing log records.
 
 ## Display pipeline
 
