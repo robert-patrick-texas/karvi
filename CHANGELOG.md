@@ -33,28 +33,30 @@
 - **A platform's `channel`, and the built-in `linux_shell`.** A
   `[platform.NAME]` table takes `channel = "shell"` or `"exec"`, what karvi asks
   of the SSH session channel; built-in `linux` is `exec`, every other built-in
-  `shell`, and a table that leaves it unset is `shell`. Each target's channel is
-  resolved at planning, carried in the plan (execution plan schema 11) and the
-  manifest, and shown on the dry run's `intended:` line (`channel=shell`). A
-  target whose platform says `exec` over telnet, which has no exec, is refused
-  at planning with `channel_exec_over_telnet`. An eighth built-in,
-  `linux_shell`, is `linux` on the shell channel with `linux` as its base, so it
-  is admitted wherever `linux` is and its records name `linux_shell`. The
-  platform field `control-master`, read by nothing, is removed: a table that
-  sets it is refused as `config_unknown_key`, and
-  `config_platform_control_master_not_boolean` is retired. The configuration
-  registry moves to 25.
+  `shell`, and a table that leaves it unset is `shell`; another word is
+  `config_platform_channel_invalid`. Each target's channel is resolved at
+  planning, carried in the plan (execution plan schema 11) and the manifest, and
+  shown on the dry run's `intended:` line (`channel=shell`). A target whose
+  platform says `exec` over telnet, which has no exec, is refused at planning
+  with `channel_exec_over_telnet`. An eighth built-in, `linux_shell`, is `linux`
+  on the shell channel with `linux` as its base, so it is admitted wherever
+  `linux` is and its records name `linux_shell`. The platform field
+  `control-master`, read by nothing, is removed: a table that sets it is refused
+  as `config_unknown_key`, and `config_platform_control_master_not_boolean` is
+  retired. The configuration registry moves to 25.
 - **A platform's `fallback`, and the operator's own keys for servers.** What
   follows a credential policy's backends is the platform's `fallback`, an
   ordered list of `netvars` (`NETUSER`, `NETPASS`, `NETENABLE`), `keys`, and
-  `prompt`: the network built-ins and `generic` are `["netvars", "prompt"]`, as
-  before; `linux` and `linux_shell` are `["keys"]`, so the variables an operator
-  exports for routers no longer reach a server (a site that wants them writes
+  `prompt` (another word, or one twice, is `config_platform_fallback_invalid`):
+  the network built-ins and `generic` are `["netvars", "prompt"]`, as before;
+  `linux` and `linux_shell` are `["keys"]`, so the variables an operator exports
+  for routers no longer reach a server (a site that wants them writes
   `[platform.linux] fallback = ["netvars", "keys"]`). `keys` is the operator's
   login name and the files of the new `ssh.identities`, by default
-  `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`, judged at planning: a
-  file that is not the operator's own, has group or other access, holds a
-  passphrase, or is hardware-backed is skipped with the notice
+  `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`, each an absolute path
+  or one beginning with `~/` (`config_ssh_identities_invalid` otherwise), judged
+  at planning: a file that is not the operator's own, has group or other access,
+  holds a passphrase, or is hardware-backed is skipped with the notice
   `operator_key_skipped`, and with none left the device fails with
   `credential_operator_keys_missing` (exit 6). The credential
   (`builtin-operator-keys`) carries each key's path and fingerprint, never its
@@ -87,22 +89,105 @@
   transports ask the far end for no size; a space the device wrote is kept on
   an inner line. Records and their digests move wherever a device sent such
   bytes; the IOS XE fake sends none, and its records are unchanged.
-- **A recorded login's transcript is the text the terminal showed.** It had
-  been the bytes the terminal was sent, colours, window titles, and the line
-  editor's controls included, so a word corrected with two backspaces read
-  `echo helolo` once the controls were deleted. At the session's end `login
-  --record` now removes `script(1)`'s two lines and renders the rest before the
-  metadata's digest: the corrections applied, colours, titles, and terminal
-  modes dropped, a line longer than the terminal one line, every line ending
-  in a newline with no carriage return. The widths come from `script(1)`'s
-  timing log (`-T FILE -m advanced`, the scratch's `karvi-script-*.timing`,
-  removed after). No raw copy is kept; a session killed before its end keeps
-  its bytes as `script(1)` wrote them. The runbook gains row D16, IOS XE's
-  line editor in a recorded login, done by hand.
-- **The fake device is `karvi-fake-device`.** The test fixture's package is
-  `internal/fakedevice` and its command `cmd/karvi-fake-device`, renamed from
-  `fakeiosxe` and `karvi-fake-iosxe` before it gains a Linux persona; it still
-  answers as IOS XE, and the suites' device `fake-iosxe` keeps its name.
+- **A recorded login's transcript is the text the terminal showed.** It had been
+  the bytes the terminal was sent, colours, window titles, and the line editor's
+  controls included, so a word corrected with two backspaces read `echo helolo`
+  once the controls were deleted. At the session's end `login --record` now
+  removes `script(1)`'s two lines and renders the rest before the metadata's
+  digest: the corrections applied, colours, titles, and terminal modes dropped,
+  a line longer than the terminal one line, every line ending in a newline with
+  no carriage return. The widths come from `script(1)`'s timing log (`-T FILE -m
+  advanced`, the scratch's `karvi-script-*.timing`, removed after). A timing log
+  that cannot be read leaves the transcript rendered at the starting columns,
+  under the notice `transcript_timing_unreadable`. No raw copy is kept; a
+  session killed before its end keeps its bytes as `script(1)` wrote them. The
+  runbook gains row D16, IOS XE's line editor in a recorded login, done by hand.
+- **The fake device is `karvi-fake-device`, with a Linux persona.** The test
+  fixture's package is `internal/fakedevice` and its command
+  `cmd/karvi-fake-device`, renamed from `fakeiosxe` and `karvi-fake-iosxe`; the
+  IOS XE persona stays the default, and the suites' device `fake-iosxe` keeps
+  its name. `-persona linux` answers exec requests from a fixed table (the
+  servers' collection list, `fail N`, `both`, `big` and `bigerr`, `slow`,
+  `signal TERM`, `nostatus`, `sudo -n id -u`, and `sh`'s not-found message with
+  exit 127 for any other command) and has a shell for `linux_shell`
+  (`netops@fake:~$`, bash's decorations under `-decorations`); `-sudo-asks`
+  makes `sudo -n` refuse. Its standard error adds `signal: NAME`, `left running:
+  "LINE"`, and a closing `channels=N` line beside the unchanged `connections=`
+  line.
+- **Command record schema 3: every record's channel, an exec command's exit and
+  stderr.** Every record carries `channel` (`shell` or `exec`); an exec record
+  adds `exit_status`, `exit_signal` (the signal's name, `unnamed` where the
+  transport gives none), and `stderr` with `stderr_encoding`, `stderr_bytes`,
+  and `stderr_sha256`, the stream spooled past `output.spool-threshold-bytes` as
+  `output` is. On a shell record the new fields are null; on an exec record a
+  null `stderr` says the command did not run (its channel never opened, or the
+  device refused the exec request), an empty one that it wrote nothing there,
+  and `prompt_source` is the new value `none`. A consumer that checks
+  `schema_version` reads 3, and every line of `commands.jsonl` gains the null
+  fields; the daemon IPC schema stays 10. A record that breaks the new fields'
+  rules is `record_channel_invalid` or `record_stderr_encoding_invalid`.
+- **The exec channel, on both transports.** A target whose platform's `channel`
+  is `exec` gets one connection for its command list and one exec channel per
+  command, without a pty, with standard input at its end, and with no prompt,
+  privilege step, paging command, or exit command. Exit 0 is `succeeded`
+  whatever stderr holds; a non-zero exit is `command_exit_nonzero`, a signal
+  `command_exit_signal`, and a channel closed without a status on a live
+  connection `command_exit_missing`, each a device error (exit 107); a device
+  that refuses the channel or the exec request is `ssh_session_channel_refused`,
+  and its session ends. A command timeout, a cancel, and the output limit
+  (stdout and stderr counted together) stop the command, and the connection
+  serves the next under the device-error policy. Blind sends, `\r` endings,
+  `--blind-return`, and `--expect` are refused at planning for an exec target
+  (`channel_exec_declaration_refused`, exit 4), by the client and the daemon's
+  plan check alike. On `scrapligo-v1` each command is a session channel on
+  karvi's connection, and a command given up is asked to end with `KILL`. On
+  `system` the connection is an OpenSSH ControlMaster (`ssh -M -N`, the client's
+  child for `command` and the daemon's for `run`, started with a death signal)
+  and each command an `ssh -S` client of it at `LogLevel QUIET` with
+  `ProxyCommand false`; the master runs at `LogLevel DEBUG1`, its stderr read
+  for the method that authenticated, each command's exit status or signal, and a
+  refused exec request. OpenSSH names no signal, so `exit_signal` is `unnamed`
+  there, and its client cannot ask the device to end a command, so a command
+  given up carries the notice `remote_command_not_stopped` and may still be
+  running. A master not ready within the login's bound is
+  `command_session_prompt_timeout`, its cause naming the master's `-O check`.
+- **The control sockets' place.** `ssh.control-path-root`, read by nothing
+  before, holds the exec masters' sockets: `/dev/shm/karvi/<user>/sockets` where
+  the site's scratch root exists, else `<basedir>/socket/ssh`, one
+  16-hex-character name per device session, removed when the session ends. `~`
+  in the key is the home the password database names, where it had been
+  `basedir`'s grandparent. A root longer than 73 bytes, which OpenSSH's socket
+  path cannot hold, is `control_path_root_too_long` (exit 2) at planning for an
+  exec target over `system`. A socket a killed master left is removed at the
+  daemon's start and at each job's admission, only a name karvi makes and only
+  when nothing answers, logged `control_socket_abandoned_removed`.
+- **Built-in `linux` runs on the exec channel.** A `linux` target's commands run
+  as exec commands on both transports, each with its exit status and its stderr
+  apart: `ls /nonexistent` is `command_exit_nonzero` (exit 107) where the shell
+  had recorded `succeeded` with bash's bracketed-paste switches, the window
+  title, and the login shell's aliases in the output. A server that refuses exec
+  requests takes `linux_shell`, which keeps the shell. `docs/OPERATIONS.md`
+  gains "Linux servers", and `docs/COMMAND-SESSION.md` "The exec channel".
+- **A server's collection.** `linux` and `linux_shell` carry a built-in
+  `crun-commands`: `cat /etc/os-release`, `uname -snrm`, `ip -br address`, `ip
+  route show table all`, and `systemctl list-unit-files --state=enabled
+  --no-pager --no-legend`, so `crun` over a fleet with servers no longer refuses
+  them with `crun_platform_commands_missing`. Under exec a block is the
+  command's stdout, then its stderr; a non-zero exit leaves its error text in
+  the block and the file is replaced, the status kept in the record.
+  `docs/COLLECTION.md` gains section 2.1, the servers.
+- **The parity suite covers the exec channel.** `scripts/native-smoke-test.sh`
+  runs S35a to S35f over the fake's Linux persona (each way a command ends, the
+  output limit, both spools, a refused `sudo`, a refused exec request, and a
+  `linux_shell` row with bash's decorations). `tools/paritycheck -pin
+  N.PATH=TRANSPORT:JSON;…` states a difference between the transports by design,
+  checked in every stream and left out of the comparison: the exec cases pin
+  `exit_signal` and the notice `remote_command_not_stopped`.
+- **A production server's qualification rows.**
+  `docs/DEVICE-QUALIFICATION-RUNBOOK.md` gains section 9, rows L1 to L6 run by
+  hand against one server of each kind: the server's SSH, the exec records on
+  four streams, `sudo -n`, a command given up and what it left, the collection,
+  and `linux_shell`.
 
 ## 0.26.0 - 2026-10-04
 
