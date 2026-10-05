@@ -3863,3 +3863,64 @@ operator's own `sleep 32`.
 IOS XE commands; the section placed before the existing ones (their anchors
 are linked); rows labelled S, as the parity suite's cases are; the sockets
 under the evidence path.
+
+**Executed after section 10.** The executor's `device command complete`
+debug line printed the result's `prompt_source`, which an exec command leaves
+empty, while its record says `none`, set after the line's value was taken. It
+prints the record's now. `karvi --debug command srv1 --cmd 'id -un'` to this
+host, over both transports alike:
+
+```text
+98dae16:     device command complete target="srv1" index=1 status=succeeded error_code="" output_bytes=7 prompt_source=""
+this build:  device command complete target="srv1" index=1 status=succeeded error_code="" output_bytes=7 prompt_source="none"
+```
+
+`bast1` over the shell reads `observed`, as before. `karvi version` still
+reported command record schema 2 and registry schema 24, though `2cccab0` and
+`20ae678` had moved them to 3 and 25: its counters are constants in
+`internal/buildinfo`, and nothing tied them to the packages that own the
+schemas. They read 3 and 25, both verifiers expect them, and a test ties each
+counter to its owner (`records` for the command record, the scoreboard, the
+audit, and the job; `configschema` for the configuration and the registry;
+the daemon IPC's own test in `internal/ipc` already did). Against the old
+constants the test fails on those two. README's counters for the tree read
+registry 25 and execution plan 11.
+
+At N=32 against `98dae16`'s build, alternating, the daemon's peak in MB:
+
+| Channel and transport | `98dae16` | This build |
+|---|---|---|
+| exec on `system` | 70, 62, 71, 77 | 73, 72, 71, 77 |
+| exec on `scrapligo-v1` | 78, 65, 76, 70 | 98, 78, 76, 80 |
+| the shell on `system` | 90, 85 | 69, 76 |
+| the shell on `scrapligo-v1` | 156, 194 | 149, 183 |
+
+Exec read higher on this build in the first two rounds, so two more ran, exec
+alone with this build first: level. The spread is the runs' own (8b's exec on
+`scrapligo-v1` spanned 76 to 95), and the change, one argument of a debug line,
+cannot move memory. Every run passed its accounting: 32 records succeeded, every
+output 5,256,000 bytes, the spool empty after. Verification: gofmt, vet, every
+Go test, `make generated-clean`, and the seventeen suites on the lab build
+(22:36:10 to 22:39:50 UTC), the canary's scan finding nothing, the released
+`bin/` unchanged.
+
+**Built**, each section committed on the operator's word: the design
+(`ae1d059` to `461fcb1`, with `bc80916` the `env` backend as the code reads
+it); the fake renamed (`7092ee1`); terminal text rendered as the terminal
+showed it (`e875c22`, `3a01fc7`, `76d9136`, and the decisions `343910b`,
+`f4e4bfa`, `1874675`); the platform's `channel`, `linux_shell`, and the plan's
+schema 11 (`20ae678`); the platform's fallback and the operator's keys
+(`e4d82f9`, `b31dcf7`, `fc8585a`) and the method that authenticated
+(`f53ccb9`); the fake's Linux persona (`e222067`); record schema 3
+(`2cccab0`); exec on `scrapligo-v1` (`d6400c1`), the control socket's place
+(`202a992`), and exec on `system` (`585c841`); built-in `linux` on exec
+(`05664da`); a server's collection (`9ca3808`); the parity run over exec
+(`0075248`); the runbook's rows for a production server (`4086ba7`); the
+documents (`6f89387`, `b9c32b8`) and CHANGELOG (`98dae16`); and section 10's
+last part, the debug line, the counters, and this close.
+
+**Found on the way.** The qualification script's `statuses()` took every
+`"status"` in a stream, the job summary's `recovery.status` among them, so D7
+j1 failed on both transports; it reads the records alone (`897390f`). A
+refused exec request on `system` recorded an empty `stderr` where it never
+ran (10a). `karvi version`'s two counters, above.

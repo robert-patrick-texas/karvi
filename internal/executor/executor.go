@@ -641,7 +641,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		if record.Error != nil {
 			errorCode = record.Error.Code
 		}
-		e.debugf("device command complete target=%q%s index=%d status=%s error_code=%q output_bytes=%d elapsed=%s prompt_source=%q", d.CanonicalName, st.debugKind(), st.index+1, status, errorCode, outputBytes, responseDur, r.PromptSource)
+		e.debugf("device command complete target=%q%s index=%d status=%s error_code=%q output_bytes=%d elapsed=%s prompt_source=%q", d.CanonicalName, st.debugKind(), st.index+1, status, errorCode, outputBytes, responseDur, record.PromptSource)
 		if status == "succeeded" {
 			if driver.Usable() || i == len(seq.steps)-1 {
 				continue
