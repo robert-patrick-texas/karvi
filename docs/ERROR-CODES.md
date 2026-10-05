@@ -39,7 +39,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.
 | 104 | `ExitWaveGateErrorCount` | A wave job stopped between waves at the gate's count (dispatch.wave-gate-error-count). |
 | 105 | `ExitWaveGateErrorPercent` | A wave job stopped between waves at the gate's percent (dispatch.wave-gate-error-percent). |
 | 106 | `ExitShutdownIncomplete` | The daemon stopped before the job ended, or a stop did not finish in time. |
-| 107 | `ExitDeviceFailure` | The device refused a command, a command or the device timed out, or the session's set-up failed. |
+| 107 | `ExitDeviceFailure` | The device refused a command, a command exited with a failure status or a signal, a command or the device timed out, or the session's set-up failed. |
 | 108 | `ExitAuthenticationFailure` | The device refused the login. |
 | 109 | `ExitHostKeyFailure` | The device's host key was refused, or the trust store could not be used. |
 | 110 | `ExitConnectionFailure` | A connection to a device or to the daemon failed or was lost. |

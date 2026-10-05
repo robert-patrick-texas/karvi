@@ -58,7 +58,7 @@ var Statuses = []Status{
 	{ExitWaveGateErrorCount, "ExitWaveGateErrorCount", "A wave job stopped between waves at the gate's count (dispatch.wave-gate-error-count)."},
 	{ExitWaveGateErrorPercent, "ExitWaveGateErrorPercent", "A wave job stopped between waves at the gate's percent (dispatch.wave-gate-error-percent)."},
 	{ExitShutdownIncomplete, "ExitShutdownIncomplete", "The daemon stopped before the job ended, or a stop did not finish in time."},
-	{ExitDeviceFailure, "ExitDeviceFailure", "The device refused a command, a command or the device timed out, or the session's set-up failed."},
+	{ExitDeviceFailure, "ExitDeviceFailure", "The device refused a command, a command exited with a failure status or a signal, a command or the device timed out, or the session's set-up failed."},
 	{ExitAuthenticationFailure, "ExitAuthenticationFailure", "The device refused the login."},
 	{ExitHostKeyFailure, "ExitHostKeyFailure", "The device's host key was refused, or the trust store could not be used."},
 	{ExitConnectionFailure, "ExitConnectionFailure", "A connection to a device or to the daemon failed or was lost."},

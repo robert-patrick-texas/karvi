@@ -182,27 +182,30 @@ make deps            # optional on a connected host: download and verify
   pre-scan (`PrepareNative`, `InspectRemote`).
 - The tagged tests, `go vet`, and the race run MUST pass under
   `-mod=vendor`.
-- `karvi version --format json` MUST report configuration schema 6, command
-  record schema 2, daemon IPC schema 10, job schema 2, registry schema 22,
-  and both transport IDs; the text form's transport line is checked
-  verbatim.
-- **The parity suite** (`scripts/native-smoke-test.sh`) MUST pass:
-  twenty-six cases, each as `command` and
-  `run --no-daemon` over `system` and `scrapligo-v1` (S1 through the daemon
-  as well), against the fake device built from the tree into the
-  suite's work directory with its own trust store, base directory, and
-  `HOME`. `tools/paritycheck` compares every requested-command record path
-  by path, excluding only `record_id`, `job_id`, `activity_id`,
-  `activity_type`, `candidate_count`, `credential.credential_id`,
-  `timing.*`, `transport`, and `error.message` for a failure at open, with
-  the observed count in the output-limit message normalised; a new record
-  field is compared until excluded on purpose. The suite also asserts the
-  records' count, each case's statuses and codes, the lines the fake
-  received equal across the four combinations, one connection and one
-  session per combination, the activity's exit status, that the operator's
-  trust store is unchanged, and that no fake and no daemon is left running.
-  `make native-smoke` runs it alone after `make build`; `ONLY=S21` selects
-  one case.
+- `karvi version --format json` MUST report the schema counters the
+  verifiers check (configuration, command record, daemon IPC, job, and
+  registry) and both transport IDs; the text form's transport line is
+  checked verbatim.
+- **The parity suite** (`scripts/native-smoke-test.sh`) MUST pass: every
+  case the script lists, each as `command` and `run --no-daemon` over
+  `system` and `scrapligo-v1` (S1 through the daemon as well), against the
+  fake device built from the tree into the suite's work directory with its
+  own trust store, base directory, and `HOME`: its IOS XE persona, and its
+  Linux persona for the exec channel and `linux_shell` (S35).
+  `tools/paritycheck` compares every requested-command record path by path,
+  excluding only `record_id`, `job_id`, `activity_id`, `activity_type`,
+  `candidate_count`, `credential.credential_id`, `timing.*`, `transport`,
+  and `error.message` for a failure at open, with the observed count in the
+  output-limit message normalised; a new record field is compared until
+  excluded on purpose, and a difference by design between the transports is
+  pinned per transport (`-pin`: the exec channel's `exit_signal` and the
+  notice `remote_command_not_stopped`), checked in every stream. The suite
+  also asserts the records' count, each case's statuses and codes, the lines
+  the fake received equal across the four combinations, one connection per
+  combination with one shell or a channel per command, the activity's exit
+  status, that the operator's trust store is unchanged, and that no fake and
+  no daemon is left running. `make native-smoke` runs it alone after `make
+  build`; `ONLY=S21` selects one case.
 
 A passing verifier qualifies the executable, not native production use:
 [`docs/CISCO-IOSXE-QUALIFICATION.md`](CISCO-IOSXE-QUALIFICATION.md) holds the

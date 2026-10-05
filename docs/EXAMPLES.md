@@ -2687,7 +2687,7 @@ folder inherits the setgid bit and the operators' group from
    the level.
 
 The document states both as they are ([`docs/FILES.md`, section
-5](FILES.md#5-places-made-and-not-used)); what to do with them waits on the
+5](FILES.md#5-a-setting-with-no-use)); what to do with them waits on the
 operator's word.
 
 **Not taken.** A section of OPERATIONS in place of a document: the guide

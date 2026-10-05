@@ -255,7 +255,8 @@ Options are recognized before the device and between the device and the first
 device command word. Once device text begins, karvi recognizes no options,
 abbreviations, --, or help flags: "command r1 show clock --echo" sends
 "show clock --echo". All commands use one authenticated SSH session and
-execute sequentially; OpenSSH connection reuse is disabled.
+execute sequentially, on its shell or, for an exec platform (linux), on an exec
+channel each; no connection outlives the device's session.
 `
 
 // crunHelpText is run's help under the crun word: the usage

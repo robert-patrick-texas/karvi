@@ -322,6 +322,62 @@ unit keeps a daemon through logout there.
 places, its filtered environment, and the idle exit for the terminal; a
 change to one changes both.
 
+## Linux servers
+
+A server is the built-in `linux`, an alias of it, or `linux_shell`. `linux`
+runs each command on an exec channel of its own over either transport: one
+connection per server for its command list, each command's exit status its
+verdict, stdout and stderr recorded apart
+([`docs/COMMAND-SESSION.md`, "The exec
+channel"](COMMAND-SESSION.md#the-exec-channel)). `linux_shell` is the same
+platform over the interactive shell, for a server that refuses exec requests
+(`ssh_session_channel_refused` under `linux`): its records carry no exit
+status, so a failed command is recorded as a success. An inventory row names
+either; a `[platform.NAME]` table with `driver = "linux"` gives a class of
+servers its own caps, port, fallback, or collection list
+([`docs/COLLECTION.md`, section
+2.1](COLLECTION.md#21-servers-linux-and-linux_shell)). A server's credential
+is the operator's own keys unless the site says otherwise ([the platform's
+fallback](#the-platforms-fallback-and-the-operators-keys)).
+
+**A failed command.** A non-zero exit is `command_exit_nonzero` (exit 107), a
+signal `command_exit_signal`, and a channel closed without a status
+`command_exit_missing`; each is a device error, so the device's later
+commands are not attempted unless `--continue-device-on-error`, and a command
+that may fail on purpose says so (`grep … || true`). A command that needs root
+is written `sudo -n …`: where `sudo` wants a password it is refused at once,
+`command_exit_nonzero` with `sudo`'s message in `stderr`, and never waits.
+
+**A command given up.** At its command timeout, a cancel, or the output limit,
+`scrapligo-v1` asks the server to end the command before closing its channel.
+The system transport's OpenSSH client cannot ask, so the record carries the
+notice `remote_command_not_stopped` and the command may still be running on
+the server, its parent pid 1; a later command finds it (`ps -eo
+pid,etime,args`) if it matters. In both cases the connection serves the next
+command.
+
+**The control sockets.** Over `system` each `linux` server's connection is an
+OpenSSH ControlMaster, the client's child for `command` and the daemon's for
+`run`, with a socket in `ssh.control-path-root`:
+`/dev/shm/karvi/<user>/sockets` where the site's scratch root exists, else
+`<basedir>/socket/ssh`, one 16-hex-character name per device session, removed
+when the session ends. The root may be at most 73 bytes, so that a socket's
+path fits OpenSSH's limit; a longer one stops each exec target at planning with
+`control_path_root_too_long` (exit 2), naming the root and its length. `~` in
+the root is the home the password database names. A master killed outright
+leaves its socket; the next daemon start and the next job's admission remove
+it, only a name karvi makes and only when nothing answers, logged in
+`daemon.log` and under `--debug`:
+
+```text
+time=… level=INFO msg="removed the abandoned control socket" code=control_socket_abandoned_removed path=/home/netops/.local/share/karvi/socket/ssh/fedcba9876543210
+DEBUG control_socket_abandoned_removed: removed the abandoned control socket /home/netops/.local/share/karvi/socket/ssh/0123456789abcdef
+```
+
+A server is qualified by the rows of
+[`docs/DEVICE-QUALIFICATION-RUNBOOK.md`, section
+9](DEVICE-QUALIFICATION-RUNBOOK.md#9-a-production-server).
+
 ## The platform's fallback and the operator's keys
 
 When no backend of the policy answers for a device, its platform's
@@ -550,8 +606,8 @@ only when a terminal trailing separator is operationally useful.
 
 When investigating CLI syntax or privilege errors, enable `--echo`. The prompt
 and command are displayed for success and device-reported errors. Debug output
-remains secret-safe and excludes raw command text; capture stdout and stderr
-separately when opening a support issue.
+holds no secret and no device output, and shows each command once, as the plan
+holds it; capture stdout and stderr separately when opening a support issue.
 
 ## Start statements for generic devices
 
@@ -712,7 +768,9 @@ at that interval while any activity runs, so a login or a quiet command is
 not shown stale. A spool left by a process that died mid-command is
 removed at the daemon's next start and at the next job's admission, and
 logged `spool_abandoned_removed`; a file in `spooldir` of another shape is
-never touched. A followed record whose line is larger than
+never touched. A control socket a killed master left is swept at the same two
+moments, logged `control_socket_abandoned_removed` ([Linux
+servers](#linux-servers)). A followed record whose line is larger than
 `daemon.max-ipc-frame-bytes` allows, or one spooled in a job that keeps no
 `commands.jsonl`, reaches the follower with its output left out and the
 notice `follow_output_omitted` saying where the output is.

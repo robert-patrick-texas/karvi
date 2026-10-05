@@ -273,7 +273,7 @@ them is the roadmap's first item ([`ROADMAP.md`](../ROADMAP.md)). The cron
 script `karvi-crun` holds a lock at `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`
 (`KARVI_CRUN_LOCK`) for the length of a collection.
 
-## 5. Places made and not used
+## 5. A setting with no use
 
 One setting has a value and no use in this release:
 
