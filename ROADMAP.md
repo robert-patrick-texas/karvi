@@ -50,6 +50,25 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   every backend type's keys by type; one environment-indirection helper for
   the env, Redis, Vault, and CSV backends; in the shared tabular reader, an
   explicit mapping outranking a field's own header.
+- **A credential helper executable.** A configured executable, a site's
+  script in any language, that karvi runs and whose standard output sets
+  values for its own use: a line `export NETUSER="xxx"` puts `NETUSER` into
+  karvi's credential environment as if the operator had exported it, for the
+  `NET*` fallback, an `env` backend's templates, or the token a `vault` or
+  `redis` backend reads from the environment. The questions: when it runs
+  (once per invocation in the client, before resolution, or per device with
+  the device's name); which names it may set (the credential names alone, or
+  any a backend reads); the grammar of its output, parsed and never evaluated
+  by a shell (`export NAME="value"` and `NAME=value`, the double-quoted form's
+  escapes, anything else refused naming the line number and never the line);
+  its value held as a secret from the read on and never put into the process
+  environment a child such as `ssh` inherits; the executable's own checks as a
+  credential file's (an absolute path, the owner, the mode, no symlink); its
+  environment, timeout, standard error (not echoed, since it may hold a
+  secret), and a non-zero exit as a failure with its own code; whether the
+  daemon may run it for an unattended job, where no prompt can; and how it
+  relates to the environment-indirection helper above and to the helper
+  protocols operators know (git's credential helpers, `SSH_ASKPASS`).
 - **A review of every digest.** No digest over an output that does not
   declare one as required for its consumption. The review lists each digest
   the program computes or records with who computes it, who reads it, and

@@ -495,6 +495,40 @@ ended. *Not taken:* asking again after an empty answer; a generic code for
 the three ways a prompt ends (each is its own cause); Ctrl-D as an
 interrupt (it is the input's end, as everywhere else).
 
+**A server's credential is a backend's or its platform's fallback, and a key is
+a file.** Servers take policies and backends as routers do, a policy map rule
+selecting by platform. A credential is a username with a password, a key, or
+both: the operator's username and the operator's own `~/.ssh/id_*` keys; a
+username and a password; a username and a key file a backend row names (a
+credential CSV column `keyfile`, the row's selectors assigning the key to one
+server or many, first match winning); or a key and a password, offered as the
+server asks, the key first and the password on partial success. A key is a
+reference to its file, never its bytes: the plan, the credential package, and
+the records carry its path and its SHA-256 fingerprint, the process that
+connects (`ssh`, or the native adapter, both the operator's) reads the file at
+the connection, and a `keyfile` passes the credential file checks (the owner,
+`0600`, no symlink). A key protected by a passphrase is skipped with a notice,
+never prompted for and never offered to the askpass helper; passphrases are
+later work. What follows the policy's backends is the platform's `fallback`,
+an ordered list of `netvars` (`NETUSER`, `NETPASS`, `NETENABLE`), `keys` (the
+operator's username and keys), and `prompt` (the terminal prompts): the
+network built-ins and `generic` are `["netvars", "prompt"]`, `linux` and
+`linux_shell` `["keys"]`, a platform that leaves the field unset `["netvars",
+"prompt"]`, and an empty list no fallback; a site that lets the variables serve
+its servers writes `[platform.linux] fallback = ["netvars", "keys"]`. For a
+Linux server the enable field is the `sudo` password. Whether keys are offered
+is the credential's, and `ssh.pubkey-authentication` is removed: a credential
+with a key offers it, one without offers none, and a server whose credential
+has no password needs none. *Why:* the production fleet needs all four forms,
+and a backend's rows already map a credential to devices; a key's bytes copied
+into a package would be one more copy of the most valuable secret, while the
+daemon runs as the operator and reads the file itself; the variables an
+operator exports for routers must not reach servers unasked, and a platform
+table already holds a class of devices' settings. *Not taken:* a key's bytes
+in the credential package; two boolean fields in place of `fallback`; the map
+matching base drivers (every existing alias would change policy); `ssh-agent`
+in the first build (it follows the key files as a `keys` source).
+
 **The credential CSV has its own guide.**
 [`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md) is the text an operator works from
 with the file open; the shared file rules stay in OPERATIONS with a table saying

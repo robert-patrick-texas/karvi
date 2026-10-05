@@ -3116,3 +3116,54 @@ measured at width (N=32) before it is committed.
 
 **Not taken.** stderr folded into `output`; a pty under exec; a non-zero exit
 as a success with a notice; a new status; accepted exit codes per command.
+
+**The fleet's facts, from the operator.** The production fleet needs four
+ways to authenticate: (1) the operator's own `~/.ssh/id_*` keys and no
+password; (2) a username and a password, as for routers and switches; (3) a
+key file mapped to one or more servers through a credential profile; (4) a key
+and a password. (5) A key's passphrase is later work. Authentication stays as
+flexible as for routers, with servers mapped to credential backends the same
+way. The fallbacks: by default `NETUSER`, `NETPASS`, and `NETENABLE` serve no
+Linux server; an option lets `NETUSER` and `NETPASS` serve them, with
+`NETENABLE` as the `sudo` password when `NETSUDO` is not set; with no other
+credential, the operator's username and `~/.ssh/id_*` keys are tried; and
+where `sudo` needs a password, `NETSUDO` is tried. The first build is (1),
+with `sudo` needing no password, as on this host (`sudo -n true` succeeds);
+the rest follow. A credential helper executable (a script whose `export
+NAME="value"` lines set karvi's credential environment) went to the roadmap
+at the operator's word ([`ROADMAP.md`](../ROADMAP.md), "A credential helper
+executable").
+
+**Executed: credentials today.** A policy map rule `platform = "linux"` sent
+`srv1` to a `servers` policy; `app1`, an alias with `driver = "linux"`, fell
+to `default` (a rule matches the platform's name), and `platform = "app*"`
+took it. The `env` backend fills `%s` with the operator's login name, case
+kept: `SRV_netops_USER` answered for `srv1` and `SRV_SRV1_USER` did not, while
+`examples/config.toml` said the device's name upper-cased; with one of its
+variables set it answers, and a password it lacks is
+`credential_password_missing`, no later source asked. The documents now
+describe it as the code does ([`docs/OPERATIONS.md`, "The environment
+backend"](OPERATIONS.md#the-environment-backend)).
+
+**Issue 5 is split.** 5a is the shape of the four ways; 5b the first build,
+the operator's keys.
+
+**Issue 5a, agreed.** Servers take policies and backends as routers do. A
+credential is a username with a password, a key, or both: the operator's keys
+(1), a password (2), a key file a credential CSV row names in a new `keyfile`
+column, its selectors assigning the key to one server or many (3), or a key
+and a password, the key first and the password on partial success (4). A key
+is a reference to its file, never its bytes: the plan, the package, and the
+records carry its path and SHA-256 fingerprint, the connecting process reads
+the file, and a `keyfile` passes the credential file checks. A key with a
+passphrase is skipped with a notice. After the backends comes the platform's
+`fallback`, an ordered list of `netvars`, `keys`, and `prompt`: the network
+built-ins and `generic` `["netvars", "prompt"]` (today's), `linux` and
+`linux_shell` `["keys"]`, an unset field `["netvars", "prompt"]`; the
+operator's option is `[platform.linux] fallback = ["netvars", "keys"]`. For a
+Linux server the enable field is the `sudo` password (`NETSUDO`, issue 7).
+`ssh.pubkey-authentication` is removed: a credential with a key offers it, one
+without offers none.
+
+**Not taken.** A key's bytes in the credential package; two booleans in place
+of `fallback`; the map matching base drivers; `ssh-agent` in the first build.
