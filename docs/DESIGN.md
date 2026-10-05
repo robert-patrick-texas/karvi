@@ -631,6 +631,40 @@ and the commands on one master run one at a time; OpenSSH's `%C` name spends
 across jobs; exec on `scrapligo-v1` alone (the operator's framing names the
 control path, and the parity run needs both transports); the `%C` name.
 
+**An exec command keeps the session's bounds, not its shell.** There is no
+first prompt: the session is ready when the connection has authenticated
+(`scrapligo-v1`) or the master answers `-O check` (`system`), within
+`ssh.connect-timeout` and `execution.prompt-timeout`, the bound a shell's login
+has. No privilege step, paging command, or exit command is sent, an operator's
+exec alias of a network driver included. A session-init profile runs, each
+command on its own channel with the same records and `on-error` policy, a
+precondition and nothing it sets carrying; no state carries between commands
+(`cd`, variables, `umask`), and the remote shell is not interactive. Blind
+sends, `\r` endings, `--blind-return`, and `--expect` are refused at planning
+for an exec target, naming the target and the command's index; `--literal` is
+accepted. `execution.command-timeout` runs from the channel's opening to its
+exit status; at expiry `scrapligo-v1` asks for `KILL` and closes the channel,
+and `system`, whose client cannot send a signal, kills the client and records
+the notice `remote_command_not_stopped`. A command timeout falls under the
+device-error policy, the connection being usable: the rest stop unless
+`--continue-device-on-error`. `execution.device-timeout`, the keepalives, and a
+cancel are as for the shell (`scrapligo-v1` asking for `KILL` on the channel in
+flight); `execution.blind-wait` is not used. The output limit counts stdout and
+stderr together, and each stream is spooled past the threshold on its own.
+`--sudo` reaches a shell too: karvi types `sudo -p '<prompt>' -- sh -c
+'<command>'` without `-S`, so `sudo` reads the terminal with its echo off, and
+answers after the prompt as on exec. *Why:* a channel without a terminal has
+nothing to page, escalate, or log out of; a declaration that answers a terminal
+cannot be honoured, and one dropped would let the operator believe a
+confirmation was answered; on a shell a timeout desynchronises the session,
+while a closed channel leaves the connection serving the next command
+(executed on both transports), and closing a channel leaves the server's
+command running unless a signal is asked for (`sleep 31` stayed, `sleep 32`
+went). *Not taken:* the declarations dropped for exec targets; a command
+timeout ending the device under every setting; a pty so that closing it hangs
+up the command; a remote watchdog (`timeout N …`) wrapped around each command
+on `system`.
+
 **The platform definition is the authority for privilege and paging.** Every
 built-in carries its privilege levels, prompt pattern, failure patterns, paging
 commands, and exit commands as compiled data; the session validates the

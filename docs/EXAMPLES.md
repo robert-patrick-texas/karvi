@@ -3275,3 +3275,29 @@ keeps `--expect`.
 
 **Not taken.** A password written blindly; rewriting a `sudo` the operator
 wrote; a pty for the prompt; `SUDO_ASKPASS`.
+
+**Executed: a command given up at its deadline.** Over x/crypto, a channel
+running `sleep 31` closed after a second left the command running on the
+server; a channel running `sleep 32` sent a `KILL` signal request first, and
+the command was gone; the connection then served `echo still-usable`. Over a
+ControlMaster, the `ssh` client running `sleep 47` killed after a second left
+the command running, and the master served the next command; OpenSSH's client
+cannot send a signal request. (The first probe's `pgrep -f` also listed the
+calling shell, whose command line held the pattern; the second ran from a
+script file. The leftover commands were ended.)
+
+**Issue 8, agreed.** Under exec there is no first prompt (ready at
+authentication or at the master's `-O check`, within the login's bound), and
+no privilege step, paging, or exit commands. Session-init runs, a command per
+channel, nothing carrying; no state carries between commands. Blind sends,
+`\r` endings, `--blind-return`, and `--expect` are refused at planning for
+exec targets; `--literal` is accepted. A command timeout: `scrapligo-v1` asks
+for `KILL` and closes the channel, `system` kills its client with the notice
+`remote_command_not_stopped`; it falls under the device-error policy, the
+connection being usable. The device timeout, keepalives, and cancel are
+unchanged; the output limit counts both streams, each spooled on its own.
+`--sudo` reaches `linux_shell` as `sudo -p` without `-S`, the terminal's echo
+off for the password.
+
+**Not taken.** The declarations dropped silently; a timeout ending the device
+under every setting; a pty to hang up a command; a remote watchdog.
