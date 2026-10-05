@@ -3831,3 +3831,35 @@ each four streams equal with the pins held; the `9ca3808` build fails S35f on
 record 0's six fields above. The pins are tested on their own: a wrong value,
 a transport the pin does not name, and a pin past the records are each a
 finding, and a `;` inside a value does not end it.
+
+**During the build: the runbook rows for a production server.** This host's
+OpenSSH stood in for the server, the lab build against it by the operator's
+key, with no backend: plain `ssh -v` read `OpenSSH_9.6p1`, `publickey,
+keyboard-interactive` offered, `using "publickey"`; `command` and `run
+--no-daemon` on both transports gave four equal streams (`uname -snrm`, a line
+to each stream, `ls /nonexistent` as `command_exit_nonzero` with its message
+in `stderr`, exit 107 and 101); `sleep 32` at a 2-second timeout was
+`command_timeout` on both and the connection served the next command, the
+notice on `system`, whose `sleep` was found running under pid 1 and ended,
+`scrapligo-v1` leaving none; three collections over both transports were
+byte-identical; `linux_shell` recorded every command `succeeded` with the
+prompt `netops@dev:~$`, the stderr line in the output, and `ls`'s failure as
+a success under the login shell's alias (`/usr/bin/ls`). The section's
+commands, run as written against this host, passed every row twice.
+
+**Agreed.** Section 9 of
+[`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](DEVICE-QUALIFICATION-RUNBOOK.md#9-a-production-server),
+"A production server", rows L1 to L6 by hand, each one line in `results.tsv`:
+the server's SSH and `sshd -T` (observe), the exec records on four streams,
+`sudo -n` (observe), a command given up and what it left, the collection, and
+`linux_shell` (observe). The trust store, the private root, and the
+configuration are under the evidence directory's `work/`; the scratch and the
+control sockets are in a short directory from `mktemp`, since a socket's path
+is bounded and an evidence path under a home may pass 73 bytes, removed at the
+end; what L4 left is found and ended through karvi, `pkill -u` limited to the
+operator's own `sleep 32`.
+
+**Not taken.** The rows in `scripts/device-qualification.sh`, whose rows send
+IOS XE commands; the section placed before the existing ones (their anchors
+are linked); rows labelled S, as the parity suite's cases are; the sockets
+under the evidence path.

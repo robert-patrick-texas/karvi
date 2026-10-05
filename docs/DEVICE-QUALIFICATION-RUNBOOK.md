@@ -11,6 +11,8 @@ software release.
 The script is checked against the fake IOS XE device before every lab run
 (`FAKE=1`, step 2): every row it sends to a device has first passed there,
 so a failure in the laboratory is the device's answer and not the script's.
+A production Linux server is qualified by hand, by the rows of [section
+9](#9-a-production-server).
 
 ## 1. What the run needs
 
@@ -298,3 +300,146 @@ script that breaks one is a defect:
    run has shown what a device does, and the check is written from that
    evidence, not from the fake or from reading the code.
 
+## 9. A production server
+
+The rows for a Linux server: the built-in `linux` over its exec channel on
+both transports, the collection, and `linux_shell` for a server that refuses
+exec. The suites run against the fake alone; these rows are a server's
+evidence, run by hand from the operator's own account against one server of
+each kind the fleet runs (a distribution, a release, its `sshd`
+configuration). Each row writes one line into `results.tsv` by hand, as D15
+does: `ROW  CHECK  pass|fail|observe  DETAIL`.
+
+### 9.1 What the rows need
+
+| Need | Notes |
+|---|---|
+| The server's inventory name, address, and SSH port | `SERVER`, `ADDRESS`; a port other than 22 is `ssh-port` in a `[platform.linux]` and a `[platform.linux_shell]` table added to the configuration |
+| An account the server takes by the operator's keys | `ssh.identities`, by default `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`; the username is the operator's login name. A server that takes a password instead: `NETUSER` and `NETPASS` in the environment and `fallback = ["netvars", "keys"]` in the same two tables |
+| The released executable as `karvi`, and `paritycheck` | `paritycheck` built in the unpacked bundle's directory after the set-up: `go build -mod=vendor -o "$E/work/paritycheck" ./tools/paritycheck` |
+
+What the rows do on the server: they run read-only commands, and one `sleep
+32` that L4 starts and ends. Nothing is written there and no configuration is
+sent. The trust store, the private root, and the configuration are under the
+evidence directory's `work/`; the scratch and the control sockets are in a
+short directory of their own, `S`, since a socket's path is bounded (the
+control sockets' directory at most 73 bytes), and it is removed at the end; the
+operator's own `~/.ssh` is never changed.
+
+### 9.2 The set-up
+
+```bash
+SERVER=srv-lab1 ADDRESS=192.0.2.20
+E=$PWD/karvi-server-$SERVER-$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -m 700 "$E" && cd "$E" && mkdir -m 700 work work/base work/kh L
+S=$(mktemp -d /tmp/karvi-L.XXXXXX)
+printf 'name,management_address,platform\n%s,%s,linux\n%s-shell,%s,linux_shell\n' \
+  "$SERVER" "$ADDRESS" "$SERVER" "$ADDRESS" >work/inv.csv
+cat >work/karvi.toml <<EOF
+basedir = "$E/work/base"
+sharedroot = "none"
+spooldir = "$E/work/spool"
+tempdir = "$S/tmp"
+
+[ssh]
+known-hosts-file = "$E/work/kh/known_hosts"
+host-key-policy = "accept-new"
+control-path-root = "$S/sockets"
+
+[execution]
+command-timeout = "2s"
+
+[audit]
+journald-required = false
+file = "$E/work/audit.jsonl"
+
+[[inventory-source]]
+type = "csv"
+path = "$E/work/inv.csv"
+name = "servers"
+EOF
+k() { karvi --config "$E/work/karvi.toml" "$@"; }
+```
+
+### 9.3 The rows
+
+| Row | Check | What is sent | Pass |
+|---|---|---|---|
+| L1 | the server's SSH | plain `ssh -v`; `sudo -n sshd -T` through karvi | observed: the server's OpenSSH, the methods it offers, the method that authenticated, `MaxSessions` where the account may read it |
+| L2 | exec records, on both transports | `command` and `run --no-daemon`, each over `system` and `scrapligo-v1`: `uname -snrm`, `echo out; echo err >&2`, `ls /nonexistent`, under `--continue-device-on-error` | `succeeded`, `succeeded` with `out` in `output` and `err` in `stderr`, `command_exit_nonzero` with `ls`'s message in `stderr`; exit 107 (`command`), 101 (`run`); `credential.auth` names the method; `paritycheck` finds the four streams equal; no socket left in `$S/sockets` |
+| L3 | `sudo -n` | `sudo -n id -u` | observed: `0`, or `command_exit_nonzero` with `sudo`'s message: whether a site's `sudo -n` commands run on this server |
+| L4 | a command given up | on each transport, `sleep 32` at the 2 s command timeout, then `echo still-usable`; then a look for what was left, and its end | `command_timeout`, then `succeeded`; `remote_command_not_stopped` on `system`'s first record and on no `scrapligo-v1` record; observed: `system` leaves `sleep 32` running (its parent pid 1) and `scrapligo-v1` leaves nothing |
+| L5 | the collection | `crun` with the built-in list twice, a minute apart, then once over `system` | each exit 0 with five blocks; the files identical but for what changed on the server between them |
+| L6 | the shell, for a server that refuses exec | L2's commands to `SERVER-shell` (`linux_shell`) | observed: exit 0, each record `succeeded` with the server's prompt in `prompt`, no escape byte in any output; `ls`'s failure recorded as a success and the login shell's aliases applied (the shell's limits); a server that refuses exec shows in L2 as `ssh_session_channel_refused` |
+
+```bash
+# L1: the server, karvi aside; then sshd's own settings, where allowed.
+ssh -F none -v -o BatchMode=yes -o UserKnownHostsFile="$E/work/kh/ssh" \
+  -o StrictHostKeyChecking=accept-new "$ADDRESS" true 2>L/L1.ssh.err
+grep -E 'remote software version|can continue|Authenticated to' L/L1.ssh.err
+k command "$SERVER" --cmd 'sudo -n sshd -T | grep -E "^(maxsessions|passwordauthentication|kbdinteractiveauthentication) "' \
+  >L/L1.sshd.out 2>&1
+
+# L2: four streams, one command list.
+set -- --format jsonl --continue-device-on-error --cmd 'uname -snrm' \
+  --cmd 'echo out; echo err >&2' --cmd 'ls /nonexistent'
+for t in system native; do
+  k command "$SERVER" --transport "$t" "$@" >L/L2.command.$t.out 2>L/L2.command.$t.err
+  echo $? >L/L2.command.$t.exit
+  k run --no-daemon --target "$SERVER" --transport "$t" "$@" >L/L2.run.$t.out 2>L/L2.run.$t.err
+  echo $? >L/L2.run.$t.exit
+done
+work/paritycheck -expect succeeded,succeeded,device_error:command_exit_nonzero \
+  L/L2.command.system.out L/L2.command.native.out L/L2.run.system.out L/L2.run.native.out
+ls -A "$S/sockets"
+
+# L3
+k command "$SERVER" --format jsonl --cmd 'sudo -n id -u' >L/L3.out 2>L/L3.err; echo $? >L/L3.exit
+
+# L4: given up at 2 s; what was left, and its end.
+for t in system native; do
+  k command "$SERVER" --transport "$t" --format jsonl --continue-device-on-error \
+    --cmd 'sleep 32' --cmd 'echo still-usable' >L/L4.$t.out 2>L/L4.$t.err
+  echo $? >L/L4.$t.exit
+  k command "$SERVER" --cmd "ps -eo pid,ppid,etime,args | grep '[s]leep 32' || echo none" >L/L4.$t.left 2>&1
+  k command "$SERVER" --cmd 'pkill -u "$(id -un)" -fx "sleep 32" || true' >/dev/null 2>&1
+done
+
+# L5: two collections a minute apart, then one over system.
+mkdir -m 770 L/L5.1 L/L5.2 L/L5.3
+k crun --target "$SERVER" --cd="$E/L/L5.1" >L/L5.1.out 2>&1; echo $? >L/L5.1.exit
+sleep 60
+k crun --target "$SERVER" --cd="$E/L/L5.2" >L/L5.2.out 2>&1; echo $? >L/L5.2.exit
+k crun --target "$SERVER" --transport system --cd="$E/L/L5.3" >L/L5.3.out 2>&1; echo $? >L/L5.3.exit
+k daemon stop
+diff L/L5.1/"$SERVER" L/L5.2/"$SERVER" >L/L5.diff12; diff L/L5.2/"$SERVER" L/L5.3/"$SERVER" >L/L5.diff23
+
+# L6
+k command "$SERVER-shell" "$@" >L/L6.out 2>L/L6.err; echo $? >L/L6.exit
+rmdir "$S/sockets" "$S/tmp" "$S"
+```
+
+Read each row's files against the table and write its line, for example `L2
+exec-records  pass  parity: 3 records equal in 4 streams`, `L4
+given-up  pass  system left 1 (ppid 1), scrapligo-v1 none`. A row that fails
+keeps its files, as section 7 says; a server that ends the rows with an
+`authentication_failed` or a `host_key_*` code is read in
+[`docs/COMMAND-TROUBLESHOOTING.md`](COMMAND-TROUBLESHOOTING.md) before
+anything else.
+
+### 9.4 The evidence
+
+```text
+karvi-server-srv-lab1-20261005T190000Z/
+  results.tsv      by hand: one line per row
+  L/               L1.ssh.err, L1.sshd.out; L2.<activity>.<transport>.out, .err, .exit;
+                   L3.*; L4.<transport>.out, .err, .exit, .left; L5.1/, L5.2/, L5.3/
+                   (the collection files), L5.*.out, .exit, L5.diff12, L5.diff23; L6.*
+  work/            karvi.toml, inv.csv, the trust store, base/ (the job folders,
+                   whose manifest.json holds each plan's digest), audit.jsonl
+```
+
+Host names, addresses, the account name, and the server's output are in the
+evidence in clear, as for a device; the collection holds the server's
+addresses, routes, and enabled units. The network operations and security
+owners review the directory before it leaves the host.
