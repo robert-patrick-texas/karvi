@@ -73,12 +73,32 @@ type Material interface {
 	Destroy()
 }
 
+// KeyRef names a private key by its file, never its bytes: the path the
+// connecting process reads and the SHA-256 fingerprint of its public key
+// as seen at planning (SHA256:..., OpenSSH's spelling).
+type KeyRef struct {
+	Path        string `json:"path"`
+	Fingerprint string `json:"fingerprint"`
+}
+
 type Credential struct {
 	Material     Material               `json:"-"`
 	Backend      string                 `json:"backend"`
 	MatchedOn    Match                  `json:"matched_on"`
 	Policy       string                 `json:"policy"`
 	FieldSources map[string]FieldSource `json:"field_sources"`
+	// Keys are the keys the credential offers, in order; a credential
+	// with keys needs no password.
+	Keys []KeyRef `json:"keys,omitempty"`
+}
+
+// Notice is a resolution notice about one device, carried to its first
+// record and shown by a dry run: the code, the operator message, and
+// string details that never hold a secret.
+type Notice struct {
+	Code    string
+	Message string
+	Details map[string]string
 }
 
 type ResolveRequest struct {
@@ -125,6 +145,7 @@ type Keyed interface {
 type Resolved struct {
 	Credential     Credential
 	DeviceUsername string // explicit safe projection used for accountability/audit
+	Notices        []Notice
 }
 
 type Resolver interface {

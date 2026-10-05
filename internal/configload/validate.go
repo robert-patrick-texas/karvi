@@ -67,8 +67,12 @@ func (l *loader) validate() error {
 	if err := l.validateTransportSyntax(); err != nil {
 		return err
 	}
-	if !l.snap.Bool("ssh.pubkey-authentication") && !l.snap.Bool("ssh.password-authentication") && !l.snap.Bool("ssh.keyboard-interactive-authentication") {
-		return l.semantic("config_ssh_auth_mechanisms_disabled", "ssh.password-authentication", "at least one SSH authentication mechanism must be enabled")
+	// The operator's keys are named, never globbed or searched for: an
+	// absolute path, or one under the home.
+	for _, path := range l.snap.Strings("ssh.identities") {
+		if !filepath.IsAbs(path) && !strings.HasPrefix(path, "~/") {
+			return l.semantic("config_ssh_identities_invalid", "ssh.identities", fmt.Sprintf("%q is neither an absolute path nor one beginning with ~/", path))
+		}
 	}
 	if l.snap.Bool("network.ping-targets") && !l.snap.Bool("network.ping-socket") && !l.snap.Bool("network.ping-system") {
 		return l.semantic("config_ping_methods_disabled", "network.ping-targets", "network.ping-socket and network.ping-system are both false; at least one ICMP method must remain when pinging is enabled")
@@ -606,9 +610,9 @@ func (l *loader) validatePlatformTables() error {
 				return l.dynamicErr("config_platform_channel_invalid", key+".channel", fmt.Sprintf("must be %q or %q", platform.ChannelShell, platform.ChannelExec))
 			}
 		}
-		// The three string-array fields (crun-commands since registry 14,
-		// crun-filters since registry 19).
-		for _, field := range []string{"paging-commands", "crun-commands", "crun-filters"} {
+		// The string-array fields (crun-commands since registry 14,
+		// crun-filters since registry 19, fallback since registry 25).
+		for _, field := range []string{"fallback", "paging-commands", "crun-commands", "crun-filters"} {
 			v, ok := p[field]
 			if !ok {
 				continue
@@ -621,6 +625,16 @@ func (l *loader) validatePlatformTables() error {
 			}
 			if !isList {
 				return l.dynamicErr("config_type_error", key+"."+field, "must be an array of strings")
+			}
+		}
+		// A fallback names netvars, keys, and prompt, each at most once.
+		if v, ok := p["fallback"]; ok {
+			words := []string{}
+			for _, item := range v.([]any) {
+				words = append(words, item.(string))
+			}
+			if err := platform.CheckFallback(words); err != nil {
+				return l.dynamicErr("config_platform_fallback_invalid", key+".fallback", strings.TrimPrefix(err.Error(), "config_platform_fallback_invalid: "))
 			}
 		}
 		// Every crun-filters pattern compiles (12.19 rule 1), refused here

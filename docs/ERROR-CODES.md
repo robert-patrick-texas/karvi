@@ -199,6 +199,7 @@ Active failure causes.
 | `config_platform_channel_invalid` | config | 2 | no | `platform.<name>.channel` is neither `shell` nor `exec`. |
 | `config_platform_crun_filter_invalid` | config | 2 | no | A `platform.<name>.crun-filters` entry is not a regular expression Go compiles; the message names the table, the entry, and the compiler's reason. The configuration is refused before any device is contacted. |
 | `config_platform_driver_unknown` | config | 2 | no | A `[platform.NAME]` table for a name that is not a built-in has no `driver`, or its `driver` is not a built-in platform (an alias of an alias included); or a built-in's table has a `driver` other than its own name. |
+| `config_platform_fallback_invalid` | config | 2 | no | `platform.<name>.fallback` holds a word other than `netvars`, `keys`, and `prompt`, or one word twice. |
 | `config_platform_name_invalid` | config | 2 | no | A `[platform.NAME]` table's name is blank, holds a glob character (`*`, `?`, `[`, `\`), begins with `!`, or duplicates another table's name under a different spelling; every platform name is also a literal selector. |
 | `config_platform_resolution_unknown` | config | 2 | no | `platform-resolution.default` (when set) or `platform-resolution.unknown-fallback` is not a known platform (a built-in or a configured `[platform.NAME]` table); refused at `config validate` and at load, whatever `platform-resolution.on-unknown` says. |
 | `config_platform_session_cap_out_of_range` | config | 2 | no | `platform.<name>.session-cap` is outside 1..32. |
@@ -225,7 +226,7 @@ Active failure causes.
 | `config_ssh_algorithms_map_profile_unknown` | config | 2 | no | An `ssh-algorithms-map` rule names a profile that does not exist. |
 | `config_ssh_algorithms_profile_empty` | config | 2 | no | An `ssh-algorithms-profile` sets no list. |
 | `config_ssh_algorithms_profile_list_conflict` | config | 2 | no | An `ssh-algorithms-profile` sets both a list and its `-append` form. |
-| `config_ssh_auth_mechanisms_disabled` | config | 2 | no | Public-key, password, and keyboard-interactive SSH authentication are all disabled. |
+| `config_ssh_identities_invalid` | config | 2 | no | An `ssh.identities` entry is neither an absolute path nor one beginning with `~/`. |
 | `config_ssh_legacy_hosts_removed` | config | 2 | no | `ssh.legacy-hosts` or `ssh.ancient-hosts` is set; both are removed in favour of `[[ssh-algorithms-map]]` profiles. |
 | `config_toml_syntax` | config | 2 | no | A configuration file is not valid TOML. |
 | `config_transport_mapping_control_character` | config | 2 | no | An `ssh.transports.<slot>` mapping contains a control character. |
@@ -265,10 +266,11 @@ Active failure causes.
 | `credential_incomplete` | credential | 6 | no | The resolved credential has no username after transforms. |
 | `credential_material_error` | credential | 6 | no | A formula backend cannot read its password source's credential material. |
 | `credential_material_missing` | internal | 6 | no | Credential material is missing when it is read. |
+| `credential_operator_keys_missing` | credential | 6 | no | The platform's fallback reached the operator's keys and none of `ssh.identities` is usable: each file is absent or was skipped (`operator_key_skipped`); the message lists the files examined. |
 | `credential_package_expired` | credential | 112 | no | A credential package or one of its grants has expired before use; the message names the rule. |
 | `credential_package_invalid` | credential | 112 | no | A credential grant or protected credential package fails validation before acceptance or target contact; the message names the rule. |
 | `credential_package_missing` | credential | 112 | no | commit_job arrives before a validated credential frame for the preparation. |
-| `credential_password_missing` | credential | 6 | no | The authentication policy requires a password and none was resolved. |
+| `credential_password_missing` | credential | 6 | no | The credential has no key and no password was resolved, or the target is reached over telnet, which takes no key. |
 | `credential_policy_prefix_ambiguous` | credential | 6 | no | Two CIDR credential policy rules match the device with the same prefix length. |
 | `credential_policy_unmatched` | credential | 6 | no | No credential policy rule matches the device. |
 | `credential_prompt_interrupted` | credential | 113 | no | The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits. |
@@ -277,7 +279,7 @@ Active failure causes.
 | `credential_transform_error` | credential | 6 | no | A credential transform cannot be applied to the username. |
 | `credential_transform_operation_not_table` | config | 2 | no | A `credential-transform` operation is not an inline table. |
 | `credential_transform_unknown` | config | 2 | no | A credential backend names a credential transform that is not defined. |
-| `credential_username_missing` | credential | 6 | no | No backend, `NETUSER` value, or terminal prompt supplied a username. |
+| `credential_username_missing` | credential | 6 | no | No backend answered and the platform's fallback (`NETUSER`, the terminal prompt, or the operator's keys, as its list says) supplied no username. |
 | `credkeyref_unresolved` | credential | 6 | no | A device pinned by the inventory's `credkeyref` reached the end of its policy's sequence and no backend that can honour a key answered for it (the key is absent, or its row's other selectors exclude the device); the message names the device, the key, the backends asked, and the backends skipped. A pinned device never takes a general row, the environment fallback, or a prompt. |
 | `crun_directory_not_writable` | permission | 9 | no | The collection directory (`crun.directory`, `--cd=PATH`, of a `crun` or of a `run` or `command` given `--cd`) cannot be prepared before any device is contacted: it exists and is not a folder, the operator cannot create files in it, or it has the sticky bit and another owner, so a file another operator wrote could not be replaced by the rename. The message says that a shared collection directory needs mode 2770 or 2775: group write and search, setgid, no sticky bit. |
 | `crun_directory_unavailable` | config | 2 | no | `crun.directory` cannot be resolved by the client (`~` without a home, or a relative path from an unreadable working directory); the draft ends before any daemon is asked. |
@@ -651,6 +653,7 @@ Warnings that do not fail the activity.
 | `host_key_enrollment` | notice | — | no | An exercise reports whether the target's host key is enrolled in the daemon's trust store under a policy that does not require it. |
 | `icmp_assessment` | notice | — | no | An exercise detected the ICMP gate's method (ping socket or system ping) without sending a probe. |
 | `icmp_packet_loss` | notice | — | no | The ICMP gate received one validated reply of two; the device proceeds and its first record carries the notice. |
+| `operator_key_skipped` | notice | — | no | A file of `ssh.identities` exists and is not used: a symbolic link where `security.allow-credential-symlinks` is false, not a regular file, not the operator's, readable by group or others, protected by a passphrase, or of a type neither transport signs with (a hardware-backed key); the notice names the file and the reason, never the contents, on the dry run and the device's first record. |
 | `output_text_write_failed` | notice | — | no | A device's `output.TARGET.txt` cannot be created or appended to. The job continues: the device's records are in `commands.jsonl`, its text file is left as it is from then on, and the text can be derived from the records. |
 | `platform_not_set` | notice | — | no | An inventory row has no platform and its source no `defaults.platform`: the device proceeds as `platform-resolution.default` when configured, else `generic`, the client prints a warning line at planning, and the device's first record carries the notice with `supplied` (empty), `source`, and `used`; a direct target without `--platform` takes no notice. |
 | `platform_unknown_fallback` | notice | — | no | An inventory row named a platform that is not known and `platform-resolution.on-unknown` is `warn`: the device proceeds as `platform-resolution.unknown-fallback`, the client prints a warning line at planning, and the device's first record carries the notice with `supplied`, `source`, and `used`. |
@@ -714,6 +717,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `config_platform_control_master_not_boolean` | v0.27.0 | `config_unknown_key` | `platform.<name>.control-master` was not a boolean; the field, read by nothing, is removed, and a table that sets it is refused as an unknown key. |
 | `config_semantic_error` | v0.10.0 | `config_audit_disabled`, `config_dispatch_wave_max_below_start`, `config_transport_selector_invalid` | Any configuration validation rule; replaced by one code per rule (the `config_*` validation codes above). |
 | `config_sessions_idle_timeout_exceeds_control_persist` | v0.11.0 to v0.17.0 | `config_key_removed` | `sessions.idle-timeout` exceeded a nonzero `ssh.control-persist`; both keys were read by this rule alone and were removed at v0.14.0. |
+| `config_ssh_auth_mechanisms_disabled` | v0.27.0 | `authentication_failed` | Public-key, password, and keyboard-interactive SSH authentication were all disabled; `ssh.pubkey-authentication` is removed, a credential with a key offering it, so turning both password methods off leaves the key credentials, and a password credential is then refused by the device. |
 | `config_syntax` | v0.10.0 (catalog name) | `config_toml_syntax` | Configuration syntax error. |
 | `config_targets_recursion_depth_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `targets.recursion-max-depth` is outside 1..16. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_type` | v0.10.0 (catalog name) | `config_type_error`, `config_enum_value_invalid` | Configuration type error. |

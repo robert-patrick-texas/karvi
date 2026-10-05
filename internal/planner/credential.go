@@ -56,6 +56,9 @@ type CredentialPlanner struct {
 	grants   []credentialpackage.CredentialGrant
 	bindings map[string]string // target ID -> credential ID
 	profiles map[string]string // target ID -> session-init profile name
+	// notices are each target's resolution notices (a skipped operator
+	// key), written on the plan target by Bind.
+	notices map[string][]executionplan.TargetNotice
 }
 
 // NewCredentialPlanner prepares the planner for the set's devices. The
@@ -82,7 +85,7 @@ func NewCredentialPlanner(cfg configload.Snapshot, operator credentials.Operator
 	if err != nil {
 		return nil, err
 	}
-	p := &CredentialPlanner{cfg: cfg, operator: operator, resolver: r, devices: map[string]inventory.Device{}, draftedAt: draftedAt, newID: newID, prompts: prompts, sessions: sessions, setPlatform: SetPlatformFunc(cfg), bindings: map[string]string{}, profiles: map[string]string{}}
+	p := &CredentialPlanner{cfg: cfg, operator: operator, resolver: r, devices: map[string]inventory.Device{}, draftedAt: draftedAt, newID: newID, prompts: prompts, sessions: sessions, setPlatform: SetPlatformFunc(cfg), bindings: map[string]string{}, profiles: map[string]string{}, notices: map[string][]executionplan.TargetNotice{}}
 	for _, d := range devices {
 		p.devices[d.ID] = d
 	}
@@ -244,13 +247,16 @@ func (p *CredentialPlanner) bind(t executionplan.ExecutionTarget, r credentials.
 	}()
 	candidate := credentialpackage.CredentialGrant{
 		Method: credentialpackage.MethodEmbeddedSecret,
-		Policy: r.Credential.Policy, Backend: r.Credential.Backend, MatchedOn: r.Credential.MatchedOn,
+		Policy: r.Credential.Policy, Backend: r.Credential.Backend, MatchedOn: r.Credential.MatchedOn, Keys: r.Credential.Keys,
 		Scope:     credentialpackage.CredentialScope{TargetIDs: []string{t.TargetID}, Transports: []string{t.Device.Transport}, Ports: []uint16{t.Device.Port}},
 		NotBefore: p.draftedAt, NotAfter: p.draftedAt.Add(credentialpackage.MaxGrantLifetime),
 	}
 	m := r.Credential.Material
 	if m == nil {
 		return errorcodes.Errorf("credential_material_missing", "target %s resolved without material", t.TargetID)
+	}
+	for _, n := range r.Notices {
+		p.notices[t.TargetID] = append(p.notices[t.TargetID], executionplan.TargetNotice{Code: n.Code, Message: n.Message, Details: n.Details})
 	}
 	var err error
 	if m.UsernameSet() {
@@ -315,6 +321,18 @@ func (p *CredentialPlanner) Bind(plan executionplan.ExecutionPlan) (executionpla
 		out.Targets[i].CredentialBindingID = id
 		out.Targets[i].SessionInitProfile = profile
 		names = append(names, profile)
+		// The resolution's notices join the platform's for the device's
+		// first record; the client decided them, so the source digest
+		// covers them.
+		if extra := p.notices[out.Targets[i].TargetID]; len(extra) > 0 {
+			t := &out.Targets[i]
+			t.Notices = append(append([]executionplan.TargetNotice(nil), t.Notices...), extra...)
+			sum, err := executionplan.SumTarget(*t)
+			if err != nil {
+				return plan, err
+			}
+			t.SourceDigest = sum
+		}
 	}
 	out.SessionInit = p.sessions.table(names)
 	return out, nil
@@ -375,6 +393,14 @@ func (p *CredentialPlanner) Binding(targetID string) (credentialID string, grant
 		return id, proj, true
 	}
 	return id, credentialpackage.GrantProjection{}, false
+}
+
+// Notices reports the resolution notices of a bound target, which Bind
+// writes on the plan target and a dry run shows as findings.
+func (p *CredentialPlanner) Notices(targetID string) []executionplan.TargetNotice {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]executionplan.TargetNotice(nil), p.notices[targetID]...)
 }
 
 // SessionInitProfile reports the session-init profile Resolve selected for a

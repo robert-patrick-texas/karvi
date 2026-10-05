@@ -220,3 +220,41 @@ func TestChannelAndLinuxShell(t *testing.T) {
 		t.Fatalf("channel pty: %v", err)
 	}
 }
+
+// The fallback: the network built-ins and generic netvars then prompt,
+// linux and linux_shell keys alone, an alias its driver's, a table's list
+// whole (an empty one none), and an unset definition netvars then prompt.
+func TestFallback(t *testing.T) {
+	tables := map[string]map[string]any{
+		"appliance":   {"driver": "linux"},
+		"c9300":       {"driver": "cisco_iosxe", "fallback": []any{}},
+		"linux":       {"fallback": []any{"netvars", "keys"}},
+		"cisco_nxos":  {"fallback": []any{"keys", "prompt"}},
+		"linux_shell": {"session-cap": 4},
+	}
+	for _, tc := range []struct{ name, want string }{
+		{"generic", "netvars prompt"},
+		{"cisco_iosxe", "netvars prompt"},
+		{"arista_eos", "netvars prompt"},
+		{"linux", "netvars keys"},
+		{"linux_shell", "keys"},
+		{"appliance", "keys"},
+		{"c9300", ""},
+		{"cisco_nxos", "keys prompt"},
+	} {
+		if got := strings.Join(Resolve(tc.name, tables).Fallback, " "); got != tc.want {
+			t.Errorf("%s: %q, want %q", tc.name, got, tc.want)
+		}
+	}
+	if def := Resolve("c9300", tables); def.Fallback == nil {
+		t.Error("an empty table list is none, not unset")
+	}
+	unset := Definition{Name: "lab"}
+	if err := unset.Validate(); err != nil || strings.Join(unset.Fallback, " ") != "netvars prompt" {
+		t.Fatalf("unset: %v %v", unset.Fallback, err)
+	}
+	bad := Definition{Name: "lab", Fallback: []string{"agent"}}
+	if err := bad.Validate(); err == nil || !strings.Contains(err.Error(), "config_platform_fallback_invalid") {
+		t.Fatalf("bad: %v", err)
+	}
+}

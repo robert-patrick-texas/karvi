@@ -435,17 +435,17 @@
       "since": "0.5.0"
     },
     {
-      "path": "ssh.pubkey-authentication",
-      "kind": "boolean",
-      "default_literal": "false",
+      "path": "ssh.identities",
+      "kind": "string_array",
+      "default_literal": "[\"~/.ssh/id_ed25519\", \"~/.ssh/id_ecdsa\", \"~/.ssh/id_rsa\"]",
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
       "reload_class": "next-job",
-      "environment": "KARVI__SSH__PUBKEY_AUTHENTICATION",
+      "environment": "KARVI__SSH__IDENTITIES",
       "cli_flags": null,
-      "documentation": "Default password-oriented fleet behavior.",
-      "since": "0.2.0"
+      "documentation": "The operator's own keys, offered in this order where a platform's `fallback` reaches `keys`: each an absolute path or `~/`, the home the password database names. A file that does not exist is passed over; one that is not the operator's own regular file without group or other access, holds a passphrase, or is hardware-backed is skipped with `operator_key_skipped`.",
+      "since": "0.27.0"
     },
     {
       "path": "ssh.password-authentication",
@@ -2734,6 +2734,7 @@
         "crun-filters": "string_array",
         "default-transport": "enum",
         "driver": "string",
+        "fallback": "string_array",
         "legacy-class": "enum",
         "paging-commands": "string_array",
         "privileged-level": "string",
@@ -3127,6 +3128,7 @@
     "config_platform_channel_invalid",
     "config_platform_crun_filter_invalid",
     "config_platform_driver_unknown",
+    "config_platform_fallback_invalid",
     "config_platform_name_invalid",
     "config_platform_resolution_unknown",
     "config_platform_session_cap_out_of_range",
@@ -3153,7 +3155,7 @@
     "config_ssh_algorithms_map_profile_unknown",
     "config_ssh_algorithms_profile_empty",
     "config_ssh_algorithms_profile_list_conflict",
-    "config_ssh_auth_mechanisms_disabled",
+    "config_ssh_identities_invalid",
     "config_ssh_legacy_hosts_removed",
     "config_toml_syntax",
     "config_transport_mapping_control_character",

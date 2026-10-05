@@ -95,7 +95,7 @@ func fixtureExercise() PlanReport {
 	final.Preparation[0].PreparationDigest = prep.PreparationDigest
 	final, _ = executionplan.Finalize(final, plantest.FinalizedAt)
 	pkg := credentialpackage.SafePackageProjection{
-		SchemaVersion: 1, PackageID: packageID, JobID: plantest.JobID, PlanDigest: final.PlanDigest,
+		SchemaVersion: credentialpackage.SchemaVersion, PackageID: packageID, JobID: plantest.JobID, PlanDigest: final.PlanDigest,
 		Issuer: credentialpackage.Principal{Kind: "operator", Username: "netops", UID: 1000, Hostname: "ops01"}, Audience: []string{audience},
 		Protection: credentialpackage.ProtectionLocalPeer, IssuedAt: plantest.FinalizedAt, ExpiresAt: plantest.FinalizedAt.Add(10 * time.Minute),
 		Grants: []credentialpackage.GrantProjection{

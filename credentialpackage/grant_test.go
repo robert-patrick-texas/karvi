@@ -50,6 +50,14 @@ func TestGrantValidatesAndProjects(t *testing.T) {
 	if !g.Equivalent(fixtureGrant("p")) || g.Equivalent(fixtureGrant("q")) {
 		t.Error("Equivalent")
 	}
+	keyed := fixtureGrant("p")
+	keyed.Keys = []credentials.KeyRef{{Path: "/home/netops/.ssh/id_ed25519", Fingerprint: "SHA256:lCkD25f/uZQGbWYmns4BurmVr65NAa+wSHkq5Y/lnVk"}}
+	if g.Equivalent(keyed) {
+		t.Error("Equivalent must compare the keys")
+	}
+	if kp, _ := keyed.SafeProjection(); len(kp.Keys) != 1 || kp.Keys[0] != keyed.Keys[0] {
+		t.Errorf("projection keys: %+v", kp.Keys)
+	}
 	other := fixtureGrant("p")
 	other.Policy = "site-a"
 	if !g.Equivalent(other) {

@@ -41,6 +41,9 @@ func TestPlatformTableValidation(t *testing.T) {
 		{"session-cap out of range", "[platform.c9300]\ndriver = \"cisco_iosxe\"\nsession-cap = 0\n", "config_platform_session_cap_out_of_range", "platform.c9300.session-cap", "1..32"},
 		{"channel neither word", "[platform.c9300]\ndriver = \"cisco_iosxe\"\nchannel = \"pty\"\n", "config_platform_channel_invalid", "platform.c9300.channel", "\"shell\" or \"exec\""},
 		{"channel not a string", "[platform.c9300]\ndriver = \"cisco_iosxe\"\nchannel = true\n", "config_platform_channel_invalid", "platform.c9300.channel", "\"shell\" or \"exec\""},
+		{"fallback an unknown word", "[platform.linux]\nfallback = [\"agent\"]\n", "config_platform_fallback_invalid", "platform.linux.fallback", "\"agent\" is not"},
+		{"fallback a word twice", "[platform.linux]\nfallback = [\"keys\", \"keys\"]\n", "config_platform_fallback_invalid", "platform.linux.fallback", "listed twice"},
+		{"fallback not an array", "[platform.linux]\nfallback = \"keys\"\n", "config_type_error", "platform.linux.fallback", "array"},
 		{"control-master is removed", "[platform.c9300]\ndriver = \"cisco_iosxe\"\ncontrol-master = true\n", "config_unknown_key", "platform.c9300.control-master", "unknown configuration key"},
 		{"paging-commands not an array", "[platform.c9300]\ndriver = \"cisco_iosxe\"\npaging-commands = \"terminal length 0\"\n", "config_type_error", "platform.c9300.paging-commands", "array"},
 		{"crun-commands not an array of strings", "[platform.c9300]\ndriver = \"cisco_iosxe\"\ncrun-commands = [\"show running-config\", 1]\n", "config_type_error", "platform.c9300.crun-commands", "array"},
@@ -73,6 +76,8 @@ func TestPlatformTableValidation(t *testing.T) {
 		"[platform.eos-exec]\ndriver = \"arista_eos\"\nchannel = \"exec\"\n",
 		"[platform.linux]\nchannel = \"shell\"\n",
 		"[platform.bastion]\ndriver = \"linux_shell\"\n",
+		"[platform.linux]\nfallback = [\"netvars\", \"keys\"]\n",
+		"[platform.c9300]\ndriver = \"cisco_iosxe\"\nfallback = []\n",
 	} {
 		snap, err := load(t, body)
 		if err != nil {
@@ -87,5 +92,30 @@ func TestPlatformTableValidation(t *testing.T) {
 	_, err := load(t, "[platform.c9300]\nssh-port = 22\n")
 	if err == nil || !strings.Contains(err.Error(), "generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell") {
 		t.Fatalf("%v", err)
+	}
+}
+
+// TestSSHIdentities: each entry an absolute path or one under the home,
+// never a bare name or a relative path; the default is the three keys.
+func TestSSHIdentities(t *testing.T) {
+	snap, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(snap.Strings("ssh.identities"), " "); got != "~/.ssh/id_ed25519 ~/.ssh/id_ecdsa ~/.ssh/id_rsa" {
+		t.Fatalf("default: %s", got)
+	}
+	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{`ssh.identities=["/etc/karvi/keys/ops", "~/.ssh/id_ops"]`}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"id_ed25519", ".ssh/id_rsa", "~id_rsa"} {
+		_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{`ssh.identities=["` + bad + `"]`}})
+		var ce *Error
+		if !errors.As(err, &ce) || ce.Code != "config_ssh_identities_invalid" || !strings.Contains(err.Error(), bad) {
+			t.Fatalf("%s: %v", bad, err)
+		}
+	}
+	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"ssh.pubkey-authentication=true"}}); err == nil || !strings.Contains(err.Error(), "config_unknown_key") {
+		t.Fatalf("the removed key: %v", err)
 	}
 }

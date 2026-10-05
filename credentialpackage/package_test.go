@@ -114,6 +114,8 @@ func TestPackageValidatesProjectsAndDigestIgnoresSecrets(t *testing.T) {
 func TestEncodeDecodeRoundTripAndWipe(t *testing.T) {
 	seed := canarytest.Seed(t)
 	p := fixturePackage(seed.Raw)
+	// A key credential's keys cross by path and fingerprint.
+	p.Grants[1].Keys = []credentials.KeyRef{{Path: "/home/netops/.ssh/id_ed25519", Fingerprint: "SHA256:lCkD25f/uZQGbWYmns4BurmVr65NAa+wSHkq5Y/lnVk"}}
 	encoded, intermediate, err := encode(p)
 	if err != nil {
 		t.Fatal(err)
@@ -141,6 +143,9 @@ func TestEncodeDecodeRoundTripAndWipe(t *testing.T) {
 		// with it.
 		if p.Grants[i].MatchedOn != back.Grants[i].MatchedOn {
 			t.Fatalf("grant %d evidence %+v came back %+v", i, p.Grants[i].MatchedOn, back.Grants[i].MatchedOn)
+		}
+		if !reflect.DeepEqual(p.Grants[i].Keys, back.Grants[i].Keys) {
+			t.Fatalf("grant %d keys %+v came back %+v", i, p.Grants[i].Keys, back.Grants[i].Keys)
 		}
 		if !p.Grants[i].Username.Equal(back.Grants[i].Username) {
 			t.Errorf("grant %d username differs", i)
@@ -217,7 +222,7 @@ func TestEnvelopeValidationVectors(t *testing.T) {
 		edit func(*Envelope)
 		rule string
 	}{
-		{"schema", func(e *Envelope) { e.SchemaVersion = 2 }, "envelope_schema"},
+		{"schema", func(e *Envelope) { e.SchemaVersion = SchemaVersion + 1 }, "envelope_schema"},
 		{"content type", func(e *Envelope) { e.ContentType = "text/plain" }, "envelope_content_type"},
 		{"id", func(e *Envelope) { e.PackageID = "pkg" }, "envelope_id"},
 		{"digest", func(e *Envelope) { e.PackageDigest = executionplan.Digest{} }, "envelope_digest"},

@@ -12,11 +12,11 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 )
 
-// SchemaVersion is the credential-package counter.
-const SchemaVersion = 1
+// SchemaVersion is the credential-package counter: 2 adds a grant's keys.
+const SchemaVersion = 2
 
 // ContentType names the package in envelope associated data.
-const ContentType = "application/vnd.karvi.credential-package.v1"
+const ContentType = "application/vnd.karvi.credential-package.v2"
 
 // v1 time bounds; constants, not configuration.
 const (
@@ -421,18 +421,19 @@ type wirePackage struct {
 }
 
 type wireGrant struct {
-	CredentialID   string            `json:"credential_id"`
-	Method         Method            `json:"method"`
-	Username       []byte            `json:"username"`
-	Password       []byte            `json:"password"`
-	EnablePassword []byte            `json:"enable_password"`
-	Reference      SecretReference   `json:"reference"`
-	Policy         string            `json:"policy"`
-	Backend        string            `json:"backend"`
-	MatchedOn      credentials.Match `json:"matched_on"`
-	Scope          CredentialScope   `json:"scope"`
-	NotBefore      time.Time         `json:"not_before"`
-	NotAfter       time.Time         `json:"not_after"`
+	CredentialID   string               `json:"credential_id"`
+	Method         Method               `json:"method"`
+	Username       []byte               `json:"username"`
+	Password       []byte               `json:"password"`
+	EnablePassword []byte               `json:"enable_password"`
+	Reference      SecretReference      `json:"reference"`
+	Policy         string               `json:"policy"`
+	Backend        string               `json:"backend"`
+	MatchedOn      credentials.Match    `json:"matched_on"`
+	Keys           []credentials.KeyRef `json:"keys"`
+	Scope          CredentialScope      `json:"scope"`
+	NotBefore      time.Time            `json:"not_before"`
+	NotAfter       time.Time            `json:"not_after"`
 }
 
 func wipe(b []byte) {
@@ -463,7 +464,7 @@ func encode(p CredentialPackage) (credentials.SecretBytes, []byte, error) {
 		}
 	}()
 	for _, g := range p.Grants {
-		wg := wireGrant{CredentialID: g.CredentialID, Method: g.Method, Reference: g.Reference, Policy: g.Policy, Backend: g.Backend, MatchedOn: g.MatchedOn, Scope: g.Scope, NotBefore: g.NotBefore, NotAfter: g.NotAfter}
+		wg := wireGrant{CredentialID: g.CredentialID, Method: g.Method, Reference: g.Reference, Policy: g.Policy, Backend: g.Backend, MatchedOn: g.MatchedOn, Keys: append([]credentials.KeyRef{}, g.Keys...), Scope: g.Scope, NotBefore: g.NotBefore, NotAfter: g.NotAfter}
 		for _, f := range []struct {
 			src credentials.SecretString
 			dst *[]byte
@@ -510,6 +511,9 @@ func decode(b credentials.SecretBytes) (CredentialPackage, error) {
 	}
 	for _, wg := range w.Grants {
 		g := CredentialGrant{CredentialID: wg.CredentialID, Method: wg.Method, Reference: wg.Reference, Policy: wg.Policy, Backend: wg.Backend, MatchedOn: wg.MatchedOn, Scope: wg.Scope, NotBefore: wg.NotBefore, NotAfter: wg.NotAfter}
+		if len(wg.Keys) > 0 {
+			g.Keys = wg.Keys
+		}
 		if len(wg.Username) > 0 {
 			g.Username = credentials.NewSecretStringFromBytes(wg.Username)
 		}

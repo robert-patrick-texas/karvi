@@ -286,7 +286,8 @@ func (f Factory) renderConfig() (string, error) {
 		}
 		return "no"
 	}
-	fmt.Fprintf(&b, "  PubkeyAuthentication %s\n", yesno(f.Config.Bool("ssh.pubkey-authentication")))
+	// No key is offered until the credential's keys reach the transport.
+	b.WriteString("  PubkeyAuthentication no\n")
 	fmt.Fprintf(&b, "  PasswordAuthentication %s\n", yesno(f.Config.Bool("ssh.password-authentication")))
 	fmt.Fprintf(&b, "  KbdInteractiveAuthentication %s\n", yesno(f.Config.Bool("ssh.keyboard-interactive-authentication")))
 	fmt.Fprintf(&b, "  ConnectTimeout %d\n", ceilSeconds(f.Config.Duration("ssh.connect-timeout")))

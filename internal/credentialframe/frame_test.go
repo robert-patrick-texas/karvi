@@ -35,7 +35,7 @@ func fixturePackage(password string) credentialpackage.CredentialPackage {
 	window(&a)
 	window(&b)
 	return credentialpackage.CredentialPackage{
-		SchemaVersion: 1, PackageID: packageID, JobID: plantest.JobID, PlanDigest: final.PlanDigest,
+		SchemaVersion: credentialpackage.SchemaVersion, PackageID: packageID, JobID: plantest.JobID, PlanDigest: final.PlanDigest,
 		Issuer: credentialpackage.Principal{Kind: "operator", Username: "netops", UID: 1000, Hostname: "ops01"}, Audience: []string{"daemon:ops01:1000"},
 		Protection: credentialpackage.ProtectionLocalPeer, IssuedAt: plantest.FinalizedAt, ExpiresAt: plantest.FinalizedAt.Add(10 * time.Minute),
 		Grants:   []credentialpackage.CredentialGrant{a, b},

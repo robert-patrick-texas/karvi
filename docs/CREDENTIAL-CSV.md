@@ -164,15 +164,16 @@ the moment the row is read.
 
    | Code (exit 6) | The selected row |
    |---|---|
-   | `credential_password_missing` | has no password and one is needed, which it is unless `ssh.pubkey-authentication = true` |
+   | `credential_password_missing` | has no password, which a row always needs (a row holds no key) |
    | `credential_enable_missing` | has no enable password and the device's platform sets `requires-enable = true` |
    | `credential_incomplete` | yields no username after the transforms |
 
    Blanking a password to retire it therefore stops the devices that took
    the row; it does not hand them to a broader row's credential.
 7. **A device no row matches** is a not-found: the policy's next backend is
-   asked, and after the last one the built-in environment fallback
-   (`NETUSER`, `NETPASS`) and the prompt, as for any backend.
+   asked, and after the last one the platform's fallback, as for any backend
+   (`NETUSER`, `NETPASS`, and the prompt on the network built-ins; the
+   operator's keys on `linux`).
 8. **The whole file is read and checked once,** at the first resolution that
    reaches it, and kept for the run. A bad row on the last line fails a run
    whose only device the first line would have served, so a file never
@@ -312,13 +313,12 @@ password-source = "site-creds"
 
 ```
 site,username,password,enable_password
-nyc,,,en-nyc
+nyc,,pw-nyc,en-nyc
 bos,svc.bos,pw-bos,en-bos
 ```
 
-With `ssh.pubkey-authentication = true` and the sequence `["shaped"]`, the
-devices of both sites bind as `netops-adm`, each with its own row's
-secrets.
+With the sequence `["shaped"]`, the devices of both sites bind as
+`netops-adm`, each with its own row's secrets.
 
 - **The row's username is dropped.** A formula takes the password fields
   from its source and never the username: `svc.bos` above is read and

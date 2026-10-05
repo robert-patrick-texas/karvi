@@ -114,6 +114,9 @@ type CredentialBindingReport struct {
 	Backend        string             `json:"backend,omitempty"`
 	DeviceUsername string             `json:"device_username,omitempty"`
 	MatchedOn      *credentials.Match `json:"matched_on,omitempty"`
+	// Keys are the keys the credential offers, each with its fingerprint
+	// as seen at planning.
+	Keys []credentials.KeyRef `json:"keys,omitempty"`
 }
 
 type IntendedPing struct {

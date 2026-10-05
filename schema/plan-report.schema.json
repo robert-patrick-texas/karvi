@@ -233,6 +233,13 @@
         },
         "matched_on": {
           "$ref": "credential-package-envelope.schema.json#/$defs/match"
+        },
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "credential-package-envelope.schema.json#/$defs/key_ref"
+          }
         }
       }
     },

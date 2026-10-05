@@ -104,7 +104,9 @@ func draftOptions(commands []string) DraftOptions {
 // plan's failures_jsonl errors_jsonl; registry 24 and plan schema 10 stay.
 // Re-pinned at registry 25 and plan schema 11: each target carries its
 // channel.
-const goldenK03Draft = "fc30504506844c7cc2fc455f04e81fdfda0b64372126205d3bde6ca67b130a32"
+// Re-pinned when ssh.identities replaced ssh.pubkey-authentication;
+// registry 25 and plan schema 11 stay.
+const goldenK03Draft = "44e99ef53c72ff0c0d4e8b6cde8b97ffda4eea2895397dcd8a89dd1658584eb7"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

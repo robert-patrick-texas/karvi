@@ -378,19 +378,29 @@ func exerciseTarget(req Request, t executionplan.ExecutionTarget, hk hostKeyStat
 }
 
 // NoticeFindings is one warning finding per planning notice on the target,
-// stage platform, for the dry-run and exercise reports: the notice's code,
-// message, and details, so the
-// report shows why a device runs as the platform it does.
+// for the dry-run and exercise reports: the notice's code, message, and
+// details, so the report shows why a device runs as the platform it does
+// or why a key of the operator's is not offered.
 func NoticeFindings(t executionplan.ExecutionTarget) []executionplan.Finding {
 	out := []executionplan.Finding{}
 	for _, n := range t.Notices {
-		details := map[string]string{}
-		for k, v := range n.Details {
-			details[k] = v
-		}
-		out = append(out, executionplan.Finding{Code: n.Code, Severity: executionplan.SeverityWarning, Stage: "platform", TargetID: t.TargetID, Message: n.Message, Details: details})
+		out = append(out, NoticeFinding(t.TargetID, n))
 	}
 	return out
+}
+
+// NoticeFinding is one planning notice as a warning finding: stage
+// client_credential for a skipped operator key, platform for the rest.
+func NoticeFinding(targetID string, n executionplan.TargetNotice) executionplan.Finding {
+	details := map[string]string{}
+	for k, v := range n.Details {
+		details[k] = v
+	}
+	stage := "platform"
+	if n.Code == "operator_key_skipped" {
+		stage = "client_credential"
+	}
+	return executionplan.Finding{Code: n.Code, Severity: executionplan.SeverityWarning, Stage: stage, TargetID: targetID, Message: n.Message, Details: details}
 }
 
 // exerciseFinding builds a finding from a coded error so the registry's

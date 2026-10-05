@@ -49,6 +49,7 @@ type Rules struct {
 	SharedGroup        string   // security.shared-group; unchecked when empty
 	ApprovedAdminUsers []string // security.approved-admin-users; root is always approved
 	AllowSymlink       bool     // security.allow-credential-symlinks
+	ReadOnlyAllowed    bool     // a user file may also be 0400 (an operator's key)
 }
 
 // EffectiveScope is the declared scope, user when none is declared.
@@ -171,7 +172,7 @@ func (r Rules) canonical(path string) (string, error) {
 }
 
 // check is the check set over one file's metadata: a user file is a regular
-// file owned by the operator with mode 0600; a shared file is a regular file
+// file owned by the operator with mode 0600 (or 0400 where ReadOnlyAllowed); a shared file is a regular file
 // with mode 0640, owned by root or an approved administrator, in the shared
 // group when one is configured. A message names the backend and the path and
 // never a value.
@@ -188,7 +189,7 @@ func (r Rules) check(path string, fi fs.FileInfo) error {
 		if int(st.Uid) != r.UID {
 			return errorcodes.Errorf("credential_file_owner_mismatch", "credential backend %s: user credential file %s must be owned by uid %d", r.BackendName, path, r.UID)
 		}
-		if fi.Mode().Perm() != 0o600 {
+		if perm := fi.Mode().Perm(); perm != 0o600 && !(r.ReadOnlyAllowed && perm == 0o400) {
 			return errorcodes.Errorf("credential_file_mode_unsafe", "credential backend %s: user credential file %s mode is %04o; remediation: chmod 600 %s", r.BackendName, path, fi.Mode().Perm(), path)
 		}
 		return nil

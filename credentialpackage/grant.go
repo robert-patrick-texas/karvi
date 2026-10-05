@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 	"sort"
 	"time"
 
@@ -63,25 +64,30 @@ type CredentialGrant struct {
 	Policy         string
 	Backend        string
 	MatchedOn      credentials.Match
-	Scope          CredentialScope
-	NotBefore      time.Time
-	NotAfter       time.Time
+	// Keys are the private keys the credential offers, by path and
+	// fingerprint, never their bytes: the connecting process reads each
+	// file at the connection.
+	Keys      []credentials.KeyRef
+	Scope     CredentialScope
+	NotBefore time.Time
+	NotAfter  time.Time
 }
 
 // GrantProjection is the safe form of a grant for manifests, audit, and
 // reports. The device username is the one explicit accountability copy
 // permitted.
 type GrantProjection struct {
-	CredentialID   string            `json:"credential_id"`
-	Method         Method            `json:"method"`
-	DeviceUsername string            `json:"device_username"`
-	Policy         string            `json:"policy"`
-	Backend        string            `json:"backend"`
-	MatchedOn      credentials.Match `json:"matched_on"`
-	Reference      *SecretReference  `json:"reference,omitempty"`
-	Scope          CredentialScope   `json:"scope"`
-	NotBefore      time.Time         `json:"not_before"`
-	NotAfter       time.Time         `json:"not_after"`
+	CredentialID   string               `json:"credential_id"`
+	Method         Method               `json:"method"`
+	DeviceUsername string               `json:"device_username"`
+	Policy         string               `json:"policy"`
+	Backend        string               `json:"backend"`
+	MatchedOn      credentials.Match    `json:"matched_on"`
+	Keys           []credentials.KeyRef `json:"keys,omitempty"`
+	Reference      *SecretReference     `json:"reference,omitempty"`
+	Scope          CredentialScope      `json:"scope"`
+	NotBefore      time.Time            `json:"not_before"`
+	NotAfter       time.Time            `json:"not_after"`
 }
 
 func invalid(rule, format string, args ...any) error {
@@ -155,7 +161,7 @@ func (s CredentialScope) validate(id string) error {
 // SafeProjection is the only exported path that reads a secret: it copies
 // the username through WithBytes and nothing else.
 func (g CredentialGrant) SafeProjection() (GrantProjection, error) {
-	p := GrantProjection{CredentialID: g.CredentialID, Method: g.Method, Policy: g.Policy, Backend: g.Backend, MatchedOn: g.MatchedOn, Scope: g.Scope, NotBefore: g.NotBefore, NotAfter: g.NotAfter}
+	p := GrantProjection{CredentialID: g.CredentialID, Method: g.Method, Policy: g.Policy, Backend: g.Backend, MatchedOn: g.MatchedOn, Keys: g.Keys, Scope: g.Scope, NotBefore: g.NotBefore, NotAfter: g.NotAfter}
 	if !g.Reference.empty() {
 		ref := g.Reference
 		p.Reference = &ref
@@ -169,9 +175,9 @@ func (g CredentialGrant) SafeProjection() (GrantProjection, error) {
 }
 
 // Equivalent reports whether two grants carry the same credential: same
-// method, reference, and every secret equal in constant time.
+// method, reference, and keys, and every secret equal in constant time.
 func (g CredentialGrant) Equivalent(o CredentialGrant) bool {
-	return g.Method == o.Method && g.Reference == o.Reference && g.Username.Equal(o.Username) && g.Password.Equal(o.Password) && g.EnablePassword.Equal(o.EnablePassword)
+	return g.Method == o.Method && g.Reference == o.Reference && slices.Equal(g.Keys, o.Keys) && g.Username.Equal(o.Username) && g.Password.Equal(o.Password) && g.EnablePassword.Equal(o.EnablePassword)
 }
 
 // Destroy wipes every secret the grant holds.

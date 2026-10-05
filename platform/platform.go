@@ -46,7 +46,15 @@ type Definition struct {
 	// request per command. Every built-in is shell (linux becomes exec when
 	// the exec channel is built); a [platform.NAME] table may set either
 	// word on any driver, and a definition that leaves it unset is shell.
-	Channel        string   `json:"channel"`
+	Channel string `json:"channel"`
+	// Fallback is what follows the credential policy's backends, in order:
+	// FallbackNetvars (NETUSER, NETPASS, NETENABLE), FallbackKeys (the
+	// operator's login name and keys, ssh.identities), and FallbackPrompt
+	// (the terminal prompts). The network built-ins and generic are netvars
+	// then prompt, linux and linux_shell keys alone; a definition that
+	// leaves it unset (nil) is netvars then prompt, and an empty list is no
+	// fallback.
+	Fallback       []string `json:"fallback"`
 	PagingCommands []string `json:"paging_commands"`
 	// CrunCommands is the platform's collection list: what a crun that
 	// names no command on its command line sends to a device of this
@@ -88,6 +96,35 @@ const (
 	ChannelShell = "shell"
 	ChannelExec  = "exec"
 )
+
+// The words of a platform's fallback.
+const (
+	FallbackNetvars = "netvars"
+	FallbackKeys    = "keys"
+	FallbackPrompt  = "prompt"
+)
+
+// DefaultFallback is the fallback of a definition that leaves the field
+// unset: the network fleet's, the variables and then the prompts.
+func DefaultFallback() []string { return []string{FallbackNetvars, FallbackPrompt} }
+
+// CheckFallback refuses a fallback list holding a word other than netvars,
+// keys, and prompt, or one word twice.
+func CheckFallback(list []string) error {
+	seen := map[string]bool{}
+	for _, w := range list {
+		switch w {
+		case FallbackNetvars, FallbackKeys, FallbackPrompt:
+		default:
+			return errorcodes.Errorf("config_platform_fallback_invalid", "fallback %q is not %q, %q, or %q", w, FallbackNetvars, FallbackKeys, FallbackPrompt)
+		}
+		if seen[w] {
+			return errorcodes.Errorf("config_platform_fallback_invalid", "fallback %q is listed twice", w)
+		}
+		seen[w] = true
+	}
+	return nil
+}
 
 // levelNames lists the definition's prompt levels for messages.
 func (d Definition) levelNames() []string {
@@ -159,6 +196,12 @@ func (d *Definition) Validate() error {
 	}
 	if d.Channel != ChannelShell && d.Channel != ChannelExec {
 		return errorcodes.Errorf("config_platform_channel_invalid", "platform %s: channel %q is neither %q nor %q", d.Name, d.Channel, ChannelShell, ChannelExec)
+	}
+	if d.Fallback == nil {
+		d.Fallback = DefaultFallback()
+	}
+	if err := CheckFallback(d.Fallback); err != nil {
+		return errorcodes.Errorf("config_platform_fallback_invalid", "platform %s: %s", d.Name, strings.TrimPrefix(err.Error(), "config_platform_fallback_invalid: "))
 	}
 	return nil
 }
@@ -360,18 +403,26 @@ var (
 	eosFailures   = []string{"% Ambiguous command", "% Error", "% Incomplete command", "% Invalid input", "% Cannot commit", "% Unavailable command"}
 )
 
+// The built-ins' fallbacks: the network fleet's variables and prompts, and
+// a server's operator keys alone (the variables an operator exports for
+// routers never reach a server unasked).
+var (
+	netFallback  = []string{FallbackNetvars, FallbackPrompt}
+	keysFallback = []string{FallbackKeys}
+)
+
 var builtins = map[string]Definition{
-	"generic":       {Name: "generic", Driver: "generic", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, SessionCap: 3, ExitCommands: []string{"exit"}, PromptPattern: GenericPromptPattern},
-	"cisco_iosxe":   {Name: "cisco_iosxe", Driver: "cisco_iosxe", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 5, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXELevels, FailurePatterns: ciscoFailures},
-	"cisco_iosxr":   {Name: "cisco_iosxr", Driver: "cisco_iosxr", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXRLevels, FailurePatterns: ciscoFailures},
-	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
-	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
-	"arista_eos":    {Name: "arista_eos", Driver: "arista_eos", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^! Time: `, `^Uptime: `, `^Free memory: `}, ExitCommands: []string{"exit"}, PrivilegeLevels: aristaEOSLevels, FailurePatterns: eosFailures},
-	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	"generic":       {Name: "generic", Driver: "generic", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 3, ExitCommands: []string{"exit"}, PromptPattern: GenericPromptPattern},
+	"cisco_iosxe":   {Name: "cisco_iosxe", Driver: "cisco_iosxe", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 5, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXELevels, FailurePatterns: ciscoFailures},
+	"cisco_iosxr":   {Name: "cisco_iosxr", Driver: "cisco_iosxr", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXRLevels, FailurePatterns: ciscoFailures},
+	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
+	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
+	"arista_eos":    {Name: "arista_eos", Driver: "arista_eos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^! Time: `, `^Uptime: `, `^Free memory: `}, ExitCommands: []string{"exit"}, PrivilegeLevels: aristaEOSLevels, FailurePatterns: eosFailures},
+	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelShell, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 	// linux_shell is linux's definition on the shell channel, for a server
 	// whose security refuses exec: linux is its base, so it is admitted
 	// wherever linux is, and its records name linux_shell.
-	"linux_shell": {Name: "linux_shell", Driver: "linux_shell", Base: "linux", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	"linux_shell": {Name: "linux_shell", Driver: "linux_shell", Base: "linux", DefaultTransport: "native", Channel: ChannelShell, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 }
 
 // Builtin is the named built-in definition, its Base filled: the built-in's

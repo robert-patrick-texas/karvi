@@ -92,12 +92,12 @@ path = "/etc/karvi/credentials/cloginrc"
 # mandatory-fields lists the fields that must have a column (default
 # ["username"]). A blank username cell means the operator's own name; a
 # blank password is allowed in the file but the row is then refused at
-# resolution wherever a password is needed (always, unless
-# ssh.pubkey-authentication = true). Never put these columns in an
-# inventory file. A device whose inventory row holds a credkeyref takes
-# only the row whose credkey equals it, from the csv backends of its
-# policy's sequence; with no such row it fails with credkeyref_unresolved
-# and never takes a general row, the environment, or a prompt.
+# resolution, since a row holds no key and so needs a password. Never put
+# these columns in an inventory file. A device whose inventory row holds a
+# credkeyref takes only the row whose credkey equals it, from the csv
+# backends of its policy's sequence; with no such row it fails with
+# credkeyref_unresolved and never takes a general row, the environment, or a
+# prompt.
 #
 # [credential-backend.site-creds]
 # type = "csv"

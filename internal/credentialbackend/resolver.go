@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -18,6 +19,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credcsv"
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credfile"
 	envbackend "github.com/robert-patrick-texas/karvi/internal/credentialbackend/env"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/operatorkeys"
 	redisbackend "github.com/robert-patrick-texas/karvi/internal/credentialbackend/redis"
 	vaultbackend "github.com/robert-patrick-texas/karvi/internal/credentialbackend/vault"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -65,6 +67,11 @@ type Resolver struct {
 	backendProfile map[string]string
 	warn           func(string)
 	input          InputProvider
+	// keyRules are the operator's file rules for ssh.identities, judged
+	// once (keysOnce) into keys.
+	keyRules credfile.Rules
+	keysOnce sync.Once
+	keys     operatorkeys.Result
 }
 type credentialTransform struct{ Operator, Username transform.Sequence }
 type credentialsBackend = credentials.Backend
@@ -72,7 +79,7 @@ type credentialsBackend = credentials.Backend
 // New builds the resolver over the configured backends with the process
 // environment and terminal as its input provider (SetInput changes it).
 func New(cfg configload.Snapshot, operator credentials.Operator, warn func(string)) (*Resolver, error) {
-	r := &Resolver{cfg: cfg, backends: map[string]credentials.Backend{}, formulas: map[string]formulaSpec{}, backendProfile: map[string]string{}, warn: warn, input: TTYInput{}}
+	r := &Resolver{cfg: cfg, backends: map[string]credentials.Backend{}, formulas: map[string]formulaSpec{}, backendProfile: map[string]string{}, warn: warn, input: TTYInput{}, keyRules: fileRules(cfg, operator, operatorkeys.Backend, "user", false)}
 	profiles, err := buildTransforms(cfg)
 	if err != nil {
 		return nil, err
@@ -141,7 +148,9 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 		return credentials.Resolved{}, err
 	}
 	requiredEnable := requiresEnable(device, r.cfg)
-	requirePassword := device.Transport == "telnet" || !r.cfg.Bool("ssh.pubkey-authentication")
+	// A backend's credential has no key yet (the credential CSV's keyfile
+	// is later work), so it needs a password.
+	requirePassword := true
 	// A pin is a pin. A device with a credkeyref
 	// walks its policy's sequence as any device does, but only backends that
 	// can honour a key are asked; every other is skipped. A keyed backend
@@ -186,68 +195,191 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 	if pinned {
 		return credentials.Resolved{}, &Error{Code: "credkeyref_unresolved", Message: fmt.Sprintf("device %s: credkeyref %q is unresolved: no backend of the policy that can honour a key answered for it (asked: %s; skipped, cannot honour a key: %s); the key is absent, or its row's other selectors exclude the device; a pinned device takes no general credential", device.CanonicalName, device.CredKeyRef, listOrNone(asked), listOrNone(skipped)), Policy: p.Name}
 	}
-	// The built-in fallback reads the environment and prompts through the
-	// input provider; without one there is neither.
+	// What follows the policy's backends is the platform's fallback.
+	return r.fallback(ctx, operator, device, p.Name, requiredEnable)
+}
+
+// fallback walks the platform's fallback in order once the policy's
+// backends have not answered: netvars reads NETUSER, NETPASS, and
+// NETENABLE into the fields it finds empty, and ends the walk when they
+// make a whole credential; prompt asks the terminal for the fields still
+// empty and ends the walk with whatever username it holds; keys is the
+// operator's login name and usable keys, a whole credential or none. When
+// nothing ends the walk, the failure is the last source's that found
+// something (the fields incomplete, or no key usable), else that no
+// username was supplied. The input provider serves the variables and the
+// prompts; without one there is neither.
+func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, device inventory.Device, policyName string, requiredEnable bool) (credentials.Resolved, error) {
+	list := platformFallback(device, r.cfg)
 	var username, password, enable string
 	source := "builtin-env-fallback"
-	if r.input != nil {
-		var uok, pok, eok bool
-		if username, uok, err = r.input.LookupEnv(ctx, "NETUSER"); err != nil {
-			return credentials.Resolved{}, &Error{Code: "credential_prompt_unavailable", Message: err.Error(), Policy: p.Name}
-		}
-		if password, pok, err = r.input.LookupEnv(ctx, "NETPASS"); err != nil {
-			return credentials.Resolved{}, &Error{Code: "credential_prompt_unavailable", Message: err.Error(), Policy: p.Name}
-		}
-		if enable, eok, err = r.input.LookupEnv(ctx, "NETENABLE"); err != nil {
-			return credentials.Resolved{}, &Error{Code: "credential_prompt_unavailable", Message: err.Error(), Policy: p.Name}
-		}
-		if !uok && !pok && !eok {
-			username, password, enable = "", "", ""
-		}
-		allowPrompt := r.cfg.Bool("creds.interactive-prompt")
-		// A prompt is asked only for a field the device needs, so no job
-		// runs past one left unanswered: Ctrl-C (or a signal) at the
-		// prompt is credential_prompt_interrupted, an empty answer the
-		// field's missing code, at once and before any later prompt;
-		// Ctrl-D on an empty line, like a missing terminal, is
-		// credential_prompt_unavailable.
-		prompt := func(field string, masked bool) (string, error) {
-			req := PromptRequest{Field: field, Masked: masked, Target: device.CanonicalName}
-			v, e := r.input.Prompt(ctx, req)
-			switch {
-			case errors.Is(e, termline.ErrInterrupt) || errors.Is(e, context.Canceled):
-				return "", &Error{Code: "credential_prompt_interrupted", Message: fmt.Sprintf("interrupted at the %s prompt", strings.ToLower(req.Label())), Policy: p.Name}
-			case errors.Is(e, io.EOF):
-				return "", &Error{Code: "credential_prompt_unavailable", Message: fmt.Sprintf("the %s prompt was ended by Ctrl-D or the terminal's end", strings.ToLower(req.Label())), Policy: p.Name}
-			case e != nil:
-				return "", &Error{Code: "credential_prompt_unavailable", Message: e.Error(), Policy: p.Name}
-			case v == "":
-				return "", &Error{Code: emptyAnswerCodes[field], Message: fmt.Sprintf("nothing was entered at the %s prompt", strings.ToLower(req.Label())), Policy: p.Name}
+	fieldsCredential := func() credentials.Credential {
+		return credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: source, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: source}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: source, Path: source}, "password": {Backend: source, Path: source}, "enable_password": {Backend: source, Path: source}}}
+	}
+	// failure is the last source's that found something; incomplete marks
+	// that it was netvars, whose fields make no whole credential, and
+	// finalize then names the field missing.
+	var failure error
+	incomplete := false
+	for _, word := range list {
+		switch word {
+		case platform.FallbackNetvars:
+			if r.input == nil {
+				continue
 			}
-			source = "interactive-tty"
-			return v, nil
-		}
-		if username == "" && allowPrompt && r.cfg.Bool("creds.prompt-for-username") {
-			if username, err = prompt(FieldUsername, false); err != nil {
+			found := false
+			for _, v := range []struct {
+				name  string
+				field *string
+			}{{"NETUSER", &username}, {"NETPASS", &password}, {"NETENABLE", &enable}} {
+				value, ok, err := r.input.LookupEnv(ctx, v.name)
+				if err != nil {
+					return credentials.Resolved{}, &Error{Code: "credential_prompt_unavailable", Message: err.Error(), Policy: policyName}
+				}
+				if ok {
+					found = true
+					if *v.field == "" {
+						*v.field = value
+					}
+				}
+			}
+			if !found {
+				continue
+			}
+			if username != "" && password != "" && (enable != "" || !requiredEnable) {
+				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true, true)
+			}
+			// Incomplete: the prompt, when it follows, fills the rest, and
+			// until a later source finds something of its own the fields
+			// are the failure.
+			if username+password+enable != "" {
+				failure, incomplete = nil, true
+			}
+		case platform.FallbackPrompt:
+			if r.input == nil {
+				continue
+			}
+			if err := r.prompt(ctx, device, policyName, requiredEnable, &username, &password, &enable, &source); err != nil {
 				return credentials.Resolved{}, err
 			}
-		}
-		if requirePassword && password == "" && allowPrompt && r.cfg.Bool("creds.prompt-for-password") {
-			if password, err = prompt(FieldPassword, true); err != nil {
+			if username != "" {
+				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true, true)
+			}
+		case platform.FallbackKeys:
+			if device.Transport == "telnet" {
+				failure, incomplete = &Error{Code: "credential_password_missing", Message: "the target is reached over telnet, which takes no key, and the platform's fallback offers no password", Policy: policyName}, false
+				continue
+			}
+			result := r.operatorKeys()
+			if len(result.Keys) == 0 {
+				failure, incomplete = &Error{Code: "credential_operator_keys_missing", Message: "no key of ssh.identities is usable; examined: " + listOrNone(result.Examined), Policy: policyName}, false
+				continue
+			}
+			cred := credentials.Credential{Material: secrets.NewMaterial(operator.Username, "", ""), Backend: operatorkeys.Backend, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: operatorkeys.Backend}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: operatorkeys.Backend, Path: operatorkeys.Backend}}, Keys: append([]credentials.KeyRef(nil), result.Keys...)}
+			resolved, err := r.finalize(cred, operatorkeys.Backend, policyName, requiredEnable, false, false)
+			if err != nil {
 				return credentials.Resolved{}, err
 			}
-		}
-		if requiredEnable && enable == "" && allowPrompt && r.cfg.Bool("creds.prompt-for-password") {
-			if enable, err = prompt(FieldEnablePassword, true); err != nil {
-				return credentials.Resolved{}, err
+			for _, skip := range result.Skipped {
+				resolved.Notices = append(resolved.Notices, credentials.Notice{Code: "operator_key_skipped", Message: skippedMessage(skip), Details: map[string]string{"file": skip.Path, "reason": skip.Reason}})
 			}
+			return resolved, nil
 		}
 	}
-	if username == "" {
-		return credentials.Resolved{}, &Error{Code: "credential_username_missing", Message: "no backend, NETUSER value, or tty username is available", Policy: p.Name}
+	if incomplete && username != "" {
+		return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true, true)
 	}
-	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: source, Policy: p.Name, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: source}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: source, Path: source}, "password": {Backend: source, Path: source}, "enable_password": {Backend: source, Path: source}}}
-	return r.finalize(cred, source, p.Name, requiredEnable, requirePassword, true)
+	if failure != nil {
+		return credentials.Resolved{}, failure
+	}
+	return credentials.Resolved{}, &Error{Code: "credential_username_missing", Message: fmt.Sprintf("no backend answered and the platform's fallback (%s) supplied no username", listOrNone(list)), Policy: policyName}
+}
+
+// prompt asks the terminal for the fields still empty: the username when
+// creds.prompt-for-username, the password, and the enable secret where the
+// platform requires one, each under creds.interactive-prompt. A prompt is
+// asked only for a field the device needs, so no job runs past one left
+// unanswered: Ctrl-C (or a signal) at the prompt is
+// credential_prompt_interrupted, an empty answer the field's missing code,
+// at once and before any later prompt; Ctrl-D on an empty line, like a
+// missing terminal, is credential_prompt_unavailable. An answer makes the
+// source interactive-tty.
+func (r *Resolver) prompt(ctx context.Context, device inventory.Device, policyName string, requiredEnable bool, username, password, enable, source *string) error {
+	if !r.cfg.Bool("creds.interactive-prompt") {
+		return nil
+	}
+	ask := func(field string, masked bool, into *string) error {
+		req := PromptRequest{Field: field, Masked: masked, Target: device.CanonicalName}
+		v, e := r.input.Prompt(ctx, req)
+		switch {
+		case errors.Is(e, termline.ErrInterrupt) || errors.Is(e, context.Canceled):
+			return &Error{Code: "credential_prompt_interrupted", Message: fmt.Sprintf("interrupted at the %s prompt", strings.ToLower(req.Label())), Policy: policyName}
+		case errors.Is(e, io.EOF):
+			return &Error{Code: "credential_prompt_unavailable", Message: fmt.Sprintf("the %s prompt was ended by Ctrl-D or the terminal's end", strings.ToLower(req.Label())), Policy: policyName}
+		case e != nil:
+			return &Error{Code: "credential_prompt_unavailable", Message: e.Error(), Policy: policyName}
+		case v == "":
+			return &Error{Code: emptyAnswerCodes[field], Message: fmt.Sprintf("nothing was entered at the %s prompt", strings.ToLower(req.Label())), Policy: policyName}
+		}
+		*into, *source = v, "interactive-tty"
+		return nil
+	}
+	if *username == "" && r.cfg.Bool("creds.prompt-for-username") {
+		if err := ask(FieldUsername, false, username); err != nil {
+			return err
+		}
+	}
+	if *password == "" && r.cfg.Bool("creds.prompt-for-password") {
+		if err := ask(FieldPassword, true, password); err != nil {
+			return err
+		}
+	}
+	if requiredEnable && *enable == "" && r.cfg.Bool("creds.prompt-for-password") {
+		if err := ask(FieldEnablePassword, true, enable); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// operatorKeys judges ssh.identities once per resolver, at the first
+// device whose fallback reaches the keys; every later device shares the
+// judgement and its notices. Each skipped key is a warning line once, as a
+// platform not set is, beside the notice on each device's first record.
+func (r *Resolver) operatorKeys() operatorkeys.Result {
+	r.keysOnce.Do(func() {
+		r.keys = operatorkeys.Judge(r.keyRules, r.cfg.Strings("ssh.identities"))
+		for _, skip := range r.keys.Skipped {
+			if r.warn != nil {
+				r.warn(fmt.Sprintf("operator_key_skipped: %s", skippedMessage(skip)))
+			}
+		}
+	})
+	return r.keys
+}
+
+// skippedMessage is a skipped key's notice text: the file and the reason,
+// never the contents.
+func skippedMessage(skip operatorkeys.Skip) string {
+	return fmt.Sprintf("operator key %s skipped: %s", skip.Path, skip.Reason)
+}
+
+// platformFallback is the platform used's fallback, as requiresEnable reads
+// requires-enable; a definition that leaves it unset is netvars then
+// prompt.
+func platformFallback(d inventory.Device, cfg configload.Snapshot) []string {
+	name := d.PlatformUsed
+	if name == "" {
+		name = d.Platform
+	}
+	if name == "" {
+		name = "generic"
+	}
+	list := platform.Resolve(name, cfg.NamedTables("platform")).Fallback
+	if list == nil {
+		return platform.DefaultFallback()
+	}
+	return list
 }
 
 // emptyAnswerCodes are the codes of a prompt answered with nothing, by
@@ -335,7 +467,7 @@ func (r *Resolver) finalize(c credentials.Credential, backend, policyName string
 		return credentials.Resolved{}, err
 	}
 	profile := r.transforms[r.backendProfile[backend]]
-	if backend == "builtin-env-fallback" || backend == "interactive-tty" {
+	if backend == "builtin-env-fallback" || backend == "interactive-tty" || backend == operatorkeys.Backend {
 		profile = r.transforms["default"]
 	}
 	if out, _, e := profile.Username.Apply(username); e != nil {

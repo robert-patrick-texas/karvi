@@ -128,8 +128,11 @@ known-hosts-file = "auto"
 # When true, the first changed SSH host key stops new run scheduling while allowing in-flight
 # devices to finish.
 halt-run-on-host-key-mismatch = false
-# Default password-oriented fleet behavior.
-pubkey-authentication = false
+# The operator's own keys, offered in this order where a platform's fallback reaches keys:
+# each an absolute path or ~/, the home the password database names. A file that does not
+# exist is passed over; one that is not the operator's own regular file without group or other
+# access, holds a passphrase, or is hardware-backed is skipped with operator_key_skipped.
+identities = ["~/.ssh/id_ed25519", "~/.ssh/id_ecdsa", "~/.ssh/id_rsa"]
 # At least one auth mechanism must remain.
 password-authentication = true
 # Supports network-device challenge prompts.

@@ -7,6 +7,7 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -16,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/executionplan/plantest"
+	"github.com/robert-patrick-texas/karvi/internal/adapters/sshkey/sshkeytest"
 	"github.com/robert-patrick-texas/karvi/internal/canary"
 	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
@@ -216,7 +218,7 @@ func TestDifferentMatchLinesGiveSeparateGrants(t *testing.T) {
 // TestPromptOnceForThreeTargets: the built-in fallback asks once and every
 // later target reuses the answer; the prompt names the count.
 func TestPromptOnceForThreeTargets(t *testing.T) {
-	cfg := testConfig(t, `creds.backend-sequence=[]`, "ssh.pubkey-authentication=false", "creds.interactive-prompt=true")
+	cfg := testConfig(t, `creds.backend-sequence=[]`, "creds.interactive-prompt=true")
 	input := &fakeInput{}
 	devices := []inventory.Device{direct("10.0.0.1"), direct("10.0.0.2"), direct("10.0.0.3")}
 	plan := planFor(t, cfg, devices, nil)
@@ -251,7 +253,7 @@ func TestPromptOnceForThreeTargets(t *testing.T) {
 // the targets resolving beside the first are not asked again, and no
 // later prompt follows the one left unanswered.
 func TestPromptStopsTheRun(t *testing.T) {
-	cfg := testConfig(t, `creds.backend-sequence=[]`, "ssh.pubkey-authentication=false", "creds.interactive-prompt=true")
+	cfg := testConfig(t, `creds.backend-sequence=[]`, "creds.interactive-prompt=true")
 	devices := []inventory.Device{direct("10.0.0.1"), direct("10.0.0.2"), direct("10.0.0.3")}
 	plan := planFor(t, cfg, devices, nil)
 	for _, c := range []struct {
@@ -503,5 +505,65 @@ func TestCredentialCSVRowSharedByDevicesGivesOneGrant(t *testing.T) {
 	}
 	if bos.MatchedOn.CredKey != "bos" || bos.MatchedOn.Pattern != "device_name=sw-bos-* credkey=bos" || bos.MatchedOn.Line != 2 {
 		t.Fatalf("evidence %+v", bos.MatchedOn)
+	}
+}
+
+// TestOperatorKeysBindAndNotify: two linux targets reaching the operator's
+// keys share one grant carrying the keys by path and fingerprint, no
+// password; a skipped key is a notice on each plan target after Bind, the
+// source digest covering it, and in Notices for the dry run.
+func TestOperatorKeysBindAndNotify(t *testing.T) {
+	dir := t.TempDir()
+	key, fingerprint := sshkeytest.Ed25519(t, "")
+	locked, _ := sshkeytest.Ed25519(t, "lab passphrase")
+	good, skipped := filepath.Join(dir, "id_ed25519"), filepath.Join(dir, "id_ecdsa")
+	for path, data := range map[string][]byte{good: key, skipped: locked} {
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := testConfig(t, `creds.backend-sequence=[]`, `ssh.identities=["`+skipped+`", "`+good+`"]`)
+	op := operator
+	op.UID = os.Getuid()
+	r, err := credentialbackend.New(cfg, op, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := func(name string) inventory.Device {
+		d := inventory.Direct(name, "linux", "system", 0)
+		d.TransportExplicit = true
+		return d
+	}
+	devices := []inventory.Device{server("10.0.0.1"), server("10.0.0.2")}
+	plan := planFor(t, cfg, devices, nil)
+	p, err := NewCredentialPlanner(cfg, op, devices, plantest.DraftedAt, CredentialOptions{Resolver: r, Input: &fakeInput{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer p.Destroy()
+	if err := p.Resolve(context.Background(), plan); err != nil {
+		t.Fatal(err)
+	}
+	final, _, pkg := finish(t, p, plan)
+	if len(pkg.Grants) != 1 || len(pkg.Grants[0].Scope.TargetIDs) != 2 || pkg.Grants[0].Backend != "builtin-operator-keys" || pkg.Grants[0].Password.IsSet() {
+		t.Fatalf("grants: %d %+v", len(pkg.Grants), pkg.Grants[0].Scope)
+	}
+	want := []credentials.KeyRef{{Path: good, Fingerprint: fingerprint}}
+	if !reflect.DeepEqual(pkg.Grants[0].Keys, want) {
+		t.Fatalf("keys: %+v", pkg.Grants[0].Keys)
+	}
+	for i, target := range final.Targets {
+		if len(target.Notices) != 1 || target.Notices[0].Code != "operator_key_skipped" || target.Notices[0].Details["file"] != skipped {
+			t.Fatalf("target %d notices: %+v", i, target.Notices)
+		}
+		if sum, _ := executionplan.SumTarget(target); sum != target.SourceDigest {
+			t.Fatalf("target %d source digest does not cover its notices", i)
+		}
+		if n := p.Notices(target.TargetID); len(n) != 1 {
+			t.Fatalf("Notices: %+v", n)
+		}
+	}
+	if _, grant, ok := p.Binding(final.Targets[0].TargetID); !ok || !reflect.DeepEqual(grant.Keys, want) || grant.DeviceUsername != "netops" {
+		t.Fatalf("binding: %+v", grant)
 	}
 }

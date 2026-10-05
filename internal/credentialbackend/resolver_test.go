@@ -17,7 +17,7 @@ import (
 func TestBuiltinEnvironment(t *testing.T) {
 	t.Setenv("NETUSER", "operator1")
 	t.Setenv("NETPASS", "pw")
-	cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: os.Environ(), Sets: []string{"ssh.pubkey-authentication=true", "creds.interactive-prompt=false"}})
+	cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: os.Environ(), Sets: []string{"creds.interactive-prompt=false"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestBuiltinEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := inventory.Direct("127.0.0.1", "linux", "system", 22)
+	d := inventory.Direct("127.0.0.1", "cisco_iosxe", "system", 22)
 	got, err := r.Resolve(context.Background(), op, d)
 	if err != nil {
 		t.Fatal(err)
@@ -194,17 +194,11 @@ func TestCredentialCSVInThePolicy(t *testing.T) {
 	if u := user(t, got, err); u != "human via creds" {
 		t.Errorf("a blank username cell: %s", u)
 	}
-	// A username with no password is an answer where public-key login
-	// needs none ...
-	got, err = resolve(t, ssh("sw-nokey-01"), "ssh.pubkey-authentication=true")
-	if u := user(t, got, err); u != "svc.nopass via creds" {
-		t.Errorf("no password, public key allowed: %s", u)
-	}
-	// ... and credential_password_missing where a password is needed, as
-	// it is by default (ssh.pubkey-authentication is false unless set). The
-	// row on line 3 also matches and has a password: it is not consulted.
+	// A username with no password is credential_password_missing: a
+	// backend's credential holds no key, so it needs a password. The row
+	// on line 3 also matches and has a password: it is not consulted.
 	if _, err = resolve(t, ssh("sw-nokey-01")); errorcodes.Of(err) != "credential_password_missing" {
-		t.Errorf("no password, password login only: %v", err)
+		t.Errorf("no password: %v", err)
 	}
 	if _, err = resolve(t, ssh("sw-nyc-01"), "platform.cisco_iosxe.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
 		t.Errorf("no enable where the platform requires one: %v", err)

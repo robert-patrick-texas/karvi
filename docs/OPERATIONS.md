@@ -322,10 +322,49 @@ unit keeps a daemon through logout there.
 places, its filtered environment, and the idle exit for the terminal; a
 change to one changes both.
 
+## The platform's fallback and the operator's keys
+
+When no backend of the policy answers for a device, its platform's
+`fallback` says what follows, in order: `netvars` reads `NETUSER`, `NETPASS`,
+and `NETENABLE`; `keys` is the operator's login name and own keys; `prompt`
+asks at the terminal ([the credential prompts](#the-credential-prompts)).
+The network built-ins and `generic` are `["netvars", "prompt"]`, `linux` and
+`linux_shell` `["keys"]`, an alias its driver's; a table replaces the list
+whole, and an empty list is no fallback. The variables an operator exports
+for routers reach no server unless the site says so:
+
+```toml
+[platform.linux]
+fallback = ["netvars", "keys"]
+```
+
+The operator's keys are `ssh.identities`, in its order: by default
+`~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`, `~` the home the
+password database names, each an absolute path or one under the home; a site
+may lock the list. At planning a file that does not exist is passed over, and
+one that exists is used only when it is the operator's own regular file with
+mode `0600` or `0400` (a symbolic link under
+`security.allow-credential-symlinks`), opens without a passphrase, and is not
+hardware-backed. Any other is skipped with the notice `operator_key_skipped`,
+naming the file and the reason, as a warning line, a dry-run finding, and on
+each device's first record. The dry run shows each key used with its
+fingerprint:
+
+```text
+- name:srv1: planned
+  credential: bound 20261005T055915.472140-0400-2zmnvah6w9h7jap1d0fr (policy=default backend=builtin-operator-keys user=netops; value not displayed)
+  key: /home/netops/.ssh/id_ed25519 SHA256:lCkD25f/uZQGbWYmns4BurmVr65NAa+wSHkq5Y/lnVk
+```
+
+With no key left the device fails with `credential_operator_keys_missing`
+(exit 6), listing the files examined. Telnet takes no key. A backend's
+credential holds no key, so it needs a password (`credential_password_missing`
+otherwise).
+
 ## The credential prompts
 
-When no backend of the policy answers for a device, the built-in fallback
-reads `NETUSER`, `NETPASS`, and `NETENABLE`, and asks at the controlling
+When the platform's fallback reaches `prompt` (after `netvars` on the
+network built-ins), karvi asks at the controlling
 terminal for what is missing and needed (`creds.interactive-prompt`,
 `creds.prompt-for-username`, `creds.prompt-for-password`): `Username for
 router1: `, then `Password for router1: `, and the enable secret only where
@@ -393,10 +432,10 @@ enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
   5](CREDENTIAL-CSV.md#5-keys-and-pins-credkey-and-credkeyref)). The record's
   `matched_on` names the operator, not the device.
 
-The built-in fallback's `NETUSER`, `NETPASS`, and `NETENABLE` are read without a
-backend, after the policy's backends ([the credential
-prompts](#the-credential-prompts)); an `env` backend is how a site names
-variables of its own.
+The fallback's `NETUSER`, `NETPASS`, and `NETENABLE` are read without a
+backend, after the policy's backends, where the platform's fallback holds
+`netvars` ([the platform's fallback](#the-platforms-fallback-and-the-operators-keys));
+an `env` backend is how a site names variables of its own.
 
 ## Credential files
 

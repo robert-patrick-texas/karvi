@@ -197,7 +197,7 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 				tr.Address.ResolutionActor = executionplan.ResolverContextClient
 			}
 			matched := grant.MatchedOn
-			tr.CredentialBinding = records.CredentialBindingReport{Status: records.BindingBound, CredentialID: id, Policy: grant.Policy, Backend: grant.Backend, DeviceUsername: grant.DeviceUsername, MatchedOn: &matched}
+			tr.CredentialBinding = records.CredentialBindingReport{Status: records.BindingBound, CredentialID: id, Policy: grant.Policy, Backend: grant.Backend, DeviceUsername: grant.DeviceUsername, MatchedOn: &matched, Keys: grant.Keys}
 			tr.IntendedTransport.SessionInitProfile, _ = cd.planner.SessionInitProfile(t.TargetID)
 		} else {
 			tr.Readiness = records.ReadinessDeferred
@@ -213,6 +213,11 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 		// The target's planning notices (a not-set or fallen-back platform)
 		// as warning findings; readiness unchanged.
 		tr.Findings = append(tr.Findings, jobexec.NoticeFindings(t)...)
+		// The resolution's notices (a skipped operator key), which the
+		// draft has not yet taken.
+		for _, n := range cd.planner.Notices(t.TargetID) {
+			tr.Findings = append(tr.Findings, jobexec.NoticeFinding(t.TargetID, n))
+		}
 		byReadiness[tr.Readiness]++
 		byAuthority[string(t.AddressPlan.Authority)]++
 		targets = append(targets, tr)
@@ -324,6 +329,10 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		}
 		if t.CredentialBinding.Status == records.BindingBound {
 			fmt.Fprintf(&b, "  credential: bound %s (policy=%s backend=%s user=%s; value not displayed)\n", t.CredentialBinding.CredentialID, t.CredentialBinding.Policy, t.CredentialBinding.Backend, t.CredentialBinding.DeviceUsername)
+			// Each key offered, in order, with its fingerprint as read now.
+			for _, k := range t.CredentialBinding.Keys {
+				fmt.Fprintf(&b, "  key: %s %s\n", k.Path, k.Fingerprint)
+			}
 		} else {
 			fmt.Fprintf(&b, "  credential: <%s>\n", t.CredentialBinding.Status)
 		}

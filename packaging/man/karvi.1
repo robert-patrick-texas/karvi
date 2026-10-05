@@ -239,9 +239,18 @@ is
 .BR false .
 .TP
 .BR NETUSER ", " NETPASS ", " NETENABLE
-The device username, password, and enable password of the built\-in
-credential fallback, read by the client that submits the job and never by
-the daemon; one that is not set is asked at the terminal.
+The device username, password, and enable password of the credential
+fallback where the platform's
+.B fallback
+holds
+.B netvars
+(the network built\-ins; a
+.B linux
+server takes the operator's keys,
+.BR ssh.identities ),
+read by the client that submits the job and never by the daemon; one that
+is not set is asked at the terminal where the fallback holds
+.BR prompt .
 .TP
 .B KARVI_ASKPASS_PATH
 The
