@@ -1745,6 +1745,20 @@ writes a password typed at a prompt that does not echo); a raw copy beside the
 transcript; a switch to turn rendering off; `TERM=dumb` asked of the server; a
 terminal-emulator library.
 
+**The shell's output is rendered at no width.** In `command` and `run` the
+renderer reads the shell's stream with no width: nothing wraps, and cursor up
+and down do nothing. Both transports keep asking the far end for a pty of no
+size, as `ssh -tt` does from a pipe. *Why:* karvi writes each command whole, so
+the far end echoes it as plain text whatever width it assumes (over a sizeless
+pty this host's `stty size` read `0 0`, bash took 80 columns, and a
+100-character command came back as one line with no control inside it); width
+changes the text only when the far end moves between a line's wrapped rows,
+which is interactive editing, a recorded login's case, whose width the timing
+log gives. *Not taken:* rendering at 80 (a device set to another width would be
+read at the wrong one); asking the far end for 80 or a large width (it changes
+what devices print, wide tables and IOS XE's `terminal width`); the width of
+karvi's own terminal (a daemon's job has none).
+
 **Retention is a helper of its own, walking `YYMMDD` day folders under both
 roots.** `karvi-prune` reads no configuration; its eight flags carry the
 settings' names (`--basedir`, `--sharedroot`, `--scoreboards`, `--days`,

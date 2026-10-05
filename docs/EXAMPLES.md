@@ -3383,3 +3383,23 @@ is.
 section of this chapter; the chapter stays open until the work is built, in
 sections committed one at a time on the operator's word, and closes with the
 build's own executed runs.
+
+**During the build: the shell's width.** The renderer needs a width, and the
+design said the width each transport asks of the far end would be checked when
+built. Both ask for none: `scrapligo-v1` requests a pty of 0 by 0, as `ssh -tt`
+does from a pipe. Executed, `ssh -tt` from a pipe to this host:
+
+```text
+stty size          ->  0 0
+echo $COLUMNS      ->  80
+echo rrrr…(100 r)  ->  ...$ echo rrrrrrrrrr…(100 r)^M     one line, no control inside it
+```
+
+**Agreed.** The shell's stream in `command` and `run` is rendered at no width
+(nothing wraps; cursor up and down do nothing), and the transports keep asking
+for no size: a command written whole comes back as plain text whatever width
+the far end assumes, and the width matters only to interactive editing, a
+recorded login's, whose timing log gives it.
+
+**Not taken.** Rendering at 80; asking the far end for a width (it changes
+what devices print); the width of karvi's own terminal.
