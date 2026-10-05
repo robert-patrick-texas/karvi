@@ -1,0 +1,62 @@
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.8.0-146-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sun Oct  4 14:03:08 EDT 2026
+
+  System load:  0.09               Processes:             161
+  Usage of /:   27.0% of 76.45GB   Users logged in:       1
+  Memory usage: 12%                IPv4 address for eth0: 192.0.2.80
+  Swap usage:   0%                 IPv6 address for eth0: 2001:db8::1
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+Expanded Security Maintenance for Applications is not enabled.
+
+1 update can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+4 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+New release '26.04.1 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+Last login: Sun Oct  4 14:01:09 2026 from 127.0.0.1
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo cl[H[2J]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo cleared
+[?2004lcleared
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc[A[C[C[C[C[C
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K[AYZcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ccc[A
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C!
+[?2004lYZcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo bc[C[C[C[C[Cabc[C[Cd
+[?2004labcd
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo xzyz[C!
+[?2004lxyz!
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo gone[Kecho kept
+[?2004lkept
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo gone[Kecho after-u
+[?2004lafter-u
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo one two[Kthree
+[?2004lone three
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo abXc[1Pc
+[?2004labc
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo abc
+[?2004labc
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ (reverse-i-search)`': [Ka': echo [7ma[27mbcf': echo [7maf[27mter-ut': echo [7maft[27mer-ue': echo [7mafte[27mr-ur': echo [7mafter[27m-u[13P]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo after-u
+[?2004lafter-u
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+[?2004laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb[A[C[C[C[C[CXbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cb[A
+
+[?2004lXbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ [H[2J]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ echo cleared
+[?2004lcleared
+[?2004h]0;netops@dev: ~[01;32mnetops@dev[00m:[01;34m~[00m$ exit
+[?2004llogout

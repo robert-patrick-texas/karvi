@@ -1,0 +1,37 @@
+Welcome to Ubuntu 24.04.5 LTS (GNU/Linux 6.8.0-146-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Mon Oct  5 03:49:18 EDT 2026
+
+  System load:  0.28               Processes:             157
+  Usage of /:   27.1% of 76.45GB   Users logged in:       1
+  Memory usage: 15%                IPv4 address for eth0: 192.0.2.80
+  Swap usage:   0%                 IPv6 address for eth0: 2001:db8::1
+
+ * Canonical Workshop gives developers fast, composable, reproducible, and
+   secure developer environments that are perfect for agentic workflows.
+
+   https://ubuntu.com/workshop
+
+Expanded Security Maintenance for Applications is not enabled.
+
+1 update can be applied immediately.
+To see these additional updates run: apt list --upgradable
+
+4 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+New release '26.04.1 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+
+Last login: Mon Oct  5 02:23:33 2026 from 127.0.0.1
+netops@dev:~$ ls --color=auto -d /etc /bin
+/bin  /etc
+netops@dev:~$ echo helo
+helo
+netops@dev:~$ exit
+logout
