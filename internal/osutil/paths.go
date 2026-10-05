@@ -598,13 +598,13 @@ func scratchRootPresent() bool {
 	return err == nil && fi.IsDir()
 }
 
-// ControlPathRoot resolves ssh.control-path-root: "auto" is
+// ControlPathRoot resolves ssh.control-path-root and makes it: "auto" is
 // <ScratchRoot>/<username>/sockets when the scratch root exists and the
 // folder is the operator's private one, else <basedir>/socket/ssh; an
-// explicit path replaces both.
-func ControlPathRoot(raw, base, username string, uid int) (string, error) {
+// explicit path replaces both, ~ being the operator's home.
+func ControlPathRoot(raw, base, home, username string, uid int) (string, error) {
 	if raw != "" && raw != "auto" {
-		p, err := expandHome(raw, filepath.Dir(filepath.Dir(base)))
+		p, err := expandHome(raw, home)
 		if err != nil {
 			return "", err
 		}

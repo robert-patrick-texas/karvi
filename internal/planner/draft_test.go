@@ -3,6 +3,7 @@ package planner
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/executionplan/plantest"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/transportselect"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/platform"
@@ -419,5 +421,40 @@ func TestTargetChannel(t *testing.T) {
 		if tg.Channel != executionplan.ChannelShell {
 			t.Fatalf("%s: channel %q", tg.TargetID, tg.Channel)
 		}
+	}
+}
+
+// The first exec target over the system transport checks the control-path
+// root: one too long for a control socket is control_path_root_too_long,
+// naming the root and its length; a root of 73 bytes passes, and a shell
+// platform's target does not check it.
+func TestControlPathRootCheckedForExecOverSystem(t *testing.T) {
+	home := t.TempDir()
+	if err := os.Mkdir(filepath.Join(home, "base"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	op := credentials.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Home: home}
+	long := "/" + strings.Repeat("r", osutil.MaxControlPathRoot)
+	set := func() TargetSet {
+		s := k03Set(t)
+		for i := range s.Devices {
+			s.Devices[i].Platform = "srv"
+		}
+		return s
+	}
+	exec := []string{`platform.srv.driver="linux"`, `platform.srv.channel="exec"`, `basedir="` + filepath.Join(home, "base") + `"`}
+	_, err := Draft(context.Background(), testConfig(t, append(exec, `ssh.control-path-root="`+long+`"`)...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if errorcodes.Of(err) != "control_path_root_too_long" || !strings.Contains(err.Error(), long+" is 74 bytes") || !strings.Contains(err.Error(), "at most 73 bytes") {
+		t.Fatalf("a root of 74 bytes: %v", err)
+	}
+	// 73 bytes pass the check; the planner then refuses the channel, which
+	// the system transport does not have yet.
+	_, err = Draft(context.Background(), testConfig(t, append(exec, `ssh.control-path-root="`+long[:73]+`"`)...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if errorcodes.Of(err) != "channel_exec_unavailable" {
+		t.Fatalf("a root of 73 bytes: %v", err)
+	}
+	shell := []string{`platform.srv.driver="linux"`, `platform.srv.channel="shell"`, `basedir="` + filepath.Join(home, "base") + `"`, `ssh.control-path-root="` + long + `"`}
+	if _, err := Draft(context.Background(), testConfig(t, shell...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt); err != nil {
+		t.Fatalf("a shell platform: %v", err)
 	}
 }

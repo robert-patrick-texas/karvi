@@ -246,6 +246,7 @@ Active failure causes.
 | `connection_open_failed` | connection | 110 | no | Unclassified. Opening a device connection failed and the error carries no specific code. |
 | `connection_refused` | connection | 110 | yes | The device refuses the TCP connection. |
 | `connection_timeout` | timeout | 110 | yes | The TCP connection to the device times out. |
+| `control_path_root_too_long` | config | 2 | no | The control-path root is too long for a control socket's path: OpenSSH's 108-byte limit with karvi's 16-character name and OpenSSH's 17-character binding suffix leaves the root at most 73 bytes; refused at planning when a target runs exec over the system transport, naming the root and its length. |
 | `control_path_root_unavailable` | permission | 9 | no | Unclassified. The OpenSSH control-path root cannot be resolved or created. |
 | `credential_backend_error` | credential | 6 | no | Unclassified. A credential backend reported a failure without a specific code. |
 | `credential_backend_unknown` | credential | 6 | no | A credential policy refers to a backend that is not registered. |

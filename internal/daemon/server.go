@@ -188,6 +188,9 @@ func (s *Server) Serve(parent context.Context) error {
 	// daemon; the job that needs it is refused at its admission with the
 	// same code.
 	s.sweepSpools()
+	// So is the control-path root: a socket a master killed outright left
+	// goes, logged by name; a root that cannot be resolved is logged.
+	s.sweepControlSockets()
 	if err := os.MkdirAll(filepath.Dir(s.Socket), 0700); err != nil {
 		return err
 	}
@@ -352,6 +355,27 @@ func (s *Server) sweepSpools() {
 			s.Logger.Info("removed the abandoned spool", slog.String("code", "spool_abandoned_removed"), slog.String("path", filepath.Join(dir, name)))
 		}
 	})
+}
+
+// sweepControlSockets is the daemon-start half of the control socket
+// sweep: a socket a master killed outright left. It makes nothing: a root
+// not yet made holds no socket.
+func (s *Server) sweepControlSockets() {
+	base, err := osutil.BaseDirPath(s.Config.String("basedir"), s.Operator.Home, s.Operator.Username)
+	if err == nil {
+		var root string
+		if root, err = osutil.ControlPathRootPlace(s.Config.String("ssh.control-path-root"), base, s.Operator.Home, s.Operator.Username, s.Operator.UID); err == nil {
+			osutil.SweepControlSockets(root, func(name string) {
+				if s.Logger != nil {
+					s.Logger.Info("removed the abandoned control socket", slog.String("code", "control_socket_abandoned_removed"), slog.String("path", filepath.Join(root, name)))
+				}
+			})
+			return
+		}
+	}
+	if s.Logger != nil {
+		s.Logger.Warn("control-path root unavailable", slog.String("code", errorcodes.Of(err)), slog.String("error", err.Error()))
+	}
 }
 
 func (s *Server) logShutdown(code string, sig os.Signal, wait time.Duration) {

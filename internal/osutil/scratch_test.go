@@ -31,7 +31,7 @@ func TestScratchRootNeverCreated(t *testing.T) {
 	if err != nil || got != filepath.Join(base, "tmp") {
 		t.Fatalf("scratch %q %v, want %s", got, err, filepath.Join(base, "tmp"))
 	}
-	got, err = ControlPathRoot("auto", base, "u", os.Geteuid())
+	got, err = ControlPathRoot("auto", base, dir, "u", os.Geteuid())
 	if err != nil || got != filepath.Join(base, "socket", "ssh") {
 		t.Fatalf("control path %q %v", got, err)
 	}
@@ -49,7 +49,7 @@ func TestScratchRootNeverCreated(t *testing.T) {
 	if err != nil || got != filepath.Join(ScratchRoot, "u") {
 		t.Fatalf("scratch %q %v, want the folder in the scratch root", got, err)
 	}
-	got, err = ControlPathRoot("auto", base, "u", os.Geteuid())
+	got, err = ControlPathRoot("auto", base, dir, "u", os.Geteuid())
 	if err != nil || got != filepath.Join(ScratchRoot, "u", "sockets") {
 		t.Fatalf("control path %q %v", got, err)
 	}

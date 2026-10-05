@@ -529,7 +529,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__CONTROL_PATH_ROOT",
       "cli_flags": null,
-      "documentation": "The directory of the system transport's control sockets, a private real directory (0700, the operator's). `auto` is `/dev/shm/karvi/\u003cusername\u003e/sockets` when the site's scratch root exists, else `\u003cbasedir\u003e/socket/ssh`; an absolute path replaces both.",
+      "documentation": "The directory of the system transport's control sockets, a private real directory (0700, the operator's). `auto` is `/dev/shm/karvi/\u003cusername\u003e/sockets` when the site's scratch root exists, else `\u003cbasedir\u003e/socket/ssh`; an absolute path, or one beginning with `~/` (the operator's home), replaces both. A socket's path holds the root, a 16-character name, and OpenSSH's 17-character binding suffix within 107 bytes, so the root may be at most 73 bytes (`control_path_root_too_long` at planning, for a target that runs exec over the system transport). A socket a master killed outright left is swept at the daemon's start and at every job's admission.",
       "since": "0.2.0"
     },
     {

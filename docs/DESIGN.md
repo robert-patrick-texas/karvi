@@ -660,28 +660,49 @@ connection is `ssh_session_channel_refused`, and its session ends. On `system`
 the connection is an OpenSSH ControlMaster: one `ssh -M -N` per device session,
 with the managed configuration, host-key policy, and algorithms of the shell,
 karvi's own child (never backgrounded by `-f`) set to die with its parent; one
-`ssh -S SOCKET -n` client per command; `ssh -O exit` at the end, and the master
-killed on an abort. Its socket is in `ssh.control-path-root` under a
-16-hex-character name karvi picks (`/dev/shm/karvi/<user>/sockets/NAME` in
-shared mode, `<basedir>/socket/ssh/NAME` in individual), a root too long for the
-108-byte limit with OpenSSH's 17-character binding suffix refused at planning,
-naming the root and its length; a socket left by a killed master is swept at the
-daemon's start and at admission, only names karvi made and only when nothing
-answers. `~` in the root is the home. The client's exit is the command's status;
-on 255 the master's log, written with `-E` at `DEBUG1` into the scratch and read
-from where the command started, decides: `exit-status` is the command's own 255,
-`exit-signal` a signal (`exit_signal` `unnamed`, since OpenSSH names none), and
-neither a connection failure. The shell keeps `ControlMaster no`. *Why:* a fresh
+`ssh -S SOCKET -n` client per command at `LogLevel QUIET` with `ProxyCommand
+false`, so that it reaches the device only through the master and its stderr
+holds only the command's; `ssh -O exit` at the end, and the master killed on an
+abort. Its socket is in `ssh.control-path-root` under a 16-hex-character name
+karvi picks (`/dev/shm/karvi/<user>/sockets/NAME` in shared mode,
+`<basedir>/socket/ssh/NAME` in individual), a root too long for the 108-byte
+limit with OpenSSH's 17-character binding suffix refused at planning
+(`control_path_root_too_long`, a root of at most 73 bytes passing), naming the
+root and its length; a socket left by a killed master is swept at the daemon's
+start and at admission, only names karvi made and only when nothing answers
+(`control_socket_abandoned_removed`). `~` in the root is the home from the
+password database. The master runs at `LogLevel DEBUG1` and writes no `-E` file:
+karvi reads its stderr line by line, takes the method from its `Authenticated to
+… using "M".` line (the record's `credential.auth`, as the shell's), each
+command's `rtype` line, and the refusal line below, passes OpenSSH's other lines
+to the bounded diagnostics, and drops every other `debug1:` line. The client's
+exit is the command's status; on 255, once the master has written the command's
+`free: client-session` line, its lines decide: `exit-status` is the command's
+own 255 and `exit-signal` a signal (`exit_signal` `unnamed`, since OpenSSH names
+none); with neither, a master that still answers `-O check` is
+`command_exit_missing`, unless it wrote `chan_read_failed for istate 3`, its
+sign of a refused exec request (`ssh_session_channel_refused`, the session
+ending, as on `scrapligo-v1`), and a master gone is the session's failure, its
+code from the diagnostics. The shell keeps `ControlMaster no`. *Why:* a fresh
 `ssh` per command took ten times as long as a master and authenticated once per
 command; a channel at a time never meets `MaxSessions`, and the ledger counts
 connections as before; a connection kept across jobs would run a later job under
 the earlier job's authentication, whatever credential the later job resolved;
 OpenSSH's client reports a remote signal as it reports its own failure, while
-the master's log tells them apart, and the commands on one master run one at a
-time; OpenSSH's `%C` name spends 40 of the 108 bytes. *Not taken:* a fresh `ssh`
-per command; masters kept across jobs; exec on `scrapligo-v1` alone (the
-operator's framing names the control path, and the parity run needs both
-transports); the `%C` name.
+the master's lines tell them apart, and the commands on one master run one at a
+time; OpenSSH's `%C` name spends 40 of the 108 bytes; a client that finds no
+master opens a connection of its own and authenticates (executed, with a socket
+a killed master left); `-E` takes OpenSSH's lines off a stderr where its `closed
+by remote host` line still goes, and the `rtype` lines exist only at `DEBUG1`,
+where the three 255s differ (at `VERBOSE` they are alike); a refused exec
+request reaches neither the client's stderr nor the master's lines in its own
+words (the `exec request failed` text is queued to the client and lost with the
+channel), and without the one sign the case is `command_exit_missing`. *Not
+taken:* a fresh `ssh` per command; masters kept across jobs; exec on
+`scrapligo-v1` alone (the operator's framing names the control path, and the
+parity run needs both transports); the `%C` name; `-E` files for the master and
+the clients; the master at `VERBOSE`; a refused exec request always
+`command_exit_missing`.
 
 **An exec command keeps the session's bounds, not its shell.** There is no first
 prompt: the session is ready when the connection has authenticated

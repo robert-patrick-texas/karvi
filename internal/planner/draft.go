@@ -139,6 +139,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	}
 	tables := cfg.NamedTables("platform")
 	targets := make([]executionplan.ExecutionTarget, len(set.Devices))
+	rootChecked := false
 	for i, d := range set.Devices {
 		sel := transports[i]
 		// The platform used was resolved above: the plan's device.platform
@@ -150,7 +151,16 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		device.Transport = sel.Kind
 		device.TransportSelector = sel.Selector
 		device.Port = resolver.EffectivePort(used, sel.Kind, cfg)
-		channel, err := targetChannel(platform.Resolve(used.Platform, tables), d.CanonicalName, sel)
+		def := platform.Resolve(used.Platform, tables)
+		if def.Channel == platform.ChannelExec && sel.Kind == transportselect.KindSystem && !rootChecked {
+			// The first exec target over the system transport checks the
+			// control-path root its master's socket goes under.
+			if err := checkControlPathRoot(cfg, operator); err != nil {
+				return executionplan.ExecutionPlan{}, err
+			}
+			rootChecked = true
+		}
+		channel, err := targetChannel(def, d.CanonicalName, sel)
 		if err != nil {
 			return executionplan.ExecutionPlan{}, err
 		}
@@ -242,6 +252,20 @@ func targetChannel(def platform.Definition, name string, sel transportselect.Sel
 		return "", errorcodes.Errorf("channel_exec_over_telnet", "%s: platform %s asks for an exec channel and the transport is telnet, which has none; choose an SSH transport or a platform on the shell channel", name, def.Name)
 	}
 	return "", errorcodes.Errorf("channel_exec_unavailable", "%s: platform %s asks for an exec channel, which the %s transport does not have yet; use a platform on the shell channel (linux_shell for a server)", name, def.Name, sel.Implementation)
+}
+
+// checkControlPathRoot refuses a control-path root too long for a control
+// socket, where the activity would resolve it; nothing is made.
+func checkControlPathRoot(cfg configload.Snapshot, operator credentials.Operator) error {
+	base, err := osutil.BaseDirPath(cfg.String("basedir"), operator.Home, operator.Username)
+	if err != nil {
+		return err
+	}
+	root, err := osutil.ControlPathRootPlace(cfg.String("ssh.control-path-root"), base, operator.Home, operator.Username, operator.UID)
+	if err != nil {
+		return err
+	}
+	return osutil.CheckControlPathRoot(root)
 }
 
 // copyExpectations copies the per-command declaration lists so the plan owns

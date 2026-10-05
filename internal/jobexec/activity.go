@@ -99,7 +99,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if err != nil {
 		return FailedResult("spool_directory_unavailable", err)
 	}
-	controlRoot, err := osutil.ControlPathRoot(cfg.String("ssh.control-path-root"), base, req.Operator.Username, req.Operator.UID)
+	controlRoot, err := osutil.ControlPathRoot(cfg.String("ssh.control-path-root"), base, req.Operator.Home, req.Operator.Username, req.Operator.UID)
 	if err != nil {
 		return FailedResult("control_path_root_unavailable", err)
 	}
@@ -198,6 +198,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// plan and its manifest stay as committed.
 	output.SweepSpools(spoolDir, func(name string) {
 		logEvent(slog.LevelInfo, "spool_abandoned_removed", "removed the abandoned spool "+filepath.Join(spoolDir, name))
+	})
+	osutil.SweepControlSockets(controlRoot, func(name string) {
+		logEvent(slog.LevelInfo, "control_socket_abandoned_removed", "removed the abandoned control socket "+filepath.Join(controlRoot, name))
 	})
 	dispatchSettings := plan.Dispatch
 	expected, multiplier := cfg.Int64("output.expected-bytes-per-device"), cfg.Float("output.reserve-multiplier")

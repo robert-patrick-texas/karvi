@@ -3650,3 +3650,75 @@ from the client and the daemon's plan check alike.
 request as a command's failure on a usable session; a missing status always
 `command_exit_missing`; the daemon refusing the plan as
 `execution_plan_invalid`.
+
+**During the build: exec on `system`, its four points.** Before the build,
+plain OpenSSH through one master against the fake's Linux persona, one client
+per command (`/tmp/nd.MlEH/s8`). The master's own lines name the method that
+authenticated, `Authenticated to 127.0.0.1 ([127.0.0.1]:45853) using
+"publickey".` A master killed outright left its socket, and a client given it
+logged `Control socket connect(…): Connection refused`, then connected and
+authenticated by itself and exited 0 (the fake counted `connections=2`); with
+`ProxyCommand=false` the same client exited 255 and the device saw nothing. On
+255 with neither `rtype` line:
+
+| Case | Client | The master's `DEBUG1` lines | The master after |
+|---|---|---|---|
+| `nostatus` | 255 | no `rtype` | answers `-O check` |
+| the fake killed under `slow` | 255 | `Exit status -1`; `Connection to 127.0.0.1 closed by remote host.` on its stderr, not in an `-E` file | its socket already gone |
+| an exec request refused (the IOS XE persona) | 255, stderr empty | `channel 2: chan_read_failed for istate 3` | answers `-O check` |
+
+At `DEBUG3` the refusal shows as `mux request: exec`: OpenSSH queues `exec
+request failed` to the client's stderr and loses it when the channel closes.
+DESIGN had the master write its log with `-E` at `DEBUG1` into the scratch; the
+operator asked whether the file and the level were needed, since 5c settled
+the shell at `VERBOSE` with no file. With the master's stderr read and no
+`-E`, every line the file held arrived, and the `closed by remote host` line
+too. With the master at `VERBOSE`, `signal TERM`, `nostatus`, and `fail 255`
+all exited 255 with no line between them; at `DEBUG1` each differs (`rtype
+exit-signal`, none, `rtype exit-status`), and about 3 KB at the login and seven
+lines a command follow.
+
+**Agreed.** The master at `DEBUG1` with no `-E` file: karvi reads its stderr,
+takes the method from its `Authenticated to …` line, each command's `rtype`
+line, and the refusal line, passes OpenSSH's other lines to the bounded
+diagnostics, and drops every other `debug1:` line. A client runs at `LogLevel
+QUIET` with `ProxyCommand false`, reaching the device only through the master,
+its stderr the command's alone. On 255 with neither `rtype` line, decided once
+the master has written the command's `free: client-session` line, a master that
+answers `-O check` is `command_exit_missing`, as `scrapligo-v1` decides by its
+keepalive; `chan_read_failed for istate 3` is a refused exec request,
+`ssh_session_channel_refused` with the session ending, as on `scrapligo-v1`, and
+without it the case is `command_exit_missing`; a master gone is the session's
+failure, its code from the diagnostics. A root longer than 73 bytes (107 less
+`/`, the 16-character name, and OpenSSH's 17-character binding suffix) is
+`control_path_root_too_long` at planning; a swept socket is logged
+`control_socket_abandoned_removed`; a command stopped on `system` carries the
+notice `remote_command_not_stopped`. The `~` in `ssh.control-path-root` was
+`basedir`'s grandparent (`~/c8` under a lab `basedir` made `/tmp/nd.MlEH/c8`,
+and under the default would make `~/.local/c8`), and becomes the home.
+
+**Not taken.** `-E` files for the master and the clients; the master at
+`VERBOSE`; a 255 with neither line always a connection failure; a refused exec
+request always `command_exit_missing`.
+
+**Executed after 8a, the socket's place.** OpenSSH served a master whose
+socket was a 16-character name under a root of 73 bytes, and under 74 refused
+it at the bind: `unix_listener: path "…/0123456789abcdef.gx9Z6FBLD6UnSCOE" too
+long for Unix domain socket`. karvi with a 74-byte `ssh.control-path-root` and
+the exec alias over `system` stopped at planning, exit 2:
+
+```text
+control_path_root_too_long: the control-path root /tmp/nd.MlEH/s8/rrrr…r is 74 bytes; a control socket's path must fit OpenSSH's 108-byte limit with its 16-character name and 17-character binding suffix, so the root may be at most 73 bytes; set ssh.control-path-root to a shorter directory
+```
+
+A `linux_shell` target under the same root ran, and at 73 bytes the exec
+target reached `channel_exec_unavailable`, as 8b lifts. With a dead socket of
+karvi's name, one of another name, and a live one in the root, a `command`'s
+admission removed the dead one alone (`control_socket_abandoned_removed: removed
+the abandoned control socket …/0123456789abcdef` under `--debug`), and a `run`'s
+daemon logged the same at its start in `daemon.log`. In a private mount
+namespace with a tmpfs over the home, `~/c8` was `/tmp/nd.MlEH/c8` with the
+previous build and the home's `c8` with this one. The daemon's sweep first
+resolved the private root, and the daemon tests that start a bare server made
+`~/.local/share/karvi`; it now reads the places without making them
+(`BaseDirPath`, `ControlPathRootPlace`), a root not yet made holding no socket.

@@ -119,7 +119,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("scratch_directory_unavailable", err)
 	}
-	controlRoot, err := osutil.ControlPathRoot(cfg.String("ssh.control-path-root"), base, operator.Username, operator.UID)
+	controlRoot, err := osutil.ControlPathRoot(cfg.String("ssh.control-path-root"), base, operator.Home, operator.Username, operator.UID)
 	if err != nil {
 		return failedResult("control_path_root_unavailable", err)
 	}

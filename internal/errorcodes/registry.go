@@ -199,6 +199,7 @@ var entries = []Entry{
 	// Transport selection.
 	failure("login_driver_not_interactive", "dependency", exitDep, false, "The opened login transport does not provide an interactive session."),
 	failure("login_transport_not_interactive", "dependency", exitDep, false, "`login` selected a transport that is not system-compatible OpenSSH."),
+	failure("control_path_root_too_long", "config", exitConfig, false, "The control-path root is too long for a control socket's path: OpenSSH's 108-byte limit with karvi's 16-character name and OpenSSH's 17-character binding suffix leaves the root at most 73 bytes; refused at planning when a target runs exec over the system transport, naming the root and its length."),
 	failure("channel_exec_over_telnet", "dependency", exitDep, false, "A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both."),
 	failure("channel_exec_unavailable", "dependency", exitDep, false, "A target's platform asks for an exec channel, which its transport does not have yet; refused at planning."),
 	failure("channel_exec_declaration_refused", "usage", exitUsage, false, "A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted."),
