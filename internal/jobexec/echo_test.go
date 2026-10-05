@@ -418,3 +418,39 @@ func TestReplayedRunHasNoFooter(t *testing.T) {
 		t.Fatalf("followed run output=%q, want no footer", got)
 	}
 }
+
+// TestEchoOfAnExecRecord: an exec command is echoed at the inferred prompt,
+// the target's name and "$ ", then its stdout and its stderr, each ending
+// its line; one that did not run is not echoed.
+func TestEchoOfAnExecRecord(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	renderer, err := newRecordRenderer(&out, "text", cfg, true, false, "activity-1", "/tmp/artifacts", "command", true, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, stderr, enc := 0, "warn\n", "utf-8"
+	renderer.OnRecord(records.CommandRecord{
+		SchemaVersion: records.CommandSchemaVersion, ActivityType: "command", Channel: records.ChannelExec,
+		Device: records.DeviceProjection{CanonicalName: "srv1"}, InputTarget: "srv1",
+		Command: "both", Status: "succeeded", Output: "data", OutputEncoding: "utf-8",
+		ExitStatus: &status, Stderr: &stderr, StderrEncoding: &enc, PromptSource: records.PromptSourceNone,
+		Timing: records.Timing{EndedAt: time.Now()},
+	})
+	if got := out.String(); !strings.HasPrefix(got, "srv1$ both\ndata\nwarn\n") {
+		t.Fatalf("exec echo: %q", got)
+	}
+	out.Reset()
+	renderer.OnRecord(records.CommandRecord{
+		SchemaVersion: records.CommandSchemaVersion, ActivityType: "command", Channel: records.ChannelExec,
+		Device: records.DeviceProjection{CanonicalName: "srv1"}, InputTarget: "srv1",
+		Command: "uname -s", Status: "not_attempted_prior_command_failure", OutputEncoding: "utf-8",
+		Timing: records.Timing{EndedAt: time.Now()},
+	})
+	if got := out.String(); strings.Contains(got, "srv1$ uname -s") {
+		t.Fatalf("a command that did not run was echoed: %q", got)
+	}
+}

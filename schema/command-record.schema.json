@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record-v2.json",
-  "title": "karvi per-command record schema 2",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record-v3.json",
+  "title": "karvi per-command record schema 3",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -19,6 +19,7 @@
     "platform",
     "transport",
     "port",
+    "channel",
     "connection_reused",
     "dispatch",
     "command_index",
@@ -31,6 +32,12 @@
     "output_encoding",
     "output_bytes",
     "output_sha256",
+    "exit_status",
+    "exit_signal",
+    "stderr",
+    "stderr_encoding",
+    "stderr_bytes",
+    "stderr_sha256",
     "promptbefore",
     "prompt",
     "prompt_source",
@@ -43,7 +50,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 2
+      "const": 3
     },
     "record_id": {
       "type": "string",
@@ -219,6 +226,12 @@
       "minimum": 1,
       "maximum": 65535
     },
+    "channel": {
+      "enum": [
+        "shell",
+        "exec"
+      ]
+    },
     "connection_reused": {
       "type": [
         "boolean",
@@ -284,6 +297,44 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "exit_status": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "exit_signal": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stderr": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stderr_encoding": {
+      "enum": [
+        "utf-8",
+        "base64",
+        null
+      ]
+    },
+    "stderr_bytes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "stderr_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "promptbefore": {
       "type": "string"
     },
@@ -294,7 +345,8 @@
       "enum": [
         "",
         "observed",
-        "inferred"
+        "inferred",
+        "none"
       ]
     },
     "prompt_observed": {

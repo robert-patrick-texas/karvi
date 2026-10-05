@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	CommandSchemaVersion    = 2
+	CommandSchemaVersion    = 3 // 3: channel, and an exec command's exit and stderr
 	ScoreboardSchemaVersion = 3 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes
 	AuditSchemaVersion      = 1
 	JobSchemaVersion        = 2
@@ -72,6 +72,24 @@ type Notice struct {
 	Message string         `json:"message"`
 	Details map[string]any `json:"details,omitempty"`
 }
+
+// The words of a record's channel, the plan's.
+const (
+	ChannelShell = executionplan.ChannelShell
+	ChannelExec  = executionplan.ChannelExec
+)
+
+// PromptSourceNone is an exec record's prompt_source: no prompt exists.
+const PromptSourceNone = "none"
+
+// ExecPrompt is the prompt an exec command is shown at, which no device
+// sent: the target's name and "$ " (srv1$ uname -s). The text file and the
+// echo show it; the record's prompt fields stay empty.
+func ExecPrompt(target string) string { return target + "$ " }
+
+// Ran says whether an exec record's command ran: its channel opened and its
+// stderr, empty or not, came back.
+func (r *CommandRecord) Ran() bool { return r.Channel == ChannelExec && r.Stderr != nil }
 
 // OutputOmitted reports the record's follow_output_omitted notice, if the
 // follow stream sent the record with its output left out because its
@@ -216,17 +234,21 @@ type CommandRecord struct {
 	AddressFamily     string           `json:"address_family,omitempty"`
 	AddressSource     string           `json:"address_source,omitempty"` // inventory | dns-client | dns-daemon
 	// The address-plan fields.
-	AddressAuthority        string                `json:"address_authority,omitempty"`
-	ClientAddressCandidates []string              `json:"client_address_candidates,omitempty"`
-	DaemonAddressCandidates []string              `json:"daemon_address_candidates,omitempty"`
-	AlternateAddresses      []string              `json:"alternate_addresses,omitempty"`
-	AddressResolutionActor  string                `json:"address_resolution_actor,omitempty"`
-	Platform                string                `json:"platform"`
-	Transport               string                `json:"transport"`
-	Port                    uint16                `json:"port"`
-	ConnectionReused        *bool                 `json:"connection_reused"`
-	Credential              *CredentialProjection `json:"credential,omitempty"`
-	SessionInitProfile      string                `json:"session_init_profile,omitempty"`
+	AddressAuthority        string   `json:"address_authority,omitempty"`
+	ClientAddressCandidates []string `json:"client_address_candidates,omitempty"`
+	DaemonAddressCandidates []string `json:"daemon_address_candidates,omitempty"`
+	AlternateAddresses      []string `json:"alternate_addresses,omitempty"`
+	AddressResolutionActor  string   `json:"address_resolution_actor,omitempty"`
+	Platform                string   `json:"platform"`
+	Transport               string   `json:"transport"`
+	Port                    uint16   `json:"port"`
+	// Channel is what the command ran on: ChannelShell, the device
+	// session's interactive shell, or ChannelExec, an exec channel of its
+	// own (the target's platform's channel, carried in the plan).
+	Channel            string                `json:"channel"`
+	ConnectionReused   *bool                 `json:"connection_reused"`
+	Credential         *CredentialProjection `json:"credential,omitempty"`
+	SessionInitProfile string                `json:"session_init_profile,omitempty"`
 	// Ping is the ICMP gate's result for the device: null when the
 	// gate is disabled or not reached, the same object on every record of a
 	// gated device.
@@ -245,13 +267,26 @@ type CommandRecord struct {
 	OutputEncoding string          `json:"output_encoding"`
 	OutputBytes    int64           `json:"output_bytes"`
 	OutputSHA256   string          `json:"output_sha256"`
+	// The exec channel's outcome, null on a shell record. ExitStatus is the
+	// command's exit status, null when none came back; ExitSignal the
+	// signal that ended it, "unnamed" where the transport names none, or
+	// null. Stderr is the command's standard error as the program wrote it,
+	// with its encoding, size, and digest as output has them; null when the
+	// command was not run (a not-attempted record, a connection that failed
+	// first), so on an exec record a non-null Stderr says the command ran.
+	ExitStatus     *int    `json:"exit_status"`
+	ExitSignal     *string `json:"exit_signal"`
+	Stderr         *string `json:"stderr"`
+	StderrEncoding *string `json:"stderr_encoding"`
+	StderrBytes    *int64  `json:"stderr_bytes"`
+	StderrSHA256   *string `json:"stderr_sha256"`
 	// PromptBefore is the prompt the device showed when the statement was
 	// sent; Prompt is the one that came back after it. Both are the device's
 	// own bytes. output.TARGET.txt prints PromptBefore and the statement on
 	// one line. Empty when nothing was sent.
 	PromptBefore   string           `json:"promptbefore"`
 	Prompt         string           `json:"prompt"`
-	PromptSource   string           `json:"prompt_source"`
+	PromptSource   string           `json:"prompt_source"` // observed, inferred, or none (an exec record); "" when nothing was sent on a shell
 	PromptObserved *bool            `json:"prompt_observed"`
 	Notices        []Notice         `json:"notices"`
 	Timing         Timing           `json:"timing"`
@@ -292,8 +327,23 @@ func (r *CommandRecord) Validate() error {
 	if r.OutputEncoding != "utf-8" && r.OutputEncoding != "base64" {
 		return errorcodes.Errorf("record_output_encoding_invalid", "invalid output_encoding %q", r.OutputEncoding)
 	}
-	if r.PromptSource != "" && r.PromptSource != "observed" && r.PromptSource != "inferred" {
+	if r.PromptSource != "" && r.PromptSource != "observed" && r.PromptSource != "inferred" && r.PromptSource != PromptSourceNone {
 		return errorcodes.Errorf("record_prompt_source_invalid", "invalid prompt_source %q", r.PromptSource)
+	}
+	if r.Channel == "" {
+		r.Channel = ChannelShell // as SchemaVersion: the record written carries it
+	}
+	switch r.Channel {
+	case ChannelShell:
+		if r.ExitStatus != nil || r.ExitSignal != nil || r.Stderr != nil || r.StderrEncoding != nil || r.StderrBytes != nil || r.StderrSHA256 != nil {
+			return errorcodes.Errorf("record_channel_invalid", "a shell record carries an exec channel's exit or stderr")
+		}
+	case ChannelExec:
+		if r.Stderr != nil && (r.StderrEncoding == nil || (*r.StderrEncoding != "utf-8" && *r.StderrEncoding != "base64")) {
+			return errorcodes.Errorf("record_stderr_encoding_invalid", "invalid stderr_encoding")
+		}
+	default:
+		return errorcodes.Errorf("record_channel_invalid", "invalid channel %q", r.Channel)
 	}
 	if r.Ping != nil {
 		if err := r.Ping.Validate(); err != nil {

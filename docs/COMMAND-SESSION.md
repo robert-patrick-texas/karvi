@@ -172,16 +172,15 @@ router1#show clock
 01:20:19.849 EDT Thu Sep 10 2026
 ```
 
-Command record schema 2 persists `promptbefore`, `prompt`, `prompt_source`,
-and `prompt_observed`. `promptbefore` is the prompt the device showed when
-the statement was sent and `prompt` the one that came back after it: for
-`configure terminal` they are `router1#` and `router1(config)#`. Both are
-the device's own bytes, never inferred; `promptbefore` is empty only on a
-record whose statement was not sent, and `prompt` is empty when no prompt
-came back (a timeout, a blind send). When an error proves the command was
-sent but prompt metadata
-is unavailable, human output uses a deterministic inferred prompt and the
-record remains marked inferred. JSONL is never decorated.
+The command record persists `promptbefore`, `prompt`, `prompt_source`, and
+`prompt_observed`. `promptbefore` is the prompt the device showed when the
+statement was sent and `prompt` the one that came back after it: for `configure
+terminal` they are `router1#` and `router1(config)#`. Both are the device's own
+bytes, never inferred; `promptbefore` is empty only on a record whose statement
+was not sent, and `prompt` is empty when no prompt came back (a timeout, a blind
+send). When an error proves the command was sent but prompt metadata is
+unavailable, human output uses a deterministic inferred prompt and the record
+remains marked inferred. JSONL is never decorated.
 
 ## Debugging
 

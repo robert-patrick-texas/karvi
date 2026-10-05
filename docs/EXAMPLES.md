@@ -3581,3 +3581,32 @@ title, and colours). The fake's stderr adds `signal: NAME`, `left running:
 **Not taken.** The shell ending without a status as the IOS XE persona does;
 one not-found message for the shell and exec; the channel counts on the
 `connections=` line, which the suites match whole.
+
+**During the build: the record's exec fields.** Record schema 3 came first,
+before any transport runs exec: every record carries `channel`, a shell
+record's exec fields null. Executed, a lab build's `karvi command` over the
+fake's shell persona:
+
+```text
+{'schema_version': 3, 'command': 'uname -snrm', 'channel': 'shell', 'exit_status': None,
+ 'exit_signal': None, 'stderr': None, 'stderr_encoding': None, 'stderr_bytes': None,
+ 'stderr_sha256': None, 'prompt_source': 'observed'}
+```
+
+The record's line, which streamed one field from its spool, streams two: an
+exec record whose stdout and stderr are each spooled, a large string, or a
+small one, in every combination, writes the bytes of `json.Marshal` of the
+whole record, compact and indented, and a stderr spool that changed is
+`output_spool_mismatch`. At N=32 against the previous commit's build,
+`commands.jsonl` grew 4.3 KB (the null fields) and the daemon's peak stayed
+level (system 84 and 74 MB, `scrapligo-v1` 164 and 151 MB, noise).
+
+**Agreed.** `stderr` carries `stderr_encoding` (`utf-8` or `base64`), since a
+program's stderr can hold bytes that are not UTF-8, as its output can. On an
+exec record a null `stderr` says the command did not run (its channel never
+opened), an empty one that it ran and wrote nothing there; the text file and
+the echo show `! not sent:` by it. The daemon IPC schema stays 10: the follow
+frame carries the record as it is.
+
+**Not taken.** stderr always UTF-8 with bytes replaced; a separate `ran`
+field; the IPC schema moved with the record's.

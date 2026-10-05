@@ -32,13 +32,46 @@ type Source struct {
 	path     string // the spool file, when the output is there
 	bytes    int64  // the spool's settled count
 	digest   string // the reader's running SHA-256 of the spool's bytes, hex
+	// stderr is an exec record's standard error where it is, by the same
+	// rules; nil on a shell record and for an exec command that did not
+	// run. The record's line streams it as it streams the output.
+	stderr *Source
 }
 
 // FromRecord is the output as the record carries it: its Output string
 // under its encoding.
 func FromRecord(r *records.CommandRecord) Source {
-	return Source{text: r.Output, encoding: r.OutputEncoding}
+	s := Source{text: r.Output, encoding: r.OutputEncoding}
+	if r.Stderr != nil {
+		encoding := "utf-8"
+		if r.StderrEncoding != nil {
+			encoding = *r.StderrEncoding
+		}
+		s.stderr = &Source{text: *r.Stderr, encoding: encoding}
+	}
+	return s
 }
+
+// WithStderr is s with an exec command's standard error where it is: the
+// record's string (FromText of a record's stderr, under its encoding) or
+// its spool.
+func (s Source) WithStderr(stderr Source) Source {
+	s.stderr = &stderr
+	return s
+}
+
+// Stderr is the standard error beside the output, when the record is an
+// exec command's that ran.
+func (s Source) Stderr() (Source, bool) {
+	if s.stderr == nil {
+		return Source{}, false
+	}
+	return *s.stderr, true
+}
+
+// FromEncoded is a stream as a record carries it: its string under its
+// encoding.
+func FromEncoded(text, encoding string) Source { return Source{text: text, encoding: encoding} }
 
 // FromText is plain text that is not a record's (a set-up line's answer).
 func FromText(text string) Source { return Source{text: text, encoding: "utf-8"} }
@@ -53,7 +86,11 @@ func FromSpool(path string, bytes int64, digest, encoding string) Source {
 // Spooled says whether the output is in a file.
 func (s Source) Spooled() bool { return s.path != "" }
 
-// Empty says whether there is no output at all.
+// AnySpooled says whether the output or the standard error is in a file.
+func (s Source) AnySpooled() bool { return s.Spooled() || (s.stderr != nil && s.stderr.Spooled()) }
+
+// Empty says whether there is no output at all; the standard error is
+// asked of its own source.
 func (s Source) Empty() bool { return s.path == "" && s.text == "" }
 
 // open opens the spool for one pass; a pass reads the file once.

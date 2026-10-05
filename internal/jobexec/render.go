@@ -275,7 +275,9 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 
 	if r.echo && echoRecord(rec) {
 		prompt := rec.Prompt
-		if prompt == "" {
+		if rec.Channel == records.ChannelExec {
+			prompt = records.ExecPrompt(target)
+		} else if prompt == "" {
 			promptTarget := values.Target
 			if promptTarget == "" {
 				promptTarget = "device"
@@ -304,26 +306,41 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		// still describe the output, which commands.jsonl holds when kept.
 		r.writeString("karvi: " + omitted.Message + "\n")
 		last, wrote = '\n', true
-	} else if !src.Empty() {
-		// The last byte is read below the stripper: the block's closing
-		// newline follows what the terminal saw.
-		end := &output.LastByteWriter{W: rendererWriter{r}, Last: last}
-		var w io.Writer = end
-		var strip *ansiStripper
-		if r.stripANSI {
-			strip = &ansiStripper{w: end}
-			w = strip
+	} else {
+		// An exec record's stderr follows its stdout, each ending its last
+		// line, their interleaving lost.
+		streams := []output.Source{src}
+		if stderr, ok := src.Stderr(); ok {
+			streams = append(streams, stderr)
 		}
-		err := src.WriteRaw(w)
-		if err == nil && strip != nil {
-			err = strip.flush()
-		}
-		if err != nil {
-			r.setErrorLocked("record_output_decode_failed", err)
-			return
-		}
-		if strip == nil || strip.wrote {
-			last, wrote = end.Last, true
+		for _, stream := range streams {
+			if stream.Empty() {
+				continue
+			}
+			if wrote && last != '\n' {
+				r.write([]byte{'\n'})
+				last = '\n'
+			}
+			// The last byte is read below the stripper: the block's closing
+			// newline follows what the terminal saw.
+			end := &output.LastByteWriter{W: rendererWriter{r}, Last: last}
+			var w io.Writer = end
+			var strip *ansiStripper
+			if r.stripANSI {
+				strip = &ansiStripper{w: end}
+				w = strip
+			}
+			err := stream.WriteRaw(w)
+			if err == nil && strip != nil {
+				err = strip.flush()
+			}
+			if err != nil {
+				r.setErrorLocked("record_output_decode_failed", err)
+				return
+			}
+			if strip == nil || strip.wrote {
+				last, wrote = end.Last, true
+			}
 		}
 	}
 	if wrote && last != '\n' {
@@ -348,6 +365,9 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 }
 
 func echoRecord(rec records.CommandRecord) bool {
+	if rec.Channel == records.ChannelExec {
+		return rec.Ran()
+	}
 	if rec.PromptSource != "" {
 		return true
 	}

@@ -484,6 +484,7 @@ Active failure causes.
 | `private_directory_owner_uninspectable` | permission | 9 | no | The owner of a private karvi directory cannot be read. |
 | `privilege_failed` | device | 107 | no | Entering the platform's privileged mode fails. |
 | `record_activity_type_invalid` | internal | 1 | no | A command record's activity type is not `run` or `command`. |
+| `record_channel_invalid` | internal | 1 | no | A command record's channel is not `shell` or `exec`, or a shell record carries an exec command's exit or stderr. |
 | `record_command_kind_invalid` | internal | 1 | no | A command record's command kind is not `requested` or `session_init`. |
 | `record_debug_show_secrets_conflict` | usage | 4 | no | `login --record` is combined with `--debug-show-secrets`. |
 | `record_encode_failed` | internal | 1 | no | A command record cannot be encoded for output. |
@@ -492,11 +493,12 @@ Active failure causes.
 | `record_output_decode_failed` | internal | 1 | no | A command record's base64 output cannot be decoded for display. |
 | `record_output_encoding_invalid` | internal | 1 | no | A command record's output encoding is not `utf-8` or `base64`. |
 | `record_ping_invalid` | internal | 1 | no | A command record's ping object is inconsistent: not two probes and outcomes in order, a reply count that differs from the outcomes, or an unknown status or decision. |
-| `record_prompt_source_invalid` | internal | 1 | no | A command record's prompt source is not `observed` or `inferred`. |
+| `record_prompt_source_invalid` | internal | 1 | no | A command record's prompt source is not `observed`, `inferred`, or `none`. |
 | `record_schema_unsupported` | internal | 1 | no | A command record uses an unsupported schema version. |
 | `record_sequence_invalid` | internal | 1 | no | A command record's sequence is less than 1. |
 | `record_session_init_profile_missing` | internal | 1 | no | A `session_init` command record's `session_init_profile` is empty or `none`. |
 | `record_status_invalid` | internal | 1 | no | A command record's status is not a terminal status. |
+| `record_stderr_encoding_invalid` | internal | 1 | no | An exec record's stderr encoding is not `utf-8` or `base64`. |
 | `redis_address_missing` | credential | 6 | no | A Redis credential backend has no address. |
 | `redis_auth_failed` | credential | 6 | no | The Redis server rejects the configured authentication. |
 | `redis_auth_missing` | credential | 6 | no | The Redis authentication environment variable is not set. |

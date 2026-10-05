@@ -228,35 +228,62 @@ func catchUp(path string, after, upto int64, fn func(sequence int64, line []byte
 }
 
 // omitOutput is the record as the follow stream sends it when its line of
-// lineLength bytes would pass the frame bound maxFrame: a
-// shallow copy with Output empty and one notice, follow_output_omitted, in
-// its place, whose message names the size, the key, and where the output
-// is: commands.jsonl when the job keeps it (kept), or not kept. The
-// record's output_bytes and output_sha256 stay, so the copy still
-// describes the output.
+// lineLength bytes would pass the frame bound maxFrame: a shallow copy with
+// Output (and an exec record's stderr) empty and one notice,
+// follow_output_omitted, in its place, whose message names the sizes, the
+// key, and where the output is: commands.jsonl when the job keeps it
+// (kept), or not kept. The record's sizes and digests stay, so the copy
+// still describes the streams.
 func omitOutput(r *records.CommandRecord, lineLength, maxFrame int64, kept bool) *records.CommandRecord {
 	where := "the output is not kept (output.files.commands-jsonl is false)"
 	if kept {
 		where = "the output is in commands.jsonl"
 	}
-	return omitted(r, fmt.Sprintf("output of %d bytes left out of the follow stream: the record's %d-byte line is more than daemon.max-ipc-frame-bytes (%d) allows in a frame; %s", r.OutputBytes, lineLength, maxFrame, where), map[string]any{"line_bytes": lineLength, "max_frame_bytes": maxFrame})
+	return omitted(r, fmt.Sprintf("%s left out of the follow stream: the record's %d-byte line is more than daemon.max-ipc-frame-bytes (%d) allows in a frame; %s", streams(r), lineLength, maxFrame, where), map[string]any{"line_bytes": lineLength, "max_frame_bytes": maxFrame})
 }
 
-// omitNotKept is the record of a spooled response in a job that keeps no
-// commands.jsonl, as the follow stream sends it:
-// the output was in the spool alone, which the record's append removed.
+// omitNotKept is the record of a spooled response (either stream) in a job
+// that keeps no commands.jsonl, as the follow stream sends it: the stream
+// was in the spool alone, which the record's append removed.
 func omitNotKept(r *records.CommandRecord) *records.CommandRecord {
-	return omitted(r, fmt.Sprintf("output of %d bytes left out of the follow stream: it passed output.spool-threshold-bytes and the job keeps no commands.jsonl (output.files.commands-jsonl is false), so the output is not kept", r.OutputBytes), map[string]any{"spooled": true})
+	return omitted(r, fmt.Sprintf("%s left out of the follow stream: it passed output.spool-threshold-bytes and the job keeps no commands.jsonl (output.files.commands-jsonl is false), so the output is not kept", streams(r)), map[string]any{"spooled": true})
 }
 
-// omitted is the copy both omissions send: Output empty and the notice
-// appended. The notices slice is the copy's own, so the executor's record,
+// streams names what an omission leaves out: the output, and an exec
+// record's stderr beside it.
+func streams(r *records.CommandRecord) string {
+	if r.Stderr == nil {
+		return fmt.Sprintf("output of %d bytes", r.OutputBytes)
+	}
+	var stderr int64
+	if r.StderrBytes != nil {
+		stderr = *r.StderrBytes
+	}
+	return fmt.Sprintf("output of %d bytes and stderr of %d bytes", r.OutputBytes, stderr)
+}
+
+// spooledAway says whether a stream of the record was spooled, so that the
+// record the executor kept holds none of it: the output, or an exec
+// record's stderr.
+func spooledAway(r *records.CommandRecord) bool {
+	if r.Output == "" && r.OutputBytes > 0 {
+		return true
+	}
+	return r.Stderr != nil && *r.Stderr == "" && r.StderrBytes != nil && *r.StderrBytes > 0
+}
+
+// omitted is the copy both omissions send: Output and stderr empty and the
+// notice appended. The notices slice is the copy's own, so the executor's record,
 // which the store and other followers still hold, is not changed under
 // them.
 func omitted(r *records.CommandRecord, message string, details map[string]any) *records.CommandRecord {
 	notice := records.Notice{Code: "follow_output_omitted", Message: message, Details: details}
 	omitted := *r
 	omitted.Output = ""
+	if r.Stderr != nil {
+		empty := ""
+		omitted.Stderr = &empty
+	}
 	omitted.Notices = append(append(make([]records.Notice, 0, len(r.Notices)+1), r.Notices...), notice)
 	return &omitted
 }
@@ -459,7 +486,7 @@ func (s *Server) followJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 			return writeRecord(d.sequence, d.length, func(w io.Writer) error { _, err := w.Write(line); return err }, load)
 		}
 		record := d.record
-		if record.Output == "" && record.OutputBytes > 0 {
+		if spooledAway(record) {
 			record = omitNotKept(record)
 			s.logf(req.Operation, req.RequestID, "", fr.JobID, "follow_output_omitted")
 		}

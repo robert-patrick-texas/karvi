@@ -598,9 +598,14 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		// waits its turn at the store: at width every device's response
 		// arrives at about the same time and the store writes one line at a
 		// time, so what a waiting device holds is what the daemon holds.
+		stderrSrc, ran := execFields(&record, r.Exec)
 		outputBytes, src := len(r.Output), output.FromRecord(&record)
 		if r.Spool != nil {
 			outputBytes, src = int(r.Spool.Bytes), output.FromSpool(r.Spool.Path, r.Spool.Bytes, r.Spool.SHA256, record.OutputEncoding)
+		}
+		if ran {
+			src = src.WithStderr(stderrSrc)
+			r.Exec.Stderr = nil
 		}
 		r.Output = nil
 		if r.Err != nil {
@@ -622,6 +627,9 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		// reaches here through the same result, so a cancel or a signal
 		// needs no removal of its own.
 		e.removeSpool(r.Spool, d.CanonicalName, st.index+1)
+		if r.Exec != nil {
+			e.removeSpool(r.Exec.StderrSpool, d.CanonicalName, st.index+1)
+		}
 		if appendErr != nil {
 			code := errorcodes.Of(appendErr)
 			if code == "" {
@@ -1042,7 +1050,7 @@ func (e *DeviceExecutor) record(work Work, dc dispatch.Context, cred *records.Cr
 		InputTarget: t.InputTarget, TransformedName: a.TransformedName, DNSQueryName: a.QueryName, DNSSuffixAction: a.SuffixAction,
 		AddressCandidates: candidates, SelectedAddress: addrString(a.Selected), AddressFamily: familyOf(a.Selected), AddressSource: a.SelectedSource,
 		AddressAuthority: string(a.Authority), ClientAddressCandidates: addrStrings(a.ClientCandidates), DaemonAddressCandidates: addrStrings(a.DaemonCandidates), AlternateAddresses: addrStrings(a.Alternates), AddressResolutionActor: a.ResolverContext,
-		Platform: d.Platform, Transport: d.Transport, Port: e.port(t), ConnectionReused: reused, SessionInitProfile: st.profile,
+		Platform: d.Platform, Transport: d.Transport, Port: e.port(t), Channel: t.Channel, ConnectionReused: reused, SessionInitProfile: st.profile,
 		Dispatch:     records.DispatchContext{Mode: dc.Mode, ServerID: t.ExecutionEndpoint, WaveNumber: dc.WaveNumber, WaveWidth: dc.WaveWidth, WaveDepth: dc.WaveDepth, WorkerID: dc.WorkerID, ScopePosition: dc.ScopePosition, DesiredWidth: dc.DesiredWidth, EffectiveInflight: dc.EffectiveInflight},
 		CommandIndex: st.index + 1, CommandCount: st.count, CommandKind: st.kind, Command: st.command, CommandSHA256: hex.EncodeToString(cmdHash[:]), Status: status, Output: out, OutputEncoding: enc, OutputBytes: outputBytes, OutputSHA256: outHash, Prompt: prompt, PromptSource: promptSource, PromptObserved: promptObserved, Notices: []records.Notice{},
 		Timing:        records.Timing{QueuedAt: work.QueuedAt, DeviceStartedAt: &devStart, CommandStartedAt: &commandStart, EndedAt: end, TotalNS: total, SchedulerWaitNS: &sched, ServerCapacityWaitNS: &capNS, ConnectNS: &connNS, DeviceResponseNS: &respNS},
@@ -1054,6 +1062,35 @@ func (e *DeviceExecutor) record(work Work, dc dispatch.Context, cred *records.Cr
 		r.Ping, r.Timing.PingNS = g.report, g.ns
 	}
 	return r
+}
+
+// execFields fills an exec command's exit and stderr on its record and
+// returns where the stderr is: the record's string, or its spool when it
+// passed the threshold (the string then empty). An exec command that did
+// not run, and every shell command, leave the fields null.
+func execFields(r *records.CommandRecord, x *platform.ExecResult) (output.Source, bool) {
+	if x == nil {
+		return output.Source{}, false
+	}
+	observed := false
+	r.PromptSource, r.PromptObserved = records.PromptSourceNone, &observed
+	r.ExitStatus = x.ExitStatus
+	if x.ExitSignal != "" {
+		signal := x.ExitSignal
+		r.ExitSignal = &signal
+	}
+	text, encoding, digest := output.EncodeOutput(x.Stderr)
+	size := int64(len(x.Stderr))
+	src := output.FromEncoded(text, encoding)
+	if sp := x.StderrSpool; sp != nil {
+		text, encoding, digest, size = "", "utf-8", sp.SHA256, sp.Bytes
+		if !sp.UTF8 {
+			encoding = "base64"
+		}
+		src = output.FromSpool(sp.Path, sp.Bytes, sp.SHA256, encoding)
+	}
+	r.Stderr, r.StderrEncoding, r.StderrBytes, r.StderrSHA256 = &text, &encoding, &size, &digest
+	return src, true
 }
 
 // runGate sends the two probes to the selected address and records the

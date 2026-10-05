@@ -108,9 +108,17 @@ func WriteTextHeader(w io.Writer, r *records.CommandRecord, stamp Timestamp) err
 // it is an IOS comment line, `! not sent: show version`. The closing `!`
 // line is the record's error code and message, or its status when it has
 // no error (not_attempted_prior_command_failure).
+//
+// An exec command was typed at no prompt: its first line is the inferred
+// one (srv1$ uname -s), then stdout, then stderr, their interleaving lost;
+// one that did not run is `! not sent:` as on a shell.
 func WriteTextBlock(w io.Writer, r *records.CommandRecord, src Source) error {
 	first := r.PromptBefore + r.Command
-	if r.PromptBefore == "" {
+	sent := r.PromptBefore != ""
+	if r.Channel == records.ChannelExec {
+		first, sent = records.ExecPrompt(r.Device.CanonicalName)+r.Command, r.Ran()
+	}
+	if !sent {
 		first = "! not sent: " + r.Command
 	}
 	if _, err := io.WriteString(w, first+"\n"); err != nil {
@@ -118,6 +126,11 @@ func WriteTextBlock(w io.Writer, r *records.CommandRecord, src Source) error {
 	}
 	if err := writeTextAnswer(w, src); err != nil {
 		return err
+	}
+	if stderr, ok := src.Stderr(); ok {
+		if err := writeTextAnswer(w, stderr); err != nil {
+			return err
+		}
 	}
 	if r.Status == "succeeded" {
 		return nil

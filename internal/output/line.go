@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"hash"
 	"io"
+	"sort"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -35,41 +36,78 @@ const streamedLineThreshold = 64 << 10
 // lineChunk is how much of the output is escaped at once.
 const lineChunk = 32 << 10
 
-// outputStandIn replaces the output while the rest of the record is
-// marshalled. The cut is at the output field's own key and value, so a
-// record that holds the same text elsewhere (a command could) still cuts
-// unambiguously; a record that somehow does not is written whole.
-const outputStandIn = "karvi-output-stand-in-5d1c7e0b9a3f"
+// The stand-ins replace a streamed field's value while the rest of the
+// record is marshalled: the output, and an exec record's stderr. The cut
+// is at the field's own key and value, so a record that holds the same
+// text elsewhere (a command could) still cuts unambiguously; a record
+// that somehow does not is written whole.
+const (
+	outputStandIn = "karvi-output-stand-in-5d1c7e0b9a3f"
+	stderrStandIn = "karvi-stderr-stand-in-8e2f4a6c1b7d"
+)
 
-// recordLine is one record's line, whole or in pieces.
+// recordLine is one record's line, whole or in pieces: parts are the
+// marshalled record around its streamed fields in the line's order, one
+// more part than fields, the last ending in '\n'.
 type recordLine struct {
-	whole          []byte // the line with its newline, when not streamed
-	prefix, suffix []byte // around the escaped output, the suffix ending in '\n'
-	output         Source
+	whole  []byte // the line with its newline, when not streamed
+	parts  [][]byte
+	fields []Source
+}
+
+// streamedField is one field written in pieces: its key, its stand-in,
+// and where its bytes are.
+type streamedField struct {
+	key, standIn string
+	src          Source
+}
+
+// streamedFields are r's fields written in pieces: the output when it is
+// spooled or its string large, and an exec record's stderr by the same
+// rule.
+func streamedFields(r *records.CommandRecord, src Source) []streamedField {
+	var fields []streamedField
+	if src.Spooled() || len(r.Output) >= streamedLineThreshold {
+		fields = append(fields, streamedField{"output", outputStandIn, src})
+	}
+	if stderr, ok := src.Stderr(); ok && r.Stderr != nil && (stderr.Spooled() || len(*r.Stderr) >= streamedLineThreshold) {
+		fields = append(fields, streamedField{"stderr", stderrStandIn, stderr})
+	}
+	return fields
+}
+
+// withStandIns is a shallow copy of r with each streamed field's value
+// its stand-in.
+func withStandIns(r *records.CommandRecord, fields []streamedField) *records.CommandRecord {
+	shallow := *r
+	for _, f := range fields {
+		switch f.key {
+		case "output":
+			shallow.Output = f.standIn
+		case "stderr":
+			standIn := f.standIn
+			shallow.Stderr = &standIn
+		}
+	}
+	return &shallow
 }
 
 // newRecordLine makes r's line from src, r's output where it is: in pieces
-// when the output is spooled or the string is large, whole otherwise.
+// when a stream is spooled or its string large, whole otherwise.
 func newRecordLine(r *records.CommandRecord, src Source) (recordLine, error) {
-	if streamed(r, src) {
-		shallow := *r
-		shallow.Output = outputStandIn
-		small, err := json.Marshal(&shallow)
+	if fields := streamedFields(r, src); len(fields) > 0 {
+		small, err := json.Marshal(withStandIns(r, fields))
 		if err != nil {
 			return recordLine{}, err
 		}
-		if before, after, ok := cutAtOutput(small); ok {
-			return recordLine{prefix: before, suffix: append(after, '\n'), output: src}, nil
+		if parts, sources, ok := cutAtFields(small, fields); ok {
+			parts[len(parts)-1] = append(parts[len(parts)-1], '\n')
+			return recordLine{parts: parts, fields: sources}, nil
 		}
-		if src.Spooled() {
-			// Unreachable for the record's fixed fields; the file is read
-			// whole rather than the record lost.
-			var text bytes.Buffer
-			if err := src.WriteRaw(&text); err != nil {
-				return recordLine{}, err
-			}
-			shallow.Output, _, _ = EncodeOutput(text.Bytes())
-			r = &shallow
+		// Unreachable for the record's fixed fields; a spooled stream is
+		// read whole rather than the record lost.
+		if r, err = inlined(r, fields); err != nil {
+			return recordLine{}, err
 		}
 	}
 	// The encoder writes the record and its newline in one piece; appending
@@ -81,36 +119,77 @@ func newRecordLine(r *records.CommandRecord, src Source) (recordLine, error) {
 	return recordLine{whole: whole.Bytes()}, nil
 }
 
-// streamed says whether r's output is written in pieces: when it is in a
-// spool, or the string is large.
-func streamed(r *records.CommandRecord, src Source) bool {
-	return src.Spooled() || len(r.Output) >= streamedLineThreshold
-}
-
-// cutAtOutput finds the output field's stand-in value in the marshalled
-// record, compact (`"output":"…"`) or indented (`"output": "…"`), and
-// returns the halves around it: before ends with the value's opening
-// quote, after begins with its closing quote. The key and the value
-// together make the cut unambiguous; a record that somehow does not cut
-// once is reported.
-func cutAtOutput(small []byte) (before, after []byte, ok bool) {
-	for _, sep := range []string{`"output":"`, `"output": "`} {
-		key := []byte(sep + outputStandIn + `"`)
-		if bytes.Count(small, key) == 1 {
-			at := bytes.Index(small, key) + len(sep)
-			return small[:at:at], small[at+len(outputStandIn):], true
+// inlined is a shallow copy of r with each spooled field's bytes read into
+// its string, under the encoding the record already names.
+func inlined(r *records.CommandRecord, fields []streamedField) (*records.CommandRecord, error) {
+	shallow := *r
+	for _, f := range fields {
+		if !f.src.Spooled() {
+			continue
+		}
+		var text bytes.Buffer
+		if err := f.src.WriteRaw(&text); err != nil {
+			return nil, err
+		}
+		encoded, _, _ := EncodeOutput(text.Bytes())
+		switch f.key {
+		case "output":
+			shallow.Output = encoded
+		case "stderr":
+			shallow.Stderr = &encoded
 		}
 	}
-	return nil, nil, false
+	return &shallow, nil
 }
 
-// WriteRecordJSONIndent writes r as json.MarshalIndent gives it, with the
-// output escaped in pieces from its source between the two halves when
-// it is spooled or large (the renderer's json format). A JSON string holds no newline, so the indent is unaffected;
-// the bytes equal MarshalIndent of the record with its output in place.
-// prefix begins the first line too, as the renderer's array element wants.
+// cutAtFields finds each field's stand-in value in the marshalled record,
+// compact (`"output":"…"`) or indented (`"output": "…"`), and returns the
+// parts around them in the line's order with the fields' sources in that
+// order: a part before a field ends with its value's opening quote, the
+// next begins with its closing quote. The key and the value together make
+// the cut unambiguous; a field that does not cut once is reported.
+func cutAtFields(small []byte, fields []streamedField) ([][]byte, []Source, bool) {
+	type cut struct {
+		at, end int
+		src     Source
+	}
+	cuts := make([]cut, 0, len(fields))
+	for _, f := range fields {
+		found := false
+		for _, sep := range []string{`"` + f.key + `":"`, `"` + f.key + `": "`} {
+			key := []byte(sep + f.standIn + `"`)
+			if bytes.Count(small, key) == 1 {
+				at := bytes.Index(small, key) + len(sep)
+				cuts = append(cuts, cut{at: at, end: at + len(f.standIn), src: f.src})
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, nil, false
+		}
+	}
+	sort.Slice(cuts, func(i, j int) bool { return cuts[i].at < cuts[j].at })
+	parts := make([][]byte, 0, len(cuts)+1)
+	sources := make([]Source, 0, len(cuts))
+	from := 0
+	for _, c := range cuts {
+		parts = append(parts, small[from:c.at:c.at])
+		sources = append(sources, c.src)
+		from = c.end
+	}
+	return append(parts, small[from:]), sources, true
+}
+
+// WriteRecordJSONIndent writes r as json.MarshalIndent gives it, with each
+// stream escaped in pieces from its source between the parts when it is
+// spooled or large (the renderer's json format). A JSON string holds no
+// newline, so the indent is unaffected; the bytes equal MarshalIndent of
+// the record with its streams in place. prefix begins the first line too,
+// as the renderer's array element wants.
 func WriteRecordJSONIndent(w io.Writer, r *records.CommandRecord, src Source, prefix, indent string) error {
-	if !streamed(r, src) {
+	fields := streamedFields(r, src)
+	if len(fields) == 0 {
 		encoded, err := json.MarshalIndent(r, prefix, indent)
 		if err != nil {
 			return err
@@ -118,38 +197,47 @@ func WriteRecordJSONIndent(w io.Writer, r *records.CommandRecord, src Source, pr
 		_, err = w.Write(append([]byte(prefix), encoded...))
 		return err
 	}
-	shallow := *r
-	shallow.Output = outputStandIn
-	small, err := json.MarshalIndent(&shallow, prefix, indent)
+	small, err := json.MarshalIndent(withStandIns(r, fields), prefix, indent)
 	if err != nil {
 		return err
 	}
-	before, after, ok := cutAtOutput(small)
+	parts, sources, ok := cutAtFields(small, fields)
 	if !ok {
-		return errorcodes.Errorf("record_encode_failed", "the record's output field could not be found for the indented form")
+		return errorcodes.Errorf("record_encode_failed", "the record's streamed fields could not be found for the indented form")
 	}
-	if _, err := w.Write(append([]byte(prefix), before...)); err != nil {
+	if _, err := w.Write([]byte(prefix)); err != nil {
 		return err
 	}
-	if err := src.writeEscaped(w, nil); err != nil {
-		return err
+	for i, part := range parts {
+		if _, err := w.Write(part); err != nil {
+			return err
+		}
+		if i < len(sources) {
+			if err := sources[i].writeEscaped(w, nil); err != nil {
+				return err
+			}
+		}
 	}
-	_, err = w.Write(after)
-	return err
+	return nil
 }
 
 // measure is the pass to io.Discard before any byte reaches a file: the
 // line's length for the job limit and the follow frame's bound, and for a
-// spooled output the digest of the file's bytes, which must be the
+// spooled stream the digest of the file's bytes, which must be the
 // reader's (output_spool_mismatch when it is not).
 func (l recordLine) measure() (int64, error) {
-	v := l.output.verifier()
-	n, err := l.writeJSON(io.Discard, v.hash())
+	verifiers := make([]*verifier, len(l.fields))
+	for i, f := range l.fields {
+		verifiers[i] = f.verifier()
+	}
+	n, err := l.writeJSON(io.Discard, verifiers)
 	if err != nil {
 		return 0, err
 	}
-	if err := v.check(l.output); err != nil {
-		return 0, err
+	for i, f := range l.fields {
+		if err := verifiers[i].check(f); err != nil {
+			return 0, err
+		}
 	}
 	return n + 1, nil
 }
@@ -167,23 +255,33 @@ func (l recordLine) WriteTo(w io.Writer) (int64, error) {
 
 // writeJSON writes the record's JSON without the line's LF: the line as
 // the follow stream embeds it in a frame (ipc.WriteRecordFrame), the same
-// bytes and the same pieces. h, when given, hashes a spool's bytes as
-// they are read (the measuring pass).
-func (l recordLine) writeJSON(w io.Writer, h hash.Hash) (int64, error) {
+// bytes and the same pieces. verifiers, when given (the measuring pass),
+// hash each spooled field's bytes as they are read.
+func (l recordLine) writeJSON(w io.Writer, verifiers []*verifier) (int64, error) {
 	if l.whole != nil {
 		n, err := w.Write(l.whole[:len(l.whole)-1])
 		return int64(n), err
 	}
 	counted := &countingWriter{}
 	tee := io.MultiWriter(w, counted)
-	if _, err := tee.Write(l.prefix); err != nil {
-		return counted.n, err
+	for i, part := range l.parts {
+		if i == len(l.parts)-1 {
+			part = part[:len(part)-1]
+		}
+		if _, err := tee.Write(part); err != nil {
+			return counted.n, err
+		}
+		if i < len(l.fields) {
+			var h hash.Hash
+			if verifiers != nil {
+				h = verifiers[i].hash()
+			}
+			if err := l.fields[i].writeEscaped(tee, h); err != nil {
+				return counted.n, err
+			}
+		}
 	}
-	if err := l.output.writeEscaped(tee, h); err != nil {
-		return counted.n, err
-	}
-	_, err := tee.Write(l.suffix[:len(l.suffix)-1])
-	return counted.n, err
+	return counted.n, nil
 }
 
 // WriteRecordLine writes r's line to w from its source, in pieces when

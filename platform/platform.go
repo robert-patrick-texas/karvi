@@ -291,6 +291,9 @@ type Result struct {
 	// not be written hands back nothing.
 	Output []byte
 	Spool  *Spool
+	// Exec is an exec command's outcome: nil for a shell command and for an
+	// exec command that did not run (its channel never opened).
+	Exec *ExecResult
 	// PromptBefore is the prompt the device showed when the statement was
 	// sent, as matched from the device's own bytes (never inferred); Prompt
 	// is the one that came back after it, empty when none did.
@@ -308,6 +311,17 @@ type Result struct {
 	External         bool
 	Retryable        bool
 	Err              error
+}
+
+// ExecResult is what an exec channel gave back beside stdout (the result's
+// Output or Spool): stderr, in memory or in its own spool, and how the
+// command ended. ExitStatus is nil when no status came back; ExitSignal is
+// the signal's name, "unnamed" where the transport names none, "" for none.
+type ExecResult struct {
+	Stderr      []byte
+	StderrSpool *Spool
+	ExitStatus  *int
+	ExitSignal  string
 }
 
 // SetupLine is one statement of karvi's own session set-up (the escalate
