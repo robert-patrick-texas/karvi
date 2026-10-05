@@ -3451,3 +3451,49 @@ it is deleted, not retired.
 **Not taken.** `linux` exec from the start (every `linux` target without a
 way to run until exec is built); an exec target falling back to the shell (a
 record that looks like exec's without an exit status).
+
+**During the build: the credentials' first build.** The platform's
+`fallback`, `ssh.identities`, and `builtin-operator-keys`, before the
+transports offer the keys. Executed, a dry run over a `linux` server, a
+`linux_shell` server, and an IOS XE router with `NETUSER` and `NETPASS` set,
+`ssh.identities` naming a lab key with a passphrase, a lab key at `0644`, the
+operator's key, and an absent `~/.ssh/id_rsa`:
+
+```text
+warning: operator_key_skipped: operator key /tmp/nd.MlEH/keys/id_locked skipped: protected by a passphrase
+warning: operator_key_skipped: operator key /tmp/nd.MlEH/keys/id_open skipped: mode 0644, not 0600 or 0400
+- name:srv1: planned
+  credential: bound 20261005T055915.472140-0400-2zmnvah6w9h7jap1d0fr (policy=default backend=builtin-operator-keys user=netops; value not displayed)
+  key: /home/netops/.ssh/id_ed25519 SHA256:lCkD25f/uZQGbWYmns4BurmVr65NAa+wSHkq5Y/lnVk
+  intended: ping=disabled transport=native port=22 platform=linux channel=shell
+  finding: warning operator_key_skipped operator key /tmp/nd.MlEH/keys/id_locked skipped: protected by a passphrase
+  finding: warning operator_key_skipped operator key /tmp/nd.MlEH/keys/id_open skipped: mode 0644, not 0600 or 0400
+- name:rtr1: planned
+  credential: bound 20261005T055915.472167-0400-04p54axrp4qwdw373htr (policy=default backend=builtin-env-fallback user=netuser; value not displayed)
+```
+
+`linux_shell` bound to the same grant as `srv1`. With only the two lab keys
+and `id_rsa` listed, `credential_operator_keys_missing`, exit 6, listing each
+file and what was found. Under `[platform.linux] fallback = ["netvars",
+"keys"]` the server took `NETUSER`; with `NETUSER` alone it took the keys. A
+live run over `scrapligo-v1` failed at the handshake ("the credential has no
+password") with both notices on the first record and the key's path and
+fingerprint in the manifest, as expected until the transports offer keys.
+
+**Agreed.** Six points the build met: `netvars` fills the empty fields and
+ends the walk only when they make a whole credential, a following `prompt`
+fills the rest, a following `keys` replaces them, and when nothing ends the
+walk the failure is the last source's that found something; a backend's
+credential needs a password (it holds no key until `keyfile`), and
+`config_ssh_auth_mechanisms_disabled` is retired, both password methods off
+being a key-only site; a skipped key is also a warning line once at planning;
+telnet passes `keys` over (`credential_password_missing`); the key files are
+parsed in `internal/adapters/sshkey`, keeping x/crypto out of the credential
+code. The operator also settled the system transport's `Include ~/.ssh/config`
+for 5b: kept, and the key OpenSSH reports from its log is the one recorded,
+since OpenSSH adds the included file's `IdentityFile` lines after karvi's
+even under `IdentitiesOnly`.
+
+**Not taken.** A partial `netvars` failing at once; keys over telnet; the
+mechanisms check as "a password method must remain"; key parsing in the
+credential code; the `Include` left out for a credential with keys.
