@@ -65,8 +65,10 @@ scope = "user"
 required = false
 path = "~/.cloginrc"
 
-# The environment, last: NETUSER, NETPASS, and NETENABLE, or the templates
-# below with the device's name upper-cased in %s.
+# The environment, last: the templates below with the operator's login name
+# in %s (KARVI_netops_USERNAME for the operator netops), one credential for
+# every device this backend serves; then the built-in NETUSER, NETPASS, and
+# NETENABLE (docs/OPERATIONS.md, "The environment backend").
 [credential-backend.operator-env]
 type = "env"
 username-var-template = "KARVI_%s_USERNAME"

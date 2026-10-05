@@ -49,9 +49,11 @@ attributes.owner = ["owner"]
 [name-transform.default]
 operations = [{op = "lowercase"}]
 
-# This named backend demonstrates explicit variable-name templates. For the
-# zero-configuration fallback, omit all policy/backend sections and use
-# NETUSER, NETPASS, and NETENABLE.
+# This named backend demonstrates explicit variable-name templates: %s is the
+# operator's login name (KARVI_netops_USERNAME for the operator netops), so it
+# gives one credential for every device it serves. For the zero-configuration
+# fallback, omit all policy/backend sections and use NETUSER, NETPASS, and
+# NETENABLE.
 [credential-backend.operator-env]
 type = "env"
 username-var-template = "KARVI_%s_USERNAME"

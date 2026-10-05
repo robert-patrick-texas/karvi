@@ -354,6 +354,50 @@ credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name
 A script that runs karvi without a terminal sets the three variables, or
 names a backend, since nothing can be asked.
 
+## The environment backend
+
+A backend of `type = "env"` reads one credential from environment variables in
+the client, before the job is planned. Three optional templates name the
+variables, one per field:
+
+```toml
+[credential-backend.operator-env]
+type = "env"
+username-var-template = "KARVI_%s_USERNAME"
+password-var-template = "KARVI_%s_PASSWORD"
+enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
+```
+
+- **`%s` is the operator's login name**, as the account has it, case kept:
+  for the operator `netops` the templates above read `KARVI_netops_USERNAME`,
+  `KARVI_netops_PASSWORD`, and `KARVI_netops_ENABLE_PASSWORD`. A template
+  without `%s` is the variable's name as written (`SRV_USER`); a template holds
+  at most one `%s`; a template left out reads nothing for its field.
+- **One credential per operator.** Nothing in a template names the device, so
+  every device the policy sends to the backend takes the same credential. A
+  credential per device comes from a backend whose rows select devices: the
+  credential CSV ([`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md)) or a
+  `.cloginrc`. A policy map rule sends a class of devices to a policy of its
+  own (`platform = "linux"`, or a glob such as `linux*`).
+- **It answers when any of its variables is set.** With none set it answers
+  nothing and the policy's next backend is asked. With one set it answers, and
+  the credential is judged as any backend's: a field the device needs and the
+  backend left empty is that field's missing code (`credential_password_missing`
+  for a password), and no later backend, variable, or prompt is asked.
+- **Indirection.** `env-indirection.username`, `.password`, and
+  `.enable-password`, each `false` by default, make the variable's value the
+  name of another variable whose value is used; when that variable is not set,
+  the value is taken as written.
+- **Not keyed.** A device pinned by `credkeyref` skips the backend
+  ([`docs/CREDENTIAL-CSV.md`, section
+  5](CREDENTIAL-CSV.md#5-keys-and-pins-credkey-and-credkeyref)). The record's
+  `matched_on` names the operator, not the device.
+
+The built-in fallback's `NETUSER`, `NETPASS`, and `NETENABLE` are read without a
+backend, after the policy's backends ([the credential
+prompts](#the-credential-prompts)); an `env` backend is how a site names
+variables of its own.
+
 ## Credential files
 
 A `cloginrc` backend declares `scope = "user"` (the default) or
