@@ -222,8 +222,12 @@ qrun() {
   cp "$WORK/karvi.toml" "$q_dir/$q_tag.karvi.toml"
   [ ! -d "$WORK/base" ] || { rm -rf "$WORK/base/socket" "$WORK/base/cap"; mv "$WORK/base" "$q_dir/$q_tag.base"; }
 }
-statuses() {  # a jsonl stream's requested-command statuses as status[:code],...
-  sed -n 's/.*"status":"\([a-z_]*\)".*/\1/p' "$1" | tr '\n' ',' | sed 's/,$//'
+statuses() {  # a jsonl stream's command records' statuses, in order: status,...
+  # A record has a record_id; the job summary that ends the stream has none.
+  while IFS= read -r st_line; do
+    printf '%s\n' "$st_line" | json_has - record_id || continue
+    printf '%s\n' "$st_line" | json_get - status
+  done <"$1" | tr '\n' ',' | sed 's/,$//'
 }
 first_code() { grep -o '"code":"[a-z_0-9]*"' "$1" | head -1 | cut -d'"' -f4; }
 expect_exit() {  # row, tag, wanted exit
