@@ -3167,3 +3167,54 @@ without offers none.
 
 **Not taken.** A key's bytes in the credential package; two booleans in place
 of `fallback`; the map matching base drivers; `ssh-agent` in the first build.
+
+**Executed: the operator's keys.** OpenSSH's own default list (`ssh -G`):
+`id_rsa`, `id_ecdsa`, `id_ecdsa_sk`, `id_ed25519`, `id_ed25519_sk`,
+`id_xmss`, `id_dsa`. Lab keys beside the operator's one key, parsed with
+x/crypto:
+
+```text
+keys/id_ed25519_enc: passphrase missing; public key from the file: SHA256:J6jEX/+bLIGrueLrn0QT8vdI/Uf87BZlHivwoEE2K5M
+keys/id_rsa: ssh-rsa SHA256:tjK81d8rLOzNBc6td9LK3Rj+jI5BtTCmnvrCaaxo3Bc
+/home/netops/.ssh/id_ed25519: ssh-ed25519 SHA256:lCkD25f/uZQGbWYmns4BurmVr65NAa+wSHkq5Y/lnVk
+```
+
+`ssh` given only named keys (`IdentitiesOnly=yes`, `IdentityAgent=none`, the
+password methods off, batch mode) logged in with the operator's key and
+refused an unknown one with `Permission denied (publickey,keyboard-interactive)`
+and no prompt. A passphrase key the server does not accept is never opened,
+so no passphrase is asked; one it accepts would ask the askpass helper, whose
+classifier knows a password and refuses a passphrase (not executed: it would
+need a key in the operator's `authorized_keys`). With two keys named,
+OpenSSH's log at `DEBUG1` shows each offer and the key accepted:
+
+```text
+debug1: Offering public key: /tmp/nd.7MvZ/keys/id_rsa RSA SHA256:tjK81d8r… explicit
+debug1: Offering public key: /home/netops/.ssh/id_ed25519 ED25519 SHA256:lCkD25f/… explicit
+debug1: Server accepts key: /home/netops/.ssh/id_ed25519 ED25519 SHA256:lCkD25f/… explicit
+Authenticated to 127.0.0.1 ([127.0.0.1]:22) using "publickey".
+```
+
+The server allows six attempts (`MaxAuthTries 6`), each key offered one.
+
+**Issue 5b, agreed, as amended by the operator.** `ssh.identities` names the
+operator's keys in order, by default `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`,
+`~/.ssh/id_rsa` (the operator's priority, strength and speed first), lockable
+by a site. Each file present is judged at planning (the operator's own, no
+group or other access, no passphrase, no hardware-backed key) and skipped with
+`operator_key_skipped` when it fails; none left is
+`credential_operator_keys_missing`. The credential is the operator's login name
+and the keys' paths (`builtin-operator-keys`), the dry run showing each
+fingerprint. The operator asked what a fingerprint comparison at the
+connection would gain: nothing (whoever can replace the file holds the account,
+and a key rotated during a long job would fail every remaining device), so
+there is none; the connecting process reads the files as they are, and the
+record names the key that authenticated, from OpenSSH's `DEBUG1` log or the
+native adapter's signers. The system transport sets `IdentitiesOnly yes`,
+`IdentityAgent none`, an `IdentityFile` per key, and no password methods
+without a password; the native adapter offers signers. `sudo -n …` is written
+by the operator until issue 7.
+
+**Not taken.** A glob over `id_*`; bare file names; the order in the code; the
+operator's own `~/.ssh/config`; `ssh-agent` first; the fingerprint comparison
+(`credential_key_changed`).

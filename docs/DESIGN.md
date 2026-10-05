@@ -498,7 +498,7 @@ interrupt (it is the input's end, as everywhere else).
 **A server's credential is a backend's or its platform's fallback, and a key is
 a file.** Servers take policies and backends as routers do, a policy map rule
 selecting by platform. A credential is a username with a password, a key, or
-both: the operator's username and the operator's own `~/.ssh/id_*` keys; a
+both: the operator's username and the operator's own keys (`ssh.identities`); a
 username and a password; a username and a key file a backend row names (a
 credential CSV column `keyfile`, the row's selectors assigning the key to one
 server or many, first match winning); or a key and a password, offered as the
@@ -528,6 +528,45 @@ table already holds a class of devices' settings. *Not taken:* a key's bytes
 in the credential package; two boolean fields in place of `fallback`; the map
 matching base drivers (every existing alias would change policy); `ssh-agent`
 in the first build (it follows the key files as a `keys` source).
+
+**The operator's keys are a list in order, judged at planning, and the record
+names the key that logged in.** `ssh.identities` names the files, offered in
+its order: by default `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`,
+`~` the home the password database names; a site may lock it. A file that does
+not exist is passed over; one that exists is judged in the client at planning:
+the operator's own regular file with no group or other access (`0600` or
+`0400`), a symbolic link under the credential file rule, parsed without a
+passphrase, of a type both transports sign with (no hardware-backed `_sk` key).
+A key that fails is skipped with the notice `operator_key_skipped`, naming the
+file and the reason and never the contents, on the device's first record and in
+the dry run; with no key left the device fails with
+`credential_operator_keys_missing` (exit 6), listing the files examined. The
+credential is the operator's login name and the keys' paths, its backend
+`builtin-operator-keys`; the dry run shows each key's fingerprint as seen at
+planning. At the connection the connecting process (the daemon for `run`, the
+client for `command`) reads the files as they are then, compared with nothing:
+the system transport's managed configuration sets `PubkeyAuthentication yes`,
+`IdentitiesOnly yes`, `IdentityAgent none`, and one `IdentityFile` per key, with
+password and keyboard-interactive off when the credential has no password; the
+native adapter offers the keys as signers, the password methods only beside a
+password. The record's credential projection carries the path and fingerprint
+of the key that authenticated: OpenSSH's log at `DEBUG1`, written with `-E` into
+the scratch and removed after, names the accepted key, and the native adapter's
+signers note which one signed. No `sudo` support is added with the first build:
+a command written `sudo -n …` runs as written. *Why:* each key offered spends
+one of the server's authentication attempts (`MaxAuthTries`, 6 by default) and
+the first authorized key offered is the one that logs in, so the order is the
+operator's choice, defaulting to the strongest and fastest first; a key whose
+passphrase is missing would cost every device a refused prompt and an error
+naming neither; whoever can replace the operator's key file holds the account
+already, and a key rotated while a long job runs is the operator's normal work,
+so a comparison with the plan would protect nothing and fail the remaining
+devices, while the server's refusal names a key it does not accept. *Not
+taken:* a glob over `id_*` (it takes `id_rsa.old`); bare file names under
+`~/.ssh`; the order fixed in the code; the `IdentityFile` lines of the
+operator's own `~/.ssh/config`, which the managed configuration never reads;
+`ssh-agent` before the files; a fingerprint comparison at the connection
+(`credential_key_changed`).
 
 **The credential CSV has its own guide.**
 [`docs/CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md) is the text an operator works from
