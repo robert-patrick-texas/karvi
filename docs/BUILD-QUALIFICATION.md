@@ -189,7 +189,7 @@ make deps            # optional on a connected host: download and verify
 - **The parity suite** (`scripts/native-smoke-test.sh`) MUST pass:
   twenty-six cases, each as `command` and
   `run --no-daemon` over `system` and `scrapligo-v1` (S1 through the daemon
-  as well), against the fake IOS XE server built from the tree into the
+  as well), against the fake device built from the tree into the
   suite's work directory with its own trust store, base directory, and
   `HOME`. `tools/paritycheck` compares every requested-command record path
   by path, excluding only `record_id`, `job_id`, `activity_id`,

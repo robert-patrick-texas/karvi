@@ -41,7 +41,7 @@ trap cleanup EXIT HUP INT TERM
 "$KARVI" version --format json | grep -q '"id": "scrapligo-v1"' || fail "$KARVI lacks scrapligo-v1; build with make native-build"
 [ -x "$PRUNE" ] || fail "karvi-prune not found at $PRUNE"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-iosxe)
+(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 
 # The operator's own trust store must not change (ssh.known-hosts-file is
 # under TMP; HOME does not move the store).

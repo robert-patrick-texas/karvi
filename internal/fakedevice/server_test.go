@@ -1,4 +1,4 @@
-package fakeiosxe
+package fakedevice
 
 import (
 	"io"

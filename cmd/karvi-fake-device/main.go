@@ -1,5 +1,5 @@
-// Command karvi-fake-iosxe serves the fake IOS XE SSH device for the parity
-// suite and manual runs of both transports. It prints the listening port on
+// Command karvi-fake-device serves the fake SSH device for the parity suite
+// and manual runs of both transports. It prints the listening port on
 // stdout, and every received input line and PTY request on stderr.
 package main
 
@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/internal/fakeiosxe"
+	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 )
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 	unsaved := flag.Bool("unsaved", false, "start each shell with the running configuration modified: 'reload' asks to save first, 'copy running-config startup-config' clears it")
 	port := flag.Int("port", 0, "127.0.0.1 port to listen on; 0 takes a free one (a restart that is to be the same device, port included)")
 	flag.Parse()
-	opts := fakeiosxe.Options{Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved}
+	opts := fakedevice.Options{Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved}
 	split := func(v string) []string {
 		if v == "" {
 			return nil
@@ -57,7 +57,7 @@ func main() {
 		}
 		opts.HostKeySeed = seed
 	}
-	srv, err := fakeiosxe.Start(opts)
+	srv, err := fakedevice.Start(opts)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

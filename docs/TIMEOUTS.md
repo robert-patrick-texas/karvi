@@ -127,7 +127,7 @@ configuration loads and `execution.blind-wait`'s when the plan is drafted
 
 | Label | Meaning |
 |---|---|
-| Fake device flags `-login-delay`, `-enable-delay`, `-secret-delay`, `-slow` | the delay before the first prompt, before `Password:`, before the answer to the enable secret, before `show slow` answers (`cmd/karvi-fake-iosxe`) |
+| Fake device flags `-login-delay`, `-enable-delay`, `-secret-delay`, `-slow` | the delay before the first prompt, before `Password:`, before the answer to the enable secret, before `show slow` answers (`cmd/karvi-fake-device`) |
 | Fake device command `show mute`; `Server.Keepalives()` | the peer goes silent with the connection up, keepalive requests unanswered; the count of keepalive requests received |
 | Fake device commands `clear counters`, `reload` | a `[confirm]` taking one unechoed key (a return or `y` confirms, `<confirm>` among the recorded lines; any other key abandons, `<abandon>`); after `clear counters` the prompt returns, after `reload` nothing more is written, the connection up |
 | Fake device command `copy running-config startup-config`; flag `-unsaved` | a value prompt (`Destination filename [startup-config]? `, the trailing space kept) taking one echoed line, `<value:TEXT>` among the recorded lines (`<value:>` for the default), answered `Building configuration...` and `[OK]`; under `-unsaved` each shell starts with the running configuration modified, so `reload` first asks `System configuration has been modified. Save? [yes/no]: ` (`y`/`yes` saves, `n`/`no` skips, anything else re-asks) before its `[confirm]`, and the copy clears the state |

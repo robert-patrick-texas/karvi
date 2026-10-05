@@ -128,7 +128,7 @@ if [ -z "${PARITYCHECK:-}" ] && command -v "$GO" >/dev/null 2>&1; then
   (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/paritycheck" ./tools/paritycheck) && PARITYCHECK=$WORK/bin/paritycheck
 fi
 if [ -n "${FAKE:-}" ]; then
-  (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/fake" ./cmd/karvi-fake-iosxe)
+  (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$WORK/bin/fake" ./cmd/karvi-fake-device)
   : >"$WORK/port"
   "$WORK/bin/fake" -host-key-file "$WORK/hostkey" -big-lines 2000 -password "$NETPASS" -enable "$NETENABLE" 2>"$EVIDENCE/fake.err" >"$WORK/port" &
   FAKE_PID=$!

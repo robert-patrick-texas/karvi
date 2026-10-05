@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
-	"github.com/robert-patrick-texas/karvi/internal/fakeiosxe"
+	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 )
 
 // TestNativeRunsTheDeviceSession is the native transport at the executor: a
@@ -15,7 +15,7 @@ import (
 // session as the system transport (paging, device errors, connection
 // reuse), and records its commands.
 func TestNativeRunsTheDeviceSession(t *testing.T) {
-	srv, err := fakeiosxe.Start(fakeiosxe.Options{StartPrivileged: true, Username: "u", Password: "p"})
+	srv, err := fakedevice.Start(fakedevice.Options{StartPrivileged: true, Username: "u", Password: "p"})
 	if err != nil {
 		t.Fatal(err)
 	}

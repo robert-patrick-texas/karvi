@@ -1,14 +1,13 @@
-// Package fakeiosxe is an in-process SSH server that answers like a Cisco IOS
-// XE device: password authentication, a PTY shell, the user-exec and
-// privilege-exec prompts, enable with a secret, paging commands, a few show
-// commands, the device's "% Invalid input" line, the [confirm] and value
-// prompts of a few interactive commands, and exit. It is the
-// engineering fixture for both transports. It refuses exec
-// requests, as a device session never makes one (contract rule 1), and
-// records them and every PTY request so a test can assert what a transport
-// asked for. It needs golang.org/x/crypto/ssh, which go.mod and vendor/
-// carry for the scrapligo-v1 adapter.
-package fakeiosxe
+// Package fakedevice is an in-process SSH server, the engineering fixture for
+// both transports. It answers like a Cisco IOS XE device: password
+// authentication, a PTY shell, the user-exec and privilege-exec prompts,
+// enable with a secret, paging commands, a few show commands, the device's
+// "% Invalid input" line, the [confirm] and value prompts of a few interactive
+// commands, and exit. It refuses exec requests, as a device session never
+// makes one (contract rule 1), and records them and every PTY request so a
+// test can assert what a transport asked for. It needs golang.org/x/crypto/ssh,
+// which go.mod and vendor/ carry for the scrapligo-v1 adapter.
+package fakedevice
 
 import (
 	"bufio"

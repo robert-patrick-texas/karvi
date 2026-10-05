@@ -168,7 +168,7 @@ What every build carries:
 | `internal/adapters/scrapligov1` | karvi's connection: x/crypto SSH through scrapligo's transport wrapper, the host-key policy in the handshake, the algorithm lists, as a session stream |
 | `internal/transport/native` | the `scrapligo-v1` provider built on the session layer, and the registry that says which built-in implementations are present and which platforms each admits |
 | `internal/devsession` | the session both transports drive (not tagged; the system transport uses it too) |
-| `internal/fakeiosxe`, `cmd/karvi-fake-iosxe` | the fake IOS XE SSH server the tests and the parity suite run against |
+| `internal/fakedevice`, `cmd/karvi-fake-device` | the fake SSH device the tests and the parity suite run against |
 
 `internal/adapters/scrapligov1` is the only package that may import
 `github.com/scrapli/scrapligo`; `scripts/verify-release.sh` fails on any

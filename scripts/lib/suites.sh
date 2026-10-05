@@ -14,7 +14,7 @@
 # the output live, for a machine or a fault that wants it.
 #
 # The canary suite needs bin/secret-scan (make tools-build); the parity suite
-# builds the fake IOS XE device from the tree; the
+# builds the fake device from the tree; the
 # completion suite reads the bash function's constant from the source tree.
 # POSIX sh: no local; the functions' variables carry the rs_ prefix.
 RS_LANE1='native-smoke-test'

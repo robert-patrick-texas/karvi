@@ -11,14 +11,14 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
-	"github.com/robert-patrick-texas/karvi/internal/fakeiosxe"
+	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-func startFake(t *testing.T, opts fakeiosxe.Options) *fakeiosxe.Server {
+func startFake(t *testing.T, opts fakedevice.Options) *fakedevice.Server {
 	t.Helper()
-	srv, err := fakeiosxe.Start(opts)
+	srv, err := fakedevice.Start(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func factory(t *testing.T, policy string, sets ...string) (Factory, string) {
 	return Factory{Implementation: "scrapligo-v1", Config: cfg, Home: home, Warn: func(m string) { t.Logf("warn: %s", m) }}, known
 }
 
-func request(srv *fakeiosxe.Server, platformName string, enable string) platform.OpenRequest {
+func request(srv *fakedevice.Server, platformName string, enable string) platform.OpenRequest {
 	def, _ := platform.Builtin(platformName)
 	def.Base = def.Name
 	req := platform.OpenRequest{Address: "127.0.0.1", Port: uint16(srv.Port()), Username: "netops", Definition: def,
@@ -77,7 +77,7 @@ func prepared(t *testing.T, f Factory, req platform.OpenRequest) platform.Driver
 // from the platform's patterns, connection_reused, and a timeout that ends
 // the session with nothing more sent.
 func TestProviderRunsTheDeviceSession(t *testing.T) {
-	srv := startFake(t, fakeiosxe.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 3 * time.Second}})
+	srv := startFake(t, fakedevice.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 3 * time.Second}})
 	f, known := factory(t, "accept-new")
 	d := prepared(t, f, request(srv, "cisco_iosxe", "en"))
 	ctx := context.Background()
@@ -115,7 +115,7 @@ func TestProviderRunsTheDeviceSession(t *testing.T) {
 // scrapligo-v1.
 func TestProviderEnableOptional(t *testing.T) {
 	f, _ := factory(t, "insecure")
-	srv := startFake(t, fakeiosxe.Options{StartPrivileged: true, Enable: "en"})
+	srv := startFake(t, fakedevice.Options{StartPrivileged: true, Enable: "en"})
 	d := prepared(t, f, request(srv, "cisco_iosxe", ""))
 	if r := d.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: 5 * time.Second}); r.Err != nil {
 		t.Fatalf("privilege 15 at login: %+v", r)
@@ -125,7 +125,7 @@ func TestProviderEnableOptional(t *testing.T) {
 		t.Fatalf("privilege 15 at login, device saw %q", got)
 	}
 
-	asks := startFake(t, fakeiosxe.Options{Enable: "en"})
+	asks := startFake(t, fakedevice.Options{Enable: "en"})
 	d, err := f.Open(context.Background(), request(asks, "cisco_iosxe", ""))
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestProviderEnableOptional(t *testing.T) {
 // TestProviderAlgorithmsAndAdmission covers the device's algorithm lists on
 // scrapligo-v1 (a legacy device through a profile) and the admission table.
 func TestProviderAlgorithmsAndAdmission(t *testing.T) {
-	legacy := startFake(t, fakeiosxe.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}})
+	legacy := startFake(t, fakedevice.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}})
 	f, _ := factory(t, "insecure")
 	d, err := f.Open(context.Background(), request(legacy, "generic", ""))
 	if err != nil {

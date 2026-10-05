@@ -119,8 +119,8 @@ pre-scan; runs `go mod verify`, the tests, `go vet`, and the race run
 under `-mod=vendor`; builds the executable and
 checks its module metadata, its version counters, and both transport IDs;
 runs every historical smoke suite; then runs the parity suite
-`scripts/native-smoke-test.sh`, which builds the fake IOS XE server from
-the tree and runs every case as `command` and `run` over `system` and
+`scripts/native-smoke-test.sh`, which builds the fake device from the tree
+and runs every case as `command` and `run` over `system` and
 `scrapligo-v1` with its own trust store, base directory, and `HOME`,
 comparing the records path by path (about a minute; no fake or daemon is
 left running and the operator's trust store is unchanged); then the canary

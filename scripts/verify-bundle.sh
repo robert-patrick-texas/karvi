@@ -46,7 +46,7 @@ GOTOOLCHAIN=local go run -mod=vendor ./tools/mangen -dir "$TMP/man"
 for f in "$TMP"/man/*; do cmp "packaging/man/${f##*/}" "$f"; done
 # The suites, the one list of scripts/lib/suites.sh (the canary suite needs
 # bin/secret-scan, shipped beside the executables; the parity suite builds the
-# fake IOS XE device from the tree).
+# fake device from the tree).
 . "$ROOT/scripts/lib/suites.sh"
 run_suites
 host_shared_unchanged "$host_before"

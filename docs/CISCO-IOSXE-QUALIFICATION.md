@@ -24,17 +24,17 @@ escalate once, and record alike.
 
 ## What the fixture already shows
 
-The engineering fixture is the fake IOS XE SSH server (`internal/fakeiosxe`,
-`cmd/karvi-fake-iosxe`). It models the `>` and `#` prompts, `enable` with and
-without a secret, the paging commands, the `% Invalid input` line, delays before
-the first prompt, the secret's answer, and a command's answer, a peer gone
-silent (`show mute`), the `[confirm]` of `reload`, the `Destination filename`
-value prompt of `copy`, the `Save? [yes/no]:` prompt of an unsaved
-configuration, global configuration mode with its `(config)#` prompt (`configure
-terminal`, `end`; no configuration line is modelled), `show privilege`, `show
-users`, a large output (`show big`), a fixed or changed host key, extra key
-types, a SHA-1-only RSA key, and a restricted algorithm offer. It refuses exec
-requests and records every PTY request and every line received.
+The engineering fixture is the fake SSH device (`internal/fakedevice`,
+`cmd/karvi-fake-device`), which answers as IOS XE. It models the `>` and `#`
+prompts, `enable` with and without a secret, the paging commands, the `% Invalid
+input` line, delays before the first prompt, the secret's answer, and a
+command's answer, a peer gone silent (`show mute`), the `[confirm]` of `reload`,
+the `Destination filename` value prompt of `copy`, the `Save? [yes/no]:` prompt
+of an unsaved configuration, global configuration mode with its `(config)#`
+prompt (`configure terminal`, `end`; no configuration line is modelled), `show
+privilege`, `show users`, a large output (`show big`), a fixed or changed host
+key, extra key types, a SHA-1-only RSA key, and a restricted algorithm offer. It
+refuses exec requests and records every PTY request and every line received.
 
 The fixture grows on demand and only as far as the prompt: a command is
 added when a suite or a script

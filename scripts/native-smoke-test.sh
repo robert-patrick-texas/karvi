@@ -35,7 +35,7 @@ trap cleanup EXIT HUP INT TERM
 
 "$KARVI" version --format json | grep -q '"id": "scrapligo-v1"' || fail "$KARVI lacks scrapligo-v1; build with make native-build"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store"
-(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-iosxe)
+(cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 # tools/textfile derives a device's output.TARGET.txt from commands.jsonl (S27).
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/textfile" ./tools/textfile)
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/paritycheck" ./tools/paritycheck)

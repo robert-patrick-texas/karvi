@@ -247,7 +247,7 @@ var detailFuncs = map[string]string{
 	"internal/adapters/scrapligov1/dial.go:password":                      "x/crypto reports a failed password callback under authentication_failed",
 	"internal/sshalgorithms/sshalgorithms.go:CheckList":                   "returns its rule code alongside the message",
 	"internal/sshalgorithms/sshalgorithms.go:CheckProfile":                "returns a ProfileError carrying its rule code",
-	"internal/fakeiosxe/server.go:*":                                      "the engineering fixture's server-side diagnostics; never an operator error",
+	"internal/fakedevice/server.go:*":                                     "the engineering fixture's server-side diagnostics; never an operator error",
 }
 
 // TestUncodedErrorsAreDetails fails when an error is constructed without a

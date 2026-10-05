@@ -102,7 +102,7 @@ A new SSH library brings a stream, not a session. It requires:
    platforms it admits;
 4. configuration mapping and validation tests;
 5. host-key, algorithm-negotiation, connect-timeout, and open-failure
-   classification tests against the fake (`internal/fakeiosxe`);
+   classification tests against the fake (`internal/fakedevice`);
 6. a parity run (`scripts/native-smoke-test.sh`) showing its records equal
    the system transport's path by path;
 7. binary version evidence; and

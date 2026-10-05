@@ -14,15 +14,15 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/devsession"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
-	"github.com/robert-patrick-texas/karvi/internal/fakeiosxe"
+	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-func startFake(t *testing.T, opts fakeiosxe.Options) *fakeiosxe.Server {
+func startFake(t *testing.T, opts fakedevice.Options) *fakedevice.Server {
 	t.Helper()
-	srv, err := fakeiosxe.Start(opts)
+	srv, err := fakedevice.Start(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func trustStore(t *testing.T, content string) string {
 }
 
 // entry is a known_hosts line for the fake under its host-key identity.
-func entry(srv *fakeiosxe.Server, authorizedKey string) string {
+func entry(srv *fakedevice.Server, authorizedKey string) string {
 	return fmt.Sprintf("[fake-iosxe]:%d %s\n", srv.Port(), authorizedKey)
 }
 
@@ -60,7 +60,7 @@ func (w *warnings) all() []string {
 	return append([]string(nil), w.list...)
 }
 
-func dialRequest(srv *fakeiosxe.Server, mode hostkey.Mode, file string, w *warnings) DialRequest {
+func dialRequest(srv *fakedevice.Server, mode hostkey.Mode, file string, w *warnings) DialRequest {
 	return DialRequest{
 		Host: "fake-iosxe", Address: "127.0.0.1", Port: srv.Port(), Username: "netops",
 		Password:       func(f func([]byte) error) error { return f([]byte("pw")) },
@@ -88,7 +88,7 @@ func openSession(t *testing.T, s devsession.Stream, name string) *devsession.Ses
 }
 
 func TestDialSessionOneConnectionOneShell(t *testing.T) {
-	srv := startFake(t, fakeiosxe.Options{Enable: "en"})
+	srv := startFake(t, fakedevice.Options{Enable: "en"})
 	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
 	if err != nil {
 		t.Fatal(err)
@@ -117,13 +117,13 @@ func TestDialSessionOneConnectionOneShell(t *testing.T) {
 	if srv.Connections() != 1 || srv.Sessions() != 1 {
 		t.Fatalf("connections=%d sessions=%d", srv.Connections(), srv.Sessions())
 	}
-	if ptys := srv.PTYRequests(); len(ptys) != 1 || ptys[0] != (fakeiosxe.PTYRequest{Term: "xterm", ModeBytes: 1}) {
+	if ptys := srv.PTYRequests(); len(ptys) != 1 || ptys[0] != (fakedevice.PTYRequest{Term: "xterm", ModeBytes: 1}) {
 		t.Fatalf("pty requests %+v", ptys)
 	}
 }
 
 func TestDialAbortAfterTimeoutReturnsAtOnce(t *testing.T) {
-	srv := startFake(t, fakeiosxe.Options{Delay: map[string]time.Duration{"show slow": 10 * time.Second}})
+	srv := startFake(t, fakedevice.Options{Delay: map[string]time.Duration{"show slow": 10 * time.Second}})
 	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +147,7 @@ func TestDialAbortAfterTimeoutReturnsAtOnce(t *testing.T) {
 // gone silent ends the read under session_keepalive_timeout after the count
 // of unanswered ones, well before the command timeout; interval 0 sends none.
 func TestKeepalives(t *testing.T) {
-	dial := func(t *testing.T, srv *fakeiosxe.Server, interval time.Duration) *devsession.Session {
+	dial := func(t *testing.T, srv *fakedevice.Server, interval time.Duration) *devsession.Session {
 		t.Helper()
 		req := dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{})
 		req.KeepaliveInterval, req.KeepaliveCountMax = interval, 2
@@ -160,7 +160,7 @@ func TestKeepalives(t *testing.T) {
 		return session
 	}
 	t.Run("answered", func(t *testing.T) {
-		srv := startFake(t, fakeiosxe.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 1500 * time.Millisecond}})
+		srv := startFake(t, fakedevice.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 1500 * time.Millisecond}})
 		session := dial(t, srv, 200*time.Millisecond)
 		r := session.Execute(context.Background(), platform.Command{Text: "show slow", Timeout: 5 * time.Second})
 		if r.Err != nil || !session.Usable() {
@@ -171,7 +171,7 @@ func TestKeepalives(t *testing.T) {
 		}
 	})
 	t.Run("unanswered", func(t *testing.T) {
-		srv := startFake(t, fakeiosxe.Options{Enable: "en"})
+		srv := startFake(t, fakedevice.Options{Enable: "en"})
 		session := dial(t, srv, 200*time.Millisecond)
 		started := time.Now()
 		r := session.Execute(context.Background(), platform.Command{Text: "show mute", Timeout: 10 * time.Second})
@@ -187,7 +187,7 @@ func TestKeepalives(t *testing.T) {
 		}
 	})
 	t.Run("off", func(t *testing.T) {
-		srv := startFake(t, fakeiosxe.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 500 * time.Millisecond}})
+		srv := startFake(t, fakedevice.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 500 * time.Millisecond}})
 		session := dial(t, srv, 0)
 		if r := session.Execute(context.Background(), platform.Command{Text: "show slow", Timeout: 5 * time.Second}); r.Err != nil {
 			t.Fatalf("show slow: %+v", r)
@@ -199,7 +199,7 @@ func TestKeepalives(t *testing.T) {
 }
 
 func TestDialHostKeyPolicies(t *testing.T) {
-	first := startFake(t, fakeiosxe.Options{})
+	first := startFake(t, fakedevice.Options{})
 	file := trustStore(t, "")
 	w := &warnings{}
 
@@ -226,7 +226,7 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	}
 
 	// Another key under the same identity.
-	changed := startFake(t, fakeiosxe.Options{})
+	changed := startFake(t, fakedevice.Options{})
 	store := trustStore(t, entry(changed, first.HostKeys()[0]))
 	for _, mode := range []hostkey.Mode{hostkey.AcceptNew, hostkey.Secure} {
 		_, err := Dial(context.Background(), dialRequest(changed, mode, store, &warnings{}))
@@ -257,7 +257,7 @@ func TestDialHostKeyPolicies(t *testing.T) {
 }
 
 func TestDialHostKeyAlgorithmChoice(t *testing.T) {
-	srv := startFake(t, fakeiosxe.Options{ExtraHostKeys: []string{"ecdsa256", "rsa"}})
+	srv := startFake(t, fakedevice.Options{ExtraHostKeys: []string{"ecdsa256", "rsa"}})
 	keys := srv.HostKeys() // ed25519, ecdsa256, rsa
 
 	// No entry: the strongest key is negotiated and enrolled.
@@ -280,7 +280,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	}
 
 	// A legacy device signing only with ssh-rsa is reachable and enrolled.
-	legacy := startFake(t, fakeiosxe.Options{RSASHA1Only: true})
+	legacy := startFake(t, fakedevice.Options{RSASHA1Only: true})
 	file = trustStore(t, "")
 	s, err = Dial(context.Background(), dialRequest(legacy, hostkey.AcceptNew, file, &warnings{}))
 	if err != nil {
@@ -296,7 +296,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	}
 
 	// The store holds a key type the device no longer offers.
-	onlyEd25519 := startFake(t, fakeiosxe.Options{})
+	onlyEd25519 := startFake(t, fakedevice.Options{})
 	_, err = Dial(context.Background(), dialRequest(onlyEd25519, hostkey.AcceptNew, trustStore(t, entry(onlyEd25519, keys[2])), &warnings{}))
 	if errorcodes.Of(err) != "host_key_changed" || !strings.Contains(err.Error(), "enrolled=ssh-rsa SHA256:") || !strings.Contains(err.Error(), "offered: ssh-ed25519") {
 		t.Fatalf("enrolled type not offered: %v", err)
@@ -304,7 +304,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 }
 
 func TestDialOpenFailures(t *testing.T) {
-	srv := startFake(t, fakeiosxe.Options{Password: "other"})
+	srv := startFake(t, fakedevice.Options{Password: "other"})
 	absent := filepath.Join(t.TempDir(), "absent")
 
 	_, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, absent, &warnings{}))
@@ -353,7 +353,7 @@ func TestDialOpenFailures(t *testing.T) {
 }
 
 func TestFakeRefusesExec(t *testing.T) {
-	srv := startFake(t, fakeiosxe.Options{})
+	srv := startFake(t, fakedevice.Options{})
 	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
 	if err != nil {
 		t.Fatal(err)
@@ -406,17 +406,17 @@ func TestDialAlgorithmLists(t *testing.T) {
 	profile := func(p map[string]any) sshalgorithms.Lists { return sshalgorithms.Apply(sshalgorithms.Defaults(), p) }
 	cases := []struct {
 		name   string
-		device fakeiosxe.Options
+		device fakedevice.Options
 		lists  sshalgorithms.Lists
 		code   string
 		detail string
 	}{
-		{"legacy device, defaults", fakeiosxe.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}}, nil, "ssh_algorithm_negotiation_failed", "no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr"},
-		{"legacy device, a profile appending aes128-ctr", fakeiosxe.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}}, profile(map[string]any{"ciphers-append": []any{"aes128-ctr"}}), "", ""},
-		{"group1-only device, defaults", fakeiosxe.Options{KeyExchanges: []string{"diffie-hellman-group1-sha1"}}, nil, "ssh_algorithm_negotiation_failed", "no key exchange algorithm in common"},
-		{"group1-only device, a profile appending group1", fakeiosxe.Options{KeyExchanges: []string{"diffie-hellman-group1-sha1"}}, profile(map[string]any{"kex-append": []any{"diffie-hellman-group1-sha1"}}), "", ""},
-		{"aes128-cbc device with ETM MACs, a profile appending aes128-cbc", fakeiosxe.Options{Ciphers: []string{"aes128-cbc"}, MACs: []string{"hmac-sha2-512-etm@openssh.com", "hmac-sha2-512"}}, profile(map[string]any{"ciphers-append": []any{"aes128-cbc"}}), "", ""},
-		{"a MAC the device lacks", fakeiosxe.Options{MACs: []string{"hmac-sha1-96"}, Ciphers: []string{"aes128-ctr"}}, profile(map[string]any{"ciphers-append": []any{"aes128-ctr"}}), "ssh_algorithm_negotiation_failed", "no MAC algorithm in common"},
+		{"legacy device, defaults", fakedevice.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}}, nil, "ssh_algorithm_negotiation_failed", "no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr"},
+		{"legacy device, a profile appending aes128-ctr", fakedevice.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}}, profile(map[string]any{"ciphers-append": []any{"aes128-ctr"}}), "", ""},
+		{"group1-only device, defaults", fakedevice.Options{KeyExchanges: []string{"diffie-hellman-group1-sha1"}}, nil, "ssh_algorithm_negotiation_failed", "no key exchange algorithm in common"},
+		{"group1-only device, a profile appending group1", fakedevice.Options{KeyExchanges: []string{"diffie-hellman-group1-sha1"}}, profile(map[string]any{"kex-append": []any{"diffie-hellman-group1-sha1"}}), "", ""},
+		{"aes128-cbc device with ETM MACs, a profile appending aes128-cbc", fakedevice.Options{Ciphers: []string{"aes128-cbc"}, MACs: []string{"hmac-sha2-512-etm@openssh.com", "hmac-sha2-512"}}, profile(map[string]any{"ciphers-append": []any{"aes128-cbc"}}), "", ""},
+		{"a MAC the device lacks", fakedevice.Options{MACs: []string{"hmac-sha1-96"}, Ciphers: []string{"aes128-ctr"}}, profile(map[string]any{"ciphers-append": []any{"aes128-ctr"}}), "ssh_algorithm_negotiation_failed", "no MAC algorithm in common"},
 	}
 	for _, c := range cases {
 		srv := startFake(t, c.device)

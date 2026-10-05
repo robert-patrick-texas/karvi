@@ -31,6 +31,10 @@
   operators. It names two settings with no use in this release:
   `ssh.control-path-root`, whose directory is made and stays empty, and
   `logging.file`, to which nothing is written.
+- **The fake device is `karvi-fake-device`.** The test fixture's package is
+  `internal/fakedevice` and its command `cmd/karvi-fake-device`, renamed from
+  `fakeiosxe` and `karvi-fake-iosxe` before it gains a Linux persona; it still
+  answers as IOS XE, and the suites' device `fake-iosxe` keeps its name.
 
 ## 0.26.0 - 2026-10-04
 

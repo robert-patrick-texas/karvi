@@ -66,7 +66,7 @@ for command in login command cmd run daemon config watch version; do
 done
 # The suites, the one list of scripts/lib/suites.sh: the canary suite needs
 # bin/secret-scan, so the tools build comes first; the parity suite builds
-# the fake IOS XE device from the tree.
+# the fake device from the tree.
 make tools-build
 . "$ROOT/scripts/lib/suites.sh"
 run_suites
