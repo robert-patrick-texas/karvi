@@ -1759,6 +1759,23 @@ read at the wrong one); asking the far end for 80 or a large width (it changes
 what devices print, wide tables and IOS XE's `terminal width`); the width of
 karvi's own terminal (a daemon's job has none).
 
+**A record keeps the spaces the far end wrote; a transcript trims every
+trailing blank.** The renderer tells a space the far end wrote from a cell
+nothing was written to or an erase blanked. A finished line of the shell's
+output in a record ends at the last cell written, so a space the device wrote
+stays; a finished line of a transcript ends at its last non-blank character.
+The unfinished line, where prompts and `--expect` declarations are matched,
+keeps its written spaces in both (`Save? [yes/no]: ` as the device wrote it).
+*Why:* a record is the device's data, and a configuration's trailing space (an
+IOS XE description or banner line) is content a backup must keep, as records
+kept it before rendering; a transcript is what the operator saw, and a line
+editor that erases with `\b \b` writes spaces nobody sees (executed: `printf
+'desc \n'` and `printf 'abc\b \b\n'` give `desc ` and `ab ` under the first
+rule, `desc` and `ab` under the second). *Not taken:* one rule for both
+(trimming loses a configured space; keeping leaves the erase idiom's spaces in
+IOS XE transcripts); recognising the erase idiom (it would misread a device
+that writes a backspace and then a space).
+
 **Retention is a helper of its own, walking `YYMMDD` day folders under both
 roots.** `karvi-prune` reads no configuration; its eight flags carry the
 settings' names (`--basedir`, `--sharedroot`, `--scoreboards`, `--days`,

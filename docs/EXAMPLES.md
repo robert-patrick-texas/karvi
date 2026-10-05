@@ -3403,3 +3403,25 @@ recorded login's, whose timing log gives it.
 
 **Not taken.** Rendering at 80; asking the far end for a width (it changes
 what devices print); the width of karvi's own terminal.
+
+**During the build: blanks at a line's end.** The renderer as built for
+transcripts trims every trailing blank. Over the shell today, and in a recorded
+login through the renderer:
+
+```text
+printf 'desc \n'      -> record: '\x1b[?2004ldesc \n\x1b[?2004h\x1b]0;netops@dev: ~\x07…$\n'
+printf 'abc\b \b\n'   -> record: '\x1b[?2004labc\x08 \x08\n\x1b[?2004h…$\n'
+transcript:  desc
+             ab
+```
+
+Keeping the spaces the far end wrote gives `desc ` and `ab `: the configured
+space kept, and the erase idiom's space left. Trimming gives `desc` and `ab`.
+
+**Agreed.** One renderer with one option for a finished line's end: the shell's
+output in a record keeps the spaces the far end wrote (a record is the device's
+data), a transcript trims every trailing blank (what the operator saw). The
+unfinished line, where prompts and declarations are matched, keeps its written
+spaces in both.
+
+**Not taken.** One rule for both; recognising the erase idiom.
