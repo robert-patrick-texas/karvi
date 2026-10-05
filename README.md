@@ -33,8 +33,7 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
 
 1. `ssh.host-key-policy` accepts `accept-new` (the default), `secure`, and
    `insecure`; `auto` and `default` are rejected.
-2. OpenSSH connection reuse is disabled for every mode (the platform
-   table's `control-master` key is accepted and inert).
+2. OpenSSH connection reuse is disabled for every mode.
 3. `karvi daemon stop` and `karvi daemon restart` refuse while jobs are active
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in

@@ -18,7 +18,7 @@ func TestCheckPlatformOption(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	known := "generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, c9300"
+	known := "generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300"
 	for _, tc := range []struct {
 		value, want, refusal string
 	}{

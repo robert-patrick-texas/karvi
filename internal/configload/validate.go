@@ -601,9 +601,9 @@ func (l *loader) validatePlatformTables() error {
 		if c := asInt(p["session-cap"]); p["session-cap"] != nil && (c < 1 || c > 32) {
 			return l.dynamicErr("config_platform_session_cap_out_of_range", key+".session-cap", "must be 1..32")
 		}
-		if v, ok := p["control-master"]; ok {
-			if _, isBool := v.(bool); !isBool {
-				return l.dynamicErr("config_platform_control_master_not_boolean", key+".control-master", "must be a boolean")
+		if v, ok := p["channel"]; ok {
+			if s, _ := v.(string); s != platform.ChannelShell && s != platform.ChannelExec {
+				return l.dynamicErr("config_platform_channel_invalid", key+".channel", fmt.Sprintf("must be %q or %q", platform.ChannelShell, platform.ChannelExec))
 			}
 		}
 		// The three string-array fields (crun-commands since registry 14,

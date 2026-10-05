@@ -30,8 +30,9 @@ import (
 // collection sub-block, 8 sources.inputs and commands_file for
 // the scoreboard, 10 the collection's word, since run and command
 // collect too, and its suffix (--fs), and, without another bump (10 was
-// unreleased), output.files' failures_jsonl renamed errors_jsonl.
-const SchemaVersion = 10
+// unreleased), output.files' failures_jsonl renamed errors_jsonl; 11 each
+// target's channel.
+const SchemaVersion = 11
 
 // Mode is the requested execution mode of a job.
 type Mode string

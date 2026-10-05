@@ -247,7 +247,7 @@ func (d *Driver) baseArgs() []string {
 // the first obtained value overrides both the generated file and
 // ~/.ssh/config. One interactive shell is the device's whole session, so
 // there is nothing for a master to share;
-// the platform table's control-master and the ssh.control-* keys are inert.
+// the ssh.control-* keys are inert.
 func (d *Driver) controlArgs() []string {
 	return []string{"-o", "ControlMaster=no", "-o", "ControlPath=none", "-o", "ControlPersist=no"}
 }

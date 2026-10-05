@@ -328,8 +328,9 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 			fmt.Fprintf(&b, "  credential: <%s>\n", t.CredentialBinding.Status)
 		}
 		// The platform is the plan's: the row's, the default, or --platform's,
-		// so an override is seen before anything is sent.
-		fmt.Fprintf(&b, "  intended: ping=%s transport=%s port=%d platform=%s\n", describeIntendedPing(t.IntendedPing), t.IntendedTransport.Transport, t.IntendedTransport.Port, pt.Device.Platform)
+		// so an override is seen before anything is sent; the channel is the
+		// one the platform resolved to.
+		fmt.Fprintf(&b, "  intended: ping=%s transport=%s port=%d platform=%s channel=%s\n", describeIntendedPing(t.IntendedPing), t.IntendedTransport.Transport, t.IntendedTransport.Port, pt.Device.Platform, pt.Channel)
 		// A crun's device runs its platform's list: shown
 		// per device, since the lists differ across platforms.
 		if list, ok := r.Plan.PlatformCommands[pt.Device.Platform]; ok {

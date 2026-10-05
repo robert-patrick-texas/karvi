@@ -23,7 +23,7 @@ func fixtureDirect(t *testing.T) ExecutionTarget {
 			SuffixAction: SuffixActionNone, ClientCandidates: []netip.Addr{addr}, DaemonCandidates: []netip.Addr{},
 			Selected: addr, Alternates: []netip.Addr{}, SelectedSource: SourceInventory, ResolverContext: ResolverContextClient,
 		},
-		ExecutionEndpoint: EndpointLocal,
+		Channel: ChannelShell, ExecutionEndpoint: EndpointLocal,
 	}
 	return withSourceDigest(t, tgt)
 }
@@ -42,7 +42,7 @@ func fixtureInventory(t *testing.T) ExecutionTarget {
 			SuffixAction: SuffixActionNone, ClientCandidates: []netip.Addr{addr}, DaemonCandidates: []netip.Addr{},
 			Selected: addr, Alternates: []netip.Addr{}, SelectedSource: SourceInventory, ResolverContext: ResolverContextClient,
 		},
-		ExecutionEndpoint: EndpointLocal,
+		Channel: ChannelShell, ExecutionEndpoint: EndpointLocal,
 	}
 	return withSourceDigest(t, tgt)
 }
@@ -61,7 +61,7 @@ func fixtureDaemonDraft(t *testing.T) ExecutionTarget {
 			QueryName: "core-a.example.gov", SuffixAction: SuffixActionPrefix + ".example.gov",
 			ClientCandidates: []netip.Addr{}, DaemonCandidates: []netip.Addr{}, Alternates: []netip.Addr{},
 		},
-		ExecutionEndpoint: EndpointLocal,
+		Channel: ChannelShell, ExecutionEndpoint: EndpointLocal,
 	}
 	return withSourceDigest(t, tgt)
 }
@@ -78,9 +78,9 @@ func withSourceDigest(t *testing.T, tgt ExecutionTarget) ExecutionTarget {
 
 // Pinned digests: a change here means the wire form changed.
 const (
-	goldenDirect      = "8b5d2b3fc40e150bbdd12ec295c7af29ae3e48f4d84dd27e454e7b16f21edd76"
-	goldenInventory   = "84ece9c51bb0fac5ee412466f6868686c696f466aed66917c7e456a6a2f99953"
-	goldenDaemonDraft = "359fba6d2af236d444a6f2b58d0f10cb8911d407824d63b1cbeb648a9f05865c"
+	goldenDirect      = "1105d3ff8665a6934af233dba7916e6f9a32fa0804573e1f95bcb94804d9d6a2"
+	goldenInventory   = "616d086bde1d6a524df386019b3a4bb94fe2a808e4a4353158077f5100521d8a"
+	goldenDaemonDraft = "4d3907ceca90f0be831e2f282c9ac8d123ed799f464714beaf2edd74accf0fdb"
 )
 
 func TestFixturesValidateAndPinDigests(t *testing.T) {
@@ -329,6 +329,25 @@ func TestTargetNoticesValidateAndDigest(t *testing.T) {
 		bad.Notices = []TargetNotice{n}
 		if err := bad.Validate(Draft); err == nil || !strings.Contains(err.Error(), "notices[0]") {
 			t.Errorf("%s: err=%v", name, err)
+		}
+	}
+}
+
+// A target's channel is shell or exec; exec over telnet is refused, and
+// until the exec channel is built exec on any transport is too.
+func TestTargetChannelValidation(t *testing.T) {
+	for _, tc := range []struct{ channel, transport, want string }{
+		{ChannelShell, "system", ""},
+		{"", "system", `channel: "" is neither`},
+		{"pty", "system", `channel: "pty" is neither`},
+		{ChannelExec, TransportTelnet, "exec over telnet"},
+		{ChannelExec, "native", "exec channels are not built on the native transport"},
+	} {
+		tgt := fixtureDirect(t)
+		tgt.Channel, tgt.Device.Transport = tc.channel, tc.transport
+		err := tgt.Validate(Draft)
+		if (tc.want == "") != (err == nil) || err != nil && !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%q over %s: %v", tc.channel, tc.transport, err)
 		}
 	}
 }

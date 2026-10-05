@@ -13,15 +13,13 @@ import (
 )
 
 // One interactive shell is the device's whole session, so OpenSSH
-// connection reuse is pinned off on the command line whatever the platform
-// table says: ControlMaster is not to be used.
+// connection reuse is pinned off on the command line and in the managed
+// configuration: ControlMaster is not to be used.
 func TestControlMasterAlwaysDisabled(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		enabled bool
+		name string
 	}{
-		{name: "platform default", enabled: false},
-		{name: "platform table asks for reuse", enabled: true},
+		{name: "a shell session"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			home := t.TempDir()
@@ -37,7 +35,6 @@ func TestControlMasterAlwaysDisabled(t *testing.T) {
 			root := filepath.Join(home, "control")
 			factory := Factory{Binary: bin, Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: testsocket.Dir(t), ControlRoot: root, AskpassPath: "/bin/true"}
 			def, _ := platform.Builtin("linux")
-			def.ControlMaster = tc.enabled
 			opened, err := factory.Open(context.Background(), platform.OpenRequest{
 				Address: "192.0.2.10", Port: 22, Username: "operator",
 				Definition: def,

@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 24,
+  "registry_schema_version": 25,
   "config_schema_version": 6,
   "keys": [
     {
@@ -2729,7 +2729,7 @@
     {
       "pattern": "platform.\u003cname\u003e",
       "fields": {
-        "control-master": "boolean",
+        "channel": "enum",
         "crun-commands": "string_array",
         "crun-filters": "string_array",
         "default-transport": "enum",
@@ -3124,7 +3124,7 @@
     "config_output_max_job_below_max_command",
     "config_path_uninspectable",
     "config_ping_methods_disabled",
-    "config_platform_control_master_not_boolean",
+    "config_platform_channel_invalid",
     "config_platform_crun_filter_invalid",
     "config_platform_driver_unknown",
     "config_platform_name_invalid",

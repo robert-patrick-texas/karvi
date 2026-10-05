@@ -56,7 +56,7 @@ func DirectTarget() executionplan.ExecutionTarget {
 			SuffixAction: executionplan.SuffixActionNone, ClientCandidates: []netip.Addr{addr}, DaemonCandidates: []netip.Addr{},
 			Selected: addr, Alternates: []netip.Addr{}, SelectedSource: executionplan.SourceInventory, ResolverContext: executionplan.ResolverContextClient,
 		},
-		ExecutionEndpoint: executionplan.EndpointLocal,
+		Channel: executionplan.ChannelShell, ExecutionEndpoint: executionplan.EndpointLocal,
 	})
 }
 
@@ -72,7 +72,7 @@ func InventoryTarget() executionplan.ExecutionTarget {
 			SuffixAction: executionplan.SuffixActionNone, ClientCandidates: []netip.Addr{addr}, DaemonCandidates: []netip.Addr{},
 			Selected: addr, Alternates: []netip.Addr{}, SelectedSource: executionplan.SourceInventory, ResolverContext: executionplan.ResolverContextClient,
 		},
-		ExecutionEndpoint: executionplan.EndpointLocal,
+		Channel: executionplan.ChannelShell, ExecutionEndpoint: executionplan.EndpointLocal,
 	})
 }
 
@@ -89,7 +89,7 @@ func DaemonTarget() executionplan.ExecutionTarget {
 			QueryName: "core-a.example.gov", SuffixAction: executionplan.SuffixActionPrefix + ".example.gov",
 			ClientCandidates: []netip.Addr{}, DaemonCandidates: []netip.Addr{}, Alternates: []netip.Addr{},
 		},
-		ExecutionEndpoint: executionplan.EndpointLocal,
+		Channel: executionplan.ChannelShell, ExecutionEndpoint: executionplan.EndpointLocal,
 	})
 }
 

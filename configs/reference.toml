@@ -596,12 +596,12 @@ max-physical-line-bytes = 1048576
 # are shown in configs/example.toml.
 #
 # A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,
-# cisco_nxos, juniper_junos, arista_eos, linux) overrides that platform's fields;
+# cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
 # a table for any other name is an alias and needs driver = "<built-in>", inheriting
 # the whole built-in definition. Names compare without regard to case and are
 # recorded lowercase; a name holds no glob character and does not begin with "!".
 # Fields: driver, default-transport, ssh-port, telnet-port, privileged-level (a
-# level of the base), requires-enable, session-cap, control-master, paging-commands,
+# level of the base), requires-enable, session-cap, channel (shell or exec), paging-commands,
 # crun-commands (the collection list a crun sends when its command line names no
 # command), crun-filters (regular expressions whose matching output lines are
 # dropped from the collection file; an empty array turns the built-in list off).

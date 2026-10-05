@@ -31,6 +31,21 @@
   operators. It names two settings with no use in this release:
   `ssh.control-path-root`, whose directory is made and stays empty, and
   `logging.file`, to which nothing is written.
+- **A platform's `channel`, and the built-in `linux_shell`.** A
+  `[platform.NAME]` table takes `channel = "shell"` or `"exec"`, what karvi
+  asks of the SSH session channel; every built-in is `shell`, and a table that
+  leaves it unset is `shell`. Each target's channel is resolved at planning,
+  carried in the plan (execution plan schema 11) and the manifest, and shown
+  on the dry run's `intended:` line (`channel=shell`). Exec channels are not
+  built yet: a target whose platform says `exec` is refused at planning with
+  `channel_exec_unavailable` (exit 8), and over telnet, which has no exec,
+  with `channel_exec_over_telnet`. An eighth built-in, `linux_shell`, is
+  `linux` on the shell channel with `linux` as its base, so it is admitted
+  wherever `linux` is and its records name `linux_shell`. The platform field
+  `control-master`, read by nothing, is removed: a table that sets it is
+  refused as `config_unknown_key`, and
+  `config_platform_control_master_not_boolean` is retired. The configuration
+  registry moves to 25.
 - **The shell's output and prompts are the text the terminal showed.** In
   `command`, `run`, and `crun`, on every platform and over SSH and telnet, a
   command's output and the prompts in its record are rendered as the terminal

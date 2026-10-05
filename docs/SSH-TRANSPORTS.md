@@ -107,8 +107,8 @@ fallback from a missing native adapter to system OpenSSH.
 
 `command` and `run` over the system implementation open one fresh interactive
 `ssh -tt` process per device, with ControlMaster, ControlPath, and
-ControlPersist pinned off on the command line (the platform table's
-`control-master` and the `ssh.control-*` keys are inert). One karvi session
+ControlPersist pinned off on the command line (the `ssh.control-*` keys are
+inert). One karvi session
 (`internal/devsession`) drives that shell: it waits for
 the first prompt, reaches the platform's privileged level with one enable
 attempt when the shell starts below it, sends the platform's paging commands,

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func TestV0100HostKeyPolicyValues(t *testing.T) {
@@ -30,16 +32,20 @@ func TestV0100HostKeyPolicyValues(t *testing.T) {
 	}
 }
 
-func TestV0100PlatformControlMaster(t *testing.T) {
-	snap, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"platform.linux.control-master=true"}})
+// TestPlatformControlMasterRemoved: the platform table's control-master,
+// read by nothing since v0.10.0, is no key now; channel takes its place in
+// the table.
+func TestPlatformControlMasterRemoved(t *testing.T) {
+	_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"platform.linux.control-master=true"}})
+	if errorcodes.Of(err) != "config_unknown_key" {
+		t.Fatalf("platform.linux.control-master: %v", err)
+	}
+	snap, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{`platform.linux.channel="exec"`}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, ok := snap.NamedTables("platform")["linux"]["control-master"].(bool); !ok || !got {
-		t.Fatalf("platform.linux.control-master=%v, want true", snap.NamedTables("platform")["linux"]["control-master"])
-	}
-	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"platform.linux.control-master=\"yes\""}}); err == nil {
-		t.Fatal("non-boolean platform control-master was accepted")
+	if got := snap.NamedTables("platform")["linux"]["channel"]; got != "exec" {
+		t.Fatalf("platform.linux.channel=%v", got)
 	}
 }
 

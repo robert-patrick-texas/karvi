@@ -53,7 +53,7 @@ func TestPlatformOptionRefusedBeforeInventory(t *testing.T) {
 			if got != exitcode.ExitUsageError || !strings.HasPrefix(stderr, "platform_option_unknown: ") {
 				t.Fatalf("exit=%d stderr=%q", got, stderr)
 			}
-			if !strings.Contains(stderr, "known platforms: generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, c9300") {
+			if !strings.Contains(stderr, "known platforms: generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300") {
 				t.Fatalf("known platforms not named: %q", stderr)
 			}
 		})

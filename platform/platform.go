@@ -41,10 +41,12 @@ type Definition struct {
 	RequiresEnable  bool   `json:"requires_enable"`
 	LegacyClass     string `json:"legacy_class"`
 	SessionCap      int    `json:"session_cap"`
-	// ControlMaster enables OpenSSH connection reuse for this platform. It is
-	// off for every built-in platform because some devices, such as Cisco IOS
-	// XE, refuse additional session channels on a shared connection.
-	ControlMaster  bool     `json:"control_master"`
+	// Channel is what karvi asks of the SSH session channel: ChannelShell,
+	// the interactive shell of the device session, or ChannelExec, one exec
+	// request per command. Every built-in is shell (linux becomes exec when
+	// the exec channel is built); a [platform.NAME] table may set either
+	// word on any driver, and a definition that leaves it unset is shell.
+	Channel        string   `json:"channel"`
 	PagingCommands []string `json:"paging_commands"`
 	// CrunCommands is the platform's collection list: what a crun that
 	// names no command on its command line sends to a device of this
@@ -76,10 +78,16 @@ type Definition struct {
 	// platform reports no command errors (generic).
 	FailurePatterns []string `json:"failure_patterns,omitempty"`
 	// Base is the built-in the definition is resolved from: a built-in's own
-	// name, an alias's driver, or generic. Transport admission reads it,
-	// never Driver.
+	// base (its name, or linux for linux_shell), an alias's driver's base, or
+	// generic. Transport admission reads it, never Driver.
 	Base string `json:"-"`
 }
+
+// The words of a platform's channel.
+const (
+	ChannelShell = "shell"
+	ChannelExec  = "exec"
+)
 
 // levelNames lists the definition's prompt levels for messages.
 func (d Definition) levelNames() []string {
@@ -145,6 +153,12 @@ func (d *Definition) Validate() error {
 	}
 	if d.LegacyClass == "" {
 		d.LegacyClass = "none"
+	}
+	if d.Channel == "" {
+		d.Channel = ChannelShell
+	}
+	if d.Channel != ChannelShell && d.Channel != ChannelExec {
+		return errorcodes.Errorf("config_platform_channel_invalid", "platform %s: channel %q is neither %q nor %q", d.Name, d.Channel, ChannelShell, ChannelExec)
 	}
 	return nil
 }
@@ -347,21 +361,34 @@ var (
 )
 
 var builtins = map[string]Definition{
-	"generic":       {Name: "generic", Driver: "generic", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, SessionCap: 3, ExitCommands: []string{"exit"}, PromptPattern: GenericPromptPattern},
-	"cisco_iosxe":   {Name: "cisco_iosxe", Driver: "cisco_iosxe", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 5, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXELevels, FailurePatterns: ciscoFailures},
-	"cisco_iosxr":   {Name: "cisco_iosxr", Driver: "cisco_iosxr", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXRLevels, FailurePatterns: ciscoFailures},
-	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
-	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
-	"arista_eos":    {Name: "arista_eos", Driver: "arista_eos", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^! Time: `, `^Uptime: `, `^Free memory: `}, ExitCommands: []string{"exit"}, PrivilegeLevels: aristaEOSLevels, FailurePatterns: eosFailures},
-	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	"generic":       {Name: "generic", Driver: "generic", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, SessionCap: 3, ExitCommands: []string{"exit"}, PromptPattern: GenericPromptPattern},
+	"cisco_iosxe":   {Name: "cisco_iosxe", Driver: "cisco_iosxe", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 5, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXELevels, FailurePatterns: ciscoFailures},
+	"cisco_iosxr":   {Name: "cisco_iosxr", Driver: "cisco_iosxr", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXRLevels, FailurePatterns: ciscoFailures},
+	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
+	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
+	"arista_eos":    {Name: "arista_eos", Driver: "arista_eos", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^! Time: `, `^Uptime: `, `^Free memory: `}, ExitCommands: []string{"exit"}, PrivilegeLevels: aristaEOSLevels, FailurePatterns: eosFailures},
+	"linux":         {Name: "linux", Driver: "linux", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
+	// linux_shell is linux's definition on the shell channel, for a server
+	// whose security refuses exec: linux is its base, so it is admitted
+	// wherever linux is, and its records name linux_shell.
+	"linux_shell": {Name: "linux_shell", Driver: "linux_shell", Base: "linux", DefaultTransport: "native", Channel: ChannelShell, SSHPort: 22, TelnetPort: 23, SessionCap: 10, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 }
 
-func Builtin(name string) (Definition, bool) { d, ok := builtins[strings.ToLower(name)]; return d, ok }
+// Builtin is the named built-in definition, its Base filled: the built-in's
+// own base, else its name.
+func Builtin(name string) (Definition, bool) {
+	d, ok := builtins[strings.ToLower(name)]
+	if ok && d.Base == "" {
+		d.Base = d.Name
+	}
+	return d, ok
+}
 func Builtins() []Definition {
-	order := []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux"}
+	order := []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
 	out := make([]Definition, 0, len(order))
 	for _, n := range order {
-		out = append(out, builtins[n])
+		d, _ := Builtin(n)
+		out = append(out, d)
 	}
 	return out
 }

@@ -12,7 +12,9 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/executionplan/plantest"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/transportselect"
 	"github.com/robert-patrick-texas/karvi/inventory"
+	"github.com/robert-patrick-texas/karvi/platform"
 )
 
 var operator = credentials.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}, Home: fixtureHome}
@@ -100,7 +102,9 @@ func draftOptions(commands []string) DraftOptions {
 // was added and the collection's word entered the plan.
 // Re-pinned when output.files.failures-jsonl became errors-jsonl, and the
 // plan's failures_jsonl errors_jsonl; registry 24 and plan schema 10 stay.
-const goldenK03Draft = "58eee171548c2404f2f76aebaa41dd7a2b2c0da233de2bc9030f5a61c4556a56"
+// Re-pinned at registry 25 and plan schema 11: each target carries its
+// channel.
+const goldenK03Draft = "fc30504506844c7cc2fc455f04e81fdfda0b64372126205d3bde6ca67b130a32"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -381,6 +385,33 @@ func TestDraftPlatformCommands(t *testing.T) {
 		}
 		if err := draft.Validate(executionplan.Draft); err != nil {
 			t.Fatalf("%s's collection: %v", word, err)
+		}
+	}
+}
+
+// A target's channel is its platform's, resolved at planning: shell carried
+// in the plan; exec over telnet refused naming both; exec on an SSH
+// transport refused until the exec channel is built.
+func TestTargetChannel(t *testing.T) {
+	ssh := transportselect.Selection{Kind: transportselect.KindNative, Implementation: "scrapligo-v1"}
+	telnet := transportselect.Selection{Kind: transportselect.KindTelnet, Implementation: "telnet"}
+	tables := map[string]map[string]any{"srv": {"driver": "linux", "channel": "exec"}}
+	if c, err := targetChannel(platform.Resolve("linux_shell", tables), "r1", ssh); err != nil || c != platform.ChannelShell {
+		t.Fatalf("linux_shell: %q %v", c, err)
+	}
+	if _, err := targetChannel(platform.Resolve("srv", tables), "srv1", telnet); errorcodes.Of(err) != "channel_exec_over_telnet" || !strings.Contains(err.Error(), "srv1: platform srv") || !strings.Contains(err.Error(), "telnet") {
+		t.Fatalf("exec over telnet: %v", err)
+	}
+	if _, err := targetChannel(platform.Resolve("srv", tables), "srv1", ssh); errorcodes.Of(err) != "channel_exec_unavailable" || !strings.Contains(err.Error(), "scrapligo-v1") {
+		t.Fatalf("exec: %v", err)
+	}
+	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tg := range draft.Targets {
+		if tg.Channel != executionplan.ChannelShell {
+			t.Fatalf("%s: channel %q", tg.TargetID, tg.Channel)
 		}
 	}
 }

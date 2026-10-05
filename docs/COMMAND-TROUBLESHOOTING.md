@@ -32,9 +32,8 @@ names.
 This diagnostic indicates that an already authenticated OpenSSH master could
 not open an additional session channel. It is not evidence that the password
 was rejected. Karvi v0.7.0 command mode avoids that topology by opening one
-fresh interactive shell with ControlMaster and ControlPath disabled. Since
-v0.10.0, reuse is off for every mode unless a platform sets
-`control-master = true`.
+fresh interactive shell with ControlMaster and ControlPath disabled, and
+reuse is off for every mode.
 
 When this text appears from another path, karvi classifies it as
 `ssh_session_channel_refused` in the connection category. Do not rotate

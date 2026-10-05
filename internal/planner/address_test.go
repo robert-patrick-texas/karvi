@@ -195,7 +195,7 @@ func TestOneFailingLookupAbortsPlanning(t *testing.T) {
 
 func target(t *testing.T, d inventory.Device, plan executionplan.AddressPlan) executionplan.ExecutionTarget {
 	t.Helper()
-	x := executionplan.ExecutionTarget{TargetID: d.ID, InputTarget: d.SuppliedName(), Device: executionplan.ProjectDevice(d), AddressPlan: plan, ExecutionEndpoint: executionplan.EndpointLocal}
+	x := executionplan.ExecutionTarget{TargetID: d.ID, InputTarget: d.SuppliedName(), Device: executionplan.ProjectDevice(d), AddressPlan: plan, Channel: executionplan.ChannelShell, ExecutionEndpoint: executionplan.EndpointLocal}
 	sum, err := executionplan.SumTarget(x)
 	if err != nil {
 		t.Fatal(err)
@@ -207,8 +207,8 @@ func target(t *testing.T, d inventory.Device, plan executionplan.AddressPlan) ex
 // Golden digests over the k03 inventory: Core-A under client authority and
 // edge-b as a daemon draft.
 const (
-	goldenK03Client      = "88f84fb8b1a2a759ab842b34a0c84276bf1248cee9ec7f59b93219deb1bf31c7"
-	goldenK03DaemonDraft = "20fab72d60bb84d52d98ff6e27d10a0115199a131e6a6949eef3873b6bf4f0c5"
+	goldenK03Client      = "dab3ed4f22f9f23a1860fd70f8bb12d7fd1cd3d29ff352d45e3459ba026d51da"
+	goldenK03DaemonDraft = "d29a43b13455683ad1a142b820683dc7e7f1d09b90e33493bcb3a53d4d13e5ef"
 )
 
 func TestK03AddressPlansPinDigests(t *testing.T) {

@@ -139,7 +139,7 @@ var entries = []Entry{
 	failure("config_match_rule_empty", "config", exitConfig, false, "A match rule has no match keys."),
 	failure("config_match_rule_only_negated", "config", exitConfig, false, "A match key in a match rule has only negated selectors."),
 	failure("config_output_max_job_below_max_command", "config", exitConfig, false, "`output.max-job-bytes` is smaller than `output.max-command-bytes`."),
-	failure("config_platform_control_master_not_boolean", "config", exitConfig, false, "`platform.<name>.control-master` is not a boolean."),
+	failure("config_platform_channel_invalid", "config", exitConfig, false, "`platform.<name>.channel` is neither `shell` nor `exec`."),
 	failure("config_platform_driver_unknown", "config", exitConfig, false, "A `[platform.NAME]` table for a name that is not a built-in has no `driver`, or its `driver` is not a built-in platform (an alias of an alias included); or a built-in's table has a `driver` other than its own name."),
 	failure("config_platform_name_invalid", "config", exitConfig, false, "A `[platform.NAME]` table's name is blank, holds a glob character (`*`, `?`, `[`, `\\`), begins with `!`, or duplicates another table's name under a different spelling; every platform name is also a literal selector."),
 	failure("config_platform_resolution_unknown", "config", exitConfig, false, "`platform-resolution.default` (when set) or `platform-resolution.unknown-fallback` is not a known platform (a built-in or a configured `[platform.NAME]` table); refused at `config validate` and at load, whatever `platform-resolution.on-unknown` says."),
@@ -198,6 +198,8 @@ var entries = []Entry{
 	// Transport selection.
 	failure("login_driver_not_interactive", "dependency", exitDep, false, "The opened login transport does not provide an interactive session."),
 	failure("login_transport_not_interactive", "dependency", exitDep, false, "`login` selected a transport that is not system-compatible OpenSSH."),
+	failure("channel_exec_over_telnet", "dependency", exitDep, false, "A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both."),
+	failure("channel_exec_unavailable", "dependency", exitDep, false, "A target's platform asks for an exec channel, which its transport does not have yet; refused at planning."),
 	failure("native_platform_not_qualified", "dependency", exitDep, false, "The native transport does not admit the target's platform driver."),
 	failure("native_transport_unavailable", "dependency", exitDep, false, "The selected native implementation is not compiled into this executable; there is no fallback to system OpenSSH."),
 	failure("daemon_resolution_not_allowed", "policy", exitPerm, false, "A target has daemon address authority while `name.allow-daemon-resolution` is false."),
@@ -804,5 +806,6 @@ var entries = []Entry{
 	retired("cloginrc_symlink_rejected", retiredV011to017, "A `.cloginrc` path is a symlink while credential symlinks are not allowed. One code per condition for every credential file backend.", "credential_file_symlink_rejected"),
 	retired("dispatch_percent_out_of_range", retiredV0260, "A `run` error-percent option was outside 0..100; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value.", "config_value_out_of_range"),
 	retired("dispatch_value_negative", retiredV0260, "A `run` worker, width, or error-count option was negative; the Dispatch options are their keys' overrides in the lock-aware layer, so the key's range refuses the value.", "config_value_out_of_range"),
+	retired("config_platform_control_master_not_boolean", retiredV0270, "`platform.<name>.control-master` was not a boolean; the field, read by nothing, is removed, and a table that sets it is refused as an unknown key.", "config_unknown_key"),
 	retired("host_key_trust_store_candidates_exhausted", retiredV0270, "The automatic trust store could not be created at any of its candidates; under `auto` the store is one path, `<basedir>/known_hosts`, and a failure to make it is the step's own code.", "host_key_trust_store_create_failed", "host_key_directory_invalid", "host_key_directory_permission"),
 }

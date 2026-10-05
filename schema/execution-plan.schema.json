@@ -51,13 +51,14 @@
     },
     "execution_target": {
       "type": "object", "additionalProperties": false,
-      "required": ["target_id", "input_target", "device", "address_plan", "execution_endpoint", "source_digest"],
+      "required": ["target_id", "input_target", "device", "address_plan", "channel", "execution_endpoint", "source_digest"],
       "properties": {
         "target_id": {"type": "string"}, "input_target": {"type": "string"},
         "device": {"$ref": "#/$defs/device_projection"},
         "address_plan": {"$ref": "#/$defs/address_plan"},
         "credential_binding_id": {"type": "string"},
         "session_init_profile": {"type": "string", "minLength": 1},
+        "channel": {"enum": ["shell", "exec"]},
         "execution_endpoint": {"type": "string"},
         "source_digest": {"$ref": "#/$defs/digest"},
         "notices": {"type": "array", "items": {"$ref": "#/$defs/target_notice"}}
@@ -175,7 +176,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "session_init", "dispatch", "output", "ping", "sources", "planning", "preparation"],
       "properties": {
-        "schema_version": {"const": 10},
+        "schema_version": {"const": 11},
         "plan_id": {"$ref": "#/$defs/identifier"},
         "plan_digest": {"$ref": "#/$defs/digest"},
         "operator": {"$ref": "#/$defs/operator"},
@@ -212,7 +213,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "command_plan_digest", "plan_digest"],
       "properties": {
-        "schema_version": {"const": 10},
+        "schema_version": {"const": 11},
         "idempotency_key": {"type": "string"},
         "job_id": {"$ref": "#/$defs/identifier"},
         "operator": {"$ref": "#/$defs/operator"},

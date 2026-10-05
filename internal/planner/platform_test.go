@@ -103,7 +103,7 @@ func TestResolvePlatformsGrouping(t *testing.T) {
 	if errorcodes.Of(err) != "platform_unknown" {
 		t.Fatalf("err=%v", err)
 	}
-	want := `platform_unknown: inventory source lab line 2: platform "cisco_iosx" is not a known platform; 4 devices: core1, core2, core3, …; inventory source lab line 6: platform "junos" is not a known platform; 1 device: edge1; inventory source remote line 2: platform "cisco_iosx" is not a known platform; 1 device: far1 (known: generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux)`
+	want := `platform_unknown: inventory source lab line 2: platform "cisco_iosx" is not a known platform; 4 devices: core1, core2, core3, …; inventory source lab line 6: platform "junos" is not a known platform; 1 device: edge1; inventory source remote line 2: platform "cisco_iosx" is not a known platform; 1 device: far1 (known: generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell)`
 	if err.Error() != want {
 		t.Fatalf("message\n got %s\nwant %s", err.Error(), want)
 	}

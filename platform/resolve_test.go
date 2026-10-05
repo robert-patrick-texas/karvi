@@ -87,7 +87,7 @@ func TestKnownAndKnownNames(t *testing.T) {
 		"edge":  {"driver": "c9300"},
 		"lab":   {},
 	}
-	builtins := []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux"}
+	builtins := []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
 	if got := KnownNames(nil); !reflect.DeepEqual(got, builtins) {
 		t.Fatalf("no tables: %v", got)
 	}
@@ -182,5 +182,41 @@ func TestCrunCommands(t *testing.T) {
 	}
 	if got := Resolve("silent", tables).CrunCommands; got == nil || len(got) != 0 {
 		t.Fatalf("an empty array clears the list: %#v", got)
+	}
+}
+
+// linux_shell is linux's definition on the shell channel with linux as its
+// base, and an alias of it is based on linux too; a table sets channel on
+// any driver, and a definition that leaves it unset validates as shell.
+func TestChannelAndLinuxShell(t *testing.T) {
+	tables := map[string]map[string]any{
+		"bastion":  {"driver": "linux_shell"},
+		"eos-exec": {"driver": "arista_eos", "channel": "exec"},
+		"linux":    {"channel": "exec"},
+	}
+	for _, tc := range []struct{ name, base, driver, channel string }{
+		{"linux_shell", "linux", "linux_shell", ChannelShell},
+		{"bastion", "linux", "linux_shell", ChannelShell},
+		{"eos-exec", "arista_eos", "arista_eos", ChannelExec},
+		{"linux", "linux", "linux", ChannelExec},
+		{"cisco_iosxe", "cisco_iosxe", "cisco_iosxe", ChannelShell},
+	} {
+		def := Resolve(tc.name, tables)
+		if def.Base != tc.base || def.Driver != tc.driver || def.Channel != tc.channel {
+			t.Errorf("%s: base %q driver %q channel %q", tc.name, def.Base, def.Driver, def.Channel)
+		}
+	}
+	for _, d := range Builtins() {
+		if d.Channel != ChannelShell || d.Base == "" {
+			t.Errorf("built-in %s: channel %q base %q", d.Name, d.Channel, d.Base)
+		}
+	}
+	unset := Definition{Name: "lab"}
+	if err := unset.Validate(); err != nil || unset.Channel != ChannelShell {
+		t.Fatalf("unset channel: %q %v", unset.Channel, err)
+	}
+	bad := Definition{Name: "lab", Channel: "pty"}
+	if err := bad.Validate(); errorcodes.Of(err) != "config_platform_channel_invalid" {
+		t.Fatalf("channel pty: %v", err)
 	}
 }

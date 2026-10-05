@@ -87,7 +87,7 @@ func TestPlatformUnknownAndNotSet(t *testing.T) {
 		}{
 			{"command", plain, []string{"command", "--transport", "system", "sw-typo", "show", "clock"}, `inventory source lab line 3: platform "cisco_iosx" is not a known platform; 1 device: sw-typo (known: generic`},
 			{"command with a fallback under fail", withFallback, []string{"command", "--transport", "system", "sw-typo", "show", "clock"}, `1 device: sw-typo`},
-			{"run --all", plain, append(append([]string{}, dryRun...), "--all", "--cmd", "show clock"), `inventory source lab line 3: platform "cisco_iosx" is not a known platform; 4 devices: sw-typo, core1, core2, …; inventory source lab line 8: platform "junos" is not a known platform; 1 device: edge1 (known: generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux)`},
+			{"run --all", plain, append(append([]string{}, dryRun...), "--all", "--cmd", "show clock"), `inventory source lab line 3: platform "cisco_iosx" is not a known platform; 4 devices: sw-typo, core1, core2, …; inventory source lab line 8: platform "junos" is not a known platform; 1 device: edge1 (known: generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell)`},
 			{"run --select-platform cisco*", plain, append(append([]string{}, dryRun...), "--select-platform", "cisco*", "--cmd", "show clock"), `4 devices: sw-typo, core1, core2, …`},
 			{"login", plain, []string{"login", "--transport", "system", "sw-typo"}, `1 device: sw-typo`},
 		} {

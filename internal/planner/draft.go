@@ -137,6 +137,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if err != nil {
 		return executionplan.ExecutionPlan{}, err
 	}
+	tables := cfg.NamedTables("platform")
 	targets := make([]executionplan.ExecutionTarget, len(set.Devices))
 	for i, d := range set.Devices {
 		sel := transports[i]
@@ -149,7 +150,11 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		device.Transport = sel.Kind
 		device.TransportSelector = sel.Selector
 		device.Port = resolver.EffectivePort(used, sel.Kind, cfg)
-		t := executionplan.ExecutionTarget{TargetID: d.ID, InputTarget: d.SuppliedName(), Device: device, AddressPlan: addresses[i], ExecutionEndpoint: executionplan.EndpointLocal}
+		channel, err := targetChannel(platform.Resolve(used.Platform, tables), d.CanonicalName, sel)
+		if err != nil {
+			return executionplan.ExecutionPlan{}, err
+		}
+		t := executionplan.ExecutionTarget{TargetID: d.ID, InputTarget: d.SuppliedName(), Device: device, AddressPlan: addresses[i], Channel: channel, ExecutionEndpoint: executionplan.EndpointLocal}
 		if n := platforms[i].Notice; n != nil {
 			// The notice rides the target to the daemon for the device's
 			// first record; absent when there is none.
@@ -214,6 +219,25 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		return executionplan.ExecutionPlan{}, err
 	}
 	return plan, nil
+}
+
+// targetChannel is a target's channel, its platform's, resolved once here
+// and carried in the plan. A platform that says exec over telnet is refused,
+// naming both: telnet has no exec channel. Until the exec channel is built,
+// an exec target is refused on every transport (channel_exec_unavailable),
+// so no target reaches a daemon that would run it on a shell.
+func targetChannel(def platform.Definition, name string, sel transportselect.Selection) (string, error) {
+	channel := def.Channel
+	if channel == "" {
+		channel = platform.ChannelShell
+	}
+	if channel != platform.ChannelExec {
+		return channel, nil
+	}
+	if sel.Kind == transportselect.KindTelnet {
+		return "", errorcodes.Errorf("channel_exec_over_telnet", "%s: platform %s asks for an exec channel and the transport is telnet, which has none; choose an SSH transport or a platform on the shell channel", name, def.Name)
+	}
+	return "", errorcodes.Errorf("channel_exec_unavailable", "%s: platform %s asks for an exec channel, which the %s transport does not have yet; use a platform on the shell channel (linux_shell for a server)", name, def.Name, sel.Implementation)
 }
 
 // copyExpectations copies the per-command declaration lists so the plan owns

@@ -103,8 +103,13 @@ type ExecutionTarget struct {
 	AddressPlan         AddressPlan      `json:"address_plan"`
 	CredentialBindingID string           `json:"credential_binding_id,omitempty"`
 	SessionInitProfile  string           `json:"session_init_profile,omitempty"`
-	ExecutionEndpoint   string           `json:"execution_endpoint"`
-	SourceDigest        Digest           `json:"source_digest"`
+	// Channel is what the session asks of the SSH session channel for this
+	// target, resolved from its platform at planning (schema 11): ChannelShell
+	// or ChannelExec. The daemon evaluates no platform: it reads this word,
+	// and refuses exec over telnet, which has no exec.
+	Channel           string `json:"channel"`
+	ExecutionEndpoint string `json:"execution_endpoint"`
+	SourceDigest      Digest `json:"source_digest"`
 	// Notices are the planning notices the daemon writes on the device's
 	// first record: present only when nonempty, so a plan without one is
 	// unchanged; part of the target's source digest, since the client
@@ -112,6 +117,15 @@ type ExecutionTarget struct {
 	// did for blind and expectations.
 	Notices []TargetNotice `json:"notices,omitempty"`
 }
+
+// The words of a target's channel, the platform package's, repeated here
+// since this package imports nothing of karvi's platforms; and the
+// transport kind that has no exec.
+const (
+	ChannelShell    = "shell"
+	ChannelExec     = "exec"
+	TransportTelnet = "telnet"
+)
 
 // TargetNotice is a planning notice about one target that the plan carries
 // to the daemon for the device's first record: the code, the operator
@@ -216,6 +230,18 @@ func (t *ExecutionTarget) Validate(stage Stage) error {
 				return invalid(field+".details", "key %q names sensitive content", k)
 			}
 		}
+	}
+	switch t.Channel {
+	case ChannelShell:
+	case ChannelExec:
+		if t.Device.Transport == TransportTelnet {
+			return invalid("channel", "exec over telnet: telnet has no exec channel")
+		}
+		// Until the exec channel is built no session runs one, so a plan
+		// that asks for it is refused here as the client refuses it.
+		return invalid("channel", "exec channels are not built on the %s transport", t.Device.Transport)
+	default:
+		return invalid("channel", "%q is neither %q nor %q", t.Channel, ChannelShell, ChannelExec)
 	}
 	if t.ExecutionEndpoint != EndpointLocal {
 		return invalid("execution_endpoint", "%q is not supported; v1 accepts %q", t.ExecutionEndpoint, EndpointLocal)

@@ -3425,3 +3425,29 @@ unfinished line, where prompts and declarations are matched, keeps its written
 spaces in both.
 
 **Not taken.** One rule for both; recognising the erase idiom.
+
+**During the build: the channel before exec.** The platform's `channel`
+arrives with the plan's schema 11, and the exec channel is built later, on
+`scrapligo-v1` and then on `system`. Executed, a dry run over this lab's
+inventory, with an alias `appliance` (`driver = "linux"`, `channel =
+"exec"`):
+
+```text
+- name:srv1: planned
+  intended: ping=disabled transport=native port=22 platform=linux channel=shell
+- name:bast1: planned
+  intended: ping=disabled transport=native port=22 platform=linux_shell channel=shell
+channel_exec_unavailable: client planning: app1: platform appliance asks for an exec channel, which the scrapligo-v1 transport does not have yet; …
+channel_exec_over_telnet: client planning: app1: platform appliance asks for an exec channel and the transport is telnet, which has none; …
+```
+
+**Agreed.** Built-in `linux` stays `shell` until exec is built on both
+transports; until then a target whose platform says `exec` is refused at
+planning with `channel_exec_unavailable`, and the daemon's plan check refuses
+it too, so no exec target runs on a shell. The refusal is lifted per
+transport as each is built, and the code goes with the last; never released,
+it is deleted, not retired.
+
+**Not taken.** `linux` exec from the start (every `linux` target without a
+way to run until exec is built); an exec target falling back to the shell (a
+record that looks like exec's without an exit status).

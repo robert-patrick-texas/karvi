@@ -82,6 +82,8 @@ Active failure causes.
 | `capacity_ledger_malformed` | dependency | 8 | no | A capacity ledger file is not valid JSON. |
 | `capacity_root_blank` | internal | 1 | no | The capacity manager was given a blank root directory. |
 | `capacity_root_unusable` | permission | 9 | no | The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, or a directory or lock file closed to the operator. The private fallback is taken with a warning naming the cause. |
+| `channel_exec_over_telnet` | dependency | 8 | no | A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both. |
+| `channel_exec_unavailable` | dependency | 8 | no | A target's platform asks for an exec channel, which its transport does not have yet; refused at planning. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
 | `cli_command_text_missing` | usage | 4 | no | `command` or `run` has neither freeform text nor an explicit command. |
 | `cli_command_text_mixed` | usage | 4 | no | Freeform text is combined with `--cmd` or `--cf`. |
@@ -194,7 +196,7 @@ Active failure causes.
 | `config_output_max_job_below_max_command` | config | 2 | no | `output.max-job-bytes` is smaller than `output.max-command-bytes`. |
 | `config_path_uninspectable` | config | 2 | no | A path in the configuration graph cannot be resolved or inspected. |
 | `config_ping_methods_disabled` | config | 2 | no | `network.ping-targets` is true while `network.ping-socket` and `network.ping-system` are both false. |
-| `config_platform_control_master_not_boolean` | config | 2 | no | `platform.<name>.control-master` is not a boolean. |
+| `config_platform_channel_invalid` | config | 2 | no | `platform.<name>.channel` is neither `shell` nor `exec`. |
 | `config_platform_crun_filter_invalid` | config | 2 | no | A `platform.<name>.crun-filters` entry is not a regular expression Go compiles; the message names the table, the entry, and the compiler's reason. The configuration is refused before any device is contacted. |
 | `config_platform_driver_unknown` | config | 2 | no | A `[platform.NAME]` table for a name that is not a built-in has no `driver`, or its `driver` is not a built-in platform (an alias of an alias included); or a built-in's table has a `driver` other than its own name. |
 | `config_platform_name_invalid` | config | 2 | no | A `[platform.NAME]` table's name is blank, holds a glob character (`*`, `?`, `[`, `\`), begins with `!`, or duplicates another table's name under a different spelling; every platform name is also a literal selector. |
@@ -709,6 +711,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `config_macro_error` | v0.10.0 | `config_macro_undefined`, `config_macro_cycle`, `config_macro_scalar_type` | Any macro expansion failure. |
 | `config_output_max_command_below_spool_threshold` | v0.11.0 to v0.17.0 | `config_key_removed` | `output.max-command-bytes` was smaller than `output.memory-spool-threshold-bytes`; the threshold, read by this rule alone, was removed at v0.14.0. |
 | `config_ping_timeout_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `network.ping-timeout` is zero or above ten seconds. Replaced at v0.14.0 by the one range rule over the registry rows. |
+| `config_platform_control_master_not_boolean` | v0.27.0 | `config_unknown_key` | `platform.<name>.control-master` was not a boolean; the field, read by nothing, is removed, and a table that sets it is refused as an unknown key. |
 | `config_semantic_error` | v0.10.0 | `config_audit_disabled`, `config_dispatch_wave_max_below_start`, `config_transport_selector_invalid` | Any configuration validation rule; replaced by one code per rule (the `config_*` validation codes above). |
 | `config_sessions_idle_timeout_exceeds_control_persist` | v0.11.0 to v0.17.0 | `config_key_removed` | `sessions.idle-timeout` exceeded a nonzero `ssh.control-persist`; both keys were read by this rule alone and were removed at v0.14.0. |
 | `config_syntax` | v0.10.0 (catalog name) | `config_toml_syntax` | Configuration syntax error. |

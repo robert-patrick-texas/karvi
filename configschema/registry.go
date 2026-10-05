@@ -12,8 +12,10 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
+// RegistrySchemaVersion moves once per release whose keys or table fields
+// change: 25 takes the platform table's channel in place of control-master.
 const (
-	RegistrySchemaVersion = 24
+	RegistrySchemaVersion = 25
 	ConfigSchemaVersion   = 6
 )
 
@@ -118,8 +120,9 @@ var dynamicTables = []DynamicTable{
 	// paging-commands joined the fields at registry 11, no bump: a
 	// dynamic-table field, not a builtin-layer key. crun-commands joined at
 	// registry 14: the
-	// platform's collection list, sent by a crun that names no command.
-	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "default-transport": Enum, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "legacy-class": Enum, "session-cap": Integer, "control-master": Boolean, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray}, LockEligible: true},
+	// platform's collection list, sent by a crun that names no command;
+	// registry 25: channel in place of control-master.
+	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "default-transport": Enum, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "legacy-class": Enum, "session-cap": Integer, "channel": Enum, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray}, LockEligible: true},
 	{Pattern: "inventory-source.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "credential-policy-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "session-init-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
@@ -188,7 +191,7 @@ func IsKnownLeaf(path string) bool {
 	case "session-init":
 		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "commands", "on-error", "command-timeout")
 	case "platform":
-		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "driver", "default-transport", "ssh-port", "telnet-port", "privileged-level", "requires-enable", "legacy-class", "session-cap", "control-master", "paging-commands", "crun-commands", "crun-filters")
+		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "driver", "default-transport", "ssh-port", "telnet-port", "privileged-level", "requires-enable", "legacy-class", "session-cap", "channel", "paging-commands", "crun-commands", "crun-filters")
 	case "inventory-source":
 		return len(parts) >= 3 && isIndex(parts[1]) && inventoryField(strings.Join(parts[2:], "."))
 	case "credential-policy-map":

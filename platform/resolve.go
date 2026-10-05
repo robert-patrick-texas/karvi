@@ -69,7 +69,8 @@ func tableFor(name string, tables map[string]map[string]any) (map[string]any, bo
 // Resolve is the definition for a platform name under the configured
 // [platform.NAME] tables: a built-in name is that built-in; a table whose driver names
 // a built-in is an alias, that built-in's whole definition under the table's
-// name; any other name is generic's definition under the name, a
+// name, its base the built-in's base (an alias of linux_shell is based on
+// linux); any other name is generic's definition under the name, a
 // fall-through that no session reaches: the
 // planner resolves every platform to a known name, and the executor and
 // login refuse an unknown one through Lookup, so the
@@ -93,13 +94,11 @@ func Resolve(name string, tables map[string]map[string]any) Definition {
 	alias := false
 	switch {
 	case ok:
-		def.Base = def.Name
 	default:
 		driver, _ := table["driver"].(string)
 		if base, isBuiltin := Builtin(Normalize(driver)); isBuiltin {
 			def = base
 			alias = true
-			def.Base = base.Name
 			def.Driver = base.Name
 		} else {
 			def, _ = Builtin("generic")
@@ -134,8 +133,8 @@ func Resolve(name string, tables map[string]map[string]any) Definition {
 	if v, ok := asInt(table["session-cap"]); ok {
 		def.SessionCap = v
 	}
-	if v, ok := table["control-master"].(bool); ok {
-		def.ControlMaster = v
+	if s, ok := table["channel"].(string); ok && s != "" {
+		def.Channel = s
 	}
 	if s, ok := table["legacy-class"].(string); ok {
 		def.LegacyClass = s

@@ -59,8 +59,8 @@ configuration, askpass, the algorithm lists it writes as `HostKeyAlgorithms`,
 (`HostKeyAlias`), and the classification of OpenSSH's own diagnostics at
 open. `command` and `run` open one fresh interactive `ssh -tt` process per
 device with ControlMaster, ControlPath, and ControlPersist off on the
-command line and in the managed configuration (the platform table's
-`control-master` and the `ssh.control-*` keys are inert), and hand that
+command line and in the managed configuration (the `ssh.control-*` keys are
+inert), and hand that
 process to the session as its stream; prompts, privilege, paging,
 session-init, failure detection, blind sends, output normalisation, and
 the keepalive expiry are the session's. Interactive login is system-only:
@@ -78,11 +78,11 @@ lists, the connect and handshake timeouts, and the keepalives, exposed as a
 subprocess runs (no `ssh`, `ssh-keyscan`, or askpass). The provider in
 `internal/transport/native` opens the session on that stream, so both transports
 give the same records for the same commands. The provider admits every built-in
-platform: `generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
-`juniper_junos`, `arista_eos`, and `linux`; an alias table resolves to its
-built-in, so `native_platform_not_qualified` is unreachable on `scrapligo-v1`.
-[`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md) holds the build composition and
-the import boundary.
+platform by its base: `generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
+`juniper_junos`, `arista_eos`, and `linux` (`linux_shell`'s base); an alias
+table resolves to its built-in's base, so `native_platform_not_qualified` is
+unreachable on `scrapligo-v1`. [`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)
+holds the build composition and the import boundary.
 
 ## Build identity
 

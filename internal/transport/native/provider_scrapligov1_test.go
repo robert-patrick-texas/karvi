@@ -156,7 +156,6 @@ func TestProviderAlgorithmsAndAdmission(t *testing.T) {
 	}
 
 	for _, def := range platform.Builtins() {
-		def.Base = def.Name
 		if err := Admits("scrapligo-v1", def); err != nil {
 			t.Fatalf("%s: %v", def.Name, err)
 		}
