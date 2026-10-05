@@ -412,6 +412,9 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if grant.EnablePassword.IsSet() {
 		openReq.EnablePassword = grant.EnablePassword.WithBytes
 	}
+	for _, k := range grant.Keys {
+		openReq.Keys = append(openReq.Keys, k.Path)
+	}
 	if e.opts.InFlight != nil {
 		openReq.InFlightBytes = e.opts.InFlight.Counter(d.CanonicalName)
 	}

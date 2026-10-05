@@ -36,7 +36,12 @@ type DialRequest struct {
 	// Password delivers the password to the callback at authentication
 	// time; nil when the credential has none.
 	Password func(func([]byte) error) error
-	Policy   hostkey.Policy
+	// Keys are the private key files offered first, in order, by path:
+	// each is read at authentication, and one that cannot be read or
+	// parsed then is passed over. With keys and no Password, no password
+	// method is offered.
+	Keys   []string
+	Policy hostkey.Policy
 	// ConnectTimeout bounds the TCP dial; HandshakeTimeout the SSH
 	// handshake, authentication, and the PTY and shell requests.
 	ConnectTimeout, HandshakeTimeout time.Duration
@@ -166,9 +171,19 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 		}
 	}()
 
+	// The keys first, in the credential's order; the password methods
+	// beside a password, or alone for a credential without keys (whose
+	// missing password the callback reports).
+	var auth []ssh.AuthMethod
+	if len(req.Keys) > 0 {
+		auth = append(auth, ssh.PublicKeysCallback(c.signers))
+	}
+	if req.Password != nil || len(req.Keys) == 0 {
+		auth = append(auth, ssh.PasswordCallback(c.password), ssh.KeyboardInteractive(c.keyboardInteractive))
+	}
 	config := &ssh.ClientConfig{
 		User:              req.Username,
-		Auth:              []ssh.AuthMethod{ssh.PasswordCallback(c.password), ssh.KeyboardInteractive(c.keyboardInteractive)},
+		Auth:              auth,
 		HostKeyAlgorithms: offered[sshalgorithms.HostKey],
 		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
 			return hostkey.Verify(req.Policy, req.Host, a.Port, key.Type(), key.Marshal(), req.Warn)
@@ -279,6 +294,29 @@ func (c *connection) keepalive(client *ssh.Client) {
 			}()
 		}
 	}
+}
+
+// signers reads the credential's key files as they are at authentication,
+// compared with nothing: a file that can no longer be read or parsed (moved,
+// or given a passphrase since planning) is passed over with a debug line,
+// and the server's refusal of the rest is the authentication failure.
+func (c *connection) signers() ([]ssh.Signer, error) {
+	out := make([]ssh.Signer, 0, len(c.req.Keys))
+	for _, path := range c.req.Keys {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			c.debugf("native SSH connection key passed over path=%q: %v", path, err)
+			continue
+		}
+		signer, err := ssh.ParsePrivateKey(data)
+		clear(data)
+		if err != nil {
+			c.debugf("native SSH connection key passed over path=%q: %v", path, err)
+			continue
+		}
+		out = append(out, signer)
+	}
+	return out, nil
 }
 
 func (c *connection) password() (string, error) {

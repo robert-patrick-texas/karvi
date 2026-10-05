@@ -212,9 +212,13 @@ type OpenRequest struct {
 	Username       string
 	Password       func(func([]byte) error) error
 	EnablePassword func(func([]byte) error) error
-	Definition     Definition
-	Timeout        time.Duration
-	Metadata       map[string]string
+	// Keys are the private key files the credential offers, in order, by
+	// path: the connecting process reads each at the connection. A request
+	// with keys and no Password offers no password method.
+	Keys       []string
+	Definition Definition
+	Timeout    time.Duration
+	Metadata   map[string]string
 	// InFlightBytes, when given, is where the session publishes the settled
 	// bytes of the command it is running now, memory and spool, for the
 	// scoreboard's target row: stored as bytes

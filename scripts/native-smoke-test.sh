@@ -123,7 +123,8 @@ run_karvi() {  # tag, activity (command|run|daemon), transport, enable, karvi ar
 # the identity), KEYSCAN (the system transport's insecure comparison connects
 # too), WARNING (text each combination's stderr must hold), COMMAND_TIMEOUT
 # and EXECUTION (the [execution] table's command-timeout and further lines),
-# SSH (further [ssh] lines),
+# SSH (further [ssh] lines), KEYLOGIN (the fingerprint of the one key the
+# fake must have logged in by),
 # SHELL_OPENED (a shell that opens and receives no line). ONLY=S7 runs the
 # cases whose label begins so.
 parity_case() {
@@ -154,6 +155,7 @@ parity_case() {
       [ "${counts%% *}" = connections=1 ] || fail "$label $tag: $counts, expected one connection"
     fi
     [ -z "${WARNING:-}" ] || grep -q "$WARNING" "$TMP/err.$tag" || fail "$label $tag: no warning holding '$WARNING'"
+    [ -z "${KEYLOGIN:-}" ] || [ "$(sed -n 's/^key: //p' "$TMP/fake.err")" = "$KEYLOGIN" ] || fail "$label $tag: the fake's key logins: $(sed -n 's/^key: //p' "$TMP/fake.err" | tr '\n' ' '), expected $KEYLOGIN"
     streams="$streams $TMP/out.$tag"
   done
   # shellcheck disable=SC2086
@@ -240,6 +242,29 @@ parity_case 'S13 a rejected password' accept-new cisco_iosxe "$BUILTIN" en '' \
   'authentication_error:authentication_failed' 108 '' \
   -- --cmd 'show clock'
 unset PASS
+
+# S13b-S13c: the operator's keys. The platform's fallback is the keys
+# alone, ssh.identities names a key the fake holds after one it does not,
+# and the fake's user is the operator's login name, the credential's; the
+# shell starts privileged, a key credential holding no enable secret.
+ssh-keygen -q -t ed25519 -N '' -f "$TMP/opkey" -C parity >/dev/null
+ssh-keygen -q -t ed25519 -N '' -f "$TMP/stranger" -C parity >/dev/null
+OPKEY=$(ssh-keygen -lf "$TMP/opkey.pub" | cut -d' ' -f2)
+KEYS="[platform.cisco_iosxe]
+ssh-port = PORT
+fallback = [\"keys\"]"
+OPERATOR=$(id -un)
+SSH="identities = [\"$TMP/stranger\", \"$TMP/opkey\"]"
+KEYLOGIN=$OPKEY
+parity_case 'S13b a login by the operator'"'"'s key, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
+  'succeeded' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
+  -- --cmd 'show clock'
+SSH="identities = [\"$TMP/stranger\"]"
+KEYLOGIN=
+parity_case 'S13c a key the device refuses, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
+  'authentication_error:authentication_failed' 108 '' \
+  -- --cmd 'show clock'
+unset SSH KEYLOGIN
 
 # S14: host keys. Another device's key for the changed and mismatch cases.
 ssh-keygen -q -t ed25519 -N '' -f "$TMP/other" >/dev/null

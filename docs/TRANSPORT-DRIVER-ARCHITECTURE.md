@@ -53,18 +53,18 @@ fallback occurs after a selected adapter is unavailable.
 ## System OpenSSH
 
 The system adapter (`internal/transport/systemssh`) receives a resolved
-executable path and karvi configuration. It owns the managed SSH
-configuration, askpass, the algorithm lists it writes as `HostKeyAlgorithms`,
-`KexAlgorithms`, `Ciphers`, and `MACs`, the host-key identity
-(`HostKeyAlias`), and the classification of OpenSSH's own diagnostics at
-open. `command` and `run` open one fresh interactive `ssh -tt` process per
-device with ControlMaster, ControlPath, and ControlPersist off on the
-command line and in the managed configuration (the `ssh.control-*` keys are
-inert), and hand that
-process to the session as its stream; prompts, privilege, paging,
-session-init, failure detection, blind sends, output normalisation, and
-the keepalive expiry are the session's. Interactive login is system-only:
-it hands the terminal to OpenSSH.
+executable path and karvi configuration. It owns the managed SSH configuration,
+askpass, the credential's keys (`IdentitiesOnly yes`, `IdentityAgent none`, an
+`IdentityFile` per key, and the password methods off for a credential without a
+password), the algorithm lists it writes as `HostKeyAlgorithms`,
+`KexAlgorithms`, `Ciphers`, and `MACs`, the host-key identity (`HostKeyAlias`),
+and the classification of OpenSSH's own diagnostics at open. `command` and `run`
+open one fresh interactive `ssh -tt` process per device with ControlMaster,
+ControlPath, and ControlPersist off on the command line and in the managed
+configuration (the `ssh.control-*` keys are inert), and hand that process to the
+session as its stream; prompts, privilege, paging, session-init, failure
+detection, blind sends, output normalisation, and the keepalive expiry are the
+session's. Interactive login is system-only: it hands the terminal to OpenSSH.
 
 ## ScrapliGo v1
 
@@ -72,17 +72,19 @@ The provider file in `internal/transport/native` registers implementation ID
 `scrapligo-v1` at init in every build (the `scrapligo_v1` build tag that once
 made it optional is gone). `internal/adapters/scrapligov1` is karvi's
 connection: an x/crypto SSH connection through scrapligo's transport wrapper,
-with the unified host-key policy as the handshake's callback, karvi's algorithm
-lists, the connect and handshake timeouts, and the keepalives, exposed as a
-`devsession.Stream`. scrapligo's channel and network driver are not used, and no
-subprocess runs (no `ssh`, `ssh-keyscan`, or askpass). The provider in
-`internal/transport/native` opens the session on that stream, so both transports
-give the same records for the same commands. The provider admits every built-in
-platform by its base: `generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
-`juniper_junos`, `arista_eos`, and `linux` (`linux_shell`'s base); an alias
-table resolves to its built-in's base, so `native_platform_not_qualified` is
-unreachable on `scrapligo-v1`. [`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)
-holds the build composition and the import boundary.
+with the unified host-key policy as the handshake's callback, the credential's
+keys offered as signers before the password methods (which a credential with
+keys and no password does not offer), karvi's algorithm lists, the connect and
+handshake timeouts, and the keepalives, exposed as a `devsession.Stream`.
+scrapligo's channel and network driver are not used, and no subprocess runs (no
+`ssh`, `ssh-keyscan`, or askpass). The provider in `internal/transport/native`
+opens the session on that stream, so both transports give the same records for
+the same commands. The provider admits every built-in platform by its base:
+`generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`, `juniper_junos`,
+`arista_eos`, and `linux` (`linux_shell`'s base); an alias table resolves to its
+built-in's base, so `native_platform_not_qualified` is unreachable on
+`scrapligo-v1`. [`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md) holds the build
+composition and the import boundary.
 
 ## Build identity
 

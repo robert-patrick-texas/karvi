@@ -37,6 +37,7 @@ func main() {
 	startPrivileged := flag.Bool("start-privileged", false, "start the shell at the privilege-exec prompt (a device that delivers privilege 15 at login)")
 	unsaved := flag.Bool("unsaved", false, "start each shell with the running configuration modified: 'reload' asks to save first, 'copy running-config startup-config' clears it")
 	port := flag.Int("port", 0, "127.0.0.1 port to listen on; 0 takes a free one (a restart that is to be the same device, port included)")
+	authorizedKeys := flag.String("authorized-keys", "", "authorized_keys file whose keys log in as -user beside the password")
 	flag.Parse()
 	opts := fakedevice.Options{Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved}
 	split := func(v string) []string {
@@ -48,6 +49,14 @@ func main() {
 	opts.KeyExchanges, opts.Ciphers, opts.MACs = split(*kex), split(*ciphers), split(*macs)
 	if *extra != "" {
 		opts.ExtraHostKeys = strings.Split(*extra, ",")
+	}
+	if *authorizedKeys != "" {
+		data, err := os.ReadFile(*authorizedKeys)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		opts.AuthorizedKeys = data
 	}
 	if *hostKeyFile != "" {
 		seed, err := loadSeed(*hostKeyFile)
@@ -65,7 +74,7 @@ func main() {
 	fmt.Println(srv.Port())
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	seenLines, seenPTYs := 0, 0
+	seenLines, seenPTYs, seenKeys := 0, 0, 0
 	report := func() {
 		lines := srv.Lines()
 		for _, l := range lines[seenLines:] {
@@ -77,6 +86,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "pty: term=%q columns=%d rows=%d mode_bytes=%d\n", p.Term, p.Columns, p.Rows, p.ModeBytes)
 		}
 		seenPTYs = len(ptys)
+		keys := srv.KeyLogins()
+		for _, k := range keys[seenKeys:] {
+			fmt.Fprintf(os.Stderr, "key: %s\n", k)
+		}
+		seenKeys = len(keys)
 	}
 	for {
 		select {

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/adapters/sshkey/sshkeytest"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
@@ -166,5 +167,55 @@ func TestProviderAlgorithmsAndAdmission(t *testing.T) {
 	}
 	if err := Admits("not-compiled-in", platform.Definition{Base: "generic"}); err != nil {
 		t.Fatalf("unknown implementation: %v", err)
+	}
+}
+
+// TestProviderOffersKeys: the credential's keys are offered first, in
+// order, read at authentication: a file that no longer parses is passed
+// over, a key the device does not hold is refused and the next tried; with
+// keys and no password no password method is offered, so a refused key is
+// authentication_failed; beside a password the password still logs in.
+func TestProviderOffersKeys(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name string, data []byte) string {
+		t.Helper()
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	held, heldFP := sshkeytest.Ed25519(t, "")
+	other, _ := sshkeytest.Ed25519(t, "")
+	locked, _ := sshkeytest.Ed25519(t, "lab passphrase")
+	heldPath, otherPath, lockedPath := write("held", held), write("other", other), write("locked", locked)
+	srv := startFake(t, fakedevice.Options{Enable: "en", AuthorizedKeys: sshkeytest.Authorized(t, held)})
+	f, _ := factory(t, "accept-new")
+	keyOnly := func(keys ...string) platform.OpenRequest {
+		req := request(srv, "cisco_iosxe", "en")
+		req.Password, req.Keys = nil, keys
+		return req
+	}
+	d := prepared(t, f, keyOnly(lockedPath, otherPath, heldPath))
+	if r := d.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: 5 * time.Second}); r.Err != nil {
+		t.Fatalf("show clock: %+v", r)
+	}
+	d.Close()
+	if got := srv.KeyLogins(); len(got) != 1 || got[0] != heldFP {
+		t.Fatalf("key logins %v, want %s", got, heldFP)
+	}
+	refused, err := f.Open(context.Background(), keyOnly(otherPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer refused.Close()
+	if err := refused.Prepare(context.Background()); errorcodes.Of(err) != "authentication_failed" {
+		t.Fatalf("a refused key and no password: %v", err)
+	}
+	both := request(srv, "cisco_iosxe", "en")
+	both.Keys = []string{otherPath}
+	prepared(t, f, both).Close()
+	if got := srv.KeyLogins(); len(got) != 1 {
+		t.Fatalf("the password login took a key: %v", got)
 	}
 }

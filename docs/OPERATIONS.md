@@ -361,6 +361,19 @@ With no key left the device fails with `credential_operator_keys_missing`
 credential holds no key, so it needs a password (`credential_password_missing`
 otherwise).
 
+At the connection the process that connects (the daemon for `run`, the client
+for `command` and `login`) reads the key files as they are then, compared with
+nothing, and offers them in order, each spending one of the server's
+authentication attempts (`MaxAuthTries`, 6 by default in OpenSSH). The system
+transport writes `IdentitiesOnly yes`, `IdentityAgent none`, and an
+`IdentityFile` per key, and the native transport offers the keys as signers;
+neither offers a password method for a credential with keys and no password,
+so a server that refuses every key is `authentication_failed` (exit 108) with
+no prompt. Under `ssh.include-user-config` (the default) the operator's
+`~/.ssh/config` is still included after karvi's settings, and OpenSSH adds its
+`IdentityFile` lines after karvi's keys even under `IdentitiesOnly`: the system
+transport may offer such a key once karvi's are refused.
+
 ## The credential prompts
 
 When the platform's fallback reaches `prompt` (after `netvars` on the

@@ -58,6 +58,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 	stream, err := scrapligov1.Dial(ctx, scrapligov1.DialRequest{
 		Host: host, Address: d.req.Address, Port: int(d.req.Port), Username: d.req.Username,
 		Password:         d.req.Password,
+		Keys:             d.req.Keys,
 		Policy:           d.policy,
 		ConnectTimeout:   durationOr(d.f.Config.Duration("native-ssh.connect-timeout"), 10*time.Second),
 		HandshakeTimeout: durationOr(d.f.Config.Duration("native-ssh.handshake-timeout"), 10*time.Second),

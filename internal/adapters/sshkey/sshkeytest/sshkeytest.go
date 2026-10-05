@@ -62,3 +62,13 @@ func SK(t testing.TB) []byte {
 	}{"none", "none", "", 1, string(pubBlob), string(priv)})...)
 	return pem.EncodeToMemory(&pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: body})
 }
+
+// Authorized is a key file's public key as an authorized_keys line.
+func Authorized(t testing.TB, file []byte) []byte {
+	t.Helper()
+	signer, err := ssh.ParsePrivateKey(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ssh.MarshalAuthorizedKey(signer.PublicKey())
+}

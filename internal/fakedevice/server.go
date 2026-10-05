@@ -11,6 +11,7 @@ package fakedevice
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
@@ -69,6 +70,9 @@ type Options struct {
 	// KeyExchanges, Ciphers, and MACs limit what the server offers, as a
 	// device with only those algorithms; empty keeps x/crypto's defaults.
 	KeyExchanges, Ciphers, MACs []string
+	// AuthorizedKeys, in authorized_keys form, are the public keys that log
+	// in as Username beside the password; empty accepts no key.
+	AuthorizedKeys []byte
 }
 
 // PTYRequest is one pty-req a client sent.
@@ -86,6 +90,8 @@ type Server struct {
 	config   *ssh.ServerConfig
 
 	mu          sync.Mutex
+	authorized  map[string]bool // fingerprints of the authorized keys
+	keyLogins   []string        // fingerprints of the keys that logged in
 	connections int
 	sessions    int
 	lines       []string
@@ -111,8 +117,28 @@ func Start(opts Options) (*Server, error) {
 	if opts.BigLines == 0 {
 		opts.BigLines = 1000
 	}
-	s := &Server{opts: opts}
+	s := &Server{opts: opts, authorized: map[string]bool{}}
+	for rest := opts.AuthorizedKeys; len(bytes.TrimSpace(rest)) > 0; {
+		key, _, _, next, err := ssh.ParseAuthorizedKey(rest)
+		if err != nil {
+			return nil, fmt.Errorf("authorized keys: %w", err)
+		}
+		s.authorized[ssh.FingerprintSHA256(key)] = true
+		rest = next
+	}
 	s.config = &ssh.ServerConfig{
+		// x/crypto asks once per key offered and caches the answer for the
+		// signature that follows; the key that logged in is the connection's
+		// permission, recorded once the handshake ends.
+		PublicKeyCallback: func(meta ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+			fingerprint := ssh.FingerprintSHA256(key)
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			if meta.User() == opts.Username && s.authorized[fingerprint] {
+				return &ssh.Permissions{Extensions: map[string]string{"key": fingerprint}}, nil
+			}
+			return nil, fmt.Errorf("key %s refused for %q", fingerprint, meta.User())
+		},
 		PasswordCallback: func(meta ssh.ConnMetadata, password []byte) (*ssh.Permissions, error) {
 			if meta.User() == opts.Username && string(password) == opts.Password {
 				return nil, nil
@@ -252,6 +278,13 @@ func (s *Server) Lines() []string {
 	return append([]string(nil), s.lines...)
 }
 
+// KeyLogins returns the fingerprint of each key that logged in, in order.
+func (s *Server) KeyLogins() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.keyLogins...)
+}
+
 // PTYRequests returns every pty-req received, in order.
 func (s *Server) PTYRequests() []PTYRequest {
 	s.mu.Lock()
@@ -286,6 +319,11 @@ func (s *Server) handleConn(conn net.Conn) {
 		return // a key scan or a failed authentication
 	}
 	defer serverConn.Close()
+	if serverConn.Permissions != nil && serverConn.Permissions.Extensions["key"] != "" {
+		s.mu.Lock()
+		s.keyLogins = append(s.keyLogins, serverConn.Permissions.Extensions["key"])
+		s.mu.Unlock()
+	}
 	go func() {
 		for req := range reqs {
 			if req.Type == "keepalive@openssh.com" {

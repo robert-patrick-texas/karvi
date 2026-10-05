@@ -52,6 +52,11 @@ type Factory struct {
 	// offered are the lists written into the generated configuration, the
 	// host-key list after the trust store's filter.
 	offered sshalgorithms.Lists
+	// identities are the credential's key files, offered in order; with
+	// passwordless set the credential has keys and no password, and the
+	// password methods are off.
+	identities   []string
+	passwordless bool
 }
 type Driver struct {
 	f                                Factory
@@ -81,6 +86,7 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 		}
 	}
 	f.Binary = binary
+	f.identities, f.passwordless = req.Keys, len(req.Keys) > 0 && req.Password == nil
 	if f.offered, err = f.offeredAlgorithms(binaryCapabilities(f.Config, binary).implements); err != nil {
 		return nil, err
 	}
@@ -286,10 +292,20 @@ func (f Factory) renderConfig() (string, error) {
 		}
 		return "no"
 	}
-	// No key is offered until the credential's keys reach the transport.
-	b.WriteString("  PubkeyAuthentication no\n")
-	fmt.Fprintf(&b, "  PasswordAuthentication %s\n", yesno(f.Config.Bool("ssh.password-authentication")))
-	fmt.Fprintf(&b, "  KbdInteractiveAuthentication %s\n", yesno(f.Config.Bool("ssh.keyboard-interactive-authentication")))
+	// The credential's keys alone, in its order: no agent, no default
+	// identity. The included ~/.ssh/config may still add IdentityFile
+	// lines after these, which OpenSSH offers once these are refused; the
+	// log names whichever key authenticated. A credential without keys
+	// offers none, and one without a password no password method.
+	fmt.Fprintf(&b, "  PubkeyAuthentication %s\n", yesno(len(f.identities) > 0))
+	if len(f.identities) > 0 {
+		b.WriteString("  IdentitiesOnly yes\n  IdentityAgent none\n")
+		for _, path := range f.identities {
+			fmt.Fprintf(&b, "  IdentityFile %s\n", sshQuote(path))
+		}
+	}
+	fmt.Fprintf(&b, "  PasswordAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.password-authentication")))
+	fmt.Fprintf(&b, "  KbdInteractiveAuthentication %s\n", yesno(!f.passwordless && f.Config.Bool("ssh.keyboard-interactive-authentication")))
 	fmt.Fprintf(&b, "  ConnectTimeout %d\n", ceilSeconds(f.Config.Duration("ssh.connect-timeout")))
 	fmt.Fprintf(&b, "  ServerAliveInterval %d\n", ceilSeconds(f.Config.Duration("ssh.server-alive-interval")))
 	fmt.Fprintf(&b, "  ServerAliveCountMax %d\n", f.Config.Int("ssh.server-alive-count-max"))

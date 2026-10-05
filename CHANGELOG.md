@@ -49,21 +49,25 @@
 - **A platform's `fallback`, and the operator's own keys for servers.** What
   follows a credential policy's backends is the platform's `fallback`, an
   ordered list of `netvars` (`NETUSER`, `NETPASS`, `NETENABLE`), `keys`, and
-  `prompt`: the network built-ins and `generic` are `["netvars", "prompt"]`,
-  as before; `linux` and `linux_shell` are `["keys"]`, so the variables an
-  operator exports for routers no longer reach a server (a site that wants
-  them writes `[platform.linux] fallback = ["netvars", "keys"]`). `keys` is
-  the operator's login name and the files of the new `ssh.identities`, by
-  default `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`, judged at
-  planning: a file that is not the operator's own, has group or other
-  access, holds a passphrase, or is hardware-backed is skipped with the
-  notice `operator_key_skipped`, and with none left the device fails with
+  `prompt`: the network built-ins and `generic` are `["netvars", "prompt"]`, as
+  before; `linux` and `linux_shell` are `["keys"]`, so the variables an operator
+  exports for routers no longer reach a server (a site that wants them writes
+  `[platform.linux] fallback = ["netvars", "keys"]`). `keys` is the operator's
+  login name and the files of the new `ssh.identities`, by default
+  `~/.ssh/id_ed25519`, `~/.ssh/id_ecdsa`, `~/.ssh/id_rsa`, judged at planning: a
+  file that is not the operator's own, has group or other access, holds a
+  passphrase, or is hardware-backed is skipped with the notice
+  `operator_key_skipped`, and with none left the device fails with
   `credential_operator_keys_missing` (exit 6). The credential
-  (`builtin-operator-keys`) carries each key's path and fingerprint, never
-  its bytes, in the grant, the credential package (schema 2), and the
-  manifest, and the dry run shows a `key:` line per key. The transports do
-  not offer the keys yet. `ssh.pubkey-authentication` is removed: a
-  backend's credential holds no key and needs a password, so a backend row
+  (`builtin-operator-keys`) carries each key's path and fingerprint, never its
+  bytes, in the grant, the credential package (schema 2), and the manifest, and
+  the dry run shows a `key:` line per key. Both transports offer the keys in
+  order, read at the connection: the system transport with `IdentitiesOnly yes`,
+  `IdentityAgent none`, and an `IdentityFile` per key, `scrapligo-v1` as
+  signers, so `run`'s default transport now reaches a key-only server; a
+  credential with keys and no password offers no password method. The fake
+  device takes `-authorized-keys PATH`. `ssh.pubkey-authentication` is removed:
+  a backend's credential holds no key and needs a password, so a backend row
   without one is `credential_password_missing` where that setting had let it
   pass; `config_ssh_auth_mechanisms_disabled` is retired.
 - **The shell's output and prompts are the text the terminal showed.** In

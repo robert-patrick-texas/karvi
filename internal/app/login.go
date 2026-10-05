@@ -225,7 +225,15 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	}
 	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Warn: func(message string) { warning(streams.Stderr, message) }, Debug: debug, Algorithms: algorithms.Lists}
 	debug(fmt.Sprintf("login transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, resolution.SelectedAddress.String(), port, definition.Name))
-	driver, err := factory.Open(ctx, platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, Password: func(fn func([]byte) error) error { return resolved.Credential.Material.WithPassword(fn) }, EnablePassword: func(fn func([]byte) error) error { return resolved.Credential.Material.WithEnablePassword(fn) }, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName, "activity_type": "login", "transport_selector": selection.Selector}})
+	openReq := platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, EnablePassword: func(fn func([]byte) error) error { return resolved.Credential.Material.WithEnablePassword(fn) }, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName, "activity_type": "login", "transport_selector": selection.Selector}}
+	// A credential with keys and no password offers no password method.
+	if resolved.Credential.Material.PasswordSet() || len(resolved.Credential.Keys) == 0 {
+		openReq.Password = func(fn func([]byte) error) error { return resolved.Credential.Material.WithPassword(fn) }
+	}
+	for _, k := range resolved.Credential.Keys {
+		openReq.Keys = append(openReq.Keys, k.Path)
+	}
+	driver, err := factory.Open(ctx, openReq)
 	if err != nil {
 		return failedResult("connection_open_failed", err)
 	}
