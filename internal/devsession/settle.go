@@ -55,6 +55,9 @@ type Spool struct {
 	Threshold int64
 	Activity  string // the activity ID, the name's first field
 	Device    string // the device's canonical name, the name's second field
+	// Stderr names an exec command's stderr spool beside its stdout's
+	// (output.StderrSpoolName).
+	Stderr bool
 }
 
 // ForRequest is the session's spool for one device: the transport fills
@@ -99,6 +102,10 @@ type settled struct {
 	path     string
 	n        int64 // bytes stored, in memory or in the file
 	observed int64 // bytes settled, those past the limit counted and not stored
+	// shared, when set, is the count stored across an exec command's two
+	// sinks, which the limit bounds together; the sinks are written from
+	// one goroutine.
+	shared   *int64
 	hash     hash.Hash
 	utf8     utf8Check
 	failures failureScan
@@ -129,7 +136,11 @@ func (st *settled) write(p []byte) error {
 		return nil
 	}
 	st.observed += int64(len(p))
-	room := st.limit - st.n
+	stored := st.n
+	if st.shared != nil {
+		stored = *st.shared
+	}
+	room := st.limit - stored
 	over := int64(len(p)) > room
 	if over {
 		p = p[:max(room, 0)]
@@ -158,11 +169,14 @@ func (st *settled) store(p []byte) error {
 	if st.file == nil {
 		if st.spool.Dir == "" || st.n+int64(len(p)) <= st.spool.Threshold {
 			st.mem = append(st.mem, p...)
-			st.n += int64(len(p))
-			st.publish()
+			st.stored(len(p))
 			return nil
 		}
-		path := filepath.Join(st.spool.Dir, output.SpoolName(st.spool.Activity, st.spool.Device, st.index, os.Getpid()))
+		name := output.SpoolName(st.spool.Activity, st.spool.Device, st.index, os.Getpid())
+		if st.spool.Stderr {
+			name = output.StderrSpoolName(st.spool.Activity, st.spool.Device, st.index, os.Getpid())
+		}
+		path := filepath.Join(st.spool.Dir, name)
 		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if err != nil {
 			return st.failed(path, err)
@@ -179,15 +193,21 @@ func (st *settled) store(p []byte) error {
 	if _, err := st.file.Write(p); err != nil {
 		return st.failed(st.path, err)
 	}
-	st.n += int64(len(p))
-	st.publish()
+	st.stored(len(p))
 	return nil
 }
 
-// publish stores the settled count for the scoreboard.
-func (st *settled) publish() {
+// stored counts n bytes stored and publishes the settled count for the
+// scoreboard: both of an exec command's streams when they share a count.
+func (st *settled) stored(n int) {
+	st.n += int64(n)
+	count := st.n
+	if st.shared != nil {
+		*st.shared += int64(n)
+		count = *st.shared
+	}
 	if st.progress != nil {
-		st.progress.Store(st.n)
+		st.progress.Store(count)
 	}
 }
 

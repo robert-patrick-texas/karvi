@@ -223,15 +223,19 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 
 // targetChannel is a target's channel, its platform's, resolved once here
 // and carried in the plan. A platform that says exec over telnet is refused,
-// naming both: telnet has no exec channel. Until the exec channel is built,
-// an exec target is refused on every transport (channel_exec_unavailable),
-// so no target reaches a daemon that would run it on a shell.
+// naming both: telnet has no exec channel. Until the exec channel is built
+// on the system transport, an exec target there is refused
+// (channel_exec_unavailable), so no target reaches a daemon that would run
+// it on a shell; scrapligo-v1 (native) has it.
 func targetChannel(def platform.Definition, name string, sel transportselect.Selection) (string, error) {
 	channel := def.Channel
 	if channel == "" {
 		channel = platform.ChannelShell
 	}
 	if channel != platform.ChannelExec {
+		return channel, nil
+	}
+	if sel.Kind == transportselect.KindNative {
 		return channel, nil
 	}
 	if sel.Kind == transportselect.KindTelnet {

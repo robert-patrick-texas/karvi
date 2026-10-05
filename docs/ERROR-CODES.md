@@ -82,6 +82,7 @@ Active failure causes.
 | `capacity_ledger_malformed` | dependency | 8 | no | A capacity ledger file is not valid JSON. |
 | `capacity_root_blank` | internal | 1 | no | The capacity manager was given a blank root directory. |
 | `capacity_root_unusable` | permission | 9 | no | The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, or a directory or lock file closed to the operator. The private fallback is taken with a warning naming the cause. |
+| `channel_exec_declaration_refused` | usage | 4 | no | A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted. |
 | `channel_exec_over_telnet` | dependency | 8 | no | A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both. |
 | `channel_exec_unavailable` | dependency | 8 | no | A target's platform asks for an exec channel, which its transport does not have yet; refused at planning. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
@@ -109,6 +110,9 @@ Active failure causes.
 | `cloginrc_malformed` | credential | 6 | no | The `.cloginrc` file cannot be read or has invalid syntax: continuation lines, unsupported statements, wrong value counts, unfinished escapes, or unterminated braces. |
 | `cloginrc_tcl_substitution_forbidden` | credential | 6 | no | A `.cloginrc` value uses Tcl substitution or command chaining. |
 | `cloginrc_unknown_directive` | credential | 6 | no | The `.cloginrc` file contains a directive karvi does not recognize. |
+| `command_exit_missing` | device | 107 | no | An exec channel closed without an exit status or a signal while its connection stayed up; `exit_status` and `exit_signal` are null. |
+| `command_exit_nonzero` | device | 107 | no | A command on an exec channel exited with a non-zero status; the record carries `exit_status` and the command's stderr, and the connection serves the next command under the device-error policy. |
+| `command_exit_signal` | device | 107 | no | A command on an exec channel was ended by a signal; the record's `exit_signal` names it (`unnamed` where the transport names none). |
 | `command_failed` | device | 107 | no | Unclassified. A command failed and the transport reported no specific code. |
 | `command_session_lost` | connection | 110 | no | The authenticated direct command session ended or became unusable before the next command; no replacement login is attempted. |
 | `command_session_prompt_timeout` | timeout | 110 | yes | The direct command session shows no device prompt before the connect and prompt timeouts expire. |

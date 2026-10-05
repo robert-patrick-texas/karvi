@@ -134,6 +134,10 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 // first prompt within the connect and prompt timeouts, then the session's
 // privilege and paging steps. command and run share it.
 func (d *Driver) Prepare(ctx context.Context) error {
+	if d.req.Channel == platform.ChannelExec {
+		// The planner and the daemon's plan check refuse it first.
+		return errorcodes.Errorf("channel_exec_unavailable", "the system transport does not have the exec channel yet")
+	}
 	stream, broker, err := d.startShell(ctx)
 	if err != nil {
 		return err

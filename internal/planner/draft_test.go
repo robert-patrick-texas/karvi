@@ -392,10 +392,11 @@ func TestDraftPlatformCommands(t *testing.T) {
 }
 
 // A target's channel is its platform's, resolved at planning: shell carried
-// in the plan; exec over telnet refused naming both; exec on an SSH
-// transport refused until the exec channel is built.
+// in the plan; exec over telnet refused naming both; exec on scrapligo-v1
+// carried, and on the system transport refused until it has the channel.
 func TestTargetChannel(t *testing.T) {
 	ssh := transportselect.Selection{Kind: transportselect.KindNative, Implementation: "scrapligo-v1"}
+	system := transportselect.Selection{Kind: transportselect.KindSystem, Implementation: "system"}
 	telnet := transportselect.Selection{Kind: transportselect.KindTelnet, Implementation: "telnet"}
 	tables := map[string]map[string]any{"srv": {"driver": "linux", "channel": "exec"}}
 	if c, err := targetChannel(platform.Resolve("linux_shell", tables), "r1", ssh); err != nil || c != platform.ChannelShell {
@@ -404,8 +405,11 @@ func TestTargetChannel(t *testing.T) {
 	if _, err := targetChannel(platform.Resolve("srv", tables), "srv1", telnet); errorcodes.Of(err) != "channel_exec_over_telnet" || !strings.Contains(err.Error(), "srv1: platform srv") || !strings.Contains(err.Error(), "telnet") {
 		t.Fatalf("exec over telnet: %v", err)
 	}
-	if _, err := targetChannel(platform.Resolve("srv", tables), "srv1", ssh); errorcodes.Of(err) != "channel_exec_unavailable" || !strings.Contains(err.Error(), "scrapligo-v1") {
-		t.Fatalf("exec: %v", err)
+	if c, err := targetChannel(platform.Resolve("srv", tables), "srv1", ssh); err != nil || c != platform.ChannelExec {
+		t.Fatalf("exec on scrapligo-v1: %q %v", c, err)
+	}
+	if _, err := targetChannel(platform.Resolve("srv", tables), "srv1", system); errorcodes.Of(err) != "channel_exec_unavailable" || !strings.Contains(err.Error(), "system") {
+		t.Fatalf("exec on system: %v", err)
 	}
 	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
 	if err != nil {

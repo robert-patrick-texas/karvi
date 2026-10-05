@@ -217,8 +217,12 @@ type OpenRequest struct {
 	// with keys and no Password offers no password method.
 	Keys       []string
 	Definition Definition
-	Timeout    time.Duration
-	Metadata   map[string]string
+	// Channel is the target's channel, the plan's: ChannelShell or
+	// ChannelExec. A transport without the exec channel refuses an exec
+	// request (channel_exec_unavailable).
+	Channel  string
+	Timeout  time.Duration
+	Metadata map[string]string
 	// InFlightBytes, when given, is where the session publishes the settled
 	// bytes of the command it is running now, memory and spool, for the
 	// scoreboard's target row: stored as bytes

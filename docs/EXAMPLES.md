@@ -3610,3 +3610,43 @@ frame carries the record as it is.
 
 **Not taken.** stderr always UTF-8 with bytes replaced; a separate `ran`
 field; the IPC schema moved with the record's.
+
+**During the build: exec on `scrapligo-v1`.** A platform alias `fexec`
+(`driver = "linux"`, `channel = "exec"`) over the native transport, against
+this host's OpenSSH by the operator's key, `execution.command-timeout = 2s`,
+`--continue-device-on-error`:
+
+```text
+hx$ id -un                   netops                         exit 0
+hx$ echo out; echo err >&2   stdout out, stderr err         exit 0
+hx$ ls /nonexistent          ls: cannot access ...          command_exit_nonzero: exited 2
+hx$ kill -TERM $$                                           command_exit_signal: ended by signal TERM
+hx$ sudo -n id -u            0                              exit 0
+hx$ sleep 32                                                command_timeout; nothing left on the server
+hx$ exit 300                                                command_exit_nonzero: exited 44
+```
+
+Every record's `credential.auth` was `publickey`. Against the fake's Linux
+persona one connection carried a channel per command and no pty; `nostatus`
+was `command_exit_missing`; at a 1-second timeout the fake recorded `signal:
+KILL` for `slow` and nothing left running, and the next command ran; in the
+same `run`, a `linux_shell` target's timeout ended its session as the shell's
+rule says. An `--expect` or a trailing `\r` on an exec target stopped at
+planning, exit 4; `--literal` passed; `--transport system` is still
+`channel_exec_unavailable`. (A first probe for the killed `sleep` matched the
+calling shell's own command line; the probe from a script showed it gone.)
+
+**Agreed.** Four points the build met: at the output limit the command is
+stopped as at a timeout, the record `output_limit_exceeded` with the first
+limit bytes across both streams, the connection serving the next command; a
+device that refuses the exec request is `ssh_session_channel_refused` as one
+that refuses the channel, and the session ends; a channel closed without a
+status is `command_exit_missing` only when the connection answers a keepalive
+request within 5 seconds, a lost one keeping the session's codes; the
+declarations' refusal is `channel_exec_declaration_refused`, a usage error,
+from the client and the daemon's plan check alike.
+
+**Not taken.** The limit ending the session as on a shell; a refused exec
+request as a command's failure on a usable session; a missing status always
+`command_exit_missing`; the daemon refusing the plan as
+`execution_plan_invalid`.

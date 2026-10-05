@@ -38,6 +38,9 @@ type scrapligoDriver struct {
 	req     platform.OpenRequest
 	policy  hostkey.Policy
 	session *devsession.Session
+	// exec is the exec device's session in place of the shell's: one
+	// connection, a channel per command.
+	exec *devsession.ExecSession
 	// auth is the connection's own account of how it authenticated.
 	auth platform.AuthReporter
 }
@@ -56,8 +59,8 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 		host = d.req.Address
 	}
 	promptTimeout := durationOr(d.f.Config.Duration("execution.prompt-timeout"), 10*time.Second)
-	d.debugf("native SSH session starting implementation=scrapligo-v1 target=%q address=%q port=%d host_key_policy=%s host_key_identity=%q", host, d.req.Address, d.req.Port, d.policy.Mode, hostkey.Identity(host, int(d.req.Port)))
-	stream, err := scrapligov1.Dial(ctx, scrapligov1.DialRequest{
+	d.debugf("native SSH session starting implementation=scrapligo-v1 target=%q address=%q port=%d host_key_policy=%s host_key_identity=%q channel=%s", host, d.req.Address, d.req.Port, d.policy.Mode, hostkey.Identity(host, int(d.req.Port)), d.channel())
+	dial := scrapligov1.DialRequest{
 		Host: host, Address: d.req.Address, Port: int(d.req.Port), Username: d.req.Username,
 		Password:         d.req.Password,
 		Keys:             d.req.Keys,
@@ -71,7 +74,23 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 		Algorithms:        d.f.Algorithms,
 		Warn:              d.f.Warn,
 		Debug:             d.f.Debug,
-	})
+	}
+	if d.channel() == platform.ChannelExec {
+		// Ready once authenticated: no first prompt, privilege, or paging.
+		conn, err := scrapligov1.DialExec(ctx, dial)
+		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			d.debugf("native SSH session open failed target=%q code=%s", host, errorcodes.Of(err))
+			return err
+		}
+		d.auth = conn
+		d.exec = devsession.OpenExec(conn, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug})
+		d.debugf("native SSH session ready target=%q channel=exec", host)
+		return nil
+	}
+	stream, err := scrapligov1.Dial(ctx, dial)
 	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -93,16 +112,35 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 	return session.Prepare(ctx)
 }
 
+// channel is the target's channel, shell when the request names none.
+func (d *scrapligoDriver) channel() string {
+	if d.req.Channel == platform.ChannelExec {
+		return platform.ChannelExec
+	}
+	return platform.ChannelShell
+}
+
 // Usable is the prepared session's answer; a driver never prepared is not
 // usable.
-func (d *scrapligoDriver) Usable() bool { return d.session != nil && d.session.Usable() }
+func (d *scrapligoDriver) Usable() bool {
+	if d.exec != nil {
+		return d.exec.Usable()
+	}
+	return d.session != nil && d.session.Usable()
+}
 
 // The executor finds the set-up lines by a type assertion, which a renamed
 // method would fail silently; this fails the build instead.
 var _ platform.SetupReporter = (*scrapligoDriver)(nil)
 
-// SetupLines is the session's set-up as it was sent (platform.SetupReporter).
-func (d *scrapligoDriver) SetupLines() []platform.SetupLine { return d.session.SetupLines() }
+// SetupLines is the session's set-up as it was sent (platform.SetupReporter);
+// an exec device sends none.
+func (d *scrapligoDriver) SetupLines() []platform.SetupLine {
+	if d.session == nil {
+		return nil
+	}
+	return d.session.SetupLines()
+}
 
 var _ platform.AuthReporter = (*scrapligoDriver)(nil)
 
@@ -117,19 +155,25 @@ func (d *scrapligoDriver) AuthMethod() string {
 
 // Execute sends one command through the prepared session.
 func (d *scrapligoDriver) Execute(ctx context.Context, c platform.Command) platform.Result {
+	if c.Timeout <= 0 {
+		c.Timeout = durationOr(d.f.Config.Duration("execution.command-timeout"), 120*time.Second)
+	}
+	if d.exec != nil {
+		return d.exec.Execute(ctx, c)
+	}
 	if d.session == nil {
 		now := time.Now()
 		return platform.Result{StartedAt: now, EndedAt: now, ErrorCode: "command_session_lost", ErrorCategory: "connection", External: true, Err: errors.New("the device session was not prepared")}
-	}
-	if c.Timeout <= 0 {
-		c.Timeout = durationOr(d.f.Config.Duration("execution.command-timeout"), 120*time.Second)
 	}
 	return d.session.Execute(ctx, c)
 }
 
 // Close sends the platform's exit commands on a usable session and closes
-// the connection.
+// the connection; an exec device's connection closes with no command.
 func (d *scrapligoDriver) Close() error {
+	if d.exec != nil {
+		return d.exec.Close()
+	}
 	if d.session == nil {
 		return nil
 	}

@@ -32,10 +32,23 @@ func SpoolName(activity, device string, index, pid int) string {
 	return fmt.Sprintf("%s.%s.%d.%d%s", activity, device, index, pid, SpoolSuffix)
 }
 
-// spoolOwner reads the pid from a spool file's name, false for any other
-// name in the directory (which the sweep leaves alone).
+// stderrSpoolSuffix ends an exec command's stderr spool's name.
+const stderrSpoolSuffix = ".stderr" + SpoolSuffix
+
+// StderrSpoolName names the stderr spool of an exec command in flight,
+// beside its stdout's: <activity>.<device>.<index>.<pid>.stderr.spool.
+func StderrSpoolName(activity, device string, index, pid int) string {
+	return fmt.Sprintf("%s.%s.%d.%d%s", activity, device, index, pid, stderrSpoolSuffix)
+}
+
+// spoolOwner reads the pid from a spool file's name, stdout's or stderr's,
+// false for any other name in the directory (which the sweep leaves
+// alone).
 func spoolOwner(name string) (pid int, ok bool) {
-	base, found := strings.CutSuffix(name, SpoolSuffix)
+	base, found := strings.CutSuffix(name, stderrSpoolSuffix)
+	if !found {
+		base, found = strings.CutSuffix(name, SpoolSuffix)
+	}
 	if !found {
 		return 0, false
 	}

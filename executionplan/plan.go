@@ -575,6 +575,9 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	if err := p.validateBlindSends(); err != nil {
 		return err
 	}
+	if err := p.validateExecDeclarations(); err != nil {
+		return err
+	}
 	if err := p.validateSessionInit(); err != nil {
 		return err
 	}
@@ -666,6 +669,33 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 // no command with both a count above zero and a declaration. The daemon
 // validates the plan it is given, so these rules hold whatever client
 // drafted it.
+// validateExecDeclarations refuses a declaration that answers a terminal
+// on a command for an exec target: a blind send (the flag, which a count
+// of returns implies) or an expectation. An exec channel has no terminal
+// and no prompt. The client refuses it at planning and the daemon's check
+// refuses a plan that carries it, naming the target and the command's
+// index; --literal leaves nothing here.
+func (p *ExecutionPlan) validateExecDeclarations() error {
+	for _, t := range p.Targets {
+		if t.Channel != ChannelExec {
+			continue
+		}
+		for i := range p.Commands {
+			kind := ""
+			switch {
+			case i < len(p.Blind) && p.Blind[i]:
+				kind = "a blind send (--blind, --blind-return, or a trailing \\r)"
+			case i < len(p.Expectations) && len(p.Expectations[i]) > 0:
+				kind = "an --expect"
+			}
+			if kind != "" {
+				return fmt.Errorf("channel_exec_declaration_refused: %s: command %d carries %s, which answers a terminal, and the target's platform runs it on an exec channel, which has none; remove the declaration or use a platform on the shell channel", t.Device.CanonicalName, i+1, kind)
+			}
+		}
+	}
+	return nil
+}
+
 func (p *ExecutionPlan) validateBlindSends() error {
 	if p.BlindReturns == nil {
 		return planInvalid("blind_returns", "must be present (empty allowed)")

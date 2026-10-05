@@ -648,39 +648,43 @@ mandatory ControlMaster reuse.
 
 **An exec device has one connection for its command list, a channel per
 command.** A device whose `channel` is `exec` gets one connection for its
-command list, as a shell device does; each command is one exec channel on it,
-in order, without a pty and with standard input at its end, and the connection
+command list, as a shell device does; each command is one exec channel on it, in
+order, without a pty and with standard input at its end, and the connection
 closes when the device's commands end: no `ControlPersist`, no reuse across
 jobs. On `scrapligo-v1` the channel is a session on karvi's connection, and
-x/crypto's exit error gives the status and the signal's name. On `system` the
-connection is an OpenSSH ControlMaster: one `ssh -M -N` per device session,
+x/crypto's exit error gives the status and the signal's name; a channel closed
+without either is `command_exit_missing` only when the connection answers a
+keepalive request within 5 seconds, and a lost connection keeps the session's
+codes. A device that refuses the channel or the exec request on a live
+connection is `ssh_session_channel_refused`, and its session ends. On `system`
+the connection is an OpenSSH ControlMaster: one `ssh -M -N` per device session,
 with the managed configuration, host-key policy, and algorithms of the shell,
 karvi's own child (never backgrounded by `-f`) set to die with its parent; one
 `ssh -S SOCKET -n` client per command; `ssh -O exit` at the end, and the master
 killed on an abort. Its socket is in `ssh.control-path-root` under a
 16-hex-character name karvi picks (`/dev/shm/karvi/<user>/sockets/NAME` in
-shared mode, `<basedir>/socket/ssh/NAME` in individual), a root too long for
-the 108-byte limit with OpenSSH's 17-character binding suffix refused at
-planning, naming the root and its length; a socket left by a killed master is
-swept at the daemon's start and at admission, only names karvi made and only
-when nothing answers. `~` in the root is the home. The client's exit is the
-command's status; on 255 the master's log, written with `-E` at `DEBUG1` into
-the scratch and read from where the command started, decides: `exit-status`
-is the command's own 255, `exit-signal` a signal (`exit_signal` `unnamed`, since
-OpenSSH names none), and neither a connection failure. The shell keeps
-`ControlMaster no`. *Why:* a fresh `ssh` per command took ten times as long as
-a master and authenticated once per command; a channel at a time never meets
-`MaxSessions`, and the ledger counts connections as before; a connection kept
-across jobs would run a later job under the earlier job's authentication,
-whatever credential the later job resolved; OpenSSH's client reports a remote
-signal as it reports its own failure, while the master's log tells them apart,
-and the commands on one master run one at a time; OpenSSH's `%C` name spends
-40 of the 108 bytes. *Not taken:* a fresh `ssh` per command; masters kept
-across jobs; exec on `scrapligo-v1` alone (the operator's framing names the
-control path, and the parity run needs both transports); the `%C` name.
+shared mode, `<basedir>/socket/ssh/NAME` in individual), a root too long for the
+108-byte limit with OpenSSH's 17-character binding suffix refused at planning,
+naming the root and its length; a socket left by a killed master is swept at the
+daemon's start and at admission, only names karvi made and only when nothing
+answers. `~` in the root is the home. The client's exit is the command's status;
+on 255 the master's log, written with `-E` at `DEBUG1` into the scratch and read
+from where the command started, decides: `exit-status` is the command's own 255,
+`exit-signal` a signal (`exit_signal` `unnamed`, since OpenSSH names none), and
+neither a connection failure. The shell keeps `ControlMaster no`. *Why:* a fresh
+`ssh` per command took ten times as long as a master and authenticated once per
+command; a channel at a time never meets `MaxSessions`, and the ledger counts
+connections as before; a connection kept across jobs would run a later job under
+the earlier job's authentication, whatever credential the later job resolved;
+OpenSSH's client reports a remote signal as it reports its own failure, while
+the master's log tells them apart, and the commands on one master run one at a
+time; OpenSSH's `%C` name spends 40 of the 108 bytes. *Not taken:* a fresh `ssh`
+per command; masters kept across jobs; exec on `scrapligo-v1` alone (the
+operator's framing names the control path, and the parity run needs both
+transports); the `%C` name.
 
-**An exec command keeps the session's bounds, not its shell.** There is no
-first prompt: the session is ready when the connection has authenticated
+**An exec command keeps the session's bounds, not its shell.** There is no first
+prompt: the session is ready when the connection has authenticated
 (`scrapligo-v1`) or the master answers `-O check` (`system`), within
 `ssh.connect-timeout` and `execution.prompt-timeout`, the bound a shell's login
 has. No privilege step, paging command, or exit command is sent, an operator's
@@ -689,29 +693,33 @@ command on its own channel with the same records and `on-error` policy, a
 precondition and nothing it sets carrying; no state carries between commands
 (`cd`, variables, `umask`), and the remote shell is not interactive. Blind
 sends, `\r` endings, `--blind-return`, and `--expect` are refused at planning
-for an exec target, naming the target and the command's index; `--literal` is
-accepted. `execution.command-timeout` runs from the channel's opening to its
-exit status; at expiry `scrapligo-v1` asks for `KILL` and closes the channel,
-and `system`, whose client cannot send a signal, kills the client and records
-the notice `remote_command_not_stopped`. A command timeout falls under the
-device-error policy, the connection being usable: the rest stop unless
-`--continue-device-on-error`. `execution.device-timeout`, the keepalives, and a
-cancel are as for the shell (`scrapligo-v1` asking for `KILL` on the channel in
-flight); `execution.blind-wait` is not used. The output limit counts stdout and
-stderr together, and each stream is spooled past the threshold on its own.
-`--sudo` reaches a shell too: karvi types `sudo -p '<prompt>' -- sh -c
-'<command>'` without `-S`, so `sudo` reads the terminal with its echo off, and
-answers after the prompt as on exec. *Why:* a channel without a terminal has
-nothing to page, escalate, or log out of; a declaration that answers a terminal
-cannot be honoured, and one dropped would let the operator believe a
-confirmation was answered; on a shell a timeout desynchronises the session,
-while a closed channel leaves the connection serving the next command
-(executed on both transports), and closing a channel leaves the server's
-command running unless a signal is asked for (`sleep 31` stayed, `sleep 32`
-went). *Not taken:* the declarations dropped for exec targets; a command
-timeout ending the device under every setting; a pty so that closing it hangs
-up the command; a remote watchdog (`timeout N …`) wrapped around each command
-on `system`.
+for an exec target, naming the target and the command's index
+(`channel_exec_declaration_refused`, a usage error, the client's and the
+daemon's plan check alike); `--literal` is accepted. `execution.command-timeout`
+runs from the channel's opening to its exit status; at expiry `scrapligo-v1`
+asks for `KILL` and closes the channel, and `system`, whose client cannot send a
+signal, kills the client and records the notice `remote_command_not_stopped`. A
+command timeout falls under the device-error policy, the connection being
+usable: the rest stop unless `--continue-device-on-error`.
+`execution.device-timeout`, the keepalives, and a cancel are as for the shell
+(`scrapligo-v1` asking for `KILL` on the channel in flight);
+`execution.blind-wait` is not used. The output limit counts stdout and stderr
+together, and each stream is spooled past the threshold on its own; at the limit
+the command is stopped as at a timeout, the record is `output_limit_exceeded`
+with the first limit bytes across the two streams, and the connection serves the
+next command under the device-error policy. `--sudo` reaches a shell too: karvi
+types `sudo -p '<prompt>' -- sh -c '<command>'` without `-S`, so `sudo` reads
+the terminal with its echo off, and answers after the prompt as on exec. *Why:*
+a channel without a terminal has nothing to page, escalate, or log out of; a
+declaration that answers a terminal cannot be honoured, and one dropped would
+let the operator believe a confirmation was answered; on a shell a timeout
+desynchronises the session, while a closed channel leaves the connection serving
+the next command (executed on both transports), and closing a channel leaves the
+server's command running unless a signal is asked for (`sleep 31` stayed, `sleep
+32` went). *Not taken:* the declarations dropped for exec targets; a command
+timeout ending the device under every setting; a pty so that closing it hangs up
+the command; a remote watchdog (`timeout N …`) wrapped around each command on
+`system`.
 
 **The platform definition is the authority for privilege and paging.** Every
 built-in carries its privilege levels, prompt pattern, failure patterns, paging

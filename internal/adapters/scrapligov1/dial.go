@@ -58,6 +58,9 @@ type DialRequest struct {
 	// defaults.
 	Algorithms  sshalgorithms.Lists
 	Warn, Debug func(string)
+	// exec stops the opening at authentication (DialExec): no session
+	// channel, PTY, or shell.
+	exec bool
 }
 
 // Dial opens karvi's connection through scrapligo's transport wrapper and
@@ -65,6 +68,16 @@ type DialRequest struct {
 // host-key policy in the handshake, a PTY, and a shell. scrapligo's
 // channel and network driver are not used.
 func Dial(ctx context.Context, req DialRequest) (devsession.Stream, error) {
+	t, c, err := open(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &stream{t: t, c: c, ended: make(chan struct{})}, nil
+}
+
+// open fills the request's defaults and opens the connection through
+// scrapligo's transport wrapper.
+func open(ctx context.Context, req DialRequest) (*scraplitransport.Transport, *connection, error) {
 	if req.Port == 0 {
 		req.Port = 22
 	}
@@ -83,7 +96,7 @@ func Dial(ctx context.Context, req DialRequest) (devsession.Stream, error) {
 	c := &connection{ctx: ctx, req: req, closed: make(chan struct{})}
 	logger, err := scraplilogging.NewInstance()
 	if err != nil {
-		return nil, errorcodes.Errorf("native_session_open_failed", "create the scrapligo logger: %v", err)
+		return nil, nil, errorcodes.Errorf("native_session_open_failed", "create the scrapligo logger: %v", err)
 	}
 	t, err := scraplitransport.NewTransport(logger, req.Address, "",
 		scraplioptions.WithCustomTransport(c),
@@ -91,13 +104,13 @@ func Dial(ctx context.Context, req DialRequest) (devsession.Stream, error) {
 		scraplioptions.WithTimeoutSocket(req.ConnectTimeout),
 	)
 	if err != nil {
-		return nil, errorcodes.Errorf("native_session_open_failed", "create the scrapligo transport: %v", err)
+		return nil, nil, errorcodes.Errorf("native_session_open_failed", "create the scrapligo transport: %v", err)
 	}
 	if err := t.Open(); err != nil {
 		_ = c.Close()
-		return nil, err
+		return nil, nil, err
 	}
-	return &stream{t: t, c: c, ended: make(chan struct{})}, nil
+	return t, c, nil
 }
 
 // connection is karvi's scrapligo transport implementation over x/crypto.
@@ -232,6 +245,19 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 	c.mu.Lock()
 	c.client = client
 	c.mu.Unlock()
+	if req.exec {
+		// An exec device is ready once it has authenticated; each command
+		// opens its own channel (DialExec).
+		if c.ctx.Err() != nil {
+			return c.ctx.Err()
+		}
+		_ = raw.SetDeadline(time.Time{})
+		c.debugf("native SSH connection authenticated for exec target=%q address=%s", req.Host, target)
+		if req.KeepaliveInterval > 0 {
+			go c.keepalive(client)
+		}
+		return nil
+	}
 	session, err := client.NewSession()
 	if err != nil {
 		return c.stepError(target, "open the session channel", err)

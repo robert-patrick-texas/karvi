@@ -125,6 +125,7 @@ const (
 	ChannelShell    = "shell"
 	ChannelExec     = "exec"
 	TransportTelnet = "telnet"
+	TransportNative = "native"
 )
 
 // TargetNotice is a planning notice about one target that the plan carries
@@ -237,9 +238,12 @@ func (t *ExecutionTarget) Validate(stage Stage) error {
 		if t.Device.Transport == TransportTelnet {
 			return invalid("channel", "exec over telnet: telnet has no exec channel")
 		}
-		// Until the exec channel is built no session runs one, so a plan
-		// that asks for it is refused here as the client refuses it.
-		return invalid("channel", "exec channels are not built on the %s transport", t.Device.Transport)
+		// Until the exec channel is built on the system transport no
+		// session there runs one, so a plan that asks for it is refused here
+		// as the client refuses it.
+		if t.Device.Transport != TransportNative {
+			return invalid("channel", "exec channels are not built on the %s transport", t.Device.Transport)
+		}
 	default:
 		return invalid("channel", "%q is neither %q nor %q", t.Channel, ChannelShell, ChannelExec)
 	}

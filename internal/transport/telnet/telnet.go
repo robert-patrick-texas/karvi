@@ -85,6 +85,10 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 	return &Driver{f: f, req: req, conn: conn}, nil
 }
 func (d *Driver) Prepare(ctx context.Context) error {
+	if d.req.Channel == platform.ChannelExec {
+		// The planner and the daemon's plan check refuse it first.
+		return errorcodes.Errorf("channel_exec_over_telnet", "telnet has no exec channel")
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	timeout := d.f.Config.Duration("execution.prompt-timeout")
