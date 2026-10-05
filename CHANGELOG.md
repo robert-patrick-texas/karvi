@@ -28,17 +28,15 @@
   mode, each with its mode, owner, group, writer, and purpose, and the rule by
   which each place is chosen (the shared candidate first, what a missing or an
   unusable one does), as karvi 0.26.0 leaves them on a host with two
-  operators. It names two settings with no use in this release:
-  `ssh.control-path-root`, whose directory is made and stays empty, and
-  `logging.file`, to which nothing is written.
+  operators. It names a setting with no use in this release, `logging.file`,
+  to which nothing is written.
 - **A platform's `channel`, and the built-in `linux_shell`.** A
   `[platform.NAME]` table takes `channel = "shell"` or `"exec"`, what karvi
   asks of the SSH session channel; every built-in is `shell`, and a table that
   leaves it unset is `shell`. Each target's channel is resolved at planning,
   carried in the plan (execution plan schema 11) and the manifest, and shown
-  on the dry run's `intended:` line (`channel=shell`). Exec channels are not
-  built yet: a target whose platform says `exec` is refused at planning with
-  `channel_exec_unavailable` (exit 8), and over telnet, which has no exec,
+  on the dry run's `intended:` line (`channel=shell`). A target whose
+  platform says `exec` over telnet, which has no exec, is refused at planning
   with `channel_exec_over_telnet`. An eighth built-in, `linux_shell`, is
   `linux` on the shell channel with `linux` as its base, so it is admitted
   wherever `linux` is and its records name `linux_shell`. The platform field

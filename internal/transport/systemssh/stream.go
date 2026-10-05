@@ -25,21 +25,10 @@ type processStream struct {
 	stdout io.ReadCloser
 	stderr *synchronizedBuffer
 	// auth holds the method OpenSSH said authenticated.
-	auth   *authFilter
-	done   chan struct{}
-	cancel func()
-	// typesNotOffered, set when the offered host-key algorithms were
-	// filtered to the enrolled key types, reports a device offering none of
-	// them as the changed key it is.
-	typesNotOffered func(offered []string) error
-	// offered are the algorithm lists the generated configuration offers,
-	// for a failed negotiation's message.
-	offered sshalgorithms.Lists
-	// aliveInterval and aliveCountMax are the generated configuration's
-	// ServerAliveInterval and ServerAliveCountMax, for the keepalive
-	// timeout's message.
-	aliveInterval time.Duration
-	aliveCountMax int
+	auth     *authFilter
+	done     chan struct{}
+	cancel   func()
+	failures sessionFailure
 
 	stateMu sync.Mutex
 	waitErr error
@@ -70,20 +59,44 @@ func (p *processStream) Read(b []byte) (int, error) {
 	if cause == nil {
 		cause = err
 	}
-	diagnostic := p.stderr.String()
-	if p.typesNotOffered != nil {
+	return n, p.failures.classify(p.stderr.String(), cause)
+}
+
+// sessionFailure is what an OpenSSH process's diagnostics are classified
+// against when it ends a session: the shell's process or an exec device's
+// master.
+type sessionFailure struct {
+	// typesNotOffered, set when the offered host-key algorithms were
+	// filtered to the enrolled key types, reports a device offering none of
+	// them as the changed key it is.
+	typesNotOffered func(offered []string) error
+	// offered are the algorithm lists the generated configuration offers,
+	// for a failed negotiation's message.
+	offered sshalgorithms.Lists
+	// aliveInterval and aliveCountMax are the generated configuration's
+	// ServerAliveInterval and ServerAliveCountMax, for the keepalive
+	// timeout's message.
+	aliveInterval time.Duration
+	aliveCountMax int
+}
+
+// classify is the session's end under the code OpenSSH's diagnostics
+// classify to (host_key_changed, authentication_failed,
+// connection_refused, ...).
+func (f sessionFailure) classify(diagnostic string, cause error) error {
+	if f.typesNotOffered != nil {
 		if offered, ok := hostKeyTypesOffered(diagnostic); ok {
-			return n, p.typesNotOffered(offered)
+			return f.typesNotOffered(offered)
 		}
 	}
-	if _, failure, ok := negotiationFailure(diagnostic, p.offered); ok {
-		return n, failure
+	if _, failure, ok := negotiationFailure(diagnostic, f.offered); ok {
+		return failure
 	}
 	code, _, _, _ := classify(diagnostic, cause)
 	if code == "session_keepalive_timeout" {
-		return n, devsession.KeepaliveTimeout(p.aliveCountMax, p.aliveInterval, "OpenSSH: "+safeDiagnostic(diagnostic, cause))
+		return devsession.KeepaliveTimeout(f.aliveCountMax, f.aliveInterval, "OpenSSH: "+safeDiagnostic(diagnostic, cause))
 	}
-	return n, errorcodes.Errorf(code, "%s", safeDiagnostic(diagnostic, cause))
+	return errorcodes.Errorf(code, "%s", safeDiagnostic(diagnostic, cause))
 }
 
 func (p *processStream) Write(b []byte) (int, error) { return p.stdin.Write(b) }

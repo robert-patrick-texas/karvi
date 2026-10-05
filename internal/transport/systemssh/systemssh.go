@@ -65,6 +65,9 @@ type Driver struct {
 	session                          *devsession.Session
 	// stream is the OpenSSH process Prepare started, for AuthMethod.
 	stream *processStream
+	// exec and master are an exec device's session and its ControlMaster.
+	exec   *devsession.ExecSession
+	master *execMaster
 }
 
 func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.Driver, error) {
@@ -132,28 +135,18 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 
 // Prepare opens the device session: one interactive OpenSSH shell, the
 // first prompt within the connect and prompt timeouts, then the session's
-// privilege and paging steps. command and run share it.
+// privilege and paging steps; or, for an exec device, its ControlMaster,
+// ready within the same bound. command and run share it.
 func (d *Driver) Prepare(ctx context.Context) error {
 	if d.req.Channel == platform.ChannelExec {
-		// The planner and the daemon's plan check refuse it first.
-		return errorcodes.Errorf("channel_exec_unavailable", "the system transport does not have the exec channel yet")
+		return d.prepareExec(ctx)
 	}
 	stream, broker, err := d.startShell(ctx)
 	if err != nil {
 		return err
 	}
 	d.stream = stream
-	connectTimeout := d.req.Timeout
-	if connectTimeout <= 0 {
-		connectTimeout = d.f.Config.Duration("ssh.connect-timeout")
-	}
-	if connectTimeout <= 0 {
-		connectTimeout = 30 * time.Second
-	}
-	promptTimeout := d.f.Config.Duration("execution.prompt-timeout")
-	if promptTimeout <= 0 {
-		promptTimeout = 10 * time.Second
-	}
+	connectTimeout, promptTimeout := d.loginTimeouts()
 	enableTimeout := d.f.Config.Duration("execution.enable-timeout")
 	if enableTimeout <= 0 {
 		enableTimeout = 10 * time.Second
@@ -178,10 +171,51 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	return session.Prepare(ctx)
 }
 
+// prepareExec starts an exec device's ControlMaster and waits for it to
+// answer -O check within the connect and prompt timeouts together, the
+// bound a shell's login has; no first prompt, privilege, or paging.
+func (d *Driver) prepareExec(ctx context.Context) error {
+	master, broker, err := d.startMaster()
+	if err != nil {
+		return err
+	}
+	connectTimeout, promptTimeout := d.loginTimeouts()
+	err = master.ready(ctx, connectTimeout+promptTimeout)
+	broker.Close()
+	if err != nil {
+		d.debugf("system SSH exec master failed code=%s diagnostic=%q", errorcodes.Of(err), compactDiagnostic(master.diagnostics.String()))
+		return err
+	}
+	d.master = master
+	d.exec = devsession.OpenExec(&execConn{m: master}, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug})
+	d.debugf("system SSH exec master ready pid=%d socket=%s auth=%q", master.cmd.Process.Pid, master.socket, master.lines.Method())
+	return nil
+}
+
+// loginTimeouts are the connect and prompt timeouts a session's login is
+// bounded by.
+func (d *Driver) loginTimeouts() (connectTimeout, promptTimeout time.Duration) {
+	connectTimeout = d.req.Timeout
+	if connectTimeout <= 0 {
+		connectTimeout = d.f.Config.Duration("ssh.connect-timeout")
+	}
+	if connectTimeout <= 0 {
+		connectTimeout = 30 * time.Second
+	}
+	promptTimeout = d.f.Config.Duration("execution.prompt-timeout")
+	if promptTimeout <= 0 {
+		promptTimeout = 10 * time.Second
+	}
+	return connectTimeout, promptTimeout
+}
+
 func (d *Driver) Close() error {
 	var sessionErr error
 	if d.session != nil {
 		sessionErr = d.session.Close()
+	}
+	if d.exec != nil {
+		sessionErr = d.exec.Close()
 	}
 	removeErr := os.Remove(d.configPath)
 	if os.IsNotExist(removeErr) {
@@ -195,7 +229,12 @@ func (d *Driver) Close() error {
 
 // Usable reports the prepared session's answer; a driver whose session was
 // never prepared is unusable.
-func (d *Driver) Usable() bool { return d.session != nil && d.session.Usable() }
+func (d *Driver) Usable() bool {
+	if d.exec != nil {
+		return d.exec.Usable()
+	}
+	return d.session != nil && d.session.Usable()
+}
 
 // The executor finds the set-up lines by a type assertion, which a renamed
 // method would fail silently; this fails the build instead.
@@ -206,18 +245,28 @@ var _ platform.AuthReporter = (*Driver)(nil)
 // AuthMethod is the method OpenSSH said authenticated the session
 // (platform.AuthReporter).
 func (d *Driver) AuthMethod() string {
+	if d.master != nil {
+		return d.master.lines.Method()
+	}
 	if d.stream == nil || d.stream.auth == nil {
 		return ""
 	}
 	return d.stream.auth.Method()
 }
 
-// SetupLines is the session's set-up as it was sent (platform.SetupReporter).
-func (d *Driver) SetupLines() []platform.SetupLine { return d.session.SetupLines() }
-
-// Execute sends one command through the prepared session.
-func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Result {
+// SetupLines is the session's set-up as it was sent (platform.SetupReporter);
+// an exec device sends none.
+func (d *Driver) SetupLines() []platform.SetupLine {
 	if d.session == nil {
+		return nil
+	}
+	return d.session.SetupLines()
+}
+
+// Execute sends one command through the prepared session, or runs it on an
+// exec channel of its own.
+func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Result {
+	if d.session == nil && d.exec == nil {
 		return failed(time.Now(), "command_session_lost", "connection", true, errors.New("the device session was not prepared"))
 	}
 	timeout := c.Timeout
@@ -228,6 +277,9 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 		timeout = 120 * time.Second
 	}
 	c.Timeout = timeout
+	if d.exec != nil {
+		return d.exec.Execute(ctx, c)
+	}
 	return d.session.Execute(ctx, c)
 }
 
@@ -263,15 +315,20 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 }
 func (d *Driver) ConfigDigest() string { return d.configDigest }
 func (d *Driver) baseArgs() []string {
-	args := []string{"-F", d.configPath, "-o", "HostName=" + d.req.Address, "-o", "HostKeyAlias=" + d.f.hostKeyIdentity, "-o", "User=" + d.req.Username, "-o", "Port=" + strconv.Itoa(int(d.req.Port))}
-	return append(args, d.controlArgs()...)
+	return append(d.hostArgs(), d.controlArgs()...)
+}
+
+// hostArgs are the generated configuration and the device: an exec
+// device's master adds its own control options to them.
+func (d *Driver) hostArgs() []string {
+	return []string{"-F", d.configPath, "-o", "HostName=" + d.req.Address, "-o", "HostKeyAlias=" + d.f.hostKeyIdentity, "-o", "User=" + d.req.Username, "-o", "Port=" + strconv.Itoa(int(d.req.Port))}
 }
 
 // controlArgs pins OpenSSH connection reuse off on the command line, where
 // the first obtained value overrides both the generated file and
-// ~/.ssh/config. One interactive shell is the device's whole session, so
-// there is nothing for a master to share;
-// the ssh.control-* keys are inert.
+// ~/.ssh/config. One interactive shell is a shell device's whole session,
+// so there is nothing for a master to share; an exec device's master sets
+// its own (exec.go).
 func (d *Driver) controlArgs() []string {
 	return []string{"-o", "ControlMaster=no", "-o", "ControlPath=none", "-o", "ControlPersist=no"}
 }

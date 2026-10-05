@@ -334,8 +334,7 @@ func TestTargetNoticesValidateAndDigest(t *testing.T) {
 }
 
 // A target's channel is shell or exec; exec over telnet is refused, exec
-// over native (scrapligo-v1) accepted, and until the system transport has
-// the exec channel exec there is refused too.
+// over either SSH transport accepted.
 func TestTargetChannelValidation(t *testing.T) {
 	for _, tc := range []struct{ channel, transport, want string }{
 		{ChannelShell, "system", ""},
@@ -343,7 +342,7 @@ func TestTargetChannelValidation(t *testing.T) {
 		{"pty", "system", `channel: "pty" is neither`},
 		{ChannelExec, TransportTelnet, "exec over telnet"},
 		{ChannelExec, TransportNative, ""},
-		{ChannelExec, "system", "exec channels are not built on the system transport"},
+		{ChannelExec, "system", ""},
 	} {
 		tgt := fixtureDirect(t)
 		tgt.Channel, tgt.Device.Transport = tc.channel, tc.transport

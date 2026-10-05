@@ -9,9 +9,13 @@
 #
 # All N names resolve to one fake IOS XE device (one host key, N identities
 # enrolled under accept-new), so the run needs no more than the fake can
-# serve. Needs the built executable and `go`.
+# serve. Needs the built executable and `go`. CHANNEL=exec runs the same
+# over exec channels instead: the fake's Linux persona answering `big` (the
+# same bytes), a platform `fexec` (driver linux, channel exec), and a key of
+# the run's own as the operator's keys; it also needs `ssh-keygen`.
 #
 #   N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
+#   N=32 TRANSPORT=system CHANNEL=exec scripts/output-scale-run.sh
 #
 # The spool directory is under TMP; its size is sampled while the job runs
 # and the peak is printed beside the memory,
@@ -29,6 +33,7 @@ KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 GO=${GO:-go}
 N=${N:-8}
 TRANSPORT=${TRANSPORT:-scrapligo-v1}
+CHANNEL=${CHANNEL:-shell}
 BIG_LINES=${BIG_LINES:-72000}
 INFLIGHT=${INFLIGHT:-$N}
 TMP=${TMPDIR:-/tmp}/karvi-output-scale-$$
@@ -55,8 +60,18 @@ install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base"
 OWN_STORE=$(host_own_store "$KARVI")
 OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 
+# The platform, the command, and the fake's persona per channel; under exec
+# the fake authorizes a key of the run's own, the operator's keys.
+case $CHANNEL in
+  shell) PLATFORM=cisco_iosxe; COMMAND='show big'; SESSIONS=$N; set -- ;;
+  exec)
+    PLATFORM=fexec; COMMAND=big; SESSIONS=0
+    ssh-keygen -q -t ed25519 -N '' -C scale -f "$TMP/key" || fail "ssh-keygen"
+    set -- -persona linux -user "$(id -un)" -authorized-keys "$TMP/key.pub" ;;
+  *) fail "CHANNEL is shell or exec, not $CHANNEL" ;;
+esac
 : >"$TMP/port"
-"$TMP/bin/fake" -host-key-file "$TMP/hostkey" -big-lines "$BIG_LINES" 2>"$TMP/fake.err" >"$TMP/port" &
+"$TMP/bin/fake" -host-key-file "$TMP/hostkey" -big-lines "$BIG_LINES" "$@" 2>"$TMP/fake.err" >"$TMP/port" &
 FAKE_PID=$!
 i=0
 while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
@@ -67,7 +82,7 @@ PORT=$(cat "$TMP/port")
 {
   echo 'name,management_address,platform'
   i=1
-  while [ "$i" -le "$N" ]; do printf 'big-%04d,127.0.0.1,cisco_iosxe\n' "$i"; i=$((i + 1)); done
+  while [ "$i" -le "$N" ]; do printf 'big-%04d,127.0.0.1,%s\n' "$i" "$PLATFORM"; i=$((i + 1)); done
 } >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
 basedir = "$TMP/base"
@@ -78,6 +93,7 @@ platform-resolution.default = ""
 host-key-policy = "accept-new"
 known-hosts-file = "$KH"
 connect-timeout = "10s"
+identities = ["$TMP/key"]
 [audit]
 journald-required = false
 file = "$TMP/base/audit.jsonl"
@@ -94,6 +110,10 @@ default = "parallel"
 parallel-workers = $N
 server-max-inflight = $INFLIGHT
 [platform.cisco_iosxe]
+ssh-port = $PORT
+[platform.fexec]
+driver = "linux"
+channel = "exec"
 ssh-port = $PORT
 [[inventory-source]]
 name = "scale"
@@ -127,7 +147,7 @@ START=$(date +%s.%N)
 # Not through the karvi function: a function sent to the background runs in
 # a subshell, and $! would be the subshell, not the client.
 HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" \
-  run --all --transport "$TRANSPORT" --format jsonl 'show big' >"$TMP/out" 2>"$TMP/err" &
+  run --all --transport "$TRANSPORT" --format jsonl "$COMMAND" >"$TMP/out" 2>"$TMP/err" &
 CLIENT=$!
 CLIENT_PEAK=0
 SPOOL_PEAK=0
@@ -153,7 +173,7 @@ ok=$(grep -c "\"status\":\"succeeded\".*\"output_bytes\":$WANT_BYTES\|\"output_b
 [ "$ok" -eq "$N" ] || fail "$ok records succeeded with $WANT_BYTES output bytes, expected $N"
 karvi --quiet daemon stop --force >/dev/null 2>&1 || true
 kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
-grep -q "^connections=$N sessions=$N\$" "$TMP/fake.err" || fail "the fake saw $(grep '^connections=' "$TMP/fake.err"), expected $N connections and $N shells"
+grep -q "^connections=$N sessions=$SESSIONS\$" "$TMP/fake.err" || fail "the fake saw $(grep '^connections=' "$TMP/fake.err"), expected $N connections and $SESSIONS shells"
 [ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
 
 # The responses held at once: N, or the server's cap when it is lower; an
@@ -164,10 +184,10 @@ if [ "$CAP" -eq 0 ]; then
   CAP=$(( $(nproc) * 8 )); [ "$CAP" -ge 32 ] || CAP=32; [ "$CAP" -le 256 ] || CAP=256
 fi
 [ "$N" -ge "$CAP" ] || CAP=$N
-awk -v n="$N" -v tr="$TRANSPORT" -v inflight="$CAP" -v bytes="$WANT_BYTES" -v idle="$IDLE" -v hwm="$HWM" -v after="$AFTER" \
+awk -v n="$N" -v tr="$TRANSPORT" -v ch="$CHANNEL" -v inflight="$CAP" -v bytes="$WANT_BYTES" -v idle="$IDLE" -v hwm="$HWM" -v after="$AFTER" \
   -v client="$CLIENT_PEAK" -v wall="$(echo "$END - $START" | bc)" -v jsonl="$(wc -c <"$JOB/commands.jsonl")" \
   -v spool="$SPOOL_PEAK" -v files="$SPOOL_FILES" -v left="$(ls "$TMP/spool" 2>/dev/null | wc -l)" 'BEGIN {
-  printf "output scale: n=%d transport=%s inflight=%d output_bytes=%d wall=%.1fs\n", n, tr, inflight, bytes, wall
+  printf "output scale: n=%d transport=%s channel=%s inflight=%d output_bytes=%d wall=%.1fs\n", n, tr, ch, inflight, bytes, wall
   printf "output scale: daemon kB idle=%d peak=%d after=%d; per in-flight response %.1f MB, %.1fx its output\n", idle, hwm, after, (hwm - idle) / 1024 / inflight, (hwm - idle) * 1024 / inflight / bytes
   printf "output scale: client peak kB=%d; commands.jsonl bytes=%d; %d records succeeded\n", client, jsonl, n
   printf "output scale: spool peak kB=%d in %d files under spooldir; %d left after\n", spool, files, left

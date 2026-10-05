@@ -126,14 +126,7 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	diagnostics := &synchronizedBuffer{maxBytes: 64 << 10}
 	auth := &authFilter{next: diagnostics}
 	done := make(chan struct{})
-	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, auth: auth, done: done, cancel: cancel, offered: d.f.offered,
-		aliveInterval: time.Duration(ceilSeconds(d.f.Config.Duration("ssh.server-alive-interval"))) * time.Second, aliveCountMax: d.f.Config.Int("ssh.server-alive-count-max")}
-	if policy := d.f.hostKey; policy.Mode != hostkey.Insecure {
-		if types, err := hostkey.EnrolledTypes(policy.KnownHostsFile, d.f.hostKeyIdentity); err == nil && len(types) > 0 {
-			identity := d.f.hostKeyIdentity
-			stream.typesNotOffered = func(offered []string) error { return hostkey.TypesNotOffered(policy, identity, offered) }
-		}
-	}
+	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, auth: auth, done: done, cancel: cancel, failures: d.sessionFailure()}
 	// Wait closes the stderr pipe, so it runs only after the copy has read
 	// OpenSSH's last diagnostic line; otherwise a failure that ends the
 	// process at once (a failed algorithm negotiation) can be classified from
@@ -153,6 +146,20 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 		close(done)
 	}()
 	return stream, broker, nil
+}
+
+// sessionFailure is what this device's OpenSSH diagnostics are classified
+// against.
+func (d *Driver) sessionFailure() sessionFailure {
+	f := sessionFailure{offered: d.f.offered,
+		aliveInterval: time.Duration(ceilSeconds(d.f.Config.Duration("ssh.server-alive-interval"))) * time.Second, aliveCountMax: d.f.Config.Int("ssh.server-alive-count-max")}
+	if policy := d.f.hostKey; policy.Mode != hostkey.Insecure {
+		if types, err := hostkey.EnrolledTypes(policy.KnownHostsFile, d.f.hostKeyIdentity); err == nil && len(types) > 0 {
+			identity := d.f.hostKeyIdentity
+			f.typesNotOffered = func(offered []string) error { return hostkey.TypesNotOffered(policy, identity, offered) }
+		}
+	}
+	return f
 }
 
 func compactDiagnostic(value string) string {

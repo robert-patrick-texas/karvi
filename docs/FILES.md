@@ -119,7 +119,7 @@ member from removing or renaming another's entry.
 | `/dev/shm/karvi/capacity` | `2770` | root | operators | the same | the host's session ledger |
 | `capacity/devices` | `2770` | root | operators | `setup shared`; at boot, `systemd-tmpfiles` | one ledger per device |
 | `/dev/shm/karvi/<user>` | `2700` (setgid inherited) | the operator | operators | the operator's first activity | the operator's scratch (`tempdir`) |
-| `/dev/shm/karvi/<user>/sockets` | `2700` | the operator | operators | the same | nothing ([section 5](#5-places-made-and-not-used)) |
+| `/dev/shm/karvi/<user>/sockets` | `2700` | the operator | operators | the same | the exec devices' control sockets |
 | `/tmp/karvi-<uid>` | `0700` | the operator | `<group>` | each activity | the output spool |
 
 In shared mode the operator's home holds nothing of karvi's but the operator's
@@ -146,7 +146,7 @@ group is the operator's primary group throughout.
 | `transcripts/YYMMDD` | `0750` | the first recorded login of the day | that day's transcripts |
 | `<basedir>/crun` | `0770` (`crun.directory-mode`) | the first collection | the collection files |
 | `<basedir>/socket` | `0700` | the first activity | the daemon's two sockets |
-| `<basedir>/socket/ssh` | `0700` | the first activity | nothing ([section 5](#5-places-made-and-not-used)) |
+| `<basedir>/socket/ssh` | `0700` | the first activity | the exec devices' control sockets |
 | `<basedir>/state` | `0700` | the first activity | the daemon's state file, the scoreboards, the ledger |
 | `<basedir>/state/scoreboards` | `0700` | the first activity | the operator's scoreboards |
 | `<basedir>/state/capacity`, `capacity/devices` | `0700` | the first activity | the operator's session ledger |
@@ -189,6 +189,7 @@ in a shared place and the operator's primary group in a private one.
 | `daemon.log` | `<basedir>/logs/` | `0600`, appended | `0600`, appended | kept | one line per request outcome, the token redacted |
 | `karvi-ssh-*.conf` | the scratch (`tempdir`) | `0600` | `0600` | one system-transport session | the `ssh` configuration karvi writes for the session |
 | `askpass-<16 hex>.sock` | the scratch | `0600` socket | `0600` socket | one authentication | where `karvi-askpass` fetches the secret `ssh` asks for |
+| `<16 hex>` | the control sockets (`ssh.control-path-root`) | `0600` socket | `0600` socket | one exec device session | an exec device's OpenSSH ControlMaster, a client of it per command; one a killed master left is swept at the next daemon start or admission |
 | `karvi-script-*.timing` | the scratch | `0600` | `0600` | one recorded login | `script(1)`'s timing log, the terminal's widths, read when the transcript is rendered at the session's end and removed then; a session killed before its end leaves it |
 | `<activity>.<device>.<index>.<pid>.spool` | the spool (`spooldir`) | `0600` | `0600` | one command | a response past `output.spool-threshold-bytes`, removed once its record is written; one left by a process that died is swept at the next daemon start or admission |
 | The audit file | `audit.file`, when set | `0600`, appended | `0600`, appended | kept | the audit events, beside journald (always written) |
@@ -274,12 +275,8 @@ script `karvi-crun` holds a lock at `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`
 
 ## 5. Places made and not used
 
-Two settings have a place or a value and no use in this release:
+One setting has a value and no use in this release:
 
-- **`ssh.control-path-root`.** Its directory is made at every activity
-  (`/dev/shm/karvi/<user>/sockets`, or `<basedir>/socket/ssh`) and stays
-  empty: the system transport runs `ssh` with `ControlMaster no` and
-  `ControlPath none`, so no control socket is opened.
 - **`logging.file` and `logging.level`.** Both are validated, and
   `logging.file-required` requires a path, but nothing is written to the file:
   the daemon's log is `<basedir>/logs/daemon.log`, and the audit's is

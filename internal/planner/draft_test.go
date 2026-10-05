@@ -394,8 +394,8 @@ func TestDraftPlatformCommands(t *testing.T) {
 }
 
 // A target's channel is its platform's, resolved at planning: shell carried
-// in the plan; exec over telnet refused naming both; exec on scrapligo-v1
-// carried, and on the system transport refused until it has the channel.
+// in the plan; exec over telnet refused naming both; exec on either SSH
+// transport carried.
 func TestTargetChannel(t *testing.T) {
 	ssh := transportselect.Selection{Kind: transportselect.KindNative, Implementation: "scrapligo-v1"}
 	system := transportselect.Selection{Kind: transportselect.KindSystem, Implementation: "system"}
@@ -410,8 +410,8 @@ func TestTargetChannel(t *testing.T) {
 	if c, err := targetChannel(platform.Resolve("srv", tables), "srv1", ssh); err != nil || c != platform.ChannelExec {
 		t.Fatalf("exec on scrapligo-v1: %q %v", c, err)
 	}
-	if _, err := targetChannel(platform.Resolve("srv", tables), "srv1", system); errorcodes.Of(err) != "channel_exec_unavailable" || !strings.Contains(err.Error(), "system") {
-		t.Fatalf("exec on system: %v", err)
+	if c, err := targetChannel(platform.Resolve("srv", tables), "srv1", system); err != nil || c != platform.ChannelExec {
+		t.Fatalf("exec on system: %q %v", c, err)
 	}
 	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
 	if err != nil {
@@ -447,10 +447,8 @@ func TestControlPathRootCheckedForExecOverSystem(t *testing.T) {
 	if errorcodes.Of(err) != "control_path_root_too_long" || !strings.Contains(err.Error(), long+" is 74 bytes") || !strings.Contains(err.Error(), "at most 73 bytes") {
 		t.Fatalf("a root of 74 bytes: %v", err)
 	}
-	// 73 bytes pass the check; the planner then refuses the channel, which
-	// the system transport does not have yet.
-	_, err = Draft(context.Background(), testConfig(t, append(exec, `ssh.control-path-root="`+long[:73]+`"`)...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt)
-	if errorcodes.Of(err) != "channel_exec_unavailable" {
+	draft, err := Draft(context.Background(), testConfig(t, append(exec, `ssh.control-path-root="`+long[:73]+`"`)...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if err != nil || draft.Targets[0].Channel != executionplan.ChannelExec {
 		t.Fatalf("a root of 73 bytes: %v", err)
 	}
 	shell := []string{`platform.srv.driver="linux"`, `platform.srv.channel="shell"`, `basedir="` + filepath.Join(home, "base") + `"`, `ssh.control-path-root="` + long + `"`}

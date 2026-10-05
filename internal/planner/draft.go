@@ -233,25 +233,16 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 
 // targetChannel is a target's channel, its platform's, resolved once here
 // and carried in the plan. A platform that says exec over telnet is refused,
-// naming both: telnet has no exec channel. Until the exec channel is built
-// on the system transport, an exec target there is refused
-// (channel_exec_unavailable), so no target reaches a daemon that would run
-// it on a shell; scrapligo-v1 (native) has it.
+// naming both: telnet has no exec channel; both SSH transports have it.
 func targetChannel(def platform.Definition, name string, sel transportselect.Selection) (string, error) {
 	channel := def.Channel
 	if channel == "" {
 		channel = platform.ChannelShell
 	}
-	if channel != platform.ChannelExec {
-		return channel, nil
-	}
-	if sel.Kind == transportselect.KindNative {
-		return channel, nil
-	}
-	if sel.Kind == transportselect.KindTelnet {
+	if channel == platform.ChannelExec && sel.Kind == transportselect.KindTelnet {
 		return "", errorcodes.Errorf("channel_exec_over_telnet", "%s: platform %s asks for an exec channel and the transport is telnet, which has none; choose an SSH transport or a platform on the shell channel", name, def.Name)
 	}
-	return "", errorcodes.Errorf("channel_exec_unavailable", "%s: platform %s asks for an exec channel, which the %s transport does not have yet; use a platform on the shell channel (linux_shell for a server)", name, def.Name, sel.Implementation)
+	return channel, nil
 }
 
 // checkControlPathRoot refuses a control-path root too long for a control

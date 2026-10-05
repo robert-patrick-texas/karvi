@@ -218,8 +218,8 @@ type OpenRequest struct {
 	Keys       []string
 	Definition Definition
 	// Channel is the target's channel, the plan's: ChannelShell or
-	// ChannelExec. A transport without the exec channel refuses an exec
-	// request (channel_exec_unavailable).
+	// ChannelExec. Telnet, which has no exec channel, refuses an exec
+	// request (channel_exec_over_telnet).
 	Channel  string
 	Timeout  time.Duration
 	Metadata map[string]string

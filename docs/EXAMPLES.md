@@ -3722,3 +3722,43 @@ previous build and the home's `c8` with this one. The daemon's sweep first
 resolved the private root, and the daemon tests that start a bare server made
 `~/.local/share/karvi`; it now reads the places without making them
 (`BaseDirPath`, `ControlPathRootPlace`), a root not yet made holding no socket.
+
+**Executed after 8b, exec on `system`.** The alias `fexec` over `system`
+against the fake, `execution.command-timeout = 2s`,
+`--continue-device-on-error`:
+
+```text
+uname -snrm      succeeded                        exit 0
+both             stdout "to stdout", stderr "to stderr"   exit 0
+fail 3           command_exit_nonzero: exited 3
+fail 255         command_exit_nonzero: exited 255
+signal TERM      command_exit_signal: ended by signal unnamed
+nostatus         command_exit_missing: closed without an exit status
+slow             command_timeout, notice remote_command_not_stopped
+ls /nonexistent  command_exit_nonzero: exited 127
+fake:   connections=1 sessions=0   channels=8   left running: "slow"
+```
+
+Every record's `credential.auth` was `publickey`, read from the master's
+lines. Against this host's OpenSSH as `hx`, the table of `scrapligo-v1`'s run
+above gave the same records but for `kill -TERM $$`, `exit_signal`
+`unnamed`, and `sleep 32`, given up at 2 seconds with the notice and found
+still running under pid 1 (then ended). The same commands over both
+transports to the fake differed in `exit_signal` (`unnamed` and `TERM`) and
+the system transport's notice alone. With `karvi command` killed outright
+under `slow`, its master ended with it (the death signal) and removed its
+socket; with the daemon killed under a `run`'s `slow`, the same. The master
+not ready within the login's bound is `command_session_prompt_timeout`, the
+shell's code, its cause now naming the master's `-O check`. Lifting the
+refusal for `system` left `channel_exec_unavailable` unused, and the code,
+never released, is deleted. The roadmap's control-socket item, built, is
+removed, and `docs/FILES.md` names the control sockets.
+
+The run at width gained `CHANNEL=exec` (`scripts/output-scale-run.sh`: the
+fake's Linux persona answering `big`, the same 5,256,000 bytes, a key of the
+run's own as the operator's keys). At N=32, two rounds alternating with the
+previous commit's build, the daemon's peak: exec on `system` 75 and 69 MB (the
+previous build refuses it), exec on `scrapligo-v1` 95 and 80 MB before, 76
+and 93 after; the shell on `system` 84 and 80 before, 83 and 75 after, on
+`scrapligo-v1` 154 and 159 before, 130 and 172 after: level, the spread the
+runs' own.
