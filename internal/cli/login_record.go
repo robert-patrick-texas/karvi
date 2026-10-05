@@ -150,6 +150,20 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	if err != nil {
 		return reportError(stderr, "karvi_executable_unlocatable", err)
 	}
+	// script(1)'s timing log, the terminal's widths for the rendering at the
+	// session's end, is written into the scratch and removed after; it is
+	// made before the transcript is claimed, so a scratch that refuses it
+	// leaves no transcript.
+	scratch, err := osutil.ResolveScratch(cfg.String("tempdir"), base, operator.Home, operator.Username, operator.UID)
+	if err != nil {
+		return reportError(stderr, "scratch_directory_unavailable", err)
+	}
+	timing, err := os.CreateTemp(scratch, "karvi-script-*.timing")
+	if err != nil {
+		return reportError(stderr, "scratch_directory_unavailable", err)
+	}
+	timing.Close()
+	defer os.Remove(timing.Name())
 	// The session ID is the login's activity ID in the job form,
 	// YYMMDD-HHMMSS-xx, reserved here by the scoreboard file the child will
 	// write: the wrapper needs it for the
@@ -187,8 +201,9 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		commandParts = append(commandParts, shellQuote(arg))
 	}
 	// -a appends to the pre-created 0640 file, so script(1) neither creates
-	// nor truncates it.
-	cmd := exec.Command(scriptPath, "-q", "-e", "-f", "-a", "-c", strings.Join(commandParts, " "), pair.Transcript)
+	// nor truncates it; -T with -m advanced logs the output's byte counts and
+	// each resize between them.
+	cmd := exec.Command(scriptPath, "-q", "-e", "-f", "-a", "-T", timing.Name(), "-m", "advanced", "-c", strings.Join(commandParts, " "), pair.Transcript)
 	cmd.Env = append(os.Environ(), loginTranscriptChildEnv+"=1", "KARVI_LOGIN_TRANSCRIPT_PATH="+pair.Transcript, app.RecorderSessionIDEnv+"="+sessionID)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = stdin, stdout, stderr
 	if f, ok := stderr.(*os.File); ok {
@@ -210,10 +225,18 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 			exit = reportError(stderr, "transcript_recorder_failed", err)
 		}
 	}
-	if err := transcript.StripScriptMarkers(pair.Transcript); err != nil {
+	// The transcript as the operator saw it, before its digest: at the
+	// widths the timing log records, else at the columns the session
+	// started with and no resize.
+	columns, resizes, err := transcript.ReadTiming(timing.Name())
+	if err != nil {
+		columns, resizes = meta.Columns, nil
+		fmt.Fprintf(stderr, "warning: %s\n", errorcodes.Message(errorcodes.Errorf("transcript_timing_unreadable", "%s is rendered at %d columns without its resizes: %w", pair.Transcript, columns, err)))
+	}
+	if err := transcript.Render(pair.Transcript, columns, resizes); err != nil {
 		recordingFailed = true
 		msg := errorcodes.Message(errorcodes.Ensure(err, "transcript_create_failed"))
-		fmt.Fprintf(stderr, "warning: %s keeps the script(1) marker lines: %s\n", pair.Transcript, msg)
+		fmt.Fprintf(stderr, "warning: %s keeps the bytes script(1) wrote: %s\n", pair.Transcript, msg)
 	}
 	meta.EndedAt = time.Now()
 	meta.ExitClassification = exitcode.ExitName(exit)

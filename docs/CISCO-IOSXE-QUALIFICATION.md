@@ -75,10 +75,10 @@ one laboratory device on both transports and collects the evidence of "Required
 evidence" into one directory;
 [`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](DEVICE-QUALIFICATION-RUNBOOK.md) says
 what the run needs, maps each script row (D1 to D14) to its line here, and lists
-the rows done by hand (D15 among them). With `FAKE=1` the same rows run against
-the fake, which is how the script itself is checked before a laboratory run.
-Every mismatch row writes a wrong entry into a scratch trust store; the device's
-key and the operator's own store are never touched.
+the rows done by hand (D15 and D16 among them). With `FAKE=1` the same rows run
+against the fake, which is how the script itself is checked before a laboratory
+run. Every mismatch row writes a wrong entry into a scratch trust store; the
+device's key and the operator's own store are never touched.
 
 ## Host-key matrix
 
@@ -147,6 +147,9 @@ Record evidence, on both transports, for:
   exit status when the session ends (plain `ssh`'s exit), and `karvi
   login`'s exit and the transcript's classification (**device**, D15 by
   hand; the fake sends none, so its login ends 110);
+- a recorded login's transcript against the line editor's keys, a line wider
+  than the terminal included: each command line as the device received it
+  (**device**, D16 by hand; the fake has no line editor);
 - typical output and output at the limit (`output.max-command-bytes`, 64 MiB
   by default; **fake** at a lowered limit, **device** at the default);
 - concurrent sessions up to the configured session cap (**device**);

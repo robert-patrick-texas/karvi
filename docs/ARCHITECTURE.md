@@ -186,7 +186,9 @@ Direct system `command` mode uses one fresh `ssh -tt` process with
 `ControlMaster=no`, `ControlPath=none`, and `ControlPersist=no` unless the
 target's platform sets `control-master = true`; all commands use that one
 authenticated interactive shell. Login remains operator-attached
-system OpenSSH, optionally behind the transcript PTY.
+system OpenSSH, optionally behind the transcript PTY; a recorded session's
+transcript is rendered at its end as the terminal showed it
+(`internal/termtext`), at the widths `script(1)`'s timing log records.
 
 ## Display pipeline
 

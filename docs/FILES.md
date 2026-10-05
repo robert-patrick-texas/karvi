@@ -189,6 +189,7 @@ in a shared place and the operator's primary group in a private one.
 | `daemon.log` | `<basedir>/logs/` | `0600`, appended | `0600`, appended | kept | one line per request outcome, the token redacted |
 | `karvi-ssh-*.conf` | the scratch (`tempdir`) | `0600` | `0600` | one system-transport session | the `ssh` configuration karvi writes for the session |
 | `askpass-<16 hex>.sock` | the scratch | `0600` socket | `0600` socket | one authentication | where `karvi-askpass` fetches the secret `ssh` asks for |
+| `karvi-script-*.timing` | the scratch | `0600` | `0600` | one recorded login | `script(1)`'s timing log, the terminal's widths, read when the transcript is rendered at the session's end and removed then; a session killed before its end leaves it |
 | `<activity>.<device>.<index>.<pid>.spool` | the spool (`spooldir`) | `0600` | `0600` | one command | a response past `output.spool-threshold-bytes`, removed once its record is written; one left by a process that died is swept at the next daemon start or admission |
 | The audit file | `audit.file`, when set | `0600`, appended | `0600`, appended | kept | the audit events, beside journald (always written) |
 
@@ -216,7 +217,7 @@ had; each has its switch, `output.files.*`, and `--nof` writes no folder
 
 | File | Where | Shared | Individual | Owner | Purpose |
 |---|---|---|---|---|---|
-| `<device>-HHMMSS.log` | `transcripts/YYMMDD/` | `0640` | `0640` | the operator who logged in | a recorded login (`login --record`) as text ([`docs/LOGIN-TRANSCRIPTS.md`](LOGIN-TRANSCRIPTS.md)) |
+| `<device>-HHMMSS.log` | `transcripts/YYMMDD/` | `0640` | `0640` | the operator who logged in | a recorded login (`login --record`), as the terminal showed it ([`docs/LOGIN-TRANSCRIPTS.md`](LOGIN-TRANSCRIPTS.md)) |
 | `<device>-HHMMSS.meta.jsonl` | the same | `0640` | `0640` | the same | the recording's metadata |
 | `<device>[SUFFIX]` | the collection directory | `0660` (`crun.file-mode`) | `0660` | the operator who last collected the device | the device's collected output, replaced only when the device succeeds ([`docs/COLLECTION.md`](COLLECTION.md)) |
 | `.<file>.<job-id>` | the same | `0660` | `0660` | the collecting operator | the replacement while it is written, renamed over the file; a stale one is swept by its job ID |

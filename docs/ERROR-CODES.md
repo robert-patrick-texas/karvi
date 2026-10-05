@@ -656,6 +656,7 @@ Warnings that do not fail the activity.
 | `resolution_notice` | notice | — | no | Name resolution reports a non-fatal notice for the target; a planning warning on stderr, not a record field. |
 | `session_init_command_failed` | notice | — | no | A session-init profile command failed under `on-error = "continue"` with the session usable; the rest was sent and the device's first requested record carries the notice, with the profile, `command_index`, and code. |
 | `spool_width_narrowed` | notice | — | no | `freecheck` is `auto` and the volume holding `spooldir` has less free space than the job's worst case, its width × `output.max-command-bytes` above the other places' estimates and the floor, but at least one limit: the job runs at the width that fits and the warning names the volume's paths, the free bytes, the limit, the fixed bytes, and the width chosen, on the client's standard error in process and on the receipt and the follow start under the daemon. Below one limit the job is refused with `output_preflight_space`. |
+| `transcript_timing_unreadable` | notice | — | no | A recorded login's `script(1)` timing log cannot be read at the session's end; the transcript is rendered at the columns the session started with, without its resizes. |
 | `transport_assessment` | notice | — | no | An exercise located the target's transport implementation and, for the system kind, the askpass helper, without opening a session. |
 
 ## Planned

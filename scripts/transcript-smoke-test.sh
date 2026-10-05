@@ -1,8 +1,10 @@
 #!/bin/sh
 # Login recording against
 # the delivered binary: destination and day folder, side-by-side transcript
-# and metadata, modes, the script(1) marker lines stripped, karvi's own lines
-# kept out of the transcript, the metadata formats, and the refusals.
+# and metadata, modes, the transcript rendered as the terminal showed it
+# (script(1)'s marker lines removed, a correction applied, colours dropped,
+# the timing log gone from the scratch), karvi's own lines kept out of the
+# transcript, the metadata formats, and the refusals.
 set -eu
 
 # absent PATTERN FILE: the file must not match. A bare "! grep" line is exempt
@@ -33,11 +35,12 @@ install -d -m 700 "$HOME_DIR" "$BASE"
 cat > "$FAKE_SSH" <<EOF_INNER
 #!/bin/sh
 printf '%s\r\n' '$MARKER'
+printf '\033[01;32mnetops@dev\033[00m\$ echo helo\b\033[K\b\033[Klo\r\nhelo\r\n'
 exit 0
 EOF_INNER
 chmod 755 "$FAKE_SSH"
 
-COMMON="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored' '$KARVI' --set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'platform-resolution.default=\"\"' --set 'watch.directory=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
+COMMON="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored' '$KARVI' --set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'watch.directory=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
 
 # recorded NAME EXTRA_GLOBALS LOGIN_ARGS: runs a recorded login under a pty.
 recorded() {
@@ -83,6 +86,10 @@ meta=${transcript%.log}.meta.jsonl
 grep -q "$MARKER" "$transcript"                            # the device stream
 absent '^Script started on' "$transcript"               # script(1) markers stripped
 absent 'Script done on' "$transcript"
+grep -qx 'netops@dev\$ echo helo' "$transcript"           # rendered: the correction applied
+absent "$(printf '\033')" "$transcript"                    # no escape byte: colours dropped
+absent "$(printf '\r')" "$transcript"                      # no carriage return
+[ -z "$(ls -A "$BASE/tmp" | grep '^karvi-script-')" ]      # the timing log removed from the scratch
 absent 'transcript-device \[127\.0\.0\.1\]' "$transcript"   # karvi's header is not device stream
 grep -q 'transcript-device \[127\.0\.0\.1\] platform=generic user=smoke' "$TMP/before.out"   # it went to the terminal
 # display.record.header names the transcript first, before the login's

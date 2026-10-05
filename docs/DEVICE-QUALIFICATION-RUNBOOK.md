@@ -20,7 +20,7 @@ so a failure in the laboratory is the device's answer and not the script's.
 | `python3` | the script's one JSON read (`scripts/lib/json.sh`: the executable's transports) | A prerequisite of [`BUILD-HOWTO.md` §1](../BUILD-HOWTO.md#1-install-operating-system-prerequisites); the script stops at its start without it |
 | `bin/secret-scan` (`make tools-build`) | the final scan | Without it the scan is marked skip and the evidence must not leave the host unreviewed |
 | The device's inventory name, management address, and SSH port | every row | `DEVICE`, `ADDRESS`, `PORT` |
-| A laboratory account that reaches privilege 15 by `enable`, and its enable secret | D1–D4, D7–D15 | `NETUSER`, `NETPASS`, `NETENABLE` in the environment. If the account lands at privilege 15 at login, leave `NETENABLE` unset: that is the matrix's "nothing sent" row |
+| A laboratory account that reaches privilege 15 by `enable`, and its enable secret | D1–D4, D7–D16 | `NETUSER`, `NETPASS`, `NETENABLE` in the environment. If the account lands at privilege 15 at login, leave `NETENABLE` unset: that is the matrix's "nothing sent" row |
 | A restricted account refused `terminal length 0` (for example privilege 1 with no `terminal` command authorized) | D5 | `RESTRICTED_USER`, `RESTRICTED_PASS`; the row is skipped without them |
 | The number of vty lines free on the device | D8 | `CONCURRENCY` at or below it; a 9300's default is 16 (`line vty 0 15`), less the operator's own sessions |
 | A read-only command with a large output | D9 | `BIG_COMMAND="show tech-support"` runs for minutes and produces megabytes; the row's command timeout is 600 s |
@@ -171,6 +171,38 @@ Rows the script does not run, and how they are done:
   track ([`ROADMAP.md`](../ROADMAP.md), item 5): an authenticated login the
   device closed is a completed session, exit 0, with the notice
   `login_closed_without_status`.
+- **D16, the line editor in a recorded login.** What a recorded login's
+  transcript makes of IOS XE's line editing: the transcript is rendered as
+  the terminal showed it ([`docs/LOGIN-TRANSCRIPTS.md`,
+  "Content"](LOGIN-TRANSCRIPTS.md#content)), and the fake has no line editor,
+  so the row is done by hand, on each laboratory device of the run, at an
+  80-column terminal, in the evidence directory:
+
+  ```bash
+  mkdir D16 && cd D16
+  stty cols 80
+  karvi login --record=./transcripts "$DEVICE"
+  # at the device, each line typed as written, then Enter:
+  #   1. show clokc, Backspace twice, ck                    (show clock)
+  #   2. sh, Tab, cl, Tab                                    (show clock)
+  #   3. show lock, Ctrl-A, Ctrl-F five times, c             (show clock)
+  #   4. show version, Ctrl-U, show users                    (show users)
+  #   5. Up arrow                                            (show users)
+  #   6. show running-config | include , then 60 x, Ctrl-A, Ctrl-E
+  #   7. show cl, Ctrl-L, ock                                (show clock)
+  #   8. show history
+  # then exit
+  ```
+
+  Read the transcript under `transcripts/`: each command line of 1 to 7
+  against the list `show history` printed, which is what the device received;
+  and line 6, wider than the terminal, recorded whole or as the scrolled
+  window the device drew (its `$` at an edge). Write one line `D16
+  login-editing  observe  agree=N/7 wide=whole|window` into `results.tsv` by
+  hand. A window is the documented limit; a command line that disagrees with
+  the device's history is a finding for the renderer, with the transcript and
+  the session's raw bytes (`script -T timing -m advanced -c 'karvi login
+  DEVICE' raw.log`) kept beside it.
 
 ## 5. The evidence
 

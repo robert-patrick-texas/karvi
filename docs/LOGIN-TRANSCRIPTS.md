@@ -72,13 +72,42 @@ of the transcript.
 
 ## Content
 
-The transcript holds only the stream the device returns: device output,
-echoed characters, and prompts, which show the commands sent. Operator
-keystrokes are not recorded, so a password typed at a prompt that does not
-echo is not written. Karvi's own header, footer, and warnings go to the
-terminal, not the transcript. `script(1)` writes its own `Script started` and
-`Script done` lines into the file; karvi removes them when the session ends,
-so a session killed before then keeps those two lines.
+The transcript holds only the stream the device returns, as the terminal
+showed it: device output, echoed characters, and prompts, which show the
+commands sent. Operator keystrokes are not recorded, so a password typed at a
+prompt that does not echo is not written. Karvi's own header, footer, and
+warnings go to the terminal, not the transcript.
+
+When the session ends, karvi rewrites the file once, before taking its SHA-256
+for the metadata. It removes the `Script started` and `Script done` lines
+`script(1)` writes into the file, and renders the bytes between them as the
+terminal showed them: the line editor's corrections are applied (`echo helo`
+corrected by two backspaces is recorded as sent, not as `echo helolo`), colours,
+window titles, and terminal modes are dropped, a line longer than the terminal
+is one line, its wrapped rows joined, and every line ends in a newline, with no
+carriage return. The widths are `script(1)`'s timing log's (`-T FILE -m
+advanced`): the terminal's columns at the start and each resize. The log is
+written into the scratch (`tempdir`) and removed after; should it be unreadable,
+the transcript is rendered at the columns the session started with, with the
+warning `transcript_timing_unreadable`. No raw copy is kept. A session killed
+before its end keeps the bytes `script(1)` wrote, its two lines included, and
+leaves its timing log in the scratch.
+
+```text
+$ cat -v raw          the bytes the terminal was sent
+^[[?2004h^[]0;netops@dev: ~^G^[[01;32mnetops@dev^[[00m:^[[01;34m~^[[00m$ echo helo^H^[[K^H^[[Klo^M
+^[[?2004l^Mhelo^M
+$ cat transcript      the transcript
+netops@dev:~$ echo helo
+helo
+```
+
+The limits are the terminal's: a key the far end does not echo cannot appear,
+a full-screen program (an editor, `top`) comes out as its text in the order it
+was drawn, and a device that shows a long line as a scrolled window records the
+window. The runbook's row D16 records what IOS XE's line editor gives
+([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`, section
+4](DEVICE-QUALIFICATION-RUNBOOK.md#4-the-rows)).
 
 Cleanup: `karvi-prune` recognizes an ended session by the end record in its
 metadata file and removes the transcript and metadata together.

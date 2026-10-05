@@ -31,6 +31,18 @@
   operators. It names two settings with no use in this release:
   `ssh.control-path-root`, whose directory is made and stays empty, and
   `logging.file`, to which nothing is written.
+- **A recorded login's transcript is the text the terminal showed.** It had
+  been the bytes the terminal was sent, colours, window titles, and the line
+  editor's controls included, so a word corrected with two backspaces read
+  `echo helolo` once the controls were deleted. At the session's end `login
+  --record` now removes `script(1)`'s two lines and renders the rest before the
+  metadata's digest: the corrections applied, colours, titles, and terminal
+  modes dropped, a line longer than the terminal one line, every line ending
+  in a newline with no carriage return. The widths come from `script(1)`'s
+  timing log (`-T FILE -m advanced`, the scratch's `karvi-script-*.timing`,
+  removed after). No raw copy is kept; a session killed before its end keeps
+  its bytes as `script(1)` wrote them. The runbook gains row D16, IOS XE's
+  line editor in a recorded login, done by hand.
 - **The fake device is `karvi-fake-device`.** The test fixture's package is
   `internal/fakedevice` and its command `cmd/karvi-fake-device`, renamed from
   `fakeiosxe` and `karvi-fake-iosxe` before it gains a Linux persona; it still

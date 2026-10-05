@@ -165,6 +165,12 @@ line,
 The transcript holds what the device returns, its echo and prompts
 included; the operator's keystrokes are not recorded, so a password typed
 at a prompt that does not echo is not written.
+At the session's end the transcript is rewritten as the terminal showed
+it: the line editor's corrections applied, colours and titles dropped,
+wrapped rows joined, at the widths
+.BR script (1)'s
+timing log records; the log is kept in the scratch until then, and a
+session killed before its end keeps the bytes as written.
 A locked
 .B transcript.root
 refuses

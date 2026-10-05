@@ -236,6 +236,7 @@ var detailFuncs = map[string]string{
 	"internal/credentialbackend/cloginrc/backend.go:flatten":              ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/cloginrc/backend.go:parseBraced":          ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/cloginrc/backend.go:parseBare":            ".cloginrc syntax reported under cloginrc_malformed",
+	"internal/termtext/timing.go:ParseTiming":                             "reported under transcript_timing_unreadable",
 	"internal/hostkey/policy.go:Parse":                                    "reported under host_key_policy_invalid",
 	"internal/hostkey/inspect.go:inspectRemoteWithBinary":                 "ssh-keyscan diagnostics reported in the insecure-policy mismatch warning",
 	"internal/ipc/protocol.go:CallForSchema":                              "relays the daemon's registered error code",

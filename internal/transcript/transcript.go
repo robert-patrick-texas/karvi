@@ -1,6 +1,7 @@
 // Package transcript implements the login recording destination, layout,
 // naming, metadata, and post-processing rules. The script(1) wrapper in the
-// CLI drives it; nothing here reads the device stream.
+// CLI drives it; the device stream is read only at the session's end, to
+// render it.
 package transcript
 
 import (
@@ -18,6 +19,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 )
 
 // Formats of transcript.format and transcript.metadata-format.
@@ -354,16 +356,39 @@ func replaceBytes(path string, data []byte) error {
 	return nil
 }
 
-// StripScriptMarkers removes the "Script started on ..." first line and the
-// "Script done on ..." last line that util-linux script(1) writes into the
-// file, so the transcript holds only the device stream. The file is
-// rewritten by atomic replacement. A session killed before
-// this runs keeps the marker lines.
-func StripScriptMarkers(path string) error {
+// Render rewrites a finished session's transcript as the operator saw it:
+// the "Script started on ..." first line and the "Script done on ..." last
+// line that util-linux script(1) writes into the file are removed, and the
+// device's bytes between them are rendered (termtext) at the terminal's
+// columns and each resize from script(1)'s timing log. The file is rewritten
+// by atomic replacement, and no raw copy is kept; a session killed before
+// this runs keeps its bytes as script(1) wrote them.
+func Render(path string, columns int, resizes []termtext.Resize) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
+	out := termtext.Render(stripMarkers(data), columns, resizes)
+	if bytes.Equal(out, data) {
+		return nil
+	}
+	return replaceBytes(path, out)
+}
+
+// ReadTiming is the starting columns and the resizes in script(1)'s advanced
+// timing log at path (termtext.ParseTiming).
+func ReadTiming(path string) (int, []termtext.Resize, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer f.Close()
+	return termtext.ParseTiming(f)
+}
+
+// stripMarkers is data without script(1)'s first and last lines, which
+// leaves the bytes the timing log's output counts measure.
+func stripMarkers(data []byte) []byte {
 	out := data
 	if i := bytes.IndexByte(out, '\n'); bytes.HasPrefix(out, []byte("Script started on ")) {
 		if i < 0 {
@@ -373,24 +398,20 @@ func StripScriptMarkers(path string) error {
 		}
 	}
 	trimmed := bytes.TrimRight(out, "\r\n")
-	if j := bytes.LastIndexByte(trimmed, '\n'); true {
-		last := trimmed
-		if j >= 0 {
-			last = trimmed[j+1:]
-		}
-		// script(1) writes "\n" before its trailer; that newline goes with it.
-		if bytes.HasPrefix(bytes.TrimLeft(last, "\r"), []byte("Script done on ")) {
-			if j < 0 {
-				out = nil
-			} else {
-				out = out[:j]
-			}
+	last := trimmed
+	j := bytes.LastIndexByte(trimmed, '\n')
+	if j >= 0 {
+		last = trimmed[j+1:]
+	}
+	// script(1) writes "\n" before its trailer; that newline goes with it.
+	if bytes.HasPrefix(bytes.TrimLeft(last, "\r"), []byte("Script done on ")) {
+		if j < 0 {
+			out = nil
+		} else {
+			out = out[:j]
 		}
 	}
-	if bytes.Equal(out, data) {
-		return nil
-	}
-	return replaceBytes(path, out)
+	return out
 }
 
 // FileSHA256 is the lowercase hexadecimal digest of a file.

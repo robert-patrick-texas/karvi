@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 )
 
 func TestSafeName(t *testing.T) {
@@ -197,21 +198,30 @@ func TestMetadataJSONAndText(t *testing.T) {
 	}
 }
 
-func TestStripScriptMarkers(t *testing.T) {
+func TestRender(t *testing.T) {
 	dir := t.TempDir()
-	for name, tc := range map[string]struct{ in, want string }{
-		"both":      {"Script started on 2026-09-14 [COMMAND=\"x\"]\nrouter01#\r\nok\r\n\nScript done on 2026-09-14 [COMMAND_EXIT_CODE=\"0\"]\n", "router01#\r\nok\r\n"},
-		"header":    {"Script started on x\ndevice\n", "device\n"},
-		"none":      {"device\n", "device\n"},
-		"onlystart": {"Script started on x\n", ""},
-		"nonewline": {"Script started on x\nprompt#\nScript done on y\n", "prompt#"},
-		"crlf":      {"Script started on x\r\nout\r\n\nScript done on y\r\n", "out\r\n"},
+	for name, tc := range map[string]struct {
+		in      string
+		columns int
+		resizes []termtext.Resize
+		want    string
+	}{
+		"both":      {in: "Script started on 2026-09-14 [COMMAND=\"x\"]\nrouter01#\r\nok\r\n\nScript done on 2026-09-14 [COMMAND_EXIT_CODE=\"0\"]\n", want: "router01#\nok\n"},
+		"header":    {in: "Script started on x\ndevice\n", want: "device\n"},
+		"none":      {in: "device\n", want: "device\n"},
+		"onlystart": {in: "Script started on x\n", want: ""},
+		"nonewline": {in: "Script started on x\nprompt#\nScript done on y\n", want: "prompt#\n"},
+		"crlf":      {in: "Script started on x\r\nout\r\n\nScript done on y\r\n", want: "out\n"},
+		// the line editor's correction applied, the colours dropped
+		"rendered": {in: "Script started on x\n\x1b[01;32m$\x1b[0m echo helo\b\x1b[K\b\x1b[Klo\r\nhelo\r\n\nScript done on y\n", columns: 80, want: "$ echo helo\nhelo\n"},
+		// up a row in a line wrapped at 4, read at the width after the resize
+		"resized": {in: "Script started on x\nabcdefghij\x1b[A\x1b[DX\r\n\nScript done on y\n", columns: 4, resizes: []termtext.Resize{{Offset: 10, Columns: 8}}, want: "aXcdefghij\n"},
 	} {
 		p := filepath.Join(dir, name)
 		if err := os.WriteFile(p, []byte(tc.in), 0o640); err != nil {
 			t.Fatal(err)
 		}
-		if err := StripScriptMarkers(p); err != nil {
+		if err := Render(p, tc.columns, tc.resizes); err != nil {
 			t.Fatal(err)
 		}
 		got, _ := os.ReadFile(p)
@@ -221,6 +231,9 @@ func TestStripScriptMarkers(t *testing.T) {
 		if fi, _ := os.Stat(p); fi.Mode().Perm() != 0o640 {
 			t.Errorf("%s: mode %o", name, fi.Mode().Perm())
 		}
+	}
+	if err := Render(filepath.Join(dir, "missing"), 80, nil); err == nil {
+		t.Error("a missing transcript rendered")
 	}
 }
 
