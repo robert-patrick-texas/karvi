@@ -643,6 +643,29 @@ follows paging; then the requested commands. *Why:* scrapligo's escalation loop
 sent a wrong secret nine times; the contract fixes one attempt. *Not taken:*
 loading patterns from scrapligo's assets at run time.
 
+**`sudo` on an exec channel is declared, and its password follows its own
+prompt.** The first build adds nothing: a command written `sudo -n …` runs as
+written, and a refused one records `command_exit_nonzero` with `sudo`'s
+message in its stderr. Later, with the password credentials, `--sudo` attaches
+to the `--cmd` it follows, as `--expect` does, and the command runs as `sudo -S
+-p 'karvi-sudo-<16 hex>:' -- sh -c '<the command>'`, the prompt random per
+command; the record keeps the command as written and adds `privilege: "sudo"`;
+a run-wide spelling for command files is settled when built. The password is
+written once and only after that prompt appears on stderr, the prompt is
+removed from the recorded stderr, and a second appearance (a wrong password)
+closes the input and records `privilege_failed`. The password is the
+credential's enable field, then `NETSUDO`, then `NETENABLE` where the
+platform's `fallback` holds `netvars`; with none the command runs under `sudo
+-n` and never waits. The shell channel answers a `sudo` prompt with `--expect`
+as before. *Why:* over exec `sudo -n` already fails cleanly; `-S -p` gives a
+prompt karvi chooses and prints it only when `sudo` asks, while a password
+written before it reaches the command whenever `sudo` needs none (no password
+required, or a ticket cached), as `printf SECRET | sudo -S cat` printed it.
+*Not taken:* a password written to the input blindly; recognising and
+rewriting a `sudo` the operator wrote (`sudo`'s own prompt is set by each site
+and translated); a pty for `sudo`'s prompt (the streams merge and the terminal
+returns); `SUDO_ASKPASS` (a program on every server).
+
 **A session-init profile is chosen by the client and carried in the plan.**
 `[session-init.NAME]` profiles (commands, `on-error` of `fail-device` or
 `continue`, an optional command timeout) are selected per target by the

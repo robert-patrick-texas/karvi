@@ -3247,3 +3247,31 @@ goes when built.
 
 **Not taken.** A fresh `ssh` per command; masters kept across jobs; exec on
 `scrapligo-v1` alone; OpenSSH's `%C` name.
+
+**Executed: `sudo` without a terminal.** On this host `netops` has `(ALL)
+NOPASSWD: ALL`. An account whose `sudo` asks was made for the test alone, as
+root in a private mount namespace: a tmpfs at `/mnt` holding a copy of
+`/etc/shadow` with a lab password hash for `netops.test` and a copy of
+`/etc/sudoers` with one line for it, each bind-mounted over the original, and
+a tmpfs over `/run/sudo`; nothing outlived the namespace.
+
+| Case | Result |
+|---|---|
+| `sudo -n id -u`, no password needed (`netops`, over exec) | `0`, exit 0 |
+| `sudo -n id -u`, a password needed (`netops.test`) | `sudo: a password is required`, exit 1 |
+| `sudo -S -p "karvi-7f3a:" id -u`, nothing on stdin | `karvi-7f3a:`, `no password was provided`, exit 1 |
+| the same with the right password on stdin | `karvi-7f3a:`, then `0`, exit 0 |
+| `printf SECRET \| sudo -S -p "karvi-7f3a:" cat`, no password needed (over exec) | `SECRET-PASSWORD`: `sudo` asked nothing and the command read it |
+
+**Issue 7, agreed.** The first build adds nothing: the operator writes `sudo
+-n`, and a refused one is `command_exit_nonzero` with `sudo`'s message in
+stderr. Later, with the password credentials: `--sudo` attaches to its
+`--cmd`; the command runs under `sudo -S -p` with a random prompt; the
+password is written once, only after that prompt appears on stderr; the prompt
+is removed from the record; a second prompt is `privilege_failed`; the
+password is the enable field, then `NETSUDO`, then `NETENABLE` under
+`netvars`, and with none the command runs under `sudo -n`. The shell channel
+keeps `--expect`.
+
+**Not taken.** A password written blindly; rewriting a `sudo` the operator
+wrote; a pty for the prompt; `SUDO_ASKPASS`.
