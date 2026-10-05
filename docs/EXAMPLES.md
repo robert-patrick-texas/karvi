@@ -3355,3 +3355,31 @@ server.
 
 **Not taken.** A second fake; the `iosxe` name kept; the suites against the
 host's `sshd`; the transcripts as captured; `exit_signal` excluded.
+
+**Executed: a master whose parent dies.** A shell started a master (`ssh -M
+-N`, not backgrounded by `-f`) and was killed with `SIGKILL`:
+
+```text
+parent 689402, master 689404, socket: /tmp/nd.7MvZ/o.sock
+after SIGKILL of the parent: the master is still running, ppid 1
+the orphaned master still serves
+after SIGTERM of the master: the socket is gone
+```
+
+**Issue 11, agreed.** The ledger is unchanged: an exec device session is one
+connection and one lease each against the host's and the device's caps,
+`linux`'s staying 10; `MaxSessions` is never reached. The daemon (for `run`)
+and the client (for `command`) start each master with a death signal from a
+goroutine holding its OS thread; the sweep takes a socket left regardless. The
+daemon checks the plan's exec rules; the execution plan's schema moves to 11
+and the record's to 3. `watch` gains no column, its bytes counting both
+streams; the audit names the key that authenticated; `metrics.json` is as it
+is.
+
+**Not taken.** A lease per channel; masters left to end with their parent; a
+`watch` column.
+
+**The design is complete.** Eleven issues settled, each a DESIGN entry and a
+section of this chapter; the chapter stays open until the work is built, in
+sections committed one at a time on the operator's word, and closes with the
+build's own executed runs.

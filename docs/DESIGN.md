@@ -992,6 +992,30 @@ filter cannot drift into two; the daemon has not read the built-in variables
 since planning moved to the client. *Not taken:* a deny-list; re-executing
 with a scrubbed environment; refusing to start.
 
+**Exec devices need no new ledger, column, or lease; the daemon parents the
+masters.** An exec device session is one connection: one lease against the
+host's cap and one against the device's `session_cap`, as a shell session's,
+its master and one client at a time being one session's processes; `linux`'s
+cap stays 10. The daemon parents the system transport's masters for `run`, the
+client for `command`, each started with a death signal (`SIGTERM`) from a
+goroutine that holds its OS thread for the master's life, since the signal
+follows the thread that started the child; a master killed outright regardless
+leaves its socket to the sweep at the daemon's start. The daemon checks the
+plan's exec rules (the channel per target, no blind sends or `--expect` for
+exec targets, no exec over telnet) as it checks the rest and evaluates no
+platform; the execution plan's schema moves to 11 and the record's to 3, and a
+daemon refuses a plan of another version as before. `watch` gains no column, a
+row's bytes counting both streams. A device session's audit event names the key
+that authenticated, its path and fingerprint, beside the credential backend.
+`metrics.json` is unchanged. *Why:* a connection runs one channel at a time, so
+`MaxSessions` is never reached and a lease per channel would count nothing new;
+an `-N` master reads nothing and does not end with its parent: killed outright,
+the parent left its master serving an authenticated session through its socket
+(executed), while a master ended by `SIGTERM` removes its socket; the security
+owners read the audit, which should name what the record names. *Not taken:* a
+lease per channel; masters left to end with their parent; a `watch` column for
+the channel.
+
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live
 preparation after the timer since its last request other than `ping` or
