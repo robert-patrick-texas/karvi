@@ -147,7 +147,7 @@
       "environment": "KARVI__SCOREBOARDS",
       "cli_flags": null,
       "documentation": "The folder every activity writes its scoreboard in and `karvi watch` reads. `auto` is `/dev/shm/karvi/scoreboards`, every operator's, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 3770 in the operators' group; a missing `scoreboards` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/scoreboards`; a shared folder present but not writable by the operator is passed by for the private one with one warning. `karvi watch` reads every place of the chain that exists, the shared folder and the private one. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused.",
-      "since": "0.2.0"
+      "since": "0.27.0"
     },
     {
       "path": "freecheck",

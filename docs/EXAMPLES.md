@@ -4901,3 +4901,17 @@ the scoreboards (the key, the `auto` defaults, `watch`'s reading,
 FILES, OPERATIONS, SCALE, PRUNE, SSH-HOST-KEY-POLICY, `karvi.1`,
 `karvi-prune.8`, `karvi-watch.1`, ROADMAP (the item removed), and CHANGELOG.
 The chapter is closed.
+
+**Found after the close.** Before the release: the `scoreboards` row carried
+no `Since`, so the registry gave it the default `0.2.0` where `ssh.identities`,
+new in the same release, says `0.27.0`; and `watch.directory` had no row among
+the removed keys, so a configuration setting it met `config_unknown_key` (from
+the environment `config_unknown_environment`) where a removed key meets
+`config_key_removed` with what replaces it. The row says `Since: "0.27.0"`, and
+the key is refused from a file, the environment, and `--set` alike:
+
+```text
+config_key_removed: removed in v0.27.0; the scoreboards' folder is the top-level key scoreboards now for watch.directory at --set[3]
+```
+
+Registry 26 stays: `Since` is a field of the rows the counter already covers.

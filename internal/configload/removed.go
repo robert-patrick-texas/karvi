@@ -85,6 +85,9 @@ var removedKeys = []removedKey{
 	// v0.27.0: whether keys are offered is the credential's, the operator's
 	// own keys through ssh.identities and the platform's fallback.
 	{path: "ssh.pubkey-authentication", environment: "KARVI__SSH__PUBKEY_AUTHENTICATION", removedIn: "v0.27.0", code: "config_key_removed", hint: "a credential with keys offers them; the operator's own keys are ssh.identities, reached where a platform's fallback lists keys"},
+	// v0.27.0: the scoreboards' folder, which every activity writes and
+	// karvi watch reads, became the top-level key beside tempdir and spooldir.
+	{path: "watch.directory", environment: "KARVI__WATCH__DIRECTORY", removedIn: "v0.27.0", code: "config_key_removed", hint: "the scoreboards' folder is the top-level key scoreboards now"},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
 }
 

@@ -9,15 +9,16 @@
   with the root's bits when missing), else `<basedir>/state/scoreboards`; a
   shared folder present but not writable by the operator is passed by with its
   warning; a path is used or refused. A configuration that sets
-  `watch.directory` is refused (`config_unknown_key`); `[watch]` keeps the
-  screen's own settings. `sessions.shared-capacity-root` defaults to `auto` by
-  the same shape (`/dev/shm/karvi/capacity`, else `<basedir>/state/capacity`),
-  and the ledger passes by a root it cannot write. A `~` in either, which both
-  had ignored for the private fallback, is the home. `karvi watch` makes nothing
-  and reads every place that exists, the shared folder and the operator's own,
-  one row per job: it had made the private root, and with the shared folder
-  closed it did not show the operator's own jobs written to the fallback. The
-  configuration registry moves to 26.
+  `watch.directory`, from a file, the environment, or `--set`, is refused at
+  load (`config_key_removed`), the message naming `scoreboards`; `[watch]` keeps
+  the screen's own settings. `sessions.shared-capacity-root` defaults to `auto`
+  by the same shape (`/dev/shm/karvi/capacity`, else
+  `<basedir>/state/capacity`), and the ledger passes by a root it cannot write.
+  A `~` in either, which both had ignored for the private fallback, is the home.
+  `karvi watch` makes nothing and reads every place that exists, the shared
+  folder and the operator's own, one row per job: it had made the private root,
+  and with the shared folder closed it did not show the operator's own jobs
+  written to the fallback. The configuration registry moves to 26.
 - **Breaking: one rule for `~` and a relative path.** In every place key and
   every file key, `~` and `~/…` are the operator's home from the password
   database, `~user` is refused (`path_other_user_home_unsupported`), and a
