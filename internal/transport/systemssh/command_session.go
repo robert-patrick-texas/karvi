@@ -12,6 +12,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/askpass"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
 // synchronizedBuffer collects bounded OpenSSH diagnostics from stderr while
@@ -116,7 +117,13 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	)...)
 
 	d.debugf("system SSH command session starting binary=%q target=%q address=%q port=%d host_key_policy=%s control_path=disabled", d.binary, d.req.Metadata["canonical_name"], d.req.Address, d.req.Port, d.f.hostKey.Mode)
-	if err := cmd.Start(); err != nil {
+	stderrCopied := make(chan struct{})
+	// Wait closes the stderr pipe, so it runs only after the copy has read
+	// OpenSSH's last diagnostic line; otherwise a failure that ends the
+	// process at once (a failed algorithm negotiation) can be classified from
+	// an empty buffer.
+	waited, err := osutil.StartTied(cmd, func() { <-stderrCopied })
+	if err != nil {
 		cancel()
 		_ = stdin.Close()
 		broker.Close()
@@ -127,19 +134,13 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 	auth := &authFilter{next: diagnostics}
 	done := make(chan struct{})
 	stream := &processStream{cmd: cmd, stdin: stdin, stdout: stdout, stderr: diagnostics, auth: auth, done: done, cancel: cancel, failures: d.sessionFailure()}
-	// Wait closes the stderr pipe, so it runs only after the copy has read
-	// OpenSSH's last diagnostic line; otherwise a failure that ends the
-	// process at once (a failed algorithm negotiation) can be classified from
-	// an empty buffer.
-	stderrCopied := make(chan struct{})
 	go func() {
 		_, _ = io.Copy(auth, stderr)
 		auth.Flush()
 		close(stderrCopied)
 	}()
 	go func() {
-		<-stderrCopied
-		err := cmd.Wait()
+		err := <-waited
 		stream.stateMu.Lock()
 		stream.waitErr = err
 		stream.stateMu.Unlock()

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -192,4 +193,39 @@ func ProcessCommandName(pid int) string {
 	}
 	first, _, _ := strings.Cut(string(b), "\x00")
 	return filepath.Base(first)
+}
+
+// StartTied starts cmd so that it ends when this process dies: the kernel
+// sends it SIGTERM as its parent-death signal. The signal follows the thread
+// that started the child, not the process, so the start and the wait run on
+// one goroutine that holds its OS thread until the child has been waited for.
+// beforeWait, when not nil, runs on that goroutine between the two: a pipe
+// read to its end before Wait closes it. The channel carries Wait's result
+// once. Every OpenSSH and script(1) process karvi starts for a device session
+// is started so, and a killed karvi ends the device's session as a closed
+// connection does.
+func StartTied(cmd *exec.Cmd, beforeWait func()) (<-chan error, error) {
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.Pdeathsig = syscall.SIGTERM
+	started := make(chan error, 1)
+	done := make(chan error, 1)
+	go func() {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		if err := cmd.Start(); err != nil {
+			started <- err
+			return
+		}
+		started <- nil
+		if beforeWait != nil {
+			beforeWait()
+		}
+		done <- cmd.Wait()
+	}()
+	if err := <-started; err != nil {
+		return nil, err
+	}
+	return done, nil
 }

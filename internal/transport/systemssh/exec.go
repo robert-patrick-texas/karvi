@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -213,10 +212,9 @@ type execMaster struct {
 
 // startMaster starts the device's master and returns it with the one-use
 // askpass broker that serves its authentication; the caller closes the
-// broker once the master is ready. The master is started from a goroutine
-// that holds its OS thread until the master ends, since the death signal
-// (SIGTERM, on which OpenSSH removes its socket) follows the thread that
-// started the child.
+// broker once the master is ready. The master is started tied to karvi
+// (osutil.StartTied): its death signal is SIGTERM, on which OpenSSH removes
+// its socket.
 func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 	if err := osutil.CheckControlPathRoot(d.f.ControlRoot); err != nil {
 		return nil, nil, err
@@ -255,36 +253,28 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 		"SSH_ASKPASS_REQUIRE=force",
 		"DISPLAY=karvi:0",
 	)...)
-	m.cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGTERM}
 	stderr, err := m.cmd.StderrPipe()
 	if err != nil {
 		broker.Close()
 		return nil, nil, fmt.Errorf("command_session_stderr_pipe_failed: stderr pipe: %w", err)
 	}
 	d.debugf("system SSH exec master starting binary=%q target=%q address=%q port=%d host_key_policy=%s socket=%s", d.binary, d.req.Metadata["canonical_name"], d.req.Address, d.req.Port, d.f.hostKey.Mode, m.socket)
-	started := make(chan error, 1)
-	go func() {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-		if err := m.cmd.Start(); err != nil {
-			started <- err
-			return
-		}
-		started <- nil
-		// Wait closes the stderr pipe, so it runs once the last line is
-		// read.
+	// Wait closes the stderr pipe, so it runs once the last line is read.
+	waited, err := osutil.StartTied(m.cmd, func() {
 		_, _ = io.Copy(m.lines, stderr)
 		m.lines.end()
-		err := m.cmd.Wait()
+	})
+	if err != nil {
+		broker.Close()
+		return nil, nil, fmt.Errorf("command_session_start_failed: start OpenSSH: %w", err)
+	}
+	go func() {
+		err := <-waited
 		m.mu.Lock()
 		m.waitErr = err
 		m.mu.Unlock()
 		close(m.done)
 	}()
-	if err := <-started; err != nil {
-		broker.Close()
-		return nil, nil, fmt.Errorf("command_session_start_failed: start OpenSSH: %w", err)
-	}
 	return m, broker, nil
 }
 

@@ -306,7 +306,11 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	cmd.Stdout = stdout
 	var diagnostic bytes.Buffer
 	cmd.Stderr = io.MultiWriter(stderr, &diagnostic)
-	if err := cmd.Run(); err != nil {
+	waited, err := osutil.StartTied(cmd, nil)
+	if err == nil {
+		err = <-waited
+	}
+	if err != nil {
 		code, _, _, _ := classify(diagnostic.String(), err)
 		d.debugf("system SSH interactive session failed code=%s diagnostic=%q", code, compactDiagnostic(diagnostic.String()))
 		return fmt.Errorf("%s: %s", code, safeDiagnostic(diagnostic.String(), err))

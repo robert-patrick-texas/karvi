@@ -216,7 +216,13 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	}
 	exit := 0
 	recordingFailed := false
-	if err := cmd.Run(); err != nil {
+	// script(1) ends its own child on SIGTERM, so a killed karvi ends the
+	// recorded session too.
+	waited, err := osutil.StartTied(cmd, nil)
+	if err == nil {
+		err = <-waited
+	}
+	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			exit = exitErr.ExitCode()
