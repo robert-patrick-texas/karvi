@@ -24,7 +24,7 @@ import (
 // TMPDIR, so an askpass or control socket in an operator's folder there
 // stays within the socket path limit however long TMPDIR is, as the release's
 // 145-byte TMPDIR run requires; a test whose configuration reads no
-// environment resolves the auto chain), KARVI__WATCH__DIRECTORY at a
+// environment resolves the auto chain), KARVI__SCOREBOARDS at a
 // scoreboard directory and
 // KARVI__SESSIONS__SHARED_CAPACITY_ROOT at a capacity root of this run,
 // and the
@@ -43,7 +43,7 @@ func Isolate() func() {
 	}
 	osutil.ScratchRoot = scratch
 	made := []string{scratch}
-	for name, pattern := range map[string]string{"KARVI__WATCH__DIRECTORY": "karvi-test-scoreboards-", "KARVI__SESSIONS__SHARED_CAPACITY_ROOT": "karvi-test-capacity-"} {
+	for name, pattern := range map[string]string{"KARVI__SCOREBOARDS": "karvi-test-scoreboards-", "KARVI__SESSIONS__SHARED_CAPACITY_ROOT": "karvi-test-capacity-"} {
 		if os.Getenv(name) != "" {
 			continue
 		}

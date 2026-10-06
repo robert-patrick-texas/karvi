@@ -210,31 +210,23 @@ func modeString(m os.FileMode) string {
 	return fmt.Sprintf("%04o", uint32(bits))
 }
 
-// ErrSharedDirectoryAbsent is MakeSharedDirectory's answer for a directory
-// whose parent is missing: the caller takes its private fallback without a
-// warning, since nothing the site made is wrong.
-var ErrSharedDirectoryAbsent = errorcodes.Errorf("shared_directory_absent", "the shared directory and its parent are absent")
-
 // MakeSharedDirectory prepares a group-shared directory an operator's
-// process writes in (watch.directory, sessions.shared-capacity-root). One
-// that exists is left as it is, for the caller to judge. A missing one is
-// made only when its parent exists: under a parent carrying the setgid
-// bit (the scratch root setup shared makes) with the parent's permission
-// bits set explicitly, so the umask cannot close it to the group;
-// elsewhere at mode under the umask. A missing parent is never made, so an
-// operator never creates the scratch root and closes it to every other
-// (ErrSharedDirectoryAbsent).
+// process writes in (the scoreboards, the capacity ledger). One that exists
+// is left as it is, for the caller to judge. A missing one is made only
+// when its parent exists: under a parent carrying the setgid bit (the
+// scratch root setup shared makes) with the parent's permission bits set
+// explicitly, so the umask cannot close it to the group; elsewhere at mode
+// under the umask. A missing parent is never made (the error is mkdir's
+// own), so an operator never creates the scratch root and closes it to
+// every other.
 func MakeSharedDirectory(path string, mode os.FileMode) error {
 	if _, err := os.Lstat(path); err == nil || !os.IsNotExist(err) {
 		return err
 	}
 	parent := filepath.Dir(path)
 	fi, err := os.Stat(parent)
-	if os.IsNotExist(err) {
-		return ErrSharedDirectoryAbsent
-	}
 	if err != nil {
-		return err
+		return fmt.Errorf("make %s: %w", path, err)
 	}
 	if fi.Mode()&os.ModeSetgid == 0 {
 		if err := os.Mkdir(path, mode); err != nil && !os.IsExist(err) {

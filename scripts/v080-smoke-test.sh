@@ -43,6 +43,7 @@ cat >"$CFG" <<EOF_CFG
 basedir = "$BASE"
 sharedroot = "none"
 spooldir = "$BASE/spool"
+scoreboards = "$SCORE"
 platform-resolution.default = ""
 
 [config]
@@ -54,9 +55,6 @@ system = "$FAKE"
 [audit]
 journald-required = false
 file = "$BASE/audit.jsonl"
-
-[watch]
-directory = "$SCORE"
 
 [sessions]
 shared-capacity-root = "$CAP"

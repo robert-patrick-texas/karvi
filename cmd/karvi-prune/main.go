@@ -68,33 +68,31 @@ func run(args []string, stdout, stderr *os.File) int {
 	if *f.Format != prune.FormatText && *f.Format != prune.FormatJSONL {
 		return usageError("--format takes text or jsonl, not %q", *f.Format)
 	}
-	root := *f.Basedir
-	var siteRoots []string
+	// The private roots walked, each where it exists and nothing made.
+	var roots []string
 	uid := os.Getuid()
 	switch {
-	case root == "auto" && uid == 0:
-		// Root's own basedir holds no operator's jobs (and resolving it
-		// would create one under /root): a root run walks the private roots
-		// the site provisioned under the system roots instead, then the
-		// shared trees (docs/PRUNE.md). A root under
-		// an operator's home is that operator's own run's.
-		root = ""
-		siteRoots = osutil.SiteUserRoots()
-	case root == "auto":
+	case *f.Basedir != "auto":
+		roots = []string{*f.Basedir}
+	case uid == 0:
+		// Root's own basedir holds no operator's jobs: a root run walks the
+		// private roots the site provisioned under the system roots
+		// instead, then the shared trees (docs/PRUNE.md). A root under an
+		// operator's home is that operator's own run's.
+		roots = osutil.SiteUserRoots()
+	default:
+		// Every private root of the operator's, so what a run left under
+		// the home before the site made users is pruned too.
 		op, err := osutil.CurrentOperator()
 		if err != nil {
 			fmt.Fprintln(stderr, "karvi-prune:", err)
 			return 1
 		}
-		root, err = osutil.ResolveBaseDir("auto", op.Home, op.Username)
-		if err != nil {
-			fmt.Fprintln(stderr, "karvi-prune:", err)
-			return 1
-		}
+		roots = osutil.OperatorPrivateRoots(op.Home, op.Username)
 	}
 	// The run removes what the invoking user owns; root removes everything
 	// eligible.
-	opts := prune.Options{UserRoot: root, SiteRoots: siteRoots, SharedRoot: *f.Sharedroot, ScoreboardRoot: *f.Scoreboards, Days: *f.Days, MinFreePercent: *f.MinFree, DryRun: *f.DryRun, Verbose: *f.Verbose, Format: *f.Format, UID: uid}
+	opts := prune.Options{PrivateRoots: roots, SharedRoot: *f.Sharedroot, ScoreboardRoot: *f.Scoreboards, Days: *f.Days, MinFreePercent: *f.MinFree, DryRun: *f.DryRun, Verbose: *f.Verbose, Format: *f.Format, UID: uid}
 	result, err := prune.Run(opts, stdout)
 	if err != nil {
 		fmt.Fprintln(stderr, "karvi-prune:", err)

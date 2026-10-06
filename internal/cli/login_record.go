@@ -170,7 +170,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	// metadata's start record before the child runs, and the child takes it
 	// from the environment. The reservation is released if the child never
 	// writes its first snapshot.
-	sb, err := scoreboard.NewWriter(cfg.String("watch.directory"), filepath.Join(base, "state", "scoreboards"), cfg.Bool("watch.enabled"), func(s string) { fmt.Fprintf(stderr, "warning: %s\n", s) })
+	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { fmt.Fprintf(stderr, "warning: %s\n", s) })
 	if err != nil {
 		return reportError(stderr, "scoreboard_directory_unavailable", err)
 	}

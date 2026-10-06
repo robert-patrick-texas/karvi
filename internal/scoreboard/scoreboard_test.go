@@ -24,7 +24,7 @@ func TestReserveSequencesWithinOneSecond(t *testing.T) {
 	var ids []string
 	var writers []*Writer
 	for i := 0; i < 3; i++ {
-		w, err := NewWriter(dir, "", true, nil)
+		w, err := NewWriter(dir, "", "", true, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -46,7 +46,7 @@ func TestReserveSequencesWithinOneSecond(t *testing.T) {
 		t.Errorf("ids %v, want %v", ids, want)
 	}
 	// The stamp is the effective timezone's wall clock.
-	w, _ := NewWriter(dir, "", true, nil)
+	w, _ := NewWriter(dir, "", "", true, nil)
 	if id, err := w.Reserve(reserveTestNow, time.UTC); err != nil || id != "260927-035612-00" {
 		t.Errorf("UTC: %s %v", id, err)
 	}
@@ -69,7 +69,7 @@ func TestReserveSequencesWithinOneSecond(t *testing.T) {
 // as an activity that writes no files does.
 func TestReserveDisabledGivesTheUnreservedID(t *testing.T) {
 	dir := t.TempDir()
-	w, err := NewWriter(dir, "", false, nil)
+	w, err := NewWriter(dir, "", "", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,11 +88,11 @@ func TestReserveDisabledGivesTheUnreservedID(t *testing.T) {
 func TestReleaseRemovesOnlyAnEmptyReservation(t *testing.T) {
 	dir := t.TempDir()
 	loc := reserveTestNow.Location()
-	empty, _ := NewWriter(dir, "", true, nil)
+	empty, _ := NewWriter(dir, "", "", true, nil)
 	if _, err := empty.Reserve(reserveTestNow, loc); err != nil {
 		t.Fatal(err)
 	}
-	written, _ := NewWriter(dir, "", true, nil)
+	written, _ := NewWriter(dir, "", "", true, nil)
 	id, err := written.Reserve(reserveTestNow, loc)
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func TestReleaseRemovesOnlyAnEmptyReservation(t *testing.T) {
 // recording wrapper, names its file from an ID reserved elsewhere.
 func TestUseNamesTheFileOfAReservedID(t *testing.T) {
 	dir := t.TempDir()
-	w, _ := NewWriter(dir, "", true, nil)
+	w, _ := NewWriter(dir, "", "", true, nil)
 	w.Use("260926-235612-07")
 	if want := filepath.Join(dir, "260926-235612-07.json"); w.Path != want {
 		t.Errorf("path %s, want %s", w.Path, want)

@@ -96,7 +96,7 @@ func completionLab(t *testing.T) string {
 		}
 	}
 	cfg := filepath.Join(dir, "karvi.toml")
-	text := "basedir = \"" + filepath.Join(dir, "base") + "\"\nsharedroot = \"none\"\n[watch]\ndirectory = \"" + score + "\"\n[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \"" + inv + "\"\nrequired = true\nmode = \"header\"\ndelimiter = \",\"\nmandatory-fields = [\"name\", \"platform\"]\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\n[platform.lab_switch]\ndriver = \"cisco_iosxe\"\n"
+	text := "basedir = \"" + filepath.Join(dir, "base") + "\"\nsharedroot = \"none\"\nscoreboards = \"" + score + "\"\n[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \"" + inv + "\"\nrequired = true\nmode = \"header\"\ndelimiter = \",\"\nmandatory-fields = [\"name\", \"platform\"]\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\n[platform.lab_switch]\ndriver = \"cisco_iosxe\"\n"
 	if err := os.WriteFile(cfg, []byte(text), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -113,9 +113,9 @@ func completionLab(t *testing.T) string {
 // and nothing once device text has begun or a positional is taken.
 func TestCompleteCases(t *testing.T) {
 	cfg := completionLab(t)
-	// The test binary's Isolate points KARVI__WATCH__DIRECTORY at a directory
+	// The test binary's Isolate points KARVI__SCOREBOARDS at a directory
 	// of the run, which beats the file; the line's --set beats both.
-	g := []string{"--config", cfg, "--set", "watch.directory=\"" + filepath.Join(filepath.Dir(cfg), "score") + "\""}
+	g := []string{"--config", cfg, "--set", "scoreboards=\"" + filepath.Join(filepath.Dir(cfg), "score") + "\""}
 	for _, tc := range []struct {
 		name    string
 		line    []string
@@ -151,7 +151,7 @@ func TestCompleteCases(t *testing.T) {
 		{name: "job follow ids", line: append(g, "job", "follow"), current: "", want: []string{"260925-101010-00", "260925-090909-00", "--format"}},
 		{name: "job cancel ids", line: append(g, "job", "cancel"), current: "2609", exact: []string{"260925-090909-00", "260925-101010-00"}},
 		{name: "job follow id taken", line: append(g, "job", "follow", "260925-101010-00"), current: "", absent: []string{"260925-090909-00"}, want: []string{"--echo"}},
-		{name: "config show keys", line: []string{"config", "show"}, current: "watch.", want: []string{"watch.directory", "watch.refresh"}},
+		{name: "config show keys", line: []string{"config", "show"}, current: "watch.", want: []string{"watch.enabled", "watch.refresh"}},
 		{name: "config generate file", line: []string{"config", "generate"}, current: "", files: true, exact: []string{"--force", "--full", "--help", "--minimal"}},
 		{name: "path option", line: []string{"--config"}, current: "", files: true, exact: nil},
 		{name: "path option inline", line: []string{"run"}, current: "--cf=", files: true, exact: nil},

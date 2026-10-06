@@ -55,6 +55,7 @@ type completer struct {
 	configs, sets []string
 	cfg           *configload.Snapshot
 	home          string
+	username      string
 	loaded        bool
 }
 
@@ -309,7 +310,7 @@ func (c *completer) config() *configload.Snapshot {
 	if err != nil {
 		return nil
 	}
-	c.cfg, c.home = &cfg, op.Home
+	c.cfg, c.home, c.username = &cfg, op.Home, op.Username
 	return c.cfg
 }
 
@@ -331,15 +332,23 @@ func (c *completer) devices(current string) []string {
 	return completion.Filter(names, current)
 }
 
-// jobs are the job IDs the scoreboard directory holds, running and finished
-// alike, as job follow and job cancel name them; the shell sorts what it
-// shows, so they carry no order of their own.
+// jobs are the job IDs the scoreboards hold, every place `karvi watch`
+// reads, running and finished alike, as job follow and job cancel name
+// them; the shell sorts what it shows, so they carry no order of their own.
 func (c *completer) jobs() []string {
 	cfg := c.config()
 	if cfg == nil {
 		return nil
 	}
-	rows, err := scoreboard.Read(cfg.String("watch.directory"), cfg.Int("watch.max-files"), 0)
+	base, err := osutil.BaseDirPath(cfg.String("basedir"), c.home, c.username)
+	if err != nil {
+		return nil
+	}
+	dirs, err := scoreboard.Directories(cfg.String("scoreboards"), c.home, base)
+	if err != nil {
+		return nil
+	}
+	rows, err := scoreboard.ReadAll(dirs, cfg.Int("watch.max-files"), 0)
 	if err != nil {
 		return nil
 	}

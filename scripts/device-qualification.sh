@@ -162,6 +162,7 @@ write_config() {  # policy, further tables; NAMES (inventory names, default DEVI
 basedir = "$WORK/base"
 sharedroot = "none"
 spooldir = "$WORK/spool"
+scoreboards = "$WORK/base/score"
 [daemon]
 socket = "$SOCK"
 [ssh]
@@ -171,8 +172,6 @@ ${SSH:-}
 [audit]
 journald-required = false
 file = "$WORK/base/audit.jsonl"
-[watch]
-directory = "$WORK/base/score"
 [sessions]
 shared-capacity-root = "$WORK/base/cap"
 [display]

@@ -4,8 +4,9 @@ Documentation=file:/usr/share/doc/karvi/PRUNE.md
 # The site's retention run, as root (docs/PRUNE.md):
 # karvi-prune.timer starts this unit daily. Root removes every eligible item
 # in the private roots the site provisioned under /opt/karvi/users and
-# /var/lib/karvi/users, in the shared trees under /opt/karvi/shared and
-# /var/lib/karvi/shared, and in the scoreboard directory, whoever owns it. A
+# /var/lib/karvi/users (their jobs, transcripts, and state/scoreboards), in
+# the shared trees under /opt/karvi/shared and /var/lib/karvi/shared, and in
+# the shared scoreboards, whoever owns it. A
 # private root under an operator's home is that operator's own
 # karvi-prune.timer's. Install both files under /etc/systemd/system/ and
 # `systemctl enable --now karvi-prune.timer`. Long-term audit retention is

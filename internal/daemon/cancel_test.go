@@ -93,7 +93,7 @@ func TestCancelJobInFlightAccountsEveryUnitCancelled(t *testing.T) {
 	canarytest.SchemaParity(t, "../../schema/job-summary.schema.json", s)
 	// The scoreboard schema declares its top-level keys by name only, so
 	// the parity tool can check the counts block alone.
-	sb := readScoreboard(t, h.f.cfg.String("watch.directory"))
+	sb := readScoreboard(t, h.f.cfg.String("scoreboards"))
 	canarytest.SchemaParityAt(t, "../../schema/scoreboard.schema.json", "#/properties/counts", sb.Counts)
 	if sb.Counts.Cancelled != len(h.devices) {
 		t.Errorf("scoreboard counts %+v", sb.Counts)

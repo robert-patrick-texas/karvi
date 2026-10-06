@@ -264,7 +264,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		warn(w)
 	}
 	debug(fmt.Sprintf("activity=%s activity_id=%s plan_id=%s plan_digest=%s config_digest=%s config_sources=%q", req.ActivityType, id, plan.PlanID, plan.PlanDigest, cfg.Digest, strings.Join(cfg.Sources, ",")))
-	capManager, err := capacity.New(cfg.String("sessions.shared-capacity-root"), filepath.Join(base, "state", "capacity"), id, serverLimit, warn)
+	capManager, err := capacity.New(cfg.String("sessions.shared-capacity-root"), req.Operator.Home, base, id, serverLimit, warn)
 	if err != nil {
 		return FailedResult("shared_capacity_unavailable", err)
 	}
@@ -272,7 +272,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	capManager.PollMax = cfg.Duration("dispatch.admission-poll-max")
 	sampler := metrics.New(id, cfg.Duration("metrics.process-sample-interval"), cfg.Duration("dispatch.wave-cpu-half-life"), cfg.Int("dispatch.wave-cpu-warmup-samples"), cfg.Float("dispatch.wave-cpu-threshold-percent"), cfg.Float("dispatch.wave-cpu-target-zone-percent"))
 	sampler.Start(ctx)
-	scoreboardWriter, err := scoreboard.NewWriter(cfg.String("watch.directory"), filepath.Join(base, "state", "scoreboards"), cfg.Bool("watch.enabled"), warn)
+	scoreboardWriter, err := scoreboard.NewWriter(cfg.String("scoreboards"), req.Operator.Home, base, cfg.Bool("watch.enabled"), warn)
 	if err != nil {
 		return FailedResult("scoreboard_directory_unavailable", err)
 	}

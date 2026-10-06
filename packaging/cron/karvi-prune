@@ -3,7 +3,9 @@
 # "Retention"). Install after reviewing the values: as root, one line prunes
 # the site (the private roots under /opt/karvi/users and /var/lib/karvi/users,
 # the shared trees, the scoreboards); as an operator, the line prunes what
-# that operator owns under their own basedir and in the shared trees:
+# that operator owns under every private root of theirs (the site's
+# users/<user> and the home's ~/.local/share/karvi), in the shared trees,
+# and in the shared scoreboards:
 #
 #   # /etc/cron.d/karvi-prune
 #   17 3 * * *  root    /usr/share/karvi/cron/karvi-prune 2>&1 | logger -t karvi-prune

@@ -8,9 +8,3 @@ transport = "system"
 [audit]
 journald-required = false
 file = "~/.local/share/karvi/audit.jsonl"
-
-[watch]
-directory = "~/.local/share/karvi/scoreboards"
-
-[sessions]
-shared-capacity-root = "~/.local/share/karvi/capacity"

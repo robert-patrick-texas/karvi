@@ -85,7 +85,7 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { store.Close() })
-	capMgr, err := capacity.New("", filepath.Join(dir, "capacity"), plantest.JobID, 4, nil)
+	capMgr, err := capacity.New(filepath.Join(dir, "capacity"), "", "", plantest.JobID, 4, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

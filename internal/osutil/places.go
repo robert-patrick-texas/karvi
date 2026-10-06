@@ -1,6 +1,7 @@
 package osutil
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -256,4 +257,80 @@ func explicitPath(raw, home, key string) (string, error) {
 		return "", err
 	}
 	return p, nil
+}
+
+// ScratchFolder is the chain of a folder of the scratch root that every
+// operator shares, the scoreboards and the capacity ledger: Path the
+// candidate tried first, made in an existing parent (MakeSharedDirectory),
+// "" when the chain has none; Fallback the operator's private folder
+// under basedir, "" for an explicit path, which is used or refused.
+type ScratchFolder struct {
+	Path, Fallback string
+}
+
+// ScratchFolderChoice is that chain for key, whose folder in the scratch
+// root and under <basedir>/state is name: "auto" is <ScratchRoot>/name
+// where the scratch root exists, else <basedir>/state/name; an explicit
+// path (explicitPath) replaces both. It reads the file system and changes
+// nothing: an operator's run never makes the scratch root, so without it
+// the private folder is taken without a word.
+func ScratchFolderChoice(raw, home, key, name, base string) (ScratchFolder, error) {
+	if raw != "" && raw != "auto" {
+		p, err := explicitPath(raw, home, key)
+		return ScratchFolder{Path: p}, err
+	}
+	fallback, err := filepath.Abs(filepath.Join(base, "state", name))
+	if err != nil {
+		return ScratchFolder{}, err
+	}
+	if scratchRootPresent() {
+		return ScratchFolder{Path: filepath.Join(ScratchRoot, name), Fallback: fallback}, nil
+	}
+	return ScratchFolder{Fallback: fallback}, nil
+}
+
+// Place is the chain's twin: the folder the activity would take, judged
+// by judgeDirectory and by judge, the folder's own rule ("" when the
+// folder passes it; nil for none), creating nothing. The shared folder
+// present and passed by is listed with its reason, and the private folder
+// taken; an explicit path passed by is refused with code.
+func (f ScratchFolder) Place(judge func(string) string, code string) (Place, error) {
+	var pl Place
+	if f.Path != "" {
+		present, reason := judgeDirectory(f.Path)
+		if reason == "" && present && judge != nil {
+			reason = judge(f.Path)
+		}
+		if reason == "" {
+			pl.Path = f.Path
+			return pl, nil
+		}
+		if f.Fallback == "" {
+			return pl, errorcodes.Errorf(code, "%s: %s", f.Path, reason)
+		}
+		if present {
+			pl.Passed = append(pl.Passed, Passed{Path: f.Path, Reason: reason})
+		}
+	}
+	pl.Path = f.Fallback
+	return pl, nil
+}
+
+// UsableDirectory is the activity's test of a folder it writes in, once
+// made: a real directory, not a link, that the operator can write and
+// search (access(2)). The error is the bare cause, for the caller's
+// message that names the folder.
+func UsableDirectory(p string) error {
+	fi, err := os.Lstat(p)
+	if err != nil {
+		var pe *os.PathError
+		if errors.As(err, &pe) {
+			return pe.Err
+		}
+		return err
+	}
+	if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
+		return syscall.ENOTDIR
+	}
+	return syscall.Access(p, 0o3) // W_OK|X_OK
 }

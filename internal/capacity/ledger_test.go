@@ -7,10 +7,13 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
 func TestAcquireRelease(t *testing.T) {
-	m, err := New(t.TempDir(), "", "job", 1, nil)
+	m, err := New(t.TempDir(), "", "", "job", 1, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +48,7 @@ func TestLedgerModes(t *testing.T) {
 		if err := os.Chmod(root, c.root); err != nil {
 			t.Fatal(err)
 		}
-		m, err := New(root, "", "job", 4, nil)
+		m, err := New(root, "", "", "job", 4, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -97,7 +100,7 @@ func TestOwnPrivateFilesWidened(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "server.lock"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := New(root, "", "job", 4, nil); err != nil {
+	if _, err := New(root, "", "", "job", 4, nil); err != nil {
 		t.Fatal(err)
 	}
 	fi, err := os.Stat(filepath.Join(root, "server.lock"))
@@ -116,7 +119,7 @@ func TestUnusableRootFallsBack(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root opens every file")
 	}
-	shared := filepath.Join(t.TempDir(), "cap")
+	shared := filepath.Join(t.TempDir(), "capacity")
 	if err := os.Mkdir(shared, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -128,9 +131,10 @@ func TestUnusableRootFallsBack(t *testing.T) {
 	if err := os.Chmod(shared, os.ModeSetgid|0o770); err != nil {
 		t.Fatal(err)
 	}
-	fallback := filepath.Join(t.TempDir(), "private")
+	base := withScratchRoot(t, filepath.Dir(shared))
+	fallback := filepath.Join(base, "state", "capacity")
 	var warned []string
-	m, err := New(shared, fallback, "job", 4, func(s string) { warned = append(warned, s) })
+	m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +160,7 @@ func TestUnreadableLedgerIsAnError(t *testing.T) {
 	if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
 		t.Fatal(err)
 	}
-	m, err := New(root, "", "job", 4, nil)
+	m, err := New(root, "", "", "job", 4, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +207,7 @@ func TestOwnPrivateDirectoryWidened(t *testing.T) {
 	if err := os.Chmod(filepath.Join(root, "devices"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := New(root, "", "job", 4, nil); err != nil {
+	if _, err := New(root, "", "", "job", 4, nil); err != nil {
 		t.Fatal(err)
 	}
 	fi, err := os.Stat(filepath.Join(root, "devices"))
@@ -221,9 +225,10 @@ func TestOwnPrivateDirectoryWidened(t *testing.T) {
 func TestAbsentSharedRootFallsBackQuietly(t *testing.T) {
 	dir := t.TempDir()
 	shared := filepath.Join(dir, "shm", "capacity")
-	fallback := filepath.Join(dir, "private")
+	base := withScratchRoot(t, filepath.Dir(shared))
+	fallback := filepath.Join(base, "state", "capacity")
 	var warned []string
-	m, err := New(shared, fallback, "job", 4, func(s string) { warned = append(warned, s) })
+	m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,5 +237,70 @@ func TestAbsentSharedRootFallsBackQuietly(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Dir(shared)); !os.IsNotExist(err) {
 		t.Fatalf("the scratch root was made: %v", err)
+	}
+}
+
+// withScratchRoot points osutil.ScratchRoot at root for one test and
+// returns a private root whose state folder exists, as an activity's has.
+func withScratchRoot(t *testing.T, root string) string {
+	t.Helper()
+	saved := osutil.ScratchRoot
+	osutil.ScratchRoot = root
+	t.Cleanup(func() { osutil.ScratchRoot = saved })
+	base := t.TempDir()
+	if err := os.Mkdir(filepath.Join(base, "state"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return base
+}
+
+// TestPlaceNamesWhatNewTakes: the twin names, creating nothing, the root
+// New then takes: the scratch root's folder, made in it when missing; the
+// private folder past a shared one closed by another's sticky bit, listed;
+// an explicit path refused when it cannot be used.
+func TestPlaceNamesWhatNewTakes(t *testing.T) {
+	dir := t.TempDir()
+	scratch := filepath.Join(dir, "shm")
+	if err := os.Mkdir(scratch, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	base := withScratchRoot(t, scratch)
+	agree := func(name string, passed int) {
+		t.Helper()
+		pl, err := Place("auto", "", base)
+		if err != nil || len(pl.Passed) != passed {
+			t.Fatalf("%s: place %+v %v", name, pl, err)
+		}
+		m, err := New("auto", "", base, "job", 4, nil)
+		if err != nil || m.Root != pl.Path {
+			t.Fatalf("%s: New took %v %v, the place %s", name, m, err, pl.Path)
+		}
+	}
+	if pl, _ := Place("auto", "", base); pl.Path != filepath.Join(scratch, "capacity") {
+		t.Fatalf("the scratch root's folder: %+v", pl)
+	}
+	if _, err := os.Stat(filepath.Join(scratch, "capacity")); !os.IsNotExist(err) {
+		t.Fatalf("the place was made: %v", err)
+	}
+	agree("absent, made in the root", 0)
+	if os.Geteuid() != 0 {
+		// The operator's own devices folder closed is set right by New.
+		devices := filepath.Join(scratch, "capacity", "devices")
+		if err := os.Chmod(devices, 0o500); err != nil {
+			t.Fatal(err)
+		}
+		agree("own devices closed", 0)
+		root := filepath.Join(scratch, "capacity")
+		if err := os.Chmod(root, 0o500); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chmod(root, 0o700) })
+		agree("root closed", 1)
+		if _, err := New(filepath.Join(scratch, "capacity"), "", base, "job", 4, nil); errorcodes.Of(err) != "capacity_root_unusable" {
+			t.Fatalf("explicit, closed: %v", err)
+		}
+		if _, err := Place(filepath.Join(scratch, "capacity"), "", base); errorcodes.Of(err) != "capacity_root_unusable" {
+			t.Fatalf("explicit, closed, place: %v", err)
+		}
 	}
 }

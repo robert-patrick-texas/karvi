@@ -110,7 +110,7 @@ func (h *heldJob) assertAccounted(t *testing.T, status, code, finalStatus string
 	if cause != "" && (len(s.TerminalCauses) != 1 || s.TerminalCauses[0] != cause || s.Halt.(map[string]any)["run_wide"] != reason) {
 		t.Errorf("summary causes=%v halt=%v, want %s", s.TerminalCauses, s.Halt, cause)
 	}
-	sb := readScoreboard(t, h.f.cfg.String("watch.directory"))
+	sb := readScoreboard(t, h.f.cfg.String("scoreboards"))
 	if sb.Status != finalStatus || sb.Counts.Total != len(h.devices) || sb.Counts.Completed+sb.Counts.NotStarted+sb.Counts.Incomplete+sb.Counts.Cancelled != sb.Counts.Total || sb.Counts.Incomplete != c["incomplete"] || sb.Counts.Cancelled != c["cancelled"] {
 		t.Errorf("scoreboard status=%s counts=%+v", sb.Status, sb.Counts)
 	}

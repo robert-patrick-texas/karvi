@@ -113,7 +113,10 @@ func draftOptions(commands []string) DraftOptions {
 // timeouts; plan schema 11 stays (unreleased).
 // Re-pinned when the plan gained timeouts_ns and max_bytes, each command's
 // own bounds; plan schema 11 stays (unreleased).
-const goldenK03Draft = "be6510ebab5c2df7430b7625b299519ba5849059c6f4c469b4492944388b0adb"
+// Re-pinned when scoreboards replaced watch.directory (registry 26): the
+// configuration digest alone moved (the draft with the previous one sums to
+// the previous pin).
+const goldenK03Draft = "8eb05dde9ceb8aff6c5b885a62b27142366f56f2931f67573b50c745372623bc"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

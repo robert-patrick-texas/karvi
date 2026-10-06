@@ -56,7 +56,7 @@ HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-secret \
   --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
   --set audit.journald-required=false \
   --set "audit.file=\"$BASE/audit.jsonl\"" \
-  --set "watch.directory=\"$TMP/scoreboards\"" \
+  --set "scoreboards=\"$TMP/scoreboards\"" \
   --set "sessions.shared-capacity-root=\"$TMP/capacity\"" \
   --set output.min-free-bytes-after-job=0 \
   run --target 127.0.0.1 --transport system --command true \
@@ -88,7 +88,7 @@ HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-secret \
   --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
   --set audit.journald-required=false \
   --set "audit.file=\"$BASE/audit.jsonl\"" \
-  --set "watch.directory=\"$TMP/scoreboards\"" \
+  --set "scoreboards=\"$TMP/scoreboards\"" \
   --set "sessions.shared-capacity-root=\"$TMP/capacity\"" \
   --set output.min-free-bytes-after-job=0 \
   run --target 127.0.0.1 --transport system --command true \

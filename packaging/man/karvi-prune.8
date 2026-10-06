@@ -63,7 +63,7 @@ counts it and the exit is 1.
 .\" BEGIN GENERATED OPTIONS: tools/mangen from internal/prune; edit there
 .TP
 .BI \-\-basedir " auto|PATH"
-The private root whose jobs and transcripts trees are pruned: auto (the operator's own, as karvi resolves it) or a path.
+The private roots whose jobs, transcripts, and scoreboards are pruned: auto (every root of the operator's that exists; as root, every site user root) or a path, that one alone.
 Default: \fBauto\fP.
 .TP
 .BI \-\-sharedroot " auto|none|PATH"
@@ -71,7 +71,7 @@ The site's shared root whose jobs and transcripts trees are pruned too: auto, no
 Default: \fBauto\fP.
 .TP
 .BI \-\-scoreboards " PATH"
-The scoreboard directory (watch.directory).
+The shared scoreboards, pruned beside each private root's state/scoreboards.
 Default: \fB/dev/shm/karvi/scoreboards\fP.
 .TP
 .BI \-\-days " N"

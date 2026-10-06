@@ -88,6 +88,7 @@ cat >"$TMP/karvi.toml" <<EOF_CFG
 basedir = "$TMP/base"
 sharedroot = "none"
 spooldir = "$TMP/spool"
+scoreboards = "$TMP/base/score"
 platform-resolution.default = ""
 [ssh]
 host-key-policy = "accept-new"
@@ -97,8 +98,6 @@ identities = ["$TMP/key"]
 [audit]
 journald-required = false
 file = "$TMP/base/audit.jsonl"
-[watch]
-directory = "$TMP/base/score"
 [sessions]
 shared-capacity-root = "$TMP/base/cap"
 [display]

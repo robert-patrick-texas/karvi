@@ -96,7 +96,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	// it the same way, so the metadata file and the child's audit and
 	// scoreboard records agree; the wrapper releases it if this process
 	// never writes.
-	sb, err := scoreboard.NewWriter(cfg.String("watch.directory"), filepath.Join(base, "state", "scoreboards"), cfg.Bool("watch.enabled"), func(s string) { warning(streams.Stderr, s) })
+	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { warning(streams.Stderr, s) })
 	if err != nil {
 		return failedResult("scoreboard_directory_unavailable", err)
 	}

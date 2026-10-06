@@ -404,6 +404,26 @@ func SiteUserRoots() []string {
 	return roots
 }
 
+// OperatorPrivateRoots lists every private root of the operator's that
+// exists, making nothing: the site's <root>/users/<username> under each
+// system root, then the home's ~/.local/share/karvi, every place the
+// basedir chain has taken or could take, so a run walks what the
+// operator left in one before the site made another (karvi-prune).
+func OperatorPrivateRoots(home, username string) []string {
+	var candidates []string
+	for _, root := range SystemRoots {
+		candidates = append(candidates, filepath.Join(root, "users", username))
+	}
+	candidates = append(candidates, filepath.Join(home, ".local/share/karvi"))
+	var roots []string
+	for _, p := range candidates {
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			roots = append(roots, p)
+		}
+	}
+	return roots
+}
+
 // SharedTrees are the trees a site shares under a shared root, the ones
 // `karvi setup shared` creates (14.3): the job tree, the collection
 // directory, and the transcript tree.
@@ -413,7 +433,7 @@ var SharedTrees = []string{"jobs", "crun", "transcripts"}
 // the sharedroot setting: "auto" consults SharedRoots in order, "none"
 // consults nothing, and a path consults that root. The first root holding
 // sub is the tree when the operator can create files in it (a probe file,
-// the activity's real test, after sharedTreeChoice's judgement); one the
+// the activity's real test, after SharedTreeChoice's judgement); one the
 // operator cannot write to, or that is not a real directory, is refused
 // with code and a message naming the way out (a site made the tree
 // so the shift's work is in one place, so an operator outside its group is
@@ -421,7 +441,7 @@ var SharedTrees = []string{"jobs", "crun", "transcripts"}
 // false when no root holds it. key names the setting that overrides the
 // default in the message.
 func ResolveSharedTree(shared, sub, key, code string) (path string, ok bool, err error) {
-	p, ok, err := sharedTreeChoice(shared, sub, key, code)
+	p, ok, err := SharedTreeChoice(shared, sub, key, code)
 	if err != nil || !ok {
 		return "", false, err
 	}
@@ -431,9 +451,10 @@ func ResolveSharedTree(shared, sub, key, code string) (path string, ok bool, err
 	return p, true, nil
 }
 
-// sharedTreeChoice is ResolveSharedTree's chooser: it reads the file
-// system and writes nothing, judging a present tree by judgeDirectory.
-func sharedTreeChoice(shared, sub, key, code string) (path string, ok bool, err error) {
+// SharedTreeChoice is ResolveSharedTree's chooser: it reads the file
+// system and writes nothing, judging a present tree by judgeDirectory
+// (karvi-prune's walk, and the trees' twins).
+func SharedTreeChoice(shared, sub, key, code string) (path string, ok bool, err error) {
 	var roots []string
 	switch shared {
 	case "", "auto":
@@ -517,10 +538,10 @@ func CrunDirectoryPlace(raw, shared, base, home string) (string, error) {
 }
 
 // treePlace is resolveTree's twin: a shared tree is judged by permissions
-// and free inodes (sharedTreeChoice), not by a probe file.
+// and free inodes (SharedTreeChoice), not by a probe file.
 func treePlace(raw, shared, base, home, sub, key, code string) (string, error) {
 	if raw == "" || raw == "auto" {
-		if p, ok, err := sharedTreeChoice(shared, sub, key, code); err != nil {
+		if p, ok, err := SharedTreeChoice(shared, sub, key, code); err != nil {
 			return "", err
 		} else if ok {
 			return p, nil

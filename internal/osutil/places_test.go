@@ -288,3 +288,23 @@ func TestDaemonSocket(t *testing.T) {
 		t.Fatalf("guard: %v", err)
 	}
 }
+
+// TestOperatorPrivateRoots: every private root of the operator's that
+// exists, in the chain's order, the home's last; nothing is made.
+func TestOperatorPrivateRoots(t *testing.T) {
+	dir := t.TempDir()
+	withSetupPlaces(t, dir)
+	home := filepath.Join(dir, "home")
+	if got := OperatorPrivateRoots(home, "u"); len(got) != 0 {
+		t.Fatalf("a fresh host: %q", got)
+	}
+	site, xdg := filepath.Join(dir, "opt", "users", "u"), filepath.Join(home, ".local/share/karvi")
+	for _, d := range []string{site, xdg, filepath.Join(dir, "opt", "users", "other")} {
+		if err := os.MkdirAll(d, 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := OperatorPrivateRoots(home, "u"); len(got) != 2 || got[0] != site || got[1] != xdg {
+		t.Fatalf("both: %q", got)
+	}
+}

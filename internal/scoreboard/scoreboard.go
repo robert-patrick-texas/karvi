@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -34,47 +33,83 @@ type Writer struct {
 	mu sync.Mutex
 }
 
-// NewWriter resolves the scoreboard directory: the shared one
-// (osutil.MakeSharedDirectory), or the private fallback, without a word
-// when the shared one and its parent are absent (a host without the
-// scratch root) and with a warning when it exists but cannot be written. A
-// disabled writer (watch.enabled false) resolves nothing and writes nothing.
-func NewWriter(directory, fallback string, enabled bool, warn func(string)) (*Writer, error) {
+// NewWriter resolves the scoreboards (the scoreboards key, raw; home the
+// operator's, base the private root) and makes the folder: under "auto"
+// the scratch root's folder where the scratch root exists, made in it
+// with the root's bits when missing (osutil.MakeSharedDirectory), passed
+// by with one warning when it cannot be used; else, or then, the private
+// <basedir>/state/scoreboards, made 0700. An explicit path is used or
+// refused. A disabled writer (watch.enabled false) resolves nothing and
+// writes nothing.
+func NewWriter(raw, home, base string, enabled bool, warn func(string)) (*Writer, error) {
 	w := &Writer{Enabled: enabled}
 	if !enabled {
 		return w, nil
 	}
-	chosen := directory
-	mode := os.FileMode(0640)
-	err := osutil.MakeSharedDirectory(chosen, 0770)
-	if err == nil {
-		if fi, e := os.Stat(chosen); e == nil && fi.IsDir() {
-			err = syscall.Access(chosen, 0o3) // W_OK|X_OK
-		}
-	}
-	if err != nil {
-		if fallback == "" {
-			return nil, err
-		}
-		if warn != nil && !errors.Is(err, osutil.ErrSharedDirectoryAbsent) {
-			warn(fmt.Sprintf("shared scoreboard directory unavailable (%s: %v); using private fallback %s", chosen, err, fallback))
-		}
-		chosen = fallback
-		mode = 0600
-		if err := os.MkdirAll(chosen, 0700); err != nil {
-			return nil, err
-		}
-	}
-	fi, err := os.Lstat(chosen)
+	f, err := Choice(raw, home, base)
 	if err != nil {
 		return nil, err
 	}
-	if !fi.IsDir() || fi.Mode()&os.ModeSymlink != 0 {
-		return nil, errorcodes.Errorf("scoreboard_root_invalid", "scoreboard path is not a real directory: %s", chosen)
+	if f.Path != "" {
+		err := osutil.MakeSharedDirectory(f.Path, 0770)
+		if err == nil {
+			err = osutil.UsableDirectory(f.Path)
+		}
+		if err == nil {
+			w.Directory, w.Mode = f.Path, 0640
+			return w, nil
+		}
+		if f.Fallback == "" {
+			return nil, errorcodes.Errorf("scoreboard_root_invalid", "the scoreboards %s cannot be used (%v); set scoreboards to a folder the operator can write", f.Path, err)
+		}
+		if warn != nil {
+			warn(fmt.Sprintf("shared scoreboard directory unavailable (%s: %v); using private fallback %s", f.Path, err, f.Fallback))
+		}
 	}
-	w.Directory = chosen
-	w.Mode = mode
+	if err := osutil.MakeDirectories(f.Fallback, 0700); err != nil {
+		return nil, err
+	}
+	if err := osutil.UsableDirectory(f.Fallback); err != nil {
+		return nil, errorcodes.Errorf("scoreboard_root_invalid", "the private scoreboards %s cannot be used: %v", f.Fallback, err)
+	}
+	w.Directory, w.Mode = f.Fallback, 0600
 	return w, nil
+}
+
+// Choice is the scoreboards' chain (osutil.ScratchFolderChoice): the
+// scratch root's folder, then the private one, or an explicit path.
+func Choice(raw, home, base string) (osutil.ScratchFolder, error) {
+	return osutil.ScratchFolderChoice(raw, home, "scoreboards", "scoreboards", base)
+}
+
+// Place is NewWriter's twin: the folder an activity would write its
+// scoreboard in, and the shared folder passed by, creating nothing.
+func Place(raw, home, base string) (osutil.Place, error) {
+	f, err := Choice(raw, home, base)
+	if err != nil {
+		return osutil.Place{}, err
+	}
+	return f.Place(nil, "scoreboard_root_invalid")
+}
+
+// Directories are the folders `karvi watch` reads, making nothing: every
+// place of the chain that exists, the shared folder and the operator's
+// private fallback, or the explicit path alone.
+func Directories(raw, home, base string) ([]string, error) {
+	f, err := Choice(raw, home, base)
+	if err != nil {
+		return nil, err
+	}
+	if f.Fallback == "" {
+		return []string{f.Path}, nil
+	}
+	var dirs []string
+	for _, p := range []string{f.Path, f.Fallback} {
+		if fi, err := os.Stat(p); p != "" && err == nil && fi.IsDir() {
+			dirs = append(dirs, p)
+		}
+	}
+	return dirs, nil
 }
 
 // Use names the file of an activity whose ID was reserved elsewhere, or
@@ -188,6 +223,36 @@ func (w *Writer) Remove() error {
 		return nil
 	}
 	return os.Remove(w.Path)
+}
+
+// ReadAll is Read over every folder of dirs, one row per job: a job found
+// in two (its ID the file's name) is the newer snapshot. Of several
+// folders, one the operator cannot read is passed by, as the shared
+// folder closed to the operator is; a single folder's error is returned.
+func ReadAll(dirs []string, max int, staleAfter time.Duration) ([]Row, error) {
+	byJob := map[string]Row{}
+	for _, dir := range dirs {
+		rows, err := Read(dir, max, staleAfter)
+		if err != nil {
+			if len(dirs) > 1 && os.IsPermission(err) {
+				continue
+			}
+			return nil, err
+		}
+		for _, r := range rows {
+			id := strings.TrimSuffix(filepath.Base(r.Path), ".json")
+			if prior, ok := byJob[id]; ok && !r.Snapshot.LastUpdatedAt.After(prior.Snapshot.LastUpdatedAt) {
+				continue
+			}
+			byJob[id] = r
+		}
+	}
+	rows := make([]Row, 0, len(byJob))
+	for _, r := range byJob {
+		rows = append(rows, r)
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].Snapshot.LastUpdatedAt.After(rows[j].Snapshot.LastUpdatedAt) })
+	return rows, nil
 }
 
 type Row struct {

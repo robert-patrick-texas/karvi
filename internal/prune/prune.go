@@ -24,20 +24,19 @@ import (
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
-// Options are one run's settings. UserRoot is the operator's private root
-// (basedir), whose jobs and transcripts trees are walked; SharedRoot is the
+// Options are one run's settings. PrivateRoots are the private roots whose
+// jobs, transcripts, and state/scoreboards are walked: an operator's run
+// every root of the operator's that exists (osutil.OperatorPrivateRoots),
+// a root run the site's <systemroot>/users/<username> leaves
+// (osutil.SiteUserRoots), or --basedir's one. SharedRoot is the
 // sharedroot setting ("auto" consults osutil.SharedRoots, "none" or empty
 // consults nothing, a path consults that root), whose jobs and transcripts
-// trees are walked too, never its crun directory;
-// ScoreboardRoot is the scoreboard directory. UID is the invoking user:
-// a run removes what that user owns and passes another's by, and a root
-// run (UID 0) removes everything eligible.
+// trees are walked too, never its crun directory; ScoreboardRoot is the
+// shared scoreboards. UID is the invoking user: a run removes what that
+// user owns and passes another's by, and a root run (UID 0) removes
+// everything eligible.
 type Options struct {
-	UserRoot string
-	// SiteRoots are further private roots walked like UserRoot: a root run's
-	// <systemroot>/users/<username> leaves (osutil.SiteUserRoots), where
-	// UserRoot is empty since root's own basedir holds no operator's jobs.
-	SiteRoots      []string
+	PrivateRoots   []string
 	SharedRoot     string
 	ScoreboardRoot string
 	Days           int
@@ -98,11 +97,12 @@ var walkers = []struct {
 	{"transcripts", "transcript", "transcript.root", "transcript_directory_not_writable", transcriptCandidates},
 }
 
-// trees lists the walks of a run: the private root's jobs
+// trees lists the walks of a run: each private root's jobs
 // and transcripts, the shared root's jobs and transcripts where the shared
-// root holds them (the resolution karvi's own writers use), and the
-// scoreboard directory. A shared tree the operator cannot use is reported
-// through out and passed by, as karvi itself would refuse it.
+// root holds them (the choice karvi's own writers make, judged without
+// writing), and the scoreboards, each private root's and the shared
+// folder. A shared tree the operator cannot use is reported through out
+// and passed by, as karvi itself would refuse it. Nothing is made.
 func trees(opts Options, out io.Writer) []tree {
 	var list []tree
 	shared := opts.SharedRoot
@@ -110,13 +110,10 @@ func trees(opts Options, out io.Writer) []tree {
 		shared = "none"
 	}
 	for _, w := range walkers {
-		if opts.UserRoot != "" {
-			list = append(list, tree{filepath.Join(opts.UserRoot, w.sub), w.kind, w.walk})
-		}
-		for _, r := range opts.SiteRoots {
+		for _, r := range opts.PrivateRoots {
 			list = append(list, tree{filepath.Join(r, w.sub), w.kind, w.walk})
 		}
-		p, ok, err := osutil.ResolveSharedTree(shared, w.sub, w.key, w.code)
+		p, ok, err := osutil.SharedTreeChoice(shared, w.sub, w.key, w.code)
 		if err != nil {
 			report(out, opts, "skipped", f("kind", "tree"), f("path", filepath.Join(shared, w.sub)), f("error", err))
 			continue
@@ -125,10 +122,23 @@ func trees(opts Options, out io.Writer) []tree {
 			list = append(list, tree{p, w.kind, w.walk})
 		}
 	}
-	if opts.ScoreboardRoot != "" {
-		list = append(list, tree{opts.ScoreboardRoot, "scoreboard", scoreboardCandidates})
+	for _, r := range scoreboardRoots(opts) {
+		list = append(list, tree{r, "scoreboard", scoreboardCandidates})
 	}
 	return list
+}
+
+// scoreboardRoots are the scoreboards a run walks: state/scoreboards under
+// each private root, then the shared folder.
+func scoreboardRoots(opts Options) []string {
+	var roots []string
+	for _, r := range opts.PrivateRoots {
+		roots = append(roots, filepath.Join(r, "state", "scoreboards"))
+	}
+	if opts.ScoreboardRoot != "" {
+		roots = append(roots, opts.ScoreboardRoot)
+	}
+	return roots
 }
 
 // Run prunes under opts and writes one line per removal, failure, or tree
@@ -382,7 +392,7 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 				skipped++
 				keep(opts, out, "orphan", path, "young")
 				return filepath.SkipDir
-			case snapshotLive(opts.ScoreboardRoot, filepath.Base(path), cutoff):
+			case snapshotLive(scoreboardRoots(opts), filepath.Base(path), cutoff):
 				skipped++
 				keep(opts, out, "orphan", path, "live")
 				return filepath.SkipDir
@@ -532,24 +542,26 @@ func newestTime(root string) time.Time {
 	return newest
 }
 
-// snapshotLive says whether the scoreboard file of activity id names a
-// live job: a non-terminal status last updated after cutoff. A snapshot
+// snapshotLive says whether the scoreboard file of activity id, in any of
+// roots, names a live job: a non-terminal status last updated after cutoff. A snapshot
 // untouched for the retention age is no lease, by the reading the
 // watch screen makes after watch.stale-after; a file that is absent,
 // unreadable, or terminal is not live.
-func snapshotLive(root, id string, cutoff time.Time) bool {
-	if root == "" {
-		return false
+func snapshotLive(roots []string, id string, cutoff time.Time) bool {
+	for _, root := range roots {
+		b, err := os.ReadFile(filepath.Join(root, id+".json"))
+		if err != nil {
+			continue
+		}
+		var s records.ScoreboardSnapshot
+		if json.Unmarshal(b, &s) != nil {
+			continue
+		}
+		if !records.TerminalStatus(s.Status) && !s.LastUpdatedAt.Before(cutoff) {
+			return true
+		}
 	}
-	b, err := os.ReadFile(filepath.Join(root, id+".json"))
-	if err != nil {
-		return false
-	}
-	var s records.ScoreboardSnapshot
-	if json.Unmarshal(b, &s) != nil {
-		return false
-	}
-	return !records.TerminalStatus(s.Status) && !s.LastUpdatedAt.Before(cutoff)
+	return false
 }
 
 func dirSize(root string) int64 {

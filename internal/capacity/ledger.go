@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,29 +39,79 @@ type entry struct {
 	Created                  time.Time
 }
 
-func New(root, fallback, jobID string, limit int, warn func(string)) (*Manager, error) {
+// New resolves the ledger's root (sessions.shared-capacity-root, raw; home
+// the operator's, base the private root) and prepares it: under "auto"
+// the scratch root's capacity folder where the scratch root exists, passed
+// by with one warning when this operator cannot lease in it; else, or
+// then, the private <basedir>/state/capacity. An explicit path is used or
+// refused.
+func New(raw, home, base, jobID string, limit int, warn func(string)) (*Manager, error) {
 	if limit < 1 {
 		limit = 32
 	}
-	m := &Manager{Root: root, JobID: jobID, ServerLimit: limit, PollMin: 50 * time.Millisecond, PollMax: 250 * time.Millisecond, Warn: warn}
+	f, err := Choice(raw, home, base)
+	if err != nil {
+		return nil, err
+	}
+	m := &Manager{Root: f.Path, JobID: jobID, ServerLimit: limit, PollMin: 50 * time.Millisecond, PollMax: 250 * time.Millisecond, Warn: warn}
+	if f.Path != "" {
+		err := m.ensureRoot()
+		if err == nil {
+			return m, nil
+		}
+		if f.Fallback == "" {
+			return nil, errorcodes.Ensure(err, "capacity_root_unusable")
+		}
+		if warn != nil {
+			warn(fmt.Sprintf("shared capacity root unavailable (%v); using private fallback %s", err, f.Fallback))
+		}
+	}
+	m.Root = f.Fallback
 	if err := m.ensureRoot(); err != nil {
-		if fallback == "" {
-			return nil, err
-		}
-		if warn != nil && !errors.Is(err, osutil.ErrSharedDirectoryAbsent) {
-			warn(fmt.Sprintf("shared capacity root unavailable (%v); using private fallback %s", err, fallback))
-		}
-		m.Root = fallback
-		if err := m.ensureRoot(); err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	return m, nil
 }
 
+// Choice is the ledger's chain (osutil.ScratchFolderChoice): the scratch
+// root's capacity folder, then the private one, or an explicit path.
+func Choice(raw, home, base string) (osutil.ScratchFolder, error) {
+	return osutil.ScratchFolderChoice(raw, home, "sessions.shared-capacity-root", "capacity", base)
+}
+
+// Place is New's twin, creating nothing: a present root is judged by the
+// file system's rule and by the ledger's own, the sticky bit on another
+// operator's root and a devices folder closed to the operator.
+func Place(raw, home, base string) (osutil.Place, error) {
+	f, err := Choice(raw, home, base)
+	if err != nil {
+		return osutil.Place{}, err
+	}
+	return f.Place(rootReason, "capacity_root_unusable")
+}
+
+// rootReason is the ledger's own judgement of a present root, the reason
+// it is passed by in ensureRoot's terms, "" when it passes.
+func rootReason(root string) string {
+	fi, err := os.Stat(root)
+	if err != nil {
+		return err.Error()
+	}
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok && fi.Mode()&os.ModeSticky != 0 && int(st.Uid) != os.Geteuid() {
+		return fmt.Sprintf("the sticky bit, owned by uid %d: a ledger another operator wrote could not be replaced", st.Uid)
+	}
+	devices := filepath.Join(root, "devices")
+	if fi, err := os.Stat(devices); err == nil {
+		// ensureDir sets the operator's own devices folder right.
+		if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) != os.Geteuid() && syscall.Access(devices, 0o3) != nil { // W_OK|X_OK
+			return devices + " not writable by the operator"
+		}
+	}
+	return ""
+}
+
 // ensureRoot prepares m.Root and takes its modes: the root is made only in
-// a parent that exists (osutil.MakeSharedDirectory; a host without the
-// scratch root takes the private fallback without a word), its devices
+// a parent that exists (osutil.MakeSharedDirectory), its devices
 // directory is made, and the root must be one this operator can lease in,
 // so a shared root that is present but closed to the operator is said once
 // here and the fallback taken, not met by every device's admission. Under
@@ -78,6 +127,9 @@ func (m *Manager) ensureRoot() error {
 	fi, err := os.Stat(m.Root)
 	if err != nil {
 		return err
+	}
+	if err := syscall.Access(m.Root, 0o3); err != nil { // W_OK|X_OK
+		return errorcodes.Errorf("capacity_root_unusable", "%s: %v; %s", m.Root, err, sharedRootShape)
 	}
 	if st, ok := fi.Sys().(*syscall.Stat_t); ok && fi.Mode()&os.ModeSticky != 0 && int(st.Uid) != os.Geteuid() {
 		return errorcodes.Errorf("capacity_root_unusable", "%s has the sticky bit and is owned by uid %d, not %d: a ledger another operator wrote could not be replaced; %s", m.Root, st.Uid, os.Geteuid(), sharedRootShape)

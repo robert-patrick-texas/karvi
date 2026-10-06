@@ -25,6 +25,15 @@ tempdir = "auto"
 # must cost disk, never memory; a site that wants both on one volume points both keys at
 # explicit paths there. Resolved and swept at the daemon's start and at every job's admission.
 spooldir = "auto"
+# The folder every activity writes its scoreboard in and karvi watch reads. auto is
+# /dev/shm/karvi/scoreboards, every operator's, where the site's scratch root /dev/shm/karvi
+# exists (sudo karvi setup shared makes it, at 3770 in the operators' group; a missing
+# scoreboards is made in the root with its bits), else the private
+# <basedir>/state/scoreboards; a shared folder present but not writable by the operator is
+# passed by for the private one with one warning. karvi watch reads every place of the chain
+# that exists, the shared folder and the private one. A path (~ the operator's home, a
+# relative path from the working directory) replaces the chain, used or refused.
+scoreboards = "auto"
 # The free-space check of every volume an activity writes, read once per volume at admission
 # before any device is contacted: the job's output root, a crun's collection directory,
 # spooldir, and a recorded login's transcripts root, grouped by the device behind each path.
@@ -325,13 +334,15 @@ on-unknown = "fail"
 unknown-fallback = "generic"
 
 [sessions]
-# The capacity ledger every operator on the host shares, made by sudo karvi setup shared at
-# 2770 in the operators' group; its files take the root's group modes. A missing directory is
-# made only inside an existing parent, with a setgid parent's bits. With its parent absent (a
-# host without the scratch root) the private <basedir>/state/capacity is taken without a
-# warning; present but not usable by the operator (the sticky bit on another's directory, a
-# closed directory or lock file), it is taken with one (capacity_root_unusable).
-shared-capacity-root = "/dev/shm/karvi/capacity"
+# The capacity ledger's root. auto is /dev/shm/karvi/capacity, the ledger every operator on
+# the host shares, where the site's scratch root /dev/shm/karvi exists (sudo karvi setup
+# shared makes it, at 2770 in the operators' group; a missing capacity is made in the root
+# with its bits), else the private <basedir>/state/capacity; a shared root present but not
+# usable by the operator (the sticky bit on another's directory, a closed directory or lock
+# file) is passed by for the private one with one warning (capacity_root_unusable). The
+# ledger's files take the root's group modes. A path (~ the operator's home, a relative path
+# from the working directory) replaces the chain, used or refused.
+shared-capacity-root = "auto"
 
 [daemon]
 # Safe per-UID path.
@@ -556,13 +567,6 @@ file-required = false
 [watch]
 # Applies to snapshot writers.
 enabled = true
-# The scoreboard directory every operator's activities write and karvi watch reads, made by
-# sudo karvi setup shared at 3770 in the operators' group. A missing directory is made only
-# inside an existing parent, with a setgid parent's bits. With its parent absent (a host
-# without the scratch root) the private <basedir>/state/scoreboards is taken without a
-# warning, and karvi watch reads it; present but not writable by the operator, it is taken
-# with one.
-directory = "/dev/shm/karvi/scoreboards"
 # 250ms–60s; the screen's refresh, 2s since registry 15.
 refresh = "2s"
 # ≥2× refresh, ≤24h.

@@ -3,8 +3,11 @@ Description=Prune finished karvi artifacts of this operator
 Documentation=file:%h/.local/share/doc/karvi/PRUNE.md
 # The per-operator retention run (docs/PRUNE.md): karvi-prune.timer starts
 # this unit daily. It removes what this
-# operator owns, under the operator's basedir and in the site's shared trees,
-# and passes every other operator's item by. Install both files under
+# operator owns, under every private root of the operator's that exists
+# (/opt/karvi/users/<user>, /var/lib/karvi/users/<user>, and the home's
+# ~/.local/share/karvi: their jobs, transcripts, and state/scoreboards), in
+# the site's shared trees, and in the shared scoreboards, and passes every
+# other operator's item by. Install both files under
 # ~/.config/systemd/user/ and `systemctl --user enable --now
 # karvi-prune.timer`. Long-term audit retention is journald's and the central
 # forwarder's, not this unit's.
@@ -17,9 +20,9 @@ PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
 # The sandbox's writable places: the operator's
-# basedir candidates (the users directory under each system
-# root, the XDG root), the shared directory under each
-# system root, and the scoreboards. The line names the same places
+# private roots (the users directory under each system
+# root, the home's root), the shared directory under each
+# system root, and the shared scoreboards. The line names the same places
 # as ExecStart; a path given to ExecStart is added here. The dash before
 # each path makes an absent one ignored; without it the unit fails to
 # start (226/NAMESPACE).

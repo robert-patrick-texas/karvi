@@ -128,7 +128,7 @@ func TestDayFolderLayout(t *testing.T) {
 	youngMeta := writeTranscript(t, transcripts, "260926", "fake-iosxe-153900", young)
 	legacyMeta := writeTranscript(t, transcripts, "2026-08-17", "fake-iosxe-100000", old)
 
-	lines, res := run(t, Options{UserRoot: base})
+	lines, res := run(t, Options{PrivateRoots: []string{base}})
 	if !has(lines, oldJob) {
 		t.Fatalf("the old job under a YYMMDD folder is not a candidate:\n%s", strings.Join(lines, "\n"))
 	}
@@ -165,7 +165,7 @@ func TestEveryFinalStatus(t *testing.T) {
 		want = append(want, writeJob(t, jobs, "260817", id, status, old), writeScoreboard(t, score, id, status, old))
 	}
 	running := writeScoreboard(t, score, "260926-160000-00", "running", now.Add(-time.Minute))
-	lines, res := run(t, Options{UserRoot: base, ScoreboardRoot: score})
+	lines, res := run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score})
 	for _, p := range want {
 		if !has(lines, p) {
 			t.Fatalf("%s is not a candidate:\n%s", p, strings.Join(lines, "\n"))
@@ -203,7 +203,7 @@ func TestSharedTrees(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lines, res := run(t, Options{UserRoot: base, SharedRoot: shared})
+	lines, res := run(t, Options{PrivateRoots: []string{base}, SharedRoot: shared})
 	for _, p := range []string{private, sharedJob, sharedMeta} {
 		if !has(lines, p) {
 			t.Fatalf("%s is not a candidate:\n%s", p, strings.Join(lines, "\n"))
@@ -213,19 +213,19 @@ func TestSharedTrees(t *testing.T) {
 		t.Fatalf("the crun directory was walked, or the count is off: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 
-	lines, res = run(t, Options{UserRoot: base, SharedRoot: "none"})
+	lines, res = run(t, Options{PrivateRoots: []string{base}, SharedRoot: "none"})
 	if !has(lines, private) || has(lines, sharedJob) || res.Removed != 1 {
 		t.Fatalf("none: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 
 	// A shared root without the trees: passed by, nothing reported.
-	lines, res = run(t, Options{UserRoot: base, SharedRoot: t.TempDir()})
+	lines, res = run(t, Options{PrivateRoots: []string{base}, SharedRoot: t.TempDir()})
 	if res.Removed != 1 || len(lines) != 1 {
 		t.Fatalf("an empty shared root: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 
 	// The private root's trees absent: only the shared root's walk.
-	lines, res = run(t, Options{UserRoot: t.TempDir(), SharedRoot: shared})
+	lines, res = run(t, Options{PrivateRoots: []string{t.TempDir()}, SharedRoot: shared})
 	if has(lines, private) || !has(lines, sharedJob) || res.Removed != 2 {
 		t.Fatalf("no private trees: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
@@ -244,12 +244,12 @@ func TestOwnershipAndFailure(t *testing.T) {
 	c := writeJob(t, jobs, "260817", "260817-153859-02", "halted", old)
 
 	// Another user's run: every folder is somebody else's.
-	lines, res := runAs(t, Options{UserRoot: base}, os.Getuid()+1, true)
+	lines, res := runAs(t, Options{PrivateRoots: []string{base}}, os.Getuid()+1, true)
 	if len(lines) != 1 || lines[0] != "" || res.NotOwned != 3 || res.Removed != 0 {
 		t.Fatalf("another user: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 	// Root's run: all three.
-	lines, res = runAs(t, Options{UserRoot: base}, 0, true)
+	lines, res = runAs(t, Options{PrivateRoots: []string{base}}, 0, true)
 	if res.Removed != 3 || res.NotOwned != 0 {
 		t.Fatalf("root: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
@@ -259,7 +259,7 @@ func TestOwnershipAndFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chmod(b, 0o755) })
-	lines, res = runAs(t, Options{UserRoot: base}, os.Getuid(), false)
+	lines, res = runAs(t, Options{PrivateRoots: []string{base}}, os.Getuid(), false)
 	if res.Removed != 2 || res.Failed != 1 {
 		t.Fatalf("the failed removal: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
@@ -315,7 +315,7 @@ func TestEmptyDayFolders(t *testing.T) {
 	// An old job whose removal empties its day folder in the same pass.
 	emptied := writeJob(t, filepath.Join(base, "jobs"), "260817", "260817-153859-00", "completed", old)
 
-	lines, res := run(t, Options{UserRoot: base, SharedRoot: shared})
+	lines, res := run(t, Options{PrivateRoots: []string{base}, SharedRoot: shared})
 	for _, p := range []string{oldEmpty, oldEmptyT, sharedEmpty, sharedEmptyT} {
 		if !has(lines, p) {
 			t.Fatalf("dry run: %s is not named:\n%s", p, strings.Join(lines, "\n"))
@@ -329,7 +329,7 @@ func TestEmptyDayFolders(t *testing.T) {
 		t.Fatalf("dry run: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 
-	lines, res = runAs(t, Options{UserRoot: base, SharedRoot: shared}, os.Getuid(), false)
+	lines, res = runAs(t, Options{PrivateRoots: []string{base}, SharedRoot: shared}, os.Getuid(), false)
 	for _, p := range []string{oldEmpty, oldEmptyT, sharedEmpty, sharedEmptyT, emptied, filepath.Dir(emptied)} {
 		if _, err := os.Stat(p); !os.IsNotExist(err) {
 			t.Fatalf("%s stayed", p)
@@ -355,7 +355,7 @@ func TestEmptyDayFolders(t *testing.T) {
 
 	// Another user's empty folder is not owned.
 	again := mk(filepath.Join(base, "jobs", "260804"))
-	_, res = runAs(t, Options{UserRoot: base, SharedRoot: "none"}, os.Getuid()+1, true)
+	_, res = runAs(t, Options{PrivateRoots: []string{base}, SharedRoot: "none"}, os.Getuid()+1, true)
 	if res.NotOwned != 1 || res.Removed != 0 {
 		t.Fatalf("another user: %+v", res)
 	}
@@ -406,7 +406,7 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 	}
 	today := orphan("260926", "260926-153859-00", now.Add(-time.Hour)) // the day's own folder: stays
 
-	lines, res := run(t, Options{UserRoot: base, ScoreboardRoot: score})
+	lines, res := run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score})
 	for _, p := range []string{aged, byChoice, cutShort, staleSnap} {
 		if !has(lines, p) {
 			t.Fatalf("%s is not a candidate:\n%s", p, strings.Join(lines, "\n"))
@@ -433,7 +433,7 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 	// Under pressure (a floor no filesystem meets) a young finished job goes
 	// and a young orphan or a young non-terminal snapshot does not.
 	young := writeJob(t, jobs, "260926", "260926-160000-00", "completed", now.Add(-time.Hour))
-	lines, _ = run(t, Options{UserRoot: base, ScoreboardRoot: score, MinFreePercent: 100})
+	lines, _ = run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score, MinFreePercent: 100})
 	if !has(lines, young) {
 		t.Fatalf("pressure did not take the young finished job:\n%s", strings.Join(lines, "\n"))
 	}
@@ -472,7 +472,7 @@ func TestReportForm(t *testing.T) {
 	}
 	liveSnap := writeScoreboard(t, score, "260817-153900-00", "running", now.Add(-time.Minute))
 
-	lines, _ := runAs(t, Options{UserRoot: base, ScoreboardRoot: score, Verbose: true}, os.Getuid(), true)
+	lines, _ := runAs(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score, Verbose: true}, os.Getuid(), true)
 	joined := strings.Join(lines, "\n")
 	for _, want := range []string{
 		"would-remove kind=activity path=" + oldJob + " age=40d bytes=",
@@ -489,12 +489,12 @@ func TestReportForm(t *testing.T) {
 	if strings.Contains(joined, "\x00") || strings.Contains(joined, "bytes_estimated") {
 		t.Fatalf("the old form:\n%s", joined)
 	}
-	lines, _ = runAs(t, Options{UserRoot: base, ScoreboardRoot: score, Verbose: true}, os.Getuid()+1, true)
+	lines, _ = runAs(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score, Verbose: true}, os.Getuid()+1, true)
 	if !strings.Contains(strings.Join(lines, "\n"), "kept kind=activity path="+oldJob+" reason=not-owned") {
 		t.Fatalf("no not-owned line:\n%s", strings.Join(lines, "\n"))
 	}
 	// Without --verbose no kept line.
-	lines, _ = run(t, Options{UserRoot: base, ScoreboardRoot: score})
+	lines, _ = run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score})
 	for _, l := range lines {
 		if strings.HasPrefix(l, "kept ") {
 			t.Fatalf("a kept line without --verbose: %s", l)
@@ -513,7 +513,7 @@ func TestReportJSONL(t *testing.T) {
 	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "completed", old)
 	young := writeJob(t, jobs, "260926", "260926-153859-00", "completed", now.Add(-time.Hour))
 	meta := writeTranscript(t, filepath.Join(base, "transcripts"), "260817", "fake-iosxe-153900", old)
-	opts := Options{UserRoot: base, ScoreboardRoot: score, Verbose: true, Format: FormatJSONL, DryRun: true}
+	opts := Options{PrivateRoots: []string{base}, ScoreboardRoot: score, Verbose: true, Format: FormatJSONL, DryRun: true}
 	lines, result := runAs(t, opts, os.Getuid(), true)
 	var buf strings.Builder
 	Summary(&buf, opts, result)
@@ -567,7 +567,8 @@ func TestReportJSONL(t *testing.T) {
 
 // TestSiteRoots covers the site's roots: a root run walks the site's
 // provisioned private roots in place of its own basedir, then the shared
-// trees; --verbose lists the places walked in sequence.
+// trees, then each root's scoreboards; --verbose lists the places walked
+// in sequence; an old scoreboard under a private root goes.
 func TestSiteRoots(t *testing.T) {
 	site := t.TempDir()
 	shared := t.TempDir()
@@ -580,14 +581,15 @@ func TestSiteRoots(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(shared, "transcripts"), 0o770); err != nil {
 		t.Fatal(err)
 	}
+	b2 := writeScoreboard(t, filepath.Join(u2, "state", "scoreboards"), "260817-153900-00", "completed", old)
 
-	lines, res := runAs(t, Options{SiteRoots: []string{u1, u2}, SharedRoot: shared, Verbose: true}, 0, true)
-	for _, p := range []string{j1, m2, js} {
+	lines, res := runAs(t, Options{PrivateRoots: []string{u1, u2}, SharedRoot: shared, Verbose: true}, 0, true)
+	for _, p := range []string{j1, m2, js, b2} {
 		if !has(lines, p) {
 			t.Fatalf("%s is not a candidate:\n%s", p, strings.Join(lines, "\n"))
 		}
 	}
-	if res.Removed != 3 {
+	if res.Removed != 4 {
 		t.Fatalf("result %+v", res)
 	}
 	var walks []string
@@ -603,6 +605,8 @@ func TestSiteRoots(t *testing.T) {
 		"walk kind=transcript path=" + filepath.Join(u1, "transcripts"),
 		"walk kind=transcript path=" + filepath.Join(u2, "transcripts"),
 		"walk kind=transcript path=" + filepath.Join(shared, "transcripts"),
+		"walk kind=scoreboard path=" + filepath.Join(u1, "state", "scoreboards"),
+		"walk kind=scoreboard path=" + filepath.Join(u2, "state", "scoreboards"),
 	}
 	if strings.Join(walks, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("walks:\n%s\nwant:\n%s", strings.Join(walks, "\n"), strings.Join(want, "\n"))

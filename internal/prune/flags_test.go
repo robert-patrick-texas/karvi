@@ -55,14 +55,17 @@ Usage:
               [--verbose] [--format text|jsonl]
 
 Options:
-  --basedir auto|PATH            The private root whose jobs and transcripts
-                                 trees are pruned: auto (the operator's own, as
-                                 karvi resolves it) or a path (default auto)
+  --basedir auto|PATH            The private roots whose jobs, transcripts, and
+                                 scoreboards are pruned: auto (every root of
+                                 the operator's that exists; as root, every
+                                 site user root) or a path, that one alone
+                                 (default auto)
   --sharedroot auto|none|PATH    The site's shared root whose jobs and
                                  transcripts trees are pruned too: auto, none,
                                  or a path (default auto)
-  --scoreboards PATH             The scoreboard directory (watch.directory)
-                                 (default /dev/shm/karvi/scoreboards)
+  --scoreboards PATH             The shared scoreboards, pruned beside each
+                                 private root's state/scoreboards (default
+                                 /dev/shm/karvi/scoreboards)
   --days N                       The retention age in days, one or more
                                  (default 31)
   --minfree PERCENT              The free-space floor in percent, under which

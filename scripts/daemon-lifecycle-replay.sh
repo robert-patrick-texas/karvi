@@ -21,7 +21,7 @@ NEW=${KARVI:-./bin/karvi-linux-amd64}
 TMP=$(mktemp -d); BASE=$TMP/state; H=$TMP/home
 . ./scripts/lib/host.sh; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 install -d -m 700 "$BASE" "$H"
-A=(--set "basedir=\"$BASE\"" --set "watch.directory=\"$BASE/scoreboards\"" --set audit.journald-required=false)
+A=(--set "basedir=\"$BASE\"" --set "scoreboards=\"$BASE/scoreboards\"" --set audit.journald-required=false)
 # The new executable keeps its trees under the base (sharedroot none) and
 # its spool directory; the prior release
 # does not know the keys.

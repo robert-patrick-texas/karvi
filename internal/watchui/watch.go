@@ -23,6 +23,10 @@ import (
 )
 
 type Options struct {
+	// Directories are the folders read, one row per job across them
+	// (scoreboard.ReadAll); Directory alone when empty. Directory is the
+	// footer's name for them.
+	Directories      []string
 	Directory        string
 	Format           string
 	Theme            string
@@ -69,9 +73,13 @@ func Run(ctx context.Context, opts Options, in io.Reader, out io.Writer) error {
 		return errorcodes.Errorf("watch_json_filter_unsupported", "--filter and --sort do not apply to --format json, which prints every snapshot for the script to filter")
 	}
 	model := &Model{Location: location, Directory: opts.Directory, Refresh: opts.Refresh, Theme: display.EffectiveTheme(opts.Theme), Colors: opts.Colors, Colour: colour, Filter: opts.Filter, SortKey: opts.Sort}
-	// read fills the model from the directory and stamps the reading.
+	dirs := opts.Directories
+	if len(dirs) == 0 {
+		dirs = []string{opts.Directory}
+	}
+	// read fills the model from the folders and stamps the reading.
 	read := func() error {
-		rows, err := scoreboard.Read(opts.Directory, opts.MaxFiles, opts.StaleAfter)
+		rows, err := scoreboard.ReadAll(dirs, opts.MaxFiles, opts.StaleAfter)
 		if err != nil {
 			return err
 		}

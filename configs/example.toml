@@ -15,13 +15,6 @@ transport = "system"
 journald-required = false
 file = "~/.local/share/karvi/audit.jsonl"
 
-[watch]
-# Administrators should provision the shared /dev/shm path in production.
-directory = "~/.local/share/karvi/scoreboards"
-
-[sessions]
-shared-capacity-root = "~/.local/share/karvi/capacity"
-
 [[inventory-source]]
 name = "example-csv"
 type = "csv"

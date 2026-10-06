@@ -156,9 +156,9 @@ type Flags struct {
 // texts, and returns where their values land.
 func DefineFlags(fs *flag.FlagSet) *Flags {
 	return &Flags{
-		Basedir:     fs.String("basedir", "auto", "The private root whose jobs and transcripts trees are pruned: auto (the operator's own, as karvi resolves it) or a path"),
+		Basedir:     fs.String("basedir", "auto", "The private roots whose jobs, transcripts, and scoreboards are pruned: auto (every root of the operator's that exists; as root, every site user root) or a path, that one alone"),
 		Sharedroot:  fs.String("sharedroot", "auto", "The site's shared root whose jobs and transcripts trees are pruned too: auto, none, or a path"),
-		Scoreboards: fs.String("scoreboards", "/dev/shm/karvi/scoreboards", "The scoreboard directory (watch.directory)"),
+		Scoreboards: fs.String("scoreboards", "/dev/shm/karvi/scoreboards", "The shared scoreboards, pruned beside each private root's state/scoreboards"),
 		Days:        fs.Int("days", 31, "The retention age in days, one or more"),
 		MinFree:     fs.Float64("minfree", 5, "The free-space floor in percent, under which the oldest eligible items go before their age; 0 turns pressure off"),
 		DryRun:      fs.Bool("dry-run", false, "Report what would go and remove nothing"),

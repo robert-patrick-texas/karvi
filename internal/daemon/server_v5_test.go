@@ -117,7 +117,7 @@ func newV5FixtureWith(t *testing.T, opts v5Options) *v5Fixture {
 	t.Setenv("PATH", state+string(os.PathListSeparator)+os.Getenv("PATH"))
 	cfg, err := configload.Load(configload.Options{HomeDir: filepath.Join(state, "home"), SkipAuto: true, Environment: []string{}, Sets: append([]string{
 		`basedir="` + filepath.Join(state, "base") + `"`, `ssh.transports.system="` + fake + `"`, `ssh.run.transport="system"`, `ssh.host-key-policy="insecure"`,
-		"audit.journald-required=false", `audit.file="` + filepath.Join(state, "audit.jsonl") + `"`, `watch.directory="` + filepath.Join(state, "sb") + `"`,
+		"audit.journald-required=false", `audit.file="` + filepath.Join(state, "audit.jsonl") + `"`, `scoreboards="` + filepath.Join(state, "sb") + `"`,
 		`sessions.shared-capacity-root="` + filepath.Join(state, "cap") + `"`, "output.min-free-bytes-after-job=0", "name.allow-daemon-resolution=true", "name.address-family-preference=ipv4", "display.color=never",
 	}, opts.Sets...)})
 	if err != nil {

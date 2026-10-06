@@ -114,7 +114,7 @@ func TestExerciseValidatesWithoutDeviceContact(t *testing.T) {
 		t.Fatal("the fake device saw a session")
 	}
 	var sb records.ScoreboardSnapshot
-	entries, _ := filepath.Glob(filepath.Join(f.cfg.String("watch.directory"), "*"))
+	entries, _ := filepath.Glob(filepath.Join(f.cfg.String("scoreboards"), "*"))
 	for _, e := range entries {
 		b, _ := os.ReadFile(e)
 		_ = json.Unmarshal(b, &sb)

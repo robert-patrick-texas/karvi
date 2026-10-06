@@ -14,7 +14,7 @@ import (
 // last_updated_at and elapsed time, from the activity's state now; stop
 // ends the beats, and the activity's final write is the last word.
 func TestHeartbeatRewritesTheSnapshot(t *testing.T) {
-	w, err := NewWriter(t.TempDir(), "", true, nil)
+	w, err := NewWriter(t.TempDir(), "", "", true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,6 +68,6 @@ func TestHeartbeatRewritesTheSnapshot(t *testing.T) {
 		t.Fatalf("after stop: status %s, beats %d then %d", got.Status, beatsAtStop, beats)
 	}
 	// A disabled writer beats nothing and stop is a no-op.
-	off, _ := NewWriter("", "", false, nil)
+	off, _ := NewWriter("", "", "", false, nil)
 	off.Heartbeat(time.Millisecond, func() records.ScoreboardSnapshot { t.Fatal("a disabled writer beat"); return state })()
 }

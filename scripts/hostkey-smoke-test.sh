@@ -63,7 +63,7 @@ common_args() {
     --set "ssh.transports.system=\"$FAKE_SSH\"" \
     --set audit.journald-required=false \
     --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "watch.directory=\"$SCORE\"" \
+    --set "scoreboards=\"$SCORE\"" \
     --set "sessions.shared-capacity-root=\"$CAPACITY\"" \
     --set output.min-free-bytes-after-job=0
 }

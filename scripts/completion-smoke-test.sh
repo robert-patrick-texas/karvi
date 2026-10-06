@@ -27,8 +27,7 @@ cat >"$CFG" <<EOF_CFG
 basedir = "$TMP/state"
 sharedroot = "none"
 spooldir = "$TMP/spool"
-[watch]
-directory = "$TMP/sb"
+scoreboards = "$TMP/sb"
 [[inventory-source]]
 name = "lab"
 type = "csv"

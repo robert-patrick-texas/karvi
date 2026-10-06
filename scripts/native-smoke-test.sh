@@ -61,6 +61,7 @@ write_config() {  # policy, tables (PORT substituted)
 basedir = "$TMP/base"
 sharedroot = "none"
 spooldir = "$TMP/spool"
+scoreboards = "$TMP/base/score"
 [ssh]
 host-key-policy = "$1"
 known-hosts-file = "$KH"
@@ -69,8 +70,6 @@ ${SSH:-}
 [audit]
 journald-required = false
 file = "$TMP/base/audit.jsonl"
-[watch]
-directory = "$TMP/base/score"
 [sessions]
 shared-capacity-root = "$TMP/base/cap"
 [display]

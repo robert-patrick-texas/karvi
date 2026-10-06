@@ -40,7 +40,7 @@ exit 0
 EOF_INNER
 chmod 755 "$FAKE_SSH"
 
-COMMON="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored' '$KARVI' --set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'watch.directory=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
+COMMON="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored' '$KARVI' --set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'scoreboards=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
 
 # recorded NAME EXTRA_GLOBALS LOGIN_ARGS: runs a recorded login under a pty.
 recorded() {

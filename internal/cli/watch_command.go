@@ -3,11 +3,12 @@ package cli
 import (
 	"context"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/internal/watchui"
 )
 
@@ -30,14 +31,22 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if err != nil {
 		return reportError(streams.Stderr, "config_load_failed", app.ConfigLoadError(err))
 	}
-	dir := cfg.String("watch.directory")
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		base, e := osutil.ResolveBaseDir(cfg.String("basedir"), op.Home, op.Username)
-		if e == nil {
-			fallback := filepath.Join(base, "state", "scoreboards")
-			if _, e = os.Stat(fallback); e == nil {
-				dir = fallback
-			}
+	// Every place an activity writes its scoreboard in, making nothing:
+	// the team's shared folder and the operator's private one.
+	base, err := osutil.BaseDirPath(cfg.String("basedir"), op.Home, op.Username)
+	if err != nil {
+		return reportError(streams.Stderr, "base_directory_unavailable", err)
+	}
+	dirs, err := scoreboard.Directories(cfg.String("scoreboards"), op.Home, base)
+	if err != nil {
+		return reportError(streams.Stderr, "watch_render_failed", err)
+	}
+	// The footer names the folders read, or, on a host where no activity
+	// has written one yet, the folder the next would write.
+	label := strings.Join(dirs, ", ")
+	if label == "" {
+		if pl, err := scoreboard.Place(cfg.String("scoreboards"), op.Home, base); err == nil {
+			label = pl.Path
 		}
 	}
 	refresh := inv.Duration(optRefresh)
@@ -62,7 +71,7 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 	for _, role := range []string{"success", "warning", "error", "muted", "accent", "timestamp", "target", "address", "label", "value", "border", "dynamic-border"} {
 		colors[role] = cfg.String("display.colors." + role)
 	}
-	if err := watchui.Run(ctx, watchui.Options{Directory: dir, Format: format, Theme: theme, Color: color, TimestampPattern: cfg.String("display.timestamp"), Timezone: cfg.String("timezone"), Colors: colors, Refresh: refresh, StaleAfter: stale, MaxFiles: cfg.Int("watch.max-files"), Once: once, Filter: inv.String(optWatchFilter), Sort: inv.String(optWatchSort)}, streams.Stdin, streams.Stdout); err != nil {
+	if err := watchui.Run(ctx, watchui.Options{Directories: dirs, Directory: label, Format: format, Theme: theme, Color: color, TimestampPattern: cfg.String("display.timestamp"), Timezone: cfg.String("timezone"), Colors: colors, Refresh: refresh, StaleAfter: stale, MaxFiles: cfg.Int("watch.max-files"), Once: once, Filter: inv.String(optWatchFilter), Sort: inv.String(optWatchSort)}, streams.Stdin, streams.Stdout); err != nil {
 		return reportError(streams.Stderr, "watch_render_failed", err)
 	}
 	return 0

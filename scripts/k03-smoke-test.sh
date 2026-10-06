@@ -32,7 +32,7 @@ EOF
 chmod 755 "$FAKE"
 G=(--set "basedir=\"$TMP/state\"" --set 'sharedroot="none"' --set "spooldir=\"$TMP/state/spool\"" --set 'platform-resolution.default=""' --set "ssh.transports.system=\"$FAKE\""
    --set audit.journald-required=false --set "audit.file=\"$TMP/state/audit.jsonl\""
-   --set "watch.directory=\"$TMP/sb\"" --set "sessions.shared-capacity-root=\"$TMP/cap\""
+   --set "scoreboards=\"$TMP/sb\"" --set "sessions.shared-capacity-root=\"$TMP/cap\""
    --set output.min-free-bytes-after-job=0 --set display.color=never
    --set 'ssh.host-key-policy="insecure"' --set 'ssh.run.transport="system"')
 

@@ -18,17 +18,18 @@ karvi\-watch \- render safe activity scoreboards
 .SH DESCRIPTION
 .\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
 .PP
-The screen shows one row per job from the shared scoreboard directory
-(watch.directory), refreshed every watch.refresh (2s): JOB\-ID, TIME (the
-running duration, then the end time), STATUS, OPERATOR, MODE, DONE as
-done/total, FAIL, ACTV (devices in flight), and TARGET, with a line under
-the headings. Running jobs stand above a rule, finished jobs below it
-newest first; the running rows and the rule stay on the screen while the
-finished rows scroll; ! flags a stale running job, ? an unreadable file.
-Keys: q or Ctrl\-C leave; arrows or j/k select a row, PgUp/PgDn a screen,
-Home/End the ends; Enter opens the detail pane on the selected job and
-Escape closes it; left/right scroll the pane's devices; / filters the rows
-by words, each a case\-insensitive substring that must occur in operator, job
+The screen shows one row per job from the scoreboards (scoreboards: the
+shared folder and the operator's own), refreshed every watch.refresh (2s):
+JOB\-ID, TIME (the running duration, then the end time), STATUS, OPERATOR,
+MODE, DONE as done/total, FAIL, ACTV (devices in flight), and TARGET,
+with a line under the headings. Running jobs stand above a rule, finished
+jobs below it newest first; the running rows and the rule stay on the
+screen while the finished rows scroll; ! flags a stale running job, ? an
+unreadable file. Keys: q or Ctrl\-C leave; arrows or j/k select a row,
+PgUp/PgDn a screen, Home/End the ends; Enter opens the detail pane on the
+selected job and Escape closes it; left/right scroll the pane's
+devices; / filters the rows by words, each a case\-insensitive substring
+that must occur in operator, job
 ID, target, mode, or status (Enter keeps it, Escape clears it); s cycles the sort key in the
 columns' order (time, status, operator, mode, fail, target) within each
 section and S reverses it; t toggles dark and light for this screen; ?
@@ -41,14 +42,17 @@ Specified, not yet available: \-\-all\-retained.
 .SH FILES
 .TP
 .I /dev/shm/karvi/scoreboards
-The scoreboard directory
-.RB ( watch.directory ):
+The shared scoreboards
+.RB ( scoreboards ,
+.BR auto ):
 every operator's jobs write a file there, and the screen reads them all.
 On a host without the scratch root
-.RB ( "sudo karvi setup shared" )
-the operator's private
-.I BASEDIR/state/scoreboards
-is used, and the screen shows that operator's jobs alone.
+.RB ( "sudo karvi setup shared" ),
+or past a shared folder closed to the operator, a job writes the
+operator's private
+.IR BASEDIR/state/scoreboards .
+The screen reads both where they exist, one row per job, and makes
+neither.
 .SH SEE ALSO
 .BR karvi (1),
 .BR karvi\-job (1),

@@ -48,7 +48,7 @@ common_args() {
     --set "ssh.transports.system=\"$FAKE\"" \
     --set audit.journald-required=false \
     --set "audit.file=\"$BASE/audit.jsonl\"" \
-    --set "watch.directory=\"$SCORE\"" \
+    --set "scoreboards=\"$SCORE\"" \
     --set "sessions.shared-capacity-root=\"$CAP\"" \
     --set output.min-free-bytes-after-job=0
 }

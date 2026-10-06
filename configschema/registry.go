@@ -13,10 +13,10 @@ import (
 )
 
 // RegistrySchemaVersion moves once per release whose keys or table fields
-// change: 25 takes the platform table's channel in place of control-master,
-// its fallback, and ssh.identities in place of ssh.pubkey-authentication.
+// change: 26 takes the top-level scoreboards in place of watch.directory,
+// and sessions.shared-capacity-root's default auto.
 const (
-	RegistrySchemaVersion = 25
+	RegistrySchemaVersion = 26
 	ConfigSchemaVersion   = 6
 )
 

@@ -58,8 +58,7 @@ func TestScratchRootNeverCreated(t *testing.T) {
 	}
 }
 
-// TestMakeSharedDirectory: a missing parent is never made
-// (ErrSharedDirectoryAbsent); under a setgid parent the directory takes the
+// TestMakeSharedDirectory: a missing parent is never made; under a setgid parent the directory takes the
 // parent's bits and the setgid bit whatever the umask; under a plain parent
 // the mode under the umask; one that exists is left as it is.
 func TestMakeSharedDirectory(t *testing.T) {
@@ -68,7 +67,7 @@ func TestMakeSharedDirectory(t *testing.T) {
 	dir := t.TempDir()
 
 	absent := filepath.Join(dir, "shm", "scoreboards")
-	if err := MakeSharedDirectory(absent, 0o770); !errors.Is(err, ErrSharedDirectoryAbsent) {
+	if err := MakeSharedDirectory(absent, 0o770); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("absent parent: %v", err)
 	}
 	if _, err := os.Stat(filepath.Dir(absent)); !os.IsNotExist(err) {
