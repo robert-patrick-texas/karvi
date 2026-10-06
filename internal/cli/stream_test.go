@@ -104,12 +104,15 @@ func TestStreamLoopEndsOnEOFAndCancel(t *testing.T) {
 	}
 }
 
-// TestStreamLoopCommandOptionsAndClear: --cmd, --command, --c, and --cf
-// lines are commands, cleared by --go like a bare line; --clear empties the
-// commands and keeps the options; --go and --sendit with nothing to send
-// are skipped with a notice; --cf, --tf, and --tfr naming - are refused in
-// every spelling; a command line loses its trailing blanks.
-func TestStreamLoopCommandOptionsAndClear(t *testing.T) {
+// TestStreamLoopKeptCommandsAndPurges: a command given in option form
+// (--cmd and its aliases, --cf) stays in the draft after --go, --sendit, and
+// --clear, in its order, with the declarations after it, while a bare line
+// and its declarations clear; --purge-commands empties every command and
+// --purge-targets every target input, each by a prefix from --purge-c and
+// --purge-t, one dash or two; --purge and --purge- are refused as naming
+// both; --go with no command left prints a notice; --cf, --tf, and --tfr
+// naming - are refused in every spelling; --exit leaves as --end does.
+func TestStreamLoopKeptCommandsAndPurges(t *testing.T) {
 	var runs [][]string
 	execute := func(_ int, argv []string) int {
 		runs = append(runs, append([]string{}, argv...))
@@ -118,41 +121,148 @@ func TestStreamLoopCommandOptionsAndClear(t *testing.T) {
 	var stderr bytes.Buffer
 	in := strings.Join([]string{
 		"--target r1",
+		"--tl r2,r3",
+		"--dispatch parallel",
 		"--cmd show clock",
-		"--command show version",
-		"--c show ip interface brief",
-		"--cf=/tmp/commands.txt",
-		"--go",
 		"show run  \t",
+		"--expect confirm=y",
+		"-c reload",
+		"--expect confirm=y",
+		"--go",
+		"show ip route",
+		"--sendit",
+		"show arp",
 		"--clear",
 		"--go",
-		"--sendit",
+		"--purge-t",
+		"--target r4",
+		"--purge-commands",
+		"--go",
+		"--cf=/tmp/commands.txt",
+		"-sendit",
+		"--purge",
+		"-purge-",
+		"--purge-co",
+		"--go",
 		"--tf=-",
 		"--cf -",
 		"--tfr -",
 		"show clock",
+		"--purge-targ",
 		"--go",
 		"--reset",
 		"--go",
-		"--end",
+		"--exit",
+		"--target never",
+		"--go",
 	}, "\n") + "\n"
 	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute); got != exitcode.ExitPartialFailure {
 		t.Errorf("exit %d", got)
 	}
+	targets := []string{"--target", "r1", "--tl", "r2,r3", "--dispatch", "parallel"}
 	want := [][]string{
-		{"run", "--target", "r1", "--cmd", "show clock", "--command", "show version", "--c", "show ip interface brief", "--cf=/tmp/commands.txt"},
-		{"run", "--target", "r1", "--cmd", "show clock"},
+		append(append([]string{"run"}, targets...), "--cmd", "show clock", "--cmd", "show run", "--expect", "confirm=y", "-c", "reload", "--expect", "confirm=y"),
+		append(append([]string{"run"}, targets...), "--cmd", "show clock", "-c", "reload", "--expect", "confirm=y", "--cmd", "show ip route"),
+		append(append([]string{"run"}, targets...), "--cmd", "show clock", "-c", "reload", "--expect", "confirm=y"),
+		{"run", "--dispatch", "parallel", "--target", "r4", "--cf=/tmp/commands.txt"},
+		{"run", "--dispatch", "parallel", "--cmd", "show clock"},
 	}
 	if !reflect.DeepEqual(runs, want) {
 		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
 	}
-	wantErr := "stream line 9: nothing to send\nstream line 10: nothing to send\n" +
-		"stream line 11: standard input is the stream; --tf - is not accepted\n" +
-		"stream line 12: standard input is the stream; --cf - is not accepted\n" +
-		"stream line 13: standard input is the stream; --tfr - is not accepted\n" +
-		"stream line 17: nothing to send\n"
+	wantErr := "stream line 18: nothing to send\n" +
+		"stream line 21 dropped: cli_option_ambiguous: --purge is ambiguous in stream: --purge-commands, --purge-targets\n" +
+		"stream line 22 dropped: cli_option_ambiguous: --purge- is ambiguous in stream: --purge-commands, --purge-targets\n" +
+		"stream line 24: nothing to send\n" +
+		"stream line 25: standard input is the stream; --tf - is not accepted\n" +
+		"stream line 26: standard input is the stream; --cf - is not accepted\n" +
+		"stream line 27: standard input is the stream; --tfr - is not accepted\n" +
+		"stream line 32: nothing to send\n"
 	if stderr.String() != wantErr {
 		t.Errorf("stderr:\n%s\nwant:\n%s", stderr.String(), wantErr)
+	}
+}
+
+// TestStreamLoopSingleDashAndQuotes: a line beginning with one dash is an
+// option line as one beginning with two is, the command options and the
+// directives among them (-go leaving the option-form commands, -clear
+// finding no bare one), and a - alone is a command; a command that begins
+// with a dash goes as --cmd's value; an option's value wholly wrapped in one
+// pair of quotes loses them, and every other quote is sent as written, a
+// bare line's among them; a one-dash word run does not know is dropped, and
+// so is a line that would begin run's freeform command text (a - or -- word
+// with text after it, -- alone, a flag given text after a space), which
+// would otherwise take every command after it.
+func TestStreamLoopSingleDashAndQuotes(t *testing.T) {
+	var runs [][]string
+	execute := func(_ int, argv []string) int {
+		runs = append(runs, append([]string{}, argv...))
+		return exitcode.ExitSuccess
+	}
+	var stderr bytes.Buffer
+	in := strings.Join([]string{
+		"-target r1",
+		`--target "r2"`,
+		"-c show clock",
+		"-cmd show version",
+		"-command show ip route",
+		"-",
+		"--cmd -foo bar",
+		"--cmd=-baz",
+		`--cmd "show clock"`,
+		`--cmd 'show clock'`,
+		`-c="show clock"`,
+		`"show clock"`,
+		`echo "a  b"`,
+		`--cmd echo "a  b"`,
+		`--cmd "show clock`,
+		`--cmd "a" "b"`,
+		"- foo",
+		"-typo",
+		"-- foo",
+		"--",
+		"--no-daemon yes",
+		"-go",
+		"-c x",
+		"-clear",
+		"-go",
+		"-reset",
+		"-c y",
+		"-sendit",
+		"-quit",
+		"-target never",
+		"-go",
+	}, "\n") + "\n"
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute); got != exitcode.ExitSuccess {
+		t.Errorf("exit %d", got)
+	}
+	want := [][]string{
+		{"run", "-target", "r1", "--target", "r2",
+			"-c", "show clock", "-cmd", "show version", "-command", "show ip route", "--cmd", "-",
+			"--cmd", "-foo bar", "--cmd=-baz", "--cmd", "show clock", "--cmd", "show clock", "-c=show clock",
+			"--cmd", `"show clock"`, "--cmd", `echo "a  b"`, "--cmd", `echo "a  b"`, "--cmd", `"show clock`, "--cmd", `"a" "b"`},
+		{"run", "-target", "r1", "--target", "r2",
+			"-c", "show clock", "-cmd", "show version", "-command", "show ip route",
+			"--cmd", "-foo bar", "--cmd=-baz", "--cmd", "show clock", "--cmd", "show clock", "-c=show clock",
+			"--cmd", `echo "a  b"`, "--cmd", `"show clock`, "--cmd", `"a" "b"`, "-c", "x"},
+		{"run", "-c", "y"},
+	}
+	if !reflect.DeepEqual(runs, want) {
+		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
+	}
+	for _, m := range []string{
+		`stream line 17 dropped: cli_positional_unexpected: "- foo" leaves text no option takes`,
+		"stream line 18 dropped: cli_option_unknown: unknown option -typo in run",
+		`stream line 19 dropped: cli_positional_unexpected: "-- foo" leaves text no option takes`,
+		`stream line 20 dropped: cli_positional_unexpected: "--" leaves text no option takes`,
+		`stream line 21 dropped: cli_positional_unexpected: "--no-daemon yes" leaves text no option takes`,
+	} {
+		if !strings.Contains(stderr.String(), m) {
+			t.Errorf("stderr lacks %q:\n%s", m, stderr.String())
+		}
+	}
+	if strings.Count(stderr.String(), "\n") != 5 {
+		t.Errorf("stderr has lines beyond the five reports:\n%s", stderr.String())
 	}
 }
 
@@ -178,7 +288,11 @@ func TestStreamLoopReadFailure(t *testing.T) {
 // table (the declarations, --cmd and its aliases, --cf, by prefix too); the
 // standard-input value named for --cf, --tf, and --tfr in either spelling;
 // a word the table does not resolve is an option line for the probe; an
-// option whose value attaches with = alone refuses text after a space.
+// option whose value attaches with = alone refuses text after a space; one
+// dash as two; a value wholly wrapped in one pair of quotes loses them, in
+// either spelling and before the standard-input and detached checks, and a
+// value with other quotes, or an unmatched or empty pair, keeps them as
+// written (an empty pair is an empty value).
 func TestStreamOptionArgs(t *testing.T) {
 	for _, tc := range []struct {
 		line        string
@@ -212,8 +326,27 @@ func TestStreamOptionArgs(t *testing.T) {
 		{"--of=/tmp/a b", []string{"--of=/tmp/a b"}, false, "", ""},
 		{"--of /tmp/x", []string{"--of", "/tmp/x"}, false, "", "cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x"},
 		{"--of out", []string{"--of", "out"}, false, "", "cli_option_value_detached: --of takes its PATH with =: --of=out"},
+		{"-c show clock", []string{"-c", "show clock"}, true, "", ""},
+		{"-command=show clock", []string{"-command=show clock"}, true, "", ""},
+		{"-target r1", []string{"-target", "r1"}, false, "", ""},
+		{`--cmd "show clock"`, []string{"--cmd", "show clock"}, true, "", ""},
+		{`--cmd 'show clock'`, []string{"--cmd", "show clock"}, true, "", ""},
+		{`--cmd="show clock"`, []string{"--cmd=show clock"}, true, "", ""},
+		{`--cmd '"x"'`, []string{"--cmd", `"x"`}, true, "", ""},
+		{`--cmd ""`, []string{"--cmd", ""}, true, "", ""},
+		{`--cmd "`, []string{"--cmd", `"`}, true, "", ""},
+		{`--cmd "a" "b"`, []string{"--cmd", `"a" "b"`}, true, "", ""},
+		{`--cmd "show clock'`, []string{"--cmd", `"show clock'`}, true, "", ""},
+		{`--cmd echo "a b"`, []string{"--cmd", `echo "a b"`}, true, "", ""},
+		{`--expect "confirm=y"`, []string{"--expect", "confirm=y"}, true, "", ""},
+		{`--expect="a=b"`, []string{"--expect=a=b"}, true, "", ""},
+		{`--cf "-"`, []string{"--cf", "-"}, true, "--cf", ""},
+		{`--tf='-'`, []string{"--tf=-"}, false, "--tf", ""},
+		{`--of "/tmp/x"`, []string{"--of", "/tmp/x"}, false, "", "cli_option_value_detached: --of takes its PATH with =: --of=/tmp/x"},
+		{`--of="/tmp/a b"`, []string{"--of=/tmp/a b"}, false, "", ""},
 	} {
-		args, commandPart, stdinOption, detached := streamOptionArgs(tc.line)
+		args, role, stdinOption, detached := streamOptionArgs(tc.line)
+		commandPart := streamCommandRole(role)
 		if !reflect.DeepEqual(args, tc.args) || commandPart != tc.commandPart || stdinOption != tc.stdinOption {
 			t.Errorf("%q: %q %v %q, want %q %v %q", tc.line, args, commandPart, stdinOption, tc.args, tc.commandPart, tc.stdinOption)
 		}

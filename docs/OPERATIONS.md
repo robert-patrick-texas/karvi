@@ -1133,27 +1133,46 @@ a session: set the targets once, then send batches of commands, each
 or a heredoc it drives several jobs through one karvi. The rules:
 
 - A line is skipped when blank or when its first character is `!` or
-  `#`. A line beginning with `--` is one run option: the word, then its
-  value as the rest of the line after a space or `=`, so `--target
-  router1`, `--target=router1`, `--tl router1 router2`, `--dispatch
-  parallel`, `--dp`, `--format jsonl`, `--no-daemon`. Any other line is
-  one command, sent as written; `\r` at its end is read as `--cmd` reads
-  it, and a line of `\r` alone sends a blank line. The draft has two
-  parts: the targets and options, which stay from one job to the next,
-  and the commands, which are the job's. A `--cmd`, `--command`, or
-  `--cf` line is a command like a bare line, and `--expect`, `--blind`,
-  and `--blind-return` lines attach to the command before them; the
-  option words mean what they mean on a `run` command line, abbreviations
-  and the `=` spelling included. An option whose value attaches with
-  `=` alone takes it that way here too: a line `--of /tmp/x` is dropped
-  with its number as `cli_option_value_detached`, and `--of=/tmp/x` is
-  the line.
-- `--go` or `--sendit` executes the draft; the targets and options stay,
-  the commands clear; with no command to send it prints a notice and runs
-  nothing. `--clear` empties the commands and keeps the targets and
-  options. `--reset` empties the draft. `--end`, `--quit`, the input's
-  end (Ctrl-D), or Ctrl-C leave without executing, and a Ctrl-C outranks
-  lines already read. Only `--go` and `--sendit` execute.
+  `#`. A line beginning with a dash and one more character is one run
+  option, one dash or two alike, as on a `run` command line: the word,
+  then its value as the rest of the line after a space or `=`, so
+  `--target router1`, `-target=router1`, `--tl router1 router2`,
+  `--dispatch parallel`, `--dp`, `--format jsonl`, `--no-daemon`. A
+  value wholly wrapped in one pair of quotes, double or single, loses
+  them as a shell would remove them: `--cmd "show clock"` sends `show
+  clock`, and `--target 'router1'` names `router1`. Every other quote is
+  sent as written: `--cmd echo "a  b"` keeps its quotes, and `--cmd
+  '"x"'` sends `"x"`. Any other line is one command, sent as written,
+  quotes and all, a `-` alone among them; `\r` at its end is read as
+  `--cmd` reads it, and a line of `\r` alone sends a blank line. A
+  command that begins with a dash goes as `--cmd`'s value: `--cmd -v` or
+  `--cmd=-v`.
+- The draft has two parts. The targets, the options, and the commands
+  given in option form (`--cmd`, `-c`, `--command`, `--cf`, any
+  spelling) stay from one job to the next; a command given as a bare
+  line is the job's alone. `--expect`, `--blind`, and `--blind-return`
+  lines attach to the command before them and stay or clear with it. The
+  option words mean what they mean on a `run` command line,
+  abbreviations and the `=` spelling included. An option whose value
+  attaches with `=` alone takes it that way here too: a line `--of
+  /tmp/x` is dropped with its number as `cli_option_value_detached`, and
+  `--of=/tmp/x` is the line. A line that would leave text no option
+  takes is dropped as `cli_positional_unexpected`: `--no-daemon yes`,
+  `-- foo`, or `- foo`, which `run` would read as freeform command text
+  taking every command after it.
+- The directives are whole lines, one dash or two alike. `--go` or
+  `--sendit` executes the draft; the bare-line commands clear and
+  everything else stays, so a command given as `--cmd show clock` is
+  sent by every later job; with no command left to send it prints a
+  notice and runs nothing. `--clear` empties the bare-line commands and
+  keeps the rest. `--purge-commands` (any prefix from `--purge-c`)
+  empties every command; `--purge-targets` (from `--purge-t`) removes
+  every target input (`--target`, `--tl`, `--tf`, `--tfr`, `--site`,
+  `--device-group`, `--all`, `--select-platform`) and keeps the other
+  options; `--purge` alone names both and is refused. `--reset` empties
+  the draft. `--end`, `--quit`, `--exit`, the input's end (Ctrl-D), or
+  Ctrl-C leave without executing, and a Ctrl-C outranks lines already
+  read. Only `--go` and `--sendit` execute.
 - Typed at a terminal, a line is edited before Enter sends it: Backspace
   (DEL or Ctrl-H) and the Delete key to erase, Ctrl-A and Ctrl-E to the
   line's ends, Ctrl-K, Ctrl-U, and Ctrl-W to cut, the left and right

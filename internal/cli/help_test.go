@@ -72,6 +72,9 @@ func TestHelpMatchesParserTable(t *testing.T) {
 		for d := range streamDirectives {
 			g.allowed[d] = true
 		}
+		for _, p := range streamPurges {
+			g.allowed[p.word], g.allowed[p.least] = true, true
+		}
 		for _, o := range globalOptionTable { // named as going before the word
 			g.allowed[o.name] = true
 		}

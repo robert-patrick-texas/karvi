@@ -188,6 +188,27 @@
   hand against one server of each kind: the server's SSH, the exec records on
   four streams, `sudo -n`, a command given up and what it left, the collection,
   and `linux_shell`.
+- **Stream mode: one dash or two, quotes, and the commands that stay.** A line
+  beginning with a dash and one more character is a run option with one dash or
+  two alike, as on a `run` command line: `-c show clock`, `-target r1`, and
+  `-go` mean what `--cmd`, `--target`, and `--go` mean, where a one-dash line
+  had been sent to the devices as a command (`-` alone still is one). An
+  option's value wholly wrapped in one pair of quotes loses them as a shell
+  would remove them (`--cmd "show clock"`, `--target 'r1'`), where the quotes
+  had reached the command or the target's name; every other quote, and every
+  quote on a bare line, is sent as written. A command given in option form
+  (`--cmd` and its aliases, `--cf`) now stays in the draft after `--go`,
+  `--sendit`, and `--clear`, with its declarations, and is sent by every later
+  job; a bare line is sent once. `--purge-commands` (from `--purge-c`) empties
+  every command and `--purge-targets` (from `--purge-t`) every target input;
+  `--purge` alone is refused as `cli_option_ambiguous`. `--exit` leaves as
+  `--end` and `--quit` do.
+- **Stream mode: a line no longer swallows the commands after it.** A flag given
+  text after a space (`--no-daemon yes`), or a `--` line (`-- foo`), put text no
+  option takes into the draft, which `run` read as freeform command text: every
+  later command line joined it, and the job sent the one line `yes --cmd …` to
+  its targets. Such a line is now dropped with its number as
+  `cli_positional_unexpected`, the draft standing.
 
 ## 0.26.0 - 2026-10-04
 

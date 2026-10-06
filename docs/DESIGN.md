@@ -154,32 +154,44 @@ verb rather than a 44th option, and one shared slice means a new `run` option
 reaches `crun` by construction. *Not taken:* `run --collect`; a new activity
 type.
 
-**Stream mode.** `karvi stream` (alias `karvi -`) reads standard input line
-by line: a `--` line is one run option, any other line is one command sent as
-written, blank and `!`/`#` lines are skipped. The draft has two parts: the
-targets and options, which stay from one job to the next, and the commands,
-which are the job's; an option line's word is resolved through run's own
-table, so `--cmd`, `--command`, `--cf`, and the `--expect`/`--blind`/
-`--blind-return` declarations belong to the commands, an abbreviation or an
-`=` spelling means what it means on a command line, and an `=` value runs to
-the end of the line. `--go` (or `--sendit`) executes the draft as `run` would
-and clears the commands, with a notice and no job when there is nothing to
-send; `--clear` empties the commands alone; `--reset` empties the draft;
-`--end`, `--quit`, EOF, or Ctrl-C leave, a Ctrl-C outranking lines already
-read. A bad line is reported with its number and dropped, the draft
-standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any spelling, since
-standard input is the stream; a read failure or a line over 1 MiB ends the
-stream with `stream_input_read_failed`. The exit is the last job's, 0 when
-none ran. `--cd` and `--fs` are option lines of the part that stays: `--go`
-and `--clear` keep them, `--reset` removes them, a later line replaces the
-value (the last spelling wins), and `--cd=.` is the stream's working directory;
-one file per device per directory means a later job to a device replaces the
-earlier job's file, which `--fs` keeps apart (`--fs=.ver`, then `--fs=.run`).
-An `=`-only option line takes its value with `=` alone, text after a space
-refused when the line is read; the value checks of `--cd` and `--fs` run when
-the line is read too, so a bad line is dropped with its number and the draft
-stands; at `--go`, a draft with `--fs` and no `--cd` takes the stream's working
-directory.
+**Stream mode.** `karvi stream` (alias `karvi -`) reads standard input line by
+line: a line beginning with a dash and one more character is one run option, one
+dash or two alike as on run's command line; any other line, a `-` alone among
+them, is one command sent as written, quotes and all; blank and `!`/`#` lines
+are skipped. The draft has two parts: the part that stays from one job to the
+next, the targets, the options, and the commands given in option form, and the
+commands given as bare lines, which are the job's. An option line's word is
+resolved through run's own table, so `--cmd` and its aliases, `--cf`, and the
+`--expect`/`--blind`/`--blind-return` declarations belong to the commands, each
+declaration with the command before it, an abbreviation or an `=` spelling means
+what it means on a command line, and an `=` value runs to the end of the line. A
+value wholly wrapped in one pair of quotes, double or single, with no other of
+that quote inside, loses them as a shell would remove them; every other quote is
+sent as written. A line leaving text no option takes (`- foo`, `-- foo`,
+`--no-daemon yes`), which `run` would read as freeform command text taking every
+command after it, is dropped as `cli_positional_unexpected`. The directives are
+whole lines, one dash or two alike: `--go` (or `--sendit`) executes the draft as
+`run` would and clears the bare-line commands, with a notice and no job when no
+command is left to send; `--clear` clears them alone; `--purge-commands` (from
+`--purge-c`) empties every command; `--purge-targets` (from `--purge-t`) removes
+every target input run's table marks (`--target`, `--tl`, `--tf`, `--tfr`,
+`--site`, `--device-group`, `--all`, `--select-platform`); `--purge` or
+`--purge-`, naming both, is refused as `cli_option_ambiguous`; `--reset` empties
+the draft; `--end`, `--quit`, `--exit`, EOF, or Ctrl-C leave, a Ctrl-C
+outranking lines already read. A bad line is reported with its number and
+dropped, the draft standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any
+spelling, since standard input is the stream; a read failure or a line over 1
+MiB ends the stream with `stream_input_read_failed`. The exit is the last job's,
+0 when none ran. `--cd` and `--fs` are option lines of the part that stays:
+`--go` and `--clear` keep them, `--reset` removes them, a later line replaces
+the value (the last spelling wins), and `--cd=.` is the stream's working
+directory; one file per device per directory means a later job to a device
+replaces the earlier job's file, which `--fs` keeps apart (`--fs=.ver`, then
+`--fs=.run`). An `=`-only option line takes its value with `=` alone, text after
+a space refused when the line is read; the value checks of `--cd` and `--fs` run
+when the line is read too, so a bad line is dropped with its number and the
+draft stands; at `--go`, a draft with `--fs` and no `--cd` takes the stream's
+working directory.
 Typed at a terminal, a line is edited with the usual keys, the
 Delete key among them, and the up arrow recalls earlier lines (the line
 editor `internal/termline` over `golang.org/x/term`, vendored, which the
@@ -190,16 +202,21 @@ credential prompt are unchanged; the reader reads a line when the loop asks
 for it and never beside a job, which would hold the raw mode through it;
 the editing echoes on the controlling terminal, and a line typed ahead
 during a job, which the terminal's own mode ends with `\n`, is translated
-to the Enter the editor takes. *Why:* a job
-composed line by line at a terminal or piped from a script, reusing the table
-parser and the run path so no rule lives twice; a typo must not cost the
-draft; a command typed the way `run` takes it must be sent once, not by every
-later job. *Not taken:* directives as table options; shell-style splitting of
-an option line (`--tl r1 r2` gives the case); a prompt; raw mode held across
-a job (the job's Ctrl-C would become a byte to read), which a reader
-reading ahead had done until the credential prompts showed it; GNU readline (not
-reachable without cgo; `rlwrap` remains an operator's choice); a generic
-error for the read failure (every path carries its own code).
+to the Enter the editor takes. *Why:* a job composed line by line at a terminal
+or piped from a script, reusing the table parser and the run path so no rule
+lives twice; a typo must not cost the draft; a command the operator gives in
+option form is a standing part of the draft, sent by every job until purged, and
+a bare line is the job's alone; one dash and quotes mean on a line what they
+mean to `run` and the shell, so an operator's command-line habits carry over;
+and a line `run` would read as freeform text must never take the commands after
+it. *Not taken:* directives as table options; shell-style splitting of an option
+line (`--tl r1 r2` gives the case, and a command's own quotes would be lost); a
+`- foo` or `-- foo` line sent as a command; `--purge` as both purges; every
+command cleared by `--go`; a prompt; raw mode held across a job (the job's
+Ctrl-C would become a byte to read), which a reader reading ahead had done until
+the credential prompts showed it; GNU readline (not reachable without cgo;
+`rlwrap` remains an operator's choice); a generic error for the read failure
+(every path carries its own code).
 
 **Help is laid out at print time.** The help texts are constants kept in step
 with the parser table by a drift test; a pass at print time adds blank lines

@@ -3924,3 +3924,184 @@ last part, the debug line, the counters, and this close.
 j1 failed on both transports; it reads the records alone (`897390f`). A
 refused exec request on `system` recorded an empty `stderr` where it never
 ran (10a). `karvi version`'s two counters, above.
+
+## 25. Stream mode: one dash or two, quotes, and the commands that stay (2026-10-05)
+
+The operator asked what it would take for `--command` and its variations
+(`-command`, `--cmd`, `-cmd`, `-c`) to mark a command in stream mode, since
+operators are in the habit of marking commands that way, while a line with no
+dash stays a command; then how stream mode handles quotes (`--cmd "show
+clock"`); then for a command given in option form to stay across jobs, with
+directives that purge the commands and the targets, and `--exit` beside
+`--end` and `--quit`.
+
+**What it gains.** A line typed in a stream means what the same words mean on
+a `run` command line, one dash or two and quotes alike, so an operator's
+habits carry over instead of reaching a device as a command. A standing list
+of commands across jobs (a `--cmd show clock` sent with every batch), and a
+way to drop the commands or the targets that stay without retyping the rest.
+It waits on nothing outside the tree.
+
+**Executed: the dash today.** A dry run of the lab build at `97942ce` piped
+into `karvi stream` (target `srv1`, built-in `linux`, this host), one line per
+spelling; the plan's commands:
+
+```text
+id -un              -> "id -un"
+--cmd uname -s      -> "uname -s"
+--command hostname  -> "hostname"
+--c date            -> "date"
+-c whoami           -> "-c whoami"         sent as written
+-cmd pwd            -> "-cmd pwd"          sent as written
+-command uptime     -> "-command uptime"   sent as written
+-go                 -> "-go"               a command, not the directive
+```
+
+On `run`'s command line one dash and two are the same: the parser strips
+either before resolving the word. The stream's reader tested for `--` alone
+before handing a line to that parser, so a one-dash line was a command.
+
+**Issue 1, agreed.** A line beginning with a dash and one more character is
+an option line, one dash or two alike, as on `run`'s command line, the
+directives among them (`-go`, `-clear`, `-end`); a line with no leading dash
+is a command, and so is `-` alone, which the command line does not take as an
+option either. A command that begins with a dash goes as `--cmd`'s value
+(`--cmd -v`, `--cmd=-v`).
+
+**Not taken.** The one-dash spelling for the command options alone (an
+operator with the habit types `-target` and `-go` too).
+
+**Executed: quotes today.** The same dry run:
+
+| Line | What the plan held |
+|---|---|
+| `--cmd "show clock"` | `"show clock"`, quotes included |
+| `--cmd 'show clock'` | `'show clock'` |
+| `--cmd="show clock"` | `"show clock"` |
+| `"show clock"` | `"show clock"` |
+| `echo "a  b"` | `echo "a  b"` |
+| `--target "srv1"` | a second target named `"srv1"`: `dns_nxdomain`, `1 of 2 targets failed address resolution`, exit 7 |
+
+karvi parses no quotes: on a command line the shell removes them, and a
+stream line has no shell before it. The option word is cut from its value at
+the first space or `=`, and the rest of the line is the value, so a value
+with spaces needs no quotes; but an operator used to the command line types
+them.
+
+**Issue 2, agreed.** On an option line, a value wholly wrapped in one pair of
+quotes, double or single, with no other of that quote inside, loses them as a
+shell would remove them; nothing inside is read, no escapes. Every other value
+is sent as written: `--cmd echo "a b"` keeps its quotes, an unmatched `"` stays,
+`--cmd '"x"'` sends `"x"`, and `--cmd ""` is an empty command, as `run --cmd ""`
+is on a command line. A bare line is the device's text and keeps its quotes.
+
+**Not taken.** Shell-style word splitting, which would take the quotes from
+the middle of a value (`echo "a  b"` would become `echo a b`) and bring
+backslash rules; `"a" "b"` read as one wrapped pair.
+
+**During the build: a line that swallows the commands after it.** The first
+test of the dash rule found `- foo` accepted into the draft's options, and
+`-typo` behind it. `run` takes freeform command text: the first argument not
+spelled as an option begins it, and every argument after it joins it. A stream
+line that leaves such an argument among the options passes the parser's check,
+since freeform text is valid to `run`, and every command line after it joins
+that text. The same shapes on `97942ce`, before any change, with `--dry-run`
+set first:
+
+```text
+-- foo           -> "commands":["foo --cmd id"]
+--no-daemon yes  -> "commands":["yes --cmd id"]
+```
+
+Without `--dry-run`, the job would have sent the one line `yes --cmd id` to
+every target. The one-dash rule would have added `- foo` to the shapes.
+
+**Agreed.** A line whose check leaves the parse freeform (text no option on
+the line takes) is dropped with its number as `cli_positional_unexpected`, the
+draft standing: `- foo`, `-- foo`, `--` alone, and a flag given text after a
+space alike. The rule stays as Issue 1 states it; the guard is one check of
+what the parser already reports, whatever the line's shape.
+
+**Not taken.** `- foo` and `-- foo` as commands, the command line's own
+reading of `-` and `--`, which would send quietly a line that is almost
+certainly a typo.
+
+**Issue 3, agreed: the commands that stay.** A command given in option form
+(`--cmd` and its aliases in any spelling, `--cf`) belongs to the part of the
+draft that stays, beside the targets and options; `--go`, `--sendit`, and
+`--clear` remove only the commands given as bare lines. The draft's commands
+are entries, one command each with the declarations after it and a mark for
+whether it stays: the commands run in the order typed, a kept one keeping its
+place and a new line following it; a declaration stays or clears with its
+command, and one typed after a `--go` attaches to the last command left,
+which may be a kept one; a kept `--cf` is read by each job, as each `run`
+reads it. With any kept command, `--go` always has something to send; the
+notice is printed only when no command of either kind is left. This reverses
+chapter 7's rule, under which a `--cmd` line was cleared like a bare line
+(it had stayed among the options by accident, re-sent by every job); here
+staying is the operator's choice, made by the spelling.
+
+**Issue 4, agreed: the purges and `--exit`.** Removing a kept command needs a
+directive that leaves the targets, which `--reset` does not. The operator
+named two, each taken by prefix from the shortest that names it alone:
+`--purge-commands` (from `--purge-c`) empties every command, kept and bare,
+with its declarations; `--purge-targets` (from `--purge-t`) removes every
+target input run's table marks (`--target` with its aliases, `--tl`, `--tf`,
+`--tfr`, `--site`, `--device-group`, `--all`, `--select-platform`, which
+narrows the targets and is part of choosing them) and keeps the other
+options. `--purge` and `--purge-` name both and are dropped as
+`cli_option_ambiguous`. The other directives stay exact words, so `--c` keeps
+meaning `--cmd`. A `--go` with no target left fails as `run` does with no
+target input. `--exit` leaves, as `--end` and `--quit` do.
+
+**Not taken.** One `--purge` for every command (the operator's two words keep
+the targets' purge apart); `--purge` taken as either; every command cleared by
+`--go`.
+
+**Executed after the build.** The lab build against this host, a real
+session, `--no-daemon`:
+
+```text
+--target srv1 / --no-daemon / --cmd id -un / echo "a  b" / --go
+    netops, a  b                                   exit=0
+-c 'uname -s' / --sendit
+    netops, Linux                                  exit=0   (id -un kept; echo sent once)
+--purge-c / printf 'once\n' / --go
+    once                                           exit=0
+--purge-t / -c true / --go
+    inventory_positive_selector_missing: run requires a target input: …
+--purge
+    stream line 14 dropped: cli_option_ambiguous: --purge is ambiguous in stream: --purge-commands, --purge-targets
+--target srv1 / --go
+    (true)                                         exit=0
+--exit
+    the stream's exit 0; the --go after it never read
+```
+
+The same input to the `97942ce` build sent `-c 'uname -s'` and `-c true` to the
+host as commands (`bash: - : invalid option`, `command_exit_nonzero`, exit 101),
+refused `--purge-c`, `--purge-t`, `--purge`, and `--exit` as unknown options,
+and read the `--go` after `--exit` (nothing to send). A dry run on the lab
+build: `-c id -un`, `-command uname -s`, `--cmd "hostname"`, `--cmd='echo "a
+b"'`, and a bare `echo "c  d"` gave `id -un`, `uname -s`, `hostname`, `echo "a
+b"`, and `echo "c  d"`; `- foo` and `--no-daemon yes` were dropped with their
+numbers; `-go` sent and `--go` after it found nothing to send. `--cmd -v` and
+`--cmd=-v` both sent `-v`, and `--target 'srv1'` named `srv1`. Verification:
+gofmt, vet, every Go test (the stream tests for each spelling, quote case,
+purge, and the swallowing shapes), `make generated-clean` with `karvi-stream.1`
+regenerated, and the seventeen suites on the lab build (00:08:23 to 00:12:07
+UTC), the released `bin/` unchanged.
+
+**Found on the way.** `stream`'s help gave `--tl "router1 router2"` as an
+example and README `--tl "r1 r2"`: before the quote rule both carried the
+quotes into the list. On `run`'s command line, a bare `-` begins freeform text
+by `run`'s rule, so in `run --target srv1 - --cmd id --dry-run` the dry run
+is part of the command text and the job runs; a lab probe sent `- --cmd id
+--dry-run …` to this host that way (bash refused it). Noted, not changed: it
+is `run`'s documented freeform rule.
+
+**Built** in one section on the operator's word: `internal/cli/stream.go`
+(the dash rule, `streamUnquote`, the freeform guard, the draft's entries with
+their roles and the kept mark, the purges by prefix, `--exit`), its tests,
+`stream`'s help and `karvi-stream.1`, DESIGN's stream entry, OPERATIONS' and
+README's stream sections, and CHANGELOG.

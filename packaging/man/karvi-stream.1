@@ -19,30 +19,41 @@ karvi\-stream \- read a run line by line from standard input
 .PP
 Reads a run line by line from standard input and executes it as run would.
 A line is skipped when blank or when its first character is ! or #. A line
-beginning with \-\- is one run option: the word, then its value as the rest
-of the line after a space or =, so \-\-target router1, \-\-target=router1,
-\-\-tl "router1 router2", \-\-dispatch parallel, \-\-dp. Any other line is one
-command, sent as written; \er at its end is read as \-\-cmd reads it, and a
-line of \er alone sends a blank line. The targets and options stay from one
-job to the next; the commands are the job's. A \-\-cmd, \-\-command, or \-\-cf
-line is a command like a bare line, and \-\-expect, \-\-blind, and
-\-\-blind\-return lines attach to the command before them. \-\-cf, \-\-tf, and
-\-\-tfr may not name \-: standard input is the stream.
-.SS "Directives, each a whole line"
+beginning with a dash is one run option, one dash or two alike: the word,
+then its value as the rest of the line after a space or =, so \-\-target
+router1, \-target=router1, \-\-tl router1 router2, \-\-dispatch parallel, \-\-dp.
+A value wholly wrapped in one pair of quotes loses them, as a shell would
+remove them: \-\-cmd "show clock". A line leaving text no option takes is
+dropped. Any other line is one command, sent as written, quotes and all; \er
+at its end is read as \-\-cmd reads it, and a line of \er alone sends a blank
+line. The targets and options stay from one job to the next, and so do the
+commands given in option form (\-\-cmd, \-c, \-\-command, \-\-cf); a command given
+as a bare line is the job's alone. \-\-expect, \-\-blind, and \-\-blind\-return
+lines attach to the command before them. \-\-cf, \-\-tf, and \-\-tfr may not name
+\-: standard input is the stream.
+.SS "Directives, each a whole line, one dash or two"
 .TP
 \fB\-\-go\fR, \fB\-\-sendit\fR
-Execute the draft as run; the targets and
-options stay for the next job, the commands
-clear; with no command to send, a notice
+Execute the draft as run; the bare\-line
+commands clear and everything else stays;
+with no command to send, a notice
 .TP
 \fB\-\-clear\fR
-Empty the commands; the targets and options
-stay
+Empty the bare\-line commands; the targets,
+options, and option\-form commands stay
+.TP
+\fB\-\-purge\-commands\fR
+Empty every command (from \-\-purge\-c)
+.TP
+\fB\-\-purge\-targets\fR
+Remove every target input (from \-\-purge\-t):
+\-\-target, \-\-tl, \-\-tf, \-\-tfr, \-\-site,
+\-\-device\-group, \-\-all, \-\-select\-platform
 .TP
 \fB\-\-reset\fR
 Empty the draft
 .TP
-\fB\-\-end\fR, \fB\-\-quit\fR
+\fB\-\-end\fR, \fB\-\-quit\fR, \fB\-\-exit\fR
 Leave without executing; so do EOF (Ctrl\-D)
 and Ctrl\-C
 .PP

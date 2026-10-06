@@ -50,24 +50,31 @@ const streamHelp = `Usage:
 
 Reads a run line by line from standard input and executes it as run would.
 A line is skipped when blank or when its first character is ! or #. A line
-beginning with -- is one run option: the word, then its value as the rest
-of the line after a space or =, so --target router1, --target=router1,
---tl "router1 router2", --dispatch parallel, --dp. Any other line is one
-command, sent as written; \r at its end is read as --cmd reads it, and a
-line of \r alone sends a blank line. The targets and options stay from one
-job to the next; the commands are the job's. A --cmd, --command, or --cf
-line is a command like a bare line, and --expect, --blind, and
---blind-return lines attach to the command before them. --cf, --tf, and
---tfr may not name -: standard input is the stream.
+beginning with a dash is one run option, one dash or two alike: the word,
+then its value as the rest of the line after a space or =, so --target
+router1, -target=router1, --tl router1 router2, --dispatch parallel, --dp.
+A value wholly wrapped in one pair of quotes loses them, as a shell would
+remove them: --cmd "show clock". A line leaving text no option takes is
+dropped. Any other line is one command, sent as written, quotes and all; \r
+at its end is read as --cmd reads it, and a line of \r alone sends a blank
+line. The targets and options stay from one job to the next, and so do the
+commands given in option form (--cmd, -c, --command, --cf); a command given
+as a bare line is the job's alone. --expect, --blind, and --blind-return
+lines attach to the command before them. --cf, --tf, and --tfr may not name
+-: standard input is the stream.
 
-Directives, each a whole line:
-  --go, --sendit                 Execute the draft as run; the targets and
-                                 options stay for the next job, the commands
-                                 clear; with no command to send, a notice
-  --clear                        Empty the commands; the targets and options
-                                 stay
+Directives, each a whole line, one dash or two:
+  --go, --sendit                 Execute the draft as run; the bare-line
+                                 commands clear and everything else stays;
+                                 with no command to send, a notice
+  --clear                        Empty the bare-line commands; the targets,
+                                 options, and option-form commands stay
+  --purge-commands               Empty every command (from --purge-c)
+  --purge-targets                Remove every target input (from --purge-t):
+                                 --target, --tl, --tf, --tfr, --site,
+                                 --device-group, --all, --select-platform
   --reset                        Empty the draft
-  --end, --quit                  Leave without executing; so do EOF (Ctrl-D)
+  --end, --quit, --exit          Leave without executing; so do EOF (Ctrl-D)
                                  and Ctrl-C
 
 Typed at a terminal, a line is edited with Ctrl-A, Ctrl-E, Ctrl-K, Ctrl-U,
