@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -110,7 +111,9 @@ func draftOptions(commands []string) DraftOptions {
 // registry 25 and plan schema 11 stay.
 // Re-pinned when the plan gained the execution block, the invocation's
 // timeouts; plan schema 11 stays (unreleased).
-const goldenK03Draft = "565e2d8600194ec21f4607abd6a8052351282444bf0dd10166c809567a24957b"
+// Re-pinned when the plan gained timeouts_ns and max_bytes, each command's
+// own bounds; plan schema 11 stays (unreleased).
+const goldenK03Draft = "be6510ebab5c2df7430b7625b299519ba5849059c6f4c469b4492944388b0adb"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -211,6 +214,52 @@ func TestDraftCarriesTheInvocationsBounds(t *testing.T) {
 		}
 		if draft.Execution != tc.want || draft.Dispatch.ContinueDeviceOnError != tc.cont {
 			t.Errorf("%s: execution=%+v continue=%v, want %+v continue=%v", tc.name, draft.Execution, draft.Dispatch.ContinueDeviceOnError, tc.want, tc.cont)
+		}
+	}
+}
+
+// TestDraftCommandBounds: each command's own bounds reach the plan as
+// given, empty lists when none; a timeout above a set device timeout and a
+// limit above the job limit are refused before any device, naming both
+// values and the --set that raises the ceiling; at the device timeout and at
+// the job limit, and with the device timeout unset, they are accepted.
+func TestDraftCommandBounds(t *testing.T) {
+	draft, err := Draft(context.Background(), testConfig(t), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if draft.TimeoutsNS == nil || len(draft.TimeoutsNS) != 0 || draft.MaxBytes == nil || len(draft.MaxBytes) != 0 {
+		t.Fatalf("no declaration: timeouts %#v maxbytes %#v", draft.TimeoutsNS, draft.MaxBytes)
+	}
+	n := len(plantest.Commands)
+	at := func(i int, v int64) []int64 {
+		list := make([]int64, n)
+		list[i] = v
+		return list
+	}
+	for _, tc := range []struct {
+		name     string
+		sets     []string
+		timeouts []int64
+		maxBytes []int64
+		code     string
+		text     string
+	}{
+		{"no ceiling", nil, at(0, int64(12*time.Hour)), at(1, 1<<30), "", ""},
+		{"at the device timeout", []string{`execution.device-timeout="45m"`}, at(0, int64(45*time.Minute)), nil, "", ""},
+		{"above the device timeout", []string{`execution.device-timeout="30m"`}, at(1, int64(45*time.Minute)), nil, "timeout_over_device_timeout", "command 2: --timeout 45m0s is above execution.device-timeout 30m0s, the bound on the device's whole list; lower the --timeout or raise the ceiling with --set execution.device-timeout=45m0s"},
+		{"at the job limit", []string{"output.max-command-bytes=1024", "output.max-job-bytes=4096"}, nil, at(0, 4096), "", ""},
+		{"above the job limit", []string{"output.max-command-bytes=1024", "output.max-job-bytes=4096"}, nil, at(0, 4097), "maxbytes_over_job_limit", "command 1: --maxbytes 4097 is above output.max-job-bytes 4096, the bound on the job's whole output; lower the --maxbytes or raise the limit with --set output.max-job-bytes=4097"},
+	} {
+		opts := draftOptions(plantest.Commands)
+		opts.Timeouts, opts.MaxBytes = tc.timeouts, tc.maxBytes
+		draft, err := Draft(context.Background(), testConfig(t, tc.sets...), operator, k03Set(t), opts, plantest.DraftedAt)
+		if errorcodes.Of(err) != tc.code || (err != nil && err.Error() != tc.code+": "+tc.text) {
+			t.Errorf("%s: %v, want %s: %s", tc.name, err, tc.code, tc.text)
+			continue
+		}
+		if err == nil && (!reflect.DeepEqual(draft.TimeoutsNS, append([]int64{}, tc.timeouts...)) || !reflect.DeepEqual(draft.MaxBytes, append([]int64{}, tc.maxBytes...))) {
+			t.Errorf("%s: timeouts %v maxbytes %v", tc.name, draft.TimeoutsNS, draft.MaxBytes)
 		}
 	}
 }

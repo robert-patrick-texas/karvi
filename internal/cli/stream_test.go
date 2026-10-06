@@ -183,6 +183,47 @@ func TestStreamLoopKeptCommandsAndPurges(t *testing.T) {
 	}
 }
 
+// TestStreamLoopCommandBounds: --timeout and --maxbytes lines are
+// declarations: each joins the command before it and stays with a kept
+// command across jobs, goes with a bare line's job alone, and before any
+// command is dropped with the line's number; a value out of range is
+// dropped as the parser refuses it.
+func TestStreamLoopCommandBounds(t *testing.T) {
+	var runs [][]string
+	execute := func(_ int, argv []string) int {
+		runs = append(runs, append([]string{}, argv...))
+		return 0
+	}
+	var stderr bytes.Buffer
+	in := strings.Join([]string{
+		"--target r1",
+		"--timeout 5m",
+		"--cmd copy scp://h/i.bin bootflash:",
+		"--timeout 45m",
+		"show tech",
+		"-maxbytes 1073741824",
+		"--maxbytes 512",
+		"--go",
+		"show clock",
+		"--go",
+	}, "\n") + "\n"
+	streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute)
+	want := [][]string{
+		{"run", "--target", "r1", "--cmd", "copy scp://h/i.bin bootflash:", "--timeout", "45m", "--cmd", "show tech", "-maxbytes", "1073741824"},
+		{"run", "--target", "r1", "--cmd", "copy scp://h/i.bin bootflash:", "--timeout", "45m", "--cmd", "show clock"},
+	}
+	if !reflect.DeepEqual(runs, want) {
+		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
+	}
+	// A declaration with no command before it is dropped as --expect's is:
+	// the probe has no command for it.
+	wantErr := "stream line 2 dropped: cli_command_text_missing: run requires device command text: freeform words, --cmd TEXT, or --cf PATH\n" +
+		"stream line 7 dropped: cli_option_value_invalid: --maxbytes takes 1024..1073741824, the range of output.max-command-bytes, not 512\n"
+	if stderr.String() != wantErr {
+		t.Errorf("stderr:\n%s\nwant:\n%s", stderr.String(), wantErr)
+	}
+}
+
 // TestStreamLoopSingleDashAndQuotes: a line beginning with one dash is an
 // option line as one beginning with two is, the command options and the
 // directives among them (-go leaving the option-form commands, -clear

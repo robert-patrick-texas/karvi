@@ -74,6 +74,13 @@ type DraftOptions struct {
 	BlindReturns []int
 	Blind        []bool
 	Expectations [][]executionplan.Expectation
+	// Timeouts and MaxBytes are each empty or one entry per command, the
+	// --timeout in nanoseconds and the --maxbytes in bytes, 0 the job's
+	// value; the parser checked the ranges and the blind conflict, and
+	// Draft refuses a timeout above a set execution.device-timeout and a
+	// limit above output.max-job-bytes.
+	Timeouts []int64
+	MaxBytes []int64
 
 	// The dispatch settings are the configuration's dispatch.* keys alone:
 	// run's Dispatch options reach them as overrides in the lock-aware cli
@@ -117,6 +124,9 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	}
 	if opts.ActivityType == "" {
 		opts.ActivityType = "run"
+	}
+	if err := checkCommandBounds(cfg, opts.Timeouts, opts.MaxBytes); err != nil {
+		return executionplan.ExecutionPlan{}, err
 	}
 	// The platforms first: inventory validation
 	// with no lookups, one pass over the whole set, refusing every unknown
@@ -217,6 +227,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, CommandPlanDigest: executionplan.SumCommandPlan(opts.Commands, lists),
 		BlindReturns: append([]int{}, opts.BlindReturns...), BlindWaitNS: cfg.Duration("execution.blind-wait").Nanoseconds(),
 		Blind: append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
+		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    dispatchSettings(cfg, set, opts),
 		Execution:   ExecutionSettings(cfg),
@@ -230,6 +241,30 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		return executionplan.ExecutionPlan{}, err
 	}
 	return plan, nil
+}
+
+// checkCommandBounds refuses a command's own bound above the ceiling the
+// site set for it: a --timeout above a set execution.device-timeout (0 is no
+// ceiling), which the device's whole list could never give it, and a
+// --maxbytes above output.max-job-bytes, as the configuration refuses a
+// command limit above the job's. Each names both values and the --set that
+// raises the ceiling, so a ceiling is raised in the open, never by a
+// declaration.
+func checkCommandBounds(cfg configload.Snapshot, timeouts, maxBytes []int64) error {
+	if ceiling := cfg.Duration("execution.device-timeout"); ceiling > 0 {
+		for i, ns := range timeouts {
+			if d := time.Duration(ns); d > ceiling {
+				return errorcodes.Errorf("timeout_over_device_timeout", "command %d: --timeout %s is above execution.device-timeout %s, the bound on the device's whole list; lower the --timeout or raise the ceiling with --set execution.device-timeout=%s", i+1, d, ceiling, d)
+			}
+		}
+	}
+	limit := cfg.Int64("output.max-job-bytes")
+	for i, n := range maxBytes {
+		if n > limit {
+			return errorcodes.Errorf("maxbytes_over_job_limit", "command %d: --maxbytes %d is above output.max-job-bytes %d, the bound on the job's whole output; lower the --maxbytes or raise the limit with --set output.max-job-bytes=%d", i+1, n, limit, n)
+		}
+	}
+	return nil
 }
 
 // targetChannel is a target's channel, its platform's, resolved once here

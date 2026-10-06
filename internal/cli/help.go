@@ -33,6 +33,21 @@ const platformOptionHelp = `  --platform NAME                The platform the de
                                  cisco_iosxr, juniper_junos, arista_eos, generic
 `
 
+// commandBoundsHelp is the per-command bounds, shared by command and run:
+// --timeout and --maxbytes are declarations in both.
+const commandBoundsHelp = `A command's own bounds (each attaches to the --cmd it follows, or to the one
+freeform command; at most one of each per command):
+  --timeout DURATION             The command's timeout in place of
+                                 execution.command-timeout, and over telnet of
+                                 telnet.read-timeout (1s..12h); not on a blind
+                                 command, nor above a set
+                                 execution.device-timeout
+  --maxbytes BYTES               The command's output limit in place of
+                                 output.max-command-bytes, in whole bytes
+                                 (1024..1073741824); not above
+                                 output.max-job-bytes
+`
+
 // hostKeyPolicyHelp is --ssh-host-key-policy's entry, shared by login,
 // command, and run: ssh.host-key-policy is one policy for the three.
 const hostKeyPolicyHelp = `  --ssh-host-key-policy accept-new|secure|insecure
@@ -59,9 +74,9 @@ dropped. Any other line is one command, sent as written, quotes and all; \r
 at its end is read as --cmd reads it, and a line of \r alone sends a blank
 line. The targets and options stay from one job to the next, and so do the
 commands given in option form (--cmd, -c, --command, --cf); a command given
-as a bare line is the job's alone. --expect, --blind, and --blind-return
-lines attach to the command before them. --cf, --tf, and --tfr may not name
--: standard input is the stream.
+as a bare line is the job's alone. --expect, --blind, --blind-return,
+--timeout, and --maxbytes lines attach to the command before them. --cf,
+--tf, and --tfr may not name -: standard input is the stream.
 
 Directives, each a whole line, one dash or two:
   --go, --sendit                 Execute the draft as run; the bare-line
@@ -213,6 +228,7 @@ freeform command; a command takes blind returns or --expect, not both):
   --literal                      Send every command as written; no \r
                                  interpretation; a RESPONSE is always as written
 
+` + commandBoundsHelp + `
 Options:
 ` + platformOptionHelp + `  --management-address IP, --address, --a
                                  Literal management IP; does not select the target
@@ -373,6 +389,7 @@ freeform command; a command takes blind returns or --expect, not both):
   --literal                      Send every command as written; no \r
                                  interpretation; a RESPONSE is always as written
 
+`+commandBoundsHelp+`
 Platform:
 `+platformOptionHelp+`
 Dispatch:

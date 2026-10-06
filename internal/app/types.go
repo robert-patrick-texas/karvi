@@ -39,6 +39,8 @@ type CommandOptions struct {
 	BlindReturns          []int                         `json:"blind_returns,omitempty"` // empty, or one count per command
 	Blind                 []bool                        `json:"blind,omitempty"`         // empty, or one tolerance flag per command
 	Expectations          [][]executionplan.Expectation `json:"expectations,omitempty"`  // empty, or one expect-and-send list per command
+	Timeouts              []int64                       `json:"timeouts_ns,omitempty"`   // empty, or one --timeout per command in nanoseconds, 0 the job's
+	MaxBytes              []int64                       `json:"max_bytes,omitempty"`     // empty, or one --maxbytes per command, 0 the job's
 	Format                string                        `json:"format"`
 	Echo                  bool                          `json:"echo"`
 	DynamicBorder         bool                          `json:"dynamic_border"`
@@ -63,6 +65,8 @@ type RunOptions struct {
 	BlindReturns          []int                         `json:"blind_returns,omitempty"` // empty, or one count per command
 	Blind                 []bool                        `json:"blind,omitempty"`         // empty, or one tolerance flag per command
 	Expectations          [][]executionplan.Expectation `json:"expectations,omitempty"`  // empty, or one expect-and-send list per command
+	Timeouts              []int64                       `json:"timeouts_ns,omitempty"`   // empty, or one --timeout per command in nanoseconds, 0 the job's
+	MaxBytes              []int64                       `json:"max_bytes,omitempty"`     // empty, or one --maxbytes per command, 0 the job's
 	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
 	PlatformCommands      bool                          `json:"platform_commands,omitempty"` // crun with no command: each device its platform's crun-commands (12.9)
 	Collection            string                        `json:"collection,omitempty"`        // crun, or run given --cd: the word; the plan carries the collection directory, file mode, and word

@@ -38,7 +38,7 @@ const (
 	roleTargetInput         // --tf, --tfr, --site, --device-group, --all: other target inputs
 	roleCmd                 // --cmd: explicit device command
 	roleCf                  // --cf: commands file
-	roleDeclaration         // --expect, --blind, --blind-return: attach to the preceding --cmd
+	roleDeclaration         // --expect, --blind, --blind-return, --timeout, --maxbytes: attach to the preceding --cmd
 )
 
 type option struct {
@@ -183,16 +183,20 @@ var (
 )
 
 // command and run options: the interactive-prompt declarations and the blind
-// wait, and command's record directory. The three declarations carry
-// roleDeclaration: the parser records each beside the --cmd it follows
-// (Invocation.Declarations), and declarationLists in work_commands.go makes
-// the per-command lists the execution plan carries. --expect is repeatable
-// (up to executionplan.ExpectationsMax per command); --blind-return is not,
-// a second one on a command being blind_return_conflict.
+// wait, a command's own bounds, and command's record directory. The five
+// declarations carry roleDeclaration: the parser records each beside the
+// --cmd it follows (Invocation.Declarations), and declarationLists in
+// work_commands.go makes the per-command lists the execution plan carries.
+// --expect is repeatable (up to executionplan.ExpectationsMax per command);
+// --blind-return is not, a second one on a command being
+// blind_return_conflict; --timeout and --maxbytes are not, a second one on a
+// command being declaration_repeated.
 var (
 	optExpect      = valueOpt("expect", "PATTERN=RESPONSE").repeatable().as(roleDeclaration)
 	optBlind       = flagOpt("blind").as(roleDeclaration)
 	optBlindReturn = intOpt("blind-return").as(roleDeclaration)
+	optTimeout     = durationOpt("timeout").as(roleDeclaration)
+	optMaxBytes    = (&option{name: "maxbytes", kind: kindValue, typ: typeInt, placeholder: "BYTES"}).as(roleDeclaration)
 	optBlindWait   = durationOpt("blind-wait")
 	optLiteral     = flagOpt("literal")
 	optNof         = flagOpt("nof")
@@ -310,7 +314,7 @@ var commandTable = []*command{
 	{path: "login", word: "login", shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
 		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthority, optHelp}},
 	{path: "command", word: "command", aliases: []string{"cmd"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
-		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthority, optHelp}},
+		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthority, optHelp}},
 	{path: "run", word: "run", shape: shapeFreeform, help: runHelpText, options: runOptions},
 	// stream, or -, reads a run line by line from standard input: the
 	// lines carry run's options and the commands; the word itself takes
@@ -377,4 +381,4 @@ func lookupCommand(path string) *command {
 }
 
 // runOptions is run's option slice, shared with crun.
-var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optFs, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthorityRun, optHelp}
+var runOptions = []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPG, optDispatch, optDP, optDW, optDS, optWorkers, optStartWidth, optMaxWidth, optHaltCount, optHaltPercent, optGateCount, optGatePercent, optWaveDelay, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optTransport, optHostKeyPolicy, optKnownHosts, optAddress, optFormat, optEcho, optBorder, optNoBorder, optNoDaemon, optNof, optOf, optCd, optFs, optDetach, optFollow, optDryRun, optExercise, optDebug, optIPv4, optIPv6, optPing, optNoPing, optAddrAuthorityRun, optHelp}

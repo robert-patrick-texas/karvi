@@ -90,7 +90,7 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 	}
 	warn := func(s string) { warning(streams.Stderr, s) }
 	draftOpts := planner.DraftOptions{
-		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations,
+		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		ContinueDeviceOnError: opts.ContinueDeviceOnError, Transport: opts.Transport,
 		PlatformCommands: opts.PlatformCommands, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: !opts.Detach,

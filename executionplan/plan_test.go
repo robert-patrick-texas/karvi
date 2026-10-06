@@ -17,9 +17,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "ebef7c3f05ea461e7806ae7736103e0cddd9975a6ec45bc51cbbcd9dc0e732a2"
-	goldenPrepared = "a085dff4f2c98fa26ceaac9db0e19a4d7abba63c53bc5c7ebc3a9771cf6ea5b1"
-	goldenFinal    = "32b5170890afb0718a409c649d3cca9c24f55a8ba1a1647b5e1f650084866928"
+	goldenDraft    = "a66010cbcfdeeda45e1820bbf99312f77e526aa1d047de144c48d52e02e1fc19"
+	goldenPrepared = "9a1e0d6dcc7266bd526b533abb827a237d6b41c1854488ae83c4340ef7aa18d0"
+	goldenFinal    = "c01a7d6ccc6333eec44352994573e2cadd4f1e8232207400edd003fedbc47f81"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -31,7 +31,7 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 		Operator: Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:  []ExecutionTarget{fixtureDirect(t), fixtureInventory(t), fixtureDaemonDraft(t)},
 		Commands: fixtureCommands, CommandPlanDigest: SumCommands(fixtureCommands),
-		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]Expectation{},
+		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
 		SessionInit: map[string]SessionInitProfile{},
 		Dispatch:    DispatchSettings{Mode: DispatchSerial, Width: 1, DispatchOrder: OrderDefault},
 		Execution:   ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)},
@@ -255,6 +255,12 @@ func TestPlanValidationVectors(t *testing.T) {
 		{"blind returns short", func(p *ExecutionPlan) { p.BlindReturns = []int{1} }, "execution_plan_invalid: blind_returns: 1 entries for 4 commands"},
 		{"blind return negative", func(p *ExecutionPlan) { p.BlindReturns = []int{0, -1, 0, 0} }, "execution_plan_invalid: blind_returns: command 2: -1 must be 0..20"},
 		{"blind return too many", func(p *ExecutionPlan) { p.BlindReturns = []int{0, 0, 0, 21} }, "execution_plan_invalid: blind_returns: command 4: 21 must be 0..20"},
+		{"nil timeouts", func(p *ExecutionPlan) { p.TimeoutsNS = nil }, "execution_plan_invalid: timeouts_ns: must be present"},
+		{"timeouts short", func(p *ExecutionPlan) { p.TimeoutsNS = []int64{1} }, "execution_plan_invalid: timeouts_ns: 1 entries for 4 commands"},
+		{"timeout negative", func(p *ExecutionPlan) { p.TimeoutsNS = []int64{0, -1, 0, 0} }, "execution_plan_invalid: timeouts_ns: command 2: -1 must not be negative"},
+		{"nil max bytes", func(p *ExecutionPlan) { p.MaxBytes = nil }, "execution_plan_invalid: max_bytes: must be present"},
+		{"max bytes long", func(p *ExecutionPlan) { p.MaxBytes = []int64{0, 0, 0, 0, 0} }, "execution_plan_invalid: max_bytes: 5 entries for 4 commands"},
+		{"max bytes negative", func(p *ExecutionPlan) { p.MaxBytes = []int64{0, 0, 0, -2048} }, "execution_plan_invalid: max_bytes: command 4: -2048 must not be negative"},
 		{"blind wait negative", func(p *ExecutionPlan) { p.BlindWaitNS = -1 }, "execution_plan_invalid: blind_wait_ns: -1 must be 0..10m"},
 		{"blind wait too long", func(p *ExecutionPlan) { p.BlindWaitNS = int64(10*time.Minute + 1) }, "execution_plan_invalid: blind_wait_ns"},
 		{"nil blind", func(p *ExecutionPlan) { p.Blind = nil }, "execution_plan_invalid: blind: must be present"},
@@ -423,6 +429,47 @@ func mustJSON(t *testing.T, v any) string {
 // which branch of the selection rule it
 // took, IncorporatePreparation copies it instead of assuming DNS, and the
 // resolution digest covers it.
+// TestCommandBoundsAcceptWhatTheClientAccepted: the plan check refuses
+// only a length or a sign; a timeout past any range and a limit past the
+// job's are the client's to refuse, so a daemon runs them.
+func TestCommandBoundsAcceptWhatTheClientAccepted(t *testing.T) {
+	p := fixtureDraftPlan(t)
+	p.TimeoutsNS = []int64{int64(45 * time.Minute), 0, int64(24 * time.Hour), 0}
+	p.MaxBytes = []int64{0, 2 << 30, 0, 1}
+	if err := p.Validate(Draft); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestLargestCommandLimit: the spool term's limit is the largest any
+// command sends under, the job's while any command takes it.
+func TestLargestCommandLimit(t *testing.T) {
+	const job = 64 << 20
+	for _, tc := range []struct {
+		name         string
+		maxBytes     []int64
+		sessionInit  bool
+		want         int64
+		wantDeclared bool
+	}{
+		{"none declared", []int64{}, false, job, false},
+		{"a larger one", []int64{0, 1 << 30, 0, 0}, false, 1 << 30, true},
+		{"a smaller one beside the job's", []int64{0, 2048, 0, 0}, false, job, false},
+		{"every command smaller", []int64{2048, 4096, 1024, 2048}, false, 4096, true},
+		{"every command smaller, a profile at the job's", []int64{2048, 4096, 1024, 2048}, true, job, false},
+		{"the job's value declared", []int64{job, job, job, job}, false, job, true},
+	} {
+		p := fixtureDraftPlan(t)
+		p.MaxBytes = tc.maxBytes
+		if tc.sessionInit {
+			p.SessionInit = map[string]SessionInitProfile{"p": {Commands: []string{"terminal length 0"}, OnError: SessionInitFailDevice}}
+		}
+		if got, declared := p.LargestCommandLimit(); got != tc.want || declared != tc.wantDeclared {
+			t.Errorf("%s: %d declared=%v, want %d declared=%v", tc.name, got, declared, tc.want, tc.wantDeclared)
+		}
+	}
+}
+
 func TestIncorporatePreparationCopiesTheSelectedSource(t *testing.T) {
 	draft := fixtureDraftPlan(t)
 	hint := netip.MustParseAddr("2001:db8::10")

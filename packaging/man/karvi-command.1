@@ -109,6 +109,20 @@ sets the lock\-aware execution.blind\-wait)
 \fB\-\-literal\fR
 Send every command as written; no \er
 interpretation; a RESPONSE is always as written
+.SS "A command's own bounds (each attaches to the \-\-cmd it follows, or to the one freeform command; at most one of each per command)"
+.TP
+\fB\-\-timeout\fR \fIDURATION\fR
+The command's timeout in place of
+execution.command\-timeout, and over telnet of
+telnet.read\-timeout (1s..12h); not on a blind
+command, nor above a set
+execution.device\-timeout
+.TP
+\fB\-\-maxbytes\fR \fIBYTES\fR
+The command's output limit in place of
+output.max\-command\-bytes, in whole bytes
+(1024..1073741824); not above
+output.max\-job\-bytes
 .SS "Options"
 .TP
 \fB\-\-platform\fR \fINAME\fR

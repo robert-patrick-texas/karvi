@@ -31,15 +31,15 @@ spooldir = "auto"
 # auto (the default) asks each volume for the sum of what the places on it will hold when the
 # job has finished (the output root output.expected-bytes-per-device × devices × its copies
 # × output.reserve-multiplier, the collection directory one copy, the spool directory the
-# job's width × output.max-command-bytes, the transcripts root nothing) plus
-# output.min-free-bytes-after-job once; when the spool's term alone is short but at least one
-# command's limit fits, the job runs narrower with the warning spool_width_narrowed, and below
-# that, or short of the other terms, the job is refused with output_preflight_space naming the
-# volume's paths and both figures. always asks each volume for the floor alone. never reads
-# nothing (the directories are still resolved and probed writable). The audit file, the
-# scoreboard directory, and the state root are not checked: their first write lands before any
-# device and they write kilobytes after. Alerting on free space is the site's monitoring, not
-# this check (docs/SCALE.md).
+# job's width × the largest command limit in the job, output.max-command-bytes or a larger
+# --maxbytes, the transcripts root nothing) plus output.min-free-bytes-after-job once; when
+# the spool's term alone is short but at least one command's limit fits, the job runs narrower
+# with the warning spool_width_narrowed, and below that, or short of the other terms, the job
+# is refused with output_preflight_space naming the volume's paths and both figures. always
+# asks each volume for the floor alone. never reads nothing (the directories are still
+# resolved and probed writable). The audit file, the scoreboard directory, and the state root
+# are not checked: their first write lands before any device and they write kilobytes after.
+# Alerting on free space is the site's monitoring, not this check (docs/SCALE.md).
 freecheck = "auto"
 # auto or loadable IANA zone.
 timezone = "auto"
@@ -181,11 +181,13 @@ keepalive-count-max = 3
 [telnet]
 # 1s–5m.
 connect-timeout = "10s"
-# 1s–12h.
+# 1s–12h; caps each command whole over telnet, from the write to the prompt, unless the
+# command is given --timeout.
 read-timeout = "60s"
 
 [execution]
-# 1s–12h; per-command.
+# 1s–12h; each command's timeout where a session-init profile sets none, which a requested
+# command's --timeout replaces for that command.
 command-timeout = "120s"
 # 1s–5m; the first prompt after login and the prompt after each paging command. The system
 # transport awaits the first prompt for ssh.connect-timeout plus this value from the start of
@@ -193,8 +195,9 @@ command-timeout = "120s"
 prompt-timeout = "10s"
 # 1s–5m; one privilege level's whole step, from the escalate command to that level's prompt.
 enable-timeout = "10s"
-# 0 disables; otherwise 1s–7d. Bounds one device's whole command list, the session-init
-# profile included, from the prepared session; ends it with device_timeout.
+# 0 disables; otherwise 1s–168h. Bounds one device's whole command list, the session-init
+# profile included, from the prepared session; ends it with device_timeout. A command's
+# --timeout above it is refused at planning.
 device-timeout = "0s"
 # 0–10m, enforced when the plan is drafted. The wait for the prompt after a blind send, a
 # command ending in \r sequences or given --blind-return N, in place of its command timeout; 0
@@ -274,7 +277,8 @@ persist-command = true
 # dots and colons are hyphens. Carried in the plan, so a job's files are named as its
 # invocation said on every path.
 crop-to-dot = true
-# 1 KiB–1 GiB; the bound on one command's output.
+# 1 KiB–1 GiB; the bound on one command's output, which a command's --maxbytes replaces for
+# that command (at most output.max-job-bytes).
 max-command-bytes = 67108864
 # 0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory
 # up to it and spools to a file under spooldir from the byte that crosses it. 0 spools every

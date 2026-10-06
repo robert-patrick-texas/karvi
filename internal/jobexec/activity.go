@@ -213,7 +213,8 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	places = append(places, output.Place{Path: spoolDir, Spool: true})
 	freecheck := cfg.String("freecheck")
-	admission, err := output.Preflight{Check: freecheck, Floor: cfg.Int64("output.min-free-bytes-after-job"), Places: places, Limit: plan.Output.MaxCommandBytes, Width: jobWidth(dispatchSettings, serverLimit, len(plan.Targets))}.Run()
+	limit, declared := plan.LargestCommandLimit()
+	admission, err := output.Preflight{Check: freecheck, Floor: cfg.Int64("output.min-free-bytes-after-job"), Places: places, Limit: limit, Declared: declared, Width: jobWidth(dispatchSettings, serverLimit, len(plan.Targets))}.Run()
 	if err != nil {
 		return FailedResult("output_preflight_space", err)
 	}

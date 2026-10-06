@@ -39,15 +39,18 @@ type Place struct {
 
 // Preflight is the admission check: Check is the `freecheck` word; Floor is
 // output.min-free-bytes-after-job, asked once of every volume; Limit is
-// output.max-command-bytes and Width the width the job would run at (the
-// smaller of its workers, the server's cap, and its device count), which
-// together are the spool's term.
+// the largest command limit in the job (output.max-command-bytes, or a
+// larger --maxbytes, Declared then set for the warning to name) and Width
+// the width the job would run at (the smaller of its workers, the server's
+// cap, and its device count), which together are the spool's term: every
+// device in flight may be sending the largest.
 type Preflight struct {
-	Check  string
-	Floor  int64
-	Places []Place
-	Limit  int64
-	Width  int
+	Check    string
+	Floor    int64
+	Places   []Place
+	Limit    int64
+	Declared bool
+	Width    int
 }
 
 // Admission is what the check decided: the width the job runs at, the
@@ -118,7 +121,11 @@ func (p Preflight) Run() (Admission, error) {
 		}
 		if int(fits) < out.Width {
 			out.Width = int(fits)
-			out.Warning = fmt.Sprintf("spool_width_narrowed: %s has %d bytes free, %d per command in flight (output.max-command-bytes) above the %d bytes the job's other files and the floor take: the job runs %d at a time instead of %d", names, free, p.Limit, fixed, out.Width, p.Width)
+			source := "output.max-command-bytes"
+			if p.Declared {
+				source = "--maxbytes"
+			}
+			out.Warning = fmt.Sprintf("spool_width_narrowed: %s has %d bytes free, %d per command in flight (%s) above the %d bytes the job's other files and the floor take: the job runs %d at a time instead of %d", names, free, p.Limit, source, fixed, out.Width, p.Width)
 		}
 	}
 	return out, nil

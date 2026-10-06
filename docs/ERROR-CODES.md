@@ -313,8 +313,9 @@ Active failure causes.
 | `daemon_submit_failed` | dependency | 112 | no | Unclassified. A job cannot be submitted to the daemon. |
 | `daemon_unreachable` | connection | 110 | no | Unclassified. The daemon socket cannot be reached or does not answer. |
 | `debug_show_secrets_requires_debug` | usage | 4 | no | `--debug-show-secrets` is given without `--debug`. |
-| `declaration_before_command` | usage | 4 | no | `--expect`, `--blind`, or `--blind-return` is given before the first `--cmd`; each attaches to the `--cmd` it follows (or to the one freeform command) and is written after it. |
-| `declaration_with_commands_file` | usage | 4 | no | `--expect`, `--blind`, or `--blind-return` is given with `--cf` alone; a file line takes `\r` at its end, and an interactive command is given with `--cmd`. |
+| `declaration_before_command` | usage | 4 | no | `--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` is given before the first `--cmd`; each attaches to the `--cmd` it follows (or to the one freeform command) and is written after it. |
+| `declaration_repeated` | usage | 4 | no | One command is given `--timeout` or `--maxbytes` more than once; each is one value per command. |
+| `declaration_with_commands_file` | usage | 4 | no | `--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` is given with `--cf` alone; a declaration attaches to the `--cmd` before it, and a file line takes `\r` at its end. |
 | `dependency_askpass_unavailable` | dependency | 8 | no | The `karvi-askpass` helper executable cannot be found. |
 | `dependency_script_unavailable` | dependency | 8 | no | Login recording needs util-linux `script`, which cannot be found. |
 | `dependency_ssh_keyscan_unavailable` | dependency | 109 | no | Host-key inspection needs `ssh-keyscan`, which cannot be found. |
@@ -434,6 +435,7 @@ Active failure causes.
 | `management_address_scope_error` | usage | 4 | no | `--management-address` is given while more than one device is selected. |
 | `manifest_invalid` | output | 111 | no | A job manifest does not agree with its own plan, header, credential-package projection, or initial states. |
 | `manifest_schema_unsupported` | internal | 1 | no | A job manifest uses an unsupported schema version. |
+| `maxbytes_over_job_limit` | usage | 4 | no | A command's `--maxbytes` is above `output.max-job-bytes`, which bounds the job's whole output; refused at planning, naming both values and the `--set output.max-job-bytes=…` that raises the limit. |
 | `name_resolution_error` | name_resolution | 7 | no | Unclassified. Name resolution failed with an error that carries no specific code. |
 | `name_transform_operation_not_table` | config | 2 | no | A `name-transform` operation is not an inline table. |
 | `name_transform_operations_not_array` | config | 2 | no | A `name-transform` table's `operations` is not an array. |
@@ -585,6 +587,8 @@ Active failure causes.
 | `telnet_read_failed` | connection | 110 | yes | Reading device output over Telnet fails. |
 | `telnet_write_failed` | connection | 110 | yes | Writing a command over Telnet fails. |
 | `terminal_write_failed` | output | 111 | no | Unclassified. Rendered output cannot be written to standard output. |
+| `timeout_over_device_timeout` | usage | 4 | no | A command's `--timeout` is above a set `execution.device-timeout`, which bounds the device's whole list; refused at planning, naming both values and the `--set execution.device-timeout=…` that raises the ceiling. At the default 0 there is no ceiling. |
+| `timeout_with_blind` | usage | 4 | no | A blind command (`--blind`, `--blind-return`, or a trailing `\r`) is given `--timeout`; a blind command waits for `execution.blind-wait` (`--blind-wait`) in place of a timeout, and the prompt's absence is its success. |
 | `transcript_create_failed` | output | 111 | no | The login transcript directory, file, or metadata cannot be created. |
 | `transcript_directory_not_writable` | permission | 9 | no | A folder in the transcript tree exists and the operator cannot create files in it. |
 | `transcript_format_unavailable` | dependency | 8 | no | `transcript.format` is `jsonl` or `json` and this executable has no transcript event recorder. |

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/app"
@@ -248,7 +249,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), ContinueDeviceOnError: inv.Flag(optContinue)}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), ContinueDeviceOnError: inv.Flag(optContinue)}, streams)
 	collection.impliedDirectory(&result)
 	printResultError(result, streams.Stderr)
 	return result.ExitCode
@@ -257,11 +258,14 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 // declarations are the per-command interactive-prompt lists the client
 // interprets once and the plan carries: the blind returns, the tolerance
 // flags, and the
-// expect-and-send declarations, each empty when no command has any.
+// expect-and-send declarations, and each command's own timeout and byte
+// limit (0 the job's), each empty when no command has any.
 type declarations struct {
-	returns []int
-	blind   []bool
-	expect  [][]executionplan.Expectation
+	returns  []int
+	blind    []bool
+	expect   [][]executionplan.Expectation
+	timeouts []int64
+	maxBytes []int64
 }
 
 // commandPlan returns the device commands, the explicit --cmd values in
@@ -298,8 +302,9 @@ func commandsFileName(inv *Invocation) string {
 const blindEscape = `\r`
 
 // declarationLists applies the escape rule and the declarations to the
-// command list and returns each command's blind returns, its tolerance flag, and
-// its expectations, all three empty when no command has any. The commands
+// command list and returns each command's blind returns, its tolerance flag,
+// its expectations, its timeout, and its byte limit, each empty when no
+// command has any. The commands
 // are edited in place: a command's trailing \r sequences are removed and
 // counted; nothing else in the text is interpreted, so a malformed escape
 // has no case; literal sends every command as written. Each declaration has
@@ -313,10 +318,13 @@ const blindEscape = `\r`
 // declarations is expect_too_many; and blind returns beside a declaration is
 // expect_with_blind_return, since typed-ahead returns and answered prompts on
 // one command reproduce the miscount hazard, and the expectations cover
-// every case the returns do. A count above zero, or a trailing escape,
-// implies the tolerance, so the flag is set beside it (the plan's Validate
-// refuses a count without its flag); --blind sets the flag alone, the
-// command then awaited for the blind wait with no return written.
+// every case the returns do. --timeout or --maxbytes twice on one command
+// is declaration_repeated; --timeout on a blind command (the flag, a count,
+// or the escape) is timeout_with_blind, the blind wait being that command's
+// own; the parser checked each bound's range. A count above zero, or a
+// trailing escape, implies the tolerance, so the flag is set beside it (the
+// plan's Validate refuses a count without its flag); --blind sets the flag
+// alone, the command then awaited for the blind wait with no return written.
 // --blind-return 0 declares nothing, as at D3.
 func declarationLists(commands []string, decls []Declaration, literal bool) (declarations, error) {
 	counts := make([]int, len(commands))
@@ -339,7 +347,9 @@ func declarationLists(commands []string, decls []Declaration, literal bool) (dec
 			commands[i], counts[i], escaped[i] = c, n, n > 0
 		}
 	}
-	optioned := make([]bool, len(commands)) // the command was given --blind-return
+	timeouts := make([]int64, len(commands)) // nanoseconds; 0 the job's
+	maxBytes := make([]int64, len(commands)) // 0 the job's
+	optioned := make([]bool, len(commands))  // the command was given --blind-return
 	for _, d := range decls {
 		i := d.Command - 1
 		if i < 0 || i >= len(commands) {
@@ -367,26 +377,48 @@ func declarationLists(commands []string, decls []Declaration, literal bool) (dec
 				return declarations{}, errorcodes.Errorf("expect_too_many", "command %d is given more than %d --expect declarations", i+1, executionplan.ExpectationsMax)
 			}
 			expect[i] = append(expect[i], executionplan.Expectation{Pattern: pattern, Response: response})
+		case "timeout":
+			if timeouts[i] != 0 {
+				return declarations{}, errorcodes.Errorf("declaration_repeated", "command %d is given --timeout more than once", i+1)
+			}
+			dur, _ := time.ParseDuration(d.Value) // the parser checked the form and range
+			timeouts[i] = int64(dur)
+		case "maxbytes":
+			if maxBytes[i] != 0 {
+				return declarations{}, errorcodes.Errorf("declaration_repeated", "command %d is given --maxbytes more than once", i+1)
+			}
+			maxBytes[i], _ = strconv.ParseInt(d.Value, 10, 64) // the parser checked the form and range
 		}
 	}
 	// Each list is one entry per command, or empty when no command has
 	// any: the counts and the flags travel together (a blind command with
 	// no returns still needs its flag), the expectations on their own.
-	blindUsed, expectUsed := false, false
+	blindUsed, expectUsed, timeoutUsed, maxBytesUsed := false, false, false, false
 	for i := range commands {
 		if (escaped[i] || optioned[i]) && len(expect[i]) > 0 {
 			return declarations{}, errorcodes.Errorf("expect_with_blind_return", "command %d carries blind returns and an --expect declaration; a command takes one or the other, and --blind alone declares the tolerance beside --expect", i+1)
 		}
 		flags[i] = flags[i] || counts[i] > 0
+		if flags[i] && timeouts[i] != 0 {
+			return declarations{}, errorcodes.Errorf("timeout_with_blind", "command %d is blind (--blind, --blind-return, or a trailing %s) and is given --timeout; a blind command waits for execution.blind-wait (--blind-wait), not a timeout", i+1, blindEscape)
+		}
 		blindUsed = blindUsed || flags[i]
 		expectUsed = expectUsed || len(expect[i]) > 0
+		timeoutUsed = timeoutUsed || timeouts[i] != 0
+		maxBytesUsed = maxBytesUsed || maxBytes[i] != 0
 	}
-	out := declarations{returns: []int{}, blind: []bool{}, expect: [][]executionplan.Expectation{}}
+	out := declarations{returns: []int{}, blind: []bool{}, expect: [][]executionplan.Expectation{}, timeouts: []int64{}, maxBytes: []int64{}}
 	if blindUsed {
 		out.returns, out.blind = counts, flags
 	}
 	if expectUsed {
 		out.expect = expect
+	}
+	if timeoutUsed {
+		out.timeouts = timeouts
+	}
+	if maxBytesUsed {
+		out.maxBytes = maxBytes
 	}
 	return out, nil
 }
@@ -447,7 +479,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, ContinueDeviceOnError: inv.Flag(optContinue), Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, ContinueDeviceOnError: inv.Flag(optContinue), Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
 	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// A crun runs the device's whole list past a rejected statement;

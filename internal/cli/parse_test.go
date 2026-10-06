@@ -2,11 +2,13 @@ package cli
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
@@ -113,6 +115,9 @@ func TestParseADR0002Rows(t *testing.T) {
 func sampleValue(o *option) string {
 	if o == optExpect {
 		return "x=" // the --expect grammar: a nonempty PATTERN before the first =
+	}
+	if o == optMaxBytes {
+		return "1024" // the least output.max-command-bytes takes
 	}
 	switch o.typ {
 	case typeInt:
@@ -1019,6 +1024,96 @@ func TestDeclarationsAttachToTheirCommand(t *testing.T) {
 		inv = mustParse(t, "command", "r1", "--cmd", "x", "--expect", value)
 		if got, err := declarationLists(inv.Commands, inv.Declarations, false); err != nil || got.expect[0][0] != want {
 			t.Errorf("%q: %+v, %v; want %+v", value, got.expect, err, want)
+		}
+	}
+}
+
+// TestCommandBoundDeclarations covers --timeout and --maxbytes as
+// declarations: each attaches to the --cmd before it (in freeform to the one
+// command), takes the range of the key it replaces, read from the registry
+// row, and is placed as the other declarations are; declarationLists makes
+// one entry per command, 0 the job's, refuses a second one on a command, and
+// refuses --timeout on a blind command however the command is blind.
+func TestCommandBoundDeclarations(t *testing.T) {
+	inv := mustParse(t, "command", "r1", "--cmd", "copy scp://h/i.bin bootflash:", "--expect", `Destination filename.*\?=`, "--timeout", "45m", "--cmd", "show tech", "--maxbytes", "1073741824", "--timeo=1s", "--cmd", "show clock")
+	want := []Declaration{
+		decl("expect", `Destination filename.*\?=`, 1),
+		decl("timeout", "45m", 1),
+		decl("maxbytes", "1073741824", 2),
+		decl("timeout", "1s", 2),
+	}
+	if !reflect.DeepEqual(inv.Declarations, want) {
+		t.Fatalf("declarations %+v, want %+v", inv.Declarations, want)
+	}
+	got, err := declarationLists(inv.Commands, inv.Declarations, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got.timeouts, []int64{int64(45 * time.Minute), int64(time.Second), 0}) || !reflect.DeepEqual(got.maxBytes, []int64{0, 1 << 30, 0}) {
+		t.Fatalf("timeouts %v maxbytes %v", got.timeouts, got.maxBytes)
+	}
+	// --timezone is a global option, before the mode alone, so after it
+	// --time is --timeout; --max is ambiguous in run (--max-width) and
+	// --maxbytes in command.
+	if inv := mustParse(t, "run", "--target", "r1", "--cmd", "x", "--time", "5m"); !reflect.DeepEqual(inv.Declarations, []Declaration{decl("timeout", "5m", 1)}) {
+		t.Fatalf("--time in run: %+v", inv.Declarations)
+	}
+	if inv := mustParse(t, "command", "r1", "--cmd", "x", "--max", "2048"); !reflect.DeepEqual(inv.Declarations, []Declaration{decl("maxbytes", "2048", 1)}) {
+		t.Fatalf("--max in command: %+v", inv.Declarations)
+	}
+	// Freeform: the declaration belongs to the one command.
+	inv = mustParse(t, "run", "--target", "r1", "--timeout", "12h", "--maxbytes", "1024", "sleep", "3")
+	if want := []Declaration{decl("timeout", "12h", 1), decl("maxbytes", "1024", 1)}; !reflect.DeepEqual(inv.Declarations, want) || !inv.Freeform {
+		t.Fatalf("freeform declarations %+v (freeform %v), want %+v", inv.Declarations, inv.Freeform, want)
+	}
+	// No declaration: both lists empty, the plan's job values throughout.
+	if got, err := declarationLists([]string{"show clock"}, nil, false); err != nil || len(got.timeouts) != 0 || len(got.maxBytes) != 0 || got.timeouts == nil || got.maxBytes == nil {
+		t.Fatalf("no declaration: timeouts %#v maxbytes %#v, %v", got.timeouts, got.maxBytes, err)
+	}
+	for _, tc := range []struct {
+		args []string
+		code string
+		text string
+	}{
+		{[]string{"command", "r1", "--cmd", "x", "--timeout", "0s"}, "cli_option_value_invalid", "--timeout takes 1s..12h, the range of execution.command-timeout, not 0s"},
+		{[]string{"command", "r1", "--cmd", "x", "--timeout", "999ms"}, "cli_option_value_invalid", ""},
+		{[]string{"command", "r1", "--cmd", "x", "--timeout", "12h0m1s"}, "cli_option_value_invalid", ""},
+		{[]string{"command", "r1", "--cmd", "x", "--timeout", "-5m"}, "cli_option_value_invalid", ""},
+		{[]string{"command", "r1", "--cmd", "x", "--timeout", "45"}, "cli_option_value_invalid", "takes a duration"},
+		{[]string{"command", "r1", "--cmd", "x", "--maxbytes", "1023"}, "cli_option_value_invalid", "--maxbytes takes 1024..1073741824, the range of output.max-command-bytes, not 1023"},
+		{[]string{"command", "r1", "--cmd", "x", "--maxbytes", "1073741825"}, "cli_option_value_invalid", ""},
+		{[]string{"command", "r1", "--cmd", "x", "--maxbytes", "1MiB"}, "cli_option_value_invalid", "takes an integer"},
+		{[]string{"command", "r1", "--timeout", "5m", "--cmd", "x"}, "declaration_before_command", "--timeout is given before the first --cmd"},
+		{[]string{"run", "--target", "r1", "--maxbytes", "2048", "--cmd", "x"}, "declaration_before_command", ""},
+		{[]string{"run", "--target", "r1", "--cf", "-", "--timeout", "5m"}, "declaration_with_commands_file", "--timeout is not accepted with --cf alone"},
+		{[]string{"run", "--target", "r1", "--cmd", "x", "--max", "2048"}, "cli_option_ambiguous", ""},
+	} {
+		_, err := Parse(tc.args)
+		if errorcodes.Of(err) != tc.code || !strings.Contains(fmt.Sprint(err), tc.text) {
+			t.Errorf("%q: %v, want %s holding %q", tc.args, err, tc.code, tc.text)
+		}
+	}
+	for _, tc := range []struct {
+		name     string
+		commands []string
+		decls    []Declaration
+		literal  bool
+		code     string
+	}{
+		{"timeout twice", []string{"copy"}, []Declaration{decl("timeout", "5m", 1), decl("timeout", "10m", 1)}, false, "declaration_repeated"},
+		{"maxbytes twice", []string{"show tech"}, []Declaration{decl("maxbytes", "2048", 1), decl("maxbytes", "4096", 1)}, false, "declaration_repeated"},
+		{"one of each on each command", []string{"a", "b"}, []Declaration{decl("timeout", "5m", 1), decl("maxbytes", "2048", 1), decl("timeout", "5m", 2), decl("maxbytes", "2048", 2)}, false, ""},
+		{"timeout on --blind", []string{"reload"}, []Declaration{decl("blind", "true", 1), decl("timeout", "5m", 1)}, false, "timeout_with_blind"},
+		{"timeout on --blind-return", []string{"clear counters"}, []Declaration{decl("timeout", "5m", 1), decl("blind-return", "1", 1)}, false, "timeout_with_blind"},
+		{"timeout on a trailing escape", []string{`clear counters\r`}, []Declaration{decl("timeout", "5m", 1)}, false, "timeout_with_blind"},
+		{"timeout beside --blind-return 0", []string{"clear counters"}, []Declaration{decl("blind-return", "0", 1), decl("timeout", "5m", 1)}, false, ""},
+		{"timeout on a literal escape", []string{`show run | include \r`}, []Declaration{decl("timeout", "5m", 1)}, true, ""},
+		{"timeout with --expect", []string{"copy"}, []Declaration{decl("expect", "a=", 1), decl("timeout", "45m", 1)}, false, ""},
+		{"maxbytes on a blind command", []string{"reload"}, []Declaration{decl("blind", "true", 1), decl("maxbytes", "2048", 1)}, false, ""},
+	} {
+		_, err := declarationLists(append([]string{}, tc.commands...), tc.decls, tc.literal)
+		if errorcodes.Of(err) != tc.code {
+			t.Errorf("%s: %v, want %q", tc.name, err, tc.code)
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 )
@@ -22,19 +23,19 @@ type TargetInput struct {
 	Positional bool
 }
 
-// Declaration is one interactive-prompt declaration in command-line order:
-// an --expect, --blind, or
-// --blind-return, recorded beside the --cmd it follows. The parser keeps the
-// three in one positional record, as it keeps the target inputs, because
-// Invocation.values loses the order between options and a declaration is
-// meaningful only for the command it follows. Command is the one-based index
-// into Invocation.Commands of that --cmd, or 1 for the one freeform command;
-// the parser refuses a declaration before the first --cmd or with --cf alone,
-// so a handler never sees Command 0. Value is the option's raw value: the
-// PATTERN=RESPONSE text, N, or "true"; declarationLists (work_commands.go)
-// interprets it.
+// Declaration is one declaration in command-line order: an --expect,
+// --blind, --blind-return, --timeout, or --maxbytes, recorded beside the
+// --cmd it follows. The parser keeps the five in one positional record, as
+// it keeps the target inputs, because Invocation.values loses the order
+// between options and a declaration is meaningful only for the command it
+// follows. Command is the one-based index into Invocation.Commands of that
+// --cmd, or 1 for the one freeform command; the parser refuses a declaration
+// before the first --cmd or with --cf alone, so a handler never sees Command
+// 0. Value is the option's raw value: the PATTERN=RESPONSE text, N,
+// DURATION, BYTES, or "true"; declarationLists (work_commands.go) interprets
+// it.
 type Declaration struct {
-	Option  string // "expect", "blind", or "blind-return"
+	Option  string // "expect", "blind", "blind-return", "timeout", or "maxbytes"
 	Value   string
 	Command int
 }
@@ -369,6 +370,9 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 				return false, err
 			}
 		}
+		if err := checkDeclaredBound(o, value); err != nil {
+			return false, err
+		}
 		// --blind=false declares nothing, as --all=false selects nothing.
 		if o.kind != kindFlag || value != "false" {
 			inv.Declarations = append(inv.Declarations, Declaration{Option: o.name, Value: value, Command: len(inv.Commands)})
@@ -402,6 +406,37 @@ func checkExpect(value string) error {
 	}
 	if _, err := regexp.Compile(pattern); err != nil {
 		return errorcodes.Errorf("expect_pattern_invalid", "--expect pattern %q does not compile: %v", pattern, err)
+	}
+	return nil
+}
+
+// declaredBoundKeys names the configuration key each command bound replaces:
+// the declaration takes the key's form and range, read from its registry
+// row, so the option and the key never disagree.
+var declaredBoundKeys = map[*option]string{optTimeout: "execution.command-timeout", optMaxBytes: "output.max-command-bytes"}
+
+// checkDeclaredBound refuses a --timeout or --maxbytes outside the range of
+// the key it replaces for its command (cli_option_value_invalid, as a value
+// of the wrong form is); the value's form was checked by checkValueType.
+func checkDeclaredBound(o *option, value string) error {
+	key, ok := declaredBoundKeys[o]
+	if !ok {
+		return nil
+	}
+	e, _ := configschema.Lookup(key)
+	var v, lo, hi int64
+	if o.typ == typeDuration {
+		d, _ := time.ParseDuration(value)
+		min, _ := time.ParseDuration(e.Min)
+		max, _ := time.ParseDuration(e.Max)
+		v, lo, hi = int64(d), int64(min), int64(max)
+	} else {
+		v, _ = strconv.ParseInt(value, 10, 64)
+		lo, _ = strconv.ParseInt(e.Min, 10, 64)
+		hi, _ = strconv.ParseInt(e.Max, 10, 64)
+	}
+	if v < lo || v > hi {
+		return errorcodes.Errorf("cli_option_value_invalid", "--%s takes %s..%s, the range of %s, not %s", o.name, e.Min, e.Max, key, value)
 	}
 	return nil
 }
@@ -443,8 +478,8 @@ func splitExpect(value string) (pattern, response string, ok bool) {
 // nearest preceding --cmd, or in freeform to the one command. Before the
 // first --cmd it has no command and is refused rather than attached to the
 // first, so a reader never guesses; with --cf alone it is refused, since a
-// file line takes \r at its end and an interactive command is given with
-// --cmd. With --cf and --cmd together the file lines carry none. The message
+// declaration attaches to a --cmd and a file line takes \r at its end. With
+// --cf and --cmd together the file lines carry none. The message
 // says where to write the declaration.
 func (p *parser) placeDeclarations() error {
 	inv := p.inv
@@ -454,7 +489,7 @@ func (p *parser) placeDeclarations() error {
 		case inv.Freeform:
 			d.Command = 1
 		case len(inv.Commands) == 0 && inv.Set(optCf):
-			return errorcodes.Errorf("declaration_with_commands_file", "--%s is not accepted with --cf alone: a file line takes \\r at its end, and an interactive command is given with --cmd", d.Option)
+			return errorcodes.Errorf("declaration_with_commands_file", "--%s is not accepted with --cf alone: a declaration attaches to the --cmd before it, so give that command with --cmd (a file line takes \\r at its end)", d.Option)
 		case d.Command == 0:
 			return errorcodes.Errorf("declaration_before_command", "--%s is given before the first --cmd; write it after the command it belongs to", d.Option)
 		}

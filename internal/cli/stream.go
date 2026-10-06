@@ -25,9 +25,9 @@ import (
 // all, \r read as --cmd reads it. The draft has two parts: the options (targets
 // among them), which stay from one job to the next, and the commands, which
 // every job clears. An option line whose word is --cmd, --command, or --cf, or
-// one of the three declarations (--expect, --blind, --blind-return), belongs to
-// the commands, so a command typed the way run takes it is sent once, like a
-// bare line. The directives are whole lines, one dash or two alike: --go or
+// one of the five declarations (--expect, --blind, --blind-return, --timeout,
+// --maxbytes), belongs to the commands, so a command typed the way run takes
+// it is sent once, like a bare line. The directives are whole lines, one dash or two alike: --go or
 // --sendit executes the draft and clears the commands (with nothing to send, a
 // notice and no job); --clear empties the commands alone; --reset empties the
 // draft; --end, --quit, EOF, or Ctrl-C leave without executing. A line the
@@ -353,7 +353,7 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 // resolved through run's option table as Parse resolves it (a full name, an
 // alias, or a prefix naming one option): role is the option's, which says
 // whether it belongs to the draft's commands (--cmd and its aliases, --cf,
-// and the three declarations; streamCommandRole) or is a target input, and stdinOption names the option when a --cf, --tf,
+// and the five declarations; streamCommandRole) or is a target input, and stdinOption names the option when a --cf, --tf,
 // or --tfr line gives - as its value, which the stream cannot serve;
 // detached is the refusal of an option whose value attaches with = alone
 // (--of) given text after a space. A word the table does not resolve is an

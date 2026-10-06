@@ -183,7 +183,7 @@
     },
     "execution_plan": {
       "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "session_init", "dispatch", "execution", "output", "ping", "sources", "planning", "preparation"],
+      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "execution", "output", "ping", "sources", "planning", "preparation"],
       "properties": {
         "schema_version": {"const": 11},
         "plan_id": {"$ref": "#/$defs/identifier"},
@@ -199,6 +199,8 @@
         "blind_wait_ns": {"type": "integer", "minimum": 0, "maximum": 600000000000},
         "blind": {"type": "array", "items": {"type": "boolean"}},
         "expectations": {"type": "array", "items": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/expectation"}}},
+        "timeouts_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "session_init": {"type": "object", "additionalProperties": {"$ref": "#/$defs/session_init_profile"}},
         "dispatch": {"$ref": "#/$defs/dispatch"},
         "execution": {"$ref": "#/$defs/execution"},

@@ -32,7 +32,8 @@ import (
 // collect too, and its suffix (--fs), and, without another bump (10 was
 // unreleased), output.files' failures_jsonl renamed errors_jsonl; 11 each
 // target's channel, and, without another bump (11 was unreleased), the
-// execution block, the invocation's timeouts.
+// execution block, the invocation's timeouts, and each command's own
+// timeouts_ns and max_bytes.
 const SchemaVersion = 11
 
 // Mode is the requested execution mode of a job.
@@ -130,6 +131,8 @@ type ExecutionPlan struct {
 	BlindWaitNS       int64                         `json:"blind_wait_ns"`
 	Blind             []bool                        `json:"blind"`
 	Expectations      [][]Expectation               `json:"expectations"`
+	TimeoutsNS        []int64                       `json:"timeouts_ns"`
+	MaxBytes          []int64                       `json:"max_bytes"`
 	SessionInit       map[string]SessionInitProfile `json:"session_init"`
 	Dispatch          DispatchSettings              `json:"dispatch"`
 	Execution         ExecutionSettings             `json:"execution"`
@@ -162,6 +165,14 @@ type ExecutionPlan struct {
 // each as a number, and a client and a daemon configured apart would
 // disagree after preparation. Both are twenty, the extended ping's nineteen
 // prompts the measure (D3 set ten returns; D4 raised it to match).
+//
+// A command's own bounds: TimeoutsNS and MaxBytes are each empty or one
+// entry per command, --timeout in nanoseconds and --maxbytes in bytes, 0
+// the job's value (execution.command_timeout_ns, output.max_command_bytes).
+// Both are under plan_digest. The client checked each value's range, a
+// timeout on a blind command, and the device timeout and job limit above
+// them; the plan refuses only a length that does not match the commands or
+// a negative entry, so the daemon accepts what the client accepted.
 const (
 	BlindReturnsMax = 20
 	BlindWaitMax    = 10 * time.Minute
@@ -595,6 +606,9 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	if err := p.validateExecDeclarations(); err != nil {
 		return err
 	}
+	if err := p.validateCommandBounds(); err != nil {
+		return err
+	}
 	if err := p.validateSessionInit(); err != nil {
 		return err
 	}
@@ -679,16 +693,6 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	return nil
 }
 
-// validateBlindSends checks the interactive-prompt fields: the counts
-// present, empty or one per command and
-// each 0..BlindReturnsMax; the wait 0..BlindWaitMax; the flags present,
-// empty or one per command; the declarations present, empty or one list per
-// command, each list present and at most ExpectationsMax long, each pattern
-// nonempty and compiling; a count above zero only with the flag, since the
-// count implies the tolerance and the client records the implication; and
-// no command with both a count above zero and a declaration. The daemon
-// validates the plan it is given, so these rules hold whatever client
-// drafted it.
 // validateExecDeclarations refuses a declaration that answers a terminal
 // on a command for an exec target: a blind send (the flag, which a count
 // of returns implies) or an expectation. An exec channel has no terminal
@@ -716,6 +720,16 @@ func (p *ExecutionPlan) validateExecDeclarations() error {
 	return nil
 }
 
+// validateBlindSends checks the interactive-prompt fields: the counts
+// present, empty or one per command and
+// each 0..BlindReturnsMax; the wait 0..BlindWaitMax; the flags present,
+// empty or one per command; the declarations present, empty or one list per
+// command, each list present and at most ExpectationsMax long, each pattern
+// nonempty and compiling; a count above zero only with the flag, since the
+// count implies the tolerance and the client records the implication; and
+// no command with both a count above zero and a declaration. The daemon
+// validates the plan it is given, so these rules hold whatever client
+// drafted it.
 func (p *ExecutionPlan) validateBlindSends() error {
 	if p.BlindReturns == nil {
 		return planInvalid("blind_returns", "must be present (empty allowed)")
@@ -768,6 +782,51 @@ func (p *ExecutionPlan) validateBlindSends() error {
 		}
 	}
 	return nil
+}
+
+// validateCommandBounds checks each command's own bounds: each list present,
+// empty or one entry per command, and no entry negative (0 is the job's
+// value). The ranges, the blind conflict, the device timeout, and the job
+// limit are the client's to check.
+func (p *ExecutionPlan) validateCommandBounds() error {
+	for _, f := range []struct {
+		field string
+		list  []int64
+	}{{"timeouts_ns", p.TimeoutsNS}, {"max_bytes", p.MaxBytes}} {
+		if f.list == nil {
+			return planInvalid(f.field, "must be present (empty allowed)")
+		}
+		if len(f.list) != 0 && len(f.list) != len(p.Commands) {
+			return planInvalid(f.field, "%d entries for %d commands; empty or one per command", len(f.list), len(p.Commands))
+		}
+		for i, v := range f.list {
+			if v < 0 {
+				return planInvalid(f.field, "command %d: %d must not be negative (0 is the job's value)", i+1, v)
+			}
+		}
+	}
+	return nil
+}
+
+// LargestCommandLimit is the largest byte limit any command of the job
+// sends under: output.max_command_bytes, or above it a --maxbytes entry,
+// and declared reports that the largest is a declaration. The job's value
+// counts while any command takes it: an entry of 0, a command list with no
+// entries (the platform lists among them), or a session-init profile.
+func (p *ExecutionPlan) LargestCommandLimit() (limit int64, declared bool) {
+	jobs := len(p.MaxBytes) == 0 || len(p.SessionInit) > 0
+	for _, v := range p.MaxBytes {
+		switch {
+		case v == 0:
+			jobs = true
+		case v > limit:
+			limit = v
+		}
+	}
+	if jobs && p.Output.MaxCommandBytes >= limit {
+		return p.Output.MaxCommandBytes, false
+	}
+	return limit, true
 }
 
 // validateSessionInit checks the session-init table and each target's

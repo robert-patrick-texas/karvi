@@ -68,7 +68,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	// admission refused before any file leaves no folder behind.
 	defer release()
 	draft := planner.DraftOptions{
-		ActivityType: "command", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations,
+		ActivityType: "command", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		Transport: opts.Transport, ContinueDeviceOnError: opts.ContinueDeviceOnError, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: true,
 		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { warning(streams.Stderr, s) }},
@@ -134,7 +134,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	// leaves no folder and a job that wrote files keeps them.
 	defer release()
 	draft := planner.DraftOptions{
-		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations,
+		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		ContinueDeviceOnError: opts.ContinueDeviceOnError, Transport: opts.Transport,
 		PlatformCommands: opts.PlatformCommands, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: !opts.Detach,

@@ -103,7 +103,7 @@ func DraftPlan() executionplan.ExecutionPlan {
 		Operator: executionplan.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:  []executionplan.ExecutionTarget{DirectTarget(), InventoryTarget(), DaemonTarget()},
 		Commands: append([]string{}, Commands...), CommandPlanDigest: executionplan.SumCommands(Commands),
-		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]executionplan.Expectation{},
+		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    executionplan.DispatchSettings{Mode: executionplan.DispatchSerial, Width: 1, DispatchOrder: executionplan.OrderDefault},
 		Execution:   Execution,

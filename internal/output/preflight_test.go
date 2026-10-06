@@ -51,8 +51,13 @@ func TestPreflightGroupsByVolume(t *testing.T) {
 	// narrows to 1 with the warning; below the floor plus one limit it refuses.
 	free[2] = 3 * gib
 	got, err = Preflight{Check: FreeCheckAuto, Floor: 2 * gib, Limit: gib, Width: 4, Places: p.Places}.Run()
-	if err != nil || got.Width != 1 || !strings.Contains(got.Warning, "spool_width_narrowed: /spool has") || !strings.Contains(got.Warning, "runs 1 at a time instead of 4") {
+	if err != nil || got.Width != 1 || !strings.Contains(got.Warning, "spool_width_narrowed: /spool has") || !strings.Contains(got.Warning, "per command in flight (output.max-command-bytes)") || !strings.Contains(got.Warning, "runs 1 at a time instead of 4") {
 		t.Fatalf("narrowed: %+v %v", got, err)
+	}
+	// The largest limit a --maxbytes: the warning names the declaration.
+	got, err = Preflight{Check: FreeCheckAuto, Floor: 2 * gib, Limit: gib, Declared: true, Width: 4, Places: p.Places}.Run()
+	if err != nil || got.Width != 1 || !strings.Contains(got.Warning, "per command in flight (--maxbytes)") {
+		t.Fatalf("narrowed by a declared limit: %+v %v", got, err)
 	}
 	free[2] = 3*gib - 1
 	_, err = Preflight{Check: FreeCheckAuto, Floor: 2 * gib, Limit: gib, Width: 4, Places: p.Places}.Run()

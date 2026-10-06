@@ -123,3 +123,24 @@ func TestRunNoDaemonCarriesTheDeclarationsToThePlan(t *testing.T) {
 		t.Fatalf("manifest lacks the fields as written:\n%s", raw)
 	}
 }
+
+// TestRunNoDaemonCarriesTheCommandBoundsToThePlan: --timeout and
+// --maxbytes, placed by the parser on their commands, draft a plan with one
+// entry per command, 0 the job's, and the plan reaches the manifest as
+// written; a run without them carries both lists empty.
+func TestRunNoDaemonCarriesTheCommandBoundsToThePlan(t *testing.T) {
+	got, m, raw := promptingDeviceRun(t, "--cmd", "show clock", "--timeout", "45m", "--cmd", "show version", "--maxbytes", "2048")
+	if want := "1/2:succeeded 2/2:succeeded"; got != want {
+		t.Fatalf("records:\n got %s\nwant %s", got, want)
+	}
+	if fmt.Sprint(m.Plan.TimeoutsNS, m.Plan.MaxBytes) != "[2700000000000 0] [0 2048]" {
+		t.Fatalf("plan timeouts_ns=%v max_bytes=%v", m.Plan.TimeoutsNS, m.Plan.MaxBytes)
+	}
+	if !strings.Contains(string(raw), `"timeouts_ns":[2700000000000,0],"max_bytes":[0,2048]`) {
+		t.Fatalf("manifest lacks the two fields as written:\n%s", raw)
+	}
+	_, _, raw = promptingDeviceRun(t, "--cmd", "show clock")
+	if !strings.Contains(string(raw), `"timeouts_ns":[],"max_bytes":[]`) {
+		t.Fatalf("manifest lacks the two empty fields:\n%s", raw)
+	}
+}
