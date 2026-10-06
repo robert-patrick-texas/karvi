@@ -4915,3 +4915,84 @@ config_key_removed: removed in v0.27.0; the scoreboards' folder is the top-level
 ```
 
 Registry 26 stays: `Since` is a field of the rows the counter already covers.
+
+## 29. The release 0.27.0 (2026-10-06)
+
+The fourth public release, on the operator's word, carrying chapters 22 to 28;
+before the number, the two gaps chapter 28 left in the registry and the
+removed keys, closed as a section of their own. The sequence is
+[chapter 21](#21-the-release-0260-and-licensemd-2026-10-04)'s, with the same
+tools.
+
+**What it gains.** A site installs the Linux servers over the exec channel, the
+output as the terminal showed it, a command's own bounds and the daemon's runs
+bounded as their invocations said, the stream-mode fixes, and every place
+resolved by one rule and named by `config show --explain`, from a published
+artifact; and a configuration that still sets `watch.directory` is told what
+replaces it.
+
+**Before the number.** The `scoreboards` row carried no `Since`, so the
+registry gave it the default `0.2.0`, and `watch.directory` had no row among
+the removed keys, so a configuration setting it met `config_unknown_key` (from
+the environment `config_unknown_environment`) where `ssh.pubkey-authentication`
+meets `config_key_removed` with what replaces it. `afd12df` gives the row
+`Since: "0.27.0"` and the key its row, refused from a file, the environment,
+and `--set` alike; registry 26 stays, `Since` being a field of the rows the
+counter covers. The full battery passed on its lab build, the canary 0 hits.
+
+**The sequence, as run**, 46 minutes 21 seconds from the baseline's start to
+the artifacts' end, the stops for the operator's word included:
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the baseline on a clean clone of `dev` at `afd12df` | 12:32:12 to 12:39:10 | gofmt, make, the release verifier, exit 0 each |
+| the number in its eight places; the release-identity build | 12:52:20 | `BUILD_TIME=2026-10-06T00:00:00Z` given to every tool; the changelog's Unreleased block became the release's, under a lead paragraph naming what a site has to change |
+| the compatibility example | 12:52:40 | the released v0.26.0 executable, copied out of `bin/` and checked against `CHECKSUMS.sha256` before the rebuild, started its daemon; this client read `compatible: false` on the version alone, its run was refused with `daemon_incompatible` (exit 112) before any job, the client's `daemon stop` ended it |
+| 1/3 | 12:55:14 | `60ee9a9` |
+| the core evidence | 12:55:19 to 12:57:22 | 875 named tests across 83 packages, vet 0, both socket lengths exit 0 |
+| the documents | 13:05:40 | `6b9dcb4` (2/3): `release/` from the v0.26.0 pattern; BUILD-HOWTO's registry line, stale since 0.26.0 |
+| the remaining evidence | 13:05:44 to 13:12:15 | the shipped checks exit 0, the release verifier exit 0, the checksums unchanged by its rebuild; the replay skipped |
+| 3/3, the tag, `main` | 13:13:17 | `8250167`, `karvi-v0.27.0`, `main` fast-forwarded from `72bf32d` |
+| the artifacts | 13:13:27 to 13:18:33 | the bundle reproducible byte for byte and verified from its own archive; 15,760,203 bytes, 0.3 MB more than v0.26.0's |
+| the push and the GitHub release | 13:21:27 | `dev`, `main`, and the tag pushed; release `karvi-v0.27.0` with the three assets, marked latest; the asset downloaded back matches |
+
+**Executed.** The section's refusal, the example's turning points, and the
+published state:
+
+```text
+$ karvi --set 'watch.directory="/tmp/x"' config show basedir    # afd12df's lab build
+config_key_removed: removed in v0.27.0; the scoreboards' folder is the top-level key scoreboards now for watch.directory at --set[3]
+$ grep -E 'client_version|^compatible|^exit=112|^daemon_incompatible' release/evidence/ipc-schema-compat.log | cut -c1-96
+client_version: 0.27.0
+compatible: false
+exit=112
+daemon_incompatible: running daemon version 0.26.0 uses IPC schema 10; karvi 0.27.0 uses schema 10,
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease)"'
+latest: karvi-v0.27.0 draft=false prerelease=false
+$ curl -sL .../karvi-v0.27.0-source-linux-amd64.tar.gz | sha256sum | cut -c1-16; cut -c1-16 karvi-v0.27.0-source-linux-amd64.tar.gz.sha256
+b724a3b5149e3acd
+b724a3b5149e3acd
+```
+
+**Found on the way.** The credential package moved from 1 to 2 with the
+operator's keys, a counter the hand-off's list did not name; the lead
+paragraph, the build result, and the manifest carry it, read from the source
+at both tags. BUILD-HOWTO's §8 still named registry 22, stale since 0.26.0's
+24; the 2/3 sweep set it to 26. The scrapligo evidence said the parity suite
+ran against the fake IOS XE device; since S35a to S35f it runs the Linux
+persona as well, and the sentence names both. The compatibility example's
+script and the 2/3 generator of chapter 21 had not been kept; the script was
+rewritten and is kept beside the tree with this release's logs. Its rehearsal,
+with a lab build still numbered 0.26.0 as the client, found that such a build
+passes the daemon's version check against the released 0.26.0 daemon and is
+refused one step later, by the daemon's header check (`job_header_invalid:
+schema_version: 11 is not the supported version 10`, exit 112); a release's
+number makes the pair `compatible: false` before that.
+
+**Not taken.** The plan schema in the daemon's compatibility check: only a
+development build shares a released version, and the header check refuses its
+job before anything runs. A patch release for the removed-key row: it rides
+with the number it names.
+
+**Roadmap.** The outline's items, the scratch sweep first; the package's
+contents, the roadmap's first item.
