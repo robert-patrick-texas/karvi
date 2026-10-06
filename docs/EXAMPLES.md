@@ -4996,3 +4996,78 @@ with the number it names.
 
 **Roadmap.** The outline's items, the scratch sweep first; the package's
 contents, the roadmap's first item.
+
+## 30. The scratch sweep (2026-10-06)
+
+The outline's item "the scratch sweep": what a session killed outright leaves
+in the scratch, where [`docs/DESIGN.md`](DESIGN.md) says that nothing sweeps
+it.
+
+**What it gains.** In individual mode the scratch is `<basedir>/tmp`, on disk,
+so what each killed session leaves stays across reboots and grows with every
+kill; in shared mode it is `/dev/shm/karvi/<user>`, memory until the next boot.
+The files are small and hold no secret (the `ssh` configuration is a kilobyte
+of paths and algorithms; the askpass socket is dead; the timing log grows with
+the session's output), so the gain is a scratch that stays bounded and the
+DESIGN gap closed. The cases found a larger one, issue 2. It waits on nothing.
+
+**Executed: the ground.** On a lab build of `afd12df`, every place under a lab
+folder, against this host's OpenSSH by the operator's key: a `command` over
+`system` running `sleep 30`, killed with `SIGKILL`, on the shell channel
+(`bast1`, `linux_shell`) and on the exec channel (`srv1`, `linux`); a `run`
+whose daemon was killed so; and a recorded login whose karvi was killed so.
+
+| Case | Left in the scratch | Left running |
+|---|---|---|
+| `command`, shell channel, the client killed | `karvi-ssh-*.conf` | its `ssh`, its parent now init, holding the remote login shell two minutes later |
+| `command`, exec channel, the client killed | `karvi-ssh-*.conf` | nothing here: the master's death signal ended it and its socket; the remote `sleep` ran on (`remote_command_not_stopped`) |
+| `run`, shell channel, the daemon killed | `karvi-ssh-*.conf` | its `ssh`, as in the first case |
+| `login --record`, karvi killed | `karvi-ssh-*.conf`, `karvi-script-*.timing`, `askpass-*.sock` | nothing once the terminal closed; the transcript kept raw, as documented |
+
+**Issue 1, the sweep's rule, agreed.** Each scratch file karvi makes carries
+its maker's pid in its name, `karvi-ssh-<pid>-*.conf` and
+`karvi-script-<pid>-*.timing`, where `CreateTemp`'s random suffix alone named no
+owner; such a file is swept by the spool's rule (`output.SweepSpools`): the name
+karvi makes, owned by the operator, its pid not alive as a karvi executable.
+The askpass socket is swept by the control sockets' rule: the name karvi makes,
+owned by the operator, and refusing a connection. The sweep runs where those
+two run, at the daemon's start and at every admission, and at a login's start,
+which has no admission, over the scratch the invocation resolves; anything else
+in the folder is not karvi's and is not touched. Not taken: a sweep by age (a
+recorded login runs for hours); `karvi-prune` (it reads no configuration, cannot
+judge an owner alive, and would reach the scratch only by a walk of its own);
+every candidate of the chain (the other sweeps take the place resolved).
+
+**Issue 2, a session's processes end with karvi, agreed.** The ground's first
+and third cases left more than files: on the shell channel the system
+transport's `ssh` has no death signal, where the exec masters have one, so when
+its parent died its standard input reached EOF, which on a pty does not end the
+remote shell, and the device's session was held: a vty on a router until its
+exec-timeout, on a server without `TMOUT` for good. A plain `login` killed with
+its terminal still open left its `ssh` the terminal's foreground job (`S+`),
+its parent init, competing with the shell until the terminal closed. The
+in-process transports have no such case; their connection ends with the
+process. A trial in a scratch worktree started the shell channel's `ssh` as
+the exec master is started, then ran the cases again:
+
+| Case | `afd12df` | The trial |
+|---|---|---|
+| `command`, shell channel, the client killed | `ssh` under init, the remote shell held after two minutes | `ssh` ended at once; no session from 127.0.0.1 left |
+| `run`, shell channel, the daemon killed | the same | `ssh` ended at once; no session left |
+
+The rule: every OpenSSH or `script(1)` process karvi starts for a device
+session ends when its parent dies: the shell channel's `ssh`, the interactive
+`ssh` of a login, and a recorded login's `script(1)`, which ends its own child
+on `SIGTERM`. Each is started as the exec master is, `Pdeathsig: SIGTERM`, by
+one goroutine that holds its OS thread for the process's life, since the
+signal follows the thread that started the child. A killed karvi ends the
+device's session as a closed connection does; the remote shell takes its
+hangup, so a shell command, unlike an exec one, does not run on. The DESIGN
+entry for the masters widens to every session process. The killed sessions
+also left an `askpass-*.sock` each, the broker started for every system
+session under keys too; issue 1's rule takes them. Not taken: a sweep of
+orphaned `ssh` processes at the next start (the session held until karvi next
+runs, and another process judged by its command line); `ServerAlive` (the
+device answers it, so a live abandoned session never ends); the login left to
+the terminal's hangup (a killed karvi under an open terminal leaves an `ssh`
+fighting the shell).
