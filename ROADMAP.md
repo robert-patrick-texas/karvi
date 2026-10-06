@@ -80,6 +80,19 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   signed. The questions: the record's field (path and fingerprint
   beside `auth`), the audit's, and `login`, whose stderr is the operator's
   terminal ([`docs/DESIGN.md`, section 4](docs/DESIGN.md#4-credentials)).
+- **A login's OpenSSH log level.** A `login` runs OpenSSH at `LogLevel ERROR`,
+  fixed in the configuration karvi generates, so a session that never reaches
+  the prompt says nothing of how far it got;
+  [`docs/SSH-TROUBLE.md`](docs/SSH-TROUBLE.md) restores OpenSSH's account
+  through a wrapper named by `ssh.transports.system`. The item: a login run so
+  that OpenSSH writes a higher level to a file (`-E`), the terminal staying the
+  operator's, and the file's path named on the debug stream. The questions:
+  the level (`VERBOSE`, as `command` runs it, or `DEBUG1` to `DEBUG3`); what
+  turns it on (`--debug`, a key, an option of `login`); where the file lives
+  and for how long (the scratch under the sweep's rule, or beside a recorded
+  login's transcript); whether karvi reads it back at the session's end to
+  classify a failure as it does for `command`; and what it holds that is
+  sensitive (the address, the user name, the host key, never a password).
 - **A review of every digest.** No digest over an output that does not
   declare one as required for its consumption. The review lists each digest
   the program computes or records with who computes it, who reads it, and
