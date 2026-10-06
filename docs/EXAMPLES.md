@@ -4210,3 +4210,120 @@ operator's next item, build on the plan's block; a `show tech` past the 1 GiB
 ceiling of `output.max-command-bytes` is a separate decision (how a record holds
 output of several GiB), and until it is taken the device's own redirect to its
 flash, then a `copy` off it, is the tool.
+
+## 27. A command's own timeout and byte limit (2026-10-05)
+
+The operator's question of chapter 26, built on its fix: the bound for one
+command, a `copy` of an image to an IOS XE router that runs thirty minutes or
+more with `!` now and then or nothing, and a `show tech` streaming more than a
+gigabyte for as long. Chapter 26 made a job's bounds the invocation's on every
+path; this chapter designs the bounds of one command within the job. The build
+is the next session's.
+
+**What it gains.** One command gets the bound it needs while the rest of the
+job keeps the site's: the `copy` 45 minutes, the `show` commands around it
+their 120 seconds, so a hung `show` still fails fast. The plan is the one
+path to the daemon since chapter 26. It waits on nothing outside the tree; a
+`show tech` past 1 GiB waits on its own decision, how a record holds output of
+several GiB.
+
+**Executed: the ground.** On the lab build at `36b553a` against this host:
+
+- run's option table has `--timezone` and `--max-width`, so `--time` and
+  `--max` would be ambiguous prefixes; `--timeout` and `--timeo`, `--maxbytes`
+  and `--maxb` resolve alone. No size parser with units exists: every byte
+  key takes whole bytes.
+- `--expect` on a `linux` target is `channel_exec_declaration_refused` (it
+  answers a terminal, which an exec channel has none of).
+- Today's messages name the value that applied: `command timed out after 2s;
+  the command was stopped and its channel closed` (exec), `command timed out
+  after 2s while waiting for a returning prompt; the session is closed`
+  (shell), `command output exceeded 2048 bytes across stdout and stderr (5000
+  observed); the command was stopped`.
+- A job folder's `manifest.json` holds the plan, `blind_wait_ns`, the
+  profiles' `command_timeout_ns`, and the `execution` block among it.
+- Over telnet a command is read under one deadline, the smaller of its timeout
+  and `telnet.read-timeout` (60s by default), not reset by output
+  (`readUntil` sets one read deadline): telnet's read timeout caps every
+  command whole, where `docs/TIMEOUTS.md` said "each read".
+
+**Issue 1, agreed.** `--timeout DURATION` and `--maxbytes BYTES`, declarations
+on the `--cmd` before them as `--expect` and `--blind` are, at most one of
+each per command, in the forms and ranges of `execution.command-timeout` (1s
+to 12h) and `output.max-command-bytes` (whole bytes, 1 KiB to 1 GiB), checked
+when parsed. Before any command, or with `--cf`, they are refused as the
+declarations are today; they belong to the requested commands, not a
+session-init profile's (which has its own `command-timeout`) or a `crun`'s
+platform lists; they are accepted on an exec channel. In stream mode they
+attach like `--expect`, staying with a kept command. The copy reads:
+
+```text
+karvi command rtr1 --cmd 'copy scp://host/image.bin bootflash:' --expect 'Destination filename.*\?=' --timeout 45m
+```
+
+**Not taken.** Size suffixes (`512MiB`) on `--maxbytes` while the key takes
+whole bytes (suffixes for keys and options together would be their own item);
+one combined option (`--limits 45m,2GiB`); the names `--command-timeout` and
+`--max-command-bytes`, the keys' own, against the short-word rule.
+
+**Issue 2, agreed.** `--timeout` replaces `execution.command-timeout` for its
+command on the shell and on exec, expiring as today's `command_timeout` with
+the same rule for the rest of the list. With `--expect` it is the one
+deadline across every prompt and answer, never reset; keepalives still end a
+dead peer. On a blind command (`--blind`, `--blind-return`) it is refused when
+parsed (`timeout_with_blind`): the blind wait is that command's own, and its
+success is the prompt's absence. Above a set `execution.device-timeout` it is
+refused at planning (`timeout_over_device_timeout`), naming both values and
+`--set execution.device-timeout=…`; at the default 0 there is no ceiling, and
+a list whose total passes a set ceiling still ends `device_timeout` while it
+runs. Over telnet it replaces `telnet.read-timeout` too for its command.
+
+**Not taken.** `--timeout` as a blind command's wait; the device deadline
+growing by a declared command's excess (a site's ceiling made advisory);
+refusing a list whose timeouts sum past the ceiling (most lists finish far
+sooner); telnet's cap left in force under a declaration.
+
+**Issue 3, agreed.** `--maxbytes` replaces `output.max-command-bytes` for its
+command, a smaller value allowed; reaching it is today's
+`output_limit_exceeded` with the first BYTES kept, the shell's session ended,
+the exec channel's command stopped and its connection serving the next, both
+streams counted together. Above `output.max-job-bytes` it is refused at
+planning (`maxbytes_over_job_limit`), naming both values and the `--set` that
+raises the job limit, as the configuration refuses a command limit above the
+job's (`config_output_max_job_below_max_command`). The free-space check's
+spool term is the job's width × the largest command limit in the job, every
+device in flight possibly sending the large one, and the narrowing rule
+applies unchanged (`spool_width_narrowed`, `output_preflight_space`). Memory
+is unaffected (output past `output.spool-threshold-bytes` spools); the record
+is today's, the output whole in a `commands.jsonl` line and a text block, both
+counted against the job limit. The ceiling stays 1 GiB.
+
+**Not taken.** The check counting each device's own list (exact, and per
+device); a declared limit raising the job limit unseen; `--maxbytes` above 1
+GiB before the record decision.
+
+**Issue 4, agreed.** The plan carries `timeouts_ns` and `max_bytes`, each
+empty or one entry per command with 0 the job's value, as `blind_returns`
+does, under `plan_digest` and in the manifest; the plan schema stays 11
+(unreleased); the daemon's plan check refuses only a length that does not
+match the commands or a negative entry, the ranges, the blind conflict, the
+device ceiling, and the job limit being the client's at parse and planning.
+The executor gives each command its timeout as it does now and a byte limit on
+`platform.Command`, which each transport takes over the session's. A
+timeout's or a limit's message names its source: `command timed out after 45m
+(--timeout)`, `… after 2s (execution.command-timeout)`, `command output
+exceeded 1048576 bytes (--maxbytes) across stdout and stderr …`. The `device
+command start` debug line carries `timeout=` and `maxbytes=`. The documents:
+the help and the manual pages of `run` and `command`, TIMEOUTS (the
+declaration's row, the telnet cap), OPERATIONS (the `copy` and `show tech`
+cases, the device's redirect to its flash for output past 1 GiB), DESIGN,
+CHANGELOG, and this chapter's executed runs.
+
+**Not taken.** A record field for each command's bounds (the message and the
+manifest carry them); one list of objects in the plan in place of two lists.
+
+**The design is complete.** Four issues settled, recorded in DESIGN ("A
+command's own timeout and byte limit, declared"; "Declarations attach
+backwards" names the two), and `docs/TIMEOUTS.md`'s telnet row corrected to
+what the code does. The chapter stays open for the build, in sections
+committed on the operator's word, and closes with its executed runs.

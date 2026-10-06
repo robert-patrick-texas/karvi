@@ -27,7 +27,7 @@ grace).
 | `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–168h | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
 | `ssh.server-alive-interval` (`KARVI__SSH__SERVER_ALIVE_INTERVAL`), `ssh.server-alive-count-max` (`KARVI__SSH__SERVER_ALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `system`: OpenSSH `ServerAliveInterval` (whole seconds, rounded up) and `ServerAliveCountMax` |
 | `native-ssh.keepalive-interval` (`KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL`), `native-ssh.keepalive-count-max` (`KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | scrapligo-v1: karvi's `keepalive@openssh.com` requests |
-| `telnet.read-timeout` (`KARVI__TELNET__READ_TIMEOUT`) | 60s | 1s–12h | telnet: each read |
+| `telnet.read-timeout` (`KARVI__TELNET__READ_TIMEOUT`) | 60s | 1s–12h | telnet: each command whole, from the write to the prompt, the smaller of it and the command's timeout (not reset by output) |
 | `execution.blind-wait` (`KARVI__EXECUTION__BLIND_WAIT`; `--blind-wait`) | 10s | 0–10m | the prompt's return after a blind command (`--blind`, `--blind-return N` with 0–20 returns, or a command ending in `\r` sequences), in place of its command timeout; 0 sends and does not wait |
 
 None of these keys but `execution.blind-wait` has a command-line option; each

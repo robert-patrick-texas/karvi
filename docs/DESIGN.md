@@ -107,9 +107,10 @@ position, so the plan and manifest record target inputs and never a list.
 *Why:* the operator's most typed values; nothing after the parser changes.
 *Not taken:* aliases (an alias still takes a value); a list kind in the plan.
 
-**Declarations attach backwards.** `--expect`, `--blind`, and `--blind-return`
-attach to the nearest preceding `--cmd`, or to the one freeform command; a
-declaration before the first command, or with `--cf` alone, is a usage error.
+**Declarations attach backwards.** `--expect`, `--blind`, `--blind-return`,
+`--timeout`, and `--maxbytes` attach to the nearest preceding `--cmd`, or to
+the one freeform command; a declaration before the first command, or with
+`--cf` alone, is a usage error.
 *Why:* position is meaningful in one direction only, so a reader never
 guesses which command a leading declaration meant.
 
@@ -846,6 +847,40 @@ the operator who declared the send blind accepted that; a pattern tried on the
 whole buffer would fire again on its own answer's echo. *Not taken:* `\r`
 interpreted anywhere in the text; a heuristic refusing patterns that name a
 password; draining stray prompts between commands.
+
+**A command's own timeout and byte limit, declared.** `--timeout DURATION` and
+`--maxbytes BYTES` are declarations on the command before them, at most one of
+each per command, in the forms and ranges of `execution.command-timeout` (1s to
+12h) and `output.max-command-bytes` (whole bytes, 1 KiB to 1 GiB), checked when
+parsed; they belong to the requested commands (not a session-init profile's or a
+`crun`'s platform lists) and, needing no terminal, are accepted on an exec
+channel. `--timeout` replaces the command timeout for its command, on telnet
+`telnet.read-timeout` as well; with `--expect` it is the one deadline across
+every prompt and answer; on a blind command (`--blind`, `--blind-return`) it is
+refused (`timeout_with_blind`), the blind wait being that command's own; above a
+set `execution.device-timeout` it is refused at planning
+(`timeout_over_device_timeout`), naming both values and the `--set` that raises
+the ceiling. `--maxbytes` replaces the command limit for its command, a smaller
+value allowed, reaching it as the configured limit does on each channel; above
+`output.max-job-bytes` it is refused at planning (`maxbytes_over_job_limit`);
+the free-space check's spool term is the job's width × the largest command limit
+in the job. The plan carries `timeouts_ns` and `max_bytes`, each empty or one
+entry per command with 0 the job's value, under `plan_digest` and in the
+manifest; the daemon's plan check refuses only a length that does not match the
+commands or a negative entry. A timeout's or a limit's message names its source
+(`--timeout`, `execution.command-timeout`, `--maxbytes`,
+`output.max-command-bytes`), and the `device command start` debug line carries
+`timeout=` and `maxbytes=`. In stream mode they are declarations like
+`--expect`, staying with a kept command. *Why:* one command needs a bound the
+rest of the job must not have (a `copy` of an image for 45 minutes beside `show`
+commands that should fail fast), and a site's device ceiling and job limit stay
+ceilings the operator raises in the open. *Not taken:* size suffixes on
+`--maxbytes` alone; one combined option; the names `--command-timeout` and
+`--max-command-bytes`; `--timeout` as a blind command's wait; the device
+deadline growing by a declared excess; refusing a list whose timeouts sum past
+the device ceiling; a declared limit raising the job limit; `--maxbytes` above 1
+GiB before the record holds output of several GiB; a record field for the
+bounds; one list of objects in the plan.
 
 **scrapligo-v1 runs on karvi's own SSH connection.** The adapter supplies
 scrapligo with a custom transport: an x/crypto dial with karvi's host-key
