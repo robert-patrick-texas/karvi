@@ -158,7 +158,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	if err != nil {
 		return reportError(stderr, "scratch_directory_unavailable", err)
 	}
-	timing, err := os.CreateTemp(scratch, "karvi-script-*.timing")
+	timing, err := os.CreateTemp(scratch, osutil.ScratchFilePattern("karvi-script-", ".timing"))
 	if err != nil {
 		return reportError(stderr, "scratch_directory_unavailable", err)
 	}

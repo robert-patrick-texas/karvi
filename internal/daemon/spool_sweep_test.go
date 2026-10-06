@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -97,5 +98,42 @@ func TestServerSweepsControlSocketsAtStart(t *testing.T) {
 	s.sweepControlSockets()
 	if _, err := os.Lstat(absent); !os.IsNotExist(err) {
 		t.Fatalf("the sweep made the private root: %v", err)
+	}
+}
+
+// TestServerSweepsScratchAtStart: the scratch sweep's daemon half, a
+// generated configuration a dead karvi left in the scratch is removed at the
+// daemon's start and logged as scratch_abandoned_removed by path; a scratch
+// not yet made is not made.
+func TestServerSweepsScratchAtStart(t *testing.T) {
+	scratch, base := t.TempDir(), t.TempDir()
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`basedir="` + base + `"`, `tempdir="` + scratch + `"`}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := exec.Command("true")
+	if err := child.Run(); err != nil {
+		t.Skip("no `true`:", err)
+	}
+	gone := filepath.Join(scratch, "karvi-ssh-"+strconv.Itoa(child.Process.Pid)+"-1.conf")
+	if err := os.WriteFile(gone, []byte("Host *\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	s := &Server{Config: cfg, Operator: credentials.Operator{UID: os.Geteuid(), Username: "u", Home: t.TempDir()}, Logger: slog.New(slog.NewTextHandler(&log, nil))}
+	s.sweepScratch()
+	if _, err := os.Stat(gone); !os.IsNotExist(err) {
+		t.Fatalf("the abandoned configuration is still there: %v", err)
+	}
+	if !strings.Contains(log.String(), "code=scratch_abandoned_removed") || !strings.Contains(log.String(), gone) {
+		t.Fatalf("log: %s", log.String())
+	}
+	absent := filepath.Join(t.TempDir(), "scratch")
+	if s.Config, err = configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`basedir="` + base + `"`, `tempdir="` + absent + `"`}}); err != nil {
+		t.Fatal(err)
+	}
+	s.sweepScratch()
+	if _, err := os.Lstat(absent); !os.IsNotExist(err) {
+		t.Fatalf("the sweep made the scratch: %v", err)
 	}
 }

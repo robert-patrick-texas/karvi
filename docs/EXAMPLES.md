@@ -5072,6 +5072,25 @@ device answers it, so a live abandoned session never ends); the login left to
 the terminal's hangup (a killed karvi under an open terminal leaves an `ssh`
 fighting the shell).
 
+**Found on the way: a lost exit status on the system transport's exec
+channel.** The full battery on section 2's lab build failed in the parity
+suite: S35a's `ls /nonexistent` over `system` was `command_exit_missing`,
+"closed without an exit status", where every other stream had exit 127. Run
+again and again, the parity suite's S35 cases failed so on that build in the
+battery, in one run of the suite alone (S35b), and in 2 of 35 loops; on the
+build before it in none of 35 loops and two batteries; and on the released
+0.27.0 executables in 1 of 20 loops, S35a's first record, `uname -snrm`, over
+`run`: a command that exits 0. Forty runs of S35a's commands per build outside
+the suite lost nothing. Every failure is one family: over `system`, on whichever
+record, the command's status or signal is lost. karvi says so only when the
+command's `ssh -S` client exits 255 or by a signal and the master's lines show
+no status for its channel, so the race is in that client's exit or in the
+lines' attribution to the command (the settle wait included); it is not the
+sweep's, which in the suite finds an empty scratch at admission and touches
+neither the client nor the master. Section 2 was committed on the operator's
+word after a battery that passed, and the race is an item of its own, taken up
+after this effort.
+
 ## 31. `command` over the native transport by default (2026-10-06)
 
 On the operator's word, while [chapter 30](#30-the-scratch-sweep-2026-10-06) was

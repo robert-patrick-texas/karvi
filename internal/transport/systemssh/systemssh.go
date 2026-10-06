@@ -115,7 +115,7 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 		return nil, err
 	}
 	sum := sha256.Sum256([]byte(content))
-	cf, err := os.CreateTemp(f.ScratchDir, "karvi-ssh-*.conf")
+	cf, err := os.CreateTemp(f.ScratchDir, osutil.ScratchFilePattern("karvi-ssh-", ".conf"))
 	if err != nil {
 		return nil, errorcodes.Errorf("ssh_config_write_failed", "create generated SSH configuration: %w", err)
 	}

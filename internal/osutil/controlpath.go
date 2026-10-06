@@ -3,12 +3,8 @@ package osutil
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
-	"net"
 	"os"
 	"path/filepath"
-	"syscall"
-	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
@@ -118,23 +114,11 @@ func SweepControlSockets(root string, log func(name string)) []string {
 	uid := os.Geteuid()
 	var removed []string
 	for _, e := range entries {
-		if e.Type()&os.ModeSocket == 0 || !controlSocketName(e.Name()) {
-			continue
-		}
-		fi, err := e.Info()
-		if err != nil {
-			continue
-		}
-		if st, ok := fi.Sys().(*syscall.Stat_t); !ok || int(st.Uid) != uid {
+		if e.Type()&os.ModeSocket == 0 || !controlSocketName(e.Name()) || !ownedBy(e, uid) {
 			continue
 		}
 		path := filepath.Join(root, e.Name())
-		conn, err := net.DialTimeout("unix", path, time.Second)
-		if err == nil {
-			conn.Close()
-			continue
-		}
-		if !errors.Is(err, syscall.ECONNREFUSED) {
+		if !socketAbandoned(path) {
 			continue
 		}
 		if os.Remove(path) != nil {

@@ -191,6 +191,8 @@ func (s *Server) Serve(parent context.Context) error {
 	// So is the control-path root: a socket a master killed outright left
 	// goes, logged by name; a root that cannot be resolved is logged.
 	s.sweepControlSockets()
+	// And the scratch: what a karvi killed outright left there.
+	s.sweepScratch()
 	if err := osutil.MakeDirectories(filepath.Dir(s.Socket), 0700); err != nil {
 		return err
 	}
@@ -355,6 +357,27 @@ func (s *Server) sweepSpools() {
 			s.Logger.Info("removed the abandoned spool", slog.String("code", "spool_abandoned_removed"), slog.String("path", filepath.Join(dir, name)))
 		}
 	})
+}
+
+// sweepScratch is the daemon-start half of the scratch sweep: what a karvi
+// killed outright left in the scratch. It makes nothing: a scratch not yet
+// made holds nothing.
+func (s *Server) sweepScratch() {
+	base, err := osutil.BaseDirPath(s.Config.String("basedir"), s.Operator.Home, s.Operator.Username)
+	if err == nil {
+		var scratch osutil.Place
+		if scratch, err = osutil.ScratchPlace(s.Config.String("tempdir"), base, s.Operator.Home, s.Operator.Username, s.Operator.UID); err == nil {
+			osutil.SweepScratch(scratch.Path, func(name string) {
+				if s.Logger != nil {
+					s.Logger.Info("removed the abandoned scratch file", slog.String("code", "scratch_abandoned_removed"), slog.String("path", filepath.Join(scratch.Path, name)))
+				}
+			})
+			return
+		}
+	}
+	if s.Logger != nil {
+		s.Logger.Warn("scratch directory unavailable", slog.String("code", errorcodes.Of(err)), slog.String("error", err.Error()))
+	}
 }
 
 // sweepControlSockets is the daemon-start half of the control socket

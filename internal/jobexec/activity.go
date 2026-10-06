@@ -209,6 +209,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	osutil.SweepControlSockets(controlRoot, func(name string) {
 		logEvent(slog.LevelInfo, "control_socket_abandoned_removed", "removed the abandoned control socket "+filepath.Join(controlRoot, name))
 	})
+	osutil.SweepScratch(scratch, func(name string) {
+		logEvent(slog.LevelInfo, "scratch_abandoned_removed", "removed the abandoned scratch file "+filepath.Join(scratch, name))
+	})
 	dispatchSettings := plan.Dispatch
 	expected, multiplier := cfg.Int64("output.expected-bytes-per-device"), cfg.Float("output.reserve-multiplier")
 	var places []output.Place

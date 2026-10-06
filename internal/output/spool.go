@@ -115,6 +115,4 @@ func SweepSpools(dir string, log func(name string)) []string {
 
 // spoolInUse says whether pid is alive as a karvi executable, the one
 // condition that keeps a spool in the sweep; a test replaces it.
-var spoolInUse = func(pid int) bool {
-	return osutil.ProcessAlive(pid, "") && strings.HasPrefix(osutil.ProcessCommandName(pid), "karvi")
-}
+var spoolInUse = osutil.KarviAlive

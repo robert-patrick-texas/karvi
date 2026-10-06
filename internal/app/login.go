@@ -119,6 +119,10 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("scratch_directory_unavailable", err)
 	}
+	// A login has no admission, so the scratch sweep runs here.
+	osutil.SweepScratch(scratch, func(name string) {
+		debug("scratch_abandoned_removed: removed the abandoned scratch file " + filepath.Join(scratch, name))
+	})
 	controlRoot, err := osutil.ControlPathRoot(cfg.String("ssh.control-path-root"), base, operator.Home, operator.Username, operator.UID)
 	if err != nil {
 		return failedResult("control_path_root_unavailable", err)
