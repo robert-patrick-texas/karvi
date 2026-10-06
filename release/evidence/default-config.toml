@@ -25,21 +25,30 @@ tempdir = "auto"
 # must cost disk, never memory; a site that wants both on one volume points both keys at
 # explicit paths there. Resolved and swept at the daemon's start and at every job's admission.
 spooldir = "auto"
+# The folder every activity writes its scoreboard in and karvi watch reads. auto is
+# /dev/shm/karvi/scoreboards, every operator's, where the site's scratch root /dev/shm/karvi
+# exists (sudo karvi setup shared makes it, at 3770 in the operators' group; a missing
+# scoreboards is made in the root with its bits), else the private
+# <basedir>/state/scoreboards; a shared folder present but not writable by the operator is
+# passed by for the private one with one warning. karvi watch reads every place of the chain
+# that exists, the shared folder and the private one. A path (~ the operator's home, a
+# relative path from the working directory) replaces the chain, used or refused.
+scoreboards = "auto"
 # The free-space check of every volume an activity writes, read once per volume at admission
 # before any device is contacted: the job's output root, a crun's collection directory,
 # spooldir, and a recorded login's transcripts root, grouped by the device behind each path.
 # auto (the default) asks each volume for the sum of what the places on it will hold when the
 # job has finished (the output root output.expected-bytes-per-device × devices × its copies
 # × output.reserve-multiplier, the collection directory one copy, the spool directory the
-# job's width × output.max-command-bytes, the transcripts root nothing) plus
-# output.min-free-bytes-after-job once; when the spool's term alone is short but at least one
-# command's limit fits, the job runs narrower with the warning spool_width_narrowed, and below
-# that, or short of the other terms, the job is refused with output_preflight_space naming the
-# volume's paths and both figures. always asks each volume for the floor alone. never reads
-# nothing (the directories are still resolved and probed writable). The audit file, the
-# scoreboard directory, and the state root are not checked: their first write lands before any
-# device and they write kilobytes after. Alerting on free space is the site's monitoring, not
-# this check (docs/SCALE.md).
+# job's width × the largest command limit in the job, output.max-command-bytes or a larger
+# --maxbytes, the transcripts root nothing) plus output.min-free-bytes-after-job once; when
+# the spool's term alone is short but at least one command's limit fits, the job runs narrower
+# with the warning spool_width_narrowed, and below that, or short of the other terms, the job
+# is refused with output_preflight_space naming the volume's paths and both figures. always
+# asks each volume for the floor alone. never reads nothing (the directories are still
+# resolved and probed writable). The audit file, the scoreboard directory, and the state root
+# are not checked: their first write lands before any device and they write kilobytes after.
+# Alerting on free space is the site's monitoring, not this check (docs/SCALE.md).
 freecheck = "auto"
 # auto or loadable IANA zone.
 timezone = "auto"
@@ -120,13 +129,19 @@ include-user-config = true
 # changes; secure requires prior enrollment; insecure accepts all keys with warnings. The
 # removed values auto and default are rejected.
 host-key-policy = "accept-new"
-# Unified karvi trust store. auto selects ~/.local/share/karvi/known_hosts.
+# The karvi trust store, the one known_hosts file both transports trust. auto is
+# <basedir>/known_hosts: the operator's root under the site's users directory, else
+# ~/.local/share/karvi/known_hosts; an explicit path is taken as given, ~ the home. config
+# show --explain ssh.known-hosts-file names the file.
 known-hosts-file = "auto"
 # When true, the first changed SSH host key stops new run scheduling while allowing in-flight
 # devices to finish.
 halt-run-on-host-key-mismatch = false
-# Default password-oriented fleet behavior.
-pubkey-authentication = false
+# The operator's own keys, offered in this order where a platform's fallback reaches keys:
+# each an absolute path or ~/, the home the password database names. A file that does not
+# exist is passed over; one that is not the operator's own regular file without group or other
+# access, holds a passphrase, or is hardware-backed is skipped with operator_key_skipped.
+identities = ["~/.ssh/id_ed25519", "~/.ssh/id_ecdsa", "~/.ssh/id_rsa"]
 # At least one auth mechanism must remain.
 password-authentication = true
 # Supports network-device challenge prompts.
@@ -139,7 +154,12 @@ server-alive-interval = "15s"
 server-alive-count-max = 3
 # The directory of the system transport's control sockets, a private real directory (0700, the
 # operator's). auto is /dev/shm/karvi/<username>/sockets when the site's scratch root exists,
-# else <basedir>/socket/ssh; an absolute path replaces both.
+# else <basedir>/socket/ssh; an absolute path, or one beginning with ~/ (the operator's home),
+# replaces both. A socket's path holds the root, a 16-character name, and OpenSSH's
+# 17-character binding suffix within 107 bytes, so the root may be at most 73 bytes
+# (control_path_root_too_long at planning, for a target that runs exec over the system
+# transport). A socket a master killed outright left is swept at the daemon's start and at
+# every job's admission.
 control-path-root = "auto"
 
 [ssh-algorithms]
@@ -170,11 +190,13 @@ keepalive-count-max = 3
 [telnet]
 # 1s–5m.
 connect-timeout = "10s"
-# 1s–12h.
+# 1s–12h; caps each command whole over telnet, from the write to the prompt, unless the
+# command is given --timeout.
 read-timeout = "60s"
 
 [execution]
-# 1s–12h; per-command.
+# 1s–12h; each command's timeout where a session-init profile sets none, which a requested
+# command's --timeout replaces for that command.
 command-timeout = "120s"
 # 1s–5m; the first prompt after login and the prompt after each paging command. The system
 # transport awaits the first prompt for ssh.connect-timeout plus this value from the start of
@@ -182,8 +204,9 @@ command-timeout = "120s"
 prompt-timeout = "10s"
 # 1s–5m; one privilege level's whole step, from the escalate command to that level's prompt.
 enable-timeout = "10s"
-# 0 disables; otherwise 1s–7d. Bounds one device's whole command list, the session-init
-# profile included, from the prepared session; ends it with device_timeout.
+# 0 disables; otherwise 1s–168h. Bounds one device's whole command list, the session-init
+# profile included, from the prepared session; ends it with device_timeout. A command's
+# --timeout above it is refused at planning.
 device-timeout = "0s"
 # 0–10m, enforced when the plan is drafted. The wait for the prompt after a blind send, a
 # command ending in \r sequences or given --blind-return N, in place of its command timeout; 0
@@ -263,7 +286,8 @@ persist-command = true
 # dots and colons are hyphens. Carried in the plan, so a job's files are named as its
 # invocation said on every path.
 crop-to-dot = true
-# 1 KiB–1 GiB; the bound on one command's output.
+# 1 KiB–1 GiB; the bound on one command's output, which a command's --maxbytes replaces for
+# that command (at most output.max-job-bytes).
 max-command-bytes = 67108864
 # 0–1 GiB, in bytes; the spool threshold per in-flight command: a response is held in memory
 # up to it and spools to a file under spooldir from the byte that crosses it. 0 spools every
@@ -310,13 +334,15 @@ on-unknown = "fail"
 unknown-fallback = "generic"
 
 [sessions]
-# The capacity ledger every operator on the host shares, made by sudo karvi setup shared at
-# 2770 in the operators' group; its files take the root's group modes. A missing directory is
-# made only inside an existing parent, with a setgid parent's bits. With its parent absent (a
-# host without the scratch root) the private <basedir>/state/capacity is taken without a
-# warning; present but not usable by the operator (the sticky bit on another's directory, a
-# closed directory or lock file), it is taken with one (capacity_root_unusable).
-shared-capacity-root = "/dev/shm/karvi/capacity"
+# The capacity ledger's root. auto is /dev/shm/karvi/capacity, the ledger every operator on
+# the host shares, where the site's scratch root /dev/shm/karvi exists (sudo karvi setup
+# shared makes it, at 2770 in the operators' group; a missing capacity is made in the root
+# with its bits), else the private <basedir>/state/capacity; a shared root present but not
+# usable by the operator (the sticky bit on another's directory, a closed directory or lock
+# file) is passed by for the private one with one warning (capacity_root_unusable). The
+# ledger's files take the root's group modes. A path (~ the operator's home, a relative path
+# from the working directory) replaces the chain, used or refused.
+shared-capacity-root = "auto"
 
 [daemon]
 # Safe per-UID path.
@@ -541,13 +567,6 @@ file-required = false
 [watch]
 # Applies to snapshot writers.
 enabled = true
-# The scoreboard directory every operator's activities write and karvi watch reads, made by
-# sudo karvi setup shared at 3770 in the operators' group. A missing directory is made only
-# inside an existing parent, with a setgid parent's bits. With its parent absent (a host
-# without the scratch root) the private <basedir>/state/scoreboards is taken without a
-# warning, and karvi watch reads it; present but not writable by the operator, it is taken
-# with one.
-directory = "/dev/shm/karvi/scoreboards"
 # 250ms–60s; the screen's refresh, 2s since registry 15.
 refresh = "2s"
 # ≥2× refresh, ≤24h.
@@ -593,12 +612,12 @@ max-physical-line-bytes = 1048576
 # are shown in configs/example.toml.
 #
 # A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,
-# cisco_nxos, juniper_junos, arista_eos, linux) overrides that platform's fields;
+# cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
 # a table for any other name is an alias and needs driver = "<built-in>", inheriting
 # the whole built-in definition. Names compare without regard to case and are
 # recorded lowercase; a name holds no glob character and does not begin with "!".
 # Fields: driver, default-transport, ssh-port, telnet-port, privileged-level (a
-# level of the base), requires-enable, session-cap, control-master, paging-commands,
+# level of the base), requires-enable, session-cap, channel (shell or exec), paging-commands,
 # crun-commands (the collection list a crun sends when its command line names no
 # command), crun-filters (regular expressions whose matching output lines are
 # dropped from the collection file; an empty array turns the built-in list off).
