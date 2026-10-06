@@ -2,6 +2,53 @@
 
 ## Unreleased
 
+- **Breaking: `watch.directory` is now `scoreboards`, and both scratch folders
+  default to `auto`.** The top-level `scoreboards` (`KARVI__SCOREBOARDS`) is
+  where every activity writes its scoreboard: `auto` is
+  `/dev/shm/karvi/scoreboards` where the site's scratch root exists (made in it
+  with the root's bits when missing), else `<basedir>/state/scoreboards`; a
+  shared folder present but not writable by the operator is passed by with its
+  warning; a path is used or refused. A configuration that sets
+  `watch.directory` is refused (`config_unknown_key`); `[watch]` keeps the
+  screen's own settings. `sessions.shared-capacity-root` defaults to `auto` by
+  the same shape (`/dev/shm/karvi/capacity`, else `<basedir>/state/capacity`),
+  and the ledger passes by a root it cannot write. A `~` in either, which both
+  had ignored for the private fallback, is the home. `karvi watch` makes nothing
+  and reads every place that exists, the shared folder and the operator's own,
+  one row per job: it had made the private root, and with the shared folder
+  closed it did not show the operator's own jobs written to the fallback. The
+  configuration registry moves to 26.
+- **Breaking: one rule for `~` and a relative path.** In every place key and
+  every file key, `~` and `~/…` are the operator's home from the password
+  database, `~user` is refused (`path_other_user_home_unsupported`), and a
+  relative path is taken from the invocation's working directory and made
+  absolute. `audit.file`'s `~` had been `$HOME`; a relative
+  `ssh.known-hosts-file` had been under the home and is now under the working
+  directory; `daemon.socket`'s `~` and a relative path are made absolute, where
+  they had made a folder named `~` or a socket in the working directory and the
+  run exited 112 (`ipc_result_malformed`); an inventory source's or a credential
+  file's `~user` is refused, where it had been taken as a name.
+- **Breaking: no operator's run makes a place `setup shared` makes.** An
+  explicit `tempdir`, `spooldir`, `ssh.control-path-root`, `scoreboards`, ledger
+  root, trust store, `audit.file`, `daemon.socket`, or tree under an absent
+  `/dev/shm/karvi`, `/opt/karvi`, or `/var/lib/karvi`, their `users` and
+  `shared`, or a tree under `shared`, had made it, 0700 and the operator's,
+  closed to every other until root repaired it. It is now refused before any
+  device is contacted, `shared_directory_absent`, naming the place, `sudo karvi
+  setup shared`, and the key to set elsewhere; under `auto` nothing changes. The
+  trust store's path is checked at the job's admission, so a path refused there
+  is the job's refusal, not each device's.
+- **`karvi-prune` walks every private root of the operator's, making nothing.**
+  An operator's run walks each private root that exists, the site's
+  `/opt/karvi/users/<user>` and `/var/lib/karvi/users/<user>` and the home's
+  `~/.local/share/karvi`, each one's `jobs`, `transcripts`, and
+  `state/scoreboards`, with the shared trees and the shared scoreboards, so the
+  jobs left under the home before the site made `users`, and the scoreboards
+  that fell to a private folder, are pruned too; `--basedir PATH` replaces the
+  private roots with that one. It no longer makes the private root, and it
+  judges a shared tree by its permissions without writing a probe file there.
+  Root's run adds each site root's `state/scoreboards`. The units' and the cron
+  script's comments say so.
 - **`setup shared` makes the ledger's `devices` folder, and the boot rule
   remakes it.** `/dev/shm/karvi/capacity/devices` is made at 2770, root's, in
   the operators' group, after `capacity`, and `/etc/tmpfiles.d/karvi.conf`
@@ -18,11 +65,24 @@
   needs its store in the new place. An explicit path is unchanged.
   `host_key_trust_store_candidates_exhausted` is retired; a store that cannot
   be made reports its own step's code.
-- **`config show --explain` names the private root and the trust store.**
-  `karvi config show --explain basedir` and `karvi config show --explain
-  ssh.known-hosts-file` print `resolved: PATH`, the path the next activity
-  would use, found without creating anything; the host-key guide's enrollment
-  recipe takes the store from it.
+- **`config show --explain` names every place.** Every key whose value is a
+  place karvi writes or reads has `resolved: PATH`, the path the next activity
+  in process would use, found by the activity's own chooser without creating
+  anything (a candidate judged by `access(2)`, its owner and mode where it is
+  private, and its filesystem's free inodes): `basedir`, the trust store,
+  `output.root`, `transcript.root`, `crun.directory`, `tempdir`, `spooldir`,
+  `ssh.control-path-root`, `scoreboards`, `sessions.shared-capacity-root`,
+  `daemon.socket`, and, when set, `audit.file`, an inventory source's `path`,
+  and a credential backend's `path`, `ca-file`, `client-cert-file`, and
+  `client-key-file`. A candidate present on the host and passed by follows as
+  `passed: PATH: reason`; a place the activity would refuse is `resolved: error:
+  CODE: message`, and the view exits 0. `karvi config show KEY…` takes several
+  keys, in their order, an unknown one `error: not found` among them, where a
+  second key was `cli_positional_unexpected`. `docs/FILES.md` gives the recipe
+  for every place at once; the host-key guide's enrollment recipe takes the
+  store from the line. The lines come from the invocation's configuration: a
+  running daemon keeps its scratch, spool, control sockets, scoreboards, and
+  ledger until it is restarted.
 - **`docs/FILES.md`, every place karvi uses.** One reference for the
   directories and files karvi reads and writes in shared and in individual
   mode, each with its mode, owner, group, writer, and purpose, and the rule by

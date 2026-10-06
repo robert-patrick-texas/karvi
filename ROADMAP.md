@@ -104,14 +104,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   saying what it left out.
 - **Field prefixes in the watch screen's filter** (`op:`, `mode:`), if the
   word filter proves too broad.
-- **The resolved path of every place key.** `config show --explain` names
-  the path the next activity would use for `basedir` and
-  `ssh.known-hosts-file`; the same `resolved:` line for the other keys whose
-  `auto` is a chain or whose place depends on what exists: `tempdir`,
-  `spooldir`, `output.root`, `transcript.root`, `crun.directory`,
-  `watch.directory`, `sessions.shared-capacity-root`, and `daemon.socket`,
-  each found without creating anything, so an operator reads each place
-  [`docs/FILES.md`](docs/FILES.md) describes from the host itself.
 - **ScrapliGo v2.** `github.com/scrapli/scrapligo/v2` (v2.0.0, 2026-10-03) is a
   Go binding, through `ebitengine/purego`, to `libscrapli`, a Zig shared library
   (0.0.1, released the same day; 14.6 MB for x86_64 Linux) that holds the
@@ -152,7 +144,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   carries it; the daemon builds the job's configuration from it, and every
   reader on the job path takes that in place of the daemon's. Every place the
   job uses is among it: `tempdir`, `spooldir`, `ssh.control-path-root`,
-  `watch.directory`, and `sessions.shared-capacity-root`, which the daemon
+  `scoreboards`, and `sessions.shared-capacity-root`, which the daemon
   resolves today from the configuration it started with, are resolved as the
   client resolved them, as `config show --explain` names them; a path means
   the same to both while they share the host, the request travelling over the

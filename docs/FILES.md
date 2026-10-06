@@ -36,7 +36,7 @@ one warning, since a job can run without them.
 | Collection directory | `crun.directory` | `crun` under `sharedroot`, the same roots | `<basedir>/crun` | refused: `crun_directory_not_writable` |
 | Scratch | `tempdir` | `/dev/shm/karvi/<user>` (only where `/dev/shm/karvi` exists) | `<basedir>/tmp`, then `/tmp/karvi-<uid>`, then `/var/tmp/karvi-<uid>` | the next candidate |
 | Control sockets | `ssh.control-path-root` | `/dev/shm/karvi/<user>/sockets` | `<basedir>/socket/ssh` | the fallback |
-| Scoreboards | `watch.directory` | `/dev/shm/karvi/scoreboards` | `<basedir>/state/scoreboards` | the fallback, with one warning: `shared scoreboard directory unavailable` |
+| Scoreboards | `scoreboards` | `/dev/shm/karvi/scoreboards` | `<basedir>/state/scoreboards` | the fallback, with one warning: `shared scoreboard directory unavailable` |
 | Session ledger | `sessions.shared-capacity-root` | `/dev/shm/karvi/capacity` | `<basedir>/state/capacity` | the fallback, with one warning: `capacity_root_unusable` |
 | Spool | `spooldir` | none: never shared | `/tmp/karvi-<uid>`, then `/var/tmp/karvi-<uid>` | the next candidate |
 | Trust store | `ssh.known-hosts-file` | none: never shared; it follows the private root, `<basedir>/known_hosts` | `<basedir>/known_hosts` | `known_hosts` errors |
@@ -49,36 +49,65 @@ private root, the spool, the trust store, and the daemon's sockets are always
 one operator's: `basedir` is never shared, since its `socket` and `state` are
 one operator's daemon.
 
-The scratch root is the one place no operator's run creates: the first
-operator to make `/dev/shm/karvi` would close it to every other. A
-`scoreboards` or `capacity` folder missing from a scratch root that exists is
-made by the first run that needs it, in the root's group. `/dev/shm` is
-emptied at every boot, and `systemd-tmpfiles` makes the scratch root again
-from the rule `setup shared` writes; a host where the rule did not run is in
-individual mode for the scratch, the scoreboards, and the ledger until it
-does.
+Every place key and every file key (`audit.file`, an inventory source's
+`path`, a credential file) takes a path by one rule: `~` and `~/…` are the
+operator's home from the password database, `~user` is refused
+(`path_other_user_home_unsupported`), and a relative path is taken from the
+working directory of the invocation and made absolute.
 
-**A quick look at a host.** `karvi config show --explain KEY` names on its
-`resolved:` line the place the next activity would use for that key, by the
-rule above and without creating anything: `karvi config show --explain
-basedir` and `karvi config show --explain ssh.known-hosts-file` name the
-operator's private root and trust store. Every place at once, one line for
-each key that names one, and for each candidate passed by on its `passed:`
-line, from the configuration this invocation loads:
+No operator's run makes a place `setup shared` makes: the scratch root
+`/dev/shm/karvi`, `/opt/karvi` and `/var/lib/karvi`, their `users` and
+`shared`, and the trees under `shared`, whether a path reaches them by `auto`
+or explicitly, since the first operator to make one would close it to every
+other. An explicit value that would need one made is refused before any
+device is contacted, `shared_directory_absent`, naming the place, `sudo karvi
+setup shared`, and the key to set elsewhere. Inside the places that exist an
+operator's run makes its own folders: its `<user>` folder in the scratch root,
+a missing `scoreboards` or `capacity` folder in the root's group, its folder
+under `users`, the day and job folders in the trees. `/dev/shm` is emptied at
+every boot, and `systemd-tmpfiles` makes the scratch root again from the rule
+`setup shared` writes; a host where the rule did not run is in individual mode
+for the scratch, the scoreboards, and the ledger until it does.
+
+**A quick look at a host.** `karvi config show KEY…` names on each key's
+`resolved:` line the place the next activity would use, by the rule above and
+without creating anything: `karvi config show basedir ssh.known-hosts-file`
+names the operator's private root and trust store. A candidate present on the
+host and passed by follows on a `passed:` line with its reason, and a place the
+activity would refuse is `resolved:   error: CODE: message`. Each candidate is
+judged as the activity judges it, by its permissions (`access(2)`), its owner
+and mode where it is private, and the free inodes of its filesystem; what only
+a write shows, a network filesystem's refusal or a quota, can still differ.
+Every place at once, one line for each key that names one and for each
+candidate passed by, from the configuration this invocation loads, here on a
+host after `setup shared`, before the operator's first activity:
 
 ```bash
 karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k": "$0}'
 ```
 
 ```text
-basedir: resolved:   /home/netops/.local/share/karvi
-ssh.known-hosts-file: resolved:   /home/netops/.local/share/karvi/known_hosts
+basedir: resolved:   /opt/karvi/users/netops
+crun.directory: resolved:   /opt/karvi/shared/crun
+daemon.socket: resolved:   /opt/karvi/users/netops/socket/daemon.sock
+inventory-source.0.path: resolved:   /mnt/lab/sb/inv.csv
+output.root: resolved:   /opt/karvi/shared/jobs
+scoreboards: resolved:   /dev/shm/karvi/scoreboards
+sessions.shared-capacity-root: resolved:   /dev/shm/karvi/capacity
+spooldir: resolved:   /tmp/karvi-1000
+ssh.control-path-root: resolved:   /dev/shm/karvi/netops/sockets
+ssh.known-hosts-file: resolved:   /opt/karvi/users/netops/known_hosts
+tempdir: resolved:   /dev/shm/karvi/netops
+transcript.root: resolved:   /opt/karvi/shared/transcripts
 ```
 
-A daemon already running keeps the places it started with until it is
-restarted. The shared places and their modes, here as `sudo karvi setup
-shared --group netops` leaves them (`--mode 2775` gives `drwxrwsr-x` to the
-four 2770 directories under `/opt/karvi`):
+The lines come from the invocation's configuration: a daemon already running
+keeps its `tempdir`, `spooldir`, `ssh.control-path-root`, `scoreboards`, and
+`sessions.shared-capacity-root` until it is restarted, so a new configuration's
+places are checked with the view and the daemon restarted after. The shared
+places and their modes, here as `sudo karvi setup shared --group netops` leaves
+them (`--mode 2775` gives `drwxrwsr-x` to the four 2770 directories under
+`/opt/karvi`):
 
 ```bash
 stat -c '%A %U:%G %n' /opt/karvi /opt/karvi/users /opt/karvi/shared \

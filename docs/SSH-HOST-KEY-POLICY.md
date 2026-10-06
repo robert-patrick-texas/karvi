@@ -142,7 +142,12 @@ The directory, the file's type, and its owner are checked under all three
 policies. A symbolic link at the store's path is refused and nothing is
 created through it.
 
-An explicit path may be configured; `~` and a relative path are the home's:
+An explicit path may be configured. `~` is the operator's home from the
+password database, `~user` is refused, and a relative path is taken from the
+working directory of the invocation and made absolute, as in every place key
+([`docs/FILES.md`](FILES.md#1-how-karvi-chooses-each-place)); a path whose
+folder would be a place `sudo karvi setup shared` makes is refused before any
+device (`shared_directory_absent`):
 
 ```toml
 [ssh]
@@ -266,9 +271,7 @@ ssh.halt-run-on-host-key-mismatch
 
 ```bash
 karvi config validate /path/to/config.toml
-karvi config show --explain ssh.host-key-policy
-karvi config show --explain ssh.known-hosts-file
-karvi config show --explain ssh.halt-run-on-host-key-mismatch
+karvi config show ssh.host-key-policy ssh.known-hosts-file ssh.halt-run-on-host-key-mismatch
 STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: *//p')
 stat -c '%U %a %n' "$(dirname "$STORE")" "$STORE"
 ```

@@ -154,28 +154,25 @@ the terminal; a change to one changes both.
 
 ## The watch screen
 
-`karvi watch` is a screen to keep open through a maintenance window. It
-reads the shared scoreboard directory
-(`watch.directory`, `/dev/shm/karvi/scoreboards`; on a host without the
-scratch root, the operator's own under `basedir`, "The shared trees")
-every `watch.refresh`
-(`2s`) and shows one row per job: `JOB-ID`, `TIME` (the running duration,
-then the end time), `STATUS`, `OPERATOR`, `MODE` (`login`, `cmd`, `run`,
-`crun`, `exercise`), `DONE` as `done/total`, `FAIL`, `ACTV` (devices in
-flight), and `TARGET` (a target file's name, then the devices in flight,
-then the rest), with a line under the headings. Running jobs stand above a
-rule, sorted by start; finished jobs below it, newest first; the footer
-counts what is not shown. The line under the headings and the rule never
-leave the screen: the running rows are pinned between them and only the
-finished rows scroll, so a sort or a long list never takes a running job
-out of view. With no running job the two lines
+`karvi watch` is a screen to keep open through a maintenance window. It reads
+the scoreboards (`scoreboards`: `/dev/shm/karvi/scoreboards` where the site made
+the scratch root, and the operator's own `<basedir>/state/scoreboards`, every
+one that exists, making nothing; "The shared trees") every `watch.refresh`
+(`2s`) and shows one row per job: `JOB-ID`, `TIME` (the running duration, then
+the end time), `STATUS`, `OPERATOR`, `MODE` (`login`, `cmd`, `run`, `crun`,
+`exercise`), `DONE` as `done/total`, `FAIL`, `ACTV` (devices in flight), and
+`TARGET` (a target file's name, then the devices in flight, then the rest), with
+a line under the headings. Running jobs stand above a rule, sorted by start;
+finished jobs below it, newest first; the footer counts what is not shown. The
+line under the headings and the rule never leave the screen: the running rows
+are pinned between them and only the finished rows scroll, so a sort or a long
+list never takes a running job out of view. With no running job the two lines
 stand together: an empty band says at once that nothing is in progress. A
-running job whose snapshot has not moved for `watch.stale-after` (`10s`)
-is flagged `!` and dimmed, its status word unchanged; a file the screen
-cannot read is flagged `?` with `invalid` as its status and its path as
-its target. The clock at the top right is the time of the last refresh.
-Nothing in the screen names a command: the statements are read in the
-job's folder.
+running job whose snapshot has not moved for `watch.stale-after` (`10s`) is
+flagged `!` and dimmed, its status word unchanged; a file the screen cannot read
+is flagged `?` with `invalid` as its status and its path as its target. The
+clock at the top right is the time of the last refresh. Nothing in the screen
+names a command: the statements are read in the job's folder.
 
 The keys: `q` or Ctrl-C leave, and the shell is as it was; `↑`/`↓` or
 `k`/`j` select a row (marked `>`), PgUp/PgDn a screen of rows, Home/End
@@ -205,7 +202,7 @@ screen with them and apply the same rule to `--format table`; `--format json`
 refuses both (`watch_json_filter_unsupported`), since it prints whole snapshots
 for the script to filter itself. Neither has a configuration key: the filter and
 the sort are the session's. A test or a script that starts an activity sets
-`watch.directory` under its own work directory, as it sets `basedir`, so the
+`scoreboards` under its own work directory, as it sets `basedir`, so the
 shared directory holds only real jobs; the files a host already holds are yours
 to remove (`karvi-prune`).
 
@@ -804,7 +801,7 @@ the floor alone. `never` skips the free-space check (the directories are still
 resolved and probed writable). The check costs one `stat` per place and one
 `statfs` per volume, a few microseconds; it is a guard against writing into a
 full disk, not an alert: watch the volumes behind `basedir`, `sharedroot`,
-`spooldir`, and `watch.directory` with the site's monitoring, and let
+`spooldir`, and `scoreboards` with the site's monitoring, and let
 `karvi-prune --minfree` keep them clear ([`docs/SCALE.md`](SCALE.md)). The
 daemon's memory for output is the width in flight times the threshold, plus a
 few KiB per command; there is no memory key.
@@ -954,8 +951,11 @@ karvi-prune                      # remove it
 karvi-prune --dry-run --verbose  # why each item stays, and the places looked at
 ```
 
-A run removes only what the invoking user owns, under the operator's
-basedir and in the site's shared trees, and passes a colleague's job by.
+A run removes only what the invoking user owns, under every private root of the
+operator's that exists (the site's `users/<user>` under `/opt/karvi` and
+`/var/lib/karvi`, and the home's `~/.local/share/karvi`: their jobs,
+transcripts, and scoreboards), in the site's shared trees, and in the shared
+scoreboards, and passes a colleague's job by; it makes nothing.
 On a shared or site install, `sudo karvi-prune` prunes every operator's
 work in the provisioned private roots and the shared trees at once, and
 is sufficient for the default practice on a host that installs neither
@@ -989,12 +989,10 @@ ReadWritePaths=-/opt/karvi -/var/lib/karvi -/dev/shm/karvi/scoreboards
 The line names the same places as the unit's `ExecStart`. A site that
 gives the command another `--basedir`, `--sharedroot`, or `--scoreboards`
 adds that path to the line, with the dash, or every removal there fails as
-`read-only file system` and the run exits 1 daily. The per-operator unit
-lists the operator's basedir candidates (`%h/.local/share/karvi` and the
-two system roots) and the scoreboards the same way.
-The sandbox is fixed when the unit starts, so a root the process would
-create must exist before the first start; an operator's first activity by
-hand creates it.
+`read-only file system` and the run exits 1 daily. The per-operator unit lists
+the operator's private roots (`%h/.local/share/karvi` and the two system roots),
+each of which it walks, and the shared scoreboards the same way. The run makes
+nothing: a root that does not exist is not walked.
 
 ## Tab completion
 

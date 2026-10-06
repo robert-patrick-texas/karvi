@@ -165,20 +165,25 @@ The floor is judged on each tree's own filesystem.
 .B "\-\-minfree 0"
 turns pressure off.
 .SH WHERE IT LOOKS
-As an operator, with nothing given:
+As an operator, with nothing given, making nothing (a place that does not
+exist is not walked):
 .IP 1. 4
-The private root,
+Every private root of the operator's that exists,
 .BR "\-\-basedir auto" ,
-the first that exists of
+in this order:
 .IR /opt/karvi/users/USER ,
 .IR /var/lib/karvi/users/USER ,
 and
-.IR \(ti/.local/share/karvi :
-its
+.IR \(ti/.local/share/karvi ;
+under each its
 .I jobs
-tree, then its
+tree, its
 .I transcripts
-tree.
+tree, and its
+.IR state/scoreboards .
+.B "\-\-basedir"
+.I PATH
+walks that root alone.
 .IP 2. 4
 The shared trees,
 .BR "\-\-sharedroot auto" :
@@ -192,14 +197,16 @@ then its
 .IR transcripts .
 A shared tree the operator cannot write to is reported as skipped.
 .IP 3. 4
-The scoreboard directory,
+The shared scoreboards,
 .BR \-\-scoreboards .
 .PP
 As root, a run walks instead every private root under
 .I /opt/karvi/users
 and then under
 .IR /var/lib/karvi/users ,
-then the shared trees and the scoreboards as above.
+each with its
+.IR state/scoreboards ,
+then the shared trees and the shared scoreboards as above.
 A private root under an operator's home is that operator's own, and a
 root run does not look there.
 The collection directory is never walked.
@@ -303,7 +310,8 @@ and
 .IR transcripts .
 .TP
 .I /dev/shm/karvi/scoreboards
-The scoreboard directory.
+The shared scoreboards; each private root's own are in its
+.IR state/scoreboards .
 .SH EXAMPLES
 What would go, as this operator, then remove it:
 .PP

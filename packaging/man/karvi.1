@@ -174,10 +174,15 @@ included, with
 A file may include others
 .RB ( config.includes ).
 .B karvi config show
-.I KEY
-.B \-\-explain
-prints a key's value, its source, its default, its range, its lock, and the
-layers it overrode;
+.I KEY ...
+prints each key's value, its source, its default, its range, its lock, and
+the layers it overrode, and, for a key whose value is a place karvi writes
+or reads, a
+.B resolved:
+line, the path the next activity would use, found without creating
+anything, with a
+.B passed:
+line for each candidate on the host passed by;
 .B karvi config validate
 checks a file;
 .B karvi config generate
@@ -186,7 +191,10 @@ The home in
 .I \(ti
 is the password database's, so
 .B HOME
-moves neither the operator's file nor the private root.
+moves neither the operator's file nor the private root;
+.I \(tiUSER
+is refused, and a relative path in a place or file key is taken from the
+working directory.
 .SH VALUES
 .TP
 .I DURATION
@@ -338,14 +346,23 @@ where they exist.
 .TP
 .I /dev/shm/karvi
 The scratch root, made by
-.BR "sudo karvi setup shared" :
+.B "sudo karvi setup shared"
+and never by an operator's run:
 .I scoreboards
-(what
+(the
+.B scoreboards
+key, what
 .B karvi watch
 reads),
 .I capacity
 (the host's session ledger), and each operator's scratch and control
-sockets.
+sockets; where it is absent, each is under the private root
+.RI ( BASEDIR/state/scoreboards ,
+.IR BASEDIR/state/capacity ).
+.B karvi config show \-\-explain
+names every place on its
+.B resolved:
+lines.
 .TP
 .I /tmp/karvi\-UID\fR, \fI/var/tmp/karvi\-UID
 The spool directory, the first that can be written

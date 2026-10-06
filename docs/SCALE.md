@@ -246,7 +246,7 @@ would refuse a small host.
 
 **Monitoring is the site's.** The check is a guard against writing into a full
 disk at the moment a job starts, not an alert. Watch the volumes behind
-`basedir`, `sharedroot`, `spooldir`, and `watch.directory` with the site's
+`basedir`, `sharedroot`, `spooldir`, and `scoreboards` with the site's
 monitoring, and let `karvi-prune --minfree` ([`docs/PRUNE.md`](PRUNE.md)) age
 the job and transcript trees under a free-space floor of its own.
 
@@ -272,7 +272,7 @@ threshold saved.
 - Put `sharedroot` (the site's `jobs`, `crun`, and `transcripts` trees)
   on a volume sized for the retention age times the daily output;
   `karvi-prune` walks it.
-- Keep `watch.directory` on its tmpfs (`/dev/shm/karvi/scoreboards`): the
+- Keep `scoreboards` on its tmpfs (`/dev/shm/karvi/scoreboards`): the
   scoreboard files are kilobytes and the watch screen reads them every
   `watch.refresh`.
 - A job's records stream to disk as they arrive; nothing waits for the

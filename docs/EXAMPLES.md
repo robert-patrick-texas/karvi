@@ -4824,3 +4824,80 @@ use).
 
 **The design closed.** The build follows in sections, each committed on the
 operator's word.
+
+**Executed after the build.** The lab build of the tree after section 4
+(`7da2d8f`'s content) in a private mount namespace, as for the design: in each
+case the view's lines (FILES' recipe, or the keys named), then one `command`
+against this host, then where it went:
+
+| Case | The view | The activity |
+|---|---|---|
+| individual, before any activity | every place under `~/.local/share/karvi`, the spool `/tmp/karvi-1000`; the private root not made | took each, as named |
+| after `setup shared`, before the operator's first activity | `/opt/karvi/users/netops`, the shared trees, `/dev/shm/karvi/netops` and its `sockets`, `/dev/shm/karvi/scoreboards` and `capacity` | took each, as named |
+| the operator's scratch folder closed (0500) | `tempdir` at `/opt/karvi/users/netops/tmp`, `passed: /dev/shm/karvi/netops: not writable by the operator` | took `users/netops/tmp` |
+| the shared jobs tree closed (root's, 0755) | `resolved: error: output_directory_not_writable: …` | exit 9, the same code and message |
+| the scoreboards and the ledger closed | the private folders, each with its `passed:` line | the private folders, each with its warning; `watch` showed the operator's jobs |
+| `/tmp` out of inodes, the spool folder there and open | `/var/tmp/karvi-1000`, `passed: /tmp/karvi-1000: no free inodes` | took `/var/tmp/karvi-1000` |
+| `tempdir=/dev/shm/karvi/x`, no scratch root | `resolved: error: shared_directory_absent: /dev/shm/karvi is absent, …`; `config show` exit 0 | exit 9, the same refusal; nothing made |
+| `users` at 0777, no folder for the operator | `basedir`, the store, and `tempdir` each `error: private_directory_not_writable: …` | exit 9, the same message |
+| `config show basedir ssh spooldir` | three blocks, `key: ssh` / `error: not found` between | |
+
+Issue 5's run on the build (every key at `~/NAME`, then at `rNAME`, `HOME`
+elsewhere): every place, the audit file, the scoreboards, and the ledger
+included, went under the account's home, then under the working directory;
+`daemon.socket` at `~/d.sock` and at `d.sock` started the daemon on
+`/home/netops/d.sock` and on the working directory's, each `run` exit 0, where
+the `2cdc5cc` build had exited 112. Issue 6(d)'s, with `/opt` writable by
+everyone so nothing but the guard stood in the way: `tempdir`, `spooldir`,
+`ssh.control-path-root`, the trust store, and `audit.file` under an absent
+`/dev/shm/karvi`, `output.root` under an absent `/opt/karvi`, and
+`daemon.socket` under the scratch root, each exit 9 with
+`shared_directory_absent` naming its key and nothing made, where the earlier
+build had made each root at 0700, the operator's (`transcript.root` is not read
+by a `command`). Issue 6's: `karvi watch` before any activity made nothing;
+with `/dev/shm/karvi/scoreboards` closed it showed the operator's job written
+to the fallback, where it had shown none. Issue 6(e)'s: on a fresh host
+`karvi-prune --verbose` walked only the shared scoreboards and made nothing;
+after `setup shared`, with the home's job from before,
+
+```text
+walk kind=activity path=/opt/karvi/users/netops/jobs
+walk kind=activity path=/home/netops/.local/share/karvi/jobs
+walk kind=activity path=/opt/karvi/shared/jobs
+walk kind=transcript path=/opt/karvi/users/netops/transcripts
+walk kind=transcript path=/home/netops/.local/share/karvi/transcripts
+walk kind=transcript path=/opt/karvi/shared/transcripts
+walk kind=scoreboard path=/opt/karvi/users/netops/state/scoreboards
+walk kind=scoreboard path=/home/netops/.local/share/karvi/state/scoreboards
+walk kind=scoreboard path=/dev/shm/karvi/scoreboards
+```
+
+and root's run walked the site's root, the shared trees, the site root's
+`state/scoreboards`, and the shared scoreboards. Verification at each section:
+gofmt, vet, every Go test (each twin against what its maker then takes:
+absent, closed, explicit, the guard, no free inodes), `make generated-clean`,
+the full battery on the section's lab build, and the run at width N=32 against
+the previous commit's build after sections 2 and 3, within the noise; the
+released `bin/` unchanged.
+
+**Found on the way.** An explicit `ssh.known-hosts-file` under an absent setup
+place was refused once per device, the message lost behind `command failed for
+name:srv1`; the store's path is now checked at the job's admission with the
+scratch and the spool. The ledger never judged its root's own permissions: its
+twin, judging by `access(2)`, named the private folder for a root closed to
+the operator while `capacity.New` took the root; `ensureRoot` now checks it.
+`config show` still took one positional (the parse table's `maxPos: 1`), found
+by the first run of several keys. `configs/example.toml` and
+`development.toml` set both scratch folders to `~/.local/share/karvi/…`, which
+the scoreboards and the ledger had ignored; both settings are removed, `auto`
+giving the same private folders. `configload.ResolvePath` and
+`systemssh.expandHome` were read by nothing and are removed.
+
+**Built** in four sections on the operator's word: `8fa4c8f` the places'
+rules (one path function, the guard, each chain's chooser and twin), `0da4268`
+the scoreboards (the key, the `auto` defaults, `watch`'s reading,
+`karvi-prune`'s walk, the suites and packaging), `7da2d8f` the view (the
+`passed:` lines, every place key, several keys, the help), and the documents:
+FILES, OPERATIONS, SCALE, PRUNE, SSH-HOST-KEY-POLICY, `karvi.1`,
+`karvi-prune.8`, `karvi-watch.1`, ROADMAP (the item removed), and CHANGELOG.
+The chapter is closed.

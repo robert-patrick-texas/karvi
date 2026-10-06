@@ -84,32 +84,35 @@ and the exit is 1. A tree that cannot be walked is reported the same way.
 ## Where it looks, in sequence
 
 A run walks its trees in this order and reports each under `--verbose`
-as a `walk` line. The defaults, with nothing given:
+as a `walk` line. It makes nothing: a place that does not exist is not
+walked. The defaults, with nothing given:
 
 **As an operator (`karvi-prune`).**
 
-1. The private root, `--basedir auto`, resolved as karvi resolves
-   `basedir`, the first that exists:
-   1. `/opt/karvi/users/<username>` (created there when the site has provisioned
+1. Every private root of the operator's that exists, `--basedir auto`, in
+   this order, so what a run left under one before the site made another
+   is pruned too:
+   1. `/opt/karvi/users/<username>` (where the site has provisioned
       `/opt/karvi/users`, [`docs/OPERATIONS.md` "The shared
       trees"](OPERATIONS.md#the-shared-trees))
    2. `/var/lib/karvi/users/<username>` (the same under that root)
-   3. `~/.local/share/karvi` (created when neither exists)
+   3. `~/.local/share/karvi`
 
    The home is the passwd entry's, as for karvi: `HOME` does not move it.
-   Under the root: `jobs/`, then `transcripts/`.
-2. The shared trees, `--sharedroot auto`, resolved as karvi resolves
-   `sharedroot`: for each tree the first root that holds it,
+   Under each root: `jobs/`, `transcripts/`, and `state/scoreboards/`.
+2. The shared trees, `--sharedroot auto`, chosen as karvi chooses them for
+   `sharedroot`, judged by permissions without writing: for each tree the
+   first root that holds it,
    1. `/opt/karvi/shared/jobs`, else `/var/lib/karvi/shared/jobs`
    2. `/opt/karvi/shared/transcripts`, else `/var/lib/karvi/shared/transcripts`
 
    A shared tree the operator cannot write to is reported as skipped and
    the run goes on. `crun` is never walked.
-3. The scoreboard directory, `--scoreboards`: `/dev/shm/karvi/scoreboards`.
+3. The shared scoreboards, `--scoreboards`: `/dev/shm/karvi/scoreboards`.
 
 The walk is by kind: the job trees (private, then shared), the transcript
-trees (private, then shared), then the scoreboards. Candidates from every
-tree are then removed oldest first.
+trees (private, then shared), then the scoreboards (private, then shared).
+Candidates from every tree are then removed oldest first.
 
 **As root (`sudo karvi-prune`).** Root's own basedir holds no operator's
 jobs, so a root run walks instead:
@@ -119,16 +122,17 @@ jobs, so a root run walks instead:
    1. `/opt/karvi/users/<username>` for each
    2. `/var/lib/karvi/users/<username>` for each
 
-   Under each: `jobs/`, then `transcripts/`.
+   Under each: `jobs/`, `transcripts/`, and `state/scoreboards/`.
 2. The shared trees, as above.
-3. The scoreboard directory, as above.
+3. The shared scoreboards, as above.
 
 A private root under an operator's home (`~/.local/share/karvi`) is
 that operator's own: their `karvi-prune`, their
 timer, or their cron prunes it, and a root run does not look there.
 
-`--basedir PATH` and `--sharedroot PATH|none` replace the defaults for a
-run over one root, as the suites and the examples do.
+`--basedir PATH` replaces the private roots with that one, and
+`--sharedroot PATH|none` the shared root, for a run over one root, as the
+suites and the examples do.
 
 ## The report
 
@@ -191,9 +195,9 @@ karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH] [--scoreboards P
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--basedir` | `auto` | the private root; `auto` is the operator's own as karvi resolves it, or the site's provisioned roots for a root run |
+| `--basedir` | `auto` | the private roots; `auto` is every root of the operator's that exists, or the site's provisioned roots for a root run; a path is that root alone |
 | `--sharedroot` | `auto` | the site's shared root; `auto` consults the two system roots, `none` consults nothing, a path consults that root |
-| `--scoreboards` | `/dev/shm/karvi/scoreboards` | the scoreboard directory (`watch.directory`) |
+| `--scoreboards` | `/dev/shm/karvi/scoreboards` | the shared scoreboards, walked beside each private root's `state/scoreboards` (the `scoreboards` key's shared place) |
 | `--days` | `31` | the retention age in days, one or more |
 | `--minfree` | `5` | the free-space floor in percent; 0 turns pressure off |
 | `--dry-run` | off | report what would go and remove nothing |
@@ -214,10 +218,10 @@ per host, or none and runs the helper by hand.
 `karvi-prune.timer`: install under `~/.config/systemd/user/` and `systemctl
 --user enable --now karvi-prune.timer`. Daily, persistent across a missed day, a
 randomized delay of up to thirty minutes. The unit's sandbox may write only
-under the operator's basedir candidates, the two system roots, and the
-scoreboards (`ReadWritePaths`, each path with the dash that ignores an absent
-one; [`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention) says what the
-sandbox is and what a site adds when it moves a place).
+under the operator's private roots (the home's and the two system roots), and
+the scoreboards (`ReadWritePaths`, each path with the dash that ignores an
+absent one; [`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention) says
+what the sandbox is and what a site adds when it moves a place).
 
 **The site, systemd.** `packaging/systemd/system/karvi-prune.service`
 and `karvi-prune.timer`: install under `/etc/systemd/system/` and
