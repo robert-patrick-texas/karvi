@@ -4105,3 +4105,108 @@ is `run`'s documented freeform rule.
 their roles and the kept mark, the purges by prefix, `--exit`), its tests,
 `stream`'s help and `karvi-stream.1`, DESIGN's stream entry, OPERATIONS' and
 README's stream sections, and CHANGELOG.
+
+## 26. The invocation's bounds on the daemon's path (2026-10-05)
+
+The operator asked how best to raise the output byte limit for one command or
+device session, and the timeout for one command along with any overall session
+bound, with two cases from the fleet: a `show tech` on IOS XE or Nexus, over a
+gigabyte streamed by one command for thirty minutes or more, and a `copy` of an
+image to an IOS XE router, thirty minutes or more of one command printing `!`
+now and then or nothing. Today's answer is a job-wide `--set` of
+`execution.command-timeout` or `output.max-command-bytes`; before any
+per-command form, the session found that such a `--set` did not reach a `run`
+through the daemon.
+
+**What it gains.** A job bounded as its invocation said on every path: a
+`--set`, or a client configuration that differs from the daemon's, means the
+same through the daemon as in process, and the per-command declarations that
+follow have one path to build on. It waits on nothing outside the tree.
+
+**Executed: the daemon's path today.** The lab build at `1ea54c4`, the lab
+configuration's `execution.command-timeout = 2s`, this host as `srv1`:
+
+| Case | Through a daemon already running | `--no-daemon` |
+|---|---|---|
+| `--set execution.command-timeout=10s`, `sleep 4` | `command_timeout` | succeeded |
+| `--set output.max-command-bytes=2048`, 5,000 bytes | succeeded, 5,000 bytes | `output_limit_exceeded` at 2,048 |
+| `--set execution.device-timeout=1s`, `sleep 2` | `command_timeout` at the configured 2s | `device_timeout` |
+| `--set execution.halt-device-on-command-error=false`, a failure then `echo` | the second `not_attempted_prior_command_failure` | the second succeeded |
+
+A daemon started by an invocation with `--set
+execution.command-timeout=10s` kept it: a later plain run's `sleep 4`
+succeeded under the configured 2s. The plan already carried
+`output.max_command_bytes`, and the store read the plan's `max_job_bytes`;
+the transports and the free-space check read the command limit from the
+configuration the job ran under, the daemon's on that path. The executor took
+the halt rule from its configuration as well, the plan's
+`continue_device_on_error` holding only `--continue-device-on-error`.
+
+**The operator's rule.** The daemon is the operator's own, launched by the
+operator: it should accept whatever settings the client sends for a job, and
+refuse a job only where a setting cannot be honoured, as it does today. A job
+under the client's whole configuration is a larger change, every reader on the
+job path taking a configuration built per job and a rule for the keys that
+belong to the daemon's process, so it went to the roadmap
+([`ROADMAP.md`](../ROADMAP.md), "A job under its client's configuration"), and
+this section fixes the values the plan carried and nothing read, and the
+timeouts that drifted.
+
+**Agreed.** The plan's `execution` block carries
+`execution.command-timeout`, `execution.device-timeout`,
+`execution.prompt-timeout`, `execution.enable-timeout`, and
+`telnet.read-timeout`; the transports and the free-space check read
+`output.max_command_bytes`; `continue_device_on_error` is
+`--continue-device-on-error` or the halt key set false. The executor and the
+transports read them from the plan on every path, through one
+`platform.Timeouts` value on each transport's factory, a field left zero
+(`login`, a transport's own test) falling back to the configuration. The
+daemon's plan check refuses only what no session can run: a timeout at or
+below zero, a negative device timeout; the client's load has checked the
+ranges, so the daemon repeats none. The plan schema stays 11, unreleased; the
+pinned digests moved with the block alone (each recomputed with the
+`execution` member removed matched its old pin).
+
+**Not taken.** The client's whole configuration in this section; range
+constants in the plan with a test tying them to the registry; the daemon's
+connect, handshake, and keepalive settings in the plan (the transport's and
+the site's); a plan schema bump.
+
+**Executed after the build.** The same cases, each on a plain daemon started
+first and with `--no-daemon`:
+
+| Case | `1ea54c4`, daemon | `1ea54c4`, `--no-daemon` | This build, daemon | This build, `--no-daemon` |
+|---|---|---|---|---|
+| command timeout 10s, `sleep 4` | `command_timeout` | succeeded | succeeded | succeeded |
+| command limit 2,048, 5,000 bytes | succeeded, 5,000 | `output_limit_exceeded`, 2,048 | `output_limit_exceeded`, 2,048 | `output_limit_exceeded`, 2,048 |
+| device timeout 1s, `sleep 2` | `command_timeout` | `device_timeout` | `device_timeout` | `device_timeout` |
+| halt false, a failure then `echo` | not attempted | succeeded | succeeded | succeeded |
+
+At N=32 against `1ea54c4`'s build, alternating, the daemon's peak in MB:
+
+| Channel and transport | `1ea54c4` | This build |
+|---|---|---|
+| exec on `system` | 65, 67, 72, 80 | 71, 71, 69, 60 |
+| exec on `scrapligo-v1` | 88, 88, 81, 85 | 100, 72, 77, 94 |
+| the shell on `system` | 88, 85 | 74, 79 |
+| the shell on `scrapligo-v1` | 149, 168 | 166, 139 |
+
+Exec on `system` read higher on this build in the first two rounds, so two more
+ran, exec alone with this build first, and there the previous build read higher
+in both: the spread is the runs' own. Every run passed its accounting.
+
+Verification: gofmt, vet, every Go test (the plan's vectors for each refused
+value, the draft carrying set and default values and the halt key, the executor
+obeying the plan's 10s over a configured 1s), `make generated-clean`, and the
+seventeen suites on the lab build (01:10:50 to 01:14:34 UTC), the released
+`bin/` unchanged.
+
+**Found on the way.** `docs/TIMEOUTS.md` said that only two duration ranges were
+enforced; every range in its table is refused at load
+(`config_value_out_of_range`), and `execution.device-timeout`'s maximum is
+`168h`, the table's `7d` being no duration karvi reads
+(`config_duration_error`). The per-command timeout and byte limit, the
+operator's next item, build on the plan's block; a `show tech` past the 1 GiB
+ceiling of `output.max-command-bytes` is a separate decision (how a record holds
+output of several GiB), and until it is taken the device's own redirect to its
+flash, then a `copy` off it, is the tool.

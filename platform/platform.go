@@ -247,6 +247,22 @@ type OpenRequest struct {
 // received since the previous answer, each consumed once, a match answered
 // with its Response and one carriage return. A command carries blind returns
 // or expectations, never both; a blind command may carry expectations.
+// Timeouts are the bounds a transport puts on a session's steps, the
+// invocation's: the executor fills them from the plan's execution block on
+// every path. A field left zero (login, a transport's own test) falls back to
+// the transport's configuration through Pick, then to its default.
+type Timeouts struct {
+	Command, Prompt, Enable, TelnetRead time.Duration
+}
+
+// Pick is set when it is positive, else configured.
+func Pick(set, configured time.Duration) time.Duration {
+	if set > 0 {
+		return set
+	}
+	return configured
+}
+
 type Command struct {
 	Text         string
 	Timeout      time.Duration

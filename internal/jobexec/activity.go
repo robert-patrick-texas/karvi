@@ -213,7 +213,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	places = append(places, output.Place{Path: spoolDir, Spool: true})
 	freecheck := cfg.String("freecheck")
-	admission, err := output.Preflight{Check: freecheck, Floor: cfg.Int64("output.min-free-bytes-after-job"), Places: places, Limit: cfg.Int64("output.max-command-bytes"), Width: jobWidth(dispatchSettings, serverLimit, len(plan.Targets))}.Run()
+	admission, err := output.Preflight{Check: freecheck, Floor: cfg.Int64("output.min-free-bytes-after-job"), Places: places, Limit: plan.Output.MaxCommandBytes, Width: jobWidth(dispatchSettings, serverLimit, len(plan.Targets))}.Run()
 	if err != nil {
 		return FailedResult("output_preflight_space", err)
 	}
@@ -310,7 +310,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType,
 		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, BlindWait: time.Duration(plan.BlindWaitNS), Blind: plan.Blind, Expectations: plan.Expectations,
 		SessionInit: plan.SessionInit, CandidateCount: req.CandidateCount, DispatchOrder: plan.Dispatch.DispatchOrder, ShuffleKey: plan.Dispatch.ShuffleKey,
-		Grants: req.Grants, Protection: req.Protection, HaltOnCommandError: cfg.Bool("execution.halt-device-on-command-error") && !plan.Dispatch.ContinueDeviceOnError,
+		Grants: req.Grants, Protection: req.Protection, HaltOnCommandError: !plan.Dispatch.ContinueDeviceOnError, Execution: plan.Execution, MaxCommandBytes: plan.Output.MaxCommandBytes,
 		Ping: plan.Ping, Pinger: pinger,
 		Capacity: capManager, Store: store, Audit: auditSink, Metrics: sampler,
 		ScratchDir: scratch, ControlRoot: controlRoot, Home: req.Operator.Home, BaseDir: base, SpoolDir: spoolDir, InFlight: board.inFlight,

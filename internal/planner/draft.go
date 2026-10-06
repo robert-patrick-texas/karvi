@@ -219,6 +219,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		Blind: append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    dispatchSettings(cfg, set, opts),
+		Execution:   ExecutionSettings(cfg),
 		Output:      out,
 		Ping:        pingSettings(cfg),
 		Sources:     executionplan.SourceDigests{ConfigDigest: cfg.Digest, Selectors: provenance, Inputs: ScopeInputs(opts.Inputs)},
@@ -325,7 +326,20 @@ func dispatchSettings(cfg configload.Snapshot, set TargetSet, opts DraftOptions)
 		DispatchOrder: order, ShuffleKey: set.ShuffleKey,
 		HaltErrorCount: cfg.Int("dispatch.halt-on-error-count"), HaltErrorPercent: cfg.Int("dispatch.halt-on-error-percent"),
 		WaveGateErrorCount: cfg.Int("dispatch.wave-gate-error-count"), WaveGateErrorPercent: cfg.Int("dispatch.wave-gate-error-percent"),
-		WaveGateTimedDelayNS: int64(cfg.Duration("dispatch.wave-gate-timed-delay")), ContinueDeviceOnError: opts.ContinueDeviceOnError,
+		WaveGateTimedDelayNS: int64(cfg.Duration("dispatch.wave-gate-timed-delay")),
+		// The effective halt: --continue-device-on-error or the key set
+		// false, so a daemon's job halts as its invocation said.
+		ContinueDeviceOnError: opts.ContinueDeviceOnError || !cfg.Bool("execution.halt-device-on-command-error"),
+	}
+}
+
+// ExecutionSettings is the plan's timeouts block from the effective
+// configuration, which the executor and the transports read on every path.
+func ExecutionSettings(cfg configload.Snapshot) executionplan.ExecutionSettings {
+	return executionplan.ExecutionSettings{
+		CommandTimeoutNS: cfg.Duration("execution.command-timeout").Nanoseconds(), DeviceTimeoutNS: cfg.Duration("execution.device-timeout").Nanoseconds(),
+		PromptTimeoutNS: cfg.Duration("execution.prompt-timeout").Nanoseconds(), EnableTimeoutNS: cfg.Duration("execution.enable-timeout").Nanoseconds(),
+		TelnetReadTimeoutNS: cfg.Duration("telnet.read-timeout").Nanoseconds(),
 	}
 }
 

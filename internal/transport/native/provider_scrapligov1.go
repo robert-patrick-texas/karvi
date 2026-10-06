@@ -58,7 +58,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 	if host == "" {
 		host = d.req.Address
 	}
-	promptTimeout := durationOr(d.f.Config.Duration("execution.prompt-timeout"), 10*time.Second)
+	promptTimeout := durationOr(platform.Pick(d.f.Timeouts.Prompt, d.f.Config.Duration("execution.prompt-timeout")), 10*time.Second)
 	d.debugf("native SSH session starting implementation=scrapligo-v1 target=%q address=%q port=%d host_key_policy=%s host_key_identity=%q channel=%s", host, d.req.Address, d.req.Port, d.policy.Mode, hostkey.Identity(host, int(d.req.Port)), d.channel())
 	dial := scrapligov1.DialRequest{
 		Host: host, Address: d.req.Address, Port: int(d.req.Port), Username: d.req.Username,
@@ -101,7 +101,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 	d.auth, _ = stream.(platform.AuthReporter)
 	session, err := devsession.Open(ctx, stream, devsession.Options{
 		Definition: d.req.Definition, EnableSecret: d.req.EnablePassword, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes,
-		LoginTimeout: promptTimeout, EnableTimeout: durationOr(d.f.Config.Duration("execution.enable-timeout"), 10*time.Second), PromptTimeout: promptTimeout,
+		LoginTimeout: promptTimeout, EnableTimeout: durationOr(platform.Pick(d.f.Timeouts.Enable, d.f.Config.Duration("execution.enable-timeout")), 10*time.Second), PromptTimeout: promptTimeout,
 		Debug: d.f.Debug,
 	})
 	if err != nil {
@@ -156,7 +156,7 @@ func (d *scrapligoDriver) AuthMethod() string {
 // Execute sends one command through the prepared session.
 func (d *scrapligoDriver) Execute(ctx context.Context, c platform.Command) platform.Result {
 	if c.Timeout <= 0 {
-		c.Timeout = durationOr(d.f.Config.Duration("execution.command-timeout"), 120*time.Second)
+		c.Timeout = durationOr(platform.Pick(d.f.Timeouts.Command, d.f.Config.Duration("execution.command-timeout")), 120*time.Second)
 	}
 	if d.exec != nil {
 		return d.exec.Execute(ctx, c)

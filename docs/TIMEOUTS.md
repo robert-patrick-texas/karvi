@@ -24,16 +24,28 @@ grace).
 | `execution.enable-timeout` (`KARVI__EXECUTION__ENABLE_TIMEOUT`) | 10s | 1s–5m | one privilege level's whole step, from the escalate command to that level's prompt |
 | `execution.command-timeout` (`KARVI__EXECUTION__COMMAND_TIMEOUT`) | 120s | 1s–12h | each requested command |
 | `[session-init.NAME] command-timeout` | unset: `execution.command-timeout` | | each command of that session-init profile |
-| `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–7d | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
+| `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–168h | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
 | `ssh.server-alive-interval` (`KARVI__SSH__SERVER_ALIVE_INTERVAL`), `ssh.server-alive-count-max` (`KARVI__SSH__SERVER_ALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `system`: OpenSSH `ServerAliveInterval` (whole seconds, rounded up) and `ServerAliveCountMax` |
 | `native-ssh.keepalive-interval` (`KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL`), `native-ssh.keepalive-count-max` (`KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | scrapligo-v1: karvi's `keepalive@openssh.com` requests |
 | `telnet.read-timeout` (`KARVI__TELNET__READ_TIMEOUT`) | 60s | 1s–12h | telnet: each read |
 | `execution.blind-wait` (`KARVI__EXECUTION__BLIND_WAIT`; `--blind-wait`) | 10s | 0–10m | the prompt's return after a blind command (`--blind`, `--blind-return N` with 0–20 returns, or a command ending in `\r` sequences), in place of its command timeout; 0 sends and does not wait |
 
-None of these keys but `execution.blind-wait` has a command-line option. Of
-the documented duration ranges, `network.ping-timeout`'s is enforced when the
-configuration loads and `execution.blind-wait`'s when the plan is drafted
-(`execution_plan_invalid`); the others are not enforced.
+None of these keys but `execution.blind-wait` has a command-line option; each
+is set for one invocation with `--set KEY=VALUE` before the mode. Every range
+in the table is enforced when the configuration loads
+(`config_value_out_of_range`), and `execution.blind-wait`'s again when the plan
+is drafted (`execution_plan_invalid`).
+
+The invocation's values bound its job on every path. The client writes
+`execution.command-timeout`, `execution.device-timeout`,
+`execution.prompt-timeout`, `execution.enable-timeout`, and
+`telnet.read-timeout` into the execution plan's `execution` block, and
+`execution.blind-wait` as `blind_wait_ns`; the executor and the transports read
+them from the plan, so a `run` through the daemon is bounded as its invocation
+said and the daemon's own values for these keys bound no job. The connect and
+handshake timeouts and the keepalives are the daemon's, read from its own
+configuration on that path. A daemon's plan check refuses only a value no
+session can run: a timeout at or below zero, or a negative device timeout.
 
 ## 2. How the values relate
 
@@ -71,8 +83,8 @@ configuration loads and `execution.blind-wait`'s when the plan is drafted
   the stream ends during the wait (a real `reload`). A short command timeout
   does not cut a long confirm: the wait replaces it. The client's effective
   value travels in the execution plan (`blind_wait_ns`), so `--blind-wait`
-  reaches the daemon, whose executor reads the other `execution.*` keys from
-  its own configuration. Session-init profile commands are never blind.
+  reaches the daemon, as the other timeouts do in the plan's `execution`
+  block. Session-init profile commands are never blind.
 - **Keepalive timing seen** against the fake with 1s × 2: 3.0s from the
   silence on scrapligo-v1, 5.3–5.6s on `system`, where OpenSSH's own
   whole-second timers are the likely cause. At the defaults the difference

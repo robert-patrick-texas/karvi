@@ -108,7 +108,9 @@ func draftOptions(commands []string) DraftOptions {
 // channel.
 // Re-pinned when ssh.identities replaced ssh.pubkey-authentication;
 // registry 25 and plan schema 11 stay.
-const goldenK03Draft = "44e99ef53c72ff0c0d4e8b6cde8b97ffda4eea2895397dcd8a89dd1658584eb7"
+// Re-pinned when the plan gained the execution block, the invocation's
+// timeouts; plan schema 11 stays (unreleased).
+const goldenK03Draft = "565e2d8600194ec21f4607abd6a8052351282444bf0dd10166c809567a24957b"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -185,6 +187,31 @@ func TestDraftSettingsPrecedence(t *testing.T) {
 	}
 	if draft.Dispatch.Mode != "serial" || draft.Dispatch.Width != 1 || draft.Dispatch.DispatchOrder != "shuffle" || *draft.Dispatch.ShuffleKey != key || draft.Output.Format != "jsonl" || draft.Output.Echo {
 		t.Fatalf("command draft=%+v", draft)
+	}
+}
+
+// TestDraftCarriesTheInvocationsBounds: the execution block holds the
+// configuration's timeouts, defaults and set values alike, beyond any
+// ceiling a daemon's configuration might hold; the halt key set false
+// continues the device as --continue-device-on-error does.
+func TestDraftCarriesTheInvocationsBounds(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		sets []string
+		want executionplan.ExecutionSettings
+		cont bool
+	}{
+		{"defaults", nil, executionplan.ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)}, false},
+		{"set", []string{`execution.command-timeout="45m"`, `execution.device-timeout="2h"`, `execution.prompt-timeout="30s"`, `execution.enable-timeout="20s"`, `telnet.read-timeout="5m"`, "execution.halt-device-on-command-error=false"},
+			executionplan.ExecutionSettings{CommandTimeoutNS: int64(45 * time.Minute), DeviceTimeoutNS: int64(2 * time.Hour), PromptTimeoutNS: int64(30 * time.Second), EnableTimeoutNS: int64(20 * time.Second), TelnetReadTimeoutNS: int64(5 * time.Minute)}, true},
+	} {
+		draft, err := Draft(context.Background(), testConfig(t, tc.sets...), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
+		if err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		if draft.Execution != tc.want || draft.Dispatch.ContinueDeviceOnError != tc.cont {
+			t.Errorf("%s: execution=%+v continue=%v, want %+v continue=%v", tc.name, draft.Execution, draft.Dispatch.ContinueDeviceOnError, tc.want, tc.cont)
+		}
 	}
 }
 

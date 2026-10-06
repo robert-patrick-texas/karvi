@@ -20,6 +20,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/output"
+	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -94,6 +95,7 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 	e := New(Options{
 		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run",
 		Commands: commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer", HaltOnCommandError: halt,
+		Execution: planner.ExecutionSettings(cfg), MaxCommandBytes: cfg.Int64("output.max-command-bytes"),
 		Ping: executionplan.PingSettings{Enabled: false}, Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true", SpoolDir: spool,
 		Debug: func(s string) { h.mu.Lock(); h.debug = append(h.debug, s); h.mu.Unlock() },
 	})

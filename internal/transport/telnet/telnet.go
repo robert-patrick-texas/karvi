@@ -29,6 +29,9 @@ var (
 type Factory struct {
 	Config         configload.Snapshot
 	MaxOutputBytes int64
+	// Timeouts are the invocation's (platform.Timeouts); a zero field
+	// falls back to Config.
+	Timeouts platform.Timeouts
 }
 type Driver struct {
 	f      Factory
@@ -91,7 +94,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	timeout := d.f.Config.Duration("execution.prompt-timeout")
+	timeout := platform.Pick(d.f.Timeouts.Prompt, d.f.Config.Duration("execution.prompt-timeout"))
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}
@@ -142,7 +145,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		}
 		// execution.enable-timeout bounds the whole step, from the escalate
 		// command to the level's prompt.
-		enableTimeout := d.f.Config.Duration("execution.enable-timeout")
+		enableTimeout := platform.Pick(d.f.Timeouts.Enable, d.f.Config.Duration("execution.enable-timeout"))
 		if enableTimeout <= 0 {
 			enableTimeout = 10 * time.Second
 		}
@@ -197,7 +200,7 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 	// The transport read timeout is distinct from the general command budget.
 	// Use the shorter positive value so a silent Telnet peer cannot hold a read
 	// beyond either operator-configured limit.
-	timeout := d.f.Config.Duration("telnet.read-timeout")
+	timeout := platform.Pick(d.f.Timeouts.TelnetRead, d.f.Config.Duration("telnet.read-timeout"))
 	if timeout <= 0 {
 		timeout = 60 * time.Second
 	}

@@ -684,6 +684,16 @@ Relationships worth knowing:
   `commands.jsonl` is followed from the live edge (records before the
   follow are not kept, and the client says so once); a folder without
   `summary.json` is an orphan to `job follow` and to the pruner.
+- **The invocation's timeouts and command byte limit travel too.**
+  `execution.command-timeout`, `execution.device-timeout`,
+  `execution.prompt-timeout`, `execution.enable-timeout`,
+  `telnet.read-timeout`, `output.max-command-bytes`, and
+  `execution.halt-device-on-command-error` reach the job from the client
+  on every path, so `karvi --set execution.command-timeout=45m run …`
+  bounds a run through the daemon as it bounds `run --no-daemon` and
+  `command`. The daemon's own values for these keys bound no job; its
+  connect and handshake timeouts, keepalives, and spool settings are
+  still its own.
 - **`output.max-job-bytes` counts the devices' output as written: the
   `commands.jsonl` lines and the text blocks together.** With both files
   on, a job's output is on disk twice, and the space preflight

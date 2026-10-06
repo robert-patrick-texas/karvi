@@ -93,6 +93,9 @@ func DaemonTarget() executionplan.ExecutionTarget {
 	})
 }
 
+// Execution is the plan's timeouts block at the configuration's defaults.
+var Execution = executionplan.ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)}
+
 // DraftPlan is the client's plan before preparation.
 func DraftPlan() executionplan.ExecutionPlan {
 	return executionplan.ExecutionPlan{
@@ -103,6 +106,7 @@ func DraftPlan() executionplan.ExecutionPlan {
 		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]executionplan.Expectation{},
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    executionplan.DispatchSettings{Mode: executionplan.DispatchSerial, Width: 1, DispatchOrder: executionplan.OrderDefault},
+		Execution:   Execution,
 		Output:      executionplan.OutputSettings{Format: executionplan.FormatText, Follow: true, MaxCommandBytes: 67108864, MaxJobBytes: 17179869184, Persist: true, Files: executionplan.AllOutputFiles, Root: "/tmp/karvi/jobs"},
 		Ping:        executionplan.PingSettings{Enabled: false, Probes: executionplan.PingProbes, TimeoutNS: int64(500 * time.Millisecond)},
 		Sources: executionplan.SourceDigests{ConfigDigest: strings.Repeat("cd", 32),

@@ -15,11 +15,11 @@ const (
 	fixtureJobID  = "260914-120001-00"
 	fixturePrepID = "20260914T120002.000000+0000-0123456789abcdefghjk"
 	// The schema number is in every stage's digest, so the three pins move
-	// at each plan schema bump; goldenFinal also binds the job ID through
-	// the package reference.
-	goldenDraft    = "2decb541c747e25dbf7af611efc55fd316f93e663d5c9475b05b396756917b3b"
-	goldenPrepared = "63de9ca0bf22ccababca574a5e0bc20a3bd6c4b343cd358d7e59615f2d7c80c8"
-	goldenFinal    = "34fadaa8cea41bb3d1b623cb7e5c52501fb2d653686e7bd68a004f588faed54a"
+	// at each plan schema bump and with a field added under an unreleased
+	// one; goldenFinal also binds the job ID through the package reference.
+	goldenDraft    = "ebef7c3f05ea461e7806ae7736103e0cddd9975a6ec45bc51cbbcd9dc0e732a2"
+	goldenPrepared = "a085dff4f2c98fa26ceaac9db0e19a4d7abba63c53bc5c7ebc3a9771cf6ea5b1"
+	goldenFinal    = "32b5170890afb0718a409c649d3cca9c24f55a8ba1a1647b5e1f650084866928"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -34,6 +34,7 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]Expectation{},
 		SessionInit: map[string]SessionInitProfile{},
 		Dispatch:    DispatchSettings{Mode: DispatchSerial, Width: 1, DispatchOrder: OrderDefault},
+		Execution:   ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)},
 		Output:      OutputSettings{Format: FormatText, Follow: true, MaxCommandBytes: 67108864, MaxJobBytes: 17179869184, Persist: true, Files: AllOutputFiles, Root: "/tmp/karvi/jobs"},
 		Ping:        PingSettings{Enabled: false, Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond)},
 		Sources: SourceDigests{ConfigDigest: strings.Repeat("cd", 32),
@@ -285,6 +286,11 @@ func TestPlanValidationVectors(t *testing.T) {
 		{"key without shuffle", func(p *ExecutionPlan) { p.Dispatch.ShuffleKey = &key }, "execution_plan_invalid: dispatch.shuffle_key"},
 		{"shuffle without key", func(p *ExecutionPlan) { p.Dispatch.DispatchOrder = OrderShuffle }, "execution_plan_invalid: dispatch.shuffle_key"},
 		{"percent", func(p *ExecutionPlan) { p.Dispatch.HaltErrorPercent = 101 }, "execution_plan_invalid: dispatch.halt_error_percent"},
+		{"command timeout zero", func(p *ExecutionPlan) { p.Execution.CommandTimeoutNS = 0 }, "execution_plan_invalid: execution.command_timeout_ns: 0 must be positive"},
+		{"prompt timeout negative", func(p *ExecutionPlan) { p.Execution.PromptTimeoutNS = -1 }, "execution_plan_invalid: execution.prompt_timeout_ns"},
+		{"enable timeout zero", func(p *ExecutionPlan) { p.Execution.EnableTimeoutNS = 0 }, "execution_plan_invalid: execution.enable_timeout_ns"},
+		{"telnet read timeout zero", func(p *ExecutionPlan) { p.Execution.TelnetReadTimeoutNS = 0 }, "execution_plan_invalid: execution.telnet_read_timeout_ns"},
+		{"device timeout negative", func(p *ExecutionPlan) { p.Execution.DeviceTimeoutNS = -1 }, "execution_plan_invalid: execution.device_timeout_ns: -1 must not be negative"},
 		{"format", func(p *ExecutionPlan) { p.Output.Format = "yaml" }, "execution_plan_invalid: output.format"},
 		{"limits", func(p *ExecutionPlan) { p.Output.MaxJobBytes = 0 }, "execution_plan_invalid: output"},
 		{"probes", func(p *ExecutionPlan) { p.Ping.Probes = 1 }, "execution_plan_invalid: ping.probes"},

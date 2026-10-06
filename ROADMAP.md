@@ -143,6 +143,19 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   for Linux servers ([`docs/EXAMPLES.md`, chapter
   24](docs/EXAMPLES.md#24-jobs-across-linux-servers-2026-10-04)), whose record
   of a command without a prompt it would build on.
+- **A job under its client's configuration.** The daemon is the operator's own;
+  a job it accepts runs under the configuration of the invocation that submitted
+  it, every key the job reads, while the daemon's own configuration keeps only
+  what belongs to the process (its socket and log, the shared capacity ledger
+  and in-flight limit, the spool's sweep). The client resolves the configuration
+  (paths against its working directory, includes, the environment, `--set`) and
+  the job request carries it; the daemon builds the job's configuration from it,
+  and every reader on the job path takes that in place of the daemon's. A
+  setting the daemon cannot honour refuses the job, as today. It replaces the
+  per-key carriage in the plan (the `execution` and `output` blocks), and it
+  ends a started daemon's keeping of its first invocation's `--set` for every
+  later job. The questions: which keys belong to the process; how the job
+  records the configuration it ran under; the request's size.
 
 ## The device-qualification track
 

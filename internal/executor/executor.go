@@ -85,8 +85,14 @@ type Options struct {
 	// projection.
 	Protection string
 	// HaltOnCommandError stops a device's later commands after a failed one:
-	// the configuration's rule unless the plan asked to continue.
+	// the plan's rule, continue_device_on_error unset.
 	HaltOnCommandError bool
+	// Execution is the plan's timeouts block and MaxCommandBytes its
+	// output.max_command_bytes: the invocation's bounds, read here and
+	// handed to the transports in place of the configuration the job runs
+	// under, which on the daemon's path is the daemon's.
+	Execution       executionplan.ExecutionSettings
+	MaxCommandBytes int64
 	// Ping is the plan's gate block and Pinger the method Detect chose for
 	// the job; Pinger is nil, and never touched,
 	// when the gate is disabled.
@@ -460,7 +466,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	// the capacity wait, and the open have their own bounds. Zero is
 	// unbounded.
 	var deviceDeadline time.Time
-	deviceTimeout := e.opts.Config.Duration("execution.device-timeout")
+	deviceTimeout := time.Duration(e.opts.Execution.DeviceTimeoutNS)
 	if deviceTimeout > 0 {
 		deviceDeadline = time.Now().Add(deviceTimeout)
 	}
@@ -727,13 +733,15 @@ type factory interface {
 }
 
 func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms sshalgorithms.Lists) factory {
+	x := e.opts.Execution
+	timeouts := platform.Timeouts{Command: time.Duration(x.CommandTimeoutNS), Prompt: time.Duration(x.PromptTimeoutNS), Enable: time.Duration(x.EnableTimeoutNS), TelnetRead: time.Duration(x.TelnetReadTimeoutNS)}
 	switch selection.Kind {
 	case transportselect.KindSystem:
-		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes"), Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
+		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
 	case transportselect.KindTelnet:
-		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes")}
+		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts}
 	default:
-		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: e.opts.Config.Int64("output.max-command-bytes"), Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
+		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
 	}
 }
 
@@ -938,14 +946,14 @@ type deviceSequence struct {
 
 // sequence is the target's session-init profile from the plan's table
 // followed by the requested commands:
-// each profile command's timeout is the profile's, else
-// execution.command-timeout.
+// each profile command's timeout is the profile's, else the plan's
+// command timeout (execution.command-timeout as the invocation had it).
 func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequence {
 	seq := deviceSequence{profile: t.SessionInitProfile, known: true}
 	if seq.profile == "" {
 		seq.profile = executionplan.SessionInitNone
 	}
-	commandTimeout := e.opts.Config.Duration("execution.command-timeout")
+	commandTimeout := time.Duration(e.opts.Execution.CommandTimeoutNS)
 	if seq.profile != executionplan.SessionInitNone {
 		prof, ok := e.opts.SessionInit[seq.profile]
 		seq.known = ok

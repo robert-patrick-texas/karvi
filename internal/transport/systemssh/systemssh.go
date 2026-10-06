@@ -36,6 +36,9 @@ type Factory struct {
 	// under ssh.known-hosts-file "auto".
 	BaseDir        string
 	MaxOutputBytes int64
+	// Timeouts are the invocation's (platform.Timeouts); a zero field
+	// falls back to Config.
+	Timeouts platform.Timeouts
 	// Spool is the session's spool: the directory,
 	// the threshold, and the activity; the device is filled per session.
 	Spool   devsession.Spool
@@ -147,7 +150,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	}
 	d.stream = stream
 	connectTimeout, promptTimeout := d.loginTimeouts()
-	enableTimeout := d.f.Config.Duration("execution.enable-timeout")
+	enableTimeout := platform.Pick(d.f.Timeouts.Enable, d.f.Config.Duration("execution.enable-timeout"))
 	if enableTimeout <= 0 {
 		enableTimeout = 10 * time.Second
 	}
@@ -202,7 +205,7 @@ func (d *Driver) loginTimeouts() (connectTimeout, promptTimeout time.Duration) {
 	if connectTimeout <= 0 {
 		connectTimeout = 30 * time.Second
 	}
-	promptTimeout = d.f.Config.Duration("execution.prompt-timeout")
+	promptTimeout = platform.Pick(d.f.Timeouts.Prompt, d.f.Config.Duration("execution.prompt-timeout"))
 	if promptTimeout <= 0 {
 		promptTimeout = 10 * time.Second
 	}
@@ -271,7 +274,7 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 	}
 	timeout := c.Timeout
 	if timeout <= 0 {
-		timeout = d.f.Config.Duration("execution.command-timeout")
+		timeout = platform.Pick(d.f.Timeouts.Command, d.f.Config.Duration("execution.command-timeout"))
 	}
 	if timeout <= 0 {
 		timeout = 120 * time.Second

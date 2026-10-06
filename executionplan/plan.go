@@ -31,7 +31,8 @@ import (
 // the scoreboard, 10 the collection's word, since run and command
 // collect too, and its suffix (--fs), and, without another bump (10 was
 // unreleased), output.files' failures_jsonl renamed errors_jsonl; 11 each
-// target's channel.
+// target's channel, and, without another bump (11 was unreleased), the
+// execution block, the invocation's timeouts.
 const SchemaVersion = 11
 
 // Mode is the requested execution mode of a job.
@@ -131,6 +132,7 @@ type ExecutionPlan struct {
 	Expectations      [][]Expectation               `json:"expectations"`
 	SessionInit       map[string]SessionInitProfile `json:"session_init"`
 	Dispatch          DispatchSettings              `json:"dispatch"`
+	Execution         ExecutionSettings             `json:"execution"`
 	Output            OutputSettings                `json:"output"`
 	Ping              PingSettings                  `json:"ping"`
 	Sources           SourceDigests                 `json:"sources"`
@@ -219,6 +221,21 @@ type DispatchSettings struct {
 	WaveGateErrorPercent  int     `json:"wave_gate_error_percent"`
 	WaveGateTimedDelayNS  int64   `json:"wave_gate_timed_delay_ns"`
 	ContinueDeviceOnError bool    `json:"continue_device_on_error"`
+}
+
+// ExecutionSettings are the invocation's timeouts (schema 11): the
+// execution.* keys and telnet.read-timeout as the client's configuration
+// had them, which the executor and the transports read on every path, so a
+// daemon's job is bounded as its invocation said and not by the daemon's
+// own configuration. The client's load has checked each key's range; the
+// plan refuses only what no session can run (a timeout at or below zero,
+// or a negative device timeout, which 0 leaves unbounded).
+type ExecutionSettings struct {
+	CommandTimeoutNS    int64 `json:"command_timeout_ns"`
+	DeviceTimeoutNS     int64 `json:"device_timeout_ns"`
+	PromptTimeoutNS     int64 `json:"prompt_timeout_ns"`
+	EnableTimeoutNS     int64 `json:"enable_timeout_ns"`
+	TelnetReadTimeoutNS int64 `json:"telnet_read_timeout_ns"`
 }
 
 // OutputSettings are the effective output and follow values. The
@@ -584,6 +601,9 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	if err := p.Dispatch.validate(); err != nil {
 		return err
 	}
+	if err := p.Execution.validate(); err != nil {
+		return err
+	}
 	if err := p.Output.validate(); err != nil {
 		return err
 	}
@@ -912,6 +932,26 @@ func (d DispatchSettings) validate() error {
 	}
 	if d.WaveGateTimedDelayNS < 0 {
 		return planInvalid("dispatch.wave_gate_timed_delay_ns", "must not be negative")
+	}
+	return nil
+}
+
+func (x ExecutionSettings) validate() error {
+	for _, f := range []struct {
+		field string
+		v     int64
+	}{
+		{"execution.command_timeout_ns", x.CommandTimeoutNS},
+		{"execution.prompt_timeout_ns", x.PromptTimeoutNS},
+		{"execution.enable_timeout_ns", x.EnableTimeoutNS},
+		{"execution.telnet_read_timeout_ns", x.TelnetReadTimeoutNS},
+	} {
+		if f.v <= 0 {
+			return planInvalid(f.field, "%d must be positive", f.v)
+		}
+	}
+	if x.DeviceTimeoutNS < 0 {
+		return planInvalid("execution.device_timeout_ns", "%d must not be negative (0 is unbounded)", x.DeviceTimeoutNS)
 	}
 	return nil
 }

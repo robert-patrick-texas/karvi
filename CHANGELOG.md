@@ -209,6 +209,17 @@
   later command line joined it, and the job sent the one line `yes --cmd …` to
   its targets. Such a line is now dropped with its number as
   `cli_positional_unexpected`, the draft standing.
+- **A run through the daemon is bounded as its invocation said.** The daemon's
+  job took `execution.command-timeout`, `execution.device-timeout`,
+  `execution.prompt-timeout`, `execution.enable-timeout`, `telnet.read-timeout`,
+  `output.max-command-bytes`, and `execution.halt-device-on-command-error` from
+  the daemon's configuration, so a `--set` of any of them, or a client
+  configuration that differed, did not reach a `run` through the daemon, while
+  the daemon kept the `--set` of whichever invocation had started it for every
+  later job. The plan carries them (a new `execution` block; the output block's
+  `max_command_bytes`, carried and not read until now; the dispatch block's
+  `continue_device_on_error`), and the executor and the transports read them
+  from the plan on every path. The plan schema stays 11.
 
 ## 0.26.0 - 2026-10-04
 

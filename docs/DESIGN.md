@@ -1364,6 +1364,26 @@ keeps; the daemon's store stays the one writer while the client's root
 travels in the plan. *Not taken:* the daemon's configuration as the authority
 for the files (two roots could disagree).
 
+**The invocation's timeouts, command byte limit, and halt rule travel in the
+plan.** The plan's `execution` block holds `execution.command-timeout`,
+`execution.device-timeout`, `execution.prompt-timeout`,
+`execution.enable-timeout`, and `telnet.read-timeout` as the client's
+configuration had them; `output.max_command_bytes`, carried since the output
+block but read by nothing, is read by the transports and the free-space check;
+and `continue_device_on_error` is `--continue-device-on-error` or
+`execution.halt-device-on-command-error` set false. The executor and the
+transports read these from the plan on every path, so a `run` through the daemon
+is bounded as `run --no-daemon` and `command` are, and a `--set` of any of them
+reaches the job. The daemon's plan check refuses only what no session can run (a
+timeout at or below zero, a negative device timeout); the client's load has
+checked the ranges. The connect and handshake timeouts, the keepalives, and the
+rest of the configuration stay the daemon's. *Why:* the daemon is the operator's
+own, and a job bounded by whatever configuration the daemon happened to start
+with, the starting invocation's `--set` among them, differed from the same job
+run in process without a word. *Not taken:* the client's whole configuration for
+the job (the roadmap's "A job under its client's configuration"); range checks
+repeated in the daemon; a plan schema bump (11 is unreleased).
+
 **`output.max-job-bytes` counts the lines and the text blocks; the record
 decides.** A line that would pass the limit fails the append with
 `output_job_limit_exceeded` and ends the job as an output failure; a text
