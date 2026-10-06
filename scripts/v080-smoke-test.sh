@@ -52,6 +52,9 @@ schema-version = 6
 [ssh.transports]
 system = "$FAKE"
 
+[ssh.command]
+transport = "system"
+
 [audit]
 journald-required = false
 file = "$BASE/audit.jsonl"

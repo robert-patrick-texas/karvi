@@ -9,9 +9,9 @@
 ./bin/karvi run --help
 ```
 
-The included executable lists `system` and `scrapligo-v1`. `run` uses the
-native transport by default and `command` uses `system`; pass `--transport`
-to choose.
+The included executable lists `system` and `scrapligo-v1`. `command` and
+`run` use the native transport by default and `login` uses `system`; pass
+`--transport` to choose.
 
 ## After upgrading from an older daemon
 

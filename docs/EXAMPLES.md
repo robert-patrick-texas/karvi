@@ -5071,3 +5071,50 @@ runs, and another process judged by its command line); `ServerAlive` (the
 device answers it, so a live abandoned session never ends); the login left to
 the terminal's hangup (a killed karvi under an open terminal leaves an `ssh`
 fighting the shell).
+
+## 31. `command` over the native transport by default (2026-10-06)
+
+On the operator's word, while [chapter 30](#30-the-scratch-sweep-2026-10-06) was
+being built: `command` runs over the native transport unless asked otherwise,
+as `run` does, and `login` stays on `system`.
+
+**What it gains.** One transport by default for every non-interactive activity,
+the one the parity suite proves against `system`, without an OpenSSH process,
+a generated configuration, or an askpass socket per device; `login` keeps
+OpenSSH, which attaches the operator's terminal. It waits on nothing: every
+build carries `scrapligo-v1`, and since chapter 24 it runs the exec channel and
+the operator's keys as `system` does.
+
+**Executed.** On lab builds of `ea88a24` and of the change, a `command` to
+`bast1` (`linux_shell`) and to `srv1` (`linux`) on this host, each with no
+transport named, then the two ways back to OpenSSH, then a login:
+
+| Case | `ea88a24` | The change |
+|---|---|---|
+| `command bast1`, `command srv1` | `transport=system`, exit 0 | `transport=native`, exit 0 |
+| `command bast1 --transport system` | `transport=system` | `transport=system` |
+| `--set 'ssh.command.transport="system"'` | `transport=system` | `transport=system` |
+| `login bast1` | `transport=system` | `transport=system` |
+
+**The rule.** `ssh.command.transport = "default"` resolves to `native`, as
+`run`'s does; `login`'s resolves to `system`. The key and its default value are
+unchanged, so the registry stays 26, and the precedence is as before: the
+command line's `--transport`, an inventory row's transport or its source's
+default, the mode's key, then the mode's default. A breaking change, in the
+changelog; README, the quick start, the transports guide, and the architecture
+note say so, and the example configuration's `[ssh.command]`, which spells out
+each mode's default, says `native`.
+
+**Found on the way.** The full battery on the change's build stopped twice in
+its third lane: the suites that map `system` to a fake `ssh` script and run
+`command` with no transport named had relied on `command` meaning `system`, and
+the first of them exited 108 at its first `command` without a word, under `set
+-e`. Eleven such suites, ten on their command lines and `v080` in its
+configuration file, now set `ssh.command.transport = "system"` beside the fake;
+`halt` and `transcript` run no `command`, and the device-qualification script
+names the transport on every call. The third run passed.
+
+**Not taken.** A new key or a new selector value (the mode's default is what
+`default` already names). `login` on the native transport: its interactive
+session attaches the terminal to OpenSSH, and the help says a login requires a
+system-compatible slot.

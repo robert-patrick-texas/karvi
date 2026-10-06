@@ -51,7 +51,7 @@ executor, both SSH transports, telnet, and the session work on
 ```text
 CLI/inventory override
   -> ssh.<mode>.transport
-  -> default (login/command=system, run=native)
+  -> default (login=system, command/run=native)
   -> ssh.transports.<slot>
   -> executable or compiled implementation
 ```

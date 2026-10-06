@@ -85,9 +85,9 @@ One exception keeps an executable usable when its default native
 implementation has no registered provider (no shipped executable is in that
 state now that every build carries scrapligo-v1): the
 built-in defaults `native = "scrapligo-v1"` and mode `transport = "default"`
-are lazy. They are allowed at config-validation time, but selecting run/native
-fails explicitly when the adapter is absent. An operator-authored non-default
-unavailable mapping is never lazy.
+are lazy. They are allowed at config-validation time, but selecting native (the
+default of `command` and `run`) fails explicitly when the adapter is absent. An
+operator-authored non-default unavailable mapping is never lazy.
 
 ## Selection precedence
 

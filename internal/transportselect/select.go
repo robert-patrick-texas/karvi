@@ -37,15 +37,14 @@ type Selection struct {
 	ConfigKey      string `json:"config_key,omitempty"`
 }
 
+// DefaultSelector is what a mode's "default" resolves to: system for a
+// login, which attaches the operator's terminal to OpenSSH, and native for
+// command and run.
 func DefaultSelector(mode string) string {
-	switch mode {
-	case "login", "command":
+	if mode == "login" {
 		return "system"
-	case "run":
-		return "native"
-	default:
-		return "native"
 	}
+	return "native"
 }
 
 func modeKey(mode string) (string, error) {

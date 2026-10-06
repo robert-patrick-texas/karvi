@@ -348,7 +348,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__COMMAND__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Named transport selector. `default` resolves to system for command; `preferred` resolves to native.",
+      "documentation": "Named transport selector. `default` resolves to native for command; `preferred` also resolves to native.",
       "since": "0.6.0"
     },
     {

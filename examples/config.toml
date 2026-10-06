@@ -98,7 +98,7 @@ crun-commands = ["show running-config", "show version", "show inventory"]
 [ssh.login]
 transport = "system"
 [ssh.command]
-transport = "system"
+transport = "native"
 [ssh.run]
 transport = "native"
 

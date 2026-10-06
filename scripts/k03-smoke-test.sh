@@ -30,7 +30,7 @@ printf 'SENT:%s\n' "$last" >>"$0.log"
 printf 'ok\n'
 EOF
 chmod 755 "$FAKE"
-G=(--set "basedir=\"$TMP/state\"" --set 'sharedroot="none"' --set "spooldir=\"$TMP/state/spool\"" --set 'platform-resolution.default=""' --set "ssh.transports.system=\"$FAKE\""
+G=(--set "basedir=\"$TMP/state\"" --set 'sharedroot="none"' --set "spooldir=\"$TMP/state/spool\"" --set 'platform-resolution.default=""' --set "ssh.transports.system=\"$FAKE\"" --set 'ssh.command.transport="system"'
    --set audit.journald-required=false --set "audit.file=\"$TMP/state/audit.jsonl\""
    --set "scoreboards=\"$TMP/sb\"" --set "sessions.shared-capacity-root=\"$TMP/cap\""
    --set output.min-free-bytes-after-job=0 --set display.color=never

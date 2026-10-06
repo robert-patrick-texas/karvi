@@ -43,7 +43,7 @@ func TestModeDefaultsAndLazyUnavailableNative(t *testing.T) {
 		t.Fatalf("unexpected login selection: %#v", login)
 	}
 	command, err := Resolve(cfg, "command", "")
-	if err != nil || command.Kind != KindSystem {
+	if err != nil || command.Kind != KindNative || command.Implementation != "scrapligo-v1" || command.Selector != "native" {
 		t.Fatalf("unexpected command selection %#v err=%v", command, err)
 	}
 }

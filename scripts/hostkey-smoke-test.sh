@@ -61,6 +61,7 @@ common_args() {
     --quiet \
     --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
     --set "ssh.transports.system=\"$FAKE_SSH\"" \
+    --set 'ssh.command.transport="system"' \
     --set audit.journald-required=false \
     --set "audit.file=\"$BASE/audit.jsonl\"" \
     --set "scoreboards=\"$SCORE\"" \

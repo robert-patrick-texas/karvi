@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking: `command` runs over the native transport by default.**
+  `ssh.command.transport = "default"` resolves to `native` (`scrapligo-v1`), as
+  `run`'s does, where it resolved to `system`; `login` keeps `system`, which
+  attaches the operator's terminal to OpenSSH. A site that wants OpenSSH for
+  `command` sets `ssh.command.transport = "system"` or passes `--transport
+  system`; an inventory row's transport, or its source's default, still comes
+  first. The key and its default value are unchanged, so the configuration
+  registry stays 26.
+
 ## 0.27.0 - 2026-10-06
 
 A minor release on 0.26.0. The configuration registry moves from 24 to 26, the

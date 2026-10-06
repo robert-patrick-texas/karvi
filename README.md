@@ -269,7 +269,7 @@ schema-version = 6
 transport = "default"       # default -> system
 
 [ssh.command]
-transport = "default"       # default -> system
+transport = "default"       # default -> native
 
 [ssh.run]
 transport = "default"       # default -> native

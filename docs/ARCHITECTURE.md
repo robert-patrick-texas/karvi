@@ -227,8 +227,8 @@ platform qualification.
 
 Every build carries the scrapligo-v1 adapter: the provider file in
 `internal/transport/native` registers it at init, `internal/buildinfo`
-reports it, and `run` resolves its `native` default to it. Earlier
-a build tag, `scrapligo_v1`, selected between this shape and a
+reports it, and `command` and `run` resolve their `native` default to it.
+Earlier a build tag, `scrapligo_v1`, selected between this shape and a
 dependency-free one (`build/go.preview.mod`) whose executable reported only
 `system`; releases through v0.11.0 shipped that preview, v0.12.0 shipped
 the native executable with the tag still in place, and the tag and the

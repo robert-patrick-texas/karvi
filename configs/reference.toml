@@ -104,7 +104,7 @@ ping-system = true
 transport = "default"
 
 [ssh.command]
-# Named transport selector. default resolves to system for command; preferred resolves to
+# Named transport selector. default resolves to native for command; preferred also resolves to
 # native.
 transport = "default"
 
