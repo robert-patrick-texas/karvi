@@ -148,7 +148,8 @@ There is no first prompt, no privilege step, no paging command, and no exit
 command, and nothing carries from one command to the next (`cd`, variables,
 `umask`): the remote shell is not interactive. Blind sends, `\r` endings,
 `--blind-return`, and `--expect` are refused at planning for an exec target
-(`channel_exec_declaration_refused`, exit 4); `--literal` is accepted.
+(`channel_exec_declaration_refused`, exit 4); `--literal`, `--timeout`, and
+`--maxbytes` are accepted.
 
 How a command ends is its exit status: 0 is `succeeded` whatever stderr holds,
 then the platform's failure patterns are searched in both streams; a non-zero
@@ -179,6 +180,22 @@ pattern does not match, as it appears, consumed once in declared order;
 `--blind` declares that the prompt may not return. Every declaration
 attaches to the `--cmd` it follows or to the freeform command. The waits
 are [`docs/TIMEOUTS.md`](TIMEOUTS.md).
+
+## A command's own bounds
+
+`--timeout DURATION` and `--maxbytes BYTES` are declarations too, at most one
+of each per command: the command's timeout in place of
+`execution.command-timeout` (and over telnet of `telnet.read-timeout`), and
+its output limit in place of `output.max-command-bytes`, smaller or larger,
+on the shell and on an exec channel alike. The rest of the device's list keeps
+the job's values. A limit reached ends the command as the job's limit does,
+the first BYTES kept: the shell's session is closed, an exec channel's command
+stopped with the connection serving the next. The messages name the source,
+`(--timeout)` or `(--maxbytes)` beside the keys' names. A blind command takes
+no `--timeout` (its wait is `execution.blind-wait`); a timeout above a set
+`execution.device-timeout`, or a limit above `output.max-job-bytes`, is refused
+at planning ([`docs/TIMEOUTS.md`](TIMEOUTS.md),
+[`docs/OPERATIONS.md`](OPERATIONS.md#long-commands-a-copy-and-a-show-tech)).
 
 ## Prompt detection
 

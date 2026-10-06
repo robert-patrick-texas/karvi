@@ -220,6 +220,31 @@
   `max_command_bytes`, carried and not read until now; the dispatch block's
   `continue_device_on_error`), and the executor and the transports read them
   from the plan on every path. The plan schema stays 11.
+- **`--timeout` and `--maxbytes`, one command's own bounds.** On `run`,
+  `command`, `crun`, and in stream mode, `--timeout DURATION` and `--maxbytes
+  BYTES` are declarations on the `--cmd` before them, as `--expect` is: the
+  command's timeout in place of `execution.command-timeout` (over telnet, of
+  `telnet.read-timeout` too), and its output limit in place of
+  `output.max-command-bytes`, in those keys' forms and ranges (1s to 12h; whole
+  bytes, 1024 to 1 GiB), at most one of each per command
+  (`declaration_repeated`). A copy of an image can run 45 minutes beside `show`
+  commands that keep their 120 seconds. `--timeout` on a blind command is
+  `timeout_with_blind`; above a set `execution.device-timeout` it is
+  `timeout_over_device_timeout`, and a `--maxbytes` above
+  `output.max-job-bytes` is `maxbytes_over_job_limit`, each naming both values
+  and the `--set` that raises the ceiling. The plan carries `timeouts_ns` and
+  `max_bytes` (schema 11 stays); the free-space check's spool term is the
+  width times the largest command limit in the job. A timeout's or a limit's
+  message names its source: `command timed out after 45m0s (--timeout)`, `…
+  after 2s (execution.command-timeout)`, `command output exceeded 2048 bytes
+  (--maxbytes) across stdout and stderr, 5000 observed`; the observed count of
+  every limit message now follows a comma. The debug line `device command
+  start` carries `timeout=` and `maxbytes=`.
+- **Over telnet, the device deadline names its cut.** A command cut by
+  `execution.device-timeout` over telnet was recorded `command_timeout`; it is
+  `device_timeout`, as on SSH, and a telnet timeout's message reads `command
+  timed out after …` naming the bound that expired, where it was the socket's
+  `i/o timeout`.
 
 ## 0.26.0 - 2026-10-04
 

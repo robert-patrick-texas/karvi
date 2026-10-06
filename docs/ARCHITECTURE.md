@@ -257,7 +257,8 @@ for ten minutes each, retains 1,024 commit receipts for idempotent replay, logs
 one `slog` line per request outcome to `logs/daemon.log` with the token
 redacted, and runs every job under its own configuration and operator, but for
 what the plan carries from the invocation (the job's files, the ICMP gate, the
-timeouts, the command byte limit, and the halt rule). It stops
+timeouts and the command byte limit, each command's own among them, and the
+halt rule). It stops
 itself after `daemon.shutdown-idle-timer` (default one hour;
 `Server.IdleTimeout`) with no active job, no live preparation, and no request
 but `ping` and `status`: the check `stopIfIdle` runs on the minute ticker that

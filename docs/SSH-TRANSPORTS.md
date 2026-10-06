@@ -147,7 +147,9 @@ document only points there:
   allowed-only name; each transport offers the names it implements.
   `configs/reference.toml` holds the lists and their comments;
   [`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md) the rules.
-- **Timeouts and keepalives.** [`docs/TIMEOUTS.md`](TIMEOUTS.md).
+- **Timeouts and keepalives.** [`docs/TIMEOUTS.md`](TIMEOUTS.md); one
+  command's own `--timeout` and `--maxbytes` are
+  [`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md)'s.
 - **Blind sends and expectations.** A command ending in `\r` sequences or given
   `--blind-return` is sent and waited for `execution.blind-wait`; an `--expect`
   declaration answers a prompt the platform's pattern does not match.

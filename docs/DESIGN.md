@@ -821,10 +821,11 @@ under `--continue-device-on-error`. `generic` detects no command errors.
 **Timeouts, each wait its own.** Connect (`ssh.connect-timeout`,
 `native-ssh.connect-timeout`), handshake (`native-ssh.handshake-timeout`),
 first prompt (`execution.prompt-timeout`), enable (`execution.enable-timeout`),
-per command (`execution.command-timeout`, a profile's override), and the whole
-list (`execution.device-timeout`, default unbounded), the earlier deadline
-naming the code. Keepalives on karvi's connection send `keepalive@openssh.com`
-with want-reply after `native-ssh.keepalive-interval` of silence, and
+per command (`execution.command-timeout`, a profile's override, a command's
+`--timeout`), and the whole list (`execution.device-timeout`, default
+unbounded), the earlier deadline naming the code on every transport.
+Keepalives on karvi's connection send `keepalive@openssh.com` with want-reply
+after `native-ssh.keepalive-interval` of silence, and
 `native-ssh.keepalive-count-max` unanswered close the connection with
 `session_keepalive_timeout`; the system transport reads OpenSSH's own timeout
 into the same code. *Why:* a slow authentication must not be charged to the

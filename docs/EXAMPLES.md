@@ -4325,5 +4325,95 @@ manifest carry them); one list of objects in the plan in place of two lists.
 **The design is complete.** Four issues settled, recorded in DESIGN ("A
 command's own timeout and byte limit, declared"; "Declarations attach
 backwards" names the two), and `docs/TIMEOUTS.md`'s telnet row corrected to
-what the code does. The chapter stays open for the build, in sections
-committed on the operator's word, and closes with its executed runs.
+what the code does. The build followed in three sections, each committed on
+the operator's word: parse and plan (`8f9266e`), execution (`8e862ba`), and
+the documents with these runs.
+
+**Executed after the build.** The lab build of `8e862ba`'s tree against this
+host, the lab configuration's `execution.command-timeout = 2s`; `srv1` is
+`linux` (exec), `bast1` `linux_shell` (the shell). The refusals, each exit 4
+before any device:
+
+| Invocation | Code and message |
+|---|---|
+| `--cmd 'sleep 1' --timeout 13h` | `cli_option_value_invalid: --timeout takes 1s..12h, the range of execution.command-timeout, not 13h` |
+| `--cmd 'sleep 1' --maxbytes 512` | `cli_option_value_invalid: --maxbytes takes 1024..1073741824, the range of output.max-command-bytes, not 512` |
+| `--maxbytes 1MiB` | `cli_option_value_invalid: --maxbytes takes an integer, not "1MiB"` |
+| `--timeout 45m --cmd 'sleep 1'` | `declaration_before_command` |
+| `run --cf FILE --timeout 45m` | `declaration_with_commands_file` |
+| `--cmd 'sleep 1' --timeout 5m --timeout 10m` | `declaration_repeated: command 1 is given --timeout more than once` |
+| `--cmd reload --blind --timeout 5m`, and `--cmd 'clear counters\r' --timeout 5m` | `timeout_with_blind` |
+| `--set execution.device-timeout=30m … --timeout 45m` | `timeout_over_device_timeout: command 1: --timeout 45m0s is above execution.device-timeout 30m0s, …; lower the --timeout or raise the ceiling with --set execution.device-timeout=45m0s` |
+| `--set output.max-command-bytes=1024 --set output.max-job-bytes=4096 … --maxbytes 8192` | `maxbytes_over_job_limit`, naming `--set output.max-job-bytes=8192` |
+| `run … --max 2048` | `cli_option_ambiguous: --max is ambiguous in run: --max-width, --maxbytes` |
+
+The copy's shape, a command printing `!` once a second for four seconds, then
+`echo after`:
+
+| Target | 2s configured | `--timeout 10s` |
+|---|---|---|
+| `srv1` (exec) | `command timed out after 2s (execution.command-timeout); the command was stopped and its channel closed`, 2 bytes kept | both succeeded |
+| `bast1` (shell) | `command timed out after 2s (execution.command-timeout) while waiting for a returning prompt; the session is closed`, 3 bytes kept | both succeeded |
+
+The output does not extend the deadline. On both transports and both
+channels, `--cmd 'sleep 3' --timeout 10s --cmd 'sleep 3'` succeeded the first
+and timed out the second `(execution.command-timeout)`; `--timeout 1s` timed
+out `(--timeout)`; a 5,000-byte response under `--maxbytes 2048` kept 2,048
+bytes, `command output exceeded 2048 bytes (--maxbytes) across stdout and
+stderr, 5000 observed; the command was stopped` on exec and `… before the
+prompt returned, 4039 observed; the session is closed` on the shell, the next
+command not attempted under the halt rule; without the declaration the same
+response succeeded. Through a daemon, `run --target srv1 --target bast1 --cmd
+'sleep 3' --timeout 5s --cmd 'seq 1000' --maxbytes 1024
+--continue-device-on-error` succeeded the sleeps under the configured 2s and
+cut `seq 1000` at 1,024 bytes on both channels. The manifest held the lists as
+written (`"timeouts_ns":[0,30000000000],"max_bytes":[4096,0]` for a run
+declaring the second command's timeout and the first's limit), on `command`,
+`run --no-daemon`, the daemon, and in stream mode, where a kept `--cmd` kept
+its `--timeout` into the next job and a bare line's `--maxbytes` went with its
+job alone. `--debug` shows `device command start … timeout=45m0s
+maxbytes=67108864` and `… timeout=2s maxbytes=4096`. Telnet has no fake in the
+lab; its unit test covers the declared timeout over a 300ms read cap, the cap
+under a configured timeout, the limit, and the device deadline.
+
+At N=32 against `8f9266e`'s build, alternating, the daemon's peak in MB:
+
+| Channel and transport | `8f9266e` | This build |
+|---|---|---|
+| exec on `system` | 72, 69 | 67, 74 |
+| exec on `scrapligo-v1` | 88, 79 | 80, 68 |
+| the shell on `system` | 78, 71 | 78, 77 |
+| the shell on `scrapligo-v1` | 178, 190 | 156, 135 |
+
+Every run passed its accounting; the differences are the runs' own spread.
+
+Verification: gofmt, vet, every Go test (the parser's ranges, placement,
+repeats, and blind conflicts; the plan's vectors and the largest limit; the
+planning refusals; the sessions' limits smaller and larger than the job's and
+their messages; telnet's cap, limit, and device deadline; the executor end to
+end), `make generated-clean`, the four plan digests (each, recomputed with the
+two members stripped, matched its old pin), and the seventeen suites on the
+lab build (02:44:20 to 02:48:03 UTC), the released `bin/` unchanged.
+
+**Found on the way.**
+
+- `--time` is not ambiguous after the mode: `--timezone` is a global option,
+  taken before the mode alone, so `run … --time 5m` is `--timeout`. `--max`
+  is ambiguous in `run` (`--max-width`), as the ground above said, and is
+  `--maxbytes` in `command`.
+- Over telnet a read cut by `execution.device-timeout` was recorded
+  `command_timeout` with the socket's `i/o timeout` as its message, where the
+  rule is that the earlier deadline names the code; it is `device_timeout`
+  now, and a telnet timeout reads `command timed out after …` with its source.
+- Every limit message carries its observed count after a comma (`…, 5000
+  observed`), so the source in parentheses stands alone; the spool suite's
+  parse follows.
+- `docs/TIMEOUTS.md` said a timed-out command's record has no output; it holds
+  what settled by the cut, as the spool suite checks. The registry row of
+  `execution.device-timeout` still said `1s–7d`; it says `168h`.
+- In stream mode a declaration line before any command is dropped as
+  `cli_command_text_missing` (the probe has no command), as `--expect` is;
+  left as it is.
+- A shell response whose last line has no newline shares that line with the
+  prompt, and the line leaves with it (`fold`'s last line; the previous build
+  alike): the prompt rule, unchanged.

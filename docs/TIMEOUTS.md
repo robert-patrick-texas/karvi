@@ -24,14 +24,17 @@ grace).
 | `execution.enable-timeout` (`KARVI__EXECUTION__ENABLE_TIMEOUT`) | 10s | 1s–5m | one privilege level's whole step, from the escalate command to that level's prompt |
 | `execution.command-timeout` (`KARVI__EXECUTION__COMMAND_TIMEOUT`) | 120s | 1s–12h | each requested command |
 | `[session-init.NAME] command-timeout` | unset: `execution.command-timeout` | | each command of that session-init profile |
+| `--timeout DURATION`, a declaration on one requested command | unset: `execution.command-timeout` | 1s–12h, when parsed; at most a set `execution.device-timeout`, at planning (`timeout_over_device_timeout`); refused on a blind command (`timeout_with_blind`) | that command, in place of `execution.command-timeout` and over telnet of `telnet.read-timeout` too |
 | `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–168h | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
 | `ssh.server-alive-interval` (`KARVI__SSH__SERVER_ALIVE_INTERVAL`), `ssh.server-alive-count-max` (`KARVI__SSH__SERVER_ALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `system`: OpenSSH `ServerAliveInterval` (whole seconds, rounded up) and `ServerAliveCountMax` |
 | `native-ssh.keepalive-interval` (`KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL`), `native-ssh.keepalive-count-max` (`KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | scrapligo-v1: karvi's `keepalive@openssh.com` requests |
-| `telnet.read-timeout` (`KARVI__TELNET__READ_TIMEOUT`) | 60s | 1s–12h | telnet: each command whole, from the write to the prompt, the smaller of it and the command's timeout (not reset by output) |
+| `telnet.read-timeout` (`KARVI__TELNET__READ_TIMEOUT`) | 60s | 1s–12h | telnet: each command whole, from the write to the prompt, the smaller of it and the command's timeout (not reset by output); a command given `--timeout` has that alone |
 | `execution.blind-wait` (`KARVI__EXECUTION__BLIND_WAIT`; `--blind-wait`) | 10s | 0–10m | the prompt's return after a blind command (`--blind`, `--blind-return N` with 0–20 returns, or a command ending in `\r` sequences), in place of its command timeout; 0 sends and does not wait |
 
 None of these keys but `execution.blind-wait` has a command-line option; each
-is set for one invocation with `--set KEY=VALUE` before the mode. Every range
+is set for one invocation with `--set KEY=VALUE` before the mode. One command
+takes its own timeout with `--timeout` after its `--cmd`, the rest of the list
+keeping the key's. Every range
 in the table is enforced when the configuration loads
 (`config_value_out_of_range`), and `execution.blind-wait`'s again when the plan
 is drafted (`execution_plan_invalid`).
@@ -40,12 +43,14 @@ The invocation's values bound its job on every path. The client writes
 `execution.command-timeout`, `execution.device-timeout`,
 `execution.prompt-timeout`, `execution.enable-timeout`, and
 `telnet.read-timeout` into the execution plan's `execution` block, and
-`execution.blind-wait` as `blind_wait_ns`; the executor and the transports read
-them from the plan, so a `run` through the daemon is bounded as its invocation
+`execution.blind-wait` as `blind_wait_ns`, and each command's `--timeout` in
+`timeouts_ns` (0 for the key's); the executor and the transports read them from
+the plan, so a `run` through the daemon is bounded as its invocation
 said and the daemon's own values for these keys bound no job. The connect and
 handshake timeouts and the keepalives are the daemon's, read from its own
 configuration on that path. A daemon's plan check refuses only a value no
-session can run: a timeout at or below zero, or a negative device timeout.
+session can run: a timeout at or below zero, a negative device timeout, or a
+negative or miscounted `timeouts_ns`.
 
 ## 2. How the values relate
 
@@ -55,9 +60,9 @@ session can run: a timeout at or below zero, or a negative device timeout.
 | First prompt (login) | `ssh.connect-timeout` + `execution.prompt-timeout`, from the start of the `ssh` process | `execution.prompt-timeout`, after the handshake | `execution.prompt-timeout` |
 | Enable, per privilege level | `execution.enable-timeout`: one deadline across the secret's prompt and the level's prompt | the same | the same (the second wait has what remains) |
 | Each paging command | `execution.prompt-timeout` | the same | the same |
-| Each command | the smaller of its command timeout (the profile's or `execution.command-timeout`) and what remains of `execution.device-timeout` | the same | the smaller of those and `telnet.read-timeout` |
+| Each command | the smaller of its command timeout (its `--timeout`, the profile's, or `execution.command-timeout`) and what remains of `execution.device-timeout` | the same | the smaller of those and `telnet.read-timeout`; with `--timeout`, the smaller of it and what remains of the device timeout |
 | A blind command | `execution.blind-wait` in place of the command timeout, under what remains of `execution.device-timeout`; any blind returns are written with the command, before any read | the same | the same |
-| An answered prompt (`--expect`) | the command's timeout, or the blind wait when the command is blind: one deadline across every prompt and answer, never reset; a pattern that never appears is `command_timeout` naming the last line seen and the count answered | the same | the same |
+| An answered prompt (`--expect`) | the command's timeout (its `--timeout` when given), or the blind wait when the command is blind: one deadline across every prompt and answer, never reset; a pattern that never appears is `command_timeout` naming the last line seen and the count answered | the same | the same |
 | The device's whole list | `execution.device-timeout`, from the prepared session | the same | the same |
 | A peer gone silent | ended (count-max + 1) × interval after the last data received | ended (count-max + 1) × interval after the last device output | none |
 
@@ -109,14 +114,20 @@ session can run: a timeout at or below zero, or a negative device timeout.
 | `execution.blind-wait` (the prompt absent after a blind command: `--blind`, a count, or the escape; its declared prompts answered as they appeared) | none; the notice `prompt_not_observed_after_blind_send` (`reason` `blind_wait_expired`, or `session_ended` when the stream ended first) | `succeeded`, all bytes read as the output, `prompt_observed` false | — | 0 | `not_attempted_prior_command_failure` naming the blind send, the device `command_session_lost`; as the last command the device succeeds |
 
 - A failed `run` exits 101 whatever the code.
-- The earlier of a command's own deadline and the device's names the code. A
-  device deadline that has passed between two commands leaves the next one
-  unsent under `device_timeout`, and the shell, still in step, is closed
-  with the platform's exit commands.
-- A timed-out command's record has no output; the session is closed without
-  a graceful exit, since a desynchronised shell cannot serve another
-  command. After a blind command whose prompt did not return the session is
-  likewise closed without the exit commands, the shell being out of step.
+- The earlier of a command's own deadline and the device's names the code, on
+  every transport, telnet included. A device deadline that has passed between
+  two commands leaves the next one unsent under `device_timeout`, and the
+  shell, still in step, is closed with the platform's exit commands.
+- A timed-out command's record holds what settled by the cut; on the shell
+  the session is closed without a graceful exit, since a desynchronised shell
+  cannot serve another command, and on an exec channel the command is stopped
+  and its connection serves the next. After a blind command whose prompt did
+  not return the session is likewise closed without the exit commands, the
+  shell being out of step.
+- A command timeout's message names the bound that expired: `command timed
+  out after 45m0s (--timeout)`, `(execution.command-timeout)`, a profile's
+  `(session-init.NAME.command-timeout)`, or over telnet
+  `(telnet.read-timeout)` when its cap was the smaller.
 
 ## 4. Names in the code
 
@@ -125,7 +136,8 @@ session can run: a timeout at or below zero, or a negative device timeout.
 | First prompt | `devsession.Options.LoginTimeout` (fallback 40s) | `internal/devsession/session.go`; filled in `internal/transport/systemssh/systemssh.go` `Prepare` (`connectTimeout + promptTimeout`) and `internal/transport/native/provider_scrapligov1.go` (`promptTimeout`) |
 | Enable | `devsession.Options.EnableTimeout` (fallback 10s); `stepCtx` in `escalate` | the same files; telnet: `enableTimeout`, `enableDeadline` in `internal/transport/telnet/telnet.go` |
 | Paging | `devsession.Options.PromptTimeout` (fallback 10s) | the same files |
-| Command | `platform.Command.Timeout`; the executor's `step.timeout`; `executionplan.SessionInitProfile.CommandTimeoutNS` | `internal/executor/executor.go` `sequence` |
+| Command | `platform.Command.Timeout`, `TimeoutSource` (`platform.DeclaredTimeout`, `platform.SessionTimeout`); the executor's `step.timeout`, `step.source`; `executionplan.SessionInitProfile.CommandTimeoutNS` | `internal/executor/executor.go` `sequence` |
+| A command's own timeout | `executionplan.ExecutionPlan.TimeoutsNS`; the executor's `Options.TimeoutsNS`; the client's `optTimeout`, `checkDeclaredBound`, `declarationLists`, and the planner's `checkCommandBounds` | `executionplan/plan.go`; `internal/executor/executor.go`; `internal/cli/parse.go`, `internal/cli/work_commands.go`; `internal/planner/draft.go` |
 | Blind send | `platform.Command.Blind` (the tolerance; `Timeout` is then the blind wait), `BlindReturns`; the executor's `step.blind`, `step.returns`, `Options.Blind`, `Options.BlindReturns`, `Options.BlindWait`; `executionplan.ExecutionPlan.Blind`, `BlindReturns`, `BlindWaitNS` (`BlindReturnsMax`, `BlindWaitMax`); the client's `Declaration`, `declarationLists`, and `declarations` | `internal/devsession/session.go` `Execute`; `internal/executor/executor.go` `sequence`; `executionplan/plan.go`; `internal/cli/work_commands.go` |
 | Expect-and-send | `platform.Command.Expectations` (compiled); the session's `expecter`; the executor's `step.expect`, `Options.Expectations`; `executionplan.ExecutionPlan.Expectations`, `Expectation` (`ExpectationsMax`); the client's `splitExpect`, `Declaration`, `declarationLists`, and `declarations` | the same files; `internal/cli/parse.go` |
 | Device | `deviceTimeout`, `deviceDeadline`, `deviceExpired`, `deviceCut`, `skipRest` | `internal/executor/executor.go`, the command loop |

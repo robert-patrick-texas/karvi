@@ -644,6 +644,44 @@ that platform's start statements in the same way; the key's name comes
 from their usual content. `login` hands the terminal to OpenSSH and
 types nothing into it: neither mechanism acts there.
 
+## Long commands: a copy and a show tech
+
+One command can take its own timeout and output limit while the rest of the
+job keeps the site's, so a hung `show` beside a long `copy` still fails fast.
+`--timeout DURATION` and `--maxbytes BYTES` go after the `--cmd` they bound,
+as `--expect` does
+([`docs/COMMAND-SESSION.md`](COMMAND-SESSION.md#a-commands-own-bounds)).
+
+- **An image copy.**
+  `karvi command rtr1 --cmd 'copy scp://host/image.bin bootflash:' --expect
+  'Destination filename.*\?=' --timeout 45m` gives the copy 45 minutes. The
+  `!` the device prints now and then does not extend it, one deadline running
+  across every prompt and answer, and the keepalives still end a peer gone
+  silent ([`docs/TIMEOUTS.md`](TIMEOUTS.md)). Over telnet the declaration
+  replaces `telnet.read-timeout`'s cap for that command. An expiry's message
+  names the bound: `command timed out after 45m0s (--timeout)`. With
+  `execution.device-timeout` set below 45 minutes the job is refused before
+  any device (`timeout_over_device_timeout`), naming the `--set
+  execution.device-timeout=…` that raises the ceiling.
+- **A large show.** `--maxbytes 1073741824 --timeout 45m` after `--cmd 'show
+  tech-support'` lets that one response reach 1 GiB, the ceiling of
+  `output.max-command-bytes`; a value above `output.max-job-bytes` is refused
+  (`maxbytes_over_job_limit`). The free-space check counts the job's width
+  times the largest command limit for the spool directory, every device in
+  flight possibly sending the large one, so a wide run with a 1 GiB
+  declaration asks for that many GiB free there, or runs narrower with
+  `spool_width_narrowed` ([the spool directory](#the-spool-directory)). The
+  response is recorded whole, in its `commands.jsonl` line and its text
+  block, both counted against the job limit.
+- **Output past 1 GiB.** No command limit holds it. Let the device write it
+  to its own flash, on IOS XE `show tech-support | redirect
+  bootflash:tech.txt` and on NX-OS `show tech-support details >
+  bootflash:tech.txt`, with a `--timeout` for the time it takes, and copy the
+  file off the device.
+- **In a stream**, a `--timeout` or `--maxbytes` line after a `--cmd` stays
+  with that command from one job to the next; after a bare line it goes with
+  that job alone.
+
 ## The job's output files
 
 A job folder (`<basedir>/jobs/YYMMDD/<job id>/`) holds eight kinds of
@@ -1160,8 +1198,9 @@ or a heredoc it drives several jobs through one karvi. The rules:
 - The draft has two parts. The targets, the options, and the commands
   given in option form (`--cmd`, `-c`, `--command`, `--cf`, any
   spelling) stay from one job to the next; a command given as a bare
-  line is the job's alone. `--expect`, `--blind`, and `--blind-return`
-  lines attach to the command before them and stay or clear with it. The
+  line is the job's alone. `--expect`, `--blind`, `--blind-return`,
+  `--timeout`, and `--maxbytes` lines attach to the command before them
+  and stay or clear with it. The
   option words mean what they mean on a `run` command line,
   abbreviations and the `=` spelling included. An option whose value
   attaches with `=` alone takes it that way here too: a line `--of
