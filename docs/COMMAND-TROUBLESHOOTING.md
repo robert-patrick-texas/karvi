@@ -9,6 +9,8 @@ karvi command --debug --host DEVICE --cmd 'show clock' \
 
 Keep stdout and stderr separate. Stdout contains generated human display and
 device results; stderr contains safe karvi diagnostics and mandatory warnings.
+A session that never reaches the prompt, a login's above all, has its own guide:
+[`docs/SSH-TROUBLE.md`](SSH-TROUBLE.md).
 
 ## What debug contains
 

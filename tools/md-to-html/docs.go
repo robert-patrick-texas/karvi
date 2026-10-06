@@ -27,6 +27,7 @@ var documents = []document{
 	{"docs/CREDENTIAL-CSV.md", "Operating karvi", "The credential CSV: the file, how a row is chosen, keys and pins, its owner and mode."},
 	{"docs/COMMAND-SESSION.md", "Operating karvi", "One device session: the command grammar, prompts, blind sends, echo, and device errors."},
 	{"docs/COMMAND-TROUBLESHOOTING.md", "Operating karvi", "What to capture, and how to read it, when a command misbehaves."},
+	{"docs/SSH-TROUBLE.md", "Operating karvi", "An SSH session that never reaches the prompt: OpenSSH at `-vvv` under karvi through a wrapper, what karvi and a recorded login show, and the device's side."},
 	{"docs/DISPLAY-CONFIGURATION.md", "Operating karvi", "The terminal display: headers and footers, borders, width, colour, and output formats."},
 	{"docs/LOGIN-TRANSCRIPTS.md", "Operating karvi", "A recorded login: where its transcript goes, its formats, and what it holds."},
 	{"docs/PRUNE.md", "Operating karvi", "`karvi-prune`: what retention removes and when, its report, exits, flags, and schedules."},

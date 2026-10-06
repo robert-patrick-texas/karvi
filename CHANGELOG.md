@@ -25,6 +25,13 @@
   `scratch_abandoned_removed`, where what a killed karvi left had stayed for
   good, on disk under `<basedir>/tmp` in individual mode. Files under an
   earlier release's names are not touched.
+- **`docs/SSH-TROUBLE.md`, a session that never reaches the prompt.** A guide
+  for a `login` that hangs after `login interactive session starting`, or a
+  `command` that ends in a prompt timeout: OpenSSH at `-vvv` under karvi through
+  a wrapper named by `ssh.transports.system`, its trace's last lines read
+  against where the session waits, what `--debug`, the footer, the generated
+  configuration, and a recorded login's transcript show, `command` over both
+  transports beside the login, and the device's side.
 
 ## 0.27.0 - 2026-10-06
 
