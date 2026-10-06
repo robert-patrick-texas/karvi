@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased
+## 0.27.0 - 2026-10-06
+
+A minor release on 0.26.0. The configuration registry moves from 24 to 26, the
+execution plan from 10 to 11, the command record from 2 to 3, and the
+credential package from 1 to 2; the daemon IPC schema and every other counter
+are 0.26.0's (scoreboard 3, configuration schema 6, job 2, audit 1, plan report
+1), and a running 0.26.0 daemon is `compatible: false` by its version alone and
+is restarted. A site has something to change where it set `watch.directory`
+(now the top-level `scoreboards`), `ssh.pubkey-authentication`, or a platform's
+`control-master` (both removed; a backend row without a password is refused);
+where it relied on `NETUSER` and `NETPASS` reaching a `linux` target (now the
+platform's `fallback`), on a `linux` target's shell (now the exec channel;
+`linux_shell` keeps it), on `audit.file`'s `~` as `$HOME`, on a relative trust
+store under the home, or on an explicit place under an absent `/dev/shm/karvi`,
+`/opt/karvi`, or `/var/lib/karvi`; where its operators' trust stores are under
+the home on a host with `setup shared`'s roots (the store follows the private
+root); and where it reads the command records (schema 3) or sends a stream-mode
+line beginning with one dash. The module graph is 0.26.0's.
 
 - **Breaking: `watch.directory` is now `scoreboards`, and both scratch folders
   default to `auto`.** The top-level `scoreboards` (`KARVI__SCOREBOARDS`) is

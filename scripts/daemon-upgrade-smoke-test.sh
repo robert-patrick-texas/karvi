@@ -96,7 +96,7 @@ HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-secret \
 code=$?
 set -e
 [ "$code" -eq 112 ]
-grep -q '^daemon_incompatible: running daemon version 0.19.0 uses IPC schema 10; karvi 0.26.0 uses schema 10, and both must match' "$TMP/run10.err"
+grep -q '^daemon_incompatible: running daemon version 0.19.0 uses IPC schema 10; karvi 0.27.0 uses schema 10, and both must match' "$TMP/run10.err"
 [ ! -e "$BASE/logs/daemon.log" ]
 
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon restart >"$TMP/restart.out" 2>"$TMP/restart.err"
@@ -104,7 +104,7 @@ grep -q '^daemon restarted$' "$TMP/restart.out"
 wait "$FIXTURE_PID"
 FIXTURE_PID=
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon status >"$TMP/current.out"
-grep -q '^version: 0.26.0$' "$TMP/current.out"
+grep -q '^version: 0.27.0$' "$TMP/current.out"
 grep -q '^daemon_ipc_schema: 10$' "$TMP/current.out"
 grep -q '^compatible: true$' "$TMP/current.out"
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon stop >/dev/null

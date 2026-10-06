@@ -1,5 +1,5 @@
 GO ?= go
-VERSION ?= 0.26.0
+VERSION ?= 0.27.0
 COMMIT ?= development
 BUILD_TIME ?= 1970-01-01T00:00:00Z
 HTMLDIR ?= ../html
