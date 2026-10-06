@@ -50,19 +50,6 @@ func parseMode(value string, fallback os.FileMode) os.FileMode {
 	return os.FileMode(n) & os.ModePerm
 }
 
-func expandHome(raw, home string) (string, error) {
-	if raw == "~" {
-		return home, nil
-	}
-	if strings.HasPrefix(raw, "~/") {
-		return filepath.Join(home, raw[2:]), nil
-	}
-	if strings.HasPrefix(raw, "~") {
-		return "", errorcodes.Errorf("path_other_user_home_unsupported", "~otheruser paths are not supported: %s", raw)
-	}
-	return raw, nil
-}
-
 // safePrivateDirectory accepts a real directory owned by uid with no group or
 // other access that the operator can write to (the socket and state subtrees
 // and the control-path root). With create, a missing path is made
@@ -77,27 +64,54 @@ func safePrivateDirectory(path string, uid int, create bool) (string, error) {
 			return "", err
 		}
 	}
-	fi, err := os.Lstat(p)
-	if err != nil {
+	if err := checkPrivateDirectory(p, uid); err != nil {
 		return "", err
-	}
-	if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
-		return "", errorcodes.Errorf("private_directory_not_real", "%s is not a real directory", p)
-	}
-	st, ok := fi.Sys().(*syscall.Stat_t)
-	if !ok {
-		return "", errorcodes.Errorf("private_directory_owner_uninspectable", "cannot inspect ownership of %s", p)
-	}
-	if int(st.Uid) != uid {
-		return "", errorcodes.Errorf("private_directory_owner_mismatch", "%s is owned by uid %d, expected %d", p, st.Uid, uid)
-	}
-	if fi.Mode().Perm()&0o077 != 0 {
-		return "", errorcodes.Errorf("private_directory_mode_exposed", "%s mode %04o exposes group/other; expected 0700", p, fi.Mode().Perm())
 	}
 	if err := probeWritable(p); err != nil {
 		return "", errorcodes.Errorf("private_directory_not_writable", "%s is not writable: %w", p, err)
 	}
 	return p, nil
+}
+
+// checkPrivateDirectory is the judgement of a present private directory,
+// without writing: a real directory owned by uid with no group or other
+// access, that the operator can write and search, on a filesystem with
+// free inodes. The error carries the activity's code and message.
+func checkPrivateDirectory(p string, uid int) error {
+	_, err := privateDirectoryProblem(p, uid)
+	return err
+}
+
+// privateDirectoryProblem is checkPrivateDirectory's rule: the refusal of
+// the first rule p fails, with its reason in the judgement's words for a
+// `passed:` line; nil when p passes.
+func privateDirectoryProblem(p string, uid int) (reason string, err error) {
+	fi, err := os.Lstat(p)
+	if err != nil {
+		return reasonNotWritable, err
+	}
+	if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
+		return reasonNotReal, errorcodes.Errorf("private_directory_not_real", "%s is not a real directory", p)
+	}
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return "its owner cannot be inspected", errorcodes.Errorf("private_directory_owner_uninspectable", "cannot inspect ownership of %s", p)
+	}
+	if int(st.Uid) != uid {
+		reason = fmt.Sprintf("owned by uid %d, expected %d", st.Uid, uid)
+		return reason, errorcodes.Errorf("private_directory_owner_mismatch", "%s is %s", p, reason)
+	}
+	if fi.Mode().Perm()&0o077 != 0 {
+		reason = fmt.Sprintf("mode %04o exposes group/other", fi.Mode().Perm())
+		return reason, errorcodes.Errorf("private_directory_mode_exposed", "%s %s; expected 0700", p, reason)
+	}
+	if syscall.Access(p, 0o3) != nil { // W_OK|X_OK
+		return reasonNotWritable, errorcodes.Errorf("private_directory_not_writable", "%s is not writable by the operator", p)
+	}
+	if noFreeInodes(p) {
+		return reasonNoInodes, errorcodes.Errorf("private_directory_not_writable", "%s is on a filesystem with no free inodes", p)
+	}
+	return "", nil
 }
 
 // writableDirectory accepts a real directory the operator can create files in,
@@ -135,8 +149,19 @@ func probeWritable(dir string) error {
 
 // makeDirectories creates the missing components of path with mode, applying
 // the mode explicitly so the process umask cannot narrow it. Existing
-// components are left exactly as they are.
+// components are left exactly as they are. A path whose making would make
+// a place setup shared makes is refused first (CheckSetupPlaces), whichever
+// key reached it.
 func makeDirectories(path string, mode os.FileMode) error {
+	if err := CheckSetupPlaces(path, ""); err != nil {
+		return err
+	}
+	return mkdirs(path, mode)
+}
+
+// mkdirs is makeDirectories without the guard: setup shared's own, which
+// makes the places the guard keeps from every operator's run.
+func mkdirs(path string, mode os.FileMode) error {
 	if fi, err := os.Lstat(path); err == nil {
 		if fi.Mode()&os.ModeSymlink != 0 {
 			// A link is followed once, like MkdirAll does, but never changed.
@@ -153,7 +178,7 @@ func makeDirectories(path string, mode os.FileMode) error {
 	}
 	parent := filepath.Dir(path)
 	if parent != path {
-		if err := makeDirectories(parent, mode); err != nil {
+		if err := mkdirs(parent, mode); err != nil {
 			return err
 		}
 	}
@@ -257,7 +282,7 @@ const (
 // changes nothing.
 func chooseBaseDir(raw, home, username string) (baseDirChoice, error) {
 	if raw != "" && raw != "auto" {
-		p, err := expandHome(raw, home)
+		p, err := ResolvePath(raw, home)
 		if err != nil {
 			return baseDirChoice{}, err
 		}
@@ -346,10 +371,6 @@ func EnsureStateTree(base string, uid int, outputMode os.FileMode) error {
 	return nil
 }
 
-// ResolveOutputRoot, ResolveTranscriptRoot, and ResolveCrunDirectory are
-// one rule (resolveUnderBase): "auto" is the subtree under the base
-// directory; anything else has ~ expanded and is made absolute from the
-// working directory.
 // SharedRoots are the site's shared directories consulted, in order, when
 // sharedroot is "auto": the `shared` directory under each of the two
 // system roots of private state, so a site that keeps its private roots under
@@ -391,7 +412,8 @@ var SharedTrees = []string{"jobs", "crun", "transcripts"}
 // ResolveSharedTree finds the shared tree sub. shared is
 // the sharedroot setting: "auto" consults SharedRoots in order, "none"
 // consults nothing, and a path consults that root. The first root holding
-// sub is the tree when the operator can create files in it; one the
+// sub is the tree when the operator can create files in it (a probe file,
+// the activity's real test, after sharedTreeChoice's judgement); one the
 // operator cannot write to, or that is not a real directory, is refused
 // with code and a message naming the way out (a site made the tree
 // so the shift's work is in one place, so an operator outside its group is
@@ -399,6 +421,19 @@ var SharedTrees = []string{"jobs", "crun", "transcripts"}
 // false when no root holds it. key names the setting that overrides the
 // default in the message.
 func ResolveSharedTree(shared, sub, key, code string) (path string, ok bool, err error) {
+	p, ok, err := sharedTreeChoice(shared, sub, key, code)
+	if err != nil || !ok {
+		return "", false, err
+	}
+	if err := probeWritable(p); err != nil {
+		return "", false, sharedTreeClosed(sub, p, key, code, err.Error())
+	}
+	return p, true, nil
+}
+
+// sharedTreeChoice is ResolveSharedTree's chooser: it reads the file
+// system and writes nothing, judging a present tree by judgeDirectory.
+func sharedTreeChoice(shared, sub, key, code string) (path string, ok bool, err error) {
 	var roots []string
 	switch shared {
 	case "", "auto":
@@ -420,12 +455,16 @@ func ResolveSharedTree(shared, sub, key, code string) (path string, ok bool, err
 		if fi.Mode()&os.ModeSymlink != 0 || !fi.IsDir() {
 			return "", false, errorcodes.Errorf(code, "the shared %s tree %s exists and is not a real directory; set %s to a private path to pass it by", sub, p, key)
 		}
-		if err := probeWritable(p); err != nil {
-			return "", false, errorcodes.Errorf(code, "the shared %s tree %s exists and the operator cannot create files in it (%v); join the group that owns it, or set %s to a private path", sub, p, err, key)
+		if _, reason := judgeDirectory(p); reason != "" {
+			return "", false, sharedTreeClosed(sub, p, key, code, reason)
 		}
 		return p, true, nil
 	}
 	return "", false, nil
+}
+
+func sharedTreeClosed(sub, p, key, code, why string) error {
+	return errorcodes.Errorf(code, "the shared %s tree %s exists and the operator cannot create files in it (%s); join the group that owns it, or set %s to a private path", sub, p, why, key)
 }
 
 // ResolveOutputRoot resolves output.root: "auto" is the shared jobs tree
@@ -448,8 +487,9 @@ func ResolveCrunDirectory(raw, shared, base, home string) (string, error) {
 }
 
 // resolveTree is the one rule of the three trees: "auto" asks the shared
-// root first and falls back under basedir; an explicit path is expanded and
-// made absolute.
+// root first and falls back under basedir; an explicit path is resolved by
+// ResolvePath and refused when making it would make a place setup shared
+// makes. It makes nothing: the tree is made where it is used.
 func resolveTree(raw, shared, base, home, sub, key, code string) (string, error) {
 	if raw == "" || raw == "auto" {
 		if p, ok, err := ResolveSharedTree(shared, sub, key, code); err != nil {
@@ -459,11 +499,35 @@ func resolveTree(raw, shared, base, home, sub, key, code string) (string, error)
 		}
 		return filepath.Join(base, sub), nil
 	}
-	p, err := expandHome(raw, home)
-	if err != nil {
-		return "", err
+	return explicitPath(raw, home, key)
+}
+
+// OutputRootPlace, TranscriptRootPlace, and CrunDirectoryPlace are the
+// three makers' twins (treePlace), writing nothing.
+func OutputRootPlace(raw, shared, base, home string) (string, error) {
+	return treePlace(raw, shared, base, home, "jobs", "output.root", "output_directory_not_writable")
+}
+
+func TranscriptRootPlace(raw, shared, base, home string) (string, error) {
+	return treePlace(raw, shared, base, home, "transcripts", "transcript.root", "transcript_directory_not_writable")
+}
+
+func CrunDirectoryPlace(raw, shared, base, home string) (string, error) {
+	return treePlace(raw, shared, base, home, "crun", "crun.directory", "crun_directory_not_writable")
+}
+
+// treePlace is resolveTree's twin: a shared tree is judged by permissions
+// and free inodes (sharedTreeChoice), not by a probe file.
+func treePlace(raw, shared, base, home, sub, key, code string) (string, error) {
+	if raw == "" || raw == "auto" {
+		if p, ok, err := sharedTreeChoice(shared, sub, key, code); err != nil {
+			return "", err
+		} else if ok {
+			return p, nil
+		}
+		return filepath.Abs(filepath.Join(base, sub))
 	}
-	return filepath.Abs(p)
+	return explicitPath(raw, home, key)
 }
 
 // DayFolderMode is the mode of a day folder karvi creates under root:
@@ -561,18 +625,33 @@ func CreateExclusive(path string, flags int) (*os.File, error) {
 }
 
 // ResolveScratch resolves tempdir, the scratch directory of the askpass
-// socket and the system transport's ssh configuration: "auto"
-// is the chain <ScratchRoot>/<username> (when the scratch root exists),
-// <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the first that
-// firstWritableDirectory accepts; an explicit path replaces the chain. The
+// socket and the system transport's ssh configuration, and makes it:
+// "auto" is the chain <ScratchRoot>/<username> (when the scratch root
+// exists), <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the
+// first the chain's maker accepts; an explicit path replaces the chain. The
 // output spool never lives here (ResolveSpoolDir).
 func ResolveScratch(raw, base, home, username string, uid int) (string, error) {
+	c, err := scratchChain(raw, base, home, username, uid)
+	if err != nil {
+		return "", err
+	}
+	return c.make()
+}
+
+// ScratchPlace is ResolveScratch's twin: where it would resolve, and the
+// candidates passed by, creating nothing.
+func ScratchPlace(raw, base, home, username string, uid int) (Place, error) {
+	c, err := scratchChain(raw, base, home, username, uid)
+	if err != nil {
+		return Place{}, err
+	}
+	return c.place()
+}
+
+func scratchChain(raw, base, home, username string, uid int) (chain, error) {
+	const code, message = "scratch_directory_unavailable", "no writable scratch directory"
 	if raw != "" && raw != "auto" {
-		p, err := expandHome(raw, home)
-		if err != nil {
-			return "", err
-		}
-		return firstWritableDirectory([]string{p}, "scratch_directory_unavailable", "no writable scratch directory")
+		return explicitChain(raw, home, "tempdir", code, message)
 	}
 	own := fmt.Sprintf("karvi-%d", uid)
 	var candidates []string
@@ -580,7 +659,7 @@ func ResolveScratch(raw, base, home, username string, uid int) (string, error) {
 		candidates = append(candidates, filepath.Join(ScratchRoot, username))
 	}
 	candidates = append(candidates, filepath.Join(base, "tmp"), filepath.Join("/tmp", own), filepath.Join("/var/tmp", own))
-	return firstWritableDirectory(candidates, "scratch_directory_unavailable", "no writable scratch directory")
+	return chain{candidates: candidates, code: code, message: message}, nil
 }
 
 // ScratchRoot is the site's scratch root on tmpfs, made in the operators'
@@ -600,28 +679,56 @@ func scratchRootPresent() bool {
 
 // ControlPathRoot resolves ssh.control-path-root and makes it: "auto" is
 // <ScratchRoot>/<username>/sockets when the scratch root exists and the
-// folder is the operator's private one, else <basedir>/socket/ssh; an
-// explicit path replaces both, ~ being the operator's home.
+// folder is the operator's private one or can be made, else
+// <basedir>/socket/ssh; an explicit path replaces both (ResolvePath).
 func ControlPathRoot(raw, base, home, username string, uid int) (string, error) {
 	if raw != "" && raw != "auto" {
-		p, err := expandHome(raw, home)
+		p, err := explicitPath(raw, home, "ssh.control-path-root")
 		if err != nil {
 			return "", err
 		}
 		return safePrivateDirectory(p, uid, true)
 	}
-	if scratchRootPresent() {
-		if p, err := safePrivateDirectory(filepath.Join(ScratchRoot, username, "sockets"), uid, true); err == nil {
-			return p, nil
+	if p, ok := scratchSockets(username, uid); ok && p.Reason == "" {
+		if got, err := safePrivateDirectory(p.Path, uid, true); err == nil {
+			return got, nil
 		}
 	}
 	return safePrivateDirectory(filepath.Join(base, "socket", "ssh"), uid, true)
 }
-func DaemonSocket(raw, base string) string {
-	if raw == "" || raw == "auto" {
-		return filepath.Join(base, "socket", "daemon.sock")
+
+// scratchSockets is the control sockets' first candidate, the operator's
+// folder in the scratch root, with the reason it is passed by (empty when
+// it is taken); ok is false where the scratch root is absent or the folder
+// is absent and cannot be made, a candidate not listed.
+func scratchSockets(username string, uid int) (Passed, bool) {
+	if !scratchRootPresent() {
+		return Passed{}, false
 	}
-	return raw
+	p := filepath.Join(ScratchRoot, username, "sockets")
+	if _, err := os.Lstat(p); os.IsNotExist(err) {
+		return Passed{Path: p}, makeableReason(p) == ""
+	}
+	reason, _ := privateDirectoryProblem(p, uid)
+	return Passed{Path: p, Reason: reason}, true
+}
+
+// DaemonSocket is daemon.socket's path: "auto" is
+// <basedir>/socket/daemon.sock; anything else is resolved by ResolvePath,
+// and refused when making its folder would make a place setup shared
+// makes.
+func DaemonSocket(raw, base, home string) (string, error) {
+	if raw == "" || raw == "auto" {
+		return filepath.Join(base, "socket", "daemon.sock"), nil
+	}
+	p, err := ResolvePath(raw, home)
+	if err != nil {
+		return "", err
+	}
+	if err := CheckSetupPlaces(filepath.Dir(p), "daemon.socket"); err != nil {
+		return "", err
+	}
+	return p, nil
 }
 
 // EnsureCollectionDirectory prepares a crun's collection directory once,
@@ -651,8 +758,8 @@ func EnsureCollectionDirectory(path string, mode os.FileMode) error {
 
 const collectionDirectoryShape = "a shared collection directory needs mode 2770 or 2775 (group write and search, setgid, no sticky bit)"
 
-// ResolveSpoolDir resolves spooldir, the directory of the output spools:
-// a spool is a file of one in-flight
+// ResolveSpoolDir resolves spooldir, the directory of the output spools,
+// and makes it: a spool is a file of one in-flight
 // command's recorded bytes past output.spool-threshold-bytes, infrequent and
 // possibly large, and must cost disk, never memory. It is therefore not the
 // scratch directory: tempdir's auto chain prefers /dev/shm, a tmpfs, by
@@ -661,24 +768,38 @@ const collectionDirectoryShape = "a shared collection directory needs mode 2770 
 // with explicit paths. "auto" tries /tmp/karvi-<uid>, then
 // /var/tmp/karvi-<uid>, each made 0700 for the effective uid, a real
 // directory and not a link, probed with one file as the scratch chain
-// probes (firstWritableDirectory); an explicit path (~ expanded) replaces
+// probes (chain.make); an explicit path (ResolvePath) replaces
 // the list. No candidate writable is spool_directory_unavailable naming
 // what was tried, reported at the job's admission before any device is
 // contacted.
 func ResolveSpoolDir(raw, home string, uid int) (string, error) {
+	c, err := spoolChain(raw, home, uid)
+	if err != nil {
+		return "", err
+	}
+	return c.make()
+}
+
+// SpoolPlace is ResolveSpoolDir's twin, creating nothing.
+func SpoolPlace(raw, home string, uid int) (Place, error) {
+	c, err := spoolChain(raw, home, uid)
+	if err != nil {
+		return Place{}, err
+	}
+	return c.place()
+}
+
+func spoolChain(raw, home string, uid int) (chain, error) {
+	const code, message = "spool_directory_unavailable", "no writable spool directory"
 	if raw != "" && raw != "auto" {
-		p, err := expandHome(raw, home)
-		if err != nil {
-			return "", err
-		}
-		return firstWritableDirectory([]string{p}, "spool_directory_unavailable", "no writable spool directory")
+		return explicitChain(raw, home, "spooldir", code, message)
 	}
 	own := fmt.Sprintf("karvi-%d", uid)
 	candidates := make([]string, 0, len(SpoolRoots))
 	for _, root := range SpoolRoots {
 		candidates = append(candidates, filepath.Join(root, own))
 	}
-	return firstWritableDirectory(candidates, "spool_directory_unavailable", "no writable spool directory")
+	return chain{candidates: candidates, code: code, message: message}, nil
 }
 
 // SpoolRoots are the parents of spooldir's auto chain, /tmp then /var/tmp,
@@ -686,24 +807,3 @@ func ResolveSpoolDir(raw, home string, uid int) (string, error) {
 // variable at a directory of its own (osutiltest.Isolate), since the chain
 // is a place of the host's, shared with the operator's real daemon.
 var SpoolRoots = []string{"/tmp", "/var/tmp"}
-
-// firstWritableDirectory is the one probe loop of the scratch chain and the
-// spool chain: each candidate is created 0700 when missing, must be a real
-// directory and not a link, and must take one temporary file; the first
-// that does is the answer, and none is the error code with message.
-func firstWritableDirectory(candidates []string, code, message string) (string, error) {
-	for _, child := range candidates {
-		if err := os.MkdirAll(child, 0700); err != nil {
-			continue
-		}
-		fi, err := os.Lstat(child)
-		if err != nil || !fi.IsDir() || fi.Mode()&os.ModeSymlink != 0 {
-			continue
-		}
-		if probeWritable(child) != nil {
-			continue
-		}
-		return child, nil
-	}
-	return "", errorcodes.Errorf(code, "%s: tried %s", message, strings.Join(candidates, ", "))
-}

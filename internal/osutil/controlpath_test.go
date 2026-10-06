@@ -21,10 +21,10 @@ func TestControlPathRootHome(t *testing.T) {
 		t.Fatalf("%q %v, want %s", got, err, filepath.Join(home, "sockets"))
 	}
 	place, err := ControlPathRootPlace("~/other", base, home, "u", os.Geteuid())
-	if err != nil || place != filepath.Join(home, "other") {
-		t.Fatalf("place %q %v", place, err)
+	if err != nil || place.Path != filepath.Join(home, "other") {
+		t.Fatalf("place %q %v", place.Path, err)
 	}
-	if _, err := os.Stat(place); !os.IsNotExist(err) {
+	if _, err := os.Stat(place.Path); !os.IsNotExist(err) {
 		t.Fatalf("the place was made: %v", err)
 	}
 }
@@ -35,15 +35,15 @@ func TestControlPathRootPlace(t *testing.T) {
 	dir := t.TempDir()
 	base := filepath.Join(dir, "base")
 	withScratchRoot(t, filepath.Join(dir, "shm"))
-	if got, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid()); err != nil || got != filepath.Join(base, "socket", "ssh") {
-		t.Fatalf("without the scratch root: %q %v", got, err)
+	if got, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid()); err != nil || got.Path != filepath.Join(base, "socket", "ssh") || len(got.Passed) != 0 {
+		t.Fatalf("without the scratch root: %+v %v", got, err)
 	}
 	if err := os.Mkdir(ScratchRoot, 0o770); err != nil {
 		t.Fatal(err)
 	}
 	want := filepath.Join(ScratchRoot, "u", "sockets")
-	if got, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid()); err != nil || got != want {
-		t.Fatalf("with the scratch root: %q %v", got, err)
+	if got, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid()); err != nil || got.Path != want {
+		t.Fatalf("with the scratch root: %+v %v", got, err)
 	}
 	if _, err := os.Stat(filepath.Join(ScratchRoot, "u")); !os.IsNotExist(err) {
 		t.Fatalf("the folder was made: %v", err)
@@ -51,12 +51,27 @@ func TestControlPathRootPlace(t *testing.T) {
 	if got, err := ControlPathRoot("auto", base, dir, "u", os.Geteuid()); err != nil || got != want {
 		t.Fatalf("resolved: %q %v", got, err)
 	}
-	// An exposed folder is passed over, by the place as by the resolution.
+	// An exposed folder is passed over, by the place as by the resolution,
+	// and the place names it with the reason.
 	if err := os.Chmod(want, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid()); err != nil || got != filepath.Join(base, "socket", "ssh") {
-		t.Fatalf("an exposed folder: %q %v", got, err)
+	got, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid())
+	if err != nil || got.Path != filepath.Join(base, "socket", "ssh") || len(got.Passed) != 1 || got.Passed[0] != (Passed{want, "mode 0755 exposes group/other"}) {
+		t.Fatalf("an exposed folder: %+v %v", got, err)
+	}
+	if made, err := ControlPathRoot("auto", base, dir, "u", os.Geteuid()); err != nil || made != got.Path {
+		t.Fatalf("the maker took %q %v, the place %q", made, err, got.Path)
+	}
+	// The fallback present and not private is refused, by both.
+	if err := os.Chmod(got.Path, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ControlPathRootPlace("auto", base, dir, "u", os.Geteuid()); errorcodes.Of(err) != "private_directory_mode_exposed" {
+		t.Fatalf("the place of an exposed fallback: %v", err)
+	}
+	if _, err := ControlPathRoot("auto", base, dir, "u", os.Geteuid()); errorcodes.Of(err) != "private_directory_mode_exposed" {
+		t.Fatalf("the maker of an exposed fallback: %v", err)
 	}
 }
 

@@ -448,7 +448,7 @@ var entries = []Entry{
 	failure("run_output_record_decode_failed", "output", exitOutput, false, "A stored run command record is not valid JSON."),
 	failure("run_output_records_unreadable", "output", exitOutput, false, "A completed run's commands.jsonl cannot be opened or read."),
 	failure("scoreboard_counts_inconsistent", "internal", exitGen, false, "A scoreboard snapshot's completed, in-flight, not-started, and incomplete counts do not sum to the total."),
-	failure("shared_directory_absent", "permission", exitPerm, false, "A group-shared directory (`watch.directory`, `sessions.shared-capacity-root`) and its parent are absent: the host has no scratch root, which an operator never creates. The private fallback is taken without a warning; the code reaches an operator only from a caller without a fallback."),
+	failure("shared_directory_absent", "permission", exitPerm, false, "A place `sudo karvi setup shared` makes is absent (the scratch root `/dev/shm/karvi`, `/opt/karvi` or `/var/lib/karvi`, their `users` and `shared`, a tree under `shared`), and a path needs it made: no operator's run makes one. An explicit place or file key under it is refused before any device is contacted, naming the place and the key to set elsewhere; under `auto` the chain passes it by (the scoreboards and the ledger take their private fallback without a warning)."),
 	fallback("scoreboard_directory_unavailable", "permission", exitPerm, "Neither the shared nor the private scoreboard directory can be created."),
 	failure("scoreboard_file_limit_exceeded", "output", exitOutput, false, "The scoreboard directory holds more files than `watch.max-files`."),
 	fallback("scoreboard_write_failed", "output", exitOutput, "A scoreboard snapshot cannot be written."),

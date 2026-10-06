@@ -88,11 +88,7 @@ func Resolve(record, rootSetting, shared, base, home string, rootLocked bool, st
 		if rootLocked {
 			return Destination{}, errorcodes.Errorf("transcript_root_locked", "--record=PATH is refused because transcript.root is locked; record without a path to use %s", rootSetting)
 		}
-		p, err := expandHome(record, home)
-		if err != nil {
-			return Destination{}, errorcodes.Errorf("transcript_path_invalid", "resolve transcript path: %w", err)
-		}
-		p, err = filepath.Abs(p)
+		p, err := osutil.ResolvePath(record, home)
 		if err != nil {
 			return Destination{}, errorcodes.Errorf("transcript_path_invalid", "resolve transcript path: %w", err)
 		}
@@ -108,19 +104,6 @@ func Resolve(record, rootSetting, shared, base, home string, rootLocked bool, st
 		root = p
 	}
 	return Destination{Root: root, Day: filepath.Join(root, osutil.DayFolder(started, loc))}, nil
-}
-
-func expandHome(raw, home string) (string, error) {
-	if raw == "~" {
-		return home, nil
-	}
-	if strings.HasPrefix(raw, "~/") {
-		return filepath.Join(home, raw[2:]), nil
-	}
-	if strings.HasPrefix(raw, "~") {
-		return "", errorcodes.Errorf("path_other_user_home_unsupported", "~otheruser paths are not supported: %s", raw)
-	}
-	return raw, nil
 }
 
 // Pair is a claimed transcript and metadata file sharing one name.

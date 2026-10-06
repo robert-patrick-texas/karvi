@@ -27,28 +27,47 @@ const ControlSocketNameLength = 16
 // suffix.
 const MaxControlPathRoot = 107 - 1 - ControlSocketNameLength - 17
 
-// ControlPathRootPlace is where ControlPathRoot would resolve, made or
-// not, for planning: nothing is created. The scratch root's folder is taken
-// when it is absent (ControlPathRoot would make it) or the operator's
-// private one.
-func ControlPathRootPlace(raw, base, home, username string, uid int) (string, error) {
+// ControlPathRootPlace is ControlPathRoot's twin: where it would resolve,
+// made or not, and the scratch root's folder when present and passed by;
+// nothing is created. The scratch root's folder is taken when it is absent
+// and can be made, or is the operator's private one; the fallback, or an
+// explicit path, present and not the operator's private one is refused
+// with the activity's code.
+func ControlPathRootPlace(raw, base, home, username string, uid int) (Place, error) {
 	if raw != "" && raw != "auto" {
-		p, err := expandHome(raw, home)
+		p, err := explicitPath(raw, home, "ssh.control-path-root")
 		if err != nil {
-			return "", err
+			return Place{}, err
 		}
-		return filepath.Abs(p)
+		return Place{Path: p}, privatePlaceProblem(p, uid)
 	}
-	if scratchRootPresent() {
-		p := filepath.Join(ScratchRoot, username, "sockets")
-		if _, err := os.Lstat(p); errors.Is(err, os.ErrNotExist) {
-			return p, nil
+	var pl Place
+	if p, ok := scratchSockets(username, uid); ok {
+		if p.Reason == "" {
+			pl.Path = p.Path
+			return pl, nil
 		}
-		if _, err := safePrivateDirectory(p, uid, false); err == nil {
-			return p, nil
-		}
+		pl.Passed = append(pl.Passed, p)
 	}
-	return filepath.Abs(filepath.Join(base, "socket", "ssh"))
+	p, err := filepath.Abs(filepath.Join(base, "socket", "ssh"))
+	if err != nil {
+		return pl, err
+	}
+	pl.Path = p
+	return pl, privatePlaceProblem(p, uid)
+}
+
+// privatePlaceProblem is the refusal safePrivateDirectory would give p,
+// judged without writing: a present p by checkPrivateDirectory, an absent
+// one by whether it can be made.
+func privatePlaceProblem(p string, uid int) error {
+	if _, err := os.Lstat(p); os.IsNotExist(err) {
+		if reason := makeableReason(p); reason != "" {
+			return errorcodes.Errorf("private_directory_not_writable", "%s cannot be made: %s", p, reason)
+		}
+		return nil
+	}
+	return checkPrivateDirectory(p, uid)
 }
 
 // CheckControlPathRoot refuses a root too long for a control socket's

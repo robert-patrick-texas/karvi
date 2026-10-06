@@ -123,7 +123,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("control_path_root_unavailable", err)
 	}
-	auditSink, err := audit.New(cfg)
+	auditSink, err := audit.New(cfg, operator.Home)
 	if err != nil {
 		return failedResult("audit_sink_open_failed", err)
 	}

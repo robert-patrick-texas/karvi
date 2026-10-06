@@ -288,11 +288,14 @@ func checkControlPathRoot(cfg configload.Snapshot, operator credentials.Operator
 	if err != nil {
 		return err
 	}
+	// A root that names a path and would be refused is the activity's
+	// refusal, at the same point before any device; only its length is
+	// checked here.
 	root, err := osutil.ControlPathRootPlace(cfg.String("ssh.control-path-root"), base, operator.Home, operator.Username, operator.UID)
-	if err != nil {
+	if root.Path == "" {
 		return err
 	}
-	return osutil.CheckControlPathRoot(root)
+	return osutil.CheckControlPathRoot(root.Path)
 }
 
 // copyExpectations copies the per-command declaration lists so the plan owns

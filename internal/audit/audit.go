@@ -13,6 +13,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -33,7 +34,11 @@ type Status struct {
 	Warnings []string `json:"warnings"`
 }
 
-func New(cfg configload.Snapshot) (*Sink, error) {
+// New opens the sinks: journald, and audit.file when set, its path by
+// osutil.ResolvePath (~ home, the operator's from the password database; a
+// relative path from the working directory), its folder made 0700 when
+// missing.
+func New(cfg configload.Snapshot, home string) (*Sink, error) {
 	s := &Sink{journalRequired: cfg.Bool("audit.journald-required"), fileRequired: cfg.Bool("audit.file-required")}
 	addr := &net.UnixAddr{Name: "/run/systemd/journal/socket", Net: "unixgram"}
 	conn, err := net.DialUnix("unixgram", nil, addr)
@@ -46,11 +51,14 @@ func New(cfg configload.Snapshot) (*Sink, error) {
 		s.journal = conn
 	}
 	if path := cfg.String("audit.file"); path != "" {
-		if strings.HasPrefix(path, "~/") {
-			home, _ := os.UserHomeDir()
-			path = filepath.Join(home, path[2:])
+		path, err := osutil.ResolvePath(path, home)
+		if err != nil {
+			return nil, err
 		}
-		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		if err := osutil.CheckSetupPlaces(filepath.Dir(path), "audit.file"); err != nil {
+			return nil, err
+		}
+		if err := osutil.MakeDirectories(filepath.Dir(path), 0700); err != nil {
 			return nil, errorcodes.Errorf("audit_directory_create_failed", "create audit directory: %w", err)
 		}
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)

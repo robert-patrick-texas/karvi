@@ -162,12 +162,15 @@ func TestExpandPath(t *testing.T) {
 		{u, "~/creds.csv", "/home/op/creds.csv"},
 		{u, "~", "/home/op"},
 		{u, "/etc/x", "/etc/x"},
-		{u, "~other/x", "~other/x"},
+		{u, "~other/x", ""},
 		{s, "~/creds.csv", "~/creds.csv"},
 	} {
-		if got := tc.r.ExpandPath(tc.in); got != tc.want {
+		if got, _ := tc.r.ExpandPath(tc.in); got != tc.want {
 			t.Errorf("%s %q: %q, want %q", tc.r.EffectiveScope(), tc.in, got, tc.want)
 		}
+	}
+	if _, err := u.ExpandPath("~other/x"); errorcodes.Of(err) != "path_other_user_home_unsupported" {
+		t.Errorf("~other: %v", err)
 	}
 }
 

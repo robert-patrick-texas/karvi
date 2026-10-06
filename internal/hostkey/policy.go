@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
 // Mode is the operator-selected host-key verification approach.
@@ -128,22 +129,24 @@ func StoreUsesBase(configuredPath string) bool {
 // StorePath names the trust store without creating or checking anything:
 // under "auto" (or empty) <base>/known_hosts, base the operator's private
 // root (osutil.ResolveBaseDir, or osutil.BaseDirPath where nothing may be
-// made); an explicit path with ~ the home and a relative path under it.
-// `config show --explain ssh.known-hosts-file` names it.
+// made); an explicit path by osutil.ResolvePath, ~ the home and a relative
+// path from the working directory, refused when making its folder would
+// make a place setup shared makes. `config show --explain
+// ssh.known-hosts-file` names it.
 func StorePath(configuredPath, home, base string) (string, error) {
 	if !StoreUsesBase(configuredPath) {
 		explicit := strings.TrimSpace(configuredPath)
-		if strings.TrimSpace(home) == "" {
-			var err error
-			if home, err = os.UserHomeDir(); err != nil {
-				return "", &Error{Code: "host_key_home_unavailable", Err: err}
-			}
+		if strings.HasPrefix(explicit, "~") && strings.TrimSpace(home) == "" {
+			return "", &Error{Code: "host_key_home_unavailable", Err: fmt.Errorf("the operator's home is unknown, so %s cannot be resolved", explicit)}
 		}
-		path, err := expandHome(explicit, home)
+		path, err := osutil.ResolvePath(explicit, home)
 		if err != nil {
 			return "", err
 		}
-		return filepath.Clean(path), nil
+		if err := osutil.CheckSetupPlaces(filepath.Dir(path), "ssh.known-hosts-file"); err != nil {
+			return "", err
+		}
+		return path, nil
 	}
 	if strings.TrimSpace(base) == "" {
 		return "", &Error{Code: "host_key_trust_store_unavailable", Err: fmt.Errorf("no private root to hold the trust store")}
@@ -160,21 +163,6 @@ func (p Policy) OpenSSHSettings() (strict, userKnownHosts, globalKnownHosts stri
 		return "no", "/dev/null", "/dev/null"
 	default:
 		return "accept-new", p.KnownHostsFile, "/dev/null"
-	}
-}
-
-func expandHome(path, home string) (string, error) {
-	switch {
-	case path == "~":
-		return home, nil
-	case strings.HasPrefix(path, "~/"):
-		return filepath.Join(home, path[2:]), nil
-	case strings.HasPrefix(path, "~"):
-		return "", errorcodes.Errorf("path_other_user_home_unsupported", "only the current user's ~ expansion is supported: %s", path)
-	case filepath.IsAbs(path):
-		return path, nil
-	default:
-		return filepath.Join(home, path), nil
 	}
 }
 
@@ -211,7 +199,10 @@ func ensureTrustFile(path string) error {
 }
 
 func ensurePrivateDirectory(dir, path string) error {
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := osutil.MakeDirectories(dir, 0o700); err != nil {
+		if errorcodes.Of(err) == "shared_directory_absent" {
+			return err
+		}
 		return &Error{Code: "host_key_directory_invalid", Path: path, Err: err}
 	}
 	return validatePrivateDirectory(dir, path)

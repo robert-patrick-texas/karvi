@@ -148,7 +148,7 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 // or crun.after.failed: the path, the directory and counts, the
 // exit code, the duration, whether the bound ended it, and the diagnostic.
 func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Operator, result ActivityResult, h collectionHook, o hookOutcome) error {
-	sink, err := audit.New(cfg)
+	sink, err := audit.New(cfg, operator.Home)
 	if err != nil {
 		return err
 	}

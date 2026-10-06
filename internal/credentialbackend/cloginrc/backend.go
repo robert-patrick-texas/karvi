@@ -39,9 +39,14 @@ func (b *Backend) load(ctx context.Context) ([]record, *credentials.BackendResul
 	if path == "" {
 		path = "~/.cloginrc"
 	}
-	path = b.Rules.ExpandPath(path)
+	path, perr := b.Rules.ExpandPath(path)
 	return b.cache.Load(ctx,
-		func() ([]record, error) { return b.flatten(ctx, path, true, nil, map[string]string{}) },
+		func() ([]record, error) {
+			if perr != nil {
+				return nil, perr
+			}
+			return b.flatten(ctx, path, true, nil, map[string]string{})
+		},
 		func(err error) credentials.BackendResult { return b.Rules.Classify(path, err, "cloginrc_malformed") })
 }
 

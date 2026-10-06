@@ -68,7 +68,7 @@ func SetupSharedTrees(shared, scratch string, gid int, mode os.FileMode) ([]Shar
 		group = gr.Name
 	}
 	root := filepath.Dir(shared)
-	if err := makeDirectories(root, SharedRootMode); err != nil {
+	if err := mkdirs(root, SharedRootMode); err != nil {
 		return nil, errorcodes.Errorf("setup_directory_create_failed", "create %s: %v", root, err)
 	}
 	places := []sharedPlace{{shared, os.ModeSetgid | mode}}

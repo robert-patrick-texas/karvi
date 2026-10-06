@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func TestParseModes(t *testing.T) {
@@ -51,15 +53,20 @@ func TestResolveAcceptNewCreatesTheStoreInTheBase(t *testing.T) {
 }
 
 // StorePath names the store without making anything: "auto" is the base's
-// known_hosts, an explicit path is the home's for ~ and a relative path.
+// known_hosts, an explicit path is the home's for ~ and the working
+// directory's for a relative path, ~user refused.
 func TestStorePath(t *testing.T) {
 	home, base := "/home/op", "/opt/karvi/users/op"
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, c := range []struct{ configured, want string }{
 		{"auto", "/opt/karvi/users/op/known_hosts"},
 		{"", "/opt/karvi/users/op/known_hosts"},
 		{"AUTO", "/opt/karvi/users/op/known_hosts"},
 		{"~/kh", "/home/op/kh"},
-		{"kh", "/home/op/kh"},
+		{"kh", filepath.Join(wd, "kh")},
 		{"/srv/kh/../known_hosts", "/srv/known_hosts"},
 	} {
 		got, err := StorePath(c.configured, home, base)
@@ -73,6 +80,12 @@ func TestStorePath(t *testing.T) {
 	}
 	if got, err := StorePath("/srv/kh", home, ""); err != nil || got != "/srv/kh" {
 		t.Fatalf("an explicit path needs no base: %q %v", got, err)
+	}
+	if _, err := StorePath("~other/kh", home, base); errorcodes.Of(err) != "path_other_user_home_unsupported" {
+		t.Fatalf("~other: %v", err)
+	}
+	if _, err := StorePath("~/kh", "", base); !errors.As(err, &hostErr) || hostErr.Code != "host_key_home_unavailable" {
+		t.Fatalf("~ without a home: %v", err)
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -24,6 +23,7 @@ import (
 	vaultbackend "github.com/robert-patrick-texas/karvi/internal/credentialbackend/vault"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/secrets"
 	"github.com/robert-patrick-texas/karvi/internal/termline"
 	"github.com/robert-patrick-texas/karvi/inventory"
@@ -123,9 +123,17 @@ func New(cfg configload.Snapshot, operator credentials.Operator, warn func(strin
 			scope := str(d, "scope")
 			r.backends[name] = credcsv.New(fileRules(cfg, operator, name, scope, boolVal(d, "required", scope == "shared")), d, cfg.Int("tabular.max-physical-line-bytes"))
 		case "redis":
-			r.backends[name] = &redisbackend.Backend{BackendName: name, Address: str(d, "address"), Database: intVal(d, "database", 0), KeyTemplate: defaultString(str(d, "key-template"), "karvi:credential:%s"), TLS: boolVal(d, "tls", true), CAFile: pathExpand(str(d, "ca-file"), operator.Home), ClientCertFile: pathExpand(str(d, "client-cert-file"), operator.Home), ClientKeyFile: pathExpand(str(d, "client-key-file"), operator.Home), AuthUsernameEnv: str(d, "auth-username-env"), AuthPasswordEnv: str(d, "auth-password-env"), Timeout: durationVal(d, "connect-timeout", 2*time.Second), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
+			tls, err := tlsFiles(d, operator.Home)
+			if err != nil {
+				return nil, err
+			}
+			r.backends[name] = &redisbackend.Backend{BackendName: name, Address: str(d, "address"), Database: intVal(d, "database", 0), KeyTemplate: defaultString(str(d, "key-template"), "karvi:credential:%s"), TLS: boolVal(d, "tls", true), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], AuthUsernameEnv: str(d, "auth-username-env"), AuthPasswordEnv: str(d, "auth-password-env"), Timeout: durationVal(d, "connect-timeout", 2*time.Second), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
 		case "vault":
-			r.backends[name] = &vaultbackend.Backend{BackendName: name, Address: str(d, "address"), Namespace: str(d, "namespace"), Mount: defaultString(str(d, "mount"), "secret"), PathTemplate: str(d, "path-template"), TokenEnv: defaultString(str(d, "token-env"), "VAULT_TOKEN"), CAFile: pathExpand(str(d, "ca-file"), operator.Home), ClientCertFile: pathExpand(str(d, "client-cert-file"), operator.Home), ClientKeyFile: pathExpand(str(d, "client-key-file"), operator.Home), Timeout: durationVal(d, "connect-timeout", 5*time.Second), UsernameField: defaultString(str(d, "username-field"), "username"), PasswordField: defaultString(str(d, "password-field"), "password"), EnableField: defaultString(str(d, "enable-field"), "enable_password"), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
+			tls, err := tlsFiles(d, operator.Home)
+			if err != nil {
+				return nil, err
+			}
+			r.backends[name] = &vaultbackend.Backend{BackendName: name, Address: str(d, "address"), Namespace: str(d, "namespace"), Mount: defaultString(str(d, "mount"), "secret"), PathTemplate: str(d, "path-template"), TokenEnv: defaultString(str(d, "token-env"), "VAULT_TOKEN"), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], Timeout: durationVal(d, "connect-timeout", 5*time.Second), UsernameField: defaultString(str(d, "username-field"), "username"), PasswordField: defaultString(str(d, "password-field"), "password"), EnableField: defaultString(str(d, "enable-field"), "enable_password"), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
 		case "formula":
 			r.formulas[name] = formulaSpec{Name: name, UsernameTemplate: str(d, "username-template"), PasswordSource: str(d, "password-source")}
 		case "sqlite":
@@ -676,11 +684,19 @@ func defaultString(s, d string) string {
 	}
 	return s
 }
-func pathExpand(s, home string) string {
-	if strings.HasPrefix(s, "~/") {
-		return filepath.Join(home, s[2:])
+
+// tlsFiles are a backend's ca-file, client-cert-file, and client-key-file,
+// each set one resolved by osutil.ResolvePath, an unset one empty.
+func tlsFiles(d map[string]any, home string) ([3]string, error) {
+	var out [3]string
+	for i, key := range []string{"ca-file", "client-cert-file", "client-key-file"} {
+		p, err := osutil.ResolvePath(str(d, key), home)
+		if err != nil {
+			return out, err
+		}
+		out[i] = p
 	}
-	return s
+	return out, nil
 }
 func toStrings(v any) []string {
 	switch x := v.(type) {

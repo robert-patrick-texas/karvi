@@ -402,12 +402,6 @@ func (f Factory) renderConfig() (string, error) {
 	}
 	return b.String(), nil
 }
-func expandHome(p, home string) string {
-	if strings.HasPrefix(p, "~/") {
-		return filepath.Join(home, p[2:])
-	}
-	return p
-}
 func sshQuote(s string) string {
 	return `"` + strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"`, `\"`) + `"`
 }

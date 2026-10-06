@@ -20,12 +20,12 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
 // Scope is a file backend's declared scope. The scope, never the path,
@@ -60,20 +60,16 @@ func (r Rules) EffectiveScope() Scope {
 	return ScopeUser
 }
 
-// ExpandPath resolves ~ and ~/ to the operator's home under user scope. A
-// shared file has no home to resolve against (configuration validation
-// refuses a relative shared path), so its path is returned as written.
-func (r Rules) ExpandPath(path string) string {
+// ExpandPath resolves a user-scope path by osutil.ResolvePath: ~ and ~/ the
+// operator's home, ~user refused, a relative path from the working
+// directory. A shared file has no home to resolve against (configuration
+// validation refuses a relative shared path), so its path is returned as
+// written.
+func (r Rules) ExpandPath(path string) (string, error) {
 	if r.EffectiveScope() != ScopeUser {
-		return path
+		return path, nil
 	}
-	if path == "~" {
-		return r.Home
-	}
-	if strings.HasPrefix(path, "~/") {
-		return filepath.Join(r.Home, path[2:])
-	}
-	return path
+	return osutil.ResolvePath(path, r.Home)
 }
 
 // UnavailableError marks a root file that is absent, untraversable, or

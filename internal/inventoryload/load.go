@@ -17,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/tabular"
@@ -59,8 +60,9 @@ func (l Loader) Load(ctx context.Context) ([]inventory.Device, inventory.Provena
 		if v, ok := src["required"].(bool); ok {
 			required = v
 		}
-		if strings.HasPrefix(path, "~/") {
-			path = filepath.Join(l.Home, path[2:])
+		path, err := osutil.ResolvePath(path, l.Home)
+		if err != nil {
+			return nil, prov, err
 		}
 		paths, err := filepath.Glob(path)
 		if err != nil {

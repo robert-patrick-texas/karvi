@@ -173,7 +173,7 @@ func (s *Server) Serve(parent context.Context) error {
 	defer cancel()
 	s.jobCtx, s.cancelJobs = context.WithCancelCause(parent)
 	defer s.cancelJobs(nil)
-	if sink, err := audit.New(s.Config); err != nil {
+	if sink, err := audit.New(s.Config, s.Operator.Home); err != nil {
 		if s.Logger != nil {
 			s.Logger.Warn("audit sink unavailable to the daemon", slog.String("error", err.Error()))
 		}
@@ -191,7 +191,7 @@ func (s *Server) Serve(parent context.Context) error {
 	// So is the control-path root: a socket a master killed outright left
 	// goes, logged by name; a root that cannot be resolved is logged.
 	s.sweepControlSockets()
-	if err := os.MkdirAll(filepath.Dir(s.Socket), 0700); err != nil {
+	if err := osutil.MakeDirectories(filepath.Dir(s.Socket), 0700); err != nil {
 		return err
 	}
 	if err := removeStaleSocket(s.Socket, s.UID); err != nil {
@@ -363,11 +363,11 @@ func (s *Server) sweepSpools() {
 func (s *Server) sweepControlSockets() {
 	base, err := osutil.BaseDirPath(s.Config.String("basedir"), s.Operator.Home, s.Operator.Username)
 	if err == nil {
-		var root string
+		var root osutil.Place
 		if root, err = osutil.ControlPathRootPlace(s.Config.String("ssh.control-path-root"), base, s.Operator.Home, s.Operator.Username, s.Operator.UID); err == nil {
-			osutil.SweepControlSockets(root, func(name string) {
+			osutil.SweepControlSockets(root.Path, func(name string) {
 				if s.Logger != nil {
-					s.Logger.Info("removed the abandoned control socket", slog.String("code", "control_socket_abandoned_removed"), slog.String("path", filepath.Join(root, name)))
+					s.Logger.Info("removed the abandoned control socket", slog.String("code", "control_socket_abandoned_removed"), slog.String("path", filepath.Join(root.Path, name)))
 				}
 			})
 			return

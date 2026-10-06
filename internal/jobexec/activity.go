@@ -20,6 +20,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/executor"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/icmpgate"
 	"github.com/robert-patrick-texas/karvi/internal/metrics"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -102,6 +103,12 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	controlRoot, err := osutil.ControlPathRoot(cfg.String("ssh.control-path-root"), base, req.Operator.Home, req.Operator.Username, req.Operator.UID)
 	if err != nil {
 		return FailedResult("control_path_root_unavailable", err)
+	}
+	// The trust store's path, as each session resolves it: a path that
+	// cannot be resolved, or whose folder would be a place setup shared
+	// makes, refuses the job here rather than each device.
+	if _, err := hostkey.StorePath(cfg.String("ssh.known-hosts-file"), req.Operator.Home, base); err != nil {
+		return FailedResult("host_key_trust_store_unavailable", err)
 	}
 	location, err := display.Location(cfg.String("timezone"))
 	if err != nil {
@@ -248,7 +255,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if err := store.WriteCommandLists(plan.PlatformCommands); err != nil {
 		return FailedResult("output_commands_write_failed", err)
 	}
-	auditSink, err := audit.New(cfg)
+	auditSink, err := audit.New(cfg, req.Operator.Home)
 	if err != nil {
 		return FailedResult("audit_sink_open_failed", err)
 	}

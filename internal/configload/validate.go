@@ -917,14 +917,4 @@ func contains(a []string, s string) bool {
 	}
 	return false
 }
-func ResolvePath(raw, home string) (string, error) {
-	p, err := expandHome(raw, home)
-	if err == nil {
-		return filepath.Clean(p), nil
-	}
-	if strings.HasPrefix(raw, "~") {
-		return "", err
-	}
-	return filepath.Clean(raw), nil
-}
 func parseIndex(s string) int { i, _ := strconv.Atoi(s); return i }

@@ -49,7 +49,12 @@ func Judge(rules credfile.Rules, paths []string) Result {
 	rules.Scope, rules.BackendName, rules.ReadOnlyAllowed = credfile.ScopeUser, Backend, true
 	var out Result
 	for _, raw := range paths {
-		path := rules.ExpandPath(raw)
+		path, err := rules.ExpandPath(raw)
+		if err != nil {
+			out.Skipped = append(out.Skipped, Skip{Path: raw, Reason: errorcodes.Message(err)})
+			out.Examined = append(out.Examined, raw+" (skipped: "+errorcodes.Message(err)+")")
+			continue
+		}
 		ref, reason, absent := judgeOne(rules, path)
 		switch {
 		case absent:

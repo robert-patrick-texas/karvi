@@ -134,9 +134,14 @@ type row struct {
 // here, not when a device happens to reach it, so a bad row fails every run
 // the same way whatever targets were named.
 func (b *Backend) load(ctx context.Context) (*table, *credentials.BackendResult) {
-	path := b.Rules.ExpandPath(b.Path)
+	path, perr := b.Rules.ExpandPath(b.Path)
 	return b.cache.Load(ctx,
-		func() (*table, error) { return b.read(ctx, path) },
+		func() (*table, error) {
+			if perr != nil {
+				return nil, perr
+			}
+			return b.read(ctx, path)
+		},
 		func(err error) credentials.BackendResult {
 			return b.Rules.Classify(path, err, "credential_csv_malformed")
 		})
