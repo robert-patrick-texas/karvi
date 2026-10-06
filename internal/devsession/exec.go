@@ -56,7 +56,7 @@ type ExecChannel interface {
 // ExecOptions configure an exec session.
 type ExecOptions struct {
 	Definition     platform.Definition // the failure patterns
-	MaxOutputBytes int64
+	MaxOutputBytes int64               // the session's limit; a command's own MaxBytes replaces it
 	Spool          Spool
 	InFlightBytes  *atomic.Int64
 	Debug          func(string)
@@ -130,6 +130,7 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 		return failed(started, "command_session_lost", "connection", true, false, errors.New("the device session is not usable"))
 	}
 	timeout := defaultDuration(command.Timeout, 120*time.Second)
+	limit, limitSource := command.Limit(s.opts.MaxOutputBytes)
 	hash := sha256.Sum256([]byte(command.Text))
 	tag := hex.EncodeToString(hash[:8])
 	s.sent++
@@ -146,10 +147,10 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 
 	var shared int64
 	sinks := [2]*settled{
-		newSettled(s.opts.MaxOutputBytes, s.opts.Spool, index, s.opts.Definition.FailurePatterns, func(path string) {
+		newSettled(limit, s.opts.Spool, index, s.opts.Definition.FailurePatterns, func(path string) {
 			s.debugf("device session spool opened sha256=%s path=%s", tag, path)
 		}),
-		newSettled(s.opts.MaxOutputBytes, Spool{Dir: s.opts.Spool.Dir, Threshold: s.opts.Spool.Threshold, Activity: s.opts.Spool.Activity, Device: s.opts.Spool.Device, Stderr: true}, index, s.opts.Definition.FailurePatterns, func(path string) {
+		newSettled(limit, Spool{Dir: s.opts.Spool.Dir, Threshold: s.opts.Spool.Threshold, Activity: s.opts.Spool.Activity, Device: s.opts.Spool.Device, Stderr: true}, index, s.opts.Definition.FailurePatterns, func(path string) {
 			s.debugf("device session stderr spool opened sha256=%s path=%s", tag, path)
 		}),
 	}
@@ -231,11 +232,11 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 			if werr != nil {
 				result.Notices = stop()
 				result.EndedAt = time.Now()
-				var limit *limitError
-				if errors.As(werr, &limit) {
+				var passed *limitError
+				if errors.As(werr, &passed) {
 					handOver()
 					result.ErrorCode, result.ErrorCategory, result.External = "output_limit_exceeded", "output", true
-					result.Err = fmt.Errorf("command output exceeded %d bytes across stdout and stderr (%d observed); the command was stopped", s.opts.MaxOutputBytes, limit.observed)
+					result.Err = fmt.Errorf("command output exceeded %d bytes%s across stdout and stderr, %d observed; the command was stopped", limit, platform.Named(limitSource), passed.observed)
 				} else {
 					sinks[0].discard()
 					sinks[1].discard()
@@ -246,7 +247,7 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 				return result
 			}
 		case <-deadline.C:
-			result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s; the command was stopped and its channel closed", timeout)
+			result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s; the command was stopped and its channel closed", timeout, platform.Named(command.TimeoutSource))
 			return s.givenUp(&result, stop, handOver, tag, &shared)
 		case <-ctx.Done():
 			result.Err = ctx.Err()
@@ -270,7 +271,7 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 	select {
 	case x = <-waited:
 	case <-deadline.C:
-		result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s waiting for its exit status; the command was stopped and its channel closed", timeout)
+		result.ErrorCode, result.Err = "command_timeout", fmt.Errorf("command timed out after %s%s waiting for its exit status; the command was stopped and its channel closed", timeout, platform.Named(command.TimeoutSource))
 		return s.givenUp(&result, ch.Stop, handOver, tag, &shared)
 	case <-ctx.Done():
 		result.Err = ctx.Err()

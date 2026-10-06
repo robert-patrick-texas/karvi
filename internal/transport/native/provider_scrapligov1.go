@@ -156,7 +156,7 @@ func (d *scrapligoDriver) AuthMethod() string {
 // Execute sends one command through the prepared session.
 func (d *scrapligoDriver) Execute(ctx context.Context, c platform.Command) platform.Result {
 	if c.Timeout <= 0 {
-		c.Timeout = durationOr(platform.Pick(d.f.Timeouts.Command, d.f.Config.Duration("execution.command-timeout")), 120*time.Second)
+		c.Timeout, c.TimeoutSource = durationOr(platform.Pick(d.f.Timeouts.Command, d.f.Config.Duration("execution.command-timeout")), 120*time.Second), platform.SessionTimeout
 	}
 	if d.exec != nil {
 		return d.exec.Execute(ctx, c)

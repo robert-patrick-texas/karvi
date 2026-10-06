@@ -70,10 +70,17 @@ type Options struct {
 	// has compiled
 	// them before, so a pattern that fails here is execution_plan_invalid
 	// and nothing is contacted.
-	BlindReturns   []int
-	BlindWait      time.Duration
-	Blind          []bool
-	Expectations   [][]executionplan.Expectation
+	BlindReturns []int
+	BlindWait    time.Duration
+	Blind        []bool
+	Expectations [][]executionplan.Expectation
+	// TimeoutsNS and MaxBytes are each requested command's own bounds,
+	// one entry per command or empty, 0 the job's: a timeout replaces the
+	// plan's command timeout (a blind command keeps its blind wait) and a
+	// limit MaxCommandBytes, each named as --timeout or --maxbytes in its
+	// message.
+	TimeoutsNS     []int64
+	MaxBytes       []int64
 	CandidateCount int     // command: size of the ordered target set
 	DispatchOrder  string  // recorded order name
 	ShuffleKey     *string // shuffle and random only
@@ -557,12 +564,13 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 			initStart = cmdStart
 		}
 		commandHash := sha256.Sum256([]byte(st.command))
-		e.debugf("device command start target=%q%s index=%d total=%d sha256=%s bytes=%d command=%s blind=%t blind_returns=%d expectations=%s", d.CanonicalName, st.debugKind(), st.index+1, st.count, hex.EncodeToString(commandHash[:8]), len(st.command), debugCommandText(st.command), st.blind, st.returns, debugExpectations(st.expect))
+		limit, _ := platform.Command{MaxBytes: st.maxBytes}.Limit(e.opts.MaxCommandBytes)
+		e.debugf("device command start target=%q%s index=%d total=%d sha256=%s bytes=%d command=%s timeout=%s maxbytes=%d blind=%t blind_returns=%d expectations=%s", d.CanonicalName, st.debugKind(), st.index+1, st.count, hex.EncodeToString(commandHash[:8]), len(st.command), debugCommandText(st.command), st.timeout, limit, st.blind, st.returns, debugExpectations(st.expect))
 		execCtx, cancelExec := ctx, context.CancelFunc(func() {})
 		if !deviceDeadline.IsZero() {
 			execCtx, cancelExec = context.WithDeadline(ctx, deviceDeadline)
 		}
-		r := driver.Execute(execCtx, platform.Command{Text: st.command, Timeout: st.timeout, Blind: st.blind, BlindReturns: st.returns, Expectations: st.expect})
+		r := driver.Execute(execCtx, platform.Command{Text: st.command, Timeout: st.timeout, TimeoutSource: st.source, MaxBytes: st.maxBytes, Blind: st.blind, BlindReturns: st.returns, Expectations: st.expect})
 		cancelExec()
 		if r.Spool != nil {
 			e.debugf("device command spooled target=%q%s index=%d path=%s bytes=%d", d.CanonicalName, st.debugKind(), st.index+1, r.Spool.Path, r.Spool.Bytes)
@@ -905,6 +913,10 @@ type step struct {
 	count   int
 	command string
 	timeout time.Duration
+	// source names what set timeout, for its message; maxBytes is the
+	// command's own byte limit, 0 the job's.
+	source   string
+	maxBytes int64
 	// blind is the tolerance: the prompt may not return, timeout is the
 	// blind wait, and its absence is a success with the notice. returns is
 	// the count of carriage returns sent after the command without a prompt
@@ -947,7 +959,9 @@ type deviceSequence struct {
 // sequence is the target's session-init profile from the plan's table
 // followed by the requested commands:
 // each profile command's timeout is the profile's, else the plan's
-// command timeout (execution.command-timeout as the invocation had it).
+// command timeout (execution.command-timeout as the invocation had it); a
+// requested command's is its --timeout, else the plan's, and its byte
+// limit its --maxbytes, else the job's.
 func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequence {
 	seq := deviceSequence{profile: t.SessionInitProfile, known: true}
 	if seq.profile == "" {
@@ -958,12 +972,12 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		prof, ok := e.opts.SessionInit[seq.profile]
 		seq.known = ok
 		seq.onError = prof.OnError
-		timeout := commandTimeout
+		timeout, source := commandTimeout, platform.SessionTimeout
 		if prof.CommandTimeoutNS > 0 {
-			timeout = time.Duration(prof.CommandTimeoutNS)
+			timeout, source = time.Duration(prof.CommandTimeoutNS), "session-init."+seq.profile+".command-timeout"
 		}
 		for i, c := range prof.Commands {
-			seq.steps = append(seq.steps, step{kind: kindSessionInit, profile: seq.profile, index: i, count: len(prof.Commands), command: c, timeout: timeout})
+			seq.steps = append(seq.steps, step{kind: kindSessionInit, profile: seq.profile, index: i, count: len(prof.Commands), command: c, timeout: timeout, source: source})
 		}
 	}
 	// The device's list: its platform's when the plan carries lists, else
@@ -976,7 +990,13 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		}
 	}
 	for i, c := range commands {
-		st := step{kind: kindRequested, profile: seq.profile, index: i, count: len(commands), command: c, timeout: commandTimeout}
+		st := step{kind: kindRequested, profile: seq.profile, index: i, count: len(commands), command: c, timeout: commandTimeout, source: platform.SessionTimeout}
+		if own && i < len(e.opts.TimeoutsNS) && e.opts.TimeoutsNS[i] > 0 {
+			st.timeout, st.source = time.Duration(e.opts.TimeoutsNS[i]), platform.DeclaredTimeout
+		}
+		if own && i < len(e.opts.MaxBytes) {
+			st.maxBytes = e.opts.MaxBytes[i]
+		}
 		if own && i < len(e.opts.BlindReturns) {
 			st.returns = e.opts.BlindReturns[i]
 		}
@@ -984,7 +1004,7 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		// and its wait the blind wait; session-init commands are never blind
 		// and carry no declaration.
 		if st.returns > 0 || (own && i < len(e.opts.Blind) && e.opts.Blind[i]) {
-			st.blind, st.timeout = true, e.opts.BlindWait
+			st.blind, st.timeout, st.source = true, e.opts.BlindWait, "execution.blind-wait"
 		}
 		if own && i < len(e.opts.Expectations) {
 			for j, d := range e.opts.Expectations[i] {

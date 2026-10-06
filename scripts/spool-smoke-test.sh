@@ -205,7 +205,7 @@ karvi s4l --set output.max-command-bytes=20000 cmd fake-iosxe --format jsonl --t
 [ "$CODE" -eq 111 ] || fail "S4 limit: exit $CODE"
 record s4l; check_record "S4 limit" output_limit_exceeded
 json_is "$TMP/rec.json" output_bytes 20000 || fail "S4 limit: output_bytes $(json_get "$TMP/rec.json" output_bytes)"
-observed=$(json_get "$TMP/rec.json" error.message | sed -n 's/.*(\([0-9]*\) observed).*/\1/p')
+observed=$(json_get "$TMP/rec.json" error.message | sed -n 's/.*, \([0-9]*\) observed.*/\1/p')
 [ -n "$observed" ] && [ "$observed" -gt 20000 ] && [ "$observed" -lt 30000 ] || fail "S4 limit: observed $observed"
 karvi s4t --set 'execution.command-timeout="1s"' cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big'
 [ "$CODE" -eq 107 ] || fail "S4 timeout: exit $CODE"

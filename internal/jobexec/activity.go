@@ -309,7 +309,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	renderer.daemon = req.Daemon
 	devExec := executor.New(executor.Options{
 		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType,
-		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, BlindWait: time.Duration(plan.BlindWaitNS), Blind: plan.Blind, Expectations: plan.Expectations,
+		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, BlindWait: time.Duration(plan.BlindWaitNS), Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
 		SessionInit: plan.SessionInit, CandidateCount: req.CandidateCount, DispatchOrder: plan.Dispatch.DispatchOrder, ShuffleKey: plan.Dispatch.ShuffleKey,
 		Grants: req.Grants, Protection: req.Protection, HaltOnCommandError: !plan.Dispatch.ContinueDeviceOnError, Execution: plan.Execution, MaxCommandBytes: plan.Output.MaxCommandBytes,
 		Ping: plan.Ping, Pinger: pinger,

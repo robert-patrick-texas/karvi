@@ -231,22 +231,6 @@ type OpenRequest struct {
 	InFlightBytes *atomic.Int64
 }
 
-// Command is one command to send.
-//
-// Blind declares the tolerance: the prompt may not return after the
-// command, so it is awaited for Timeout, the blind wait (0 waiting not at
-// all), and a wait that passes or a stream that ends is a success carrying
-// the notice prompt_not_observed_after_blind_send. Without Blind, Timeout is
-// the command's own and the prompt's absence is command_timeout.
-// BlindReturns carriage returns follow the text in the same write, without a
-// prompt match between them; a count above zero is always sent with Blind
-// set, as the execution plan requires.
-//
-// Expectations are the operator's declared responses to the prompts the
-// device asks during the command: tried in declared order on the last line
-// received since the previous answer, each consumed once, a match answered
-// with its Response and one carriage return. A command carries blind returns
-// or expectations, never both; a blind command may carry expectations.
 // Timeouts are the bounds a transport puts on a session's steps, the
 // invocation's: the executor fills them from the plan's execution block on
 // every path. A field left zero (login, a transport's own test) falls back to
@@ -263,12 +247,63 @@ func Pick(set, configured time.Duration) time.Duration {
 	return configured
 }
 
+// Command is one command to send.
+//
+// Blind declares the tolerance: the prompt may not return after the
+// command, so it is awaited for Timeout, the blind wait (0 waiting not at
+// all), and a wait that passes or a stream that ends is a success carrying
+// the notice prompt_not_observed_after_blind_send. Without Blind, Timeout is
+// the command's own and the prompt's absence is command_timeout.
+// BlindReturns carriage returns follow the text in the same write, without a
+// prompt match between them; a count above zero is always sent with Blind
+// set, as the execution plan requires.
+//
+// Expectations are the operator's declared responses to the prompts the
+// device asks during the command: tried in declared order on the last line
+// received since the previous answer, each consumed once, a match answered
+// with its Response and one carriage return. A command carries blind returns
+// or expectations, never both; a blind command may carry expectations.
+//
+// TimeoutSource names what set Timeout, for the timeout's message:
+// DeclaredTimeout, execution.command-timeout, or a session-init profile's
+// key; a transport filling an unset Timeout from its configuration fills it
+// too. Over telnet a declared timeout replaces telnet.read-timeout. MaxBytes
+// is the command's own byte limit (--maxbytes), 0 for the session's; Limit
+// resolves the two.
 type Command struct {
-	Text         string
-	Timeout      time.Duration
-	Blind        bool
-	BlindReturns int
-	Expectations []Expectation
+	Text          string
+	Timeout       time.Duration
+	TimeoutSource string
+	MaxBytes      int64
+	Blind         bool
+	BlindReturns  int
+	Expectations  []Expectation
+}
+
+// The sources of a command's own bounds, as the messages name them.
+const (
+	DeclaredTimeout  = "--timeout"
+	DeclaredMaxBytes = "--maxbytes"
+	SessionMaxBytes  = "output.max-command-bytes"
+	SessionTimeout   = "execution.command-timeout"
+)
+
+// Limit is the byte limit the command's output runs under and its source's
+// name: MaxBytes when set, else session, the session's limit.
+func (c Command) Limit(session int64) (int64, string) {
+	if c.MaxBytes > 0 {
+		return c.MaxBytes, DeclaredMaxBytes
+	}
+	return session, SessionMaxBytes
+}
+
+// Named is a source's name as a message carries it after a value, " (NAME)",
+// empty when there is none.
+func Named(source string) string {
+	if source == "" {
+		return ""
+	}
+	return " (" + source + ")"
 }
 
 // Expectation is one expect-and-send declaration, compiled: Pattern is

@@ -53,6 +53,7 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 		"    exit) exit 0;;\n" +
 		"    'show slow') : >\"" + marker + "\"; sleep 3; printf '%s\\r\\nslow\\r\\ndev#' \"$line\";;\n" +
 		"    'show mute') echo 'Timeout, server 127.0.0.1 not responding.' >&2; exit 255;;\n" +
+		"    'show big') printf '%s\\r\\n' \"$line\"; i=0; while [ $i -lt 40 ]; do printf '%072d\\r\\n' 0; i=$((i+1)); done; printf 'dev#';;\n" +
 		"    'show bogus') printf '%s\\r\\n%% Invalid input detected at marker.\\r\\ndev#' \"$line\";;\n" +
 		// A [confirm] takes one key without a line; after it the prompt
 		// returns (clear counters) or nothing more is written (reload).

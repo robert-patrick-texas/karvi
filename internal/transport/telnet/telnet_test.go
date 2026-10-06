@@ -14,8 +14,9 @@ import (
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-// device answers each line on its end of the pipe: show slow never, a
-// device error for show bogus, a prompt otherwise; it records every line.
+// device answers each line on its end of the pipe: show slow never, show
+// late after 450ms, show big with 3000 bytes, a device error for show bogus,
+// a prompt otherwise; it records every line.
 type device struct {
 	mu    sync.Mutex
 	lines []string
@@ -34,6 +35,11 @@ func (dv *device) serve(conn net.Conn) {
 		dv.mu.Unlock()
 		switch text {
 		case "show slow":
+		case "show late":
+			time.Sleep(450 * time.Millisecond)
+			_, _ = conn.Write([]byte(text + "\r\nlate\r\ndev#"))
+		case "show big":
+			_, _ = conn.Write([]byte(text + "\r\n" + strings.Repeat("x", 3000) + "\r\ndev#"))
 		case "configure terminal":
 			_, _ = conn.Write([]byte(text + "\r\ndev(config)#"))
 		case "end":
@@ -78,6 +84,52 @@ func TestTimeoutEndsTheTelnetSession(t *testing.T) {
 	if got := strings.Join(dv.saw(), "|"); got != "show clock|show bogus|show slow" {
 		t.Fatalf("device saw %q", got)
 	}
+}
+
+// TestTelnetCommandOwnBounds: a declared timeout replaces
+// telnet.read-timeout for its command, where the configured command timeout
+// stays capped by it, each message naming the bound that expired; a
+// command's byte limit replaces the session's, named --maxbytes; a device
+// deadline earlier than the command's leaves the code to the executor's
+// device_timeout.
+func TestTelnetCommandOwnBounds(t *testing.T) {
+	open := func() (*Driver, *device) {
+		client, server := net.Pipe()
+		dv := &device{}
+		go dv.serve(server)
+		return &Driver{f: Factory{Config: configload.Snapshot{}, MaxOutputBytes: 1 << 20, Timeouts: platform.Timeouts{TelnetRead: 300 * time.Millisecond}}, conn: client, prompt: []byte("dev#")}, dv
+	}
+	ctx := context.Background()
+	d, _ := open()
+	if r := d.Execute(ctx, platform.Command{Text: "show late", Timeout: time.Second, TimeoutSource: platform.DeclaredTimeout}); r.Err != nil || !strings.Contains(string(r.Output), "late") {
+		t.Fatalf("declared timeout over the read cap: %+v", r)
+	}
+	d.Close()
+	d, _ = open()
+	if r := d.Execute(ctx, platform.Command{Text: "show late", Timeout: time.Second, TimeoutSource: platform.SessionTimeout}); r.ErrorCode != "command_timeout" || !strings.HasPrefix(r.Err.Error(), "command timed out after 300ms (telnet.read-timeout) while waiting for a returning prompt") {
+		t.Fatalf("configured timeout under the read cap: %q %v", r.ErrorCode, r.Err)
+	}
+	d.Close()
+	d, _ = open()
+	if r := d.Execute(ctx, platform.Command{Text: "show slow", Timeout: 100 * time.Millisecond, TimeoutSource: platform.DeclaredTimeout}); r.ErrorCode != "command_timeout" || !strings.HasPrefix(r.Err.Error(), "command timed out after 100ms (--timeout)") {
+		t.Fatalf("declared timeout: %q %v", r.ErrorCode, r.Err)
+	}
+	d.Close()
+	d, _ = open()
+	if r := d.Execute(ctx, platform.Command{Text: "show big", Timeout: time.Second, MaxBytes: 1024}); r.ErrorCode != "output_limit_exceeded" || len(r.Output) != 1024 || r.Err.Error() != "telnet output exceeded 1024 bytes (--maxbytes)" {
+		t.Fatalf("declared limit: %q %d %v", r.ErrorCode, len(r.Output), r.Err)
+	}
+	if r := d.Execute(ctx, platform.Command{Text: "show big", Timeout: time.Second}); r.Err != nil || len(r.Output) < 3000 {
+		t.Fatalf("the session's limit for the next command: %q %d %v", r.ErrorCode, len(r.Output), r.Err)
+	}
+	d.Close()
+	d, _ = open()
+	dctx, cancel := context.WithTimeout(ctx, 150*time.Millisecond)
+	defer cancel()
+	if r := d.Execute(dctx, platform.Command{Text: "show slow", Timeout: time.Second, TimeoutSource: platform.DeclaredTimeout}); r.ErrorCode != "device_timeout" || d.Usable() {
+		t.Fatalf("device deadline first: %q %v usable=%v", r.ErrorCode, r.Err, d.Usable())
+	}
+	d.Close()
 }
 
 // shell is a telnet device that logs in at start ("dev>" or "dev#") and

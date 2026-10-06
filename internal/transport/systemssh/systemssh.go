@@ -272,14 +272,12 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 	if d.session == nil && d.exec == nil {
 		return failed(time.Now(), "command_session_lost", "connection", true, errors.New("the device session was not prepared"))
 	}
-	timeout := c.Timeout
-	if timeout <= 0 {
-		timeout = platform.Pick(d.f.Timeouts.Command, d.f.Config.Duration("execution.command-timeout"))
+	if c.Timeout <= 0 {
+		c.Timeout, c.TimeoutSource = platform.Pick(d.f.Timeouts.Command, d.f.Config.Duration("execution.command-timeout")), platform.SessionTimeout
 	}
-	if timeout <= 0 {
-		timeout = 120 * time.Second
+	if c.Timeout <= 0 {
+		c.Timeout = 120 * time.Second
 	}
-	c.Timeout = timeout
 	if d.exec != nil {
 		return d.exec.Execute(ctx, c)
 	}

@@ -98,7 +98,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}
-	buf, kind, err := d.readUntil(ctx, timeout, usernameRE, passwordRE, promptRE)
+	buf, kind, err := d.readUntil(ctx, timeout, d.f.MaxOutputBytes, usernameRE, passwordRE, promptRE)
 	if err != nil {
 		return fmt.Errorf("telnet_login_prompt: %w", err)
 	}
@@ -110,7 +110,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		if err := d.writeLine(d.req.Username); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send username: %w", err)
 		}
-		_, kind, err = d.readUntil(ctx, timeout, passwordRE, promptRE)
+		_, kind, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, passwordRE, promptRE)
 		if err != nil {
 			return errorcodes.Errorf("telnet_login_prompt", "wait for password prompt: %w", err)
 		}
@@ -127,7 +127,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		if err := d.writeLine(string(pass)); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send password: %w", err)
 		}
-		buf, kind, err = d.readUntil(ctx, timeout, promptRE)
+		buf, kind, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, promptRE)
 		if err != nil {
 			return errorcodes.Errorf("authentication_failed", "telnet authentication failed: %w", err)
 		}
@@ -150,7 +150,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 			enableTimeout = 10 * time.Second
 		}
 		enableDeadline := time.Now().Add(enableTimeout)
-		buf, kind, err = d.readUntil(ctx, enableTimeout, passwordRE, promptRE)
+		buf, kind, err = d.readUntil(ctx, enableTimeout, d.f.MaxOutputBytes, passwordRE, promptRE)
 		d.noteSetup(d.prompt, level.Escalate, buf)
 		if err != nil {
 			return errorcodes.Errorf("privilege_failed", "wait for the prompt after %q: %w", level.Escalate, err)
@@ -170,7 +170,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 			if err := d.writeLine(string(enable)); err != nil {
 				return errorcodes.Errorf("telnet_write_failed", "send enable password: %w", err)
 			}
-			buf, _, err = d.readUntil(ctx, max(time.Until(enableDeadline), time.Millisecond), promptRE)
+			buf, _, err = d.readUntil(ctx, max(time.Until(enableDeadline), time.Millisecond), d.f.MaxOutputBytes, promptRE)
 			if err != nil {
 				return errorcodes.Errorf("privilege_failed", "wait for privileged prompt: %w", err)
 			}
@@ -184,7 +184,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		if err := d.writeLine(cmd); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send paging command: %w", err)
 		}
-		buf, _, err = d.readUntil(ctx, timeout, promptRE)
+		buf, _, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, promptRE)
 		d.noteSetup(d.prompt, cmd, buf)
 		if err != nil {
 			return errorcodes.Errorf("telnet_paging_command_failed", "telnet paging command: %w", err)
@@ -199,14 +199,19 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 	start := time.Now()
 	// The transport read timeout is distinct from the general command budget.
 	// Use the shorter positive value so a silent Telnet peer cannot hold a read
-	// beyond either operator-configured limit.
-	timeout := platform.Pick(d.f.Timeouts.TelnetRead, d.f.Config.Duration("telnet.read-timeout"))
+	// beyond either operator-configured limit; a command's declared timeout
+	// replaces both, the operator having bounded that command alone.
+	timeout, source := platform.Pick(d.f.Timeouts.TelnetRead, d.f.Config.Duration("telnet.read-timeout")), "telnet.read-timeout"
 	if timeout <= 0 {
 		timeout = 60 * time.Second
 	}
-	if c.Timeout > 0 && c.Timeout < timeout {
-		timeout = c.Timeout
+	switch {
+	case c.TimeoutSource == platform.DeclaredTimeout && c.Timeout > 0:
+		timeout, source = c.Timeout, c.TimeoutSource
+	case c.Timeout > 0 && c.Timeout < timeout:
+		timeout, source = c.Timeout, c.TimeoutSource
 	}
+	limit, limitSource := c.Limit(d.f.MaxOutputBytes)
 	if d.conn == nil || d.broken {
 		return platform.Result{StartedAt: start, EndedAt: time.Now(), ErrorCode: "command_session_lost", ErrorCategory: "connection", External: true, Err: errors.New("the telnet session ended before the next command; no replacement login was attempted")}
 	}
@@ -218,7 +223,7 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 	// from the device; after is the one that came back, empty when none did
 	// (the same two meanings as the device session's result).
 	before := strings.TrimSpace(string(d.prompt))
-	buf, _, err := d.readUntil(ctx, timeout, promptRE)
+	buf, _, err := d.readUntil(ctx, timeout, limit, promptRE)
 	observed := err == nil
 	after := ""
 	if observed {
@@ -230,18 +235,18 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 		d.broken = true
 	}
 	result := platform.Result{StartedAt: start, EndedAt: time.Now(), PromptBefore: before, Prompt: after, PromptSource: "observed", PromptObserved: &observed, Output: cleanOutput(buf, c.Text, d.prompt)}
-	if int64(len(result.Output)) > d.f.MaxOutputBytes && d.f.MaxOutputBytes > 0 {
-		result.Output = result.Output[:d.f.MaxOutputBytes]
+	if int64(len(result.Output)) > limit && limit > 0 {
+		result.Output = result.Output[:limit]
 		result.ErrorCode = "output_limit_exceeded"
 		result.ErrorCategory = "output"
-		result.Err = fmt.Errorf("telnet output exceeded %d bytes", d.f.MaxOutputBytes)
+		result.Err = fmt.Errorf("telnet output exceeded %d bytes%s", limit, platform.Named(limitSource))
 		return result
 	}
 	if err != nil && errorcodes.Of(err) == "output_limit_exceeded" {
 		result.ErrorCode = "output_limit_exceeded"
 		result.ErrorCategory = "output"
 		result.External = true
-		result.Err = err
+		result.Err = fmt.Errorf("telnet output exceeded %d bytes%s before the prompt returned; the session is closed", limit, platform.Named(limitSource))
 		return result
 	}
 	if err != nil {
@@ -249,6 +254,12 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 			result.ErrorCode = "command_timeout"
 			result.ErrorCategory = "timeout"
 			result.Retryable = true
+			err = fmt.Errorf("command timed out after %s%s while waiting for a returning prompt; the session is closed: %w", timeout, platform.Named(source), err)
+			if dl, ok := ctx.Deadline(); ok && dl.Before(start.Add(timeout)) {
+				// The read deadline was the device's (readUntil takes the
+				// earlier): the executor names it device_timeout.
+				result.ErrorCode, err = "device_timeout", context.DeadlineExceeded
+			}
 		} else {
 			result.ErrorCode = "telnet_read_failed"
 			result.ErrorCategory = "connection"
@@ -290,7 +301,7 @@ func (d *Driver) Close() error {
 	return err
 }
 func (d *Driver) writeLine(s string) error { _, err := io.WriteString(d.conn, s+"\r\n"); return err }
-func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, patterns ...*regexp.Regexp) ([]byte, int, error) {
+func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int64, patterns ...*regexp.Regexp) ([]byte, int, error) {
 	deadline := time.Now().Add(timeout)
 	// A context deadline (execution.device-timeout) ends a blocked read too.
 	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
@@ -325,7 +336,7 @@ func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, patterns 
 		if err != nil {
 			return out.Bytes(), -1, err
 		}
-		if out.Len() > int(d.f.MaxOutputBytes)+4096 && d.f.MaxOutputBytes > 0 {
+		if limit > 0 && int64(out.Len()) > limit+4096 {
 			return out.Bytes(), -1, errorcodes.Errorf("output_limit_exceeded", "output limit exceeded")
 		}
 	}

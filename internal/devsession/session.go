@@ -48,7 +48,7 @@ type Options struct {
 	// credential has none.
 	EnableSecret func(func([]byte) error) error
 	// MaxOutputBytes bounds one command's output (output.max-command-bytes),
-	// counted on the settled bytes.
+	// counted on the settled bytes; a command's own MaxBytes replaces it.
 	MaxOutputBytes int64
 	// Spool is where a command's settled bytes go past the threshold;
 	// Dir "" keeps every response in memory.
@@ -384,6 +384,7 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 	}
 	commandCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+	limit, limitSource := command.Limit(s.opts.MaxOutputBytes)
 
 	hash := sha256.Sum256([]byte(command.Text))
 	s.debugf("device session send sha256=%s bytes=%d blind=%t blind_returns=%d expectations=%d prompt=%q", hex.EncodeToString(hash[:8]), len(command.Text), blind, command.BlindReturns, len(command.Expectations), s.currentPrompt())
@@ -405,7 +406,7 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 	// The command's reader: the response settles as
 	// it arrives, to memory up to the threshold and then to this command's
 	// spool, named by its ordinal in the session.
-	sink := newSettled(s.opts.MaxOutputBytes, s.opts.Spool, s.sent, s.opts.Definition.FailurePatterns, func(path string) {
+	sink := newSettled(limit, s.opts.Spool, s.sent, s.opts.Definition.FailurePatterns, func(path string) {
 		s.debugf("device session spool opened sha256=%s path=%s", hex.EncodeToString(hash[:8]), path)
 	})
 	sink.progress = s.opts.InFlightBytes
@@ -419,15 +420,15 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 	result := platform.Result{PromptBefore: before, Prompt: prompt, PromptSource: "observed", PromptObserved: &observed, ConnectionReused: &reused, StartedAt: started, EndedAt: ended}
 	if err != nil {
 		s.fail()
-		var limit *limitError
+		var passed *limitError
 		switch {
-		case errors.As(err, &limit):
+		case errors.As(err, &passed):
 			// The settled byte that would pass the limit stopped the read:
 			// the store holds exactly the first limit bytes.
 			sink.output(&result)
 			result.ErrorCode, result.ErrorCategory = "output_limit_exceeded", "output"
 			result.External = true
-			result.Err = fmt.Errorf("command output exceeded %d bytes (%d observed) before the prompt returned; the session is closed", s.opts.MaxOutputBytes, limit.observed)
+			result.Err = fmt.Errorf("command output exceeded %d bytes%s before the prompt returned, %d observed; the session is closed", limit, platform.Named(limitSource), passed.observed)
 		case errorcodes.Of(err) == "output_spool_write_failed":
 			// Nothing of the output; the session is closed as
 			// the limit closes it.
@@ -453,7 +454,7 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 			if ex != nil {
 				diagnostic = fmt.Sprintf("; the last line seen was %q and %d of %d declared responses were answered", resp.lastLine(), ex.answered, len(ex.declarations))
 			}
-			result.Err = fmt.Errorf("command timed out after %s while waiting for a returning prompt%s; the session is closed", timeout, diagnostic)
+			result.Err = fmt.Errorf("command timed out after %s%s while waiting for a returning prompt%s; the session is closed", timeout, platform.Named(command.TimeoutSource), diagnostic)
 			s.cut(resp, &result)
 		default:
 			coded := streamError(err)
@@ -475,11 +476,11 @@ func (s *Session) Execute(ctx context.Context, command platform.Command) platfor
 	err = resp.finish(prompt)
 	sink.output(&result)
 	if err != nil {
-		var limit *limitError
-		if errors.As(err, &limit) {
+		var passed *limitError
+		if errors.As(err, &passed) {
 			result.ErrorCode, result.ErrorCategory = "output_limit_exceeded", "output"
 			result.External = true
-			result.Err = fmt.Errorf("command output exceeded %d bytes (%d observed)", s.opts.MaxOutputBytes, limit.observed)
+			result.Err = fmt.Errorf("command output exceeded %d bytes%s, %d observed", limit, platform.Named(limitSource), passed.observed)
 			return result
 		}
 		s.fail()

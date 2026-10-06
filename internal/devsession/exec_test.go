@@ -3,6 +3,7 @@ package devsession
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -171,6 +172,35 @@ func TestExecLimitCountsBothStreams(t *testing.T) {
 	r := s.Execute(context.Background(), platform.Command{Text: "big", Timeout: 5 * time.Second})
 	if r.ErrorCode != "output_limit_exceeded" || len(r.Output)+len(r.Exec.Stderr) != 1000 || len(f.stopped) != 1 || !s.Usable() {
 		t.Fatalf("code %q stdout %d stderr %d stopped %q usable %t", r.ErrorCode, len(r.Output), len(r.Exec.Stderr), f.stopped, s.Usable())
+	}
+}
+
+// TestExecCommandOwnBounds: a command's MaxBytes replaces the session's
+// limit across both streams, larger or smaller, the message naming its
+// source, and the connection serves the next command; a timeout's message
+// names its source.
+func TestExecCommandOwnBounds(t *testing.T) {
+	script := map[string]fakeRun{"big": {stdout: strings.Repeat("o", 600), stderr: strings.Repeat("e", 600), status: code(0)}, "slow": {hold: true}}
+	for _, tc := range []struct {
+		maxBytes int64
+		want     int
+		code     string
+		text     string
+	}{
+		{0, 1000, "output_limit_exceeded", "command output exceeded 1000 bytes (output.max-command-bytes) across stdout and stderr, "},
+		{500, 500, "output_limit_exceeded", "command output exceeded 500 bytes (--maxbytes) across stdout and stderr, "},
+		{2000, 1200, "", ""},
+	} {
+		s, _ := execSession(script, ExecOptions{MaxOutputBytes: 1000})
+		r := s.Execute(context.Background(), platform.Command{Text: "big", Timeout: 5 * time.Second, MaxBytes: tc.maxBytes})
+		if r.ErrorCode != tc.code || len(r.Output)+len(r.Exec.Stderr) != tc.want || !strings.HasPrefix(fmt.Sprint(r.Err), tc.text) || !s.Usable() {
+			t.Errorf("maxbytes %d: code %q bytes %d err %v usable %t", tc.maxBytes, r.ErrorCode, len(r.Output)+len(r.Exec.Stderr), r.Err, s.Usable())
+		}
+	}
+	s, _ := execSession(script, ExecOptions{})
+	r := s.Execute(context.Background(), platform.Command{Text: "slow", Timeout: 200 * time.Millisecond, TimeoutSource: platform.DeclaredTimeout})
+	if r.ErrorCode != "command_timeout" || fmt.Sprint(r.Err) != "command timed out after 200ms (--timeout); the command was stopped and its channel closed" {
+		t.Fatalf("timeout: %q %v", r.ErrorCode, r.Err)
 	}
 }
 

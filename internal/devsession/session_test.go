@@ -621,8 +621,39 @@ func TestOutputLimit(t *testing.T) {
 		t.Fatalf("the message must carry the configured count: %v", r.Err)
 	}
 	var observed int
-	if _, err := fmt.Sscanf(r.Err.Error(), "command output exceeded 4096 bytes (%d observed)", &observed); err != nil || observed <= 4096 || observed > 4096+4096+73 {
+	if _, err := fmt.Sscanf(r.Err.Error(), "command output exceeded 4096 bytes (output.max-command-bytes) before the prompt returned, %d observed", &observed); err != nil || observed <= 4096 || observed > 4096+4096+73 {
 		t.Fatalf("observed %d from %q (%v)", observed, r.Err, err)
+	}
+}
+
+// TestCommandOwnBounds: a command's MaxBytes replaces the session's limit,
+// smaller or larger, and its message names --maxbytes; a timeout's message
+// names its source.
+func TestCommandOwnBounds(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		maxBytes int64
+		want     int
+		source   string
+	}{
+		{"smaller", 2048, 2048, "(--maxbytes)"},
+		{"larger", 8192, 8192, "(--maxbytes)"},
+		{"none", 0, 4096, "(output.max-command-bytes)"},
+	} {
+		sh := newShell(shellOptions{privileged: true, bigLines: 2000})
+		s := open(t, sh, Options{Definition: iosxe(t), MaxOutputBytes: 4096})
+		r := s.Execute(context.Background(), platform.Command{Text: "show big", Timeout: 5 * time.Second, MaxBytes: tc.maxBytes})
+		if r.ErrorCode != "output_limit_exceeded" || len(r.Output) != tc.want || !strings.Contains(r.Err.Error(), fmt.Sprintf("exceeded %d bytes %s before", tc.want, tc.source)) {
+			t.Errorf("%s: code=%s bytes=%d err=%v", tc.name, r.ErrorCode, len(r.Output), r.Err)
+		}
+		s.Close()
+	}
+	sh := newShell(shellOptions{privileged: true, delay: map[string]time.Duration{"show slow": 2 * time.Second}})
+	s := open(t, sh, Options{Definition: iosxe(t)})
+	defer s.Close()
+	r := s.Execute(context.Background(), platform.Command{Text: "show slow", Timeout: 200 * time.Millisecond, TimeoutSource: platform.DeclaredTimeout})
+	if r.ErrorCode != "command_timeout" || !strings.HasPrefix(r.Err.Error(), "command timed out after 200ms (--timeout) while waiting for a returning prompt") {
+		t.Fatalf("timeout: code=%s err=%v", r.ErrorCode, r.Err)
 	}
 }
 
