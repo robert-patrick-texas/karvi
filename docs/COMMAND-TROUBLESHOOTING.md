@@ -27,6 +27,21 @@ each command appears once, on the executor's start line, as the plan holds it.
 Before sharing a diagnostic capture, still review it for organization-sensitive
 hostnames, addresses, usernames, paths, and policy names.
 
+## A karvi killed outright
+
+A `command`, `run`, `crun`, or `login`, or the daemon, ended by `SIGKILL`
+takes its device sessions with it: every OpenSSH and `script(1)` process karvi
+starts for a session has `SIGTERM` as its parent-death signal, so the
+connection closes and the device ends the session as at any disconnect. On the
+exec channel a command already sent may still run on the device
+(`remote_command_not_stopped`). The files the session kept in the scratch, the
+`ssh` configuration, the askpass socket, and a recorded login's timing log,
+stay until the next admission, daemon start, or login removes them, logged
+`scratch_abandoned_removed` (in `daemon.log`, or under `--debug`); a recorded
+login's transcript keeps the bytes `script(1)` wrote. An `ssh` still holding
+a device's session under init after an earlier release was killed is that
+release's; end it by its pid.
+
 ## `Master refused session request: Permission denied`
 
 This diagnostic indicates that an already authenticated OpenSSH master could

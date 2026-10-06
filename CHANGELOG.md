@@ -10,6 +10,21 @@
   system`; an inventory row's transport, or its source's default, still comes
   first. The key and its default value are unchanged, so the configuration
   registry stays 26.
+- **Every session process ends with karvi.** The system transport's `ssh` on
+  the shell channel, a login's `ssh`, and a recorded login's `script(1)` are
+  started with `SIGTERM` as their parent-death signal, as the exec masters were.
+  A karvi, client or daemon, killed outright had left them under init, holding
+  the device's session: a router's vty until its exec-timeout, a server's shell
+  for good, and a killed login's `ssh` competing with the shell for the
+  terminal.
+- **The scratch is swept.** The system transport's configuration and a
+  recorded login's timing log are named by their maker's pid,
+  `karvi-ssh-<pid>-*.conf` and `karvi-script-<pid>-*.timing`. One whose maker
+  is not alive as karvi, and an `askpass-*.sock` nothing answers on, is removed
+  at every admission, at the daemon's start, and at a login's start, logged
+  `scratch_abandoned_removed`, where what a killed karvi left had stayed for
+  good, on disk under `<basedir>/tmp` in individual mode. Files under an
+  earlier release's names are not touched.
 
 ## 0.27.0 - 2026-10-06
 

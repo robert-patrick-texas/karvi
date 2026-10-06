@@ -70,9 +70,10 @@ password), the algorithm lists it writes as `HostKeyAlgorithms`,
 and the classification of OpenSSH's own diagnostics at open. For a shell
 device `command` and `run` open one fresh interactive `ssh -tt` process per
 device with ControlMaster, ControlPath, and ControlPersist off on the command
-line and in the managed configuration, and hand that process to the session as
-its stream; prompts, privilege, paging, session-init, failure detection, blind
-sends, output normalisation, and the keepalive expiry are the session's. For an
+line and in the managed configuration, started with a death signal as every
+session process is, and hand that process to the session as its stream; prompts,
+privilege, paging, session-init, failure detection, blind sends, output
+normalisation, and the keepalive expiry are the session's. For an
 exec device the connection is an OpenSSH ControlMaster (`ssh -M -N`, the same
 managed configuration, karvi's own child started with a death signal) whose
 socket is in `ssh.control-path-root` under a 16-hex-character name, and each

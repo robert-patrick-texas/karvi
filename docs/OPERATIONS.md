@@ -813,12 +813,17 @@ at that interval while any activity runs, so a login or a quiet command is
 not shown stale. A spool left by a process that died mid-command is
 removed at the daemon's next start and at the next job's admission, and
 logged `spool_abandoned_removed`; a file in `spooldir` of another shape is
-never touched. A control socket a killed master left is swept at the same two
-moments, logged `control_socket_abandoned_removed` ([Linux
-servers](#linux-servers)). A followed record whose line is larger than
-`daemon.max-ipc-frame-bytes` allows, or one spooled in a job that keeps no
-`commands.jsonl`, reaches the follower with its output left out and the
-notice `follow_output_omitted` saying where the output is.
+never touched. A control socket a killed master left is swept at the same
+two moments, logged `control_socket_abandoned_removed` ([Linux
+servers](#linux-servers)). What a karvi killed outright leaves in the
+scratch, a system session's `ssh` configuration, an askpass socket, a
+recorded login's timing log, is swept at the same two moments and at a
+login's start, logged `scratch_abandoned_removed`; the session's own
+processes end with it, so no device session is held. A followed record
+whose line is larger than `daemon.max-ipc-frame-bytes` allows, or one
+spooled in a job that keeps no `commands.jsonl`, reaches the follower with
+its output left out and the notice `follow_output_omitted` saying where
+the output is.
 
 ## The shared trees
 

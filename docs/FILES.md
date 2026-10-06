@@ -231,10 +231,10 @@ in a shared place and the operator's primary group in a private one.
 | `credentials.sock` | `<basedir>/socket/` | `0600` socket | `0600` socket | while the daemon runs | the credential package, one frame per connection under a one-use token |
 | `daemon.json` | `<basedir>/state/` | `0600` | `0600` | while the daemon runs | the running daemon's status (pid, socket, version, schema, jobs), removed when it stops |
 | `daemon.log` | `<basedir>/logs/` | `0600`, appended | `0600`, appended | kept | one line per request outcome, the token redacted |
-| `karvi-ssh-*.conf` | the scratch (`tempdir`) | `0600` | `0600` | one system-transport session | the `ssh` configuration karvi writes for the session |
-| `askpass-<16 hex>.sock` | the scratch | `0600` socket | `0600` socket | one authentication | where `karvi-askpass` fetches the secret `ssh` asks for |
+| `karvi-ssh-<pid>-*.conf` | the scratch (`tempdir`) | `0600` | `0600` | one system-transport session; one a karvi killed outright left is swept at the next admission, daemon start, or login | the `ssh` configuration karvi writes for the session, named by its maker's pid |
+| `askpass-<16 hex>.sock` | the scratch | `0600` socket | `0600` socket | one authentication; one nothing answers on is swept as above | where `karvi-askpass` fetches the secret `ssh` asks for |
 | `<16 hex>` | the control sockets (`ssh.control-path-root`) | `0600` socket | `0600` socket | one exec device session | an exec device's OpenSSH ControlMaster, a client of it per command; one a killed master left is swept at the next daemon start or admission |
-| `karvi-script-*.timing` | the scratch | `0600` | `0600` | one recorded login | `script(1)`'s timing log, the terminal's widths, read when the transcript is rendered at the session's end and removed then; a session killed before its end leaves it |
+| `karvi-script-<pid>-*.timing` | the scratch | `0600` | `0600` | one recorded login | `script(1)`'s timing log, the terminal's widths, read when the transcript is rendered at the session's end and removed then; a session killed before its end leaves it, swept as above |
 | `<activity>.<device>.<index>.<pid>.spool` | the spool (`spooldir`) | `0600` | `0600` | one command | a response past `output.spool-threshold-bytes`, removed once its record is written; one left by a process that died is swept at the next daemon start or admission |
 | The audit file | `audit.file`, when set | `0600`, appended | `0600`, appended | kept | the audit events, beside journald (always written) |
 

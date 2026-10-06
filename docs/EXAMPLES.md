@@ -5091,6 +5091,46 @@ neither the client nor the master. Section 2 was committed on the operator's
 word after a battery that passed, and the race is an item of its own, taken up
 after this effort.
 
+**Executed after the build.** Each kill case on a lab build of `afd12df` and on
+the build of section 1, each from no session (`who` counts the sessions from
+127.0.0.1):
+
+| Case | `afd12df` | Section 1 |
+|---|---|---|
+| `command`, shell channel, the client killed | `ssh` running, the session held | `ssh` ended, no session |
+| `run`, shell channel, the daemon killed | `ssh` running, the session held | `ssh` ended, no session |
+| `login`, karvi killed, the terminal open | `ssh` running, the session held | `ssh` ended, no session |
+| `login --record`, karvi killed, the terminal open | `script(1)` running, the session held | `script(1)` ended, no session |
+| `command`, exec channel, the client killed | the master ended, its socket removed, the remote `sleep` running on | the same |
+
+Then on the build of section 2, with a file under an earlier release's name,
+`karvi-ssh-1234567.conf`, in the scratch throughout:
+
+| Left by | Swept by | Removed |
+|---|---|---|
+| a `command` killed on the shell channel | the next `command`'s admission | its `karvi-ssh-<pid>-*.conf` and `askpass-*.sock`, each a `--debug` line `scratch_abandoned_removed: …` |
+| the same | the daemon's start | the same two, each a `daemon.log` line `code=scratch_abandoned_removed path=…` |
+| the same | a login's start | its configuration |
+| a `login --record` killed | the next login's start | its `karvi-script-<pid>-*.timing`, configuration, and socket |
+| a `command` still running | another `command`'s admission | nothing |
+
+The earlier release's file was left in every case. Verification at each
+section: gofmt, vet, every Go test (`osutil.StartTied`'s, which kills a parent
+and fails with the signal removed; the sweep's names, its kept and removed
+entries, and the daemon's half), `make generated-clean`, and the full battery
+on the section's lab build, run again for section 2 after the race above; the
+record and read paths untouched, so no run at width.
+
+**Built** in three sections on the operator's word: `ea88a24` the session
+processes tied to karvi (`osutil.StartTied`, the shell channel's `ssh`, a
+login's `ssh`, a recorded login's `script(1)`, the exec master), `295e445` the
+sweep (the names by pid, `osutil.SweepScratch`, the shared `KarviAlive`,
+`ownedBy`, and `socketAbandoned`), and the documents: DESIGN (one entry for
+both, the masters' and the transcripts' entries pointing at it), FILES,
+OPERATIONS, COMMAND-TROUBLESHOOTING ("A karvi killed outright"),
+TRANSPORT-DRIVER-ARCHITECTURE, and CHANGELOG. Chapter 31 was made between the
+first two. The chapter is closed.
+
 ## 31. `command` over the native transport by default (2026-10-06)
 
 On the operator's word, while [chapter 30](#30-the-scratch-sweep-2026-10-06) was

@@ -1146,10 +1146,9 @@ masters.** An exec device session is one connection: one lease against the
 host's cap and one against the device's `session_cap`, as a shell session's, its
 master and one client at a time being one session's processes; `linux`'s cap
 stays 10. The daemon parents the system transport's masters for `run`, the
-client for `command`, each started with a death signal (`SIGTERM`) from a
-goroutine that holds its OS thread for the master's life, since the signal
-follows the thread that started the child; a master killed outright regardless
-leaves its socket to the sweep at the daemon's start. The daemon checks the
+client for `command`, each started with a death signal (`SIGTERM`), as every
+session process is (below); a master killed outright regardless leaves its
+socket to the sweep at the daemon's start. The daemon checks the
 plan's exec rules (the channel per target, no blind sends or `--expect` for exec
 targets, no exec over telnet) as it checks the rest and evaluates no platform;
 the execution plan's schema moves to 11 and the record's to 3, and a daemon
@@ -1164,6 +1163,28 @@ through its socket (executed), while a master ended by `SIGTERM` removes its
 socket; the security owners read the audit, which should name what the record
 names. *Not taken:* a lease per channel; masters left to end with their parent;
 a `watch` column for the channel.
+
+**Every session process ends with karvi, and what a killed karvi leaves in the
+scratch is swept.** Every OpenSSH or `script(1)` process karvi starts for a
+device session, the shell channel's `ssh`, the exec masters, a login's `ssh`,
+and a recorded login's `script(1)`, is started by `osutil.StartTied`: `SIGTERM`
+as its parent-death signal, the start and the wait on one goroutine that holds
+its OS thread until the wait, since the signal follows the thread that started
+the child. A karvi, client or daemon, killed outright ends the device's session
+as a closed connection does. The scratch's files carry their maker's pid
+(`karvi-ssh-<pid>-*.conf`, `karvi-script-<pid>-*.timing`), and
+`osutil.SweepScratch` removes, owned by the operator, such a file whose pid is
+not alive as a karvi executable and an `askpass-*.sock` that refuses a
+connection, at every admission, at the daemon's start, and at a login's start,
+logged as `scratch_abandoned_removed`; anything else in the folder is left.
+*Why:* a shell session's `ssh` under a dead parent kept the remote shell, since
+EOF on a pty does not end it: a router's vty until its exec-timeout, a server's
+shell for good, and a killed login's `ssh` fought the shell for the terminal
+(executed); in individual mode the scratch is on disk, so every kill's files
+stayed. *Not taken:* a sweep of orphaned `ssh` processes (the session held
+until karvi next runs); `ServerAlive` (the device answers it); a sweep by age (a
+recorded login runs for hours); `karvi-prune` (no configuration, no judgement
+of an owner alive).
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live
@@ -1940,8 +1961,8 @@ and removed after; no raw copy is kept. A timing log that cannot be read leaves
 the transcript rendered at the columns the session started with and no resize,
 under the notice `transcript_timing_unreadable`. A session killed before its end
 keeps its raw bytes and leaves its timing log in the scratch, as it leaves its
-`ssh` configuration there; nothing sweeps the scratch. The limits: a key the far
-end does not echo cannot appear,
+`ssh` configuration there, for the next activity's sweep. The limits: a key the
+far end does not echo cannot appear,
 a full-screen program comes out as its text in the order drawn, and a device
 that shows a long line as a scrolled window records the window (runbook row
 D16 records IOS XE's). *Why:* the echo of a line editor's keys is backspaces,
