@@ -1,27 +1,27 @@
 {
   "application": "karvi",
-  "version": "0.26.0",
-  "release_date": "2026-10-04",
+  "version": "0.27.0",
+  "release_date": "2026-10-06",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.25.0: the configuration registry moves from 22 to 24 (display.record.header, display.record.footer, and display.collection.footer added; output.files.failures-jsonl replaced by output.files.errors-jsonl, the job's errors.jsonl) and the execution plan from 9 to 10 (the collection block's word and suffix; a schema-9 plan is refused); the daemon IPC schema and every other counter are 0.25.0's (daemon IPC 10, scoreboard 3, configuration schema 6, command record 2, job 2, credential package 1, plan report 1); the scratch root and the capacity ledger shared across operators, made by setup shared; the credential prompts edited as stream mode is, Ctrl-C there ending karvi; --cd and --fs on run and command; the collection line a display template, replacing crun's result line on standard error; run's Dispatch options under their keys' locks and ranges; manual pages for every executable and command word; a reference configuration that loads; NO_COLOR; the documentation as HTML (make html, tools/md-to-html, goldmark vendored for the tool alone); a running 0.25.0 daemon is compatible: false on the version alone and is restarted; see CHANGELOG.md",
+  "behavior_change_from_previous": "a minor release on 0.26.0: the configuration registry moves from 24 to 26 (a platform's channel and fallback in place of control-master; ssh.identities added and ssh.pubkey-authentication removed; the top-level scoreboards in place of watch.directory), the execution plan from 10 to 11 (each target's channel, the run's bounds, and a command's own timeout and byte limit; a schema-10 plan is refused), the command record from 2 to 3 (every record's channel, an exec command's exit status and stderr), and the credential package from 1 to 2 (the operator's keys by path and fingerprint); the daemon IPC schema and every other counter are 0.26.0's (daemon IPC 10, scoreboard 3, configuration schema 6, job 2, audit 1, plan report 1); Linux servers over the exec channel on both transports, with the built-in linux and linux_shell, the operator's own keys, a server's collection, and the fake device's Linux persona; the shell's output and a recorded login's transcript as the terminal showed them; --timeout and --maxbytes, a command's own bounds, and a run through the daemon bounded as its invocation said; stream mode's one dash or two and the commands that stay; one rule for ~ and a relative path in every place key, no operator's run making a place setup shared makes, and config show --explain naming every place; the trust store following the private root; karvi-prune walking every private root; a running 0.26.0 daemon is compatible: false on the version alone and is restarted; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
-  "configuration_registry_schema_version": 24,
-  "command_record_schema_version": 2,
+  "configuration_registry_schema_version": 26,
+  "command_record_schema_version": 3,
   "daemon_ipc_schema_version": 10,
   "scoreboard_schema_version": 3,
   "audit_schema_version": 1,
   "job_schema_version": 2,
-  "execution_plan_schema_version": 10,
-  "credential_package_schema_version": 1,
+  "execution_plan_schema_version": 11,
+  "credential_package_schema_version": 2,
   "plan_report_schema_version": 1,
   "included_binary_profile": "scrapligo-v1-native-linux-amd64",
   "build": {
     "go_version": "go1.27.1",
     "official_go_floor": "1.26.0",
-    "source_identity": "source-release-v0.26.0",
-    "build_time": "2026-10-04T00:00:00Z",
+    "source_identity": "source-release-v0.27.0",
+    "build_time": "2026-10-06T00:00:00Z",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
@@ -29,15 +29,15 @@
     "build_tags": "none (every build carries the adapter)"
   },
   "source_statistics": {
-    "go_files_outside_vendor": 415,
-    "go_lines_outside_vendor": 84935,
-    "named_top_level_tests": 783,
-    "packages": 79
+    "go_files_outside_vendor": 445,
+    "go_lines_outside_vendor": 94035,
+    "named_top_level_tests": 875,
+    "packages": 83
   },
   "binaries": {
     "karvi-linux-amd64": {
-      "bytes": 11931808,
-      "sha256": "7ef14c28fb4cc61d7b399b1692e463fe364408672705a1d93f2da5fe846b97ed",
+      "bytes": 12214432,
+      "sha256": "d65fa11a44f4bbd701b77feceed2ad06fba51ea39fbd04b5f66525594bb07815",
       "reported_ssh_transports": [
         {
           "id": "scrapligo-v1",
@@ -54,16 +54,16 @@
       "native_transport": "compiled-in (scrapligo v1.4.2)"
     },
     "karvi-askpass-linux-amd64": {
-      "bytes": 3895456,
-      "sha256": "0c6e968d29dcdce910f8450060938a1a031cd325324fd5008f118118a7bcfccb"
+      "bytes": 3899552,
+      "sha256": "715f856a5ea471f253f5c1187e2a0bba97772207a66097c1af84f5b60b0efec7"
     },
     "karvi-prune-linux-amd64": {
-      "bytes": 3760288,
-      "sha256": "a5c31e6e767d55ba610772e77553999ff27a958d24d5b142dd98081ebf38cae1"
+      "bytes": 3772576,
+      "sha256": "aae07e587e36a242b75929952997ba6c939b4661e1c7b8a271909f53b2212f63"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.26.0 - 2026-10-04"
+    "changelog": "CHANGELOG.md 0.27.0 - 2026-10-06"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only",
@@ -94,14 +94,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "none: the daemon IPC schema has been 10 since v0.20.0 and no release has moved it, so no earlier executable's daemon differs in schema from this client's; the compatibility example ran before the number was committed: the released v0.25.0 daemon reported compatible: false to this client on the version alone, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "none: the daemon IPC schema has been 10 since v0.20.0 and no release has moved it, so no earlier executable's daemon differs in schema from this client's; the compatibility example ran before the number was committed: the released v0.26.0 daemon reported compatible: false to this client on the version alone, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 24 (22 at v0.25.0): display.record.header, display.record.footer, and display.collection.footer added; output.files.failures-jsonl removed and refused with config_key_removed, its successor output.files.errors-jsonl"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 26 (24 at v0.26.0): a platform's channel and fallback added and its control-master removed (refused as config_unknown_key); ssh.identities added; ssh.pubkey-authentication removed and refused with config_key_removed; watch.directory removed and refused with config_key_removed, its successor the top-level scoreboards"
   },
   "native_dependency": {
     "module": "github.com/scrapli/scrapligo",
@@ -122,7 +122,7 @@
     "native_scrapligo_build": "passed (scripts/verify-release.sh)",
     "real_cisco_iosxe": "not-run",
     "production_scale": "not-run",
-    "parity_suite_system_and_scrapligo_v1": "passed (fake IOS XE device)",
+    "parity_suite_system_and_scrapligo_v1": "passed (the fake device's IOS XE and Linux personas)",
     "gofmt": "passed",
     "lifecycle_replay": "skipped: no release whose daemon IPC schema differs from this client's",
     "host_shared_places_unchanged": "passed (scripts/lib/host.sh in both verifiers)",
@@ -130,9 +130,9 @@
     "release_tree_clean_at_tag": "passed (nothing untracked, no empty directory)"
   },
   "previous_release": {
-    "version": "0.25.0",
-    "git_tag": "karvi-v0.25.0",
-    "notes": "a minor release on 0.24.0; every release is installed as new"
+    "version": "0.26.0",
+    "git_tag": "karvi-v0.26.0",
+    "notes": "a minor release on 0.25.0; every release is installed as new"
   },
   "vendored_modules": [
     "github.com/scrapli/scrapligo v1.4.2",

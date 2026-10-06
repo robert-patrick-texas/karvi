@@ -1,4 +1,4 @@
-# ScrapliGo v1.4.2 integration evidence — karvi v0.26.0
+# ScrapliGo v1.4.2 integration evidence — karvi v0.27.0
 
 The authoritative module declares:
 
@@ -25,8 +25,9 @@ x/crypto transport with the host-key policy in the handshake, and the session
 logic is karvi's device session shared with the `system` transport
 ([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](../docs/TRANSPORT-DRIVER-ARCHITECTURE.md)).
 The parity suite (`scripts/native-smoke-test.sh`, in both verifiers) runs every
-case as `command` and `run` over both transports against the fake IOS XE device
-built from the tree and compares the records path by path.
+case as `command` and `run` over both transports against the fake device built
+from the tree, its IOS XE persona and, for the exec channel, its Linux persona,
+and compares the records path by path.
 
 None of this is device qualification: the Catalyst 9300 and ISR 4451-X matrix of
 [`docs/CISCO-IOSXE-QUALIFICATION.md`](../docs/CISCO-IOSXE-QUALIFICATION.md) is
