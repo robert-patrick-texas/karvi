@@ -988,15 +988,30 @@ trust store (the owner checks refuse one); the home under `auto` whatever
 `basedir` already applies; a refusal or a move for a store left in the home by
 an earlier release (the operator re-enrolls under `accept-new`).
 
-**`config show --explain` names the resolved path of the two private places.**
-For `basedir` and `ssh.known-hosts-file` the explain view adds `resolved:
-PATH`, the path the operator's next activity would use, found by the same rule
-without creating anything: where the site's `users` exists and the operator's
-folder does not yet, the folder the first activity makes. A controlled
-enrollment takes the store's path from it. *Why:* under `auto` the store's path
-depends on what the host holds, and nothing printed it. *Not taken:* a new
-command word for paths; the rule repeated in shell in each site's scripts; the
-line for every place key at once (on the roadmap).
+**`config show --explain` names the resolved path of every place.** Every key
+whose value is a place karvi writes or reads has a `resolved: PATH` line, the
+path the operator's next activity would use: `basedir`, the trust store, the
+three trees, `tempdir`, `spooldir`, the control sockets, `scoreboards`, the
+ledger's root, the daemon's socket, and, when set, `audit.file`, the inventory
+sources' and the credential backends' files; an explicit value has it too,
+an empty one none. Each chain is found by its own chooser, the one the
+activity's maker calls, without creating anything: a candidate present is
+judged by `access(2)`, its owner and mode where the place is private, and the
+free inodes of its filesystem; one absent is the folder the activity would
+make where its rule lets it. A candidate present and passed by adds a
+`passed:` line with the reason, in the activity's words where it warns; a
+refusal is `resolved:   error: CODE: message`, and the view exits 0. The lines
+come from the configuration the invocation loads; a daemon already running
+keeps the places it started with until it is restarted. The view takes several
+keys, and the whole table is a recipe over it ([`docs/FILES.md`](FILES.md)). A
+controlled enrollment takes the store's path from the line. *Why:* under
+`auto` a place depends on what the host holds, and the view printed none but
+two, so the two modes looked alike and a literal default named a place the
+activity did not use. *Not taken:* a new command word or option for paths; the
+rule repeated in shell in each site's scripts; a probe file written by the
+view (it moves the shared trees' times); `--explain` asking a running daemon;
+`sharedroot`, `logging.file`, and `crun.after` (no one place, no use, not a
+place).
 
 **The host-key identity is the canonical name and, off port 22, the port.**
 Both transports enroll and look up `name` on port 22 and `[name]:PORT`
@@ -1857,6 +1872,42 @@ replace a ledger another wrote); a suite-wide rule that an explicit path is
 never created (the suites point these keys at folders of their work
 directory, whose parent exists).
 
+**No operator's run makes a place `setup shared` makes.** The scratch root,
+`/opt/karvi` and `/var/lib/karvi`, their `users` and `shared`, and the trees
+under `shared` are the site's, whether a path reaches them by `auto` or
+explicitly; inside those that exist an operator's run makes only its own
+folders. An explicit path that would need one made is refused before any
+device is contacted (`shared_directory_absent`, naming `sudo karvi setup
+shared` and the key). One guard, where the scratch, spool, and private chains
+make their directories, finds the missing components. *Why:* an explicit
+`tempdir`, `spooldir`, or control-path root under an absent `/dev/shm/karvi`
+made it at 0700, the operator's, closed to every other until root repaired
+it; only the scoreboards and the ledger refused to make a missing parent.
+*Not taken:* guarding the scratch root alone (a writable `/opt` would repeat
+it); a fallback for such an explicit path (an explicit value replaces its
+chain).
+
+**One rule for `~` and a relative path.** In every place key and every file
+key, `~` and `~/…` are the operator's home from the password database,
+`~user` is refused, and a relative path is taken from the invoking client's
+working directory and made absolute. *Why:* four rules had grown: the audit
+file took `$HOME`, a relative trust store the home, the scoreboards and the
+ledger ignored `~` without a word, and `daemon.socket` broke on any value but
+an absolute path. *Not taken:* refusing a relative path (`--cd ./out` uses
+one); a path relative to the file that sets it (a `--set` has no file).
+
+**The scoreboards are one place, read where they are written.** `scoreboards`
+(`auto`: `/dev/shm/karvi/scoreboards` where the scratch root exists, else
+`<basedir>/state/scoreboards`) is where every activity writes its file;
+`sessions.shared-capacity-root` takes `auto` by the same shape. `karvi watch`
+makes nothing and reads every place of the chain that exists, the shared
+folder and the operator's private fallback, one row per job. *Why:* the key
+was `watch.directory`, a literal path, while the writers, the folders, and
+`karvi-prune --scoreboards` said scoreboards; `watch` made the private root
+and, with the shared folder closed, did not show the operator's own jobs
+written to the fallback. *Not taken:* `watch` reading the first usable place
+alone, or the fallback alone (it loses the team's view).
+
 **Login transcripts record the device stream only.** `--record[=PATH]` writes
 `<device>-<HHMMSS>.log` and its metadata side by side in a day folder,
 exclusively created and bumped together on collision; the transcript holds what
@@ -1939,8 +1990,11 @@ that writes a backspace and then a space).
 **Retention is a helper of its own, walking `YYMMDD` day folders under both
 roots.** `karvi-prune` reads no configuration; its eight flags carry the
 settings' names (`--basedir`, `--sharedroot`, `--scoreboards`, `--days`,
-`--minfree`, `--dry-run`, `--verbose`, `--format text|jsonl`). It walks `jobs`
-and `transcripts` under the private and the shared root, never `crun`;
+`--minfree`, `--dry-run`, `--verbose`, `--format text|jsonl`). It walks `jobs`,
+`transcripts`, and `state/scoreboards` under every private root of the
+invoking operator's that exists (the site's `users/<user>` and the home's), or
+as root each site user root, and `jobs`, `transcripts`, and the scoreboards in
+the shared places, never `crun`, making nothing;
 ownership decides (a run removes what the invoking user owns and passes the
 rest by; root removes everything eligible); a removal that fails is one line
 and the run goes on; the free-space floor is judged per filesystem. Empty day

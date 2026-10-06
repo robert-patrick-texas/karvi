@@ -4417,3 +4417,410 @@ lab build (02:44:20 to 02:48:03 UTC), the released `bin/` unchanged.
 - A shell response whose last line has no newline shares that line with the
   prompt, and the line leaves with it (`fold`'s last line; the previous build
   alike): the prompt rule, unchanged.
+
+## 28. The resolved path of every place key (2026-10-06)
+
+The roadmap item "The resolved path of every place key", widened by the
+operator to directory paths and files generally: `config show --explain`
+names, on a `resolved:` line, the path the next activity would use for each
+key whose value is a place, as chapter 23 did for `basedir` and
+`ssh.known-hosts-file`.
+
+**What it gains.** An operator or an administrator reads each place
+[`docs/FILES.md`](FILES.md) describes from the host itself, by the rule that
+applies there (shared or individual mode, a closed shared folder, an explicit
+setting), where today each chain is rebuilt by hand from the tables, and a
+site's scripts take a path from the line instead of repeating a chain in
+shell, as the enrollment recipe does since chapter 23. It waits on nothing,
+but for `logging.file`, which has no use and waits on its own decision.
+
+**Executed: the ground.** On a lab build of `2cdc5cc` in a private mount
+namespace, tmpfs over `/tmp`, `/dev/shm`, `/opt`, `/etc/tmpfiles.d`, and the
+home's `.local/share`, a configuration setting only the inventory and
+`accept-new`, so every place key at its default. In each mode each key's
+`--explain`, then one `command` and one daemon `run` against this host over
+`system`, then what existed. Individual mode, before any activity:
+
+```text
+  basedir                        "auto"                       -> /home/netops/.local/share/karvi
+  ssh.known-hosts-file           "auto"                       -> /home/netops/.local/share/karvi/known_hosts
+  output.root                    "auto"                       (no line)
+  tempdir                        "auto"                       (no line)
+  spooldir                       "auto"                       (no line)
+  ssh.control-path-root          "auto"                       (no line)
+  watch.directory                "/dev/shm/karvi/scoreboards" (no line)
+  sessions.shared-capacity-root  "/dev/shm/karvi/capacity"    (no line)
+  daemon.socket                  "auto"                       (no line)
+```
+
+The activities then took `<basedir>/jobs`, `<basedir>/tmp`,
+`<basedir>/socket/ssh`, `<basedir>/state/scoreboards`,
+`<basedir>/state/capacity`, `<basedir>/socket/daemon.sock`, and
+`/tmp/karvi-1000`. After `setup shared` the lines were the same but for
+`basedir` (`/opt/karvi/users/netops`) and the store, while the places moved:
+`/opt/karvi/shared/jobs/261005`, `/dev/shm/karvi/netops`,
+`/dev/shm/karvi/netops/sockets`, `/dev/shm/karvi/scoreboards`,
+`/dev/shm/karvi/capacity`, the daemon's socket under `users/netops`; the
+spool stayed `/tmp/karvi-1000`. Nothing in the view told the two modes apart,
+and for the two keys whose default is a literal path the value named the
+shared place while the activity used the private fallback.
+
+**Issue 1, which keys, agreed.** `config show --explain` prints `resolved:
+PATH` for every key whose value is a place karvi writes or reads: `basedir`
+and `ssh.known-hosts-file` as now; the directories karvi writes,
+`output.root`, `transcript.root`, `crun.directory`, `tempdir`, `spooldir`,
+`ssh.control-path-root`, `watch.directory`,
+`sessions.shared-capacity-root`, and `daemon.socket`; and, when the value is
+set, the files karvi writes or reads, `audit.file`, `inventory-source.N.path`,
+and the credential backends' `path`, `ca-file`, `client-cert-file`, and
+`client-key-file`, each the absolute path the activity opens. An explicit
+value has the line too, the path as the activity takes it; an empty value has
+none. No line for `sharedroot` (each tree asks the roots on its own, so it has
+no one answer, and the trees' lines give it), for `logging.file` (no use; its
+decision), for `crun.after` (an executable to run, not a place), or for the
+fixed files under `basedir` (not keys; the `basedir` line places them). Not
+taken: the roadmap's eight alone, which would leave out the control sockets
+[`docs/FILES.md`](FILES.md) lists beside them and the files; a line for every
+key.
+
+**Action, the operator's: `watch.directory` and the scoreboards should
+match.** Revisited as its own issue of this chapter: the place `karvi watch`
+reads against the place the activities write (the writer falls back when the
+shared folder is closed, the reader only when it is absent, and `watch` makes
+the private root to find its fallback), and the names and the default (the
+key `watch.directory`, the place FILES calls the scoreboards, `karvi-prune
+--scoreboards`, a literal default where the other places say `auto`).
+
+**Issue 2, finding a chain without creating anything, agreed.** The chains
+decide by acting: `tempdir` and `spooldir` make each candidate and write a
+probe file in it, the three trees write a probe file in the shared tree, and
+the scoreboards and the ledger make their folder in an existing parent.
+Executed in the namespace after `setup shared`, a judgement by permissions
+alone (`test -w` and `test -x`, `access(2)`) against where a `command` then
+went:
+
+```text
+== case 1: the scratch root present, the operator's folder absent
+  exists, writable  /dev/shm/karvi
+  absent            /dev/shm/karvi/netops
+  command exit=0
+  exists, writable  /dev/shm/karvi/netops           <- taken, as judged
+== case 2: the operator's scratch folder closed (0500)
+  exists, closed    /dev/shm/karvi/netops
+  exists, writable  /opt/karvi/users/netops
+  absent            /opt/karvi/users/netops/tmp
+  command exit=0
+  exists, writable  /opt/karvi/users/netops/tmp     <- passed to the next, as judged
+== case 3: the shared jobs tree closed to the operator (root's, 0755)
+  exists, closed    /opt/karvi/shared/jobs
+  command exit=9
+  output_directory_not_writable: the shared jobs tree /opt/karvi/shared/jobs exists and the operator cannot create files in it (...)
+== case 4: /tmp out of inodes, the spool folder there and open
+  free inodes on /tmp: 0
+  exists, writable  /tmp/karvi-1000
+  a probe file: mktemp: ... No space left on device
+  command exit=0
+  exists, writable  /var/tmp/karvi-1000             <- passed by; permissions alone said /tmp/karvi-1000
+```
+
+The rule: nothing is written; each candidate is judged as the activity judges
+it. One that exists must be a real directory, not a link, that the operator
+can write and search (`access(2)`), the private places (the control sockets)
+with their owner and mode checked too, and one on a filesystem that counts
+inodes and has none free is passed by as the probe passes it. One that is
+absent is the folder the activity would make, where the activity's own rule
+lets it: for the scratch and spool chains (`MkdirAll`) the nearest existing
+ancestor a writable real directory; for the scoreboards and the ledger the
+parent itself present and writable, an absent parent giving the private
+fallback as now. Each chain has one chooser that reads the file system, as
+`chooseBaseDir` is the private root's, called by the activity's maker and by
+the twin `--explain` uses; the maker keeps its creation and its probe, the
+activity's real test unchanged. What only a write shows, a network
+filesystem's refusal on the server or a quota per user, can still differ;
+[`docs/FILES.md`](FILES.md) says the line is judged by permissions and free
+inodes. Not taken: the probe file from `--explain` (it leaves nothing, but it
+writes in the shared trees and moves their times, and chapter 23's precedent
+creates nothing); the first candidate alone (wrong in cases 2 and 4); the
+activities judging by `access(2)` too (the two agree by a weaker test).
+
+**Issue 3, a candidate passed by or refused, agreed.** A chain ends three
+ways, executed in the namespace after `setup shared`. Refused: with
+`/opt/karvi/users` at 0777 and no folder for the operator, the `command`
+exited 9 with `private_directory_not_writable: /opt/karvi/users is writable
+by everyone (mode 0777); …`, and the view already printed the same code and
+message, `config show` exiting 0:
+
+```text
+  resolved:   error: private_directory_not_writable: /opt/karvi/users is writable by everyone (mode 0777); ...
+```
+
+Passed by with a warning: with the scoreboards and the ledger closed to the
+operator the `command` warned `shared capacity root unavailable
+(capacity_root_unusable: …); using private fallback
+/opt/karvi/users/netops/state/capacity` and `shared scoreboard directory
+unavailable (/dev/shm/karvi/scoreboards: permission denied); using private
+fallback /opt/karvi/users/netops/state/scoreboards`, while the view showed
+`value: "/dev/shm/karvi/scoreboards"` and no line. Passed by in silence:
+issue 2's cases 2 and 4, the scratch and the spool moved and nothing said why.
+
+The rule: a candidate taken is `resolved:   PATH`, as now. A refusal is
+`resolved:   error: CODE: message`, the code and message the activity refuses
+with, as `basedir`'s is; `config show` exits 0, a view, and a script reading
+the line tests for `error:`. A candidate passed by is `resolved:   PATH`, the
+one taken, followed by one `passed:` line for each earlier candidate that
+exists and was passed by, with its reason: the activity's own words where it
+warns, else issue 2's judgement (`not writable by the operator`, `not a real
+directory`, `no free inodes`). An absent candidate is not listed: absence is a
+host's ordinary state, and the activity passes it in silence too. For the
+scoreboards above:
+
+```text
+value:      "/dev/shm/karvi/scoreboards"
+resolved:   /opt/karvi/users/netops/state/scoreboards
+passed:     /dev/shm/karvi/scoreboards: not writable by the operator
+```
+
+It answers issue 1's finding too: a literal default's value names a place the
+activity does not use, and the lines under it say so. Not taken: the reason on
+the `resolved:` line (the enrollment recipe's `sed -n 's/^resolved: *//p'`
+would no longer give a path); every candidate listed, the absent ones too;
+an exit other than 0 for a refusal (`--explain` without a key prints every
+key, and one refused place would fail the view); a warning on standard error
+from the view.
+
+**Issue 4, whose configuration, settled by the operator.** Executed in the
+namespace: a daemon started under the lab configuration, every place at its
+default, then a client setting `tempdir`, `spooldir`, and `output.root` to
+lab folders, once through that daemon and once in process:
+
+```text
+== a run through that daemon with the same three settings
+  run exit=0
+  ls: cannot access '/mnt/lab/s28/t4': No such file or directory     <- tempdir ignored
+  ls: cannot access '/mnt/lab/s28/sp4': No such file or directory    <- spooldir ignored
+  /mnt/lab/s28/o4                                                    <- output.root honoured
+== the same settings, in process (command)
+  /mnt/lab/s28/o4
+  /mnt/lab/s28/sp4
+  /mnt/lab/s28/t4
+```
+
+The plan carries the trees the client resolved; the daemon resolves
+`tempdir`, `spooldir`, `ssh.control-path-root`, `watch.directory`, and
+`sessions.shared-capacity-root` from the configuration it started with.
+`basedir` and `daemon.socket` choose the daemon the client reaches, so they
+agree by construction. The rule: `config show --explain` resolves every line
+from the configuration the invocation loads (the site's and the operator's
+files, `--config`, `KARVI__`, `--set`), as the next activity in process would
+use it, and never consults a running daemon. A daemon started under another
+configuration keeps its own places for those five keys until the operator
+restarts it: the operator checks a new configuration's places with
+`--explain`, then restarts the daemon. [`docs/FILES.md`](FILES.md) and the
+view's help say so in one sentence; nothing warns or refuses. The roadmap item
+"A job under its client's configuration" gains the places: a job's
+directories and files resolved as its client resolved them, which holds while
+the client and the daemon share the host, the request travelling over the
+operator's Unix socket; the ledger's place moves from the process's side to
+the job's, the in-flight limit staying the process's. Not taken: the five
+keys carried in the plan now (the roadmap item's work, done once for every
+key); `--explain` asking the daemon; a warning when the client's places and
+the daemon's differ.
+
+**Issue 5, `~` and a relative path, agreed.** Executed in the namespace, the
+account's home (`/home/netops`, the password database's) a tmpfs holding only
+a copy of the key, `HOME` a lab folder `h`, the working directory a lab
+folder `wd`, each place key set to `~/NAME` and then to a relative `rNAME`
+for one `command` in process, `daemon.socket` for a daemon `run`:
+
+| Key | `~/NAME` went to | relative `rNAME` went to |
+|---|---|---|
+| `tempdir`, `spooldir`, `output.root`, `ssh.control-path-root` | the account's home | the working directory |
+| `ssh.known-hosts-file` | the account's home | the account's home |
+| `audit.file` | `$HOME` (`h/auditf`) | the working directory |
+| `watch.directory`, `sessions.shared-capacity-root` | nowhere: the parent `~` absent, the private fallback taken in silence | the working directory |
+| `daemon.socket` | a folder named `~` in the working directory, then exit 112, `ipc_result_malformed: daemon validation: credential_channel.socket must be an absolute path` | `d.sock` in the working directory, then the same |
+
+Four rules, and one key that no value but an absolute path works for; the
+files of issue 1 (the inventory, the credentials) already take `~` from the
+password database and a relative path from the working directory. The rule,
+one function for every place key and every file key of issue 1: `~` and
+`~/…` are the operator's home from the password database, `~user` refused
+(`path_other_user_home_unsupported`); a relative path is taken from the
+invoking client's working directory and made absolute (a daemon a client
+started resolves from that client's, issue 4's concern of the operator's);
+the `resolved:` line prints the result, the `value:` line what the operator
+wrote. It changes `audit.file` (no `$HOME`), a relative trust store (the
+working directory, not the home), `watch.directory` and the ledger's root
+(`~` honoured), and `daemon.socket` (`~` and a relative path made absolute,
+no exit 112). Not taken: refusing a relative path (`--cd ./out` and the
+trees' documented rule use it); a path relative to the configuration file
+that sets it (a `--set` or `KARVI__` value has no file; includes keep their
+own rule); the trust store's relative path left under the home (two rules
+again); `$HOME` anywhere.
+
+**Issue 6, the scoreboards, the operator's action, agreed.** Executed in the
+namespace, individual mode and then after `setup shared` with
+`/dev/shm/karvi/scoreboards` closed to the operator (root's, 0755), each
+scoreboard aged three days and `karvi-prune --days 1 --dry-run --verbose`:
+
+```text
+== individual: watch before any activity
+  watch| (no retained activities)
+  /home/netops/.local/share/karvi                          <- watch made the private root
+== individual: a command, then watch and prune
+  board: /home/netops/.local/share/karvi/state/scoreboards/261006-003336-00.json
+  watch|   261006-003336-00  00:33:37  completed   netops    cmd   1/1   0   0  srv1
+  prune| walk kind=scoreboard path=/dev/shm/karvi/scoreboards    <- the board aged 3 days, --days 1: not walked
+== shared, the scoreboards closed to the operator: a command, then watch and prune
+  warning: shared scoreboard directory unavailable (/dev/shm/karvi/scoreboards: permission denied); using private fallback /opt/karvi/users/netops/state/scoreboards
+  board: /opt/karvi/users/netops/state/scoreboards/261006-003337-00.json
+  watch| (no retained activities)                            <- the operator's own job is invisible
+  prune| walk kind=scoreboard path=/dev/shm/karvi/scoreboards
+```
+
+`karvi watch`, a view, made the private root (it calls `ResolveBaseDir`);
+it read the fallback only when the shared folder was absent, so with the
+folder closed the operator's own job, written to the fallback, was not on the
+screen; `karvi-prune` walks `--scoreboards` alone, so the fallback is never
+pruned, on every host without the scratch root. And the names did not match:
+the place is the scoreboards in [`docs/FILES.md`](FILES.md), in
+`karvi-prune --scoreboards`, and in `<basedir>/state/scoreboards`, while the
+key, which every activity writes by and `watch` only reads, was
+`watch.directory`, its default a literal path where the other places say
+`auto`.
+
+The rule, in three parts. (a) `watch.directory` becomes the top-level key
+`scoreboards` (`KARVI__SCOREBOARDS`) beside `tempdir` and `spooldir`, default
+`auto`: `/dev/shm/karvi/scoreboards` where the site's scratch root
+`/dev/shm/karvi` exists (the folder made in it, with the root's bits, when
+missing), else `<basedir>/state/scoreboards`; a folder present but closed is
+passed by with its warning and its `passed:` line (issue 3). An operator's
+run never makes `/dev/shm/karvi`: that is `setup shared`'s, and a root an
+operator made would close it to the others and take root to repair. An
+explicit path replaces the chain, used or refused, as every other place key's
+is. `sessions.shared-capacity-root` keeps its name and takes `auto` by the
+same shape, `/dev/shm/karvi/capacity` where the scratch root exists, else
+`<basedir>/state/capacity`. `[watch]` keeps the viewer's own settings. A
+breaking change: the registry's counter moves, the suites' settings follow, no
+migration. (b) `karvi watch` makes nothing (`BaseDirPath`) and reads every
+place of the chain that exists, the shared folder where it is readable and
+the operator's private fallback where it holds files, one row per job, so the
+team's jobs and the operator's own both show; under an explicit `scoreboards`
+it reads that folder. (c) `karvi-prune` walks, beside `--scoreboards`,
+`state/scoreboards` under each private root it walks (the operator's own, or
+as root each site user root), its ownership rule unchanged. Not taken: the
+key kept and the mismatch documented; `watch` reading only the first usable
+place (today's defect in the closed case) or only the private fallback (it
+loses the team's view the operator can still read); `karvi-prune` reading the
+configuration (DESIGN keeps it free of one).
+
+(d), agreed: no operator's run makes a place `setup shared` makes, whichever
+key's path passes through it. Executed in the namespace with no scratch root,
+an explicit value under it:
+
+```text
+== tempdir=/dev/shm/karvi/x, no scratch root
+  command exit=0
+  drwx------ netops:netops /dev/shm/karvi
+== spooldir=/dev/shm/karvi/x, no scratch root          (the same)
+== ssh.control-path-root=/dev/shm/karvi/x, no scratch root   (the same)
+== watch.directory=/dev/shm/karvi/x, no scratch root
+  stat: cannot statx '/dev/shm/karvi': No such file or directory
+```
+
+`MkdirAll` made the scratch root at 0700, the operator's, closed to every
+other: what releases before 0.26.0 left and `setup shared` has to repair. The
+rule: the scratch root `/dev/shm/karvi`, `/opt/karvi` and `/var/lib/karvi`,
+their `users` and `shared`, and the trees under `shared` are made by `setup
+shared` alone, whether a path reaches them by `auto` or explicitly. Inside
+those that exist an operator's run makes its own folders, as now: its
+`<username>` folder and `sockets` in the scratch root, a missing `scoreboards`
+or `capacity` with the root's bits, its folder under `users`, the day and job
+folders in the trees. An explicit path that would need one made is refused
+before any device is contacted, with the registered `shared_directory_absent`,
+naming the place, `sudo karvi setup shared`, and the key to set elsewhere;
+`--explain` prints the refusal (issue 3). One guard in the one place that
+makes the scratch, spool, and private chains' directories finds the missing
+components and refuses a setup place among them; it covers all of them, so no
+host's permissions are relied on (an operator reaches only `/dev/shm/karvi`
+where `/opt` and `/var/lib` are root's). With every key at its default nothing
+is refused: in individual mode every place is under `~/.local/share/karvi`,
+the home the password database names, but the spool, `/tmp/karvi-<uid>`
+(then `/var/tmp/karvi-<uid>`), which must cost disk and is never shared.
+Not taken: guarding the scratch root alone (a writable `/opt` would repeat
+it); the root made in the operators' group by an operator's run (the group is
+the site's word, given to `setup`); such an explicit path passed by to a
+fallback (an explicit value replaces its chain).
+
+(e), agreed: `karvi-prune` run by an operator walks every place the
+operator's runs could have written. Executed in the namespace:
+
+```text
+== a fresh host: prune before any activity
+  prune| walk kind=activity path=/home/netops/.local/share/karvi/jobs
+  prune| walk kind=scoreboard path=/dev/shm/karvi/scoreboards
+  /home/netops/.local/share/karvi                     <- prune made the private root
+== after setup shared (the home's job from before still there), prune as the operator
+  prune| walk kind=activity path=/opt/karvi/users/netops/jobs
+  prune| walk kind=activity path=/opt/karvi/shared/jobs
+  prune| walk kind=transcript path=/opt/karvi/users/netops/transcripts
+  prune| walk kind=transcript path=/opt/karvi/shared/transcripts
+  prune| walk kind=scoreboard path=/dev/shm/karvi/scoreboards
+                                                      <- ~/.local/share/karvi not walked
+```
+
+It walked the one private root the chain picks, made when missing, so after
+`setup shared` the jobs an operator left under the home in individual mode
+were never pruned; root's run walked the same. The rule: an operator's run
+walks, where each exists and making nothing, the shared trees under
+`sharedroot` and the shared scoreboards, as now, and every private root of the
+operator's, the site's `users/<user>` under `/opt/karvi` and `/var/lib/karvi`
+and the home's `~/.local/share/karvi`, each one's `jobs`, `transcripts`, and
+`state/scoreboards`; it removes only what the operator owns, as now;
+`--basedir PATH` replaces the private roots with that one. Root's run is
+unchanged, the site's `users` roots and the shared trees, with their
+`state/scoreboards` by (c); an operator's home is the operator's own run's.
+A unit running it as an operator carries the home's root on its
+`ReadWritePaths` line. Not taken: the one root the chain picks (today's gap);
+root walking every home the password database names (a root job reaching into
+the homes, where each operator's own timer covers them).
+
+**Issue 7, every place at once, agreed.** Executed on the lab build:
+
+```text
+== every key
+1595                          <- lines
+177                           <- keys
+== two keys
+cli_positional_unexpected: config show accepts at most 1 positional argument(s), got ["basedir" "tempdir"]
+== a recipe over the whole view, as the lines are today
+basedir                  /tmp/nd.MlEH/s28/pb7
+ssh.known-hosts-file     /tmp/nd.MlEH/s28/pb7/known_hosts
+== a prefix
+key: ssh
+error: not found
+```
+
+The rule: `config show --explain KEY [KEY…]` (and `config show KEY [KEY…]`,
+which implies `--explain`) renders each key named, in the order given, an
+unknown one `error: not found` among the others, so a script takes the few
+places it needs from one load of the configuration. The whole table is a
+recipe, not an option: [`docs/FILES.md`](FILES.md), "A quick look at a
+host", gives
+
+```bash
+karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k": "$0}'
+```
+
+one line per place and per candidate passed by, read from the host, nothing
+created, beside the `stat` recipe for the modes; the help and the manual page
+say the view takes several keys and that `resolved:` and `passed:` follow
+their key. Not taken: a `--places` option or a new command word (chapter 23's
+not-taken, and the recipe gives the table with no surface to keep in step with
+issue 1's list); a prefix or a pattern (`ssh` is an unknown key and says so,
+and a prefix would mix every other key under it); the view without a key
+printing only the keys with a line (it changes the full view for every other
+use).
+
+**The design closed.** The build follows in sections, each committed on the
+operator's word.

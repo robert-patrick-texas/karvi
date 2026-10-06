@@ -58,12 +58,27 @@ from the rule `setup shared` writes; a host where the rule did not run is in
 individual mode for the scratch, the scoreboards, and the ledger until it
 does.
 
-**A quick look at a host.** `karvi config show --explain basedir` and `karvi
-config show --explain ssh.known-hosts-file` name the operator's private root
-and trust store on their `resolved:` lines, by the rule above and without
-creating anything. The shared places and their modes, here as `sudo karvi
-setup shared --group netops` leaves them (`--mode 2775` gives
-`drwxrwsr-x` to the four 2770 directories under `/opt/karvi`):
+**A quick look at a host.** `karvi config show --explain KEY` names on its
+`resolved:` line the place the next activity would use for that key, by the
+rule above and without creating anything: `karvi config show --explain
+basedir` and `karvi config show --explain ssh.known-hosts-file` name the
+operator's private root and trust store. Every place at once, one line for
+each key that names one, and for each candidate passed by on its `passed:`
+line, from the configuration this invocation loads:
+
+```bash
+karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k": "$0}'
+```
+
+```text
+basedir: resolved:   /home/netops/.local/share/karvi
+ssh.known-hosts-file: resolved:   /home/netops/.local/share/karvi/known_hosts
+```
+
+A daemon already running keeps the places it started with until it is
+restarted. The shared places and their modes, here as `sudo karvi setup
+shared --group netops` leaves them (`--mode 2775` gives `drwxrwsr-x` to the
+four 2770 directories under `/opt/karvi`):
 
 ```bash
 stat -c '%A %U:%G %n' /opt/karvi /opt/karvi/users /opt/karvi/shared \
