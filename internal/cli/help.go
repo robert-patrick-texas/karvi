@@ -551,7 +551,7 @@ Options:
 const configHelp = `Usage:
   karvi config generate [--minimal|--full] [--force] [file]
   karvi config validate [--format text|json] [file|dir]
-  karvi config show [--format toml|json] [--explain] [--show-sources] [key]
+  karvi config show [--format toml|json] [--explain] [--show-sources] [key...]
   karvi config colors
 
 Options may appear before or after the positional argument; -- makes a later
@@ -559,6 +559,18 @@ argument beginning with a dash positional. --help shows this text. config
 colors prints every display.colors role in its colour, the configured theme
 first and then the other: the key, the colour, what set it, and the escape.
 Specified, not yet available: config validate --internal.
+
+config show prints the effective configuration. With --explain, or with keys
+named, it prints each key in turn, every key when none is named: its value,
+source, default, environment variable, reload class, and lock; a key not in
+the configuration is error: not found. A key whose value is a place karvi
+writes or reads has, after its default, a resolved: line, the path the next
+activity in process would use, found by the activity's own rule without
+creating anything, or error: CODE: message where the activity would refuse;
+a candidate present on the host and passed by follows as a passed: line with
+its reason. The lines come from the configuration this invocation loads: a
+daemon already running keeps its tempdir, spooldir, ssh.control-path-root,
+scoreboards, and sessions.shared-capacity-root until it is restarted.
 `
 const daemonHelp = `Usage:
   karvi daemon start [--foreground]

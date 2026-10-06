@@ -346,7 +346,7 @@ var commandTable = []*command{
 		subs: []*command{
 			{path: "config generate", word: "generate", shape: shapePlain, maxPos: 1, options: []*option{optMinimal, optFull, optForce, optHelp}, help: func() string { return configHelp }},
 			{path: "config validate", word: "validate", shape: shapePlain, maxPos: 1, options: []*option{optInternal, optFormatTJ, optHelp}, help: func() string { return configHelp }},
-			{path: "config show", word: "show", shape: shapePlain, maxPos: 1, options: []*option{optExplain, optFormatToml, optShowSources, optHelp}, help: func() string { return configHelp }},
+			{path: "config show", word: "show", shape: shapePlain, maxPos: -1, options: []*option{optExplain, optFormatToml, optShowSources, optHelp}, help: func() string { return configHelp }},
 			{path: "config colors", word: "colors", shape: shapePlain, options: []*option{optHelp}, help: func() string { return configHelp }},
 			{path: "config help", word: "help", shape: shapePlain, hidden: true, options: []*option{optHelp}, help: func() string { return configHelp }},
 		}},

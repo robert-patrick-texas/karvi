@@ -488,7 +488,7 @@ func TestParseEveryCode(t *testing.T) {
 		"cli_command_text_missing":  {{"command", "r1"}, {"command", "--target", "r1"}, {"run", "--target", "r1"}, {"run"}},
 		"cli_command_text_mixed":    {{"command", "r1", "--cmd", "show clock", "show", "version"}, {"command", "--target", "r1", "--cf", "f", "show", "clock"}, {"run", "--target", "r1", "--cmd", "x", "show", "clock"}, {"command", "r1", "--cmd", "x", "--", "y"}},
 		"cli_positional_missing":    {{"job", "cancel"}, {"job", "cancel", "--reason", "x"}, {"j", "c"}, {"job", "follow"}, {"j", "f", "--format", "jsonl"}},
-		"cli_positional_unexpected": {{"version", "extra"}, {"watch", "extra"}, {"daemon", "status", "extra"}, {"daemon", "stop", "now"}, {"job", "cancel", "a", "b"}, {"job", "follow", "a", "b"}, {"config", "generate", "a", "b"}, {"config", "show", "a", "b"}, {"config", "validate", "--", "a", "b"}},
+		"cli_positional_unexpected": {{"version", "extra"}, {"watch", "extra"}, {"daemon", "status", "extra"}, {"daemon", "stop", "now"}, {"job", "cancel", "a", "b"}, {"job", "follow", "a", "b"}, {"config", "generate", "a", "b"}, {"config", "validate", "--", "a", "b"}},
 		"commands_file_repeated":    {{"command", "r1", "--cf", "a", "--cf", "b"}, {"run", "--target", "r1", "--cf", "a", "--cf", "a"}},
 		// Malformed selectors, reserved ^ and $, a bare !, and a ! in
 		// --exclude are refused at parse time.
@@ -530,6 +530,10 @@ func TestParsePlainCommands(t *testing.T) {
 	inv = mustParse(t, "config", "show", "--explain", "ssh.host-key-policy")
 	if !inv.Flag(optExplain) || inv.Positional[0] != "ssh.host-key-policy" {
 		t.Fatalf("%+v", inv)
+	}
+	inv = mustParse(t, "config", "show", "basedir", "tempdir", "spooldir")
+	if !reflect.DeepEqual(inv.Positional, []string{"basedir", "tempdir", "spooldir"}) {
+		t.Fatalf("config show takes several keys: %+v", inv)
 	}
 	inv = mustParse(t, "daemon", "stop", "--after", "90s")
 	if inv.Duration(optAfter).Seconds() != 90 {

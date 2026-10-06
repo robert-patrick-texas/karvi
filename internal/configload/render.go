@@ -142,18 +142,35 @@ func tomlValue(v any) string {
 	}
 }
 
-// Resolver names the path a key's value comes to on this host, for the keys
-// whose place depends on what the host holds; ok is false for any other key.
-type Resolver func(key string) (path string, ok bool, err error)
+// Place is where a key's value comes to on this host, as the next
+// activity would find it, nothing created: Path the place taken, Passed the
+// candidates present and passed by before it, Err the activity's refusal.
+type Place struct {
+	Path   string
+	Passed []PassedCandidate
+	Err    error
+}
 
-// Explain renders one or every key with source, default, overrides, lock, and
-// macro trace, and the resolved path where resolve names one (nil names
-// none). Sensitive keys are metadata-only.
-func (s Snapshot) Explain(key string, resolve Resolver) string {
-	keys := []string{}
-	if key != "" {
-		keys = []string{key}
-	} else {
+// PassedCandidate is a candidate present on the host and passed by, with
+// the reason (a `passed:` line).
+type PassedCandidate struct {
+	Path, Reason string
+}
+
+// Resolver names the place a key's value comes to on this host, for the
+// keys whose value is a place karvi writes or reads; ok is false for any
+// other key, and for a file key left empty.
+type Resolver func(key string) (place Place, ok bool)
+
+// Explain renders the keys named, in their order, or every key when none is
+// named, each with source, default, overrides, lock, and macro trace, and
+// where resolve names one (nil names none) a `resolved:` line, the place or
+// `error: CODE: message`, then one `passed:` line per candidate passed by.
+// A key not in the configuration is `error: not found` in its turn.
+// Sensitive keys are metadata-only.
+func (s Snapshot) Explain(names []string, resolve Resolver) string {
+	keys := names
+	if len(keys) == 0 {
 		for k := range s.Values {
 			keys = append(keys, k)
 		}
@@ -161,20 +178,25 @@ func (s Snapshot) Explain(key string, resolve Resolver) string {
 	}
 	var b bytes.Buffer
 	for idx, k := range keys {
+		if idx > 0 {
+			b.WriteByte('\n')
+		}
 		v, ok := s.Values[k]
 		if !ok {
 			fmt.Fprintf(&b, "key: %s\nerror: not found\n", k)
 			continue
 		}
-		if idx > 0 {
-			b.WriteByte('\n')
-		}
 		fmt.Fprintf(&b, "key:        %s\nvalue:      %s\nsource:     %s\ndefault:    %s\n", k, tomlValue(v.Data), v.Source.String(), tomlValue(v.Default))
 		if resolve != nil {
-			if path, ok, err := resolve(k); ok && err != nil {
-				fmt.Fprintf(&b, "resolved:   error: %v\n", err)
-			} else if ok {
-				fmt.Fprintf(&b, "resolved:   %s\n", path)
+			if pl, ok := resolve(k); ok {
+				if pl.Err != nil {
+					fmt.Fprintf(&b, "resolved:   error: %v\n", pl.Err)
+				} else {
+					fmt.Fprintf(&b, "resolved:   %s\n", pl.Path)
+				}
+				for _, p := range pl.Passed {
+					fmt.Fprintf(&b, "passed:     %s: %s\n", p.Path, p.Reason)
+				}
 			}
 		}
 		if e, ok := configschema.Lookup(k); ok {
