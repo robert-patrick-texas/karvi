@@ -61,7 +61,7 @@ func Start(dir string, material credentials.Material) (*Broker, error) {
 		return nil, err
 	}
 	token := hex.EncodeToString(raw)
-	socket := filepath.Join(dir, "askpass-"+token[:16]+".sock")
+	socket := filepath.Join(dir, osutil.AskpassSocketName(token[:16]))
 	ln, err := net.Listen("unix", socket)
 	if err != nil {
 		return nil, err

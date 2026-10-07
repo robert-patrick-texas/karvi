@@ -1175,12 +1175,13 @@ and a recorded login's `script(1)`, is started by `osutil.StartTied`: `SIGTERM`
 as its parent-death signal, the start and the wait on one goroutine that holds
 its OS thread until the wait, since the signal follows the thread that started
 the child. A karvi, client or daemon, killed outright ends the device's session
-as a closed connection does. The scratch's files carry their maker's pid
-(`karvi-ssh-<pid>-*.conf`, `karvi-script-<pid>-*.timing`), and
-`osutil.SweepScratch` removes, owned by the operator, such a file whose pid is
-not alive as a karvi executable and an `askpass-*.sock` that refuses a
-connection, at every admission, at the daemon's start, and at a login's start,
-logged as `scratch_abandoned_removed`; anything else in the folder is left.
+as a closed connection does. The scratch's files and the askpass socket carry
+their maker's pid (`karvi-ssh-<pid>-*.conf`, `karvi-script-<pid>-*.timing`,
+`askpass-<pid>-<16 hex>.sock`), and `osutil.SweepScratch` removes, owned by the
+operator, such an entry whose pid is not alive as a karvi executable, at every
+admission, at the daemon's start, and at a login's start, logged as
+`scratch_abandoned_removed`; anything else in the folder is left, and no
+socket is connected to.
 *Why:* a shell session's `ssh` under a dead parent kept the remote shell, since
 EOF on a pty does not end it: a router's vty until its exec-timeout, a server's
 shell for good, and a killed login's `ssh` fought the shell for the terminal
@@ -1188,7 +1189,10 @@ shell for good, and a killed login's `ssh` fought the shell for the terminal
 stayed. *Not taken:* a sweep of orphaned `ssh` processes (the session held
 until karvi next runs); `ServerAlive` (the device answers it); a sweep by age (a
 recorded login runs for hours); `karvi-prune` (no configuration, no judgement
-of an owner alive).
+of an owner alive); an askpass socket judged by connecting to it (the broker
+serves one connection, so a probe took a live job's and its authentication
+failed, executed); a broker that waits past a connection that sends nothing
+(its one-use rule changed, and a probe still races the helper).
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live

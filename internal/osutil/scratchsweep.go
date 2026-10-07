@@ -1,15 +1,12 @@
 package osutil
 
 import (
-	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 )
 
 // The scratch's files karvi names by its own pid, so that a sweep can tell
@@ -53,15 +50,35 @@ func scratchFileOwner(name string) (int, bool) {
 	return 0, false
 }
 
-// askpassSocketName says whether name is an askpass broker's socket:
-// askpass-<16 lowercase hex>.sock.
-func askpassSocketName(name string) bool {
+// AskpassSocketName is the name of an askpass broker's socket of id (16
+// lowercase hex): askpass-<pid>-<id>.sock, the maker's pid first, so that a
+// sweep judges it as it judges a scratch file. The broker is one-use: a
+// sweep that connected to tell a live socket from an abandoned one would be
+// the connection it serves, and the helper would find no socket.
+func AskpassSocketName(id string) string {
+	return fmt.Sprintf("askpass-%d-%s.sock", os.Getpid(), id)
+}
+
+// askpassSocketOwner reports the pid an askpass socket's name carries, and
+// whether the name is one AskpassSocketName makes.
+func askpassSocketOwner(name string) (int, bool) {
 	middle, ok := strings.CutPrefix(name, "askpass-")
 	if !ok {
-		return false
+		return 0, false
 	}
 	middle, ok = strings.CutSuffix(middle, ".sock")
-	return ok && controlSocketName(middle)
+	if !ok {
+		return 0, false
+	}
+	pidText, id, ok := strings.Cut(middle, "-")
+	if !ok || !controlSocketName(id) {
+		return 0, false
+	}
+	pid, err := strconv.Atoi(pidText)
+	if err != nil || pid <= 0 {
+		return 0, false
+	}
+	return pid, true
 }
 
 // KarviAlive says whether pid is alive as a karvi executable
@@ -75,23 +92,11 @@ func KarviAlive(pid int) bool {
 // is not a karvi executable.
 var scratchOwnerAlive = KarviAlive
 
-// socketAbandoned says whether the Unix socket at path refuses a
-// connection: nothing listens on it. A socket that answers, or fails in any
-// other way, is in use or not judged.
-func socketAbandoned(path string) bool {
-	conn, err := net.DialTimeout("unix", path, time.Second)
-	if err == nil {
-		conn.Close()
-		return false
-	}
-	return errors.Is(err, syscall.ECONNREFUSED)
-}
-
 // SweepScratch removes what a karvi killed outright left in the scratch
 // dir, owned by the effective uid: a scratch file of a name karvi makes
-// (ScratchFilePattern) whose pid is not alive as a karvi executable, and an
-// askpass socket that refuses a connection. Anything else in the directory
-// is not karvi's and is not touched. Each removal is reported through log
+// (ScratchFilePattern) or an askpass socket (AskpassSocketName) whose pid
+// is not alive as a karvi executable. It connects to no socket. Anything
+// else in the directory is not karvi's and is not touched. Each removal is reported through log
 // as scratch_abandoned_removed with the name; the names removed are
 // returned for a test. It runs at the daemon's start, at every admission,
 // and at a login's start.
@@ -105,17 +110,15 @@ func SweepScratch(dir string, log func(name string)) []string {
 	for _, e := range entries {
 		name := e.Name()
 		path := filepath.Join(dir, name)
+		var pid int
+		var ok bool
 		switch {
 		case e.Type().IsRegular():
-			pid, ok := scratchFileOwner(name)
-			if !ok || !ownedBy(e, uid) || scratchOwnerAlive(pid) {
-				continue
-			}
+			pid, ok = scratchFileOwner(name)
 		case e.Type()&os.ModeSocket != 0:
-			if !askpassSocketName(name) || !ownedBy(e, uid) || !socketAbandoned(path) {
-				continue
-			}
-		default:
+			pid, ok = askpassSocketOwner(name)
+		}
+		if !ok || !ownedBy(e, uid) || scratchOwnerAlive(pid) {
 			continue
 		}
 		if os.Remove(path) != nil {

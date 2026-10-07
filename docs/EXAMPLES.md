@@ -5030,13 +5030,16 @@ its maker's pid in its name, `karvi-ssh-<pid>-*.conf` and
 owner; such a file is swept by the spool's rule (`output.SweepSpools`): the name
 karvi makes, owned by the operator, its pid not alive as a karvi executable.
 The askpass socket is swept by the control sockets' rule: the name karvi makes,
-owned by the operator, and refusing a connection. The sweep runs where those
-two run, at the daemon's start and at every admission, and at a login's start,
-which has no admission, over the scratch the invocation resolves; anything else
-in the folder is not karvi's and is not touched. Not taken: a sweep by age (a
-recorded login runs for hours); `karvi-prune` (it reads no configuration, cannot
-judge an owner alive, and would reach the scratch only by a walk of its own);
-every candidate of the chain (the other sweeps take the place resolved).
+owned by the operator, and refusing a connection ([chapter
+33](#33-the-askpass-socket-named-by-its-makers-pid-2026-10-07) replaced it by
+the maker's pid: the probe took a live broker's one connection). The sweep runs
+where those two run, at the daemon's start and at every admission, and at a
+login's start, which has no admission, over the scratch the invocation resolves;
+anything else in the folder is not karvi's and is not touched. Not taken: a
+sweep by age (a recorded login runs for hours); `karvi-prune` (it reads no
+configuration, cannot judge an owner alive, and would reach the scratch only by
+a walk of its own); every candidate of the chain (the other sweeps take the
+place resolved).
 
 **Issue 2, a session's processes end with karvi, agreed.** The ground's first
 and third cases left more than files: on the shell channel the system
@@ -5251,3 +5254,93 @@ then the status, and nothing after a close) would lose the status over `system`
 and be recorded `command_exit_missing`, rightly; whether karvi guards against
 one, for instance by keeping the client's input open so that the master never
 closes first, is an issue of its own.
+
+## 33. The askpass socket named by its maker's pid (2026-10-07)
+
+Found while [chapter
+32](#32-the-lost-exit-status-found-in-the-fake-device-2026-10-07) was verified:
+the full battery's canary suite failed at `r3`, two `run` clients of one
+operator at once through one daemon, each with its own password; one exited
+101, "did not authenticate with its own password". The operator asked for its
+cause from a failing run with the evidence kept.
+
+**What it gains.** Jobs of one operator that overlap over `system` with a
+password authenticate again: in the daemon, or a `run --no-daemon` beside
+another job, since they share the scratch. The defect came with the scratch
+sweep ([chapter 30](#30-the-scratch-sweep-2026-10-06)) and never shipped. It
+waits on nothing.
+
+**The evidence.** The canary suite, `r3` failing:
+
+| Executables | Failed |
+|---|---|
+| the released 0.27.0 | 0 of 15 |
+| `5f4b71d` | 5 of 15 |
+| `46859c9`, `ea88a24`, `2029987` | 0 of 10 each |
+| `295e445`, the sweep | 2 of 10 |
+
+A copy of the suite kept a failing run's work directory. Job a's record read
+`ssh_process_failed`, "exit status 91", the fake `ssh`'s exit when its
+`$SSH_ASKPASS` fails; job b was admitted at 41.784 and job a failed by 41.794;
+no `scratch_abandoned_removed` line anywhere. A lab test with no suite, a
+broker started and the scratch swept before the helper's request:
+
+```text
+sweep=false removed=[] socket after: <nil>; the helper's request: secret: login-secret
+sweep=true removed=[] socket after: stat …/askpass-89714561b2f7725f.sock: no such file or directory; the helper's request: dial: … connect: no such file or directory
+```
+
+**The cause.** The sweep judged an askpass socket by connecting to it and
+closing: one that refused was abandoned. The broker serves one connection: it
+took the sweep's as its one, failed to read a request from it, closed, and
+removed its socket, so the job's helper found none. The sweep removed nothing
+and logged nothing, since the socket had answered.
+
+**The rule.** The broker's socket is `askpass-<pid>-<16 hex>.sock`
+(`osutil.AskpassSocketName`), named by its maker's pid as the scratch's files
+are, and `SweepScratch` removes one whose pid is not alive as a karvi
+executable; it connects to no socket. In the daemon the maker is the daemon,
+so every job's broker stays. A socket under 0.27.0's name is not touched.
+`socketAbandoned` stays with its one user, the control sockets' sweep. The
+changelog's entry for the sweep, `FILES.md`'s row, and the sweep's entry in
+[`DESIGN.md`](DESIGN.md) say so; `TestSweepScratchConnectsToNoSocket` holds a
+live and a dead pid's socket listening and fails if either is connected to.
+
+**Executed.** On a lab build of the change, the canary suite 0 of 20, and the
+full battery passed. A karvi killed outright while its fake `ssh` waited
+before asking for the password, then the next run:
+
+```text
+karvi pid 281855
+srw------- askpass-281855-aa00721117be68e6.sock
+after kill -9:
+srw------- tmp/askpass-281855-aa00721117be68e6.sock
+second run exit 0
+DEBUG scratch_abandoned_removed: removed the abandoned scratch file …/state/tmp/askpass-281855-aa00721117be68e6.sock
+DEBUG scratch_abandoned_removed: removed the abandoned scratch file …/state/tmp/karvi-ssh-281855-4194296846.conf
+askpass sockets left: 0
+```
+
+The control sockets' probe on this host's OpenSSH master: three connections
+made and closed, then `-O check` answered (`Master running`), and a command
+ran with its exit 4. A master serves many clients, so that sweep keeps its
+probe.
+
+**Found on the way.** One executor test kept its scratch under `t.TempDir()`,
+whose path holds the test's name; with the pid the socket's path passed 107
+bytes and the broker failed to start (`askpass_start_failed`). Its harness
+takes `testsocket.Dir`, as the others do, whose base is now at most 56 bytes
+for a name of 37 (an askpass socket under a seven-digit pid). Under this
+session's umask 0002 the smoke suite's work directory was made 0775 and karvi
+refused the trust store in it (`host_key_directory_permission`); fifteen of the
+suites make their work directory by the umask.
+
+**Not taken.** A broker that waits past a connection that sends nothing: its
+one-use rule changed, and a probe still races the helper. No sweep of askpass
+sockets: a killed karvi's would stay. A guard for a 0.27.0 socket's name: no
+migration. The evidence is kept beside the tree
+(`release-design-evidence/r3-sweep-2026-10-07`).
+
+**For later.** The scratch has no check that an askpass socket's path fits, as
+`ssh.control-path-root` has (`control_path_root_too_long`): a long `tempdir`
+fails at the broker's start. The suites' work directories by the umask.

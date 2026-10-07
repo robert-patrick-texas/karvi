@@ -20,6 +20,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/icmpgate"
 	"github.com/robert-patrick-texas/karvi/internal/output"
+	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -104,7 +105,7 @@ func newGateHarness(t *testing.T, ping executionplan.PingSettings, pinger icmpga
 	e := New(Options{
 		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run",
 		Commands: plantest.Commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer",
-		Ping: ping, Pinger: pinger, Capacity: capMgr, Store: store, ScratchDir: filepath.Join(dir, "scratch"), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true",
+		Ping: ping, Pinger: pinger, Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true",
 		Debug: func(s string) { debugLines = append(debugLines, s) },
 	})
 	t.Cleanup(func() {

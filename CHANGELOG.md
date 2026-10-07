@@ -17,14 +17,15 @@
   the device's session: a router's vty until its exec-timeout, a server's shell
   for good, and a killed login's `ssh` competing with the shell for the
   terminal.
-- **The scratch is swept.** The system transport's configuration and a
-  recorded login's timing log are named by their maker's pid,
-  `karvi-ssh-<pid>-*.conf` and `karvi-script-<pid>-*.timing`. One whose maker
-  is not alive as karvi, and an `askpass-*.sock` nothing answers on, is removed
-  at every admission, at the daemon's start, and at a login's start, logged
-  `scratch_abandoned_removed`, where what a killed karvi left had stayed for
-  good, on disk under `<basedir>/tmp` in individual mode. Files under an
-  earlier release's names are not touched.
+- **The scratch is swept.** The system transport's configuration, a
+  recorded login's timing log, and the askpass socket are named by their
+  maker's pid, `karvi-ssh-<pid>-*.conf`, `karvi-script-<pid>-*.timing`, and
+  `askpass-<pid>-<16 hex>.sock`. One whose maker is not alive as karvi is
+  removed at every admission, at the daemon's start, and at a login's start,
+  logged `scratch_abandoned_removed`, where what a killed karvi left had
+  stayed for good, on disk under `<basedir>/tmp` in individual mode. The sweep
+  connects to no socket. Files under an earlier release's names are not
+  touched.
 - **`docs/SSH-TROUBLE.md`, a session that never reaches the prompt.** A guide
   for a `login` that hangs after `login interactive session starting`, or a
   `command` that ends in a prompt timeout: OpenSSH at `-vvv` under karvi through

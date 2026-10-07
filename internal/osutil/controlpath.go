@@ -3,8 +3,12 @@ package osutil
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
+	"net"
 	"os"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
@@ -130,4 +134,16 @@ func SweepControlSockets(root string, log func(name string)) []string {
 		}
 	}
 	return removed
+}
+
+// socketAbandoned says whether the Unix socket at path refuses a
+// connection: nothing listens on it. A socket that answers, or fails in any
+// other way, is in use or not judged.
+func socketAbandoned(path string) bool {
+	conn, err := net.DialTimeout("unix", path, time.Second)
+	if err == nil {
+		conn.Close()
+		return false
+	}
+	return errors.Is(err, syscall.ECONNREFUSED)
 }
