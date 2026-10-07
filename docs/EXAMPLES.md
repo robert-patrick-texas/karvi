@@ -5417,3 +5417,49 @@ reader and the shell's own tools cover them. `json_get` taking a whole
 `.jsonl`: it reads one document by design, and a stream wants the records'
 filter. A comma, or another printable separator: values hold commas, spaces,
 and the `|` of a command line.
+
+## 35. The qualification script's scratch in its short directory (2026-10-07)
+
+The outline's item: the qualification script's default evidence path. Run with
+`FAKE=1` from the tree, every `system` row had failed `askpass_start_failed`,
+and the lab runs since have set `EVIDENCE` to a short path.
+
+**What it gains.** The script runs from where the operator stands, the tree or
+a home, with the evidence where it was made, and no `EVIDENCE` needed for a
+socket's sake. It waits on nothing.
+
+**The cause.** The evidence directory is
+`$PWD/karvi-qualification-<device>-<stamp>`, and karvi's base directory is under
+its `work/`; the scratch, `<basedir>/tmp` by default, is where the askpass
+broker makes its socket, and a Unix socket's path holds 107 bytes. The daemon's
+socket was already in a short directory of the script's own (`SOCKDIR`, from
+`mktemp`) for the same reason. Since [chapter
+33](#33-the-askpass-socket-named-by-its-makers-pid-2026-10-07) the socket's name
+carries the maker's pid, up to seven bytes more, so a run from a directory as
+short as a home overflowed too. `FAKE=1 ROWS=D1` from lab directories of the
+tree's length (24 bytes) and of `/home/netops`'s (12):
+
+```text
+D1 command.system exit: fail (exit 1, expected 107: askpass_start_failed: command failed for name:fake-iosxe)
+askpass_start_failed: listen unix /tmp/nd.OWme/karvi-qualification-fake-iosxe-20261007T164808Z/work/base/tmp/askpass-330093-a9ca6fab80ce94ac.sock: bind: invalid argument
+```
+
+The second path is 111 bytes; with the earlier name it was 105 and fitted.
+
+**The rule.** The default evidence path stays. The script's configuration names
+`tempdir = "$SOCKDIR/tmp"`: the scratch joins the daemon's socket in the short
+directory, removed at exit, and its comment says both. Nothing in the scratch
+is evidence. `control-path-root` is not moved: the script's rows open no exec
+channel, and the runbook's production-server rows make a short directory of
+their own.
+
+**Executed.** With the change, `FAKE=1 ROWS=D1` from both directories passed
+(`command.system` exit 107, parity 3 records equal in 4 streams), and the full
+`FAKE=1` run from the tree's length passed (70 pass, 8 observe, 4 skip), no
+`askpass_start_failed`, no short directory left.
+
+**Not taken.** A default evidence path under `/tmp`: evidence is to outlast the
+run and be found where it was made, and a reboot empties `/tmp`. A shorter
+directory name: a deeper working directory overflows still. karvi refusing a
+scratch too long for its socket with a plain code: the outline's item of its
+own, which names the failure but does not remove it.

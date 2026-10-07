@@ -87,11 +87,13 @@ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 EVIDENCE=${EVIDENCE:-$PWD/karvi-qualification-$DEVICE-$STAMP}
 WORK=$EVIDENCE/work
 KH=$WORK/store/known_hosts
-# The daemon's socket lives in a short temporary directory of its own, not
-# under the evidence: a Unix socket path is bound to about a hundred bytes,
-# and an evidence directory under a deep path would leave every daemon row
-# failing with daemon_serve_failed (bind: invalid argument). The directory
-# is removed at exit; nothing in it is evidence.
+# The daemon's socket and the scratch (tempdir, where the askpass broker's
+# socket is made) live in a short temporary directory of their own, not
+# under the evidence: a Unix socket path is bound to 107 bytes, and an
+# evidence directory under the tree, or even a home, would leave every
+# daemon row failing with daemon_serve_failed and every system row with
+# askpass_start_failed (bind: invalid argument). The directory is removed
+# at exit; nothing in it is evidence.
 SOCKDIR=$(mktemp -d "${TMPDIR:-/tmp}/karvi-qual-sock.XXXXXX")
 SOCK=$SOCKDIR/daemon.sock
 RESULTS=$EVIDENCE/results.tsv
@@ -160,6 +162,7 @@ write_config() {  # policy, further tables; NAMES (inventory names, default DEVI
   } >"$WORK/inv.csv"
   cat >"$WORK/karvi.toml" <<EOF_CFG
 basedir = "$WORK/base"
+tempdir = "$SOCKDIR/tmp"
 sharedroot = "none"
 spooldir = "$WORK/spool"
 scoreboards = "$WORK/base/score"
