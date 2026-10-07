@@ -26,6 +26,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/devsession"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/icmpgate"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/metrics"
@@ -431,6 +432,11 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if e.opts.InFlight != nil {
 		openReq.InFlightBytes = e.opts.InFlight.Counter(d.CanonicalName)
 	}
+	// The key type when this session's handshake stored the device's key
+	// (accept-new), said on the device's first record whether the session
+	// then opens or not.
+	var enrolled enrollment
+	openReq.HostKeyEnrolled = enrolled.set
 	factory := e.factory(selection, algorithms)
 	connectStart := time.Now()
 	e.debugf("device transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, address, port, def.Name)
@@ -442,6 +448,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if e.opts.Metrics != nil {
 		e.opts.Metrics.AddStage("connect", connectDur)
 	}
+	seq.hostKeyEnrolled = enrolled.get()
 	// The set-up the session sent (enable, the paging commands) has no
 	// record; the store shows it in the device's output.TARGET.txt ahead of
 	// the first record's block. It is handed over before any record of the
@@ -510,6 +517,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	finish := func(r *records.CommandRecord, pos int) {
 		if pos == 0 {
 			r.Notices = append(r.Notices, targetNotices(work.Target)...)
+			r.Notices = append(r.Notices, hostKeyNotices(d.CanonicalName, seq.hostKeyEnrolled)...)
 		}
 		if pos == 0 && g != nil && g.report.Decision == records.PingDecisionProceedDegraded {
 			r.Notices = append(r.Notices, records.Notice{Code: "icmp_packet_loss", Message: "ICMP packet loss 50%; proceeding because one validated reply was received", Details: map[string]any{"replies": g.report.Replies, "outcomes": describeOutcomes(g.report.Outcomes)}})
@@ -833,6 +841,7 @@ func (e *DeviceExecutor) emitFailureSet(work Work, dc dispatch.Context, seq devi
 		r.Error = recErr
 		if pos == 0 {
 			r.Notices = append(r.Notices, targetNotices(work.Target)...)
+			r.Notices = append(r.Notices, hostKeyNotices(work.Target.Device.CanonicalName, seq.hostKeyEnrolled)...)
 		}
 		e.appendRecord(r)
 	}
@@ -954,6 +963,10 @@ type deviceSequence struct {
 	// invalid is set when a requested command's declaration does not
 	// compile: nothing is contacted (execution_plan_invalid).
 	invalid error
+	// hostKeyEnrolled is OpenSSH's label of the key type when the device's
+	// session stored its host key, "" otherwise: the host_key_enrolled
+	// notice on the device's first record.
+	hostKeyEnrolled string
 }
 
 // sequence is the target's session-init profile from the plan's table
@@ -1263,8 +1276,21 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 				return r.Error.Code
 			}
 			return ""
-		}()}, Source: map[string]any{}, Details: map[string]any{}})
+		}()}, Source: map[string]any{}, Details: auditDetails(r)})
 	}
+}
+
+// auditDetails is a command_completed event's details: host_key_enrolled,
+// the key type, when the record carries the host_key_enrolled notice (the
+// device's first record after its session stored the key).
+func auditDetails(r records.CommandRecord) map[string]any {
+	details := map[string]any{}
+	for _, n := range r.Notices {
+		if n.Code == "host_key_enrolled" {
+			details["host_key_enrolled"] = n.Details["key_type"]
+		}
+	}
+	return details
 }
 
 func inferredPrompt(canonical, name string, def platform.Definition) string {
@@ -1297,6 +1323,34 @@ func Definition(cfg configload.Snapshot, name string) (platform.Definition, bool
 // targetNotices converts the plan target's planning notices to the record's
 // shape: the code and message as the client wrote
 // them, the string details as the record's details.
+// enrollment holds the key type a transport reports stored, from whichever
+// goroutine its handshake or its reader runs on.
+type enrollment struct {
+	mu    sync.Mutex
+	label string
+}
+
+func (n *enrollment) set(label string) {
+	n.mu.Lock()
+	n.label = label
+	n.mu.Unlock()
+}
+
+func (n *enrollment) get() string {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.label
+}
+
+// hostKeyNotices is the host_key_enrolled notice for a device whose session
+// stored its key of the type label, none when label is empty.
+func hostKeyNotices(device, label string) []records.Notice {
+	if label == "" {
+		return nil
+	}
+	return []records.Notice{{Code: "host_key_enrolled", Message: hostkey.EnrolledMessage(device, label), Details: map[string]any{"key_type": label}}}
+}
+
 func targetNotices(t executionplan.ExecutionTarget) []records.Notice {
 	out := []records.Notice{}
 	for _, n := range t.Notices {

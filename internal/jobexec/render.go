@@ -32,6 +32,10 @@ var ansiRE = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*?(?:\x07|\
 type recordRenderer struct {
 	mu  sync.Mutex
 	out io.Writer
+	// warnOut, when set (sayTo), takes each record's host_key_enrolled
+	// line: the client's standard error.
+	warnOut   io.Writer
+	warnStyle display.LineStyle
 	// daemon says the daemon runs the job: nothing reads the format, so
 	// OnRecord keeps the counts the summary needs and formats nothing
 	// the follower is fed from the file.
@@ -135,6 +139,35 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 	}, nil
 }
 
+// sayTo has the renderer write each record's host_key_enrolled line to w,
+// the client's standard error, before the record, in every format: the
+// in-process job's renderer and a followed job's, not a past job's
+// directory shown again.
+func (r *recordRenderer) sayTo(w io.Writer, cfg configload.Snapshot) {
+	r.warnOut, r.warnStyle = w, DisplayLineStyle(cfg, DisplayTerminal(w))
+}
+
+// EnrolledLines are the client's lines for a record's host_key_enrolled
+// notices (a session that stored the device's host key under accept-new),
+// each EnrolledLine.
+func EnrolledLines(notices []records.Notice, style display.LineStyle) []string {
+	var lines []string
+	for _, n := range notices {
+		if n.Code == "host_key_enrolled" {
+			lines = append(lines, EnrolledLine(n.Message, style))
+		}
+	}
+	return lines
+}
+
+// EnrolledLine is the enrollment's message after "! ", in the display's
+// warning colour when colour is on. It is shown under --quiet, which
+// suppresses the display's other "!" lines: a key trusted unchecked is not
+// narration.
+func EnrolledLine(message string, style display.LineStyle) string {
+	return display.ANSIStyle("! "+message, style.Warning, style.Enabled, display.RoleBold("warning"))
+}
+
 // stoppedStatuses are the statuses a device's requested records repeat when
 // dispatch, a cancel, or a shutdown stopped it: a session-init record with
 // one is hidden.
@@ -166,6 +199,11 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	}
 	if r.err != nil || r.daemon {
 		return
+	}
+	if r.warnOut != nil {
+		for _, line := range EnrolledLines(rec.Notices, r.warnStyle) {
+			fmt.Fprintln(r.warnOut, line)
+		}
 	}
 
 	switch r.format {
@@ -810,17 +848,21 @@ func SummaryLine(summary *records.Summary) ([]byte, error) {
 // for text and json, the verified line bytes for jsonl. It replaces the
 // post-hoc RenderRunOutput on the daemon path.
 type RunRenderer struct {
-	out    io.Writer
-	format string
-	r      *recordRenderer
+	out       io.Writer
+	format    string
+	r         *recordRenderer
+	warnOut   io.Writer
+	warnStyle display.LineStyle
 }
 
-// NewRunRenderer builds the renderer under the invocation's configuration.
-func NewRunRenderer(cfg configload.Snapshot, quiet, debug bool, artifactDir, format string, echo, dynamicBorder, noBorder bool, out io.Writer) (*RunRenderer, error) {
+// NewRunRenderer builds the renderer under the invocation's configuration;
+// errOut, the client's standard error, takes each record's
+// host_key_enrolled line.
+func NewRunRenderer(cfg configload.Snapshot, quiet, debug bool, artifactDir, format string, echo, dynamicBorder, noBorder bool, out, errOut io.Writer) (*RunRenderer, error) {
 	if format == "" {
 		format = "text"
 	}
-	rr := &RunRenderer{out: out, format: format}
+	rr := &RunRenderer{out: out, format: format, warnOut: errOut, warnStyle: DisplayLineStyle(cfg, DisplayTerminal(errOut))}
 	if format == "jsonl" {
 		return rr, nil
 	}
@@ -831,6 +873,7 @@ func NewRunRenderer(cfg configload.Snapshot, quiet, debug bool, artifactDir, for
 	if err != nil {
 		return nil, err
 	}
+	r.sayTo(errOut, cfg)
 	rr.r = r
 	return rr, nil
 }
@@ -838,6 +881,19 @@ func NewRunRenderer(cfg configload.Snapshot, quiet, debug bool, artifactDir, for
 // Line renders one verified LF-terminated record line.
 func (rr *RunRenderer) Line(line []byte) error {
 	if rr.format == "jsonl" {
+		// The line passes through undecoded; one naming the notice is
+		// decoded for its notices alone, the output (megabytes in a large
+		// response) skipped rather than copied.
+		if rr.warnOut != nil && bytes.Contains(line, []byte(`"host_key_enrolled"`)) {
+			var record struct {
+				Notices []records.Notice `json:"notices"`
+			}
+			if json.Unmarshal(line, &record) == nil {
+				for _, l := range EnrolledLines(record.Notices, rr.warnStyle) {
+					fmt.Fprintln(rr.warnOut, l)
+				}
+			}
+		}
 		_, err := rr.out.Write(line)
 		return errorcodes.Ensure(err, "terminal_write_failed")
 	}

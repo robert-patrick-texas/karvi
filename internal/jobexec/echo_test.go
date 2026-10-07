@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -404,7 +405,7 @@ func TestReplayedRunHasNoFooter(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	rr, err := NewRunRenderer(cfg, false, false, "/tmp/artifacts", "text", false, false, false, &out)
+	rr, err := NewRunRenderer(cfg, false, false, "/tmp/artifacts", "text", false, false, false, &out, io.Discard)
 	if err != nil {
 		t.Fatal(err)
 	}

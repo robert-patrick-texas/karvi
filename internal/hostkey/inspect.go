@@ -291,34 +291,35 @@ func fingerprints(keys []keyRecord) []string {
 
 // Enroll safely appends presented keys under the device's identity if it
 // remains unknown. It rereads the file while holding an exclusive advisory
-// lock and never replaces or rewrites unrelated lines.
-func Enroll(file, host string, port int, presented []keyRecord) error {
+// lock and never replaces or rewrites unrelated lines. wrote is false when
+// another process enrolled the same key meanwhile: this call stored nothing.
+func Enroll(file, host string, port int, presented []keyRecord) (wrote bool, err error) {
 	if len(presented) == 0 {
-		return &Error{Code: "host_key_enrollment_empty", Host: host, Path: file}
+		return false, &Error{Code: "host_key_enrollment_empty", Host: host, Path: file}
 	}
 	f, err := os.OpenFile(file, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o600)
 	if err != nil {
-		return &Error{Code: "host_key_enrollment_open_failed", Host: host, Path: file, Err: err}
+		return false, &Error{Code: "host_key_enrollment_open_failed", Host: host, Path: file, Err: err}
 	}
 	defer f.Close()
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		return &Error{Code: "host_key_enrollment_lock_failed", Host: host, Path: file, Err: err}
+		return false, &Error{Code: "host_key_enrollment_lock_failed", Host: host, Path: file, Err: err}
 	}
 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 
 	enrolled, err := matchingKeys(file, []string{Identity(host, port)})
 	if err != nil {
-		return &Error{Code: "host_key_enrollment_read_failed", Host: host, Path: file, Err: err}
+		return false, &Error{Code: "host_key_enrollment_read_failed", Host: host, Path: file, Err: err}
 	}
 	if len(enrolled) > 0 {
 		for _, live := range presented {
 			for _, stored := range enrolled {
 				if live.Type == stored.Type && live.Blob == stored.Blob {
-					return nil
+					return false, nil
 				}
 			}
 		}
-		return &Error{Code: "host_key_changed_during_enrollment", Host: host, Path: file, Err: errors.New("enrolled key changed during acceptance")}
+		return false, &Error{Code: "host_key_changed_during_enrollment", Host: host, Path: file, Err: errors.New("enrolled key changed during acceptance")}
 	}
 	hostField := Identity(host, port)
 	var b strings.Builder
@@ -326,10 +327,10 @@ func Enroll(file, host string, port int, presented []keyRecord) error {
 		fmt.Fprintf(&b, "%s %s %s karvi-auto-enrolled\n", hostField, key.Type, key.Blob)
 	}
 	if _, err := f.WriteString(b.String()); err != nil {
-		return &Error{Code: "host_key_enrollment_write_failed", Host: host, Path: file, Err: err}
+		return false, &Error{Code: "host_key_enrollment_write_failed", Host: host, Path: file, Err: err}
 	}
 	if err := f.Sync(); err != nil {
-		return &Error{Code: "host_key_enrollment_sync_failed", Host: host, Path: file, Err: err}
+		return false, &Error{Code: "host_key_enrollment_sync_failed", Host: host, Path: file, Err: err}
 	}
-	return nil
+	return true, nil
 }

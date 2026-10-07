@@ -229,6 +229,13 @@ type OpenRequest struct {
 	// settle, 0 when no command is in flight. Nothing is sent per chunk;
 	// the scoreboard's snapshot reads it at its interval.
 	InFlightBytes *atomic.Int64
+	// HostKeyEnrolled, when given, is called with OpenSSH's label of the key
+	// type (ED25519, ECDSA, RSA) when this session's handshake stored the
+	// device's key in the trust store under accept-new; not when another
+	// session stored it, nor when the key was known. It may be called from
+	// the transport's own goroutine before Open or Prepare returns, and on a
+	// session that then fails to authenticate.
+	HostKeyEnrolled func(label string)
 }
 
 // Timeouts are the bounds a transport puts on a session's steps, the

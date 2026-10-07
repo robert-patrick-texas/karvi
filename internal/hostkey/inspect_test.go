@@ -57,8 +57,8 @@ func TestEnrollAppendsAndRejectsChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	first := []keyRecord{{Type: "ssh-ed25519", Blob: fakeKey(1)}}
-	if err := Enroll(known, "router1", 22, first); err != nil {
-		t.Fatal(err)
+	if wrote, err := Enroll(known, "router1", 22, first); err != nil || !wrote {
+		t.Fatalf("first enroll: wrote=%t %v", wrote, err)
 	}
 	data, err := os.ReadFile(known)
 	if err != nil {
@@ -67,11 +67,13 @@ func TestEnrollAppendsAndRejectsChange(t *testing.T) {
 	if !strings.Contains(string(data), "router1 ssh-ed25519") || strings.Contains(string(data), "192.0.2.10") {
 		t.Fatalf("enrollment=%q", data)
 	}
-	if err := Enroll(known, "router1", 22, first); err != nil {
-		t.Fatalf("idempotent enroll: %v", err)
+	// The same key stored meanwhile by another process: nothing written,
+	// and wrote false, so that only the process that stored it says so.
+	if wrote, err := Enroll(known, "router1", 22, first); err != nil || wrote {
+		t.Fatalf("idempotent enroll: wrote=%t %v", wrote, err)
 	}
 	changed := []keyRecord{{Type: "ssh-ed25519", Blob: fakeKey(8)}}
-	if err := Enroll(known, "router1", 22, changed); err == nil || !strings.Contains(err.Error(), "host_key_changed") {
+	if _, err := Enroll(known, "router1", 22, changed); err == nil || !strings.Contains(err.Error(), "host_key_changed") {
 		t.Fatalf("expected change rejection, got %v", err)
 	}
 }

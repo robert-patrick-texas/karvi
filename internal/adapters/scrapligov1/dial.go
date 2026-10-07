@@ -58,6 +58,9 @@ type DialRequest struct {
 	// defaults.
 	Algorithms  sshalgorithms.Lists
 	Warn, Debug func(string)
+	// Enrolled is called with OpenSSH's label of the key type when this
+	// handshake stored the device's key (platform.OpenRequest.HostKeyEnrolled).
+	Enrolled func(label string)
 	// exec stops the opening at authentication (DialExec): no session
 	// channel, PTY, or shell.
 	exec bool
@@ -230,7 +233,11 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 		Auth:              auth,
 		HostKeyAlgorithms: offered[sshalgorithms.HostKey],
 		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
-			return hostkey.Verify(req.Policy, req.Host, a.Port, key.Type(), key.Marshal(), req.Warn)
+			stored, err := hostkey.Verify(req.Policy, req.Host, a.Port, key.Type(), key.Marshal(), req.Warn)
+			if stored && req.Enrolled != nil {
+				req.Enrolled(hostkey.TypeLabel(key.Type()))
+			}
+			return err
 		},
 	}
 	config.KeyExchanges = offered[sshalgorithms.Kex]

@@ -68,7 +68,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 	// The renderer's artifacts value is the footer's label: the folder, or
 	// none for a run that keeps no files (28.4).
 	if o.render && artifactDir != "" {
-		r, err := jobexec.NewRunRenderer(o.cfg, o.quiet, o.debug, ArtifactsLabel(artifactDir), o.format, o.echo, o.dynamic, o.noBorder, stdout)
+		r, err := jobexec.NewRunRenderer(o.cfg, o.quiet, o.debug, ArtifactsLabel(artifactDir), o.format, o.echo, o.dynamic, o.noBorder, stdout, o.stderr)
 		if err != nil {
 			return ipc.FollowTerminal{}, err
 		}
@@ -97,7 +97,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 					warning(o.stderr, line)
 				}
 				if renderer == nil && o.render {
-					r, err := jobexec.NewRunRenderer(o.cfg, o.quiet, o.debug, ArtifactsLabel(start.ArtifactDir), o.format, o.echo, o.dynamic, o.noBorder, stdout)
+					r, err := jobexec.NewRunRenderer(o.cfg, o.quiet, o.debug, ArtifactsLabel(start.ArtifactDir), o.format, o.echo, o.dynamic, o.noBorder, stdout, o.stderr)
 					if err != nil {
 						return err
 					}

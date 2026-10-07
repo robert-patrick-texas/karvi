@@ -74,6 +74,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 		Algorithms:        d.f.Algorithms,
 		Warn:              d.f.Warn,
 		Debug:             d.f.Debug,
+		Enrolled:          d.req.HostKeyEnrolled,
 	}
 	if d.channel() == platform.ChannelExec {
 		// Ready once authenticated: no first prompt, privilege, or paging.

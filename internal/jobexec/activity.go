@@ -317,6 +317,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// The daemon's job has no reader of its standard output: the renderer
 	// keeps the counts and formats nothing.
 	renderer.daemon = req.Daemon
+	if !req.Daemon {
+		renderer.sayTo(streams.Stderr, cfg)
+	}
 	devExec := executor.New(executor.Options{
 		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType,
 		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, BlindWait: time.Duration(plan.BlindWaitNS), Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,

@@ -203,8 +203,13 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	file := trustStore(t, "")
 	w := &warnings{}
 
-	// accept-new: enrolled on the first open, matched on the next.
-	s, err := Dial(context.Background(), dialRequest(first, hostkey.AcceptNew, file, w))
+	// accept-new: enrolled on the first open, matched on the next; the
+	// enrollment is said through Enrolled, once, with OpenSSH's label, and
+	// is no warning.
+	var labels []string
+	req := dialRequest(first, hostkey.AcceptNew, file, w)
+	req.Enrolled = func(label string) { labels = append(labels, label) }
+	s, err := Dial(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,12 +218,15 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	if got := string(content); got != strings.TrimSuffix(entry(first, first.HostKeys()[0]), "\n")+" karvi-auto-enrolled\n" {
 		t.Fatalf("store after the first open: %q", got)
 	}
-	if list := w.all(); len(list) != 1 || !strings.Contains(list[0], "accepted and stored new SSH host key for fake-iosxe") {
-		t.Fatalf("warnings %q", list)
+	if list := w.all(); len(list) != 0 || len(labels) != 1 || labels[0] != "ED25519" {
+		t.Fatalf("warnings %q, enrolled %q", list, labels)
 	}
-	s, err = Dial(context.Background(), dialRequest(first, hostkey.AcceptNew, file, w))
+	s, err = Dial(context.Background(), req)
 	if err != nil {
 		t.Fatalf("second open: %v", err)
+	}
+	if len(labels) != 1 {
+		t.Fatalf("the known key said enrolled again: %q", labels)
 	}
 	s.(*stream).Abort()
 	if first.Connections() != 2 {

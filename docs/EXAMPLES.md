@@ -5523,3 +5523,128 @@ carriage return in each of karvi's line writers (the debug logger, `warning`,
 the header and ping writers): one rule in many places. The wrapper copying a
 pipe to its stderr with the translation: the copy runs behind the child, and the
 footer would wait on its draining.
+
+## 37. The first contact said alike over both transports (2026-10-07)
+
+The outline's item: `scrapligo-v1` prints a warning when it enrolls a host's
+key at a first contact, and `system` prints nothing.
+
+**What it gains.** Under `accept-new` a first contact is the one moment karvi
+trusts a key nobody checked; every transport and every path saying so alike,
+where today one transport says it, on one path. It waits on nothing.
+
+**The evidence.** A lab build of `001f12a`, this host's OpenSSH, the lab's
+trust store emptied before each run:
+
+| Path | `scrapligo-v1` | `system` |
+|---|---|---|
+| `command`, in the client | `warning: accepted and stored new SSH host key for 127.0.0.1 in …/known_hosts (ssh-ed25519 SHA256:4C8c…)` | nothing |
+| `run --no-daemon` | the same warning | nothing |
+| `run` through the daemon | nothing: not on the client, in the records, `daemon.log`, or the audit | nothing |
+| `login` | (a login takes `system`) | nothing |
+
+Both transports stored the same line, and neither record carried a notice. The
+native adapter's warning ends in the job's `warn`, which writes to the job's
+standard error, `io.Discard` in the daemon. OpenSSH writes `Warning:
+Permanently added '127.0.0.1' (ED25519) to the list of known hosts.` at
+`LogLevel INFO` and above and nothing at `ERROR`: the exec master (`DEBUG1`) and
+the shell's command session (`VERBOSE`) receive it and keep it only among the
+failure diagnostics, which drop it; a login runs at `ERROR`.
+
+**Issue 1, where it is said, agreed.** The enrollment is a record notice,
+`host_key_enrolled`, on the device's first record over both transports, its
+message naming the trust store and the fingerprint. The client prints it on
+standard error as the `warning:` line the native transport prints today, taken
+from the record rather than the adapter's callback, so the same line shows in
+the client and through the daemon, and `commands.jsonl` keeps it for whoever
+reads the job later; `icmp_packet_loss` rides a device's first record so.
+`--quiet` leaves it shown, as warnings are. Amended with issue 2 and by the
+operator after issue 4: the line is `! ssh accepted new host key for 127.0.0.1
+(ED25519)`, the device and the key type, alike on both transports, in the
+client, through the daemon, and in a login; the notice's message is the same
+text without the `! `, its details the key type. It goes to standard error, not
+with the headers on standard output, so a redirected output holds the device's;
+it takes the display's `warning` colour when colour is on; and `--quiet`, which
+suppresses the display's `!` lines, leaves it shown: a key trusted unchecked is
+not narration. *Not taken:* the job's standard error carried
+out of the daemon (a warning outside the record is lost to the
+job's later reader); a line under `--debug` alone (a trusted key is not routine
+narration).
+
+**Issue 2, how `system` learns of it, agreed as amended.** Four first contacts
+at once to this host, the store empty, the sessions overlapping: over
+`system`, ten rounds, the store got one line in nine and two identical lines in
+one, two masters each writing; plain OpenSSH, four clients at once, three
+rounds, one client said `Permanently added` each round, OpenSSH saying it only
+when it writes. A comparison of the store before and after the session would
+have had all four jobs report the one enrollment. The notice marks the job
+whose session wrote the key: over `system` karvi takes OpenSSH's `Warning:
+Permanently added '<host>' (<TYPE>) to the list of known hosts.` out of the
+standard error it reads line by line, as it takes `Authenticated to …`, in the
+exec master and the shell's command session alike; over `scrapligo-v1`
+`Enroll` reports whether it wrote, and the notice follows only then, where
+`Verify` warns today even when another job wrote the same key under the lock
+meanwhile. Two jobs that both write both report it. The operator's amendment:
+no fingerprint. The key is in the trust store, which the operator reads when
+the key's detail matters, so karvi reads nothing from the store for the notice
+and takes no `Server host key:` line. *Not taken:* the store compared before
+and after (every overlapping job reports one enrollment); karvi enrolling the
+key itself before OpenSSH connects (a second connection, and a key trusted by
+a check OpenSSH did not make).
+
+**Issue 3, how a login says it, agreed as amended.** A login runs OpenSSH at
+`LogLevel ERROR`, where it writes nothing of a first contact. At `INFO` it
+writes the enrollment line, a server's pre-authentication banner (hidden at
+`ERROR`: a lab `sshd` on its own port with a `Banner`), and `Connection to …
+closed.` at every end, `closed by remote host` before it when the device ends
+the session; after authentication it writes to standard error only at the end. A
+login now runs OpenSSH at `INFO`, set on its own command line (`-o
+LogLevel=INFO`) as the exec master and the command session set theirs, the
+generated configuration staying at `ERROR`; `-vvv` from `SSH-TROUBLE.md`'s
+wrapper still wins (69 `debug3` lines either way). karvi reads its standard
+error line by line from the pipe it already holds: the `Permanently added` line
+becomes karvi's `host_key_enrolled` warning, `Connection to … closed.` is
+dropped (the footer marks the end), and every other line (the banner, OpenSSH's
+warnings and errors, `closed by remote host`) is shown when `ssh.login.stderr`
+is true, the default, and not when false, a failure's text still reaching the
+operator in karvi's failure line from the diagnostics. The operator's
+amendments: a switch, shown by default, since the staff who write a banner
+acknowledge it daily; no file to act on; and the switch is OpenSSH's standard
+error, not the banner. *Not taken:* `LogLevel VERBOSE` for an exact boundary at
+`Authenticated to …` (it adds `Transferred:` lines and whatever a server's
+`VERBOSE` carries); `-E` to a file or a FIFO (OpenSSH's log lines apart from the
+banner, but a file, and the last `-E` wins over the one `SSH-TROUBLE.md`'s
+wrapper sets); staying at `ERROR` and comparing the store before and after (the
+warning after the session, and issue 2's finding).
+
+**Issue 4, the audit, agreed.** The audit, which outlives the job folder,
+recorded nothing of a first contact. The enrollment goes into the `details` of
+the event already written for the device, `host_key_enrolled: "ED25519"`: the
+`command_completed` event of the record carrying the notice, and a login's
+`login.completed` or `login.errored`. No event name and no audit schema
+change: `details` is an open map. *Not taken:* an event `host_key.enrolled` of
+its own (a name no consumer knows, outside the device's events).
+
+**S1, the notice, native, the display, the audit.** `hostkey.Enroll` and
+`Verify` say whether this call stored the key; `hostkey.TypeLabel` gives
+OpenSSH's label of a key type and `hostkey.EnrolledMessage` the one message.
+`platform.OpenRequest.HostKeyEnrolled` carries the label from the transport
+to the executor, called from the handshake, so a session that stores the key
+and then fails to authenticate, which returns no driver, still says so; the
+executor puts the notice on the device's first record, the failure record
+included, and `command_completed`'s `details` take it from the record. The
+renderer writes the line to the client's standard error before the record, in
+the client and on a followed job, in every format; a job's directory shown
+again does not repeat it. Executed on a lab build, native, the trust store
+emptied before each: `command`, `run --no-daemon`, `run` through the daemon,
+`--quiet`, and `--format jsonl` each showed `! ssh accepted new host key for
+127.0.0.1 (ED25519)` once on standard error, and the audit's first
+`command_completed` of each job named `ED25519`, the second none.
+
+**Found at width.** The scale run at N=32, where every identity is enrolled
+and every first record carries the notice, put the client's peak at 49 to 56
+MB against 41 to 44 on `001f12a`: the jsonl follow decoded each 5 MB line
+naming the notice into a whole record. Decoded for its notices alone, the
+output skipped, three runs each read 43 to 45 MB on both builds, the daemon's
+peak varying as much within a build as between them, and one 51 MB response
+read the same on both (the daemon about 26 MB, the client about 17).

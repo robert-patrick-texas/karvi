@@ -72,8 +72,10 @@ func (p Policy) HostKeyAlgorithms(list []string, identity string) ([]string, err
 // wire its wire encoding. accept-new enrolls an unknown host under the file
 // lock and rejects a changed key; secure rejects both; insecure accepts,
 // warns, and adds the mismatch warning when the store holds the host under
-// another key.
-func Verify(p Policy, host string, port int, keyType string, wire []byte, warn func(string)) error {
+// another key. stored is true when this call stored the key, false when
+// another process stored the same key under the lock meanwhile; the caller
+// says so (EnrolledMessage), on the device's first record.
+func Verify(p Policy, host string, port int, keyType string, wire []byte, warn func(string)) (stored bool, err error) {
 	presented := []keyRecord{{Type: keyType, Blob: base64.StdEncoding.EncodeToString(wire)}}
 	enrolled, err := matchingKeys(p.KnownHostsFile, []string{Identity(host, port)})
 	if errors.Is(err, os.ErrNotExist) {
@@ -81,7 +83,7 @@ func Verify(p Policy, host string, port int, keyType string, wire []byte, warn f
 	}
 	if err != nil {
 		if p.Mode != Insecure {
-			return errorCode(err, "host_key_trust_store_unavailable", host, p.KnownHostsFile)
+			return false, errorCode(err, "host_key_trust_store_unavailable", host, p.KnownHostsFile)
 		}
 		enrolled = nil
 	}
@@ -99,22 +101,46 @@ func Verify(p Policy, host string, port int, keyType string, wire []byte, warn f
 		if inspection.Comparison == Mismatch {
 			emit(warn, mismatchAcceptedWarning(host, inspection))
 		}
-		return nil
+		return false, nil
 	}
 	switch inspection.Comparison {
 	case Match:
-		return nil
+		return false, nil
 	case Mismatch:
-		return &Error{Code: "host_key_changed", Host: host, Path: p.KnownHostsFile, Err: errors.New(mismatchDescription(host, inspection))}
+		return false, &Error{Code: "host_key_changed", Host: host, Path: p.KnownHostsFile, Err: errors.New(mismatchDescription(host, inspection))}
 	}
 	if p.Mode == Secure {
-		return &Error{Code: "host_key_not_enrolled", Host: host, Path: p.KnownHostsFile, Err: errors.New("secure mode requires a matching key before access")}
+		return false, &Error{Code: "host_key_not_enrolled", Host: host, Path: p.KnownHostsFile, Err: errors.New("secure mode requires a matching key before access")}
 	}
-	if err := Enroll(p.KnownHostsFile, host, port, presented); err != nil {
-		return err
+	return Enroll(p.KnownHostsFile, host, port, presented)
+}
+
+// TypeLabel is OpenSSH's name for a key of the SSH type keyType, the one its
+// "Permanently added" line gives: ED25519, ECDSA, RSA, DSA, ED25519-SK,
+// ECDSA-SK; an unknown type in capitals.
+func TypeLabel(keyType string) string {
+	switch {
+	case keyType == "ssh-ed25519":
+		return "ED25519"
+	case strings.HasPrefix(keyType, "ecdsa-sha2-"):
+		return "ECDSA"
+	case keyType == "ssh-rsa" || strings.HasPrefix(keyType, "rsa-sha2-"):
+		return "RSA"
+	case keyType == "ssh-dss":
+		return "DSA"
+	case keyType == "sk-ssh-ed25519@openssh.com":
+		return "ED25519-SK"
+	case keyType == "sk-ecdsa-sha2-nistp256@openssh.com":
+		return "ECDSA-SK"
 	}
-	emit(warn, fmt.Sprintf("accepted and stored new SSH host key for %s in %s (%s)", host, p.KnownHostsFile, strings.Join(inspection.PresentedFingerprints, ", ")))
-	return nil
+	return strings.ToUpper(keyType)
+}
+
+// EnrolledMessage is the host_key_enrolled notice's message for a device
+// whose key of OpenSSH's type label was stored at this contact, over either
+// transport; the terminal shows it after "! ".
+func EnrolledMessage(device, label string) string {
+	return fmt.Sprintf("ssh accepted new host key for %s (%s)", device, label)
 }
 
 // TypesNotOffered is the failure of a handshake that offered only the key

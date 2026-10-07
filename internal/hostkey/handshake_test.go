@@ -78,39 +78,41 @@ func TestVerifyModes(t *testing.T) {
 	// accept-new: a match, a changed key, and an unknown host enrolled once.
 	known := store(t, entry)
 	p := Policy{Mode: AcceptNew, KnownHostsFile: known}
-	if err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, enrolled), warn); err != nil {
+	if _, err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, enrolled), warn); err != nil {
 		t.Fatalf("match: %v", err)
 	}
-	err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, fakeKey(9)), warn)
+	_, err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, fakeKey(9)), warn)
 	if err == nil || err.(*Error).Code != "host_key_changed" || !strings.Contains(err.Error(), "enrolled=ssh-ed25519 SHA256:") || !strings.Contains(err.Error(), "presented=ssh-ed25519 SHA256:") {
 		t.Fatalf("changed: %v", err)
 	}
-	err = Verify(p, "router1", 22, "ecdsa-sha2-nistp256", wire(t, fakeKey(8)), warn)
+	_, err = Verify(p, "router1", 22, "ecdsa-sha2-nistp256", wire(t, fakeKey(8)), warn)
 	if err == nil || err.(*Error).Code != "host_key_changed" {
 		t.Fatalf("another type for a known host: %v", err)
 	}
 	warnings = nil
-	if err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)), warn); err != nil {
-		t.Fatalf("enroll: %v", err)
+	stored, err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)), warn)
+	if err != nil || !stored {
+		t.Fatalf("enroll: stored=%t %v", stored, err)
 	}
 	content, _ := os.ReadFile(known)
 	if !strings.Contains(string(content), "\n[router2]:830 ssh-ed25519 "+fakeKey(7)+" karvi-auto-enrolled") {
 		t.Fatalf("store after enrollment:\n%s", content)
 	}
-	if len(warnings) != 1 || !strings.Contains(warnings[0], "accepted and stored new SSH host key for router2") {
+	// The enrollment is the caller's to say (EnrolledMessage), not a warning.
+	if len(warnings) != 0 {
 		t.Fatalf("warnings %q", warnings)
 	}
-	if err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)), warn); err != nil {
-		t.Fatalf("enrolled key on the next open: %v", err)
+	if stored, err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)), warn); err != nil || stored {
+		t.Fatalf("enrolled key on the next open: stored=%t %v", stored, err)
 	}
 
 	// secure: unknown and changed refused, nothing written.
 	secureStore := store(t, entry)
 	s := Policy{Mode: Secure, KnownHostsFile: secureStore}
-	if err := Verify(s, "router3", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err == nil || err.(*Error).Code != "host_key_not_enrolled" {
+	if _, err := Verify(s, "router3", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err == nil || err.(*Error).Code != "host_key_not_enrolled" {
 		t.Fatalf("secure unknown: %v", err)
 	}
-	if err := Verify(s, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err == nil || err.(*Error).Code != "host_key_changed" {
+	if _, err := Verify(s, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err == nil || err.(*Error).Code != "host_key_changed" {
 		t.Fatalf("secure changed: %v", err)
 	}
 	if after, _ := os.ReadFile(secureStore); string(after) != entry {
@@ -120,7 +122,7 @@ func TestVerifyModes(t *testing.T) {
 	// insecure: always accepted; the mismatch warning only for a known host.
 	warnings = nil
 	i := Policy{Mode: Insecure, KnownHostsFile: store(t, entry)}
-	if err := Verify(i, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err != nil {
+	if _, err := Verify(i, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err != nil {
 		t.Fatal(err)
 	}
 	if len(warnings) != 2 || !strings.Contains(warnings[1], "mismatch accepted only because policy=insecure") {
@@ -128,7 +130,7 @@ func TestVerifyModes(t *testing.T) {
 	}
 	warnings = nil
 	missing := Policy{Mode: Insecure, KnownHostsFile: filepath.Join(t.TempDir(), "absent")}
-	if err := Verify(missing, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err != nil || len(warnings) != 1 {
+	if _, err := Verify(missing, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err != nil || len(warnings) != 1 {
 		t.Fatalf("insecure without a store: %v %q", err, warnings)
 	}
 }
@@ -138,5 +140,22 @@ func TestTypesNotOfferedIsChanged(t *testing.T) {
 	err := TypesNotOffered(p, Identity("router1", 22), []string{"ssh-ed25519"})
 	if err.(*Error).Code != "host_key_changed" || !strings.Contains(err.Error(), "enrolled=ssh-rsa SHA256:") || !strings.Contains(err.Error(), "offered: ssh-ed25519") {
 		t.Fatalf("%v", err)
+	}
+}
+
+// TestTypeLabelIsOpenSSHs: the label OpenSSH's "Permanently added" line
+// gives for each key type, so both transports say one name.
+func TestTypeLabelIsOpenSSHs(t *testing.T) {
+	for keyType, want := range map[string]string{
+		"ssh-ed25519": "ED25519", "ecdsa-sha2-nistp256": "ECDSA", "ecdsa-sha2-nistp521": "ECDSA",
+		"ssh-rsa": "RSA", "rsa-sha2-512": "RSA", "ssh-dss": "DSA",
+		"sk-ssh-ed25519@openssh.com": "ED25519-SK", "sk-ecdsa-sha2-nistp256@openssh.com": "ECDSA-SK",
+	} {
+		if got := TypeLabel(keyType); got != want {
+			t.Errorf("TypeLabel(%q) = %q, want %q", keyType, got, want)
+		}
+	}
+	if got := EnrolledMessage("router2", "ED25519"); got != "ssh accepted new host key for router2 (ED25519)" {
+		t.Fatalf("message %q", got)
 	}
 }
