@@ -5463,3 +5463,63 @@ run and be found where it was made, and a reboot empties `/tmp`. A shorter
 directory name: a deeper working directory overflows still. karvi refusing a
 scratch too long for its socket with a plain code: the outline's item of its
 own, which names the failure but does not remove it.
+
+## 36. A recorded login's own lines at the first column (2026-10-07)
+
+The operator's report: `login --record` with `--debug` showed a lot of
+whitespace inserted into the display, tabs or spaces, that shifted the
+information. The operator asked for it to be looked at.
+
+**What it gains.** A recorded login's screen that reads as an unrecorded
+one's: karvi's lines, each at the first column. It waits on nothing.
+
+**The evidence.** A lab build of `4e6d78a`, `login --record --debug` to this
+host's OpenSSH under an 80 by 24 pseudo-terminal, every byte the terminal
+received kept and the screen drawn from them:
+
+```text
+|13:23:56 2026-10-07 DEBUG activity=login config_digest=eff2d2fae74cd0674d9d46140
+|b86e33563668493fd737578f1d60d5d6d9f7667 config_sources=""
+|                                                         13:23:56 2026-10-07 DEB
+|UG login transport selector="system" implementation="system" kind=system
+|                                                                        13:23:56
+| 2026-10-07 DEBUG login target set candidates=1 selected="127.0.0.1" dispatch_or
+```
+
+Every line of karvi's between the two `! transcript=` lines ended in a line
+feed alone, where the device's ended `\r\n`. Without `--debug` the login's
+header showed it too, its wrapped row starting at the last column (a lone `t`,
+then `ransport=system`). An unrecorded `login --debug` ended every line `\r\n`,
+and the two `! transcript=` lines, written by the wrapper before `script(1)`
+starts and after it ends, were right.
+
+**The cause.** The recorded child writes karvi's lines (the header, a warning,
+the ping line, a final error, every `DEBUG` line) to the wrapper's real stderr,
+passed as descriptor 3, so that they stay out of the transcript. `script(1)`
+holds that terminal raw for the child's whole life, output processing off, so a
+line feed moves down a row and keeps the column. OpenSSH's own stderr reaches
+the terminal through karvi's pipe, and OpenSSH ends its lines `\r\n` itself.
+
+**The rule, agreed.** Where the recorded child takes descriptor 3 and it is a
+terminal, each line feed not after a carriage return is written after one
+(`osutil.RawTerminalLines`); a descriptor that is not a terminal, a stderr
+redirected to a file, keeps its bytes. One writer at the one place the child
+takes its stderr covers every line karvi writes there.
+`TestRawTerminalLinesEndsEachLineAtTheFirstColumn` holds the bytes, a carriage
+return ending one write counted for the next; the transcript suite's new row
+runs a recorded login under `--debug` and asserts the header and every `DEBUG`
+line end `\r`, and that none is in the transcript.
+
+**Executed.** On a lab build of the change, the same login drew its twelve
+`DEBUG` lines and the header's wrapped row at the first column, and its
+transcript held no `DEBUG` line. The transcript suite failed on the
+released source's build at the new row and passed on the change's; the full
+battery passed. The evidence is kept beside the tree
+(`release-design-evidence/record-staircase-2026-10-07`).
+
+**Not taken.** Output processing turned back on under `script(1)`: it changes
+the mode of a terminal `script(1)` owns, and the device's bytes it relays. A
+carriage return in each of karvi's line writers (the debug logger, `warning`,
+the header and ping writers): one rule in many places. The wrapper copying a
+pipe to its stderr with the translation: the copy runs behind the child, and the
+footer would wait on its draining.

@@ -105,10 +105,12 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	if inv.Path == "login" && os.Getenv(loginTranscriptChildEnv) != "" {
 		// Under the recorder every stream is the pseudo-terminal that feeds the
 		// transcript; diagnostics go to the wrapper's real stderr, passed as an
-		// extra descriptor.
+		// extra descriptor. script(1) holds that terminal raw for this
+		// process's life, so each line feed is written after a carriage
+		// return.
 		if f := recorderDiagnostics(); f != nil {
 			defer f.Close()
-			stderr = f
+			stderr = osutil.RawTerminalLines(f)
 		}
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

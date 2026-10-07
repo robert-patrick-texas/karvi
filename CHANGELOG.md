@@ -26,6 +26,14 @@
   stayed for good, on disk under `<basedir>/tmp` in individual mode. The sweep
   connects to no socket. Files under an earlier release's names are not
   touched.
+- **A recorded login's own lines start at the first column.** Under `login
+  --record`, karvi's lines on the terminal, the login's header, a warning, an
+  error, and under `--debug` every `DEBUG` line, are written while `script(1)`
+  holds the terminal raw, where a line feed alone keeps the column; each line
+  began where the one before it ended, so the screen read as shifted by
+  whitespace. Each line now ends in a carriage return and a line feed when the
+  stream is a terminal; a redirected stderr keeps its bytes, and the transcript
+  is unchanged.
 - **`docs/SSH-TROUBLE.md`, a session that never reaches the prompt.** A guide
   for a `login` that hangs after `login interactive session starting`, or a
   `command` that ends in a prompt timeout: OpenSSH at `-vvv` under karvi through

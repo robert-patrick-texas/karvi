@@ -157,6 +157,15 @@ recorded json "--set 'transcript.metadata-format=\"json\"'" "--record=$TMP/rec-j
 jmeta=$(ls "$TMP/rec-json/$DAY"/transcript-device-*.meta.json)
 grep -q '"record":"end"' "$jmeta"; [ "$(wc -l <"$jmeta")" = 1 ]
 
+# karvi's own lines reach the terminal while script(1) holds it raw, so each
+# ends in a carriage return before its line feed and the next starts at the
+# first column: the login's header and, under --debug, every DEBUG line.
+# None enters the transcript.
+recorded debug "--debug" "--record=$TMP/rec-debug --address 127.0.0.1 transcript-device"
+grep -q ' DEBUG login interactive session starting' "$TMP/debug.out"
+[ -z "$(grep ' DEBUG \|transcript-device \[127\.0\.0\.1\] platform=' "$TMP/debug.out" | grep -v "$(printf '\r')\$")" ]
+absent ' DEBUG ' "$(ls "$TMP/rec-debug/$DAY"/transcript-device-*.log)"
+
 # Refusals happen before any file or child process exists.
 set +e
 HOME="$HOME_DIR" "$KARVI" --debug --debug-show-secrets login --record="$TMP/blocked" --management-address 127.0.0.1 transcript-device >"$TMP/blocked.out" 2>"$TMP/blocked.err"; code=$?

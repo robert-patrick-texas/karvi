@@ -1,6 +1,7 @@
 package osutil
 
 import (
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -93,4 +94,37 @@ func NotifyResize() (changes <-chan os.Signal, stop func()) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGWINCH)
 	return ch, func() { signal.Stop(ch) }
+}
+
+// RawTerminalLines is f for karvi's own lines while another process holds
+// the terminal in raw mode, as script(1) holds a recorded login's: output
+// processing is off there, so a line feed alone moves down a row and leaves
+// the column where the line ended. Each line feed that does not follow a
+// carriage return is written after one. f that is not a terminal is
+// returned as it is, so a redirected stream keeps its bytes.
+func RawTerminalLines(f *os.File) io.Writer {
+	if !IsTerminal(f) {
+		return f
+	}
+	return &rawLines{w: f}
+}
+
+type rawLines struct {
+	w    io.Writer
+	last byte // the last byte written, so a carriage return ending one write counts for the next
+}
+
+func (r *rawLines) Write(p []byte) (int, error) {
+	out := make([]byte, 0, len(p)+8)
+	for _, b := range p {
+		if b == '\n' && r.last != '\r' {
+			out = append(out, '\r')
+		}
+		out = append(out, b)
+		r.last = b
+	}
+	if _, err := r.w.Write(out); err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
