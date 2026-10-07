@@ -909,7 +909,10 @@ collection list; `fail N` on stderr with exit N; `both` on each stream; `big`
 and `bigerr` for the two spools; `slow`, ended by a `KILL` request and recorded
 as left running when its channel closes; `signal TERM`; `nostatus`; `sudo -n id
 -u`, or `a password is required` under an option; an unknown command `sh: 1:
-NAME: not found`, exit 127), logs in by key (`-authorized-keys PATH`), by
+NAME: not found`, exit 127), sends a command's status or signal before its
+end of output (OpenSSH's client closes a channel as soon as its output ends,
+and x/crypto answers that close at once and sends nothing after it, where
+`sshd` still sends the status), logs in by key (`-authorized-keys PATH`), by
 password, and later by a key and then a password (`PartialSuccessError`), and
 has a shell for `linux_shell` (`netops@fake:~$`, bash's decorations under an
 option). Both record every line or exec request received, every pty request,
@@ -935,7 +938,8 @@ a transcript as captured carries the host's public addresses; an expected
 difference pinned is checked, while one excluded is hidden. *Not taken:* a
 second fake for Linux; the `iosxe` name for a fake that is also a server; the
 suites against the host's `sshd`; captured transcripts committed as they are;
-`exit_signal` excluded from the comparison.
+`exit_signal` excluded from the comparison; a fake that holds its close back
+for the status, as `sshd` does (x/crypto answers a close itself).
 
 **A login's normal end is qualified on the devices before karvi classifies it
 differently.** A device that ends a session on `exit` without an exit status,

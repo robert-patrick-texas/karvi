@@ -5089,7 +5089,8 @@ lines' attribution to the command (the settle wait included); it is not the
 sweep's, which in the suite finds an empty scratch at admission and touches
 neither the client nor the master. Section 2 was committed on the operator's
 word after a battery that passed, and the race is an item of its own, taken up
-after this effort.
+after this effort. Its cause was the fake device's, not karvi's: [chapter
+32](#32-the-lost-exit-status-found-in-the-fake-device-2026-10-07).
 
 **Executed after the build.** Each kill case on a lab build of `afd12df` and on
 the build of section 1, each from no session (`who` counts the sessions from
@@ -5177,3 +5178,76 @@ names the transport on every call. The third run passed.
 `default` already names). `login` on the native transport: its interactive
 session attaches the terminal to OpenSSH, and the help says a login requires a
 system-compatible slot.
+
+## 32. The lost exit status, found in the fake device (2026-10-07)
+
+The race [chapter 30](#30-the-scratch-sweep-2026-10-06) found on the way: over
+`system`, on whichever record of the parity suite's S35 cases, a command's
+status or signal lost, `command_exit_missing` where the other streams had the
+real one. The operator asked for its cause from a failing run with the
+evidence kept, before any design.
+
+**What it gains.** A parity suite and a battery that no longer fail at random,
+and the knowledge that karvi's exec channel was right: each failure recorded a
+channel that did close without a status. It waits on nothing.
+
+**The evidence.** A lab copy of `5f4b71d` logged, with times, every line of the
+master's stderr, each `ssh -S` client's start and exit and what the settle wait
+returned, and each client's own DEBUG3 log through `-E`, which leaves its stderr
+the command's; the suite's copy kept a failing run's work directory and each
+combination's `fake.err`. S35 in a loop:
+
+| Series | The lab build | Failed |
+|---|---|---|
+| `cl` | karvi's lines and the clients' logs | 1 of 21 |
+| `d2` | and the master at DEBUG2 | 1 of 12 |
+| `d3` | and the fake logging each step of its exec end | 7 of 7 |
+| `sf` | `d3`'s, the status sent before the end of output | 0 of 20 |
+
+In `cl`'s failure (S35c over `run`, `both`) the master made channel 2, sent the
+command, and freed the channel with no `client_input_channel_req` line between:
+it never received a status, so the lines' attribution was not at fault. The
+client's log ends `read header failed: Broken pipe`, `Control master terminated
+unexpectedly`, its exit 255. In `d2`'s (S35b over `run`, `uname -snrm`, its
+output in the record) the master's DEBUG2 lines read `rcvd eof`, `send close
+for remote id 0`, `rcvd close`, and no status. In `d3` the fake's own lines
+said why:
+
+```text
+race: 07:17:29.140823 "uname -snrm" eof sent: <nil>
+race: 07:17:29.140993 "uname -snrm" exit-status not sent: EOF
+```
+
+**The cause.** The client is started with `-n`, so the channel's side toward
+the device is at its end from the start; when the device's end of output
+arrives and the output is written, the master closes the channel at once. The
+fake sent its output, its end of output, and then the status, each a write of
+its own. When the master's close came between the last two, x/crypto answered
+it with its own close and marked the channel closed, and the status write
+failed with `io.EOF`. The native transport never closes a channel before the
+device does, so its streams kept the status; the released executables are
+affected only through the fake the suite builds.
+
+**A real server.** This host's `sshd` through the same master and client:
+`uname -snrm` and `ls /nonexistent` read `rcvd eof`, the status, `rcvd close`,
+the three together. A command that closes its output a second before it ends
+(`exec >/dev/null 2>&1 </dev/null; sleep 1; exit 3`) made the gap real: the
+master sent its close at the end of output, and `sshd` still sent the status
+after it, which the master took; the client exited 3, and 255 with the signal
+for `kill -TERM $$`.
+
+**The rule.** The fake's exec end sends the status or the signal before its end
+of output, then closes; the comment says why it differs from `sshd`'s order,
+and the fake's entry in [`DESIGN.md`](DESIGN.md) holds the rule. On the tree
+with the change, S35 in a loop: 0 of 80.
+
+**Not taken.** A fake that holds its close back for the status, as `sshd` does:
+x/crypto answers a close itself. A change to karvi's exec channel: it reported
+what happened. The evidence is kept beside the tree
+(`release-design-evidence/race-2026-10-07`).
+
+**For later.** A real server that behaves as the fake did (the end of output,
+then the status, and nothing after a close) would lose the status over `system`
+and be recorded `command_exit_missing`, rightly; whether karvi guards against
+one, for instance by keeping the client's input open so that the master never
+closes first, is an issue of its own.

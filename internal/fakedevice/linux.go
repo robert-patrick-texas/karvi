@@ -94,10 +94,14 @@ func (s *Server) bigText() string {
 	return sb.String()
 }
 
-// exec runs one exec request: stdout, then stderr, then the end of output,
-// then the status (or the signal), then the channel's close, as sshd does. A
-// slow command waits first: a signal request ends it by that signal, and a
-// channel closed under it leaves it running, recorded.
+// exec runs one exec request: stdout, then stderr, then the status (or the
+// signal), then the end of output, then the channel's close. sshd sends the
+// end of output first, but it sends the status even after the client's
+// close, and OpenSSH's client closes as soon as the output ends; x/crypto
+// answers that close at once and sends nothing after it, so a status sent
+// after the end of output could be lost. A slow command waits first: a
+// signal request ends it by that signal, and a channel closed under it
+// leaves it running, recorded.
 func (s *Server) exec(ch ssh.Channel, line string, signals <-chan string, gone <-chan struct{}) {
 	defer ch.Close()
 	r := s.linuxCommand(line)
@@ -121,7 +125,6 @@ func (s *Server) exec(ch ssh.Channel, line string, signals <-chan string, gone <
 	if _, err := io.WriteString(ch.Stderr(), r.stderr); err != nil {
 		return
 	}
-	ch.CloseWrite()
 	switch {
 	case r.noStatus:
 	case r.signal != "":
@@ -134,6 +137,7 @@ func (s *Server) exec(ch ssh.Channel, line string, signals <-chan string, gone <
 	default:
 		ch.SendRequest("exit-status", false, ssh.Marshal(struct{ Status uint32 }{r.status}))
 	}
+	ch.CloseWrite()
 }
 
 // linuxPrompt is the shell's prompt, with bash's decorations under
