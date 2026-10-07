@@ -11,13 +11,30 @@ import (
 // server accepts the client: the method is OpenSSH's own name for it.
 var authenticatedLine = regexp.MustCompile(`^Authenticated to .* using "([a-z-]+)"\.\r?$`)
 
+// enrolledLine is the line OpenSSH writes at LogLevel INFO and above when it
+// stores an unknown host's key under StrictHostKeyChecking accept-new; the
+// label is its name for the key type (ED25519, ECDSA, RSA). A process that
+// finds the key stored meanwhile writes none.
+var enrolledLine = regexp.MustCompile(`^Warning: Permanently added '.*' \(([A-Z0-9-]+)\) to the list of known hosts\.\r?$`)
+
+// enrolledLabel is the key type's label when text is OpenSSH's enrollment
+// line.
+func enrolledLabel(text string) (string, bool) {
+	if g := enrolledLine.FindStringSubmatch(text); g != nil {
+		return g[1], true
+	}
+	return "", false
+}
+
 // authFilter stands between OpenSSH's stderr and the diagnostics: it takes
-// the line naming the method that authenticated out of the stream and
-// passes every other line on whole, so the diagnostics classify a failure
-// as they did at LogLevel INFO. A line is held until its newline; Flush
-// passes on what is left when the stream ends.
+// the line naming the method that authenticated, and the line saying the
+// host's key was stored (to enrolled), out of the stream and passes every
+// other line on whole, so the diagnostics classify a failure as they did at
+// LogLevel INFO. A line is held until its newline; Flush passes on what is
+// left when the stream ends.
 type authFilter struct {
-	next io.Writer
+	next     io.Writer
+	enrolled func(label string) // platform.OpenRequest.HostKeyEnrolled, or nil
 
 	mu      sync.Mutex
 	pending []byte
@@ -34,8 +51,13 @@ func (f *authFilter) Write(p []byte) (int, error) {
 			return len(p), nil
 		}
 		line := f.pending[:i+1]
-		if m := authenticatedLine.FindSubmatch(bytes.TrimSuffix(line, []byte("\n"))); m != nil {
+		text := bytes.TrimSuffix(line, []byte("\n"))
+		if m := authenticatedLine.FindSubmatch(text); m != nil {
 			f.method = string(m[1])
+		} else if label, ok := enrolledLabel(string(text)); ok {
+			if f.enrolled != nil {
+				f.enrolled(label)
+			}
 		} else if _, err := f.next.Write(line); err != nil {
 			return len(p), err
 		}

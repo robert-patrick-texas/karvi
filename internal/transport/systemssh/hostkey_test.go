@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/hostkey"
+	"github.com/robert-patrick-texas/karvi/platform"
 )
 
 func loadPolicyConfig(t *testing.T, home string, sets ...string) configload.Snapshot {
@@ -141,5 +143,18 @@ func TestNegotiationDiagnostics(t *testing.T) {
 	got := safeDiagnostic("Warning: Permanently added 'switch1' (ED25519) to the list of known hosts.\r\nnetops@192.0.2.10: Permission denied (password).\r\nConnection to 192.0.2.10 closed.\r\n", nil)
 	if got != "netops@192.0.2.10: Permission denied (password)." {
 		t.Fatalf("diagnostic %q", got)
+	}
+}
+
+// TestEnrollmentSaidOnlyUnderAcceptNew: OpenSSH's "Permanently added" line
+// reaches the request's HostKeyEnrolled under accept-new alone; under
+// insecure the store is /dev/null and OpenSSH says the line of a key it did
+// not keep, and secure stores nothing.
+func TestEnrollmentSaidOnlyUnderAcceptNew(t *testing.T) {
+	for mode, want := range map[hostkey.Mode]bool{hostkey.AcceptNew: true, hostkey.Insecure: false, hostkey.Secure: false} {
+		d := &Driver{f: Factory{hostKey: hostkey.Policy{Mode: mode}}, req: platform.OpenRequest{HostKeyEnrolled: func(string) {}}}
+		if got := d.hostKeyEnrolled() != nil; got != want {
+			t.Errorf("%s: a callback %t, want %t", mode, got, want)
+		}
 	}
 }

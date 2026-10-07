@@ -300,6 +300,8 @@ unset AUTH
 LINUX='[platform.linux]
 ssh-port = PORT'
 LINUXFLAGS="-persona linux -user $OPERATOR -authorized-keys $TMP/opkey.pub"
+# A first record's notice when the stream's session stored the fake's key.
+ENROLLED='{"code":"host_key_enrolled","message":"ssh accepted new host key for fake-iosxe (ED25519)","details":{"key_type":"ED25519"}}'
 NOT_STOPPED="[{\"code\":\"remote_command_not_stopped\",\"message\":\"the command's channel was closed and the command may still be running on the device: OpenSSH's client cannot ask the device to end it\"}]"
 SSH="identities = [\"$TMP/opkey\"]"
 KEYLOGIN=$OPKEY AUTH=publickey
@@ -313,7 +315,10 @@ parity_case 'S35a exec: each way a command ends, under continue' accept-new linu
   -- --continue-device-on-error --cmd 'uname -snrm' --cmd both --cmd 'fail 3' --cmd 'signal TERM' --cmd nostatus \
   --cmd slow --cmd 'ls /nonexistent' --cmd 'sudo -n id -u'
 CHANNELS=3
-PIN='0.notices=system:'"$NOT_STOPPED"';native:[]
+# Record 0 is the device's first: each stream starts from an emptied store,
+# so it also carries host_key_enrolled (ENROLLED), after system's notice of
+# the command given up.
+PIN='0.notices=system:'"${NOT_STOPPED%]},$ENROLLED]"';native:['"$ENROLLED"']
 1.notices=system:'"$NOT_STOPPED"';native:[]'
 parity_case 'S35b exec: the output limit across both streams, the connection serving the next' accept-new linux "$LINUX
 [output]
@@ -367,8 +372,10 @@ unset OTHERKEY KEYSCAN WARNING
 
 # S14d: one transport enrolls under accept-new and the other reads the entry
 # under secure, in both directions, against one running fake: the identity
-# holds the port, so the pair shares a port.
-cross_pair() {  # label, enrolling activity:transport, reading activity:transport
+# holds the port, so the pair shares a port. The enrolling stream's first
+# record carries host_key_enrolled and the reading stream's none, pinned by
+# transport.
+cross_pair() {  # label, enrolling activity:transport, reading activity:transport, pin
   case $1 in "${ONLY:-}"*) ;; *) return 0 ;; esac
   label=$1
   printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
@@ -386,11 +393,11 @@ cross_pair() {  # label, enrolling activity:transport, reading activity:transpor
   stop_fake
   grep -q '^connections=2 sessions=2$' "$TMP/fake.err" || fail "$label: $(grep '^connections=' "$TMP/fake.err"), expected two connections and two shells"
   # shellcheck disable=SC2086
-  result=$("$TMP/bin/paritycheck" -expect succeeded $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
+  result=$("$TMP/bin/paritycheck" -expect succeeded -pin "$4" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
   echo "native smoke: $label: $result"
 }
-cross_pair 'S14d system enrolls, scrapligo-v1 reads under secure' command:system run:native
-cross_pair 'S14e scrapligo-v1 enrolls, system reads under secure' run:native command:system
+cross_pair 'S14d system enrolls, scrapligo-v1 reads under secure' command:system run:native "0.notices=system:[$ENROLLED];native:[]"
+cross_pair 'S14e scrapligo-v1 enrolls, system reads under secure' run:native command:system "0.notices=system:[];native:[$ENROLLED]"
 
 # S15-S17: the timeouts. The system transport awaits
 # the first prompt for ssh.connect-timeout plus execution.prompt-timeout and
@@ -710,7 +717,9 @@ fi
 # (1000 lines, 73,000 bytes) is a line past the bound: the follower gets
 # the record with `output` empty and the notice follow_output_omitted,
 # output_bytes intact; the `show clock` record after it is whole; the file
-# holds the whole line; the job succeeds.
+# holds the whole line; the job succeeds. The big record is the device's
+# first, from an emptied store, so host_key_enrolled comes before the follow
+# notice, and is the file's record's one notice.
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S31 ]; then
   job_run s31 daemon '[daemon]
 max-ipc-frame-bytes = 65536' '' --cmd 'show big' --cmd 'show clock'
@@ -719,16 +728,18 @@ max-ipc-frame-bytes = 65536' '' --cmd 'show big' --cmd 'show clock'
   sed -n 1p "$TMP/out.s31" >"$TMP/s31.big"; sed -n 2p "$TMP/out.s31" >"$TMP/s31.clock"
   json_is "$TMP/s31.big" output '' || fail "S31: the big record's output was not left out"
   json_is "$TMP/s31.big" output_bytes 73000 || fail "S31: the big record's output_bytes is $(json_get "$TMP/s31.big" output_bytes)"
-  json_is "$TMP/s31.big" notices.0.code follow_output_omitted || fail "S31: the big record's notice is $(json_get "$TMP/s31.big" notices)"
-  json_is "$TMP/s31.big" notices.0.details.max_frame_bytes 65536 || fail "S31: the notice's details are $(json_get "$TMP/s31.big" notices.0.details)"
-  case $(json_get "$TMP/s31.big" notices.0.message) in
+  json_is "$TMP/s31.big" notices.0 "$ENROLLED" || fail "S31: the big record's first notice is $(json_get "$TMP/s31.big" notices)"
+  json_is "$TMP/s31.big" notices.1.code follow_output_omitted || fail "S31: the big record's notice is $(json_get "$TMP/s31.big" notices)"
+  json_is "$TMP/s31.big" notices.1.details.max_frame_bytes 65536 || fail "S31: the notice's details are $(json_get "$TMP/s31.big" notices.1.details)"
+  case $(json_get "$TMP/s31.big" notices.1.message) in
     "output of 73000 bytes left out of the follow stream: the record's "*"-byte line is more than daemon.max-ipc-frame-bytes (65536) allows in a frame; the output is in commands.jsonl") ;;
-    *) fail "S31: the notice's message is $(json_get "$TMP/s31.big" notices.0.message)" ;;
+    *) fail "S31: the notice's message is $(json_get "$TMP/s31.big" notices.1.message)" ;;
   esac
   [ "$(json_get "$TMP/s31.clock" status)" = succeeded ] && [ "$(json_get "$TMP/s31.clock" notices.0.code 2>/dev/null)" = "" ] || fail "S31: the clock record is not whole: $(json_get "$TMP/s31.clock" notices)"
   [ "$(wc -c <"$TMP/s31.big")" -lt 65536 ] || fail "S31: the omitted record is $(wc -c <"$TMP/s31.big") bytes"
   [ "$(sed -n 1p "$JOB_DIR/commands.jsonl" | wc -c)" -gt 65536 ] || fail "S31: commands.jsonl line 1 is $(sed -n 1p "$JOB_DIR/commands.jsonl" | wc -c) bytes; the file must hold the whole output"
-  json_is "$JOB_DIR/commands.jsonl" notices '[]' 2>/dev/null || sed -n 1p "$JOB_DIR/commands.jsonl" | grep -q '"notices":\[\]' || fail "S31: the file's record carries a notice"
+  sed -n 1p "$JOB_DIR/commands.jsonl" >"$TMP/s31.file"
+  json_is "$TMP/s31.file" notices "[$ENROLLED]" || fail "S31: the file's record carries $(json_get "$TMP/s31.file" notices)"
   echo 'native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok'
 fi
 

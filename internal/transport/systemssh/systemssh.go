@@ -6,8 +6,6 @@ package systemssh
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -62,10 +60,10 @@ type Factory struct {
 	passwordless bool
 }
 type Driver struct {
-	f                                Factory
-	req                              platform.OpenRequest
-	binary, configPath, configDigest string
-	session                          *devsession.Session
+	f                  Factory
+	req                platform.OpenRequest
+	binary, configPath string
+	session            *devsession.Session
 	// stream is the OpenSSH process Prepare started, for AuthMethod.
 	stream *processStream
 	// exec and master are an exec device's session and its ControlMaster.
@@ -114,7 +112,6 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 	if err != nil {
 		return nil, err
 	}
-	sum := sha256.Sum256([]byte(content))
 	cf, err := os.CreateTemp(f.ScratchDir, osutil.ScratchFilePattern("karvi-ssh-", ".conf"))
 	if err != nil {
 		return nil, errorcodes.Errorf("ssh_config_write_failed", "create generated SSH configuration: %w", err)
@@ -133,7 +130,7 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 		os.Remove(cf.Name())
 		return nil, errorcodes.Errorf("ssh_config_write_failed", "write generated SSH configuration: %w", err)
 	}
-	return &Driver{f: f, req: req, binary: binary, configPath: cf.Name(), configDigest: hex.EncodeToString(sum[:])}, nil
+	return &Driver{f: f, req: req, binary: binary, configPath: cf.Name()}, nil
 }
 
 // Prepare opens the device session: one interactive OpenSSH shell, the
@@ -245,6 +242,17 @@ var _ platform.SetupReporter = (*Driver)(nil)
 
 var _ platform.AuthReporter = (*Driver)(nil)
 
+// hostKeyEnrolled is the request's HostKeyEnrolled for OpenSSH's
+// "Permanently added" line under accept-new, the one policy that stores a
+// key; nil otherwise: under insecure the trust store is /dev/null and
+// OpenSSH says the same line of a key it did not keep.
+func (d *Driver) hostKeyEnrolled() func(label string) {
+	if d.f.hostKey.Mode != hostkey.AcceptNew {
+		return nil
+	}
+	return d.req.HostKeyEnrolled
+}
+
 // AuthMethod is the method OpenSSH said authenticated the session
 // (platform.AuthReporter).
 func (d *Driver) AuthMethod() string {
@@ -318,7 +326,6 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	d.debugf("system SSH interactive session completed target=%q", d.req.Metadata["canonical_name"])
 	return nil
 }
-func (d *Driver) ConfigDigest() string { return d.configDigest }
 func (d *Driver) baseArgs() []string {
 	return append(d.hostArgs(), d.controlArgs()...)
 }

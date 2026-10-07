@@ -5648,3 +5648,46 @@ naming the notice into a whole record. Decoded for its notices alone, the
 output skipped, three runs each read 43 to 45 MB on both builds, the daemon's
 peak varying as much within a build as between them, and one 51 MB response
 read the same on both (the daemon about 26 MB, the client about 17).
+
+
+**S2, `system`'s exec and command sessions.** One matcher, `enrolledLabel`,
+takes OpenSSH's `Warning: Permanently added '<host>' (<TYPE>) to the list of
+known hosts.` out of the standard error karvi already reads line by line: the
+exec master's lines (`DEBUG1`) and the command session's (`VERBOSE`), beside
+`Authenticated to …`, and passes the label to
+`platform.OpenRequest.HostKeyEnrolled`; the line no longer reaches the
+diagnostics. Executed against this host's OpenSSH on a lab build, the store
+emptied before each: `command` to `linux` (the exec master) and to `linux_shell`
+(the command session), and `run` to each through the daemon, each showed `! ssh
+accepted new host key for 127.0.0.1 (ED25519)` and the audit's first
+`command_completed` named `ED25519`; with the key known, nothing. Four first
+contacts at once, five rounds: one job said it each round, one line stored. The
+host-key suite's new row drives the fake `ssh`'s enrollment line through a
+`run`: the line on standard error under `--quiet`, the notice on the first
+record alone, the audit's details; it fails on `001f12a`'s build at the line.
+The parity suite's streams each start from an emptied store, so every first
+record now carries the notice on both transports: S35b's pin of record 0's
+notices adds it, S14d and S14e (one transport enrolls, the other reads under
+`secure`) pin it to the enrolling transport, and S31's big record holds it
+before the follow stream's `follow_output_omitted`, the file's record the
+enrollment alone.
+
+**Found by the parity suite: `insecure`.** S14c runs under `insecure` with
+another key stored, and `system` reported an enrollment native did not.
+`insecure` gives OpenSSH `StrictHostKeyChecking no` and `UserKnownHostsFile
+/dev/null`, and OpenSSH then says `Permanently added` of a key it writes to
+`/dev/null` (executed with plain `ssh`). The line is an enrollment under
+`accept-new` alone, the one policy that stores a key; under the others it is
+still kept out of the diagnostics and said nowhere.
+
+**Width.** At N=32 over `system`'s exec channels the daemon's peak averaged 75
+MB over ten runs against 70 MB on `001f12a`, and as much with S1 alone, which
+adds no work to a `system` session. Two builds of `001f12a` read 74 and 79 MB,
+one of them ranging 66 to 86: batches move the peak by about 10 MB, so the
+difference is noise. The client's peak was level, 41 to 46 MB, and a 5.26 MB
+line decoded for its notices allocates 18 KB.
+
+**Removed: the generated file's digest.** The `system` driver hashed the OpenSSH
+configuration it writes for each session (`Driver.ConfigDigest`), and nothing
+read it; found when issue 3 was argued from it. The operator's rule: a digest
+without a reader is not kept.

@@ -36,11 +36,13 @@ import (
 // up is left running on the device (remote_command_not_stopped).
 
 // masterLines stands between the master's stderr and the diagnostics: it
-// takes the lines the exec channel reads, drops OpenSSH's other debug
-// lines, and passes every other line on whole, so the diagnostics classify
+// takes the lines the exec channel reads and the line saying the host's key
+// was stored (to enrolled), drops OpenSSH's other debug lines, and passes
+// every other line on whole, so the diagnostics classify
 // a failure as the shell's do. A line is held until its newline.
 type masterLines struct {
-	next io.Writer
+	next     io.Writer
+	enrolled func(label string) // platform.OpenRequest.HostKeyEnrolled, or nil
 
 	mu      sync.Mutex
 	pending []byte
@@ -96,6 +98,12 @@ func (m *masterLines) take(line []byte) error {
 	if g := authenticatedLine.FindStringSubmatch(text); g != nil {
 		m.method = g[1]
 		m.notify()
+		return nil
+	}
+	if label, ok := enrolledLabel(text); ok {
+		if m.enrolled != nil {
+			m.enrolled(label)
+		}
 		return nil
 	}
 	c := m.command
@@ -236,6 +244,7 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 	m := &execMaster{binary: d.binary, socket: filepath.Join(d.f.ControlRoot, name), address: d.req.Address, env: childEnvironment(d.f.Config),
 		diagnostics: &synchronizedBuffer{maxBytes: 64 << 10}, failures: d.sessionFailure(), done: make(chan struct{})}
 	m.lines = newMasterLines(m.diagnostics)
+	m.lines.enrolled = d.hostKeyEnrolled()
 	// The command line's control options come first and win over the
 	// generated file's ControlMaster no and LogLevel ERROR.
 	args := append(d.hostArgs(),

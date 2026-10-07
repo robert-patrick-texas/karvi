@@ -44,6 +44,17 @@ case "\$args" in
     echo 'WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!' >&2
     exit 255
     ;;
+  *"127.0.0.3"*)
+    # A first contact: OpenSSH stores the key and says so at LogLevel INFO
+    # and above (the command session runs at VERBOSE).
+    echo "Warning: Permanently added '127.0.0.3' (ED25519) to the list of known hosts." >&2
+    printf 'enrolled-device#'
+    while IFS= read -r line; do
+      [ "\$line" = exit ] && exit 0
+      printf '%s\r\nhost-key smoke succeeded\r\nenrolled-device#' "\$line"
+    done
+    exit 0
+    ;;
   *" ControlPath=none "*)
     printf 'mismatch-device#'
     while IFS= read -r line; do
@@ -95,6 +106,22 @@ grep -q "UserKnownHostsFile \"$AUTO_KNOWN\"" "$CAPTURE"
 [ -f "$AUTO_KNOWN" ]
 [ "$(stat -c '%a' "$(dirname "$AUTO_KNOWN")")" = 700 ]
 [ "$(stat -c '%a' "$AUTO_KNOWN")" = 600 ]
+
+# A first contact over system: OpenSSH's "Permanently added" line becomes
+# the client's "! ssh accepted new host key" line on standard error, under
+# --quiet too, the notice host_key_enrolled on the device's first record
+# alone, and details.host_key_enrolled on its command_completed audit event.
+# shellcheck disable=SC2046
+env -u KARVI__SSH__KNOWN_HOSTS_FILE HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" $(common_args) \
+  run --no-daemon --target 127.0.0.3 \
+  --transport system --format jsonl --cmd 'show clock' --cmd 'show version' \
+  >"$TMP/enroll.jsonl" 2>"$TMP/enroll.err"
+[ "$(cat "$TMP/enroll.err")" = '! ssh accepted new host key for 127.0.0.3 (ED25519)' ]
+[ "$(jsonl_records "$TMP/enroll.jsonl" 'notices.*.code' 'notices.*.details.key_type' | paste -sd'|' -)" = "$(printf 'host_key_enrolled\tED25519|\t')" ]
+grep '"command_completed"' "$BASE/audit.jsonl" | tail -2 >"$TMP/enroll.audit"
+sed -n 1p "$TMP/enroll.audit" >"$TMP/enroll.audit1"; sed -n 2p "$TMP/enroll.audit" >"$TMP/enroll.audit2"
+json_is "$TMP/enroll.audit1" details.host_key_enrolled ED25519
+[ "$(json_get "$TMP/enroll.audit2" details)" = '{}' ]
 
 # Opt-in mismatch halt: the first changed key stops scheduling the second
 # target and returns the dedicated run outcome.

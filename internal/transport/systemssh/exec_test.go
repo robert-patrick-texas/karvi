@@ -27,13 +27,19 @@ import (
 func TestMasterLines(t *testing.T) {
 	var diagnostics synchronizedBuffer
 	m := newMasterLines(&diagnostics)
+	var labels []string
+	m.enrolled = func(label string) { labels = append(labels, label) }
 	write := func(text string) {
 		t.Helper()
 		if _, err := m.Write([]byte(text)); err != nil {
 			t.Fatal(err)
 		}
 	}
+	write("debug1: Server host key: ssh-ed25519 SHA256:x\nWarning: Permanently added '[127.0.0.1]:45853' (ED25519) to the list of known hosts.\r\n")
 	write("debug1: Server accepts key: /tmp/k ED25519 SHA256:x explicit\nAuthenticated to 127.0.0.1 ([127.0.0.1]:45853) using \"publickey\".\n")
+	if len(labels) != 1 || labels[0] != "ED25519" || strings.Contains(diagnostics.String(), "Permanently added") {
+		t.Fatalf("enrolled %q, diagnostics %q", labels, diagnostics.String())
+	}
 	command := func(lines ...string) commandLines {
 		t.Helper()
 		m.begin()
