@@ -86,7 +86,7 @@ grep -q '^daemon local: absent' "$TMP/streams/d1.out" || fail "d1: an absent dae
 # shellcheck disable=SC2046
 "$KARVI" $(common_args) daemon start >/dev/null 2>&1
 row d2 0 -- run --dry-run --target 127.0.0.1 --transport system --format json 'show clock'
-grep -q '"kind": "inspection"' "$TMP/streams/d2.out" && grep -q '"job_submitted": false' "$TMP/streams/d2.out" && grep -q '"status": "running"' "$TMP/streams/d2.out" || fail "d2: report fields"
+json_is "$TMP/streams/d2.out" kind inspection && json_is "$TMP/streams/d2.out" job_submitted false && json_is "$TMP/streams/d2.out" daemons.0.status running || fail "d2: report fields"
 [ "$(summaries)" -eq 0 ] || fail "d2: a job appeared"
 [ ! -s "$FAKE.log" ] || fail "d2: the fake device saw a session"
 
@@ -176,7 +176,7 @@ wait_stopped() {  # until the socket is gone or 15 s pass
 accounted() {  # accounted NAME DIR STATUS FINAL EXIT CAUSE REASON: the job directory's accounting
   local name=$1 dir=$2 status=$3 final=$4 exit=$5 cause=$6 reason=$7
   [ "$(wc -l <"$dir/commands.jsonl" | tr -d ' ')" -eq 4 ] || fail "$name: expected four records (two targets, two commands)"
-  [ "$(grep -c "\"status\":\"$status\"" "$dir/commands.jsonl")" -eq 4 ] || fail "$name: not every record is $status"
+  [ "$(jsonl_records "$dir/commands.jsonl" status | grep -cx "$status")" -eq 4 ] || fail "$name: not every record is $status"
   json_is "$dir/summary.json" final_status "$final" && json_is "$dir/summary.json" primary_exit_code "$exit" || fail "$name: summary is not $final at $exit"
   [ -z "$cause" ] || json_is "$dir/summary.json" terminal_causes "[\"$cause\"]" || fail "$name: summary cause is not $cause"
   grep -q "\"event_name\":\"run.completed\".*\"outcome\":\"$final\".*\"reason\":\"$reason\"" "$BASE/audit.jsonl" || fail "$name: no run.completed audit record with outcome $final and reason $reason"
@@ -420,7 +420,7 @@ w6_job=$(sed -n 's/^job_id: //p' "$TMP/streams/w6.out")
 sleep 0.5
 "$KARVI" $(common_args) job cancel "$w6_job" --reason 'wrong window' --follow >/dev/null 2>&1 || true
 row w6 113 -- job follow "$w6_job" --format jsonl
-[ "$(grep -c '"status":"cancelled"' "$TMP/streams/w6.out")" -eq 4 ] || fail "w6: not every record is cancelled"
+[ "$(jsonl_records "$TMP/streams/w6.out" status | grep -cx cancelled)" -eq 4 ] || fail "w6: not every record is cancelled"
 grep -q "^job $w6_job cancelled: wrong window; artifacts $w6_dir\$" "$TMP/streams/w6.err" || fail "w6: no cancelled line with the reason"
 tail -1 "$TMP/streams/w6.out" >"$TMP/w6.summary"
 json_is "$TMP/w6.summary" primary_exit_name ExitCancelled || fail "w6: the last line is not the cancelled job's summary"

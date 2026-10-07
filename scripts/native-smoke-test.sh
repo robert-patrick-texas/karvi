@@ -523,8 +523,8 @@ parity_case 'S26 an unknown row platform falls back under warn with the notice' 
   -- --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S26 ]; then
   last=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
-  grep -q '"platform":"cisco_iosxe"' "$last/commands.jsonl" 2>/dev/null || fail "S26: the record's platform is not the fallback cisco_iosxe"
-  grep -q '"code":"platform_unknown_fallback"' "$last/commands.jsonl" 2>/dev/null || fail "S26: the first record carries no platform_unknown_fallback notice"
+  jsonl_records "$last/commands.jsonl" platform 2>/dev/null | grep -qx cisco_iosxe || fail "S26: the record's platform is not the fallback cisco_iosxe"
+  jsonl_records "$last/commands.jsonl" 'notices.*.code' 2>/dev/null | head -1 | tr , '\n' | grep -qx platform_unknown_fallback || fail "S26: the first record carries no platform_unknown_fallback notice"
 fi
 
 # S27: promptbefore is the prompt a statement was sent at, prompt the one

@@ -29,6 +29,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$ROOT/scripts/lib/json.sh"
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 GO=${GO:-go}
 N=${N:-8}
@@ -167,7 +168,7 @@ AFTER=$(status_kb VmRSS "$DPID")
 JOB=$(ls -d "$TMP"/base/jobs/*/* | tail -1)
 WANT_BYTES=$((BIG_LINES * 73))
 records=$(wc -l <"$JOB/commands.jsonl")
-ok=$(grep -c "\"status\":\"succeeded\".*\"output_bytes\":$WANT_BYTES\|\"output_bytes\":$WANT_BYTES.*\"status\":\"succeeded\"" "$JOB/commands.jsonl" || true)
+ok=$(jsonl_records "$JOB/commands.jsonl" status output_bytes | grep -cx "$(printf 'succeeded\t%s' "$WANT_BYTES")" || true)
 [ "$records" -eq "$N" ] || fail "$records records, expected $N"
 [ "$ok" -eq "$N" ] || fail "$ok records succeeded with $WANT_BYTES output bytes, expected $N"
 karvi --quiet daemon stop --force >/dev/null 2>&1 || true

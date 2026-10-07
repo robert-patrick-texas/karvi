@@ -63,8 +63,10 @@ the registry in `configschema`, with its range on the row; a removed key is
 a row of the removed-keys table and is refused from every layer.
 
 A script reads JSON through `scripts/lib/json.sh` (`json_get`, `json_has`,
-`json_is`) and never by matching a file's text; a must-not-appear check
-stops the script rather than relying on a negated pipeline. A Go test that
+`json_is` for one document; `jsonl_records` for a `.jsonl` stream's command
+records, one line each, the values asked for tab-separated) and never by
+matching a file's text; a must-not-appear check stops the script rather than
+relying on a negated pipeline. A Go test that
 needs a value from a `.json` file decodes it.
 
 ## Branches and releases

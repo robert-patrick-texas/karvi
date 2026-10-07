@@ -20,19 +20,11 @@
 
 command -v python3 >/dev/null 2>&1 || { echo "scripts/lib/json.sh: python3 is required (BUILD-HOWTO.md §1)" >&2; exit 2; }
 
-# json_get FILE PATH: print the value at PATH. A string prints as itself,
-# true/false/null and numbers as JSON writes them, an array or object as
-# compact JSON. Exit 1 if PATH is absent (with `*`, if nothing matched),
-# exit 2 if FILE is not JSON or cannot be read; the reason goes to stderr.
-json_get() {
-  python3 -c '
+# The path walk both readers share: walk(node, keys) yields every value at
+# the keys, `*` taking each element or value; text(value) prints a string
+# as itself and anything else as compact JSON.
+JSON_PY_WALK='
 import json, sys
-source, path = sys.argv[1], sys.argv[2]
-try:
-    with (sys.stdin if source == "-" else open(source, encoding="utf-8")) as f:
-        document = json.load(f)
-except (OSError, ValueError) as e:
-    sys.stderr.write("json_get: %s: %s\n" % (source, e)); sys.exit(2)
 
 def walk(node, keys):
     if not keys:
@@ -46,11 +38,28 @@ def walk(node, keys):
     elif isinstance(node, list) and key.isdigit() and int(key) < len(node):
         yield from walk(node[int(key)], rest)
 
+def text(value):
+    return value if isinstance(value, str) else json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+'
+
+# json_get FILE PATH: print the value at PATH. A string prints as itself,
+# true/false/null and numbers as JSON writes them, an array or object as
+# compact JSON. Exit 1 if PATH is absent (with `*`, if nothing matched),
+# exit 2 if FILE is not JSON or cannot be read; the reason goes to stderr.
+json_get() {
+  python3 -c "$JSON_PY_WALK"'
+source, path = sys.argv[1], sys.argv[2]
+try:
+    with (sys.stdin if source == "-" else open(source, encoding="utf-8")) as f:
+        document = json.load(f)
+except (OSError, ValueError) as e:
+    sys.stderr.write("json_get: %s: %s\n" % (source, e)); sys.exit(2)
+
 found = list(walk(document, path.split(".") if path else []))
 if not found:
     sys.stderr.write("json_get: %s: no %s\n" % (source, path)); sys.exit(1)
 for value in found:
-    print(value if isinstance(value, str) else json.dumps(value, separators=(",", ":"), ensure_ascii=False))
+    print(text(value))
 ' "$1" "$2"
 }
 
@@ -64,4 +73,39 @@ json_has() {
 # common assertion, so that a script does not spell the comparison each time.
 json_is() {
   [ "$(json_get "$1" "$2" 2>/dev/null)" = "$3" ]
+}
+
+# jsonl_records FILE PATH...: one line per command record of a .jsonl
+# stream (a line holding record_id; the job summary and any other line are
+# skipped), the values at the PATHs tab-separated in the order given. An
+# absent value is empty; the values `*` matches are joined by commas; a
+# string holding a tab or a newline prints as JSON writes it, quoted, so a
+# record stays one line and its fields stay apart. The assertion is the
+# script's, on this output: `| grep -cx succeeded`, `| head -1`,
+# `| paste -sd, -`. Exit 2 if FILE cannot be read or a line is not JSON.
+jsonl_records() {
+  python3 -c "$JSON_PY_WALK"'
+source, paths = sys.argv[1], sys.argv[2:]
+
+def field(node, path):
+    out = []
+    for value in walk(node, path.split(".")):
+        v = text(value)
+        out.append(json.dumps(v, ensure_ascii=False) if "\t" in v or "\n" in v or "\r" in v else v)
+    return ",".join(out)
+
+try:
+    with (sys.stdin if source == "-" else open(source, encoding="utf-8")) as f:
+        for number, line in enumerate(f, 1):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except ValueError as e:
+                sys.stderr.write("jsonl_records: %s:%d: %s\n" % (source, number, e)); sys.exit(2)
+            if isinstance(record, dict) and "record_id" in record:
+                print("\t".join(field(record, p) for p in paths))
+except OSError as e:
+    sys.stderr.write("jsonl_records: %s: %s\n" % (source, e)); sys.exit(2)
+' "$@"
 }

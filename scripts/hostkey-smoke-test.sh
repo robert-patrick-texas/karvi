@@ -6,6 +6,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$ROOT/scripts/lib/json.sh"
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 TMP=${TMPDIR:-/tmp}/karvi-hostkey-smoke-$$
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
@@ -86,8 +87,8 @@ set -e
   exit 1
 }
 [ "$(wc -l < "$TMP/auto.jsonl" | tr -d ' ')" -eq 3 ] # two records and the summary line
-[ "$(grep -c '"code":"host_key_changed"' "$TMP/auto.jsonl")" -eq 1 ]
-[ "$(grep -c '"status":"succeeded"' "$TMP/auto.jsonl")" -eq 1 ]
+[ "$(jsonl_records "$TMP/auto.jsonl" error.code | grep -cx host_key_changed)" -eq 1 ]
+[ "$(jsonl_records "$TMP/auto.jsonl" status | grep -cx succeeded)" -eq 1 ]
 grep -q 'StrictHostKeyChecking accept-new' "$CAPTURE"
 AUTO_KNOWN=$BASE/known_hosts
 grep -q "UserKnownHostsFile \"$AUTO_KNOWN\"" "$CAPTURE"
@@ -111,8 +112,8 @@ set -e
   cat "$TMP/halt.err" >&2
   exit 1
 }
-[ "$(grep -c '"status":"not_started_halt"' "$TMP/halt.jsonl")" -eq 1 ]
-grep -q 'halt_host_key_mismatch' "$TMP/halt.jsonl"
+[ "$(jsonl_records "$TMP/halt.jsonl" status | grep -cx not_started_halt)" -eq 1 ]
+jsonl_records "$TMP/halt.jsonl" error.code | grep -qx halt_host_key_mismatch
 
 # Secure: a missing pre-enrolled file fails before the fake SSH binary runs and
 # returns the stable direct-command host-key exit code.

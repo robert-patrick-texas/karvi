@@ -37,5 +37,27 @@ check "a line on standard input" 7 "$(printf '{"a":{"b":7}}\n' | json_get - a.b)
 printf '{"final_status":' >"$TMP/broken.json"
 check "not JSON exit" 2 "$(code json_get "$TMP/broken.json" final_status)"
 check "missing file exit" 2 "$(code json_get "$TMP/none.json" final_status)"
+# jsonl_records: the command records of a stream, the summary skipped.
+TAB=$(printf '\t')
+{
+  printf '%s\n' '{"record_id":"r1","status":"succeeded","error":null,"output":"a\tb\r\nc","notices":[{"code":"n1"},{"code":"n2"}],"selected_address":"127.0.0.1"}'
+  printf '\n'
+  printf '%s\n' '{"record_id":"r2","status":"connection_error","error":{"code":"ssh_process_failed"},"notices":[]}'
+  printf '%s\n' '{"schema_version":2,"final_status":"errored","status":"not a record"}'
+} >"$TMP/stream.jsonl"
+check "records one path" 'succeeded connection_error' "$(jsonl_records "$TMP/stream.jsonl" status | tr '\n' ' ' | sed 's/ $//')"
+check "records two paths" "127.0.0.1${TAB}succeeded" "$(jsonl_records "$TMP/stream.jsonl" selected_address status | head -1)"
+check "records absent empty" "${TAB}connection_error" "$(jsonl_records "$TMP/stream.jsonl" selected_address status | sed -n 2p)"
+check "records null" 'null' "$(jsonl_records "$TMP/stream.jsonl" error | head -1)"
+check "records object" '{"code":"ssh_process_failed"}' "$(jsonl_records "$TMP/stream.jsonl" error | sed -n 2p)"
+check "records the first error" ssh_process_failed "$(jsonl_records "$TMP/stream.jsonl" error.code | grep -m1 .)"
+check "records each joined" 'n1,n2' "$(jsonl_records "$TMP/stream.jsonl" 'notices.*.code' | head -1)"
+check "records a tab or newline quoted" '"a\tb\r\nc"' "$(jsonl_records "$TMP/stream.jsonl" output | head -1)"
+check "records count" 2 "$(jsonl_records "$TMP/stream.jsonl" record_id | wc -l | tr -d ' ')"
+check "records joined" 'succeeded,connection_error' "$(jsonl_records "$TMP/stream.jsonl" status | paste -sd, -)"
+check "records on standard input" r2 "$(sed -n 3p "$TMP/stream.jsonl" | jsonl_records - record_id)"
+printf '%s\n' '{"record_id":"r1"}' '{"record_id":' >"$TMP/broken.jsonl"
+check "records a line not JSON exit" 2 "$(code jsonl_records "$TMP/broken.jsonl" record_id)"
+check "records missing file exit" 2 "$(code jsonl_records "$TMP/none.jsonl" status)"
 [ "$failures" -eq 0 ] || { echo "json lib: $failures failed" >&2; exit 1; }
 echo "json lib: pass"

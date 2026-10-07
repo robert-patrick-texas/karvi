@@ -5344,3 +5344,76 @@ migration. The evidence is kept beside the tree
 **For later.** The scratch has no check that an askpass socket's path fits, as
 `ssh.control-path-root` has (`control_path_root_too_long`): a long `tempdir`
 fails at the broker's start. The suites' work directories by the umask.
+
+## 34. A `.jsonl` stream's records read by one function (2026-10-07)
+
+The outline's item: the qualification script's `first_code()` and the suites'
+greps on `"status"` to `scripts/lib/json.sh`, one tested function.
+
+**What it gains.** One reader for the command records of a `.jsonl` stream in
+place of about seventeen text matches in nine scripts and the qualification
+script's two helpers. A match like `grep -c '"status":"succeeded"'` holds for
+one layout only, the failure `json.sh`'s own header records from the day the
+`.json` files were indented; `first_code()` took the first `"code"` anywhere in
+the stream, which could be a notice's. It waits on nothing.
+
+**The rule.** `jsonl_records FILE PATH...` prints one line per command record
+(a line holding `record_id`; the job summary and any other line are skipped),
+the values at the PATHs tab-separated in the order given. A path is
+`json_get`'s, the two sharing one walk (`JSON_PY_WALK`); an absent value is
+empty; the values `*` matches are joined by commas; a string holding a tab or a
+newline prints as JSON writes it, quoted, so a record stays one line and its
+fields stay apart. A line that is not JSON, or a file that cannot be read,
+exits 2. The assertion stays the script's, on that output:
+
+| Site | Before | After |
+|---|---|---|
+| counts of a status (halt, hostkey, canary, v0100, the qualification's D8) | `grep -c '"status":"x"'` | `jsonl_records F status \| grep -cx x` |
+| an error code (hostkey) | `grep -c '"code":"host_key_changed"'` | `jsonl_records F error.code \| grep -cx host_key_changed` |
+| a notice (native S26) | `grep -q '"code":"platform_unknown_fallback"'` | the first record's `notices.*.code` |
+| address with status and decision (canary p1) | two greps on one line | `jsonl_records F selected_address status ping.decision`, one `grep -qx` per row |
+| status with bytes (the scale run) | one pattern in both orders | `jsonl_records F status output_bytes \| grep -cx` |
+| `statuses()` | a loop of `json_has` and `json_get` | `jsonl_records "$1" status \| paste -sd, -` |
+| `first_code()` | the first `"code"` anywhere | `jsonl_records "$1" error.code \| grep -m1 .`, the first record's error |
+| the daemon status report (canary d1, v0100 d2) | `grep '"status": "running"'` | `json_is F daemons.0.status running` |
+
+Two assertions became stronger: the halt suite's three statuses in their order,
+and the smoke suite's two records both succeeded. `CONTRIBUTING.md`'s JSON rule
+names the function, and the qualification runbook's `python3` row lists the
+script's reads.
+
+**Tab, not comma.** The operator asked whether a comma could separate the
+fields. Read from the kept canary streams of [chapter
+33](#33-the-askpass-socket-named-by-its-makers-pid-2026-10-07): of their
+sixteen records' string values two held a comma and none a tab, an object or
+array value prints as compact JSON full of commas, and `*` already joins by
+comma:
+
+```text
+$ jsonl_records r3a.out status error
+connection_error	{"code":"ssh_process_failed","category":"connection","message":"exit status 91",…}
+```
+
+The same reading showed a value with a newline breaking a record across lines
+(`output`, `canary device output` and the line after it), hence the quoting.
+A script writes an expected line with `printf '%s\t%s'`.
+
+**Executed.** On a lab build of the tree, under umask 022: `json-test.sh` 51
+cases; the halt, host-key, smoke, canary, and v0100 suites, the parity suite's
+S26, and the scale run at N=8 passed; the qualification script with `FAKE=1
+CONCURRENCY=2` passed (70 pass, 8 observe, 4 skip), its D7 reading
+`host_key_not_enrolled` and `host_key_changed` through `first_code` on both
+transports and its D8 `4 records succeeded` on each. A copy of the halt and
+host-key suites with a wrong expectation failed where it should:
+
+```text
++ [ succeeded,authentication_error,not_started_halt = succeeded,not_started_halt,authentication_error ]
++ grep -cx host_key_unknown
++ [ 0 -eq 1 ]
+```
+
+**Not taken.** `first_code`, `statuses`, and a counter as three functions: one
+reader and the shell's own tools cover them. `json_get` taking a whole
+`.jsonl`: it reads one document by design, and a stream wants the records'
+filter. A comma, or another printable separator: values hold commas, spaces,
+and the `|` of a command line.

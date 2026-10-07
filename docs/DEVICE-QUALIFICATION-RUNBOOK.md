@@ -19,7 +19,7 @@ A production Linux server is qualified by hand, by the rows of [section
 | Need | For | Notes |
 |---|---|---|
 | A host that reaches the device's management address over SSH, with the released bundle unpacked and `scripts/verify-bundle.sh` passed | every row | The OpenSSH client for `system`; `go` only to build `tools/paritycheck` (without it the comparison is marked skip and is run afterwards over the kept streams) |
-| `python3` | the script's one JSON read (`scripts/lib/json.sh`: the executable's transports) | A prerequisite of [`BUILD-HOWTO.md` §1](../BUILD-HOWTO.md#1-install-operating-system-prerequisites); the script stops at its start without it |
+| `python3` | the script's JSON reads (`scripts/lib/json.sh`: the executable's transports, the records' statuses and error codes) | A prerequisite of [`BUILD-HOWTO.md` §1](../BUILD-HOWTO.md#1-install-operating-system-prerequisites); the script stops at its start without it |
 | `bin/secret-scan` (`make tools-build`) | the final scan | Without it the scan is marked skip and the evidence must not leave the host unreviewed |
 | The device's inventory name, management address, and SSH port | every row | `DEVICE`, `ADDRESS`, `PORT` |
 | A laboratory account that reaches privilege 15 by `enable`, and its enable secret | D1–D4, D7–D16 | `NETUSER`, `NETPASS`, `NETENABLE` in the environment. If the account lands at privilege 15 at login, leave `NETENABLE` unset: that is the matrix's "nothing sent" row |

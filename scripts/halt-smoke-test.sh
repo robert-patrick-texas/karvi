@@ -55,9 +55,7 @@ set -e
   exit 1
 }
 [ "$(wc -l < "$TMP/run.jsonl" | tr -d ' ')" -eq 4 ] # three records and the summary line
-[ "$(grep -c '"status":"succeeded"' "$TMP/run.jsonl")" -eq 1 ]
-[ "$(grep -c '"status":"authentication_error"' "$TMP/run.jsonl")" -eq 1 ]
-[ "$(grep -c '"status":"not_started_halt"' "$TMP/run.jsonl")" -eq 1 ]
+[ "$(jsonl_records "$TMP/run.jsonl" status | paste -sd, -)" = succeeded,authentication_error,not_started_halt ]
 [ ! -e "$THIRD_MARKER" ] || {
   echo 'halted target was unexpectedly opened' >&2
   exit 1

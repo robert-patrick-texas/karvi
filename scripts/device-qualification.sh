@@ -221,14 +221,8 @@ qrun() {
   cp "$WORK/karvi.toml" "$q_dir/$q_tag.karvi.toml"
   [ ! -d "$WORK/base" ] || { rm -rf "$WORK/base/socket" "$WORK/base/cap"; mv "$WORK/base" "$q_dir/$q_tag.base"; }
 }
-statuses() {  # a jsonl stream's command records' statuses, in order: status,...
-  # A record has a record_id; the job summary that ends the stream has none.
-  while IFS= read -r st_line; do
-    printf '%s\n' "$st_line" | json_has - record_id || continue
-    printf '%s\n' "$st_line" | json_get - status
-  done <"$1" | tr '\n' ',' | sed 's/,$//'
-}
-first_code() { grep -o '"code":"[a-z_0-9]*"' "$1" | head -1 | cut -d'"' -f4; }
+statuses() { jsonl_records "$1" status | paste -sd, -; }  # the command records' statuses, in order
+first_code() { jsonl_records "$1" error.code | grep -m1 .; }  # the first record's error code
 expect_exit() {  # row, tag, wanted exit
   if [ "$CODE" -eq "$3" ]; then result "$1" "$2 exit" pass "$CODE"
   else result "$1" "$2 exit" fail "exit $CODE, expected $3: $(grep -E '^[a-z_]+:' "$ERR" | head -1)"; fi
@@ -409,7 +403,7 @@ if wanted D8; then
       DISPATCH="default = \"parallel\"
 parallel-workers = $CONCURRENCY" write_config accept-new
       qrun D8 "daemon.$tr" daemon "$tr" -- --all --cmd 'show clock' --cmd 'show users'
-      n=$(grep -c '"status":"succeeded"' "$OUT" || true)
+      n=$(jsonl_records "$OUT" status | grep -cx succeeded || true)
       [ "$CODE" -eq 0 ] && [ "$n" -eq $((CONCURRENCY * 2)) ] && result D8 "daemon.$tr $CONCURRENCY sessions" pass "$n records succeeded" || result D8 "daemon.$tr $CONCURRENCY sessions" fail "exit $CODE, $n of $((CONCURRENCY * 2)) records succeeded"
     done
     unset NAMES

@@ -199,7 +199,7 @@ db2=$(printf '%s' "$PASS_B2" | sha256sum | awk '{print $1}')
 [ "$(grep -c "^AUTH:show s1a DIGEST:$da2\$" "$FAKE.log")" -eq 1 ] || fail "s1: job a did not authenticate with its own password"
 [ "$(grep -c "^AUTH:show s1b DIGEST:$db2\$" "$FAKE.log")" -eq 1 ] || fail "s1: job b did not authenticate with its own password"
 if grep -Eq "^AUTH:show s1b DIGEST:$da2|^AUTH:show s1a DIGEST:$db2" "$FAKE.log"; then fail "s1: a job authenticated with the other job's password"; fi
-grep -q '"status":"succeeded"' "$TMP/streams/s1a.out" && grep -q '"status":"succeeded"' "$TMP/streams/s1b.out" || fail "s1: a job did not succeed"
+[ "$(jsonl_records "$TMP/streams/s1a.out" status)" = succeeded ] && [ "$(jsonl_records "$TMP/streams/s1b.out" status)" = succeeded ] || fail "s1: a job did not succeed"
 # shellcheck disable=SC2046
 s1_pid_after=$(HOME=$HOME_DIR "$KARVI" $(s1_args) daemon status --format json 2>/dev/null | sed -n 's/.*"pid": *\([0-9]*\).*/\1/p' | head -1)
 [ "$s1_pid_after" = "$s1_pid" ] || fail "s1: the daemon was replaced (pid $s1_pid then ${s1_pid_after:-none})"
@@ -221,9 +221,9 @@ row d1 0 -- run --dry-run --target 127.0.0.1 --target 127.0.0.2 --transport syst
 grep -q '"kind": "inspection"' "$TMP/streams/d1.out" || fail "d1: not an inspection report"
 grep -q '"outcome": "planned"' "$TMP/streams/d1.out" || fail "d1: outcome is not planned"
 grep -q '"job_submitted": false' "$TMP/streams/d1.out" || fail "d1: job_submitted is not false"
-grep -q '"target_data_submitted": false' "$TMP/streams/d1.out" || fail "d1: target_data_submitted is not false"
-grep -q '"device_contacted": false' "$TMP/streams/d1.out" || fail "d1: device_contacted is not false"
-grep -q '"status": "running"' "$TMP/streams/d1.out" || fail "d1: the running daemon was not reported"
+json_is "$TMP/streams/d1.out" target_data_submitted false || fail "d1: target_data_submitted is not false"
+json_is "$TMP/streams/d1.out" device_contacted false || fail "d1: device_contacted is not false"
+json_is "$TMP/streams/d1.out" daemons.0.status running || fail "d1: the running daemon was not reported"
 [ "$(wc -l <"$FAKE.log" | tr -d ' ')" -eq "$before_log" ] || fail "d1: the fake device saw a session"
 [ "$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')" -eq "$before_manifests" ] || fail "d1: a job directory appeared"
 after_ops=$(grep -Ec 'operation=(prepare_job|commit_job|provide_credentials)' "$BASE/logs/daemon.log" || true)
@@ -260,10 +260,11 @@ if [ "$icmp_method" = socket ] || [ "$icmp_method" = system ]; then
   before_manifests=$(find "$BASE/jobs" -name manifest.json -type f | wc -l | tr -d ' ')
   row p1 101 -- run --ping --target 127.0.0.1 --target 192.0.2.1 --transport system --format jsonl 'show clock'
   [ "$(wc -l <"$TMP/streams/p1.out" | tr -d ' ')" -eq 3 ] || fail "p1: expected two records and the summary line"
-  grep '"selected_address":"192.0.2.1"' "$TMP/streams/p1.out" | grep -q '"status":"icmp_unreachable"' || fail "p1: the unreachable target was not skipped as icmp_unreachable"
-  grep '"selected_address":"192.0.2.1"' "$TMP/streams/p1.out" | grep -q '"decision":"skip"' || fail "p1: the skipped record's ping decision is not skip"
-  grep '"selected_address":"127.0.0.1"' "$TMP/streams/p1.out" | grep -q '"status":"succeeded"' || fail "p1: the reachable target did not succeed"
-  grep '"selected_address":"127.0.0.1"' "$TMP/streams/p1.out" | grep -q '"decision":"proceed"' || fail "p1: the reachable record's ping decision is not proceed"
+  p1=$(jsonl_records "$TMP/streams/p1.out" selected_address status ping.decision)
+  printf '%s\n' "$p1" | grep -qx "$(printf '192.0.2.1\ticmp_unreachable\t.*')" || fail "p1: the unreachable target was not skipped as icmp_unreachable"
+  printf '%s\n' "$p1" | grep -qx "$(printf '192.0.2.1\t.*\tskip')" || fail "p1: the skipped record's ping decision is not skip"
+  printf '%s\n' "$p1" | grep -qx "$(printf '127.0.0.1\tsucceeded\t.*')" || fail "p1: the reachable target did not succeed"
+  printf '%s\n' "$p1" | grep -qx "$(printf '127.0.0.1\t.*\tproceed')" || fail "p1: the reachable record's ping decision is not proceed"
   grep -q "\"method\":\"$icmp_method\"" "$TMP/streams/p1.out" || fail "p1: the records do not name the method $icmp_method"
   [ "$(grep -c '^AUTH:' "$FAKE.log" || true)" -eq $((before_auth + 1)) ] || fail "p1: expected exactly one new session at the fake device"
   p1_summary=$(find "$BASE/jobs" -name summary.json -type f -newer "$TMP/streams/e1.out" | head -1)

@@ -2,6 +2,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+. "$ROOT/scripts/lib/json.sh"
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 TMP=${TMPDIR:-/tmp}/karvi-smoke-$$
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
@@ -80,7 +81,7 @@ NETUSER=smoke NETPASS=$SECRET "$KARVI" $(common_args) \
   >"$TMP/run.jsonl" 2>"$TMP/run.err"
 [ "$(wc -l < "$TMP/run.jsonl" | tr -d ' ')" -eq 3 ] # two records and the summary line
 
-grep -q '"status":"succeeded"' "$TMP/run.jsonl"
+[ "$(jsonl_records "$TMP/run.jsonl" status | paste -sd, -)" = succeeded,succeeded ]
 find "$BASE/jobs" -name summary.json -type f | grep -q .
 
 # The idle timer (daemon.shutdown-idle-timer):
