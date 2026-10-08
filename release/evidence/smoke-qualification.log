@@ -1,4 +1,4 @@
-karvi v0.27.0 executable smoke qualification (from scripts/verify-release.sh)
+karvi v0.28.0 executable smoke qualification (from scripts/verify-release.sh)
 native smoke: S29 output.files: all false, the daemon, two false, the limit: ok
 native smoke: S32 the invocation decides the files through the daemon: --nof, --of=PATH, two keys false, the refusals: ok
 native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok

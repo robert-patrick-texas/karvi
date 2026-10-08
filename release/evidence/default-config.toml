@@ -14,7 +14,10 @@ sharedroot = "auto"
 # auto is the chain /dev/shm/karvi/<username> (only when the site's scratch root
 # /dev/shm/karvi exists: sudo karvi setup shared makes it, and karvi never does),
 # <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the first that is a writable real
-# directory, made 0700 in its existing parent; an absolute path replaces the chain.
+# directory, made 0700 in its existing parent; an absolute path replaces the chain. The
+# directory may be at most 69 bytes, so that an askpass socket's path, its name up to 37
+# bytes, fits 107: auto passes a longer candidate by, and an explicit path longer is
+# tempdir_too_long at every job's admission and a login's start.
 tempdir = "auto"
 # The directory of the output spools, one file per command in flight whose response has passed
 # output.spool-threshold-bytes. auto tries /tmp/karvi-<uid>, then /var/tmp/karvi-<uid>, each
@@ -104,7 +107,7 @@ ping-system = true
 transport = "default"
 
 [ssh.command]
-# Named transport selector. default resolves to system for command; preferred resolves to
+# Named transport selector. default resolves to native for command; preferred also resolves to
 # native.
 transport = "default"
 
@@ -554,14 +557,6 @@ journald-required = true
 # Empty disables secondary file.
 file = ""
 # Requires nonempty file when true.
-file-required = false
-
-[logging]
-# debug, info, warn, error.
-level = "info"
-# Empty disables; append only.
-file = ""
-# Requires path when true.
 file-required = false
 
 [watch]
