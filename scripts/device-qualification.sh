@@ -315,14 +315,17 @@ if wanted D7; then
   ssh-keygen -q -t ed25519 -N '' -f "$WORK/other" >/dev/null
   OTHER=$(cut -d' ' -f1,2 "$WORK/other.pub")
   for tr in $TRANSPORTS; do
-    # a: accept-new on an empty store enrolls under the identity; a repeat matches.
+    # a: accept-new on an empty store enrolls under the identity and says so;
+    # a repeat matches and says nothing.
     fresh_store; write_config accept-new
     qrun D7 "a1.$tr" command "$tr" -- --target "$DEVICE" --cmd 'show clock'; expect_exit D7 "a1.$tr enroll" 0
+    grep -qF "! ssh accepted new host-key $DEVICE (" "$ERR" && result D7 "a1.$tr said" pass '' || result D7 "a1.$tr said" fail 'no first-contact line on stderr'
     cp "$KH" "$EVIDENCE/D7/a1.$tr.known_hosts"
     if [ "$(cut -d' ' -f1 "$KH" | sort -u)" = "$IDENTITY" ]; then result D7 "a1.$tr identity" pass "$IDENTITY $(cut -d' ' -f2 "$KH" | tr '\n' ' ')"
     else result D7 "a1.$tr identity" fail "the store holds $(cut -d' ' -f1,2 "$KH" | tr '\n' ';'), expected $IDENTITY"; fi
     before=$(cksum <"$KH")
     qrun D7 "a2.$tr" command "$tr" -- --target "$DEVICE" --cmd 'show clock'; expect_exit D7 "a2.$tr repeat" 0
+    grep -qF 'accepted new host-key' "$ERR" && result D7 "a2.$tr unsaid" fail 'the repeat said a first contact' || result D7 "a2.$tr unsaid" pass ''
     [ "$(cksum <"$KH")" = "$before" ] && result D7 "a2.$tr store unchanged" pass '' || result D7 "a2.$tr store unchanged" fail 'the repeat rewrote the store'
     # b: the other transport reads that entry under secure.
     for other in $TRANSPORTS; do
@@ -347,7 +350,7 @@ if wanted D7; then
     # f: insecure over the same wrong entry: the warning, then access.
     write_config insecure
     qrun D7 "f.$tr" command "$tr" -- --target "$DEVICE" --cmd 'show clock'; expect_exit D7 "f.$tr insecure, mismatch" 0
-    grep -q "SSH host key mismatch for $DEVICE" "$ERR" && result D7 "f.$tr warning" pass '' || result D7 "f.$tr warning" fail 'no mismatch warning on stderr'
+    grep -qF "! ssh host-key mismatch $DEVICE proceeding at risk" "$ERR" && result D7 "f.$tr warning" pass '' || result D7 "f.$tr warning" fail 'no mismatch line on stderr'
     # g: the literal address as the target is its own identity.
     fresh_store; write_config accept-new
     qrun D7 "g.$tr" command "$tr" -- --target "$ADDRESS" --cmd 'show clock'; expect_exit D7 "g.$tr literal address" 0

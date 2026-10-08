@@ -971,6 +971,37 @@ three approaches serve organisations with different risk tolerances behind a
 safe default that cannot be weakened silently. *Not taken:* aliases `auto` and
 `default` (removed outright).
 
+**What a policy accepts unchecked is said on every path.** Under `accept-new`
+a session that stores a key, unknown until then, is the notice
+`host_key_enrolled` on the device's first record; under `insecure` a key
+differing from the stored one is `host_key_mismatch_accepted` with both
+fingerprints, a `system` comparison that could not complete is
+`host_key_not_compared`, and the policy itself is said once per job at its
+admission by the process whose policy governs the job (the daemon's for a
+daemon's job), riding the receipt. The client draws each as a `!` line on
+standard error, `--quiet` included, and the audit event's `details` name it.
+*Why:* these are the moments karvi trusts a key nobody checked; the transports'
+warnings went to the job's standard error, which the daemon discards, so
+through the daemon a changed key was accepted in silence, and `system` said
+nothing of a first contact; the record outlives the terminal. *Not taken:* the
+job's standard error carried out of the daemon (lost to a later reader); the
+store compared before and after a job's session (every overlapping job reports
+one enrollment); the policy as a notice on every record (one line a thousand
+times); an enrolled key's fingerprint (the store holds it).
+
+**A login learns of a first contact from the trust store.** A login runs
+OpenSSH at `LogLevel ERROR`, where it writes neither a device's banner nor its
+first-contact line. karvi reads the store before the session and, when it
+holds nothing for the device, again at the session's first askpass request,
+by which OpenSSH has finished key exchange and stored the key, else at the
+session's end. *Why:* at `INFO` the banner reaches the diagnostics as well and
+leads every failure line, and a Cisco IOS XE banner ends its lines in `\r\n`
+as OpenSSH's own lines do, so nothing filters it out; the prompt is an exact
+point, and no read waits on the store. *Not taken:* `INFO` with OpenSSH's
+standard error sorted or the banner hidden (it stays in the diagnostics); `-E`
+to a FIFO (it takes `SSH-TROUBLE.md`'s trace); a watch of the store bounded by
+time.
+
 **A karvi-owned trust store, created 0600, never repaired.** The store is
 `<basedir>/known_hosts` under `auto`: `/opt/karvi/users/<user>/known_hosts`
 where the site made `users`, `~/.local/share/karvi/known_hosts` otherwise (the

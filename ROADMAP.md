@@ -185,7 +185,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   A login, at `LogLevel ERROR`, receives no banner, and the native transport
   drops one. The question: an exact separator, `-E` to a FIFO for OpenSSH's
   log, which takes `docs/SSH-TROUBLE.md`'s `-vvv` trace from its file into
-  karvi's.
+  karvi's; the same `-E` "A login's OpenSSH log level" asks of a login.
 
 ## The device-qualification track
 

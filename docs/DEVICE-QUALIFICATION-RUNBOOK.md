@@ -93,11 +93,11 @@ device).
 | D3 | first prompt, one `enable`, paging, `--echo`, `--debug` | `command --debug --echo`: `show clock`, `show privilege`, in text | exit 0; the streams observed (banner, prompt, the enable, the paging lines) |
 | D4 | the `(config)#` level | both: `configure terminal`, `end`, `show clock` (opt-in) | three succeeded; the first record's `prompt` is the `(config)#` prompt; parity |
 | D5 | a rejected paging command; authorization failure | `show clock`, `show running-config` as the restricted account (opt-in) | observed: the expectation is `paging_disable_failed` |
-| D7 a | `accept-new`: empty store, first acceptance, repeat | `show clock` twice | the store holds the identity (`name`, or `[name]:PORT`) and the repeat leaves it byte-identical |
+| D7 a | `accept-new`: empty store, first acceptance, repeat | `show clock` twice | the store holds the identity (`name`, or `[name]:PORT`), the first says `! ssh accepted new host-key` and the repeat nothing, and leaves the store byte-identical |
 | D7 b | one transport's enrollment read by the other | `run` under `secure` on the other transport | exit 0 |
 | D7 c | hashed entries written by hand | `ssh-keygen -H` over the store, then `secure` | exit 0 |
 | D7 d, e | `secure`: unknown host; changed key | an empty store; another key under the identity | 109 `host_key_not_enrolled`; 109 `host_key_changed` |
-| D7 f | `insecure`: the mismatch warning, then access | the same wrong entry | exit 0 and the warning on stderr |
+| D7 f | `insecure`: the mismatch warning, then access | the same wrong entry | exit 0, the policy's two lines and `! ssh host-key mismatch DEVICE proceeding at risk` on stderr |
 | D7 g | literal-address targeting | `--target ADDRESS` | the store holds the address identity |
 | D7 h | concurrent first enrollment from two clients | two `command` processes at once on an empty store | both exit 0; no entry twice |
 | D7 i | a non-`0600` store is refused or ignored, never repaired | mode 0644 under `secure`, `accept-new`, then `insecure` | `secure` and `accept-new`: 109 `host_key_trust_store_permission` with the `chmod 600` remedy; `insecure`: 0; the mode still 0644 after each |
@@ -122,8 +122,9 @@ Rows the script does not run, and how they are done:
 - **Wrong owner, symlink, non-`0700` directory**: unit tests hold the
   rules; the operator's message for mode is D7 i. The others need root or
   a second account and are read from the unit tests.
-- **The insecure scan-failure warning**: needs an endpoint that refuses
-  the scan and accepts the session; not reproducible on a healthy device.
+- **The insecure scan failure** (`host_key_not_compared`): needs an endpoint
+  that refuses the scan and accepts the session; not reproducible on a healthy
+  device.
 - **Cancellation at the device**: during D9's `BIG_COMMAND` press Ctrl-C
   in a hand-run `karvi command`, then run `ROWS=D14`: the vty line must be
   free.

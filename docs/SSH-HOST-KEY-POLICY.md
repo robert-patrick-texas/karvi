@@ -37,8 +37,29 @@ GlobalKnownHostsFile "/dev/null"
 On `scrapligo-v1`, karvi's callback in the SSH handshake reads the same
 file: a key found under the device's identity must match; an unknown device
 is enrolled as one line under the file lock (re-read while locked, so two
-concurrent connections enrol once) and the acceptance is printed as a
-warning naming the fingerprint. No `ssh-keyscan` runs.
+concurrent connections enrol once). No `ssh-keyscan` runs.
+
+A session that stores a key says so on either transport, in the client and
+through the daemon, on standard error, `--quiet` included, the device's name in
+the target colour and the rest in the warning colour:
+
+```text
+! ssh accepted new host-key router1 (ED25519)
+```
+
+The device's first record carries the notice `host_key_enrolled` with the key
+type, and its `command_completed` audit event `details.host_key_enrolled`.
+`scrapligo-v1` says it when its own enrollment wrote the line; over `system`
+karvi takes OpenSSH's `Warning: Permanently added …` line from the standard
+error of the exec master and the command session. A job that finds the key
+stored meanwhile by another says nothing. A login runs OpenSSH at `LogLevel
+ERROR`, where it says nothing of the key (nor shows a device's banner), so
+karvi reads the store before the session and, when it holds nothing for the
+device, again at the session's first password prompt, OpenSSH having stored
+the key during key exchange, or at the session's end when nothing was asked;
+the line comes then, and the login's `login.completed` or `login.errored`
+event names the type. A login whose first contact overlaps another's with the
+same device can say it of a key the other stored.
 
 ### `secure`
 

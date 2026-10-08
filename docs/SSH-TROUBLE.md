@@ -42,8 +42,10 @@ Not an exec device (`linux`): karvi reads its master's own debug lines from the
 master's standard error, which `-E` takes away. Not a `run` through the daemon
 either: the daemon resolves the transport from the configuration it started
 with. Under the wrapper OpenSSH writes its messages to the file and not to
-karvi, so a command's record loses `credential.auth` and karvi's classification
-of what OpenSSH said: the trace has both.
+karvi, so a command's record loses `credential.auth`, a first contact's
+`host_key_enrolled`, and karvi's classification of what OpenSSH said: the trace
+has them all. A login's first contact is still said, read from the trust store
+([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)).
 
 Where the trace stops says which side is waiting:
 

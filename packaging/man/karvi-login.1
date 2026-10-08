@@ -194,7 +194,14 @@ A device's key is kept under its name, or
 .I [NAME]:PORT
 on a port other than 22, never under its address.
 .B accept\-new
-enrols an unknown key and refuses a changed one;
+enrols an unknown key and refuses a changed one; a login that enrols one says
+.I ! ssh accepted new host\-key DEVICE (TYPE)
+on standard error, read from the trust store at the first password prompt, or
+at the session's end when nothing was asked, and its
+.B login.completed
+or
+.B login.errored
+audit event names the type;
 .B secure
 refuses a key not enrolled
 .RB ( host_key_not_enrolled );
@@ -202,7 +209,9 @@ a changed key is
 .B host_key_changed
 under both, exit 109.
 .B insecure
-accepts every key with a warning.
+accepts every key, says so in two lines before the session, and says
+.I ! ssh host\-key mismatch DEVICE proceeding at risk
+of a key differing from the stored one.
 To enrol by hand, scan the device and write its name in the host field,
 checking the fingerprint through another channel before appending the line:
 .PP

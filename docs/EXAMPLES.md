@@ -5929,3 +5929,35 @@ store the generated configuration names, with and without an askpass request:
 the line before the device's output with the prompt and after it without,
 once each, nothing with the key known, and the audit's `details`; it fails on
 `0f12827`'s build at the line.
+
+**S4, the documents.** `SSH-HOST-KEY-POLICY.md`'s `accept-new` says the first
+contact as built, on each path and in a login, where it had the native
+adapter print a warning naming the fingerprint; `karvi-login(1)`'s HOST KEYS,
+which restates the policies, the same, and `insecure`'s lines in place of "a
+warning". DESIGN section 6 takes two entries: what a policy accepts unchecked
+is said on every path, and a login learns of a first contact from the trust
+store. `host_key_enrolled`'s row in `ERROR-CODES.md` adds the login.
+`SSH-TROUBLE.md`'s wrapper paragraph adds that a command's first contact goes
+into the trace with `credential.auth`, and a login's is still said. The
+Cisco IOS XE qualification's host-key items and the runbook's D7 rows expect
+the lines as built, not a warning at every connection.
+
+**Found: D7 f looked for the old wording.** The qualification script's D7 f
+grepped standard error for `SSH host key mismatch for DEVICE`, the wording
+issue 5 replaced, so from `0f12827` the row failed on every build; no suite
+runs the script. It now looks for `! ssh host-key mismatch DEVICE proceeding
+at risk`, and D7 a for the first-contact line on the first run and none on
+the repeat. `FAKE=1 ROWS=D7` against the fake IOS XE device: 56 passed, both
+transports.
+
+**Closed.** A first contact is said alike on both transports, in the client,
+through the daemon, and in a login, and `insecure`'s acceptances are said on
+every path; each is in the device's first record and the audit. The full
+battery passed on S3's build, which S4 changes in no code but the registry's
+text. Left for later: the exec master's `Server host key:` line, which would
+let an exec device under `insecure` be compared without `ssh-keyscan`'s
+second connection (issue 5a); a requested policy the daemon overrides (5c, in
+the ROADMAP's "A job under its client's configuration"); and a device's
+banner in `system`'s failure text (issue 6, in the ROADMAP). The evidence
+is kept beside the tree
+(`release-design-evidence/hostkey-first-contact-2026-10-07`).

@@ -86,8 +86,10 @@ device's key and the operator's own store are never touched.
 For each model and software train, and for name and literal-address
 targeting, test on both transports:
 
-1. `accept-new`: empty trust file, first acceptance, repeated match, changed
-   key (**fake**); an entry enrolled by one transport accepted by the other
+1. `accept-new`: empty trust file, first acceptance said once (`! ssh
+   accepted new host-key`, the notice `host_key_enrolled`), repeated match,
+   changed key (**fake**); an entry enrolled by one transport accepted by the
+   other
    (**fake**); concurrent first enrollment from two clients (**device**);
    hashed entries written by hand (**device**).
 2. The identity ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)): a
@@ -101,9 +103,10 @@ targeting, test on both transports:
 4. The enrolled-type filter: a device presenting a key type the store does
    not hold under its identity is `host_key_changed` before authentication
    (**fake**); a device that rotates from RSA to ECDSA (**device**).
-5. `insecure`: unknown key warning, matching-key warning, mismatch-specific
-   warning, scan failure warning, and successful access after warning
-   (**fake**, but the scan-failure warning **device**).
+5. `insecure`: the policy's two lines once per job, the mismatch line and
+   `host_key_mismatch_accepted`, the not-compared line and
+   `host_key_not_compared` when the scan fails, and access after each
+   (**fake**, but the scan failure **device**).
 6. Fleet isolation: one mismatch produces one failed device while subsequent
    targets continue unless a configured halt or gate trips; the run-wide
    halt under `ssh.halt-run-on-host-key-mismatch` (**device**).
