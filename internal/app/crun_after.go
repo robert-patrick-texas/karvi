@@ -158,7 +158,7 @@ func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Oper
 		outcome, severity, diagnostic = "failed", "warning", errorcodes.Message(o.err)
 	}
 	eventID, _ := osutil.NewID(time.Now())
-	return sink.WriteAudit(records.AuditRecord{SchemaVersion: 1, EventID: eventID, EventName: "crun.after." + outcome, Timestamp: time.Now(), Outcome: outcome, Severity: severity,
+	return sink.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "crun.after." + outcome, Timestamp: time.Now(), Outcome: outcome, Severity: severity,
 		Operator:   osutil.RecordOperator(operator),
 		Process:    map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()},
 		ActivityID: result.ActivityID, JobID: result.JobID,

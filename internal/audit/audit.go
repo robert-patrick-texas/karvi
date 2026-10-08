@@ -81,9 +81,9 @@ func (s *Sink) Status() Status {
 func (s *Sink) WriteAudit(r records.AuditRecord) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if r.SchemaVersion == 0 {
-		r.SchemaVersion = 1
-	}
+	// The sink writes every audit line, so it stamps the version the line
+	// is written in.
+	r.SchemaVersion = records.AuditSchemaVersion
 	if err := screen(r); err != nil {
 		return err
 	}

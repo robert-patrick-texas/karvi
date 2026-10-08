@@ -60,6 +60,12 @@
   whitespace. Each line now ends in a carriage return and a line feed when the
   stream is a terminal; a redirected stderr keeps its bytes, and the transcript
   is unchanged.
+- **`command_completed` names its process.** The audit event written for each
+  device's record carried `process.pid` 0; it carries the id of the process
+  that wrote it, the client's for a job run in the client and the daemon's for
+  a daemon's job, as the job's other events do. Every audit line's
+  `schema_version` is now set where the line is written, from the audit
+  schema's version, where four writers each wrote a literal `1`.
 - **`docs/SSH-TROUBLE.md`, a session that never reaches the prompt.** A guide
   for a `login` that hangs after `login interactive session starting`, or a
   `command` that ends in a prompt timeout: OpenSSH at `-vvv` under karvi through

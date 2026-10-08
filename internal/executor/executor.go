@@ -1264,7 +1264,7 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 		e.opts.OnRecord(r, src)
 	}
 	if e.opts.Audit != nil {
-		_ = e.opts.Audit.WriteAudit(records.AuditRecord{SchemaVersion: 1, EventID: r.RecordID, EventName: "command_completed", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, Process: map[string]any{"pid": 0}, ActivityID: r.ActivityID, JobID: r.JobID, Device: map[string]any{"id": r.Device.ID, "canonical_name": r.Device.CanonicalName, "platform": r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
+		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: "command_completed", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, Process: map[string]any{"pid": os.Getpid()}, ActivityID: r.ActivityID, JobID: r.JobID, Device: map[string]any{"id": r.Device.ID, "canonical_name": r.Device.CanonicalName, "platform": r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
 			if r.Credential != nil {
 				return r.Credential.Policy
 			}

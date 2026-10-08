@@ -5961,3 +5961,62 @@ the ROADMAP's "A job under its client's configuration"); and a device's
 banner in `system`'s failure text (issue 6, in the ROADMAP). The evidence
 is kept beside the tree
 (`release-design-evidence/hostkey-first-contact-2026-10-07`).
+
+## 38. The audit's schema version set where its line is written (2026-10-08)
+
+The outline's item: the audit records' `SchemaVersion: 1` is a literal in the
+writers, where the other records take their schema's constant.
+
+**What it gains.** An audit line whose `schema_version` follows the audit
+schema's constant, so the next change to the audit's shape cannot leave its
+lines saying 1. It waits on nothing.
+
+**The evidence.** The tree at `8dfcab7` copied, `records.AuditSchemaVersion`
+and `buildinfo.AuditSchema` moved to 2, and built: `karvi version` said
+`audit_schema: 2`, and a `command` wrote `command.started`,
+`command_completed`, and `command.completed` each with `schema_version` 1.
+Four writers set `SchemaVersion: 1` (the executor's `command_completed`, the
+login's events, `jobexec`'s activity events, `crun.after`), and the sink,
+`audit.Sink.WriteAudit`, the one implementation of `records.AuditSink` and
+the one place a line is written, filled a zero with a literal 1.
+
+**What it solves, asked.** The operator asked what problem it solves: none
+seen today. Every line says 1 and the constant is 1; nothing in karvi reads
+an audit line's `schema_version`, no document names it, and the audit's
+version has not moved since the public tree began. It is a trap for whoever
+next changes the audit's shape: the constant moved, `karvi version` says 2,
+and the lines still say 1 to a consumer telling them apart by the field.
+
+**What else is related, asked.** The version names a shape, so the shape was
+read. `schema/audit.schema.json` publishes "audit record schema 1", and
+nothing in the tree reads it. Five lab sessions on `456ea6f`'s code (a
+`command`, one refused, a `run`, a login, one refused) against it:
+
+| Field | Written |
+|---|---|
+| `outcome` | the schema's enum is `success`, `failure`, `denied`, `started`, `completed`, `incomplete`, `informational`; `command_completed` writes the record's status (`succeeded`, `authentication_error`), `command.completed` and `login.errored` `errored`, and `crun.after` `succeeded` or `failed` |
+| `process` | `command_completed` `{"pid": 0}`; the activity events executable, host, pid, version; the login host, pid, version |
+| `source` | `command_completed` `{}`; the others `{"client": "karvi"}` |
+| `device` | `command_completed` `canonical_name`, the login `name`, the activity events none |
+
+Proposed: item 5 widened to one shape, true to a schema a test checks against
+real lines. *The operator's ruling:* fix the `pid` 0 and stamp the version,
+the shape left as it is.
+
+**Built.** `audit.Sink.WriteAudit` sets every record's `SchemaVersion` to
+`records.AuditSchemaVersion` before it writes, and the four writers leave the
+field out; `command_completed`'s `process.pid` is `os.Getpid()`, the process
+that wrote it, as the job's other events name it, where it was 0.
+`TestSinkStampsTheSchemaVersion` writes records holding 0 and another version
+and reads the constant back from each line; it fails on `8dfcab7`'s sink.
+`TestCommandCompletedProcess` writes a `command_completed` through a file
+sink and reads the process's id and the version. Executed on a lab build: a
+`command` and a `run` through the daemon wrote every line `schema_version` 1,
+and each `command_completed` the pid of the job's other events, the client's
+for the `command`, the daemon's for the `run`.
+
+**Not taken.** Each writer setting the constant (four places and the fill to
+keep right); a check refusing a record whose version differs (it guards a
+value no writer sets now); the audit's shape made one (the operator's
+ruling). The evidence is kept beside the tree
+(`release-design-evidence/audit-schema-literal-2026-10-08`).

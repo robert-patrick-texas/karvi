@@ -446,7 +446,7 @@ func platformFor(cfg configload.Snapshot, name string) (platform.Definition, err
 
 func writeLoginAudit(s *audit.Sink, operator credentials.Operator, cfg configload.Snapshot, id string, d inventory.Device, username, backend, outcome string, code int, details map[string]any) error {
 	eventID, _ := osutil.NewID(time.Now())
-	return s.WriteAudit(records.AuditRecord{SchemaVersion: 1, EventID: eventID, EventName: "login." + outcome, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
+	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "login." + outcome, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
 		if code == 0 {
 			return "info"
 		}

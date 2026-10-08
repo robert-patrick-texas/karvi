@@ -610,7 +610,7 @@ func writeActivityAudit(s *audit.Sink, req Request, id, jobID, event, outcome st
 			telnet = true
 		}
 	}
-	return s.WriteAudit(records.AuditRecord{SchemaVersion: 1, EventID: eventID, EventName: req.ActivityType + "." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
+	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: req.ActivityType + "." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
 		if code == 0 {
 			return "info"
 		}
