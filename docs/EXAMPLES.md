@@ -6674,3 +6674,46 @@ suite's S9, `output_preflight_space`, before the package step, since `/tmp`, a
 trimmed, the second passed (13:54:51 to 14:01:11 UTC), its new step building
 `karvi_0.27.0+dev_amd64.deb` and `check-deb.sh` passing on it, the copy
 gaining no `dist/` and no temporary directory left.
+
+**S2, the release tools' artifact step, issue 1: the step stops on a failure,
+agreed.** Rehearsed in a clone of `dev` outside the tree and `/tmp`, made a
+0.28.0 with its number in six of its seven files and the changelog's heading,
+`verify-shipped.sh` left at 0.27.0 as a place missed, the release-identity
+build, a commit, and a local tag `karvi-v0.28.0`, the tools copied beside it so
+that `OUT` and `ROOT` resolve into the rehearsal: the tools' `artifacts.sh`,
+under `set -u` alone, printed `archive verify-bundle exit 1`, wrote the
+aggregate, said `done`, and exited 0; `[1]`'s `cmp … && echo` would have gone on
+as well had the two bundles differed. `artifacts.sh` now runs under
+`set -euo pipefail` and stops at the first failed check with exit 1, naming its
+step on standard error: `[1]` the bundle packaged twice differing, `[2]`
+`verify-bundle.sh` failing in the extraction (the log's last lines shown), and
+the package step, either `make deb` failing, the two packages differing, or
+`check-deb.sh` failing. The package and the aggregate are written only after
+every check before them passed, and an earlier run's package and aggregate are
+removed at the start, so the aggregate with `done` and exit 0 is the sign the
+artifacts may be published; the bundle `[1]` wrote stays for the rerun to
+replace. *Not taken:* the bundle removed on a failure (the aggregate's absence
+already says so); the new step alone made strict (the run shows the same gap in
+`[1]` and `[2]`). On that failure `bundle-verify.log` was empty:
+`verify-shipped.sh`'s `[ "$(cat VERSION)" = "0.27.0" ]` fails under `set -e`
+without a word, the gap of the [ROADMAP](../ROADMAP.md#later)'s "A suite's
+failure that names its call", where it is noted.
+
+**S2, built and rehearsed.** `release-tools/artifacts.sh` (outside the tree,
+archived first in `archive-2026-10-08/untracked/release-tools-before-s2/`) gains
+`[3]`: in the verified extraction, `DIST=$W/deb1 make deb` and
+`DIST=$W/deb2 make deb`, the two compared, `./scripts/check-deb.sh` on the first
+against the extraction, the package copied beside the bundle as
+`karvi_X.Y.Z_amd64.deb` with its `.sha256` written as the bundle's; `[4]`, the
+aggregate, lists both. The rehearsal's tag made whole, its eighth place given
+0.28.0, the run passed in 5 minutes 23 seconds (14:59:58 to 15:05:21 UTC): the
+bundle reproducible, `verify-bundle.sh` exit 0 in its extraction,
+`karvi_0.28.0_amd64.deb` the same bytes twice (5,712,762), `check-deb.sh`
+passed, `sha256sum -c` of the aggregate and of the package's `.sha256` OK, the
+package's three executables the bundle's `CHECKSUMS.sha256`, and the extraction
+gained no `dist/`. With a stand-in `lintian` first on `PATH` printing one error,
+the run stopped at `[3]`,
+`artifacts: [3] check-deb.sh failed on karvi_0.28.0_amd64.deb`, exit 1,
+lintian's line shown, and no package, `.sha256`, or aggregate was left beside
+the bundle. The [release gates](BUILD-QUALIFICATION.md#release-gates) state
+the step's rule beside the clean-tree gate.

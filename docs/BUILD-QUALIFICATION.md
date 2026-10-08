@@ -45,6 +45,10 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   and no empty directory (`release-tools/artifacts.sh` refuses otherwise): the
   bundle is packaged from the tree as it stands. This gate replaced the
   cumulative patch's equivalence check when the patch stream was retired.
+- The published Debian package MUST be built from the bundle's extraction
+  after its `verify-bundle.sh` passes, twice to the same bytes, and pass
+  `scripts/check-deb.sh` against that extraction; `release-tools/artifacts.sh`
+  stops otherwise and writes neither the package nor the aggregate checksums.
 - `scripts/daemon-lifecycle-replay.sh` passes against the newest release whose
   daemon IPC schema differs from the new client's (it refuses a same-schema
   executable; for v0.12.0, v0.12.1, and v0.13.0 that release was v0.10.0, for

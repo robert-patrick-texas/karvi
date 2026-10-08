@@ -194,7 +194,11 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   `host_key_directory_permission` and the reason on its standard error
   ([`docs/EXAMPLES.md`, chapter
   41](docs/EXAMPLES.md#41-the-suites-work-directories-made-0700-2026-10-08)).
-  The question: one function in `scripts/lib` that runs a call and, when it
+  The bundle's verifier has the same gap: `verify-shipped.sh`'s checks are
+  bare tests under `set -eu`, so a release missing its number in that script
+  ended `verify-bundle.sh` with exit 1 and an empty log ([chapter
+  43](docs/EXAMPLES.md#43-the-release-with-the-debian-package-2026-10-08),
+  S2). The question: one function in `scripts/lib` that runs a call and, when it
   fails unexpectedly, names it and prints what karvi wrote before the suite
   exits.
 
