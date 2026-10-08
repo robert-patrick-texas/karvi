@@ -8,8 +8,14 @@
   attaches the operator's terminal to OpenSSH. A site that wants OpenSSH for
   `command` sets `ssh.command.transport = "system"` or passes `--transport
   system`; an inventory row's transport, or its source's default, still comes
-  first. The key and its default value are unchanged, so the configuration
-  registry stays 26.
+  first. The key and its default value are unchanged.
+- **Breaking: `logging.level`, `logging.file`, and `logging.file-required`
+  removed.** They were validated and read by nothing: a configured file was
+  never written. A file, an environment variable, or `--set` naming one is
+  refused with `config_key_removed`, and `config_logging_file_required_missing`
+  is gone with them. The daemon's log is `<basedir>/logs/daemon.log`, the
+  audit's journald and `audit.file`. The configuration registry moves from 26
+  to 27.
 - **Every session process ends with karvi.** The system transport's `ssh` on
   the shell channel, a login's `ssh`, and a recorded login's `script(1)` are
   started with `SIGTERM` as their parent-death signal, as the exec masters were.

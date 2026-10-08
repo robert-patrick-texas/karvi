@@ -116,7 +116,9 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned when scoreboards replaced watch.directory (registry 26): the
 // configuration digest alone moved (the draft with the previous one sums to
 // the previous pin).
-const goldenK03Draft = "8eb05dde9ceb8aff6c5b885a62b27142366f56f2931f67573b50c745372623bc"
+// Re-pinned at registry 27: the three logging keys were removed; the plan
+// schema stays 11.
+const goldenK03Draft = "d97e9d6127b71f129967892b9252481f635f4858d752523a2dd8f81ceb6d067e"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

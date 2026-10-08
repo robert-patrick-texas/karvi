@@ -86,9 +86,6 @@ func (l *loader) validate() error {
 	if l.snap.Bool("audit.file-required") && l.snap.String("audit.file") == "" {
 		return l.semantic("config_audit_file_required_missing", "audit.file", "must be set when audit.file-required=true")
 	}
-	if l.snap.Bool("logging.file-required") && l.snap.String("logging.file") == "" {
-		return l.semantic("config_logging_file_required_missing", "logging.file", "must be set when logging.file-required=true")
-	}
 	if l.snap.Duration("dispatch.admission-poll-min") > l.snap.Duration("dispatch.admission-poll-max") {
 		return l.semantic("config_dispatch_admission_poll_min_exceeds_max", "dispatch.admission-poll-min", "must not exceed dispatch.admission-poll-max")
 	}

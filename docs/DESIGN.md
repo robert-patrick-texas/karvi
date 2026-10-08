@@ -1045,8 +1045,7 @@ two, so the two modes looked alike and a literal default named a place the
 activity did not use. *Not taken:* a new command word or option for paths; the
 rule repeated in shell in each site's scripts; a probe file written by the
 view (it moves the shared trees' times); `--explain` asking a running daemon;
-`sharedroot`, `logging.file`, and `crun.after` (no one place, no use, not a
-place).
+`sharedroot` and `crun.after` (no one place, not a place).
 
 **The host-key identity is the canonical name and, off port 22, the port.**
 Both transports enroll and look up `name` on port 22 and `[name]:PORT`

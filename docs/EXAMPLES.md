@@ -2686,9 +2686,8 @@ folder inherits the setgid bit and the operators' group from
    `logging.file-required` requires a path, but nothing opens the file or reads
    the level.
 
-The document states both as they are ([`docs/FILES.md`, section
-5](FILES.md#5-a-setting-with-no-use)); what to do with them waits on the
-operator's word.
+The document states both as they are (`docs/FILES.md`, a section removed with
+the keys in chapter 39); what to do with them waits on the operator's word.
 
 **Not taken.** A section of OPERATIONS in place of a document: the guide
 explains how to operate, and an index of paths is looked up, not read. Modes
@@ -6020,3 +6019,44 @@ keep right); a check refusing a record whose version differs (it guards a
 value no writer sets now); the audit's shape made one (the operator's
 ruling). The evidence is kept beside the tree
 (`release-design-evidence/audit-schema-literal-2026-10-08`).
+
+## 39. The logging keys and the package's contents (2026-10-08)
+
+The outline's item: the ROADMAP's first Next entry, the package's contents,
+with the decision on `logging.file`. Two decisions, taken as two issues, the
+logging keys first: whether the package carries anything for a log follows
+from them.
+
+**What it gains.** A configuration that does what it says, where a site can
+set a log file and get none; a package that installs what a site needs to run
+karvi as the documents describe, where it installs the executables and the
+manual pages alone and the units name documents nothing installs. It waits on
+nothing.
+
+**Issue 1, the logging keys, the evidence.** A lab build of `13a7ee2`,
+`command --platform linux 127.0.0.1 true` with `logging.file` a lab path,
+`logging.level = "debug"`, and `logging.file-required = true`: exit 0, and no
+file. `logging.file-required = true` alone is refused,
+`config_logging_file_required_missing`. In the tree `logging.level` is read
+only by the registry's table of allowed values, and the other two only by that
+one rule; `docs/FILES.md` section 5 said so (chapter 22). The daemon's log is
+`<basedir>/logs/daemon.log`, the audit's journald and `audit.file`, and each
+invocation's narration its standard error.
+
+**Issue 1, agreed.** The three keys are removed, the operator's rule for a
+value nothing reads: a file, an environment variable, or `--set` naming one is
+refused with `config_key_removed` and the hint every unread key's removal
+carries, as `logging.journald`'s was; the rule and its code
+`config_logging_file_required_missing` go with them, `docs/FILES.md`'s section
+5, and `logging.file` among DESIGN's places without a resolved line. The
+registry moves from 26 to 27 (both verifiers; the K03 draft's digest
+re-pinned). *Not taken:* `logging.file` given something to write (the daemon's
+log, the audit, and each invocation's standard error each have their place,
+and no reader has asked for one file of them).
+
+**Issue 1, built.** Executed on a lab build: `--set logging.file=…`,
+`KARVI__LOGGING__LEVEL=debug`, and a file's `[logging]` table were each refused,
+`config_key_removed: removed in v0.28.0; the key was read by nothing and has no
+replacement; remove it from the configuration for logging.X at SOURCE`; a
+plain `command` ran; `karvi version` said `config_registry_schema: 27`.
+`TestRemovedKeysRefused` covers each entry of the removed keys' table.

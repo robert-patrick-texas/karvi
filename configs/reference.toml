@@ -556,14 +556,6 @@ file = ""
 # Requires nonempty file when true.
 file-required = false
 
-[logging]
-# debug, info, warn, error.
-level = "info"
-# Empty disables; append only.
-file = ""
-# Requires path when true.
-file-required = false
-
 [watch]
 # Applies to snapshot writers.
 enabled = true

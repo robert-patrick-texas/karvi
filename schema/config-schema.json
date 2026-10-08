@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 26,
+  "registry_schema_version": 27,
   "config_schema_version": 6,
   "keys": [
     {
@@ -2410,51 +2410,6 @@
       "since": "0.2.0"
     },
     {
-      "path": "logging.level",
-      "kind": "enum",
-      "default_literal": "\"info\"",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__LOGGING__LEVEL",
-      "cli_flags": null,
-      "enum": [
-        "debug",
-        "info",
-        "warn",
-        "error"
-      ],
-      "documentation": "`debug`, `info`, `warn`, `error`.",
-      "since": "0.2.0"
-    },
-    {
-      "path": "logging.file",
-      "kind": "string",
-      "default_literal": "\"\"",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__LOGGING__FILE",
-      "cli_flags": null,
-      "documentation": "Empty disables; append only.",
-      "since": "0.2.0"
-    },
-    {
-      "path": "logging.file-required",
-      "kind": "boolean",
-      "default_literal": "false",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__LOGGING__FILE_REQUIRED",
-      "cli_flags": null,
-      "documentation": "Requires path when true.",
-      "since": "0.2.0"
-    },
-    {
       "path": "watch.enabled",
       "kind": "boolean",
       "default_literal": "true",
@@ -2980,12 +2935,6 @@
       "always",
       "never"
     ],
-    "logging.level": [
-      "debug",
-      "info",
-      "warn",
-      "error"
-    ],
     "name.address-family-preference": [
       "ipv4",
       "ipv6"
@@ -3114,7 +3063,6 @@
     "config_lock_value",
     "config_lock_violation",
     "config_lock_zero_coverage",
-    "config_logging_file_required_missing",
     "config_macro_cycle",
     "config_macro_scalar_type",
     "config_macro_undefined",

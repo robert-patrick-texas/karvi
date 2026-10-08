@@ -317,16 +317,7 @@ them is the roadmap's first item ([`ROADMAP.md`](../ROADMAP.md)). The cron
 script `karvi-crun` holds a lock at `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`
 (`KARVI_CRUN_LOCK`) for the length of a collection.
 
-## 5. A setting with no use
-
-One setting has a value and no use in this release:
-
-- **`logging.file` and `logging.level`.** Both are validated, and
-  `logging.file-required` requires a path, but nothing is written to the file:
-  the daemon's log is `<basedir>/logs/daemon.log`, and the audit's is
-  journald and `audit.file`.
-
-## 6. Signs a host is not as intended
+## 5. Signs a host is not as intended
 
 - A shared directory without its setgid bit or outside the operators' group,
   or `/dev/shm/karvi/capacity` with the sticky bit: run `sudo karvi setup

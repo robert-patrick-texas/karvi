@@ -88,6 +88,11 @@ var removedKeys = []removedKey{
 	// v0.27.0: the scoreboards' folder, which every activity writes and
 	// karvi watch reads, became the top-level key beside tempdir and spooldir.
 	{path: "watch.directory", environment: "KARVI__WATCH__DIRECTORY", removedIn: "v0.27.0", code: "config_key_removed", hint: "the scoreboards' folder is the top-level key scoreboards now"},
+	// v0.28.0: validated and read by nothing; the daemon's log is
+	// <basedir>/logs/daemon.log, the audit's journald and audit.file.
+	{path: "logging.level", environment: "KARVI__LOGGING__LEVEL", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
+	{path: "logging.file", environment: "KARVI__LOGGING__FILE", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
+	{path: "logging.file-required", environment: "KARVI__LOGGING__FILE_REQUIRED", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
 }
 

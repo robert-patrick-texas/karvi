@@ -133,7 +133,6 @@ var entries = []Entry{
 	failure("config_inventory_source_secret_mapping", "config", exitConfig, false, "An inventory source maps an attribute whose name marks a secret (`mappings.attributes.password`): it equals or ends with `password`, `passwd`, `secret`, `token`, `private_key`, or `passphrase`. An inventory file holds no secret column, in either mode, and attributes travel in the plan and the records; keep secrets in a credential CSV."),
 	failure("config_inventory_source_path_missing", "config", exitConfig, false, "An inventory source has no `path`."),
 	failure("config_inventory_source_type_unsupported", "config", exitConfig, false, "An inventory source `type` is not `csv`."),
-	failure("config_logging_file_required_missing", "config", exitConfig, false, "`logging.file-required` is true but `logging.file` is empty."),
 	failure("config_match_rule_cidr_invalid", "config", exitConfig, false, "A match rule's `address-cidr` is not a valid CIDR prefix."),
 	failure("config_match_rule_pattern_invalid", "config", exitConfig, false, "A match rule's `name`, `platform`, `site`, or `device-group` value is not a valid selector: a malformed class or escape, a bare `!`, or an unescaped `^` or `$`."),
 	failure("config_match_rule_empty", "config", exitConfig, false, "A match rule has no match keys."),

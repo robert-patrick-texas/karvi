@@ -188,7 +188,6 @@ Active failure causes.
 | `config_lock_value` | config | 2 | no | A lock declaration's value is not `true`. |
 | `config_lock_violation` | config | 3 | no | A lower-authority layer writes a locked key. |
 | `config_lock_zero_coverage` | config | 2 | no | A lock pattern matches no configured or registered key. |
-| `config_logging_file_required_missing` | config | 2 | no | `logging.file-required` is true but `logging.file` is empty. |
 | `config_macro_cycle` | config | 2 | no | Macros reference each other in a cycle. |
 | `config_macro_scalar_type` | config | 2 | no | A list or table macro is referenced inside scalar text. |
 | `config_macro_undefined` | config | 2 | no | A value references a macro that is not defined. |

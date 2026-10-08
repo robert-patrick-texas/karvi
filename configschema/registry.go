@@ -14,9 +14,10 @@ import (
 
 // RegistrySchemaVersion moves once per release whose keys or table fields
 // change: 26 takes the top-level scoreboards in place of watch.directory,
-// and sessions.shared-capacity-root's default auto.
+// and sessions.shared-capacity-root's default auto; 27 removes
+// logging.level, logging.file, and logging.file-required, read by nothing.
 const (
-	RegistrySchemaVersion = 26
+	RegistrySchemaVersion = 27
 	ConfigSchemaVersion   = 6
 )
 
@@ -90,8 +91,8 @@ var enumValues = map[string][]string{
 	"crun.directory-mode": {"0750", "0755", "0770"}, "crun.file-mode": {"0640", "0644", "0660"},
 	"output.ansi": {"auto", "strip", "preserve"}, "transcript.on-write-error": {"terminate", "continue"},
 	"transcript.format": {"text", "jsonl", "json"}, "transcript.metadata-format": {"text", "jsonl", "json"},
-	"logging.level": {"debug", "info", "warn", "error"}, "session-init.<name>.on-error": {"fail-device", "continue"},
-	"display.theme": {"auto", "dark", "light", "nocolor"}, "display.color": {"auto", "always", "never"},
+	"session-init.<name>.on-error": {"fail-device", "continue"}, "display.theme": {"auto", "dark", "light", "nocolor"},
+	"display.color": {"auto", "always", "never"},
 	// freecheck takes display.color's three words: the registry
 	// has no "auto or a number" kind, and true/false exist only as the
 	// boolean kind, so the three-way switch is this enum.
