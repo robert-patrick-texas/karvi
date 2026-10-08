@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.28.0 - 2026-10-08
+
+A minor release on 0.27.0. The configuration registry moves from 26 to 27; the
+daemon IPC schema and every other counter are 0.27.0's (execution plan 11,
+command record 3, credential package 2, scoreboard 3, configuration schema 6,
+job 2, audit 1, plan report 1), and a running 0.27.0 daemon is `compatible:
+false` by its version alone and is restarted. A site has something to change
+where it relied on `command` reaching OpenSSH by default (now `native`;
+`ssh.command.transport = "system"` keeps OpenSSH), where it set
+`logging.level`, `logging.file`, or `logging.file-required` (removed and
+refused), where it installed `packaging/sysctl/90-karvi.conf` or used
+`configs/ssh-legacy.conf` or `configs/ssh-ancient.conf` (removed), and where
+its `tempdir` is longer than 69 bytes (refused); a build takes Go 1.27. The
+release publishes a Debian package beside the bundle. The module graph is
+0.27.0's.
 
 - **Breaking: `command` runs over the native transport by default.**
   `ssh.command.transport = "default"` resolves to `native` (`scrapligo-v1`), as

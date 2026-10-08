@@ -10,7 +10,7 @@ import (
 
 const (
 	AppName              = "karvi"
-	Version              = "0.27.0"
+	Version              = "0.28.0"
 	ConfigSchemaVersion  = 6
 	CommandRecordSchema  = 3
 	ScoreboardSchema     = 3
