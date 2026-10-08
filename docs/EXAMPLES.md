@@ -6817,4 +6817,6 @@ packaged user unit's sandbox; after the release the operator moved build
 numbers to Later, so Next is the user unit's sandbox, and added to Later the
 three items recorded only in chapters 32, 37, and 42: a server that closes
 before its exit status, `insecure`'s comparison from the exec master's own
-line, and one example configuration.
+line, and one example configuration; and moved "A job under its client's
+configuration" from Later to Next, after the sandbox, so that the daemon runs
+each job with the settings active at its client.

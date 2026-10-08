@@ -15,6 +15,30 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    packaged `karvi-daemon.service` and `karvi-prune.service` actually get on
    such hosts, what the documents promise, and whether the units need
    `PrivateUsers=`, a system unit, or a statement of the limit.
+2. **A job under its client's configuration.** The daemon is the operator's own;
+   a job it accepts runs under the configuration of the invocation that
+   submitted it, every key the job reads, while the daemon's own configuration
+   keeps only what belongs to the process (its socket and log, the in-flight
+   limit, the spool's sweep). The client resolves the configuration (paths
+   against its working directory, includes, the environment, `--set`) and the
+   job request carries it; the daemon builds the job's configuration from it,
+   and every reader on the job path takes that in place of the daemon's. Every
+   place the job uses is among it: `tempdir`, `spooldir`,
+   `ssh.control-path-root`, `scoreboards`, and `sessions.shared-capacity-root`,
+   which the daemon resolves today from the configuration it started with, are
+   resolved as the client resolved them, as `config show --explain` names them;
+   a path means the same to both while they share the host, the request
+   travelling over the operator's Unix socket. A setting the daemon cannot
+   honour refuses the job, as today. It replaces the per-key carriage in the
+   plan (the `execution` and `output` blocks), and it ends a started daemon's
+   keeping of its first invocation's `--set` for every later job; among them the
+   execution policy (`ssh.host-key-policy`, `ssh.known-hosts-file`,
+   `ssh.halt-run-on-host-key-mismatch`, `security.allow-telnet`), which the
+   daemon's own configuration overrides today without telling the client
+   ([`docs/EXAMPLES.md`, chapter
+   37](docs/EXAMPLES.md#37-the-first-contact-said-alike-over-both-transports-2026-10-07)).
+   The questions: which keys belong to the process; how the job records the
+   configuration it ran under; the request's size.
 
 ## Later
 
@@ -138,31 +162,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   for Linux servers ([`docs/EXAMPLES.md`, chapter
   24](docs/EXAMPLES.md#24-jobs-across-linux-servers-2026-10-04)), whose record
   of a command without a prompt it would build on.
-- **A job under its client's configuration.** The daemon is the operator's own;
-  a job it accepts runs under the configuration of the invocation that submitted
-  it, every key the job reads, while the daemon's own configuration keeps only
-  what belongs to the process (its socket and log, the in-flight limit, the
-  spool's sweep). The client resolves the configuration (paths against its
-  working directory, includes, the environment, `--set`) and the job request
-  carries it; the daemon builds the job's configuration from it, and every
-  reader on the job path takes that in place of the daemon's. Every place the
-  job uses is among it: `tempdir`, `spooldir`, `ssh.control-path-root`,
-  `scoreboards`, and `sessions.shared-capacity-root`, which the daemon
-  resolves today from the configuration it started with, are resolved as the
-  client resolved them, as `config show --explain` names them; a path means
-  the same to both while they share the host, the request travelling over the
-  operator's Unix socket. A setting the daemon cannot honour refuses the job,
-  as today. It replaces the per-key carriage in the plan (the `execution` and
-  `output` blocks), and it ends a started daemon's keeping of its first
-  invocation's `--set` for every later job; among them the execution policy
-  (`ssh.host-key-policy`, `ssh.known-hosts-file`,
-  `ssh.halt-run-on-host-key-mismatch`, `security.allow-telnet`), which the
-  daemon's own configuration overrides today without telling the client
-  ([`docs/EXAMPLES.md`, chapter
-  37](docs/EXAMPLES.md#37-the-first-contact-said-alike-over-both-transports-2026-10-07)).
-  The questions: which keys belong
-  to the process; how the job records the configuration it ran under; the
-  request's size.
 - **A device's banner kept out of `system`'s failure text.** OpenSSH writes a
   device's pre-authentication banner on its standard error at `LogLevel INFO`
   and above, among its own lines; the shell's command session (`VERBOSE`) and
