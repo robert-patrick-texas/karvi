@@ -6438,3 +6438,78 @@ says the same. The policy test checks the wording at each refused mode.
 **Closed.** The battery runs under the operator's umask and colour settings as
 they are. The evidence is kept beside the tree
 (`release-design-evidence/suite-work-dirs-2026-10-08`).
+
+## 42. The example configurations in the package (2026-10-08)
+
+The point raised after chapter 39: `configs/` holds files the package does not
+install, and documents name them.
+
+**What it gains.** A packaged install that holds what its own documents name:
+`reference.toml` and `config generate`'s output send the reader to
+`configs/example.toml`, as COLLECTION and CREDENTIAL-CSV do, and five guides
+name `configs/reference.toml`, none of them under `/usr/share/doc/karvi`. It
+waits on nothing.
+
+**The evidence.** `configs/` holds five files:
+
+| File | What it is | Packaged |
+|---|---|---|
+| `reference.toml` | generated, every key with its default | `/usr/share/karvi/reference.toml` |
+| `example.toml` | a commented example of the dynamic sections: session-init and its map, `[ssh-algorithms-profile]` and its map, platform aliases and resolution, `crun`, three credential backends; its inventory `examples/inventory.csv`, relative to the working directory | no |
+| `development.toml` | a local evaluation overlay, validated by BUILD-HOWTO §6 and `verify-shipped.sh` | no |
+| `ssh-legacy.conf`, `ssh-ancient.conf` | inert OpenSSH `Host` snippets adding `ssh-rsa`, SHA-1 key exchange, and CBC ciphers | no |
+
+`examples/config.toml`, a separate file, is the curated site configuration of
+the example set, packaged under `/usr/share/doc/karvi/examples/`.
+
+**Issue 1, where `configs/` goes, agreed.** The operator asked whether
+`/usr/share/karvi/configs` or another path. `configs/` is installed as
+`/usr/share/doc/karvi/configs/`, by chapter 39's 2a, the documents and examples
+under `/usr/share/doc/karvi` in the tree's layout, so that every `configs/…` a
+document names resolves under `/usr/share/doc/karvi/` as `docs/X.md` does:
+`example.toml` and `development.toml` as files, and `reference.toml` a link to
+`/usr/share/karvi/reference.toml`, one copy under both names. `example.toml`'s
+`examples/inventory.csv` resolves from `/usr/share/doc/karvi`, the source root
+its header asks for, and the pointers in `reference.toml`, `config generate`'s
+output, and the guides read as they are. *Not taken:*
+`/usr/share/karvi/configs/` (`/usr/share/karvi` holds material a site copies
+into place, the example's relative inventory would not resolve, and the
+documents' `configs/` names would not resolve beside them); `example.toml`
+merged into `examples/config.toml` (one example, but a documentation change of
+its own, which can follow).
+
+**Issue 2, the two OpenSSH snippets, agreed: removed.**
+`configs/ssh-legacy.conf` and `ssh-ancient.conf` are relics of
+`ssh.legacy-hosts`, removed in v0.12.0; nothing in the tree names them, and they
+reach none of karvi's sessions. Executed with `ssh -G` on a configuration shaped
+like karvi's, its four algorithm lists first and the snippet included after, as
+`ssh.include-user-config` places the operator's file: the ciphers and key
+exchange were karvi's exactly, the snippet's `aes128-cbc` and
+`diffie-hellman-group-exchange-sha1` appearing only with the snippet read alone.
+A legacy device is reached by `[ssh-algorithms-profile.NAME]` and
+`[[ssh-algorithms-map]]`, which `example.toml` shows, the configuration the
+record of the exception. They are archived and removed, the operator's rule for
+what nothing reads. *Not taken:* packaged with a note that karvi ignores them
+(two files whose purpose would be to say not to use them).
+
+**Built.** The debian rules install `configs/example.toml` and
+`development.toml` under `/usr/share/doc/karvi/configs/`, and `karvi.links`
+makes `reference.toml` there a link to `/usr/share/karvi/reference.toml`; the
+two snippets are archived (`archive-2026-10-08/untracked/configs/`) and
+removed. FILES' table of the package and the CHANGELOG say so.
+
+**Found in the build: `example.toml` gzipped.** The first lab package held
+`configs/example.toml.gz`: `dh_compress` gzips a file over 4 KB under
+`/usr/share/doc` (10,146 bytes), and leaves `examples/` alone, which is why
+`examples/config.toml` (4,836 bytes) had stayed plain. The rules' `dh_compress
+-X.md` takes `-X.toml` as well.
+
+**Executed.** `make deb` in a copy of the tree with its own `make build`: the
+package holds `/usr/share/doc/karvi/configs/development.toml` and
+`example.toml`, plain, and `reference.toml -> ../../../karvi/reference.toml`;
+its other contents are as before. Extracted, from its `usr/share/doc/karvi`,
+the packaged `karvi config validate` passed `configs/example.toml`,
+`development.toml`, and `reference.toml` through the link, and `config show
+--explain` resolved `example.toml`'s inventory to
+`…/usr/share/doc/karvi/examples/inventory.csv`. The evidence is kept beside the
+tree (`release-design-evidence/example-configs-2026-10-08`).

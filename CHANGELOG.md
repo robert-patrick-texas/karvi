@@ -29,7 +29,15 @@
   are: under a release's heading they must be the ones `CHECKSUMS.sha256`
   lists, and under `## Unreleased` the package is `VERSION+dev` and they must
   not be. The package names no Go in `Build-Depends`; BUILD-HOWTO offers it as
-  the install.
+  the install. The example configurations are under
+  `/usr/share/doc/karvi/configs/`, uncompressed, where the documents' and
+  `config generate`'s `configs/example.toml` and `configs/reference.toml`
+  resolve.
+- **`configs/ssh-legacy.conf` and `configs/ssh-ancient.conf` removed.** Two
+  inert OpenSSH `Host` snippets left from `ssh.legacy-hosts`; karvi's own
+  algorithm lists come before any operator's file, so they reached no
+  session. A legacy device is reached by `[ssh-algorithms-profile.NAME]` and
+  `[[ssh-algorithms-map]]`, shown in `configs/example.toml`.
 - **Breaking: `packaging/sysctl/90-karvi.conf` removed.** Its one line,
   `fs.file-max = 2097152`, lowered the ceiling on current kernels, whose
   default is the maximum; karvi's bound is its per-process open-file limit,
