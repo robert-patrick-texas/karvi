@@ -12,7 +12,9 @@ check() { # check NAME WANT GOT
 code() { set +e; "$@" >/dev/null 2>&1; echo $?; set -e; }
 
 printf '%s' '{"final_status":"completed","primary_exit_code":0,"terminal_causes":["halt"],"cancellation":null,"ok":true,"device_counts":{"incomplete":2,"total":3},"ssh_transports":[{"id":"scrapligo-v1"},{"id":"system"}],"text":"a \"quoted\" é: {x}"}' >"$TMP/compact.json"
-python3 -m json.tool "$TMP/compact.json" >"$TMP/indented.json"
+# Python 3.14's json.tool colours its output under FORCE_COLOR, into a file
+# too; PYTHON_COLORS=0 outranks it.
+PYTHON_COLORS=0 python3 -m json.tool "$TMP/compact.json" >"$TMP/indented.json"
 for f in compact indented; do
   F=$TMP/$f.json
   check "$f string" completed "$(json_get "$F" final_status)"
