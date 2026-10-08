@@ -6,7 +6,7 @@ set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 . "$ROOT/scripts/lib/json.sh"
-TMP=$(mktemp -d)
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-k03-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 trap 'rm -rf "$TMP"' EXIT
 install -d -m 700 "$TMP/home" "$TMP/state" "$TMP/sb" "$TMP/cap"

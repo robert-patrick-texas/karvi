@@ -15,7 +15,7 @@ KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 . "$ROOT/scripts/lib/json.sh"
 SCAN=${SECRET_SCAN:-$ROOT/bin/secret-scan}
 [ -x "$SCAN" ] || { echo "canary-smoke: $SCAN is missing; run make tools-build" >&2; exit 2; }
-TMP=$(mktemp -d)
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-canary-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 BASE=$TMP/state
 SCORE=$TMP/scoreboards

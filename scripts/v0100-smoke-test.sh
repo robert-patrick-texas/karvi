@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 KARVI=${KARVI:-./bin/karvi-linux-amd64}
 . scripts/lib/json.sh
 [ -x "$KARVI" ] || { echo "build the executable first: make build" >&2; exit 1; }
-TMP=$(mktemp -d)
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-v0100-smoke-XXXXXX")
 BASE=$TMP/base; HOME_DIR=$TMP/home; SCORE=$TMP/score; CAP=$TMP/cap
 mkdir -p "$BASE" "$HOME_DIR" "$SCORE" "$CAP" "$TMP/streams"
 FAKE=$TMP/fake-ssh

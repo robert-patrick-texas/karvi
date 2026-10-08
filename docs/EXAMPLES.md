@@ -6361,3 +6361,74 @@ passed:     /tmp/nd.OoUn/item7/byyy…y/tmp: 71 bytes, longer than the askpass s
 **Closed.** The full battery passed on the lab build. The daemon's socket waits
 in the ROADMAP. The evidence is kept beside the tree
 (`release-design-evidence/askpass-socket-length-2026-10-08`).
+
+## 41. The suites' work directories made 0700 (2026-10-08)
+
+The outline's item: under the operator's umask 0002 suites fail, karvi
+refusing the trust store in their work directory.
+
+**What it gains.** The battery under the operator's own umask (0002 here, the
+default for a user-private group), without the `umask 022` every battery
+command has carried, and a suite run by its shebang as it is; the work
+directories, which hold the fake's secret digest, the trust store, and the
+state tree, not writable by the group. It waits on nothing.
+
+**The evidence.** Each of the 17 suites alone against a lab build of
+`790ac63`:
+
+| Run | Result |
+|---|---|
+| umask 022, `FORCE_COLOR=3` | all 17 passed |
+| umask 0002, `FORCE_COLOR` unset | 10 failed: `smoke`, `halt`, `hostkey`, `transcript`, `display`, `v060`, `v061`, `v070`, `v080`, `v090` (exit 109 or 1) |
+| umask 0002, the twelve pid-named work directories made by `mktemp -d` (a copy of the tree) | all 12 passed |
+
+`FORCE_COLOR` reaches no suite since `json-test.sh` was made immune
+(`0554f7d`). Twelve suites name their work directory
+`${TMPDIR:-/tmp}/karvi-NAME-$$` and never make it themselves: `install -d -m
+700 "$BASE" …` makes it as a parent, at the umask's mode, 0775 under 0002, and
+`host_trust_store "$TMP"` puts the trust store in it, which karvi refuses:
+`host_key_directory_permission: known_hosts=…/known_hosts: directory mode is
+0775; group or others may write it; expected 0700 or 0750`. The native and
+spool suites passed, their stores in `$TMP/store`, made 0700; the other five
+make theirs by `mktemp -d`, 0700. Chapter 33 counted fifteen; the tree then
+held these twelve, and `output-scale-run.sh`, pid-named too, makes its own
+0700. karvi said the refusal, under `--quiet` too, on its standard error and
+in the result line; the suites redirect it into their work directory under
+`set -e`, die with karvi's status, and their cleanup removes the files, so
+most ended with no line.
+
+**Asked: the trust store in shared mode.** The operator asked whether karvi
+takes the store under `/opt/karvi/users/<user>` at 0770 or 0750. The rule is
+that the store's directory is not writable by its group or others: 0700 and
+0750 pass, 0770 and 0775 are refused. The operator's first activity makes the
+private root 0750, so the store under `auto` passes as built. Executed with
+`basedir` an existing directory: at 0750 the store was enrolled, 0600; at 0770
+exit 109, `host_key_directory_permission`. The message's "expected 0700 or
+0750" names two of the modes the rule accepts (0755 passes too).
+
+**Issue 1, how a suite makes its work directory, agreed.** Every suite makes
+it by `TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-NAME-XXXXXX")`: 0700 whatever the
+umask, unique without the pid, and named, so a leftover traces to its suite.
+The twelve pid-named suites change, and the five bare `mktemp -d` take the same
+template, one form for all seventeen; nothing reads the pid in those names,
+and the `SECRET` of the smoke and halt suites keeps its `$$`. The battery runs
+under the host's umask, `FORCE_COLOR` as it is. *Not taken:* `umask 077` or
+`022` set in the suites or by `run_suites` (karvi would run at a umask not the
+operator's, and a suite by its shebang would still depend on its caller); a
+function in `scripts/lib/host.sh` that makes the directory and places the
+store (it would run in `$(…)`, a subshell that cannot export the store's
+variable, and the work is one `mktemp`).
+
+**Found: a suite's failure says nothing.** The operator's ruling: to the
+ROADMAP ("A suite's failure that names its call").
+
+**Built and executed.** The seventeen suites make their work directory by the
+template, each named for its suite. ShellCheck gives the same findings before
+and after. The battery, `run_suites` against a lab build of `790ac63`, passed
+under the shell's own umask 0002 with `FORCE_COLOR=3`, no prefix; a first run
+was set aside, since the tree was changed while it ran (a suite starting then
+reads the old script), and repeated with the tree unchanged throughout.
+
+**Closed.** The battery runs under the operator's umask and colour settings as
+they are. The evidence is kept beside the tree
+(`release-design-evidence/suite-work-dirs-2026-10-08`).

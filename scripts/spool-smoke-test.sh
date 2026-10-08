@@ -13,7 +13,7 @@ KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 PRUNE=${KARVI_PRUNE:-$(dirname "$KARVI")/karvi-prune}
 GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
-TMP=${TMPDIR:-/tmp}/karvi-spool-smoke-$$
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-spool-smoke-XXXXXX")
 KH=$TMP/store/known_hosts
 SPOOL=$TMP/spool
 SCORE=$TMP/base/score

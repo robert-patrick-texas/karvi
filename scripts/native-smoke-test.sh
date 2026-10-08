@@ -11,7 +11,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 GO=${GO:-go}
 . "$ROOT/scripts/lib/json.sh"
-TMP=${TMPDIR:-/tmp}/karvi-native-smoke-$$
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-native-smoke-XXXXXX")
 KH=$TMP/store/known_hosts
 FAKE_PID=
 unset NETUSER NETPASS NETENABLE

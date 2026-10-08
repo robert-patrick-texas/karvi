@@ -186,6 +186,17 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   A path socket holds at most 107 bytes, as the control-path root and
   `tempdir` are bounded for theirs. The question: where the client refuses a
   socket path too long, before it starts a daemon that cannot listen.
+- **A suite's failure that names its call.** A suite under `set -eu` that
+  runs karvi with its output redirected into the work directory dies at a
+  refused call with karvi's exit status and prints nothing, and its cleanup
+  removes the files that held karvi's message: under umask 0002 ten suites
+  ended so, most with exit 109 and no line, while karvi had written
+  `host_key_directory_permission` and the reason on its standard error
+  ([`docs/EXAMPLES.md`, chapter
+  41](docs/EXAMPLES.md#41-the-suites-work-directories-made-0700-2026-10-08)).
+  The question: one function in `scripts/lib` that runs a call and, when it
+  fails unexpectedly, names it and prints what karvi wrote before the suite
+  exits.
 
 ## The device-qualification track
 

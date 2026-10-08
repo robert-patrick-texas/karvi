@@ -4,7 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "$ROOT/scripts/lib/json.sh"
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
-TMP=${TMPDIR:-/tmp}/karvi-smoke-$$
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 SECRET="karvi-smoke-secret-$$"
 BASE=$TMP/state
