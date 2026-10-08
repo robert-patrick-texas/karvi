@@ -6770,3 +6770,47 @@ passed, 61 packages, neither directory made; `host_shared_unchanged` failed
 naming `/tmp/karvi-1000` when it appeared between the two lists. The first 1/3
 was reset, `dev` taking the fix on `bb5b68f`, and the baseline ran again before
 the number.
+
+**The sequence, as run**, from the first baseline's start at 15:36:37 to the
+published check at 18:42, the fix before the number and the stops for the
+operator's word included:
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the baseline on a clean clone of `dev` at `bb5b68f` | 15:36:37 to 15:43:23 | gofmt, make, the release verifier with its package step, exit 0 each |
+| the first 1/3, the core evidence | 15:45:21, 15:45:28 to 15:47:19 | `f906f8b`; 902 named tests, vet 0; the socket-length run exit 1 at both lengths |
+| before the number | to 17:48:19 | the first 1/3 archived and reset; `71b00a2`, the tests' short scratch and the host check |
+| the baseline again, at `71b00a2` | 17:48:27 to 17:54:49 | exit 0 each; neither host scratch directory made |
+| the number, the compatibility example, 1/3 | 17:55:54, 17:56:05 | `ec3e7da`, the first 1/3's bytes; the released v0.27.0 daemon `compatible: false`, the run refused with `daemon_incompatible` (exit 112) before any job |
+| the core evidence | 17:56:10 to 17:57:59 | 902 named tests across 84 packages, vet 0, both socket lengths exit 0 |
+| the documents | 17:59:03 | `a9f80eb` (2/3): `release/` from the v0.27.0 pattern, five assets; README's Go 1.26, stale |
+| the remaining evidence | 17:59:18 to 18:05:44 | the shipped checks exit 0, the release verifier exit 0 with the release's package checked, the checksums unchanged by its rebuild; the replay skipped |
+| 3/3, the tag, `main` | 18:06:25 | `53984e7`, `karvi-v0.28.0`, `main` fast-forwarded from `8250167` |
+| the artifacts | 18:06:33 to 18:11:47 | the bundle and the package each reproducible byte for byte; the bundle verified from its own archive, the package checked against its extraction; 15,862,053 and 5,715,154 bytes |
+| the package installed in a throwaway `ubuntu:24.04` | 18:13 | `apt install` exit 0 with `openssh-client`; the installed executables `CHECKSUMS.sha256`'s |
+| the push and the GitHub release | 18:41:44 | `dev`, `main`, and the tag pushed; release `karvi-v0.28.0` with the five assets, marked latest; the assets downloaded back match |
+
+**Executed.** The published state:
+
+```text
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)"'
+latest: karvi-v0.28.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.28.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.28.0-source-linux-amd64.tar.gz: OK
+karvi_0.28.0_amd64.deb: OK
+```
+
+**Found on the way.** README still named Go 1.26 for the full build, stale since
+`go.mod` named 1.27.0; the 2/3 sweep set it to 1.27. The module metadata's
+`DefaultGODEBUG` line, Go 1.26's compatibility settings, is gone from the
+executables with `go.mod`'s `go 1.27.0`, so `go-version-m.txt` moved in 3/3
+where 0.27.0's had not. The first 1/3's branch, kept in the tree while the fix
+went in, was deleted after the release: the archive's mirror and patch keep the
+commit.
+
+**Not taken.** A patch release of 0.27.0 for the tests' scratch: the defect is
+in tests and the verifiers, not in a shipped executable, and it rides with the
+number it was found at.
+
+**Roadmap.** ROADMAP's Next: build numbers in the version, then the packaged
+user unit's sandbox.
