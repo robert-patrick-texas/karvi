@@ -214,8 +214,8 @@ helper's own flag set, so they are these and no others.
 The release ships three forms over the one executable; a site picks one
 per host, or none and runs the helper by hand.
 
-**Per operator, systemd.** `packaging/systemd/user/karvi-prune.service` and
-`karvi-prune.timer`: install under `~/.config/systemd/user/` and `systemctl
+**Per operator, systemd.** `/usr/share/karvi/systemd/user/karvi-prune.service`
+and `karvi-prune.timer`: install under `~/.config/systemd/user/` and `systemctl
 --user enable --now karvi-prune.timer`. Daily, persistent across a missed day, a
 randomized delay of up to thirty minutes. The unit's sandbox may write only
 under the operator's private roots (the home's and the two system roots), and
@@ -223,13 +223,13 @@ the scoreboards (`ReadWritePaths`, each path with the dash that ignores an
 absent one; [`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention) says
 what the sandbox is and what a site adds when it moves a place).
 
-**The site, systemd.** `packaging/systemd/system/karvi-prune.service`
+**The site, systemd.** `/usr/share/karvi/systemd/system/karvi-prune.service`
 and `karvi-prune.timer`: install under `/etc/systemd/system/` and
 `systemctl enable --now karvi-prune.timer`. The same line as root, so the
 site's provisioned private roots, the shared trees, and the scoreboards
 are pruned whoever owns the item.
 
-**cron.** `packaging/cron/karvi-prune`, one line per identity:
+**cron.** `/usr/share/karvi/cron/karvi-prune`, one line per identity:
 
 ```text
 17 3 * * *  root    /usr/share/karvi/cron/karvi-prune 2>&1 | logger -t karvi-prune

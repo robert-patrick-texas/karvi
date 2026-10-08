@@ -1,6 +1,6 @@
 [Unit]
 Description=Prune finished karvi artifacts of the site
-Documentation=file:/usr/share/doc/karvi/PRUNE.md
+Documentation=file:/usr/share/doc/karvi/docs/PRUNE.md
 # The site's retention run, as root (docs/PRUNE.md):
 # karvi-prune.timer starts this unit daily. Root removes every eligible item
 # in the private roots the site provisioned under /opt/karvi/users and

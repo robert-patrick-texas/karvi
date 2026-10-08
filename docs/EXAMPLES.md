@@ -6060,3 +6060,199 @@ and no reader has asked for one file of them).
 replacement; remove it from the configuration for logging.X at SOURCE`; a
 plain `command` ran; `karvi version` said `config_registry_schema: 27`.
 `TestRemovedKeysRefused` covers each entry of the removed keys' table.
+
+**Issue 2, the package's contents, the evidence.** The package installs the
+three executables and the manual pages, and the documents name places nothing
+installs, two of them for the same files: `docs/COLLECTION.md` copies the
+units from `/usr/share/doc/karvi/packaging/systemd/user/`, and it and
+`docs/PRUNE.md` run the cron scripts from `/usr/share/karvi/cron/`; the user
+units' `Documentation=` lines name `~/.local/share/doc/karvi/*.md`, the system
+unit's `/usr/share/doc/karvi/PRUNE.md`; a dozen other places name the files by
+their path in the tree, `packaging/…`. The ROADMAP called the control file's
+maintainer and homepage placeholders, and both are set. Taken in three parts:
+where the files go (2a), whether a script installs them (2b), and the
+documents' and units' paths (2c).
+
+**Built to read it.** With debhelper installed by the operator, the tree at
+`af9dab4` copied out, `packaging/debian` moved to `debian/` (where
+`dpkg-buildpackage` reads it), and a lab `debian/changelog` written (the tree
+has none, and the build needs one), `dpkg-buildpackage -us -uc -b -d` built
+the package (`-d`: the control's `golang-1.26-go` is not installed; this host
+builds with Go 1.27.1, `go.mod` says 1.26.0); the rules' `make test` ran. The
+`.deb` held `/usr/bin/karvi`, `karvi-askpass`, `karvi-prune`, the manual pages
+gzipped, and debhelper's `changelog.gz` and `copyright`: nothing else. The
+same rules installing `docs/*.md` under `/usr/share/doc/karvi/docs` got 22 of
+the 23 documents as `NAME.md.gz` (`dh_compress` gzips what is over 4 KB in
+`/usr/share/doc`; `QUICKSTART.md` stayed), which breaks every relative link
+and a unit's `file:` path; with `override_dh_compress` running `dh_compress
+-X.md` all 23 stayed plain and the manual pages were still gzipped.
+
+**Issue 2a, where the files go, agreed.** Nothing is installed active, under
+`/etc` or `/usr/lib/systemd`: each file is a site's choice, the tmpfiles rule
+names the group `netops`, the sysctl sets the host's open-file ceiling, the
+timers are per operator. `/usr/share/doc/karvi/` holds `README.md`, `CHANGELOG.md`,
+`LICENSE.md`, `docs/*.md` under `docs/`, and `examples/`, in the tree's layout
+so every relative link between the documents holds; the rules keep `.md` out
+of `dh_compress`. `/usr/share/karvi/` holds `packaging/`'s `systemd/`,
+`cron/`, `crun/`, `sysctl/`, and `tmpfiles.d/` as they are, with
+`reference.toml` and `schema/`. *Not taken:* the HTML `make html` writes (a
+step at build for a reader the Markdown serves; it can follow); `docs/`
+flattened into `/usr/share/doc/karvi` (the README's `docs/…` links break).
+Found for the package's build: the tree has no `debian/changelog`, and its
+debian directory sits at `packaging/debian`.
+
+**Issue 2b, an install script, agreed: none.** The ROADMAP had a script under
+`/usr/share/karvi` install the material for a site that opts in. What a site
+turns on for the host karvi already installs: `sudo karvi setup shared` writes
+`/etc/tmpfiles.d/karvi.conf` for the site's group, and `sudo karvi setup tab`
+the bash completion. The rest is a choice a script would take as options: the
+units and timers per operator or for the site, systemd or cron; the sysctl's
+open-file ceiling; the `crun` hooks, examples to adapt. Each is one copy from
+`/usr/share/karvi`, given in its guide. The packaged `tmpfiles.d/karvi.conf`
+stays as the rule for the group `netops`, as OPERATIONS describes it. *Not
+taken:* a shell script (code whose work is `cp`, with an option for each
+choice); a `karvi setup` word per piece (it can follow a site's asking).
+
+**Issue 2c, the documents' and units' paths, agreed.** Where a document tells
+a site to use a file, it names the installed path, `/usr/share/karvi/…` for
+the material and `/usr/share/doc/karvi/…` for the documents; where it
+describes the source tree, `packaging/…` stays. The user units'
+`Documentation=` lines name `file:/usr/share/doc/karvi/docs/X.md`, the system
+`karvi-prune.service`'s `…/docs/PRUNE.md`; `docs/COLLECTION.md`'s `cp` takes
+the units from `/usr/share/karvi/systemd/user/`, and it, `docs/PRUNE.md`,
+`docs/OPERATIONS.md`, the README's collection paragraph, and `karvi-crun(1)`
+name `/usr/share/karvi/…`; `docs/FILES.md` section 4's table gains the two
+directories and its paragraph says where the material is; the debian rules
+install it as 2a has it, `.md` out of `dh_compress`; the ROADMAP's first Next
+entry goes, its placeholder sentence with it. The README's source layout, the
+manual pages' sources in `docs/PRUNE.md` and DESIGN, and the release's
+`BUILD-RESULT.md` keep the tree's paths; the cron scripts' comments already
+name `/usr/share/karvi/cron/…`, and their `docs/X.md` read the same under
+`/usr/share/doc/karvi/`. Found in the builds, for after it: the sysctl example
+(2d), and building the package from the tree (2e).
+
+**Issue 2d, the sysctl example, agreed: removed.**
+`packaging/sysctl/90-karvi.conf` held one line, `fs.file-max = 2097152`, an "example host-wide ceiling for
+large maintenance servers", unchanged since the public tree began. On this
+host (kernel 7.0, systemd 259) no sysctl file sets `fs.file-max` and the
+kernel's default is the maximum, 9223372036854775807: installed, the example
+lowers the ceiling to about two million. karvi's bound is per process: it
+raises its soft open-file limit to the hard one, warning when it cannot, and
+the packaged daemon unit sets `LimitNOFILE=131072`. No document named the
+file but `docs/FILES.md`'s "the sysctl example". It leaves the tree, 2a's
+`/usr/share/karvi/` list, and the sentences that name it; 2a and 2b above
+name it as it stood. *Not taken:* a corrected value (the ceiling is the
+host's, and the kernel's default is the maximum); a document for it (it
+would document lowering a limit).
+
+**Issue 2e, the package a delivered artifact, agreed.** No release has shipped
+a package: a release is its source bundle (the vendored source, the evidence,
+the qualified executables of one build) and checksums, and BUILD-HOWTO's §10
+installs by copying `bin/`'s three executables to
+`/usr/local/lib/karvi/<name>-vX.Y.Z` with symlinks in `/usr/local/bin`.
+Nothing in BUILD-HOWTO, the Makefile, the scripts, or `release/` built or
+named a `.deb`; the debian rules build the executables a second time; and the
+tree could not build it (no `debian/changelog`, the directory at
+`packaging/debian`, `Build-Depends: golang-1.26-go` where BUILD-HOWTO's §2
+installs Go from upstream). 2a and 2c describe a package install, so a site
+installing by §10 would be sent to directories it does not have. The
+operator's ruling: the package is delivered, built by one documented step and
+published with each release beside the bundle; BUILD-HOWTO's §10 offers it,
+and a §10 install finds the same material in the bundle's `packaging/` and
+`docs/`. `golang-1.26-go` is referenced no more; where a Go version is named,
+it is 1.27, now mainstream. The parts that follow, one at a time: where the
+debian directory lives, the changelog, `Build-Depends`, and which executables
+the package carries. *Not taken:* the package left unbuilt (2a and 2c would
+describe what nobody receives).
+
+**Issue 2e, part 1, where the package is built, agreed.** In the lab builds
+`dpkg-buildpackage` began with `dh clean`, which ran `make clean`, and that
+target removes `bin/`'s executables (the released ones in this tree, the
+qualified ones in a bundle); it wrote `debian/karvi/`, `debian/files`, the
+substvars, and `debian/.debhelper/` into the source, and the `.deb`,
+`.buildinfo`, and `.changes` into the source's parent. The debian directory
+stays at `packaging/debian`, beside the units and the manual pages, and `make
+deb` builds a staged copy: the tree as it stands, a git checkout or an
+extracted bundle, copied with `bin/` as part 4 decides into a fresh build
+directory, `packaging/debian` moved to `debian/` there, `dpkg-buildpackage -us
+-uc -b` run, the `.deb` copied to `dist/` (ignored by git), and the build
+directory removed. *Not taken:* `debian/` at the root built in place (the
+usual layout, but `dh clean` removes `bin/` unless the rules override it, and
+the build's files land in the tree and its parent).
+
+**Issue 2e, part 2, the package's changelog, agreed.** A release's number is
+assigned in eight places in one commit (`60ee9a9`, "the number assigned
+(release 1/3)"), where CHANGELOG.md's block is dated: at a release's tag its
+first heading is `## 0.27.0 - 2026-10-06`, on the dev line `## Unreleased`.
+`make deb` writes `debian/changelog` into its staged copy, and none is kept in
+the tree: one entry, its version `VERSION` when CHANGELOG.md's first heading is
+`## VERSION - DATE` and `VERSION+dev` when it is `## Unreleased` (after the
+release and before the next, so a dev package never passes for the release);
+dated the heading's date at 00:00 UTC, so a release's package repeats, or the
+build's time for `+dev`; the maintainer the control file's; the text one line
+pointing to `/usr/share/doc/karvi/CHANGELOG.md`. A heading naming another
+version than `VERSION` is refused. *Not taken:* a kept `debian/changelog` (a
+ninth place for each number); the dev line refused (no package to try before
+a release).
+
+**Issue 2e, part 3, `Build-Depends` and the Go named, agreed.** This host's
+archive has no `golang-1.27-go`, and its `golang-go` offers 1.26; the Go that
+builds karvi is upstream's 1.27.1 in `/usr/local/go`, as BUILD-HOWTO's §2
+installs it, so a Go build dependency is met by no package and the lab built
+with `-d`. The control file's `Build-Depends` is `debhelper-compat (= 13)`
+alone: the toolchain is §2's, on `PATH`, and `go.mod` states the minimum. The
+operator's ruling on the version applies to the other references: `go.mod`'s
+`go 1.27.0`, BUILDING.md's "Go 1.27 or later", BUILD-QUALIFICATION's "Go
+1.27+". *Not taken:* `golang-go (>= 2:1.27)` (no archive here meets it, and
+every build would skip the check); `go 1.26.0` kept (a minimum the ruling
+retired).
+
+**Issue 2e, part 4, the executables the package carries, agreed.** The lab
+package's `karvi`, built by the rules' `make build`, said `commit:
+development` and `build_time: 1970-01-01T00:00:00Z`, the Makefile's defaults;
+the released `bin/karvi` says `source-release-v0.27.0` and `2026-10-06`, its
+sha256 the one `CHECKSUMS.sha256` lists. The package carries `bin/`'s
+executables as they are; the rules build and test nothing (the qualified build
+was tested by the release verifier). `make deb` checks `bin/` against
+`CHECKSUMS.sha256`: under a release's heading the three must match, so the
+package holds the published executables; under `## Unreleased` they must not,
+since matching would be the release's executables labelled `+dev`, and it
+names `make build` as the step before. `dh_strip` and `dh_dwz` do nothing: the
+executables are built `-s -w`, and a further strip would change the bytes the
+sums promise. *Not taken:* the rules' `make build` given `COMMIT` and
+`BUILD_TIME` (a second, untested build of a release beside the qualified
+one); `bin/` taken unchecked (whatever sits there would be packaged).
+
+**Issue 2, built.** The debian rules install as 2a has it and build, test,
+clean, and strip nothing; `dh_compress` leaves `.md` alone; the control's
+`Build-Depends` is `debhelper-compat (= 13)`. `scripts/build-deb.sh`, run by
+`make deb`, reads `VERSION` and CHANGELOG.md's first heading, checks `bin/`
+against `CHECKSUMS.sha256` as part 4 has it, copies the tree without `.git`
+and `dist/` to a fresh directory, moves `packaging/debian` to `debian/` there,
+writes the changelog, runs `dpkg-buildpackage -us -uc -b`, and copies the
+package to `dist/`. `packaging/sysctl/` is removed (archived first). The units'
+`Documentation=` lines, COLLECTION, PRUNE, OPERATIONS, the README, and
+`karvi crun --help` (so `karvi-crun(1)`) name `/usr/share/karvi/…`;
+`docs/FILES.md`'s §4.7 lists the two directories; BUILD-HOWTO gains §4.3,
+`make deb`, and §10 offers the package before the copy and symlinks; the
+ROADMAP's first Next entry is gone; `go.mod` says `go 1.27.0` (`vendor/` and
+`go.sum` unchanged), BUILDING and BUILD-QUALIFICATION Go 1.27.
+
+**Found in the build: links to documents 2a left out.** The first package
+held `README.md`, `CHANGELOG.md`, `LICENSE.md`, `docs/`, and `examples/`, and
+its documents linked to `BUILD-HOWTO.md`, `BUILDING.md`, `ROADMAP.md`, and
+`release/BUILD-RESULT.md`, which it did not hold. To keep 2a's own rule, that
+every relative link holds, the package installs every top-level document and
+`release/`'s records; 277 relative links in the installed documents resolve.
+
+**Executed.** In the tree, where `bin/` holds the released executables and
+CHANGELOG.md is headed `## Unreleased`, `make deb` refused, naming `make
+build`, and made nothing. A copy with its own build of the tree gave
+`karvi_0.27.0+dev_amd64.deb`: the three executables byte-identical to `bin/`,
+the 23 guides plain, each unit's `Documentation=` file in the package, the
+cron scripts executable, the changelog `karvi (0.27.0+dev)`. A copy headed
+`## 0.27.0 - 2026-10-06` with the released `bin/` gave `karvi_0.27.0_amd64.deb`
+twice, byte-identical, its executables the sums `CHECKSUMS.sha256` lists; with
+one dev executable in `bin/` it refused, and under a heading naming 0.26.0 it
+refused. The evidence is kept beside the tree
+(`release-design-evidence/package-and-logging-2026-10-08`).

@@ -163,7 +163,7 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
 
 ## Official native build and session gates
 
-On an approved Go 1.26+ builder:
+On an approved Go 1.27+ builder:
 
 ```bash
 make deps            # optional on a connected host: download and verify

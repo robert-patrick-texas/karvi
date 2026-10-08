@@ -1,6 +1,6 @@
 [Unit]
 Description=Prune finished karvi artifacts of this operator
-Documentation=file:%h/.local/share/doc/karvi/PRUNE.md
+Documentation=file:/usr/share/doc/karvi/docs/PRUNE.md
 # The per-operator retention run (docs/PRUNE.md): karvi-prune.timer starts
 # this unit daily. It removes what this
 # operator owns, under every private root of the operator's that exists

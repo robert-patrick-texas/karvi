@@ -1,6 +1,6 @@
 [Unit]
 Description=karvi collection run over the inventory
-Documentation=file:%h/.local/share/doc/karvi/COLLECTION.md
+Documentation=file:/usr/share/doc/karvi/docs/COLLECTION.md
 # The schedule of the collection run (docs/COLLECTION.md section 7):
 # karvi-crun.timer starts this unit, and systemd never starts it
 # while the previous run is still active, so two collections never overlap

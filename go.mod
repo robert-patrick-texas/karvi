@@ -1,6 +1,6 @@
 module github.com/robert-patrick-texas/karvi
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/scrapli/scrapligo v1.4.2

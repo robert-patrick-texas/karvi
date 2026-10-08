@@ -168,6 +168,27 @@ make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
 sha256sum -c CHECKSUMS.sha256
 ```
 
+### 4.3 Build the Debian package
+
+The package carries `bin/`'s executables as they are, the manual pages, the
+documents under `/usr/share/doc/karvi`, and the units, cron scripts, hook
+examples, tmpfiles rule, reference configuration, and schemas under
+`/usr/share/karvi`, none of them active ([`docs/FILES.md`
+§4.7](docs/FILES.md#47-what-the-package-installs)). It needs the `dpkg-dev`
+and `debhelper` packages, and no Go:
+
+```bash
+make deb                          # dist/karvi_<version>_amd64.deb
+dpkg-deb -c dist/karvi_*_amd64.deb
+```
+
+In a release bundle the package is the release's, `VERSION`, and `bin/` must
+hold the executables `CHECKSUMS.sha256` lists; on the development line
+(`CHANGELOG.md` headed `## Unreleased`) it is `VERSION+dev`, and `bin/` must
+hold a build of the tree (`make build`), not the release's executables. The
+tree is built in a copy, so neither it nor its parent gains a file but the
+package.
+
 ## 5. Direct Go build commands
 
 The Makefile is preferred because it keeps the build metadata consistent.
@@ -364,7 +385,19 @@ go mod vendor
 
 ## 10. Install and roll back
 
-Use versioned destinations and an atomic symlink:
+The package ([§4.3](#43-build-the-debian-package)) installs into `/usr/bin`;
+installing an earlier one rolls back:
+
+```bash
+sudo dpkg -i karvi_<version>_amd64.deb
+karvi version --format json
+```
+
+Without the package, use versioned destinations and an atomic symlink. A host
+installed so finds the units, cron scripts, hook examples, and documents the
+package puts under `/usr/share/karvi` and `/usr/share/doc/karvi` in the
+bundle's `packaging/`, `configs/`, `schema/`, and `docs/`. Use one way or the
+other on a host: `/usr/local/bin` comes before `/usr/bin` on the usual `PATH`.
 
 ```bash
 sudo install -d -m 0755 /usr/local/lib/karvi

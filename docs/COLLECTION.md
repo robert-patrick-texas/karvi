@@ -513,7 +513,7 @@ non-zero, or runs past `crun.after-timeout` (`5m` by default, `1s` to
 unchanged, and the audit holds a `crun.after.succeeded` or
 `crun.after.failed` event with the path, the exit code, and the duration.
 
-Two hooks ship as examples under `packaging/crun/`, for a git repository
+Two hooks ship as examples in `/usr/share/karvi/crun/`, for a git repository
 the site made once over the collection directory (`git init` there, the
 operators' group able to write `.git`):
 
@@ -614,7 +614,7 @@ and not a schedule the daemon keeps: a resident
 schedule pulls against the daemon's idle exit, the hook runs in the
 client, and the credentials are resolved per job, while systemd and cron
 give the calendar, the catch-up after downtime, the jitter, one instance
-at a time, and the journal. Two forms ship under `packaging/`.
+at a time, and the journal. Two forms ship in `/usr/share/karvi/`.
 
 **The systemd user timer**, on the same pattern as `karvi-prune.timer`:
 
@@ -622,8 +622,8 @@ at a time, and the journal. Two forms ship under `packaging/`.
 # as the collecting operator, whose credential backend answers without a
 # prompt (docs/CREDENTIAL-CSV.md); a git identity in ~/.gitconfig for the hook
 install -d ~/.config/systemd/user
-cp /usr/share/doc/karvi/packaging/systemd/user/karvi-crun.service \
-   /usr/share/doc/karvi/packaging/systemd/user/karvi-crun.timer ~/.config/systemd/user/
+cp /usr/share/karvi/systemd/user/karvi-crun.service \
+   /usr/share/karvi/systemd/user/karvi-crun.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now karvi-crun.timer
 loginctl enable-linger "$USER"          # the timer runs with no session open
@@ -684,5 +684,5 @@ above.
   [section 1](#1-what-a-collection-is), the hook's input, and the drop list; a
   change to one changes both.
 - `configs/example.toml`: the `[platform.NAME]` tables' shape.
-- `packaging/systemd/user/karvi-crun.service` and `karvi-crun.timer`,
-  `packaging/cron/karvi-crun`: the schedule's two forms.
+- `/usr/share/karvi/systemd/user/karvi-crun.service` and `karvi-crun.timer`,
+  `/usr/share/karvi/cron/karvi-crun`: the schedule's two forms.

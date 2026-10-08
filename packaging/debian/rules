@@ -1,12 +1,21 @@
 #!/usr/bin/make -f
+# Built by `make deb` (scripts/build-deb.sh) in a staged copy of the tree,
+# never in the tree itself: the package carries bin/'s executables as they
+# are, which the script checks against CHECKSUMS.sha256, so nothing here
+# builds, tests, cleans, or strips them.
 %:
 	dh $@
 
-override_dh_auto_build:
-	$(MAKE) build
+override_dh_auto_clean override_dh_auto_build override_dh_auto_test:
 
-override_dh_auto_test:
-	$(MAKE) test
+# The executables are built -s -w; a further strip would change the bytes
+# the published sums promise.
+override_dh_strip override_dh_dwz:
+
+# The documents link to one another by relative paths, and the units name
+# them by file: paths; a gzipped document would break both.
+override_dh_compress:
+	dh_compress -X.md
 
 override_dh_auto_install:
 	install -D -m 0755 bin/karvi-linux-amd64 debian/karvi/usr/bin/karvi
@@ -19,3 +28,21 @@ override_dh_auto_install:
 	# section 1, karvi-prune's in 8; dh_compress gzips them.
 	install -D -m 0644 -t debian/karvi/usr/share/man/man1 packaging/man/*.1
 	install -D -m 0644 packaging/man/karvi-prune.8 debian/karvi/usr/share/man/man8/karvi-prune.8
+	# The documents in the tree's layout, so their relative links hold:
+	# the top level's, docs/, and the release's records.
+	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi *.md
+	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/docs docs/*.md
+	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/release release/*.md
+	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/examples examples/*
+	# The material a site installs by choice, nothing of it active: the
+	# units and timers, the cron scripts, the crun hook examples, the
+	# tmpfiles rule for the group netops, the reference configuration, and
+	# the schemas.
+	install -D -m 0644 -t debian/karvi/usr/share/karvi/systemd/user packaging/systemd/user/*.service packaging/systemd/user/*.timer
+	install -D -m 0644 -t debian/karvi/usr/share/karvi/systemd/user/karvi-daemon.service.d packaging/systemd/user/karvi-daemon.service.d/*
+	install -D -m 0644 -t debian/karvi/usr/share/karvi/systemd/system packaging/systemd/system/*
+	install -D -m 0755 -t debian/karvi/usr/share/karvi/cron packaging/cron/*
+	install -D -m 0644 -t debian/karvi/usr/share/karvi/crun packaging/crun/*
+	install -D -m 0644 -t debian/karvi/usr/share/karvi/tmpfiles.d packaging/tmpfiles.d/*
+	install -D -m 0644 configs/reference.toml debian/karvi/usr/share/karvi/reference.toml
+	install -D -m 0644 -t debian/karvi/usr/share/karvi/schema schema/*

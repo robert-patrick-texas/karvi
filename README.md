@@ -419,7 +419,8 @@ names a hook the client runs when the collection has ended, in the directory
 with the replaced files on stdin; the shipped examples commit them to git and
 mail the diff ([`docs/COLLECTION.md`](docs/COLLECTION.md)). A recurring
 collection is the site's systemd timer or cron over the word
-(`packaging/systemd/user/karvi-crun.timer`, `packaging/cron/karvi-crun`;
+(`/usr/share/karvi/systemd/user/karvi-crun.timer`,
+`/usr/share/karvi/cron/karvi-crun`;
 [`docs/COLLECTION.md` section 7](docs/COLLECTION.md#7-the-schedule)). A shared
 directory of mode `2770` or `2775` lets every member of its group collect; `sudo
 karvi setup shared` makes it once as `/opt/karvi/shared/crun` with the shared

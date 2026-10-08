@@ -1,6 +1,6 @@
 [Unit]
 Description=karvi per-user orchestration daemon
-Documentation=file:%h/.local/share/doc/karvi/OPERATIONS.md
+Documentation=file:/usr/share/doc/karvi/docs/OPERATIONS.md
 After=network-online.target
 
 [Service]

@@ -305,15 +305,15 @@ The client probes the daemon just before its first request and repeats
 that request once, with the plan it already made, if the daemon left in
 between; an operator sees at most a `daemon started` line.
 
-Under systemd the packaged unit (`packaging/systemd/user/karvi-daemon.service`)
-starts the daemon with `--set daemon.shutdown-idle-timer=0`, because an
-idle exit is a clean exit that `Restart=on-failure` would not restart,
-and the next client would then launch a daemon outside the unit and its
-limits. A site running its own unit does the same. The timer is not what
-ends a daemon at logout: a host whose logind has
+Under systemd the packaged unit
+(`/usr/share/karvi/systemd/user/karvi-daemon.service`) starts the daemon with
+`--set daemon.shutdown-idle-timer=0`, because an idle exit is a clean exit that
+`Restart=on-failure` would not restart, and the next client would then launch a
+daemon outside the unit and its limits. A site running its own unit does the
+same. The timer is not what ends a daemon at logout: a host whose logind has
 `KillUserProcesses=yes` ends every process of the session, a running job
-included, with or without the timer; `loginctl enable-linger` or the
-unit keeps a daemon through logout there.
+included, with or without the timer; `loginctl enable-linger` or the unit keeps
+a daemon through logout there.
 
 `karvi-daemon(1)` (`man karvi daemon`), FILES, restates the daemon's
 places, its filtered environment, and the idle exit for the terminal; a
@@ -872,7 +872,7 @@ does it at once. The rule is reported as `created`, `exists`, or `updated`
 there without karvi's first line is the site's and is reported and left
 (`setup_tmpfiles_mismatch`), and a host without `/etc/tmpfiles.d` is told
 (`setup_tmpfiles_dir_missing`), the directories made either way.
-`packaging/tmpfiles.d/karvi.conf` is the rule for the group `netops`.
+`/usr/share/karvi/tmpfiles.d/karvi.conf` is the rule for the group `netops`.
 
 In the scratch root each operator's runs make the operator's own folder,
 `/dev/shm/karvi/<username>` (0700), for the askpass socket, the system
@@ -965,9 +965,9 @@ On a shared or site install, `sudo karvi-prune` prunes every operator's
 work in the provisioned private roots and the shared trees at once, and
 is sufficient for the default practice on a host that installs neither
 the timer nor the cron or simply wants to clean up by hand. The packaged
-schedules are the per-operator timer (`packaging/systemd/user/`), the
-site's root timer (`packaging/systemd/system/`), and the cron script
-(`packaging/cron/karvi-prune`), all over the one executable with the
+schedules are the per-operator timer (`/usr/share/karvi/systemd/user/`), the
+site's root timer (`/usr/share/karvi/systemd/system/`), and the cron script
+(`/usr/share/karvi/cron/karvi-prune`), all over the one executable with the
 same flags, so they make the same decisions.
 
 **The units' writable places.** Each systemd unit runs in a sandbox:
@@ -1115,8 +1115,8 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   ```
 
   then `systemctl --user daemon-reload` and a restart.
-  `packaging/systemd/user/karvi-daemon.service.d/crun.conf.example` is
-  that file. `crun --no-daemon` runs in the client process and needs
+  `/usr/share/karvi/systemd/user/karvi-daemon.service.d/crun.conf.example`
+  is that file. `crun --no-daemon` runs in the client process and needs
   nothing of the unit.
 - **`--fs=SUFFIX`** appends a literal suffix to each file's name in the
   collection directory (`--fs=.cfg` writes `NAME.cfg`), never to the
@@ -1142,8 +1142,8 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   display on stderr. A hook that fails, cannot start, or runs past
   `crun.after-timeout` (`5m`) is the warning `crun_after_failed`, the run's exit
   code unchanged, and the audit holds a `crun.after` event either way. The
-  shipped examples under `packaging/crun/` commit the replaced files to a git
-  repository over the directory and mail the commit's diff
+  shipped examples in `/usr/share/karvi/crun/` commit the replaced files to a
+  git repository over the directory and mail the commit's diff
   ([`docs/COLLECTION.md` section
   5](COLLECTION.md#5-the-commit-and-the-diff-mail-the-hook)).
 - **The drop list.** A platform's `crun-filters` (`[platform.NAME]
@@ -1162,14 +1162,15 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   platform.
 - **The schedule.** A recurring collection is the site's systemd timer or cron
   over `karvi crun --all --no-daemon`, not a configuration key or a
-  daemon-resident schedule: `packaging/systemd/user/karvi-crun.service` and
-  `karvi-crun.timer` (a oneshot, one instance at a time, a missed tick run at
-  the next start), and `packaging/cron/karvi-crun`, which holds a lock for the
-  run and skips a tick that finds it held (one line, exit 75). Two collections
-  never overlap in one directory that way; karvi itself does not refuse one, so
-  an operator's single-device `crun` during the nightly run is not turned away.
-  Under a timer the daemon is not launched: a oneshot's end would terminate it.
-  [`docs/COLLECTION.md` section 7](COLLECTION.md#7-the-schedule).
+  daemon-resident schedule: `/usr/share/karvi/systemd/user/karvi-crun.service`
+  and `karvi-crun.timer` (a oneshot, one instance at a time, a missed tick run
+  at the next start), and `/usr/share/karvi/cron/karvi-crun`, which holds a lock
+  for the run and skips a tick that finds it held (one line, exit 75). Two
+  collections never overlap in one directory that way; karvi itself does not
+  refuse one, so an operator's single-device `crun` during the nightly run is
+  not turned away. Under a timer the daemon is not launched: a oneshot's end
+  would terminate it. [`docs/COLLECTION.md` section
+  7](COLLECTION.md#7-the-schedule).
 
 `karvi-crun(1)` (`man karvi crun`), COLLECTION, restates the directory,
 the file, the replacement, the lists, the hook, and the shared directory

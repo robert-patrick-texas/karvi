@@ -7,7 +7,7 @@ builds, installation, and rollback.
 
 The release ships the scrapligo-v1 executable. The source pins
 `github.com/scrapli/scrapligo v1.4.2`, and `go.mod`, `go.sum`, and `vendor/`
-are committed, so the build needs Go 1.26 or later and no network:
+are committed, so the build needs Go 1.27 or later and no network:
 
 ```bash
 ./scripts/verify-shipped.sh     # the shipped executables as bytes, in seconds

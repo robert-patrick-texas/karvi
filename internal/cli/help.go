@@ -310,7 +310,8 @@ crun.after names an executable the client runs once the collection has
 ended (not with --detach): in the collection directory, the replaced
 files' names on stdin, the job in KARVI_* variables (docs/COLLECTION.md).
 A recurring collection is the site's systemd timer or cron over this word
-(packaging/systemd/user/karvi-crun.timer, packaging/cron/karvi-crun).
+(/usr/share/karvi/systemd/user/karvi-crun.timer,
+/usr/share/karvi/cron/karvi-crun).
 `
 	i := strings.Index(text, "Target inputs")
 	text = usage + "\n" + text[i:]

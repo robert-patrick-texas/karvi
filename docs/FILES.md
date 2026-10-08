@@ -309,13 +309,20 @@ owner's next run sets it right, or the site resets it.
 | `/usr/bin/karvi-askpass` | `0755` | the helper `ssh` runs for a secret; never run by an operator |
 | `/usr/bin/karvi-prune` | `0755` | retention: removes old job and transcript folders ([`docs/PRUNE.md`](PRUNE.md)) |
 | `/usr/share/man/man1/karvi*.1`, `/usr/share/man/man8/karvi-prune.8` | `0644` | the manual pages |
+| `/usr/share/doc/karvi/` | `0644` | the top-level documents (`README.md`, `CHANGELOG.md`, `LICENSE.md`, `BUILD-HOWTO.md`, …), `docs/`, `release/`'s records, and `examples/`, in the source tree's layout so their links hold |
+| `/usr/share/karvi/systemd/user/`, `/usr/share/karvi/systemd/system/` | `0644` | the units and timers, per operator and for the site, and the daemon's drop-in example |
+| `/usr/share/karvi/cron/` | `0755` | the cron scripts `karvi-crun` and `karvi-prune` |
+| `/usr/share/karvi/crun/` | `0644` | the `crun.after` hook examples |
+| `/usr/share/karvi/tmpfiles.d/karvi.conf` | `0644` | the tmpfiles rule for the group `netops`; `sudo karvi setup shared` writes the live one |
+| `/usr/share/karvi/reference.toml`, `/usr/share/karvi/schema/` | `0644` | every configuration key with its default, and the records' schemas |
 
-The systemd units and timers, the cron scripts, the `crun` hook examples, the
-tmpfiles rule for the default group, and the sysctl example are in the source
-tree's `packaging/` and are installed by the site; where the package will put
-them is the roadmap's first item ([`ROADMAP.md`](../ROADMAP.md)). The cron
-script `karvi-crun` holds a lock at `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`
-(`KARVI_CRUN_LOCK`) for the length of a collection.
+Nothing under `/usr/share/karvi` is active until the site copies it into place,
+each guide giving the copy; a host installed from the release bundle
+([`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back))
+finds the same files in the bundle's `packaging/`, `configs/`, `schema/`, and
+`docs/`. The cron script `karvi-crun` holds a lock at
+`${TMPDIR:-/tmp}/karvi-crun.<uid>.lock` (`KARVI_CRUN_LOCK`) for the length of a
+collection.
 
 ## 5. Signs a host is not as intended
 

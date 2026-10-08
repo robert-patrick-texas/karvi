@@ -16,6 +16,26 @@
   is gone with them. The daemon's log is `<basedir>/logs/daemon.log`, the
   audit's journald and `audit.file`. The configuration registry moves from 26
   to 27.
+- **The Debian package, built by `make deb`, carries the documents and the
+  material a site installs.** Besides the executables and the manual pages,
+  it installs the documents under `/usr/share/doc/karvi` (the tree's layout,
+  uncompressed, so their links and the units' `Documentation=` paths hold) and
+  the units and timers, cron scripts, `crun` hook examples, tmpfiles rule,
+  reference configuration, and schemas under `/usr/share/karvi`, none of them
+  active; the documents and the units name those paths, where they named the
+  tree's `packaging/` or places nothing installed. `make deb` builds a copy of
+  the tree into `dist/` with a changelog written from `VERSION` and
+  `CHANGELOG.md`'s first heading, and carries `bin/`'s executables as they
+  are: under a release's heading they must be the ones `CHECKSUMS.sha256`
+  lists, and under `## Unreleased` the package is `VERSION+dev` and they must
+  not be. The package names no Go in `Build-Depends`; BUILD-HOWTO offers it as
+  the install.
+- **Breaking: `packaging/sysctl/90-karvi.conf` removed.** Its one line,
+  `fs.file-max = 2097152`, lowered the ceiling on current kernels, whose
+  default is the maximum; karvi's bound is its per-process open-file limit,
+  which it raises itself and the daemon's unit sets.
+- **Go 1.27.** `go.mod` names `go 1.27.0`, and the build documents Go 1.27 or
+  later.
 - **Every session process ends with karvi.** The system transport's `ssh` on
   the shell channel, a login's `ssh`, and a recorded login's `script(1)` are
   started with `SIGTERM` as their parent-death signal, as the exec masters were.

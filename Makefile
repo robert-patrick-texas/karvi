@@ -13,7 +13,7 @@ LDFLAGS := -s -w \
 	-X $(MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME) \
 	-X $(MODULE)/internal/buildinfo.FIPSMode=$(FIPS_MODE)
 
-.PHONY: all fmt generate generated-clean deps vendor test vet build native-build checksums html smoke halt-smoke k03-smoke native-smoke clean
+.PHONY: all fmt generate generated-clean deps vendor test vet build native-build checksums html deb smoke halt-smoke k03-smoke native-smoke clean
 
 all: generate test vet build
 
@@ -53,6 +53,11 @@ generated-clean:
 # The footers name the checkout's commit, or COMMIT outside a git checkout.
 html:
 	$(GO) run ./tools/md-to-html -src . -out "$(HTMLDIR)" -commit "$$(git describe --always --dirty 2>/dev/null || echo '$(COMMIT)')"
+
+# The Debian package of the tree as it stands, bin/'s executables as they
+# are, into dist/ (scripts/build-deb.sh).
+deb:
+	./scripts/build-deb.sh
 
 test:
 	$(GO) test ./...
