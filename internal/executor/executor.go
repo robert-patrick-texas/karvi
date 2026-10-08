@@ -1274,17 +1274,18 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 				return r.Error.Code
 			}
 			return ""
-		}()}, Source: map[string]any{}, Details: auditDetails(r)})
+		}()}, Source: map[string]any{}, Details: AuditDetails(r.Notices)})
 	}
 }
 
-// auditDetails is a command_completed event's details, from the device's
-// first record's host-key notices: host_key_enrolled, the key type;
+// AuditDetails is an audit event's details from a device's host-key
+// notices (a command_completed event's from its record's, a login's end
+// event's from its session's): host_key_enrolled, the key type;
 // host_key_mismatch_accepted, the stored and presented fingerprints;
 // host_key_not_compared, the reason.
-func auditDetails(r records.CommandRecord) map[string]any {
+func AuditDetails(notices []records.Notice) map[string]any {
 	details := map[string]any{}
-	for _, n := range r.Notices {
+	for _, n := range notices {
 		switch n.Code {
 		case platform.HostKeyEnrolled:
 			details[n.Code] = n.Details["key_type"]
@@ -1324,9 +1325,6 @@ func Definition(cfg configload.Snapshot, name string) (platform.Definition, bool
 	return definition(cfg, name)
 }
 
-// targetNotices converts the plan target's planning notices to the record's
-// shape: the code and message as the client wrote
-// them, the string details as the record's details.
 // hostKeyFindings holds what a transport reports of the device's host key,
 // from whichever goroutine its handshake or its reader runs on.
 type hostKeyFindings struct {
@@ -1366,6 +1364,9 @@ func HostKeyNotices(device string, found []platform.HostKeyNotice) []records.Not
 	return out
 }
 
+// targetNotices converts the plan target's planning notices to the record's
+// shape: the code and message as the client wrote
+// them, the string details as the record's details.
 func targetNotices(t executionplan.ExecutionTarget) []records.Notice {
 	out := []records.Notice{}
 	for _, n := range t.Notices {

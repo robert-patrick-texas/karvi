@@ -37,7 +37,11 @@
   stored new SSH host key …` had been printed only by a job in the client and
   dropped by the daemon, and `system` said nothing: OpenSSH's `Permanently
   added` line is now taken from the standard error karvi reads. A job that
-  finds the key stored meanwhile by another says nothing.
+  finds the key stored meanwhile by another says nothing. A login, whose
+  OpenSSH says nothing of it at its log level, reads the trust store at its
+  first password prompt, or at its end when it asks none, says the same line,
+  and names the key type in its `login.completed` or `login.errored` audit
+  event's `details`.
 - **`insecure` is said on every path.** A job under `ssh.host-key-policy =
   "insecure"` says so once at its admission, two lines on standard error,
   where both transports had warned at every connection; a key differing from

@@ -140,7 +140,9 @@ func TestNegotiationDiagnostics(t *testing.T) {
 	if _, ok := hostKeyTypesOffered("Permission denied (password)."); ok {
 		t.Fatal("matched an unrelated diagnostic")
 	}
-	got := safeDiagnostic("Warning: Permanently added 'switch1' (ED25519) to the list of known hosts.\r\nnetops@192.0.2.10: Permission denied (password).\r\nConnection to 192.0.2.10 closed.\r\n", nil)
+	// The first-contact line never reaches the diagnostics (authFilter,
+	// masterLines); the closing line does and is not the failure.
+	got := safeDiagnostic("netops@192.0.2.10: Permission denied (password).\r\nConnection to 192.0.2.10 closed.\r\n", nil)
 	if got != "netops@192.0.2.10: Permission denied (password)." {
 		t.Fatalf("diagnostic %q", got)
 	}
@@ -156,5 +158,46 @@ func TestEnrollmentSaidOnlyUnderAcceptNew(t *testing.T) {
 		if got := d.hostKeyEnrolled() != nil; got != want {
 			t.Errorf("%s: a callback %t, want %t", mode, got, want)
 		}
+	}
+}
+
+// TestFirstContact: a login's check under accept-new. A store holding the
+// device's key, or unreadable, gives no check; an empty one is read once
+// more, and the key stored meanwhile is said once with its type's label,
+// however often the check is called; a store still without it says nothing.
+func TestFirstContact(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "known_hosts")
+	entry := "[r1]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8g\n"
+	driver := func(said *[]string) *Driver {
+		return &Driver{f: Factory{hostKey: hostkey.Policy{Mode: hostkey.AcceptNew, KnownHostsFile: file}, hostKeyIdentity: "[r1]:2222"},
+			req: platform.OpenRequest{HostKeyNotice: func(n platform.HostKeyNotice) { *said = append(*said, n.Code+" "+n.Label) }}}
+	}
+	var said []string
+	check := driver(&said).firstContact()
+	if check == nil {
+		t.Fatal("no check with the store absent")
+	}
+	check()
+	if len(said) != 0 {
+		t.Fatalf("said %q with no key stored", said)
+	}
+	check = driver(&said).firstContact()
+	if err := os.WriteFile(file, []byte(entry), 0600); err != nil {
+		t.Fatal(err)
+	}
+	check()
+	check()
+	if len(said) != 1 || said[0] != platform.HostKeyEnrolled+" ED25519" {
+		t.Fatalf("said %q", said)
+	}
+	if driver(&said).firstContact() != nil {
+		t.Fatal("a check with the key already stored")
+	}
+	if err := os.WriteFile(file, []byte("[r1]:2222 ssh-ed25519 !!!\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if driver(&said).firstContact() != nil {
+		t.Fatal("a check with the store unreadable")
 	}
 }

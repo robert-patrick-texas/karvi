@@ -41,11 +41,16 @@ type Broker struct {
 	socket, token string
 	listener      net.Listener
 	material      credentials.Material
+	requested     func() // called as a request bearing the token arrives, or nil
 	done          chan struct{}
 	once          sync.Once
 }
 
-func Start(dir string, material credentials.Material) (*Broker, error) {
+// Start serves one request from OpenSSH's askpass helper on a socket in
+// dir. requested, when not nil, is called when a request bearing the token
+// arrives, before it is answered: OpenSSH asks only once key exchange is
+// done, so a login reads the trust store then (Driver.Interactive).
+func Start(dir string, material credentials.Material, requested func()) (*Broker, error) {
 	if material == nil {
 		return nil, errorcodes.Errorf("askpass_material_missing", "credential material is nil")
 	}
@@ -71,7 +76,7 @@ func Start(dir string, material credentials.Material) (*Broker, error) {
 		os.Remove(socket)
 		return nil, err
 	}
-	b := &Broker{socket: socket, token: token, listener: ln, material: material, done: make(chan struct{})}
+	b := &Broker{socket: socket, token: token, listener: ln, material: material, requested: requested, done: make(chan struct{})}
 	go b.serve()
 	return b, nil
 }
@@ -113,6 +118,9 @@ func (b *Broker) serve() {
 	if err != nil || len(got) != len(expected) || subtle.ConstantTimeCompare(got, expected) != 1 {
 		json.NewEncoder(conn).Encode(response{Error: "askpass_auth_failed"})
 		return
+	}
+	if b.requested != nil {
+		b.requested()
 	}
 	kind := classify(req.Prompt, req.Kind)
 	var secret []byte

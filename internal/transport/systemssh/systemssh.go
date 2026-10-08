@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/askpass"
@@ -250,16 +251,44 @@ var _ platform.SetupReporter = (*Driver)(nil)
 
 var _ platform.AuthReporter = (*Driver)(nil)
 
-// hostKeyEnrolled is what OpenSSH's "Permanently added" line reports: the
-// request's host_key_enrolled notice under accept-new, the one policy that
-// stores a key; nil otherwise: under insecure the trust store is /dev/null
-// and OpenSSH says the same line of a key it did not keep.
+// hostKeyEnrolled is what OpenSSH's "Permanently added" line reports, and a
+// login's trust-store read (firstContact): the request's host_key_enrolled
+// notice under accept-new, the one policy that stores a key; nil otherwise:
+// under insecure the trust store is /dev/null and OpenSSH says the same line
+// of a key it did not keep.
 func (d *Driver) hostKeyEnrolled() func(label string) {
 	if d.f.hostKey.Mode != hostkey.AcceptNew || d.req.HostKeyNotice == nil {
 		return nil
 	}
 	return func(label string) {
 		d.req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyEnrolled, Label: label})
+	}
+}
+
+// firstContact is a login's first-contact check under accept-new: the
+// login runs OpenSSH at LogLevel ERROR, which says nothing of a key it
+// stores, so the trust store is read for the device's entry before the
+// session and, when it has none, once more: at the first askpass request,
+// when OpenSSH has finished key exchange and stored the key if it was to,
+// else when the session ends (a login by keys alone asks nothing). A key
+// found then is the request's host_key_enrolled notice. Nil when there is
+// nothing to check. Neither read waits on the store's lock.
+func (d *Driver) firstContact() func() {
+	enrolled := d.hostKeyEnrolled()
+	if enrolled == nil {
+		return nil
+	}
+	file, identity := d.f.hostKey.KnownHostsFile, d.f.hostKeyIdentity
+	if types, err := hostkey.EnrolledTypes(file, identity); err != nil || len(types) > 0 {
+		return nil
+	}
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			if types, err := hostkey.EnrolledTypes(file, identity); err == nil && len(types) > 0 {
+				enrolled(hostkey.TypeLabel(types[0]))
+			}
+		})
 	}
 }
 
@@ -309,7 +338,8 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	args = append(args, "-tt", d.req.Address)
 	cmd := exec.CommandContext(ctx, d.binary, args...)
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password, enable: d.req.EnablePassword}
-	broker, err := askpass.Start(d.f.ScratchDir, material)
+	firstContact := d.firstContact()
+	broker, err := askpass.Start(d.f.ScratchDir, material, firstContact)
 	if err != nil {
 		return errorcodes.Ensure(err, "askpass_start_failed")
 	}
@@ -327,6 +357,9 @@ func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stder
 	waited, err := osutil.StartTied(cmd, nil)
 	if err == nil {
 		err = <-waited
+	}
+	if firstContact != nil {
+		firstContact()
 	}
 	if err != nil {
 		code, _, _, _ := classify(diagnostic.String(), err)
@@ -531,9 +564,10 @@ func classify(stderr string, err error) (string, string, bool, bool) {
 func safeDiagnostic(stderr string, err error) string {
 	var kept []string
 	for _, line := range strings.Split(strings.ReplaceAll(stderr, "\r", ""), "\n") {
-		// OpenSSH's informational lines under LogLevel INFO are not the
-		// failure.
-		if strings.HasPrefix(line, "Warning: Permanently added ") || (strings.HasPrefix(line, "Connection to ") && strings.HasSuffix(line, " closed.")) {
+		// OpenSSH's closing line at LogLevel INFO and above is not the
+		// failure; its first-contact line never reaches the diagnostics
+		// (authFilter, masterLines).
+		if closedLine.MatchString(line) {
 			continue
 		}
 		kept = append(kept, line)

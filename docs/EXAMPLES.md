@@ -5832,3 +5832,100 @@ policy's two lines orange and `! ssh host-key mismatch ` and ` proceeding at
 risk` bold red (`ESC[1;31m`) around the yellow name; a `run` through the
 daemon without `ssh-keyscan` printed `! ssh host-key 127.0.0.1 not compared:
 ssh-keyscan not installed`, the audit's `details` holding the whole reason.
+
+**S3, found: a device's banner in the failure text.** S3 was built as issue 3
+first agreed it, the login at `-o LogLevel=INFO`, its standard error read line
+by line, the key `ssh.login.stderr`. On a lab build against the lab's `sshd`
+with a `Banner`, a first contact showed karvi's line and then the banner, and
+`false` hid the banner. A failed login showed it twice: at `INFO` the banner
+reached the diagnostics as well as the screen, and karvi's failure line began
+with it:
+
+```text
+0f12827: authentication_failed: netops@127.0.0.1: Permission denied (publickey).
+INFO:    authentication_failed: AUTHORIZED ACCESS ONLY (lab banner)
+         netops@127.0.0.1: Permission denied (publickey).
+```
+
+A session the device ended (`closed by remote host`, exit 110 on both builds)
+carried it the same way. It is older than S3: on `0f12827`, `command
+--transport system` with a refused key printed `error=authentication_failed:
+AUTHORIZED ACCESS ONLY (lab banner)` and then OpenSSH's line. OpenSSH writes a
+server's pre-authentication banner on its standard error at `INFO` and above;
+the shell's command session runs at `VERBOSE` and the exec master at `DEBUG1`,
+so both have always received it among their diagnostics, which the
+classification of a failure reads by substring.
+
+**Issue 6, a device's banner in the failure text, agreed.** On this host every
+line OpenSSH writes ends in `\r\n` (`Permanently added`, `Permission denied`,
+`closed by remote host`, `closed`), and the lab banner's line in a bare `\n`,
+the server's own line end; a `ProxyCommand`'s own lines end in `\n` too (`nc:
+connect to … failed: Connection refused`). Proposed: the diagnostics keep only
+OpenSSH's `\r\n` lines. The operator ran `ssh -o LogLevel=INFO DEVICE exit`
+through `cat -A` on three production devices: an Aruba CX 6300 switch and a
+Linux server end their banners' lines in `\n`, a Cisco IOS XE 4451-X router in
+`\r\n`, with a blank `\r\n` line before the banner. No byte tells a Cisco
+banner from OpenSSH's text, and IOS XE is most of the fleet; none of the three
+banners holds a phrase the classification matches, so there the harm is the
+failure text, 25 lines of a legal notice in every failed or device-ended
+login's line. The operator asked whether hiding the banner, unless under
+debug, settles it: it does not, as long as the login runs at `INFO`, since
+what is not shown is still in the diagnostics. The ruling: the login stays at
+`ERROR`, where OpenSSH writes no banner (issue 3, amended below), so its
+failure line is as on `0f12827`. `command` and `run` over `system` keep the
+older exposure, recorded in the ROADMAP ("A device's banner kept out of
+`system`'s failure text"): the command session and the exec master cannot
+leave `VERBOSE` and `DEBUG1`, and the fix waits on an exact separator; the
+native transport drops a banner and is their default. *Not taken:* the byte
+rule (a Cisco banner's `\r\n`); `INFO` with the banner hidden (it stays in the
+diagnostics); `-E` to a FIFO, OpenSSH's log apart from the banner exactly (the
+operator ruled it out in issue 3, and it takes `SSH-TROUBLE.md`'s trace).
+
+**Issue 3, amended: the login at `ERROR`, the trust store read.** The login
+stays at OpenSSH's `LogLevel ERROR`, as on `0f12827`: no banner, OpenSSH's
+errors on the terminal as before, no `ssh.login.stderr` (the registry stays
+26). Under `accept-new` karvi learns of a first contact from the trust store:
+it reads the device's entry, under its host-key identity, before the session;
+when there is none, once more at the session's first askpass request, and
+says `! ssh accepted new host-key DEVICE (TYPE)` if the key is there, TYPE the
+stored key's. OpenSSH stores the key in its host-key check during key
+exchange, before user authentication: executed with plain `ssh` under
+`accept-new`, an empty store, and a forced askpass that copied the store when
+called, the store held the key at the prompt, so the read is definitive. A
+login that asks nothing (by keys alone) or fails is read once more at the
+session's end, and the line said then. The operator asked whether karvi could
+hang waiting for a store that is never updated, or was updated first by
+another login: nothing watches the store or waits on karvi's lock; each read
+is one read of the file, and a store never updated is a read that finds no
+key. An earlier draft read the store until the key appeared, the session
+ended, or a bound passed; the operator's question, why not stop at the
+password prompt, gave the exact point instead. The cost: a login whose first
+contact overlaps another's within key exchange, the other's key stored after
+this login's first read and before its key exchange, says the line although
+its own OpenSSH stored nothing (issue 2's finding, narrowed to one device in
+about a second). *Not taken:* `INFO` with OpenSSH's standard error sorted
+(issue 6); a store watch bounded by time (the prompt is an exact point).
+
+**S3, built.** `askpass.Start` takes a `requested` callback, called when a
+request bearing the token arrives, before it is answered. `Driver.Interactive`
+takes `firstContact`: nil unless `accept-new` and a store without the
+device's key; else a read, done once, from the broker's request or after the
+session, whichever is first, that passes the stored key's label to the
+request's `HostKeyNotice` as `host_key_enrolled`. The login keeps the notices
+it prints, and its `login.completed` or `login.errored` event's `details` take
+them through `executor.AuditDetails`, the function a `command_completed`
+event's take its record's through, beside `diagnostic`. `safeDiagnostic` no
+longer passes over `Permanently added`, which every reader takes out first and
+a login at `ERROR` never receives. Executed on a lab build: a first contact by
+keys (no prompt) said the line after the session's `logout`, and
+`login.completed` named `ED25519`; with the key known, nothing; a first
+contact by password to a lab `sshd` that offers the password method and cannot
+verify it said the line after the header, before OpenSSH's `Permission denied
+(publickey,password).`, and `login.errored` named the key, the failure line as
+on `0f12827`; a session the device ended said it at the end, its failure line
+`ssh_process_failed: Connection to 127.0.0.1 closed by remote host.` as on
+`0f12827`. The transcript suite's row stores the key from a fake `ssh` in the
+store the generated configuration names, with and without an askpass request:
+the line before the device's output with the prompt and after it without,
+once each, nothing with the key known, and the audit's `details`; it fails on
+`0f12827`'s build at the line.

@@ -81,3 +81,9 @@ func (f *authFilter) Method() string {
 	defer f.mu.Unlock()
 	return f.method
 }
+
+// closedLine is OpenSSH's "Connection to <host> closed." at LogLevel INFO
+// and above, written at the end of every session with a terminal (the
+// command session's); a session the device ends adds "closed by remote
+// host" before it, which this does not match.
+var closedLine = regexp.MustCompile(`^Connection to .* closed\.\r?$`)

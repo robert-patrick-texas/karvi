@@ -173,6 +173,19 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   The questions: which keys belong
   to the process; how the job records the configuration it ran under; the
   request's size.
+- **A device's banner kept out of `system`'s failure text.** OpenSSH writes a
+  device's pre-authentication banner on its standard error at `LogLevel INFO`
+  and above, among its own lines; the shell's command session (`VERBOSE`) and
+  the exec master (`DEBUG1`) receive it, so a failure over `system` carries the
+  banner in its error text and records, and the classification of the failure
+  reads it by substring, where a banner's words could name the code. No byte
+  tells it apart: a Cisco IOS XE banner ends its lines in `\r\n`, as OpenSSH's
+  own lines do ([`docs/EXAMPLES.md`, chapter
+  37](docs/EXAMPLES.md#37-the-first-contact-said-alike-over-both-transports-2026-10-07)).
+  A login, at `LogLevel ERROR`, receives no banner, and the native transport
+  drops one. The question: an exact separator, `-E` to a FIFO for OpenSSH's
+  log, which takes `docs/SSH-TROUBLE.md`'s `-vvv` trace from its file into
+  karvi's.
 
 ## The device-qualification track
 

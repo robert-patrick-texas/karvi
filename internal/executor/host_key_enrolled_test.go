@@ -97,10 +97,10 @@ func TestHostKeyEnrolledOnTheFirstRecord(t *testing.T) {
 // one.
 func TestAuditDetailsNameTheEnrolledKey(t *testing.T) {
 	r := records.CommandRecord{Notices: []records.Notice{{Code: "platform_not_set"}, {Code: "host_key_enrolled", Message: "ssh accepted new host-key r1 (ECDSA)", Details: map[string]any{"key_type": "ECDSA"}}}}
-	if got := auditDetails(r); !reflect.DeepEqual(got, map[string]any{"host_key_enrolled": "ECDSA"}) {
+	if got := AuditDetails(r.Notices); !reflect.DeepEqual(got, map[string]any{"host_key_enrolled": "ECDSA"}) {
 		t.Fatalf("details %v", got)
 	}
-	if got := auditDetails(records.CommandRecord{}); len(got) != 0 {
+	if got := AuditDetails(nil); len(got) != 0 {
 		t.Fatalf("no notice: %v", got)
 	}
 	r = records.CommandRecord{Notices: HostKeyNotices("r1", []platform.HostKeyNotice{
@@ -111,7 +111,7 @@ func TestAuditDetailsNameTheEnrolledKey(t *testing.T) {
 		"host_key_mismatch_accepted": map[string]any{"enrolled": []string{"ssh-ed25519 SHA256:a"}, "presented": []string{"ssh-ed25519 SHA256:b"}},
 		"host_key_not_compared":      "ssh-keyscan timed out: no key within 5s",
 	}
-	if got := auditDetails(r); !reflect.DeepEqual(got, want) {
+	if got := AuditDetails(r.Notices); !reflect.DeepEqual(got, want) {
 		t.Fatalf("insecure details %v", got)
 	}
 }

@@ -4,7 +4,8 @@
 # and metadata, modes, the transcript rendered as the terminal showed it
 # (script(1)'s marker lines removed, a correction applied, colours dropped,
 # the timing log gone from the scratch), karvi's own lines kept out of the
-# transcript, the metadata formats, and the refusals.
+# transcript, the metadata formats, a login's first contact said from the
+# trust store, and the refusals.
 set -eu
 
 # absent PATTERN FILE: the file must not match. A bare "! grep" line is exempt
@@ -165,6 +166,55 @@ recorded debug "--debug" "--record=$TMP/rec-debug --address 127.0.0.1 transcript
 grep -q ' DEBUG login interactive session starting' "$TMP/debug.out"
 [ -z "$(grep ' DEBUG \|transcript-device \[127\.0\.0\.1\] platform=' "$TMP/debug.out" | grep -v "$(printf '\r')\$")" ]
 absent ' DEBUG ' "$(ls "$TMP/rec-debug/$DAY"/transcript-device-*.log)"
+
+# A login's first contact (accept-new): OpenSSH at LogLevel ERROR says
+# nothing, so karvi reads the trust store before the session and, when the
+# device's key is absent, at the first askpass request (OpenSSH has stored
+# it by then) or, with no request, at the session's end. Each fake stores
+# the key in the store the generated configuration names, under the
+# host-key alias, as OpenSSH does at key exchange; one then asks for the
+# password, one does not. The line comes before the device's output with a
+# prompt and after it without; a known key says nothing; the login's end
+# event names the key type.
+HOSTKEY=AAAAC3NzaC1lZDI1NTE5AAAAIAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8g
+for prompt in yes no; do
+  cat > "$TMP/fake-ssh-contact-$prompt" <<EOF_INNER
+#!/bin/sh
+store= alias=
+while [ "\$#" -gt 0 ]; do
+  case "\$1" in
+    -F) store=\$(sed -n 's/^  UserKnownHostsFile "\(.*\)"\$/\1/p' "\$2"); shift ;;
+    HostKeyAlias=*) alias=\${1#HostKeyAlias=} ;;
+  esac
+  shift
+done
+grep -q "^\$alias " "\$store" 2>/dev/null || printf '%s ssh-ed25519 %s\n' "\$alias" '$HOSTKEY' >>"\$store"
+[ $prompt = no ] || "\$SSH_ASKPASS" 'Password:' >/dev/null
+printf '%s\r\n' '$MARKER'
+exit 0
+EOF_INNER
+  chmod 755 "$TMP/fake-ssh-contact-$prompt"
+done
+contact() {
+  rm -f "${KARVI__SSH__KNOWN_HOSTS_FILE:?}"
+  eval "$COMMON --set 'ssh.transports.system=\"$TMP/fake-ssh-contact-$1\"' login --address 127.0.0.1 transcript-device" >"$TMP/contact-$1.out" 2>&1
+  grep '"login.completed"' "$BASE/audit.jsonl" | tail -1 >"$TMP/contact-$1.audit"
+}
+# line_of TEXT FILE: the number of FILE's first line holding TEXT, empty if none.
+line_of() { grep -n -F -- "$1" "$2" | head -n 1 | cut -d: -f1; }
+said='! ssh accepted new host-key transcript-device (ED25519)'
+contact yes
+[ "$(grep -c -F -- "$said" "$TMP/contact-yes.out")" = 1 ]
+[ "$(line_of "$said" "$TMP/contact-yes.out")" -lt "$(line_of "$MARKER" "$TMP/contact-yes.out")" ]
+json_is "$TMP/contact-yes.audit" details.host_key_enrolled ED25519
+contact no
+[ "$(grep -c -F -- "$said" "$TMP/contact-no.out")" = 1 ]
+[ "$(line_of "$said" "$TMP/contact-no.out")" -gt "$(line_of "$MARKER" "$TMP/contact-no.out")" ]
+json_is "$TMP/contact-no.audit" details.host_key_enrolled ED25519
+eval "$COMMON --set 'ssh.transports.system=\"$TMP/fake-ssh-contact-yes\"' login --address 127.0.0.1 transcript-device" >"$TMP/contact-known.out" 2>&1
+absent 'accepted new host-key' "$TMP/contact-known.out"
+grep '"login.completed"' "$BASE/audit.jsonl" | tail -1 >"$TMP/contact-known.audit"
+if json_has "$TMP/contact-known.audit" details.host_key_enrolled; then echo "$0: a known key named in the audit" >&2; exit 1; fi
 
 # Refusals happen before any file or child process exists.
 set +e
