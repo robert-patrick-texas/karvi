@@ -2,6 +2,7 @@ package osutil
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -185,17 +186,33 @@ func makeableReason(path string) string {
 
 // chain is a list of candidates the operator writes in, the first usable
 // taken (the scratch and the spool), with the code and message of the
-// refusal when none is.
+// refusal when none is. maxLength, when not 0, passes by a longer candidate
+// (the scratch's, MaxScratchDir).
 type chain struct {
 	candidates    []string
+	maxLength     int
 	code, message string
 }
 
+// tooLong is the reason a candidate longer than the chain's maxLength is
+// passed by, empty when it is not.
+func (c chain) tooLong(p string) string {
+	if c.maxLength == 0 || len(p) <= c.maxLength {
+		return ""
+	}
+	return fmt.Sprintf("%d bytes, longer than the askpass socket allows (%d)", len(p), c.maxLength)
+}
+
 // place is the chain's twin: what the maker takes, by judgeDirectory,
-// creating nothing.
+// creating nothing. A candidate too long is listed whether present or
+// not: its length, not the host, passed it by.
 func (c chain) place() (Place, error) {
 	var pl Place
 	for _, p := range c.candidates {
+		if reason := c.tooLong(p); reason != "" {
+			pl.Passed = append(pl.Passed, Passed{Path: p, Reason: reason})
+			continue
+		}
 		present, reason := judgeDirectory(p)
 		if reason == "" {
 			pl.Path = p
@@ -214,6 +231,9 @@ func (c chain) place() (Place, error) {
 // is the answer.
 func (c chain) make() (string, error) {
 	for _, p := range c.candidates {
+		if c.tooLong(p) != "" {
+			continue
+		}
 		if _, reason := judgeDirectory(p); reason != "" {
 			continue
 		}

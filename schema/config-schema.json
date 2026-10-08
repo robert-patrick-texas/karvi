@@ -120,7 +120,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__TEMPDIR",
       "cli_flags": null,
-      "documentation": "The scratch directory of the askpass socket and the system transport's ssh configuration. `auto` is the chain `/dev/shm/karvi/\u003cusername\u003e` (only when the site's scratch root `/dev/shm/karvi` exists: `sudo karvi setup shared` makes it, and karvi never does), `\u003cbasedir\u003e/tmp`, `/tmp/karvi-\u003cuid\u003e`, `/var/tmp/karvi-\u003cuid\u003e`, the first that is a writable real directory, made 0700 in its existing parent; an absolute path replaces the chain.",
+      "documentation": "The scratch directory of the askpass socket and the system transport's ssh configuration. `auto` is the chain `/dev/shm/karvi/\u003cusername\u003e` (only when the site's scratch root `/dev/shm/karvi` exists: `sudo karvi setup shared` makes it, and karvi never does), `\u003cbasedir\u003e/tmp`, `/tmp/karvi-\u003cuid\u003e`, `/var/tmp/karvi-\u003cuid\u003e`, the first that is a writable real directory, made 0700 in its existing parent; an absolute path replaces the chain. The directory may be at most 69 bytes, so that an askpass socket's path, its name up to 37 bytes, fits 107: `auto` passes a longer candidate by, and an explicit path longer is `tempdir_too_long` at every job's admission and a login's start.",
       "since": "0.2.0"
     },
     {

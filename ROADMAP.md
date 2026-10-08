@@ -176,6 +176,16 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   drops one. The question: an exact separator, `-E` to a FIFO for OpenSSH's
   log, which takes `docs/SSH-TROUBLE.md`'s `-vvv` trace from its file into
   karvi's; the same `-E` "A login's OpenSSH log level" asks of a login.
+- **The daemon's socket path bounded.** `daemon.socket`, by default
+  `<basedir>/socket/daemon.sock`, has no length check: under a 100-byte
+  `basedir` a `run` waited out the daemon's start and exited 112,
+  `daemon_start_failed: … context deadline exceeded`, the cause,
+  `daemon_serve_failed: listen unix …/daemon.sock: bind: invalid argument`, in
+  `daemon.log` alone ([`docs/EXAMPLES.md`, chapter
+  40](docs/EXAMPLES.md#40-the-scratch-bounded-for-the-askpass-socket-2026-10-08)).
+  A path socket holds at most 107 bytes, as the control-path root and
+  `tempdir` are bounded for theirs. The question: where the client refuses a
+  socket path too long, before it starts a daemon that cannot listen.
 
 ## The device-qualification track
 

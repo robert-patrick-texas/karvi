@@ -59,6 +59,12 @@ func AskpassSocketName(id string) string {
 	return fmt.Sprintf("askpass-%d-%s.sock", os.Getpid(), id)
 }
 
+// MaxScratchDir is the longest scratch directory an askpass socket's path
+// fits under: 107 bytes less the separator and AskpassSocketName's longest
+// name, its pid of 7 digits (Linux's PID_MAX_LIMIT, 4194304). A bound by the
+// running pid would let a directory pass until the pids reach 7 digits.
+const MaxScratchDir = 107 - 1 - len("askpass-") - 7 - 1 - ControlSocketNameLength - len(".sock")
+
 // askpassSocketOwner reports the pid an askpass socket's name carries, and
 // whether the name is one AskpassSocketName makes.
 func askpassSocketOwner(name string) (int, bool) {

@@ -6256,3 +6256,108 @@ twice, byte-identical, its executables the sums `CHECKSUMS.sha256` lists; with
 one dev executable in `bin/` it refused, and under a heading naming 0.26.0 it
 refused. The evidence is kept beside the tree
 (`release-design-evidence/package-and-logging-2026-10-08`).
+
+## 40. The scratch bounded for the askpass socket (2026-10-08)
+
+The outline's item: nothing checks that the askpass broker's socket,
+`<tempdir>/askpass-<pid>-<16 hex>.sock`, fits a Unix socket's path.
+
+**What it gains.** A `tempdir` too long for the socket refused once, before
+any device, naming the length, where the job is admitted and every device over
+`system` fails with `bind: invalid argument`, which names none. It waits on
+nothing.
+
+**The evidence.** A lab build of `cf24c10`, this host's OpenSSH, `command
+--transport system --platform linux 127.0.0.1 'echo ok'` with `tempdir` an
+existing 0700 directory of a given length:
+
+| `tempdir` | Result |
+|---|---|
+| 60 and 70 bytes | ran, exit 0 |
+| 71, 72, 73, 75, 80 bytes | exit 1, `status=connection_error error=askpass_start_failed: listen unix …/askpass-713590-b8ff19963b319986.sock: bind: invalid argument` |
+| 71, `run` through the daemon | exit 101, the same failure on each device |
+| 71, `login` | exit 1, the same text after the header |
+| `auto`, no `/dev/shm/karvi`, a 67-byte `basedir` | the chain took `<basedir>/tmp` (71 bytes); every `system` device failed, exit 1; native ran |
+
+The socket's name is 30 bytes and the pid's digits, and a path socket holds at
+most 107 bytes. The runs' pids had six digits, so 70 + 1 + 36 = 107 passed;
+this host's `pid_max` is 4194304, and at a seven-digit pid the 70-byte
+directory fails too. Every `system` session starts a broker, whatever its
+credentials, and so does every login; native binds nothing in the scratch.
+`auto`'s chain takes a candidate whatever its length.
+
+**Issue 1, the bound and where it is checked, agreed.** The bound is a
+constant beside `MaxControlPathRoot`, 107 − 1 − 37 = 69 bytes, 37 the longest
+name: `askpass-`, a seven-digit pid (Linux's `PID_MAX_LIMIT`, 4194304), `-`, 16
+hex, `.sock`. An explicit `tempdir` longer is refused where the scratch is
+resolved, `tempdir_too_long` (config, exit 2), naming the path, its length,
+and the bound, as `control_path_root_too_long` reads: at every job's
+admission, in the client or the daemon under the configuration that governs
+the job, and at a login's start, each before any device. A native-only job is
+refused too, as an unwritable `tempdir` is today: admission resolves the
+scratch for every job. `tempdir`'s registry text and `ERROR-CODES.md` state
+the bound. *Not taken:* a check at planning in the client, as the control-path
+root has (the client's configuration is not the daemon's, chapter 37's 5c);
+refusing only where a target runs over `system` (admission resolves the
+scratch for every job); a shorter name (the pid is the sweep's, the 16 hex
+guard a collision, and any name leaves a bound); the bound judged by the
+running pid's length (the 70-byte failure at a seven-digit pid); an abstract
+socket (no path, but no 0600 file, the token its only guard).
+
+**Issue 2, `auto`'s chain, agreed.** Today `config show --explain` resolves
+`tempdir` to the 71-byte `<basedir>/tmp` without a word. The scratch's chain
+carries issue 1's bound: a candidate longer than 69 bytes is passed by and the
+chain moves on, the job not refused. Only `<basedir>/tmp` can be, under a
+`basedir` over 65 bytes: `/dev/shm/karvi/<username>` is at most 47 bytes with a
+32-byte name, `/tmp/karvi-<uid>` and `/var/tmp/karvi-<uid>` about 20. `config
+show --explain` lists it on its `passed:` line with the reason, present or
+not: a chain lists only a present candidate passed by, absence being a host's
+ordinary state, and a length is not the host's state but why the chain moved.
+At the job it is silent, as a candidate passed by is, the scratch landing in
+`/tmp/karvi-<uid>`, as private. The spool's chain binds no socket and takes no
+bound. No candidate fitting is the chain's refusal,
+`scratch_directory_unavailable`, unreachable by length alone. *Not taken:*
+refusing `auto` under a long `basedir` (`auto` finds a place that works, and a
+later candidate does); a warning at every job (the place is as private, and the
+operator chose none).
+
+**Found: the daemon's socket.** `daemon.socket` has no length check either:
+under a 100-byte `basedir` a `run` waited out the daemon's start and exited
+112, `daemon_start_failed: … context deadline exceeded`, the cause,
+`daemon_serve_failed: listen unix …/daemon.sock: bind: invalid argument`, in
+`daemon.log` alone. The operator's ruling: to the ROADMAP ("The daemon's
+socket path bounded").
+
+**Built.** `osutil.MaxScratchDir` is 69, beside `AskpassSocketName`; the
+scratch's chain carries it, `place` naming a longer candidate on its `passed:`
+list, present or not, and `make` skipping it; an explicit `tempdir` longer is
+`tempdir_too_long` (config, exit 2) from both, before anything is made. Every
+caller already resolves through them: a job's admission, a login's start, a
+recorded login's timing log, and the daemon's sweep at its start, which logs
+the code. `TestScratchBoundedForTheAskpassSocket` binds the longest name under
+69 bytes and fails to bind one byte more, and drives the chain and the
+explicit path at the bound and one over, under a short directory of its own so
+that the maker never reaches the host's `/tmp/karvi-<uid>`.
+
+**Executed.** On a lab build, the same commands: a 69-byte `tempdir` ran; a
+70-byte one was refused, exit 2, before any device and leaving no job
+directory, alike over native, through the daemon (`tempdir_too_long: daemon
+validation: …`), and in a login:
+
+```text
+tempdir_too_long: the scratch directory /tmp/nd.OoUn/item7/vvv…v is 70 bytes;
+an askpass socket's path must fit 107 bytes with its name of up to 37, so the
+directory may be at most 69 bytes; set tempdir to a shorter directory
+```
+
+Under the 67-byte `basedir` with `auto`, the `system` command ran in
+`/tmp/karvi-1000`, and `config show --explain` read:
+
+```text
+resolved:   /tmp/karvi-1000
+passed:     /tmp/nd.OoUn/item7/byyy…y/tmp: 71 bytes, longer than the askpass socket allows (69)
+```
+
+**Closed.** The full battery passed on the lab build. The daemon's socket waits
+in the ROADMAP. The evidence is kept beside the tree
+(`release-design-evidence/askpass-socket-length-2026-10-08`).

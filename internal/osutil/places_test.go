@@ -1,6 +1,8 @@
 package osutil
 
 import (
+	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -107,6 +109,104 @@ func TestCheckSetupPlaces(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "opt", "users")); !os.IsNotExist(err) {
 		t.Fatalf("users was made: %v", err)
+	}
+}
+
+// pathOfLength is a path of exactly n bytes under parent, its last
+// component padded with x.
+func pathOfLength(t *testing.T, parent string, n int) string {
+	t.Helper()
+	pad := n - len(parent) - 1
+	if pad < 1 {
+		t.Skipf("%s is too long for a %d-byte path", parent, n)
+	}
+	return filepath.Join(parent, strings.Repeat("x", pad))
+}
+
+// TestScratchBoundedForTheAskpassSocket: an askpass socket's longest name
+// fits under MaxScratchDir and one byte more does not bind; the chain
+// passes a longer candidate by, listed whether present or not, and the
+// maker skips it; an explicit path longer is tempdir_too_long, nothing
+// made. The test works under a short directory of its own, so that the
+// lengths are exact and the maker never reaches the host's /tmp/karvi-<uid>.
+func TestScratchBoundedForTheAskpassSocket(t *testing.T) {
+	skipAsRoot(t)
+	dir, err := os.MkdirTemp("", "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	longest := fmt.Sprintf("askpass-%d-%s.sock", 4194304, strings.Repeat("a", ControlSocketNameLength))
+	if MaxScratchDir != 69 || MaxScratchDir+1+len(longest) != 107 {
+		t.Fatalf("MaxScratchDir %d with the longest name %q", MaxScratchDir, longest)
+	}
+	fits := pathOfLength(t, dir, MaxScratchDir)
+	if err := os.Mkdir(fits, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ln, err := net.Listen("unix", filepath.Join(fits, longest))
+	if err != nil {
+		t.Fatalf("the longest name under %d bytes: %v", len(fits), err)
+	}
+	ln.Close()
+	if ln, err := net.Listen("unix", filepath.Join(fits, "x"+longest)); err == nil {
+		ln.Close()
+		t.Fatal("a 108-byte socket path bound")
+	}
+
+	// The chain: the scratch root's folder too long is passed by, absent,
+	// and listed; <basedir>/tmp of the bound is taken by both.
+	withSetupPlaces(t, dir)
+	ScratchRoot = pathOfLength(t, dir, MaxScratchDir-1)
+	if err := os.Mkdir(ScratchRoot, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	own := filepath.Join(ScratchRoot, "u")
+	base := pathOfLength(t, dir, MaxScratchDir-len("/tmp"))
+	if err := os.Mkdir(base, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	uid := os.Geteuid()
+	tmp := filepath.Join(base, "tmp")
+	reason := fmt.Sprintf("%d bytes, longer than the askpass socket allows (%d)", MaxScratchDir+1, MaxScratchDir)
+	got, err := ScratchPlace("auto", base, dir, "u", uid)
+	if err != nil || got.Path != tmp || len(got.Passed) != 1 || got.Passed[0] != (Passed{own, reason}) {
+		t.Fatalf("place %+v %v", got, err)
+	}
+	if made, err := ResolveScratch("auto", base, dir, "u", uid); err != nil || made != tmp {
+		t.Fatalf("the maker took %q %v", made, err)
+	}
+	if _, err := os.Lstat(own); !os.IsNotExist(err) {
+		t.Fatalf("the passed folder was made: %v", err)
+	}
+
+	// <basedir>/tmp one byte over, present: passed by, the next candidate
+	// named (the twin alone: the maker would make it on the host).
+	longBase := pathOfLength(t, dir, MaxScratchDir+1-len("/tmp"))
+	if err := os.MkdirAll(filepath.Join(longBase, "tmp"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	got, err = ScratchPlace("auto", longBase, dir, "u", uid)
+	if err != nil || got.Path != filepath.Join("/tmp", "karvi-"+strconv.Itoa(uid)) || len(got.Passed) != 2 || got.Passed[1] != (Passed{filepath.Join(longBase, "tmp"), reason}) {
+		t.Fatalf("a long basedir: %+v %v", got, err)
+	}
+
+	// An explicit path: of the bound, taken; one byte over, refused by
+	// both, naming its length, and not made.
+	if made, err := ResolveScratch(fits, base, dir, "u", uid); err != nil || made != fits {
+		t.Fatalf("explicit at the bound: %q %v", made, err)
+	}
+	over := pathOfLength(t, dir, MaxScratchDir+1)
+	for name, resolve := range map[string]func() error{
+		"place": func() error { _, err := ScratchPlace(over, base, dir, "u", uid); return err },
+		"maker": func() error { _, err := ResolveScratch(over, base, dir, "u", uid); return err },
+	} {
+		if err := resolve(); errorcodes.Of(err) != "tempdir_too_long" || !strings.Contains(err.Error(), over+" is 70 bytes") || !strings.Contains(err.Error(), "at most 69 bytes") {
+			t.Fatalf("explicit over the bound, %s: %v", name, err)
+		}
+	}
+	if _, err := os.Lstat(over); !os.IsNotExist(err) {
+		t.Fatalf("the long path was made: %v", err)
 	}
 }
 

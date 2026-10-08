@@ -649,8 +649,10 @@ func CreateExclusive(path string, flags int) (*os.File, error) {
 // socket and the system transport's ssh configuration, and makes it:
 // "auto" is the chain <ScratchRoot>/<username> (when the scratch root
 // exists), <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the
-// first the chain's maker accepts; an explicit path replaces the chain. The
-// output spool never lives here (ResolveSpoolDir).
+// first the chain's maker accepts; an explicit path replaces the chain. A
+// candidate longer than MaxScratchDir is passed by, and an explicit path
+// longer is tempdir_too_long. The output spool never lives here
+// (ResolveSpoolDir).
 func ResolveScratch(raw, base, home, username string, uid int) (string, error) {
 	c, err := scratchChain(raw, base, home, username, uid)
 	if err != nil {
@@ -672,7 +674,14 @@ func ScratchPlace(raw, base, home, username string, uid int) (Place, error) {
 func scratchChain(raw, base, home, username string, uid int) (chain, error) {
 	const code, message = "scratch_directory_unavailable", "no writable scratch directory"
 	if raw != "" && raw != "auto" {
-		return explicitChain(raw, home, "tempdir", code, message)
+		c, err := explicitChain(raw, home, "tempdir", code, message)
+		if err != nil {
+			return chain{}, err
+		}
+		if p := c.candidates[0]; len(p) > MaxScratchDir {
+			return chain{}, errorcodes.Errorf("tempdir_too_long", "the scratch directory %s is %d bytes; an askpass socket's path must fit 107 bytes with its name of up to %d, so the directory may be at most %d bytes; set tempdir to a shorter directory", p, len(p), 107-1-MaxScratchDir, MaxScratchDir)
+		}
+		return c, nil
 	}
 	own := fmt.Sprintf("karvi-%d", uid)
 	var candidates []string
@@ -680,7 +689,7 @@ func scratchChain(raw, base, home, username string, uid int) (chain, error) {
 		candidates = append(candidates, filepath.Join(ScratchRoot, username))
 	}
 	candidates = append(candidates, filepath.Join(base, "tmp"), filepath.Join("/tmp", own), filepath.Join("/var/tmp", own))
-	return chain{candidates: candidates, code: code, message: message}, nil
+	return chain{candidates: candidates, maxLength: MaxScratchDir, code: code, message: message}, nil
 }
 
 // ScratchRoot is the site's scratch root on tmpfs, made in the operators'

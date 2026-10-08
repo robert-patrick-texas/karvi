@@ -52,6 +52,15 @@
   stayed for good, on disk under `<basedir>/tmp` in individual mode. The sweep
   connects to no socket. Files under an earlier release's names are not
   touched.
+- **The scratch fits the askpass socket.** A `tempdir` longer than 69 bytes
+  is refused, `tempdir_too_long`, at every job's admission and a login's
+  start, naming its length, where the job had been admitted and every device
+  over the system transport failed with `askpass_start_failed: … bind: invalid
+  argument`: a Unix socket's path holds 107 bytes and the askpass socket's
+  name up to 37. A 70-byte directory had worked only while the pids had six
+  digits. `tempdir = "auto"` passes a candidate too long by, as `<basedir>/tmp`
+  under a long `basedir`, and takes the next; `config show --explain` names it
+  on a `passed:` line.
 - **A first contact is said on every path.** Under `ssh.host-key-policy =
   "accept-new"`, a session that stores a device's host key, unknown until
   then, says so on either transport: `! ssh accepted new host-key DEVICE

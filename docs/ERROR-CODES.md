@@ -585,6 +585,7 @@ Active failure causes.
 | `telnet_paging_command_failed` | device | 107 | no | A Telnet paging-disable command does not return to the prompt. |
 | `telnet_read_failed` | connection | 110 | yes | Reading device output over Telnet fails. |
 | `telnet_write_failed` | connection | 110 | yes | Writing a command over Telnet fails. |
+| `tempdir_too_long` | config | 2 | no | `tempdir` names a directory too long for an askpass socket's path: a path socket holds 107 bytes and the socket's name, `askpass-<pid>-<16 hex>.sock`, up to 37, so the directory may be at most 69 bytes; refused where the scratch is resolved, at every job's admission and a login's start, naming the directory and its length. `auto` passes such a candidate by. |
 | `terminal_write_failed` | output | 111 | no | Unclassified. Rendered output cannot be written to standard output. |
 | `timeout_over_device_timeout` | usage | 4 | no | A command's `--timeout` is above a set `execution.device-timeout`, which bounds the device's whole list; refused at planning, naming both values and the `--set execution.device-timeout=…` that raises the ceiling. At the default 0 there is no ceiling. |
 | `timeout_with_blind` | usage | 4 | no | A blind command (`--blind`, `--blind-return`, or a trailing `\r`) is given `--timeout`; a blind command waits for `execution.blind-wait` (`--blind-wait`) in place of a timeout, and the prompt's absence is its success. |

@@ -49,6 +49,12 @@ private root, the spool, the trust store, and the daemon's sockets are always
 one operator's: `basedir` is never shared, since its `socket` and `state` are
 one operator's daemon.
 
+The scratch holds the askpass socket, whose path a Unix socket bounds at 107
+bytes with a name of up to 37, so the scratch may be at most 69 bytes: `auto`
+passes a longer candidate by, named on `config show --explain`'s `passed:`
+line, and an explicit `tempdir` longer is refused, `tempdir_too_long`, at every
+job's admission and a login's start.
+
 Every place key and every file key (`audit.file`, an inventory source's
 `path`, a credential file) takes a path by one rule: `~` and `~/…` are the
 operator's home from the password database, `~user` is refused

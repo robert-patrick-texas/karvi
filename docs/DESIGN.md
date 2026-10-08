@@ -1034,7 +1034,8 @@ activity's maker calls, without creating anything: a candidate present is
 judged by `access(2)`, its owner and mode where the place is private, and the
 free inodes of its filesystem; one absent is the folder the activity would
 make where its rule lets it. A candidate present and passed by adds a
-`passed:` line with the reason, in the activity's words where it warns; a
+`passed:` line with the reason, in the activity's words where it warns, and so
+does a scratch candidate too long for the askpass socket, present or not; a
 refusal is `resolved:   error: CODE: message`, and the view exits 0. The lines
 come from the configuration the invocation loads; a daemon already running
 keeps the places it started with until it is restarted. The view takes several
@@ -1223,6 +1224,24 @@ of an owner alive); an askpass socket judged by connecting to it (the broker
 serves one connection, so a probe took a live job's and its authentication
 failed, executed); a broker that waits past a connection that sends nothing
 (its one-use rule changed, and a probe still races the helper).
+
+**The scratch is bounded for the askpass socket.** A path socket holds 107
+bytes, and the askpass socket's name, `askpass-<pid>-<16 hex>.sock`, is up to 37
+with a seven-digit pid (Linux's `PID_MAX_LIMIT`, 4194304), so the scratch
+directory may be at most 69 bytes (`osutil.MaxScratchDir`). `tempdir`'s `auto`
+chain passes a longer candidate by, `config show --explain` naming it on a
+`passed:` line, and an explicit `tempdir` longer is `tempdir_too_long`, naming
+the directory and its length, where the scratch is resolved: at every job's
+admission, under the configuration that governs the job, and at a login's
+start, before any device, a native-only job included. *Why:* a scratch too long
+admitted the job and failed every device over `system` with `bind: invalid
+argument`, which names no length, and a 70-byte directory bound only while the
+pids had six digits (executed); `auto` took `<basedir>/tmp` whatever its
+length. *Not taken:* a check at planning, as the control-path root has (a
+daemon's job runs under the daemon's configuration); the bound judged by the
+running pid; a shorter name (the pid is the sweep's, and any name leaves a
+bound); an abstract socket (no 0600 file, the token its only guard); a warning
+when `auto` passes a candidate by (the next is as private).
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live
