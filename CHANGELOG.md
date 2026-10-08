@@ -33,6 +33,19 @@
   `/usr/share/doc/karvi/configs/`, uncompressed, where the documents' and
   `config generate`'s `configs/example.toml` and `configs/reference.toml`
   resolve.
+- **The release publishes the package, built from its bundle and checked.**
+  `karvi_X.Y.Z_amd64.deb` and its `.sha256` are release assets beside the
+  bundle, listed in the aggregate checksums, built from the verified bundle
+  twice to the same bytes; BUILD-HOWTO §10 installs it by `apt install
+  ./karvi_X.Y.Z_amd64.deb`, which brings `openssh-client` where `dpkg -i`
+  refused without it. `scripts/check-deb.sh` checks a package against its tree
+  (the executables, every document and example configuration under its own
+  name, the units' documentation, `lintian` with the package's overrides), and
+  the release verifier builds and checks the tree's package, so it needs
+  `dpkg-dev`, `debhelper`, and `lintian`. On the development line `make deb`
+  refuses only executables whose identity is the release's
+  (`source-release-vVERSION`), where it had refused any build matching
+  `CHECKSUMS.sha256`, which a dev build does after `make checksums`.
 - **`configs/ssh-legacy.conf` and `configs/ssh-ancient.conf` removed.** Two
   inert OpenSSH `Host` snippets left from `ssh.legacy-hosts`; karvi's own
   algorithm lists come before any operator's file, so they reached no

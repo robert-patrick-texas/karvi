@@ -6513,3 +6513,164 @@ the packaged `karvi config validate` passed `configs/example.toml`,
 --explain` resolved `example.toml`'s inventory to
 `…/usr/share/doc/karvi/examples/inventory.csv`. The evidence is kept beside the
 tree (`release-design-evidence/example-configs-2026-10-08`).
+
+## 43. The release with the Debian package (2026-10-08)
+
+The point raised after chapter 39: the release steps build no package, while
+BUILD-HOWTO's §10 offers it as the install.
+
+**What it gains.** A site installs karvi by `dpkg -i` from a published,
+checksummed artifact: the executables, the manual pages, the documents, and
+the material chapters 39 and 42 laid out. It waits on nothing.
+
+**The evidence.** Rehearsed in clones of `dev`, never the tree:
+
+| Rehearsal | Result |
+|---|---|
+| (A) a clone made a 0.28.0: `VERSION`, the dated heading, `make build checksums` under the release identity; the bundle, extracted, and `make deb` there twice | `karvi_0.28.0_amd64.deb`, the same bytes twice, its three executables the bundle's `CHECKSUMS.sha256`; the extraction gained no `dist/` |
+| (B) a clone of `dev`: `make build checksums`, as `baseline.sh` runs them, then `make deb` | refused, `bin/ holds the executables CHECKSUMS.sha256 lists for 0.27.0`, of the dev build itself; a rebuild with another `BUILD_TIME` passed, `0.27.0+dev` |
+
+`package-source-bundle.sh` excludes only `.git`, and `artifacts.sh`'s
+clean-tree gate reads `git status`, which ignores `dist/`: a package built in
+the tree would ship in the next bundle. Taken in four issues: where the release
+builds the package, how it is published, `make deb`'s rule on the dev line
+that (B) shows refusing a dev build, and whether the baseline and the release
+verifier build one.
+
+**Issue 1, where the release builds the package, agreed.** `artifacts.sh`
+gains a step after [2], where the bundle is extracted and its own verifier
+passes: `make deb` in that extraction twice, into the work directory
+(`DIST=$W/deb1`, `$W/deb2`), the two the same bytes, `make deb` itself checking
+that the bundle's `bin/` is the qualified build `CHECKSUMS.sha256` lists under
+the release's heading; the package copied beside the bundle in the tools'
+parent as `karvi_X.Y.Z_amd64.deb`, Debian's naming. Built from the bundle, the
+published bundle is shown to yield the published package, as BUILD-HOWTO §4.3
+says it does; nothing is written in the tree, so no `dist/` reaches a later
+bundle; the tag, the clean-tree gate, and the bundle's reproducibility stay as
+they are. *Not taken:* `make deb` in the tagged tree (its `dist/`, ignored by
+git, would ship in the next bundle); built in `evidence-rest.sh` before the tag
+(the package would precede its commit's tag); a signed package (unsigned,
+`-us -uc`, and checksummed as the bundle is; a signed apt repository is a later
+question).
+
+**Issue 2, how it is published and installed, agreed.** Executed in a
+throwaway `ubuntu:24.04` container, the rehearsal's packages mounted read-only:
+`dpkg -i` failed on the bare image, `karvi depends on openssh-client; however:
+Package openssh-client is not installed.`; `apt-get install
+./karvi_0.28.0_amd64.deb` resolved it and installed, exit 0; the image's dpkg
+excludes `/usr/share/doc/*` and `/usr/share/man/*`, so `/usr/share/doc/karvi`
+held `changelog.gz` and `copyright` alone and no manual page was installed,
+while the 24 files under `/usr/share/karvi` were; `apt` installing the older
+`+dev` package refused without `--allow-downgrades` (exit 100) and took it
+with, and `dpkg -i` went forward again with the dependency present. The
+release's assets gain `karvi_X.Y.Z_amd64.deb` and its `.sha256`, made as the
+bundle's is, and the aggregate `karvi-vX.Y.Z-artifacts.sha256` lists both
+artifacts, five assets where there were three; DOWNLOADS lists the package and
+what it installs; BUILD-HOWTO §10 downloads it, checks it with `sha256sum -c`,
+installs it by `sudo apt install ./karvi_X.Y.Z_amd64.deb` where it showed
+`dpkg -i`, rolls back by `sudo apt install --allow-downgrades
+./karvi_<older>_amd64.deb`, and says in one sentence that a minimized image
+installs no documents or manual pages, only the executables and
+`/usr/share/karvi`, the documents being in the bundle and the repository. `gh
+release create` and the check of the assets downloaded back stay manual steps
+of the sequence, the check taking the package's sum beside the bundle's. *Not
+taken:* the documents moved out of `/usr/share/doc` to survive minimization
+(the image's exclusion is its administrator's choice, `unminimize` restores
+them, and Debian puts documents there); `dpkg -i` kept (it fails without
+`openssh-client`); the aggregate alone for the package (the bundle has its own
+`.sha256`, one form for both).
+
+**Issue 3, `make deb`'s rule on the dev line, agreed.** Chapter 39's part 4
+took `bin/` matching `CHECKSUMS.sha256` for the release's build, which holds
+only while the file is the release's: `make build` on `dev` is deterministic
+(`COMMIT=development`, `BUILD_TIME` 1970), so after `make checksums`, which
+`baseline.sh` and the verifier's last step run, a dev build matches, and (B)
+was refused as the release's. The executables say what they are, `version
+--format json`'s `commit`: `source-release-v0.27.0` for the released `bin/`,
+`source-release-v0.28.0` for the rehearsal's release build, `development` for
+`make build`, the git hash for the release verifier's, `790ac63-lab` for a lab
+build. Under `## Unreleased` `build-deb.sh` reads that `commit` through
+`scripts/lib/json.sh`'s `json_get` and refuses only `source-release-v<VERSION>`,
+a released build that would be labelled `+dev`; any other is `VERSION+dev`,
+whatever `CHECKSUMS.sha256` holds. Under the release's heading the rule stays:
+`bin/` the executables `CHECKSUMS.sha256` lists. The refusal names the identity
+it read, and BUILD-HOWTO §4.3's dev-line sentence says the same. *Not taken:*
+the `CHECKSUMS.sha256` committed at `HEAD` through git (a dev tree need not be
+a checkout, and the identity is what a package's reader sees); the dev-line
+check dropped (the released `bin/` in this tree, under `## Unreleased`, would
+be a `0.27.0+dev` package of 0.27.0's bytes); the text form's `commit:` line
+(the JSON is the contract, `json_get` the scripts' one reader).
+
+**Issue 4, the release verifier builds and checks the package, agreed.**
+`verify-release.sh` runs `make deb` into a temporary `DIST` after the suites,
+before its closing `make checksums`, and removes it, leaving nothing in the
+tree: at the baseline the build's identity is the git hash, so issue 3 makes it
+`VERSION+dev`; in the release's evidence, under the release's heading, the
+verifier's rebuild is the `CHECKSUMS.sha256` written before it, so the package
+is the release's. One checker, `scripts/check-deb.sh PACKAGE TREE`, run by the
+verifier and by `artifacts.sh`'s step on the release's package: the three
+executables are `bin/`'s bytes; every document and example configuration the
+rules install from the tree is in the package under its own name, uncompressed
+(it would have caught `example.toml.gz`); each unit's `Documentation=file:`
+target is in the package; `configs/reference.toml` reaches
+`/usr/share/karvi/reference.toml`. BUILD-HOWTO §1 lists `dpkg-dev` and
+`debhelper` for a release builder, and the verifier fails without them rather
+than skip what it checks. *Not taken:* `baseline.sh` building it too (it runs
+the verifier); `verify-bundle.sh` building it (issue 1 builds it from the
+bundle at the tag); every relative link in the installed documents checked
+(the documents' own link check holds in the tree, and the checker's list says
+each is installed under its name).
+
+**Issue 5, lintian with the two deliberate findings overridden, agreed.**
+Lintian 2.129.0 on the rehearsal's package: `E: statically-linked-binary` for
+`usr/bin/karvi`, `karvi-askpass`, and `karvi-prune`, and `W:
+script-not-executable` for the two `usr/share/karvi/crun/*.example` hooks.
+`scripts/check-deb.sh` runs `lintian --fail-on error,warning`, so an error or
+warning not overridden fails the verifier and the release's step. The package
+carries `packaging/debian/karvi.lintian-overrides`, installed by debhelper as
+`/usr/share/lintian/overrides/karvi`, each with its reason: the static
+executables are built with `CGO_ENABLED=0` by design, so one qualified build
+runs on any amd64 host whatever its C library; the hook examples are inert
+until a site copies one without `.example` at mode 0755 (COLLECTION §5).
+Informational tags do not fail: the one shown, `extra-license-file`, is
+`LICENSE.md` among the documents, which link to it. BUILD-HOWTO §1 lists
+`lintian` for a release builder. Executed: the rehearsal's bundle with the
+overrides gave a package holding them, and `lintian --fail-on error,warning`
+exited 0 with nothing printed. *Not taken:* the hook examples installed 0755
+(an executable under `/usr/share` invites running it in place, and the
+`.example` suffix with 0644 says copy it first); no lintian (Debian's own
+checker, seconds); informational tags failing too (`extra-license-file` is
+deliberate, and informational tags move between lintian releases more than
+errors do).
+
+**S1, the tree, built.** `build-deb.sh` takes issue 3's rule: under `##
+Unreleased` it reads `bin/karvi-linux-amd64`'s `commit` by `json_get` and
+refuses `source-release-vVERSION`, naming it (`bin/ holds the released 0.27.0
+executables (commit source-release-v0.27.0); build the dev line first: make
+build`, the tree's own `bin/`). `scripts/check-deb.sh PACKAGE TREE` makes issue
+4's checks and issue 5's `lintian --fail-on error,warning`;
+`packaging/debian/karvi.lintian-overrides` holds the five overrides with their
+reasons; `verify-release.sh` builds the tree's package into a temporary `DIST`
+after the suites and before `make checksums`, checks it, and removes it.
+BUILD-HOWTO §1 installs `dpkg-dev`, `debhelper`, and `lintian`, §4.3 states the
+identity rule, `DIST`, and the checker, and §10 installs the published package
+by `apt` with its checksum, the rollback, and the minimized image; FILES lists
+the overrides file. Executed in copies of the tree with their own builds: a
+dev package passed `check-deb.sh`; with `dh_compress -X.md` alone it failed,
+`usr/share/doc/karvi/configs/example.toml is missing or differs from
+configs/example.toml`; without the overrides it failed on lintian's three
+errors and two warnings; a copy given the release's identity under `##
+Unreleased` was refused by name; the same copy headed `## 0.28.0 - 2026-10-08`
+with its checksums, bundled and extracted, gave `karvi_0.28.0_amd64.deb`, which
+passed against the extraction, and the extraction gained no `dist/`. S2, the
+release tools' artifact step (issues 1 and 2), lies outside the tree, in
+`release-tools/`.
+
+**S1, verified.** What `baseline.sh` runs, `make build checksums tools-build
+generated-clean` and `verify-release.sh`, on a copy of the working tree with
+its `.git`, under the shell's umask 0002: the first run failed in the spool
+suite's S9, `output_preflight_space`, before the package step, since `/tmp`, a
+4.9 GB tmpfs, held a 1.4 GB lab where S9 needs about 3.2 GB free; with the lab
+trimmed, the second passed (13:54:51 to 14:01:11 UTC), its new step building
+`karvi_0.27.0+dev_amd64.deb` and `check-deb.sh` passing on it, the copy
+gaining no `dist/` and no temporary directory left.

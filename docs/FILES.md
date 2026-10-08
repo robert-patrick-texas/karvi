@@ -321,6 +321,7 @@ owner's next run sets it right, or the site resets it.
 | `/usr/share/karvi/crun/` | `0644` | the `crun.after` hook examples |
 | `/usr/share/karvi/tmpfiles.d/karvi.conf` | `0644` | the tmpfiles rule for the group `netops`; `sudo karvi setup shared` writes the live one |
 | `/usr/share/karvi/reference.toml`, `/usr/share/karvi/schema/` | `0644` | every configuration key with its default, and the records' schemas |
+| `/usr/share/lintian/overrides/karvi` | `0644` | the package's two deliberate `lintian` findings with their reasons: static executables, and hook examples not executable |
 
 Nothing under `/usr/share/karvi` is active until the site copies it into place,
 each guide giving the copy; a host installed from the release bundle

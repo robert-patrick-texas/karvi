@@ -71,5 +71,13 @@ make tools-build
 . "$ROOT/scripts/lib/suites.sh"
 run_suites
 host_shared_unchanged "$host_before"
+# The package of this tree (docs/EXAMPLES.md chapter 43), before the checksums
+# are rewritten: under a release's heading bin/ is the build CHECKSUMS.sha256
+# lists, on the dev line a build of its own identity. Built into a directory
+# of its own, checked against the tree, and removed: the tree gains nothing.
+deb_dist=$(mktemp -d "${TMPDIR:-/tmp}/karvi-verify-deb-XXXXXX")
+DIST=$deb_dist make deb
+./scripts/check-deb.sh "$deb_dist"/karvi_*_amd64.deb "$ROOT"
+rm -rf "${deb_dist:?}"
 make checksums
 printf 'karvi native release verification passed\n'

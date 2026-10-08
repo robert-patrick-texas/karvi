@@ -1,9 +1,10 @@
 #!/bin/sh
 # make deb: the Debian package of the tree as it stands, a git checkout or an
-# extracted release bundle (docs/EXAMPLES.md chapter 39). The package carries
-# bin/'s executables as they are: under a release's CHANGELOG heading
-# ("## VERSION - DATE") they must be the ones CHECKSUMS.sha256 lists, under
-# "## Unreleased" they must not, and the package is VERSION+dev. The tree is
+# extracted release bundle (docs/EXAMPLES.md chapters 39 and 43). The package
+# carries bin/'s executables as they are: under a release's CHANGELOG heading
+# ("## VERSION - DATE") they must be the ones CHECKSUMS.sha256 lists; under
+# "## Unreleased" the package is VERSION+dev, and karvi's own identity (its
+# version's commit) must not be the release's, source-release-vVERSION. The tree is
 # copied to a fresh directory, packaging/debian becomes debian/ there with a
 # changelog written for this build, and dpkg-buildpackage runs in the copy,
 # so neither the tree nor its parent gains a file but the package in DIST
@@ -36,12 +37,17 @@ esac
 for bd_exe in karvi karvi-askpass karvi-prune; do
   [ -f "$ROOT/bin/$bd_exe-linux-amd64" ] || die "bin/$bd_exe-linux-amd64 is missing; build the executables first: make build"
 done
-if (cd "$ROOT" && sha256sum --check --status CHECKSUMS.sha256 2>/dev/null); then bd_published=yes; else bd_published=no; fi
-if [ "$bd_release" = yes ] && [ "$bd_published" = no ]; then
-  die "bin/ does not hold the executables CHECKSUMS.sha256 lists; the package of $bd_version carries the release's qualified build"
-fi
-if [ "$bd_release" = no ] && [ "$bd_published" = yes ]; then
-  die "bin/ holds the executables CHECKSUMS.sha256 lists for $bd_version; build the dev line first: make build"
+if [ "$bd_release" = yes ]; then
+  (cd "$ROOT" && sha256sum --check --status CHECKSUMS.sha256 2>/dev/null) ||
+    die "bin/ does not hold the executables CHECKSUMS.sha256 lists; the package of $bd_version carries the release's qualified build"
+else
+  # A dev build may match CHECKSUMS.sha256 (make checksums after make build);
+  # what marks the release's executables is their identity.
+  . "$ROOT/scripts/lib/json.sh"
+  bd_commit=$("$ROOT/bin/karvi-linux-amd64" version --format json | json_get - commit) ||
+    die "bin/karvi-linux-amd64 version --format json could not be read"
+  [ "$bd_commit" != "source-release-v$bd_version" ] ||
+    die "bin/ holds the released $bd_version executables (commit $bd_commit); build the dev line first: make build"
 fi
 
 bd_maintainer=$(sed -n 's/^Maintainer: //p' "$ROOT/packaging/debian/control")

@@ -1,0 +1,9 @@
+# Built with CGO_ENABLED=0 by design: one qualified build runs on any amd64
+# host, whatever its C library (docs/EXAMPLES.md chapter 43).
+karvi: statically-linked-binary [usr/bin/karvi]
+karvi: statically-linked-binary [usr/bin/karvi-askpass]
+karvi: statically-linked-binary [usr/bin/karvi-prune]
+# Examples, inert until a site copies one without .example at mode 0755
+# (docs/COLLECTION.md section 5).
+karvi: script-not-executable [usr/share/karvi/crun/crun-diff-mail.example]
+karvi: script-not-executable [usr/share/karvi/crun/crun-git-commit.example]

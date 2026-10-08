@@ -13,12 +13,15 @@ The same packages are used on Ubuntu 24.04 and 26.04:
 sudo apt-get update
 sudo apt-get install -y \
   ca-certificates curl git make gcc libc6-dev python3 \
-  openssh-client util-linux patch xz-utils tar gzip file
+  openssh-client util-linux patch xz-utils tar gzip file \
+  dpkg-dev debhelper lintian
 ```
 
 `openssh-client` supplies system SSH, `ssh-keyscan`, and `ssh-keygen`.
 `util-linux` supplies `script(1)`, which karvi uses for PTY-backed login
-transcripts.
+transcripts. `dpkg-dev`, `debhelper`, and `lintian` build and check the Debian
+package ([§4.3](#43-build-the-debian-package)); the release verifier builds
+one and fails without them.
 
 ## 2. Install the newest stable Go release
 
@@ -185,9 +188,14 @@ dpkg-deb -c dist/karvi_*_amd64.deb
 In a release bundle the package is the release's, `VERSION`, and `bin/` must
 hold the executables `CHECKSUMS.sha256` lists; on the development line
 (`CHANGELOG.md` headed `## Unreleased`) it is `VERSION+dev`, and `bin/` must
-hold a build of the tree (`make build`), not the release's executables. The
-tree is built in a copy, so neither it nor its parent gains a file but the
-package.
+hold a build of the tree (`make build`), not the release's executables, which
+karvi's identity tells apart (`karvi version`'s commit
+`source-release-vVERSION`). The tree is built in a copy, so neither it nor its
+parent gains a file but the package; `DIST=DIR make deb` writes it to `DIR`.
+`scripts/check-deb.sh PACKAGE TREE` checks a package against the tree it was
+built from: the executables, the documents and example configurations under
+their own names, the units' documentation, and `lintian` with the package's
+overrides. The release verifier builds and checks the tree's package.
 
 ## 5. Direct Go build commands
 
@@ -385,13 +393,22 @@ go mod vendor
 
 ## 10. Install and roll back
 
-The package ([§4.3](#43-build-the-debian-package)) installs into `/usr/bin`;
-installing an earlier one rolls back:
+The package ([§4.3](#43-build-the-debian-package)), published with each
+release beside the bundle, installs into `/usr/bin`; `apt` installs a package
+file with its dependency, `openssh-client`, where `dpkg -i` refuses on a host
+without it; installing an earlier one rolls back:
 
 ```bash
-sudo dpkg -i karvi_<version>_amd64.deb
+sha256sum -c karvi_<version>_amd64.deb.sha256
+sudo apt install ./karvi_<version>_amd64.deb
 karvi version --format json
+sudo apt install --allow-downgrades ./karvi_<earlier>_amd64.deb   # roll back
 ```
+
+A minimized image, one whose dpkg excludes `/usr/share/doc/*` and
+`/usr/share/man/*` (Docker's Ubuntu, the minimal cloud images), installs the
+executables and `/usr/share/karvi` alone, no document or manual page; the
+documents are in the bundle and the repository.
 
 Without the package, use versioned destinations and an atomic symlink. A host
 installed so finds the units, cron scripts, hook examples, and documents the
