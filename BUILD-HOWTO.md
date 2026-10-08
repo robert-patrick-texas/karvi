@@ -81,10 +81,10 @@ is the `go` directive in karvi's `go.mod`.
 ## 3. Verify and extract the full source bundle
 
 ```bash
-sha256sum -c karvi-v0.27.0-source-linux-amd64.tar.gz.sha256
-tar -tzf karvi-v0.27.0-source-linux-amd64.tar.gz >/dev/null
-tar -xzf karvi-v0.27.0-source-linux-amd64.tar.gz
-cd karvi-v0.27.0
+sha256sum -c karvi-v0.28.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.28.0-source-linux-amd64.tar.gz >/dev/null
+tar -xzf karvi-v0.28.0-source-linux-amd64.tar.gz
+cd karvi-v0.28.0
 ```
 
 Review the release boundary before building:
@@ -286,7 +286,7 @@ using `login`, `command`, or `run`, by
 ## 8. Confirm the configuration and daemon/display boundary
 
 This release requires configuration schema 6, daemon IPC schema 10, and
-configuration-registry schema 26 (`karvi version`). After replacing the binary,
+configuration-registry schema 27 (`karvi version`). After replacing the binary,
 inspect and, when needed, explicitly restart a still-running older per-user
 daemon:
 
@@ -419,15 +419,15 @@ other on a host: `/usr/local/bin` comes before `/usr/bin` on the usual `PATH`.
 ```bash
 sudo install -d -m 0755 /usr/local/lib/karvi
 sudo install -m 0755 bin/karvi-linux-amd64 \
-  /usr/local/lib/karvi/karvi-v0.27.0
+  /usr/local/lib/karvi/karvi-v0.28.0
 sudo install -m 0755 bin/karvi-askpass-linux-amd64 \
-  /usr/local/lib/karvi/karvi-askpass-v0.27.0
+  /usr/local/lib/karvi/karvi-askpass-v0.28.0
 sudo install -m 0755 bin/karvi-prune-linux-amd64 \
-  /usr/local/lib/karvi/karvi-prune-v0.27.0
-sudo ln -sfn /usr/local/lib/karvi/karvi-v0.27.0 /usr/local/bin/karvi
-sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.27.0 \
+  /usr/local/lib/karvi/karvi-prune-v0.28.0
+sudo ln -sfn /usr/local/lib/karvi/karvi-v0.28.0 /usr/local/bin/karvi
+sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.28.0 \
   /usr/local/bin/karvi-askpass
-sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.27.0 \
+sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.28.0 \
   /usr/local/bin/karvi-prune
 karvi version --format json
 ```

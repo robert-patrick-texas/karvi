@@ -1,43 +1,38 @@
-# karvi v0.27.0 build and qualification result
+# karvi v0.28.0 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.27.0 (2026-10-06) is a minor release on 0.26.0. The configuration registry
-moves from 24 to 26 (a platform's `channel` and `fallback` in place of
-`control-master`; `ssh.identities` added and `ssh.pubkey-authentication`
-removed; the top-level `scoreboards` in place of `watch.directory`), the
-execution plan from 10 to 11 (each target's channel, the run's bounds, and a
-command's own timeout and byte limit), the command record from 2 to 3 (every
-record's channel, an exec command's exit status and stderr), and the credential
-package from 1 to 2 (the operator's keys by path and fingerprint); the daemon
-IPC schema and every other counter are 0.26.0's. Among the changes: Linux
-servers over the exec channel on both transports, with the built-in `linux` and
-`linux_shell`, the operator's own keys, a server's collection, and the fake
-device's Linux persona; the shell's output and a recorded login's transcript as
-the terminal showed them; `--timeout` and `--maxbytes`, a command's own bounds,
-and a run through the daemon bounded as its invocation said; stream mode's one
-dash or two and the commands that stay; one rule for `~` and a relative path in
-every place key, no operator's run making a place `setup shared` makes, and
-`config show --explain` naming every place; the trust store following the
-private root; and `karvi-prune` walking every private root. The changes are in
-[`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
-real-device qualification: the native transport is proven against the fake
-device built from the tree, its IOS XE and Linux personas.
+v0.28.0 (2026-10-08) is a minor release on 0.27.0. The configuration registry
+moves from 26 to 27 (`logging.level`, `logging.file`, and
+`logging.file-required` removed, refused with `config_key_removed`); the daemon
+IPC schema and every other counter are 0.27.0's. Among the changes: `command`
+over the native transport by default; the Debian package carrying the documents,
+the example configurations, and the material a site installs, published with the
+release, built from its bundle and checked by `scripts/check-deb.sh` and
+`lintian`; every session process ending with karvi; the scratch swept of what a
+killed karvi left, and bounded for the askpass socket (`tempdir_too_long`); a
+first contact and `insecure` said alike on both transports and through the
+daemon; a recorded login's own lines at the first column; `command_completed`
+naming its process; and `docs/SSH-TROUBLE.md` for a session that never reaches
+the prompt. The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It is not a
+production claim and not a real-device qualification: the native transport is
+proven against the fake device built from the tree, its IOS XE and Linux
+personas.
 
 ## Build identity
 
 ```text
-version:                  0.27.0
-commit:                   source-release-v0.27.0
-build time:               2026-10-06T00:00:00Z
+version:                  0.28.0
+commit:                   source-release-v0.28.0
+build time:               2026-10-08T00:00:00Z
 Go toolchain:             go1.27.1
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
 configuration schema:    6
-configuration registry:  26
+configuration registry:  27
 command record schema:   3
 daemon IPC schema:       10
 job manifest/summary:    2
@@ -48,7 +43,7 @@ plan report:             1
 CGO:                      disabled
 ```
 
-The authoritative `go.mod` keeps the Go 1.26 floor and pins
+The authoritative `go.mod` names the Go 1.27 floor and pins
 `github.com/scrapli/scrapligo v1.4.2`; `evidence/go-version-m.txt` shows the
 module in the shipped executables, and `evidence/version.txt` lists both
 transports.
@@ -57,7 +52,7 @@ transports.
 
 The release source passed, with Go 1.27.1:
 
-- 875 top-level named Go tests across 83 packages in vendor mode, no
+- 902 top-level named Go tests across 84 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -92,19 +87,28 @@ The release source passed, with Go 1.27.1:
   release has moved it, so no earlier executable's daemon differs in schema from
   this client's, and the release tooling skipped the replay and said so; the
   compatibility example ran before the number was committed: the released
-  v0.26.0 daemon, started from the released executable of the tree's `bin/`
+  v0.27.0 daemon, started from the released executable of the tree's `bin/`
   before the rebuild, reported `compatible: false` to this client on the version
   alone, refused its run with `daemon_incompatible` (exit 112) before any job,
   and was stopped by the client (`evidence/ipc-schema-compat.log`);
 - the host's shared places (the shared scoreboard directory, the shared
   directories `/opt/karvi/shared` and `/var/lib/karvi/shared`) as they
   were after the Go tests and the suites, in both verifiers
-  (`scripts/lib/host.sh`); and
+  (`scripts/lib/host.sh`);
+- the tree's Debian package built in the release verifier's run and checked
+  by `scripts/check-deb.sh`: the three executables `bin/`'s bytes, every
+  document and example configuration under its own name, uncompressed, each
+  unit's documentation target, the reference configuration's link, and
+  `lintian --fail-on error,warning` with the package's overrides;
 - byte-for-byte reproduction of the source bundle across two packaging
-  runs, and the bundle verified from its own archive with its own verifier.
+  runs, and the bundle verified from its own archive with its own verifier;
+  and
+- the published package built from that verified extraction twice to the
+  same bytes, its executables the bundle's `CHECKSUMS.sha256`, and checked by
+  `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`afd12df` before the number was assigned (the maintainer's release tools
+`71b00a2` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -115,14 +119,14 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,214,432 | `d65fa11a44f4bbd701b77feceed2ad06fba51ea39fbd04b5f66525594bb07815` |
-| `bin/karvi-askpass-linux-amd64` | 3,899,552 | `715f856a5ea471f253f5c1187e2a0bba97772207a66097c1af84f5b60b0efec7` |
-| `bin/karvi-prune-linux-amd64` | 3,772,576 | `aae07e587e36a242b75929952997ba6c939b4661e1c7b8a271909f53b2212f63` |
+| `bin/karvi-linux-amd64` | 12,263,584 | `17d213ccdec442e4b782f9681b672905bf31a1d4a78120fe20b32adbb93ac9d3` |
+| `bin/karvi-askpass-linux-amd64` | 3,903,648 | `5365ef1d907eaf1a4ece7b4b9fb9d117bcc26b5584dd4cbbf0099afa20098356` |
+| `bin/karvi-prune-linux-amd64` | 3,776,672 | `aa92806c85df02adc54cab11486307e012fb8aa98931e6051b97dd3fb7322e2b` |
 
 ## Operational upgrade sequence
 
 A daemon is compatible only when its version and its daemon IPC schema both
-equal the client's, so a running v0.26.0 daemon is `compatible: false` to
+equal the client's, so a running v0.27.0 daemon is `compatible: false` to
 this client on the version alone (both at schema 10), and the client
 refuses a job to it with `daemon_incompatible` (exit 112) before any job is
 submitted, naming both pairs and the remediation. Every release restarts
@@ -147,4 +151,4 @@ What karvi does not do yet is [`ROADMAP.md`](../ROADMAP.md), none of which this
 release claims. Cisco IOS XE laboratory qualification on real devices was not
 performed and follows on this executable
 ([`docs/DEVICE-QUALIFICATION-RUNBOOK.md`](../docs/DEVICE-QUALIFICATION-RUNBOOK.md));
-the package's contents is the roadmap's first item.
+build numbers in the version are the roadmap's first item.

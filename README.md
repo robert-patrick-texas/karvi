@@ -492,7 +492,7 @@ sha256sum -c CHECKSUMS.sha256
 ```
 
 The full build-and-verify run, with the race detector and the parity suite
-(Go 1.26 or later; no network is needed, the dependencies are in `vendor/`):
+(Go 1.27 or later; no network is needed, the dependencies are in `vendor/`):
 
 ```bash
 make deps            # optional on a connected host: download and verify
