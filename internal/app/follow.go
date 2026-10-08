@@ -89,9 +89,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 					// A follow by job ID alone did not see the receipt, so the
 					// start's admission warnings are its (IPC 10); the committing
 					// client printed them from the receipt.
-					for _, w := range start.Warnings {
-						warning(o.stderr, w)
-					}
+					jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
 				}
 				if line := NotKeptLine(cursor, start.FirstSequence); line != "" {
 					warning(o.stderr, line)

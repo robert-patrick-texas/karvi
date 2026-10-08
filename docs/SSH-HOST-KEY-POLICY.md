@@ -53,15 +53,34 @@ connection.
 
 ### `insecure`
 
-Unknown and changed keys are accepted. karvi emits a prominent warning for
-every connection. When an enrolled comparison key exists and differs, karvi
-also emits a mismatch-specific warning containing only public fingerprints.
+Unknown and changed keys are accepted, and nothing is stored. A job under
+`insecure` says so once, at its admission, in two lines on standard error in
+the warning colour, `--quiet` included; through the daemon they ride the
+job's receipt (a daemon's job runs under the daemon's own policy). A login
+says them before its contact.
+
+```text
+! ssh host-key policy insecure: unknown and changed keys accepted;
+!  connecting to devices with wrong keys and MITM attacks allowed
+```
+
+When the store holds the device under another key, the device's first record
+carries the notice `host_key_mismatch_accepted` with both keys' public
+fingerprints, the client shows `! ssh host-key mismatch DEVICE proceeding at
+risk` in the error colour, and the audit event's `details` name both keys. A
+new key is not announced.
 
 System OpenSSH receives `StrictHostKeyChecking no` and isolated known-hosts
 inputs; when the store holds the device, karvi runs a bounded `ssh-keyscan`
-comparison beside the connection to produce the mismatch warning (the one
-`ssh-keyscan` left). On `scrapligo-v1` the handshake callback accepts the
-key, prints the warning, and compares it to the enrolled one itself.
+comparison beside the connection (the one `ssh-keyscan` left). When it cannot
+complete (not installed, past its five seconds, the device refusing the extra
+connection, no usable key) the session goes on uncompared, and the first
+record carries `host_key_not_compared` with a short cause and the whole
+reason, shown as `! ssh host-key DEVICE not compared: CAUSE`, one of
+`ssh-keyscan not installed`, `ssh-keyscan timed out`, `ssh-keyscan failed`,
+`no usable key`, `trust store unreadable`. On `scrapligo-v1`
+the handshake callback accepts the key and compares it to the enrolled one
+itself.
 
 This mode permits machine-in-the-middle impersonation and should be locked out
 in governed production environments.

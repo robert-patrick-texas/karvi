@@ -40,7 +40,6 @@ type Factory struct {
 	// Spool is the session's spool: the directory,
 	// the threshold, and the activity; the device is filled per session.
 	Spool   devsession.Spool
-	Warn    func(string)
 	Debug   func(string)
 	hostKey hostkey.Policy
 	// Algorithms are the device's algorithm lists; empty means the
@@ -81,7 +80,16 @@ func (f Factory) Open(ctx context.Context, req platform.OpenRequest) (platform.D
 	if host == "" {
 		host = req.Address
 	}
-	hostkey.WarnInsecureSystem(ctx, policy, host, req.Address, int(req.Port), f.Warn)
+	// Under insecure OpenSSH's store is /dev/null: the key is compared with
+	// the stored one beside the connection, and a difference, or a
+	// comparison that could not complete, is the device's notice.
+	if req.HostKeyNotice != nil {
+		if m, nc := hostkey.CompareInsecure(ctx, policy, host, req.Address, int(req.Port)); m != nil {
+			req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyMismatchAccepted, Enrolled: m.Enrolled, Presented: m.Presented})
+		} else if nc != nil {
+			req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyNotCompared, Cause: nc.Cause, Reason: nc.Reason})
+		}
+	}
 	f.hostKeyIdentity = hostkey.Identity(host, int(req.Port))
 	binary := f.Binary
 	if binary == "" {
@@ -242,15 +250,17 @@ var _ platform.SetupReporter = (*Driver)(nil)
 
 var _ platform.AuthReporter = (*Driver)(nil)
 
-// hostKeyEnrolled is the request's HostKeyEnrolled for OpenSSH's
-// "Permanently added" line under accept-new, the one policy that stores a
-// key; nil otherwise: under insecure the trust store is /dev/null and
-// OpenSSH says the same line of a key it did not keep.
+// hostKeyEnrolled is what OpenSSH's "Permanently added" line reports: the
+// request's host_key_enrolled notice under accept-new, the one policy that
+// stores a key; nil otherwise: under insecure the trust store is /dev/null
+// and OpenSSH says the same line of a key it did not keep.
 func (d *Driver) hostKeyEnrolled() func(label string) {
-	if d.f.hostKey.Mode != hostkey.AcceptNew {
+	if d.f.hostKey.Mode != hostkey.AcceptNew || d.req.HostKeyNotice == nil {
 		return nil
 	}
-	return d.req.HostKeyEnrolled
+	return func(label string) {
+		d.req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyEnrolled, Label: label})
+	}
 }
 
 // AuthMethod is the method OpenSSH said authenticated the session

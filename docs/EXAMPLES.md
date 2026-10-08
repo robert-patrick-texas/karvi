@@ -5649,7 +5649,6 @@ output skipped, three runs each read 43 to 45 MB on both builds, the daemon's
 peak varying as much within a build as between them, and one 51 MB response
 read the same on both (the daemon about 26 MB, the client about 17).
 
-
 **S2, `system`'s exec and command sessions.** One matcher, `enrolledLabel`,
 takes OpenSSH's `Warning: Permanently added '<host>' (<TYPE>) to the list of
 known hosts.` out of the standard error karvi already reads line by line: the
@@ -5691,3 +5690,145 @@ line decoded for its notices allocates 18 KB.
 configuration it writes for each session (`Driver.ConfigDigest`), and nothing
 read it; found when issue 3 was argued from it. The operator's rule: a digest
 without a reader is not kept.
+
+**Issue 5, `insecure`'s warnings through the daemon.** The operator asked
+whether the policies hold as he states them: `accept-new` accepts a new key
+and refuses a different one; `secure` refuses an unknown or a different key;
+`insecure` proceeds and warns when a key different from the stored one is
+presented; announcing a new key is acceptable under `accept-new` and
+`insecure`. Each policy, the store holding another key or none, both
+transports, in the client (`command`) and through the daemon (`run`): the
+first three held on every path; under `insecure` the client printed the
+policy warning and the mismatch warning, and through the daemon there was
+nothing, exit 0, no warning, no notice in the record, nothing in the audit.
+`insecure`'s three warnings (the policy's, every connection; the mismatch;
+a comparison that could not complete) went to the job's standard error,
+which the daemon discards, as the native enrollment warning had. *What it
+gains:* the mismatch said on every path. It waits on nothing: S1's route
+from the daemon to the client.
+
+**Issue 5a, the mismatch, agreed.** Under `insecure` a key different from the
+stored one is the notice `host_key_mismatch_accepted` on the device's first
+record, the failure record included, over both transports, carried as
+`host_key_enrolled` is; the client prints `! ssh host key for 127.0.0.1
+differs from the trust store, accepted under insecure` on standard error,
+under `--quiet` too, in the warning colour. The notice's details and the
+audit's `details` keep the enrolled and presented fingerprints: under
+`insecure` the presented key is stored nowhere, so they are its only record
+(issue 2's amendment rested on the key being in the store). The request
+carries one callback for the transports' host-key notices in place of
+`HostKeyEnrolled` alone. A comparison that could not complete is said too, the
+notice `host_key_not_compared` and `! ssh host key for 127.0.0.1 not compared
+with the trust store: <reason>`: over `system` under `insecure` the trust
+store given to OpenSSH is `/dev/null`, so a stored device's key is compared by
+an `ssh-keyscan` beside the connection, and when it fails (not installed, past
+its five seconds, the device refusing the extra connection as a router with
+few vty lines may, no usable key) the session goes on uncompared. Executed
+without `ssh-keyscan` on the path, another key stored: exit 0, the command
+ran, and the warning `insecure host-key comparison for 127.0.0.1 could not
+complete: dependency_ssh_keyscan_unavailable …`; unsaid, it reads as no
+mismatch. Native compares in its own handshake and has no such case. *Not
+taken:* the job's standard error carried out of the daemon (issue 1's reason).
+`insecure` need not announce a new key (the operator). *For later:* the exec
+master's `Server host key:` line at `DEBUG1` would let an exec device be
+compared without the second connection; the command session and the login do
+not receive it.
+
+**Issue 5b, the policy warning, agreed as amended.** It is documented for
+every connection and dropped through the daemon the same way, and one line per
+device is noise on a run of a thousand: it is said once per job. The premise
+that the client knows the policy at planning did not hold: a daemon keeps the
+configuration it started with, and its policy governs its jobs (the manifest
+holds "the daemon's execution policy"). A daemon started under `accept-new`
+ran a `run --ssh-host-key-policy insecure` under `accept-new`, refused
+`host_key_changed`; one started under `insecure` ran a plain `run` under
+`insecure`, exit 0, nothing said. So the process that holds the job's policy
+says it, under `insecure`: the daemon at the job's admission, as admission
+warnings, which ride its receipt to the client as `spool_width_narrowed`
+does; the client at the same point for its own jobs; a login once before its
+session. Two lines on standard error, under `--quiet` too, both in the
+warning colour, the second's two spaces marking it a continuation (the
+operator's wording, 66 and 65 columns):
+
+```text
+! ssh host-key policy insecure: unknown and changed keys accepted;
+!  connecting to devices with wrong keys and MITM attacks allowed
+```
+
+Both transports' warning at every connection goes; the manifest's
+`policy.ssh_host_key_policy` and every audit event's `policy` keep the record.
+*Not taken:* the client saying it from its own configuration (wrong both
+ways); a notice on every first record (the same line a thousand times).
+
+**Issue 5c, a requested policy the daemon overrides, deferred.** A daemon's
+execution policy (`ssh.host-key-policy`, `ssh.known-hosts-file`,
+`ssh.halt-run-on-host-key-mismatch`, `security.allow-telnet`) governs its jobs
+whatever the client resolves, and the client is not told; the first `run`
+starts the daemon with its own options, so one `insecure` run left later runs
+under `insecure` until the daemon exited. The proposal was a refusal,
+`daemon_policy_differs`, from the policy carried in the daemon's status. The
+operator's ruling: the operator sets the policy, a site that forbids
+`insecure` locks the key, and a restart of the daemon changes it; the override
+ends with the ROADMAP's "A job under its client's configuration", which runs a
+job under every key its client resolves, so a refusal now would be undone then.
+Until then, with 5a and 5b, the dangerous direction is seen (a daemon under
+`insecure` says so at every job's admission, and a mismatch on the device's
+first record), the other fails safe (a refused key); `ssh.known-hosts-file`,
+the halt, and the Telnet allowance stay silent. The ROADMAP item names the
+four.
+
+**5a and 5b, built.** `hostkey.Verify` returns a `Verdict`, the key stored
+or, under `insecure`, a `KeyMismatch` with both fingerprints, and warns no
+more; `hostkey.CompareInsecure` replaces `WarnInsecureSystem` for `system`,
+a mismatch or the reason it could not compare. One request callback,
+`platform.OpenRequest.HostKeyNotice`, carries the transports' three findings
+in place of `HostKeyEnrolled`, and `executor.HostKeyNotices` makes the
+records' notices, a login taking the same for its terminal. The job's
+admission adds `host_key_policy_insecure: …` to the admission warnings under
+`insecure`, its own policy being the daemon's for a daemon's job, and one
+function writes them, the two lines for that code and `warning: …` for any
+other, in the client, from the receipt, and at a follow's start. The
+transports' `Warn` fields and the executor's had no reader left and are
+removed. Executed on a lab build, `insecure`, the store holding another key or
+none, both transports, in the client and through the daemon: every path
+printed the two lines once per job, and with another key the mismatch line,
+the audit's first `command_completed` naming both keys; a login printed them
+before its header; a `run` through the daemon with no `ssh-keyscan` on its
+path printed the not-compared line with the reason. The parity suite's S14c
+expects the new line, and the host-key suite's `insecure` row asserts the
+three lines under `--quiet` and the audit's two fingerprints. The mismatch
+line for `127.0.0.1` is 82 columns.
+
+**The lines, reviewed by the operator.** Measured at a short and a longer
+device name, the mismatch line ran to 82 and 96 columns and the not-compared
+line past 150 with the reason in full. The operator's texts, each the
+notice's message after `! `, the device's name in the `target` colour (as the
+headers draw it) and the rest in the `warning` colour, the mismatch in the
+`error` colour:
+
+```text
+! ssh accepted new host-key 127.0.0.1 (ED25519)
+! ssh host-key mismatch 127.0.0.1 proceeding at risk
+! ssh host-key 127.0.0.1 not compared: ssh-keyscan timed out
+```
+
+The reason on the terminal is a short cause from a fixed set, `ssh-keyscan not
+installed`, `ssh-keyscan timed out`, `ssh-keyscan failed`, `no usable key`,
+`trust store unreadable`; the notice's details keep the cause and the whole
+reason, and the audit's `details` the reason. `ssh-keyscan` reports a
+timeout and a refusal alike (exit 1, no output, nothing on standard error,
+against a listener that never answered and a closed port), so a scan that
+ends without a key at or past its bound is the timeout. The policy's two
+lines stay as agreed, in the `warning` colour.
+
+Built so: `hostkey`'s `Phrase` holds a line's words around the device's name
+(`EnrolledPhrase`, `MismatchPhrase`, `NotComparedPhrase`), a notice's message
+is its `Text`, and a client draws the name apart; `CompareInsecure` returns a
+`NotCompared` with the cause and the reason. Executed on a lab build with
+colour forced: a first contact through the daemon drew `! ssh accepted new
+host-key ` and ` (ED25519)` bold orange (`ESC[1;38;5;208m`) around
+`127.0.0.1` bold yellow (`ESC[1;33m`); an `insecure` mismatch drew the
+policy's two lines orange and `! ssh host-key mismatch ` and ` proceeding at
+risk` bold red (`ESC[1;31m`) around the yellow name; a `run` through the
+daemon without `ssh-keyscan` printed `! ssh host-key 127.0.0.1 not compared:
+ssh-keyscan not installed`, the audit's `details` holding the whole reason.

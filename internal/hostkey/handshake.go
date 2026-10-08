@@ -67,15 +67,22 @@ func (p Policy) HostKeyAlgorithms(list []string, identity string) ([]string, err
 	return out, nil
 }
 
+// Verdict is what Verify found beside its error: Stored when this call
+// stored the key under accept-new (false when another process stored the
+// same key under the lock meanwhile), Mismatch when insecure accepted a key
+// different from the stored one. The caller says either, on the device's
+// first record (EnrolledPhrase, MismatchPhrase).
+type Verdict struct {
+	Stored   bool
+	Mismatch *KeyMismatch
+}
+
 // Verify applies the policy to the one host key a handshake presents:
 // keyType is its SSH name (ssh-ed25519, ecdsa-sha2-nistp256, ssh-rsa) and
 // wire its wire encoding. accept-new enrolls an unknown host under the file
-// lock and rejects a changed key; secure rejects both; insecure accepts,
-// warns, and adds the mismatch warning when the store holds the host under
-// another key. stored is true when this call stored the key, false when
-// another process stored the same key under the lock meanwhile; the caller
-// says so (EnrolledMessage), on the device's first record.
-func Verify(p Policy, host string, port int, keyType string, wire []byte, warn func(string)) (stored bool, err error) {
+// lock and rejects a changed key; secure rejects both; insecure accepts
+// both, a key differing from the stored one reported in the Verdict.
+func Verify(p Policy, host string, port int, keyType string, wire []byte) (Verdict, error) {
 	presented := []keyRecord{{Type: keyType, Blob: base64.StdEncoding.EncodeToString(wire)}}
 	enrolled, err := matchingKeys(p.KnownHostsFile, []string{Identity(host, port)})
 	if errors.Is(err, os.ErrNotExist) {
@@ -83,7 +90,7 @@ func Verify(p Policy, host string, port int, keyType string, wire []byte, warn f
 	}
 	if err != nil {
 		if p.Mode != Insecure {
-			return false, errorCode(err, "host_key_trust_store_unavailable", host, p.KnownHostsFile)
+			return Verdict{}, errorCode(err, "host_key_trust_store_unavailable", host, p.KnownHostsFile)
 		}
 		enrolled = nil
 	}
@@ -97,22 +104,22 @@ func Verify(p Policy, host string, port int, keyType string, wire []byte, warn f
 		inspection.Comparison = Mismatch
 	}
 	if p.Mode == Insecure {
-		warnInsecureBase(warn, host)
 		if inspection.Comparison == Mismatch {
-			emit(warn, mismatchAcceptedWarning(host, inspection))
+			return Verdict{Mismatch: &KeyMismatch{Enrolled: inspection.EnrolledFingerprints, Presented: inspection.PresentedFingerprints}}, nil
 		}
-		return false, nil
+		return Verdict{}, nil
 	}
 	switch inspection.Comparison {
 	case Match:
-		return false, nil
+		return Verdict{}, nil
 	case Mismatch:
-		return false, &Error{Code: "host_key_changed", Host: host, Path: p.KnownHostsFile, Err: errors.New(mismatchDescription(host, inspection))}
+		return Verdict{}, &Error{Code: "host_key_changed", Host: host, Path: p.KnownHostsFile, Err: errors.New(mismatchDescription(host, inspection))}
 	}
 	if p.Mode == Secure {
-		return false, &Error{Code: "host_key_not_enrolled", Host: host, Path: p.KnownHostsFile, Err: errors.New("secure mode requires a matching key before access")}
+		return Verdict{}, &Error{Code: "host_key_not_enrolled", Host: host, Path: p.KnownHostsFile, Err: errors.New("secure mode requires a matching key before access")}
 	}
-	return Enroll(p.KnownHostsFile, host, port, presented)
+	stored, err := Enroll(p.KnownHostsFile, host, port, presented)
+	return Verdict{Stored: stored}, err
 }
 
 // TypeLabel is OpenSSH's name for a key of the SSH type keyType, the one its
@@ -136,11 +143,20 @@ func TypeLabel(keyType string) string {
 	return strings.ToUpper(keyType)
 }
 
-// EnrolledMessage is the host_key_enrolled notice's message for a device
-// whose key of OpenSSH's type label was stored at this contact, over either
-// transport; the terminal shows it after "! ".
-func EnrolledMessage(device, label string) string {
-	return fmt.Sprintf("ssh accepted new host key for %s (%s)", device, label)
+// Phrase is a host-key line's words around the device's name, so that a
+// terminal draws the name in its own colour: the notice's message is
+// Text(device), and a client's line "! " and the same.
+type Phrase struct {
+	Before, After string
+}
+
+// Text is the phrase around the device's name.
+func (p Phrase) Text(device string) string { return p.Before + device + p.After }
+
+// EnrolledPhrase is the host_key_enrolled notice's: this session stored the
+// device's key of OpenSSH's type label.
+func EnrolledPhrase(label string) Phrase {
+	return Phrase{Before: "ssh accepted new host-key ", After: " (" + label + ")"}
 }
 
 // TypesNotOffered is the failure of a handshake that offered only the key

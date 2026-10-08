@@ -44,43 +44,93 @@ type keyRecord struct {
 	Blob string
 }
 
-// WarnInsecureSystem emits the mandatory insecure-mode warning and, when an
-// enrolled key exists, compares it to the currently presented key so a changed
-// key produces a specific warning while the connection remains permitted.
-func WarnInsecureSystem(ctx context.Context, p Policy, host, address string, port int, warn func(string)) {
+// KeyMismatch is a key accepted under insecure that differs from the one the
+// store holds for the device: the stored and the presented keys' public
+// fingerprints, the presented key's only record, since insecure stores
+// nothing.
+type KeyMismatch struct {
+	Enrolled, Presented []string
+}
+
+// NotCompared is an insecure comparison that could not complete, the
+// connection going on uncompared: Cause the terminal's short word for it
+// (one of the NotCompared* causes), Reason the whole of it for the record
+// and the audit.
+type NotCompared struct {
+	Cause, Reason string
+}
+
+// The causes of a comparison that could not complete.
+const (
+	NotComparedNoScanner   = "ssh-keyscan not installed"
+	NotComparedTimedOut    = "ssh-keyscan timed out"
+	NotComparedScanFailed  = "ssh-keyscan failed"
+	NotComparedNoKey       = "no usable key"
+	NotComparedStoreUnread = "trust store unreadable"
+)
+
+// CompareInsecure compares, under insecure, the keys a device presents with
+// the one the store holds for it, by an ssh-keyscan beside the system
+// transport's connection (OpenSSH itself is given /dev/null as its store
+// under insecure): a KeyMismatch when they differ; a NotCompared when the
+// comparison could not complete; neither under another policy, when the
+// store does not hold the device, or when a presented key matches.
+func CompareInsecure(ctx context.Context, p Policy, host, address string, port int) (*KeyMismatch, *NotCompared) {
 	if p.Mode != Insecure {
-		return
+		return nil, nil
 	}
-	warnInsecureBase(warn, host)
 	if _, err := os.Stat(p.KnownHostsFile); err != nil || !HasEnrolledHost(p.KnownHostsFile, host, port) {
-		return
+		return nil, nil
 	}
 	inspection, err := InspectRemote(ctx, p.KnownHostsFile, host, address, port, 5*time.Second)
 	if err != nil {
-		emit(warn, fmt.Sprintf("WARNING: insecure host-key comparison for %s could not complete: %v; connection remains allowed by policy", host, err))
-		return
+		return nil, &NotCompared{Cause: notComparedCause(err), Reason: err.Error()}
 	}
 	if inspection.Comparison == Mismatch {
-		emit(warn, mismatchAcceptedWarning(host, inspection))
+		return &KeyMismatch{Enrolled: inspection.EnrolledFingerprints, Presented: inspection.PresentedFingerprints}, nil
 	}
+	return nil, nil
 }
 
-func warnInsecureBase(warn func(string), host string) {
-	emit(warn, fmt.Sprintf("WARNING: SSH host-key policy insecure for %s: unknown and changed keys are accepted; this permits machine-in-the-middle impersonation", host))
+// notComparedCause is the short cause of an InspectRemote failure.
+func notComparedCause(err error) string {
+	var timedOut scanTimedOut
+	switch {
+	case errorcodes.Of(err) == "dependency_ssh_keyscan_unavailable":
+		return NotComparedNoScanner
+	case errorcodes.Of(err) == "host_key_scan_empty":
+		return NotComparedNoKey
+	case errorcodes.Of(err) == "host_key_trust_store_unavailable":
+		return NotComparedStoreUnread
+	case errors.As(err, &timedOut):
+		return NotComparedTimedOut
+	}
+	return NotComparedScanFailed
+}
+
+// scanTimedOut is an ssh-keyscan that ended without a key at or past its
+// bound: it reports a timeout as it does a refusal (exit 1, no output,
+// nothing on standard error), so the time taken tells them apart.
+type scanTimedOut struct{ after time.Duration }
+
+func (e scanTimedOut) Error() string {
+	return fmt.Sprintf("ssh-keyscan timed out: no key within %s", e.after)
+}
+
+// MismatchPhrase is the host_key_mismatch_accepted notice's: insecure
+// accepted a key differing from the stored one.
+func MismatchPhrase() Phrase {
+	return Phrase{Before: "ssh host-key mismatch ", After: " proceeding at risk"}
+}
+
+// NotComparedPhrase is the host_key_not_compared notice's, with its short
+// cause.
+func NotComparedPhrase(cause string) Phrase {
+	return Phrase{Before: "ssh host-key ", After: " not compared: " + cause}
 }
 
 func mismatchDescription(host string, i Inspection) string {
 	return fmt.Sprintf("SSH host key mismatch for %s: enrolled=%s presented=%s", host, strings.Join(i.EnrolledFingerprints, ","), strings.Join(i.PresentedFingerprints, ","))
-}
-
-func mismatchAcceptedWarning(host string, i Inspection) string {
-	return "WARNING: " + mismatchDescription(host, i) + "; mismatch accepted only because policy=insecure"
-}
-
-func emit(warn func(string), message string) {
-	if warn != nil {
-		warn(message)
-	}
 }
 
 // InspectRemote obtains public host keys with ssh-keyscan and compares them
@@ -105,6 +155,7 @@ func inspectRemoteWithBinary(ctx context.Context, scanner, knownHostsFile, host,
 	cmd := exec.CommandContext(ctx, scanner, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
+	started := time.Now()
 	output, err := cmd.Output()
 	presented, parseErr := parseScannedKeys(output)
 	if parseErr != nil {
@@ -112,7 +163,14 @@ func inspectRemoteWithBinary(ctx context.Context, scanner, knownHostsFile, host,
 	}
 	if len(presented) == 0 {
 		if err != nil {
-			return Inspection{}, fmt.Errorf("ssh-keyscan failed: %s", strings.TrimSpace(stderr.String()))
+			if bound := time.Duration(seconds) * time.Second; time.Since(started) >= bound {
+				return Inspection{}, scanTimedOut{after: bound}
+			}
+			detail := strings.TrimSpace(stderr.String())
+			if detail == "" {
+				detail = err.Error()
+			}
+			return Inspection{}, fmt.Errorf("ssh-keyscan failed: %s", detail)
 		}
 		return Inspection{}, errorcodes.Errorf("host_key_scan_empty", "ssh-keyscan returned no usable host keys")
 	}

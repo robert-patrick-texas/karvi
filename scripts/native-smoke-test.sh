@@ -301,7 +301,7 @@ LINUX='[platform.linux]
 ssh-port = PORT'
 LINUXFLAGS="-persona linux -user $OPERATOR -authorized-keys $TMP/opkey.pub"
 # A first record's notice when the stream's session stored the fake's key.
-ENROLLED='{"code":"host_key_enrolled","message":"ssh accepted new host key for fake-iosxe (ED25519)","details":{"key_type":"ED25519"}}'
+ENROLLED='{"code":"host_key_enrolled","message":"ssh accepted new host-key fake-iosxe (ED25519)","details":{"key_type":"ED25519"}}'
 NOT_STOPPED="[{\"code\":\"remote_command_not_stopped\",\"message\":\"the command's channel was closed and the command may still be running on the device: OpenSSH's client cannot ask the device to end it\"}]"
 SSH="identities = [\"$TMP/opkey\"]"
 KEYLOGIN=$OPKEY AUTH=publickey
@@ -364,7 +364,7 @@ parity_case 'S14b secure, another key enrolled under the identity' secure cisco_
   'connection_error:host_key_changed' 109 '' \
   -- --cmd 'show clock'
 KEYSCAN=1
-WARNING='SSH host key mismatch for fake-iosxe'
+WARNING='! ssh host-key mismatch fake-iosxe proceeding at risk'
 parity_case 'S14c insecure, another key enrolled (the mismatch warning)' insecure cisco_iosxe "$BUILTIN" en '' \
   'succeeded' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'

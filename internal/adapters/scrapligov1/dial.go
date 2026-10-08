@@ -23,6 +23,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
+	"github.com/robert-patrick-texas/karvi/platform"
 )
 
 // DialRequest is one scrapligo-v1 connection to a device.
@@ -56,11 +57,12 @@ type DialRequest struct {
 	Term string
 	// Algorithms are the device's SSH algorithm lists; empty means the
 	// defaults.
-	Algorithms  sshalgorithms.Lists
-	Warn, Debug func(string)
-	// Enrolled is called with OpenSSH's label of the key type when this
-	// handshake stored the device's key (platform.OpenRequest.HostKeyEnrolled).
-	Enrolled func(label string)
+	Algorithms sshalgorithms.Lists
+	Debug      func(string)
+	// HostKeyNotice is called with what the handshake found of the device's
+	// key: stored under accept-new, or accepted under insecure though it
+	// differs from the stored one (platform.OpenRequest.HostKeyNotice).
+	HostKeyNotice func(platform.HostKeyNotice)
 	// exec stops the opening at authentication (DialExec): no session
 	// channel, PTY, or shell.
 	exec bool
@@ -233,9 +235,14 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 		Auth:              auth,
 		HostKeyAlgorithms: offered[sshalgorithms.HostKey],
 		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
-			stored, err := hostkey.Verify(req.Policy, req.Host, a.Port, key.Type(), key.Marshal(), req.Warn)
-			if stored && req.Enrolled != nil {
-				req.Enrolled(hostkey.TypeLabel(key.Type()))
+			verdict, err := hostkey.Verify(req.Policy, req.Host, a.Port, key.Type(), key.Marshal())
+			if req.HostKeyNotice != nil {
+				if verdict.Stored {
+					req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyEnrolled, Label: hostkey.TypeLabel(key.Type())})
+				}
+				if m := verdict.Mismatch; m != nil {
+					req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyMismatchAccepted, Enrolled: m.Enrolled, Presented: m.Presented})
+				}
 			}
 			return err
 		},

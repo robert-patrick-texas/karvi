@@ -20,6 +20,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
 )
 
@@ -260,9 +261,7 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 	// The daemon's admission warnings (IPC schema 10: a narrowed width) on
 	// standard error, as the in-process path prints its
 	// own; --detach and the follow alike, before the receipt or the records.
-	for _, w := range jobReceipt.Warnings {
-		warning(streams.Stderr, w)
-	}
+	jobexec.WriteAdmissionWarnings(streams.Stderr, cd.cfg, jobReceipt.Warnings)
 	if opts.Detach {
 		// --detach: the receipt and nothing more;
 		// exit 0 means accepted.

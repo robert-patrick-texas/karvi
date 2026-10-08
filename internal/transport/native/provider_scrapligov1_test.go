@@ -44,7 +44,7 @@ func factory(t *testing.T, policy string, sets ...string) (Factory, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return Factory{Implementation: "scrapligo-v1", Config: cfg, Home: home, Warn: func(m string) { t.Logf("warn: %s", m) }}, known
+	return Factory{Implementation: "scrapligo-v1", Config: cfg, Home: home}, known
 }
 
 func request(srv *fakedevice.Server, platformName string, enable string) platform.OpenRequest {

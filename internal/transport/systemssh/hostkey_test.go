@@ -152,7 +152,7 @@ func TestNegotiationDiagnostics(t *testing.T) {
 // not keep, and secure stores nothing.
 func TestEnrollmentSaidOnlyUnderAcceptNew(t *testing.T) {
 	for mode, want := range map[hostkey.Mode]bool{hostkey.AcceptNew: true, hostkey.Insecure: false, hostkey.Secure: false} {
-		d := &Driver{f: Factory{hostKey: hostkey.Policy{Mode: mode}}, req: platform.OpenRequest{HostKeyEnrolled: func(string) {}}}
+		d := &Driver{f: Factory{hostKey: hostkey.Policy{Mode: mode}}, req: platform.OpenRequest{HostKeyNotice: func(platform.HostKeyNotice) {}}}
 		if got := d.hostKeyEnrolled() != nil; got != want {
 			t.Errorf("%s: a callback %t, want %t", mode, got, want)
 		}

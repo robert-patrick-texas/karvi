@@ -34,7 +34,7 @@ func enrolledLabel(text string) (string, bool) {
 // left when the stream ends.
 type authFilter struct {
 	next     io.Writer
-	enrolled func(label string) // platform.OpenRequest.HostKeyEnrolled, or nil
+	enrolled func(label string) // the request's host_key_enrolled notice, or nil (Driver.hostKeyEnrolled)
 
 	mu      sync.Mutex
 	pending []byte

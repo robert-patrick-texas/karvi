@@ -116,10 +116,12 @@ func installKeyscanOnPath(t *testing.T, blob string) {
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 
-// TestWarnInsecureSystemComparesTheIdentity covers the system transport's
-// insecure warning: the enrolled key is looked
-// up under the device's identity on its port.
-func TestWarnInsecureSystemComparesTheIdentity(t *testing.T) {
+// TestCompareInsecureComparesTheIdentity covers the system transport's
+// insecure comparison: the enrolled key is looked up under the device's
+// identity on its port, a differing key is a KeyMismatch with both
+// fingerprints, a device the store does not hold is not compared, a
+// failed ssh-keyscan is the reason, and another policy compares nothing.
+func TestCompareInsecureComparesTheIdentity(t *testing.T) {
 	known := filepath.Join(t.TempDir(), "known_hosts")
 	if err := os.WriteFile(known, []byte("[router1]:2222 ssh-ed25519 "+fakeKey(1)+"\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -130,11 +132,43 @@ func TestWarnInsecureSystemComparesTheIdentity(t *testing.T) {
 		port     int
 		mismatch bool
 	}{{2222, true}, {22, false}, {2223, false}} {
-		var warnings []string
-		WarnInsecureSystem(context.Background(), policy, "router1", "192.0.2.10", tc.port, func(m string) { warnings = append(warnings, m) })
-		got := len(warnings) == 2 && strings.Contains(warnings[1], "mismatch accepted only because policy=insecure")
-		if got != tc.mismatch || len(warnings) == 0 {
-			t.Fatalf("port %d: warnings %q", tc.port, warnings)
+		m, nc := CompareInsecure(context.Background(), policy, "router1", "192.0.2.10", tc.port)
+		if (m != nil) != tc.mismatch || nc != nil {
+			t.Fatalf("port %d: %+v %+v", tc.port, m, nc)
+		}
+		if m != nil && (len(m.Enrolled) != 1 || len(m.Presented) == 0 || !strings.HasPrefix(m.Enrolled[0], "ssh-ed25519 SHA256:")) {
+			t.Fatalf("port %d: fingerprints %+v", tc.port, m)
+		}
+	}
+	if m, nc := CompareInsecure(context.Background(), Policy{Mode: AcceptNew, KnownHostsFile: known}, "router1", "192.0.2.10", 2222); m != nil || nc != nil {
+		t.Fatalf("accept-new compared: %+v %+v", m, nc)
+	}
+	t.Setenv("PATH", t.TempDir())
+	if m, nc := CompareInsecure(context.Background(), policy, "router1", "192.0.2.10", 2222); m != nil || nc == nil || nc.Cause != NotComparedNoScanner || !strings.Contains(nc.Reason, "dependency_ssh_keyscan_unavailable") {
+		t.Fatalf("no ssh-keyscan: %+v %+v", m, nc)
+	}
+}
+
+// TestNotComparedCauses: an ssh-keyscan that ends without a key is "timed
+// out" at or past its bound and "failed" before it, as ssh-keyscan reports
+// both alike; one that prints nothing usable is "no usable key".
+func TestNotComparedCauses(t *testing.T) {
+	known := filepath.Join(t.TempDir(), "known_hosts")
+	if err := os.WriteFile(known, []byte("router1 ssh-ed25519 "+fakeKey(1)+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ script, cause string }{
+		{"sleep 1.2; exit 1", NotComparedTimedOut},
+		{"exit 1", NotComparedScanFailed},
+		{"exit 0", NotComparedNoKey},
+	} {
+		scanner := filepath.Join(t.TempDir(), "ssh-keyscan")
+		if err := os.WriteFile(scanner, []byte("#!/bin/sh\n"+tc.script+"\n"), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		_, err := inspectRemoteWithBinary(context.Background(), scanner, known, "router1", "192.0.2.10", 22, time.Second)
+		if err == nil || notComparedCause(err) != tc.cause {
+			t.Errorf("%q: %v, cause %q, want %q", tc.script, err, notComparedCause(err), tc.cause)
 		}
 	}
 }

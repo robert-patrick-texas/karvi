@@ -229,14 +229,34 @@ type OpenRequest struct {
 	// settle, 0 when no command is in flight. Nothing is sent per chunk;
 	// the scoreboard's snapshot reads it at its interval.
 	InFlightBytes *atomic.Int64
-	// HostKeyEnrolled, when given, is called with OpenSSH's label of the key
-	// type (ED25519, ECDSA, RSA) when this session's handshake stored the
-	// device's key in the trust store under accept-new; not when another
-	// session stored it, nor when the key was known. It may be called from
-	// the transport's own goroutine before Open or Prepare returns, and on a
-	// session that then fails to authenticate.
-	HostKeyEnrolled func(label string)
+	// HostKeyNotice, when given, is called with what the transport found of
+	// the device's host key at this contact (HostKeyNotice's codes). It may
+	// be called from the transport's own goroutine before Open or Prepare
+	// returns, and on a session that then fails to authenticate.
+	HostKeyNotice func(HostKeyNotice)
 }
+
+// HostKeyNotice is what a transport says of the device's host key, one of
+// the records' host_key_* notices: HostKeyEnrolled with Label (OpenSSH's
+// name for the key type: ED25519, ECDSA, RSA) when this session stored the
+// key under accept-new, not when another session stored it nor when it was
+// known; HostKeyMismatchAccepted with the stored and presented keys'
+// fingerprints when insecure accepted a key differing from the stored one;
+// HostKeyNotCompared with Cause (a short word for the terminal) and Reason
+// (the whole of it) when insecure could not compare them.
+type HostKeyNotice struct {
+	Code                string
+	Label               string
+	Enrolled, Presented []string
+	Cause, Reason       string
+}
+
+// The HostKeyNotice codes, the records' notice codes.
+const (
+	HostKeyEnrolled         = "host_key_enrolled"
+	HostKeyMismatchAccepted = "host_key_mismatch_accepted"
+	HostKeyNotCompared      = "host_key_not_compared"
+)
 
 // Timeouts are the bounds a transport puts on a session's steps, the
 // invocation's: the executor fills them from the plan's execution block on

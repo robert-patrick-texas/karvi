@@ -42,7 +42,7 @@ import (
 // a failure as the shell's do. A line is held until its newline.
 type masterLines struct {
 	next     io.Writer
-	enrolled func(label string) // platform.OpenRequest.HostKeyEnrolled, or nil
+	enrolled func(label string) // the request's host_key_enrolled notice, or nil (Driver.hostKeyEnrolled)
 
 	mu      sync.Mutex
 	pending []byte

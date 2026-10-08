@@ -229,13 +229,22 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		return FailedResult("output_preflight_space", err)
 	}
 	// admissionWarnings ride the daemon's receipt and follow start to the
-	// client, since the daemon's job has no standard error.
+	// client, since the daemon's job has no standard error; the in-process
+	// job prints them here. The job's host-key policy is the configuration
+	// it runs under, the daemon's own for a daemon's job: under insecure it
+	// is said once for the job, not at every connection.
 	var admissionWarnings []string
+	if cfg.String("ssh.host-key-policy") == "insecure" {
+		logEvent(slog.LevelWarn, PolicyInsecureCode, PolicyInsecureWarning())
+		admissionWarnings = append(admissionWarnings, PolicyInsecureWarning())
+	}
 	if admission.Warning != "" {
-		warn(admission.Warning)
 		logEvent(slog.LevelWarn, "spool_width_narrowed", admission.Warning)
 		admissionWarnings = append(admissionWarnings, admission.Warning)
 		dispatchSettings = narrowDispatch(dispatchSettings, admission.Width)
+	}
+	if streams.Stderr != nil {
+		WriteAdmissionWarnings(streams.Stderr, cfg, admissionWarnings)
 	}
 	debug(fmt.Sprintf("spooldir=%s freecheck=%s volumes=%d width=%d", spoolDir, freecheck, admission.Volumes, admission.Width))
 	// The store opens the job's files only once every volume has passed
@@ -328,7 +337,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		Ping: plan.Ping, Pinger: pinger,
 		Capacity: capManager, Store: store, Audit: auditSink, Metrics: sampler,
 		ScratchDir: scratch, ControlRoot: controlRoot, Home: req.Operator.Home, BaseDir: base, SpoolDir: spoolDir, InFlight: board.inFlight,
-		OnRecord: renderer.OnRecordFrom, Warn: warn, Debug: debug,
+		OnRecord: renderer.OnRecordFrom, Debug: debug,
 	})
 	tasks := make([]dispatch.Task, len(plan.Targets))
 	queued := time.Now()

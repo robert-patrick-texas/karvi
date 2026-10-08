@@ -19,6 +19,7 @@ import (
 	credentialresolver "github.com/robert-patrick-texas/karvi/internal/credentialbackend"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/executor"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
@@ -227,9 +228,21 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	} else {
 		debug(fmt.Sprintf("login ssh algorithms target=%q profile=%s rule=ssh-algorithms-map.%d %s", d.CanonicalName, algorithms.Profile, algorithms.Rule, algorithms.Lists.Describe()))
 	}
-	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Warn: func(message string) { warning(streams.Stderr, message) }, Debug: debug, Algorithms: algorithms.Lists}
+	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Debug: debug, Algorithms: algorithms.Lists}
+	// Under insecure the policy's two lines, once, before any contact; what
+	// the transport finds of the device's key (a key differing from the
+	// stored one, or one not compared) on the terminal as it is found.
+	if cfg.String("ssh.host-key-policy") == "insecure" {
+		jobexec.WriteAdmissionWarnings(streams.Stderr, cfg, []string{jobexec.PolicyInsecureWarning()})
+	}
+	keyStyle := jobexec.DisplayLineStyle(cfg, jobexec.DisplayTerminal(streams.Stderr))
 	debug(fmt.Sprintf("login transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, resolution.SelectedAddress.String(), port, definition.Name))
 	openReq := platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, EnablePassword: func(fn func([]byte) error) error { return resolved.Credential.Material.WithEnablePassword(fn) }, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName, "activity_type": "login", "transport_selector": selection.Selector}}
+	openReq.HostKeyNotice = func(n platform.HostKeyNotice) {
+		for _, line := range jobexec.HostKeyLines(d.CanonicalName, executor.HostKeyNotices(d.CanonicalName, []platform.HostKeyNotice{n}), keyStyle) {
+			fmt.Fprintln(streams.Stderr, line)
+		}
+	}
 	// A credential with keys and no password offers no password method.
 	if resolved.Credential.Material.PasswordSet() || len(resolved.Credential.Keys) == 0 {
 		openReq.Password = func(fn func([]byte) error) error { return resolved.Credential.Material.WithPassword(fn) }

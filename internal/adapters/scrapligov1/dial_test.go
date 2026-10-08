@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -48,25 +47,13 @@ func entry(srv *fakedevice.Server, authorizedKey string) string {
 	return fmt.Sprintf("[fake-iosxe]:%d %s\n", srv.Port(), authorizedKey)
 }
 
-type warnings struct {
-	mu   sync.Mutex
-	list []string
-}
-
-func (w *warnings) add(m string) { w.mu.Lock(); w.list = append(w.list, m); w.mu.Unlock() }
-func (w *warnings) all() []string {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return append([]string(nil), w.list...)
-}
-
-func dialRequest(srv *fakedevice.Server, mode hostkey.Mode, file string, w *warnings) DialRequest {
+func dialRequest(srv *fakedevice.Server, mode hostkey.Mode, file string) DialRequest {
 	return DialRequest{
 		Host: "fake-iosxe", Address: "127.0.0.1", Port: srv.Port(), Username: "netops",
 		Password:       func(f func([]byte) error) error { return f([]byte("pw")) },
 		Policy:         hostkey.Policy{Mode: mode, KnownHostsFile: file},
 		ConnectTimeout: 5 * time.Second, HandshakeTimeout: 5 * time.Second,
-		Term: "xterm", Warn: w.add,
+		Term: "xterm",
 	}
 }
 
@@ -89,7 +76,7 @@ func openSession(t *testing.T, s devsession.Stream, name string) *devsession.Ses
 
 func TestDialSessionOneConnectionOneShell(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{Enable: "en"})
-	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
+	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +111,7 @@ func TestDialSessionOneConnectionOneShell(t *testing.T) {
 
 func TestDialAbortAfterTimeoutReturnsAtOnce(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{Delay: map[string]time.Duration{"show slow": 10 * time.Second}})
-	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
+	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +136,7 @@ func TestDialAbortAfterTimeoutReturnsAtOnce(t *testing.T) {
 func TestKeepalives(t *testing.T) {
 	dial := func(t *testing.T, srv *fakedevice.Server, interval time.Duration) *devsession.Session {
 		t.Helper()
-		req := dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{})
+		req := dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"))
 		req.KeepaliveInterval, req.KeepaliveCountMax = interval, 2
 		s, err := Dial(context.Background(), req)
 		if err != nil {
@@ -201,14 +188,12 @@ func TestKeepalives(t *testing.T) {
 func TestDialHostKeyPolicies(t *testing.T) {
 	first := startFake(t, fakedevice.Options{})
 	file := trustStore(t, "")
-	w := &warnings{}
 
 	// accept-new: enrolled on the first open, matched on the next; the
-	// enrollment is said through Enrolled, once, with OpenSSH's label, and
-	// is no warning.
-	var labels []string
-	req := dialRequest(first, hostkey.AcceptNew, file, w)
-	req.Enrolled = func(label string) { labels = append(labels, label) }
+	// enrollment is said through HostKeyNotice, once, with OpenSSH's label.
+	var notices []platform.HostKeyNotice
+	req := dialRequest(first, hostkey.AcceptNew, file)
+	req.HostKeyNotice = func(n platform.HostKeyNotice) { notices = append(notices, n) }
 	s, err := Dial(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
@@ -218,15 +203,15 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	if got := string(content); got != strings.TrimSuffix(entry(first, first.HostKeys()[0]), "\n")+" karvi-auto-enrolled\n" {
 		t.Fatalf("store after the first open: %q", got)
 	}
-	if list := w.all(); len(list) != 0 || len(labels) != 1 || labels[0] != "ED25519" {
-		t.Fatalf("warnings %q, enrolled %q", list, labels)
+	if len(notices) != 1 || notices[0].Code != platform.HostKeyEnrolled || notices[0].Label != "ED25519" {
+		t.Fatalf("notices %+v", notices)
 	}
 	s, err = Dial(context.Background(), req)
 	if err != nil {
 		t.Fatalf("second open: %v", err)
 	}
-	if len(labels) != 1 {
-		t.Fatalf("the known key said enrolled again: %q", labels)
+	if len(notices) != 1 {
+		t.Fatalf("the known key said enrolled again: %+v", notices)
 	}
 	s.(*stream).Abort()
 	if first.Connections() != 2 {
@@ -237,7 +222,7 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	changed := startFake(t, fakedevice.Options{})
 	store := trustStore(t, entry(changed, first.HostKeys()[0]))
 	for _, mode := range []hostkey.Mode{hostkey.AcceptNew, hostkey.Secure} {
-		_, err := Dial(context.Background(), dialRequest(changed, mode, store, &warnings{}))
+		_, err := Dial(context.Background(), dialRequest(changed, mode, store))
 		if errorcodes.Of(err) != "host_key_changed" || !strings.Contains(err.Error(), "enrolled=ssh-ed25519 SHA256:") || !strings.Contains(err.Error(), "presented=ssh-ed25519 SHA256:") {
 			t.Fatalf("%s, changed key: %v", mode, err)
 		}
@@ -245,20 +230,25 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	if changed.Sessions() != 0 {
 		t.Fatalf("a shell started after a changed key")
 	}
-	w = &warnings{}
-	s, err = Dial(context.Background(), dialRequest(changed, hostkey.Insecure, store, w))
+	// insecure: accepted, nothing stored; the difference is a
+	// host_key_mismatch_accepted notice with both fingerprints.
+	notices = nil
+	insecure := dialRequest(changed, hostkey.Insecure, store)
+	insecure.HostKeyNotice = func(n platform.HostKeyNotice) { notices = append(notices, n) }
+	s, err = Dial(context.Background(), insecure)
 	if err != nil {
 		t.Fatalf("insecure, changed key: %v", err)
 	}
 	s.(*stream).Abort()
-	if list := w.all(); len(list) != 2 || !strings.Contains(list[1], "mismatch accepted only because policy=insecure") {
-		t.Fatalf("insecure warnings %q", list)
+	if len(notices) != 1 || notices[0].Code != platform.HostKeyMismatchAccepted ||
+		len(notices[0].Enrolled) != 1 || len(notices[0].Presented) != 1 || notices[0].Enrolled[0] == notices[0].Presented[0] {
+		t.Fatalf("insecure notices %+v", notices)
 	}
 	if after, _ := os.ReadFile(store); string(after) != entry(changed, first.HostKeys()[0]) {
 		t.Fatalf("store changed: %q", after)
 	}
 
-	_, err = Dial(context.Background(), dialRequest(changed, hostkey.Secure, trustStore(t, ""), &warnings{}))
+	_, err = Dial(context.Background(), dialRequest(changed, hostkey.Secure, trustStore(t, "")))
 	if errorcodes.Of(err) != "host_key_not_enrolled" {
 		t.Fatalf("secure, unknown host: %v", err)
 	}
@@ -270,7 +260,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 
 	// No entry: the strongest key is negotiated and enrolled.
 	file := trustStore(t, "")
-	s, err := Dial(context.Background(), dialRequest(srv, hostkey.AcceptNew, file, &warnings{}))
+	s, err := Dial(context.Background(), dialRequest(srv, hostkey.AcceptNew, file))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +270,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	}
 	// An entry of another type: offering only that type matches it.
 	for _, key := range keys[1:] {
-		s, err := Dial(context.Background(), dialRequest(srv, hostkey.Secure, trustStore(t, entry(srv, key)), &warnings{}))
+		s, err := Dial(context.Background(), dialRequest(srv, hostkey.Secure, trustStore(t, entry(srv, key))))
 		if err != nil {
 			t.Fatalf("secure with %s enrolled: %v", strings.Fields(key)[0], err)
 		}
@@ -290,7 +280,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	// A legacy device signing only with ssh-rsa is reachable and enrolled.
 	legacy := startFake(t, fakedevice.Options{RSASHA1Only: true})
 	file = trustStore(t, "")
-	s, err = Dial(context.Background(), dialRequest(legacy, hostkey.AcceptNew, file, &warnings{}))
+	s, err = Dial(context.Background(), dialRequest(legacy, hostkey.AcceptNew, file))
 	if err != nil {
 		t.Fatalf("legacy device: %v", err)
 	}
@@ -305,7 +295,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 
 	// The store holds a key type the device no longer offers.
 	onlyEd25519 := startFake(t, fakedevice.Options{})
-	_, err = Dial(context.Background(), dialRequest(onlyEd25519, hostkey.AcceptNew, trustStore(t, entry(onlyEd25519, keys[2])), &warnings{}))
+	_, err = Dial(context.Background(), dialRequest(onlyEd25519, hostkey.AcceptNew, trustStore(t, entry(onlyEd25519, keys[2]))))
 	if errorcodes.Of(err) != "host_key_changed" || !strings.Contains(err.Error(), "enrolled=ssh-rsa SHA256:") || !strings.Contains(err.Error(), "offered: ssh-ed25519") {
 		t.Fatalf("enrolled type not offered: %v", err)
 	}
@@ -315,12 +305,12 @@ func TestDialOpenFailures(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{Password: "other"})
 	absent := filepath.Join(t.TempDir(), "absent")
 
-	_, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, absent, &warnings{}))
+	_, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, absent))
 	if errorcodes.Of(err) != "authentication_failed" || strings.Contains(err.Error(), "pw") {
 		t.Fatalf("wrong password: %v", err)
 	}
 
-	refused := dialRequest(srv, hostkey.Insecure, absent, &warnings{})
+	refused := dialRequest(srv, hostkey.Insecure, absent)
 	refused.Address = "127.0.0.2"
 	_, err = Dial(context.Background(), refused)
 	if errorcodes.Of(err) != "native_session_open_failed" || !strings.Contains(err.Error(), "connection refused") {
@@ -341,7 +331,7 @@ func TestDialOpenFailures(t *testing.T) {
 			t.Cleanup(func() { conn.Close() })
 		}
 	}()
-	hung := dialRequest(srv, hostkey.Insecure, absent, &warnings{})
+	hung := dialRequest(srv, hostkey.Insecure, absent)
 	hung.Port = silent.Addr().(*net.TCPAddr).Port
 	hung.HandshakeTimeout = 500 * time.Millisecond
 	started := time.Now()
@@ -362,7 +352,7 @@ func TestDialOpenFailures(t *testing.T) {
 
 func TestFakeRefusesExec(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{})
-	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
+	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,7 +418,7 @@ func TestDialAlgorithmLists(t *testing.T) {
 	}
 	for _, c := range cases {
 		srv := startFake(t, c.device)
-		req := dialRequest(srv, hostkey.Insecure, absent, &warnings{})
+		req := dialRequest(srv, hostkey.Insecure, absent)
 		req.Algorithms = c.lists
 		s, err := Dial(context.Background(), req)
 		if c.code == "" {

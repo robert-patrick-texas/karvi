@@ -17,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -32,8 +33,8 @@ var ansiRE = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*?(?:\x07|\
 type recordRenderer struct {
 	mu  sync.Mutex
 	out io.Writer
-	// warnOut, when set (sayTo), takes each record's host_key_enrolled
-	// line: the client's standard error.
+	// warnOut, when set (sayTo), takes each record's host-key lines
+	// (HostKeyLines): the client's standard error.
 	warnOut   io.Writer
 	warnStyle display.LineStyle
 	// daemon says the daemon runs the job: nothing reads the format, so
@@ -139,7 +140,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 	}, nil
 }
 
-// sayTo has the renderer write each record's host_key_enrolled line to w,
+// sayTo has the renderer write each record's host-key lines to w,
 // the client's standard error, before the record, in every format: the
 // in-process job's renderer and a followed job's, not a past job's
 // directory shown again.
@@ -147,25 +148,81 @@ func (r *recordRenderer) sayTo(w io.Writer, cfg configload.Snapshot) {
 	r.warnOut, r.warnStyle = w, DisplayLineStyle(cfg, DisplayTerminal(w))
 }
 
-// EnrolledLines are the client's lines for a record's host_key_enrolled
-// notices (a session that stored the device's host key under accept-new),
-// each EnrolledLine.
-func EnrolledLines(notices []records.Notice, style display.LineStyle) []string {
+// HostKeyLines are the client's lines for a record's host-key notices on
+// device: "! " and the notice's phrase (hostkey) around the device's name,
+// the name in the target colour as the headers draw it and the rest in the
+// warning colour, a key accepted though it differs from the stored one in
+// the error colour. They are shown under --quiet, which suppresses the
+// display's other "!" lines: a key trusted unchecked is not narration.
+func HostKeyLines(device string, notices []records.Notice, style display.LineStyle) []string {
 	var lines []string
 	for _, n := range notices {
-		if n.Code == "host_key_enrolled" {
-			lines = append(lines, EnrolledLine(n.Message, style))
+		detail := func(key string) string { v, _ := n.Details[key].(string); return v }
+		colour := style.Warning
+		var phrase hostkey.Phrase
+		switch n.Code {
+		case "host_key_enrolled":
+			phrase = hostkey.EnrolledPhrase(detail("key_type"))
+		case "host_key_mismatch_accepted":
+			phrase, colour = hostkey.MismatchPhrase(), style.Error
+		case "host_key_not_compared":
+			phrase = hostkey.NotComparedPhrase(detail("cause"))
+		default:
+			continue
 		}
+		lines = append(lines, display.ANSIStyle("! "+phrase.Before, colour, style.Enabled, true)+
+			display.ANSIStyle(device, style.Target, style.Enabled, display.RoleBold("target"))+
+			display.ANSIStyle(phrase.After, colour, style.Enabled, true))
 	}
 	return lines
 }
 
-// EnrolledLine is the enrollment's message after "! ", in the display's
-// warning colour when colour is on. It is shown under --quiet, which
-// suppresses the display's other "!" lines: a key trusted unchecked is not
-// narration.
-func EnrolledLine(message string, style display.LineStyle) string {
+// WarningLine is a message after "! ", in the display's warning colour when
+// colour is on: the insecure policy's lines, shown under --quiet as the
+// host-key lines are.
+func WarningLine(message string, style display.LineStyle) string {
 	return display.ANSIStyle("! "+message, style.Warning, style.Enabled, display.RoleBold("warning"))
+}
+
+// The insecure policy's admission warning: its code, the message the
+// daemon's receipt and log carry, and the two lines a client shows for it,
+// once per job.
+const PolicyInsecureCode = "host_key_policy_insecure"
+
+var policyInsecureLines = []string{
+	"ssh host-key policy insecure: unknown and changed keys accepted;",
+	" connecting to devices with wrong keys and MITM attacks allowed",
+}
+
+// PolicyInsecureWarning is the admission warning of a job under insecure,
+// "code: message" as every admission warning.
+func PolicyInsecureWarning() string {
+	return fmt.Sprintf("host_key_policy_insecure: unknown and changed keys accepted; connecting to devices with wrong keys and MITM attacks allowed")
+}
+
+// AdmissionWarningLines are a client's lines for one admission warning: the
+// insecure policy's two lines, each a WarningLine, or "warning: " and the
+// warning.
+func AdmissionWarningLines(warning string, style display.LineStyle) []string {
+	if strings.HasPrefix(warning, PolicyInsecureCode+":") {
+		lines := make([]string, len(policyInsecureLines))
+		for i, l := range policyInsecureLines {
+			lines[i] = WarningLine(l, style)
+		}
+		return lines
+	}
+	return []string{"warning: " + warning}
+}
+
+// WriteAdmissionWarnings writes a job's admission warnings to w, a client's
+// standard error, as AdmissionWarningLines in w's colours.
+func WriteAdmissionWarnings(w io.Writer, cfg configload.Snapshot, warnings []string) {
+	style := DisplayLineStyle(cfg, DisplayTerminal(w))
+	for _, warning := range warnings {
+		for _, line := range AdmissionWarningLines(warning, style) {
+			fmt.Fprintln(w, line)
+		}
+	}
 }
 
 // stoppedStatuses are the statuses a device's requested records repeat when
@@ -201,7 +258,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		return
 	}
 	if r.warnOut != nil {
-		for _, line := range EnrolledLines(rec.Notices, r.warnStyle) {
+		for _, line := range HostKeyLines(rec.Device.CanonicalName, rec.Notices, r.warnStyle) {
 			fmt.Fprintln(r.warnOut, line)
 		}
 	}
@@ -881,15 +938,16 @@ func NewRunRenderer(cfg configload.Snapshot, quiet, debug bool, artifactDir, for
 // Line renders one verified LF-terminated record line.
 func (rr *RunRenderer) Line(line []byte) error {
 	if rr.format == "jsonl" {
-		// The line passes through undecoded; one naming the notice is
-		// decoded for its notices alone, the output (megabytes in a large
+		// The line passes through undecoded; one naming a host-key notice
+		// is decoded for its notices alone, the output (megabytes in a large
 		// response) skipped rather than copied.
-		if rr.warnOut != nil && bytes.Contains(line, []byte(`"host_key_enrolled"`)) {
+		if rr.warnOut != nil && bytes.Contains(line, []byte(`"code":"host_key_`)) {
 			var record struct {
-				Notices []records.Notice `json:"notices"`
+				Device  records.DeviceProjection `json:"device"`
+				Notices []records.Notice         `json:"notices"`
 			}
 			if json.Unmarshal(line, &record) == nil {
-				for _, l := range EnrolledLines(record.Notices, rr.warnStyle) {
+				for _, l := range HostKeyLines(record.Device.CanonicalName, record.Notices, rr.warnStyle) {
 					fmt.Fprintln(rr.warnOut, l)
 				}
 			}

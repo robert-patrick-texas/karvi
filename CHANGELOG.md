@@ -28,15 +28,26 @@
   touched.
 - **A first contact is said on every path.** Under `ssh.host-key-policy =
   "accept-new"`, a session that stores a device's host key, unknown until
-  then, says so on either transport: `! ssh accepted new host key for DEVICE
+  then, says so on either transport: `! ssh accepted new host-key DEVICE
   (TYPE)` on the client's standard error, under `--quiet` too, in the
-  display's warning colour; the device's first record carries the notice
+  display's warning colour, the device's name in the target colour; the
+  device's first record carries the notice
   `host_key_enrolled` with the key type, and its `command_completed` audit
   event `details.host_key_enrolled`. `scrapligo-v1`'s warning `accepted and
   stored new SSH host key …` had been printed only by a job in the client and
   dropped by the daemon, and `system` said nothing: OpenSSH's `Permanently
   added` line is now taken from the standard error karvi reads. A job that
   finds the key stored meanwhile by another says nothing.
+- **`insecure` is said on every path.** A job under `ssh.host-key-policy =
+  "insecure"` says so once at its admission, two lines on standard error,
+  where both transports had warned at every connection; a key differing from
+  the stored one is the notice `host_key_mismatch_accepted` on the device's
+  first record with both keys' fingerprints, shown as `! ssh host-key mismatch
+  DEVICE proceeding at risk` in the error colour and named in the audit's
+  `details`; a `system` comparison that could not complete is
+  `host_key_not_compared`, shown as `! ssh host-key DEVICE not compared:
+  CAUSE`. Through the daemon all three warnings had been
+  dropped, so a `run` under `insecure` accepted a changed key in silence.
 - **A recorded login's own lines start at the first column.** Under `login
   --record`, karvi's lines on the terminal, the login's header, a warning, an
   error, and under `--debug` every `DEBUG` line, are written while `script(1)`

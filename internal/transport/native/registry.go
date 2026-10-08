@@ -32,8 +32,8 @@ type Factory struct {
 	Timeouts platform.Timeouts
 	// Spool is the session's spool: the directory,
 	// the threshold, and the activity; the device is filled per session.
-	Spool       devsession.Spool
-	Warn, Debug func(string)
+	Spool devsession.Spool
+	Debug func(string)
 	// Algorithms are the device's SSH algorithm lists; empty means the
 	// configuration's global lists.
 	Algorithms sshalgorithms.Lists

@@ -72,9 +72,8 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 		KeepaliveCountMax: d.f.Config.Int("native-ssh.keepalive-count-max"),
 		Term:              terminalType(d.f.Config.Strings("security.child-environment-allowlist")),
 		Algorithms:        d.f.Algorithms,
-		Warn:              d.f.Warn,
 		Debug:             d.f.Debug,
-		Enrolled:          d.req.HostKeyEnrolled,
+		HostKeyNotice:     d.req.HostKeyNotice,
 	}
 	if d.channel() == platform.ChannelExec {
 		// Ready once authenticated: no first prompt, privilege, or paging.

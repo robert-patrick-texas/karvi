@@ -127,7 +127,6 @@ type Options struct {
 	// spooled record's Output is empty and the
 	// renderer streams from the source before the spool is removed.
 	OnRecord func(records.CommandRecord, output.Source)
-	Warn     func(string)
 	Debug    func(string)
 }
 type DeviceExecutor struct {
@@ -432,11 +431,11 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if e.opts.InFlight != nil {
 		openReq.InFlightBytes = e.opts.InFlight.Counter(d.CanonicalName)
 	}
-	// The key type when this session's handshake stored the device's key
-	// (accept-new), said on the device's first record whether the session
-	// then opens or not.
-	var enrolled enrollment
-	openReq.HostKeyEnrolled = enrolled.set
+	// What the transport finds of the device's host key (stored under
+	// accept-new; differing, or not compared, under insecure), said on the
+	// device's first record whether the session then opens or not.
+	var found hostKeyFindings
+	openReq.HostKeyNotice = found.add
 	factory := e.factory(selection, algorithms)
 	connectStart := time.Now()
 	e.debugf("device transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, address, port, def.Name)
@@ -448,7 +447,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if e.opts.Metrics != nil {
 		e.opts.Metrics.AddStage("connect", connectDur)
 	}
-	seq.hostKeyEnrolled = enrolled.get()
+	seq.hostKeyNotices = found.all()
 	// The set-up the session sent (enable, the paging commands) has no
 	// record; the store shows it in the device's output.TARGET.txt ahead of
 	// the first record's block. It is handed over before any record of the
@@ -517,7 +516,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	finish := func(r *records.CommandRecord, pos int) {
 		if pos == 0 {
 			r.Notices = append(r.Notices, targetNotices(work.Target)...)
-			r.Notices = append(r.Notices, hostKeyNotices(d.CanonicalName, seq.hostKeyEnrolled)...)
+			r.Notices = append(r.Notices, HostKeyNotices(d.CanonicalName, seq.hostKeyNotices)...)
 		}
 		if pos == 0 && g != nil && g.report.Decision == records.PingDecisionProceedDegraded {
 			r.Notices = append(r.Notices, records.Notice{Code: "icmp_packet_loss", Message: "ICMP packet loss 50%; proceeding because one validated reply was received", Details: map[string]any{"replies": g.report.Replies, "outcomes": describeOutcomes(g.report.Outcomes)}})
@@ -753,11 +752,11 @@ func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms
 	timeouts := platform.Timeouts{Command: time.Duration(x.CommandTimeoutNS), Prompt: time.Duration(x.PromptTimeoutNS), Enable: time.Duration(x.EnableTimeoutNS), TelnetRead: time.Duration(x.TelnetReadTimeoutNS)}
 	switch selection.Kind {
 	case transportselect.KindSystem:
-		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
+		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
 	case transportselect.KindTelnet:
 		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts}
 	default:
-		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Warn: e.opts.Warn, Debug: e.opts.Debug, Algorithms: algorithms}
+		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
 	}
 }
 
@@ -841,7 +840,7 @@ func (e *DeviceExecutor) emitFailureSet(work Work, dc dispatch.Context, seq devi
 		r.Error = recErr
 		if pos == 0 {
 			r.Notices = append(r.Notices, targetNotices(work.Target)...)
-			r.Notices = append(r.Notices, hostKeyNotices(work.Target.Device.CanonicalName, seq.hostKeyEnrolled)...)
+			r.Notices = append(r.Notices, HostKeyNotices(work.Target.Device.CanonicalName, seq.hostKeyNotices)...)
 		}
 		e.appendRecord(r)
 	}
@@ -963,10 +962,9 @@ type deviceSequence struct {
 	// invalid is set when a requested command's declaration does not
 	// compile: nothing is contacted (execution_plan_invalid).
 	invalid error
-	// hostKeyEnrolled is OpenSSH's label of the key type when the device's
-	// session stored its host key, "" otherwise: the host_key_enrolled
-	// notice on the device's first record.
-	hostKeyEnrolled string
+	// hostKeyNotices are what the device's transport found of its host key:
+	// the host_key_* notices on the device's first record.
+	hostKeyNotices []platform.HostKeyNotice
 }
 
 // sequence is the target's session-init profile from the plan's table
@@ -1280,14 +1278,20 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 	}
 }
 
-// auditDetails is a command_completed event's details: host_key_enrolled,
-// the key type, when the record carries the host_key_enrolled notice (the
-// device's first record after its session stored the key).
+// auditDetails is a command_completed event's details, from the device's
+// first record's host-key notices: host_key_enrolled, the key type;
+// host_key_mismatch_accepted, the stored and presented fingerprints;
+// host_key_not_compared, the reason.
 func auditDetails(r records.CommandRecord) map[string]any {
 	details := map[string]any{}
 	for _, n := range r.Notices {
-		if n.Code == "host_key_enrolled" {
-			details["host_key_enrolled"] = n.Details["key_type"]
+		switch n.Code {
+		case platform.HostKeyEnrolled:
+			details[n.Code] = n.Details["key_type"]
+		case platform.HostKeyMismatchAccepted:
+			details[n.Code] = map[string]any{"enrolled": n.Details["enrolled"], "presented": n.Details["presented"]}
+		case platform.HostKeyNotCompared:
+			details[n.Code] = n.Details["reason"]
 		}
 	}
 	return details
@@ -1323,32 +1327,43 @@ func Definition(cfg configload.Snapshot, name string) (platform.Definition, bool
 // targetNotices converts the plan target's planning notices to the record's
 // shape: the code and message as the client wrote
 // them, the string details as the record's details.
-// enrollment holds the key type a transport reports stored, from whichever
-// goroutine its handshake or its reader runs on.
-type enrollment struct {
-	mu    sync.Mutex
-	label string
+// hostKeyFindings holds what a transport reports of the device's host key,
+// from whichever goroutine its handshake or its reader runs on.
+type hostKeyFindings struct {
+	mu   sync.Mutex
+	list []platform.HostKeyNotice
 }
 
-func (n *enrollment) set(label string) {
-	n.mu.Lock()
-	n.label = label
-	n.mu.Unlock()
+func (f *hostKeyFindings) add(n platform.HostKeyNotice) {
+	f.mu.Lock()
+	f.list = append(f.list, n)
+	f.mu.Unlock()
 }
 
-func (n *enrollment) get() string {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	return n.label
+func (f *hostKeyFindings) all() []platform.HostKeyNotice {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]platform.HostKeyNotice(nil), f.list...)
 }
 
-// hostKeyNotices is the host_key_enrolled notice for a device whose session
-// stored its key of the type label, none when label is empty.
-func hostKeyNotices(device, label string) []records.Notice {
-	if label == "" {
-		return nil
+// HostKeyNotices are the records' notices for what the device's transport
+// found of its host key, each message its hostkey phrase around the
+// device's name: host_key_enrolled with the key type,
+// host_key_mismatch_accepted with the stored and presented fingerprints,
+// host_key_not_compared with the short cause and the whole reason.
+func HostKeyNotices(device string, found []platform.HostKeyNotice) []records.Notice {
+	var out []records.Notice
+	for _, n := range found {
+		switch n.Code {
+		case platform.HostKeyEnrolled:
+			out = append(out, records.Notice{Code: "host_key_enrolled", Message: hostkey.EnrolledPhrase(n.Label).Text(device), Details: map[string]any{"key_type": n.Label}})
+		case platform.HostKeyMismatchAccepted:
+			out = append(out, records.Notice{Code: "host_key_mismatch_accepted", Message: hostkey.MismatchPhrase().Text(device), Details: map[string]any{"enrolled": n.Enrolled, "presented": n.Presented}})
+		case platform.HostKeyNotCompared:
+			out = append(out, records.Notice{Code: "host_key_not_compared", Message: hostkey.NotComparedPhrase(n.Cause).Text(device), Details: map[string]any{"cause": n.Cause, "reason": n.Reason}})
+		}
 	}
-	return []records.Notice{{Code: "host_key_enrolled", Message: hostkey.EnrolledMessage(device, label), Details: map[string]any{"key_type": label}}}
+	return out
 }
 
 func targetNotices(t executionplan.ExecutionTarget) []records.Notice {

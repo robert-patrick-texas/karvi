@@ -15,7 +15,7 @@ import (
 
 func execSession(t *testing.T, srv *fakedevice.Server) (*devsession.ExecSession, *ExecConnection) {
 	t.Helper()
-	conn, err := DialExec(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent"), &warnings{}))
+	conn, err := DialExec(context.Background(), dialRequest(srv, hostkey.Insecure, filepath.Join(t.TempDir(), "absent")))
 	if err != nil {
 		t.Fatal(err)
 	}

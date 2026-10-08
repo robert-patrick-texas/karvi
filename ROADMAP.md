@@ -164,7 +164,13 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   operator's Unix socket. A setting the daemon cannot honour refuses the job,
   as today. It replaces the per-key carriage in the plan (the `execution` and
   `output` blocks), and it ends a started daemon's keeping of its first
-  invocation's `--set` for every later job. The questions: which keys belong
+  invocation's `--set` for every later job; among them the execution policy
+  (`ssh.host-key-policy`, `ssh.known-hosts-file`,
+  `ssh.halt-run-on-host-key-mismatch`, `security.allow-telnet`), which the
+  daemon's own configuration overrides today without telling the client
+  ([`docs/EXAMPLES.md`, chapter
+  37](docs/EXAMPLES.md#37-the-first-contact-said-alike-over-both-transports-2026-10-07)).
+  The questions: which keys belong
   to the process; how the job records the configuration it ran under; the
   request's size.
 

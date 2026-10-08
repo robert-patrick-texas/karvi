@@ -72,66 +72,79 @@ func TestHostKeyAlgorithmsStrongestFirstAndFiltered(t *testing.T) {
 func TestVerifyModes(t *testing.T) {
 	enrolled := fakeKey(1)
 	entry := "router1 ssh-ed25519 " + enrolled + "\n"
-	var warnings []string
-	warn := func(m string) { warnings = append(warnings, m) }
 
 	// accept-new: a match, a changed key, and an unknown host enrolled once.
 	known := store(t, entry)
 	p := Policy{Mode: AcceptNew, KnownHostsFile: known}
-	if _, err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, enrolled), warn); err != nil {
-		t.Fatalf("match: %v", err)
+	if v, err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, enrolled)); err != nil || v != (Verdict{}) {
+		t.Fatalf("match: %+v %v", v, err)
 	}
-	_, err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, fakeKey(9)), warn)
+	_, err := Verify(p, "router1", 22, "ssh-ed25519", wire(t, fakeKey(9)))
 	if err == nil || err.(*Error).Code != "host_key_changed" || !strings.Contains(err.Error(), "enrolled=ssh-ed25519 SHA256:") || !strings.Contains(err.Error(), "presented=ssh-ed25519 SHA256:") {
 		t.Fatalf("changed: %v", err)
 	}
-	_, err = Verify(p, "router1", 22, "ecdsa-sha2-nistp256", wire(t, fakeKey(8)), warn)
+	_, err = Verify(p, "router1", 22, "ecdsa-sha2-nistp256", wire(t, fakeKey(8)))
 	if err == nil || err.(*Error).Code != "host_key_changed" {
 		t.Fatalf("another type for a known host: %v", err)
 	}
-	warnings = nil
-	stored, err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)), warn)
-	if err != nil || !stored {
-		t.Fatalf("enroll: stored=%t %v", stored, err)
+	v, err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)))
+	if err != nil || !v.Stored || v.Mismatch != nil {
+		t.Fatalf("enroll: %+v %v", v, err)
 	}
 	content, _ := os.ReadFile(known)
 	if !strings.Contains(string(content), "\n[router2]:830 ssh-ed25519 "+fakeKey(7)+" karvi-auto-enrolled") {
 		t.Fatalf("store after enrollment:\n%s", content)
 	}
-	// The enrollment is the caller's to say (EnrolledMessage), not a warning.
-	if len(warnings) != 0 {
-		t.Fatalf("warnings %q", warnings)
-	}
-	if stored, err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7)), warn); err != nil || stored {
-		t.Fatalf("enrolled key on the next open: stored=%t %v", stored, err)
+	if v, err := Verify(p, "router2", 830, "ssh-ed25519", wire(t, fakeKey(7))); err != nil || v.Stored {
+		t.Fatalf("enrolled key on the next open: %+v %v", v, err)
 	}
 
 	// secure: unknown and changed refused, nothing written.
 	secureStore := store(t, entry)
 	s := Policy{Mode: Secure, KnownHostsFile: secureStore}
-	if _, err := Verify(s, "router3", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err == nil || err.(*Error).Code != "host_key_not_enrolled" {
+	if _, err := Verify(s, "router3", 22, "ssh-ed25519", wire(t, fakeKey(6))); err == nil || err.(*Error).Code != "host_key_not_enrolled" {
 		t.Fatalf("secure unknown: %v", err)
 	}
-	if _, err := Verify(s, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err == nil || err.(*Error).Code != "host_key_changed" {
+	if _, err := Verify(s, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6))); err == nil || err.(*Error).Code != "host_key_changed" {
 		t.Fatalf("secure changed: %v", err)
 	}
 	if after, _ := os.ReadFile(secureStore); string(after) != entry {
 		t.Fatalf("secure wrote the store:\n%s", after)
 	}
 
-	// insecure: always accepted; the mismatch warning only for a known host.
-	warnings = nil
-	i := Policy{Mode: Insecure, KnownHostsFile: store(t, entry)}
-	if _, err := Verify(i, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err != nil {
-		t.Fatal(err)
+	// insecure: always accepted, nothing stored; a key differing from the
+	// stored one is in the Verdict with both fingerprints, an unknown or a
+	// matching one is not.
+	insecureStore := store(t, entry)
+	i := Policy{Mode: Insecure, KnownHostsFile: insecureStore}
+	v, err = Verify(i, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)))
+	if err != nil || v.Stored || v.Mismatch == nil || len(v.Mismatch.Enrolled) != 1 || len(v.Mismatch.Presented) != 1 ||
+		!strings.HasPrefix(v.Mismatch.Enrolled[0], "ssh-ed25519 SHA256:") || v.Mismatch.Enrolled[0] == v.Mismatch.Presented[0] {
+		t.Fatalf("insecure changed: %+v %v", v, err)
 	}
-	if len(warnings) != 2 || !strings.Contains(warnings[1], "mismatch accepted only because policy=insecure") {
-		t.Fatalf("insecure changed warnings %q", warnings)
+	if v, err := Verify(i, "router1", 22, "ssh-ed25519", wire(t, enrolled)); err != nil || v != (Verdict{}) {
+		t.Fatalf("insecure match: %+v %v", v, err)
 	}
-	warnings = nil
+	if v, err := Verify(i, "router9", 22, "ssh-ed25519", wire(t, fakeKey(6))); err != nil || v != (Verdict{}) {
+		t.Fatalf("insecure unknown: %+v %v", v, err)
+	}
+	if after, _ := os.ReadFile(insecureStore); string(after) != entry {
+		t.Fatalf("insecure wrote the store:\n%s", after)
+	}
 	missing := Policy{Mode: Insecure, KnownHostsFile: filepath.Join(t.TempDir(), "absent")}
-	if _, err := Verify(missing, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6)), warn); err != nil || len(warnings) != 1 {
-		t.Fatalf("insecure without a store: %v %q", err, warnings)
+	if v, err := Verify(missing, "router1", 22, "ssh-ed25519", wire(t, fakeKey(6))); err != nil || v != (Verdict{}) {
+		t.Fatalf("insecure without a store: %+v %v", v, err)
+	}
+}
+
+// TestInsecurePhrases: the two insecure notices' messages, the device's
+// name between the phrase's two parts.
+func TestInsecurePhrases(t *testing.T) {
+	if got := MismatchPhrase().Text("r1"); got != "ssh host-key mismatch r1 proceeding at risk" {
+		t.Fatalf("mismatch %q", got)
+	}
+	if got := NotComparedPhrase(NotComparedTimedOut).Text("r1"); got != "ssh host-key r1 not compared: ssh-keyscan timed out" {
+		t.Fatalf("not compared %q", got)
 	}
 }
 
@@ -155,7 +168,7 @@ func TestTypeLabelIsOpenSSHs(t *testing.T) {
 			t.Errorf("TypeLabel(%q) = %q, want %q", keyType, got, want)
 		}
 	}
-	if got := EnrolledMessage("router2", "ED25519"); got != "ssh accepted new host key for router2 (ED25519)" {
+	if got := EnrolledPhrase("ED25519").Text("router2"); got != "ssh accepted new host-key router2 (ED25519)" {
 		t.Fatalf("message %q", got)
 	}
 }

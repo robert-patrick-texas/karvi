@@ -116,7 +116,7 @@ env -u KARVI__SSH__KNOWN_HOSTS_FILE HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a
   run --no-daemon --target 127.0.0.3 \
   --transport system --format jsonl --cmd 'show clock' --cmd 'show version' \
   >"$TMP/enroll.jsonl" 2>"$TMP/enroll.err"
-[ "$(cat "$TMP/enroll.err")" = '! ssh accepted new host key for 127.0.0.3 (ED25519)' ]
+[ "$(cat "$TMP/enroll.err")" = '! ssh accepted new host-key 127.0.0.3 (ED25519)' ]
 [ "$(jsonl_records "$TMP/enroll.jsonl" 'notices.*.code' 'notices.*.details.key_type' | paste -sd'|' -)" = "$(printf 'host_key_enrolled\tED25519|\t')" ]
 grep '"command_completed"' "$BASE/audit.jsonl" | tail -2 >"$TMP/enroll.audit"
 sed -n 1p "$TMP/enroll.audit" >"$TMP/enroll.audit1"; sed -n 2p "$TMP/enroll.audit" >"$TMP/enroll.audit2"
@@ -164,8 +164,10 @@ grep -q 'host_key_not_enrolled' "$TMP/secure.err"
 [ ! -e "$CAPTURE" ]
 
 # Insecure: retain the private trust file only as comparison evidence. A fake
-# key scan presents a different key; karvi warns about both the insecure policy
-# and the mismatch, then allows the fake SSH command to succeed.
+# key scan presents a different key; karvi says the insecure policy once for
+# the job, in two lines, and the mismatch on the device's first record, under
+# --quiet, then allows the fake SSH command to succeed; the audit's details
+# name both keys.
 INSECURE_HOME=$TMP/insecure-home
 INSECURE_DIR=$INSECURE_HOME/.local/share/karvi
 INSECURE_KNOWN=$INSECURE_DIR/known_hosts
@@ -185,8 +187,12 @@ HOME="$INSECURE_HOME" PATH="$TMP/bin:$PATH" NETUSER=smoke NETPASS=not-a-real-sec
   --management-address 127.0.0.3 mismatch-device 'show clock' \
   >"$TMP/insecure.out" 2>"$TMP/insecure.err"
 grep -q '^host-key smoke succeeded$' "$TMP/insecure.out"
-grep -q 'policy insecure' "$TMP/insecure.err"
-grep -q 'mismatch accepted only because policy=insecure' "$TMP/insecure.err"
+[ "$(cat "$TMP/insecure.err")" = "$(printf '%s\n' \
+  '! ssh host-key policy insecure: unknown and changed keys accepted;' \
+  '!  connecting to devices with wrong keys and MITM attacks allowed' \
+  '! ssh host-key mismatch mismatch-device proceeding at risk')" ]
+grep '"command_completed"' "$BASE/audit.jsonl" | tail -1 >"$TMP/insecure.audit"
+[ "$(json_get "$TMP/insecure.audit" 'details.host_key_mismatch_accepted.*.*' | wc -l)" -eq 2 ]
 grep -q 'StrictHostKeyChecking no' "$CAPTURE"
 [ "$(grep -c 'KnownHostsFile "/dev/null"' "$CAPTURE")" -eq 2 ]
 
