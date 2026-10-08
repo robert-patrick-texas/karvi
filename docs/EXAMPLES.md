@@ -6717,3 +6717,56 @@ the run stopped at `[3]`,
 lintian's line shown, and no package, `.sha256`, or aggregate was left beside
 the bundle. The [release gates](BUILD-QUALIFICATION.md#release-gates) state
 the step's rule beside the clean-tree gate.
+
+## 44. The release 0.28.0 (2026-10-08)
+
+The fifth public release, on the operator's word and number, carrying chapters
+37 to 43 and the first with the Debian package; before the number, the tests'
+scratch made short whatever `TMPDIR` is, as a section of its own. The sequence
+is [chapter 29](#29-the-release-0270-2026-10-06)'s, with the artifact step of
+chapter 43's S2.
+
+**What it gains.** A site installs karvi by `apt install` from a published,
+checksummed package built from the published bundle, with the documents and the
+material chapters 39 and 42 laid out; and every change since 0.27.0, `command`
+over the native transport by default, the session processes ending with karvi,
+the scratch swept and bounded, a first contact and `insecure` said on every
+path, from a published artifact.
+
+**Before the number.** The first 1/3 (`f906f8b`, kept as
+`archive/rel-0.28.0-1of3-first` in the archive's mirror) was followed by the
+core evidence, whose socket-length run exited 1 at both `TMPDIR` lengths, where
+0.27.0's had passed. The whole tree at both lengths named five tests, all of
+item 7's bound meeting `t.TempDir()`, which lies under `TMPDIR` and appends the
+test's name: `TestServerSweepsScratchAtStart`'s explicit `tempdir` was 68 to 70
+bytes under the 25-byte `TMPDIR`, so it failed by chance, and the sweep rightly
+left a `tempdir` too long alone; `TestScratchRootNeverCreated`'s and
+`TestScratchPlaceNamesWhatTheMakerTakes`'s `<basedir>/tmp` were 74 to 87 bytes,
+the latter 64 to 66 under plain `/tmp`, three bytes from the bound; at 145 bytes
+`TestPlaceResolver` and `TestResolveSpoolDir` as well. Under the long `TMPDIR`
+`auto` passed `<basedir>/tmp` by and fell through to the host's
+`/tmp/karvi-<uid>`, and the maker's call in `TestScratchRootNeverCreated` made
+`/tmp/karvi-1000` on the host, empty, 0700; it was removed. The product was
+right; the tests were not. Builds on this host with the default `TMPDIR` had not
+fallen through: the baseline and the core run left no `/tmp/karvi-1000`.
+
+**The rule, agreed.** No test's scratch, nor a `basedir` whose `tmp` is the
+scratch's `auto` candidate, derives from `TMPDIR`: each takes its directory from
+one helper, `testdir.Short(t)` in the new leaf package `internal/testdir`, a
+directory under `/tmp` removed at the test's end, which `osutil`'s own tests can
+import where `osutiltest`, importing `osutil`, cannot; so `auto` takes
+`<basedir>/tmp` at any `TMPDIR` length, and `/tmp/karvi-<uid>` is reached only
+when no other candidate fits, never by a build on this host. The five tests take
+it, and `systemssh`'s command-session test, which wrote the same
+`os.MkdirTemp("/tmp", …)` inline, takes it too. Both verifiers' list of the
+host's places (`scripts/lib/host.sh`) gains whether `/tmp/karvi-<uid>` and
+`/var/tmp/karvi-<uid>` exist, by existence alone, since the operator's own
+daemon keeps its spool in the first: a run that makes either fails the verifier.
+*Not taken:* `auto`'s `/tmp` and `/var/tmp` candidates made a variable the tests
+redirect, as `SpoolRoots` is (with short directories no test reaches them, and
+the product stays as it is); the 145-byte run dropped (a release gate).
+Executed: the whole tree at `TMPDIR` lengths 25 and 145 and at the default
+passed, 61 packages, neither directory made; `host_shared_unchanged` failed
+naming `/tmp/karvi-1000` when it appeared between the two lists. The first 1/3
+was reset, `dev` taking the fix on `bb5b68f`, and the baseline ran again before
+the number.

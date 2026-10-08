@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 )
 
 // withSetupPlaces points the places setup shared makes at dir's: the
@@ -215,7 +216,7 @@ func TestScratchBoundedForTheAskpassSocket(t *testing.T) {
 // candidates passed by with their reasons.
 func TestScratchPlaceNamesWhatTheMakerTakes(t *testing.T) {
 	skipAsRoot(t)
-	dir := t.TempDir()
+	dir := testdir.Short(t)
 	withSetupPlaces(t, dir)
 	base := filepath.Join(dir, "base")
 	if err := os.Mkdir(base, 0o750); err != nil {

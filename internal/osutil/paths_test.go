@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 )
 
 func mode(t *testing.T, path string) os.FileMode {
@@ -563,7 +564,7 @@ func TestSiteUserRoots(t *testing.T) {
 // spool_directory_unavailable; the scratch resolver shares the probe loop
 // and still takes its explicit path.
 func TestResolveSpoolDir(t *testing.T) {
-	root := t.TempDir()
+	root := testdir.Short(t)
 	want := filepath.Join(root, "spool")
 	got, err := ResolveSpoolDir(want, root, os.Geteuid())
 	if err != nil || got != want {

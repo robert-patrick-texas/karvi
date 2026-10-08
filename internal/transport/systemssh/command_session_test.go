@@ -8,16 +8,13 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
 func TestCommandModeUsesOneInteractiveShellAndBypassesControlMaster(t *testing.T) {
 	home := t.TempDir()
-	scratch, err := os.MkdirTemp("/tmp", "nd-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(scratch)
+	scratch := testdir.Short(t)
 	bin := filepath.Join(home, "fake-ssh")
 	logPath := bin + ".log"
 	script := `#!/bin/sh

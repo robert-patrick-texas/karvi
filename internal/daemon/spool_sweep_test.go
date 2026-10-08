@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/output"
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 )
 
@@ -106,7 +107,7 @@ func TestServerSweepsControlSocketsAtStart(t *testing.T) {
 // daemon's start and logged as scratch_abandoned_removed by path; a scratch
 // not yet made is not made.
 func TestServerSweepsScratchAtStart(t *testing.T) {
-	scratch, base := t.TempDir(), t.TempDir()
+	scratch, base := testdir.Short(t), t.TempDir()
 	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`basedir="` + base + `"`, `tempdir="` + scratch + `"`}})
 	if err != nil {
 		t.Fatal(err)

@@ -37,8 +37,10 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
 ## Release gates
 
 - The expectations below are the suite-level form of the release gates.
-- Every unit test that creates a Unix socket MUST pass regardless of `TMPDIR`
-  length; release evidence uses 25-byte and 145-byte values.
+- Every unit test that creates a Unix socket, or whose scratch must fit the
+  askpass socket's bound, MUST pass regardless of `TMPDIR` length; release
+  evidence uses 25-byte and 145-byte values. Such a test takes its directory
+  from `internal/testdir`, under `/tmp`, not from `t.TempDir()`.
 - `scripts/package-source-bundle.sh` MUST name the archive root from `VERSION`
   regardless of the working-directory name and MUST exclude `.git`.
 - The release tree MUST be clean at the tag, no untracked or modified entry
@@ -60,8 +62,9 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   and the replay resumes when a karvi release moves the schema from 10).
 - The Go tests and the suites MUST leave the host's shared places as they
   were: both verifiers list the shared scoreboard directory and the shared
-  trees under `/opt/karvi` and `/var/lib/karvi` before the tests and fail
-  after the suites when the list changed (`scripts/lib/host.sh`).
+  trees under `/opt/karvi` and `/var/lib/karvi`, and whether
+  `/tmp/karvi-<uid>` and `/var/tmp/karvi-<uid>` exist, before the tests and
+  fail after the suites when the list changed (`scripts/lib/host.sh`).
 
 ## v0.10.0 planning-boundary expectations
 

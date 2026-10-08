@@ -8,6 +8,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 )
 
 // TestPlaceResolver: the view's resolver names each place key's place by
@@ -16,7 +17,7 @@ import (
 // an absent basedir, a file key only when set, a shared credential file as
 // written, a relative path made absolute; any other key has no line.
 func TestPlaceResolver(t *testing.T) {
-	dir := t.TempDir()
+	dir := testdir.Short(t)
 	base := filepath.Join(dir, "base")
 	op, err := osutil.CurrentOperator()
 	if err != nil {

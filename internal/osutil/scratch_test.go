@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/testdir"
 )
 
 // withScratchRoot points ScratchRoot at root for one test.
@@ -21,7 +23,7 @@ func withScratchRoot(t *testing.T, root string) {
 // no operator creates it closed to the others; where it exists each
 // operator's folder is made inside it, private.
 func TestScratchRootNeverCreated(t *testing.T) {
-	dir := t.TempDir()
+	dir := testdir.Short(t)
 	base := filepath.Join(dir, "base")
 	if err := os.Mkdir(base, 0o700); err != nil {
 		t.Fatal(err)

@@ -2,7 +2,10 @@
 # The host's shared places, for the verifiers' look that the Go tests and
 # the suites left them as they were: the shared scoreboard directory and
 # the shared directory under each of the two roots (the three trees inside
-# it).
+# it); and the scratch's last two automatic candidates, /tmp/karvi-<uid> and
+# /var/tmp/karvi-<uid>, by their existence alone, since the operator's own
+# daemon keeps its spool in the first: a test whose basedir is too long for
+# the askpass socket's bound made it (docs/EXAMPLES.md chapter 44).
 # Source this file; POSIX sh, no local.
 #
 #   before=$(host_shared_entries)
@@ -23,10 +26,14 @@
 # `[ -d ] && find` list left the loop, and the pipeline under pipefail,
 # at 1 when the last place was absent (the v0.16.0 baseline's second run).
 host_shared_entries() {
-  for hse_dir in /dev/shm/karvi/scoreboards \
-      /opt/karvi/shared /var/lib/karvi/shared; do
-    if [ -d "$hse_dir" ]; then find "$hse_dir" -mindepth 1 2>/dev/null; fi
-  done | sort
+  hse_uid=$(id -u)
+  { for hse_dir in /dev/shm/karvi/scoreboards \
+        /opt/karvi/shared /var/lib/karvi/shared; do
+      if [ -d "$hse_dir" ]; then find "$hse_dir" -mindepth 1 2>/dev/null; fi
+    done
+    for hse_dir in "/tmp/karvi-$hse_uid" "/var/tmp/karvi-$hse_uid"; do
+      if [ -e "$hse_dir" ]; then printf '%s\n' "$hse_dir"; fi
+    done; } | sort
 }
 
 # host_shared_unchanged BEFORE fails, naming the entries that appeared or

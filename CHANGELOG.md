@@ -46,6 +46,14 @@
   refuses only executables whose identity is the release's
   (`source-release-vVERSION`), where it had refused any build matching
   `CHECKSUMS.sha256`, which a dev build does after `make checksums`.
+- **The tests pass at any `TMPDIR` length, and the verifiers fail when a run
+  makes the host's scratch.** Five tests put the scratch, or a `basedir` whose
+  `tmp` is `auto`'s candidate, under `TMPDIR`, which with the test's name passed
+  the askpass socket's 69-byte bound under the release's 25-byte and 145-byte
+  `TMPDIR` runs, so `auto` fell through to `/tmp/karvi-<uid>` and one of them
+  made it on the host; each takes a short directory under `/tmp` from one
+  helper, `internal/testdir`. Both verifiers now count `/tmp/karvi-<uid>` and
+  `/var/tmp/karvi-<uid>` among the host's places a run must leave as they were.
 - **`configs/ssh-legacy.conf` and `configs/ssh-ancient.conf` removed.** Two
   inert OpenSSH `Host` snippets left from `ssh.legacy-hosts`; karvi's own
   algorithm lists come before any operator's file, so they reached no
