@@ -593,7 +593,7 @@ var entries = []Entry{
 	failure("dependency_ssh_keyscan_unavailable", "dependency", exitHost, false, "Host-key inspection needs `ssh-keyscan`, which cannot be found."),
 	failure("host_key_directory_not_real", "permission", exitHost, false, "The trust-store directory is a symlink or not a directory."),
 	failure("host_key_directory_owner", "permission", exitHost, false, "The trust-store directory is owned by another user."),
-	failure("host_key_directory_permission", "permission", exitHost, false, "The trust-store directory can be written by its group or by others; 0700 or 0750 is expected."),
+	failure("host_key_directory_permission", "permission", exitHost, false, "The trust-store directory can be written by its group or by others; group or others must not write it."),
 	failure("host_key_scan_empty", "connection", exitHost, true, "`ssh-keyscan` returns no usable host keys."),
 	failure("host_key_scan_key_invalid", "connection", exitHost, false, "`ssh-keyscan` returns key data that is not valid base64."),
 	failure("host_key_trust_store_entry_invalid", "permission", exitHost, false, "A matching trust-store entry contains key data that is not valid base64."),

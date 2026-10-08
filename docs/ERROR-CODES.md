@@ -369,7 +369,7 @@ Active failure causes.
 | `host_key_directory_invalid` | permission | 109 | no | The trust-store directory cannot be created or inspected. |
 | `host_key_directory_not_real` | permission | 109 | no | The trust-store directory is a symlink or not a directory. |
 | `host_key_directory_owner` | permission | 109 | no | The trust-store directory is owned by another user. |
-| `host_key_directory_permission` | permission | 109 | no | The trust-store directory can be written by its group or by others; 0700 or 0750 is expected. |
+| `host_key_directory_permission` | permission | 109 | no | The trust-store directory can be written by its group or by others; group or others must not write it. |
 | `host_key_enrollment_empty` | connection | 109 | no | Host-key acceptance was requested with no presented keys. |
 | `host_key_enrollment_lock_failed` | permission | 109 | no | The trust store cannot be locked for enrollment. |
 | `host_key_enrollment_open_failed` | permission | 109 | no | The trust store cannot be opened for enrollment. |

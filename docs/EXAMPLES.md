@@ -6429,6 +6429,12 @@ under the shell's own umask 0002 with `FORCE_COLOR=3`, no prefix; a first run
 was set aside, since the tree was changed while it ran (a suite starting then
 reads the old script), and repeated with the tree unchanged throughout.
 
+**The refusal's wording, on the operator's word.** The message no longer names
+two modes the rule accepts among others: `host_key_directory_permission:
+known_hosts=…/known_hosts: directory mode is 0770; group or others must not
+write it`, executed on a lab build (exit 109), and the code's description
+says the same. The policy test checks the wording at each refused mode.
+
 **Closed.** The battery runs under the operator's umask and colour settings as
 they are. The evidence is kept beside the tree
 (`release-design-evidence/suite-work-dirs-2026-10-08`).

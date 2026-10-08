@@ -2,6 +2,7 @@ package hostkey
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -142,7 +143,8 @@ func TestExistingTrustFileRequiresPrivateParentDirectory(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, err := Resolve("secure", known, home, "")
-		if err == nil || !strings.Contains(err.Error(), "host_key_directory_permission") {
+		want := fmt.Sprintf("directory mode is %04o; group or others must not write it", mode)
+		if err == nil || !strings.Contains(err.Error(), "host_key_directory_permission") || !strings.Contains(err.Error(), want) {
 			t.Fatalf("mode %04o: expected private-directory permission failure, got %v", mode, err)
 		}
 	}

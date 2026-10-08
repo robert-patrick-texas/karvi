@@ -225,7 +225,7 @@ func validatePrivateDirectory(dir, path string) error {
 	// store's file is 0600, so the rule is that group and others cannot
 	// write the directory, not that its mode is exactly 0700.
 	if info.Mode().Perm()&0o022 != 0 {
-		return &Error{Code: "host_key_directory_permission", Path: path, Err: fmt.Errorf("directory mode is %04o; group or others may write it; expected 0700 or 0750", info.Mode().Perm())}
+		return &Error{Code: "host_key_directory_permission", Path: path, Err: fmt.Errorf("directory mode is %04o; group or others must not write it", info.Mode().Perm())}
 	}
 	return nil
 }
