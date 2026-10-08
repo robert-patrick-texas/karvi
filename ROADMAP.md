@@ -7,9 +7,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **Build numbers in the version.** A build identity beyond the version and
-   the commit, for telling two builds of one tree apart.
-2. **The packaged user unit's sandbox where it does not apply.** On an Ubuntu
+1. **The packaged user unit's sandbox where it does not apply.** On an Ubuntu
    24.04 host (systemd 255, `kernel.apparmor_restrict_unprivileged_userns=1`)
    a user unit given `PrivateTmp=yes`, `ProtectSystem=strict`, and
    `ProtectHome=read-only` ran in the client's own mount namespace and wrote
@@ -20,6 +18,8 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Later
 
+- **Build numbers in the version.** A build identity beyond the version and
+  the commit, for telling two builds of one tree apart.
 - **Macro files, `--mf PATH`.** A command file with a parser: variable
   substitution from the command line, the file, or the device's inventory
   row, expanded in the client before the plan, so the plan, its digest,
@@ -176,6 +176,28 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   drops one. The question: an exact separator, `-E` to a FIFO for OpenSSH's
   log, which takes `docs/SSH-TROUBLE.md`'s `-vvv` trace from its file into
   karvi's; the same `-E` "A login's OpenSSH log level" asks of a login.
+- **`insecure`'s comparison from the exec master's own line.** Over `system`
+  under `ssh.host-key-policy = "insecure"` the trust store given to OpenSSH is
+  `/dev/null`, so a stored device's key is compared by an `ssh-keyscan` beside
+  the connection, and when that second connection fails (not installed, past its
+  five seconds, a router with few vty lines refusing it) the session goes on
+  uncompared, `host_key_not_compared`. The exec master runs at `DEBUG1`, where
+  OpenSSH writes `Server host key: TYPE FINGERPRINT`, so an exec device could be
+  compared from that line without a second connection; the shell's command
+  session and a login do not receive it
+  ([`docs/EXAMPLES.md`, chapter
+  37](docs/EXAMPLES.md#37-the-first-contact-said-alike-over-both-transports-2026-10-07),
+  issue 5a).
+- **A server that closes before its exit status.** The system transport's exec
+  master closes the channel at the end of output; `sshd` still sends the status
+  after that close, and the master takes it, but a server that sends its end of
+  output, then its status, and nothing after a close, as the fake device did,
+  would lose the status over `system`, recorded `command_exit_missing`, rightly
+  ([`docs/EXAMPLES.md`, chapter
+  32](docs/EXAMPLES.md#32-the-lost-exit-status-found-in-the-fake-device-2026-10-07)).
+  The question: whether karvi guards against one, for instance by keeping the
+  client's input open so that the master never closes first, and what that costs
+  a device that waits for its input to end.
 - **The daemon's socket path bounded.** `daemon.socket`, by default
   `<basedir>/socket/daemon.sock`, has no length check: under a 100-byte
   `basedir` a `run` waited out the daemon's start and exited 112,
@@ -201,6 +223,14 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   S2). The question: one function in `scripts/lib` that runs a call and, when it
   fails unexpectedly, names it and prints what karvi wrote before the suite
   exits.
+- **One example configuration.** `configs/example.toml`, which the package
+  installs under `/usr/share/doc/karvi/configs/` and `config generate`'s output
+  names, and `examples/config.toml`, the curated site configuration, are two
+  examples of one thing; merging them is a documentation change of its own:
+  which keeps its name, what each document and `config generate` then point at,
+  and the package's rules and `scripts/check-deb.sh`'s list
+  ([`docs/EXAMPLES.md`, chapter
+  42](docs/EXAMPLES.md#42-the-example-configurations-in-the-package-2026-10-08)).
 
 ## The device-qualification track
 
