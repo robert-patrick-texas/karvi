@@ -118,7 +118,10 @@ func draftOptions(commands []string) DraftOptions {
 // the previous pin).
 // Re-pinned at registry 27: the three logging keys were removed; the plan
 // schema stays 11.
-const goldenK03Draft = "d97e9d6127b71f129967892b9252481f635f4858d752523a2dd8f81ceb6d067e"
+// Re-pinned when the load made path-valued keys absolute (registry 28):
+// the configuration digest alone moved, ssh.identities' default now under
+// the fixture home, which the test configuration takes.
+const goldenK03Draft = "5df2782c0beb2c094148592986cd2e37ff497c3bb784df243634588625e295cd"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

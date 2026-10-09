@@ -17,7 +17,7 @@ import (
 
 func testConfig(t *testing.T, sets ...string) configload.Snapshot {
 	t.Helper()
-	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: sets})
+	cfg, err := configload.Load(configload.Options{HomeDir: fixtureHome, InternalOnly: true, Environment: []string{}, Sets: sets})
 	if err != nil {
 		t.Fatal(err)
 	}

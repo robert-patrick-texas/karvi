@@ -7183,3 +7183,123 @@ removed and `--continue-device-on-error` a flag-origin key write; S4, the
 daemon reading only the process's keys, `cancel_requested` in the job's sink,
 the manifest's `policy` block (job 3) and the readiness `policy_digest` (plan
 report 2) removed; S5, the documents and the close.
+
+**S1, how configload knows a path, agreed.** Executed on a lab build of
+`aa71bf8` from a working directory `w`, configload keeping every value as
+written and each reader resolving it against its own working directory:
+
+```text
+$ karvi --set crun.directory=rel config show --explain crun.directory
+value:      "rel"                       resolved:   …/w/rel
+$ karvi config show ssh.identities
+value:      ["~/.ssh/id_ed25519", "~/.ssh/id_ecdsa", "~/.ssh/id_rsa"]   source: <builtin>
+$ karvi --set audit.file=auto config show --explain audit.file
+value:      "auto"                      resolved:   …/w/auto
+$ karvi --set basedir=none config show --explain basedir
+value:      "none"                      resolved:   …/w/none
+$ karvi --set sharedroot=rel config show --explain sharedroot
+value:      "rel"                       (no resolved line)
+$ karvi --set ssh.transports.system=bin/ssh config show --explain ssh.transports.system
+transport_system_executable_unavailable: … stat …/b/bin/ssh: no such file or directory
+```
+
+Only the CLI's `placeResolver` knew which keys are paths, and it missed
+`sharedroot` and `ssh.identities`. The registry now marks them, and both read
+the mark: a fixed entry's `place`, set on the thirteen string keys `basedir`,
+`sharedroot`, `tempdir`, `spooldir`, `scoreboards`, `ssh.known-hosts-file`,
+`ssh.control-path-root`, `sessions.shared-capacity-root`, `daemon.socket`,
+`output.root`, `crun.directory`, `transcript.root`, and `audit.file`, and on the
+list `ssh.identities`; a dynamic table's `places`, naming its path fields,
+`inventory-source.N.path` and `credential-backend.X.path`, `ca-file`,
+`client-cert-file`, and `client-key-file`; and a marked key's `words`, the
+values that are not paths, `auto` for the eleven other keys whose default is
+`auto`, `auto` and `none` for `sharedroot`, none for the others, an empty value
+being unset for every key. Words are per key because a word shared by all would
+keep `basedir=none` and `audit.file=auto`, paths today, as written for a daemon
+to resolve against its own directory. At the end of the load, after the macros
+and the validation and before the digest, a marked value neither empty nor one
+of its key's words has `~` expanded from the load's home and is made absolute
+against the working directory; validation still judges the value as written (a
+shared credential file's absolute path, `ssh.identities`' absolute or `~/`
+form), and a `~user` or a `~` with the home unknown fails at the load under its
+own code, naming the key and its source. `config show` prints the absolute path
+from the layer that set it, the built-in `ssh.identities` with the home
+expanded, `--explain`'s `resolved:` line for an explicit path equals the value,
+and the digest covers the absolute paths; no reader's place changes. *Not
+taken:* a `path` kind (every switch on the kind changed for a string parsed like
+any other); `auto` and `none` as words of every key; `sharedroot` and
+`ssh.identities` left unmarked (a daemon in another directory reading another
+`sharedroot`). *Found on the way:* `ssh.transports.*` is an executable
+specification, not a path, a relative one with a separator taken from karvi's
+own directory; a bare `ssh.transports.system = "ssh"` is found on the daemon's
+`PATH`, its first launcher's environment, an input the client does not send,
+which this item does not close.
+
+**S1, the working directory's refusal, agreed.** Executed from a working
+directory removed, the build before S1 and the step as first built:
+
+```text
+== before
+--set crun.directory=rel config show crun.directory   exit 0, "rel"
+--set crun.directory=rel crun --no-daemon …           crun_directory_unavailable: getwd: no such file or directory   exit 2
+--set output.root=jobs run --no-daemon …               output_root_unavailable: getwd: no such file or directory      exit 9
+run --no-daemon --fs=.txt …                            crun_directory_unavailable: getwd: … (the working directory, implied by --fs)
+== the step as first built
+each of the four                                       path_other_user_home_unsupported: getwd: … for crun.directory at --set[10]   exit 2
+```
+
+The refusal moves to the load, for every command and `config show` too, naming
+the key and the option that set it; it takes a code of its own,
+`config_working_directory_unavailable` (config, exit 2: a configured relative
+path cannot be made absolute, the working directory unreadable).
+`crun_directory_unavailable`, whose two causes (`~` without a home, a relative
+path from an unreadable working directory) now fail at the load, is retired
+for it: the draft's fallback is `crun_directory_not_writable`, the code
+`resolveTree` gives the collection tree, and `impliedDirectory` checks that one
+alone, the load's refusal naming `--fs` as its source. `output_root_unavailable`
+stays, a fallback `reserve.go` and `jobdir.go` share. *Not taken:*
+`path_other_user_home_unsupported` widened (one code for two causes);
+`crun_directory_unavailable` kept for the refusal (a collection's code for any
+path key).
+
+**S1, the reload class, agreed.** Executed on the lab, the idle check on a
+minute ticker, so a 1m timer stops a daemon at its second tick:
+
+```text
+$ karvi --set daemon.shutdown-idle-timer=10m daemon start
+$ karvi --set daemon.shutdown-idle-timer=1m run … 'echo one'
+  150 s idle later: status: running
+$ karvi --set daemon.shutdown-idle-timer=1m run … 'echo one'           (no daemon running)
+  daemon started …   the daemon's command line: … --set daemon.shutdown-idle-timer=1m daemon serve
+  150 s idle later: daemon_unreachable …   daemon.log: "stopping: idle" idle=1m59s value=1m0s
+$ KARVI__DAEMON__SHUTDOWN_IDLE_TIMER=1m karvi run … 'echo two'       (no daemon running)
+  150 s idle later: daemon_unreachable …   daemon.log: "stopping: idle" idle=1m59s value=1m0s
+```
+
+A daemon's settings are the launching invocation's, by `--config`, `--set`,
+`KARVI__*`, or the files, for its life; a later client's value reaches it only
+by a restart, while `config show --explain` printed `reload: next-job` for
+every key. Two classes: `daemon-start`, a running daemon keeping the value it
+started with and a later one applying at its next start, for
+`daemon.max-accepted-jobs`, `daemon.shutdown-idle-timer`, and
+`daemon.shutdown-grace-seconds`, read by the daemon alone, and
+`daemon.max-ipc-frame-bytes` and `daemon.forced-grace-seconds`, read by every
+client for its own side too (its frame bound, `daemon stop`'s wait), the class
+naming the daemon's side; and `next-job`, the default, read by the invocation
+that sets the key or, from S2, by the job it submits, `daemon.start-timeout`
+(read by the client that launches or stops a daemon), `daemon.socket`, and
+`basedir` among them, the next invocation reaching or starting the daemon at
+the new place (issue 2's `basedir=base2`). `daemon.socket`'s text states the
+edge: an explicit socket with another `basedir` reaches the same daemon, its
+own state and log under the `basedir` it started with. The five rows carry the
+class, `Entries()` filling `next-job` where a row says nothing; `--explain`'s
+`reload:` line and `schema/config-schema.json` carry it; the registry moves to
+28, its rule's comment widened to a key's path mark and reload class. Within
+`dev`, `next-job` runs ahead of the code until S2; the artifact ships in the
+release that carries S2 to S4. *Not taken:* a class of their own for
+`daemon.socket` and `basedir` (the next invocation takes the new value, the
+daemon it reaches differs); a third class, `next-invocation`, for the
+client-only keys (no reader acts on the difference). *Raised, not taken here:*
+a client could compare its `daemon.*` values with a running daemon's and say
+where they differ, the daemon reporting its values in the status reply; an item
+of its own if wanted.

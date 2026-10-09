@@ -50,7 +50,7 @@ func TestPlatformFallback(t *testing.T) {
 	op := credentials.Operator{Username: "netops", UID: os.Getuid(), Home: home}
 	resolve := func(t *testing.T, d inventory.Device, input *scriptedInput, sets ...string) (credentials.Resolved, error) {
 		t.Helper()
-		cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: []string{}, Sets: sets})
+		cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: sets})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -12,12 +12,15 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
-// RegistrySchemaVersion moves once per release whose keys or table fields
-// change: 26 takes the top-level scoreboards in place of watch.directory,
-// and sessions.shared-capacity-root's default auto; 27 removes
-// logging.level, logging.file, and logging.file-required, read by nothing.
+// RegistrySchemaVersion moves once per release whose keys, table fields, or
+// a key's path mark or reload class change: 26 takes the top-level
+// scoreboards in place of watch.directory, and
+// sessions.shared-capacity-root's default auto; 27 removes logging.level,
+// logging.file, and logging.file-required, read by nothing; 28 marks the
+// path-valued keys and their words (Place, Words, a table's Places) and
+// gives the daemon's own keys the reload class daemon-start.
 const (
-	RegistrySchemaVersion = 27
+	RegistrySchemaVersion = 28
 	ConfigSchemaVersion   = 6
 )
 
@@ -35,33 +38,47 @@ const (
 )
 
 type Entry struct {
-	Path           string   `json:"path"`
-	Kind           Kind     `json:"kind"`
-	DefaultLiteral string   `json:"default_literal,omitempty"`
-	Required       bool     `json:"required"`
-	LockEligible   bool     `json:"lock_eligible"`
-	Sensitive      bool     `json:"sensitive"`
-	ReloadClass    string   `json:"reload_class"`
-	Environment    string   `json:"environment,omitempty"`
-	CLIFlags       []string `json:"cli_flags"`
-	EnumValues     []string `json:"enum,omitempty"`
+	Path           string `json:"path"`
+	Kind           Kind   `json:"kind"`
+	DefaultLiteral string `json:"default_literal,omitempty"`
+	Required       bool   `json:"required"`
+	LockEligible   bool   `json:"lock_eligible"`
+	Sensitive      bool   `json:"sensitive"`
+	// ReloadClass is when a changed value takes effect: next-job, the
+	// default, for the invocation that sets it or the job it submits;
+	// daemon-start for a key a running daemon keeps from its start.
+	ReloadClass string   `json:"reload_class"`
+	Environment string   `json:"environment,omitempty"`
+	CLIFlags    []string `json:"cli_flags"`
+	EnumValues  []string `json:"enum,omitempty"`
 	// Min and Max bound an integer, number, or duration row, inclusive, as
 	// literals in the row's own syntax ("1s", "64", "1.0"); a leading ">" or
 	// "<" makes that bound exclusive (">0"). Either may be empty. The loader
 	// refuses a value outside them as config_value_out_of_range
 	// (internal/configload/ranges.go); the reference and the schema artifact
 	// carry them. ZeroDisables admits 0 outside the range, meaning off.
-	Min           string `json:"min,omitempty"`
-	Max           string `json:"max,omitempty"`
-	ZeroDisables  bool   `json:"zero_disables,omitempty"`
-	Documentation string `json:"documentation"`
-	Since         string `json:"since"`
+	Min          string `json:"min,omitempty"`
+	Max          string `json:"max,omitempty"`
+	ZeroDisables bool   `json:"zero_disables,omitempty"`
+	// Place marks a key whose value is a path, or a list of paths, and
+	// Words the values it may hold instead that are not paths. The loader
+	// makes a marked value absolute at the end of the load (`~` the
+	// operator's home, a relative path from the working directory) unless it
+	// is empty or one of the words, so a value means the same place to every
+	// process that reads it (internal/configload/places.go).
+	Place         bool     `json:"place,omitempty"`
+	Words         []string `json:"words,omitempty"`
+	Documentation string   `json:"documentation"`
+	Since         string   `json:"since"`
 }
 
+// DynamicTable is a table of named or indexed rows; Places names the row's
+// fields whose value is a path, as a fixed entry's Place marks one.
 type DynamicTable struct {
 	Pattern      string          `json:"pattern"`
 	Fields       map[string]Kind `json:"fields"`
 	LockEligible bool            `json:"lock_eligible"`
+	Places       []string        `json:"places,omitempty"`
 }
 type Artifact struct {
 	RegistrySchemaVersion int                 `json:"registry_schema_version"`
@@ -116,7 +133,7 @@ var dynamicTables = []DynamicTable{
 	{Pattern: "macros.<name>", Fields: map[string]Kind{"value": String}, LockEligible: true},
 	{Pattern: "name-transform.<name>", Fields: map[string]Kind{"operations": ObjectArray}, LockEligible: true},
 	{Pattern: "credential-transform.<name>", Fields: map[string]Kind{"operator": ObjectArray, "username": ObjectArray}, LockEligible: true},
-	{Pattern: "credential-backend.<name>", Fields: map[string]Kind{}, LockEligible: true},
+	{Pattern: "credential-backend.<name>", Fields: map[string]Kind{}, LockEligible: true, Places: []string{"path", "ca-file", "client-cert-file", "client-key-file"}},
 	{Pattern: "credential-policy.<name>", Fields: map[string]Kind{"inherits": String, "backend-sequence": StringArray, "username-template": String}, LockEligible: true},
 	{Pattern: "session-init.<name>", Fields: map[string]Kind{"commands": StringArray, "on-error": Enum, "command-timeout": Duration}, LockEligible: true},
 	// paging-commands joined the fields at registry 11, no bump: a
@@ -125,7 +142,7 @@ var dynamicTables = []DynamicTable{
 	// platform's collection list, sent by a crun that names no command;
 	// registry 25: channel in place of control-master, and fallback.
 	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "default-transport": Enum, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "legacy-class": Enum, "session-cap": Integer, "channel": Enum, "fallback": StringArray, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray}, LockEligible: true},
-	{Pattern: "inventory-source.<index>", Fields: map[string]Kind{}, LockEligible: true},
+	{Pattern: "inventory-source.<index>", Fields: map[string]Kind{}, LockEligible: true, Places: []string{"path"}},
 	{Pattern: "credential-policy-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "session-init-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "ssh-algorithms-profile.<name>", Fields: map[string]Kind{"host-key": StringArray, "kex": StringArray, "ciphers": StringArray, "macs": StringArray, "host-key-append": StringArray, "kex-append": StringArray, "ciphers-append": StringArray, "macs-append": StringArray}, LockEligible: true},
@@ -139,11 +156,36 @@ func Entries() []Entry {
 		if out[i].Since == "" {
 			out[i].Since = "0.2.0"
 		}
-		out[i].ReloadClass = "next-job"
+		if out[i].ReloadClass == "" {
+			out[i].ReloadClass = "next-job"
+		}
 		out[i].EnumValues = append([]string(nil), enumValues[out[i].Path]...)
+		out[i].Words = append([]string(nil), out[i].Words...)
 	}
 	return out
 }
+
+// Place reports whether key's value is a path, a fixed entry marked Place
+// or a dynamic table's field named in its Places, and the words the value
+// may hold instead.
+func Place(key string) (words []string, ok bool) {
+	for _, e := range fixedEntries {
+		if e.Path == key {
+			return e.Words, e.Place
+		}
+	}
+	parts := strings.Split(key, ".")
+	for _, t := range dynamicTables {
+		head := strings.Split(t.Pattern, ".")
+		n := len(head) - 1 // the fixed segments before the row's name
+		if len(t.Places) == 0 || len(parts) < n+2 || strings.Join(parts[:n], ".") != strings.Join(head[:n], ".") {
+			continue
+		}
+		return nil, oneOf(strings.Join(parts[n+1:], "."), t.Places...)
+	}
+	return nil, false
+}
+
 func Lookup(path string) (Entry, bool) {
 	for _, e := range Entries() {
 		if e.Path == path {

@@ -58,6 +58,7 @@ const (
 	retiredV0100a       = "v0.10.0"
 	retiredV0260        = "v0.26.0"
 	retiredV0270        = "v0.27.0"
+	retiredV0290        = "v0.29.0"
 )
 
 var entries = []Entry{
@@ -71,6 +72,7 @@ var entries = []Entry{
 	failure("config_include_duplicate_diamond", "config", exitConfig, false, "The same configuration file is reached twice through different includes."),
 	failure("config_include_missing", "config", exitConfig, false, "An include target does not exist or cannot be inspected."),
 	fallback("config_include_path", "config", exitConfig, "An include directive's path cannot be expanded and the error carries no more specific code."),
+	failure("config_working_directory_unavailable", "config", exitConfig, false, "A configured relative path cannot be made absolute at the load: the working directory cannot be read."),
 	failure("config_include_symlink_directory", "config", exitConfig, false, "A configuration root, include target, or directory entry is a symlink to a directory."),
 	failure("config_include_syntax", "config", exitConfig, false, "An include directive is malformed."),
 	failure("config_includes_not_at_file_root", "config", exitConfig, false, "`config.includes` appears in a file that is not a file graph root."),
@@ -190,7 +192,6 @@ var entries = []Entry{
 	failure("management_address_scope_error", "usage", exitUsage, false, "`--management-address` is given while more than one device is selected."),
 	failure("platform_option_unknown", "usage", exitUsage, false, "`--platform NAME` (or a shortcut: `--pi`, `--pn`, `--pr`, `--pj`, `--pa`, `--pg`) in `login`, `command`, or `run` is not a known platform (a built-in or a configured `[platform.NAME]` table), or holds a glob character or a leading `!`; a name is required, never a pattern. Checked once after configuration and before the inventory is read."),
 	failure("crun_platform_commands_missing", "inventory", exitInv, false, "A `crun` that names no command on its command line sends each device its platform's `crun-commands` list, and a device of the target set has a platform without one (`generic`, or a table that cleared it); refused at planning, before any device is contacted, naming the platform and a device. Set `[platform.NAME] crun-commands`, or give `--cmd` or `--cf`."),
-	failure("crun_directory_unavailable", "config", exitConfig, false, "`crun.directory` cannot be resolved by the client (`~` without a home, or a relative path from an unreadable working directory); the draft ends before any daemon is asked."),
 	failure("output_file_name_collision", "inventory", exitInv, false, "Two devices of the target set would write one file: under `output.crop-to-dot` a device name's file name is its first label, and `core.example.net` beside `core.example.com` is one `output.core.txt`; refused at planning, before any device is contacted, naming both devices. Set `output.crop-to-dot = false`, or run the two apart."),
 	failure("platform_unknown", "inventory", exitInv, false, "An inventory row of a device in the target set names a platform that is not known (a built-in or a configured `[platform.NAME]` table) and `platform-resolution.on-unknown` is `fail`; refused at planning, before any connection, naming every unknown value with its source and first line and the devices. Also the backstop behind that resolution: a name the executor, `login`, or an exercise reaches that their own configuration does not know is refused before any connection, as a failure-set record, a `login` failure, or an error finding at stage `platform` with the target not ready; its case is a daemon whose configuration lacks the client's alias table."),
 	failure("platform_selector_unknown", "usage", exitUsage, false, "A `--select-platform` selector reaches no known platform: a literal value is not a built-in or a configured `[platform.NAME]` table, or a glob matches none of them; a `!` value is held to the same rule. Checked in the target-set assembly before the inventory is read."),
@@ -827,4 +828,5 @@ var entries = []Entry{
 	retired("config_ssh_auth_mechanisms_disabled", retiredV0270, "Public-key, password, and keyboard-interactive SSH authentication were all disabled; `ssh.pubkey-authentication` is removed, a credential with a key offering it, so turning both password methods off leaves the key credentials, and a password credential is then refused by the device.", "authentication_failed"),
 	retired("config_platform_control_master_not_boolean", retiredV0270, "`platform.<name>.control-master` was not a boolean; the field, read by nothing, is removed, and a table that sets it is refused as an unknown key.", "config_unknown_key"),
 	retired("host_key_trust_store_candidates_exhausted", retiredV0270, "The automatic trust store could not be created at any of its candidates; under `auto` the store is one path, `<basedir>/known_hosts`, and a failure to make it is the step's own code.", "host_key_trust_store_create_failed", "host_key_directory_invalid", "host_key_directory_permission"),
+	retired("crun_directory_unavailable", retiredV0290, "`crun.directory` could not be resolved by the client (`~` without a home, or a relative path from an unreadable working directory); every path-valued key is made absolute at the load, which refuses either cause.", "config_working_directory_unavailable", "operator_identity_unavailable"),
 }

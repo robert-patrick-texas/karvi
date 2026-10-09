@@ -424,7 +424,7 @@ func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts
 		}
 		dir, err := osutil.ResolveCrunDirectory(cfg.String("crun.directory"), cfg.String("sharedroot"), base, operator.Home)
 		if err != nil {
-			return executionplan.OutputSettings{}, errorcodes.Ensure(err, "crun_directory_unavailable")
+			return executionplan.OutputSettings{}, errorcodes.Ensure(err, "crun_directory_not_writable")
 		}
 		collection = &executionplan.CollectionSettings{Directory: dir, FileMode: cfg.String("crun.file-mode"), Word: opts.Collection, Suffix: opts.Suffix}
 	}

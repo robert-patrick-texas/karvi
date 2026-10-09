@@ -1668,9 +1668,10 @@ receives every job as a `run`, and the code had taken a collection for a
 *Not taken:* the hook for every collection; MODE `crun` for any collection.
 
 **Every collection directory is resolved, made, and checked as a `crun`'s.**
-The client resolves `--cd=PATH` before planning (`~` expanded, a relative path
-made absolute against its working directory, `auto` the collection tree on
-every word), `crun_directory_unavailable` when it cannot,
+The client resolves `--cd=PATH` before planning (`~` expanded and a relative
+path made absolute against its working directory at the load, as for every
+path-valued key, `config_working_directory_unavailable` when the directory
+cannot be read; `auto` the collection tree on every word),
 `cli_option_value_missing` for a bare `--cd`; the directory is checked once
 before any device, a missing one made with its missing parents at
 `crun.directory-mode`, and one that is not a folder, cannot take a new file, or

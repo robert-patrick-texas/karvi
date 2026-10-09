@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/testdir"
@@ -46,7 +47,7 @@ func TestPlaceResolver(t *testing.T) {
 		return got
 	}
 
-	got := lines(load(), "basedir", "output.root", "tempdir", "scoreboards", "sessions.shared-capacity-root", "daemon.socket", "audit.file", "timezone")
+	got := lines(load(), "basedir", "output.root", "tempdir", "scoreboards", "sessions.shared-capacity-root", "daemon.socket", "audit.file", "timezone", "sharedroot")
 	want := map[string][]string{
 		"basedir":                       {"resolved:   " + base},
 		"output.root":                   {"resolved:   " + filepath.Join(base, "jobs")},
@@ -60,7 +61,7 @@ func TestPlaceResolver(t *testing.T) {
 			t.Errorf("%s: %q, want %q", k, got[k], w)
 		}
 	}
-	for _, k := range []string{"audit.file", "timezone"} {
+	for _, k := range []string{"audit.file", "timezone", "sharedroot"} {
 		if len(got[k]) != 0 {
 			t.Errorf("%s has lines: %q", k, got[k])
 		}
@@ -100,5 +101,15 @@ func TestPlaceResolver(t *testing.T) {
 	}
 	if len(got["credential-backend.mine.type"]) != 0 {
 		t.Errorf("a backend's type has a line: %q", got["credential-backend.mine.type"])
+	}
+}
+
+// TestPlaceKeysMarked: every key the view has a rule for is one the
+// registry marks as a path, the mark the load reads.
+func TestPlaceKeysMarked(t *testing.T) {
+	for key := range placeKeys {
+		if _, ok := configschema.Place(key); !ok {
+			t.Errorf("%s: a place rule, not marked in the registry", key)
+		}
 	}
 }

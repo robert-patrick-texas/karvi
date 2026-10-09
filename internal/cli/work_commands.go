@@ -179,7 +179,7 @@ func collectionOptions(inv *Invocation, word string, flags map[string]configload
 // impliedDirectory names the directory --fs implied in a failure to
 // resolve or prepare it, so the operator sees which option asked for it.
 func (c collection) impliedDirectory(result *app.ActivityResult) {
-	if c.implied && (strings.HasPrefix(result.Error, "crun_directory_unavailable:") || strings.HasPrefix(result.Error, "crun_directory_not_writable:")) {
+	if c.implied && strings.HasPrefix(result.Error, "crun_directory_not_writable:") {
 		result.Error += " (the working directory, implied by --fs)"
 	}
 }

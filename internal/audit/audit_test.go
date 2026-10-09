@@ -26,20 +26,19 @@ func TestDigestMetadataIsAllowed(t *testing.T) {
 	}
 }
 
-// TestAuditFilePath: audit.file's ~ is the home given, the password
-// database's, never $HOME; ~user is refused.
+// TestAuditFilePath: audit.file's ~ is the load's home, never $HOME; ~user
+// is refused at the load.
 func TestAuditFilePath(t *testing.T) {
 	home, other := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", other)
-	load := func(path string) configload.Snapshot {
-		t.Helper()
-		cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`audit.file="` + path + `"`, `audit.journald-required=false`}})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return cfg
+	load := func(path string) (configload.Snapshot, error) {
+		return configload.Load(configload.Options{HomeDir: home, InternalOnly: true, Environment: []string{}, Sets: []string{`audit.file="` + path + `"`, `audit.journald-required=false`}})
 	}
-	sink, err := New(load("~/a/audit.jsonl"), home)
+	cfg, err := load("~/a/audit.jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sink, err := New(cfg, home)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +49,7 @@ func TestAuditFilePath(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(other, "a")); !os.IsNotExist(err) {
 		t.Fatalf("written under $HOME: %v", err)
 	}
-	if _, err := New(load("~other/audit.jsonl"), home); errorcodes.Of(err) != "path_other_user_home_unsupported" {
+	if _, err := load("~other/audit.jsonl"); errorcodes.Of(err) != "path_other_user_home_unsupported" {
 		t.Fatalf("~other: %v", err)
 	}
 }

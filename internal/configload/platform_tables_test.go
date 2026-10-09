@@ -96,13 +96,16 @@ func TestPlatformTableValidation(t *testing.T) {
 }
 
 // TestSSHIdentities: each entry an absolute path or one under the home,
-// never a bare name or a relative path; the default is the three keys.
+// never a bare name or a relative path; the default is the three keys, the
+// home expanded at the load.
 func TestSSHIdentities(t *testing.T) {
-	snap, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}})
+	home := t.TempDir()
+	snap, err := Load(Options{HomeDir: home, SkipAuto: true, Environment: []string{}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(snap.Strings("ssh.identities"), " "); got != "~/.ssh/id_ed25519 ~/.ssh/id_ecdsa ~/.ssh/id_rsa" {
+	want := strings.Join([]string{filepath.Join(home, ".ssh/id_ed25519"), filepath.Join(home, ".ssh/id_ecdsa"), filepath.Join(home, ".ssh/id_rsa")}, " ")
+	if got := strings.Join(snap.Strings("ssh.identities"), " "); got != want {
 		t.Fatalf("default: %s", got)
 	}
 	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{`ssh.identities=["/etc/karvi/keys/ops", "~/.ssh/id_ops"]`}}); err != nil {

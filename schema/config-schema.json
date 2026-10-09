@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 27,
+  "registry_schema_version": 28,
   "config_schema_version": 6,
   "keys": [
     {
@@ -94,6 +94,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__BASEDIR",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "`auto` uses the private-state order; an explicit path is the exact effective private root, absolute or operator-home-relative, a real directory the operator can write to whatever its owner and mode; it cannot change its own config discovery. The `socket` and `state` subtrees under it are the operator's own, so a root is never shared: the shared trees are `sharedroot`'s.",
       "since": "0.2.0"
     },
@@ -107,6 +111,11 @@
       "reload_class": "next-job",
       "environment": "KARVI__SHAREDROOT",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto",
+        "none"
+      ],
       "documentation": "The site's shared root, holding the `jobs`, `crun`, and `transcripts` trees that `sudo karvi setup shared` creates with group write and setgid: `auto` consults `/opt/karvi/shared`, then `/var/lib/karvi/shared`; `none` consults nothing; a path consults that directory. A tree that exists there is the default of `output.root`, `crun.directory`, or `transcript.root` in place of the one under `basedir`, and a tree the operator cannot create files in is refused.",
       "since": "0.16.0"
     },
@@ -120,6 +129,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__TEMPDIR",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The scratch directory of the askpass socket and the system transport's ssh configuration. `auto` is the chain `/dev/shm/karvi/\u003cusername\u003e` (only when the site's scratch root `/dev/shm/karvi` exists: `sudo karvi setup shared` makes it, and karvi never does), `\u003cbasedir\u003e/tmp`, `/tmp/karvi-\u003cuid\u003e`, `/var/tmp/karvi-\u003cuid\u003e`, the first that is a writable real directory, made 0700 in its existing parent; an absolute path replaces the chain. The directory may be at most 69 bytes, so that an askpass socket's path, its name up to 37 bytes, fits 107: `auto` passes a longer candidate by, and an explicit path longer is `tempdir_too_long` at every job's admission and a login's start.",
       "since": "0.2.0"
     },
@@ -133,6 +146,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__SPOOLDIR",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The directory of the output spools, one file per command in flight whose response has passed `output.spool-threshold-bytes`. `auto` tries `/tmp/karvi-\u003cuid\u003e`, then `/var/tmp/karvi-\u003cuid\u003e`, each made 0700 for the effective uid, a real directory and not a link, probed with one file; an absolute path replaces the list; no candidate writable is `spool_directory_unavailable`, before any device is touched. Not `tempdir`: the scratch is for small, short-lived files and its `auto` chain prefers `/dev/shm`, a tmpfs, while a spool is infrequent and possibly large and must cost disk, never memory; a site that wants both on one volume points both keys at explicit paths there. Resolved and swept at the daemon's start and at every job's admission.",
       "since": "0.20.0"
     },
@@ -146,6 +163,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__SCOREBOARDS",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The folder every activity writes its scoreboard in and `karvi watch` reads. `auto` is `/dev/shm/karvi/scoreboards`, every operator's, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 3770 in the operators' group; a missing `scoreboards` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/scoreboards`; a shared folder present but not writable by the operator is passed by for the private one with one warning. `karvi watch` reads every place of the chain that exists, the shared folder and the private one. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused.",
       "since": "0.27.0"
     },
@@ -431,6 +452,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__KNOWN_HOSTS_FILE",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The karvi trust store, the one `known_hosts` file both transports trust. `auto` is `\u003cbasedir\u003e/known_hosts`: the operator's root under the site's `users` directory, else `~/.local/share/karvi/known_hosts`; an explicit path is taken as given, `~` the home. `config show --explain ssh.known-hosts-file` names the file.",
       "since": "0.4.0"
     },
@@ -457,6 +482,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__IDENTITIES",
       "cli_flags": null,
+      "place": true,
       "documentation": "The operator's own keys, offered in this order where a platform's `fallback` reaches `keys`: each an absolute path or `~/`, the home the password database names. A file that does not exist is passed over; one that is not the operator's own regular file without group or other access, holds a passphrase, or is hardware-backed is skipped with `operator_key_skipped`.",
       "since": "0.27.0"
     },
@@ -542,6 +568,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__CONTROL_PATH_ROOT",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The directory of the system transport's control sockets, a private real directory (0700, the operator's). `auto` is `/dev/shm/karvi/\u003cusername\u003e/sockets` when the site's scratch root exists, else `\u003cbasedir\u003e/socket/ssh`; an absolute path, or one beginning with `~/` (the operator's home), replaces both. A socket's path holds the root, a 16-character name, and OpenSSH's 17-character binding suffix within 107 bytes, so the root may be at most 73 bytes (`control_path_root_too_long` at planning, for a target that runs exec over the system transport). A socket a master killed outright left is swept at the daemon's start and at every job's admission.",
       "since": "0.2.0"
     },
@@ -1228,6 +1258,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__SESSIONS__SHARED_CAPACITY_ROOT",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The capacity ledger's root. `auto` is `/dev/shm/karvi/capacity`, the ledger every operator on the host shares, where the site's scratch root `/dev/shm/karvi` exists (`sudo karvi setup shared` makes it, at 2770 in the operators' group; a missing `capacity` is made in the root with its bits), else the private `\u003cbasedir\u003e/state/capacity`; a shared root present but not usable by the operator (the sticky bit on another's directory, a closed directory or lock file) is passed by for the private one with one warning (`capacity_root_unusable`). The ledger's files take the root's group modes. A path (`~` the operator's home, a relative path from the working directory) replaces the chain, used or refused.",
       "since": "0.2.0"
     },
@@ -1241,7 +1275,11 @@
       "reload_class": "next-job",
       "environment": "KARVI__DAEMON__SOCKET",
       "cli_flags": null,
-      "documentation": "Safe per-UID path.",
+      "place": true,
+      "words": [
+        "auto"
+      ],
+      "documentation": "The daemon's socket, a safe per-UID path: `auto` is `\u003cbasedir\u003e/socket/daemon.sock`, so another `basedir` reaches or starts another daemon; an explicit path reaches the daemon there whatever the client's `basedir`, that daemon's own state and log staying under the `basedir` it started with.",
       "since": "0.2.0"
     },
     {
@@ -1266,7 +1304,7 @@
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
-      "reload_class": "next-job",
+      "reload_class": "daemon-start",
       "environment": "KARVI__DAEMON__SHUTDOWN_GRACE_SECONDS",
       "cli_flags": null,
       "min": "0",
@@ -1281,7 +1319,7 @@
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
-      "reload_class": "next-job",
+      "reload_class": "daemon-start",
       "environment": "KARVI__DAEMON__SHUTDOWN_IDLE_TIMER",
       "cli_flags": null,
       "min": "1m",
@@ -1297,7 +1335,7 @@
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
-      "reload_class": "next-job",
+      "reload_class": "daemon-start",
       "environment": "KARVI__DAEMON__FORCED_GRACE_SECONDS",
       "cli_flags": null,
       "min": "0",
@@ -1312,7 +1350,7 @@
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
-      "reload_class": "next-job",
+      "reload_class": "daemon-start",
       "environment": "KARVI__DAEMON__MAX_IPC_FRAME_BYTES",
       "cli_flags": null,
       "min": "65536",
@@ -1327,7 +1365,7 @@
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
-      "reload_class": "next-job",
+      "reload_class": "daemon-start",
       "environment": "KARVI__DAEMON__MAX_ACCEPTED_JOBS",
       "cli_flags": null,
       "min": "10",
@@ -1345,6 +1383,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__OUTPUT__ROOT",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "`auto`: the shared `jobs` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/jobs`; an explicit path is that writable real directory.",
       "since": "0.2.0"
     },
@@ -1488,6 +1530,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__CRUN__DIRECTORY",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "The collection directory, one file per device named by the device, of `crun` and of `run` or `command` given `--cd`: `auto` is the shared `crun` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/crun`; an explicit path is resolved as `output.root` is (`~` expanded, a relative path from the working directory). `--cd=PATH` sets it for one invocation, and on `run` and `command` asks for the collection. Carried in the plan.",
       "since": "0.15.0"
     },
@@ -2301,6 +2347,10 @@
       "reload_class": "next-job",
       "environment": "KARVI__TRANSCRIPT__ROOT",
       "cli_flags": null,
+      "place": true,
+      "words": [
+        "auto"
+      ],
       "documentation": "`auto`: the shared `transcripts` tree under `sharedroot` when one exists, else `\u003cbasedir\u003e/transcripts`; an explicit path is that directory.",
       "since": "0.2.0"
     },
@@ -2393,6 +2443,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__AUDIT__FILE",
       "cli_flags": null,
+      "place": true,
       "documentation": "Empty disables secondary file.",
       "since": "0.2.0"
     },
@@ -2661,7 +2712,13 @@
     {
       "pattern": "credential-backend.\u003cname\u003e",
       "fields": {},
-      "lock_eligible": true
+      "lock_eligible": true,
+      "places": [
+        "path",
+        "ca-file",
+        "client-cert-file",
+        "client-key-file"
+      ]
     },
     {
       "pattern": "credential-policy.\u003cname\u003e",
@@ -2703,7 +2760,10 @@
     {
       "pattern": "inventory-source.\u003cindex\u003e",
       "fields": {},
-      "lock_eligible": true
+      "lock_eligible": true,
+      "places": [
+        "path"
+      ]
     },
     {
       "pattern": "credential-policy-map.\u003cindex\u003e",
@@ -3115,6 +3175,7 @@
     "config_unknown_key",
     "config_unsupported_file_type",
     "config_value_out_of_range",
-    "config_watch_stale_after_too_short"
+    "config_watch_stale_after_too_short",
+    "config_working_directory_unavailable"
   ]
 }

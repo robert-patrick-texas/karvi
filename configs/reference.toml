@@ -348,7 +348,10 @@ unknown-fallback = "generic"
 shared-capacity-root = "auto"
 
 [daemon]
-# Safe per-UID path.
+# The daemon's socket, a safe per-UID path: auto is <basedir>/socket/daemon.sock, so another
+# basedir reaches or starts another daemon; an explicit path reaches the daemon there whatever
+# the client's basedir, that daemon's own state and log staying under the basedir it started
+# with.
 socket = "auto"
 # 1s–2m.
 start-timeout = "5s"

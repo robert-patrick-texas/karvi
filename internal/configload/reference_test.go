@@ -21,7 +21,8 @@ func TestReferenceLoads(t *testing.T) {
 	if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	snap, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, ExplicitRoots: []string{path}})
+	home := t.TempDir()
+	snap, err := Load(Options{HomeDir: home, SkipAuto: true, Environment: []string{}, ExplicitRoots: []string{path}})
 	if err != nil {
 		t.Fatalf("the reference does not load: %v", err)
 	}
@@ -53,8 +54,14 @@ func TestReferenceLoads(t *testing.T) {
 		if under != table {
 			t.Errorf("%s: under [%s]", e.Path, under)
 		}
-		if !reflect.DeepEqual(v.Data, v.Default) {
-			t.Errorf("%s: %v, not its default %v", e.Path, v.Data, v.Default)
+		want := v.Default
+		if words, ok := configschema.Place(e.Path); ok {
+			if want, err = absolutePlace(want, words, home); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if !reflect.DeepEqual(v.Data, want) {
+			t.Errorf("%s: %v, not its default %v", e.Path, v.Data, want)
 		}
 	}
 }

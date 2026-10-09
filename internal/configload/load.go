@@ -114,6 +114,9 @@ func Load(opts Options) (Snapshot, error) {
 	if err := l.validate(); err != nil {
 		return Snapshot{}, err
 	}
+	if err := l.absolutePlaces(); err != nil {
+		return Snapshot{}, err
+	}
 	raw, err := l.snap.CanonicalJSON()
 	if err != nil {
 		return Snapshot{}, err

@@ -2,8 +2,8 @@ package cli
 
 import (
 	"path/filepath"
-	"strings"
 
+	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
@@ -45,7 +45,7 @@ func placeResolver(snap configload.Snapshot) configload.Resolver {
 		if key == "audit.file" && raw == "" {
 			ok = false // a file key has a place only when set
 		} else if !ok {
-			resolve, ok = dynamicPlace(snap, key, raw)
+			resolve, ok = dynamicPlace(key, raw)
 		}
 		if !ok {
 			return configload.Place{}, false
@@ -133,33 +133,21 @@ func followsBase(key, raw string) bool {
 	return fixed && (raw == "" || raw == "auto")
 }
 
-// dynamicPlace is the rule of a file key of a dynamic table, when set: an
-// inventory source's path, a credential backend's path (a shared one as
-// written, since it has no home) and its TLS files, each by
-// osutil.ResolvePath.
-func dynamicPlace(snap configload.Snapshot, key, raw string) (placeRule, bool) {
-	if raw == "" {
+// dynamicPlace is the rule of a dynamic table's file key, when set: a key
+// the registry marks as a path (configschema.Place), an inventory source's
+// path or a credential backend's path and TLS files, which the load made
+// absolute, each by osutil.ResolvePath.
+func dynamicPlace(key, raw string) (placeRule, bool) {
+	if _, fixed := configschema.Lookup(key); fixed || raw == "" {
 		return nil, false
 	}
-	parts := strings.Split(key, ".")
-	byPath := func(_ configload.Snapshot, raw string, op operatorPlaces, _ string) (osutil.Place, error) {
+	if _, ok := configschema.Place(key); !ok {
+		return nil, false
+	}
+	return func(_ configload.Snapshot, raw string, op operatorPlaces, _ string) (osutil.Place, error) {
 		p, err := osutil.ResolvePath(raw, op.home)
 		return osutil.Place{Path: p}, err
-	}
-	switch {
-	case len(parts) == 3 && parts[0] == "inventory-source" && parts[2] == "path":
-		return byPath, true
-	case len(parts) == 3 && parts[0] == "credential-backend" && parts[2] == "path":
-		if snap.String("credential-backend."+parts[1]+".scope") == "shared" {
-			return func(configload.Snapshot, string, operatorPlaces, string) (osutil.Place, error) {
-				return osutil.Place{Path: filepath.Clean(raw)}, nil
-			}, true
-		}
-		return byPath, true
-	case len(parts) == 3 && parts[0] == "credential-backend" && (parts[2] == "ca-file" || parts[2] == "client-cert-file" || parts[2] == "client-key-file"):
-		return byPath, true
-	}
-	return nil, false
+	}, true
 }
 
 // fromPlace is osutil's place as the view prints it.
