@@ -163,7 +163,7 @@ func TestReportValidationVectors(t *testing.T) {
 		edit  func(*PlanReport)
 		field string
 	}{
-		{"schema", fixtureInspection, func(r *PlanReport) { r.SchemaVersion = 2 }, "schema_version"},
+		{"schema", fixtureInspection, func(r *PlanReport) { r.SchemaVersion = 1 }, "schema_version"},
 		{"kind", fixtureInspection, func(r *PlanReport) { r.Kind = "dry-run" }, "kind"},
 		{"report id", fixtureInspection, func(r *PlanReport) { r.ReportID = "r1" }, "report_id"},
 		{"plan digest", fixtureInspection, func(r *PlanReport) {

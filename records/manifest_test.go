@@ -43,8 +43,6 @@ func fixtureManifest(t *testing.T) Manifest {
 	projection.PackageDigest = digest
 	header := plantest.Header(final, executionplan.Committed)
 	header.CredentialPackage = &executionplan.PackageReference{Protection: executionplan.ProtectionLocalPeer, Digest: digest}
-	policy := ExecutionPolicy{HostKeyPolicy: "accept-new", KnownHostsFile: "auto", HaltOnHostKeyMismatch: true, AllowTelnet: false}
-	policy.Digest, _ = policy.Sum()
 	initial := []InitialState{}
 	for _, x := range final.Targets {
 		for i := range final.Commands {
@@ -54,7 +52,7 @@ func fixtureManifest(t *testing.T) Manifest {
 	return Manifest{
 		SchemaVersion: JobSchemaVersion, JobID: plantest.JobID, ActivityID: plantest.JobID, AcceptedAt: plantest.FinalizedAt.Add(time.Second),
 		Operator: Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}}, App: map[string]any{"build": map[string]any{"version": "0.9.2"}}, Mode: "live",
-		Header: header, Plan: final, CredentialPackage: projection, Policy: policy,
+		Header: header, Plan: final, CredentialPackage: projection,
 		Selection:     Selection{Inputs: []TargetInput{{Kind: "target", Value: "127.0.0.1"}, {Kind: "site", Value: "*"}}, Excludes: []string{}, AddressAuthorities: []string{"core-a=daemon"}},
 		InitialStates: initial,
 	}
@@ -108,7 +106,6 @@ func TestManifestValidationVectors(t *testing.T) {
 			m.CredentialPackage.PlanDigest = executionplan.Sum([]byte("x"))
 			m.CredentialPackage.PackageDigest, _ = sumCleared(m.CredentialPackage)
 		}, "manifest_invalid"},
-		{"policy digest", func(m *Manifest) { m.Policy.AllowTelnet = true }, "manifest_invalid"},
 		{"initial state target", func(m *Manifest) { m.InitialStates[0].DeviceID = "name:ghost" }, "manifest_invalid"},
 		{"initial state index", func(m *Manifest) { m.InitialStates[0].CommandIndex = 9 }, "manifest_invalid"},
 		{"selection lists", func(m *Manifest) { m.Selection.Excludes = nil }, "manifest_invalid"},

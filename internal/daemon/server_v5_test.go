@@ -294,7 +294,7 @@ func TestSchema5SequenceRunsAJob(t *testing.T) {
 	if len(ev) != 1 || ev[0].TargetID != "name:core-a.example" || ev[0].SelectedSource != executionplan.SourceDNSDaemon || ev[0].Selected.String() != "127.0.0.1" {
 		t.Fatalf("evidence=%+v", ev)
 	}
-	if d := sub.prepared.Preparation.Daemon; d.IPCSchemaVersion != ipc.SchemaVersion || d.PolicyDigest == "" || len(d.Capabilities) != 3 || d.Audience != f.s.Audience() {
+	if d := sub.prepared.Preparation.Daemon; d.IPCSchemaVersion != ipc.SchemaVersion || len(d.Capabilities) != 3 || d.Audience != f.s.Audience() {
 		t.Fatalf("readiness=%+v", d)
 	}
 	receipt, err := f.provide(sub)

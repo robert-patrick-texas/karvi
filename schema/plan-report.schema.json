@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/plan-report-v1.json",
-  "title": "karvi plan inspection and exercise report schema 1",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/plan-report-v2.json",
+  "title": "karvi plan inspection and exercise report schema 2",
   "description": "The plan report: one shape for the dry-run (inspection) and exercise reports, discriminated by kind. Open to additive fields within a version: readers ignore what they do not know.",
   "$ref": "#/$defs/plan_report",
   "$defs": {
@@ -97,9 +97,6 @@
         },
         "ipc_schema_version": {
           "type": "integer"
-        },
-        "execution_policy_digest": {
-          "type": "string"
         },
         "capabilities": {
           "type": "array",
@@ -530,7 +527,7 @@
       ],
       "properties": {
         "schema_version": {
-          "const": 1
+          "const": 2
         },
         "kind": {
           "enum": [

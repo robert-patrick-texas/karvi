@@ -16,6 +16,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/credentialpackage"
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/credentialframe"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -184,18 +185,13 @@ func (s *Server) prepareJob(ctx context.Context, conn net.Conn, req ipc.Request)
 		}
 		evidence = []executionplan.AddressEvidence{}
 	}
-	policy, err := jobexec.Policy(cfg)
-	if err != nil {
-		s.writeError(conn, "ipc_encode_failed", err, req.RequestID)
-		return
-	}
 	report := executionplan.PreparationReport{
 		PreparationID: prepID, ExecutionEndpoint: executionplan.EndpointLocal, Audience: s.Audience(),
 		PreparedAt: now, ExpiresAt: now.Add(ipc.PreparationLifetime), DraftDigest: draftSum, Accepted: accepted,
 		Evidence: executionplan.PreparationEvidence{ExecutionEndpoint: executionplan.EndpointLocal, PreparationID: prepID, PreparedAt: now, Addresses: evidence},
 		Daemon: executionplan.DaemonReadiness{
 			ExecutionEndpoint: executionplan.EndpointLocal, Audience: s.Audience(), Reachable: true, Status: s.state(),
-			PID: os.Getpid(), Version: buildinfo.Version, IPCSchemaVersion: ipc.SchemaVersion, PolicyDigest: policy.Digest,
+			PID: os.Getpid(), Version: buildinfo.Version, IPCSchemaVersion: ipc.SchemaVersion,
 			Capabilities: []string{ipc.OpPrepareJob, ipc.OpProvideCredentials, ipc.OpCommitJob}, Findings: []executionplan.Finding{},
 		},
 		Findings: findings,
@@ -482,15 +478,23 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 		Preparations: []executionplan.PreparationReport{prepReport},
 		Timing:       exerciseTiming(prepareNS, dnsNS, frameNS, time.Since(commitStart).Nanoseconds()),
 	}
-	// The cancel_job audit record is written through the daemon's own sink
-	// with the job's plan and operator, never its grants.
+	// The cancel_job audit record is written through a sink opened from the
+	// job's configuration, where the job's own records go, with the job's
+	// plan and operator, never its grants; the daemon opens no sink of its
+	// own.
 	auditReq := request
 	auditReq.Grants = nil
 	j.auditCancel = func(rq jobexec.JobCancelRequest) {
-		if s.audit != nil {
-			if err := jobexec.WriteCancelRequested(s.audit, auditReq, jobID, rq); err != nil && s.Logger != nil {
-				s.Logger.Warn("cancel_requested audit record not written", slog.String("job_id", jobID), slog.String("error", err.Error()))
+		err := func() error {
+			sink, err := audit.New(cfg, s.Operator.Home)
+			if err != nil {
+				return err
 			}
+			defer sink.Close()
+			return jobexec.WriteCancelRequested(sink, auditReq, jobID, rq)
+		}()
+		if err != nil && s.Logger != nil {
+			s.Logger.Warn("cancel_requested audit record not written", slog.String("job_id", jobID), slog.String("error", err.Error()))
 		}
 	}
 	go func() {

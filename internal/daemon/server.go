@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
-	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -39,8 +38,10 @@ type Server struct {
 	UID               int
 	StartedAt         time.Time
 
-	// Config and Operator are the daemon's own: execution policy, output
-	// roots, DNS timeout, and the identity every job runs under.
+	// Config is the daemon's own configuration, read for the process alone:
+	// the daemon.* keys, its basedir (socket, state, log), and the sweeps at
+	// its start; a job runs under its plan's configuration block. Operator
+	// is the identity every job runs under.
 	Config   configload.Snapshot
 	Operator credentials.Operator
 	// Logger receives one line per request outcome; nil logs nothing.
@@ -84,10 +85,6 @@ type Server struct {
 	preparations preparationTable
 	idempotency  idempotencyTable
 	jobTable     jobTable
-
-	// audit is the daemon's own sink for run.cancel_requested, opened for
-	// the serve; the job's runner has its own.
-	audit *audit.Sink
 }
 
 type Status struct {
@@ -173,14 +170,6 @@ func (s *Server) Serve(parent context.Context) error {
 	defer cancel()
 	s.jobCtx, s.cancelJobs = context.WithCancelCause(parent)
 	defer s.cancelJobs(nil)
-	if sink, err := audit.New(s.Config, s.Operator.Home); err != nil {
-		if s.Logger != nil {
-			s.Logger.Warn("audit sink unavailable to the daemon", slog.String("error", err.Error()))
-		}
-	} else {
-		s.audit = sink
-		defer sink.Close()
-	}
 	// The spool directory is resolved and swept at the daemon's start:
 	// what a daemon that died with a
 	// command in flight left under spooldir goes now, logged by name. A

@@ -11,8 +11,9 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
-// PlanReportSchemaVersion is the plan-inspection/exercise report counter.
-const PlanReportSchemaVersion = 1
+// PlanReportSchemaVersion is the plan-inspection/exercise report counter:
+// 2 removes the daemon row's execution_policy_digest.
+const PlanReportSchemaVersion = 2
 
 // SensitivePropertyPattern is executionplan.SensitivePropertyPattern, the
 // one definition the audit screen and finding validation share.

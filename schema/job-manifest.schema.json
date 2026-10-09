@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-manifest-v2.json",
-  "title": "karvi job manifest schema 2",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-manifest-v3.json",
+  "title": "karvi job manifest schema 3",
   "type": "object", "additionalProperties": false,
-  "required": ["schema_version", "job_id", "activity_id", "accepted_at", "operator", "app", "mode", "header", "plan", "credential_package", "policy", "selection", "initial_states"],
+  "required": ["schema_version", "job_id", "activity_id", "accepted_at", "operator", "app", "mode", "header", "plan", "credential_package", "selection", "initial_states"],
   "properties": {
-    "schema_version": {"const": 2},
+    "schema_version": {"const": 3},
     "job_id": {"type": "string"},
     "activity_id": {"type": "string", "minLength": 1},
     "accepted_at": {"type": "string", "format": "date-time"},
@@ -15,22 +15,10 @@
     "header": {"$ref": "execution-plan.schema.json#/$defs/public_job_header"},
     "plan": {"$ref": "execution-plan.schema.json"},
     "credential_package": {"$ref": "credential-package-envelope.schema.json#/$defs/safe_package_projection"},
-    "policy": {"$ref": "#/$defs/execution_policy"},
     "selection": {"$ref": "#/$defs/selection"},
     "initial_states": {"type": "array", "items": {"$ref": "#/$defs/initial_state"}}
   },
   "$defs": {
-    "execution_policy": {
-      "type": "object", "additionalProperties": false,
-      "required": ["ssh_host_key_policy", "ssh_known_hosts_file", "ssh_halt_run_on_host_key_mismatch", "allow_telnet"],
-      "properties": {
-        "ssh_host_key_policy": {"enum": ["accept-new", "secure", "insecure"]},
-        "ssh_known_hosts_file": {"type": "string"},
-        "ssh_halt_run_on_host_key_mismatch": {"type": "boolean"},
-        "allow_telnet": {"type": "boolean"},
-        "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
-      }
-    },
     "target_input": {
       "type": "object", "additionalProperties": false,
       "required": ["kind"],

@@ -84,7 +84,7 @@ func renderExercise(out io.Writer, format string, r records.PlanReport, socket s
 	fmt.Fprintf(&b, "status: %s\n", r.Outcome)
 	fmt.Fprintf(&b, "job_submitted: %t\ndevice_contacted: %t\n", r.JobSubmitted, r.DeviceContacted)
 	for _, d := range r.Daemons {
-		fmt.Fprintf(&b, "daemon %s: %s pid=%d version=%s ipc_schema=%d policy_digest=%s", d.ExecutionEndpoint, d.Status, d.PID, d.Version, d.IPCSchemaVersion, shortDigest(d.PolicyDigest))
+		fmt.Fprintf(&b, "daemon %s: %s pid=%d version=%s ipc_schema=%d", d.ExecutionEndpoint, d.Status, d.PID, d.Version, d.IPCSchemaVersion)
 		if socket != "" {
 			fmt.Fprintf(&b, " socket=%s", socket)
 		}

@@ -7487,3 +7487,61 @@ The behaviour is the same and the plan carries no copy of a key. The tests that
 stated a removed split went with it (the plan's command timeout against the
 configuration's); the device-deadline test forces its passed deadline on the
 job's configuration through `FromValues`, as it forced it on the plan's block.
+
+**S4, the daemon keeps only the process.** *What it gains:* the daemon holds
+only what exists because there is a daemon process, and every record of a job
+lands where its client said, the cancel record among them; the manifest's
+`policy` block (a copy of four keys now in the block) and the readiness
+`policy_digest` (a digest of the job's keys, no fact of the daemon's) go. *It
+waits on* S2 and S3. Mapped: the daemon's own configuration feeds the seven
+`daemon.*` keys, its `basedir` (socket, state, log), and the start sweeps (its
+`spooldir`, `tempdir`, and control-path root), which stay as issue 2 agreed;
+besides them it opened its own audit sink, solely for `cancel_requested`, and
+`jobexec.Policy` fed the manifest's block and the readiness digest.
+
+**S4.1, the cancel record's sink, agreed.** Executed on S3's build, a daemon
+started by a client whose `audit.file` is `a1.jsonl`, a second client's detached
+job with `a2.jsonl`, cancelled by that client:
+
+```text
+$ karvi --set audit.file=a2.jsonl job cancel 261009-013912-00
+  cancel requested: job 261009-013912-00; …
+  a1.jsonl: 1 line of the job;  events: run.cancel_requested
+  a2.jsonl: 3 lines of the job; events: run.started command_completed run.completed
+```
+
+The record goes through a sink opened from the job's configuration, the one
+built from the block, at the first cancel request, and closed once written: the
+sink definition the job writes through, so the record lands beside the job's
+others; it is written once, by the request that cancelled, and a sink that
+cannot be opened is a warning in `daemon.log` as before. The daemon opens no
+sink of its own. Two sinks on one file are safe: the file sink appends one line
+per write, and journald takes each record whole. *Not taken:* the job's open
+sink handed to the daemon's job entry (a lifetime shared between the job and
+the cancel handler, for one record); the job writing the record when its
+context ends with the cancel cause (the record's time and order moving to when
+the job notices).
+
+**S4, built.** The cancel record goes through a sink from the job's
+configuration and the daemon opens none of its own; the manifest's `policy`
+block, `records.ExecutionPolicy`, and `jobexec.Policy` are removed (job 3, the
+manifest and the summary), the manifest's builder losing its only error; the
+readiness `execution_policy_digest` is removed from the daemon row and from
+`--exercise`'s line (plan report 2); the daemon's own configuration is read for
+the grace keys, its `basedir`, and the start sweeps alone. Executed on S3's
+build and S4's:
+
+```text
+== S3's build    a1.jsonl (the daemon's launcher): run.cancel_requested
+                 a2.jsonl (the job's client):      run.started command_completed run.completed
+== S4's build    a1.jsonl: nothing of the job
+                 a2.jsonl: run.started run.cancel_requested command_completed run.completed
+== S3's build    daemon local: running pid=… ipc_schema=11 policy_digest=0e118e09…46f1e30 socket=…
+                 manifest schema 2 keys: … operator plan policy schema_version selection
+== S4's build    daemon local: running pid=… ipc_schema=11 socket=…
+                 manifest schema 3 keys: … operator plan schema_version selection
+```
+
+A test puts the cancel record in a client's file other than the daemon's and
+fails on the daemon's own sink. README's counter line names the tree's
+counters once.

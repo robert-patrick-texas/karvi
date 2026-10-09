@@ -15,7 +15,7 @@ const (
 	CommandRecordSchema  = 3
 	ScoreboardSchema     = 3
 	AuditSchema          = 1
-	JobSchema            = 2
+	JobSchema            = 3
 	DaemonIPCSchema      = 11
 	ConfigRegistrySchema = 28
 )

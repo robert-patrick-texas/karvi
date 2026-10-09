@@ -15,7 +15,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
-	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/executor"
@@ -301,11 +300,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if err := scoreboardWriter.Write(initial); err != nil {
 		return FailedResult("scoreboard_write_failed", err)
 	}
-	manifest, err := buildManifest(req, id, now)
-	if err != nil {
-		return FailedResult("output_manifest_write_failed", err)
-	}
-	if err := store.WriteManifest(manifest); err != nil {
+	if err := store.WriteManifest(buildManifest(req, id, now)); err != nil {
 		return FailedResult("output_manifest_write_failed", err)
 	}
 	if err := writeActivityAudit(auditSink, req, id, jobID, "started", "started", 0, ""); err != nil {
@@ -489,25 +484,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	return result
 }
 
-// Policy is the daemon's execution policy from its own configuration,
-// with its digest.
-func Policy(cfg configload.Snapshot) (records.ExecutionPolicy, error) {
-	p := records.ExecutionPolicy{HostKeyPolicy: cfg.String("ssh.host-key-policy"), KnownHostsFile: cfg.String("ssh.known-hosts-file"), HaltOnHostKeyMismatch: cfg.Bool("ssh.halt-run-on-host-key-mismatch"), AllowTelnet: cfg.Bool("security.allow-telnet")}
-	sum, err := p.Sum()
-	if err != nil {
-		return p, err
-	}
-	p.Digest = sum
-	return p, nil
-}
-
-// buildManifest is the version 2 manifest: typed
-// around the header, the plan, the package projection, and the policy.
-func buildManifest(req Request, id string, accepted time.Time) (records.Manifest, error) {
-	policy, err := Policy(req.Config)
-	if err != nil {
-		return records.Manifest{}, err
-	}
+// buildManifest is the job's manifest: typed around the header, the plan
+// with its configuration block, and the package projection.
+func buildManifest(req Request, id string, accepted time.Time) records.Manifest {
 	initial := make([]records.InitialState, 0, len(req.Plan.Targets)*req.Plan.CommandCount())
 	for _, t := range req.Plan.Targets {
 		for i := range req.Plan.CommandsFor(t.Device.Platform) {
@@ -531,8 +510,8 @@ func buildManifest(req Request, id string, accepted time.Time) (records.Manifest
 	return records.Manifest{
 		SchemaVersion: records.JobSchemaVersion, JobID: req.Header.JobID, ActivityID: id, AcceptedAt: accepted,
 		Operator: osutil.RecordOperator(req.Operator), App: map[string]any{"build": buildinfo.Current()}, Mode: string(mode),
-		Header: req.Header, Plan: req.Plan, CredentialPackage: req.Package, Policy: policy, Selection: selection, InitialStates: initial,
-	}, nil
+		Header: req.Header, Plan: req.Plan, CredentialPackage: req.Package, Selection: selection, InitialStates: initial,
+	}
 }
 
 // summaryFiles is the summary's "paths" and "output" for a job's store:

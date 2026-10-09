@@ -14,7 +14,7 @@ const (
 	CommandSchemaVersion    = 3 // 3: channel, and an exec command's exit and stderr
 	ScoreboardSchemaVersion = 3 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes
 	AuditSchemaVersion      = 1
-	JobSchemaVersion        = 2
+	JobSchemaVersion        = 3 // 3: the policy block removed, the plan's configuration block the job's
 	MetricsSchemaVersion    = 1
 )
 
@@ -531,28 +531,6 @@ type Selection struct {
 	AddressAuthorities []string      `json:"address_authorities"`
 }
 
-// ExecutionPolicy is the daemon's own SSH and Telnet policy at acceptance,
-// which a client-authored plan never sets; its
-// digest is what the daemon reports at prepare.
-type ExecutionPolicy struct {
-	HostKeyPolicy         string `json:"ssh_host_key_policy"`
-	KnownHostsFile        string `json:"ssh_known_hosts_file"`
-	HaltOnHostKeyMismatch bool   `json:"ssh_halt_run_on_host_key_mismatch"`
-	AllowTelnet           bool   `json:"allow_telnet"`
-	Digest                string `json:"digest,omitempty"`
-}
-
-// Sum is the policy digest: SHA-256 over the JSON encoding with digest
-// cleared, the rule every digest in the tree follows.
-func (p ExecutionPolicy) Sum() (string, error) {
-	p.Digest = ""
-	d, err := executionplan.SumJSON(p)
-	if err != nil {
-		return "", err
-	}
-	return d.String(), nil
-}
-
 // InitialState is one (device, command) pair before execution starts.
 type InitialState struct {
 	DeviceID     string `json:"device_id"`
@@ -560,10 +538,10 @@ type InitialState struct {
 	State        string `json:"state"`
 }
 
-// Manifest is the job manifest, version 2: typed
-// around the commit header, the final plan, the credential package's safe
-// projection, and the daemon's execution policy. Everything the plan and
-// header already say is not repeated.
+// Manifest is the job manifest: typed around the commit header, the final
+// plan with its configuration block (every value the job ran under), and
+// the credential package's safe projection. Everything the plan and header
+// already say is not repeated.
 type Manifest struct {
 	SchemaVersion     int                                     `json:"schema_version"`
 	JobID             string                                  `json:"job_id"`
@@ -575,7 +553,6 @@ type Manifest struct {
 	Header            executionplan.PublicJobHeader           `json:"header"`
 	Plan              executionplan.ExecutionPlan             `json:"plan"`
 	CredentialPackage credentialpackage.SafePackageProjection `json:"credential_package"`
-	Policy            ExecutionPolicy                         `json:"policy"`
 	Selection         Selection                               `json:"selection"`
 	InitialStates     []InitialState                          `json:"initial_states"`
 }
@@ -620,11 +597,6 @@ func (m *Manifest) Validate() error {
 	}
 	if m.CredentialPackage.JobID != m.JobID || m.CredentialPackage.PlanDigest != m.Plan.PlanDigest {
 		return errorcodes.Errorf("manifest_invalid", "credential package names another job or plan")
-	}
-	if m.Policy.Digest != "" {
-		if sum, err := m.Policy.Sum(); err != nil || sum != m.Policy.Digest {
-			return errorcodes.Errorf("manifest_invalid", "policy digest %s does not match the policy", m.Policy.Digest)
-		}
 	}
 	targets := map[string]bool{}
 	for _, t := range m.Plan.Targets {

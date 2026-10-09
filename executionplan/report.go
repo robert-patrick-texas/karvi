@@ -84,7 +84,6 @@ type DaemonReadiness struct {
 	PID               int       `json:"pid,omitempty"`
 	Version           string    `json:"version,omitempty"`
 	IPCSchemaVersion  int       `json:"ipc_schema_version,omitempty"`
-	PolicyDigest      string    `json:"execution_policy_digest,omitempty"`
 	Capabilities      []string  `json:"capabilities"`
 	Findings          []Finding `json:"findings"`
 }

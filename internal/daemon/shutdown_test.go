@@ -31,6 +31,14 @@ type heldJob struct {
 
 func startHeldJob(t *testing.T, hold string, signals chan os.Signal, sets ...string) *heldJob {
 	t.Helper()
+	return startHeldJobWith(t, hold, signals, nil, sets...)
+}
+
+// startHeldJobWith is startHeldJob with client, when set, changing the
+// fixture's configuration after the daemon has it and before the job is
+// drafted: a client whose configuration differs from the daemon's.
+func startHeldJobWith(t *testing.T, hold string, signals chan os.Signal, client func(*v5Fixture), sets ...string) *heldJob {
+	t.Helper()
 	fakeDir := t.TempDir()
 	t.Setenv("KARVI_TEST_FAKE_DIR", fakeDir)
 	t.Setenv("KARVI_TEST_FAKE_HOLD", hold)
@@ -45,6 +53,9 @@ func startHeldJob(t *testing.T, hold string, signals chan os.Signal, sets ...str
 		`security.child-environment-allowlist=["KARVI_TEST_FAKE_DIR","KARVI_TEST_FAKE_HOLD"]`,
 		`dispatch.default="serial"`,
 	}, sets...)})
+	if client != nil {
+		client(f)
+	}
 	h := &heldJob{f: f, fakeDir: fakeDir, devices: []inventory.Device{direct("127.0.0.1"), direct("127.0.0.2"), direct("127.0.0.3")}, commands: []string{"show a", "show b"}, followed: make(chan followed, 1)}
 	sub := f.prepareAndPackageWith(mustID(t), h.commands, h.devices, fixedInput{"alice", "pw"})
 	if receipt, err := f.provide(sub); err != nil || !receipt.Accepted {

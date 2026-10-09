@@ -37,7 +37,7 @@ func TestSchema8FollowPayloadsMatchTheSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/record_frame", frame)
-	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/follow_terminal", FollowTerminal{Cursor: 5, Outcome: ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: plantest.JobID, JobID: plantest.JobID, ArtifactDir: start.ArtifactDir, Summary: records.Summary{SchemaVersion: 2, FinalStatus: "completed", Mode: "live"}}})
+	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/follow_terminal", FollowTerminal{Cursor: 5, Outcome: ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: plantest.JobID, JobID: plantest.JobID, ArtifactDir: start.ArtifactDir, Summary: records.Summary{SchemaVersion: records.JobSchemaVersion, FinalStatus: "completed", Mode: "live"}}})
 	req, err := NewRequest("r1", OpFollowJob, "0.13.0", fr)
 	if err != nil {
 		t.Fatal(err)
