@@ -93,11 +93,15 @@ func TestTimeoutEndsTheTelnetSession(t *testing.T) {
 // deadline earlier than the command's leaves the code to the executor's
 // device_timeout.
 func TestTelnetCommandOwnBounds(t *testing.T) {
+	cfg, err := configload.FromValues(map[string]any{"telnet.read-timeout": "300ms"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	open := func() (*Driver, *device) {
 		client, server := net.Pipe()
 		dv := &device{}
 		go dv.serve(server)
-		return &Driver{f: Factory{Config: configload.Snapshot{}, MaxOutputBytes: 1 << 20, Timeouts: platform.Timeouts{TelnetRead: 300 * time.Millisecond}}, conn: client, prompt: []byte("dev#")}, dv
+		return &Driver{f: Factory{Config: cfg, MaxOutputBytes: 1 << 20}, conn: client, prompt: []byte("dev#")}, dv
 	}
 	ctx := context.Background()
 	d, _ := open()

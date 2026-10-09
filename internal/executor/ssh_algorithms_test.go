@@ -8,7 +8,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 )
 
@@ -36,7 +35,7 @@ func (h *gateHarness) withAlgorithmConfig(sets ...string) func() []string {
 // of the same prefix fail the device with
 // ssh_algorithms_map_ambiguous before capacity and transport.
 func TestSSHAlgorithmsMapAmbiguityFailsBeforeContact(t *testing.T) {
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.withAlgorithmConfig(
 		`ssh-algorithms-profile.a.ciphers-append=["aes128-ctr"]`, `ssh-algorithms-profile.b.kex-append=["diffie-hellman-group1-sha1"]`,
 		`ssh-algorithms-map.0.profile="a"`, `ssh-algorithms-map.0.address-cidr="127.0.0.0/8"`,
@@ -59,7 +58,7 @@ func TestSSHAlgorithmsMapAmbiguityFailsBeforeContact(t *testing.T) {
 // TestSSHAlgorithmsProfileSelected is the debug line of the selected
 // profile, and of the global section when no rule matches.
 func TestSSHAlgorithmsProfileSelected(t *testing.T) {
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	debug := h.withAlgorithmConfig(`ssh-algorithms-profile.old.ciphers-append=["aes128-ctr"]`, `ssh-algorithms-map.0.profile="old"`, `ssh-algorithms-map.0.site="branch"`, `ssh-algorithms-map.1.profile="old"`, `ssh-algorithms-map.1.name="127.0.0.1"`)
 	if res, _ := h.run(context.Background()); !res.Success {
 		t.Fatalf("result %+v", res)

@@ -68,7 +68,7 @@ func TestScoreboardModeByWord(t *testing.T) {
 	plan := func(word string) executionplan.ExecutionPlan {
 		var p executionplan.ExecutionPlan
 		if word != "" {
-			p.Output.Collection = &executionplan.CollectionSettings{Directory: "/c", FileMode: "0660", Word: word}
+			p.Output.Collection = &executionplan.CollectionSettings{Directory: "/c", Word: word}
 		}
 		return p
 	}

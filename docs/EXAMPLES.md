@@ -7415,3 +7415,75 @@ exercise, the target ready, and whether the executor's and the exercise's
 `platform_unknown` backstop stays, its case gone, is S3's question with the
 other checks made twice; `scripts/daemon-upgrade-smoke-test.sh` reads the
 executable's version and IPC schema in place of 0.28.0 and 10.
+
+**S3, the per-key carriage removed.** *What it gains:* one source for every
+value a job reads, the plan carrying only what the client decided or computed
+for the job, so `config show`, the plan, and the job cannot disagree on a key.
+*It waits on* S2. Mapped: the `execution` block (the executor and the
+transports), the `ping` block (the job, the exercise, the executor, the plan
+report), `blind_wait_ns`, `output`'s two byte limits, `persist`, `files`, and
+`crop_to_dot` (the store, the executor, the Telnet factory, the draft's
+file-name check), `collection.file_mode`, and `dispatch`'s halt and gate
+values with `continue_device_on_error` leave the plan with their rules in
+`Validate`, the keys' registry ranges guarding the values; plan 12 is
+unreleased, so no number moves, and the reports keep their shapes, fed from
+the configuration. *Found:* `--continue-device-on-error` and the `crun` word
+already write `execution.halt-device-on-command-error = false` as flag-origin
+values (`continueOptions`); what goes is the duplicate, the plan's field and
+the option's `ContinueDeviceOnError`.
+
+**S3.1, the checks made twice, agreed.** With one configuration each pair gives
+one answer, and the second can fire only on a plan whose own block does not
+support its targets, which no client of this version writes. Executed on S2's
+build, `security.allow-telnet` false:
+
+```text
+$ karvi run --no-daemon --transport telnet --target 127.0.0.1 …
+  telnet_not_allowed: device 127.0.0.1 selects Telnet but security.allow-telnet is false   exit 9
+$ karvi run --transport telnet --target 127.0.0.1 …
+  telnet_not_allowed: client planning: device 127.0.0.1 selects Telnet …   exit 9   (no daemon started)
+$ karvi run --exercise --transport telnet --target 127.0.0.1 …
+  telnet_not_allowed: client planning: …   exit 9
+```
+
+The executor's platform lookup and the exercise's finding (`platform_unknown`)
+and the Telnet transport's refusal in `Open` stay as they are, their comments
+naming the case they now cover, a plan this client did not write: the platform
+check sits on a lookup the executor needs anyway, and the Telnet one is the
+transport's own refusal at the point of use, whoever calls it (`login` is SSH
+alone). The control-path root is checked for length by the client and resolved
+by the job where it is used, no second check. *Not taken:* removing them (the
+executor reaching a device with no definition, the transport opening whatever
+its caller asks).
+
+**S3, built.** The copied fields left the plan and their rules `Validate`; the
+job, the exercise, the executor, the plan report, and the transports read the
+keys of the job's configuration (`platform.Timeouts` and `Pick` removed with
+the factories' `Timeouts`); `output.SkippedFiles` is the one rule of the eight
+file switches, `--nof`, and `crun`'s `output.NAME.txt`, read by the planner and
+the job; `jobexec.IntendedPing` is the plan report's and the exercise's gate;
+the option field `ContinueDeviceOnError` went, `continueOptions` writing the
+key; `CollectionFileModes` and `BlindWaitMax` lost their last reader and were
+removed. Executed on S2's build and S3's, through a daemon, a `crun` and a
+second client setting `execution.command-timeout=2s`:
+
+```text
+== S2's build
+  job files: commands.jsonl commands.txt errors.jsonl failed-devices.txt manifest.json metrics.json summary.json
+  collection: 640 cd/127-0-0-1
+  plan keys: … blind_wait_ns … dispatch execution … output ping …
+  output: collection crop_to_dot dynamic_border echo files follow format max_command_bytes max_job_bytes no_border persist root
+  dispatch: continue_device_on_error dispatch_order halt_error_count … wave_gate_timed_delay_ns width
+  second client, command-timeout 2s, 'sleep 4': exit 101 command_timeout
+== S3's build
+  job files: (the same)   collection: 640 cd/127-0-0-1
+  plan keys: … configuration dispatch expectations … output plan_digest …
+  output: collection dynamic_border echo follow format no_border root
+  dispatch: dispatch_order max_width mode start_width width
+  second client, command-timeout 2s, 'sleep 4': exit 101 command_timeout
+```
+
+The behaviour is the same and the plan carries no copy of a key. The tests that
+stated a removed split went with it (the plan's command timeout against the
+configuration's); the device-deadline test forces its passed deadline on the
+job's configuration through `FromValues`, as it forced it on the plan's block.

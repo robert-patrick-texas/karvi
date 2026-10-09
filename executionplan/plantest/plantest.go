@@ -94,9 +94,6 @@ func DaemonTarget() executionplan.ExecutionTarget {
 	})
 }
 
-// Execution is the plan's timeouts block at the configuration's defaults.
-var Execution = executionplan.ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)}
-
 // Configuration is the draft's configuration block: one value, so the
 // pinned plan digests do not move with the registry's defaults, and its
 // digest computed as the daemon computes it (ConfigDigest). A test whose
@@ -122,12 +119,10 @@ func DraftPlan() executionplan.ExecutionPlan {
 		Operator: executionplan.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:  []executionplan.ExecutionTarget{DirectTarget(), InventoryTarget(), DaemonTarget()},
 		Commands: append([]string{}, Commands...), CommandPlanDigest: executionplan.SumCommands(Commands),
-		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
+		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    executionplan.DispatchSettings{Mode: executionplan.DispatchSerial, Width: 1, DispatchOrder: executionplan.OrderDefault},
-		Execution:   Execution,
-		Output:      executionplan.OutputSettings{Format: executionplan.FormatText, Follow: true, MaxCommandBytes: 67108864, MaxJobBytes: 17179869184, Persist: true, Files: executionplan.AllOutputFiles, Root: "/tmp/karvi/jobs"},
-		Ping:        executionplan.PingSettings{Enabled: false, Probes: executionplan.PingProbes, TimeoutNS: int64(500 * time.Millisecond)},
+		Output:      executionplan.OutputSettings{Format: executionplan.FormatText, Follow: true, Root: "/tmp/karvi/jobs"},
 		Sources: executionplan.SourceDigests{ConfigDigest: ConfigDigest(),
 			Selectors: inventory.Provenance{Sources: []inventory.SourceRef{{Name: "smoke", Path: "/tmp/inv.csv", Digest: strings.Repeat("ab", 32)}}}},
 		Configuration: Configuration(),

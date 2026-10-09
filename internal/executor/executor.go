@@ -62,8 +62,8 @@ type Options struct {
 	// platform has one runs it in place of Commands.
 	PlatformCommands map[string][]string
 	// BlindReturns is each requested command's count of blind returns, one
-	// entry per command, or empty for none; BlindWait is the wait for the
-	// prompt after a blind send. Blind is each command's tolerance flag, one
+	// entry per command, or empty for none (the wait for the prompt after a
+	// blind send is execution.blind-wait). Blind is each command's tolerance flag, one
 	// entry per command or empty, and Expectations each command's
 	// expect-and-send declarations, one list per command or empty, as the
 	// plan carries them; a count above zero implies the flag. The executor
@@ -72,14 +72,13 @@ type Options struct {
 	// them before, so a pattern that fails here is execution_plan_invalid
 	// and nothing is contacted.
 	BlindReturns []int
-	BlindWait    time.Duration
 	Blind        []bool
 	Expectations [][]executionplan.Expectation
 	// TimeoutsNS and MaxBytes are each requested command's own bounds,
-	// one entry per command or empty, 0 the job's: a timeout replaces the
-	// plan's command timeout (a blind command keeps its blind wait) and a
-	// limit MaxCommandBytes, each named as --timeout or --maxbytes in its
-	// message.
+	// one entry per command or empty, 0 the job's: a timeout replaces
+	// execution.command-timeout (a blind command keeps its blind wait) and
+	// a limit output.max-command-bytes, each named as --timeout or
+	// --maxbytes in its message.
 	TimeoutsNS     []int64
 	MaxBytes       []int64
 	CandidateCount int     // command: size of the ordered target set
@@ -92,19 +91,8 @@ type Options struct {
 	// Protection is the package protection recorded on each credential
 	// projection.
 	Protection string
-	// HaltOnCommandError stops a device's later commands after a failed one:
-	// the plan's rule, continue_device_on_error unset.
-	HaltOnCommandError bool
-	// Execution is the plan's timeouts block and MaxCommandBytes its
-	// output.max_command_bytes: the invocation's bounds, read here and
-	// handed to the transports in place of the configuration the job runs
-	// under, which on the daemon's path is the daemon's.
-	Execution       executionplan.ExecutionSettings
-	MaxCommandBytes int64
-	// Ping is the plan's gate block and Pinger the method Detect chose for
-	// the job; Pinger is nil, and never touched,
-	// when the gate is disabled.
-	Ping   executionplan.PingSettings
+	// Pinger is the method Detect chose for the job; nil, and never
+	// touched, when network.ping-targets is off.
 	Pinger icmpgate.Pinger
 
 	Capacity                                   *capacity.Manager
@@ -147,15 +135,25 @@ type gate struct {
 	ns     *int64
 }
 
+// pingEnabled, pingTimeout, and maxCommandBytes are the ICMP gate and the
+// job's command limit as the job's configuration has them.
+func (e *DeviceExecutor) pingEnabled() bool { return e.opts.Config.Bool("network.ping-targets") }
+func (e *DeviceExecutor) pingTimeout() time.Duration {
+	return e.opts.Config.Duration("network.ping-timeout")
+}
+func (e *DeviceExecutor) maxCommandBytes() int64 {
+	return e.opts.Config.Int64("output.max-command-bytes")
+}
+
 // PingSummary is the summary's ping block: nil when the gate is disabled.
 func (e *DeviceExecutor) PingSummary() *records.PingSummary {
-	if !e.opts.Ping.Enabled {
+	if !e.pingEnabled() {
 		return nil
 	}
 	e.ping.mu.Lock()
 	defer e.ping.mu.Unlock()
 	out := e.ping.summary
-	out.Enabled, out.Probes, out.TimeoutNS = true, e.opts.Ping.Probes, e.opts.Ping.TimeoutNS
+	out.Enabled, out.Probes, out.TimeoutNS = true, executionplan.PingProbes, e.pingTimeout().Nanoseconds()
 	if e.opts.Pinger != nil {
 		out.Method = e.opts.Pinger.Method()
 	} else {
@@ -342,7 +340,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	// session; before openReq exists, so a skipped target never has its
 	// password callbacks constructed. Only the selected address is probed.
 	var g *gate
-	if e.opts.Ping.Enabled {
+	if e.pingEnabled() {
 		g = e.runGate(ctx, t, address)
 		if ctx.Err() != nil {
 			status, code, cause := cancelStatus(ctx)
@@ -364,9 +362,10 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	}
 	def, known := definition(e.opts.Config, d.Platform)
 	if !known {
-		// The plan names a platform this configuration does not know (a
-		// daemon without the client's alias table): refused before any
-		// connection, never driven as generic.
+		// The plan names a platform its own configuration does not know, a
+		// plan this client did not write (the planner resolved every
+		// platform against the same tables): refused before any connection,
+		// never driven as generic.
 		err := errorcodes.Errorf("platform_unknown", "platform %q is not a known platform here (known: %s)", d.Platform, strings.Join(platform.KnownNames(e.opts.Config.NamedTables("platform")), ", "))
 		e.emitFailureSet(work, dc, seq, cred, g, "", "platform_unknown", "inventory", err, false)
 		return dispatch.Result{Task: task, Success: false, ErrorCode: "platform_unknown", External: false, StartedAt: start, EndedAt: time.Now()}
@@ -479,7 +478,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	// the capacity wait, and the open have their own bounds. Zero is
 	// unbounded.
 	var deviceDeadline time.Time
-	deviceTimeout := time.Duration(e.opts.Execution.DeviceTimeoutNS)
+	deviceTimeout := e.opts.Config.Duration("execution.device-timeout")
 	if deviceTimeout > 0 {
 		deviceDeadline = time.Now().Add(deviceTimeout)
 	}
@@ -571,7 +570,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 			initStart = cmdStart
 		}
 		commandHash := sha256.Sum256([]byte(st.command))
-		limit, _ := platform.Command{MaxBytes: st.maxBytes}.Limit(e.opts.MaxCommandBytes)
+		limit, _ := platform.Command{MaxBytes: st.maxBytes}.Limit(e.maxCommandBytes())
 		e.debugf("device command start target=%q%s index=%d total=%d sha256=%s bytes=%d command=%s timeout=%s maxbytes=%d blind=%t blind_returns=%d expectations=%s", d.CanonicalName, st.debugKind(), st.index+1, st.count, hex.EncodeToString(commandHash[:8]), len(st.command), debugCommandText(st.command), st.timeout, limit, st.blind, st.returns, debugExpectations(st.expect))
 		execCtx, cancelExec := ctx, context.CancelFunc(func() {})
 		if !deviceDeadline.IsZero() {
@@ -708,7 +707,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		// A session the failure ended takes nothing more under every
 		// setting; a usable one continues unless the device halts on a
 		// command error.
-		if !usable || e.opts.HaltOnCommandError {
+		if !usable || e.opts.Config.Bool("execution.halt-device-on-command-error") {
 			if !usable && remaining > 0 {
 				e.debugf("device session ended target=%q index=%d remaining=%d", d.CanonicalName, st.index+1, remaining)
 			}
@@ -748,15 +747,14 @@ type factory interface {
 }
 
 func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms sshalgorithms.Lists) factory {
-	x := e.opts.Execution
-	timeouts := platform.Timeouts{Command: time.Duration(x.CommandTimeoutNS), Prompt: time.Duration(x.PromptTimeoutNS), Enable: time.Duration(x.EnableTimeoutNS), TelnetRead: time.Duration(x.TelnetReadTimeoutNS)}
+	limit := e.maxCommandBytes()
 	switch selection.Kind {
 	case transportselect.KindSystem:
-		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
+		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
 	case transportselect.KindTelnet:
-		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts}
+		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: limit}
 	default:
-		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: e.opts.MaxCommandBytes, Timeouts: timeouts, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
+		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
 	}
 }
 
@@ -969,16 +967,15 @@ type deviceSequence struct {
 
 // sequence is the target's session-init profile from the plan's table
 // followed by the requested commands:
-// each profile command's timeout is the profile's, else the plan's
-// command timeout (execution.command-timeout as the invocation had it); a
-// requested command's is its --timeout, else the plan's, and its byte
-// limit its --maxbytes, else the job's.
+// each profile command's timeout is the profile's, else the job's
+// execution.command-timeout; a requested command's is its --timeout, else
+// the job's, and its byte limit its --maxbytes, else the job's.
 func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequence {
 	seq := deviceSequence{profile: t.SessionInitProfile, known: true}
 	if seq.profile == "" {
 		seq.profile = executionplan.SessionInitNone
 	}
-	commandTimeout := time.Duration(e.opts.Execution.CommandTimeoutNS)
+	commandTimeout := e.opts.Config.Duration("execution.command-timeout")
 	if seq.profile != executionplan.SessionInitNone {
 		prof, ok := e.opts.SessionInit[seq.profile]
 		seq.known = ok
@@ -1015,7 +1012,7 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 		// and its wait the blind wait; session-init commands are never blind
 		// and carry no declaration.
 		if st.returns > 0 || (own && i < len(e.opts.Blind) && e.opts.Blind[i]) {
-			st.blind, st.timeout, st.source = true, e.opts.BlindWait, "execution.blind-wait"
+			st.blind, st.timeout, st.source = true, e.opts.Config.Duration("execution.blind-wait"), "execution.blind-wait"
 		}
 		if own && i < len(e.opts.Expectations) {
 			for j, d := range e.opts.Expectations[i] {
@@ -1136,8 +1133,8 @@ func execFields(r *records.CommandRecord, x *platform.ExecResult) (output.Source
 // outcome. A pinger error is a capability
 // failure for this device alone; the job-level check happened at start.
 func (e *DeviceExecutor) runGate(ctx context.Context, t executionplan.ExecutionTarget, address netip.Addr) *gate {
-	timeout := time.Duration(e.opts.Ping.TimeoutNS)
-	report := &records.PingReport{Address: address.String(), Family: icmpgate.Family(address), Method: icmpgate.MethodUnavailable, ExecutionEndpoint: t.ExecutionEndpoint, Probes: e.opts.Ping.Probes, TimeoutNS: e.opts.Ping.TimeoutNS, Outcomes: []records.PingOutcome{}}
+	timeout, probes := e.pingTimeout(), executionplan.PingProbes
+	report := &records.PingReport{Address: address.String(), Family: icmpgate.Family(address), Method: icmpgate.MethodUnavailable, ExecutionEndpoint: t.ExecutionEndpoint, Probes: probes, TimeoutNS: timeout.Nanoseconds(), Outcomes: []records.PingOutcome{}}
 	started := time.Now()
 	var outcomes []icmpgate.Outcome
 	var err error
@@ -1145,27 +1142,27 @@ func (e *DeviceExecutor) runGate(ctx context.Context, t executionplan.ExecutionT
 		err = errorcodes.Errorf("icmp_capability_unavailable", "no pinger was detected for this job")
 	} else {
 		report.Method = e.opts.Pinger.Method()
-		outcomes, err = e.opts.Pinger.Probe(ctx, address, e.opts.Ping.Probes, timeout)
+		outcomes, err = e.opts.Pinger.Probe(ctx, address, probes, timeout)
 	}
 	total := time.Since(started)
-	for len(outcomes) < e.opts.Ping.Probes {
+	for len(outcomes) < probes {
 		detail := "not sent"
 		if err != nil {
 			detail = err.Error()
 		}
 		outcomes = append(outcomes, icmpgate.Outcome{Sequence: len(outcomes) + 1, SentAt: started, Status: icmpgate.StatusError, Detail: detail})
 	}
-	for _, o := range outcomes[:e.opts.Ping.Probes] {
+	for _, o := range outcomes[:probes] {
 		report.Outcomes = append(report.Outcomes, records.PingOutcome{Sequence: o.Sequence, SentAt: o.SentAt, Status: o.Status, RTTNS: o.RTTNS, From: o.From, Detail: o.Detail})
 		e.debugf("device ping target=%q address=%s method=%s seq=%d status=%s rtt=%s from=%q detail=%q", t.Device.CanonicalName, address, report.Method, o.Sequence, o.Status, rttString(o.RTTNS), o.From, o.Detail)
 	}
 	report.Replies = icmpgate.Replies(outcomes)
-	report.Losses = e.opts.Ping.Probes - report.Replies
+	report.Losses = probes - report.Replies
 	report.TotalNS = total.Nanoseconds()
 	switch {
 	case err != nil:
 		report.Decision = records.PingDecisionCapabilityUnavailable
-	case report.Replies == e.opts.Ping.Probes:
+	case report.Replies == probes:
 		report.Decision = records.PingDecisionProceed
 	case report.Replies > 0:
 		report.Decision = records.PingDecisionProceedDegraded

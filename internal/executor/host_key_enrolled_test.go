@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -48,7 +47,7 @@ func TestHostKeyEnrolledOnTheFirstRecord(t *testing.T) {
 	}
 	store := filepath.Join(dir, "known_hosts")
 	native := func() *gateHarness {
-		h := newGateHarness(t, executionplan.PingSettings{}, nil)
+		h := newGateHarness(t, nil, nil)
 		h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`, `ssh.host-key-policy="accept-new"`, `ssh.known-hosts-file="`+store+`"`)
 		h.target.Device.Transport = "native"
 		h.target.Device.Platform = "c9300"
@@ -139,7 +138,7 @@ func TestHostKeyMismatchAcceptedOnTheFirstRecord(t *testing.T) {
 	if err := os.WriteFile(store, []byte(identity+" ssh-ed25519 "+other+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`, `ssh.host-key-policy="insecure"`, `ssh.known-hosts-file="`+store+`"`)
 	h.target.Device.Transport = "native"
 	h.target.Device.Platform = "c9300"

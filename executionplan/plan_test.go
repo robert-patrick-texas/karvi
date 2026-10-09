@@ -17,9 +17,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "b9cc3a6295f86479fb513d57fc0545a46436ced3925272ab88ed01ed652b1e64"
-	goldenPrepared = "102b9f6ac9c97f605bf3358b699f9f4cac8b851ce7e70a22ec7dcd26fa4371f4"
-	goldenFinal    = "537e1882bf4aeb74b38770e1fbb07652327917d8aa5996b6fe31f4e0f46751fd"
+	goldenDraft    = "b12d172ca3ba4d209b931be4dfe984259397ea06085c133b47774c282484e0eb"
+	goldenPrepared = "6d4b944e5a30f37dca02172653d18695eb4315d4905d008a5ea7378460c9db20"
+	goldenFinal    = "55acdb7e77067719b452a19cba6b65047deb7795befe43e55f9405e3d4366ae1"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -31,12 +31,10 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 		Operator: Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
 		Targets:  []ExecutionTarget{fixtureDirect(t), fixtureInventory(t), fixtureDaemonDraft(t)},
 		Commands: fixtureCommands, CommandPlanDigest: SumCommands(fixtureCommands),
-		BlindReturns: []int{}, BlindWaitNS: int64(10 * time.Second), Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
+		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
 		SessionInit: map[string]SessionInitProfile{},
 		Dispatch:    DispatchSettings{Mode: DispatchSerial, Width: 1, DispatchOrder: OrderDefault},
-		Execution:   ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)},
-		Output:      OutputSettings{Format: FormatText, Follow: true, MaxCommandBytes: 67108864, MaxJobBytes: 17179869184, Persist: true, Files: AllOutputFiles, Root: "/tmp/karvi/jobs"},
-		Ping:        PingSettings{Enabled: false, Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond)},
+		Output:      OutputSettings{Format: FormatText, Follow: true, Root: "/tmp/karvi/jobs"},
 		Sources: SourceDigests{ConfigDigest: strings.Repeat("cd", 32),
 			Selectors: inventory.Provenance{Sources: []inventory.SourceRef{{Name: "smoke", Path: "/tmp/inv.csv", Digest: strings.Repeat("ab", 32)}}}},
 		Configuration: Configuration{"ssh.host-key-policy": "accept-new"},
@@ -262,8 +260,6 @@ func TestPlanValidationVectors(t *testing.T) {
 		{"nil max bytes", func(p *ExecutionPlan) { p.MaxBytes = nil }, "execution_plan_invalid: max_bytes: must be present"},
 		{"max bytes long", func(p *ExecutionPlan) { p.MaxBytes = []int64{0, 0, 0, 0, 0} }, "execution_plan_invalid: max_bytes: 5 entries for 4 commands"},
 		{"max bytes negative", func(p *ExecutionPlan) { p.MaxBytes = []int64{0, 0, 0, -2048} }, "execution_plan_invalid: max_bytes: command 4: -2048 must not be negative"},
-		{"blind wait negative", func(p *ExecutionPlan) { p.BlindWaitNS = -1 }, "execution_plan_invalid: blind_wait_ns: -1 must be 0..10m"},
-		{"blind wait too long", func(p *ExecutionPlan) { p.BlindWaitNS = int64(10*time.Minute + 1) }, "execution_plan_invalid: blind_wait_ns"},
 		{"nil blind", func(p *ExecutionPlan) { p.Blind = nil }, "execution_plan_invalid: blind: must be present"},
 		{"blind short", func(p *ExecutionPlan) { p.Blind = []bool{true} }, "execution_plan_invalid: blind: 1 entries for 4 commands"},
 		{"returns without flags", func(p *ExecutionPlan) { p.BlindReturns = []int{0, 1, 0, 0} }, "execution_plan_invalid: blind: command 2: 1 blind returns require the flag"},
@@ -292,15 +288,7 @@ func TestPlanValidationVectors(t *testing.T) {
 		{"order", func(p *ExecutionPlan) { p.Dispatch.DispatchOrder = "name" }, "execution_plan_invalid: dispatch.dispatch_order"},
 		{"key without shuffle", func(p *ExecutionPlan) { p.Dispatch.ShuffleKey = &key }, "execution_plan_invalid: dispatch.shuffle_key"},
 		{"shuffle without key", func(p *ExecutionPlan) { p.Dispatch.DispatchOrder = OrderShuffle }, "execution_plan_invalid: dispatch.shuffle_key"},
-		{"percent", func(p *ExecutionPlan) { p.Dispatch.HaltErrorPercent = 101 }, "execution_plan_invalid: dispatch.halt_error_percent"},
-		{"command timeout zero", func(p *ExecutionPlan) { p.Execution.CommandTimeoutNS = 0 }, "execution_plan_invalid: execution.command_timeout_ns: 0 must be positive"},
-		{"prompt timeout negative", func(p *ExecutionPlan) { p.Execution.PromptTimeoutNS = -1 }, "execution_plan_invalid: execution.prompt_timeout_ns"},
-		{"enable timeout zero", func(p *ExecutionPlan) { p.Execution.EnableTimeoutNS = 0 }, "execution_plan_invalid: execution.enable_timeout_ns"},
-		{"telnet read timeout zero", func(p *ExecutionPlan) { p.Execution.TelnetReadTimeoutNS = 0 }, "execution_plan_invalid: execution.telnet_read_timeout_ns"},
-		{"device timeout negative", func(p *ExecutionPlan) { p.Execution.DeviceTimeoutNS = -1 }, "execution_plan_invalid: execution.device_timeout_ns: -1 must not be negative"},
 		{"format", func(p *ExecutionPlan) { p.Output.Format = "yaml" }, "execution_plan_invalid: output.format"},
-		{"limits", func(p *ExecutionPlan) { p.Output.MaxJobBytes = 0 }, "execution_plan_invalid: output"},
-		{"probes", func(p *ExecutionPlan) { p.Ping.Probes = 1 }, "execution_plan_invalid: ping.probes"},
 		{"config digest", func(p *ExecutionPlan) { p.Sources.ConfigDigest = "" }, "execution_plan_invalid: sources.config_digest"},
 		{"drafted at", func(p *ExecutionPlan) { p.Planning.DraftedAt = time.Time{} }, "execution_plan_invalid: planning.drafted_at"},
 		{"nil preparation", func(p *ExecutionPlan) { p.Preparation = nil }, "execution_plan_invalid: preparation"},
@@ -465,7 +453,7 @@ func TestLargestCommandLimit(t *testing.T) {
 		if tc.sessionInit {
 			p.SessionInit = map[string]SessionInitProfile{"p": {Commands: []string{"terminal length 0"}, OnError: SessionInitFailDevice}}
 		}
-		if got, declared := p.LargestCommandLimit(); got != tc.want || declared != tc.wantDeclared {
+		if got, declared := p.LargestCommandLimit(job); got != tc.want || declared != tc.wantDeclared {
 			t.Errorf("%s: %d declared=%v, want %d declared=%v", tc.name, got, declared, tc.want, tc.wantDeclared)
 		}
 	}
@@ -606,40 +594,36 @@ func TestPlatformCommands(t *testing.T) {
 	}
 	// The collection sub-block.
 	c := base
-	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "crun"}
+	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: "crun"}
 	if err := c.Validate(Draft); err != nil {
 		t.Fatalf("a collection: %v", err)
 	}
-	c.Output.Collection = &CollectionSettings{Directory: "crun", FileMode: "0660", Word: "crun"}
+	c.Output.Collection = &CollectionSettings{Directory: "crun", Word: "crun"}
 	if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "not absolute") {
 		t.Fatalf("a relative directory: %v", err)
 	}
-	c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0600", Word: "crun"}
-	if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "file_mode") {
-		t.Fatalf("a mode outside the enum: %v", err)
-	}
 	// The word: crun, run, or command, and nothing else (schema 10).
 	for _, w := range []string{"run", "command"} {
-		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: w}
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: w}
 		if err := c.Validate(Draft); err != nil {
 			t.Fatalf("word %s: %v", w, err)
 		}
 	}
 	// The suffix: any text without /, NUL, or a control character.
 	for _, suffix := range []string{".cfg", "..", ".", "-2026 [a]*"} {
-		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "run", Suffix: suffix}
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: "run", Suffix: suffix}
 		if err := c.Validate(Draft); err != nil {
 			t.Fatalf("suffix %q: %v", suffix, err)
 		}
 	}
 	for _, suffix := range []string{"a/b", "/", "x\x00", "x\n", "\t", "x\x7f"} {
-		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "run", Suffix: suffix}
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: "run", Suffix: suffix}
 		if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "output.collection.suffix") {
 			t.Fatalf("suffix %q: %v", suffix, err)
 		}
 	}
 	for _, w := range []string{"", "stream", "Crun"} {
-		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: w}
+		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: w}
 		if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "output.collection.word") {
 			t.Fatalf("word %q: %v", w, err)
 		}

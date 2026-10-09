@@ -258,22 +258,6 @@ const (
 	HostKeyNotCompared      = "host_key_not_compared"
 )
 
-// Timeouts are the bounds a transport puts on a session's steps, the
-// invocation's: the executor fills them from the plan's execution block on
-// every path. A field left zero (login, a transport's own test) falls back to
-// the transport's configuration through Pick, then to its default.
-type Timeouts struct {
-	Command, Prompt, Enable, TelnetRead time.Duration
-}
-
-// Pick is set when it is positive, else configured.
-func Pick(set, configured time.Duration) time.Duration {
-	if set > 0 {
-		return set
-	}
-	return configured
-}
-
 // Command is one command to send.
 //
 // Blind declares the tolerance: the prompt may not return after the

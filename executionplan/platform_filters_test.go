@@ -15,11 +15,11 @@ func TestPlatformFiltersValidate(t *testing.T) {
 		t.Fatalf("filters without a collection: %v", err)
 	}
 	// The filters are a crun's alone: a run's collection carries none.
-	p.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "run"}
+	p.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: "run"}
 	if err := p.Validate(Draft); err == nil || !strings.Contains(err.Error(), "without a crun's collection") {
 		t.Fatalf("filters on a run's collection: %v", err)
 	}
-	p.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", FileMode: "0660", Word: "crun"}
+	p.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: "crun"}
 	if err := p.Validate(Draft); err != nil {
 		t.Fatalf("a good list on a collection: %v", err)
 	}

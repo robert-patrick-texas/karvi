@@ -14,6 +14,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/executor"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -74,7 +75,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	// the exercise
 	// predicts the live refusal at commit.
 	var ping *icmpgate.Capability
-	if plan.Ping.Enabled {
+	if cfg.Bool("network.ping-targets") {
 		c := icmpgate.Detect(icmpgate.OptionsFrom(cfg))
 		ping = &c
 	}
@@ -87,7 +88,8 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 		def, known := executor.Definition(cfg, t.Device.Platform)
 		if !known {
 			// The executor would refuse this target before any connection:
-			// the daemon's configuration lacks the client's platform table.
+			// the plan names a platform its own configuration does not know,
+			// a plan this client did not write.
 			tr.Findings = append(tr.Findings, exerciseFinding("platform", executionplan.SeverityError, t.TargetID, errorcodes.Errorf("platform_unknown", "platform %q is not a known platform here", t.Device.Platform), map[string]string{"platform": t.Device.Platform}))
 			tr.Readiness = records.ReadinessNotReady
 		}
@@ -295,7 +297,7 @@ func exerciseTarget(req Request, t executionplan.ExecutionTarget, hk hostKeyStat
 		TargetID: t.TargetID, Findings: []executionplan.Finding{},
 		Address:           records.AddressReport{Authority: t.AddressPlan.Authority, ResolutionActor: t.AddressPlan.ResolverContext, ClientCandidates: t.AddressPlan.ClientCandidates, DaemonCandidates: t.AddressPlan.DaemonCandidates, Selected: t.AddressPlan.Selected},
 		CredentialBinding: records.CredentialBindingReport{Status: records.BindingUnresolved},
-		IntendedPing:      records.IntendedPing{Enabled: req.Plan.Ping.Enabled, Probes: req.Plan.Ping.Probes, TimeoutNS: req.Plan.Ping.TimeoutNS, Capability: records.CheckNotChecked},
+		IntendedPing:      IntendedPing(req.Config),
 		IntendedTransport: records.IntendedTransport{Transport: t.Device.Transport, Port: exercisePort(t), SessionInitProfile: t.SessionInitProfile, Available: records.CheckNotChecked},
 	}
 	if tr.Address.ResolutionActor == "" {
@@ -427,10 +429,16 @@ func exercisePort(t executionplan.ExecutionTarget) uint16 {
 	return 22
 }
 
+// IntendedPing is a report's ICMP gate as the configuration has it, the
+// capability not yet checked: the plan report's and the exercise's.
+func IntendedPing(cfg configload.Snapshot) records.IntendedPing {
+	return records.IntendedPing{Enabled: cfg.Bool("network.ping-targets"), Probes: executionplan.PingProbes, TimeoutNS: cfg.Duration("network.ping-timeout").Nanoseconds(), Capability: records.CheckNotChecked}
+}
+
 // exercisePingSummary is the exercise summary's ping block:
 // the settings, the detected method and capability, counters at zero; nil
 // when the gate is disabled.
-func exercisePingSummary(plan executionplan.ExecutionPlan, ping *icmpgate.Capability) *records.PingSummary {
+func exercisePingSummary(cfg configload.Snapshot, ping *icmpgate.Capability) *records.PingSummary {
 	if ping == nil {
 		return nil
 	}
@@ -438,7 +446,7 @@ func exercisePingSummary(plan executionplan.ExecutionPlan, ping *icmpgate.Capabi
 	if ping.Available {
 		capability = records.CheckAvailable
 	}
-	return &records.PingSummary{Enabled: true, Method: ping.Method, Capability: capability, Probes: plan.Ping.Probes, TimeoutNS: plan.Ping.TimeoutNS,
+	return &records.PingSummary{Enabled: true, Method: ping.Method, Capability: capability, Probes: executionplan.PingProbes, TimeoutNS: cfg.Duration("network.ping-timeout").Nanoseconds(),
 		Devices: map[string]int{records.PingDevicesGated: 0, records.PingDevicesProceeded: 0, records.PingDevicesDegraded: 0, records.PingDevicesSkipped: 0, records.PingDevicesCapabilityFailed: 0}}
 }
 
@@ -459,6 +467,6 @@ func buildExerciseSummary(req Request, st exerciseState, reportPath string, star
 	files, out := summaryFiles(st.store.Paths(), 0)
 	files["exercise"] = reportPath
 	return records.Summary{SchemaVersion: records.JobSchemaVersion, JobID: st.jobID, ActivityID: st.id, StartedAt: start, EndedAt: end, DurationNS: end.Sub(start).Nanoseconds(), FinalStatus: "exercised", ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
-		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(executionplan.ModeExercise), AddressAuthorityCounts: authorities, Ping: exercisePingSummary(req.Plan, ping), Cancellation: cancellation,
+		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(executionplan.ModeExercise), AddressAuthorityCounts: authorities, Ping: exercisePingSummary(req.Config, ping), Cancellation: cancellation,
 		DeviceCounts: map[string]int{"total": len(req.Plan.Targets), "ready": byReadiness[records.ReadinessReady], "not_ready": byReadiness[records.ReadinessNotReady]}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{}, Halt: map[string]any{"run_wide": "", "wave_gate": ""}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}, Paths: files}
 }

@@ -34,7 +34,12 @@ import (
 // target's channel, and, without another bump (11 was unreleased), the
 // execution block, the invocation's timeouts, and each command's own
 // timeouts_ns and max_bytes; 12 the configuration block, the client's
-// resolved configuration the daemon runs the job under.
+// resolved configuration the daemon runs the job under, and, without
+// another bump (12 was unreleased), every field that copied a key removed:
+// the execution and ping blocks, blind_wait_ns, output's byte limits,
+// persist, files, and crop_to_dot, the collection's file_mode, and
+// dispatch's halt and gate values with continue_device_on_error, which the
+// job reads from that configuration.
 const SchemaVersion = 12
 
 // Mode is the requested execution mode of a job.
@@ -129,16 +134,13 @@ type ExecutionPlan struct {
 	PlatformFilters   map[string][]string           `json:"platform_filters,omitempty"`
 	CommandPlanDigest Digest                        `json:"command_plan_digest"`
 	BlindReturns      []int                         `json:"blind_returns"`
-	BlindWaitNS       int64                         `json:"blind_wait_ns"`
 	Blind             []bool                        `json:"blind"`
 	Expectations      [][]Expectation               `json:"expectations"`
 	TimeoutsNS        []int64                       `json:"timeouts_ns"`
 	MaxBytes          []int64                       `json:"max_bytes"`
 	SessionInit       map[string]SessionInitProfile `json:"session_init"`
 	Dispatch          DispatchSettings              `json:"dispatch"`
-	Execution         ExecutionSettings             `json:"execution"`
 	Output            OutputSettings                `json:"output"`
-	Ping              PingSettings                  `json:"ping"`
 	Sources           SourceDigests                 `json:"sources"`
 	// Configuration is the client's resolved configuration (schema 12),
 	// which sources.config_digest digests: the daemon runs the job under it.
@@ -149,10 +151,9 @@ type ExecutionPlan struct {
 
 // Blind sends: BlindReturns is empty or
 // one count per command, each 0..BlindReturnsMax, the carriage returns
-// written after that command without a prompt match; BlindWaitNS is the
-// client's effective execution.blind-wait, the wait for the prompt after a
-// blind send in place of the command timeout, 0..BlindWaitMax where 0 does
-// not wait. The client interprets the trailing \r escapes once and commands
+// written after that command without a prompt match; the wait for the
+// prompt after a blind send is execution.blind-wait of the job's
+// configuration. The client interprets the trailing \r escapes once and commands
 // holds the text as sent.
 //
 // Interactive prompts: Blind is empty or one flag
@@ -172,14 +173,13 @@ type ExecutionPlan struct {
 //
 // A command's own bounds: TimeoutsNS and MaxBytes are each empty or one
 // entry per command, --timeout in nanoseconds and --maxbytes in bytes, 0
-// the job's value (execution.command_timeout_ns, output.max_command_bytes).
+// the job's value (execution.command-timeout, output.max-command-bytes).
 // Both are under plan_digest. The client checked each value's range, a
 // timeout on a blind command, and the device timeout and job limit above
 // them; the plan refuses only a length that does not match the commands or
 // a negative entry, so the daemon accepts what the client accepted.
 const (
 	BlindReturnsMax = 20
-	BlindWaitMax    = 10 * time.Minute
 	ExpectationsMax = 20
 )
 
@@ -222,75 +222,44 @@ type SessionInitProfile struct {
 	CommandTimeoutNS int64    `json:"command_timeout_ns"`
 }
 
-// DispatchSettings are the effective dispatch, halt, and gate values.
+// DispatchSettings are what the client decided for the job's dispatch: the
+// mode, the widths with their CPU-derived defaults, the order, and the
+// shuffle key. The halt and gate values are the dispatch.* keys of the
+// job's configuration.
 type DispatchSettings struct {
-	Mode                  string  `json:"mode"`
-	Width                 int     `json:"width"`
-	StartWidth            int     `json:"start_width"`
-	MaxWidth              int     `json:"max_width"`
-	DispatchOrder         string  `json:"dispatch_order"`
-	ShuffleKey            *string `json:"shuffle_key,omitempty"`
-	HaltErrorCount        int     `json:"halt_error_count"`
-	HaltErrorPercent      int     `json:"halt_error_percent"`
-	WaveGateErrorCount    int     `json:"wave_gate_error_count"`
-	WaveGateErrorPercent  int     `json:"wave_gate_error_percent"`
-	WaveGateTimedDelayNS  int64   `json:"wave_gate_timed_delay_ns"`
-	ContinueDeviceOnError bool    `json:"continue_device_on_error"`
+	Mode          string  `json:"mode"`
+	Width         int     `json:"width"`
+	StartWidth    int     `json:"start_width"`
+	MaxWidth      int     `json:"max_width"`
+	DispatchOrder string  `json:"dispatch_order"`
+	ShuffleKey    *string `json:"shuffle_key,omitempty"`
 }
 
-// ExecutionSettings are the invocation's timeouts (schema 11): the
-// execution.* keys and telnet.read-timeout as the client's configuration
-// had them, which the executor and the transports read on every path, so a
-// daemon's job is bounded as its invocation said and not by the daemon's
-// own configuration. The client's load has checked each key's range; the
-// plan refuses only what no session can run (a timeout at or below zero,
-// or a negative device timeout, which 0 leaves unbounded).
-type ExecutionSettings struct {
-	CommandTimeoutNS    int64 `json:"command_timeout_ns"`
-	DeviceTimeoutNS     int64 `json:"device_timeout_ns"`
-	PromptTimeoutNS     int64 `json:"prompt_timeout_ns"`
-	EnableTimeoutNS     int64 `json:"enable_timeout_ns"`
-	TelnetReadTimeoutNS int64 `json:"telnet_read_timeout_ns"`
-}
-
-// OutputSettings are the effective output and follow values. The
-// invocation decides the job's files on every path: Persist is
-// output.persist-command (false, `--nof`, is no
-// folder and no file), Files the eight output.files switches, and Root the
-// invocation's output.root resolved to an absolute path, so the daemon's
-// store writes what the client's configuration says and the client's `job
-// follow` looks where the daemon wrote.
+// OutputSettings are the output and follow values the invocation decided:
+// the format, the display choices that have no key, and Root, the
+// invocation's output.root resolved to an absolute path, so the client's
+// `job follow` looks where the daemon wrote. The byte limits and the files
+// written are the output.* keys of the job's configuration.
 type OutputSettings struct {
-	Format          string      `json:"format"`
-	Echo            bool        `json:"echo"`
-	DynamicBorder   bool        `json:"dynamic_border"`
-	NoBorder        bool        `json:"no_border"`
-	Follow          bool        `json:"follow"`
-	MaxCommandBytes int64       `json:"max_command_bytes"`
-	MaxJobBytes     int64       `json:"max_job_bytes"`
-	Persist         bool        `json:"persist"`
-	Files           OutputFiles `json:"files"`
-	Root            string      `json:"root"`
-	// CropToDot is output.crop-to-dot as the invocation had it (schema 6):
-	// a device name in a file name is its
-	// first label, so a job's files are named as its invocation said on
-	// every path.
-	CropToDot bool `json:"crop_to_dot"`
+	Format        string `json:"format"`
+	Echo          bool   `json:"echo"`
+	DynamicBorder bool   `json:"dynamic_border"`
+	NoBorder      bool   `json:"no_border"`
+	Follow        bool   `json:"follow"`
+	Root          string `json:"root"`
 	// Collection is present for a crun, and for a run or command given
 	// --cd (schema 7, its word schema 10): the resolved collection
-	// directory, the file mode, and the word that asked, decided by the
-	// invocation and carried to whoever runs the job.
+	// directory and the word that asked, decided by the invocation and
+	// carried to whoever runs the job.
 	Collection *CollectionSettings `json:"collection,omitempty"`
 }
 
 // CollectionSettings is the output block's collection sub-block: Directory
-// is absolute (crun.directory resolved by the client), FileMode is
-// crun.file-mode as configured ("0640", "0644", or "0660"), Word the
+// is absolute (crun.directory resolved by the client), Word the
 // operator's word (crun, run, or command): the daemon receives every job
 // as a run, and a crun's hook, filters, and scoreboard mode are its own.
 type CollectionSettings struct {
 	Directory string `json:"directory"`
-	FileMode  string `json:"file_mode"`
 	Word      string `json:"word"`
 	// Suffix is --fs, appended as written to each device's file name;
 	// empty for none.
@@ -314,10 +283,6 @@ func SuffixProblem(suffix string) string {
 	}
 	return ""
 }
-
-// CollectionFileModes are the values crun.file-mode takes, the plan's
-// validator and the registry's enum in one place.
-var CollectionFileModes = []string{"0640", "0644", "0660"}
 
 // CollectionWords are the words that ask for a collection.
 var CollectionWords = []string{"crun", "run", "command"}
@@ -346,29 +311,6 @@ func (p *ExecutionPlan) CommandCount() int {
 		}
 	}
 	return n
-}
-
-// OutputFiles is which of the job folder's files are written: the eight
-// output.files keys, true for written.
-type OutputFiles struct {
-	CommandsJSONL    bool `json:"commands_jsonl"`
-	CommandsTxt      bool `json:"commands_txt"`
-	ErrorsJSONL      bool `json:"errors_jsonl"`
-	FailedDevicesTxt bool `json:"failed_devices_txt"`
-	ManifestJSON     bool `json:"manifest_json"`
-	MetricsJSON      bool `json:"metrics_json"`
-	SummaryJSON      bool `json:"summary_json"`
-	OutputTxt        bool `json:"output_txt"`
-}
-
-// AllOutputFiles is every file written, the eight keys' default.
-var AllOutputFiles = OutputFiles{true, true, true, true, true, true, true, true}
-
-// PingSettings are the effective ICMP gate values the executor consumes.
-type PingSettings struct {
-	Enabled   bool  `json:"enabled"`
-	Probes    int   `json:"probes"`
-	TimeoutNS int64 `json:"timeout_ns"`
 }
 
 // SourceDigests identify the configuration and the inventory sources the
@@ -597,9 +539,6 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 		if !filepath.IsAbs(c.Directory) {
 			return planInvalid("output.collection.directory", "%q is not absolute", c.Directory)
 		}
-		if !slices.Contains(CollectionFileModes, c.FileMode) {
-			return planInvalid("output.collection.file_mode", "%q is not one of %s", c.FileMode, strings.Join(CollectionFileModes, ", "))
-		}
 		if !slices.Contains(CollectionWords, c.Word) {
 			return planInvalid("output.collection.word", "%q is not one of %s", c.Word, strings.Join(CollectionWords, ", "))
 		}
@@ -622,13 +561,7 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	if err := p.Dispatch.validate(); err != nil {
 		return err
 	}
-	if err := p.Execution.validate(); err != nil {
-		return err
-	}
 	if err := p.Output.validate(); err != nil {
-		return err
-	}
-	if err := p.Ping.validate(); err != nil {
 		return err
 	}
 	if p.Sources.ConfigDigest == "" {
@@ -729,7 +662,7 @@ func (p *ExecutionPlan) validateExecDeclarations() error {
 
 // validateBlindSends checks the interactive-prompt fields: the counts
 // present, empty or one per command and
-// each 0..BlindReturnsMax; the wait 0..BlindWaitMax; the flags present,
+// each 0..BlindReturnsMax; the flags present,
 // empty or one per command; the declarations present, empty or one list per
 // command, each list present and at most ExpectationsMax long, each pattern
 // nonempty and compiling; a count above zero only with the flag, since the
@@ -748,9 +681,6 @@ func (p *ExecutionPlan) validateBlindSends() error {
 		if n < 0 || n > BlindReturnsMax {
 			return planInvalid("blind_returns", "command %d: %d must be 0..%d", i+1, n, BlindReturnsMax)
 		}
-	}
-	if d := time.Duration(p.BlindWaitNS); d < 0 || d > BlindWaitMax {
-		return planInvalid("blind_wait_ns", "%d must be 0..10m", p.BlindWaitNS)
 	}
 	if p.Blind == nil {
 		return planInvalid("blind", "must be present (empty allowed)")
@@ -816,11 +746,12 @@ func (p *ExecutionPlan) validateCommandBounds() error {
 }
 
 // LargestCommandLimit is the largest byte limit any command of the job
-// sends under: output.max_command_bytes, or above it a --maxbytes entry,
-// and declared reports that the largest is a declaration. The job's value
-// counts while any command takes it: an entry of 0, a command list with no
-// entries (the platform lists among them), or a session-init profile.
-func (p *ExecutionPlan) LargestCommandLimit() (limit int64, declared bool) {
+// sends under: jobLimit, output.max-command-bytes of the job's
+// configuration, or above it a --maxbytes entry, and declared reports that
+// the largest is a declaration. The job's value counts while any command
+// takes it: an entry of 0, a command list with no entries (the platform
+// lists among them), or a session-init profile.
+func (p *ExecutionPlan) LargestCommandLimit(jobLimit int64) (limit int64, declared bool) {
 	jobs := len(p.MaxBytes) == 0 || len(p.SessionInit) > 0
 	for _, v := range p.MaxBytes {
 		switch {
@@ -830,8 +761,8 @@ func (p *ExecutionPlan) LargestCommandLimit() (limit int64, declared bool) {
 			limit = v
 		}
 	}
-	if jobs && p.Output.MaxCommandBytes >= limit {
-		return p.Output.MaxCommandBytes, false
+	if jobs && jobLimit >= limit {
+		return jobLimit, false
 	}
 	return limit, true
 }
@@ -986,38 +917,10 @@ func (d DispatchSettings) validate() error {
 	default:
 		return planInvalid("dispatch.dispatch_order", "%q is not default, sorted, shuffle, or random", d.DispatchOrder)
 	}
-	for field, v := range map[string]int{"dispatch.width": d.Width, "dispatch.start_width": d.StartWidth, "dispatch.max_width": d.MaxWidth, "dispatch.halt_error_count": d.HaltErrorCount, "dispatch.wave_gate_error_count": d.WaveGateErrorCount} {
+	for field, v := range map[string]int{"dispatch.width": d.Width, "dispatch.start_width": d.StartWidth, "dispatch.max_width": d.MaxWidth} {
 		if v < 0 {
 			return planInvalid(field, "must not be negative")
 		}
-	}
-	for field, v := range map[string]int{"dispatch.halt_error_percent": d.HaltErrorPercent, "dispatch.wave_gate_error_percent": d.WaveGateErrorPercent} {
-		if v < 0 || v > 100 {
-			return planInvalid(field, "must be 0..100")
-		}
-	}
-	if d.WaveGateTimedDelayNS < 0 {
-		return planInvalid("dispatch.wave_gate_timed_delay_ns", "must not be negative")
-	}
-	return nil
-}
-
-func (x ExecutionSettings) validate() error {
-	for _, f := range []struct {
-		field string
-		v     int64
-	}{
-		{"execution.command_timeout_ns", x.CommandTimeoutNS},
-		{"execution.prompt_timeout_ns", x.PromptTimeoutNS},
-		{"execution.enable_timeout_ns", x.EnableTimeoutNS},
-		{"execution.telnet_read_timeout_ns", x.TelnetReadTimeoutNS},
-	} {
-		if f.v <= 0 {
-			return planInvalid(f.field, "%d must be positive", f.v)
-		}
-	}
-	if x.DeviceTimeoutNS < 0 {
-		return planInvalid("execution.device_timeout_ns", "%d must not be negative (0 is unbounded)", x.DeviceTimeoutNS)
 	}
 	return nil
 }
@@ -1028,21 +931,8 @@ func (o OutputSettings) validate() error {
 	default:
 		return planInvalid("output.format", "%q is not text, jsonl, or json", o.Format)
 	}
-	if o.MaxCommandBytes <= 0 || o.MaxJobBytes <= 0 {
-		return planInvalid("output", "max_command_bytes and max_job_bytes must be positive")
-	}
 	if !filepath.IsAbs(o.Root) {
 		return planInvalid("output.root", "%q is not an absolute path", o.Root)
-	}
-	return nil
-}
-
-func (p PingSettings) validate() error {
-	if p.Probes != PingProbes {
-		return planInvalid("ping.probes", "%d is not %d", p.Probes, PingProbes)
-	}
-	if p.TimeoutNS <= 0 {
-		return planInvalid("ping.timeout_ns", "must be positive")
 	}
 	return nil
 }

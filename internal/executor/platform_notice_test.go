@@ -12,7 +12,7 @@ import (
 // first record, with the details as the client wrote them, and on no other
 // record; a target without notices adds none.
 func TestTargetNoticesOnTheFirstRecord(t *testing.T) {
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.target.Notices = []executionplan.TargetNotice{{Code: "platform_unknown_fallback", Message: "platform \"cisco_iosx\" is not a known platform; proceeding as generic (platform-resolution.on-unknown = \"warn\")", Details: map[string]string{"supplied": "cisco_iosx", "source": "lab line 3", "used": "generic"}}}
 	h.exec.opts.Commands = []string{"show clock", "show version"}
 	_, recs := h.run(context.Background())
@@ -34,7 +34,7 @@ func TestTargetNoticesOnTheFirstRecord(t *testing.T) {
 // connection with platform_unknown on every record, never driven as
 // generic.
 func TestUnknownPlatformRefusedBeforeConnection(t *testing.T) {
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.target.Device.Platform = "c9300"
 	h.target.Notices = []executionplan.TargetNotice{{Code: "platform_not_set", Message: "no platform; proceeding as c9300 (platform-resolution.default)"}}
 	h.exec.opts.Commands = []string{"show clock", "show version"}

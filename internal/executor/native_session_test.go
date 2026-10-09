@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/fakedevice"
 )
 
@@ -20,7 +19,7 @@ func TestNativeRunsTheDeviceSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer srv.Close()
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`)
 	h.target.Device.Transport = "native"
 	h.target.Device.Platform = "c9300"

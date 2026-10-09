@@ -74,7 +74,9 @@ type gateHarness struct {
 	target executionplan.ExecutionTarget
 }
 
-func newGateHarness(t *testing.T, ping executionplan.PingSettings, pinger icmpgate.Pinger) *gateHarness {
+// newGateHarness is an executor over a fake ssh, its configuration taking
+// sets after the harness's own (the ICMP gate's keys among them).
+func newGateHarness(t *testing.T, sets []string, pinger icmpgate.Pinger) *gateHarness {
 	t.Helper()
 	dir := t.TempDir()
 	marker := filepath.Join(dir, "transport-opened")
@@ -84,9 +86,9 @@ func newGateHarness(t *testing.T, ping executionplan.PingSettings, pinger icmpga
 	}
 	home := filepath.Join(dir, "home")
 	os.MkdirAll(home, 0o700)
-	cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: []string{
+	cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: append([]string{
 		fmt.Sprintf("ssh.transports.system=%q", script), `ssh.host-key-policy="insecure"`, fmt.Sprintf("ssh.known-hosts-file=%q", filepath.Join(dir, "known_hosts")),
-	}})
+	}, sets...)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +107,7 @@ func newGateHarness(t *testing.T, ping executionplan.PingSettings, pinger icmpga
 	e := New(Options{
 		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run",
 		Commands: plantest.Commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer",
-		Ping: ping, Pinger: pinger, Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true",
+		Pinger: pinger, Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true",
 		Debug: func(s string) { debugLines = append(debugLines, s) },
 	})
 	t.Cleanup(func() {
@@ -148,7 +150,7 @@ func (h *gateHarness) transportAttempted() bool {
 	return err == nil
 }
 
-var enabled = executionplan.PingSettings{Enabled: true, Probes: executionplan.PingProbes, TimeoutNS: int64(500 * time.Millisecond)}
+var enabled = []string{"network.ping-targets=true", `network.ping-timeout="500ms"`}
 
 // TestGateSkipsAnUnreachableTargetWithoutATransport: two misses fail the
 // device as icmp_unreachable on command
@@ -279,7 +281,7 @@ func TestGateCapabilityFailureMidJobFailsTheDeviceAlone(t *testing.T) {
 // attempted as without a gate.
 func TestDisabledGateNeverTouchesThePinger(t *testing.T) {
 	p := &scriptedPinger{}
-	h := newGateHarness(t, executionplan.PingSettings{Enabled: false, Probes: executionplan.PingProbes, TimeoutNS: int64(500 * time.Millisecond)}, p)
+	h := newGateHarness(t, []string{"network.ping-targets=false", `network.ping-timeout="500ms"`}, p)
 	_, recs := h.run(context.Background())
 	if p.calls != 0 || !h.transportAttempted() {
 		t.Errorf("calls=%d transport attempted=%v", p.calls, h.transportAttempted())
@@ -292,7 +294,7 @@ func TestDisabledGateNeverTouchesThePinger(t *testing.T) {
 	if h.exec.PingSummary() != nil {
 		t.Error("summary block on a disabled gate")
 	}
-	h2 := newGateHarness(t, executionplan.PingSettings{Enabled: false, Probes: 2, TimeoutNS: 1}, nil)
+	h2 := newGateHarness(t, []string{"network.ping-targets=false", `network.ping-timeout="1ms"`}, nil)
 	h2.run(context.Background()) // a nil pinger is never dereferenced when disabled
 }
 

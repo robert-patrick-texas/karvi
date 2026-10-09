@@ -11,7 +11,6 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/credentialpackage"
 	"github.com/robert-patrick-texas/karvi/credentials"
-	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/executionplan/plantest"
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
@@ -54,7 +53,7 @@ func newHoldHarness(t *testing.T) *gateHarness {
 	e := New(Options{
 		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run",
 		Commands: plantest.Commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer",
-		Ping: executionplan.PingSettings{Enabled: false}, Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true",
+		Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true",
 		Debug: func(s string) { debugLines = append(debugLines, s) },
 	})
 	t.Cleanup(func() {

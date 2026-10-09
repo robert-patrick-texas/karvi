@@ -8,7 +8,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"os"
 	"sort"
-	"time"
 
 	"github.com/robert-patrick-texas/karvi/dispatch"
 	"github.com/robert-patrick-texas/karvi/executionplan"
@@ -174,7 +173,7 @@ func DispatchPlan(cfg configload.Snapshot, activityType string, d executionplan.
 }
 
 func buildPlan(cfg configload.Snapshot, activityType string, d executionplan.DispatchSettings, tasks []dispatch.Task) dispatch.Plan {
-	plan := dispatch.Plan{Mode: d.Mode, Tasks: tasks, Width: d.Width, AbsoluteMaxWidth: cfg.Int("dispatch.absolute-max-width"), WaveStartWidth: d.StartWidth, WaveMaxWidth: d.MaxWidth, WaveDepthMultiplier: cfg.Int("dispatch.wave-depth-multiplier"), CPUThreshold: cfg.Float("dispatch.wave-cpu-threshold-percent"), CPUTargetZone: cfg.Float("dispatch.wave-cpu-target-zone-percent"), StepUpPercent: cfg.Float("dispatch.wave-step-up-percent"), StepDownPercent: cfg.Float("dispatch.wave-step-down-percent"), CooldownWaves: cfg.Int("dispatch.wave-cooldown-waves"), HaltErrorCount: d.HaltErrorCount, HaltErrorPercent: d.HaltErrorPercent, WaveGateErrorCount: d.WaveGateErrorCount, WaveGateErrorPercent: d.WaveGateErrorPercent, WaveDelay: time.Duration(d.WaveGateTimedDelayNS)}
+	plan := dispatch.Plan{Mode: d.Mode, Tasks: tasks, Width: d.Width, AbsoluteMaxWidth: cfg.Int("dispatch.absolute-max-width"), WaveStartWidth: d.StartWidth, WaveMaxWidth: d.MaxWidth, WaveDepthMultiplier: cfg.Int("dispatch.wave-depth-multiplier"), CPUThreshold: cfg.Float("dispatch.wave-cpu-threshold-percent"), CPUTargetZone: cfg.Float("dispatch.wave-cpu-target-zone-percent"), StepUpPercent: cfg.Float("dispatch.wave-step-up-percent"), StepDownPercent: cfg.Float("dispatch.wave-step-down-percent"), CooldownWaves: cfg.Int("dispatch.wave-cooldown-waves"), HaltErrorCount: cfg.Int("dispatch.halt-on-error-count"), HaltErrorPercent: cfg.Int("dispatch.halt-on-error-percent"), WaveGateErrorCount: cfg.Int("dispatch.wave-gate-error-count"), WaveGateErrorPercent: cfg.Int("dispatch.wave-gate-error-percent"), WaveDelay: cfg.Duration("dispatch.wave-gate-timed-delay")}
 	if activityType == "run" && cfg.Bool("ssh.halt-run-on-host-key-mismatch") {
 		plan.HaltErrorCodes = []string{"host_key_changed", "host_key_changed_during_enrollment"}
 	}

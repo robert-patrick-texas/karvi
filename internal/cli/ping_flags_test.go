@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -83,8 +84,9 @@ func TestPingFlagsReachThePlanThroughTheCLILayer(t *testing.T) {
 			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 				t.Fatal(err)
 			}
-			if report.Plan.Ping.Enabled != tc.enabled || report.Plan.Ping.TimeoutNS != tc.timeout.Nanoseconds() || report.Plan.Ping.Probes != 2 {
-				t.Errorf("plan ping %+v", report.Plan.Ping)
+			c := report.Plan.Configuration
+			if timeout, _ := time.ParseDuration(fmt.Sprint(c["network.ping-timeout"])); c["network.ping-targets"] != tc.enabled || timeout != tc.timeout {
+				t.Errorf("the plan's configuration: network.ping-targets=%v network.ping-timeout=%v", c["network.ping-targets"], c["network.ping-timeout"])
 			}
 			for _, target := range report.Targets {
 				if target.IntendedPing.Enabled != tc.enabled || target.IntendedPing.TimeoutNS != tc.timeout.Nanoseconds() {

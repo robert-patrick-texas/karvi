@@ -27,9 +27,6 @@ type Factory struct {
 	// under ssh.known-hosts-file "auto".
 	BaseDir        string
 	MaxOutputBytes int64
-	// Timeouts are the invocation's (platform.Timeouts); a zero field
-	// falls back to Config.
-	Timeouts platform.Timeouts
 	// Spool is the session's spool: the directory,
 	// the threshold, and the activity; the device is filled per session.
 	Spool devsession.Spool

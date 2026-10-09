@@ -72,7 +72,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// with the code and no device sees one misleading error per target. An
 	// exercise reports the capability instead.
 	var pinger icmpgate.Pinger
-	if plan.Ping.Enabled && req.Mode != executionplan.ModeExercise {
+	if cfg.Bool("network.ping-targets") && req.Mode != executionplan.ModeExercise {
 		capability := icmpgate.Detect(icmpgate.Options{Socket: cfg.Bool("network.ping-socket"), System: cfg.Bool("network.ping-system")})
 		if !capability.Available {
 			return FailedResult("icmp_capability_unavailable", errorcodes.Errorf("icmp_capability_unavailable", "the ICMP gate is enabled but %s", capability.Reason))
@@ -142,7 +142,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// on the daemon's path they reach the follower over the socket. The
 	// audit log and the scoreboard are not the job's output files and stay
 	// as configured.
-	skip := skippedFiles(plan.Output)
+	skip := output.SkippedFiles(cfg, plan.Output.Crun())
 	// shownArtifact is the footer's <artifacts>: the folder, or "none", so
 	// that the line does not end in a bare "artifacts=" that reads as a
 	// fault. The result's ArtifactDir is empty: there is no folder.
@@ -173,7 +173,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		if err := osutil.EnsureCollectionDirectory(c.Directory, osutil.DirectoryMode(cfg.String("crun.directory-mode"))); err != nil {
 			return FailedResult("crun_directory_not_writable", err)
 		}
-		collection = &output.CollectionOptions{Directory: c.Directory, FileMode: osutil.FileMode(c.FileMode), Filters: plan.PlatformFilters, Suffix: c.Suffix}
+		collection = &output.CollectionOptions{Directory: c.Directory, FileMode: osutil.FileMode(cfg.String("crun.file-mode")), Filters: plan.PlatformFilters, Suffix: c.Suffix}
 	}
 	debug := DebugLogger(req.Debug, cfg, streams.Stderr)
 	serverLimit := cfg.Int("dispatch.server-max-inflight")
@@ -223,7 +223,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	places = append(places, output.Place{Path: spoolDir, Spool: true})
 	freecheck := cfg.String("freecheck")
-	limit, declared := plan.LargestCommandLimit()
+	limit, declared := plan.LargestCommandLimit(cfg.Int64("output.max-command-bytes"))
 	admission, err := output.Preflight{Check: freecheck, Floor: cfg.Int64("output.min-free-bytes-after-job"), Places: places, Limit: limit, Declared: declared, Width: jobWidth(dispatchSettings, serverLimit, len(plan.Targets))}.Run()
 	if err != nil {
 		return FailedResult("output_preflight_space", err)
@@ -231,8 +231,8 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// admissionWarnings ride the daemon's receipt and follow start to the
 	// client, since the daemon's job has no standard error; the in-process
 	// job prints them here. The job's host-key policy is the configuration
-	// it runs under, the daemon's own for a daemon's job: under insecure it
-	// is said once for the job, not at every connection.
+	// it runs under, its invocation's on every path: under insecure it is
+	// said once for the job, not at every connection.
 	var admissionWarnings []string
 	if cfg.String("ssh.host-key-policy") == "insecure" {
 		logEvent(slog.LevelWarn, PolicyInsecureCode, PolicyInsecureWarning())
@@ -254,8 +254,8 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		// The daemon's followers take each record's notice from the store,
 		// in sequence.
 		Warn: warn, Skip: skip, OnDurable: req.OnDurable, Timestamp: formatter.Timestamp,
-		Root: artifact, ID: id, CropNames: plan.Output.CropToDot, Collection: collection, DirectoryMode: directoryMode, Fsync: cfg.Bool("output.fsync-command-records"),
-		MaxJobBytes: plan.Output.MaxJobBytes,
+		Root: artifact, ID: id, CropNames: cfg.Bool("output.crop-to-dot"), Collection: collection, DirectoryMode: directoryMode, Fsync: cfg.Bool("output.fsync-command-records"),
+		MaxJobBytes: cfg.Int64("output.max-job-bytes"),
 	})
 	if err != nil {
 		return FailedResult("output_store_create_failed", err)
@@ -331,10 +331,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	devExec := executor.New(executor.Options{
 		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType,
-		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, BlindWait: time.Duration(plan.BlindWaitNS), Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
+		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
 		SessionInit: plan.SessionInit, CandidateCount: req.CandidateCount, DispatchOrder: plan.Dispatch.DispatchOrder, ShuffleKey: plan.Dispatch.ShuffleKey,
-		Grants: req.Grants, Protection: req.Protection, HaltOnCommandError: !plan.Dispatch.ContinueDeviceOnError, Execution: plan.Execution, MaxCommandBytes: plan.Output.MaxCommandBytes,
-		Ping: plan.Ping, Pinger: pinger,
+		Grants: req.Grants, Protection: req.Protection, Pinger: pinger,
 		Capacity: capManager, Store: store, Audit: auditSink, Metrics: sampler,
 		ScratchDir: scratch, ControlRoot: controlRoot, Home: req.Operator.Home, BaseDir: base, SpoolDir: spoolDir, InFlight: board.inFlight,
 		OnRecord: renderer.OnRecordFrom, Debug: debug,
@@ -534,22 +533,6 @@ func buildManifest(req Request, id string, accepted time.Time) (records.Manifest
 		Operator: osutil.RecordOperator(req.Operator), App: map[string]any{"build": buildinfo.Current()}, Mode: string(mode),
 		Header: req.Header, Plan: req.Plan, CredentialPackage: req.Package, Policy: policy, Selection: selection, InitialStates: initial,
 	}, nil
-}
-
-// skippedFiles is the files a job does not write, from the plan's output
-// settings: each output.files switch that
-// is false, or every file when output.persist-command is false (`--nof`).
-// All eight false and persist false are one value, output.AllFiles, for
-// which the store makes no folder.
-func skippedFiles(o executionplan.OutputSettings) output.FileSet {
-	if !o.Persist {
-		return output.AllFiles
-	}
-	f := o.Files
-	return output.FileSet{
-		CommandsJSONL: !f.CommandsJSONL, CommandsTxt: !f.CommandsTxt, ErrorsJSONL: !f.ErrorsJSONL, FailedDevicesTxt: !f.FailedDevicesTxt,
-		ManifestJSON: !f.ManifestJSON, MetricsJSON: !f.MetricsJSON, SummaryJSON: !f.SummaryJSON, OutputTxt: !f.OutputTxt,
-	}
 }
 
 // summaryFiles is the summary's "paths" and "output" for a job's store:

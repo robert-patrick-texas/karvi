@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"os"
 	"strings"
 	"testing"
@@ -36,20 +37,6 @@ func TestDeviceTimeoutCutsTheCommandInFlight(t *testing.T) {
 	}
 }
 
-// TestThePlansCommandTimeoutBeatsTheConfiguration: the executor bounds a
-// command by the plan's execution block, the invocation's, and not by the
-// configuration it runs under, which on the daemon's path is the
-// daemon's: a 1s configured timeout does not cut a 3s command the plan
-// gives 10s.
-func TestThePlansCommandTimeoutBeatsTheConfiguration(t *testing.T) {
-	h := newSessionHarness(t, []string{"show slow", "show clock"}, true)
-	h.exec.opts.Execution.CommandTimeoutNS = int64(10 * time.Second)
-	_, recs := h.run(context.Background())
-	if len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "succeeded" {
-		t.Fatalf("records: %s", describe(recs))
-	}
-}
-
 // TestCommandTimeoutBeforeTheDeviceDeadlineKeepsItsCode: whichever deadline
 // comes first names the code.
 func TestCommandTimeoutBeforeTheDeviceDeadlineKeepsItsCode(t *testing.T) {
@@ -66,9 +53,15 @@ func TestCommandTimeoutBeforeTheDeviceDeadlineKeepsItsCode(t *testing.T) {
 func TestDeviceTimeoutBetweenCommands(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version", "show clock"}, true, `execution.device-timeout="1s"`)
 	// The loader holds the timeout to 1s or more; the passed deadline is
-	// forced on the plan's execution block, which the executor reads per
+	// forced on the job's configuration, which the executor reads per
 	// device.
-	h.exec.opts.Execution.DeviceTimeoutNS = 1
+	values := h.exec.opts.Config.ValueMap()
+	values["execution.device-timeout"] = "1ns"
+	forced, err := configload.FromValues(values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.exec.opts.Config = forced
 	res, recs := h.run(context.Background())
 	if len(recs) != 2 || recs[0].Status != "timeout" || recs[1].Status != "not_attempted_prior_command_failure" || recs[1].Error != nil {
 		t.Fatalf("records: %s", describe(recs))

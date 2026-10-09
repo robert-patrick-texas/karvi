@@ -105,8 +105,8 @@ func TestLiveJobGatesEachTargetAndSkipsOnlyTheUnreachableOne(t *testing.T) {
 	f := newV5FixtureWith(t, v5Options{GoFakeDevice: true, Sets: []string{`security.child-environment-allowlist=["KARVI_TEST_FAKE_DIR"]`, "network.ping-targets=true", `network.ping-timeout="250ms"`, "network.ping-system=false"}})
 	devices := []inventory.Device{direct("127.0.0.1"), direct("127.0.0.2")}
 	sub := f.prepareAndPackageWith(mustID(t), []string{"show b"}, devices, fixedInput{"alice", "pw"})
-	if !sub.final.Ping.Enabled || sub.final.Ping.TimeoutNS != int64(250*time.Millisecond) || sub.final.Ping.Probes != 2 {
-		t.Fatalf("the plan's ping block: %+v", sub.final.Ping)
+	if c := sub.final.Configuration; c["network.ping-targets"] != true || c["network.ping-timeout"] != "250ms" {
+		t.Fatalf("the plan's configuration: network.ping-targets=%v network.ping-timeout=%v", c["network.ping-targets"], c["network.ping-timeout"])
 	}
 	if receipt, err := f.provide(sub); err != nil || !receipt.Accepted {
 		t.Fatalf("frame: %+v %v", receipt, err)

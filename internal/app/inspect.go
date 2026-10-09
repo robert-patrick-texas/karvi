@@ -79,7 +79,7 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, streams IO) Ac
 		return failedResult("plan_report_invalid", err)
 	}
 	dispatchLine := jobexec.DispatchPlan(cd.cfg, "run", report.Plan.Dispatch).Describe()
-	if err := renderInspection(streams.Stdout, opts.Format, report, socket, dispatchLine); err != nil {
+	if err := renderInspection(streams.Stdout, opts.Format, report, socket, dispatchLine, cd.cfg.String("crun.file-mode")); err != nil {
 		return failedResult("terminal_write_failed", err)
 	}
 	result := ActivityResult{ExitCode: exitcode.ExitSuccess, ExitName: exitcode.ExitName(exitcode.ExitSuccess), ActivityID: opts.ActivityID}
@@ -169,9 +169,9 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 	// detection sends no packet, and
 	// the client's answer stands for the local daemon's. Unavailable is a
 	// warning on every target; readiness and outcome are unchanged.
-	intendedPing := records.IntendedPing{Enabled: draft.Ping.Enabled, Probes: draft.Ping.Probes, TimeoutNS: draft.Ping.TimeoutNS, Capability: records.CheckNotChecked}
+	intendedPing := jobexec.IntendedPing(cd.cfg)
 	var pingFinding *executionplan.Finding
-	if draft.Ping.Enabled {
+	if intendedPing.Enabled {
 		capability := icmpgate.Detect(icmpgate.OptionsFrom(cd.cfg))
 		if capability.Available {
 			intendedPing.Capability, intendedPing.Method = records.CheckAvailable, capability.Method
@@ -270,7 +270,7 @@ func effectivePort(t executionplan.ExecutionTarget) uint16 {
 // indented, jsonl on one line, text in the inspection report's shape, its
 // dispatch line dispatchLine, the dispatch as the job would run it
 // (dispatch.Plan.Describe), which the plan's settings alone cannot say.
-func renderInspection(out io.Writer, format string, r records.PlanReport, socket, dispatchLine string) error {
+func renderInspection(out io.Writer, format string, r records.PlanReport, socket, dispatchLine, fileMode string) error {
 	switch format {
 	case "json":
 		b, err := json.MarshalIndent(r, "", "  ")
@@ -316,7 +316,7 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		if c.Suffix != "" {
 			suffix = ", suffix " + c.Suffix
 		}
-		fmt.Fprintf(&b, "collection: %s (file mode %s%s)\n", c.Directory, c.FileMode, suffix)
+		fmt.Fprintf(&b, "collection: %s (file mode %s%s)\n", c.Directory, fileMode, suffix)
 	}
 	fmt.Fprintf(&b, "targets: %d (client %d, daemon %d)\n", r.Counts.Targets, r.Counts.ByAuthority[string(executionplan.AddressByClient)], r.Counts.ByAuthority[string(executionplan.AddressByDaemon)])
 	for i, t := range r.Targets {

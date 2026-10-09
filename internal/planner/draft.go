@@ -82,11 +82,6 @@ type DraftOptions struct {
 	Timeouts []int64
 	MaxBytes []int64
 
-	// The dispatch settings are the configuration's dispatch.* keys alone:
-	// run's Dispatch options reach them as overrides in the lock-aware cli
-	// layer.
-	ContinueDeviceOnError bool
-
 	// Transport is the --transport override applied to every target.
 	Transport string
 
@@ -205,8 +200,8 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if err != nil {
 		return executionplan.ExecutionPlan{}, err
 	}
-	if out.Persist && out.Files.OutputTxt || out.Collection != nil {
-		if err := checkFileNames(targets, out.CropToDot, out.Collection); err != nil {
+	if !output.SkippedFiles(cfg, out.Crun()).OutputTxt || out.Collection != nil {
+		if err := checkFileNames(targets, cfg.Bool("output.crop-to-dot"), out.Collection); err != nil {
 			return executionplan.ExecutionPlan{}, err
 		}
 	}
@@ -225,14 +220,12 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		Operator: executionplan.Operator{Username: operator.Username, UID: operator.UID, PrimaryGID: operator.PrimaryGID, Groups: append([]string(nil), operator.Groups...)},
 		Targets:  targets,
 		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, CommandPlanDigest: executionplan.SumCommandPlan(opts.Commands, lists),
-		BlindReturns: append([]int{}, opts.BlindReturns...), BlindWaitNS: cfg.Duration("execution.blind-wait").Nanoseconds(),
-		Blind: append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
+		BlindReturns: append([]int{}, opts.BlindReturns...),
+		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),
 		SessionInit:   map[string]executionplan.SessionInitProfile{},
 		Dispatch:      dispatchSettings(cfg, set, opts),
-		Execution:     ExecutionSettings(cfg),
 		Output:        out,
-		Ping:          pingSettings(cfg),
 		Sources:       executionplan.SourceDigests{ConfigDigest: cfg.Digest, Selectors: provenance, Inputs: ScopeInputs(opts.Inputs)},
 		Configuration: cfg.ValueMap(),
 		Planning:      executionplan.PlanningTimestamps{DraftedAt: now},
@@ -363,37 +356,13 @@ func dispatchSettings(cfg configload.Snapshot, set TargetSet, opts DraftOptions)
 	return executionplan.DispatchSettings{
 		Mode: mode, Width: width, StartWidth: startWidth, MaxWidth: maxWidth,
 		DispatchOrder: order, ShuffleKey: set.ShuffleKey,
-		HaltErrorCount: cfg.Int("dispatch.halt-on-error-count"), HaltErrorPercent: cfg.Int("dispatch.halt-on-error-percent"),
-		WaveGateErrorCount: cfg.Int("dispatch.wave-gate-error-count"), WaveGateErrorPercent: cfg.Int("dispatch.wave-gate-error-percent"),
-		WaveGateTimedDelayNS: int64(cfg.Duration("dispatch.wave-gate-timed-delay")),
-		// The effective halt: --continue-device-on-error or the key set
-		// false, so a daemon's job halts as its invocation said.
-		ContinueDeviceOnError: opts.ContinueDeviceOnError || !cfg.Bool("execution.halt-device-on-command-error"),
 	}
 }
 
-// ExecutionSettings is the plan's timeouts block from the effective
-// configuration, which the executor and the transports read on every path.
-func ExecutionSettings(cfg configload.Snapshot) executionplan.ExecutionSettings {
-	return executionplan.ExecutionSettings{
-		CommandTimeoutNS: cfg.Duration("execution.command-timeout").Nanoseconds(), DeviceTimeoutNS: cfg.Duration("execution.device-timeout").Nanoseconds(),
-		PromptTimeoutNS: cfg.Duration("execution.prompt-timeout").Nanoseconds(), EnableTimeoutNS: cfg.Duration("execution.enable-timeout").Nanoseconds(),
-		TelnetReadTimeoutNS: cfg.Duration("telnet.read-timeout").Nanoseconds(),
-	}
-}
-
-// pingSettings is the plan's ICMP gate block from the effective configuration
-// the plan governs at execution, so --ping and
-// --noping reach the executor through it; probes are the v1 constant.
-func pingSettings(cfg configload.Snapshot) executionplan.PingSettings {
-	return executionplan.PingSettings{Enabled: cfg.Bool("network.ping-targets"), Probes: executionplan.PingProbes, TimeoutNS: cfg.Duration("network.ping-timeout").Nanoseconds()}
-}
-
-// outputSettings is the invocation's output as the plan carries it
-// the display values, the two byte limits,
-// and the files, from output.persist-command, the eight output.files keys,
-// and output.root resolved here against the client's basedir and home, so
-// that the daemon writes where this client's `job follow` will look. A
+// outputSettings is the invocation's output as the plan carries it: the
+// format and the display values, the collection, and output.root resolved
+// here against the client's basedir and home, so that the daemon writes
+// where this client's `job follow` will look. A
 // root that cannot be resolved fails the draft as output_root_unavailable,
 // before any daemon is asked.
 func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts DraftOptions) (executionplan.OutputSettings, error) {
@@ -413,29 +382,17 @@ func outputSettings(cfg configload.Snapshot, operator credentials.Operator, opts
 	if err != nil {
 		return executionplan.OutputSettings{}, errorcodes.Ensure(err, "output_root_unavailable")
 	}
-	files := outputFiles(cfg)
 	var collection *executionplan.CollectionSettings
 	if opts.Collection != "" {
-		if opts.Collection == "crun" {
-			// The collection file is the text rendered once more, so a
-			// crun writes no output.NAME.txt whatever the switch says; a
-			// run's folder stays as it is without --cd, since a kept
-			// collection file is the previous one.
-			files.OutputTxt = false
-		}
 		dir, err := osutil.ResolveCrunDirectory(cfg.String("crun.directory"), cfg.String("sharedroot"), base, operator.Home)
 		if err != nil {
 			return executionplan.OutputSettings{}, errorcodes.Ensure(err, "crun_directory_not_writable")
 		}
-		collection = &executionplan.CollectionSettings{Directory: dir, FileMode: cfg.String("crun.file-mode"), Word: opts.Collection, Suffix: opts.Suffix}
+		collection = &executionplan.CollectionSettings{Directory: dir, Word: opts.Collection, Suffix: opts.Suffix}
 	}
 	return executionplan.OutputSettings{
 		Format: format, Echo: opts.Echo || cfg.Bool(echoKey), DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: opts.Follow,
-		MaxCommandBytes: cfg.Int64("output.max-command-bytes"), MaxJobBytes: cfg.Int64("output.max-job-bytes"),
-		Persist:    cfg.Bool("output.persist-command"),
-		Files:      files,
 		Root:       root,
-		CropToDot:  cfg.Bool("output.crop-to-dot"),
 		Collection: collection,
 	}, nil
 }
@@ -506,21 +463,12 @@ func checkFileNames(targets []executionplan.ExecutionTarget, crop bool, collecti
 	return nil
 }
 
-// outputFiles is the eight output.files switches as the plan carries them.
-func outputFiles(cfg configload.Snapshot) executionplan.OutputFiles {
-	on := func(file string) bool { return cfg.Bool("output.files." + file) }
-	return executionplan.OutputFiles{
-		CommandsJSONL: on("commands-jsonl"), CommandsTxt: on("commands-txt"), ErrorsJSONL: on("errors-jsonl"), FailedDevicesTxt: on("failed-devices-txt"),
-		ManifestJSON: on("manifest-json"), MetricsJSON: on("metrics-json"), SummaryJSON: on("summary-json"), OutputTxt: on("output-txt"),
-	}
-}
-
 // OutputFilesOn reports whether an activity under cfg writes any file, and
 // so has a job directory: output.persist-command on and at least one
 // output.files key on (every file off is one case with `--nof`, no
 // folder). The reservation of the job ID asks this before drafting.
 func OutputFilesOn(cfg configload.Snapshot) bool {
-	return cfg.Bool("output.persist-command") && outputFiles(cfg) != (executionplan.OutputFiles{})
+	return output.SkippedFiles(cfg, false) != output.AllFiles
 }
 
 // Header builds the public job header for plan: job_id and

@@ -192,7 +192,7 @@ func PrepareDaemon(ctx context.Context, cfg configload.Snapshot, targets []execu
 
 // PrepareDaemonWith is PrepareDaemon with the socket capabilities and the
 // lookup supplied, for tests. The family preference is the plan's; the DNS
-// timeout is the daemon's configuration.
+// timeout is the job's configuration, the plan's block on the daemon's path.
 func PrepareDaemonWith(ctx context.Context, cfg configload.Snapshot, targets []executionplan.ExecutionTarget, caps Capabilities, lookup LookupFunc) ([]executionplan.AddressEvidence, error) {
 	if lookup == nil {
 		lookup = net.DefaultResolver.LookupNetIP

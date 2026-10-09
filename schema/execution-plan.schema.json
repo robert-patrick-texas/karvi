@@ -87,57 +87,28 @@
         "command_timeout_ns": {"type": "integer", "minimum": 0, "maximum": 43200000000000}
       }
     },
-    "execution": {
-      "type": "object", "additionalProperties": false,
-      "required": ["command_timeout_ns", "device_timeout_ns", "prompt_timeout_ns", "enable_timeout_ns", "telnet_read_timeout_ns"],
-      "properties": {
-        "command_timeout_ns": {"type": "integer", "minimum": 1}, "device_timeout_ns": {"type": "integer", "minimum": 0},
-        "prompt_timeout_ns": {"type": "integer", "minimum": 1}, "enable_timeout_ns": {"type": "integer", "minimum": 1},
-        "telnet_read_timeout_ns": {"type": "integer", "minimum": 1}
-      }
-    },
     "dispatch": {
       "type": "object", "additionalProperties": false,
-      "required": ["mode", "width", "start_width", "max_width", "dispatch_order", "halt_error_count", "halt_error_percent", "wave_gate_error_count", "wave_gate_error_percent", "wave_gate_timed_delay_ns", "continue_device_on_error"],
+      "required": ["mode", "width", "start_width", "max_width", "dispatch_order"],
       "properties": {
         "mode": {"enum": ["serial", "parallel", "wave"]},
         "width": {"type": "integer", "minimum": 0}, "start_width": {"type": "integer", "minimum": 0}, "max_width": {"type": "integer", "minimum": 0},
         "dispatch_order": {"enum": ["default", "sorted", "shuffle", "random"]},
-        "shuffle_key": {"type": "string"},
-        "halt_error_count": {"type": "integer", "minimum": 0}, "halt_error_percent": {"type": "integer", "minimum": 0, "maximum": 100},
-        "wave_gate_error_count": {"type": "integer", "minimum": 0}, "wave_gate_error_percent": {"type": "integer", "minimum": 0, "maximum": 100},
-        "wave_gate_timed_delay_ns": {"type": "integer", "minimum": 0},
-        "continue_device_on_error": {"type": "boolean"}
+        "shuffle_key": {"type": "string"}
       }
     },
     "output": {
       "type": "object", "additionalProperties": false,
-      "required": ["format", "echo", "dynamic_border", "no_border", "follow", "max_command_bytes", "max_job_bytes", "persist", "files", "root", "crop_to_dot"],
+      "required": ["format", "echo", "dynamic_border", "no_border", "follow", "root"],
       "properties": {
         "format": {"enum": ["text", "jsonl", "json"]}, "echo": {"type": "boolean"}, "dynamic_border": {"type": "boolean"},
         "no_border": {"type": "boolean"}, "follow": {"type": "boolean"},
-        "max_command_bytes": {"type": "integer", "minimum": 1}, "max_job_bytes": {"type": "integer", "minimum": 1},
-        "persist": {"type": "boolean"},
-        "files": {
-          "type": "object", "additionalProperties": false,
-          "required": ["commands_jsonl", "commands_txt", "errors_jsonl", "failed_devices_txt", "manifest_json", "metrics_json", "summary_json", "output_txt"],
-          "properties": {
-            "commands_jsonl": {"type": "boolean"}, "commands_txt": {"type": "boolean"}, "errors_jsonl": {"type": "boolean"}, "failed_devices_txt": {"type": "boolean"},
-            "manifest_json": {"type": "boolean"}, "metrics_json": {"type": "boolean"}, "summary_json": {"type": "boolean"}, "output_txt": {"type": "boolean"}
-          }
-        },
         "root": {"type": "string", "pattern": "^/"},
-        "crop_to_dot": {"type": "boolean"},
         "collection": {
-          "type": "object", "additionalProperties": false, "required": ["directory", "file_mode", "word"],
-          "properties": {"directory": {"type": "string", "pattern": "^/"}, "file_mode": {"enum": ["0640", "0644", "0660"]}, "word": {"enum": ["crun", "run", "command"]}, "suffix": {"type": "string", "pattern": "^[^/\\u0000-\\u001f\\u007f]+$"}}
+          "type": "object", "additionalProperties": false, "required": ["directory", "word"],
+          "properties": {"directory": {"type": "string", "pattern": "^/"}, "word": {"enum": ["crun", "run", "command"]}, "suffix": {"type": "string", "pattern": "^[^/\\u0000-\\u001f\\u007f]+$"}}
         }
       }
-    },
-    "ping": {
-      "type": "object", "additionalProperties": false,
-      "required": ["enabled", "probes", "timeout_ns"],
-      "properties": {"enabled": {"type": "boolean"}, "probes": {"const": 2}, "timeout_ns": {"type": "integer", "minimum": 1}}
     },
     "sources": {
       "type": "object", "additionalProperties": false,
@@ -183,7 +154,7 @@
     },
     "execution_plan": {
       "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "execution", "output", "ping", "sources", "configuration", "planning", "preparation"],
+      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
       "properties": {
         "schema_version": {"const": 12},
         "plan_id": {"$ref": "#/$defs/identifier"},
@@ -196,16 +167,13 @@
         "platform_filters": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
         "command_plan_digest": {"$ref": "#/$defs/digest"},
         "blind_returns": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 20}},
-        "blind_wait_ns": {"type": "integer", "minimum": 0, "maximum": 600000000000},
         "blind": {"type": "array", "items": {"type": "boolean"}},
         "expectations": {"type": "array", "items": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/expectation"}}},
         "timeouts_ns": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "max_bytes": {"type": "array", "items": {"type": "integer", "minimum": 0}},
         "session_init": {"type": "object", "additionalProperties": {"$ref": "#/$defs/session_init_profile"}},
         "dispatch": {"$ref": "#/$defs/dispatch"},
-        "execution": {"$ref": "#/$defs/execution"},
         "output": {"$ref": "#/$defs/output"},
-        "ping": {"$ref": "#/$defs/ping"},
         "sources": {"$ref": "#/$defs/sources"},
         "configuration": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/config_value"}, "description": "The client's resolved configuration, every value by key, as config show --format json prints values; sources.config_digest digests it (schema 12)."},
         "planning": {"$ref": "#/$defs/planning"},

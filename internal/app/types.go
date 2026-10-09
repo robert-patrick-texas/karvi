@@ -27,56 +27,54 @@ type CommonOptions struct {
 // set.
 type CommandOptions struct {
 	CommonOptions
-	Targets               []records.TargetInput         `json:"targets"`
-	Excludes              []string                      `json:"excludes,omitempty"`
-	Address               string                        `json:"address,omitempty"`
-	Platform              string                        `json:"platform,omitempty"`
-	Transport             string                        `json:"transport,omitempty"`
-	Port                  int                           `json:"port,omitempty"`
-	AddressAuthority      string                        `json:"address_authority,omitempty"` // client | daemon for the first device
-	Commands              []string                      `json:"commands"`
-	CommandsFile          string                        `json:"commands_file,omitempty"` // the --cf path; its base name reaches the scoreboard
-	BlindReturns          []int                         `json:"blind_returns,omitempty"` // empty, or one count per command
-	Blind                 []bool                        `json:"blind,omitempty"`         // empty, or one tolerance flag per command
-	Expectations          [][]executionplan.Expectation `json:"expectations,omitempty"`  // empty, or one expect-and-send list per command
-	Timeouts              []int64                       `json:"timeouts_ns,omitempty"`   // empty, or one --timeout per command in nanoseconds, 0 the job's
-	MaxBytes              []int64                       `json:"max_bytes,omitempty"`     // empty, or one --maxbytes per command, 0 the job's
-	Format                string                        `json:"format"`
-	Echo                  bool                          `json:"echo"`
-	DynamicBorder         bool                          `json:"dynamic_border"`
-	NoBorder              bool                          `json:"no_border"`
-	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
-	Collection            string                        `json:"collection,omitempty"` // command given --cd: the plan carries the collection
-	Suffix                string                        `json:"suffix,omitempty"`     // --fs: the collection file names' suffix
+	Targets          []records.TargetInput         `json:"targets"`
+	Excludes         []string                      `json:"excludes,omitempty"`
+	Address          string                        `json:"address,omitempty"`
+	Platform         string                        `json:"platform,omitempty"`
+	Transport        string                        `json:"transport,omitempty"`
+	Port             int                           `json:"port,omitempty"`
+	AddressAuthority string                        `json:"address_authority,omitempty"` // client | daemon for the first device
+	Commands         []string                      `json:"commands"`
+	CommandsFile     string                        `json:"commands_file,omitempty"` // the --cf path; its base name reaches the scoreboard
+	BlindReturns     []int                         `json:"blind_returns,omitempty"` // empty, or one count per command
+	Blind            []bool                        `json:"blind,omitempty"`         // empty, or one tolerance flag per command
+	Expectations     [][]executionplan.Expectation `json:"expectations,omitempty"`  // empty, or one expect-and-send list per command
+	Timeouts         []int64                       `json:"timeouts_ns,omitempty"`   // empty, or one --timeout per command in nanoseconds, 0 the job's
+	MaxBytes         []int64                       `json:"max_bytes,omitempty"`     // empty, or one --maxbytes per command, 0 the job's
+	Format           string                        `json:"format"`
+	Echo             bool                          `json:"echo"`
+	DynamicBorder    bool                          `json:"dynamic_border"`
+	NoBorder         bool                          `json:"no_border"`
+	Collection       string                        `json:"collection,omitempty"` // command given --cd: the plan carries the collection
+	Suffix           string                        `json:"suffix,omitempty"`     // --fs: the collection file names' suffix
 }
 
 // RunOptions is safe to submit to the same-UID daemon. It deliberately carries
 // selectors and configuration roots, never a resolved credential.
 type RunOptions struct {
 	CommonOptions
-	ActivityID            string                        `json:"activity_id,omitempty"`
-	Targets               []records.TargetInput         `json:"targets"`
-	Excludes              []string                      `json:"excludes,omitempty"`
-	ManagementAddress     string                        `json:"management_address,omitempty"`
-	Platform              string                        `json:"platform,omitempty"`            // --platform: every device of the set runs as this known platform
-	AddressAuthorities    []string                      `json:"address_authorities,omitempty"` // TARGET=client|daemon, in order
-	Commands              []string                      `json:"commands"`
-	CommandsFile          string                        `json:"commands_file,omitempty"` // the --cf path; its base name reaches the scoreboard
-	BlindReturns          []int                         `json:"blind_returns,omitempty"` // empty, or one count per command
-	Blind                 []bool                        `json:"blind,omitempty"`         // empty, or one tolerance flag per command
-	Expectations          [][]executionplan.Expectation `json:"expectations,omitempty"`  // empty, or one expect-and-send list per command
-	Timeouts              []int64                       `json:"timeouts_ns,omitempty"`   // empty, or one --timeout per command in nanoseconds, 0 the job's
-	MaxBytes              []int64                       `json:"max_bytes,omitempty"`     // empty, or one --maxbytes per command, 0 the job's
-	ContinueDeviceOnError bool                          `json:"continue_device_on_error"`
-	PlatformCommands      bool                          `json:"platform_commands,omitempty"` // crun with no command: each device its platform's crun-commands (12.9)
-	Collection            string                        `json:"collection,omitempty"`        // crun, or run given --cd: the word; the plan carries the collection directory, file mode, and word
-	Suffix                string                        `json:"suffix,omitempty"`            // --fs: the collection file names' suffix
-	Transport             string                        `json:"transport,omitempty"`
-	Format                string                        `json:"format"`
-	Echo                  bool                          `json:"echo"`
-	DynamicBorder         bool                          `json:"dynamic_border"`
-	NoBorder              bool                          `json:"no_border"`
-	Detach                bool                          `json:"detach"`
+	ActivityID         string                        `json:"activity_id,omitempty"`
+	Targets            []records.TargetInput         `json:"targets"`
+	Excludes           []string                      `json:"excludes,omitempty"`
+	ManagementAddress  string                        `json:"management_address,omitempty"`
+	Platform           string                        `json:"platform,omitempty"`            // --platform: every device of the set runs as this known platform
+	AddressAuthorities []string                      `json:"address_authorities,omitempty"` // TARGET=client|daemon, in order
+	Commands           []string                      `json:"commands"`
+	CommandsFile       string                        `json:"commands_file,omitempty"`     // the --cf path; its base name reaches the scoreboard
+	BlindReturns       []int                         `json:"blind_returns,omitempty"`     // empty, or one count per command
+	Blind              []bool                        `json:"blind,omitempty"`             // empty, or one tolerance flag per command
+	Expectations       [][]executionplan.Expectation `json:"expectations,omitempty"`      // empty, or one expect-and-send list per command
+	Timeouts           []int64                       `json:"timeouts_ns,omitempty"`       // empty, or one --timeout per command in nanoseconds, 0 the job's
+	MaxBytes           []int64                       `json:"max_bytes,omitempty"`         // empty, or one --maxbytes per command, 0 the job's
+	PlatformCommands   bool                          `json:"platform_commands,omitempty"` // crun with no command: each device its platform's crun-commands (12.9)
+	Collection         string                        `json:"collection,omitempty"`        // crun, or run given --cd: the word; the plan carries the collection directory and word
+	Suffix             string                        `json:"suffix,omitempty"`            // --fs: the collection file names' suffix
+	Transport          string                        `json:"transport,omitempty"`
+	Format             string                        `json:"format"`
+	Echo               bool                          `json:"echo"`
+	DynamicBorder      bool                          `json:"dynamic_border"`
+	NoBorder           bool                          `json:"no_border"`
+	Detach             bool                          `json:"detach"`
 	// Follow renders the job's records as they become durable; false
 	// follows the stream for its terminal only.
 	Follow bool `json:"follow"`

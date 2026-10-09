@@ -15,6 +15,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan/plantest"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/transportselect"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/platform"
@@ -123,7 +124,11 @@ func draftOptions(commands []string) DraftOptions {
 // the fixture home, which the test configuration takes.
 // Re-pinned at plan schema 12: the configuration block, the test
 // configuration's 174 values, added; nothing else moved.
-const goldenK03Draft = "fca0fbf438af2367bc5f4d783f174a5c2a59e614a21fdbf1f181dd0184d72ef2"
+// Re-pinned when the fields that copied a key left the plan (12 still
+// unreleased): blind_wait_ns, execution, ping, output's limits, persist,
+// files, and crop_to_dot, dispatch's halt and gate values; nothing else
+// moved.
+const goldenK03Draft = "acef06bbd8bd72b2f8b1fc55a9b5cffb3fe532f9d3e943f466099579f2c18952"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -146,7 +151,7 @@ func TestDraftFromK03PinsDigest(t *testing.T) {
 	// The digest depends on the configuration digest, so the pin holds only
 	// while the internal-only configuration is stable; show it.
 	t.Logf("config digest %s", cfg.Digest)
-	if draft.PlanID != plantest.PlanID || len(draft.Targets) != 2 || draft.Targets[0].TargetID != "name:core-a" || draft.Targets[1].TargetID != "name:edge-b" || draft.Dispatch.Width != 4 || draft.Dispatch.StartWidth != 16 || draft.Dispatch.MaxWidth != 32 || !draft.Output.Follow || draft.Ping.Enabled || draft.Ping.Probes != 2 || draft.Ping.TimeoutNS != int64(500*time.Millisecond) || draft.Operator.Username != "netops" {
+	if draft.PlanID != plantest.PlanID || len(draft.Targets) != 2 || draft.Targets[0].TargetID != "name:core-a" || draft.Targets[1].TargetID != "name:edge-b" || draft.Dispatch.Width != 4 || draft.Dispatch.StartWidth != 16 || draft.Dispatch.MaxWidth != 32 || !draft.Output.Follow || draft.Operator.Username != "netops" {
 		t.Fatalf("draft=%+v", draft)
 	}
 	for _, x := range draft.Targets {
@@ -170,10 +175,7 @@ func TestDraftSettingsPrecedence(t *testing.T) {
 		echo bool
 	}{
 		{"cpu defaults", nil, nil, executionplan.DispatchSettings{Mode: "serial", Width: 4, StartWidth: 16, MaxWidth: 32, DispatchOrder: "default"}, false},
-		{"configuration beats cpu", sets, nil, executionplan.DispatchSettings{Mode: "wave", Width: 8, StartWidth: 20, MaxWidth: 40, DispatchOrder: "default", HaltErrorCount: 5, HaltErrorPercent: 50, WaveGateErrorCount: 6, WaveGateErrorPercent: 60, WaveGateTimedDelayNS: int64(7 * time.Second)}, true},
-		{"continue-device-on-error from the run", sets, func(o *DraftOptions) {
-			o.ContinueDeviceOnError = true
-		}, executionplan.DispatchSettings{Mode: "wave", Width: 8, StartWidth: 20, MaxWidth: 40, DispatchOrder: "default", HaltErrorCount: 5, HaltErrorPercent: 50, WaveGateErrorCount: 6, WaveGateErrorPercent: 60, WaveGateTimedDelayNS: int64(7 * time.Second), ContinueDeviceOnError: true}, true},
+		{"configuration beats cpu", sets, nil, executionplan.DispatchSettings{Mode: "wave", Width: 8, StartWidth: 20, MaxWidth: 40, DispatchOrder: "default"}, true},
 	} {
 		opts := draftOptions(plantest.Commands)
 		if tc.opts != nil {
@@ -203,28 +205,48 @@ func TestDraftSettingsPrecedence(t *testing.T) {
 	}
 }
 
-// TestDraftCarriesTheInvocationsBounds: the execution block holds the
-// configuration's timeouts, defaults and set values alike, beyond any
-// ceiling a daemon's configuration might hold; the halt key set false
-// continues the device as --continue-device-on-error does.
-func TestDraftCarriesTheInvocationsBounds(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		sets []string
-		want executionplan.ExecutionSettings
-		cont bool
-	}{
-		{"defaults", nil, executionplan.ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)}, false},
-		{"set", []string{`execution.command-timeout="45m"`, `execution.device-timeout="2h"`, `execution.prompt-timeout="30s"`, `execution.enable-timeout="20s"`, `telnet.read-timeout="5m"`, "execution.halt-device-on-command-error=false"},
-			executionplan.ExecutionSettings{CommandTimeoutNS: int64(45 * time.Minute), DeviceTimeoutNS: int64(2 * time.Hour), PromptTimeoutNS: int64(30 * time.Second), EnableTimeoutNS: int64(20 * time.Second), TelnetReadTimeoutNS: int64(5 * time.Minute)}, true},
+// TestDraftCarriesNoCopyOfAKey: the draft's configuration block holds the
+// invocation's values, set and default alike, and the plan holds no field
+// that copies a key: no execution or ping block, no blind wait, no byte
+// limits, files, or crop in output, no collection file mode, no halt or gate
+// value in dispatch.
+func TestDraftCarriesNoCopyOfAKey(t *testing.T) {
+	sets := []string{`execution.command-timeout="45m"`, `execution.device-timeout="2h"`, "execution.halt-device-on-command-error=false", "network.ping-targets=true", "dispatch.halt-on-error-count=5", `crun.file-mode="0640"`}
+	opts := draftOptions(plantest.Commands)
+	opts.Collection = "crun"
+	draft, err := Draft(context.Background(), testConfig(t, append(sets, `crun.directory="`+t.TempDir()+`"`)...), operator, k03Set(t), opts, plantest.DraftedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := draft.Configuration
+	if c["execution.command-timeout"] != "45m" || c["execution.device-timeout"] != "2h" || c["execution.halt-device-on-command-error"] != false || c["network.ping-targets"] != true || c["dispatch.halt-on-error-count"] != int64(5) || c["crun.file-mode"] != "0640" || c["execution.prompt-timeout"] != "10s" {
+		t.Fatalf("the configuration block: %v", c)
+	}
+	data, err := json.Marshal(draft)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var plan map[string]any
+	if err := json.Unmarshal(data, &plan); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"execution", "ping", "blind_wait_ns"} {
+		if _, ok := plan[key]; ok {
+			t.Errorf("the plan carries %s", key)
+		}
+	}
+	for block, keys := range map[string][]string{
+		"output":   {"max_command_bytes", "max_job_bytes", "persist", "files", "crop_to_dot"},
+		"dispatch": {"halt_error_count", "halt_error_percent", "wave_gate_error_count", "wave_gate_error_percent", "wave_gate_timed_delay_ns", "continue_device_on_error"},
 	} {
-		draft, err := Draft(context.Background(), testConfig(t, tc.sets...), operator, k03Set(t), draftOptions(plantest.Commands), plantest.DraftedAt)
-		if err != nil {
-			t.Fatalf("%s: %v", tc.name, err)
+		for _, key := range keys {
+			if _, ok := plan[block].(map[string]any)[key]; ok {
+				t.Errorf("the plan's %s carries %s", block, key)
+			}
 		}
-		if draft.Execution != tc.want || draft.Dispatch.ContinueDeviceOnError != tc.cont {
-			t.Errorf("%s: execution=%+v continue=%v, want %+v continue=%v", tc.name, draft.Execution, draft.Dispatch.ContinueDeviceOnError, tc.want, tc.cont)
-		}
+	}
+	if _, ok := plan["output"].(map[string]any)["collection"].(map[string]any)["file_mode"]; ok {
+		t.Error("the plan's collection carries file_mode")
 	}
 }
 
@@ -437,11 +459,8 @@ func TestDraftPlatformCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := draft.Output.Collection
-	if c == nil || !strings.HasSuffix(c.Directory, "/crun") || c.FileMode != "0644" || c.Word != "crun" {
-		t.Fatalf("collection: %+v", c)
-	}
-	if draft.Output.Files.OutputTxt {
-		t.Fatal("a crun's plan writes output.NAME.txt")
+	if c == nil || !strings.HasSuffix(c.Directory, "/crun") || c.Word != "crun" || draft.Configuration["crun.file-mode"] != "0644" {
+		t.Fatalf("collection: %+v, crun.file-mode %v", c, draft.Configuration["crun.file-mode"])
 	}
 	if !strings.HasPrefix(c.Directory, "/") {
 		t.Fatalf("the directory is not absolute: %s", c.Directory)
@@ -461,7 +480,7 @@ func TestDraftPlatformCommands(t *testing.T) {
 	// An explicit directory, relative to the working directory.
 	cfg = testConfig(t, `platform.generic.crun-commands=["show version"]`, "crun.directory=\"configs\"")
 	draft, err = Draft(context.Background(), cfg, operator, k03Set(t), opts, plantest.DraftedAt)
-	if err != nil || !filepath.IsAbs(draft.Output.Collection.Directory) || filepath.Base(draft.Output.Collection.Directory) != "configs" || draft.Output.Collection.FileMode != "0660" {
+	if err != nil || !filepath.IsAbs(draft.Output.Collection.Directory) || filepath.Base(draft.Output.Collection.Directory) != "configs" {
 		t.Fatalf("an explicit directory: %v %+v", err, draft.Output.Collection)
 	}
 	// A run's or a command's collection (--cd): the word carried, the
@@ -470,8 +489,8 @@ func TestDraftPlatformCommands(t *testing.T) {
 		o := draftOptions(plantest.Commands[:1])
 		o.ActivityType, o.Collection = word, word
 		draft, err = Draft(context.Background(), cfg, operator, k03Set(t), o, plantest.DraftedAt)
-		if err != nil || draft.Output.Collection == nil || draft.Output.Collection.Word != word || !draft.Output.Files.OutputTxt {
-			t.Fatalf("%s's collection: %v %+v %+v", word, err, draft.Output.Collection, draft.Output.Files)
+		if err != nil || draft.Output.Collection == nil || draft.Output.Collection.Word != word || output.SkippedFiles(cfg, draft.Output.Crun()).OutputTxt {
+			t.Fatalf("%s's collection: %v %+v", word, err, draft.Output.Collection)
 		}
 		if err := draft.Validate(executionplan.Draft); err != nil {
 			t.Fatalf("%s's collection: %v", word, err)

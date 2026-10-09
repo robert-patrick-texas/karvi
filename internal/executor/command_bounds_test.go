@@ -8,7 +8,7 @@ import (
 )
 
 // TestACommandsOwnTimeout: a requested command's --timeout replaces the
-// plan's command timeout for it alone, the next command keeping the plan's;
+// job's command timeout for it alone, the next command keeping the job's;
 // each expiry's message names its source, and the command start event
 // carries the effective timeout and limit.
 func TestACommandsOwnTimeout(t *testing.T) {
@@ -29,7 +29,7 @@ func TestACommandsOwnTimeout(t *testing.T) {
 }
 
 // TestACommandsOwnByteLimit: a requested command's --maxbytes replaces the
-// plan's limit for it alone, its message naming --maxbytes, and the next
+// job's limit for it alone, its message naming --maxbytes, and the next
 // command (after the session the limit closed) is not attempted; without
 // it the same output fits.
 func TestACommandsOwnByteLimit(t *testing.T) {

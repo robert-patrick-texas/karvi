@@ -4,49 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/output"
 )
-
-// outputFileFields is OutputFiles' fields, in FileSet's field order.
-var outputFileFields = []string{"CommandsJSONL", "CommandsTxt", "ErrorsJSONL", "FailedDevicesTxt", "ManifestJSON", "MetricsJSON", "SummaryJSON", "OutputTxt"}
-
-// outputWith is the plan's output settings with the named files off.
-func outputWith(off ...string) executionplan.OutputSettings {
-	o := executionplan.OutputSettings{Persist: true, Files: executionplan.AllOutputFiles}
-	v := reflect.ValueOf(&o.Files).Elem()
-	for _, name := range off {
-		v.FieldByName(name).SetBool(false)
-	}
-	return o
-}
-
-// TestSkippedFilesFollowThePlan is the plan's file rules at the runner:
-// each switch of the plan's files
-// skips its own file and no other; all eight off are the store's AllFiles
-// (no job folder); and persist false is AllFiles whatever the switches
-// say, on every path.
-func TestSkippedFilesFollowThePlan(t *testing.T) {
-	if got := skippedFiles(outputWith()); got != (output.FileSet{}) {
-		t.Fatalf("the defaults skip %+v", got)
-	}
-	for i, name := range outputFileFields {
-		got := reflect.ValueOf(skippedFiles(outputWith(name)))
-		for f := 0; f < got.NumField(); f++ {
-			if got.Field(f).Bool() != (f == i) {
-				t.Errorf("%s off: field %s is %v", name, got.Type().Field(f).Name, got.Field(f).Bool())
-			}
-		}
-	}
-	if got := skippedFiles(outputWith(outputFileFields...)); got != output.AllFiles {
-		t.Fatalf("all eight off skip %+v, not AllFiles", got)
-	}
-	o := outputWith()
-	o.Persist = false
-	if got := skippedFiles(o); got != output.AllFiles {
-		t.Fatalf("persist false skips %+v, not AllFiles", got)
-	}
-}
 
 // TestSummaryFilesNameOnlyWrittenFiles: rule 5. The store leaves a skipped
 // file's path empty; the summary then has no entry for it, and no

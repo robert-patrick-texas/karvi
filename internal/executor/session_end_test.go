@@ -20,7 +20,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/output"
-	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -72,7 +71,7 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 	os.MkdirAll(home, 0o700)
 	spool := filepath.Join(dir, "spool")
 	os.MkdirAll(spool, 0o700)
-	all := []string{fmt.Sprintf("ssh.transports.system=%q", script), `ssh.host-key-policy="insecure"`, fmt.Sprintf("ssh.known-hosts-file=%q", filepath.Join(dir, "known_hosts"))}
+	all := []string{fmt.Sprintf("ssh.transports.system=%q", script), `ssh.host-key-policy="insecure"`, fmt.Sprintf("ssh.known-hosts-file=%q", filepath.Join(dir, "known_hosts")), fmt.Sprintf("execution.halt-device-on-command-error=%t", halt)}
 	if !slices.ContainsFunc(sets, func(s string) bool { return strings.HasPrefix(s, "execution.command-timeout=") }) {
 		all = append(all, `execution.command-timeout="1s"`)
 	}
@@ -95,9 +94,8 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 	h := &sessionHarness{log: log}
 	e := New(Options{
 		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run",
-		Commands: commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer", HaltOnCommandError: halt,
-		Execution: planner.ExecutionSettings(cfg), MaxCommandBytes: cfg.Int64("output.max-command-bytes"),
-		Ping: executionplan.PingSettings{Enabled: false}, Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true", SpoolDir: spool,
+		Commands: commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer",
+		Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true", SpoolDir: spool,
 		Debug: func(s string) { h.mu.Lock(); h.debug = append(h.debug, s); h.mu.Unlock() },
 	})
 	h.gateHarness = &gateHarness{t: t, exec: e, store: store, marker: marker, target: target}
@@ -256,7 +254,6 @@ func TestUnansweredKeepalivesEndTheDevice(t *testing.T) {
 func TestBlindSendConfirmsAndGoesOn(t *testing.T) {
 	h := newSessionHarness(t, []string{"clear counters", "show clock"}, true, `execution.blind-wait="2s"`)
 	h.exec.opts.BlindReturns = []int{1, 0}
-	h.exec.opts.BlindWait = 2 * time.Second
 	res, recs := h.run(context.Background())
 	if !res.Success || len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "succeeded" {
 		t.Fatalf("records: %s", describe(recs))
@@ -276,9 +273,8 @@ func TestBlindSendConfirmsAndGoesOn(t *testing.T) {
 // device fails as command_session_lost; as the last command, the device
 // succeeds.
 func TestBlindSendWithoutAPromptEndsTheDevice(t *testing.T) {
-	h := newSessionHarness(t, []string{"reload", "show clock"}, false)
+	h := newSessionHarness(t, []string{"reload", "show clock"}, false, `execution.blind-wait="500ms"`)
 	h.exec.opts.BlindReturns = []int{1, 0}
-	h.exec.opts.BlindWait = 500 * time.Millisecond
 	started := time.Now()
 	res, recs := h.run(context.Background())
 	if elapsed := time.Since(started); elapsed > 5*time.Second {
@@ -305,9 +301,8 @@ func TestBlindSendWithoutAPromptEndsTheDevice(t *testing.T) {
 		t.Fatalf("device saw %q", got)
 	}
 
-	h = newSessionHarness(t, []string{"show clock", "reload"}, false)
+	h = newSessionHarness(t, []string{"show clock", "reload"}, false, `execution.blind-wait="500ms"`)
 	h.exec.opts.BlindReturns = []int{0, 1}
-	h.exec.opts.BlindWait = 500 * time.Millisecond
 	res, recs = h.run(context.Background())
 	if !res.Success || len(recs) != 2 || recs[1].Status != "succeeded" || len(recs[1].Notices) != 1 {
 		t.Fatalf("last-command result %+v records: %s", res, describe(recs))
@@ -353,9 +348,8 @@ func TestExpectationAnswersTheCopyPrompt(t *testing.T) {
 // clause, within the blind wait; the session ends and the command after
 // it is not attempted.
 func TestBlindFlagWithExpectations(t *testing.T) {
-	h := newSessionHarness(t, []string{"reload", "show clock"}, false)
+	h := newSessionHarness(t, []string{"reload", "show clock"}, false, `execution.blind-wait="500ms"`)
 	h.exec.opts.Blind = []bool{true, false}
-	h.exec.opts.BlindWait = 500 * time.Millisecond
 	h.exec.opts.Expectations = [][]executionplan.Expectation{{{Pattern: `confirm\]`, Response: ""}}, nil}
 	started := time.Now()
 	res, recs := h.run(context.Background())

@@ -321,7 +321,7 @@ func TestProfileGateDegradedNoticeOnTheFirstRecord(t *testing.T) {
 // records first, each with the same status and error object as the
 // requested ones.
 func TestEmitUnstartedWithAProfile(t *testing.T) {
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.withProfile(executionplan.SessionInitFailDevice, 0, "terminal width 511", "show clock")
 	h.exec.EmitUnstarted(Work{Target: h.target, QueuedAt: time.Now()}, dispatch.Context{Mode: "serial", ScopePosition: 1}, "not_started_halt", "halt_error_count", nil)
 	recs := readRecords(t, h)
@@ -333,7 +333,7 @@ func TestEmitUnstartedWithAProfile(t *testing.T) {
 // plan's table does not hold is execution_target_invalid before any
 // transport.
 func TestUnknownProfileNameContactsNothing(t *testing.T) {
-	h := newGateHarness(t, executionplan.PingSettings{}, nil)
+	h := newGateHarness(t, nil, nil)
 	h.target.SessionInitProfile = "missing"
 	res, recs := h.run(context.Background())
 	if res.ErrorCode != "execution_target_invalid" || h.transportAttempted() {

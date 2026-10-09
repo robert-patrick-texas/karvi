@@ -80,9 +80,9 @@ func tableFor(name string, tables map[string]map[string]any) (map[string]any, bo
 // Lookup is Resolve with the answer whether the name is known: a built-in
 // or a configured table's name.
 // An unknown name still returns generic's definition under the name, so a
-// caller that must refuse checks the flag; the executor's definition step
-// and login's do, as the backstop for a daemon whose configuration lacks
-// the client's alias table.
+// caller that must refuse checks the flag; the executor's definition step,
+// the exercise's, and login's do, as the backstop behind the planner's
+// resolution for a plan whose configuration does not know its platform.
 func Lookup(name string, tables map[string]map[string]any) (Definition, bool) {
 	return Resolve(name, tables), Known(name, tables)
 }
