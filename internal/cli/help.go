@@ -569,9 +569,9 @@ writes or reads has, after its default, a resolved: line, the path the next
 activity in process would use, found by the activity's own rule without
 creating anything, or error: CODE: message where the activity would refuse;
 a candidate present on the host and passed by follows as a passed: line with
-its reason. The lines come from the configuration this invocation loads: a
-daemon already running keeps its tempdir, spooldir, ssh.control-path-root,
-scoreboards, and sessions.shared-capacity-root until it is restarted.
+its reason. The lines come from the configuration this invocation loads,
+which its job runs under on every path; a running daemon keeps only its
+socket, state, and log under the basedir it started with.
 `
 const daemonHelp = `Usage:
   karvi daemon start [--foreground]

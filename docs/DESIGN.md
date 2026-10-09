@@ -805,9 +805,8 @@ requested commands and write `session_init` records in the same file with their
 own index; under `continue` a profile failure does not fail the device and puts
 a notice on the first requested record; under `fail-device`, or after a
 session-ending failure, the requested commands are
-`not_attempted_session_init_failure`. *Why:* a daemon keeps the configuration it
-started with, so an edited profile or a client's `--set` would not be what runs,
-and the plan would not show what was sent; the administrator who writes
+`not_attempted_session_init_failure`. *Why:* the plan shows what was sent, each
+target's profile resolved by its client; the administrator who writes
 `continue` declared the profile optional. *Not taken:* the name alone in the
 plan with the daemon looking the commands up.
 
@@ -1028,25 +1027,26 @@ whose value is a place karvi writes or reads has a `resolved: PATH` line, the
 path the operator's next activity would use: `basedir`, the trust store, the
 three trees, `tempdir`, `spooldir`, the control sockets, `scoreboards`, the
 ledger's root, the daemon's socket, and, when set, `audit.file`, the inventory
-sources' and the credential backends' files; an explicit value has it too,
-an empty one none. Each chain is found by its own chooser, the one the
-activity's maker calls, without creating anything: a candidate present is
-judged by `access(2)`, its owner and mode where the place is private, and the
-free inodes of its filesystem; one absent is the folder the activity would
-make where its rule lets it. A candidate present and passed by adds a
-`passed:` line with the reason, in the activity's words where it warns, and so
-does a scratch candidate too long for the askpass socket, present or not; a
-refusal is `resolved:   error: CODE: message`, and the view exits 0. The lines
-come from the configuration the invocation loads; a daemon already running
-keeps the places it started with until it is restarted. The view takes several
-keys, and the whole table is a recipe over it ([`docs/FILES.md`](FILES.md)). A
-controlled enrollment takes the store's path from the line. *Why:* under
-`auto` a place depends on what the host holds, and the view printed none but
-two, so the two modes looked alike and a literal default named a place the
-activity did not use. *Not taken:* a new command word or option for paths; the
-rule repeated in shell in each site's scripts; a probe file written by the
-view (it moves the shared trees' times); `--explain` asking a running daemon;
-`sharedroot` and `crun.after` (no one place, not a place).
+sources' and the credential backends' files; an explicit value has it too, an
+empty one none. Each chain is found by its own chooser, the one the activity's
+maker calls, without creating anything: a candidate present is judged by
+`access(2)`, its owner and mode where the place is private, and the free inodes
+of its filesystem; one absent is the folder the activity would make where its
+rule lets it. A candidate present and passed by adds a `passed:` line with the
+reason, in the activity's words where it warns, and so does a scratch candidate
+too long for the askpass socket, present or not; a refusal is `resolved:
+error: CODE: message`, and the view exits 0. The lines come from the
+configuration the invocation loads, which its job runs under on every path; a
+running daemon keeps only its own socket, state, and log under the `basedir` it
+started with, and swept its places at its start. The view takes several keys,
+and the whole table is a recipe over it ([`docs/FILES.md`](FILES.md)). A
+controlled enrollment takes the store's path from the line. *Why:* under `auto`
+a place depends on what the host holds, and the view printed none but two, so
+the two modes looked alike and a literal default named a place the activity did
+not use. *Not taken:* a new command word or option for paths; the rule repeated
+in shell in each site's scripts; a probe file written by the view (it moves the
+shared trees' times); `--explain` asking a running daemon; `sharedroot` and
+`crun.after` (no one place, not a place).
 
 **The host-key identity is the canonical name and, off port 22, the port.**
 Both transports enroll and look up `name` on port 22 and `[name]:PORT`
@@ -1090,8 +1090,9 @@ the client is responsible for, and a property of the import graph cannot drift.
 **The plan is a complete, hashed statement of intent.** The execution plan
 carries the operator, the exact ordered targets (each a device projection with
 its address plan, credential binding, and platform), the commands and their
-digest, and typed effective dispatch, output, ping, and session-init settings,
-so the daemon never re-reads configuration to interpret it. It carries no job
+digest, what the client decided for the job (dispatch, output, session-init),
+and the client's resolved configuration as its `configuration` block, so the
+daemon reads no configuration of its own to run it. It carries no job
 ID and no mode, so an exercise and its live submission hash identically. Its
 digest is over the canonical JSON, deterministic by field order; the plan and
 IPC schemas are closed (`additionalProperties: false`), the report schema open.
@@ -1232,16 +1233,17 @@ directory may be at most 69 bytes (`osutil.MaxScratchDir`). `tempdir`'s `auto`
 chain passes a longer candidate by, `config show --explain` naming it on a
 `passed:` line, and an explicit `tempdir` longer is `tempdir_too_long`, naming
 the directory and its length, where the scratch is resolved: at every job's
-admission, under the configuration that governs the job, and at a login's
-start, before any device, a native-only job included. *Why:* a scratch too long
+admission, under the configuration that governs the job, and at a login's start,
+before any device, a native-only job included. *Why:* a scratch too long
 admitted the job and failed every device over `system` with `bind: invalid
 argument`, which names no length, and a 70-byte directory bound only while the
-pids had six digits (executed); `auto` took `<basedir>/tmp` whatever its
-length. *Not taken:* a check at planning, as the control-path root has (a
-daemon's job runs under the daemon's configuration); the bound judged by the
-running pid; a shorter name (the pid is the sweep's, and any name leaves a
-bound); an abstract socket (no 0600 file, the token its only guard); a warning
-when `auto` passes a candidate by (the next is as private).
+pids had six digits (executed); `auto` took `<basedir>/tmp` whatever its length.
+*Not taken:* a check at planning, as the control-path root has (decided while a
+daemon's job ran under the daemon's configuration; since a job runs under its
+client's, admission is still the one check); the bound judged by the running
+pid; a shorter name (the pid is the sweep's, and any name leaves a bound); an
+abstract socket (no 0600 file, the token its only guard); a warning when `auto`
+passes a candidate by (the next is as private).
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live
@@ -1249,19 +1251,19 @@ preparation after the timer since its last request other than `ping` or
 `status`; the client, finding the socket gone at its first request, launches
 once more and repeats the request with the plan it already made. The packaged
 unit starts the daemon with the timer off. *Why:* a team host gets one daemon
-per operator and some sit for months, running the configuration and the
-executable of that day; the cost is staleness, not memory; a unit's idle exit
+per operator and some sit for months, running the executable and the `daemon.*`
+settings of that day; the cost is staleness, not memory; a unit's idle exit
 is a clean exit `Restart=on-failure` would not restart. *Not taken:* default
 off; counting `status` as activity (a dashboard would keep every daemon
 alive); a daemon that reloads its configuration.
 
-**The manifest is the record of intent.** It holds the commit header, the
-final plan, the safe package projection, and the daemon's execution policy
-(host-key policy, known-hosts file, Telnet allowance) as typed fields, and the
-operator's selection inputs; duplicates of plan content are gone, and a
-validator checks the plan's digest, the header against the plan, and every
-record's device against a plan target. *Why:* the plan and header are the
-record; duplicating them invites disagreement.
+**The manifest is the record of intent.** It holds the commit header, the final
+plan with its configuration block (every value the job ran under), the safe
+package projection as typed fields, and the operator's selection inputs;
+duplicates of plan content are gone, and a validator checks the plan's digest,
+the header against the plan, and every record's device against a plan target.
+*Why:* the plan and header are the record; duplicating them invites
+disagreement.
 
 ## 8. Rehearsal, follow, cancel, and the daemon's lifecycle
 
@@ -1380,10 +1382,9 @@ in the plan.** `network.ping-targets` (default off), `--ping`/`--noping` as
 lock-aware writes to it, two probes with `network.ping-timeout` each; two
 replies proceed, one proceeds with the notice `icmp_packet_loss`, none skips
 the device as `icmp_unreachable` before any capacity lease, open, or askpass.
-The plan carries enabled and timeout, so the flag reaches the daemon's
-executor. *Why:* a target that does not answer two pings should not consume a
-session, and the plan is the only channel from the flag to the executor. *Not
-taken:* the daemon's own configuration governing the gate.
+The flags are lock-aware writes to the keys, which reach the job in its
+configuration. *Why:* a target that does not answer two pings should not consume
+a session. *Not taken:* the daemon's own configuration governing the gate.
 
 **Two pure-stdlib pingers, detected once per job.** A datagram ICMP socket
 pinger and a system `ping` adapter, chosen per job by what the host allows;
@@ -1483,35 +1484,47 @@ the secret has put it in exactly those bytes.
 
 **One boolean key per output file; the invocation decides on every path.**
 `output.files.*` has a key per file, all true by default; each skips its own
-file and no other; all eight false is `--nof`, which writes no folder. The
-plan's output block carries `persist`, the eight switches, and the resolved
-root, so the daemon writes what and where the invocation said, and `job follow`
-looks under the same root. `cmd --nof` and `cmd --of[=PATH]` are flag-origin
-values of `output.persist-command` and `output.root`, so a lock on the key
-refuses the option by the lock alone. *Why:* a site chooses which files it
-keeps; the daemon's store stays the one writer while the client's root
+file and no other; all eight false is `--nof`, which writes no folder. The keys
+reach the job in its configuration and the plan's output block carries the
+resolved root, so the daemon writes what and where the invocation said, and `job
+follow` looks under the same root. `cmd --nof` and `cmd --of[=PATH]` are
+flag-origin values of `output.persist-command` and `output.root`, so a lock on
+the key refuses the option by the lock alone. *Why:* a site chooses which files
+it keeps; the daemon's store stays the one writer while the client's root
 travels in the plan. *Not taken:* the daemon's configuration as the authority
 for the files (two roots could disagree).
 
-**The invocation's timeouts, command byte limit, and halt rule travel in the
-plan.** The plan's `execution` block holds `execution.command-timeout`,
-`execution.device-timeout`, `execution.prompt-timeout`,
-`execution.enable-timeout`, and `telnet.read-timeout` as the client's
-configuration had them; `output.max_command_bytes`, carried since the output
-block but read by nothing, is read by the transports and the free-space check;
-and `continue_device_on_error` is `--continue-device-on-error` or
-`execution.halt-device-on-command-error` set false. The executor and the
-transports read these from the plan on every path, so a `run` through the daemon
-is bounded as `run --no-daemon` and `command` are, and a `--set` of any of them
-reaches the job. The daemon's plan check refuses only what no session can run (a
-timeout at or below zero, a negative device timeout); the client's load has
-checked the ranges. The connect and handshake timeouts, the keepalives, and the
-rest of the configuration stay the daemon's. *Why:* the daemon is the operator's
-own, and a job bounded by whatever configuration the daemon happened to start
-with, the starting invocation's `--set` among them, differed from the same job
-run in process without a word. *Not taken:* the client's whole configuration for
-the job (the roadmap's "A job under its client's configuration"); range checks
-repeated in the daemon; a plan schema bump (11 is unreleased).
+**A job runs under its client's configuration.** The client sends its resolved
+values, the key and value set its digest covers, as the plan's `configuration`
+block under `plan_digest`; the daemon builds the job's configuration from it at
+prepare and at commit (`configload.FromValues`), refuses a block whose digest is
+not `sources.config_digest` as `execution_plan_invalid`, and reads none of its
+own for the job; a `--no-daemon` job runs under the client's loaded snapshot,
+the block's source. The plan carries no copy of a key: the timeouts, the blind
+wait, the gate, the byte limits, the files, the halt and gate values, and the
+collection's file mode are read from the job's configuration on every path, and
+the plan keeps what the client decided or computed (the targets and commands,
+the transports, the resolved roots and directory, the word, the format and
+display choices with no key, the dispatch mode, widths, and order).
+Path-valued keys, the registry's `place` mark with each key's `words`, are made
+absolute at the load against the client's working directory and home, `auto`
+and the other words kept for the daemon to resolve by the same chain on the same
+host; a relative path from an unreadable working directory is
+`config_working_directory_unavailable`. The daemon's own configuration feeds
+its process alone: the `daemon.*` keys (`daemon-start` their reload class where
+a running daemon keeps the value), its `basedir` for its socket, state, and
+log, and the sweeps at its start. The client's load enforces the locks; the
+daemon re-checks nothing. A job's audit records, its `cancel_requested` among
+them, go to the sinks its configuration names, and the daemon-path client prints
+its load's warnings. *Why:* a daemon started by one invocation ran every later
+job under that invocation's `--config`, `--set`, environment, and working
+directory, so a later client's settings silently missed its own job, the
+execution policy among them, and a job's records named two configurations.
+*Not taken:* the client's inputs sent for the daemon to load again; copies of
+single keys in the plan beside the block; the daemon re-checking locked keys
+against its own global file; the audit and capacity keys kept the daemon's as
+host-wide ([`docs/EXAMPLES.md`, chapter
+47](EXAMPLES.md#47-a-job-under-its-clients-configuration-2026-10-08)).
 
 **`output.max-job-bytes` counts the lines and the text blocks; the record
 decides.** A line that would pass the limit fails the append with

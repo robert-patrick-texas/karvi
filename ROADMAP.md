@@ -7,30 +7,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **A job under its client's configuration.** Designed in
-   [`docs/EXAMPLES.md`, chapter
-   47](docs/EXAMPLES.md#47-a-job-under-its-clients-configuration-2026-10-08),
-   to be built in sections. The daemon is the operator's own; a job it accepts
-   runs under the configuration of the invocation that submitted it, every key
-   the job reads, while the daemon's own configuration keeps what belongs to
-   the process: the seven `daemon.*` keys, its own `basedir` for its socket,
-   state, and log, and the sweeps at its start. The client sends its resolved
-   values, never its inputs, in the plan's `configuration` block; path-valued
-   keys are made absolute at load against the client's working directory and
-   home, and `auto` stays `auto`, resolved by the daemon through the same chain
-   on the same host; the daemon builds the job's configuration from the block
-   and every reader on the job path takes it in place of the daemon's, at
-   prepare and at commit. The plan's fields that copy a key leave it
-   (`execution`, `ping`, `output`'s copied fields, `dispatch`'s halt and gate
-   values), `--continue-device-on-error` becomes a flag-origin key write, and
-   the manifest's `policy` block and the readiness `policy_digest` go; the
-   client's load enforces the locks, and the daemon re-checks nothing. It ends
-   a started daemon's keeping of its first invocation's `--set` for every later
-   job, and with it the execution policy's silent override ([chapter
-   37](docs/EXAMPLES.md#37-the-first-contact-said-alike-over-both-transports-2026-10-07)).
-   The counters: execution plan 12, daemon IPC 11 (the release resumes the
-   lifecycle replay with v0.28.0 as the prior), job 3, plan report 2,
-   registry 28.
+Nothing at present: the operator chooses the next item from Later.
 
 ## Later
 

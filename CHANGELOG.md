@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+- **A job runs under its client's configuration.** A daemon ran every job under
+  the configuration it loaded at its start, its first launcher's `--config`,
+  `--set`, `KARVI__*` variables, and working directory, so a later client's
+  settings missed its own job without a word, the host-key policy among them.
+  The client now sends its resolved values in the plan's `configuration`
+  block and the daemon builds the job's configuration from it, refusing a
+  block whose digest is not the plan's `sources.config_digest`
+  (`execution_plan_invalid`); the daemon's own configuration serves its process
+  alone (the `daemon.*` keys, its `basedir`, the sweeps at its start), and a
+  site's locks are enforced by each client's load. A job's audit records go to
+  the sinks its configuration names, `run.cancel_requested` included, and the
+  daemon opens no audit sink of its own; the audit's `policy.config_digest`
+  names the job's configuration, where it named the daemon's. The client of a
+  daemon-backed run prints its load's warnings, which no daemon-backed run
+  printed.
+- **The plan carries no copy of a key; the schemas move.** Execution plan 12:
+  the `configuration` block is added, and the `execution` and `ping` blocks,
+  `blind_wait_ns`, `output`'s `max_command_bytes`, `max_job_bytes`, `persist`,
+  `files`, and `crop_to_dot`, the collection's `file_mode`, and `dispatch`'s
+  halt and gate values with `continue_device_on_error` are removed, the job
+  reading those keys from its configuration. Daemon IPC 11 carries it. Job 3:
+  the manifest's `policy` block is removed (the summary moves with it). Plan
+  report 2: the daemon row's `execution_policy_digest` is removed, and
+  `--exercise`'s daemon line no longer prints `policy_digest`. A running 0.28.0
+  daemon is `compatible: false` and is restarted.
+- **Path-valued keys are made absolute when the configuration loads.** The
+  registry marks every key whose value is a path (`place`, with the key's
+  `words` such as `auto` kept as written, and a dynamic table's `places`); `~`
+  is the operator's home and a relative path is taken from the working directory
+  at the load, so `config show` prints the path a job records and the digest
+  covers it, the built-in `ssh.identities` included. `~user` fails the load; a
+  relative path from a working directory that cannot be read is
+  `config_working_directory_unavailable`, and `crun_directory_unavailable`,
+  whose causes now fail at the load, is retired. Registry 28.
+- **The reload class says which keys wait for a daemon restart.** `config show
+  --explain` printed `reload: next-job` for every key;
+  `daemon.max-accepted-jobs`, `daemon.shutdown-idle-timer`,
+  `daemon.shutdown-grace-seconds`, and the daemon's side of
+  `daemon.max-ipc-frame-bytes` and `daemon.forced-grace-seconds` are now
+  `daemon-start`: a running daemon keeps the value it started with.
 - **The user units carry no file-system sandbox.** `karvi-daemon.service`,
   `karvi-prune.service`, and `karvi-crun.service` under
   `/usr/share/karvi/systemd/user/` no longer set `PrivateTmp`,

@@ -77,7 +77,7 @@ connection.
 Unknown and changed keys are accepted, and nothing is stored. A job under
 `insecure` says so once, at its admission, in two lines on standard error in
 the warning colour, `--quiet` included; through the daemon they ride the
-job's receipt (a daemon's job runs under the daemon's own policy). A login
+job's receipt (a daemon's job runs under its client's policy). A login
 says them before its contact.
 
 ```text

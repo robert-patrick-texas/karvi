@@ -39,18 +39,13 @@ in the table is enforced when the configuration loads
 (`config_value_out_of_range`), and `execution.blind-wait`'s again when the plan
 is drafted (`execution_plan_invalid`).
 
-The invocation's values bound its job on every path. The client writes
-`execution.command-timeout`, `execution.device-timeout`,
-`execution.prompt-timeout`, `execution.enable-timeout`, and
-`telnet.read-timeout` into the execution plan's `execution` block, and
-`execution.blind-wait` as `blind_wait_ns`, and each command's `--timeout` in
-`timeouts_ns` (0 for the key's); the executor and the transports read them from
-the plan, so a `run` through the daemon is bounded as its invocation
-said and the daemon's own values for these keys bound no job. The connect and
-handshake timeouts and the keepalives are the daemon's, read from its own
-configuration on that path. A daemon's plan check refuses only a value no
-session can run: a timeout at or below zero, a negative device timeout, or a
-negative or miscounted `timeouts_ns`.
+The invocation's values bound its job on every path. A job runs under its
+client's configuration, which reaches the daemon in the plan's `configuration`
+block, so every key on this page, the connect and handshake timeouts and the
+keepalives among them, is the invocation's; the plan carries each command's
+`--timeout` in `timeouts_ns` (0 for the key's), and the daemon's own values for
+these keys bound no job. A daemon's plan check refuses a negative or miscounted
+`timeouts_ns`; the client's load has checked every key's range.
 
 ## 2. How the values relate
 

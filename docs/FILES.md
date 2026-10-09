@@ -107,13 +107,12 @@ tempdir: resolved:   /dev/shm/karvi/netops
 transcript.root: resolved:   /opt/karvi/shared/transcripts
 ```
 
-The lines come from the invocation's configuration: a daemon already running
-keeps its `tempdir`, `spooldir`, `ssh.control-path-root`, `scoreboards`, and
-`sessions.shared-capacity-root` until it is restarted, so a new configuration's
-places are checked with the view and the daemon restarted after. The shared
-places and their modes, here as `sudo karvi setup shared --group netops` leaves
-them (`--mode 2775` gives `drwxrwsr-x` to the four 2770 directories under
-`/opt/karvi`):
+The lines come from the invocation's configuration, which its job runs under on
+every path: a running daemon keeps only its socket, state, and log under the
+`basedir` it started with, and swept its own `tempdir`, `spooldir`, and
+`ssh.control-path-root` at its start. The shared places and their modes, here as
+`sudo karvi setup shared --group netops` leaves them (`--mode 2775` gives
+`drwxrwsr-x` to the four 2770 directories under `/opt/karvi`):
 
 ```bash
 stat -c '%A %U:%G %n' /opt/karvi /opt/karvi/users /opt/karvi/shared \

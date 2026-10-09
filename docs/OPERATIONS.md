@@ -281,22 +281,55 @@ variable and never its value; start it from a shell or unit without them.
 A variable the daemon needs from the shell, an agent socket for example,
 goes in `security.child-environment-allowlist`.
 
+## The daemon and the job's configuration
+
+A job runs under the configuration of the invocation that submitted it,
+through a daemon or not: the client sends its resolved values in the plan, and
+the daemon builds the job's configuration from them and reads none of its own
+for the job. A later client's `--set`, `--config`, `KARVI__*` variables, and
+working directory reach its own job; a relative path in any of them is made
+absolute against the client's working directory when it loads, so `karvi config
+show` prints the path the job records. Two clients through one daemon, each
+naming its own trust store:
+
+```text
+$ karvi --set ssh.known-hosts-file=kh1/known_hosts run --target 127.0.0.1 --platform linux --cmd 'echo 1'
+daemon started socket=…/socket/daemon.sock
+! ssh accepted new host-key 127.0.0.1 (ED25519)
+1
+$ karvi --set ssh.known-hosts-file=kh2/known_hosts run --target 127.0.0.1 --platform linux --cmd 'echo 2'
+! ssh accepted new host-key 127.0.0.1 (ED25519)
+2
+```
+
+The daemon's own configuration is the launching invocation's (its `--config`,
+`--set`, and `KARVI__*` variables) and serves the process alone: the `daemon.*`
+keys, the `basedir` of its socket, state, and log, and the sweeps at its start.
+`karvi config show --explain` prints `reload: daemon-start` for the keys a
+running daemon keeps from its start (`daemon.max-accepted-jobs`,
+`daemon.shutdown-idle-timer`, `daemon.shutdown-grace-seconds`, and the daemon's
+side of `daemon.max-ipc-frame-bytes` and `daemon.forced-grace-seconds`); a new
+value of one reaches the daemon at its next start (`karvi daemon restart`). A
+site's locks are enforced by each client's load; the daemon checks no lock of
+its own. A job's audit records, the cancel record among them, go where its
+configuration names, and the client of a daemon-backed run prints its load's
+warnings itself.
+
 ## The daemon's idle exit
 
-A daemon a client launched is one process per operator and per
-configuration (`basedir`), and it outlives the terminal and the login
-that started it. On a host used by a team, that is one daemon per
-operator, each holding its start-time configuration and executable, for
-as long as no one stops it. `daemon.shutdown-idle-timer` (`"1h"` by
-default) ends that: after that long with no active job, no preparation in
-progress, and no request but `ping` and `status`, the daemon stops itself
-exactly as `daemon stop` on an idle daemon would, exit 0, with one line in
-`logs/daemon.log` (`stopping: idle`, the idle time, the key and its
-value). The check runs once a minute, so the exit comes within a minute
-of the timer. The next `run` finds no daemon and launches one (some 80
-ms; it prints `daemon started` unless `--quiet`) with the configuration
-and executable of that day. `0` never exits; otherwise the value is 1m to
-720h. Measured: an idle daemon holds 19 MB and 9 threads fresh, 43 MB some
+A daemon a client launched is one process per operator and per configuration
+(`basedir`), and it outlives the terminal and the login that started it. On a
+host used by a team, that is one daemon per operator, each holding its
+start-time executable and `daemon.*` settings, for as long as no one stops it.
+`daemon.shutdown-idle-timer` (`"1h"` by default) ends that: after that long with
+no active job, no preparation in progress, and no request but `ping` and
+`status`, the daemon stops itself exactly as `daemon stop` on an idle daemon
+would, exit 0, with one line in `logs/daemon.log` (`stopping: idle`, the idle
+time, the key and its value). The check runs once a minute, so the exit comes
+within a minute of the timer. The next `run` finds no daemon and launches one
+(some 80 ms; it prints `daemon started` unless `--quiet`) with the executable
+and the `daemon.*` settings of that day. `0` never exits; otherwise the value is
+1m to 720h. Measured: an idle daemon holds 19 MB and 9 threads fresh, 43 MB some
 minutes after a 76 MB job, and no connection to any device.
 
 `status` and `ping` keep no daemon alive, so a monitor may poll as often

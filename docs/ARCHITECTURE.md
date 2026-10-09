@@ -95,16 +95,16 @@ through the device view's `PlatformUsed`, not the set platform. `login` resolves
 at the same point of its own sequence, before the definition is fetched, and the
 `login --record` wrapper for its metadata. The executor, `login`, and the
 exercise refuse a platform their configuration does not know (`platform.Lookup`,
-`platform_unknown`), the backstop for a daemon whose configuration lacks the
-client's alias table. Two checks run before the inventory is read: `--platform`
-in `login`, `command`, and `run` must name a known platform
-(`app.CheckPlatformOption`; the shortcuts `--pi`, `--pn`, `--pr`, `--pj`,
-`--pa`, and `--pg` are that option with its value, made so by the parser table's
-`standsFor`, which also makes `--dp`, `--dw`, and `--ds` `--dispatch` with a
-value; `--tl LIST` is each of its names as a `--target` at the list's position,
-`parser.addTarget`), and each `--select-platform` selector must reach one
-(`checkPlatformSelectors`), the known set being `platform.KnownNames` over the
-configured tables; the three `platform-resolution` keys and a source's
+`platform_unknown`), the backstop behind the planner's resolution for a plan
+whose own configuration does not know its platform. Two checks run before the
+inventory is read: `--platform` in `login`, `command`, and `run` must name a
+known platform (`app.CheckPlatformOption`; the shortcuts `--pi`, `--pn`, `--pr`,
+`--pj`, `--pa`, and `--pg` are that option with its value, made so by the parser
+table's `standsFor`, which also makes `--dp`, `--dw`, and `--ds` `--dispatch`
+with a value; `--tl LIST` is each of its names as a `--target` at the list's
+position, `parser.addTarget`), and each `--select-platform` selector must reach
+one (`checkPlatformSelectors`), the known set being `platform.KnownNames` over
+the configured tables; the three `platform-resolution` keys and a source's
 `defaults.platform` are validated against the same set at load, whatever
 `on-unknown` says.
 
@@ -322,41 +322,35 @@ memory for output is the width in flight times the threshold plus the windows, a
 figure of two keys; there is no memory key and no memory check. The width in
 flight is `dispatch.server-max-inflight`, by default `min(256, max(32, 8×CPU))`.
 
-**Which files a job writes is one value, `output.FileSet`,** one field
-per file, the zero value writing them all. The invocation decides it on
-every path: the
-plan's `output` carries `persist` (`output.persist-command`), `files`
-(the eight `output.files.*` switches), and `root` (`output.root`,
-resolved by the planner against the site's shared root, `sharedroot`, and
-the client's basedir and home), and
-`jobexec.skippedFiles` is the one function from the plan to the set, in
-`jobexec.Run`, the one place it is decided: `--nof` and all eight keys
-false are the same value, `output.AllFiles`, for which the store makes no
-folder, on `cmd`, `run --no-daemon`, and a run through the daemon alike.
-The daemon reads its own `output.files.*` and `output.root` for no job;
-the keys that describe its host's disk (`directory-mode`, `fsync`, the
-space preflight's) stay its. The command line reaches these as
-flag-origin configuration values, in one function, `cli.outputOptions`:
-`--nof` and `--of` are `output.persist-command`, and `--of=PATH` is
-`output.root` for that invocation, on `cmd`
-and `run`; `run` refuses `--nof` with `--detach` (nothing persisted and
-nobody following) and with `--exercise` (the report is a file). A job
-that keeps no folder has an empty `artifact_dir` in its receipt and its
-follow start, and its footer says `artifacts=none`.
-The store writes every file from memory
-and none from another, so no key depends on another; `Store.Paths`
-names only the files written, and the summary's `paths` is made from it
-(`jobexec.summaryFiles`, shared by the job and the exercise).
-A record is handed to the daemon's followers by the store itself, under
-its lock, once the `commands.jsonl` line is written and before the text
-block (`output.Options.OnDurable`, the record with its notice): the
-followers refuse a frame that does not follow the last, and only the
-lock gives that order at width.
-`output.max-job-bytes` is held by the store over the `commands.jsonl`
-lines and the text blocks together; a record that cannot be appended is
-kept as `Store.Err`, which `jobexec.Run` reads after the devices are
-done and ends as an output failure, since a device's dispatch result
-carries its code to no operator.
+**Which files a job writes is one value, `output.FileSet`,** one field per file,
+the zero value writing them all. The invocation decides it on every path: the
+plan's `output` carries `persist` (`output.persist-command`), `files` (the eight
+`output.files.*` switches), and `root` (`output.root`, resolved by the planner
+against the site's shared root, `sharedroot`, and the client's basedir and
+home), and `output.SkippedFiles` is the one function from the job's
+configuration to the set, read by the planner and by `jobexec.Run`, the one
+place it is decided: `--nof` and all eight keys false are the same value,
+`output.AllFiles`, for which the store makes no folder, and a `crun` skips every
+`output.NAME.txt`, on `cmd`, `run --no-daemon`, and a run through the daemon
+alike. The daemon reads no `output.*` key of its own for a job. The command line
+reaches these as flag-origin configuration values, in one function,
+`cli.outputOptions`: `--nof` and `--of` are `output.persist-command`, and
+`--of=PATH` is `output.root` for that invocation, on `cmd` and `run`; `run`
+refuses `--nof` with `--detach` (nothing persisted and nobody following) and
+with `--exercise` (the report is a file). A job that keeps no folder has an
+empty `artifact_dir` in its receipt and its follow start, and its footer says
+`artifacts=none`. The store writes every file from memory and none from another,
+so no key depends on another; `Store.Paths` names only the files written, and
+the summary's `paths` is made from it (`jobexec.summaryFiles`, shared by the job
+and the exercise). A record is handed to the daemon's followers by the store
+itself, under its lock, once the `commands.jsonl` line is written and before the
+text block (`output.Options.OnDurable`, the record with its notice): the
+followers refuse a frame that does not follow the last, and only the lock gives
+that order at width. `output.max-job-bytes` is held by the store over the
+`commands.jsonl` lines and the text blocks together; a record that cannot be
+appended is kept as `Store.Err`, which `jobexec.Run` reads after the devices are
+done and ends as an output failure, since a device's dispatch result carries its
+code to no operator.
 
 **Every `.json` file is indented and every `.jsonl` file is compact.**
 `osutil.AtomicJSON` is the one
@@ -653,20 +647,19 @@ chooses the method once per job among those `network.ping-socket` and
 `network.ping-system` allow: socket, then system, then unavailable with a
 reason naming every cause. `karvi version` reports the host's method.
 
-The plan carries the gate's `enabled` and `timeout_ns` from the invocation's
-effective configuration (`--ping` and `--noping` write `network.ping-targets`
-through the cli layer), so the executor obeys the plan, not its own keys; the
-method switches are executor policy from the executor's own configuration.
-`jobexec.Run` detects before any directory or record exists and refuses an
-enabled job with no method as `icmp_capability_unavailable`. In
-`executor.Execute` the gate runs after the credential grant's safe projection
-and before the capacity lease: two replies proceed, one proceeds with the
-`icmp_packet_loss` notice on the device's first record, none emits the failure
-set with `icmp_unreachable` on command 1 and the rest not attempted, before the
-open request and its password callbacks exist. Every record of a gated device
-carries the same `ping` object and `ping_ns`; the summary carries the block; the
-`ping` stage feeds the metrics histogram. `login` runs the same gate after
-credential resolution and before the open. The two rehearsals detect the
-capability without probing and report it as `intended_ping.capability` and
-`method`. Text output prints one line per gated device from the
-`display.ping.header` template, with details and the notice under `--debug`.
+The gate's keys are the job's configuration (`--ping` and `--noping` write
+`network.ping-targets` through the cli layer), the invocation's on every path,
+the method switches among them. `jobexec.Run` detects before any directory or
+record exists and refuses an enabled job with no method as
+`icmp_capability_unavailable`. In `executor.Execute` the gate runs after the
+credential grant's safe projection and before the capacity lease: two replies
+proceed, one proceeds with the `icmp_packet_loss` notice on the device's first
+record, none emits the failure set with `icmp_unreachable` on command 1 and the
+rest not attempted, before the open request and its password callbacks exist.
+Every record of a gated device carries the same `ping` object and `ping_ns`; the
+summary carries the block; the `ping` stage feeds the metrics histogram. `login`
+runs the same gate after credential resolution and before the open. The two
+rehearsals detect the capability without probing and report it as
+`intended_ping.capability` and `method`. Text output prints one line per gated
+device from the `display.ping.header` template, with details and the notice
+under `--debug`.

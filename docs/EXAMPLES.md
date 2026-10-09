@@ -7545,3 +7545,25 @@ build and S4's:
 A test puts the cancel record in a client's file other than the daemon's and
 fails on the daemon's own sink. README's counter line names the tree's
 counters once.
+
+**S5, the documents and the close.** DESIGN states the rule in one entry, "A
+job runs under its client's configuration", in place of the entry that carried
+the timeouts, the byte limit, and the halt rule in the plan, and corrects the
+entries that gave the daemon's configuration as a reason (the session-init
+table, the place view, the scratch's check, the idle exit, the manifest, the
+ICMP gate, the output files); OPERATIONS gains "The daemon and the job's
+configuration" with the chapter's first example and the reload class, and its
+idle exit names the executable and the `daemon.*` settings; ARCHITECTURE,
+FILES, TIMEOUTS, SSH-HOST-KEY-POLICY, `karvi-config(1)` (from its help text),
+and `karvi-daemon(1)`'s FILES say the same; CHANGELOG's `## Unreleased` gains
+four entries, the behaviour change and the schemas first; ROADMAP's Next 1 is
+removed, Next now empty for the operator to choose from Later. The counters
+moved: registry 28, execution plan 12, daemon IPC 11, job 3, plan report 2;
+the configuration, command record, credential package, scoreboard, audit,
+metrics, and inventory counters are 0.28.0's. Raised in the build and not
+taken, for the operator to place: every invocation printing its load's warnings
+(S2.3); a client comparing its `daemon.*` values with a running daemon's (S1's
+reload class); `ssh.transports.system` found on the daemon's `PATH`, its first
+launcher's environment (S1). The release's tools (`release/`,
+`scripts/verify-shipped.sh`, `scripts/verify-release.sh`, BUILD-HOWTO §8)
+still name 0.28.0's counters and move with the release, archived first.

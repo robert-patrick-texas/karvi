@@ -47,6 +47,17 @@ The daemon's socket, the operator's alone
 .IR BASEDIR/state/daemon.json ", " BASEDIR/logs/daemon.log
 Its state and its log.
 .PP
+A job runs under the configuration of the client that submitted it, sent in
+its plan; the daemon's own configuration, its launching invocation's, serves
+the process alone: the
+.B daemon.*\&
+keys, the
+.B basedir
+of its socket, state, and log, and the sweeps at its start.
+A key whose reload class is
+.B daemon\-start
+reaches a running daemon at its next start.
+.PP
 A daemon a client launched passes on a filtered environment:
 .BR HOME ,
 .BR USER ,
