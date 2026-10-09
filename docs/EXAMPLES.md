@@ -7575,3 +7575,97 @@ its configuration's warnings, and a client told when a running daemon's
 `ssh.transports.system` found on the daemon's `PATH` needs no change, since a
 site that needs one OpenSSH for every job sets the key to an absolute path, by
 `--set` or the configuration, which the job's configuration carries.
+
+## 48. The release 0.29.0 (2026-10-09)
+
+The sixth public release, on the operator's word and number, carrying chapters
+45 to 47; the first since 0.20.0 to move the daemon IPC schema, so the lifecycle
+replay resumes, with v0.28.0 as its prior. The sequence is [chapter
+44](#44-the-release-0280-2026-10-08)'s, with a fix to the replay before the
+number.
+
+**What it gains.** A site runs every job under the configuration its own
+invocation resolved, through a daemon or not, from a published, checksummed
+bundle and package; and the user units without a sandbox, and the collection
+directory's refusal naming its cause, from a published artifact.
+
+**Before the number.** The release tools were archived first
+(`~/karvi/backup/archive-2026-10-09`: a mirror of the tree at `118649d` and the
+five tools as they were), then `common.sh` took v0.28.0 as the replay's prior
+(`PRIOR_VERSION` and the bundle's checksum, which `verify_prior_bundle`
+confirmed). The replay, rehearsed with a lab build of `dev` (IPC 11) against
+the released v0.28.0 executable (IPC 10), passed all five steps, and left
+`/tmp/karvi-1000` on the host, empty, 0700, made at the old daemon's first
+start:
+
+```text
+$ KARVI=/dev/shm/kl/bin/karvi-linux-amd64 ./scripts/daemon-lifecycle-replay.sh …/karvi-v0.28.0/bin/karvi-linux-amd64
+old executable: karvi 0.28.0; daemon_ipc_schema: 10
+new executable: karvi 0.28.0; daemon_ipc_schema: 11
+…
+daemon lifecycle replay: pass (old schema 10, new schema 11)
+$ ls -d /tmp/karvi-*
+/tmp/karvi-1000
+$ karvi-v0.28.0 --set basedir=… config show spooldir
+value:      "auto"
+resolved:   /tmp/karvi-1000
+```
+
+The script gave the older daemon `basedir` and `scoreboards` alone, its comment
+holding that the prior release did not know `sharedroot`, `spooldir`, or
+`platform-resolution.default`; 0.28.0 knows all three, so its start resolved
+`spooldir = auto` to the host's candidate and consulted the host's shared
+root. The verifiers do not run the replay, so their host check could not see
+it. *Made under the release's word, reported before the push:* both
+executables take one argument list, every tree and the spool under the
+replay's base; rehearsed again, exit 0 and no host place made. The directory,
+the replay's own, was removed. The release verifier and the shipped-bytes
+verifier still checked 0.28.0's counters (IPC 10, job 2, registry 27, as
+chapter 47 left them for the release), so the baseline on `dev` would have
+failed; they took the tree's (11, 3, 28) in the same commit, `18c2fbd`, with
+CHANGELOG's entry for the replay. *Not taken:* the older daemon's keys kept
+apart for a prior that does not know them (every prior from v0.28.0 does, and
+the replay's prior only moves forward).
+
+**The sequence, as run**, from the archive at 11:26 to the published check at
+12:12, the stop for the operator's word before the push included:
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the tools archived, `common.sh`'s prior, the replay rehearsed | 11:26:32 to 11:28:14 | the first rehearsal made `/tmp/karvi-1000`; `18c2fbd`, the replay's one argument list and the verifiers' counters |
+| the baseline on a clean clone of `dev` at `18c2fbd` | 11:28:21 to 11:35:27 | gofmt, make, the release verifier with its package step, exit 0 each |
+| the number, the compatibility example, 1/3 | 11:35:57, 11:36:04 | `903bddf`; the released v0.28.0 daemon `compatible: false` by version and IPC schema (10 against 11), the run refused with `daemon_incompatible` (exit 112) before any job |
+| the core evidence | 11:36:09 to 11:38:05 | 912 named tests across 84 packages, vet 0, both socket lengths exit 0 |
+| the documents | 11:39:18 | `e5d8b7e` (2/3): `release/` from the v0.28.0 pattern, five assets; BUILD-HOWTO §8 at IPC 11 and registry 28 |
+| the remaining evidence | 11:39:23 to 11:46:09 | the shipped checks exit 0, the release verifier exit 0 with the release's package checked, the checksums unchanged by its rebuild; the replay against v0.28.0, pass |
+| 3/3, the tag, `main` | 11:46:28 | `19c21d3`, `karvi-v0.29.0`, `main` fast-forwarded from `53984e7` |
+| the artifacts | 11:46:37 to 11:51:55 | the bundle and the package each reproducible byte for byte; the bundle verified from its own archive, the package checked against its extraction; 15,885,494 and 5,729,946 bytes |
+| the package installed in a throwaway `ubuntu:24.04` | 11:52 | `apt install` exit 0 with `openssh-client`; the installed executables `CHECKSUMS.sha256`'s; 23 files under `/usr/share/karvi`, 0.28.0's 24 less the daemon's drop-in example |
+| the push and the GitHub release | 12:12:03 | `dev`, `main`, and the tag pushed; release `karvi-v0.29.0` with the five assets, marked latest; the assets downloaded back match |
+
+**Executed.** The replay in the release's evidence
+(`release/evidence/v0280-to-v0290-lifecycle.log`) and the published state:
+
+```text
+[3] daemon stop with no option (the old daemon reports no active job)
+    daemon stopped (version=0.28.0 ipc_schema=10; client_schema=11)
+[4] daemon restart replaces the old daemon with a compatible one
+    stopped incompatible daemon version=0.28.0 ipc_schema=10
+    daemon restarted
+daemon lifecycle replay: pass (old schema 10, new schema 11)
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)"'
+latest: karvi-v0.29.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.29.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.29.0-source-linux-amd64.tar.gz: OK
+karvi_0.29.0_amd64.deb: OK
+```
+
+**Found on the way.** BUILD-RESULT's last line still named build numbers as the
+roadmap's first item, stale since the operator moved them to Later after
+0.28.0; the 2/3 sweep dropped it. The manifest's lifecycle-compatible schemas
+gain 11 (`MinLifecycleSchema` to `ipc.SchemaVersion`).
+`crun_directory_unavailable`'s retirement, recorded as v0.29.0 in chapter 47's
+S1, needed no change at the number. The module graph and `go-version-m.txt`
+are 0.28.0's.
+
+**Roadmap.** Unchanged: Next is empty for the operator to choose from Later.
