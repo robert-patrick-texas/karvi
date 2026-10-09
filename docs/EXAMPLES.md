@@ -6911,3 +6911,49 @@ before the next item.
 
 The evidence, with the probe and the scripts, is in
 `release-design-evidence/user-unit-sandbox-2026-10-08/`; the lab was removed.
+
+## 46. The collection directory's refusal names its cause (2026-10-08)
+
+Found in [chapter 45](#45-the-user-units-without-a-sandbox-2026-10-08):
+`crun_directory_not_writable` misstated its cause with no read-only mount
+involved; fixed in a section of its own before the next item, on the operator's
+word.
+
+**What it gains.** An operator whose `--cd` or `crun.directory` is refused reads
+the cause, and the shared directory's mode only where the mode is the remedy.
+It waits on nothing.
+
+**The rule, agreed.** Two defects, both in `internal/osutil/paths.go`:
+
+1. `EnsureCollectionDirectory` appended the shape a shared directory needs
+   (mode 2770 or 2775) to every failure. It is appended now only where the
+   shape is the remedy: a present real directory refused by permission (the
+   operator cannot create files in it) and the sticky case; any other cause is
+   named alone, the code unchanged.
+2. `mkdirs` stopped at an `lstat` that failed with `ENOTDIR` and returned that
+   error, so `EnsureOutputDirectory` named the path given to it as the one
+   that "exists and is not a folder" when a folder above it was the file. The
+   walk now goes up past `ENOTDIR` and names the component that is a file; the
+   job, transcript, and collection trees all take it.
+
+The registry's description of the code and OPERATIONS's shared-directory
+paragraph say which causes carry the shape; `docs/ERROR-CODES.md` is
+regenerated.
+
+**Executed**, a lab build of the tree with the change, `--no-daemon`, every
+place under a short lab directory:
+
+```text
+--cd=/usr/kl-x            cannot create /usr/kl-x: mkdir /usr/kl-x: permission denied
+--cd=…/afile              …/afile exists and is not a folder
+--cd=…/afile/sub          …/afile exists and is not a folder
+--cd=…/locked (0500)      …/locked is not writable by the operator: open
+                          …/locked/.karvi-write-…: permission denied; a shared
+                          collection directory needs mode 2770 or 2775 (…)
+--cd=…/locked/crun        cannot create …/locked/crun: mkdir …: permission denied
+```
+
+each `crun_directory_not_writable`, exit 9. The tests state each cause and
+whether the shape appears; against the code before the change,
+`TestEnsureOutputDirectory` and `TestEnsureCollectionDirectory` fail on the
+file above the path and on the shape after a file.

@@ -1103,8 +1103,10 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   ```
 
   A directory that cannot be prepared is refused before any device is
-  contacted (`crun_directory_not_writable`), with that shape in the
-  message.
+  contacted (`crun_directory_not_writable`): one the operator cannot create
+  files in, or a sticky one of another owner, with that shape in the message;
+  a file at or above the path, or a missing directory that cannot be made,
+  with the cause alone, naming that file or the directory.
 - **Under systemd.** The packaged user unit gives the daemon the operator's
   own view of the files ("Retention"), so a collection directory anywhere the
   operator may write serves through it as in the client process.

@@ -173,7 +173,8 @@ func mkdirs(path string, mode os.FileMode) error {
 			return nil
 		}
 		return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
-	} else if !os.IsNotExist(err) {
+	} else if !os.IsNotExist(err) && !errors.Is(err, syscall.ENOTDIR) {
+		// ENOTDIR: a component above path is a file; the walk up names it.
 		return err
 	}
 	parent := filepath.Dir(path)
@@ -768,15 +769,21 @@ func DaemonSocket(raw, base, home string) (string, error) {
 // mode, group, and setgid bit; and one with the sticky bit that the
 // operator does not own is refused, since the kernel would refuse every
 // rename over another operator's file one device at a time. The message
-// names the shape a shared directory needs.
+// names the shape a shared directory needs where the shape is the remedy: a
+// present directory the operator may not create files in, and the sticky
+// case; any other cause is named alone.
 func EnsureCollectionDirectory(path string, mode os.FileMode) error {
 	const code = "crun_directory_not_writable"
 	if err := EnsureOutputDirectory(path, mode, code); err != nil {
-		return errorcodes.Errorf(code, "%s; %s", strings.TrimPrefix(err.Error(), code+": "), collectionDirectoryShape)
+		msg := strings.TrimPrefix(err.Error(), code+": ")
+		if fi, serr := os.Lstat(path); serr == nil && fi.IsDir() && errors.Is(err, os.ErrPermission) {
+			return errorcodes.Errorf(code, "%s; %s", msg, collectionDirectoryShape)
+		}
+		return errorcodes.Errorf(code, "%s", msg)
 	}
 	fi, err := os.Stat(path)
 	if err != nil {
-		return errorcodes.Errorf(code, "stat %s: %v; %s", path, err, collectionDirectoryShape)
+		return errorcodes.Errorf(code, "stat %s: %v", path, err)
 	}
 	if fi.Mode()&os.ModeSticky != 0 {
 		if st, ok := fi.Sys().(*syscall.Stat_t); ok && int(st.Uid) != os.Geteuid() {

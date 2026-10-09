@@ -287,7 +287,7 @@ func TestEnsureOutputDirectory(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "2026-09-15"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := EnsureOutputDirectory(filepath.Join(root, "2026-09-15", "job3"), 0o750, "output_directory_not_writable"); errorcodes.Of(err) != "output_directory_not_writable" {
+	if err := EnsureOutputDirectory(filepath.Join(root, "2026-09-15", "job3"), 0o750, "output_directory_not_writable"); errorcodes.Of(err) != "output_directory_not_writable" || !strings.Contains(err.Error(), filepath.Join(root, "2026-09-15")+" exists and is not a folder") {
 		t.Fatalf("file in the path: %v", err)
 	}
 	if os.Geteuid() == 0 {
@@ -465,9 +465,11 @@ func TestDayFolderMode(t *testing.T) {
 
 // TestEnsureCollectionDirectory: a
 // missing directory is created at the mode; an existing one is left as it
-// is; a file in its place and an unwritable one are refused with the code
-// and the shape a shared directory needs; the sticky bit on the operator's
-// own directory passes (the refusal is for another owner's).
+// is; a file in its place, or above it, is refused with the code naming the
+// file, and a missing one under a parent the operator cannot write is
+// refused, each without the shape a shared directory needs; an unwritable
+// present one is refused with the shape; the sticky bit on the operator's own
+// directory passes (the refusal is for another owner's).
 func TestEnsureCollectionDirectory(t *testing.T) {
 	root := t.TempDir()
 	made := filepath.Join(root, "crun")
@@ -498,9 +500,11 @@ func TestEnsureCollectionDirectory(t *testing.T) {
 	if err := os.WriteFile(file, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	err := EnsureCollectionDirectory(file, 0o770)
-	if errorcodes.Of(err) != "crun_directory_not_writable" || !strings.Contains(err.Error(), "2770 or 2775") {
-		t.Fatalf("a file in the way: %v", err)
+	for _, path := range []string{file, filepath.Join(file, "sub")} {
+		err := EnsureCollectionDirectory(path, 0o770)
+		if errorcodes.Of(err) != "crun_directory_not_writable" || !strings.Contains(err.Error(), file+" exists and is not a folder") || strings.Contains(err.Error(), "2770 or 2775") {
+			t.Fatalf("a file at or above %s: %v", path, err)
+		}
 	}
 	if os.Geteuid() == 0 {
 		return
@@ -511,6 +515,10 @@ func TestEnsureCollectionDirectory(t *testing.T) {
 	}
 	if err := EnsureCollectionDirectory(locked, 0o770); errorcodes.Of(err) != "crun_directory_not_writable" || !strings.Contains(err.Error(), "2770 or 2775") {
 		t.Fatalf("unwritable: %v", err)
+	}
+	under := filepath.Join(locked, "crun")
+	if err := EnsureCollectionDirectory(under, 0o770); errorcodes.Of(err) != "crun_directory_not_writable" || !strings.Contains(err.Error(), "cannot create "+under) || strings.Contains(err.Error(), "2770 or 2775") {
+		t.Fatalf("under an unwritable parent: %v", err)
 	}
 }
 

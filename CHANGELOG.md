@@ -13,6 +13,13 @@
   of the files, as the client does. The daemon's drop-in example
   (`karvi-daemon.service.d/crun.conf.example`) is removed; a copied drop-in
   is no longer needed. The site's `karvi-prune.service` keeps its sandbox.
+- **`crun_directory_not_writable` names its cause.** The shape a shared
+  collection directory needs (mode 2770 or 2775) is in the message only where it
+  is the remedy, a present directory the operator cannot create files in and the
+  sticky case, and no longer after a file in the way or a directory that cannot
+  be made. A path whose folder above is a file names that file, where it named
+  the path itself as the one that "exists and is not a folder"; the job and
+  transcript trees' codes take the same naming.
 
 ## 0.28.0 - 2026-10-08
 
