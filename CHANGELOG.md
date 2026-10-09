@@ -60,6 +60,13 @@
   be made. A path whose folder above is a file names that file, where it named
   the path itself as the one that "exists and is not a folder"; the job and
   transcript trees' codes take the same naming.
+- **The lifecycle replay keeps the older daemon under its base.**
+  `scripts/daemon-lifecycle-replay.sh` gave the older release's daemon only
+  `basedir` and `scoreboards`, taking it not to know `sharedroot`, `spooldir`,
+  or `platform-resolution.default`; a 0.28.0 daemon knows them, so its start
+  resolved `spooldir = auto` and made `/tmp/karvi-<uid>` on the host, and
+  consulted the host's shared root. Both executables now take the same keys,
+  every tree and the spool under the replay's base.
 
 ## 0.28.0 - 2026-10-08
 

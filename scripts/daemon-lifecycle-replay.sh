@@ -21,20 +21,20 @@ NEW=${KARVI:-./bin/karvi-linux-amd64}
 TMP=$(mktemp -d); BASE=$TMP/state; H=$TMP/home
 . ./scripts/lib/host.sh; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 install -d -m 700 "$BASE" "$H"
-A=(--set "basedir=\"$BASE\"" --set "scoreboards=\"$BASE/scoreboards\"" --set audit.journald-required=false)
-# The new executable keeps its trees under the base (sharedroot none) and
-# its spool directory; the prior release
-# does not know the keys.
-N=("${A[@]}" --set 'sharedroot="none"' --set 'platform-resolution.default=""' --set "spooldir=\"$BASE/spool\"")
+# Both executables keep their trees and their spool directory under the base
+# (sharedroot none), so neither daemon's start reaches the host's shared root
+# or makes /tmp/karvi-<uid>; every prior from v0.28.0 knows the keys.
+A=(--set "basedir=\"$BASE\"" --set "scoreboards=\"$BASE/scoreboards\"" --set audit.journald-required=false
+  --set 'sharedroot="none"' --set 'platform-resolution.default=""' --set "spooldir=\"$BASE/spool\"")
 cleanup() {
-  HOME=$H "$NEW" "${N[@]}" daemon stop --force >/dev/null 2>&1 || true
+  HOME=$H "$NEW" "${A[@]}" daemon stop --force >/dev/null 2>&1 || true
   HOME=$H "$OLD" "${A[@]}" daemon stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
 trap cleanup EXIT
 failures=0
 fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
-pid() { HOME=$H "$NEW" "${N[@]}" daemon status 2>/dev/null | sed -n 's/^pid: //p'; }
+pid() { HOME=$H "$NEW" "${A[@]}" daemon status 2>/dev/null | sed -n 's/^pid: //p'; }
 # gone PID waits for the old daemon's process to exit: an older executable
 # removes its socket as it exits, and a new daemon bound in the meantime
 # would lose its socket file.
@@ -58,13 +58,13 @@ new_schema=$("$NEW" version | sed -n 's/^daemon_ipc_schema: //p')
 echo "[1] the old daemon, then the new client's status"
 old_start 1
 p1=$(pid)
-HOME=$H "$NEW" "${N[@]}" daemon status >"$TMP/status" 2>&1 || fail "1: daemon status exit $?"
+HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status" 2>&1 || fail "1: daemon status exit $?"
 sed 's/^/    /' "$TMP/status" | grep -E '^    (status|version|daemon_ipc_schema|client_ipc_schema|compatible|active_jobs|remediation):'
 grep -q "^daemon_ipc_schema: $old_schema\$" "$TMP/status" && grep -q "^client_ipc_schema: $new_schema\$" "$TMP/status" && grep -q '^compatible: false$' "$TMP/status" && grep -q '^active_jobs: 0$' "$TMP/status" && grep -q '^remediation: karvi daemon restart$' "$TMP/status" || fail "1: status fields"
 
 echo "[2] the new client's run is refused and launches no replacement"
 set +e
-HOME=$H NETUSER=u NETPASS=p "$NEW" "${N[@]}" run --target 127.0.0.1 --transport system 'show clock' >"$TMP/run.out" 2>"$TMP/run.err"
+HOME=$H NETUSER=u NETPASS=p "$NEW" "${A[@]}" run --target 127.0.0.1 --transport system 'show clock' >"$TMP/run.out" 2>"$TMP/run.err"
 rc=$?
 set -e
 echo "    exit $rc: $(head -1 "$TMP/run.err" | cut -c1-100)"
@@ -72,7 +72,7 @@ echo "    exit $rc: $(head -1 "$TMP/run.err" | cut -c1-100)"
 [ "$(pid)" = "$p1" ] || fail "2: the refused run replaced the old daemon"
 
 echo "[3] daemon stop with no option (the old daemon reports no active job)"
-HOME=$H "$NEW" "${N[@]}" daemon stop 2>&1 | sed 's/^/    /' | tee "$TMP/stop"
+HOME=$H "$NEW" "${A[@]}" daemon stop 2>&1 | sed 's/^/    /' | tee "$TMP/stop"
 grep -q "ipc_schema=$old_schema; client_schema=$new_schema" "$TMP/stop" || fail "3: the stop line does not name both schemas"
 stopped 3
 gone "$p1" 3
@@ -80,20 +80,20 @@ gone "$p1" 3
 echo "[4] daemon restart replaces the old daemon with a compatible one"
 old_start 4
 p4=$(pid)
-if ! HOME=$H "$NEW" "${N[@]}" daemon restart >"$TMP/restart" 2>&1; then
+if ! HOME=$H "$NEW" "${A[@]}" daemon restart >"$TMP/restart" 2>&1; then
   sed 's/^/    /' "$TMP/restart"
   echo "    daemon log:"; sed 's/^/      /' "$BASE/logs/daemon.log" 2>/dev/null | tail -20
   fail "4: restart failed"
 fi
 sed 's/^/    /' "$TMP/restart"
 grep -q "stopped incompatible daemon version=.* ipc_schema=$old_schema" "$TMP/restart" && grep -q 'daemon restarted' "$TMP/restart" || fail "4: restart lines"
-HOME=$H "$NEW" "${N[@]}" daemon status >"$TMP/status4" 2>&1
+HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status4" 2>&1
 sed 's/^/    /' "$TMP/status4" | grep -E '^    (status|pid|version|daemon_ipc_schema|compatible):'
 grep -q "^daemon_ipc_schema: $new_schema\$" "$TMP/status4" && grep -q '^compatible: true$' "$TMP/status4" || fail "4: the new daemon is not compatible"
 [ "$(pid)" != "$p4" ] || fail "4: the pid did not change"
 gone "$p4" 4
 p4n=$(pid)
-HOME=$H "$NEW" "${N[@]}" daemon stop --force >/dev/null 2>&1 || fail "4: cleanup stop"
+HOME=$H "$NEW" "${A[@]}" daemon stop --force >/dev/null 2>&1 || fail "4: cleanup stop"
 stopped 4
 gone "$p4n" 4
 
@@ -101,7 +101,7 @@ for opt in --force --grace --after=2s; do
   echo "[5] daemon stop $opt against the old daemon"
   old_start "5 $opt"
   p5=$(pid)
-  HOME=$H "$NEW" "${N[@]}" daemon stop "$opt" 2>&1 | sed 's/^/    /' | tee "$TMP/stop5"
+  HOME=$H "$NEW" "${A[@]}" daemon stop "$opt" 2>&1 | sed 's/^/    /' | tee "$TMP/stop5"
   grep -q "ipc_schema=$old_schema" "$TMP/stop5" || fail "5 $opt: no stop line"
   stopped "5 $opt"
   gone "$p5" "5 $opt"
