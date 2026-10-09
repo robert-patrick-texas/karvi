@@ -316,7 +316,7 @@ owner's next run sets it right, or the site resets it.
 | `/usr/bin/karvi-prune` | `0755` | retention: removes old job and transcript folders ([`docs/PRUNE.md`](PRUNE.md)) |
 | `/usr/share/man/man1/karvi*.1`, `/usr/share/man/man8/karvi-prune.8` | `0644` | the manual pages |
 | `/usr/share/doc/karvi/` | `0644` | the top-level documents (`README.md`, `CHANGELOG.md`, `LICENSE.md`, `BUILD-HOWTO.md`, …), `docs/`, `release/`'s records, `examples/`, and `configs/` (`example.toml`, `development.toml`, and `reference.toml` a link to `/usr/share/karvi/reference.toml`), in the source tree's layout so their links and the `configs/` files they name hold |
-| `/usr/share/karvi/systemd/user/`, `/usr/share/karvi/systemd/system/` | `0644` | the units and timers, per operator and for the site, and the daemon's drop-in example |
+| `/usr/share/karvi/systemd/user/`, `/usr/share/karvi/systemd/system/` | `0644` | the units and timers, per operator and for the site |
 | `/usr/share/karvi/cron/` | `0755` | the cron scripts `karvi-crun` and `karvi-prune` |
 | `/usr/share/karvi/crun/` | `0644` | the `crun.after` hook examples |
 | `/usr/share/karvi/tmpfiles.d/karvi.conf` | `0644` | the tmpfiles rule for the group `netops`; `sudo karvi setup shared` writes the live one |

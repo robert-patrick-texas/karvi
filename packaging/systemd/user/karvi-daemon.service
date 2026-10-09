@@ -13,22 +13,13 @@ ExecStart=/usr/bin/karvi --set daemon.shutdown-idle-timer=0 daemon serve
 Restart=on-failure
 RestartSec=2s
 NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=read-only
-# The daemon writes only under these paths: the
-# operator's basedir candidates (the site's users directories
-# under the system roots, the XDG root), the shared
-# trees under the same system roots, the configuration, and the
-# scoreboards and capacity ledger. A collection directory (crun.directory),
-# a basedir, or a spool directory outside them needs a drop-in that adds
-# it: karvi-daemon.service.d/crun.conf.example beside this unit shows the
-# line. The dash before each path makes an absent one ignored (a host with
-# one system root); without it the unit fails to start (226/NAMESPACE). A
-# root the daemon would create (the XDG root) must exist before the unit's
-# first start: the sandbox is fixed at start, and an absent path stays
-# read-only for the run.
-ReadWritePaths=-/opt/karvi -/var/lib/karvi -%h/.local/share/karvi -%h/.config/karvi -/dev/shm/karvi
+# No file-system sandbox (PrivateTmp, ProtectSystem, ProtectHome): a user
+# unit runs with the operator's own view of the files, as the client does, so
+# a path means the same to both. A user manager cannot set one up on a host
+# that restricts unprivileged user namespaces (Ubuntu's
+# kernel.apparmor_restrict_unprivileged_userns) and starts the unit without
+# it, silently; confinement is the site's system unit's
+# (docs/OPERATIONS.md "Retention").
 LimitNOFILE=131072
 LimitNPROC=65535
 TasksMax=65535

@@ -17,15 +17,11 @@ Type=oneshot
 # may drop the option and submit to it instead.
 ExecStart=/usr/bin/karvi crun --all --no-daemon --format jsonl
 NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=read-only
-# The basedir candidates, the collection directory (crun.directory; the
-# site's shared crun under either system root when setup shared made it),
-# and the scoreboards. The crun.after hook runs
-# inside this unit, so a git repository over the collection directory is
-# written here too; a collection directory elsewhere is added here. The
-# dash before each path makes an absent one ignored; without it the unit
-# fails to start (226/NAMESPACE).
-ReadWritePaths=-%h/.local/share/karvi -/opt/karvi -/var/lib/karvi -/dev/shm/karvi
+# No file-system sandbox (PrivateTmp, ProtectSystem, ProtectHome): a user
+# unit runs with the operator's own view of the files, as the client does, so
+# a path means the same to both. A user manager cannot set one up on a host
+# that restricts unprivileged user namespaces (Ubuntu's
+# kernel.apparmor_restrict_unprivileged_userns) and starts the unit without
+# it, silently; confinement is the site's system unit's
+# (docs/OPERATIONS.md "Retention").
 UMask=0007

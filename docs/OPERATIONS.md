@@ -927,13 +927,9 @@ every test suite sets it. `basedir` itself is never shared: its `socket` and
 `state` are one operator's daemon. `job cancel` reaches only the caller's own
 daemon, so another operator's job is cancelled by its owner.
 
-Under the packaged systemd user unit the daemon may write only under the
-places its `ReadWritePaths` names: the basedir candidates, the shared
-trees under both system roots, the configuration root, and
-`/dev/shm/karvi`. A collection directory, a basedir, or a spool directory
-elsewhere needs the drop-in below ("The collection run", "Under systemd")
-naming it. A run in the client process (`--no-daemon`, `command`, `login`)
-needs nothing of the unit.
+The packaged systemd user unit gives the daemon the operator's own view of
+the files, as the client has, so it writes wherever the operator may
+("Retention" says why the user units carry no sandbox).
 
 ## Retention
 
@@ -970,11 +966,11 @@ site's root timer (`/usr/share/karvi/systemd/system/`), and the cron script
 (`/usr/share/karvi/cron/karvi-prune`), all over the one executable with the
 same flags, so they make the same decisions.
 
-**The units' writable places.** Each systemd unit runs in a sandbox:
+**The units' writable places.** The site's unit runs in a sandbox:
 `ProtectSystem=strict` mounts the whole file
 system read-only for the process except `/dev`, `/proc`, and `/sys`,
 `ProtectHome` hides the homes, and `ReadWritePaths` names the only places
-it may write. The site's unit ships with
+it may write. It ships with
 
 ```ini
 ReadWritePaths=-/opt/karvi -/var/lib/karvi -/dev/shm/karvi/scoreboards
@@ -994,10 +990,21 @@ ReadWritePaths=-/opt/karvi -/var/lib/karvi -/dev/shm/karvi/scoreboards
 The line names the same places as the unit's `ExecStart`. A site that
 gives the command another `--basedir`, `--sharedroot`, or `--scoreboards`
 adds that path to the line, with the dash, or every removal there fails as
-`read-only file system` and the run exits 1 daily. The per-operator unit lists
-the operator's private roots (`%h/.local/share/karvi` and the two system roots),
-each of which it walks, and the shared scoreboards the same way. The run makes
+`read-only file system` and the run exits 1 daily. The run makes
 nothing: a root that does not exist is not walked.
+
+The user units (`karvi-daemon.service`, `karvi-prune.service`,
+`karvi-crun.service`) carry no file-system sandbox: each runs with the
+operator's own view of the files, as the client does, so a path means the same
+to the daemon and to the client that names it, and the unit writes wherever
+the operator may. A user manager sets up a mount namespace only inside an
+unprivileged user namespace, and a host that restricts those (Ubuntu's
+`kernel.apparmor_restrict_unprivileged_userns = 1`) denies it the capability:
+systemd starts the unit without the sandbox and says nothing. `PrivateTmp`,
+`ProtectSystem`, and `ProtectHome` in a user unit would promise what such a
+host does not give, and where they did apply a `/tmp` path would land in the
+daemon's private `/tmp`, out of the client's sight. The site's unit runs under
+the system manager, where the sandbox applies.
 
 ## Tab completion
 
@@ -1098,26 +1105,9 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   A directory that cannot be prepared is refused before any device is
   contacted (`crun_directory_not_writable`), with that shape in the
   message.
-- **Under systemd.** The packaged user unit sandboxes the daemon to the
-  places its `ReadWritePaths` names: the basedir candidates and the shared
-  trees under both system roots, which cover `<basedir>/crun` and
-  `/opt/karvi/shared/crun` as shipped ("Retention" says what the sandbox
-  is). A collection directory elsewhere, a `basedir` elsewhere (the
-  daemon's socket, state, and job tree), or a `spooldir` elsewhere needs
-  a drop-in that adds the path, with the dash that makes an absent path
-  ignored instead of failing the start; `ReadWritePaths` merges across
-  files:
-
-  ```ini
-  # ~/.config/systemd/user/karvi-daemon.service.d/crun.conf
-  [Service]
-  ReadWritePaths=-/srv/configs
-  ```
-
-  then `systemctl --user daemon-reload` and a restart.
-  `/usr/share/karvi/systemd/user/karvi-daemon.service.d/crun.conf.example`
-  is that file. `crun --no-daemon` runs in the client process and needs
-  nothing of the unit.
+- **Under systemd.** The packaged user unit gives the daemon the operator's
+  own view of the files ("Retention"), so a collection directory anywhere the
+  operator may write serves through it as in the client process.
 - **`--fs=SUFFIX`** appends a literal suffix to each file's name in the
   collection directory (`--fs=.cfg` writes `NAME.cfg`), never to the
   directory's; on `crun` the directory stays `crun.directory`.
@@ -1129,10 +1119,6 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   collection line, no hook, the watch screen showing `run` or `cmd`;
   `--fs=SUFFIX` without `--cd` is `--cd=.` as well; [`docs/COLLECTION.md`
   section 1.1](COLLECTION.md#11-a-runs-collection---cd-on-run-and-command).
-  Through the daemon the directory meets the unit's sandbox as a `crun`'s does
-  (above): a home directory is refused, and a path under `/tmp` would land in
-  the daemon's private `/tmp`, so `--no-daemon` or the drop-in serves a capture
-  there; `command` runs in the client process and meets neither.
 - **The hook.** `crun.after` names an executable the client runs once the
   collection has ended and its display is printed, on the in-process path and
   through the daemon alike, never for `--detach`: in the collection directory,

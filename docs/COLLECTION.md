@@ -639,13 +639,11 @@ tick that elapses meanwhile is dropped, not queued, so two collections never
 overlap in one directory. `--no-daemon` is deliberate: a oneshot's control group
 ends with its main process, and a daemon the tick launched would be terminated
 with it; a site whose daemon runs under `karvi-daemon.service` may drop the
-option and submit to it instead. The unit's `ReadWritePaths` cover the basedir
-candidates, the shared trees under both system roots, and the scoreboards, each
-path with the dash that ignores an absent one; a collection directory elsewhere
-is added there the same way ([`docs/OPERATIONS.md`
-"Retention"](OPERATIONS.md#retention) says what the sandbox is). The hook runs
-inside the unit, so a git repository over the collection directory is written
-there too.
+option and submit to it instead. The unit carries no file-system sandbox: it
+writes wherever the operator may, a collection directory anywhere included
+([`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention) says why). The
+hook runs inside the unit, so a git repository over the collection directory is
+written there too.
 
 **The cron**, where a site schedules with cron:
 

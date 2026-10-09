@@ -6820,3 +6820,94 @@ before its exit status, `insecure`'s comparison from the exec master's own
 line, and one example configuration; and moved "A job under its client's
 configuration" from Later to Next, after the sandbox, so that the daemon runs
 each job with the settings active at its client.
+
+## 45. The user units without a sandbox (2026-10-08)
+
+ROADMAP's first Next item: on an Ubuntu host a user unit given `PrivateTmp=yes`,
+`ProtectSystem=strict`, and `ProtectHome=read-only` ran in the client's mount
+namespace ([chapter 12](#12---cd-and---fs-for-run-and-command-2026-10-03),
+"Found on the way"). The question was what the three packaged user units get,
+what the documents promise, and what the units become.
+
+**What it gains.** The units and the documents stop promising a confinement the
+host does not give, and a daemon's files land where the operator expects on
+every host; the next item, a job under its client's configuration, may rely on
+a path meaning the same to the daemon as to the client. It waits on nothing.
+
+**The evidence.** On this host, Ubuntu 26.04.1, systemd 259, kernel 7.0.0,
+`kernel.apparmor_restrict_unprivileged_userns = 1`; a probe shell, then the lab
+daemon (`b4c5f88-lab`, every place under `/dev/shm/kl`, outside `/tmp`,
+`/var/tmp`, and the home) under `karvi-daemon.service`'s `[Service]` lines:
+
+| Case | Mount namespace | `/` and the home | `/tmp` |
+|---|---|---|---|
+| user manager, the three options | the client's | writable | the host's |
+| the same with `PrivateUsers=yes` or `=self` | the client's | writable | the host's |
+| system manager, `User=netops`, the same options | its own | read-only | private |
+
+The kernel's audit names the cause at each start under the user manager:
+
+```text
+apparmor="AUDIT" operation="userns_create" info="Userns create - transitioning profile"
+  profile="unconfined" ... execpath="/usr/lib/systemd/systemd-executor"
+apparmor="DENIED" operation="capable" profile="unprivileged_userns" ... capname="sys_admin"
+```
+
+The executor's user namespace is moved to the restricting profile, which denies
+the capability a mount namespace needs; systemd starts the unit anyway and the
+user journal says nothing (systemd.exec(5): sandboxing is "gracefully turned
+off" where the mechanism is unavailable). `PrivateUsers=` asks for the very
+namespace denied. The denial comes before the unit's command, so
+`karvi-prune.service` and `karvi-crun.service` get the daemon's result. Where
+the sandbox applied, the system unit, chapter 12's limit ran as predicted:
+
+```text
+$ k.sh run --target 127.0.0.1 --platform linux --cmd 'echo ok' --cd=/tmp/kl-D
+! collection=/tmp/kl-D replaced=1 kept=0          exit 0
+  in the client's /tmp: ls: cannot access '/tmp/kl-D': No such file or directory
+  in the daemon's /tmp: 127-0-0-1
+$ k.sh run ... --cd=/home/netops/kl-probe-D
+crun_directory_not_writable: daemon validation: mkdir /home/netops/kl-probe-D:
+  read-only file system; a shared collection directory needs mode 2770 or 2775
+  (group write and search, setgid, no sticky bit)  exit 9
+```
+
+**Issue 1, what the user units are, agreed.** The three user units carry no
+file-system sandbox: no `PrivateTmp`, `ProtectSystem`, `ProtectHome`, or
+`ReadWritePaths`; `NoNewPrivileges`, the umask, and the limits stay. A user unit
+runs with the operator's own view of the files, as the client does, and writes
+wherever the operator may; confinement is the system units', and the site's
+`karvi-prune.service` keeps its sandbox, which applies there. The daemon's
+drop-in example (`karvi-daemon.service.d/crun.conf.example`), whose only content
+was a `ReadWritePaths` line, is removed with its install line, and OPERATIONS,
+COLLECTION, PRUNE, FILES, and DESIGN say the rule in place of the drop-in and
+the limit. The cost, stated: on a host where the sandbox would apply, a
+compromised daemon may write where the operator may, the home's startup files
+included. *Not taken:* keeping the lines and stating the limit (the behaviour
+differing by host, and the `/tmp` divergence exactly where the sandbox works);
+a system unit per operator with `User=` (the sandbox applies, the divergence
+and the client's own launch stay); an AppArmor profile granting the executor a
+user namespace (the host's restriction weakened for every user manager);
+`PrivateUsers=`.
+
+**Found on the way.** `crun_directory_not_writable` misstates its cause, with
+no read-only mount involved. Executed with the released 0.28.0, `--no-daemon`:
+
+```text
+--cd=/usr/kl-x      cannot create /usr/kl-x: mkdir /usr/kl-x: permission denied;
+                    a shared collection directory needs mode 2770 or 2775 (…)
+--cd=…/afile        (a regular file) …/afile exists and is not a folder;
+                    a shared collection directory needs mode 2770 or 2775 (…)
+--cd=…/afile/sub    (sub absent, its parent a file) …/afile/sub exists and is
+                    not a folder; a shared collection directory needs …
+```
+
+`EnsureCollectionDirectory` appends the shared directory's mode hint to every
+failure, where it fits only a present directory the operator cannot create
+files in and the sticky case; and `EnsureOutputDirectory` names the path given
+to `mkdir` as the one that is not a folder, where a parent is. The operator
+agreed to fix both in a section of their own after this chapter's commit,
+before the next item.
+
+The evidence, with the probe and the scripts, is in
+`release-design-evidence/user-unit-sandbox-2026-10-08/`; the lab was removed.

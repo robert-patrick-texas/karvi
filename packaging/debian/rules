@@ -44,7 +44,6 @@ override_dh_auto_install:
 	# tmpfiles rule for the group netops, the reference configuration, and
 	# the schemas.
 	install -D -m 0644 -t debian/karvi/usr/share/karvi/systemd/user packaging/systemd/user/*.service packaging/systemd/user/*.timer
-	install -D -m 0644 -t debian/karvi/usr/share/karvi/systemd/user/karvi-daemon.service.d packaging/systemd/user/karvi-daemon.service.d/*
 	install -D -m 0644 -t debian/karvi/usr/share/karvi/systemd/system packaging/systemd/system/*
 	install -D -m 0755 -t debian/karvi/usr/share/karvi/cron packaging/cron/*
 	install -D -m 0644 -t debian/karvi/usr/share/karvi/crun packaging/crun/*

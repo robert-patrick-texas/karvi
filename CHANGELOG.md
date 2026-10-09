@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **The user units carry no file-system sandbox.** `karvi-daemon.service`,
+  `karvi-prune.service`, and `karvi-crun.service` under
+  `/usr/share/karvi/systemd/user/` no longer set `PrivateTmp`,
+  `ProtectSystem`, `ProtectHome`, or `ReadWritePaths`: a user manager on a host
+  that restricts unprivileged user namespaces (Ubuntu's
+  `kernel.apparmor_restrict_unprivileged_userns = 1`) started them unsandboxed
+  without a word, and where the sandbox applied a `/tmp` path the client named
+  landed in the daemon's private `/tmp`. Each runs with the operator's own view
+  of the files, as the client does. The daemon's drop-in example
+  (`karvi-daemon.service.d/crun.conf.example`) is removed; a copied drop-in
+  is no longer needed. The site's `karvi-prune.service` keeps its sandbox.
+
 ## 0.28.0 - 2026-10-08
 
 A minor release on 0.27.0. The configuration registry moves from 26 to 27; the

@@ -217,11 +217,9 @@ per host, or none and runs the helper by hand.
 **Per operator, systemd.** `/usr/share/karvi/systemd/user/karvi-prune.service`
 and `karvi-prune.timer`: install under `~/.config/systemd/user/` and `systemctl
 --user enable --now karvi-prune.timer`. Daily, persistent across a missed day, a
-randomized delay of up to thirty minutes. The unit's sandbox may write only
-under the operator's private roots (the home's and the two system roots), and
-the scoreboards (`ReadWritePaths`, each path with the dash that ignores an
-absent one; [`docs/OPERATIONS.md` "Retention"](OPERATIONS.md#retention) says
-what the sandbox is and what a site adds when it moves a place).
+randomized delay of up to thirty minutes. The unit carries no file-system
+sandbox and removes only what this operator owns ([`docs/OPERATIONS.md`
+"Retention"](OPERATIONS.md#retention) says why a user unit has none).
 
 **The site, systemd.** `/usr/share/karvi/systemd/system/karvi-prune.service`
 and `karvi-prune.timer`: install under `/etc/systemd/system/` and

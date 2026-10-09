@@ -1679,12 +1679,10 @@ take `crun.file-mode` and, under setgid, the directory's group. The `crun.*`
 keys and the `crun_directory_*` codes keep their names and document every
 collection; `--cd` is `crun.directory` as a flag-origin value on every word, so
 a site that locks the key refuses `run --cd` and `command --cd` as it refuses
-`crun --cd`. Under a daemon sandbox that applies, the daemon writes only where
-`ReadWritePaths` allows: a home directory is refused loudly, a `/tmp` path
-lands in the daemon's private `/tmp` silently; the remedy is the unit's drop-in
-or `--no-daemon`, and `command` never meets it. *Why:* one rule for one kind of
-directory. *Not taken:* `collection.*` keys and `collection_directory_*` codes
-(every site's configuration broken for a name).
+`crun --cd`. Through the daemon the path means what it means to the client,
+since the packaged user unit carries no file-system sandbox. *Why:* one rule
+for one kind of directory. *Not taken:* `collection.*` keys and
+`collection_directory_*` codes (every site's configuration broken for a name).
 
 **`--fs=SUFFIX` appends a literal suffix to each collection file's name; on
 `run` and `command` it implies `--cd=.`.** The value is appended as written to
@@ -1752,10 +1750,10 @@ the file; tolerating the sticky bit.
 executable run once when the summary is written, in the collection directory,
 with the replaced files' names on stdin and the counts in its environment,
 bounded by `crun.after-timeout`; two example hooks ship (a git commit and a
-diff mail). *Why:* the client has the operator's environment (git identity,
-mail transport) while the daemon under the packaged unit is sandboxed; git and
-mail are a site's choices. *Not taken:* a built-in `crun.git`; the daemon
-running the hook; mail sent by karvi.
+diff mail). *Why:* the client has the operator's shell environment (git
+identity, mail transport) while the daemon has the user manager's; git and mail
+are a site's choices. *Not taken:* a built-in `crun.git`; the daemon running the
+hook; mail sent by karvi.
 
 **The schedule is the scheduler's.** A packaged systemd timer and a cron line
 under `flock` run `crun --all --no-daemon`; karvi holds no directory lock and
@@ -2084,13 +2082,29 @@ pruned; a colleague's folder in a shared tree would otherwise stop a daily run
 at the first failure; three shapes stood forever. *Not taken:* a `karvi prune`
 word; pruning by group membership; touching `crun`.
 
-**Every unit's writable paths carry the dash and name what the command
+**The site's unit's writable paths carry the dash and name what the command
 touches.** `ReadWritePaths` entries are `-`-prefixed so an absent path does not
-fail the unit, and each unit's line names the roots, shared trees, and
-scoreboard directory its command walks; a site that gives a unit another path
-adds it to the line. *Why:* the shipped line failed every unit on a host lacking
-one of its paths; a place the helper walks that is not on the line is a failed
-line per item, daily.
+fail the unit, and the line names the roots, shared trees, and scoreboard
+directory its command walks; a site that gives the unit another path adds it to
+the line. *Why:* the shipped line failed every unit on a host lacking one of its
+paths; a place the helper walks that is not on the line is a failed line per
+item, daily.
+
+**The user units carry no file-system sandbox.** `karvi-daemon.service`,
+`karvi-prune.service`, and `karvi-crun.service` run with the operator's own view
+of the files, as the client does: no `PrivateTmp`, `ProtectSystem`,
+`ProtectHome`, or `ReadWritePaths`; `NoNewPrivileges`, the umask, and the limits
+stay. Confinement is the system units'. *Why:* a user manager makes a mount
+namespace only inside an unprivileged user namespace, and on a host that
+restricts those (Ubuntu's `kernel.apparmor_restrict_unprivileged_userns = 1`)
+AppArmor denies it `CAP_SYS_ADMIN` and systemd starts the unit unsandboxed
+without a word; where the sandbox did apply, a `/tmp` path the client named
+landed in the daemon's private `/tmp` and a home path was refused, so one path
+meant two places. *Not taken:* keeping the lines and stating the limit (the
+behaviour differing by host); a system unit per operator (`User=`), where the
+divergence stays; an AppArmor profile granting the executor a user namespace
+(the host's restriction weakened for every user manager); `PrivateUsers=`,
+which asks for the very namespace denied.
 
 ## 15. Configuration and errors
 

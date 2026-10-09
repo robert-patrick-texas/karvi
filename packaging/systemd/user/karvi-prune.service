@@ -16,14 +16,10 @@ Documentation=file:/usr/share/doc/karvi/docs/PRUNE.md
 Type=oneshot
 ExecStart=/usr/bin/karvi-prune --basedir auto --sharedroot auto --scoreboards /dev/shm/karvi/scoreboards --days 31 --minfree 5
 NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=read-only
-# The sandbox's writable places: the operator's
-# private roots (the users directory under each system
-# root, the home's root), the shared directory under each
-# system root, and the shared scoreboards. The line names the same places
-# as ExecStart; a path given to ExecStart is added here. The dash before
-# each path makes an absent one ignored; without it the unit fails to
-# start (226/NAMESPACE).
-ReadWritePaths=-%h/.local/share/karvi -/opt/karvi -/var/lib/karvi -/dev/shm/karvi/scoreboards
+# No file-system sandbox (PrivateTmp, ProtectSystem, ProtectHome): a user
+# unit runs with the operator's own view of the files, as the client does, so
+# a path means the same to both. A user manager cannot set one up on a host
+# that restricts unprivileged user namespaces (Ubuntu's
+# kernel.apparmor_restrict_unprivileged_userns) and starts the unit without
+# it, silently; confinement is the site's system unit's
+# (docs/OPERATIONS.md "Retention").
