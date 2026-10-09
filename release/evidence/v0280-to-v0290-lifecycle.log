@@ -1,0 +1,29 @@
+old executable: karvi 0.28.0; daemon_ipc_schema: 10
+new executable: karvi 0.29.0; daemon_ipc_schema: 11
+[1] the old daemon, then the new client's status
+    status: running
+    version: 0.28.0
+    daemon_ipc_schema: 10
+    client_ipc_schema: 11
+    compatible: false
+    active_jobs: 0
+    remediation: karvi daemon restart
+[2] the new client's run is refused and launches no replacement
+    exit 112: daemon_incompatible: running daemon version 0.28.0 uses IPC schema 10; karvi 0.29.0 uses schema 11, 
+[3] daemon stop with no option (the old daemon reports no active job)
+    daemon stopped (version=0.28.0 ipc_schema=10; client_schema=11)
+[4] daemon restart replaces the old daemon with a compatible one
+    stopped incompatible daemon version=0.28.0 ipc_schema=10
+    daemon restarted
+    status: running
+    pid: 1379266
+    version: 0.29.0
+    daemon_ipc_schema: 11
+    compatible: true
+[5] daemon stop --force against the old daemon
+    daemon stopped (version=0.28.0 ipc_schema=10; client_schema=11)
+[5] daemon stop --grace against the old daemon
+    daemon stopped (version=0.28.0 ipc_schema=10; client_schema=11)
+[5] daemon stop --after=2s against the old daemon
+    daemon stopped (version=0.28.0 ipc_schema=10; client_schema=11)
+daemon lifecycle replay: pass (old schema 10, new schema 11)

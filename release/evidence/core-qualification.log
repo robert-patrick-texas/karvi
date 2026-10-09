@@ -1,98 +1,98 @@
-karvi v0.28.0 core qualification
+karvi v0.29.0 core qualification
 go version go1.27.1 linux/amd64
-named top-level tests passed: 902
+named top-level tests passed: 912
 named top-level tests failed: 0
-packages ok: 61
-packages without tests: 23
+packages ok: 62
+packages without tests: 22
 packages: 84
-go files outside vendor/: 451 (tracked; 587 more under vendor/) + untracked: 0
-go lines outside vendor/: 95863
+go files outside vendor/: 461 (tracked; 587 more under vendor/) + untracked: 0
+go lines outside vendor/: 96421
 ?   	github.com/robert-patrick-texas/karvi/cmd/karvi	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/cmd/karvi-askpass	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/cmd/karvi-fake-device	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/cmd/karvi-prune	[no test files]
-?   	github.com/robert-patrick-texas/karvi/configschema	[no test files]
+ok  	github.com/robert-patrick-texas/karvi/configschema	0.004s
 --- SKIP: TestCanaryPanicHelper (0.00s)
-ok  	github.com/robert-patrick-texas/karvi/credentialpackage	0.076s
-ok  	github.com/robert-patrick-texas/karvi/credentials	0.017s
-ok  	github.com/robert-patrick-texas/karvi/dispatch	0.030s
-ok  	github.com/robert-patrick-texas/karvi/executionplan	0.046s
+ok  	github.com/robert-patrick-texas/karvi/credentialpackage	0.099s
+ok  	github.com/robert-patrick-texas/karvi/credentials	0.024s
+ok  	github.com/robert-patrick-texas/karvi/dispatch	0.037s
+ok  	github.com/robert-patrick-texas/karvi/executionplan	0.056s
 ?   	github.com/robert-patrick-texas/karvi/executionplan/plantest	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/adapters/scrapligov1	8.738s
-ok  	github.com/robert-patrick-texas/karvi/internal/adapters/sshkey	0.125s
+ok  	github.com/robert-patrick-texas/karvi/internal/adapters/scrapligov1	8.709s
+ok  	github.com/robert-patrick-texas/karvi/internal/adapters/sshkey	0.146s
 ?   	github.com/robert-patrick-texas/karvi/internal/adapters/sshkey/sshkeytest	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/app	0.710s
-ok  	github.com/robert-patrick-texas/karvi/internal/askpass	0.007s
-ok  	github.com/robert-patrick-texas/karvi/internal/audit	0.057s
-ok  	github.com/robert-patrick-texas/karvi/internal/buildinfo	0.005s
-ok  	github.com/robert-patrick-texas/karvi/internal/canary	0.009s
+ok  	github.com/robert-patrick-texas/karvi/internal/app	1.074s
+ok  	github.com/robert-patrick-texas/karvi/internal/askpass	0.010s
+ok  	github.com/robert-patrick-texas/karvi/internal/audit	0.157s
+ok  	github.com/robert-patrick-texas/karvi/internal/buildinfo	0.010s
+ok  	github.com/robert-patrick-texas/karvi/internal/canary	0.015s
 ?   	github.com/robert-patrick-texas/karvi/internal/canary/canarytest	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/capacity	0.015s
-ok  	github.com/robert-patrick-texas/karvi/internal/cli	15.631s
-ok  	github.com/robert-patrick-texas/karvi/internal/completion	0.006s
-ok  	github.com/robert-patrick-texas/karvi/internal/configload	9.578s
-ok  	github.com/robert-patrick-texas/karvi/internal/configload/tomlmini	0.004s
-ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend	1.027s
-ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/cloginrc	0.014s
-ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credcsv	0.032s
+ok  	github.com/robert-patrick-texas/karvi/internal/capacity	0.027s
+ok  	github.com/robert-patrick-texas/karvi/internal/cli	18.134s
+ok  	github.com/robert-patrick-texas/karvi/internal/completion	0.003s
+ok  	github.com/robert-patrick-texas/karvi/internal/configload	11.836s
+ok  	github.com/robert-patrick-texas/karvi/internal/configload/tomlmini	0.003s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend	1.137s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/cloginrc	0.013s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credcsv	0.020s
 ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/credfile	0.007s
 ?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/env	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/envindirect	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/operatorkeys	0.124s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialbackend/operatorkeys	0.125s
 ?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/redis	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/internal/credentialbackend/vault	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/credentialframe	0.021s
-ok  	github.com/robert-patrick-texas/karvi/internal/daemon	22.338s
-ok  	github.com/robert-patrick-texas/karvi/internal/devsession	21.348s
-ok  	github.com/robert-patrick-texas/karvi/internal/display	0.005s
-ok  	github.com/robert-patrick-texas/karvi/internal/errorcodes	0.334s
-ok  	github.com/robert-patrick-texas/karvi/internal/executor	46.932s
-ok  	github.com/robert-patrick-texas/karvi/internal/exitcode	0.003s
-ok  	github.com/robert-patrick-texas/karvi/internal/fakedevice	0.054s
+ok  	github.com/robert-patrick-texas/karvi/internal/credentialframe	0.031s
+ok  	github.com/robert-patrick-texas/karvi/internal/daemon	25.291s
+ok  	github.com/robert-patrick-texas/karvi/internal/devsession	21.208s
+ok  	github.com/robert-patrick-texas/karvi/internal/display	0.006s
+ok  	github.com/robert-patrick-texas/karvi/internal/errorcodes	0.507s
+ok  	github.com/robert-patrick-texas/karvi/internal/executor	43.862s
+ok  	github.com/robert-patrick-texas/karvi/internal/exitcode	0.004s
+ok  	github.com/robert-patrick-texas/karvi/internal/fakedevice	0.047s
 ok  	github.com/robert-patrick-texas/karvi/internal/helplayout	0.004s
-ok  	github.com/robert-patrick-texas/karvi/internal/hostkey	1.223s
-ok  	github.com/robert-patrick-texas/karvi/internal/icmpgate	3.941s
-ok  	github.com/robert-patrick-texas/karvi/internal/inventoryload	0.399s
-ok  	github.com/robert-patrick-texas/karvi/internal/ipc	0.033s
-ok  	github.com/robert-patrick-texas/karvi/internal/jobexec	0.843s
-ok  	github.com/robert-patrick-texas/karvi/internal/matching	0.004s
+ok  	github.com/robert-patrick-texas/karvi/internal/hostkey	1.226s
+ok  	github.com/robert-patrick-texas/karvi/internal/icmpgate	3.957s
+ok  	github.com/robert-patrick-texas/karvi/internal/inventoryload	0.398s
+ok  	github.com/robert-patrick-texas/karvi/internal/ipc	0.035s
+ok  	github.com/robert-patrick-texas/karvi/internal/jobexec	1.103s
+ok  	github.com/robert-patrick-texas/karvi/internal/matching	0.005s
 ?   	github.com/robert-patrick-texas/karvi/internal/metrics	[no test files]
 --- SKIP: TestStartTiedHelper (0.00s)
-ok  	github.com/robert-patrick-texas/karvi/internal/osutil	0.270s
+ok  	github.com/robert-patrick-texas/karvi/internal/osutil	0.295s
 ?   	github.com/robert-patrick-texas/karvi/internal/osutil/osutiltest	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/output	0.325s
-ok  	github.com/robert-patrick-texas/karvi/internal/planner	1.523s
-ok  	github.com/robert-patrick-texas/karvi/internal/prune	0.021s
-ok  	github.com/robert-patrick-texas/karvi/internal/resolver	0.204s
+ok  	github.com/robert-patrick-texas/karvi/internal/output	0.831s
+ok  	github.com/robert-patrick-texas/karvi/internal/planner	1.998s
+ok  	github.com/robert-patrick-texas/karvi/internal/prune	0.023s
+ok  	github.com/robert-patrick-texas/karvi/internal/resolver	0.260s
 ok  	github.com/robert-patrick-texas/karvi/internal/scoreboard	0.192s
 ?   	github.com/robert-patrick-texas/karvi/internal/secrets	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/internal/sshalgorithms	0.003s
-ok  	github.com/robert-patrick-texas/karvi/internal/targetsource	0.007s
-ok  	github.com/robert-patrick-texas/karvi/internal/termline	0.007s
-ok  	github.com/robert-patrick-texas/karvi/internal/termtext	0.007s
+ok  	github.com/robert-patrick-texas/karvi/internal/sshalgorithms	0.007s
+ok  	github.com/robert-patrick-texas/karvi/internal/targetsource	0.008s
+ok  	github.com/robert-patrick-texas/karvi/internal/termline	0.009s
+ok  	github.com/robert-patrick-texas/karvi/internal/termtext	0.014s
 ?   	github.com/robert-patrick-texas/karvi/internal/testdir	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/internal/testsocket	[no test files]
 ok  	github.com/robert-patrick-texas/karvi/internal/transcript	0.009s
-ok  	github.com/robert-patrick-texas/karvi/internal/transport/native	4.464s
-ok  	github.com/robert-patrick-texas/karvi/internal/transport/systemssh	6.925s
-ok  	github.com/robert-patrick-texas/karvi/internal/transport/telnet	1.800s
-ok  	github.com/robert-patrick-texas/karvi/internal/transportselect	0.094s
-ok  	github.com/robert-patrick-texas/karvi/internal/watchui	0.066s
-ok  	github.com/robert-patrick-texas/karvi/inventory	0.003s
-ok  	github.com/robert-patrick-texas/karvi/platform	0.006s
-ok  	github.com/robert-patrick-texas/karvi/records	0.029s
-ok  	github.com/robert-patrick-texas/karvi/tabular	0.004s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/native	4.391s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/systemssh	6.845s
+ok  	github.com/robert-patrick-texas/karvi/internal/transport/telnet	1.770s
+ok  	github.com/robert-patrick-texas/karvi/internal/transportselect	0.086s
+ok  	github.com/robert-patrick-texas/karvi/internal/watchui	0.073s
+ok  	github.com/robert-patrick-texas/karvi/inventory	0.005s
+ok  	github.com/robert-patrick-texas/karvi/platform	0.005s
+ok  	github.com/robert-patrick-texas/karvi/records	0.043s
+ok  	github.com/robert-patrick-texas/karvi/tabular	0.003s
 ?   	github.com/robert-patrick-texas/karvi/tools/configgen	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/tools/configtable	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/tools/daemon-fixture	[no test files]
 ?   	github.com/robert-patrick-texas/karvi/tools/errorcodegen	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/tools/mangen	0.284s
-ok  	github.com/robert-patrick-texas/karvi/tools/md-to-html	0.218s
+ok  	github.com/robert-patrick-texas/karvi/tools/mangen	0.315s
+ok  	github.com/robert-patrick-texas/karvi/tools/md-to-html	0.240s
 ok  	github.com/robert-patrick-texas/karvi/tools/paritycheck	0.011s
 ?   	github.com/robert-patrick-texas/karvi/tools/schema-check	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/tools/secret-scan	0.011s
+ok  	github.com/robert-patrick-texas/karvi/tools/secret-scan	0.007s
 ?   	github.com/robert-patrick-texas/karvi/tools/textfile	[no test files]
-ok  	github.com/robert-patrick-texas/karvi/transform	0.004s
+ok  	github.com/robert-patrick-texas/karvi/transform	0.003s
 == go vet
 vet exit=0
 == go test -race: the release verifier's run, release-qualification.log (chapter 16)
