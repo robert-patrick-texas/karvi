@@ -6957,3 +6957,229 @@ each `crun_directory_not_writable`, exit 9. The tests state each cause and
 whether the shape appears; against the code before the change,
 `TestEnsureOutputDirectory` and `TestEnsureCollectionDirectory` fail on the
 file above the path and on the shape after a file.
+
+## 47. A job under its client's configuration (2026-10-08)
+
+ROADMAP's first Next item: the daemon runs every job under the configuration it
+loaded at its own start, the first launcher's `--config` and `--set`, its
+environment and working directory, while the plan carries a handful of keys in
+its `execution`, `output`, `ping`, and `dispatch` blocks.
+
+**What it gains.** Every job runs under the configuration its invocation
+resolved, through a daemon or not: a later client's `--set`, `--config`,
+environment, and working directory reach its own job; the execution policy's
+silent override, deferred in [chapter
+37](#37-the-first-contact-said-alike-over-both-transports-2026-10-07)'s issue
+5c, ends; a job records one configuration digest where it records two (the
+plan's the client's, the manifest's and the audit's the daemon's); and the
+checks made twice, the control-path root's length, the Telnet gate, the
+transport and platform tables, the timeouts' fallback, give one answer. It
+waits on nothing since [chapter 45](#45-the-user-units-without-a-sandbox-2026-10-08)
+gave the daemon the client's view of the files.
+
+**The evidence.** A lab build of `cf1a0f7`, every place under a short lab
+directory, this host's OpenSSH on 127.0.0.1:
+
+```text
+$ karvi --set ssh.known-hosts-file=kh1/known_hosts run … --cmd 'echo one'
+daemon started …   ! ssh accepted new host-key 127.0.0.1 (ED25519)
+$ karvi --set ssh.known-hosts-file=kh2/known_hosts run … --cmd 'echo two'
+two                                    (no first contact: the daemon used kh1)
+$ karvi --set ssh.known-hosts-file=kh2/known_hosts config show ssh.known-hosts-file
+value: "/dev/shm/kl/kh2/known_hosts"   source: --set[7]
+  kh1: 1 line; kh2: absent
+$ karvi --set ssh.known-hosts-file=kh2/known_hosts run --no-daemon … 'echo three'
+! ssh accepted new host-key 127.0.0.1 (ED25519)    kh2: 1 line
+```
+
+The job takes `Config: s.Config`, the daemon's snapshot (`daemon/prepare.go`);
+the client launches the daemon with `--config`, `--set`, `--quiet`, `--debug`,
+`--timezone`, and `--ansi` alone (`cli/daemon_command.go`'s `globalArgs`), so a
+command's own flags (`--ssh-host-key-policy`, the dispatch options, `--ping`)
+never reach it, and the daemon's working directory is its first launcher's.
+About eighty keys the job reads come from the daemon. A resolved configuration
+is about 8.7 KB as JSON (`config show --format json`); a frame is bounded at
+8 MiB by default.
+
+**Issue 1, what the client sends, agreed.** The client sends its resolved
+values, the key and value set its digest covers, never its inputs; the daemon
+builds the job's configuration from them and reads none of its own for the job.
+configload keeps a path as written and its readers resolve it against the
+process's working directory, so the client makes every path-valued key absolute
+(its `~` and its working directory) before sending; `auto` stays `auto`, which
+the daemon resolves by the same chain for the same user on the same host, now
+seeing the same files, so it is the place `config show --explain` names to the
+client. The ROADMAP's "resolved as the client resolved them" narrows to this:
+the client resolves what depends on itself, `auto` stays the chain's. *Not
+taken:* the inputs (files read again by the daemon, perhaps changed, in an
+environment not the client's); the `auto` chains' outcomes sent as well (a
+choice of the moment frozen, for no gain on one host).
+
+**Issue 2, the keys that belong to the process, agreed.** Executed with one
+daemon started by the first run:
+
+```text
+$ karvi --set audit.file=au/a1.jsonl run … 'echo one'      daemon started …/base/socket/daemon.sock
+$ karvi --set audit.file=au/a2.jsonl run … 'echo two'
+  a1.jsonl: 6 audit lines   (a2 absent: the second job's audit went to a1)
+$ karvi --set basedir=base2 --set audit.file=au/a2.jsonl run … 'echo three'
+  daemon started …/base2/socket/daemon.sock   a2.jsonl: 3 lines   daemons: 2
+```
+
+The daemon's own configuration keeps what exists because there is a daemon
+process: the seven `daemon.*` keys (`socket`, `max-ipc-frame-bytes`,
+`max-accepted-jobs`, `shutdown-idle-timer`, `shutdown-grace-seconds`,
+`forced-grace-seconds`, and `start-timeout`, the last read by the client that
+launches or stops one); its own `basedir` for its socket, `state/daemon.json`,
+and `logs/daemon.log`; and the sweeps it runs once at its start. Everything a
+job reads is the job's: the `audit.*` keys (a job's events go to the sink its
+client names, as `--no-daemon` does; `cancel_requested`, about a job, goes to
+that job's sink, and the daemon opens no sink of its own);
+`dispatch.server-max-inflight` and `sessions.shared-capacity-root`, the host's
+cap and the operators' shared ledger, which a `--no-daemon` job already applies
+from its own client, a site wanting one value locking the key in the global
+file every client loads; and the job's `basedir`, for its state tree and the
+`auto` scratch candidate, which agrees with the daemon's while `daemon.socket`
+is `auto`, since another `basedir` reaches another daemon. *Not taken:* the
+audit and capacity keys kept the daemon's as host-wide (the daemon path
+differing from `--no-daemon` for one invocation, the inconsistency the item
+removes); a job refused for a `basedir` other than the daemon's (reachable only
+with an explicit socket, and nothing breaks).
+
+**Issue 3, where it travels and how the job records it, agreed for now.** The
+plan carries the configuration as a `configuration` block of issue 1's values,
+covered by `plan_digest`, so it travels in the draft at `prepare_job` and in the
+final plan at `commit_job`, and prepare's own checks (the DNS timeout, the
+execution policy, the readiness line's policy digest) take the job's
+configuration too. `sources.config_digest` becomes the digest of that block,
+computed as configload computes it (sha256 of `CanonicalJSON`); the daemon
+rebuilds the configuration from the block, recomputes the digest, and refuses a
+plan whose two differ as invalid; the audit's `policy.config_digest`, the debug
+line, and the manifest name that one digest where today they name the daemon's.
+The record is the manifest, which already holds the whole plan, so every value
+the job ran under (about 8.7 KB beside a manifest of about 8 KB). Which file or
+`--set` set a key is not carried: that is the client's `config show --explain`.
+Paths are made absolute in configload at load, so the client's `config show`
+prints the path and the digest the job records; a relative path already meant
+the working directory, so no reader's place changes. *Not taken:* the
+configuration beside the plan in the commit request (outside `plan_digest`, and
+absent from the draft); the digest alone (a job's folder could not say what it
+ran under); absolute paths made only for sending (`config show` and the job
+disagreeing on the digest whenever a path is relative). The operator is not
+sure a digest is needed here; the issue stands for now, and the digests are the
+question of ROADMAP's "A review of every digest".
+
+**Issue 4, the per-key carriage and the daemon's launch, agreed.** A plan field
+that copies a key's value leaves the plan, and the daemon and the in-process
+path read the key from the job's configuration: the `execution` block, the
+`ping` block (the probe count a constant), `blind_wait_ns`, `output`'s
+`max_command_bytes`, `max_job_bytes`, `persist`, `files`, `crop_to_dot`, and
+`collection.file_mode`, and `dispatch`'s halt and gate counts, percentages, and
+delay; `crun`'s rule that it writes no `output.NAME.txt` is applied where
+`files` is read, from the word. What the client decided or computed for the job
+stays: the targets and commands, each target's transport, port, and channel,
+the reserved `output.root`, the resolved `collection.directory`, the word and
+the suffix, `format`, `follow`, and `dispatch`'s mode, widths (with their
+CPU-derived defaults), order, and shuffle key. The options the client already
+writes to keys through its lock-aware flag layer (`--ping`,
+`--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--order`, the dispatch
+options) reach the daemon with the configuration; `--continue-device-on-error`
+becomes one of them, a flag-origin `execution.halt-device-on-command-error =
+false`, `crun` the word that implies it, so a lock on the key refuses the
+option as it refuses `--ping`; `--echo`, `--border`, and `--noborder` stay in
+the plan, display choices with no key that `job follow` takes as well. The
+client launches a daemon as today, `--config`, `--set`, and the `KARVI__*`
+environment included, since they may place `basedir` or set a `daemon.*` key;
+the daemon reads only the process's keys from them. The manifest's `policy`
+block ("the daemon's own SSH and Telnet policy at acceptance", written and never
+read) and the readiness line's `policy_digest` (printed by `--exercise` alone)
+are removed: the first becomes a copy of four keys in the plan, the second a
+digest of the job's own keys and no fact of the daemon. *Not taken:* the blocks
+kept beside the configuration (two sources for one value); keys for `--echo`
+and the borders; a daemon launched without `--set` (a `basedir` placed by
+`--set` would put the daemon where its client does not look).
+
+**Issue 5, the request's size, agreed.** Measured on the lab: a resolved
+configuration of the built-in defaults is 8,768 bytes as JSON, 11,332 with the
+shipped `configs/example.toml`; a one-target plan 2,853 bytes compact, of which
+the target 831; that job's `manifest.json` 8,314. A request is one frame,
+bounded on each side by its own `daemon.max-ipc-frame-bytes` (8 MiB by default,
+64 KiB to 64 MiB): at the default about 10,000 targets fit and the
+configuration costs the room of about 14; at the minimum about 75 fit, about 62
+with it. The configuration rides inside that bound, with no bound or key of its
+own; a plan too large fails as today, `ipc_frame_too_large` when the client
+writes the frame; the plan still travels twice, issue 3 needing the draft's
+configuration at prepare. Each job's manifest gains about 9 to 11 KB, about
+1 MB a day for a `crun` every 15 minutes and 31 MB per operator at the 31-day
+retention. In a shared job tree the manifest is 0640, so the tree's group reads
+the job's configuration: paths, backend names, environment variable names,
+platform tables, macros, and no secret, since no key holds one (none marked
+sensitive; the credential backends name variables and files, never values).
+*Not taken:* the configuration trimmed to the keys a job reads (a list kept
+beside the registry, and the digest no longer `config show`'s); a bound of its
+own; a compressed request (the frame stays readable JSON, for some 10 KB).
+
+**Issue 6, locks, agreed.** Executed in a private mount namespace where a tmpfs
+over `/opt` held a global file existing nowhere else, karvi run as the
+operator:
+
+```text
+/opt/karvi/config.toml:  [ssh] host-key-policy = "secure"   [config-lock] "ssh.host-key-policy" = true
+$ karvi config show ssh.host-key-policy
+value: "secure"   source: /opt/karvi/config.toml:2
+$ karvi run --ssh-host-key-policy insecure --target 127.0.0.1 …
+config_lock_violation: write blocked by lock "ssh.host-key-policy" declared at /opt/karvi/config.toml:4 … at --ssh-host-key-policy     exit 3
+$ karvi --set ssh.host-key-policy=insecure run --no-daemon …
+config_lock_violation: … at --set[9]     exit 3
+  (no daemon socket: refused before any daemon was reached)
+```
+
+The client's load enforces the locks, as for every invocation today; the
+daemon takes the configuration it receives and checks it against no global file
+of its own; the configuration block carries values, not lock declarations. The
+client and its daemon are one operator, so what a client could send that
+operator could run with `--no-daemon`: a lock guards a site against a mistaken
+setting, not one process of an operator against another. The daemon's global
+file is the one it read at its start, so a re-check would judge a fresh client
+by a stale reading in either direction; and the stale case of today ends, a
+daemon started before a site added a lock no longer running jobs under the
+value it loaded. *Not taken:* the daemon re-checking locked keys against its own
+global file; the lock declarations carried for the record (`config show
+--explain` names them). *Found on the way:* `config show` prints `reload:
+next-job` for every key, the registry stamping it on all, while the daemon never
+reloads; under the item it becomes true of every job key, and the process's
+keys take effect at the daemon's next start. The stamp is corrected in the
+build.
+
+**Issue 7, the schema numbers, agreed.** Each counter against what issues 1 to
+6 change:
+
+| Counter | Today | Change | Moves |
+|---|---|---|---|
+| execution plan | 11 | the `configuration` block added; the `execution` and `ping` blocks, `blind_wait_ns`, `output`'s copied fields, `collection.file_mode`, and `dispatch`'s halt and gate fields removed | 12 |
+| daemon IPC | 10 | `prepare_job` and `commit_job` carry the plan at 12; the readiness `policy_digest` removed | 11 |
+| job | 2 | the manifest's `policy` block removed | 3 |
+| plan report | 1 | `daemons[].execution_policy_digest` removed | 2 |
+| registry | 27 | no key or table field changes; the process's keys change `reload_class` in `schema/config-schema.json` | 28 |
+| configuration | 6 | the file's format unchanged | no |
+| audit | 1 | `policy.config_digest` in its place, naming the job's configuration | no |
+
+The other counters (command record 3, scoreboard 3, credential package 2,
+metrics 1, inventory 1) are untouched. The registry moves because the artifact
+it numbers changes under it, and its rule's comment widens to a key's reload
+class; the audit stays, its field in place and the change said in CHANGELOG. A
+running 0.28.0 daemon is `compatible: false` by its version, and now by its
+schema too. The release that carries the item resumes the lifecycle replay,
+`release-tools/common.sh`'s `PRIOR_*` values set to v0.28.0 after the tools are
+archived. *Not taken:* the registry left at 27 (the artifact changed under an
+unchanged number); the audit counter moved (no field changes).
+
+**The build, agreed.** In sections, each committed on the operator's word: S1,
+path-valued keys made absolute at load and the process's keys' reload class
+(registry 28); S2, the plan's `configuration` block (plan 12, IPC 11) and the
+daemon handing the job the configuration built from it, the behaviour change,
+with this chapter's first example run again; S3, the plan's copied fields
+removed and `--continue-device-on-error` a flag-origin key write; S4, the
+daemon reading only the process's keys, `cancel_requested` in the job's sink,
+the manifest's `policy` block (job 3) and the readiness `policy_digest` (plan
+report 2) removed; S5, the documents and the close.
