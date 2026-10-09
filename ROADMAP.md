@@ -199,6 +199,26 @@ Nothing at present: the operator chooses the next item from Later.
   and the package's rules and `scripts/check-deb.sh`'s list
   ([`docs/EXAMPLES.md`, chapter
   42](docs/EXAMPLES.md#42-the-example-configurations-in-the-package-2026-10-08)).
+- **Every invocation says its configuration's warnings.** The load's two
+  warnings ("optional include missing", "ignored unknown environment
+  variable") are printed by a `run` or `command`, in process or through a
+  daemon, and only counted by `config validate`; `login`, `inspect`, `config
+  show`, `job follow`, and the daemon's own load say nothing of them
+  ([`docs/EXAMPLES.md`, chapter
+  47](docs/EXAMPLES.md#47-a-job-under-its-clients-configuration-2026-10-08),
+  S2.3). The item: every invocation prints its load's warnings once, at the
+  load, and the job no longer does. The questions: `--quiet`, a machine
+  format's standard error, and where a daemon's own load writes them
+  (`daemon.log`).
+- **A client told when a running daemon's settings differ from its own.** A
+  daemon keeps the `daemon.*` values of the invocation that launched it, and a
+  later client's `--set daemon.*` reaches it only at its next start, without
+  a word (chapter 47, S1's reload class, executed with
+  `daemon.shutdown-idle-timer`). The item: the daemon reports its `daemon.*`
+  values in its status reply, and a client whose own differ prints a notice
+  naming the keys and `karvi daemon restart`. The questions: which keys (the
+  `daemon-start` class alone), the notice's wording and its code, and whether
+  `--quiet` keeps it.
 
 ## The device-qualification track
 

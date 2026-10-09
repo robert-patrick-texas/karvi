@@ -7567,3 +7567,11 @@ reload class); `ssh.transports.system` found on the daemon's `PATH`, its first
 launcher's environment (S1). The release's tools (`release/`,
 `scripts/verify-shipped.sh`, `scripts/verify-release.sh`, BUILD-HOWTO §8)
 still name 0.28.0's counters and move with the release, archived first.
+
+**After the close, the operator's word.** `dev` pushed. The first two points
+raised in the build go to the end of ROADMAP's Later: every invocation saying
+its configuration's warnings, and a client told when a running daemon's
+`daemon.*` settings differ from its own. The third is not an item:
+`ssh.transports.system` found on the daemon's `PATH` needs no change, since a
+site that needs one OpenSSH for every job sets the key to an absolute path, by
+`--set` or the configuration, which the job's configuration carries.
