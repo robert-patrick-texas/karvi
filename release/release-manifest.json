@@ -1,27 +1,27 @@
 {
   "application": "karvi",
-  "version": "0.28.0",
-  "release_date": "2026-10-08",
+  "version": "0.29.0",
+  "release_date": "2026-10-09",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.27.0: the configuration registry moves from 26 to 27 (logging.level, logging.file, and logging.file-required removed, refused with config_key_removed); the daemon IPC schema and every other counter are 0.27.0's (daemon IPC 10, execution plan 11, command record 3, credential package 2, scoreboard 3, configuration schema 6, job 2, audit 1, plan report 1); command over the native transport by default; the Debian package carrying the documents, the example configurations, and the material a site installs, published with the release, built from its bundle and checked; every session process ending with karvi; the scratch swept and bounded for the askpass socket (tempdir_too_long); a first contact and insecure said on every path; a recorded login's own lines at the first column; command_completed naming its process; docs/SSH-TROUBLE.md; packaging/sysctl/90-karvi.conf and configs/ssh-legacy.conf and ssh-ancient.conf removed; a build takes Go 1.27; a running 0.27.0 daemon is compatible: false on the version alone and is restarted; see CHANGELOG.md",
+  "behavior_change_from_previous": "a minor release on 0.28.0: the configuration registry moves from 27 to 28, the execution plan from 11 to 12, the daemon IPC schema from 10 to 11, the job manifest and summary from 2 to 3, and the plan report from 1 to 2; every other counter is 0.28.0's (configuration schema 6, command record 3, credential package 2, scoreboard 3, audit 1); a job runs under its client's configuration, sent in the plan's configuration block, and the plan carries no copy of a key; a job's audit records, the cancel record included, go to the sinks its configuration names, and the daemon opens no audit sink of its own; the manifest's policy block and the readiness policy_digest removed; path-valued keys made absolute when the configuration loads (config_working_directory_unavailable; crun_directory_unavailable retired); the reload class says which keys wait for a daemon restart; the packaged user units carry no file-system sandbox and the daemon's drop-in example is removed; crun_directory_not_writable names its cause; a running 0.28.0 daemon is compatible: false by its version and its IPC schema and is restarted; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
-  "configuration_registry_schema_version": 27,
+  "configuration_registry_schema_version": 28,
   "command_record_schema_version": 3,
-  "daemon_ipc_schema_version": 10,
+  "daemon_ipc_schema_version": 11,
   "scoreboard_schema_version": 3,
   "audit_schema_version": 1,
-  "job_schema_version": 2,
-  "execution_plan_schema_version": 11,
+  "job_schema_version": 3,
+  "execution_plan_schema_version": 12,
   "credential_package_schema_version": 2,
-  "plan_report_schema_version": 1,
+  "plan_report_schema_version": 2,
   "included_binary_profile": "scrapligo-v1-native-linux-amd64",
   "build": {
     "go_version": "go1.27.1",
     "official_go_floor": "1.27.0",
-    "source_identity": "source-release-v0.28.0",
-    "build_time": "2026-10-08T00:00:00Z",
+    "source_identity": "source-release-v0.29.0",
+    "build_time": "2026-10-09T00:00:00Z",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
@@ -29,15 +29,15 @@
     "build_tags": "none (every build carries the adapter)"
   },
   "source_statistics": {
-    "go_files_outside_vendor": 451,
-    "go_lines_outside_vendor": 95863,
-    "named_top_level_tests": 902,
+    "go_files_outside_vendor": 461,
+    "go_lines_outside_vendor": 96421,
+    "named_top_level_tests": 912,
     "packages": 84
   },
   "binaries": {
     "karvi-linux-amd64": {
       "bytes": 12263584,
-      "sha256": "17d213ccdec442e4b782f9681b672905bf31a1d4a78120fe20b32adbb93ac9d3",
+      "sha256": "2a0890711f2d63d206cd1240848d43862131181b395788688d738a3f472e9ed0",
       "reported_ssh_transports": [
         {
           "id": "scrapligo-v1",
@@ -54,16 +54,16 @@
       "native_transport": "compiled-in (scrapligo v1.4.2)"
     },
     "karvi-askpass-linux-amd64": {
-      "bytes": 3903648,
-      "sha256": "5365ef1d907eaf1a4ece7b4b9fb9d117bcc26b5584dd4cbbf0099afa20098356"
+      "bytes": 3907744,
+      "sha256": "0f338266d60a4ec846a1fb6da24d4715454d6588b463195d49f577bc33a2cb85"
     },
     "karvi-prune-linux-amd64": {
       "bytes": 3776672,
-      "sha256": "aa92806c85df02adc54cab11486307e012fb8aa98931e6051b97dd3fb7322e2b"
+      "sha256": "153b40bc78e375e0e9f8723da4da09df37ae1bc483f232a4c01d7c747e9e92b1"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.28.0 - 2026-10-08"
+    "changelog": "CHANGELOG.md 0.29.0 - 2026-10-09"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only",
@@ -77,7 +77,8 @@
       7,
       8,
       9,
-      10
+      10,
+      11
     ],
     "lifecycle_operations": [
       "ping",
@@ -94,14 +95,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "none: the daemon IPC schema has been 10 since v0.20.0 and no release has moved it, so no earlier executable's daemon differs in schema from this client's; the compatibility example ran before the number was committed: the released v0.27.0 daemon reported compatible: false to this client on the version alone, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "passed against the released v0.28.0 executable (daemon IPC 10, this client 11): status compatible: false, the run refused with daemon_incompatible without replacing the daemon, stop with no option, restart, and stop with --force, --grace, and --after (evidence/v0280-to-v0290-lifecycle.log); the compatibility example ran before the number was committed: the released v0.28.0 daemon reported compatible: false to this client on the version and the IPC schema, refused its run with daemon_incompatible before any job, and was stopped by the client (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 27 (26 at v0.27.0): logging.level, logging.file, and logging.file-required removed and refused with config_key_removed"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 28 (27 at v0.28.0): path-valued keys marked and made absolute at the load, and the daemon-start reload class"
   },
   "native_dependency": {
     "module": "github.com/scrapli/scrapligo",
@@ -124,16 +125,16 @@
     "production_scale": "not-run",
     "parity_suite_system_and_scrapligo_v1": "passed (the fake device's IOS XE and Linux personas)",
     "gofmt": "passed",
-    "lifecycle_replay": "skipped: no release whose daemon IPC schema differs from this client's",
+    "lifecycle_replay": "passed (against v0.28.0, daemon IPC 10)",
     "host_shared_places_unchanged": "passed (scripts/lib/host.sh in both verifiers)",
     "shipped_executables_as_bytes": "passed (scripts/verify-shipped.sh, bundle-qualification.log)",
     "release_tree_clean_at_tag": "passed (nothing untracked, no empty directory)",
     "debian_package": "passed (the tree's package in the release verifier's run and the published package built twice from the verified bundle to the same bytes, both checked by scripts/check-deb.sh with lintian)"
   },
   "previous_release": {
-    "version": "0.27.0",
-    "git_tag": "karvi-v0.27.0",
-    "notes": "a minor release on 0.26.0; every release is installed as new"
+    "version": "0.28.0",
+    "git_tag": "karvi-v0.28.0",
+    "notes": "a minor release on 0.27.0; every release is installed as new"
   },
   "vendored_modules": [
     "github.com/scrapli/scrapligo v1.4.2",
