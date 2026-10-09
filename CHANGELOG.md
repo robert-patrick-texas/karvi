@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased
+## 0.29.0 - 2026-10-09
+
+A minor release on 0.28.0. The configuration registry moves from 27 to 28, the
+execution plan from 11 to 12, the daemon IPC schema from 10 to 11, the job
+schema from 2 to 3, and the plan report from 1 to 2; every other counter is
+0.28.0's (configuration schema 6, command record 3, credential package 2,
+scoreboard 3, audit 1, metrics 1, inventory 1), and a running 0.28.0 daemon is
+`compatible: false` by its version and its IPC schema and is restarted. A site
+has something to change where its jobs relied on a daemon's own `--config`,
+`--set`, environment, or working directory (each job now runs under its
+client's), where it reads a job's audit records, the cancel record included,
+from the sink the daemon's launcher named (they go where the job's client's
+`audit.*` says), where its configuration names a path relative to a working
+directory or under `~user` (a relative path resolves at the client's load and
+`config show` prints it absolute; `~user` is refused), where it reads the
+manifest's `policy` block or the readiness `policy_digest` (removed), and where
+it copied `karvi-daemon.service.d/crun.conf.example` (removed, no longer
+needed). The module graph is 0.28.0's.
 
 - **A job runs under its client's configuration.** A daemon ran every job under
   the configuration it loaded at its start, its first launcher's `--config`,
