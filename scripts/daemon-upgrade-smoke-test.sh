@@ -23,6 +23,11 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 install -d -m 700 "$BASE" "$HOME_DIR"
+# The executable's own version and IPC schema, so the pair rule holds for
+# the released bin/ and a lab build alike.
+VERSION=$("$KARVI" version | sed -n '1s/^karvi //p')
+SCHEMA=$("$KARVI" version | sed -n 's/^daemon_ipc_schema: //p')
+[ -n "$VERSION" ] && [ -n "$SCHEMA" ]
 
 # start_fixture SCHEMA VERSION: a lifecycle-only daemon fixture at the socket.
 start_fixture() {
@@ -46,7 +51,7 @@ start_fixture 2 0.8.0
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon status >"$TMP/status.out"
 grep -q '^version: 0.8.0$' "$TMP/status.out"
 grep -q '^daemon_ipc_schema: 2$' "$TMP/status.out"
-grep -q '^client_ipc_schema: 10$' "$TMP/status.out"
+grep -q "^client_ipc_schema: $SCHEMA\$" "$TMP/status.out"
 grep -q '^compatible: false$' "$TMP/status.out"
 grep -q '^remediation: karvi daemon restart$' "$TMP/status.out"
 
@@ -69,17 +74,17 @@ grep -q 'version 0.8.0' "$TMP/run.err"
 grep -q 'run "karvi daemon restart"' "$TMP/run.err"
 [ ! -e "$BASE/logs/daemon.log" ]
 
-# The pair rule: a daemon at this executable's schema, 10, but
+# The pair rule: a daemon at this executable's schema but
 # another version is reached and reported, incompatible, its run refused
 # before any job, and the restart replaces it.
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon stop >/dev/null
 wait "$FIXTURE_PID"
 FIXTURE_PID=
-start_fixture 10 0.19.0
+start_fixture "$SCHEMA" 0.19.0
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon status >"$TMP/status10.out"
 grep -q '^version: 0.19.0$' "$TMP/status10.out"
-grep -q '^daemon_ipc_schema: 10$' "$TMP/status10.out"
-grep -q '^client_ipc_schema: 10$' "$TMP/status10.out"
+grep -q "^daemon_ipc_schema: $SCHEMA\$" "$TMP/status10.out"
+grep -q "^client_ipc_schema: $SCHEMA\$" "$TMP/status10.out"
 grep -q '^compatible: false$' "$TMP/status10.out"
 grep -q '^remediation: karvi daemon restart$' "$TMP/status10.out"
 set +e
@@ -96,7 +101,7 @@ HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-secret \
 code=$?
 set -e
 [ "$code" -eq 112 ]
-grep -q '^daemon_incompatible: running daemon version 0.19.0 uses IPC schema 10; karvi 0.28.0 uses schema 10, and both must match' "$TMP/run10.err"
+grep -q "^daemon_incompatible: running daemon version 0.19.0 uses IPC schema $SCHEMA; karvi $VERSION uses schema $SCHEMA, and both must match" "$TMP/run10.err"
 [ ! -e "$BASE/logs/daemon.log" ]
 
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon restart >"$TMP/restart.out" 2>"$TMP/restart.err"
@@ -104,8 +109,8 @@ grep -q '^daemon restarted$' "$TMP/restart.out"
 wait "$FIXTURE_PID"
 FIXTURE_PID=
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon status >"$TMP/current.out"
-grep -q '^version: 0.28.0$' "$TMP/current.out"
-grep -q '^daemon_ipc_schema: 10$' "$TMP/current.out"
+grep -q "^version: $VERSION\$" "$TMP/current.out"
+grep -q "^daemon_ipc_schema: $SCHEMA\$" "$TMP/current.out"
 grep -q '^compatible: true$' "$TMP/current.out"
 "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon stop >/dev/null
 

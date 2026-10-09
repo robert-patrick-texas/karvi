@@ -17,9 +17,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "a66010cbcfdeeda45e1820bbf99312f77e526aa1d047de144c48d52e02e1fc19"
-	goldenPrepared = "9a1e0d6dcc7266bd526b533abb827a237d6b41c1854488ae83c4340ef7aa18d0"
-	goldenFinal    = "c01a7d6ccc6333eec44352994573e2cadd4f1e8232207400edd003fedbc47f81"
+	goldenDraft    = "b9cc3a6295f86479fb513d57fc0545a46436ced3925272ab88ed01ed652b1e64"
+	goldenPrepared = "102b9f6ac9c97f605bf3358b699f9f4cac8b851ce7e70a22ec7dcd26fa4371f4"
+	goldenFinal    = "537e1882bf4aeb74b38770e1fbb07652327917d8aa5996b6fe31f4e0f46751fd"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -39,8 +39,9 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 		Ping:        PingSettings{Enabled: false, Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond)},
 		Sources: SourceDigests{ConfigDigest: strings.Repeat("cd", 32),
 			Selectors: inventory.Provenance{Sources: []inventory.SourceRef{{Name: "smoke", Path: "/tmp/inv.csv", Digest: strings.Repeat("ab", 32)}}}},
-		Planning:    PlanningTimestamps{DraftedAt: time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)},
-		Preparation: []PreparationEvidence{},
+		Configuration: Configuration{"ssh.host-key-policy": "accept-new"},
+		Planning:      PlanningTimestamps{DraftedAt: time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)},
+		Preparation:   []PreparationEvidence{},
 	}
 }
 

@@ -2,13 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://robert-patrick-texas.github.io/karvi/schema/daemon-ipc-v7.json",
   "title": "karvi daemon IPC schema 7",
-  "description": "The daemon IPC envelope: the newline-delimited JSON envelope with prepare_job, commit_job (answered at acceptance), follow_job (one request, a stream of responses: the follow_start result, record events each carrying a record_frame with the record itself, then a stream_terminal event carrying follow_terminal; schema 8; schema 10 adds the admission warnings to the receipt and the follow start), and cancel_job (one request, one cancel_result answered at once, the job ID its idempotency key), and the header and receipt of the binary credential frame. The frame prefix is sixteen bytes, big-endian: u32 magic 0x4E444350, u16 frame_version 1, u16 flags 0, u32 header_len, u32 body_len; then the JSON header and the encoded package body. The receipt is u32 length then JSON. Closed: exact major-version negotiation.",
+  "description": "The daemon IPC envelope: the newline-delimited JSON envelope with prepare_job, commit_job (answered at acceptance), follow_job (one request, a stream of responses: the follow_start result, record events each carrying a record_frame with the record itself, then a stream_terminal event carrying follow_terminal; schema 8; schema 10 adds the admission warnings to the receipt and the follow start; schema 11 carries the execution plan at 12, whose configuration block is the job's configuration), and cancel_job (one request, one cancel_result answered at once, the job ID its idempotency key), and the header and receipt of the binary credential frame. The frame prefix is sixteen bytes, big-endian: u32 magic 0x4E444350, u16 frame_version 1, u16 flags 0, u32 header_len, u32 body_len; then the JSON header and the encoded package body. The receipt is u32 length then JSON. Closed: exact major-version negotiation.",
   "$defs": {
     "request": {
       "type": "object", "additionalProperties": false,
       "required": ["ipc_schema_version", "request_id", "operation", "client_pid", "client_version", "payload"],
       "properties": {
-        "ipc_schema_version": {"const": 10},
+        "ipc_schema_version": {"const": 11},
         "request_id": {"type": "string"},
         "operation": {"enum": ["ping", "status", "drain", "stop", "prepare_job", "commit_job", "follow_job", "cancel_job"]},
         "client_pid": {"type": "integer"}, "client_version": {"type": "string"},
@@ -19,7 +19,7 @@
     "response": {
       "type": "object", "additionalProperties": false,
       "required": ["ipc_schema_version", "request_id"],
-      "properties": {"ipc_schema_version": {"const": 10}, "request_id": {"type": "string"}, "result": {}, "error": {"$ref": "#/$defs/error"}, "event": {"enum": ["record", "stream_terminal"]}}
+      "properties": {"ipc_schema_version": {"const": 11}, "request_id": {"type": "string"}, "result": {}, "error": {"$ref": "#/$defs/error"}, "event": {"enum": ["record", "stream_terminal"]}}
     },
     "error": {
       "type": "object", "additionalProperties": false,

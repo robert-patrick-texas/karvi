@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/inventory"
 )
 
@@ -96,6 +97,24 @@ func DaemonTarget() executionplan.ExecutionTarget {
 // Execution is the plan's timeouts block at the configuration's defaults.
 var Execution = executionplan.ExecutionSettings{CommandTimeoutNS: int64(120 * time.Second), PromptTimeoutNS: int64(10 * time.Second), EnableTimeoutNS: int64(10 * time.Second), TelnetReadTimeoutNS: int64(60 * time.Second)}
 
+// Configuration is the draft's configuration block: one value, so the
+// pinned plan digests do not move with the registry's defaults, and its
+// digest computed as the daemon computes it (ConfigDigest). A test whose
+// job reads the configuration plans through planner.Draft instead.
+func Configuration() executionplan.Configuration {
+	return executionplan.Configuration{"ssh.host-key-policy": "accept-new"}
+}
+
+// ConfigDigest is Configuration's digest, the draft's
+// sources.config_digest.
+func ConfigDigest() string {
+	snap, err := configload.FromValues(Configuration())
+	if err != nil {
+		panic(err)
+	}
+	return snap.Digest
+}
+
 // DraftPlan is the client's plan before preparation.
 func DraftPlan() executionplan.ExecutionPlan {
 	return executionplan.ExecutionPlan{
@@ -109,10 +128,11 @@ func DraftPlan() executionplan.ExecutionPlan {
 		Execution:   Execution,
 		Output:      executionplan.OutputSettings{Format: executionplan.FormatText, Follow: true, MaxCommandBytes: 67108864, MaxJobBytes: 17179869184, Persist: true, Files: executionplan.AllOutputFiles, Root: "/tmp/karvi/jobs"},
 		Ping:        executionplan.PingSettings{Enabled: false, Probes: executionplan.PingProbes, TimeoutNS: int64(500 * time.Millisecond)},
-		Sources: executionplan.SourceDigests{ConfigDigest: strings.Repeat("cd", 32),
+		Sources: executionplan.SourceDigests{ConfigDigest: ConfigDigest(),
 			Selectors: inventory.Provenance{Sources: []inventory.SourceRef{{Name: "smoke", Path: "/tmp/inv.csv", Digest: strings.Repeat("ab", 32)}}}},
-		Planning:    executionplan.PlanningTimestamps{DraftedAt: DraftedAt},
-		Preparation: []executionplan.PreparationEvidence{},
+		Configuration: Configuration(),
+		Planning:      executionplan.PlanningTimestamps{DraftedAt: DraftedAt},
+		Preparation:   []executionplan.PreparationEvidence{},
 	}
 }
 

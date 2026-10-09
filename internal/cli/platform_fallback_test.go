@@ -198,12 +198,12 @@ func TestEnableRuleOnThePlatformUsed(t *testing.T) {
 	}
 }
 
-// TestExerciseRefusesPlatformUnknownToTheDaemon is the daemon's backstop
-// seen from the client's side: the client's configuration has an
-// alias table the daemon's lacks, so the exercise report carries an error
-// finding platform_unknown, stage platform, and the target is not ready; a
-// live job would refuse the device before any connection.
-func TestExerciseRefusesPlatformUnknownToTheDaemon(t *testing.T) {
+// TestExerciseTakesTheClientsPlatformTable: the client's configuration has
+// an alias table the daemon's own lacks, and the daemon's exercise runs
+// under the client's (the plan's configuration block), so the target is
+// ready with no platform finding; before the block, the daemon's
+// configuration refused it as platform_unknown.
+func TestExerciseTakesTheClientsPlatformTable(t *testing.T) {
 	_, sets, _, _, stop := exerciseRuntime(t)
 	defer stop()
 	t.Setenv("NETPASS", "p")
@@ -227,13 +227,12 @@ func TestExerciseRefusesPlatformUnknownToTheDaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParity(t, planReportSchema, report)
-	found := false
 	for _, f := range report.Targets[0].Findings {
-		if f.Code == "platform_unknown" && f.Severity == "error" && f.Stage == "platform" && f.Details["platform"] == "c9300" {
-			found = true
+		if f.Stage == "platform" {
+			t.Errorf("a platform finding: %+v", f)
 		}
 	}
-	if !found || report.Targets[0].Readiness != records.ReadinessNotReady || report.Outcome != records.OutcomeNotReady {
+	if report.Targets[0].Readiness != records.ReadinessReady || report.Outcome != records.OutcomeExercised {
 		t.Fatalf("exit=%d outcome=%s target=%+v", got, report.Outcome, report.Targets[0])
 	}
 }

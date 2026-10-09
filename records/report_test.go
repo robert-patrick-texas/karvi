@@ -215,7 +215,7 @@ func TestReportValidationVectors(t *testing.T) {
 }
 
 func TestReportTypesAreStructurallyNonSecret(t *testing.T) {
-	allow := canarytest.Allow{Leaves: []string{"net/netip.Addr", "time.Time", "github.com/robert-patrick-texas/karvi/executionplan.Digest", "github.com/robert-patrick-texas/karvi/credentials.Match"}}
+	allow := canarytest.Allow{Leaves: []string{"net/netip.Addr", "time.Time", "github.com/robert-patrick-texas/karvi/executionplan.Digest", "github.com/robert-patrick-texas/karvi/credentials.Match", "github.com/robert-patrick-texas/karvi/executionplan.Configuration"}}
 	for _, rt := range []reflect.Type{reflect.TypeOf(PlanReport{}), reflect.TypeOf(TargetReport{})} {
 		canarytest.Walk(t, rt, allow)
 	}

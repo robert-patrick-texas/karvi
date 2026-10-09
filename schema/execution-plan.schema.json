@@ -183,9 +183,9 @@
     },
     "execution_plan": {
       "type": "object", "additionalProperties": false,
-      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "execution", "output", "ping", "sources", "planning", "preparation"],
+      "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind_wait_ns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "execution", "output", "ping", "sources", "configuration", "planning", "preparation"],
       "properties": {
-        "schema_version": {"const": 11},
+        "schema_version": {"const": 12},
         "plan_id": {"$ref": "#/$defs/identifier"},
         "plan_digest": {"$ref": "#/$defs/digest"},
         "operator": {"$ref": "#/$defs/operator"},
@@ -207,9 +207,16 @@
         "output": {"$ref": "#/$defs/output"},
         "ping": {"$ref": "#/$defs/ping"},
         "sources": {"$ref": "#/$defs/sources"},
+        "configuration": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/config_value"}, "description": "The client's resolved configuration, every value by key, as config show --format json prints values; sources.config_digest digests it (schema 12)."},
         "planning": {"$ref": "#/$defs/planning"},
         "preparation": {"type": "array", "items": {"$ref": "#/$defs/preparation_evidence"}}
       }
+    },
+    "config_value": {
+      "type": ["string", "boolean", "integer", "number", "array", "object"],
+      "items": {"$ref": "#/$defs/config_value"},
+      "additionalProperties": {"$ref": "#/$defs/config_value"},
+      "description": "One configuration value as the client's load resolved it: a scalar, a list, or a table."
     },
     "client_identity": {
       "type": "object", "additionalProperties": false,
@@ -225,7 +232,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "command_plan_digest", "plan_digest"],
       "properties": {
-        "schema_version": {"const": 11},
+        "schema_version": {"const": 12},
         "idempotency_key": {"type": "string"},
         "job_id": {"$ref": "#/$defs/identifier"},
         "operator": {"$ref": "#/$defs/operator"},

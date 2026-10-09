@@ -23,8 +23,9 @@ import (
 // follow_job's stream in place of the notice that located it in
 // commands.jsonl; 9 names jobs by the job
 // ID `YYMMDD-HHMMSS-xx` in commit_job, follow_job, and cancel_job,
-// which each side's validator requires of the other.
-const SchemaVersion = 10
+// which each side's validator requires of the other; 11 carries the
+// execution plan at 12, its configuration block the job's configuration.
+const SchemaVersion = 11
 
 // SchemaMismatchError reports the protocol versions observed on each side of
 // an IPC exchange. Callers use the structured values to provide safe upgrade

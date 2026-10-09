@@ -21,7 +21,7 @@ import (
 const ipcSchema = "../../schema/daemon-ipc.schema.json"
 
 func TestSchema5PayloadsAreStructurallyNonSecret(t *testing.T) {
-	allow := canarytest.Allow{Leaves: []string{"net/netip.Addr", "time.Time", "github.com/robert-patrick-texas/karvi/executionplan.Digest", "github.com/robert-patrick-texas/karvi/credentials.Match", "github.com/robert-patrick-texas/karvi/internal/ipc.ChannelToken"}}
+	allow := canarytest.Allow{Leaves: []string{"net/netip.Addr", "time.Time", "github.com/robert-patrick-texas/karvi/executionplan.Digest", "github.com/robert-patrick-texas/karvi/credentials.Match", "github.com/robert-patrick-texas/karvi/internal/ipc.ChannelToken", "github.com/robert-patrick-texas/karvi/executionplan.Configuration"}}
 	for _, rt := range []reflect.Type{reflect.TypeOf(PrepareRequest{}), reflect.TypeOf(PrepareResult{}), reflect.TypeOf(CommitRequest{}), reflect.TypeOf(JobReceipt{})} {
 		canarytest.Walk(t, rt, allow)
 	}

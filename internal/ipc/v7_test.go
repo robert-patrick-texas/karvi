@@ -27,10 +27,9 @@ func TestSchema7CancelPayloadsMatchTheSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Schema 10: the receipt and the follow start
-	// carry the admission warnings.
-	if req.IPCSchemaVersion != 10 || SchemaVersion != 10 {
-		t.Errorf("schema %d, want 10", req.IPCSchemaVersion)
+	// Schema 11: the execution plan at 12, its configuration block.
+	if req.IPCSchemaVersion != 11 || SchemaVersion != 11 {
+		t.Errorf("schema %d, want 11", req.IPCSchemaVersion)
 	}
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/request", req)
 }

@@ -49,7 +49,7 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, streams IO) Ac
 		}
 		opts.ActivityID = osutil.UnreservedJobID(start, location)
 	}
-	cd, code, err := draftClient(ctx, opts, streams)
+	cd, code, err := draftClient(ctx, opts, streams, false)
 	if err != nil {
 		return failedResult(code, fmt.Errorf("client planning: %w", err))
 	}

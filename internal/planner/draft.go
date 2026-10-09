@@ -228,14 +228,15 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		BlindReturns: append([]int{}, opts.BlindReturns...), BlindWaitNS: cfg.Duration("execution.blind-wait").Nanoseconds(),
 		Blind: append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),
-		SessionInit: map[string]executionplan.SessionInitProfile{},
-		Dispatch:    dispatchSettings(cfg, set, opts),
-		Execution:   ExecutionSettings(cfg),
-		Output:      out,
-		Ping:        pingSettings(cfg),
-		Sources:     executionplan.SourceDigests{ConfigDigest: cfg.Digest, Selectors: provenance, Inputs: ScopeInputs(opts.Inputs)},
-		Planning:    executionplan.PlanningTimestamps{DraftedAt: now},
-		Preparation: []executionplan.PreparationEvidence{},
+		SessionInit:   map[string]executionplan.SessionInitProfile{},
+		Dispatch:      dispatchSettings(cfg, set, opts),
+		Execution:     ExecutionSettings(cfg),
+		Output:        out,
+		Ping:          pingSettings(cfg),
+		Sources:       executionplan.SourceDigests{ConfigDigest: cfg.Digest, Selectors: provenance, Inputs: ScopeInputs(opts.Inputs)},
+		Configuration: cfg.ValueMap(),
+		Planning:      executionplan.PlanningTimestamps{DraftedAt: now},
+		Preparation:   []executionplan.PreparationEvidence{},
 	}
 	if err := plan.Validate(executionplan.Draft); err != nil {
 		return executionplan.ExecutionPlan{}, err

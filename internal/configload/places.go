@@ -1,16 +1,18 @@
 package configload
 
 import (
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/robert-patrick-texas/karvi/configschema"
-	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 // absolutePlaces makes every value of a key the registry marks as a path
 // absolute, the load's last change before its digest: `~` the operator's
-// home and a relative path from the working directory, by
-// osutil.ResolvePath, so `config show` prints the place a job records and a
+// home and a relative path from the working directory, by absolutePath,
+// so `config show` prints the place a job records and a
 // process in another working directory reads the same one. An empty value
 // and the key's words (auto, none) stay as written, as does every element of
 // a list that is not a string. Validation has judged the values as written.
@@ -44,7 +46,7 @@ func absolutePlace(data any, words []string, home string) (any, error) {
 		if x == "" || oneOfWords(x, words) {
 			return x, nil
 		}
-		return osutil.ResolvePath(x, home)
+		return absolutePath(x, home)
 	case []any:
 		out := make([]any, len(x))
 		for i, e := range x {
@@ -76,4 +78,22 @@ func oneOfWords(s string, words []string) bool {
 		}
 	}
 	return false
+}
+
+// absolutePath is osutil.ResolvePath's rule, which the readers apply to a
+// value, kept here so the loader imports no osutil (a test holds the two
+// equal): `~` and `~/` the home, `~user` refused, a relative path from the
+// working directory, the result cleaned.
+func absolutePath(raw, home string) (string, error) {
+	p := raw
+	switch {
+	case raw == "~" || strings.HasPrefix(raw, "~/"):
+		if home == "" {
+			return "", errorcodes.Errorf("operator_identity_unavailable", "the operator's home is unknown, so %s cannot be resolved", raw)
+		}
+		p = filepath.Join(home, strings.TrimPrefix(raw[1:], "/"))
+	case strings.HasPrefix(raw, "~"):
+		return "", errorcodes.Errorf("path_other_user_home_unsupported", "~otheruser paths are not supported: %s", raw)
+	}
+	return filepath.Abs(p)
 }

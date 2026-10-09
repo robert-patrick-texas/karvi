@@ -7303,3 +7303,115 @@ client-only keys (no reader acts on the difference). *Raised, not taken here:*
 a client could compare its `daemon.*` values with a running daemon's and say
 where they differ, the daemon reporting its values in the status reply; an item
 of its own if wanted.
+
+**S2, the job under its client's configuration.** *What it gains:* the behaviour
+change itself, a later client's `--set`, `--config`, environment, and working
+directory reaching its own job. *It waits on* S1. The daemon reads its own
+configuration on the job path in three places, `resolver.PrepareDaemonWith` at
+prepare (the DNS timeout and family), `jobexec.Policy`, and the job's `Config`
+at commit; everything downstream reads the job's.
+
+**S2.1, the block's form and its check, agreed.** `config show --format json`
+prints the resolved values as an object:
+
+```text
+$ karvi config show --format json
+{ "config_schema_version": 6, "digest": "3fae7423…", "sources": null,
+  "values": { "audit.enabled": true, "audit.file": "/dev/shm/kl/base/audit.jsonl", … } }
+```
+
+The plan's `configuration` is that `values` object, `{key: value}`, covered by
+`plan_digest`; `sources.config_digest` stays the client's digest, since S1 that
+of these values. The block decodes with numbers as written, an integer literal
+an int64 and any other a float64, and `configload.FromValues` builds the job's
+configuration from it, the fixed keys normalized by their registry kind, its
+digest computed as the load computes it (sha256 of `CanonicalJSON`), with no
+sources, warnings, or locks. `Validate` refuses a missing or empty block at both
+stages (`execution_plan_invalid: configuration: is empty`); the daemon builds
+the configuration at prepare from the draft and at commit from the final plan,
+through one helper, and refuses a digest other than `sources.config_digest` as
+`execution_plan_invalid`. *Not taken:* the `[{key, value}]` list (the digest's
+encoding, not the configuration's form); the check inside `Validate` (the public
+plan package depending on the loader); the block decoded as a plain map (every
+integer a float64, the dynamic tables' readers switching on int64).
+
+**S2.2, the in-process job's configuration, agreed.** Beyond the values, the
+in-process job reads its snapshot's warnings and sources
+(`jobexec/activity.go`); with `warn.toml` (`reject-unknown-env = false`) and
+`KARVI__NOPE=1`:
+
+```text
+$ karvi --config warn.toml --debug run --no-daemon … 'echo x'
+  warning: ignored unknown environment variable KARVI__NOPE
+  activity=run activity_id=261008-234450-00 config_digest=b7408e16… config_sources="/dev/shm/kl/cfg/warn.toml"
+$ karvi --config warn.toml --debug run … 'echo x'          (through a daemon)
+  (neither line: the daemon's job writes to io.Discard)
+```
+
+No reader on the job path uses the locks or the provenance. The `--no-daemon`
+job keeps the client's loaded snapshot: the block is written from its values,
+so it runs under the block's values and digest, and what the snapshot adds, its
+warnings and sources, belongs to the load, its own invocation's. A test pins the
+two as one configuration: a loaded snapshot, the built-in defaults and
+`configs/example.toml`, to the plan's block, through JSON, through
+`FromValues`, its values deep-equal and its digest equal. *Not taken:* the
+in-process job rebuilt from the block too (one path, the warnings and the debug
+line's sources dropped or moved, for a configuration that is the block's
+source).
+
+**S2.3, the load's warnings on the daemon path, agreed.** Executed with
+`warn.toml` and `KARVI__NOPE=1`:
+
+```text
+run --no-daemon …              warning: ignored unknown environment variable KARVI__NOPE
+run … (through a daemon)       nothing
+config show basedir            nothing
+config validate                warnings: 1        (counted, not said)
+```
+
+The load's two warnings ("optional include missing", "ignored unknown
+environment variable") were printed by the in-process job alone. The client of
+the daemon path prints its load's warnings itself, after its load and before it
+drafts, the same `warning: …` lines on its standard error; the in-process job
+keeps its line, so a `run` or `command` says the same through a daemon or not;
+the daemon's job, its configuration from the block, has none. *Not taken in
+S2:* every invocation printing its load's warnings once at the load (`login`,
+`inspect`, `config show`, `job follow`, the daemon's own load into
+`daemon.log`, and `--quiet` reached), an item of its own if wanted.
+
+**S2, built.** The plan's `configuration` block (plan 12, IPC 11), the daemon
+building the job's configuration from it at prepare and at commit, the client
+of the daemon path printing its load's warnings. The chapter's first example,
+run again on a lab build of each section, one daemon started by the first run,
+from a working directory under the lab:
+
+```text
+== S1's build
+$ karvi --set ssh.known-hosts-file=kh1/known_hosts run … 'echo 1'
+  daemon started …   ! ssh accepted new host-key 127.0.0.1 (ED25519)
+$ karvi --set ssh.known-hosts-file=kh2/known_hosts run … 'echo 2'
+  kh1: 1 line; kh2: 0 lines
+  the second client's config digest ba07b1403fb7; the second job's audit policy.config_digest 0b8c37d4000c
+== S2's build
+$ karvi --set ssh.known-hosts-file=kh1/known_hosts run … 'echo 1'
+  daemon started …   ! ssh accepted new host-key 127.0.0.1 (ED25519)
+$ karvi --set ssh.known-hosts-file=kh2/known_hosts run … 'echo 2'
+  ! ssh accepted new host-key 127.0.0.1 (ED25519)
+  kh1: 1 line; kh2: 1 line
+  the second client's config digest ce99d906890c; the second job's audit policy.config_digest ce99d906890c
+```
+
+and `KARVI__NOPE=1` with `warn.toml` through a daemon now prints `warning:
+ignored unknown environment variable KARVI__NOPE`. *Found in the build:* the
+round trip of the block showed that the load keeps an integer literal of a
+number key as an int64, and JSON cannot carry an integral value's float type,
+so `FromValues` keeps an integral number an int64, which `Snapshot.Float`
+reads as the load's float64, and refuses a fraction on an integer key; the
+loader's path rule is its own (`absolutePath`, a test holding it equal to
+`osutil.ResolvePath`), since the loader importing `osutil` closed an import
+cycle through `records`; the exercise's test of a platform the daemon's
+configuration lacked now shows the client's table reaching the daemon's
+exercise, the target ready, and whether the executor's and the exercise's
+`platform_unknown` backstop stays, its case gone, is S3's question with the
+other checks made twice; `scripts/daemon-upgrade-smoke-test.sh` reads the
+executable's version and IPC schema in place of 0.28.0 and 10.

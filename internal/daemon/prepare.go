@@ -134,6 +134,12 @@ func (s *Server) prepareJob(ctx context.Context, conn net.Conn, req ipc.Request)
 		s.writeError(conn, "daemon_draining", fmt.Errorf("daemon is draining and accepts no new jobs"), req.RequestID)
 		return
 	}
+	// The job's configuration is the draft's block, never the daemon's own.
+	cfg, err := jobexec.PlanConfiguration(&pr.Draft)
+	if err != nil {
+		s.logf(req.Operation, req.RequestID, "", pr.Header.JobID, s.writeCoded(conn, "execution_plan_invalid", err, req.RequestID))
+		return
+	}
 	if pr.Header.Operator.UID != s.UID {
 		s.logf(req.Operation, req.RequestID, "", pr.Header.JobID, "peer_uid_denied")
 		s.writeError(conn, "peer_uid_denied", fmt.Errorf("header operator uid %d differs from the daemon's %d", pr.Header.Operator.UID, s.UID), req.RequestID)
@@ -165,7 +171,7 @@ func (s *Server) prepareJob(ctx context.Context, conn net.Conn, req ipc.Request)
 	}
 	findings := []executionplan.Finding{}
 	dnsStart := time.Now()
-	evidence, err := resolver.PrepareDaemonWith(ctx, s.Config, pr.Draft.Targets, caps, s.Lookup)
+	evidence, err := resolver.PrepareDaemonWith(ctx, cfg, pr.Draft.Targets, caps, s.Lookup)
 	dnsNS := time.Since(dnsStart).Nanoseconds()
 	accepted := err == nil
 	if err != nil {
@@ -178,7 +184,7 @@ func (s *Server) prepareJob(ctx context.Context, conn net.Conn, req ipc.Request)
 		}
 		evidence = []executionplan.AddressEvidence{}
 	}
-	policy, err := jobexec.Policy(s.Config)
+	policy, err := jobexec.Policy(cfg)
 	if err != nil {
 		s.writeError(conn, "ipc_encode_failed", err, req.RequestID)
 		return
@@ -432,6 +438,13 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 		fail("credential_package_invalid", err)
 		return
 	}
+	// The job runs under the final plan's configuration block.
+	cfg, err := jobexec.PlanConfiguration(&cr.Plan)
+	if err != nil {
+		forget()
+		fail("execution_plan_invalid", err)
+		return
+	}
 	select {
 	case s.jobs <- struct{}{}:
 	default:
@@ -463,7 +476,7 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 	s.jobWait.Add(1)
 	request := jobexec.Request{
 		Plan: cr.Plan, Header: cr.Header, Package: projection, Grants: pkg, Protection: string(projection.Protection), Mode: cr.Mode,
-		Config: s.Config, Operator: s.Operator, Quiet: true, Daemon: true, Logger: s.Logger,
+		Config: cfg, Operator: s.Operator, Quiet: true, Daemon: true, Logger: s.Logger,
 		ActivityType: "run", ActivityID: jobID,
 		OnAccepted: func(dir string, warnings []string) { accepted <- acceptance{dir, warnings} }, OnDurable: j.durable,
 		Preparations: []executionplan.PreparationReport{prepReport},

@@ -33,8 +33,9 @@ import (
 // unreleased), output.files' failures_jsonl renamed errors_jsonl; 11 each
 // target's channel, and, without another bump (11 was unreleased), the
 // execution block, the invocation's timeouts, and each command's own
-// timeouts_ns and max_bytes.
-const SchemaVersion = 11
+// timeouts_ns and max_bytes; 12 the configuration block, the client's
+// resolved configuration the daemon runs the job under.
+const SchemaVersion = 12
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -139,8 +140,11 @@ type ExecutionPlan struct {
 	Output            OutputSettings                `json:"output"`
 	Ping              PingSettings                  `json:"ping"`
 	Sources           SourceDigests                 `json:"sources"`
-	Planning          PlanningTimestamps            `json:"planning"`
-	Preparation       []PreparationEvidence         `json:"preparation"`
+	// Configuration is the client's resolved configuration (schema 12),
+	// which sources.config_digest digests: the daemon runs the job under it.
+	Configuration Configuration         `json:"configuration"`
+	Planning      PlanningTimestamps    `json:"planning"`
+	Preparation   []PreparationEvidence `json:"preparation"`
 }
 
 // Blind sends: BlindReturns is empty or
@@ -531,6 +535,9 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 	}
 	if f, m := p.Operator.problem(); f != "" {
 		return planInvalid("operator."+f, "%s", m)
+	}
+	if len(p.Configuration) == 0 {
+		return planInvalid("configuration", "is empty")
 	}
 	if len(p.Targets) == 0 {
 		return fmt.Errorf("plan_not_enumerated: the plan lists no targets")

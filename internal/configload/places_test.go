@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
 // TestAbsolutePlaces: the load makes a path-valued key absolute, `~` the
@@ -107,6 +110,22 @@ func TestAbsolutePlacesWorkingDirectoryGone(t *testing.T) {
 	}
 	if _, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{`crun.directory="/abs"`}}); err != nil {
 		t.Errorf("absolute: %v", err)
+	}
+}
+
+// TestAbsolutePathIsResolvePath: the loader's rule and the readers'
+// (osutil.ResolvePath) give one answer, path or code, for every form.
+func TestAbsolutePathIsResolvePath(t *testing.T) {
+	home := t.TempDir()
+	t.Chdir(t.TempDir())
+	for _, h := range []string{home, ""} {
+		for _, raw := range []string{"~", "~/", "~/a/b", "~other/x", "/abs/../c", "rel/d", "./e", "f"} {
+			got, gerr := absolutePath(raw, h)
+			want, werr := osutil.ResolvePath(raw, h)
+			if got != want || errorcodes.Of(gerr) != errorcodes.Of(werr) || (gerr == nil) != (werr == nil) {
+				t.Errorf("%q home %q: %q %v, ResolvePath %q %v", raw, h, got, gerr, want, werr)
+			}
+		}
 	}
 }
 

@@ -72,7 +72,7 @@ func TestManifestValidatesMatchesSchemaAndIsNonSecret(t *testing.T) {
 	data, _ := json.MarshalIndent(m, "", "  ")
 	t.Logf("manifest:\n%s", data)
 	canarytest.SchemaParity(t, manifestSchema, m)
-	canarytest.Walk(t, reflect.TypeOf(Manifest{}), canarytest.Allow{Leaves: []string{"time.Time", "net/netip.Addr", reflect.TypeOf(executionplan.Digest{}).String(), reflect.TypeOf(inventory.Provenance{}).String(), "*string", "map[string]interface {}"}})
+	canarytest.Walk(t, reflect.TypeOf(Manifest{}), canarytest.Allow{Leaves: []string{"time.Time", "net/netip.Addr", reflect.TypeOf(executionplan.Digest{}).String(), reflect.TypeOf(inventory.Provenance{}).String(), "*string", "map[string]interface {}", "github.com/robert-patrick-texas/karvi/executionplan.Configuration"}})
 	// The k03 assertions grep dispatch_order and shuffle_key anywhere in the
 	// manifest; both sit inside the plan's dispatch block.
 	if !json.Valid(data) || !containsKey(data, `"dispatch_order":`) {
