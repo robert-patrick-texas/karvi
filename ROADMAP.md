@@ -7,12 +7,73 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-Nothing at present: the operator chooses the next item from Later.
+In the operator's order: the stream's restart first, in the code chapter 52
+rebuilt ([`docs/EXAMPLES.md`, chapter
+52](docs/EXAMPLES.md#52-one-read-of-the-configuration-per-invocation-2026-10-10));
+the setting without algorithm lists, which touches nothing else; the two
+credential items together, the explicit cell before the helper whose values it
+will read; build numbers last, beside the next release, which exercises the
+release tools they change.
+
+1. **A stream's `--restart`.** A stream reads its configuration once, as it
+   starts, and runs every job under that reading, so an edit reaches the next
+   stream and not the next job. The item: a directive, `--restart`, that
+   empties the draft, its commands and its targets, as `--reset` does, and
+   starts the stream again under the options its command line gave, the
+   configuration read again. The questions: a reading that fails (the stream
+   ending, or going on under the reading it had); what else starts again (the
+   line count, the last exit, the terminal's recalled lines, the opening
+   line); and a new reading's warnings.
+2. **A setting under which karvi defines no SSH algorithm lists**, so both
+   transports keep their own defaults. The questions: the host-key list, which
+   karvi narrows to the key types the trust store holds for the device so that
+   the host-key policy compares the right key; the names the transports'
+   defaults hold that karvi allows only in a profile (AES-128 in both) or
+   refuses (`hmac-sha1-96` in x/crypto's); the profiles and the map under the
+   setting; and what the debug stream says was offered.
+3. **An explicit `env:NAME` cell** for the credential CSV, which needs no flag
+   and fails with its own code when the variable is unset, where a cell naming
+   an unset variable under the indirection flags stays a literal
+   ([`docs/CREDENTIAL-CSV.md`, section
+   6](docs/CREDENTIAL-CSV.md#6-secrets-in-the-environment-instead-of-the-file)).
+   The questions: a literal value that begins with `env:`; the code, and when
+   it is said; and the field source.
+4. **A credential helper executable.** A configured executable, a site's
+   script in any language, that karvi runs and whose standard output sets
+   values for its own use: a line `export NETUSER="xxx"` puts `NETUSER` into
+   karvi's credential environment as if the operator had exported it, for the
+   `NET*` fallback, an `env` backend's templates, or the token a `vault` or
+   `redis` backend reads from the environment. Its first part is one
+   environment-indirection helper: the env, Redis, and Vault backends each
+   read the process environment themselves, with a private copy of the rule
+   `envindirect` holds for the CSV, and the `NET*` fallback reads it through
+   the credential input, so that the helper's values reach every reader
+   through one lookup. The questions: when it runs (once per invocation in the
+   client, before resolution, or per device with the device's name); which
+   names it may set (the credential names alone, or any a backend reads); the
+   grammar of its output, parsed and never evaluated by a shell (`export
+   NAME="value"` and `NAME=value`, the double-quoted form's escapes, anything
+   else refused naming the line number and never the line); its value held as
+   a secret from the read on and never put into the process environment a
+   child such as `ssh` inherits; the executable's own checks as a credential
+   file's (an absolute path, the owner, the mode, no symlink); its
+   environment, timeout, standard error (not echoed, since it may hold a
+   secret), and a non-zero exit as a failure with its own code; whether the
+   daemon may run it for an unattended job, where no prompt can; and how it
+   relates to the helper protocols operators know (git's credential helpers,
+   `SSH_ASKPASS`).
+5. **Build numbers in the version.** A build identity beyond the version and
+   the commit, for telling two builds of one tree apart. A release build's
+   commit is `source-release-v` and its number, and its build time the day's
+   midnight, so two release builds of one tree on one day are alike; a lab
+   build carries its commit and its second. The questions: what the number is
+   and who assigns it; what reads it (`karvi version` shows the commit and the
+   build time, while the records' producer and `daemon status` name the version
+   alone); and the controlled build a release reproduces
+   ([`BUILD-HOWTO.md`](BUILD-HOWTO.md)).
 
 ## Later
 
-- **Build numbers in the version.** A build identity beyond the version and
-  the commit, for telling two builds of one tree apart.
 - **Macro files, `--mf PATH`.** A command file with a parser: variable
   substitution from the command line, the file, or the device's inventory
   row, expanded in the client before the plan, so the plan, its digest,
@@ -25,33 +86,11 @@ Nothing at present: the operator chooses the next item from Later.
   decision taken from a device's answer is taken in the session, per device,
   while the command plan is fixed and digested before the daemon accepts the
   job; `--expect` and the blind returns are the precedent to grow from.
-- **Credentials.** An explicit `env:NAME` cell form for the credential CSV
-  that needs no flag and fails with its own code when the variable is unset;
-  a formula's match evidence carrying its source's file, line, and key; a
-  command-line option to pin a direct target to a key; further keyed
-  backends (a SQLite or JSON store) through the keyed capability; policing
-  every backend type's keys by type; one environment-indirection helper for
-  the env, Redis, Vault, and CSV backends; in the shared tabular reader, an
-  explicit mapping outranking a field's own header.
-- **A credential helper executable.** A configured executable, a site's
-  script in any language, that karvi runs and whose standard output sets
-  values for its own use: a line `export NETUSER="xxx"` puts `NETUSER` into
-  karvi's credential environment as if the operator had exported it, for the
-  `NET*` fallback, an `env` backend's templates, or the token a `vault` or
-  `redis` backend reads from the environment. The questions: when it runs
-  (once per invocation in the client, before resolution, or per device with
-  the device's name); which names it may set (the credential names alone, or
-  any a backend reads); the grammar of its output, parsed and never evaluated
-  by a shell (`export NAME="value"` and `NAME=value`, the double-quoted form's
-  escapes, anything else refused naming the line number and never the line);
-  its value held as a secret from the read on and never put into the process
-  environment a child such as `ssh` inherits; the executable's own checks as a
-  credential file's (an absolute path, the owner, the mode, no symlink); its
-  environment, timeout, standard error (not echoed, since it may hold a
-  secret), and a non-zero exit as a failure with its own code; whether the
-  daemon may run it for an unattended job, where no prompt can; and how it
-  relates to the environment-indirection helper above and to the helper
-  protocols operators know (git's credential helpers, `SSH_ASKPASS`).
+- **Credentials.** A formula's match evidence carrying its source's file,
+  line, and key; a command-line option to pin a direct target to a key;
+  further keyed backends (a SQLite or JSON store) through the keyed
+  capability; policing every backend type's keys by type; in the shared
+  tabular reader, an explicit mapping outranking a field's own header.
 - **The key that authenticated.** A record names the method that
   authenticated its session (`credential.auth`) and not which of the
   credential's keys the server accepted. OpenSSH names the key at `DEBUG1`
@@ -81,8 +120,6 @@ Nothing at present: the operator chooses the next item from Later.
   the program computes or records with who computes it, who reads it, and
   what breaks without it, and removes those nothing consumes in production;
   the development use, comparing two outputs, stays.
-- **A setting under which karvi defines no SSH algorithm lists** and both
-  transports keep their own defaults.
 - **`Sealed` credential packages.** The envelope schema accepts the
   protection and the `Sealer` interface is fixed, but no channel carries it
   and no reviewed provider exists; it waits for the stage that brings a
