@@ -1890,6 +1890,22 @@ ignored it. *Not taken:* `NO_COLOR` over `always`; `NO_COLOR` as a
 configuration layer setting `display.color = "never"` (locks, and an order
 above the files); a karvi variable of its own.
 
+**Every warning line in the warning colour.** A `warning: …` line on standard
+error, a load's warnings and every other, is written by one function
+(`jobexec.WriteWarning`) in the invocation's read's style for the stream it goes
+to: the whole line in the `warning` role's colour and bold, as the `!` warning
+lines are, when colour is on by `display.ColorEnabled`'s rule, and plain on a
+pipe, in a file, under `never`, `NO_COLOR`, or a `nocolor` theme; the words
+never change. A recorded login's child writes to its wrapper's terminal through
+a writer that names that terminal, so the display's colour and width questions
+are the terminal's; the transcript stays the device's bytes. *Why:* the `!`
+lines took the colour and the `warning:` lines did not, so one kind of line had
+two looks, and the recorded child's `!` lines were plain at the terminal that
+showed them coloured in a plain login. *Not taken:* the word `warning:` alone
+coloured; the load's warnings alone; the colour decided by `output.ansi` (it
+governs device output's escapes) ([`docs/EXAMPLES.md`, chapter 52, issue
+5](EXAMPLES.md#52-one-read-of-the-configuration-per-invocation-2026-10-10)).
+
 **Debug output shows each command once and never a payload.** Debug never
 contains passwords, tokens, or device output; it shows each command sent
 exactly once, from the plan and never from the device's echo, with a marked
@@ -2191,18 +2207,19 @@ beside the loop.
 
 **An option that stands for a key is that key's override.** Every command-line
 option that stands for one configuration key is applied as an override of the
-key in the lock-aware layer (`ConfigFlags`), so the key's type, range, cross-key
-checks, and lock apply to it as to `--set`: `--order`, `--blind-wait`,
-`--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--ping` and `--noping`,
-`--4` and `--6`, `--of` and `--nof`, and `--cd` as before, and `run`'s Dispatch
-options with them: `--dispatch` and `--dp`, `--dw`, `--ds` (`dispatch.default`),
-`--workers` (`dispatch.parallel-workers`), `--start-width` and `--max-width`
-(`dispatch.wave-start-width`, `dispatch.wave-max-width`), the two halts and the
-two wave gates (`dispatch.halt-on-error-*`, `dispatch.wave-gate-error-*`), and
-`--wave-delay` (`dispatch.wave-gate-timed-delay`). A locked key refuses its
-option (`config_lock_violation`), an out-of-range value is the key's own error,
-and the planner reads the keys alone; the plan's dispatch block is unchanged.
-The command line's own dispatch checks, `dispatch_value_negative` and
+key in the lock-aware options layer of the invocation's read, so the key's type,
+range, cross-key checks, and lock apply to it as to `--set`: `--order`,
+`--blind-wait`, `--ssh-host-key-policy`, `--ssh-known-hosts-file`, `--ping` and
+`--noping`, `--4` and `--6`, `--of` and `--nof`, and `--cd` as before, and
+`run`'s Dispatch options with them: `--dispatch` and `--dp`, `--dw`, `--ds`
+(`dispatch.default`), `--workers` (`dispatch.parallel-workers`), `--start-width`
+and `--max-width` (`dispatch.wave-start-width`, `dispatch.wave-max-width`), the
+two halts and the two wave gates (`dispatch.halt-on-error-*`,
+`dispatch.wave-gate-error-*`), and `--wave-delay`
+(`dispatch.wave-gate-timed-delay`). A locked key refuses its option
+(`config_lock_violation`), an out-of-range value is the key's own error, and the
+planner reads the keys alone; the plan's dispatch block is unchanged. The
+command line's own dispatch checks, `dispatch_value_negative` and
 `dispatch_percent_out_of_range`, are retired to `config_value_out_of_range`.
 `--address-authority` is not one: it names a device's authority, above the
 inventory row, and `name.default-address-authority` is the default beneath both.
@@ -2239,10 +2256,10 @@ tolerated. *Why:* ignoring a removed key would drop a site's intent silently.
 
 **Every invocation says its load's warnings, once.** A load's warnings (an
 `@include?` file missing, a `KARVI__` variable ignored under
-`config.reject-unknown-env = false`) are said by one reporter made for the
-invocation, at the load, each once however many times the invocation loads (a
-run through a daemon three times, a stream once per job): `warning: …` lines on
-standard error under any format and under `--quiet`, changing no exit status.
+`config.reject-unknown-env = false`) are said at the invocation's one read (a
+stream's at its start), through the sink the command line gives it: `warning:
+…` lines on standard error, in the warning colour at a terminal, under any
+format and under `--quiet`, changing no exit status.
 `config validate` keeps its report (`warnings: N`, the JSON array) on standard
 output. A recorded login's wrapper says them and its child does not; `daemon
 serve` logs its own load's as `level=WARN msg="configuration warning"` lines in
@@ -2251,9 +2268,36 @@ serve` logs its own load's as `level=WARN msg="configuration warning"` lines in
 every other command, the daemon's own load included. *Not taken:* printing at
 each load (a warning said three times); one print per command placed by hand
 (the pattern that left ten commands silent); `--quiet` suppressing them; a
-machine format carrying them in its document; one load per invocation (a
-ROADMAP item of its own) ([`docs/EXAMPLES.md`, chapter
-51](EXAMPLES.md#51-every-invocation-says-its-configurations-warnings-2026-10-10)).
+machine format carrying them in its document ([`docs/EXAMPLES.md`, chapter
+51](EXAMPLES.md#51-every-invocation-says-its-configurations-warnings-2026-10-10);
+the one read, [chapter
+52](EXAMPLES.md#52-one-read-of-the-configuration-per-invocation-2026-10-10)).
+
+**One read of the configuration per invocation.** Each process an invocation
+starts reads its configuration once, the files, the environment, and all of
+its options together (`app.ReadConfig`), and every stage of the process takes
+that snapshot (`CommonOptions.Config` and `Operator`): one digest in every
+record and audit event of the invocation, a `crun`'s hook the one its job's
+configuration named. A `stream` reads its files and environment once as it
+starts (`configload.Read`), refused there when they do not load, and makes each
+job's snapshot from that reading with the job's option lines and its `--set`;
+an edit reaches the next stream, not the next job. A recorded login's wrapper
+and child read once each; `daemon serve` reads at its start, and a job through
+a daemon runs under its client's read, carried in the plan. The read sits after
+every refusal that needs no configuration (the options' forms and conflicts,
+the commands file and its declarations, a job ID's form) and before the target
+files and every stage, so a mistake on the command line is said first, with
+`--tf` or without. The daemon's runtime is resolved once from the read; the dry
+run's report gives the read as `client_config_ns`. A load finds a key through
+an index built once (`configschema.Lookup`). *Why:* a run through a daemon
+loaded three times and `crun` four, under different sets of options, and the
+hook read the configuration after its job had ended, so an edit during the job
+ran another hook under another digest; and each lookup copied the whole
+registry, 98% of a load's allocation. *Not taken:* the hook alone given the
+run's snapshot (the habit kept); a stream reading once per job (one invocation
+under two configurations); the recorded login's wrapper handing its read to the
+child (a channel for a window of milliseconds) ([`docs/EXAMPLES.md`, chapter
+52](EXAMPLES.md#52-one-read-of-the-configuration-per-invocation-2026-10-10)).
 
 **Every distinct error cause has its own stable code, and the registry is
 enforced.** Two causes never share a code, a code is never reused, a retired

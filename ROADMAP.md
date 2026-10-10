@@ -7,18 +7,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **One read of the configuration per invocation.** An invocation may load
-   its configuration more than once: a `run` through a daemon, `run --dry-run`,
-   and `job follow` three times, `crun` and `run --tf` four, each load reading
-   the files and the environment again
-   ([`docs/EXAMPLES.md`, chapter
-   51](docs/EXAMPLES.md#51-every-invocation-says-its-configurations-warnings-2026-10-10)).
-   The item: the command line loads it once and passes the snapshot to every
-   stage, so one invocation runs under one configuration. The questions: the
-   shape every caller of `prepareConfig` takes in place of `CommonOptions`; the
-   options that set a key for one invocation (`--order`, `--workers`, a
-   `stream` line's), which today reach the load as flag values; and `stream`,
-   whose jobs each take their own options.
+Nothing at present: the operator chooses the next item from Later.
 
 ## Later
 

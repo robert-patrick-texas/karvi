@@ -314,11 +314,16 @@ site's locks are enforced by each client's load; the daemon checks no lock of
 its own. A job's audit records, the cancel record among them, go where its
 configuration names.
 
-Every invocation says its configuration load's warnings, an `@include?` file
-missing or a `KARVI__` variable ignored under `config.reject-unknown-env =
-false`, once on standard error, under `--quiet` and any format too; a run
-through a daemon says them in its client. The daemon's own load writes them
-into `daemon.log` at its start:
+Every invocation reads its configuration once, its files, its environment,
+and its options together, and every stage of it, a `crun`'s hook among them,
+runs under that read; an edit made while a job runs reaches the next
+invocation. A `stream` reads as it starts and runs every job under that
+reading with the job's own option lines, so an edit reaches the next stream.
+The read's warnings, an `@include?` file missing or a `KARVI__` variable
+ignored under `config.reject-unknown-env = false`, are said once on standard
+error, in the warning colour at a terminal, under `--quiet` and any format too;
+a run through a daemon says them in its client. The daemon's own read writes
+them into `daemon.log` at its start:
 
 ```text
 level=WARN msg="configuration warning" warning="ignored unknown environment variable KARVI__NOPE"

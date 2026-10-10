@@ -39,6 +39,28 @@
   the whole registry and a load looks up each key at least twice: one load
   measured 11.8 ms and 16.5 MB of allocation, now 0.9 ms and 300 KB, and
   `config show` takes about a third of the CPU it took.
+- **One read of the configuration per invocation.** An invocation reads its
+  configuration once, its files, its environment, and its options together,
+  where a run through a daemon loaded it three times and `crun` and `run --tf`
+  four: a `crun`'s hook is the one its job's configuration named, its audit
+  event under the job's digest, where an edit made during the job ran another
+  hook. A `stream` reads as it starts and runs every job under that reading with
+  the job's own option lines, so an edit reaches the next stream; a
+  configuration that does not load refuses the stream once, before a line is
+  read, where each `--go` was refused. A mistake on the command line is said
+  before one in the configuration, with `--tf` as without; `job follow` and `job
+  cancel` refuse a malformed ID with `job_request_malformed` (exit 112), a
+  daemon running or not, where `job cancel` said `daemon_unreachable` without
+  one. `run --dry-run`'s configuration failure loses its `client planning:`
+  prefix, and its report's `client_config_ns` is the read's time, `total_ns`
+  running from it. A recorded login reads twice, in its wrapper and in its
+  child, where it read four times.
+- **Every warning line in the warning colour.** A `warning: …` line on standard
+  error takes the `warning` role's colour, the whole line and bold as the `!`
+  lines, when colour is on by `display.color` and `NO_COLOR`, and stays plain on
+  a pipe or in a file; the words are unchanged. A recorded login's lines at its
+  wrapper's terminal take that terminal's colour, its `!` host-key lines among
+  them; the transcript is unchanged.
 
 ## 0.29.0 - 2026-10-09
 

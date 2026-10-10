@@ -8393,3 +8393,57 @@ says the stage did not run, and the read ran); `client_config_ns` removed, the
 plan report's schema 2 to 3 (the read is the client's time before its plan,
 which the report would hide); the read's time carried in `CommonOptions` (every
 stage carrying a value the dry run alone reads).
+
+**Built.** Section B in four sections, each its own commit. S1 (`bdc1c25`):
+`configload.Read` reads the defaults, the files with their includes and locks,
+and the environment, and a `Reading`'s `Snapshot` makes a snapshot under an
+invocation's options and `--set` on its own copy of the values; `Load` is the
+two, and `Snapshot.LoadedAt` and `EffectiveCPU` are gone. S2 (`345573a`):
+`app.ReadConfig`, and `CommonOptions` carrying `Config` and `Operator`;
+`prepareConfig` and `LoadConfig` gone; the command line gathers every
+key-setting option and reads once at issue 1's place, a job ID checked by
+`app.CheckJobID` before it; the daemon's runtime resolved once and handed to
+`ensureDaemon` and the follow; the hook under the read, its load-failure warning
+gone; `InspectRun` given the read's timing (issue 6); the options types' tags
+gone. S3 (`2933fe1`): `app.ReadConfigFiles` and a `ConfigReading`'s
+`Snapshot`; a stream reads at its start and hands the reading to its jobs
+through the global options; the reporter's memory, its lock, and its own test
+gone, the read saying the warnings through a sink. S4 (`9607015`):
+`jobexec.WriteWarning` and `WarningText` write every warning line; the writer
+`RawTerminalLines` makes names the terminal it writes to, and `DisplayTerminal`
+and `DisplayTerminalWidth` look through it, the operator's refinement at the
+build, so a recorded login's child is its wrapper's terminal for colour and
+width, the transcript the device's bytes as it was. The tests:
+`TestReadingSnapshots`, `TestOneReadRefusalOrder`, `TestOneReadDryRunTiming`,
+`TestCollectionHookUnderTheRead`, `TestOneReadStream`, `TestWarningLineColour`,
+`TestWarningText`, and `TestDisplayTerminalSeesThroughAWriterNamingItsTerminal`;
+chapter 51's tests through `Main`, a `job follow` of a finished folder added,
+hold the one read. Each section's new tests failed on a tree without it.
+
+**Executed.** The evidence's scripts on lab builds of `94c94f5` and of each
+section:
+
+| Invocation | `94c94f5` | the tree |
+|---|---|---|
+| loads: a `run` through a daemon, `run --dry-run`, `job follow` | 3 | 1 |
+| loads: `crun`, `run --tf` | 4 | 1 |
+| loads: a stream of two jobs | 2 | 1 |
+| loads: `login --record`, the wrapper and the child | 2 and 2 | 1 and 1 |
+| issue 1's rows with `--tf`, under a broken configuration | `config_unknown_key`, exit 2 | their usage refusal, exit 4 |
+| `job cancel not-an-id`, no daemon | `daemon_unreachable`, 110 | `job_request_malformed`, 112 |
+| `crun.after` edited during its job, either path | `hook B ran`, two digests | `hook A ran`, `ba23d86c…` in every event |
+| a stream's configuration edited between two jobs | `parallel-workers` 4, then 8 | 4 and 4, one digest |
+| a stream under a broken configuration | refused at each `--go` | refused once, before a line is read |
+| the dry run's failure line | `client planning:` before the cause | the cause, as every path |
+| a load's warning line at a terminal | plain | the warning colour, bold |
+| a recorded login's `!` host-key line | plain | coloured, the transcript holding no escape |
+
+The full battery passed on the lab builds of S2, S3, and S4, leaving no
+`/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. DESIGN's sections 12 and 15,
+DISPLAY-CONFIGURATION, OPERATIONS, and the CHANGELOG state the rules, and the
+ROADMAP's item is gone. The evidence is kept beside the tree
+(`release-design-evidence/one-read-2026-10-10`).
+
+**Closed.** `go test ./...` passed at every section and the full battery on a
+lab build of the finished code (S5 changes documents alone). The ROADMAP's Next
+is empty; the operator chooses the next item from Later.
