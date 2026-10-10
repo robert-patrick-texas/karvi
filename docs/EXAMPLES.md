@@ -8961,3 +8961,19 @@ tree (`release-design-evidence/ssh-default-algorithms-2026-10-10`).
 **Closed.** `go test ./...` passed at every section and the full battery on the
 lab build of the finished code (S3 changes documents alone). The ROADMAP's item
 is gone, and its Next is the explicit `env:NAME` cell for the credential CSV.
+
+**Issue 5, amended at the operator's question, agreed.** As built, `ssh -G`
+runs once for each session whose negotiation fails on a list OpenSSH chose, so
+a run of a thousand devices each failing so starts a thousand. Under
+`"transport"` karvi writes no key exchange, cipher, or MAC line into any
+device's generated configuration, so within one job `ssh -G` gives every device
+the same lists, an included `~/.ssh/config` with algorithm settings under a
+`Host` other than `*` the one source of a difference. `ssh -G` runs at most
+once per job and OpenSSH binary: the first such failure runs it, and every later
+one in the job takes its lists. A job is an invocation's run in-process and one
+job in the daemon, so an edited `~/.ssh/config` or an upgraded OpenSSH reaches
+the next job; a `login` has one session. Under an included `~/.ssh/config`
+setting algorithms per `Host`, a later failure names the first failing device's
+lists, a known limit. *Not taken:* once per process, as `ssh -Q` is cached (in
+the daemon its whole lifetime, an upgrade or an edit not reaching later jobs);
+the list left out of the message (issue 5's comparison).
