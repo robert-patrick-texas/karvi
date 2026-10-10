@@ -144,7 +144,11 @@ document only points there:
 - **Algorithms.** Both transports offer karvi's lists under `[ssh-algorithms]`,
   strongest first, with per-host profiles (`[ssh-algorithms-profile.NAME]`)
   selected by `[[ssh-algorithms-map]]` rules for devices that need an
-  allowed-only name; each transport offers the names it implements.
+  allowed-only name; each transport offers the names it implements. Under
+  `ssh-algorithms.source = "transport"`, or a profile's `source`, a device's
+  key exchanges, ciphers, and MACs are its transport's own (OpenSSH's compiled
+  defaults or an included `~/.ssh/config`'s, x/crypto's), while the host-key
+  list stays karvi's.
   `configs/reference.toml` holds the lists and their comments;
   [`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md) the rules.
 - **Timeouts and keepalives.** [`docs/TIMEOUTS.md`](TIMEOUTS.md); one

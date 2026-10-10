@@ -8908,3 +8908,56 @@ lists without `source` has that flip refused until each says `source =
 "karvi"`, once. *Not taken:* the keys refused when no device reads them (the
 setting unusable wherever a site's file sets lists); a warning at every load
 (the setting is deliberate, and the device line says the source).
+
+**Built.** In three sections. S1, the configuration: `ssh-algorithms.source`
+in the registry, `karvi` its default; a profile's `source` field; one alias
+table, `configschema.Canonical`, applied by the loader's one setter for every
+layer, `dispatch.order`'s `name` and the two `auto`s in it, and the inventory's
+own `CanonicalOrder`, which the read made unreachable, gone;
+`sshalgorithms.CheckProfile` takes the global source and refuses a profile's
+unread lists with `config_ssh_algorithms_profile_lists_unread`, a profile
+setting only `source` no longer empty; the k03 golden draft re-pinned, its
+configuration block's new value and digest alone moved. S2, the transports:
+`sshalgorithms.Select` gives the device's source, and under `"transport"` lists
+holding the host-key list alone, a list not held being the transport's own;
+`Offer`, `Describe`, the generated OpenSSH configuration, and native's
+`ClientConfig` pass over the lists not held; one `Selection.Describe` for the
+executor's and `login`'s debug lines, where each wrote its own;
+`NegotiationFailed` names the offerer, native's from x/crypto's error, the
+system transport's from `effectiveAlgorithms`, one `ssh -G` with the session's
+arguments when a negotiation fails. S3, the documents: DESIGN's sections 6 and
+15, SSH-TRANSPORTS, SSH-HOST-KEY-POLICY, SSH-TROUBLE (the setting as the
+comparison with `ssh`), `examples/config.toml`'s commented `source`, and the
+CHANGELOG. The tests: `TestCanonical`, `TestAliasStoredAsItsValue` (a file, the
+environment, and `--set`, one digest), the source rows of
+`TestSSHAlgorithmsValidation` and its valid configuration under `"transport"`,
+`TestCheckProfileSource`, `TestSelectSource`,
+`TestGeneratedConfigUnderTheTransportsSource`, `TestEffectiveAlgorithms`, the
+system transport's failure under `"transport"`, and three of native's dial
+cases against the fake device (the legacy device and one offering only
+`hmac-sha1-96` reached under the transport's lists, one offering only
+`aes128-cbc` refused with `native offered …`). S2's tests failed on the tree
+of S1, native's with `ssh_algorithms_unavailable` for the key exchange list it
+did not hold.
+
+**Executed.** A lab build of the finished code, the target this host's OpenSSH
+and the user-run sshd on 127.0.0.1:2222:
+
+| Case | Result |
+|---|---|
+| `--set ssh-algorithms.source="auto"`, `--set dispatch.order="name"` | `config show` says `"karvi"` and `"sorted"`; the dry run's digest `dade5543…` for `name` and `sorted` alike |
+| `"transport"`, this host, either transport | `device ssh algorithms … profile=global source=transport host-key=ssh-ed25519,…`; reached |
+| the same, the generated configuration | one algorithm line, `HostKeyAlgorithms ssh-ed25519` |
+| the same, a first contact | `! ssh accepted new host-key 127.0.0.1 (ED25519)`, either transport |
+| `"transport"`, an sshd offering only `aes256-cbc` | `no cipher algorithm in common: native offered aes128-gcm@openssh.com,…,aes256-ctr; the device offered aes256-cbc`, and `system offered chacha20-poly1305@openssh.com,…,aes256-ctr` |
+| `"transport"`, an sshd offering only `aes128-ctr` and `umac-64-etm@openssh.com` | over native `no MAC algorithm in common: native offered hmac-sha2-256-etm@openssh.com,…,hmac-sha1-96; the device offered umac-64-etm@openssh.com`; over the system transport reached |
+| a rule `platform = "linux"` selecting a profile `source = "transport"` | `profile=servers rule=ssh-algorithms-map.0 source=transport` for a Linux target, `profile=global source=karvi` for a generic one |
+| issue 4's legacy profile under `--set ssh-algorithms.source="transport"` | `config_ssh_algorithms_profile_lists_unread: kex-append is read only under source "karvi", and ssh-algorithms.source is "transport": …`, exit 2 |
+
+The full battery passed on the lab build, all 17 suites, leaving no
+`/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The evidence is kept beside the
+tree (`release-design-evidence/ssh-default-algorithms-2026-10-10`).
+
+**Closed.** `go test ./...` passed at every section and the full battery on the
+lab build of the finished code (S3 changes documents alone). The ROADMAP's item
+is gone, and its Next is the explicit `env:NAME` cell for the credential CSV.

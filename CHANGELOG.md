@@ -74,6 +74,25 @@
   an integer for dispatch.parallel-workers at FILE:2`, where the text named the
   key twice and repeated itself after the source. The codes and exits are
   unchanged.
+- **The transports' own SSH algorithm lists.** `ssh-algorithms.source =
+  "transport"` gives each transport its own key exchanges, ciphers, and MACs:
+  karvi writes none of those lines into the generated OpenSSH configuration,
+  so OpenSSH takes its compiled defaults or an included `~/.ssh/config`'s, and
+  leaves x/crypto's unset; the names karvi refuses or allows only in a profile
+  come with them (OpenSSH's `umac-64`, x/crypto's `hmac-sha1-96`, AES-128).
+  The host-key list stays `ssh-algorithms.host-key`, narrowed to the stored key
+  types as before. `karvi` (alias `auto`) is the default and karvi's lists. An
+  `ssh-algorithms-profile` may set its own `source`; one that sets a key
+  exchange, cipher, or MAC list while its devices take the transport's is
+  refused with `config_ssh_algorithms_profile_lists_unread` (exit 2), and one
+  setting only `source` is no longer `config_ssh_algorithms_profile_empty`. The
+  device's debug line says `source=`, and a negotiation failure under the
+  setting names `native offered …` or `system offered …` where it said `karvi
+  offered …`. The configuration registry stays at 29.
+- **An alias stored as its value.** `dispatch.order = "name"` is stored as
+  `sorted`, so `config show` says `sorted` and the configuration digest is
+  `sorted`'s, where the two spellings gave two digests;
+  `ssh-algorithms.source`'s `auto` is stored as `karvi` alike.
 
 ## 0.29.0 - 2026-10-09
 

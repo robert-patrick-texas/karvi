@@ -1096,6 +1096,32 @@ exception's record in configuration rather than a per-device audit field.
 *Not taken:* the removed `ssh.legacy-hosts` classes with fixed algorithm
 blocks; a `crypto_exception` field on every record.
 
+**A device's key exchange, cipher, and MAC lists may be its transport's own.**
+`ssh-algorithms.source` is `karvi` (alias `auto`), the lists above, or
+`transport`: karvi writes no key exchange, cipher, or MAC line into the
+generated OpenSSH configuration and leaves x/crypto's unset, so OpenSSH takes
+its compiled defaults or an included `~/.ssh/config`'s, and x/crypto its own,
+the names karvi refuses or allows only in a profile among them. The host-key
+list is `ssh-algorithms.host-key` under either, narrowed to the stored key
+types, so what a first contact stores depends on neither the transport nor the
+setting. A profile may set `source`, and a device's source is its profile's,
+else the global one; a profile whose key exchange, cipher, or MAC lists would go
+unread under its devices' source is
+`config_ssh_algorithms_profile_lists_unread`, while the global lists stay valid
+under either. The device's debug line says the source, and a negotiation failure
+under `transport` names the transport's own offer, x/crypto's from its error,
+OpenSSH's from one `ssh -G` with the session's arguments. *Why:* the system
+transport following OpenSSH's choices as OpenSSH changes them, an included
+`~/.ssh/config` able to set the lists, and a device that `ssh` reaches compared
+without karvi's lists; a site that needs karvi's refusals keeps `karvi`, and
+can lock it. *Not taken:* the transports' own host-key order (a first contact
+storing ECDSA over native and Ed25519 over `system`, `ssh-dss` among x/crypto's
+names, OpenSSH's without `ssh-rsa`); the defaults filtered by karvi's refusals
+(karvi writing lines again, and over native a copy of x/crypto's lists); each
+list's source chosen apart; `/etc/ssh/ssh_config` read under the setting
+([`docs/EXAMPLES.md`, chapter
+54](EXAMPLES.md#54-the-transports-own-ssh-algorithm-lists-2026-10-10)).
+
 ## 7. The plan, the daemon, and the credential channel
 
 **The client plans; the daemon validates and executes.** The client owns
@@ -2190,6 +2216,16 @@ compared byte for byte by the verifiers. Layers apply in order: files, the
 `KARVI__` environment, flags, `--set`. Locks may be declared only by the
 auto-discovered global configuration. *Why:* the registry is the operator's view
 of what karvi reads, and a row nothing reads misleads.
+
+**An alias is stored as the value it stands for.** One table in the registry
+holds a key's other words, `dispatch.order`'s `name` for `sorted` and
+`ssh-algorithms.source`'s `auto` for `karvi`, a profile's `source` alike, and
+the read stores the value from every layer, so `config show`, the digest, and
+every record carry one word for one meaning. *Why:* `name` was kept as written,
+one behaviour under two digests. *Not taken:* `default` as `karvi`'s alias (on
+that key it reads as the transports' defaults)
+([`docs/EXAMPLES.md`, chapter
+54](EXAMPLES.md#54-the-transports-own-ssh-algorithm-lists-2026-10-10)).
 
 **The reference configuration is rendered table by table, and it loads.**
 `configs/reference.toml` and `karvi config generate` give the top-level keys

@@ -140,8 +140,9 @@ match is decided on a key the store knows rather than on whichever type the
 device prefers. A store that holds only types the configured list does not
 offer is `host_key_changed` before any connection. Under `insecure`, or for
 an unknown device, the whole configured list is offered. The list is
-`[ssh-algorithms] host-key` in `configs/reference.toml`; both transports
-offer the names they implement ([`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)).
+`[ssh-algorithms] host-key` in `configs/reference.toml`, under either
+`ssh-algorithms.source`; both transports offer the names they implement
+([`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)).
 
 ## Trust-store selection and permissions
 

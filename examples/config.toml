@@ -177,6 +177,13 @@ host-key-policy = "accept-new"
 # [[ssh-algorithms-map]]
 # profile = "legacy-ios"
 # device-group = "legacy-access"
+#
+# Each transport's own key exchanges, ciphers, and MACs (OpenSSH's or
+# x/crypto's defaults) in place of karvi's, the host-key list staying
+# karvi's; a profile's source chooses per device, and under "transport" a
+# profile that sets those lists says source = "karvi".
+# [ssh-algorithms]
+# source = "transport"
 
 # Concurrency for run: serial, parallel, or wave (the CPU-governed ramp);
 # 0 workers means the logical CPU count.
