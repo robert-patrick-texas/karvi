@@ -7,7 +7,16 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-Nothing at present: the operator chooses the next item from Later.
+1. **The daemon's socket path bounded.** `daemon.socket`, by default
+   `<basedir>/socket/daemon.sock`, has no length check: under a 100-byte
+   `basedir` a `run` waited out the daemon's start and exited 112,
+   `daemon_start_failed: … context deadline exceeded`, the cause,
+   `daemon_serve_failed: listen unix …/daemon.sock: bind: invalid argument`, in
+   `daemon.log` alone ([`docs/EXAMPLES.md`, chapter
+   40](docs/EXAMPLES.md#40-the-scratch-bounded-for-the-askpass-socket-2026-10-08)).
+   A path socket holds at most 107 bytes, as the control-path root and
+   `tempdir` are bounded for theirs. The question: where the client refuses a
+   socket path too long, before it starts a daemon that cannot listen.
 
 ## Later
 
@@ -166,16 +175,6 @@ Nothing at present: the operator chooses the next item from Later.
   The question: whether karvi guards against one, for instance by keeping the
   client's input open so that the master never closes first, and what that costs
   a device that waits for its input to end.
-- **The daemon's socket path bounded.** `daemon.socket`, by default
-  `<basedir>/socket/daemon.sock`, has no length check: under a 100-byte
-  `basedir` a `run` waited out the daemon's start and exited 112,
-  `daemon_start_failed: … context deadline exceeded`, the cause,
-  `daemon_serve_failed: listen unix …/daemon.sock: bind: invalid argument`, in
-  `daemon.log` alone ([`docs/EXAMPLES.md`, chapter
-  40](docs/EXAMPLES.md#40-the-scratch-bounded-for-the-askpass-socket-2026-10-08)).
-  A path socket holds at most 107 bytes, as the control-path root and
-  `tempdir` are bounded for theirs. The question: where the client refuses a
-  socket path too long, before it starts a daemon that cannot listen.
 - **A suite's failure that names its call.** A suite under `set -eu` that
   runs karvi with its output redirected into the work directory dies at a
   refused call with karvi's exit status and prints nothing, and its cleanup

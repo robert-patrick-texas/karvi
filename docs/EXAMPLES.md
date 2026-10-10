@@ -7668,4 +7668,7 @@ gain 11 (`MinLifecycleSchema` to `ipc.SchemaVersion`).
 S1, needed no change at the number. The module graph and `go-version-m.txt`
 are 0.28.0's.
 
-**Roadmap.** Unchanged: Next is empty for the operator to choose from Later.
+**Roadmap.** Unchanged by the release; after it the operator moved "The
+daemon's socket path bounded" from Later to Next, so that the client refuses a
+`daemon.socket` too long for a path socket before it starts a daemon that
+cannot listen.
