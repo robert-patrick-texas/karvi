@@ -8668,3 +8668,243 @@ tree (`release-design-evidence/stream-restart-2026-10-10`).
 **Closed.** `go test ./...` and the full battery passed on the finished code;
 the ROADMAP's item is gone, and its Next is the setting under which karvi
 defines no SSH algorithm lists.
+
+## 54. The transports' own SSH algorithm lists (2026-10-10)
+
+The ROADMAP's Next item 1: a setting under which karvi defines no SSH algorithm
+lists, so both transports keep their own defaults.
+
+**The evidence.** The lab build of chapter 53, the target this host's OpenSSH
+10.2p1. karvi offers its four lists over both transports, `ssh-ed25519` first
+for host keys, `mlkem768x25519-sha256` for key exchange,
+`aes256-gcm@openssh.com` for ciphers, `hmac-sha2-512-etm@openssh.com` for MACs:
+native's dial line drops what x/crypto v0.26.0 does not implement (the two
+hybrid key exchanges, group 18, `aes256-cbc`), the system transport's generated
+configuration (kept by a wrapper named as `ssh.transports.system`) drops what
+`ssh -Q` does not name, and both narrow the host-key list to the stored
+`ssh-ed25519`. Each transport's own defaults, OpenSSH's from `ssh -G -F none`
+and x/crypto's from its source, each name through `sshalgorithms.Classify`:
+
+| | OpenSSH 10.2p1 | x/crypto v0.26.0 |
+|---|---|---|
+| refused by karvi | certificate and `sk-` host-key algorithms; `umac-64-etm@openssh.com`, `umac-64@openssh.com` | certificate host-key algorithms, `ssh-dss`; `hmac-sha1-96` |
+| allowed only in a profile | `aes128-gcm@openssh.com`, `aes128-ctr`, `aes192-ctr`; `umac-128-etm@openssh.com`, `umac-128@openssh.com` | `aes128-gcm@openssh.com`, `aes128-ctr`, `aes192-ctr` |
+| unknown to karvi | `sntrup761x25519-sha512`, `hmac-sha1-etm@openssh.com` | none |
+| first offered | the certificates, then `ssh-ed25519`; `mlkem768x25519-sha256`; `chacha20-poly1305@openssh.com`; `umac-64-etm@openssh.com` | the certificates, then ECDSA, RSA, `ssh-dss`, and `ssh-ed25519` last; `curve25519-sha256`, no group 16 or 18; `aes128-gcm@openssh.com`; `hmac-sha2-256-etm@openssh.com` |
+
+This host's sshd negotiates the same under karvi's generated configuration and
+under `-F none` (`sntrup761x25519-sha512@openssh.com`, `ssh-ed25519`,
+`aes256-gcm@openssh.com`): its own lists decide here. The system transport runs
+OpenSSH with `-F` and its generated file, so OpenSSH's defaults are its compiled
+ones, never `/etc/ssh/ssh_config`'s; an included `~/.ssh/config`
+(`ssh.include-user-config`) is read after karvi's lines, and OpenSSH takes the
+first value it reads, so its algorithm lines never win today.
+
+**What it gains.** The system transport following OpenSSH's own choices as
+OpenSSH changes them, where karvi's lists lag (OpenSSH 10.2 offers
+`sntrup761x25519-sha512`, a name karvi does not know); an included
+`~/.ssh/config` able to set the lists; and a device that `ssh` reaches and karvi
+does not compared without karvi's lists. It costs most over native, whose
+defaults are x/crypto v0.26.0's: weaker than karvi's lists, `ssh-dss` and
+`hmac-sha1-96` among them, no group 16 or 18 key exchange, ECDSA before Ed25519.
+It waits on nothing.
+
+**Its issues, one at a time:** what the setting is and what it turns off; the
+host-key list, whose narrowing to the stored key types must stay; the names
+karvi refuses or allows only in a profile that the defaults offer; the profiles
+and the map under the setting; what the debug stream and a negotiation failure
+say was offered; the four list keys set beside the setting.
+
+**Issue 1, what the setting is, agreed.** A key, `ssh-algorithms.source`:
+`"karvi"`, the default, is today's lists; `"transport"` writes no algorithm line
+into the generated OpenSSH configuration and leaves native's lists unset, so
+OpenSSH takes its compiled defaults or what an included `~/.ssh/config` sets,
+and x/crypto its own. It is lock-eligible as the other `ssh-algorithms` keys,
+and the configuration registry, which moves once per release and moved to 29
+in this one, takes it at 29. The host-key list is issue
+2's, and whether a profile may choose the setting per device issue 4's. *Not
+taken:* a boolean (`ssh-algorithms.define = false`; a word names where the lists
+come from); the system transport alone (the operator's item names both);
+`/etc/ssh/ssh_config` read under the setting (a change to what the generated
+file is, a question of its own); `"none"` (read as offering nothing).
+
+**Issue 1, the alias, agreed.** The operator asked for `default` or `auto` to be
+considered as an alias for `"karvi"`. The registry's one alias today,
+`dispatch.order`'s `name` for `sorted`, on the lab build:
+
+```text
+--set dispatch.order="sorted"  config show: "sorted"  config_digest cde45279…
+--set dispatch.order="name"    config show: "name"    config_digest d261bd8a…
+```
+
+The plan records `sorted` for both, but the snapshot keeps the spelling, so one
+behaviour shows two values and has two digests. `"auto"` is accepted as an alias
+of `"karvi"`, and the read stores the value as `"karvi"`, so `config show`, the
+digest, and every record say `karvi` whichever is written; `auto` is karvi's
+word for its own choice (`basedir`, `spooldir`, `daemon.sockets`,
+`ssh.known-hosts-file`). One alias table holds the aliases and the read applies
+it, and `dispatch.order`'s `name` joins it, stored as `sorted`, a configuration
+writing `name` taking `sorted`'s digest. *Not taken:* `"default"` (on this key
+it reads as the defaults, which are what `"transport"` means); an alias kept as
+written (one behaviour under two digests, as `name` has been).
+
+**Issue 2, the host-key list, agreed.** On the lab build, this host holding
+ED25519, ECDSA, and RSA keys and the store its ED25519, a host-key list with
+ECDSA before Ed25519, x/crypto's own order:
+
+| Case | native | system |
+|---|---|---|
+| accept-new, ED25519 stored | narrowed to `ssh-ed25519`, connects | narrowed, connects |
+| insecure, no narrowing | ECDSA presented: `! ssh host-key mismatch 127.0.0.1 proceeding at risk` | compared by its scan, no mismatch |
+| a first contact, ECDSA first | stores `ecdsa-sha2-nistp256` | stores `ecdsa-sha2-nistp256` |
+| a first contact, karvi's list | stores `ssh-ed25519` | stores `ssh-ed25519` |
+
+Without the narrowing, a device presenting another of its keys is refused as
+`host_key_changed` under accept-new and secure; the order of the list decides
+which key a first contact stores; and x/crypto v0.26.0 does not export its list,
+so native could narrow its own only through a copy of it. Under `"transport"`
+the host-key list stays karvi's, `ssh-algorithms.host-key` narrowed to the
+stored key types as today, over both transports; `"transport"` governs the key
+exchange, cipher, and MAC lists. The host-key list is part of karvi's host-key
+policy over its own trust store, and what a first contact stores depends on
+neither the transport nor the setting. *Not taken:* the transport's own
+host-key order narrowed by the store (a first contact storing ECDSA over native
+and Ed25519 over the system transport, `ssh-dss` among x/crypto's names, and a
+copy of x/crypto's list to narrow); no host-key line for the system transport
+(OpenSSH puts the known types first, as `-F none` negotiated `ssh-ed25519`, but
+as a preference, so a device without the stored type meets OpenSSH's own
+handling in place of karvi's `host_key_changed`).
+
+A device without an Ed25519 key, at the operator's question: a user-run sshd on
+127.0.0.1:2222 holding one host key, and the fake device's legacy mode on 2223,
+karvi's list, alike over both transports:
+
+| Device | First contact | The next connection offers | Then |
+|---|---|---|---|
+| an RSA key alone | `! ssh accepted new host-key 127.0.0.1 (RSA)`, `ssh-rsa` stored | `rsa-sha2-512,rsa-sha2-256,ssh-rsa` | connects |
+| an ECDSA P-256 key alone | `ecdsa-sha2-nistp256` stored | `ecdsa-sha2-nistp256` | connects |
+| the legacy RSA key signing only with SHA-1 (`ssh-rsa`) | `ssh-rsa` stored | the RSA algorithms | connects |
+| the RSA device re-keyed to Ed25519 alone | | the RSA algorithms | `host_key_changed`, exit 109: "the device offers no key of the enrolled types (offered: ssh-ed25519)" |
+
+A device answers with the first algorithm of karvi's list it serves, so a device
+without Ed25519 is stored by its ECDSA or RSA key and verified against it every
+time; one that later adds an Ed25519 key is still reached with the stored key,
+the offer narrowed to its type, until the operator replaces the entry; one that
+drops the stored type is refused, the stored fingerprint and the device's offer
+named. OpenSSH 10.2's own host-key list holds no `ssh-rsa` (`ssh -G` ends at
+`rsa-sha2-256`), so under it a device signing only with SHA-1, as older IOS
+images do, would fail over the system transport; karvi's list keeps it.
+
+**Issue 3, the names karvi refuses or allows only in a profile, agreed.** The
+host-key list being karvi's (issue 2), the question is the key exchange, cipher,
+and MAC lists, whose defaults hold OpenSSH 10.2's `umac-64-etm@openssh.com` and
+`umac-64@openssh.com` and x/crypto v0.26.0's `hmac-sha1-96`, which karvi
+refuses, and both transports' `aes128-gcm@openssh.com`, `aes128-ctr`, and
+`aes192-ctr` and OpenSSH's UMAC-128, which karvi allows only in a profile;
+`security.require-fips` polices no algorithm and is recorded in the audit
+alone. A user-run sshd on 127.0.0.1:2222 offering only `aes128-ctr` and
+`umac-64-etm@openssh.com`:
+
+```text
+karvi, native: ssh_algorithm_negotiation_failed: no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr
+karvi, system: ssh_algorithm_negotiation_failed: … the device offered aes128-ctr
+ssh -F none:   cipher: aes128-ctr MAC: umac-64-etm@openssh.com … connects
+```
+
+and no profile reaches it, since one appending `umac-64-etm@openssh.com` is
+refused (`config_ssh_algorithm_forbidden`). Under `"transport"` the transports'
+key exchange, cipher, and MAC defaults are taken whole, the names karvi refuses
+or allows only in a profile among them:
+karvi's rules govern the lists karvi and the operator write, and the setting
+gives those lists to the judgement of the transports' maintainers, as each
+OpenSSH release and each x/crypto version holds it. Over the system transport
+the device above connects as `ssh` does; over native it still fails, x/crypto
+implementing no UMAC, a limit of the transport said plainly. A site that needs
+karvi's refusals keeps `"karvi"`, and its security owners can lock the key in
+the global file. *Not taken:* the defaults filtered by karvi's refusals (over
+the system transport a line in OpenSSH's removal form, `MACs
+-umac-64-etm@openssh.com,…`, karvi writing lines and policy still; over native a
+copy of x/crypto's lists, which v0.26.0 does not export, karvi defining them
+again); `"transport"` refused while a default holds a refused name (OpenSSH 10.2
+and x/crypto v0.26.0 both do, so the setting could never be used).
+
+**Issue 4, the profiles and the map, agreed.** A `[[ssh-algorithms-map]]` rule
+matches a device by name, site, group, address prefix, or platform and selects
+a `[ssh-algorithms-profile.NAME]`, which replaces a list (`kex = […]`) or
+appends to karvi's global one (`kex-append = […]`); a rule matching every
+device is refused, fleet-wide lists belonging in `[ssh-algorithms]`. On the lab
+build, a rule `platform = "linux"` selecting a profile that appends
+`diffie-hellman-group1-sha1`:
+
+```text
+== platform linux     profile=servers  kex=…,diffie-hellman-group1-sha1
+== platform generic   profile=global   kex=…,diffie-hellman-group14-sha1
+```
+
+Under `"transport"` a profile's key exchange, cipher, and MAC forms have no
+list both transports share to append to: OpenSSH has `+name` for its defaults,
+x/crypto v0.26.0's cannot be extended without a copy. A profile may set
+`source` itself, `"karvi"` (alias `"auto"`) or `"transport"`, and a device's
+source is its profile's when the profile sets one, else `ssh-algorithms.source`.
+A device under `"karvi"` takes karvi's lists with the profile applied, as today;
+one under `"transport"` takes the transport's key exchange, cipher, and MAC
+lists, its profile still able to set the host-key list, which is karvi's
+(issue 2). A profile whose key exchange, cipher, or MAC forms would go unread
+under its device's source is refused at load, a new code naming the profile and
+saying to set `source = "karvi"` in it. A profile setting only `source` sets
+something, so it is not `config_ssh_algorithms_profile_empty`; the catch-all
+refusal stays, a fleet-wide choice being `ssh-algorithms.source`. A fleet on
+karvi's lists gives its Linux servers OpenSSH's defaults by a rule `platform =
+"linux"` selecting a profile with `source = "transport"`; a fleet on the
+transports' defaults keeps old routers on karvi's lists by a profile with
+`source = "karvi"` and `kex-append = ["diffie-hellman-group1-sha1"]`. *Not
+taken:* a profile's lists applied against karvi's global ones under
+`"transport"` without a field (the device leaving the transport's defaults
+unsaid, an append adding to a list the reader cannot see); each list's source
+chosen apart (an append meaning OpenSSH's defaults and the names over the system
+transport, karvi's lists and the names over native); profiles ignored under
+`"transport"` (the old routers without an answer, and an unread table, which is
+refused elsewhere).
+
+**Issue 5, what is said of the lists offered, agreed.** The debug stream's
+device line says karvi's four lists, native's dial line what it offers, and a
+negotiation failure `karvi offered X; the device offered Y`; under
+`"transport"` karvi offers no key exchange, cipher, or MAC list of its own. A
+user-run sshd on 127.0.0.1:2222 offering only `aes256-cbc`:
+
+```text
+karvi, native:  ssh_algorithm_negotiation_failed: no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes256-cbc
+karvi, system:  connects (karvi's list holds aes256-cbc)
+ssh -F none:    Unable to negotiate with 127.0.0.1 port 2222: no matching cipher found. Their offer: aes256-cbc
+ssh -G over the generated file without its four algorithm lines:
+                ciphers chacha20-poly1305@openssh.com,aes128-gcm@openssh.com,aes256-gcm@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr
+```
+
+x/crypto's own error carries its offer (`client offered: [...]`, its
+`ssh/common.go`), and `ssh -G` prints OpenSSH's effective lists, an included
+`~/.ssh/config`'s among them. The example shows a cost of `"transport"` too: a
+device offering only CBC, which karvi reaches over the system transport today,
+fails under OpenSSH's defaults, plainly, and a profile with `source = "karvi"`
+reaches it again. The device line always says `source=karvi` or
+`source=transport`, and under `"transport"` the host-key list alone, as native's
+dial line does. A negotiation failure under `"transport"` names the transport
+and its own offer: `native offered …` from x/crypto's error, `system offered …`
+from one `ssh -G` with the session's own arguments, run only when a session
+fails; the device's offer follows as today. *Not taken:* `karvi offered` kept
+(false); "the transport's defaults" without the list (the message's point is
+the comparison); `ssh -G` for every session (a process per device for a debug
+line).
+
+**Issue 6, the four list keys under `"transport"`, agreed.** The four keys stay
+valid and keep their meaning: `ssh-algorithms.host-key` is every device's
+host-key list (issue 2), and `kex`, `ciphers`, and `macs` are the lists of every
+device whose source is `"karvi"` by its profile; nothing is refused or warned
+when no device reads them. A profile can say whose lists it holds, so its unread
+forms are refused (issue 4); a global list cannot, being karvi's, and a site's
+global file sets these lists, locked or not, so refusing them would make `--set
+ssh-algorithms.source="transport"` unusable wherever one does, the comparison
+with `ssh` among the uses lost. Under issue 4, a site whose profiles append
+lists without `source` has that flip refused until each says `source =
+"karvi"`, once. *Not taken:* the keys refused when no device reads them (the
+setting unusable wherever a site's file sets lists); a warning at every load
+(the setting is deliberate, and the device line says the source).
