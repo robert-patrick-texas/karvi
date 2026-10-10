@@ -6,7 +6,7 @@ at are under `docs/`.
 
 | File | What it is | Comments |
 |---|---|---|
-| `config.toml` | a site configuration: an inventory source, three credential backends and the policy that orders them, a platform alias, the transports, dispatch, display, and the job's folder mode | `#` anywhere (TOML) |
+| `config.toml` | a site configuration: an inventory source, three credential backends and the policy that orders them, a platform alias, platform resolution, the collection run, the transports, dispatch, display, and the job's folder mode; commented, the shapes a site adds: a shared `.cloginrc`, a drop list, start statements for generic devices, session-init, algorithm profiles, and an audit file without journald | `#` anywhere (TOML) |
 | `inventory.csv` | an inventory file: a header the configuration maps, then one device per row with its address, platform, transport, site, groups, cap, and a `credkeyref` pin | a line whose first byte is `#` |
 | `credentials.csv` | a credential CSV: six selector columns, a key, and the three result columns, first matching row wins | a line whose first byte is `#` |
 | `cloginrc` | a RANCID `.cloginrc`, read as data: `add user` and `add password` lines | `#` to the end of the line |

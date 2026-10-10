@@ -56,7 +56,7 @@ exit 0
 SH
 chmod 755 "$TMP/bin/ssh"
 PATH="$TMP/bin:$PATH" ./bin/karvi-linux-amd64 config validate configs/development.toml >/dev/null
-PATH="$TMP/bin:$PATH" ./bin/karvi-linux-amd64 config validate configs/example.toml >/dev/null
+PATH="$TMP/bin:$PATH" ./bin/karvi-linux-amd64 config validate examples/config.toml >/dev/null
 
 # Removed settings must fail as unknown keys. Breaking configuration changes
 # are deliberate unless a future release explicitly documents an alias.

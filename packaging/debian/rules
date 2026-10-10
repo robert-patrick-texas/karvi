@@ -36,9 +36,9 @@ override_dh_auto_install:
 	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/release release/*.md
 	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/examples examples/*
 	# configs/ in the tree's layout, so the configs/ files the documents
-	# name resolve: the two examples as files; reference.toml is a link to
-	# its one copy under /usr/share/karvi (karvi.links).
-	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/configs configs/example.toml configs/development.toml
+	# name resolve: the development overlay as a file; reference.toml is a
+	# link to its one copy under /usr/share/karvi (karvi.links).
+	install -D -m 0644 -t debian/karvi/usr/share/doc/karvi/configs configs/development.toml
 	# The material a site installs by choice, nothing of it active: the
 	# units and timers, the cron scripts, the crun hook examples, the
 	# tmpfiles rule for the group netops, the reference configuration, and

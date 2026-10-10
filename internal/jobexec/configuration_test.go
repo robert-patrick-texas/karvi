@@ -20,7 +20,7 @@ import (
 // which Float reads as the load's float64); the in-process job runs under
 // the loaded one, the daemon's under the rebuilt one.
 func TestPlanConfigurationIsTheClientsConfiguration(t *testing.T) {
-	for name, roots := range map[string][]string{"defaults": nil, "example": {"../../configs/example.toml"}} {
+	for name, roots := range map[string][]string{"defaults": nil, "example": {"../../examples/config.toml"}} {
 		loaded, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, ExplicitRoots: roots})
 		if err != nil {
 			t.Fatal(err)

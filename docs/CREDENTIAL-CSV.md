@@ -8,8 +8,9 @@ secrets in the file and in the environment, a formula over a credential CSV, the
 file's owner and mode rules, what an inventory file may not hold, and every
 error with its remedy. The decisions, the reasoning, and the alternatives not
 taken are [`docs/DESIGN.md`](DESIGN.md); [`docs/ERROR-CODES.md`](ERROR-CODES.md)
-holds the codes and `configs/example.toml` a commented example. Every message
-and table below was run on the built binary.
+holds the codes; `examples/config.toml` declares a backend and
+`examples/credentials.csv` is its file, commented. Every message and table below
+was run on the built binary.
 
 ## 1. A file, end to end
 

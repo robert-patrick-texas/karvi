@@ -7821,3 +7821,107 @@ socket directory, where it binds d.sock and c.sock for daemon.socket at
 **Closed.** The full battery passed on a lab build of `0bda08d`, leaving no
 `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The ROADMAP's Next is empty; the
 operator chooses the next item from Later.
+
+## 50. One example configuration (2026-10-10)
+
+A Later item the operator chose: `configs/example.toml`, which the package
+installs under `/usr/share/doc/karvi/configs/` and `config generate`'s output
+names, and `examples/config.toml`, the curated site configuration, are two
+examples of one thing ([chapter
+42](#42-the-example-configurations-in-the-package-2026-10-08)).
+
+**What it gains.** One example configuration to keep current, where two
+already disagree in what a reader would copy. It waits on nothing.
+
+**The evidence.** A lab build of `906f438`, every place under a short lab
+directory, from the tree's root. Both files pass `config validate`; their
+effective configurations differ in nearly everything a site sets:
+
+| | `configs/example.toml` | `examples/config.toml` |
+|---|---|---|
+| transports, `run`, `login`, `command` | `system`, default, default, under a comment on "the bundled preview executable" and "an official native build" | `native`, `system`, `native` |
+| the policy's sequence | `["operator-env"]` | `["site-creds", "operator-env"]` |
+| the backends | env, user `.cloginrc`, shared `.cloginrc` | csv, user `.cloginrc`, env |
+| `audit` | journald not required, `audit.file` set | the default |
+| `dispatch.default` | `serial`, the default | `parallel` |
+| only here | session-init and its map, `[crun]`, `[platform-resolution]`, `crun-filters`; commented, `[ssh-algorithms-profile]` and its map, `[platform.generic]` | `ssh.host-key-policy`, `[display]`, `[output]` |
+
+The README's dry run, `run --dry-run --tf examples/targets.txt --cf
+examples/commands.txt` with `NETUSER` and `NETPASS` set, exits 6 under
+`configs/example.toml`, `credkeyref_unresolved`: `examples/inventory.csv` pins
+`core-01` to `break-glass`, and the file has no csv backend to answer. Under
+`examples/config.toml`, with its credential file copied into the lab at 0600,
+the four targets plan, exit 0.
+
+**Issue 1, which survives, agreed.** `examples/config.toml` is karvi's one
+example configuration, its name and place kept; `configs/example.toml` is
+archived and removed, its content merged into it, and `configs/` keeps the
+generated reference and the development overlay. It is the file its set is
+built around (the README, the inventory, and the `cloginrc` name it), it plans
+that set where the other cannot, it is packaged with the set under
+`/usr/share/doc/karvi/examples/`, and its comments explain each line for a
+site. *Not taken:* `configs/example.toml` keeping its name (`configs/` holds
+reference material, and the inventory, credentials, and targets it would name
+are in `examples/`); both kept, one pointing at the other (two to keep current,
+already apart); a new name such as `examples/site.toml` (every pointer moves for
+nothing).
+
+**Issue 2, what moves in, agreed.** In the one example a section is active
+where its value is karvi's default or the example set needs it, and commented
+where it is a shape a site adds; what is stale, or held by a guide, is dropped.
+`[platform-resolution]` and `[crun]` come in active, their values karvi's
+defaults key by key. Commented: the shared `.cloginrc` backend with its scope's
+rules; `c9300`'s `crun-filters` (an array replaces the built-in list whole);
+`[platform.generic]`'s start statements; session-init, as a real use, an
+`iosxe-wide` profile mapped to `cisco_iosxe` and a catch-all of no commands, in
+place of the active `default` of none that only filled the map's catch-all;
+`[ssh-algorithms-profile]` and its map beside `[ssh]`; and `[audit]` without
+journald, at the end. Dropped: `[ssh.run] transport = "system"` and its stale
+comment, and the credential CSV's long comment with its commented backends
+(`docs/CREDENTIAL-CSV.md` holds the rules). The draft, 206 lines, validated
+with `examples/config.toml`'s own digest, `config show` equal line for line;
+the README's dry run planned its four targets; and with every commented block
+made active the file validated too. *Not taken:* everything active (a copied
+example would send `terminal width 511` to every IOS XE device, replace the
+alias's drop list, and turn journald off); everything commented, the defaults
+too (the file shows defaults as active tables, `[dispatch]` and `[output]`);
+the CSV's rules kept in the file (a second copy of the guide).
+
+**Issue 3, the pointers, agreed.** Every pointer names `examples/config.toml`,
+which resolves from the source root and from `/usr/share/doc/karvi` alike:
+`reference.toml`'s two lines (from `render.go`), `config generate`'s starter,
+COLLECTION's list of related material, and CREDENTIAL-CSV's opening, which names
+the example's backend and `examples/credentials.csv`, the file. The package
+stops installing `configs/example.toml`, and `check-deb.sh` compares
+`development.toml` alone; `verify-shipped.sh` validates the one example, and the
+plan's round-trip test loads it (run in a copy of the tree with the merged
+draft: it passed; the session-init tables it loses are carried by the daemon's
+and the renderer's own session-init tests). The README's row names the commented
+shapes. *Not taken:* a link at `/usr/share/doc/karvi/configs/example.toml` to
+the survivor (a second name for a path nothing names); `reference.toml`'s lines
+left general (naming the file is plainer, and it resolves).
+
+**Built.** `configs/example.toml` was archived
+(`~/karvi/backup/archive-2026-10-10`: a mirror at `906f438` and the file) and
+removed; `examples/config.toml` is the merged draft. `render.go` (and the
+regenerated `reference.toml`), `config generate`'s starter, COLLECTION,
+CREDENTIAL-CSV, `verify-shipped.sh`, the round-trip test, the debian rules,
+and `check-deb.sh` name the one example; the README's row names its commented
+shapes; FILES' table of the package, DESIGN, and the CHANGELOG say so, and the
+ROADMAP's item is gone. *Found in the build:* the HTML site carries no example
+file, so a relative link to `../examples/config.toml` names no file of the site
+(`TestTreeConverts` failed three); no document links to a file that is not a
+document, and COLLECTION's and CREDENTIAL-CSV's pointers are code spans, as the
+old one was.
+
+**Executed.** `make deb` in a copy of the tree with its own `make build`:
+`check-deb` passed, and `/usr/share/doc/karvi/configs/` holds `development.toml`
+and the reference link, `examples/` the set, `config.toml` plain. From the
+extracted package's `usr/share/doc/karvi`, the packaged `karvi config validate
+examples/config.toml` passed and `config show --explain` resolved its inventory
+to `…/usr/share/doc/karvi/examples/inventory.csv`; the packaged `reference.toml`
+and `config generate --minimal` name `examples/config.toml`.
+
+**Closed.** `go test ./...` passed, and the full battery on a lab build of the
+tree, leaving no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The evidence is
+kept beside the tree (`release-design-evidence/one-example-config-2026-10-10`).

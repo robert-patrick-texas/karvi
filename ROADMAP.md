@@ -181,14 +181,6 @@ Nothing at present: the operator chooses the next item from Later.
   S2). The question: one function in `scripts/lib` that runs a call and, when it
   fails unexpectedly, names it and prints what karvi wrote before the suite
   exits.
-- **One example configuration.** `configs/example.toml`, which the package
-  installs under `/usr/share/doc/karvi/configs/` and `config generate`'s output
-  names, and `examples/config.toml`, the curated site configuration, are two
-  examples of one thing; merging them is a documentation change of its own:
-  which keeps its name, what each document and `config generate` then point at,
-  and the package's rules and `scripts/check-deb.sh`'s list
-  ([`docs/EXAMPLES.md`, chapter
-  42](docs/EXAMPLES.md#42-the-example-configurations-in-the-package-2026-10-08)).
 - **Every invocation says its configuration's warnings.** The load's two
   warnings ("optional include missing", "ignored unknown environment
   variable") are printed by a `run` or `command`, in process or through a

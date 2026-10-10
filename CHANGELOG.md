@@ -16,6 +16,15 @@
   `config_key_removed`. The lifecycle replay gives the older daemon
   `daemon.socket` at the new client's `d.sock`. The configuration registry
   moves from 28 to 29.
+- **One example configuration.** `configs/example.toml` is removed, and with
+  it `/usr/share/doc/karvi/configs/example.toml` from the package;
+  `examples/config.toml` is the one example. It takes the other's content
+  where a site would use it: platform resolution and the collection run,
+  active at karvi's defaults, and, commented, a shared `.cloginrc`, a drop
+  list, start statements for generic devices, session-init, algorithm
+  profiles, and an audit file without journald. Its effective configuration is
+  unchanged. `reference.toml`, `config generate`'s starter, and the guides
+  name it.
 
 ## 0.29.0 - 2026-10-09
 

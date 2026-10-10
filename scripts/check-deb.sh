@@ -44,7 +44,7 @@ for cd_f in "$TREE"/*.md; do same_file "$cd_f" "$DOC/${cd_f##*/}"; done
 for cd_f in "$TREE"/docs/*.md; do same_file "$cd_f" "$DOC/docs/${cd_f##*/}"; done
 for cd_f in "$TREE"/release/*.md; do same_file "$cd_f" "$DOC/release/${cd_f##*/}"; done
 for cd_f in "$TREE"/examples/*; do same_file "$cd_f" "$DOC/examples/${cd_f##*/}"; done
-for cd_f in example.toml development.toml; do same_file "$TREE/configs/$cd_f" "$DOC/configs/$cd_f"; done
+same_file "$TREE/configs/development.toml" "$DOC/configs/development.toml"
 
 cd_docs=$(grep -rh '^Documentation=file:' "$R/usr/share/karvi/systemd" | sed 's/^Documentation=file://' | tr ' ' '\n' | sort -u)
 [ -n "$cd_docs" ] || fail "no unit under usr/share/karvi/systemd names a Documentation=file: target"

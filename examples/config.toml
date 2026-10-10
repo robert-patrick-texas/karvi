@@ -65,6 +65,16 @@ scope = "user"
 required = false
 path = "~/.cloginrc"
 
+# A shared file is the site's: always required, an absolute path, mode 0640,
+# owned by root or one of security.approved-admin-users, in the group
+# security.shared-group. A relative include resolves beside the file that
+# includes it and keeps its scope.
+# [credential-backend.shared-rancid]
+# type = "cloginrc"
+# scope = "shared"
+# required = true
+# path = "/etc/karvi/credentials/cloginrc"
+
 # The environment, last: the templates below with the operator's login name
 # in %s (KARVI_netops_USERNAME for the operator netops), one credential for
 # every device this backend serves; then the built-in NETUSER, NETPASS, and
@@ -92,6 +102,56 @@ name = "*"
 driver = "cisco_iosxe"
 paging-commands = ["terminal length 0"]
 crun-commands = ["show running-config", "show version", "show inventory"]
+# The drop list for the collection file (docs/COLLECTION.md): regular
+# expressions in literal strings, so a backslash stays one; a matching line
+# is left out of the collection file and nowhere else. An array replaces the
+# built-in list whole, and [] turns the filter off.
+# crun-filters = ['^Building configuration\.\.\.$', '^Current configuration : \d+ bytes$']
+
+# A generic device (a row set to generic, a row without a platform under
+# platform-resolution.default = "generic", or --pg) is sent nothing before
+# the commands; this gives it start statements (docs/OPERATIONS.md, "Start
+# statements for generic devices").
+# [platform.generic]
+# paging-commands = ["terminal length 0", "terminal width 512"]
+
+# A platform-less row runs as default; a row naming an unknown platform
+# refuses the activity under fail, or runs as unknown-fallback under warn.
+[platform-resolution]
+default = "cisco_iosxe"
+on-unknown = "fail"
+unknown-fallback = "generic"
+
+# Session initialization: a profile's commands run after the paging setup and
+# before the requested commands; the map picks one profile per device by the
+# credential map's matching and ends in a name = "*" rule. Without a map no
+# profile runs.
+# [session-init.iosxe-wide]
+# commands = ["terminal width 511"]
+# on-error = "continue"
+# command-timeout = "15s"
+#
+# [session-init.none-sent]
+# commands = []
+#
+# [[session-init-map]]
+# profile = "iosxe-wide"
+# platform = "cisco_iosxe"
+#
+# [[session-init-map]]
+# profile = "none-sent"
+# name = "*"
+
+# The collection run (docs/COLLECTION.md): one file per device in one flat
+# directory, replaced only when the device's collection succeeded. auto is the
+# shared crun tree, else <basedir>/crun; a site shares one by making it once
+# with chgrp and chmod 2770. after names a hook run once the collection ends.
+[crun]
+directory = "auto"
+directory-mode = "0770"
+file-mode = "0660"
+after = ""
+after-timeout = "5m"
 
 # The transport each mode uses when the inventory row leaves it blank:
 # system is OpenSSH, native is scrapligo-v1 (karvi's own connection).
@@ -106,6 +166,17 @@ transport = "native"
 # one; secure requires prior enrollment; insecure accepts all with warnings.
 [ssh]
 host-key-policy = "accept-new"
+
+# Algorithms beyond [ssh-algorithms] (the defaults are in
+# configs/reference.toml): a profile appends last resorts or replaces a list,
+# and the map picks it per device; a catch-all rule is refused.
+# [ssh-algorithms-profile.legacy-ios]
+# kex-append = ["diffie-hellman-group1-sha1"]
+# ciphers-append = ["aes128-ctr", "aes128-cbc"]
+#
+# [[ssh-algorithms-map]]
+# profile = "legacy-ios"
+# device-group = "legacy-access"
 
 # Concurrency for run: serial, parallel, or wave (the CPU-governed ramp);
 # 0 workers means the logical CPU count.
@@ -127,3 +198,9 @@ color = "auto"
 # read on the folders lets a team follow each other's jobs.
 [output]
 directory-mode = "0750"
+
+# The audit: journald is required where the host has it. A container or a
+# workstation without journald writes the audit to a file instead.
+# [audit]
+# journald-required = false
+# file = "~/.local/share/karvi/audit.jsonl"

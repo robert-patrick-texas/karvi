@@ -681,6 +681,6 @@ above.
 - `karvi-crun(1)` (`man karvi crun`), COLLECTION: the terminal's restatement of
   [section 1](#1-what-a-collection-is), the hook's input, and the drop list; a
   change to one changes both.
-- `configs/example.toml`: the `[platform.NAME]` tables' shape.
+- `examples/config.toml`: the `[platform.NAME]` tables' shape.
 - `/usr/share/karvi/systemd/user/karvi-crun.service` and `karvi-crun.timer`,
   `/usr/share/karvi/cron/karvi-crun`: the schedule's two forms.

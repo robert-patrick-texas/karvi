@@ -221,5 +221,5 @@ native = "scrapligo-v1"
 # without a journald socket and configure audit.file instead.
 journald-required = true
 
-# Credential zero-config fallback reads NETUSER, NETPASS, and NETENABLE. Dynamic inventory examples are in configs/example.toml.
+# Credential zero-config fallback reads NETUSER, NETPASS, and NETENABLE. Dynamic inventory examples are in examples/config.toml.
 `

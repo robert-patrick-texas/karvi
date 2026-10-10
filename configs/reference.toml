@@ -610,7 +610,7 @@ max-physical-line-bytes = 1048576
 # Dynamic sections such as [[inventory-source]], [credential-backend.NAME],
 # [credential-policy.NAME], [[credential-policy-map]], [session-init.NAME],
 # [ssh-algorithms-profile.NAME], [[ssh-algorithms-map]], and [platform.NAME]
-# are shown in configs/example.toml.
+# are shown in examples/config.toml.
 #
 # A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,
 # cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
@@ -650,7 +650,7 @@ max-physical-line-bytes = 1048576
 #   mappings.device_name = ["device", "hostname"]
 # Rows match top to bottom, first match wins; the columns are device_name,
 # address_cidr, platform, site, device_group, credkey, username, password,
-# and enable_password. See configs/example.toml.
+# and enable_password. See examples/config.toml.
 #
 # The ICMP gate (network.ping-targets) sends its probes directly over Linux ping
 # sockets when the kernel grants them to the operator's group; set the sysctl

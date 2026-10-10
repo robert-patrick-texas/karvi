@@ -2169,6 +2169,18 @@ the generator alone. *Not taken:* reordering the registry (the next row splits
 a table again); dotted keys without tables; a suite running `config validate`
 on the generated file.
 
+**One example configuration.** `examples/config.toml` is karvi's one example,
+with the inventory, credentials, and targets it names beside it; `configs/`
+holds the generated reference and the development overlay. A section is active
+where its value is karvi's default or the example set needs it, and commented
+where it is a shape a site adds; what a guide holds stays in the guide. Every
+pointer, `reference.toml`'s, `config generate`'s, and the guides', names it.
+*Why:* `configs/example.toml` beside it had drifted (its transports under a
+stale comment, a policy without the csv backend), so that the set's own dry
+run could not plan under it (executed). *Not taken:* both kept, one pointing at
+the other; everything active (a copied example would change what every IOS XE
+device is sent); the CSV's rules repeated in the file.
+
 **Every documented range is enforced by one loop.** A row carries `Min`,
 `Max`, and `ZeroDisables`; one loop applies them to every bounded row after
 the type check, refusing as `config_value_out_of_range` in the row's words.
