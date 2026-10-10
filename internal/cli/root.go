@@ -13,6 +13,7 @@ import (
 	"runtime/debug"
 	"syscall"
 
+	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/completion"
@@ -29,9 +30,12 @@ type globalOptions struct {
 	quiet, debug, debugShow, help, version bool
 	ipv4, ipv6                             bool
 	timezone, ansi                         string
-	// warnings says the configuration load's warnings, once for the
-	// invocation (app.LoadWarnings); nil says nothing.
-	warnings *app.LoadWarnings
+	// say says the load's warnings at the invocation's one read
+	// (app.SayWarnings); nil says nothing.
+	say func(string)
+	// reading is a stream's one reading of its configuration, from which
+	// each of its jobs' reads makes the job's snapshot; nil elsewhere.
+	reading *app.ConfigReading
 }
 
 // flags are the keys the global options set, in the read's options layer.
@@ -53,9 +57,18 @@ func (g globalOptions) flags() map[string]configload.FlagValue {
 
 // read is the invocation's one read of its configuration (app.ReadConfig)
 // under flags, the keys its options set, and the common options every stage
-// takes from it. A failure is reported on stderr, and its exit returned.
+// takes from it; a stream's job makes its snapshot from the stream's reading
+// instead, its warnings said at the stream's start. A failure is reported on
+// stderr, and its exit returned.
 func (g globalOptions) read(flags map[string]configload.FlagValue, stderr io.Writer) (app.CommonOptions, int, bool) {
-	cfg, operator, err := app.ReadConfig(app.ConfigRequest{Roots: g.configs, Sets: g.sets, Flags: flags}, g.warnings)
+	var cfg configload.Snapshot
+	var operator credentials.Operator
+	var err error
+	if g.reading != nil {
+		cfg, operator, err = g.reading.Snapshot(flags, nil)
+	} else {
+		cfg, operator, err = app.ReadConfig(app.ConfigRequest{Roots: g.configs, Sets: g.sets, Flags: flags}, g.say)
+	}
 	if err != nil {
 		return app.CommonOptions{}, reportError(stderr, "config_load_failed", err), false
 	}
@@ -114,11 +127,11 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	if inv.Path == "login" && inv.Record != nil && inv.Global.debugShow {
 		return usageError(stderr, "record_debug_show_secrets_conflict", "--debug-show-secrets is incompatible with transcript recording")
 	}
-	// The load's warnings are said on standard error at the load, each once
-	// for the invocation; a recorded login's child leaves them to its
-	// wrapper, whose load came first, and daemon serve logs its own.
+	// The load's warnings are said on standard error at the invocation's one
+	// read; a recorded login's child leaves them to its wrapper, whose read
+	// came first, and daemon serve logs its own.
 	if inv.Path != "login" || os.Getenv(loginTranscriptChildEnv) == "" {
-		inv.Global.warnings = app.NewLoadWarnings(app.WarningLines(stderr))
+		inv.Global.say = app.WarningLines(stderr)
 	}
 	if inv.Path == "login" && inv.Record != nil && os.Getenv(loginTranscriptChildEnv) == "" {
 		return recordedLogin(inv, args, stdin, stdout, stderr)

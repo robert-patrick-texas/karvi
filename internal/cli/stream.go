@@ -144,8 +144,19 @@ func streamCommandRole(r optRole) bool {
 
 // commandStream is the stream word's handler. A terminal's lines come
 // through the editing reader (stream_terminal.go); any other input through
-// the scanner.
+// the scanner. The stream reads its configuration once, as it starts, and
+// every job's snapshot is made from that reading with the job's option
+// lines: a configuration that does not load is refused before a line is
+// read, and an edit reaches the next stream, not the next job.
 func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
+	reading, err := app.ReadConfigFiles(app.ConfigRequest{Roots: inv.Global.configs, Sets: inv.Global.sets})
+	if err != nil {
+		return reportError(streams.Stderr, "config_load_failed", err)
+	}
+	if _, _, err := reading.Snapshot(inv.flags(), inv.Global.say); err != nil {
+		return reportError(streams.Stderr, "config_load_failed", err)
+	}
+	inv.Global.reading = &reading
 	next := streamScanner(streams.Stdin)
 	if f, ok := streams.Stdin.(*os.File); ok && osutil.IsTerminal(f) {
 		if t, err := newStreamTerminal(f); err == nil {

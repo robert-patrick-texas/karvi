@@ -241,25 +241,59 @@ type ConfigRequest struct {
 	Flags map[string]configload.FlagValue
 }
 
-// ReadConfig is an invocation's one read of its configuration: the operator
-// from the password database, the configuration loaded under req, its
-// warnings said through warnings, and the configured transports checked.
-// Every error it returns carries a registered code, a configuration's with
-// the configuration contract's exit (ConfigLoadError).
-func ReadConfig(req ConfigRequest, warnings *LoadWarnings) (configload.Snapshot, credentials.Operator, error) {
+// ConfigReading is an invocation's reading of its configuration's files and
+// environment (configload.Read), with its operator and its --set values: a
+// stream reads once at its start and makes each job's snapshot from the
+// reading (Snapshot), no file or variable read again.
+type ConfigReading struct {
+	reading  configload.Reading
+	operator credentials.Operator
+	sets     []string
+}
+
+// ReadConfigFiles reads the configuration's files and environment under
+// req's roots, with the operator from the password database; req's sets and
+// each snapshot's flags are the Snapshot's. Every error it returns carries a
+// registered code, a configuration's with the configuration contract's exit
+// (ConfigLoadError).
+func ReadConfigFiles(req ConfigRequest) (ConfigReading, error) {
 	operator, err := osutil.CurrentOperator()
 	if err != nil {
-		return configload.Snapshot{}, credentials.Operator{}, errorcodes.Ensure(err, "operator_identity_unavailable")
+		return ConfigReading{}, errorcodes.Ensure(err, "operator_identity_unavailable")
 	}
-	cfg, err := configload.Load(configload.Options{ExplicitRoots: req.Roots, Sets: req.Sets, FlagValues: req.Flags, HomeDir: operator.Home})
+	r, err := configload.Read(configload.Options{ExplicitRoots: req.Roots, HomeDir: operator.Home})
+	if err != nil {
+		return ConfigReading{}, ConfigLoadError(err)
+	}
+	return ConfigReading{reading: r, operator: operator, sets: req.Sets}, nil
+}
+
+// Snapshot is the reading's snapshot under flags, the keys an invocation's
+// options set, and the reading's --set. Its load warnings are said through
+// say before the configured transports are checked; a nil say says none, as
+// for a stream's job, whose stream said them at its start. Its errors are
+// coded as ReadConfigFiles's.
+func (c ConfigReading) Snapshot(flags map[string]configload.FlagValue, say func(string)) (configload.Snapshot, credentials.Operator, error) {
+	cfg, err := c.reading.Snapshot(flags, c.sets)
 	if err == nil {
-		warnings.Say(cfg)
+		SayWarnings(say, cfg)
 		err = transportselect.ValidateConfigured(cfg)
 	}
 	if err != nil {
 		return configload.Snapshot{}, credentials.Operator{}, ConfigLoadError(err)
 	}
-	return cfg, operator, nil
+	return cfg, c.operator, nil
+}
+
+// ReadConfig is an invocation's one read of its configuration: the reading
+// of req (ReadConfigFiles) and its snapshot under req's flags, its warnings
+// said through say.
+func ReadConfig(req ConfigRequest, say func(string)) (configload.Snapshot, credentials.Operator, error) {
+	c, err := ReadConfigFiles(req)
+	if err != nil {
+		return configload.Snapshot{}, credentials.Operator{}, err
+	}
+	return c.Snapshot(req.Flags, say)
 }
 
 // ConfigLoadError codes a configuration loading or validation failure and fixes

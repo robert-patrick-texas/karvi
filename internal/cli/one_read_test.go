@@ -106,3 +106,68 @@ func TestOneReadDryRunTiming(t *testing.T) {
 		t.Errorf("total_ns %d is less than the client stages' %d", tm.TotalNS, stages)
 	}
 }
+
+// chunkReader gives one chunk a Read, calling between before the second: the
+// stream asks for a line only after the job before it ran, so between runs
+// after the first chunk's jobs.
+type chunkReader struct {
+	chunks  []string
+	between func()
+	n       int
+}
+
+func (c *chunkReader) Read(p []byte) (int, error) {
+	if c.n == len(c.chunks) {
+		return 0, io.EOF
+	}
+	if c.n == 1 {
+		c.between()
+	}
+	k := copy(p, c.chunks[c.n])
+	c.n++
+	return k, nil
+}
+
+// TestOneReadStream: a stream reads its configuration once, as it starts. A
+// configuration that does not load is refused there, once, before a line is
+// read; an edit after the first job reaches no later job of the stream; and a
+// job's own option lines set their keys over the one reading.
+func TestOneReadStream(t *testing.T) {
+	base := t.TempDir()
+	sets := dryRunSets(t, base)
+	t.Setenv("NETUSER", "u")
+	t.Setenv("NETPASS", "p")
+	file := filepath.Join(base, "config.toml")
+	write := func(text string) {
+		t.Helper()
+		if err := os.WriteFile(file, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	job := "--no-daemon\n--dry-run\n--target 127.0.0.1\n--transport system\n--dispatch parallel\nshow clock\n--go\n"
+	stream := func(stdin io.Reader) (int, string, string) {
+		var stdout, stderr bytes.Buffer
+		code := Main(append(append([]string{}, sets...), "--config", file, "stream"), stdin, &stdout, &stderr)
+		return code, stdout.String(), stderr.String()
+	}
+
+	write("[dispatch]\nnope = 1\n")
+	code, stdout, stderr := stream(strings.NewReader(job + job))
+	if code != exitcode.ExitConfigValidationError || stdout != "" || strings.Count(stderr, "\n") != 1 || !strings.HasPrefix(stderr, "config_unknown_key: ") {
+		t.Fatalf("a broken configuration: exit %d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+
+	write("[dispatch]\nparallel-workers = 4\n")
+	in := &chunkReader{chunks: []string{job, "show version\n--go\n--workers 2\nshow clock\n--go\n--end\n"}, between: func() { write("[dispatch]\nparallel-workers = 8\n") }}
+	code, stdout, stderr = stream(in)
+	var dispatch []string
+	for _, line := range strings.Split(stdout, "\n") {
+		if strings.HasPrefix(line, "dispatch: ") {
+			dispatch = append(dispatch, line)
+		}
+	}
+	want := []string{"dispatch: parallel width=4 order=default", "dispatch: parallel width=4 order=default", "dispatch: parallel width=2 order=default"}
+	if code != 0 || in.n != 2 || strings.Join(dispatch, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("exit %d, %d chunks read, dispatch %q, want %q; stderr=%q", code, in.n, dispatch, want, stderr)
+	}
+}

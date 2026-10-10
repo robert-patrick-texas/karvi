@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/testdir"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // loadWarningLines are the two lines a load of warnConfig says under
@@ -54,9 +55,9 @@ func saidOnce(t *testing.T, name, stderr string, want []string) {
 
 // TestLoadWarningsSaidOncePerInvocation: every invocation that loads its
 // configuration says the load's warnings once on standard error, under
-// --quiet and a machine format too, however many times it loads (a dry run
-// three, a stream once per job); config validate keeps its report on
-// standard output; --help says nothing.
+// --quiet and a machine format too, at its one read, a stream's at its
+// start; a second read in a process would say them again. config validate
+// keeps its report on standard output; --help says nothing.
 func TestLoadWarningsSaidOncePerInvocation(t *testing.T) {
 	cfg, sets := warnConfig(t)
 	want := loadWarningLines(cfg)
@@ -98,13 +99,22 @@ func TestLoadWarningsSaidOncePerInvocation(t *testing.T) {
 	}
 	saidOnce(t, "config validate --format json", stderr, want)
 
-	// Two jobs, five loads: each warning at the first.
+	// Two jobs, one reading at the stream's start: each warning once.
 	in := "--no-daemon\n--dry-run\n--target 127.0.0.1\n--transport system\nshow clock\n--go\nshow version\n--go\n--end\n"
 	code, stdout, stderr = main(in, "stream")
 	if code != 0 || strings.Count(stdout, "outcome: planned") != 2 {
 		t.Fatalf("stream: exit %d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	saidOnce(t, "stream", stderr, want)
+
+	// A finished job's folder, no daemon: the follow's one read.
+	g := globalsFor(sets)
+	g.configs = []string{cfg}
+	finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "completed", ExitCode: 0, ExitName: "ExitSuccess"})
+	if code, stdout, stderr = main("", "job", "follow", fixtureJobID, "--format", "jsonl"); code != 0 {
+		t.Fatalf("job follow: exit %d stdout=%q stderr=%q", code, stdout, stderr)
+	}
+	saidOnce(t, "job follow", stderr, want)
 
 	if code, _, stderr := main("", "--help"); code != 0 || stderr != "" {
 		t.Errorf("--help: exit %d stderr=%q", code, stderr)

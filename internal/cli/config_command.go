@@ -67,7 +67,7 @@ func configValidate(inv *Invocation, streams app.IO) int {
 	}
 	snap, err := configload.Load(configload.Options{ExplicitRoots: roots, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, SkipAuto: skip})
 	if err == nil {
-		g.warnings.Say(snap)
+		app.SayWarnings(g.say, snap)
 		err = transportselect.ValidateConfigured(snap)
 	}
 	if err != nil {
@@ -98,7 +98,7 @@ func loadConfigSnapshot(inv *Invocation, stderr io.Writer) (configload.Snapshot,
 	}
 	snap, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home})
 	if err == nil {
-		g.warnings.Say(snap)
+		app.SayWarnings(g.say, snap)
 		err = transportselect.ValidateConfigured(snap)
 	}
 	if err != nil {
