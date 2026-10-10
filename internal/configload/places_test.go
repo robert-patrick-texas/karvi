@@ -31,7 +31,9 @@ func TestAbsolutePlaces(t *testing.T) {
 		`credential-backend.mine.type="csv"`,
 		`credential-backend.mine.scope="user"`,
 		`credential-backend.mine.path="creds.csv"`,
-		`credential-backend.mine.ca-file="~/ca.pem"`,
+		`credential-backend.r.type="redis"`,
+		`credential-backend.r.address="127.0.0.1:6379"`,
+		`credential-backend.r.ca-file="~/ca.pem"`,
 		`inventory-source.0.type="csv"`,
 		`inventory-source.0.name="i"`,
 		`inventory-source.0.path="inv.csv"`,
@@ -41,20 +43,20 @@ func TestAbsolutePlaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	for key, want := range map[string]any{
-		"crun.directory":                  filepath.Join(wd, "rel/c"),
-		"output.root":                     filepath.Join(home, "jobs"),
-		"transcript.root":                 "/t",
-		"sharedroot":                      "none",
-		"basedir":                         filepath.Join(wd, "none"),
-		"audit.file":                      filepath.Join(wd, "auto"),
-		"tempdir":                         "auto",
-		"ssh.identities":                  []any{filepath.Join(home, ".ssh/id_ops"), "/etc/karvi/keys/ops"},
-		"credential-backend.mine.path":    filepath.Join(wd, "creds.csv"),
-		"credential-backend.mine.ca-file": filepath.Join(home, "ca.pem"),
-		"credential-backend.mine.type":    "csv",
-		"inventory-source.0.path":         filepath.Join(wd, "inv.csv"),
-		"inventory-source.0.name":         "i",
-		"ssh.transports.system":           "bin/ssh-wrapper",
+		"crun.directory":               filepath.Join(wd, "rel/c"),
+		"output.root":                  filepath.Join(home, "jobs"),
+		"transcript.root":              "/t",
+		"sharedroot":                   "none",
+		"basedir":                      filepath.Join(wd, "none"),
+		"audit.file":                   filepath.Join(wd, "auto"),
+		"tempdir":                      "auto",
+		"ssh.identities":               []any{filepath.Join(home, ".ssh/id_ops"), "/etc/karvi/keys/ops"},
+		"credential-backend.mine.path": filepath.Join(wd, "creds.csv"),
+		"credential-backend.r.ca-file": filepath.Join(home, "ca.pem"),
+		"credential-backend.mine.type": "csv",
+		"inventory-source.0.path":      filepath.Join(wd, "inv.csv"),
+		"inventory-source.0.name":      "i",
+		"ssh.transports.system":        "bin/ssh-wrapper",
 	} {
 		v := snap.Values[key]
 		got := v.Data
@@ -80,8 +82,8 @@ func TestAbsolutePlaces(t *testing.T) {
 
 	// ~user fails the load under its code, naming the key and its source.
 	for key, sets := range map[string][]string{
-		"scoreboards":                     {`scoreboards="~other/sb"`},
-		"credential-backend.mine.ca-file": {`credential-backend.mine.type="csv"`, `credential-backend.mine.scope="user"`, `credential-backend.mine.path="/c.csv"`, `credential-backend.mine.ca-file="~other/ca.pem"`},
+		"scoreboards":                  {`scoreboards="~other/sb"`},
+		"credential-backend.r.ca-file": {`credential-backend.r.type="redis"`, `credential-backend.r.address="127.0.0.1:6379"`, `credential-backend.r.ca-file="~other/ca.pem"`},
 	} {
 		_, err := Load(Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: sets})
 		var ce *Error

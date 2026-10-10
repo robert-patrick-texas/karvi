@@ -57,6 +57,19 @@ func TestRemovedKeysRefused(t *testing.T) {
 		want(t, load(t, "[sessions.platform-caps]\ngeneric = 4\n", nil, nil), "config_key_removed", "sessions.platform-caps.generic")
 		want(t, load(t, "", nil, []string{"sessions.platform-caps.cisco_iosxe=2"}), "config_key_removed", "sessions.platform-caps.cisco_iosxe")
 	})
+	// The removed sqlite credential backend type's keys, fields of a dynamic
+	// table, are refused on any backend, from a file before the table's type
+	// is judged and from --set (EXAMPLES chapter 55, issue 7).
+	t.Run("sqlite keys", func(t *testing.T) {
+		for _, key := range sqliteKeys {
+			err := load(t, "[credential-backend.db]\ntype = \"sqlite\"\n"+key+" = \"x\"\n", nil, nil)
+			want(t, err, "config_key_removed", "credential-backend.db."+key)
+			if !strings.Contains(err.Error(), "removed in "+nextRelease+"; the sqlite credential backend type had no driver") {
+				t.Fatalf("message: %v", err)
+			}
+			want(t, load(t, "", nil, []string{`credential-backend.c.type="csv"`, "credential-backend.c." + key + `="x"`}), "config_key_removed", "credential-backend.c."+key)
+		}
+	})
 	// A removed key's environment name is refused even with unknown variables
 	// tolerated, since ignoring it would silently drop a site's intent.
 	t.Run("environment with reject-unknown-env false", func(t *testing.T) {

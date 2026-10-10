@@ -207,32 +207,26 @@ func (l *loader) validateDynamic() error {
 		if typ == "" {
 			return l.dynamicErr("config_credential_backend_type_missing", "credential-backend."+name+".type", "backend type is required")
 		}
-		if !contains([]string{"env", "sqlite", "cloginrc", "csv", "redis", "vault", "formula"}, typ) {
+		if !contains(configschema.BackendTypes(), typ) {
 			return l.dynamicErr("config_credential_backend_type_unsupported", "credential-backend."+name+".type", "unsupported backend type")
 		}
-		// File backends (cloginrc and csv) declare scope and required; other
-		// types reject both keys.
-		fileBackend := typ == "cloginrc" || typ == "csv"
+		// A key the table's type does not read is refused, naming the types
+		// that read it. The keys are visited in sorted order so the same
+		// configuration always names the same key. A csv backend's
+		// env-indirection key says what replaced it.
+		for _, key := range sortedKeys(b) {
+			types := configschema.BackendKeyTypes(key)
+			if contains(types, typ) {
+				continue
+			}
+			reason := key + " applies to the " + typeList(types) + " only"
+			if typ == "csv" && strings.HasPrefix(key, "env-indirection.") {
+				reason = "a csv backend takes no env-indirection key: a cell names a variable as env:NAME"
+			}
+			return l.dynamicErr("config_credential_backend_key_unsupported", "credential-backend."+name+"."+key, reason)
+		}
 		scopeRaw, hasScope := b["scope"]
 		requiredRaw, hasRequired := b["required"]
-		if !fileBackend {
-			if hasScope {
-				return l.dynamicErr("config_credential_backend_scope_unsupported", "credential-backend."+name+".scope", "scope applies to file backends only")
-			}
-			if hasRequired {
-				return l.dynamicErr("config_credential_backend_scope_unsupported", "credential-backend."+name+".required", "required applies to file backends only")
-			}
-		}
-		// The reader keys belong to csv alone. The
-		// keys are visited in sorted order so the same configuration always
-		// names the same key.
-		if typ != "csv" {
-			for _, key := range sortedKeys(b) {
-				if configschema.CredentialCSVKey(key) {
-					return l.dynamicErr("config_credential_backend_key_unsupported", "credential-backend."+name+"."+key, key+" applies to the csv backend type only")
-				}
-			}
-		}
 		// A csv backend declares its scope: the cloginrc default to user
 		// exists only so an older configuration keeps working, and a new
 		// type has none.
@@ -914,6 +908,20 @@ func isCatchAll(m map[string]any, targetKey string) bool {
 	}
 	vals := toStrings(m["name"])
 	return len(vals) == 1 && vals[0] == "*"
+}
+
+// typeList names credential backend types for a message: "csv backend
+// type", "cloginrc and csv backend types", "env, redis, and vault backend
+// types". The allow-list admits only a key some type reads, so types is never
+// empty.
+func typeList(types []string) string {
+	switch len(types) {
+	case 1:
+		return types[0] + " backend type"
+	case 2:
+		return types[0] + " and " + types[1] + " backend types"
+	}
+	return strings.Join(types[:len(types)-1], ", ") + ", and " + types[len(types)-1] + " backend types"
 }
 func contains(a []string, s string) bool {
 	for _, x := range a {

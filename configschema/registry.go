@@ -309,32 +309,50 @@ func CredentialCSVFields() []string {
 	return append([]string(nil), credentialCSVFields...)
 }
 
-// CredentialCSVKey reports whether a [credential-backend.NAME] key belongs
-// to the csv type alone: the reader keys mode, delimiter, and
-// mandatory-fields, and mappings.<field> for a logical field. Validation
-// refuses these keys on every other type
-// (config_credential_backend_key_unsupported). path, scope,
-// and required are not csv-only: the file backends share them, and path
-// also belongs to sqlite.
-func CredentialCSVKey(s string) bool {
-	if oneOf(s, "mode", "delimiter", "mandatory-fields") {
-		return true
-	}
-	field, ok := strings.CutPrefix(s, "mappings.")
-	return ok && oneOf(field, credentialCSVFields...)
+// backendTypeKeys are the keys each credential backend type reads, beside
+// type and transform, which every type reads; a csv backend also reads
+// mappings.<field> for each logical field. The allow-list is their union,
+// and validation refuses a key its table's type does not read
+// (config_credential_backend_key_unsupported).
+var backendTypeKeys = map[string][]string{
+	"env":      {"username-var-template", "password-var-template", "enable-var-template", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password"},
+	"cloginrc": {"scope", "path", "required"},
+	"csv":      {"scope", "path", "required", "mode", "delimiter", "mandatory-fields"},
+	"redis":    {"address", "database", "key-template", "tls", "ca-file", "client-cert-file", "client-key-file", "auth-username-env", "auth-password-env", "connect-timeout", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password"},
+	"vault":    {"address", "namespace", "mount", "path-template", "token-env", "ca-file", "client-cert-file", "client-key-file", "connect-timeout", "username-field", "password-field", "enable-field", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password"},
+	"formula":  {"username-template", "password-source"},
 }
 
-// backendField is the allow-list of [credential-backend.NAME] keys. It
-// admits every type's keys on every type; the rules that tie a key to a type
-// live in configload's validation. A mapping for anything but a logical
-// field is
-// config_unknown_key: a credential CSV has no attribute columns.
-func backendField(s string) bool {
-	if oneOf(s, "type", "transform", "scope", "required", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password", "username-var-template", "password-var-template", "enable-var-template", "path", "table", "operator-column", "username-column", "password-column", "enable-column", "busy-timeout", "address", "database", "key-template", "tls", "ca-file", "client-cert-file", "client-key-file", "auth-username-env", "auth-password-env", "connect-timeout", "namespace", "mount", "path-template", "token-env", "username-field", "password-field", "enable-field", "username-template", "password-source") {
-		return true
+// BackendTypes returns the credential backend types, sorted.
+func BackendTypes() []string {
+	out := make([]string, 0, len(backendTypeKeys))
+	for typ := range backendTypeKeys {
+		out = append(out, typ)
 	}
-	return CredentialCSVKey(s)
+	sort.Strings(out)
+	return out
 }
+
+// BackendKeyTypes returns the backend types that read key, sorted: every
+// type for type and transform, none for a key no type reads.
+func BackendKeyTypes(key string) []string {
+	var out []string
+	for _, typ := range BackendTypes() {
+		if key == "type" || key == "transform" || oneOf(key, backendTypeKeys[typ]...) {
+			out = append(out, typ)
+			continue
+		}
+		if field, ok := strings.CutPrefix(key, "mappings."); ok && typ == "csv" && oneOf(field, credentialCSVFields...) {
+			out = append(out, typ)
+		}
+	}
+	return out
+}
+
+// backendField is the allow-list of [credential-backend.NAME] keys: a key
+// some type reads. A mapping for anything but a logical field is
+// config_unknown_key: a credential CSV has no attribute columns.
+func backendField(s string) bool { return len(BackendKeyTypes(s)) > 0 }
 
 // ValidateScalar checks v against path's kind and enumerated values. Its
 // error says the fault alone; the caller names the key and the source.

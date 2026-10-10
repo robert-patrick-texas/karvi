@@ -136,8 +136,6 @@ func New(cfg configload.Snapshot, operator credentials.Operator, warn func(strin
 			r.backends[name] = &vaultbackend.Backend{BackendName: name, Address: str(d, "address"), Namespace: str(d, "namespace"), Mount: defaultString(str(d, "mount"), "secret"), PathTemplate: str(d, "path-template"), TokenEnv: defaultString(str(d, "token-env"), "VAULT_TOKEN"), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], Timeout: durationVal(d, "connect-timeout", 5*time.Second), UsernameField: defaultString(str(d, "username-field"), "username"), PasswordField: defaultString(str(d, "password-field"), "password"), EnableField: defaultString(str(d, "enable-field"), "enable_password"), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
 		case "formula":
 			r.formulas[name] = formulaSpec{Name: name, UsernameTemplate: str(d, "username-template"), PasswordSource: str(d, "password-source")}
-		case "sqlite":
-			r.backends[name] = unsupported{name: name, code: "sqlite_backend_unavailable", message: "the current portable build has no SQLite driver; use env, cloginrc, Redis, Vault, or rebuild with a future SQLite adapter"}
 		default:
 			return nil, errorcodes.Errorf("config_credential_backend_type_unsupported", "unsupported credential backend type %q", typ)
 		}
@@ -518,14 +516,6 @@ func materialStrings(m credentials.Material) (string, string, string, error) {
 		err = m.WithEnablePassword(func(v []byte) error { e = string(v); return nil })
 	}
 	return u, p, e, err
-}
-
-type unsupported struct{ name, code, message string }
-
-func (u unsupported) Name() string                  { return u.name }
-func (u unsupported) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
-func (u unsupported) Resolve(context.Context, credentials.ResolveRequest) credentials.BackendResult {
-	return credentials.BackendResult{Outcome: credentials.Unavailable, ErrorCode: u.code, Message: u.message}
 }
 
 func buildTransforms(cfg configload.Snapshot) (map[string]credentialTransform, error) {

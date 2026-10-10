@@ -59,6 +59,7 @@ const (
 	retiredV0260        = "v0.26.0"
 	retiredV0270        = "v0.27.0"
 	retiredV0290        = "v0.29.0"
+	retiredV0300        = "v0.30.0"
 )
 
 var entries = []Entry{
@@ -105,10 +106,9 @@ var entries = []Entry{
 	failure("config_credential_backend_type_missing", "config", exitConfig, false, "A `credential-backend` table has no `type`."),
 	failure("config_credential_backend_type_unsupported", "config", exitConfig, false, "A `credential-backend` table names an unsupported `type`."),
 	failure("config_credential_backend_delimiter_invalid", "config", exitConfig, false, "A `csv` credential backend's `delimiter` is not exactly one character."),
-	failure("config_credential_backend_key_unsupported", "config", exitConfig, false, "A reader key of the `csv` type (`mode`, `delimiter`, `mandatory-fields`, or a `mappings.<field>` key) is set on a credential backend of another type."),
+	failure("config_credential_backend_key_unsupported", "config", exitConfig, false, "A key is set on a credential backend whose type does not read it; the message names the types that read it, and on a `csv` backend an `env-indirection` key says that a cell names a variable as `env:NAME`."),
 	failure("config_credential_backend_path_missing", "config", exitConfig, false, "A `csv` credential backend has no `path`; the type has no default path."),
 	failure("config_credential_backend_scope_missing", "config", exitConfig, false, "A `csv` credential backend does not declare `scope`; only `cloginrc` defaults to `user`."),
-	failure("config_credential_backend_scope_unsupported", "config", exitConfig, false, "`scope` or `required` is set on a credential backend that is not a file backend (`cloginrc` or `csv`)."),
 	failure("config_credential_backend_shared_optional", "config", exitConfig, false, "A shared-scope credential backend sets `required = false`; a shared file is always required."),
 	failure("config_credential_backend_shared_path_relative", "config", exitConfig, false, "A shared-scope credential backend's `path` is missing or not absolute."),
 	failure("config_credential_formula_source_invalid", "config", exitConfig, false, "A formula backend's `password-source` is empty or names the backend itself."),
@@ -251,7 +251,6 @@ var entries = []Entry{
 	failure("redis_select_failed", "credential", exitCred, false, "The Redis server rejects `SELECT` of the configured database."),
 	failure("redis_tls_config_invalid", "credential", exitCred, false, "The Redis CA or client certificate files cannot be loaded."),
 	failure("redis_unavailable", "credential", exitCred, true, "The Redis server cannot be reached, the TLS handshake fails, or the connection fails during the credential read."),
-	failure("sqlite_backend_unavailable", "credential", exitCred, false, "A SQLite credential backend is configured but this build has no SQLite driver."),
 	failure("vault_address", "credential", exitCred, false, "The Vault address is not a valid URL."),
 	failure("vault_http_error", "credential", exitCred, false, "Vault returns a non-success HTTP status other than 404."),
 	failure("vault_read", "credential", exitCred, false, "The Vault response body cannot be read."),
@@ -756,7 +755,7 @@ var entries = []Entry{
 	retired("config_syntax", retiredV0100Catalog, "Configuration syntax error.", "config_toml_syntax"),
 	retired("config_type", retiredV0100Catalog, "Configuration type error.", "config_type_error", "config_enum_value_invalid"),
 	retired("credential_backend_malformed", retiredV0100Catalog, "Credential backend returned malformed data.", "cloginrc_malformed", "redis_malformed", "vault_response_malformed"),
-	retired("credential_backend_unavailable", retiredV0100Catalog, "Credential backend unavailable.", "redis_unavailable", "vault_unavailable", "sqlite_backend_unavailable"),
+	retired("credential_backend_unavailable", retiredV0100Catalog, "Credential backend unavailable.", "redis_unavailable", "vault_unavailable"),
 	retired("credential_not_found", retiredV0100Catalog, "No credential found.", "credential_username_missing", "credential_password_missing"),
 	retired("daemon_restart_active_jobs", retiredV0100a, "Restart refused while jobs are active.", "daemon_active_jobs"),
 	retired("device_capacity_timeout", retiredV0100Catalog, "Device capacity wait timed out.", "capacity_admission_failed"),
@@ -831,4 +830,6 @@ var entries = []Entry{
 	retired("config_platform_control_master_not_boolean", retiredV0270, "`platform.<name>.control-master` was not a boolean; the field, read by nothing, is removed, and a table that sets it is refused as an unknown key.", "config_unknown_key"),
 	retired("host_key_trust_store_candidates_exhausted", retiredV0270, "The automatic trust store could not be created at any of its candidates; under `auto` the store is one path, `<basedir>/known_hosts`, and a failure to make it is the step's own code.", "host_key_trust_store_create_failed", "host_key_directory_invalid", "host_key_directory_permission"),
 	retired("crun_directory_unavailable", retiredV0290, "`crun.directory` could not be resolved by the client (`~` without a home, or a relative path from an unreadable working directory); every path-valued key is made absolute at the load, which refuses either cause.", "config_working_directory_unavailable", "operator_identity_unavailable"),
+	retired("config_credential_backend_scope_unsupported", retiredV0300, "`scope` or `required` was set on a credential backend that is not a file backend; every key a backend's type does not read is refused under one code.", "config_credential_backend_key_unsupported"),
+	retired("sqlite_backend_unavailable", retiredV0300, "A SQLite credential backend was configured, and the build had no SQLite driver; the `sqlite` type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed.", "config_credential_backend_type_unsupported", "config_key_removed"),
 }

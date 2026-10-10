@@ -3095,7 +3095,6 @@
     "config_credential_backend_key_unsupported",
     "config_credential_backend_path_missing",
     "config_credential_backend_scope_missing",
-    "config_credential_backend_scope_unsupported",
     "config_credential_backend_shared_optional",
     "config_credential_backend_shared_path_relative",
     "config_credential_backend_type_missing",

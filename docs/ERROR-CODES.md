@@ -128,10 +128,9 @@ Active failure causes.
 | `config_audit_file_required_missing` | config | 2 | no | `audit.file-required` is true but `audit.file` is empty. |
 | `config_builtin_default_invalid` | internal | 1 | no | A built-in configuration default cannot be parsed. |
 | `config_credential_backend_delimiter_invalid` | config | 2 | no | A `csv` credential backend's `delimiter` is not exactly one character. |
-| `config_credential_backend_key_unsupported` | config | 2 | no | A reader key of the `csv` type (`mode`, `delimiter`, `mandatory-fields`, or a `mappings.<field>` key) is set on a credential backend of another type. |
+| `config_credential_backend_key_unsupported` | config | 2 | no | A key is set on a credential backend whose type does not read it; the message names the types that read it, and on a `csv` backend an `env-indirection` key says that a cell names a variable as `env:NAME`. |
 | `config_credential_backend_path_missing` | config | 2 | no | A `csv` credential backend has no `path`; the type has no default path. |
 | `config_credential_backend_scope_missing` | config | 2 | no | A `csv` credential backend does not declare `scope`; only `cloginrc` defaults to `user`. |
-| `config_credential_backend_scope_unsupported` | config | 2 | no | `scope` or `required` is set on a credential backend that is not a file backend (`cloginrc` or `csv`). |
 | `config_credential_backend_shared_optional` | config | 2 | no | A shared-scope credential backend sets `required = false`; a shared file is always required. |
 | `config_credential_backend_shared_path_relative` | config | 2 | no | A shared-scope credential backend's `path` is missing or not absolute. |
 | `config_credential_backend_type_missing` | config | 2 | no | A `credential-backend` table has no `type`. |
@@ -551,7 +550,6 @@ Active failure causes.
 | `shared_directory_absent` | permission | 9 | no | A place `sudo karvi setup shared` makes is absent (the scratch root `/dev/shm/karvi`, `/opt/karvi` or `/var/lib/karvi`, their `users` and `shared`, a tree under `shared`), and a path needs it made: no operator's run makes one. An explicit place or file key under it is refused before any device is contacted, naming the place and the key to set elsewhere; under `auto` the chain passes it by (the scoreboards and the ledger take their private fallback without a warning). |
 | `shutdown_incomplete` | shutdown | 106 | no | A daemon shutdown (`--force`, or grace expiry) ended the job before this unit finished; the record's status is `incomplete_shutdown`, and a command already sent has an unknown outcome, never success or failure. |
 | `spool_directory_unavailable` | permission | 9 | no | No candidate spool directory can be created and written: `spooldir` names a path, or its `auto` chain `/tmp/karvi-<uid>` then `/var/tmp/karvi-<uid>`, and none is a real directory the effective uid can create a file in. Reported at the job's admission before any device is contacted; the daemon logs it at its start and starts anyway, since the job is what needs the directory. |
-| `sqlite_backend_unavailable` | credential | 6 | no | A SQLite credential backend is configured but this build has no SQLite driver. |
 | `ssh_algorithm_negotiation_failed` | connection | 110 | no | The device offers nothing from one of karvi's SSH algorithm lists (key exchange, cipher, MAC, or an unfiltered host-key list). |
 | `ssh_algorithms_map_ambiguous` | config | 2 | no | Two `ssh-algorithms-map` rules match a device with the same longest address prefix; the device is not contacted. |
 | `ssh_algorithms_unavailable` | config | 2 | no | None of a device's configured algorithms for one list is implemented by the selected transport; the device is not contacted. |
@@ -717,6 +715,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `cloginrc_shared_owner_unapproved` | v0.11.0 to v0.17.0 | `credential_file_shared_owner_unapproved` | A shared credential file is owned by a user not in `security.approved-admin-users`. One code per condition for every credential file backend. |
 | `cloginrc_symlink_rejected` | v0.11.0 to v0.17.0 | `credential_file_symlink_rejected` | A `.cloginrc` path is a symlink while credential symlinks are not allowed. One code per condition for every credential file backend. |
 | `command_device_error` | v0.10.0 (catalog name) | `device_command_error` | Device reported a command error. |
+| `config_credential_backend_scope_unsupported` | v0.30.0 | `config_credential_backend_key_unsupported` | `scope` or `required` was set on a credential backend that is not a file backend; every key a backend's type does not read is refused under one code. |
 | `config_daemon_idle_timer_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `daemon.shutdown-idle-timer` is neither 0 (never) nor within 1m..720h. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_dir_recursion_depth_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `config.dir-recursion-depth` is outside 0..32. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_dispatch_absolute_max_width_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `dispatch.absolute-max-width` is outside 1..4096. Replaced at v0.14.0 by the one range rule over the registry rows. |
@@ -739,7 +738,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `config_targets_recursion_depth_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `targets.recursion-max-depth` is outside 1..16. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_type` | v0.10.0 (catalog name) | `config_type_error`, `config_enum_value_invalid` | Configuration type error. |
 | `credential_backend_malformed` | v0.10.0 (catalog name) | `cloginrc_malformed`, `redis_malformed`, `vault_response_malformed` | Credential backend returned malformed data. |
-| `credential_backend_unavailable` | v0.10.0 (catalog name) | `redis_unavailable`, `vault_unavailable`, `sqlite_backend_unavailable` | Credential backend unavailable. |
+| `credential_backend_unavailable` | v0.10.0 (catalog name) | `redis_unavailable`, `vault_unavailable` | Credential backend unavailable. |
 | `credential_not_found` | v0.10.0 (catalog name) | `credential_username_missing`, `credential_password_missing` | No credential found. |
 | `credential_selector_key_unknown` | v0.11.0 to v0.17.0 | `config_match_rule_pattern_invalid` | A credential match rule uses an unknown selector key; unreachable once the shared matcher evaluates the fixed keys. |
 | `crun_directory_unavailable` | v0.29.0 | `config_working_directory_unavailable`, `operator_identity_unavailable` | `crun.directory` could not be resolved by the client (`~` without a home, or a relative path from an unreadable working directory); every path-valued key is made absolute at the load, which refuses either cause. |
@@ -774,6 +773,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `native_session_closed` | v0.11.0 to v0.17.0 | `command_session_lost` | A command was sent on a closed native session; the device session refuses it. |
 | `output_no_space` | v0.10.0 (catalog name) | `output_preflight_space` | Output file system full. |
 | `run_output_render_failed` | v0.11.0 to v0.17.0 | `terminal_write_failed` | `run --no-daemon` rendered the completed job from `commands.jsonl` and could fail to; it now renders each record from memory as `command` does, and a display that cannot be written is the code below. |
+| `sqlite_backend_unavailable` | v0.30.0 | `config_credential_backend_type_unsupported`, `config_key_removed` | A SQLite credential backend was configured, and the build had no SQLite driver; the `sqlite` type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed. |
 | `ssh_legacy_host_pattern_all_hosts` | v0.11.0 to v0.17.0 | `config_ssh_legacy_hosts_removed`, `config_ssh_algorithms_map_catch_all` | A legacy or ancient SSH host pattern matched every host; the two keys are removed. |
 | `targets_file_unreadable` | v0.10.0 | `target_source_missing`, `target_source_permission_denied`, `target_source_unreadable` | A `--tf` file cannot be opened or read; split into the `target_source_*` codes. |
 | `transcript_directory_unavailable` | v0.10.0 | `transcript_directory_not_writable`, `transcript_path_not_directory` | Neither the preferred nor the fallback transcript directory could be created; the destination is now `transcript.root` or `--record=PATH`. |

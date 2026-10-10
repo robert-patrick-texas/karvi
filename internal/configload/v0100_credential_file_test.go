@@ -38,8 +38,8 @@ func TestV0100CredentialFileBackendKeys(t *testing.T) {
 		{rancid(`credential-backend.rancid.scope="shared"`, `credential-backend.rancid.path="credentials/cloginrc"`), "config_credential_backend_shared_path_relative"},
 		{rancid(`credential-backend.rancid.scope="bogus"`), "config_enum_value_invalid"},
 		{rancid(`credential-backend.rancid.required="yes"`), "config_type_error"},
-		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.scope="user"`}, "config_credential_backend_scope_unsupported"},
-		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.required=true`}, "config_credential_backend_scope_unsupported"},
+		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.scope="user"`}, "config_credential_backend_key_unsupported"},
+		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.required=true`}, "config_credential_backend_key_unsupported"},
 	} {
 		_, err := load(tc.sets...)
 		if got := errorcodes.Of(err); got != tc.code {
@@ -81,7 +81,7 @@ func TestCredentialCSVBackendKeys(t *testing.T) {
 			`credential-backend.creds.mappings.site="location"`, `credential-backend.creds.mappings.device_group="grp"`,
 			`credential-backend.creds.mappings.credkey="key"`, `credential-backend.creds.mappings.enable_password="enable"`,
 			`credential-backend.creds.mandatory-fields=["device_name", "address_cidr", "platform", "site", "device_group", "credkey", "username", "password", "enable_password"]`),
-		user(`credential-backend.creds.env-indirection.password=true`, `credential-backend.creds.transform="default"`),
+		user(`credential-backend.creds.transform="default"`),
 	} {
 		if _, err := load(sets...); err != nil {
 			t.Errorf("%v: %v", sets, err)
@@ -128,6 +128,9 @@ func TestCredentialCSVBackendKeys(t *testing.T) {
 		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.mode="header"`}, "config_credential_backend_key_unsupported"},
 		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.mandatory-fields=["username"]`}, "config_credential_backend_key_unsupported"},
 		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.mappings.username="login"`}, "config_credential_backend_key_unsupported"},
+		// A csv backend takes no env-indirection key: a cell names a variable
+		// as env:NAME.
+		{user(`credential-backend.creds.env-indirection.password=true`), "config_credential_backend_key_unsupported"},
 	} {
 		_, err := load(tc.sets...)
 		if got := errorcodes.Of(err); got != tc.code {

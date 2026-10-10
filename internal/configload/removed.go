@@ -5,8 +5,8 @@ package configload
 // A key that karvi once registered and has since removed is refused at load
 // with a code, from every layer that can set it (a file, the environment,
 // --set), so a site's configuration does not carry a setting that nothing
-// reads. The table below is the one place such keys are named in the code;
-// each row carries the key's path, the environment variable the registry
+// reads. The table below is the one place such keys are named in the code,
+// beside sqliteKeys for the fields of a dynamic table; each row carries the key's path, the environment variable the registry
 // gave it, the release that removed it, and the hint the refusal prints.
 // Restoration breadcrumbs, with the registry rows as they were, are kept
 // in the operator's private archive.
@@ -15,6 +15,8 @@ package configload
 // with (config_ssh_legacy_hosts_removed); every
 // later removal is refused as config_key_removed, and the message names the
 // key and the release, so one code serves every removal from here on.
+
+import "strings"
 
 // removedKey is one row of the removed-key table.
 type removedKey struct {
@@ -94,18 +96,33 @@ var removedKeys = []removedKey{
 	{path: "logging.file", environment: "KARVI__LOGGING__FILE", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "logging.file-required", environment: "KARVI__LOGGING__FILE_REQUIRED", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
-	// v0.30.0: the daemon's socket file became its socket directory, the
-	// daemon binding d.sock and c.sock in it under names of its own.
-	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: "v0.30.0", code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
+	// The release after v0.29.0: the daemon's socket file became its socket
+	// directory, the daemon binding d.sock and c.sock in it under names of
+	// its own. The sqlite credential backend type's keys left in the same
+	// release; they are fields of a dynamic table, matched by
+	// removedKeyByPath on any backend (sqliteKeys).
+	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: nextRelease, code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
 }
+
+// nextRelease names the release after v0.29.0, which first refuses the keys
+// marked with it: the number assigned at that release.
+const nextRelease = "v0.30.0"
+
+// sqliteKeys are the removed sqlite credential backend type's keys, refused
+// on any [credential-backend.NAME] table: the type had no driver, and nothing
+// read them.
+var sqliteKeys = []string{"table", "operator-column", "username-column", "password-column", "enable-column", "busy-timeout"}
+
+const sqliteHint = "the sqlite credential backend type had no driver and is removed; nothing read the key"
 
 // reviewRelease names the release that carries the configuration review:
 // v0.14.0, set when that number was assigned.
 const reviewRelease = "v0.14.0"
 
 // removedKeyByPath reports the removed key a file or --set names. The
-// per-platform session-cap pattern is matched by its prefix, since the
-// registry knew it as a dynamic table and not as fixed paths.
+// per-platform session-cap pattern is matched by its prefix, and the sqlite
+// keys on any backend table by their field, since the registry knew both as
+// dynamic tables and not as fixed paths.
 func removedKeyByPath(key string) (removedKey, bool) {
 	for _, r := range removedKeys {
 		if r.path == key {
@@ -114,6 +131,9 @@ func removedKeyByPath(key string) (removedKey, bool) {
 	}
 	if len(key) > len(platformCapsPrefix) && key[:len(platformCapsPrefix)] == platformCapsPrefix {
 		return removedKey{path: key, removedIn: reviewRelease, code: "config_key_removed", hint: "a device's session cap is its platform definition's, or the inventory row's"}, true
+	}
+	if parts := strings.SplitN(key, ".", 3); len(parts) == 3 && parts[0] == "credential-backend" && parts[1] != "" && contains(sqliteKeys, parts[2]) {
+		return removedKey{path: key, removedIn: nextRelease, code: "config_key_removed", hint: sqliteHint}, true
 	}
 	return removedKey{}, false
 }
