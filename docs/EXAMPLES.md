@@ -8162,7 +8162,8 @@ bytes from both builds. The evidence is kept beside the tree
 **Section B, one read per invocation.** Its issues, one at a time: what one
 invocation is and where its read sits; the shape every caller of
 `prepareConfig` takes in place of the options it loads from; the options that
-set a key for one invocation; the hook.
+set a key for one invocation; the hook; and, at the operator's word, the colour
+of a warning line.
 
 **Issue 1, what one invocation is and where its read sits, agreed.** On the lab
 build of `94c94f5`, a configuration holding an unknown key, a `--tf` decides
@@ -8335,3 +8336,41 @@ configuration again at its end (today's; an edit during the job changes the
 hook); the hook's path and timeout carried in the plan or the summary for the
 client to read back (the client holds the read the plan was made from, and the
 daemon never runs the hook).
+
+**Issue 5, a warning line in the warning colour, agreed.** The operator's word:
+a warning on the terminal takes the warning colour when colour is not off. A run
+at a terminal under `script(1)`, both load warnings raised and
+`--ssh-host-key-policy insecure`, its standard error under `cat -v`:
+
+```text
+warning: optional include missing: /dev/shm/k1/warn.toml:1 -> /dev/shm/k1/absent.toml
+warning: ignored unknown environment variable KARVI__NOPE
+^[[1;38;5;208m! ssh host-key policy insecure: unknown and changed keys accepted;^[[0m
+^[[1;38;5;208m!  connecting to devices with wrong keys and MITM attacks allowed^[[0m
+```
+
+The `!` lines take the warning role's colour, bold; the `warning:` lines are
+plain, and under `display.color=never` all four are. About twenty places write a
+plain `warning: …` line: `app.warning` and its callers, `targetInputs`, the
+recorded login's wrapper, the in-process job in `jobexec`, and
+`AdmissionWarningLines`.
+
+Every `warning: …` line on the operator's standard error takes the `warning`
+role's colour (`display.colors.warning`), the whole line and bold as the `!`
+lines, when colour is on by the display's one rule: `display.color` `auto` at a
+terminal unless `NO_COLOR` is set, `always` anywhere, `never` and a `nocolor`
+theme nowhere. Under `auto` a pipe or a file takes the plain line, and the words
+never change, so `2>&1 | grep warning:` reads as before. One function writes a
+warning line, taking the stream and the invocation's read, in place of
+`app.warning`, the command line's and `jobexec`'s own `warning:` writers, and
+`AdmissionWarningLines`' plain line; a load's warnings take the colour of the
+snapshot they came from, and a load that fails says none, as it does. The `!`
+lines, `daemon serve`'s log lines (`slog` text, never coloured), and `--quiet`'s
+keeping of warnings are unchanged; a recorded login's child writes through the
+descriptor to the wrapper's terminal and takes that terminal's colour. A test
+through `Main` holds the rule: the warning escape on each line under
+`display.color=always`, none under `never` or under `auto` off a terminal.
+*Not taken:* the word `warning:` alone coloured (the `!` lines colour the line);
+the load's warnings alone coloured (one kind of line in two looks); the colour
+decided by `output.ansi` (it governs the escapes of device output, and the `!`
+lines do not read it).
