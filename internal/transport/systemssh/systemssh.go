@@ -397,7 +397,9 @@ func (f Factory) renderConfig() (string, error) {
 	strict, userKnownHosts, globalKnownHosts := f.hostKey.OpenSSHSettings()
 	// The device's lists as this binary implements them, the host-key list
 	// filtered to the enrolled key types: an explicit list turns off
-	// OpenSSH's own preference for known key types.
+	// OpenSSH's own preference for known key types. A list the device's
+	// lists do not hold (ssh-algorithms.source "transport") has no line,
+	// so OpenSSH's defaults, or an included ~/.ssh/config's, apply.
 	offered := f.offered
 	if offered == nil {
 		var err error
@@ -407,10 +409,14 @@ func (f Factory) renderConfig() (string, error) {
 	}
 	b.WriteString("Host *\n")
 	fmt.Fprintf(&b, "  StrictHostKeyChecking %s\n", strict)
-	fmt.Fprintf(&b, "  HostKeyAlgorithms %s\n", strings.Join(offered[sshalgorithms.HostKey], ","))
-	fmt.Fprintf(&b, "  KexAlgorithms %s\n", strings.Join(offered[sshalgorithms.Kex], ","))
-	fmt.Fprintf(&b, "  Ciphers %s\n", strings.Join(offered[sshalgorithms.Ciphers], ","))
-	fmt.Fprintf(&b, "  MACs %s\n", strings.Join(offered[sshalgorithms.MACs], ","))
+	for _, list := range []struct {
+		option string
+		kind   sshalgorithms.Kind
+	}{{"HostKeyAlgorithms", sshalgorithms.HostKey}, {"KexAlgorithms", sshalgorithms.Kex}, {"Ciphers", sshalgorithms.Ciphers}, {"MACs", sshalgorithms.MACs}} {
+		if names, held := offered[list.kind]; held {
+			fmt.Fprintf(&b, "  %s %s\n", list.option, strings.Join(names, ","))
+		}
+	}
 	fmt.Fprintf(&b, "  UserKnownHostsFile %s\n", sshQuote(userKnownHosts))
 	fmt.Fprintf(&b, "  GlobalKnownHostsFile %s\n", sshQuote(globalKnownHosts))
 	yesno := func(v bool) string {

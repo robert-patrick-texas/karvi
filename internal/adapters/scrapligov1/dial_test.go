@@ -402,6 +402,9 @@ func TestXCryptoImplements(t *testing.T) {
 func TestDialAlgorithmLists(t *testing.T) {
 	absent := filepath.Join(t.TempDir(), "absent")
 	profile := func(p map[string]any) sshalgorithms.Lists { return sshalgorithms.Apply(sshalgorithms.Defaults(), p) }
+	// ssh-algorithms.source "transport": the host-key list alone, x/crypto's
+	// own key exchanges, ciphers, and MACs.
+	transport := sshalgorithms.Lists{sshalgorithms.HostKey: sshalgorithms.Defaults()[sshalgorithms.HostKey]}
 	cases := []struct {
 		name   string
 		device fakedevice.Options
@@ -415,6 +418,9 @@ func TestDialAlgorithmLists(t *testing.T) {
 		{"group1-only device, a profile appending group1", fakedevice.Options{KeyExchanges: []string{"diffie-hellman-group1-sha1"}}, profile(map[string]any{"kex-append": []any{"diffie-hellman-group1-sha1"}}), "", ""},
 		{"aes128-cbc device with ETM MACs, a profile appending aes128-cbc", fakedevice.Options{Ciphers: []string{"aes128-cbc"}, MACs: []string{"hmac-sha2-512-etm@openssh.com", "hmac-sha2-512"}}, profile(map[string]any{"ciphers-append": []any{"aes128-cbc"}}), "", ""},
 		{"a MAC the device lacks", fakedevice.Options{MACs: []string{"hmac-sha1-96"}, Ciphers: []string{"aes128-ctr"}}, profile(map[string]any{"ciphers-append": []any{"aes128-ctr"}}), "ssh_algorithm_negotiation_failed", "no MAC algorithm in common"},
+		{"legacy device, the transport's lists", fakedevice.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}}, transport, "", ""},
+		{"a device with only hmac-sha1-96, the transport's lists", fakedevice.Options{MACs: []string{"hmac-sha1-96"}, Ciphers: []string{"aes128-ctr"}}, transport, "", ""},
+		{"an aes128-cbc device, the transport's lists", fakedevice.Options{Ciphers: []string{"aes128-cbc"}}, transport, "ssh_algorithm_negotiation_failed", "no cipher algorithm in common: native offered aes128-gcm@openssh.com,aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr; the device offered aes128-cbc"},
 	}
 	for _, c := range cases {
 		srv := startFake(t, c.device)

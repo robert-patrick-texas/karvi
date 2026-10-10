@@ -396,7 +396,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 			return dispatch.Result{Task: task, Success: false, ErrorCode: code, External: false, StartedAt: start, EndedAt: time.Now()}
 		}
 		algorithms = chosen.Lists
-		e.debugf("device ssh algorithms target=%q %s", d.CanonicalName, describeAlgorithmSelection(chosen))
+		e.debugf("device ssh algorithms target=%q %s", d.CanonicalName, chosen.Describe())
 	}
 	cap := def.SessionCap
 	if d.SessionCap != nil {
@@ -756,14 +756,6 @@ func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms
 	default:
 		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
 	}
-}
-
-// describeAlgorithmSelection is the debug line's profile, rule, and lists.
-func describeAlgorithmSelection(s sshalgorithms.Selection) string {
-	if s.Rule < 0 {
-		return "profile=global " + s.Lists.Describe()
-	}
-	return fmt.Sprintf("profile=%s rule=ssh-algorithms-map.%d %s", s.Profile, s.Rule, s.Lists.Describe())
 }
 
 // selection resolves the transport the plan's target names: the slot the

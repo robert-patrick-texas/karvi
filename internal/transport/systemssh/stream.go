@@ -71,8 +71,10 @@ type sessionFailure struct {
 	// them as the changed key it is.
 	typesNotOffered func(offered []string) error
 	// offered are the algorithm lists the generated configuration offers,
-	// for a failed negotiation's message.
-	offered sshalgorithms.Lists
+	// for a failed negotiation's message; effective is OpenSSH's own for a
+	// list it does not hold.
+	offered   sshalgorithms.Lists
+	effective func() sshalgorithms.Lists
 	// aliveInterval and aliveCountMax are the generated configuration's
 	// ServerAliveInterval and ServerAliveCountMax, for the keepalive
 	// timeout's message.
@@ -89,7 +91,7 @@ func (f sessionFailure) classify(diagnostic string, cause error) error {
 			return f.typesNotOffered(offered)
 		}
 	}
-	if _, failure, ok := negotiationFailure(diagnostic, f.offered); ok {
+	if _, failure, ok := negotiationFailure(diagnostic, f.offered, f.effective); ok {
 		return failure
 	}
 	code, _, _, _ := classify(diagnostic, cause)

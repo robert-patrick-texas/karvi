@@ -93,12 +93,52 @@ var negotiationDiagnostic = regexp.MustCompile(`no matching (key exchange method
 
 // negotiationFailure reads OpenSSH's "Unable to negotiate ... no matching X
 // found. Their offer: ..." into ssh_algorithm_negotiation_failed; the host
-// key case under a filtered list is the caller's (host_key_changed).
-func negotiationFailure(diagnostic string, offered sshalgorithms.Lists) (sshalgorithms.Kind, error, bool) {
+// key case under a filtered list is the caller's (host_key_changed). A list
+// offered does not hold was OpenSSH's own, which effective gives as the
+// session's configuration made it.
+func negotiationFailure(diagnostic string, offered sshalgorithms.Lists, effective func() sshalgorithms.Lists) (sshalgorithms.Kind, error, bool) {
 	m := negotiationDiagnostic.FindStringSubmatch(diagnostic)
 	if m == nil {
 		return "", nil, false
 	}
 	kind := map[string]sshalgorithms.Kind{"key exchange method": sshalgorithms.Kex, "cipher": sshalgorithms.Ciphers, "MAC": sshalgorithms.MACs, "host key type": sshalgorithms.HostKey}[m[1]]
-	return kind, sshalgorithms.NegotiationFailed(kind, offered[kind], strings.Split(m[2], ",")), true
+	offerer, list := "karvi", offered[kind]
+	if _, held := offered[kind]; !held {
+		offerer, list = "system", nil
+		if effective != nil {
+			list = effective()[kind]
+		}
+	}
+	return kind, sshalgorithms.NegotiationFailed(kind, offerer, list, strings.Split(m[2], ",")), true
+}
+
+// effectiveQueries are ssh -G's names for the algorithm lists.
+var effectiveQueries = map[string]sshalgorithms.Kind{
+	"hostkeyalgorithms": sshalgorithms.HostKey,
+	"kexalgorithms":     sshalgorithms.Kex,
+	"ciphers":           sshalgorithms.Ciphers,
+	"macs":              sshalgorithms.MACs,
+}
+
+// effectiveAlgorithms is what OpenSSH's own evaluation of args (the
+// session's configuration and device) gives each list: ssh -G, the lists it
+// prints; none when it fails.
+func effectiveAlgorithms(cfg configload.Snapshot, binary string, args []string) sshalgorithms.Lists {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, binary, append([]string{"-G"}, args...)...)
+	cmd.Env = childEnvironment(cfg)
+	out, err := cmd.Output()
+	lists := sshalgorithms.Lists{}
+	if err != nil {
+		return lists
+	}
+	scanner := bufio.NewScanner(bytes.NewReader(out))
+	for scanner.Scan() {
+		key, value, _ := strings.Cut(scanner.Text(), " ")
+		if kind, ok := effectiveQueries[key]; ok {
+			lists[kind] = strings.Split(value, ",")
+		}
+	}
+	return lists
 }

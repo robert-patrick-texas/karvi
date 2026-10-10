@@ -4,11 +4,13 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
@@ -76,17 +78,78 @@ func TestGeneratedConfigOffersTheDeviceListsTheBinaryImplements(t *testing.T) {
 	}
 }
 
+// TestGeneratedConfigUnderTheTransportsSource: lists holding the host-key
+// list alone (ssh-algorithms.source "transport") write HostKeyAlgorithms and
+// no other algorithm line, so OpenSSH's own lists apply.
+func TestGeneratedConfigUnderTheTransportsSource(t *testing.T) {
+	home := t.TempDir()
+	cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: []string{"ssh.include-user-config=false", `ssh.host-key-policy="insecure"`, `ssh-algorithms.source="transport"`}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	selection, err := cfg.SelectSSHAlgorithms(matching.Fields{Name: "switch01"})
+	if err != nil || selection.Source != sshalgorithms.SourceTransport {
+		t.Fatalf("selection %+v %v", selection, err)
+	}
+	f := Factory{Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), Algorithms: selection.Lists}
+	if f.offered, err = f.offeredAlgorithms(binaryCapabilities(cfg, fakeQueryBinary(t)).implements); err != nil {
+		t.Fatal(err)
+	}
+	text, err := f.renderConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(text, "  HostKeyAlgorithms ssh-ed25519,") {
+		t.Fatalf("no host-key line:\n%s", text)
+	}
+	for _, option := range []string{"KexAlgorithms", "Ciphers", "MACs"} {
+		if strings.Contains(text, option) {
+			t.Fatalf("%s written under the transport's source:\n%s", option, text)
+		}
+	}
+}
+
+// TestEffectiveAlgorithms: ssh -G over the session's arguments gives
+// OpenSSH's own lists, by its names for them; a failing ssh -G gives none.
+func TestEffectiveAlgorithms(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(t.TempDir(), "ssh")
+	script := "#!/bin/sh\n[ \"$1 $2 $3\" = \"-G -F /cfg\" ] || exit 255\nprintf 'user operator\\nciphers chacha20-poly1305@openssh.com,aes128-ctr\\nkexalgorithms mlkem768x25519-sha256\\nmacs umac-64-etm@openssh.com\\nhostkeyalgorithms ssh-ed25519\\n'\n"
+	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	got := effectiveAlgorithms(cfg, bin, []string{"-F", "/cfg", "192.0.2.10"})
+	want := sshalgorithms.Lists{sshalgorithms.Ciphers: {"chacha20-poly1305@openssh.com", "aes128-ctr"}, sshalgorithms.Kex: {"mlkem768x25519-sha256"}, sshalgorithms.MACs: {"umac-64-etm@openssh.com"}, sshalgorithms.HostKey: {"ssh-ed25519"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("effective %v, want %v", got, want)
+	}
+	if got := effectiveAlgorithms(cfg, bin, []string{"-F", "/other", "192.0.2.10"}); len(got) != 0 {
+		t.Fatalf("a failing ssh -G gave %v", got)
+	}
+}
+
 func TestNegotiationFailureDiagnostic(t *testing.T) {
 	offered := sshalgorithms.Defaults()
-	kind, err, ok := negotiationFailure("Unable to negotiate with 192.0.2.10 port 22: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1,kex-strict-s-v00@openssh.com\r\n", offered)
+	kind, err, ok := negotiationFailure("Unable to negotiate with 192.0.2.10 port 22: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1,kex-strict-s-v00@openssh.com\r\n", offered, nil)
 	if !ok || kind != sshalgorithms.Kex || errorcodes.Of(err) != "ssh_algorithm_negotiation_failed" || !strings.Contains(err.Error(), "the device offered diffie-hellman-group1-sha1") {
 		t.Fatalf("%s %v %t", kind, err, ok)
 	}
-	if kind, _, ok := negotiationFailure("Unable to negotiate with 192.0.2.10 port 22: no matching cipher found. Their offer: aes128-cbc,3des-cbc", offered); !ok || kind != sshalgorithms.Ciphers {
+	if kind, _, ok := negotiationFailure("Unable to negotiate with 192.0.2.10 port 22: no matching cipher found. Their offer: aes128-cbc,3des-cbc", offered, nil); !ok || kind != sshalgorithms.Ciphers {
 		t.Fatalf("cipher: %s %t", kind, ok)
 	}
-	if _, _, ok := negotiationFailure("Permission denied (password).", offered); ok {
+	if _, _, ok := negotiationFailure("Permission denied (password).", offered, nil); ok {
 		t.Fatal("matched an authentication failure")
+	}
+	// A list karvi does not hold is OpenSSH's own, named as the system's.
+	transport := sshalgorithms.Lists{sshalgorithms.HostKey: offered[sshalgorithms.HostKey]}
+	effective := func() sshalgorithms.Lists {
+		return sshalgorithms.Lists{sshalgorithms.Ciphers: {"chacha20-poly1305@openssh.com", "aes128-ctr"}}
+	}
+	if _, err, ok := negotiationFailure("Unable to negotiate with 192.0.2.10 port 22: no matching cipher found. Their offer: aes256-cbc", transport, effective); !ok || !strings.HasSuffix(err.Error(), "no cipher algorithm in common: system offered chacha20-poly1305@openssh.com,aes128-ctr; the device offered aes256-cbc") {
+		t.Fatalf("under the transport's source: %v %t", err, ok)
 	}
 }
 

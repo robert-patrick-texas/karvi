@@ -424,7 +424,7 @@ func (c *connection) keyboardInteractive(_, _ string, questions []string, _ []bo
 	return answers, nil
 }
 
-var noCommonAlgorithm = regexp.MustCompile(`no common algorithm for (key exchange|host key|client to server cipher|server to client cipher|client to server MAC|server to client MAC); client offered: \[[^\]]*\], server offered: \[([^\]]*)\]`)
+var noCommonAlgorithm = regexp.MustCompile(`no common algorithm for (key exchange|host key|client to server cipher|server to client cipher|client to server MAC|server to client MAC); client offered: \[([^\]]*)\], server offered: \[([^\]]*)\]`)
 
 // offer is the device's lists filtered to what the vendored x/crypto
 // implements; when the cipher offer holds aes128-cbc the encrypt-then-MAC
@@ -498,7 +498,7 @@ func (c *connection) handshakeError(target string, port int, err error) error {
 	switch {
 	case noCommonAlgorithm.MatchString(text):
 		m := noCommonAlgorithm.FindStringSubmatch(text)
-		deviceOffer := strings.Fields(m[2])
+		deviceOffer := strings.Fields(m[3])
 		kind := map[string]sshalgorithms.Kind{"key exchange": sshalgorithms.Kex, "host key": sshalgorithms.HostKey}[m[1]]
 		switch {
 		case strings.HasSuffix(m[1], "cipher"):
@@ -512,7 +512,13 @@ func (c *connection) handshakeError(target string, port int, err error) error {
 				return hostkey.TypesNotOffered(c.req.Policy, identity, deviceOffer)
 			}
 		}
-		return sshalgorithms.NegotiationFailed(kind, c.offered[kind], deviceOffer)
+		// A list karvi did not hold was x/crypto's own, which its error
+		// names.
+		offerer, offered := "karvi", c.offered[kind]
+		if _, held := c.offered[kind]; !held {
+			offerer, offered = "native", strings.Fields(m[2])
+		}
+		return sshalgorithms.NegotiationFailed(kind, offerer, offered, deviceOffer)
 	case strings.Contains(text, "unable to authenticate"):
 		return errorcodes.Errorf("authentication_failed", "SSH authentication failed for %s at %s: %v", c.req.Username, target, err)
 	case errors.Is(err, os.ErrDeadlineExceeded):

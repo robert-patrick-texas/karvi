@@ -13,6 +13,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/askpass"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 )
 
 // synchronizedBuffer collects bounded OpenSSH diagnostics from stderr while
@@ -153,6 +154,9 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 // against.
 func (d *Driver) sessionFailure() sessionFailure {
 	f := sessionFailure{offered: d.f.offered,
+		effective: func() sshalgorithms.Lists {
+			return effectiveAlgorithms(d.f.Config, d.binary, append(d.hostArgs(), d.req.Address))
+		},
 		aliveInterval: time.Duration(ceilSeconds(d.f.Config.Duration("ssh.server-alive-interval"))) * time.Second, aliveCountMax: d.f.Config.Int("ssh.server-alive-count-max")}
 	if policy := d.f.hostKey; policy.Mode != hostkey.Insecure {
 		if types, err := hostkey.EnrolledTypes(policy.KnownHostsFile, d.f.hostKeyIdentity); err == nil && len(types) > 0 {

@@ -221,11 +221,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult(errorcodes.Of(err), err)
 	}
-	if algorithms.Rule < 0 {
-		debug(fmt.Sprintf("login ssh algorithms target=%q profile=global %s", d.CanonicalName, algorithms.Lists.Describe()))
-	} else {
-		debug(fmt.Sprintf("login ssh algorithms target=%q profile=%s rule=ssh-algorithms-map.%d %s", d.CanonicalName, algorithms.Profile, algorithms.Rule, algorithms.Lists.Describe()))
-	}
+	debug(fmt.Sprintf("login ssh algorithms target=%q %s", d.CanonicalName, algorithms.Describe()))
 	factory := systemssh.Factory{Binary: selection.Binary, Config: cfg, ScratchDir: scratch, ControlRoot: controlRoot, Home: operator.Home, BaseDir: base, MaxOutputBytes: cfg.Int64("output.max-command-bytes"), Debug: debug, Algorithms: algorithms.Lists}
 	// Under insecure the policy's two lines, once, before any contact; what
 	// the transport finds of the device's key (a key differing from the

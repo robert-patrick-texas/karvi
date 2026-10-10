@@ -137,6 +137,42 @@ func TestCheckProfileSource(t *testing.T) {
 	}
 }
 
+// TestSelectSource: a device's source is its profile's when the profile
+// sets one, else the global one (karvi's when empty); under the transport's
+// the lists hold the host-key list alone, the profile's host-key form
+// applied, and Offer and Describe pass over the lists not held.
+func TestSelectSource(t *testing.T) {
+	global := Defaults()
+	profiles := map[string]map[string]any{
+		"routers": {"source": SourceKarvi, "kex-append": []any{"diffie-hellman-group1-sha1"}},
+		"servers": {"source": SourceTransport, "host-key": []any{"ssh-ed25519"}},
+	}
+	rules := []map[string]any{{"profile": "routers", "site": "core"}, {"profile": "servers", "platform": "linux"}}
+	for _, c := range []struct {
+		source, site, platform string
+		want                   Selection
+	}{
+		{"", "edge", "cisco_iosxe", Selection{Lists: global, Rule: -1, Source: SourceKarvi}},
+		{SourceTransport, "edge", "cisco_iosxe", Selection{Lists: Lists{HostKey: global[HostKey]}, Rule: -1, Source: SourceTransport}},
+		{SourceTransport, "core", "cisco_iosxe", Selection{Lists: Apply(global, profiles["routers"]), Profile: "routers", Rule: 0, Source: SourceKarvi}},
+		{SourceKarvi, "edge", "linux", Selection{Lists: Lists{HostKey: {"ssh-ed25519"}}, Profile: "servers", Rule: 1, Source: SourceTransport}},
+	} {
+		got, err := Select(global, c.source, profiles, rules, matching.Fields{Name: "d1", Site: c.site, Platform: c.platform})
+		if err != nil || !reflect.DeepEqual(got, c.want) {
+			t.Errorf("source %q site %s platform %s: %+v %v, want %+v", c.source, c.site, c.platform, got, err, c.want)
+		}
+	}
+	transport := Lists{HostKey: global[HostKey]}
+	offered, err := transport.Offer("system", func(Kind, string) bool { return true })
+	if err != nil || !reflect.DeepEqual(offered, transport) {
+		t.Fatalf("offered %v %v", offered, err)
+	}
+	s := Selection{Lists: transport, Rule: -1, Source: SourceTransport}
+	if got := s.Describe(); got != "profile=global source=transport host-key="+strings.Join(global[HostKey], ",") {
+		t.Fatalf("describe %q", got)
+	}
+}
+
 func TestSelect(t *testing.T) {
 	global := Defaults()
 	profiles := map[string]map[string]any{
@@ -150,20 +186,20 @@ func TestSelect(t *testing.T) {
 		{"profile": "lab2", "address-cidr": "192.0.2.0/25"},
 	}
 	f := matching.Fields{Name: "r1", Address: netip.MustParseAddr("198.51.100.1"), Groups: []string{"core"}}
-	s, err := Select(global, profiles, rules, f)
+	s, err := Select(global, "", profiles, rules, f)
 	if err != nil || s.Profile != "" || s.Rule != -1 || !reflect.DeepEqual(s.Lists, global) {
 		t.Fatalf("unmatched: %+v %v", s, err)
 	}
 	f.Groups = []string{"legacy"}
-	if s, err = Select(global, profiles, rules, f); err != nil || s.Profile != "old" || s.Rule != 0 || s.Lists[Ciphers][len(s.Lists[Ciphers])-1] != "aes128-ctr" {
+	if s, err = Select(global, "", profiles, rules, f); err != nil || s.Profile != "old" || s.Rule != 0 || s.Lists[Ciphers][len(s.Lists[Ciphers])-1] != "aes128-ctr" {
 		t.Fatalf("group rule: %+v %v", s, err)
 	}
 	f.Groups, f.Address = nil, netip.MustParseAddr("192.0.2.10")
-	if s, err = Select(global, profiles, rules, f); err != nil || s.Profile != "lab2" {
+	if s, err = Select(global, "", profiles, rules, f); err != nil || s.Profile != "lab2" {
 		t.Fatalf("longest prefix: %+v %v", s, err)
 	}
 	rules = append(rules, map[string]any{"profile": "lab", "address-cidr": "192.0.2.0/25"})
-	if _, err = Select(global, profiles, rules, f); errorcodes.Of(err) != "ssh_algorithms_map_ambiguous" || !strings.Contains(err.Error(), "ssh-algorithms-map.2, ssh-algorithms-map.3") {
+	if _, err = Select(global, "", profiles, rules, f); errorcodes.Of(err) != "ssh_algorithms_map_ambiguous" || !strings.Contains(err.Error(), "ssh-algorithms-map.2, ssh-algorithms-map.3") {
 		t.Fatalf("ambiguous: %v", err)
 	}
 }
@@ -181,7 +217,7 @@ func TestOffer(t *testing.T) {
 }
 
 func TestNegotiationFailed(t *testing.T) {
-	err := NegotiationFailed(Kex, []string{"curve25519-sha256"}, []string{"diffie-hellman-group1-sha1", "kex-strict-s-v00@openssh.com"})
+	err := NegotiationFailed(Kex, "karvi", []string{"curve25519-sha256"}, []string{"diffie-hellman-group1-sha1", "kex-strict-s-v00@openssh.com"})
 	if errorcodes.Of(err) != "ssh_algorithm_negotiation_failed" || !strings.HasSuffix(err.Error(), "no key exchange algorithm in common: karvi offered curve25519-sha256; the device offered diffie-hellman-group1-sha1") {
 		t.Fatalf("%v", err)
 	}

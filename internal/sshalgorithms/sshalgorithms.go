@@ -100,7 +100,9 @@ func Classify(kind Kind, name string) Class {
 	return Unknown
 }
 
-// Lists is one set of the four lists.
+// Lists is one set of the four lists. A list it does not hold is the
+// transport's own (a device whose source is SourceTransport holds the
+// host-key list alone).
 type Lists map[Kind][]string
 
 // Defaults is a copy of the global defaults.
@@ -235,12 +237,26 @@ type Selection struct {
 	Lists   Lists
 	Profile string // "" for the global section
 	Rule    int    // the map rule's index; -1 for the global section
+	Source  string // SourceKarvi or SourceTransport
+}
+
+// Describe is the selection for a debug line: the profile and its rule,
+// the source, and the lists karvi offers.
+func (s Selection) Describe() string {
+	where := "profile=global"
+	if s.Rule >= 0 {
+		where = fmt.Sprintf("profile=%s rule=ssh-algorithms-map.%d", s.Profile, s.Rule)
+	}
+	return where + " source=" + s.Source + " " + s.Lists.Describe()
 }
 
 // Select chooses a device's lists: the profile of the map rule the shared
-// matcher selects for f, else the global lists. Two address-cidr rules of
-// equal longest prefix are ssh_algorithms_map_ambiguous.
-func Select(global Lists, profiles map[string]map[string]any, rules []map[string]any, f matching.Fields) (Selection, error) {
+// matcher selects for f, else the global lists; and the source, the
+// profile's when it sets one, else source (ssh-algorithms.source, karvi's
+// when empty). Under SourceTransport the lists hold the host-key list
+// alone. Two address-cidr rules of equal longest prefix are
+// ssh_algorithms_map_ambiguous.
+func Select(global Lists, source string, profiles map[string]map[string]any, rules []map[string]any, f matching.Fields) (Selection, error) {
 	i, err := matching.Select(rules, f)
 	if err != nil {
 		var ambiguous *matching.AmbiguousError
@@ -253,20 +269,34 @@ func Select(global Lists, profiles map[string]map[string]any, rules []map[string
 		}
 		return Selection{}, errorcodes.Errorf("config_match_rule_pattern_invalid", "ssh-algorithms-map: %v", err)
 	}
-	if i < 0 {
-		return Selection{Lists: global.Clone(), Rule: -1}, nil
+	if source == "" {
+		source = SourceKarvi
 	}
-	name, _ := rules[i]["profile"].(string)
-	return Selection{Lists: Apply(global, profiles[name]), Profile: name, Rule: i}, nil
+	s := Selection{Lists: global.Clone(), Rule: -1, Source: source}
+	if i >= 0 {
+		s.Profile, _ = rules[i]["profile"].(string)
+		s.Lists, s.Rule = Apply(global, profiles[s.Profile]), i
+		if own, ok := profiles[s.Profile]["source"].(string); ok {
+			s.Source = own
+		}
+	}
+	if s.Source == SourceTransport {
+		s.Lists = Lists{HostKey: s.Lists[HostKey]}
+	}
+	return s, nil
 }
 
 // Offer is the lists filtered, in order, to the names a transport
-// implements. A list left empty is ssh_algorithms_unavailable naming the
-// list and the transport.
+// implements; a list l does not hold stays the transport's own. A list left
+// empty is ssh_algorithms_unavailable naming the list and the transport.
 func (l Lists) Offer(transport string, implements func(Kind, string) bool) (Lists, error) {
 	out := Lists{}
 	for _, k := range Kinds {
-		for _, name := range l[k] {
+		names, held := l[k]
+		if !held {
+			continue
+		}
+		for _, name := range names {
 			if implements(k, name) {
 				out[k] = append(out[k], name)
 			}
@@ -278,19 +308,22 @@ func (l Lists) Offer(transport string, implements func(Kind, string) bool) (List
 	return out, nil
 }
 
-// Describe is the lists for a debug line.
+// Describe is the lists held for a debug line.
 func (l Lists) Describe() string {
 	parts := make([]string, 0, len(Kinds))
 	for _, k := range Kinds {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, strings.Join(l[k], ",")))
+		if names, held := l[k]; held {
+			parts = append(parts, fmt.Sprintf("%s=%s", k, strings.Join(names, ",")))
+		}
 	}
 	return strings.Join(parts, " ")
 }
 
 // NegotiationFailed is ssh_algorithm_negotiation_failed for a list the
-// device offered nothing of.
-func NegotiationFailed(kind Kind, offered, deviceOffer []string) error {
-	return errorcodes.Errorf("ssh_algorithm_negotiation_failed", "no %s algorithm in common: karvi offered %s; the device offered %s", kind.Label(), strings.Join(offered, ","), strings.Join(cleanOffer(deviceOffer), ","))
+// device offered nothing of: offerer is "karvi" for karvi's list, else the
+// transport whose own list it was.
+func NegotiationFailed(kind Kind, offerer string, offered, deviceOffer []string) error {
+	return errorcodes.Errorf("ssh_algorithm_negotiation_failed", "no %s algorithm in common: %s offered %s; the device offered %s", kind.Label(), offerer, strings.Join(offered, ","), strings.Join(cleanOffer(deviceOffer), ","))
 }
 
 // cleanOffer drops the protocol markers a key-exchange offer carries.
