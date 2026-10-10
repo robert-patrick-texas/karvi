@@ -1110,7 +1110,8 @@ unread under its devices' source is
 `config_ssh_algorithms_profile_lists_unread`, while the global lists stay valid
 under either. The device's debug line says the source, and a negotiation failure
 under `transport` names the transport's own offer, x/crypto's from its error,
-OpenSSH's from one `ssh -G` with the session's arguments. *Why:* the system
+OpenSSH's from `ssh -G` with the session's arguments, run at most once per job
+and binary, every later failure of the job taking its lists. *Why:* the system
 transport following OpenSSH's choices as OpenSSH changes them, an included
 `~/.ssh/config` able to set the lists, and a device that `ssh` reaches compared
 without karvi's lists; a site that needs karvi's refusals keeps `karvi`, and

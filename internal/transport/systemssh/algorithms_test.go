@@ -131,6 +131,51 @@ func TestEffectiveAlgorithms(t *testing.T) {
 	}
 }
 
+// TestEffectiveListsOncePerJob: two devices of one job whose negotiation
+// fails on a list OpenSSH chose start one ssh -G and name the same lists;
+// another job starts its own; without a job's cache each failure starts
+// one; an ssh -G that gives nothing names the transport's own list.
+func TestEffectiveListsOncePerJob(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	calls := filepath.Join(dir, "calls")
+	bin := filepath.Join(dir, "ssh")
+	script := "#!/bin/sh\necho \"$*\" >>" + calls + "\n[ \"$1 $2 $3\" = \"-G -F /cfg\" ] || exit 255\nprintf 'ciphers chacha20-poly1305@openssh.com,aes128-ctr\\n'\n"
+	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	count := func() int {
+		data, _ := os.ReadFile(calls)
+		return strings.Count(string(data), "\n")
+	}
+	transport := sshalgorithms.Lists{sshalgorithms.HostKey: {"ssh-ed25519"}}
+	fail := func(job *EffectiveLists, address, configPath string) error {
+		d := &Driver{f: Factory{Config: cfg, Effective: job, offered: transport}, req: platform.OpenRequest{Address: address, Port: 22, Username: "operator"}, binary: bin, configPath: configPath}
+		return d.sessionFailure().classify("Unable to negotiate with "+address+" port 22: no matching cipher found. Their offer: aes256-cbc", nil)
+	}
+	job := &EffectiveLists{}
+	for _, address := range []string{"192.0.2.10", "192.0.2.11"} {
+		if err := fail(job, address, "/cfg"); !strings.HasSuffix(err.Error(), "system offered chacha20-poly1305@openssh.com,aes128-ctr; the device offered aes256-cbc") {
+			t.Fatalf("%s: %v", address, err)
+		}
+	}
+	if n := count(); n != 1 {
+		t.Fatalf("one job's two failures started %d ssh -G", n)
+	}
+	_ = fail(&EffectiveLists{}, "192.0.2.12", "/cfg")
+	_ = fail(nil, "192.0.2.13", "/cfg")
+	_ = fail(nil, "192.0.2.14", "/cfg")
+	if n := count(); n != 4 {
+		t.Fatalf("another job and two uncached failures: %d ssh -G in all, want 4", n)
+	}
+	if err := fail(nil, "192.0.2.15", "/other"); !strings.HasSuffix(err.Error(), "system offered its own list; the device offered aes256-cbc") {
+		t.Fatalf("an ssh -G that gave nothing: %v", err)
+	}
+}
+
 func TestNegotiationFailureDiagnostic(t *testing.T) {
 	offered := sshalgorithms.Defaults()
 	kind, err, ok := negotiationFailure("Unable to negotiate with 192.0.2.10 port 22: no matching key exchange method found. Their offer: diffie-hellman-group1-sha1,kex-strict-s-v00@openssh.com\r\n", offered, nil)

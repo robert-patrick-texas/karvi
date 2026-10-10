@@ -321,9 +321,13 @@ func (l Lists) Describe() string {
 
 // NegotiationFailed is ssh_algorithm_negotiation_failed for a list the
 // device offered nothing of: offerer is "karvi" for karvi's list, else the
-// transport whose own list it was.
+// transport whose own list it was, "its own list" when it could not be read.
 func NegotiationFailed(kind Kind, offerer string, offered, deviceOffer []string) error {
-	return errorcodes.Errorf("ssh_algorithm_negotiation_failed", "no %s algorithm in common: %s offered %s; the device offered %s", kind.Label(), offerer, strings.Join(offered, ","), strings.Join(cleanOffer(deviceOffer), ","))
+	list := strings.Join(offered, ",")
+	if list == "" {
+		list = "its own list"
+	}
+	return errorcodes.Errorf("ssh_algorithm_negotiation_failed", "no %s algorithm in common: %s offered %s; the device offered %s", kind.Label(), offerer, list, strings.Join(cleanOffer(deviceOffer), ","))
 }
 
 // cleanOffer drops the protocol markers a key-exchange offer carries.

@@ -43,6 +43,9 @@ type Factory struct {
 	// Algorithms are the device's algorithm lists; empty means the
 	// configuration's global lists.
 	Algorithms sshalgorithms.Lists
+	// Effective is the job's evaluation of OpenSSH's own lists, shared by
+	// its devices; nil evaluates for each failure.
+	Effective *EffectiveLists
 	// hostKeyIdentity is the device's host-key identity, passed to OpenSSH
 	// as HostKeyAlias; it filters the offered
 	// host-key algorithms.

@@ -155,7 +155,9 @@ func (d *Driver) startShell(ctx context.Context) (*processStream, *askpass.Broke
 func (d *Driver) sessionFailure() sessionFailure {
 	f := sessionFailure{offered: d.f.offered,
 		effective: func() sshalgorithms.Lists {
-			return effectiveAlgorithms(d.f.Config, d.binary, append(d.hostArgs(), d.req.Address))
+			return d.f.Effective.get(d.binary, func() sshalgorithms.Lists {
+				return effectiveAlgorithms(d.f.Config, d.binary, append(d.hostArgs(), d.req.Address))
+			})
 		},
 		aliveInterval: time.Duration(ceilSeconds(d.f.Config.Duration("ssh.server-alive-interval"))) * time.Second, aliveCountMax: d.f.Config.Int("ssh.server-alive-count-max")}
 	if policy := d.f.hostKey; policy.Mode != hostkey.Insecure {

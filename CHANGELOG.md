@@ -88,7 +88,8 @@
   setting only `source` is no longer `config_ssh_algorithms_profile_empty`. The
   device's debug line says `source=`, and a negotiation failure under the
   setting names `native offered …` or `system offered …` where it said `karvi
-  offered …`. The configuration registry stays at 29.
+  offered …`, the system transport's list read by `ssh -G` at most once per job.
+  The configuration registry stays at 29.
 - **An alias stored as its value.** `dispatch.order = "name"` is stored as
   `sorted`, so `config show` says `sorted` and the configuration digest is
   `sorted`'s, where the two spellings gave two digests;

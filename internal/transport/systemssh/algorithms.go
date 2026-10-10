@@ -112,6 +112,34 @@ func negotiationFailure(diagnostic string, offered sshalgorithms.Lists, effectiv
 	return kind, sshalgorithms.NegotiationFailed(kind, offerer, list, strings.Split(m[2], ",")), true
 }
 
+// EffectiveLists is one job's evaluation of OpenSSH's own lists: ssh -G
+// runs at most once per binary, for the job's first negotiation failure on
+// a list OpenSSH chose, and every later one takes its lists, which are the
+// same for every device of the job (karvi writes no such list under
+// ssh-algorithms.source "transport"). A nil one runs ssh -G each time.
+type EffectiveLists struct {
+	mu       sync.Mutex
+	byBinary map[string]sshalgorithms.Lists
+}
+
+// get is binary's lists, from evaluate the first time.
+func (e *EffectiveLists) get(binary string, evaluate func() sshalgorithms.Lists) sshalgorithms.Lists {
+	if e == nil {
+		return evaluate()
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if lists, ok := e.byBinary[binary]; ok {
+		return lists
+	}
+	if e.byBinary == nil {
+		e.byBinary = map[string]sshalgorithms.Lists{}
+	}
+	lists := evaluate()
+	e.byBinary[binary] = lists
+	return lists
+}
+
 // effectiveQueries are ssh -G's names for the algorithm lists.
 var effectiveQueries = map[string]sshalgorithms.Kind{
 	"hostkeyalgorithms": sshalgorithms.HostKey,

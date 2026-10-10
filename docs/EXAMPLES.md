@@ -8977,3 +8977,19 @@ setting algorithms per `Host`, a later failure names the first failing device's
 lists, a known limit. *Not taken:* once per process, as `ssh -Q` is cached (in
 the daemon its whole lifetime, an upgrade or an edit not reaching later jobs);
 the list left out of the message (issue 5's comparison).
+
+**S4 built, the amendment.** `systemssh.EffectiveLists`, one per job on the
+executor, is given to each of the job's system factories: the first negotiation
+failure on a list OpenSSH chose runs `ssh -G` for its binary, and every later
+one takes its lists; `login`'s factory has none, its one session evaluating
+once. An `ssh -G` that gives nothing is named as the transport's own list
+(`system offered its own list`). `TestEffectiveListsOncePerJob`, through the
+session's failure path: two devices of one job start one `ssh -G`, another job
+its own, and two failures without a job's cache two.
+
+**Executed.** A run of two inventory devices, both 127.0.0.1:2222, under
+`"transport"` against the sshd offering only `aes256-cbc`, OpenSSH named through
+a wrapper logging its calls: both devices fail with `system offered
+chacha20-poly1305@openssh.com,…,aes256-ctr`, and `ssh -G` was started twice by
+the build before S4 and once by S4's. The full battery passed on the lab build
+of S4, all 17 suites, leaving no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`.

@@ -120,6 +120,9 @@ type Options struct {
 type DeviceExecutor struct {
 	opts Options
 	ping pingStats
+	// effective is the job's one evaluation of OpenSSH's own algorithm
+	// lists, for the system transport's negotiation failures.
+	effective *systemssh.EffectiveLists
 }
 
 // pingStats accumulates the summary's ping block.
@@ -166,7 +169,9 @@ func (e *DeviceExecutor) PingSummary() *records.PingSummary {
 	return &out
 }
 
-func New(opts Options) *DeviceExecutor { return &DeviceExecutor{opts: opts} }
+func New(opts Options) *DeviceExecutor {
+	return &DeviceExecutor{opts: opts, effective: &systemssh.EffectiveLists{}}
+}
 
 func (e *DeviceExecutor) debugf(format string, args ...any) {
 	if e.opts.Debug != nil {
@@ -750,7 +755,7 @@ func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms
 	limit := e.maxCommandBytes()
 	switch selection.Kind {
 	case transportselect.KindSystem:
-		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
+		return systemssh.Factory{Binary: selection.Binary, Config: e.opts.Config, ScratchDir: e.opts.ScratchDir, ControlRoot: e.opts.ControlRoot, Home: e.opts.Home, BaseDir: e.opts.BaseDir, AskpassPath: e.opts.AskpassPath, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms, Effective: e.effective}
 	case transportselect.KindTelnet:
 		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: limit}
 	default:
