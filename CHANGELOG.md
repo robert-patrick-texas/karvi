@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking: `daemon.socket` replaced by the socket directory
+  `daemon.sockets`.** The daemon binds `d.sock` and the credential channel's
+  `c.sock`, until now `daemon.sock` and `credentials.sock`, in
+  `daemon.sockets`, whose `auto` is `<basedir>/socket` as before; two
+  `basedir`s naming one directory reach one daemon. The directory may be at
+  most 100 bytes, so that each socket's path fits 107 (under `auto`, a
+  `basedir` of at most 93): a longer one is refused with
+  `daemon_socket_too_long` (exit 2) wherever the daemon is reached or started,
+  before anything is made, where a run waited out `daemon.start-timeout` and
+  exited 112 with the cause in `daemon.log` alone. A file, an environment
+  variable, or `--set` naming `daemon.socket` is refused with
+  `config_key_removed`. The lifecycle replay gives the older daemon
+  `daemon.socket` at the new client's `d.sock`. The configuration registry
+  moves from 28 to 29.
+
 ## 0.29.0 - 2026-10-09
 
 A minor release on 0.28.0. The configuration registry moves from 27 to 28, the

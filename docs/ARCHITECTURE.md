@@ -249,9 +249,9 @@ implementation without a registered provider is
 
 The daemon is per effective UID, uses two owner-only Unix sockets in the
 `socket` subtree, and checks peer credentials on both. Protocol schema 9 carries
-`prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `daemon.sock`
+`prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `d.sock`
 beside the lifecycle operations of schemas 3 and 4, and the credential package
-crosses `credentials.sock` as one length-prefixed frame per connection under a
+crosses `c.sock` as one length-prefixed frame per connection under a
 one-use token; `submit_job` is gone. The daemon holds at most 128 preparations
 for ten minutes each, retains 1,024 commit receipts for idempotent replay, logs
 one `slog` line per request outcome to `logs/daemon.log` with the token

@@ -7770,3 +7770,54 @@ site's scratch root nor under a `basedir` over 65; one directory would carry
 two rules for a length too long, passed by and refused; and the sockets live as
 long as the daemon in a directory whose name invites clearing, after which the
 next client finds no `d.sock` and starts a second daemon on the `basedir`.
+
+**Built.** `osutil.DaemonSockets` resolves `daemon.sockets`, beside
+`DaemonSocketName` (`d.sock`), `CredentialSocketName` (`c.sock`, moved from the
+daemon), and `MaxDaemonSocketDir`, 100; a longer directory is
+`daemon_socket_too_long` (config, exit 2), its remedy under `auto` a `basedir`
+of at most 93 or a shorter `daemon.sockets`, and for an explicit directory a
+shorter `daemon.sockets`. `ResolveDaemonRuntime` resolves it before the state
+tree. `daemon.socket` is refused as removed in v0.30.0, its hint naming
+`daemon.sockets`; the configuration registry moves from 28 to 29, the
+verifiers with it, and the K03 draft is re-pinned, the key and the
+configuration digest alone moving. `removeStaleSocket`'s unread `uid` is gone.
+`TestDaemonSocketsBounded` binds both names under a 100-byte directory, fails
+to bind one byte more, and drives the resolver at the bound and one over,
+explicit and under `auto`. The scripts take the new names; the lifecycle
+replay gives the older daemon `daemon.socket` at the new client's `d.sock`, a
+prior knowing only the file key.
+
+**Executed.** On a lab build, every place under a short lab directory, the
+same `run` as the evidence's:
+
+| Case | Result |
+|---|---|
+| `basedir` 93, `auto` | ran, exit 0; `c.sock` and `d.sock` in `<basedir>/socket` |
+| `basedir` 94 | exit 2 in 0.03 s, nothing made under the `basedir` |
+| `basedir` 94: `daemon start`, `status`, `stop` | exit 2 each, the same text |
+| explicit directory of 100 bytes, of 101 | ran, exit 0; exit 2, the directory not made |
+| `--set daemon.socket=…` | exit 2, `config_key_removed` |
+| two `basedir`s naming one directory | the second's run reached the first's daemon at once, its job under its own `basedir` |
+| the lifecycle replay against the released v0.28.0 | pass, no host place made |
+
+```text
+daemon_socket_too_long: the daemon's socket directory /dev/shm/kd/xyy…yz/socket
+is 101 bytes; the daemon binds d.sock and c.sock there, each path within 107
+bytes, so the directory may be at most 100 bytes; daemon.sockets is auto,
+<basedir>/socket: set basedir to a directory of at most 93 bytes, or
+daemon.sockets to a shorter directory
+$ karvi config show daemon.sockets --explain    # the same basedir
+resolved:   error: daemon_socket_too_long: the daemon's socket directory …
+$ karvi --set 'daemon.socket="/dev/shm/kd/sd/d.sock"' daemon status
+config_key_removed: removed in v0.30.0; daemon.sockets names the daemon's
+socket directory, where it binds d.sock and c.sock for daemon.socket at
+--set[10]
+```
+
+`go test ./...` passed, and the socket packages under a 25- and a 145-byte
+`TMPDIR`. The evidence is kept beside the tree
+(`release-design-evidence/daemon-socket-length-2026-10-10`).
+
+**Closed.** The full battery passed on a lab build of `0bda08d`, leaving no
+`/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The ROADMAP's Next is empty; the
+operator chooses the next item from Later.

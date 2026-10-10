@@ -294,7 +294,7 @@ naming its own trust store:
 
 ```text
 $ karvi --set ssh.known-hosts-file=kh1/known_hosts run --target 127.0.0.1 --platform linux --cmd 'echo 1'
-daemon started socket=…/socket/daemon.sock
+daemon started socket=…/socket/d.sock
 ! ssh accepted new host-key 127.0.0.1 (ED25519)
 1
 $ karvi --set ssh.known-hosts-file=kh2/known_hosts run --target 127.0.0.1 --platform linux --cmd 'echo 2'
@@ -933,7 +933,7 @@ shared`, which reports it `repaired`.
 **The operators' roots.** Once `/opt/karvi/users` exists, an operator's
 first activity that needs the private root creates
 `/opt/karvi/users/<username>` (0750) and every later one uses it: the
-daemon's socket and state, the logs, and the jobs and transcripts a site
+daemon's sockets and state, the logs, and the jobs and transcripts a site
 without shared trees keeps there. The name is the operator's username, so
 an administrator reads the tree without a lookup. A `users` directory the
 site did not provision is never created by karvi, and the operator's root

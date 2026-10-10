@@ -77,7 +77,7 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   projection; the k03 assertions on `dispatch_order` and `shuffle_key`
   read them inside the plan's dispatch block.
 - A daemon-backed run passes through `prepare_job`, the credential frame
-  on `socket/credentials.sock`, and `commit_job`; the canary suite's
+  on `socket/c.sock`, and `commit_job`; the canary suite's
   daemon-backed row finds the canary on no JSON socket, log, or artifact.
 - A resolution or credential failure on any target refuses the run before
   a job directory exists; `--address-authority daemon` without

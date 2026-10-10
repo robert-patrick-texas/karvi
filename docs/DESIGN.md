@@ -1026,18 +1026,18 @@ an earlier release (the operator re-enrolls under `accept-new`).
 whose value is a place karvi writes or reads has a `resolved: PATH` line, the
 path the operator's next activity would use: `basedir`, the trust store, the
 three trees, `tempdir`, `spooldir`, the control sockets, `scoreboards`, the
-ledger's root, the daemon's socket, and, when set, `audit.file`, the inventory
-sources' and the credential backends' files; an explicit value has it too, an
-empty one none. Each chain is found by its own chooser, the one the activity's
-maker calls, without creating anything: a candidate present is judged by
-`access(2)`, its owner and mode where the place is private, and the free inodes
-of its filesystem; one absent is the folder the activity would make where its
-rule lets it. A candidate present and passed by adds a `passed:` line with the
-reason, in the activity's words where it warns, and so does a scratch candidate
-too long for the askpass socket, present or not; a refusal is `resolved:
-error: CODE: message`, and the view exits 0. The lines come from the
+ledger's root, the daemon's socket directory, and, when set, `audit.file`, the
+inventory sources' and the credential backends' files; an explicit value has it
+too, an empty one none. Each chain is found by its own chooser, the one the
+activity's maker calls, without creating anything: a candidate present is judged
+by `access(2)`, its owner and mode where the place is private, and the free
+inodes of its filesystem; one absent is the folder the activity would make where
+its rule lets it. A candidate present and passed by adds a `passed:` line with
+the reason, in the activity's words where it warns, and so does a scratch
+candidate too long for the askpass socket, present or not; a refusal is
+`resolved: error: CODE: message`, and the view exits 0. The lines come from the
 configuration the invocation loads, which its job runs under on every path; a
-running daemon keeps only its own socket, state, and log under the `basedir` it
+running daemon keeps only its own sockets, state, and log under the `basedir` it
 started with, and swept its places at its start. The view takes several keys,
 and the whole table is a recipe over it ([`docs/FILES.md`](FILES.md)). A
 controlled enrollment takes the store's path from the line. *Why:* under `auto`
@@ -1132,9 +1132,9 @@ would be revisited only after measuring provide-to-commit times. *Not taken:*
 configuration keys for the bounds.
 
 **Two sockets: the JSON envelope and the credential frame.** The
-newline-delimited JSON envelope on `socket/daemon.sock` carries `prepare_job`,
+newline-delimited JSON envelope on `socket/d.sock` carries `prepare_job`,
 `commit_job`, `follow_job`, `cancel_job`, and the lifecycle operations. A
-second owner-only socket, `socket/credentials.sock`, carries one length-prefixed
+second owner-only socket, `socket/c.sock`, carries one length-prefixed
 binary frame per connection and one receipt back; its reader never parses an
 envelope and the envelope reader never opens it, so exclusion of the secret
 from request logging is a property of the code structure. The frame's bounds
@@ -1244,6 +1244,28 @@ client's, admission is still the one check); the bound judged by the running
 pid; a shorter name (the pid is the sweep's, and any name leaves a bound); an
 abstract socket (no 0600 file, the token its only guard); a warning when `auto`
 passes a candidate by (the next is as private).
+
+**The daemon's sockets are bounded in a directory of their own.**
+`daemon.sockets` is the daemon's socket directory (`auto`: `<basedir>/socket`),
+where the daemon binds `d.sock` and the credential channel's `c.sock` under
+names of its own; a path socket holds 107 bytes, so the directory may be at
+most 100 (`osutil.MaxDaemonSocketDir`), a `basedir` of at most 93 under `auto`.
+A longer directory is `daemon_socket_too_long` where it is resolved, for every
+caller (a run before the probe and the launch, every `daemon` word, `job`,
+`follow`, `inspect`, and `config show --explain`), before the state tree is
+made; under `auto` the message names `basedir`. *Why:* a socket too long let a
+run wait out `daemon.start-timeout` and exit 112, `context deadline exceeded`,
+the cause in `daemon.log` alone, the credential channel's longer name failing
+first; and with the socket's file the operator's to name, an explicit file of
+the credential socket's name, or two daemons' sockets in one directory, met on
+the credential socket (executed). *Not taken:* a chain for `auto` (the socket
+is the `basedir`'s daemon, and a shorter place would be shared by every long
+`basedir`); `basedir` bounded at 93 (a long one with a short explicit directory
+works); the file key with the credential socket's name refused (two daemons in
+one directory still meet); the credential socket's name derived from the
+daemon's (the bound then hangs on the operator's name); the sockets in
+`<basedir>/tmp` beside the scratch (one directory with two rules for a length,
+and a name that invites clearing under a running daemon); an abstract socket.
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
 (default `1h`; `0` never) ends a daemon with no active job and no live

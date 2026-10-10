@@ -40,9 +40,11 @@ reinstalling the older karvi executable.
 .\" END GENERATED DESCRIPTION
 .SH FILES
 .TP
-.I BASEDIR/socket/daemon.sock
-The daemon's socket, the operator's alone
-.RB ( daemon.socket ).
+.IR BASEDIR/socket/d.sock ", " BASEDIR/socket/c.sock
+The daemon's socket and the credential channel's, the operator's alone, in
+the socket directory
+.RB ( daemon.sockets ,
+at most 100 bytes).
 .TP
 .IR BASEDIR/state/daemon.json ", " BASEDIR/logs/daemon.log
 Its state and its log.

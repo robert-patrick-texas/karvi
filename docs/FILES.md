@@ -40,7 +40,7 @@ one warning, since a job can run without them.
 | Session ledger | `sessions.shared-capacity-root` | `/dev/shm/karvi/capacity` | `<basedir>/state/capacity` | the fallback, with one warning: `capacity_root_unusable` |
 | Spool | `spooldir` | none: never shared | `/tmp/karvi-<uid>`, then `/var/tmp/karvi-<uid>` | the next candidate |
 | Trust store | `ssh.known-hosts-file` | none: never shared; it follows the private root, `<basedir>/known_hosts` | `<basedir>/known_hosts` | `known_hosts` errors |
-| Daemon socket | `daemon.socket` | none: never shared | `<basedir>/socket/daemon.sock` | the daemon does not start |
+| Daemon sockets | `daemon.sockets` | none: never shared | `<basedir>/socket` | the daemon does not start |
 
 An explicit value of any key replaces its chain: the path is used as given,
 or refused if it cannot be. `sharedroot = "none"` keeps the three trees under
@@ -53,7 +53,10 @@ The scratch holds the askpass socket, whose path a Unix socket bounds at 107
 bytes with a name of up to 37, so the scratch may be at most 69 bytes: `auto`
 passes a longer candidate by, named on `config show --explain`'s `passed:`
 line, and an explicit `tempdir` longer is refused, `tempdir_too_long`, at every
-job's admission and a login's start.
+job's admission and a login's start. The daemon's socket directory holds
+`d.sock` and `c.sock`, so it may be at most 100 bytes, a `basedir` of at most
+93 under `auto`: a longer one is refused, `daemon_socket_too_long`, wherever
+the daemon is reached or started, before anything is made.
 
 Every place key and every file key (`audit.file`, an inventory source's
 `path`, a credential file) takes a path by one rule: `~` and `~/…` are the
@@ -95,7 +98,7 @@ karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k":
 ```text
 basedir: resolved:   /opt/karvi/users/netops
 crun.directory: resolved:   /opt/karvi/shared/crun
-daemon.socket: resolved:   /opt/karvi/users/netops/socket/daemon.sock
+daemon.sockets: resolved:   /opt/karvi/users/netops/socket
 inventory-source.0.path: resolved:   /mnt/lab/sb/inv.csv
 output.root: resolved:   /opt/karvi/shared/jobs
 scoreboards: resolved:   /dev/shm/karvi/scoreboards
@@ -232,8 +235,8 @@ in a shared place and the operator's primary group in a private one.
 | File | Where | Shared | Individual | Lifetime | Purpose |
 |---|---|---|---|---|---|
 | `known_hosts` | `<basedir>/` (`ssh.known-hosts-file`) | `0600` | `0600` | kept | the trust store: every host key karvi accepted ([`docs/SSH-HOST-KEY-POLICY.md`](SSH-HOST-KEY-POLICY.md)) |
-| `daemon.sock` | `<basedir>/socket/` | `0600` socket | `0600` socket | while the daemon runs | the client's requests to the daemon; peer credentials checked |
-| `credentials.sock` | `<basedir>/socket/` | `0600` socket | `0600` socket | while the daemon runs | the credential package, one frame per connection under a one-use token |
+| `d.sock` | `<basedir>/socket/` (`daemon.sockets`) | `0600` socket | `0600` socket | while the daemon runs | the client's requests to the daemon; peer credentials checked |
+| `c.sock` | `<basedir>/socket/` (`daemon.sockets`) | `0600` socket | `0600` socket | while the daemon runs | the credential package, one frame per connection under a one-use token |
 | `daemon.json` | `<basedir>/state/` | `0600` | `0600` | while the daemon runs | the running daemon's status (pid, socket, version, schema, jobs), removed when it stops |
 | `daemon.log` | `<basedir>/logs/` | `0600`, appended | `0600`, appended | kept | one line per request outcome, the token redacted |
 | `karvi-ssh-<pid>-*.conf` | the scratch (`tempdir`) | `0600` | `0600` | one system-transport session; one a karvi killed outright left is swept at the next admission, daemon start, or login | the `ssh` configuration karvi writes for the session, named by its maker's pid |
