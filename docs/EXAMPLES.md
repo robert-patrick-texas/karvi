@@ -8162,8 +8162,8 @@ bytes from both builds. The evidence is kept beside the tree
 **Section B, one read per invocation.** Its issues, one at a time: what one
 invocation is and where its read sits; the shape every caller of
 `prepareConfig` takes in place of the options it loads from; the options that
-set a key for one invocation; the hook; and, at the operator's word, the colour
-of a warning line.
+set a key for one invocation; the hook; at the operator's word, the colour of a
+warning line; and, found in the build, the dry run's timing of the read.
 
 **Issue 1, what one invocation is and where its read sits, agreed.** On the lab
 build of `94c94f5`, a configuration holding an unknown key, a `--tf` decides
@@ -8374,3 +8374,22 @@ through `Main` holds the rule: the warning escape on each line under
 the load's warnings alone coloured (one kind of line in two looks); the colour
 decided by `output.ansi` (it governs the escapes of device output, and the `!`
 lines do not read it).
+
+**Issue 6, the dry run's timing of the read, agreed.** Found in the build: the
+plan report times each client stage, and `run --dry-run --no-daemon --format
+json` on the lab build of `94c94f5` says `"client_config_ns": 16113100,
+"client_inventory_ns": 188055, "client_dns_ns": 1097872, "client_credential_ns":
+366476, …, "total_ns": 39491822`. `client_config_ns` times the load in
+`draftClient`, and `total_ns` runs from `InspectRun`'s start, which took both of
+the dry run's loads; the schema requires the field, an integer or null, null
+saying the stage did not run. With the read in the command line before
+`InspectRun`, the first would time nothing and the second leave the read out.
+The command line notes the time before its read and hands `InspectRun` that
+start and the read's duration: `client_config_ns` is the read's own time, and
+`total_ns` runs from the read's start, so it covers all the dry run did. The
+plan report's schema and the field's meaning are unchanged, and the two values
+reach the one call that reads them. *Not taken:* `client_config_ns` null (null
+says the stage did not run, and the read ran); `client_config_ns` removed, the
+plan report's schema 2 to 3 (the read is the client's time before its plan,
+which the report would hide); the read's time carried in `CommonOptions` (every
+stage carrying a value the dry run alone reads).
