@@ -73,7 +73,7 @@ func TestCheckList(t *testing.T) {
 func TestCheckProfileAndApply(t *testing.T) {
 	global := Defaults()
 	ok := map[string]any{"kex-append": []any{"diffie-hellman-group1-sha1"}, "ciphers": []any{"aes128-ctr", "aes128-cbc"}}
-	if err := CheckProfile(ok, global); err != nil {
+	if err := CheckProfile(ok, global, SourceKarvi); err != nil {
 		t.Fatal(err)
 	}
 	got := Apply(global, ok)
@@ -96,10 +96,43 @@ func TestCheckProfileAndApply(t *testing.T) {
 		{map[string]any{"ciphers-append": []any{"3des-cbc"}}, "config_ssh_algorithm_forbidden"},
 		{map[string]any{"macs": []any{}}, "config_ssh_algorithm_list_empty"},
 	} {
-		err := CheckProfile(c.profile, global)
+		err := CheckProfile(c.profile, global, SourceKarvi)
 		pe, isProfile := err.(*ProfileError)
 		if !isProfile || pe.Code != c.code {
 			t.Errorf("%v: %v, want %s", c.profile, err, c.code)
+		}
+	}
+}
+
+// TestCheckProfileSource: a profile may set its source, alone or with the
+// host-key list; a key exchange, cipher, or MAC list in a profile whose
+// devices take the transport's lists, by its own source or the global one,
+// is refused as unread, the message naming whose source it is.
+func TestCheckProfileSource(t *testing.T) {
+	global := Defaults()
+	for _, c := range []struct {
+		profile       map[string]any
+		source, field string
+		says          string
+	}{
+		{map[string]any{"source": SourceTransport}, SourceKarvi, "", ""},
+		{map[string]any{"source": SourceTransport, "host-key": []any{"ssh-ed25519"}}, SourceKarvi, "", ""},
+		{map[string]any{"source": SourceKarvi, "kex-append": []any{"diffie-hellman-group1-sha1"}}, SourceTransport, "", ""},
+		{map[string]any{"host-key": []any{"ssh-ed25519"}}, SourceTransport, "", ""},
+		{map[string]any{"source": SourceTransport, "kex-append": []any{"diffie-hellman-group1-sha1"}}, SourceKarvi, "kex-append", "the profile's source"},
+		{map[string]any{"ciphers": []any{"aes128-ctr"}}, SourceTransport, "ciphers", "ssh-algorithms.source"},
+		{map[string]any{"macs-append": []any{"umac-128@openssh.com"}}, SourceTransport, "macs-append", "ssh-algorithms.source"},
+	} {
+		err := CheckProfile(c.profile, global, c.source)
+		if c.field == "" {
+			if err != nil {
+				t.Errorf("%v under %s: %v", c.profile, c.source, err)
+			}
+			continue
+		}
+		pe, isProfile := err.(*ProfileError)
+		if !isProfile || pe.Code != "config_ssh_algorithms_profile_lists_unread" || pe.Field != c.field || !strings.Contains(pe.Error(), c.says) {
+			t.Errorf("%v under %s: %v, want lists_unread at %s naming %s", c.profile, c.source, err, c.field, c.says)
 		}
 	}
 }

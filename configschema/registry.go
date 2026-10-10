@@ -20,7 +20,8 @@ import (
 // logging.file, and logging.file-required, read by nothing; 28 marks the
 // path-valued keys and their words (Place, Words, a table's Places) and
 // gives the daemon's own keys the reload class daemon-start; 29 takes the
-// socket directory daemon.sockets in place of daemon.socket.
+// socket directory daemon.sockets in place of daemon.socket, and
+// ssh-algorithms.source with a profile's source.
 const (
 	RegistrySchemaVersion = 29
 	ConfigSchemaVersion   = 6
@@ -103,6 +104,7 @@ var enumValues = map[string][]string{
 	"name.default-address-authority": {"client", "daemon"},
 	"ssh.host-key-policy":            {"accept-new", "secure", "insecure"},
 	"dispatch.default":               {"serial", "parallel", "wave"}, "dispatch.order": {"default", "sorted", "name", "shuffle", "random"},
+	"ssh-algorithms.source": {"karvi", "transport", "auto"}, "ssh-algorithms-profile.<name>.source": {"karvi", "transport", "auto"},
 	"targets.empty-source": {"warn", "error"}, "platform-resolution.on-unknown": {"fail", "warn"}, "output.directory-mode": {"0700", "0750", "0770"},
 	// The collection directory and its files: a
 	// shared directory may be world-readable, which the job tree's enum has
@@ -147,7 +149,7 @@ var dynamicTables = []DynamicTable{
 	{Pattern: "inventory-source.<index>", Fields: map[string]Kind{}, LockEligible: true, Places: []string{"path"}},
 	{Pattern: "credential-policy-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "session-init-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
-	{Pattern: "ssh-algorithms-profile.<name>", Fields: map[string]Kind{"host-key": StringArray, "kex": StringArray, "ciphers": StringArray, "macs": StringArray, "host-key-append": StringArray, "kex-append": StringArray, "ciphers-append": StringArray, "macs-append": StringArray}, LockEligible: true},
+	{Pattern: "ssh-algorithms-profile.<name>", Fields: map[string]Kind{"source": Enum, "host-key": StringArray, "kex": StringArray, "ciphers": StringArray, "macs": StringArray, "host-key-append": StringArray, "kex-append": StringArray, "ciphers-append": StringArray, "macs-append": StringArray}, LockEligible: true},
 	{Pattern: "ssh-algorithms-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 }
 
@@ -258,7 +260,7 @@ func IsKnownLeaf(path string) bool {
 	case "session-init-map":
 		return len(parts) == 3 && isIndex(parts[1]) && oneOf(parts[2], "profile", "name", "address-cidr", "platform", "site", "device-group")
 	case "ssh-algorithms-profile":
-		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "host-key", "kex", "ciphers", "macs", "host-key-append", "kex-append", "ciphers-append", "macs-append")
+		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "source", "host-key", "kex", "ciphers", "macs", "host-key-append", "kex-append", "ciphers-append", "macs-append")
 	case "ssh-algorithms-map":
 		return len(parts) == 3 && isIndex(parts[1]) && oneOf(parts[2], "profile", "name", "address-cidr", "platform", "site", "device-group")
 	case "credential-backend":
@@ -336,6 +338,35 @@ func backendField(s string) bool {
 
 // ValidateScalar checks v against path's kind and enumerated values. Its
 // error says the fault alone; the caller names the key and the source.
+// aliases maps a key, or a dynamic table's field by its pattern, to the
+// other words it accepts and the value each stands for. The read stores the
+// value (Canonical), so config show, the digest, and every record carry one
+// word for one meaning.
+var aliases = map[string]map[string]string{
+	"dispatch.order":                       {"name": "sorted"},
+	"ssh-algorithms.source":                {"auto": "karvi"},
+	"ssh-algorithms-profile.<name>.source": {"auto": "karvi"},
+}
+
+// Canonical is value as the read stores it under path: the value an alias
+// stands for, else value unchanged.
+func Canonical(path string, value any) any {
+	word, ok := value.(string)
+	if !ok {
+		return value
+	}
+	table, ok := aliases[path]
+	if !ok {
+		if parts := strings.Split(path, "."); len(parts) == 3 {
+			table = aliases[parts[0]+".<name>."+parts[2]]
+		}
+	}
+	if canonical, ok := table[word]; ok {
+		return canonical
+	}
+	return value
+}
+
 func ValidateScalar(path string, v any) error {
 	e, ok := Lookup(path)
 	if !ok {

@@ -2,6 +2,7 @@ package configload
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -45,6 +46,11 @@ func TestSSHAlgorithmsValidation(t *testing.T) {
 		{name: "map bad cidr", body: profile + "[[ssh-algorithms-map]]\nprofile = \"old\"\naddress-cidr = \"10.0.0.0/33\"\n", code: "config_match_rule_cidr_invalid", key: "ssh-algorithms-map.0"},
 		{name: "legacy-hosts", body: "[ssh]\nlegacy-hosts = [\"old-ios-*\"]\n", code: "config_ssh_legacy_hosts_removed", key: "ssh.legacy-hosts"},
 		{name: "ancient-hosts", body: "[ssh]\nancient-hosts = []\n", code: "config_ssh_legacy_hosts_removed", key: "ssh.ancient-hosts"},
+		{name: "global source unknown", body: "[ssh-algorithms]\nsource = \"none\"\n", code: "config_enum_value_invalid", key: "ssh-algorithms.source"},
+		{name: "profile source unknown", body: "[ssh-algorithms-profile.old]\nsource = \"system\"\n", code: "config_enum_value_invalid", key: "ssh-algorithms-profile.old.source"},
+		{name: "profile source not a string", body: "[ssh-algorithms-profile.old]\nsource = 1\n", code: "config_type_error", key: "ssh-algorithms-profile.old.source"},
+		{name: "lists under the profile's transport source", body: "[ssh-algorithms-profile.old]\nsource = \"transport\"\nkex-append = [\"diffie-hellman-group1-sha1\"]\n", code: "config_ssh_algorithms_profile_lists_unread", key: "ssh-algorithms-profile.old.kex-append"},
+		{name: "lists under the global transport source", body: "[ssh-algorithms]\nsource = \"transport\"\n" + profile, code: "config_ssh_algorithms_profile_lists_unread", key: "ssh-algorithms-profile.old.ciphers-append"},
 		{name: "legacy-hosts environment", body: "", env: []string{`KARVI__SSH__LEGACY_HOSTS=["x"]`}, code: "config_ssh_legacy_hosts_removed", key: "ssh.legacy-hosts"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -67,7 +73,56 @@ func TestSSHAlgorithmsValidation(t *testing.T) {
 		t.Fatalf("global %v", got)
 	}
 	defaults, err := load(t, "")
-	if err != nil || !reflect.DeepEqual(defaults.SSHAlgorithms(), sshalgorithms.Defaults()) {
-		t.Fatalf("defaults %v %v", defaults.SSHAlgorithms(), err)
+	if err != nil || !reflect.DeepEqual(defaults.SSHAlgorithms(), sshalgorithms.Defaults()) || defaults.String("ssh-algorithms.source") != sshalgorithms.SourceKarvi {
+		t.Fatalf("defaults %v source %q %v", defaults.SSHAlgorithms(), defaults.String("ssh-algorithms.source"), err)
+	}
+
+	// Under the transport's source: the global lists stay valid, a profile
+	// that says source karvi keeps its lists, and a profile may set the
+	// host-key list, or its source alone.
+	snap, err = load(t, "[ssh-algorithms]\nsource = \"transport\"\nciphers = [\"aes256-gcm@openssh.com\"]\n"+
+		"[ssh-algorithms-profile.routers]\nsource = \"auto\"\nkex-append = [\"diffie-hellman-group1-sha1\"]\n"+
+		"[ssh-algorithms-profile.servers]\nhost-key = [\"ssh-ed25519\"]\n"+
+		"[ssh-algorithms-profile.bare]\nsource = \"transport\"\n")
+	if err != nil {
+		t.Fatalf("valid configuration under the transport's source refused: %v", err)
+	}
+	if got := snap.String("ssh-algorithms-profile.routers.source"); got != sshalgorithms.SourceKarvi {
+		t.Fatalf("the profile's source auto stored as %q", got)
+	}
+}
+
+// TestAliasStoredAsItsValue: an alias is stored as the value it stands for,
+// from a file, the environment, and --set alike, so config show and the
+// digest carry one word for one meaning.
+func TestAliasStoredAsItsValue(t *testing.T) {
+	home, dir := t.TempDir(), t.TempDir()
+	load := func(t *testing.T, body string, env, sets []string) Snapshot {
+		t.Helper()
+		path := filepath.Join(dir, "karvi.toml")
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		snap, err := Load(Options{HomeDir: home, SkipAuto: true, Environment: env, Sets: sets, ExplicitRoots: []string{path}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return snap
+	}
+	for _, tc := range []struct{ key, alias, value, table, variable string }{
+		{"dispatch.order", "name", "sorted", "dispatch", "KARVI__DISPATCH__ORDER"},
+		{"ssh-algorithms.source", "auto", "karvi", "ssh-algorithms", "KARVI__SSH_ALGORITHMS__SOURCE"},
+	} {
+		field := tc.key[len(tc.table)+1:]
+		want := load(t, fmt.Sprintf("[%s]\n%s = %q\n", tc.table, field, tc.value), nil, nil)
+		for name, got := range map[string]Snapshot{
+			"file":        load(t, fmt.Sprintf("[%s]\n%s = %q\n", tc.table, field, tc.alias), nil, nil),
+			"environment": load(t, "", []string{tc.variable + "=" + tc.alias}, nil),
+			"--set":       load(t, "", nil, []string{fmt.Sprintf("%s=%q", tc.key, tc.alias)}),
+		} {
+			if got.String(tc.key) != tc.value || got.Digest != want.Digest {
+				t.Errorf("%s %s=%s: stored %q digest %s, want %q digest %s", name, tc.key, tc.alias, got.String(tc.key), got.Digest, tc.value, want.Digest)
+			}
+		}
 	}
 }

@@ -226,8 +226,9 @@ Active failure causes.
 | `config_ssh_algorithms_map_catch_all` | config | 2 | no | An `ssh-algorithms-map` rule matches every device; fleet-wide lists belong in `[ssh-algorithms]`. |
 | `config_ssh_algorithms_map_profile_missing` | config | 2 | no | An `ssh-algorithms-map` rule has no `profile`. |
 | `config_ssh_algorithms_map_profile_unknown` | config | 2 | no | An `ssh-algorithms-map` rule names a profile that does not exist. |
-| `config_ssh_algorithms_profile_empty` | config | 2 | no | An `ssh-algorithms-profile` sets no list. |
+| `config_ssh_algorithms_profile_empty` | config | 2 | no | An `ssh-algorithms-profile` sets no list and no `source`. |
 | `config_ssh_algorithms_profile_list_conflict` | config | 2 | no | An `ssh-algorithms-profile` sets both a list and its `-append` form. |
+| `config_ssh_algorithms_profile_lists_unread` | config | 2 | no | An `ssh-algorithms-profile` sets a key exchange, cipher, or MAC list while its devices take the transport's lists (its `source`, else `ssh-algorithms.source`, is `transport`); set `source = "karvi"` in it. |
 | `config_ssh_identities_invalid` | config | 2 | no | An `ssh.identities` entry is neither an absolute path nor one beginning with `~/`. |
 | `config_ssh_legacy_hosts_removed` | config | 2 | no | `ssh.legacy-hosts` or `ssh.ancient-hosts` is set; both are removed in favour of `[[ssh-algorithms-map]]` profiles. |
 | `config_toml_syntax` | config | 2 | no | A configuration file is not valid TOML. |

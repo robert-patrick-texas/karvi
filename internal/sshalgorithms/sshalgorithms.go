@@ -24,6 +24,14 @@ const (
 	MACs    Kind = "macs"
 )
 
+// The sources of a device's key exchange, cipher, and MAC lists
+// (ssh-algorithms.source, or its profile's source): karvi's lists, or the
+// transport's own defaults. The host-key list is karvi's under either.
+const (
+	SourceKarvi     = "karvi"
+	SourceTransport = "transport"
+)
+
 // Kinds are the lists in configuration order.
 var Kinds = []Kind{HostKey, Kex, Ciphers, MACs}
 
@@ -156,15 +164,31 @@ type ProfileError struct {
 func (e *ProfileError) Error() string { return e.Err.Error() }
 
 // CheckProfile validates a [ssh-algorithms-profile.NAME] table against the
-// global lists: each list in the replace form or the append form, not
-// both, and at least one set; an appended name is not already global.
-func CheckProfile(profile map[string]any, global Lists) error {
-	set := false
+// global lists and the global source: each list in the replace form or the
+// append form, not both; at least one list or the source set; an appended
+// name not already global; and no key exchange, cipher, or MAC list in a
+// profile whose devices take the transport's (its source, else the global
+// one, SourceTransport), where it would go unread.
+func CheckProfile(profile map[string]any, global Lists, source string) error {
+	own, set := profile["source"].(string)
+	if set {
+		source = own
+	}
 	for _, k := range Kinds {
 		replace, hasReplace := profile[string(k)]
 		appended, hasAppend := profile[string(k)+"-append"]
 		if hasReplace && hasAppend {
 			return &ProfileError{Code: "config_ssh_algorithms_profile_list_conflict", Field: string(k), Err: fmt.Errorf("%s and %s-append are both set", k, k)}
+		}
+		if source == SourceTransport && k != HostKey && (hasReplace || hasAppend) {
+			field, whose := string(k), "ssh-algorithms.source"
+			if hasAppend {
+				field += "-append"
+			}
+			if own != "" {
+				whose = "the profile's source"
+			}
+			return &ProfileError{Code: "config_ssh_algorithms_profile_lists_unread", Field: field, Err: fmt.Errorf("%s is read only under source %q, and %s is %q: this profile's devices take the transport's lists; set source = %q in the profile", field, SourceKarvi, whose, SourceTransport, SourceKarvi)}
 		}
 		switch {
 		case hasReplace:
@@ -186,7 +210,7 @@ func CheckProfile(profile map[string]any, global Lists) error {
 		}
 	}
 	if !set {
-		return &ProfileError{Code: "config_ssh_algorithms_profile_empty", Err: errors.New("the profile sets no list")}
+		return &ProfileError{Code: "config_ssh_algorithms_profile_empty", Err: errors.New("the profile sets no list and no source")}
 	}
 	return nil
 }

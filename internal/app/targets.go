@@ -30,7 +30,7 @@ type TargetSet = planner.TargetSet
 // resolveOrder reads dispatch.order and the key that goes with it. now
 // supplies the epoch seconds for random.
 func resolveOrder(cfg configload.Snapshot, now func() time.Time) (order string, key *string) {
-	order = inventory.CanonicalOrder(cfg.String("dispatch.order"))
+	order = cfg.String("dispatch.order")
 	switch order {
 	case inventory.OrderShuffle:
 		k := cfg.String("dispatch.shuffle-key")

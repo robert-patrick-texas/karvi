@@ -777,7 +777,7 @@ func (l *loader) validateSessionInitProfiles(sessions map[string]map[string]any)
 }
 
 // validateSSHAlgorithms checks the algorithm configuration: the global
-// lists, each [ssh-algorithms-profile.NAME],
+// lists, each [ssh-algorithms-profile.NAME] (its source among them),
 // and each [[ssh-algorithms-map]] rule (a profile that exists, the match keys,
 // no catch-all).
 func (l *loader) validateSSHAlgorithms() error {
@@ -798,13 +798,22 @@ func (l *loader) validateSSHAlgorithms() error {
 	for _, name := range names {
 		prefix := "ssh-algorithms-profile." + name
 		for field, raw := range profiles[name] {
+			if field == "source" {
+				switch word, ok := raw.(string); {
+				case !ok:
+					return l.dynamicErr("config_type_error", prefix+".source", "must be a string")
+				case word != sshalgorithms.SourceKarvi && word != sshalgorithms.SourceTransport:
+					return l.dynamicErr("config_enum_value_invalid", prefix+".source", "must be one of karvi, transport, auto")
+				}
+				continue
+			}
 			if _, isList := raw.([]any); !isList {
 				if _, isStrings := raw.([]string); !isStrings {
 					return l.dynamicErr("config_type_error", prefix+"."+field, "must be an array of strings")
 				}
 			}
 		}
-		if err := sshalgorithms.CheckProfile(profiles[name], global); err != nil {
+		if err := sshalgorithms.CheckProfile(profiles[name], global, l.snap.String("ssh-algorithms.source")); err != nil {
 			pe := err.(*sshalgorithms.ProfileError)
 			if pe.Field == "" {
 				return newError(pe.Code, pe.Error(), prefix, l.tableSource(prefix, profiles[name]), nil)

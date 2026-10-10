@@ -7,22 +7,14 @@ import (
 	"strings"
 )
 
-// Dispatch order names. The
-// alias "name" is accepted for OrderSorted and recorded as "sorted".
+// Dispatch order names. The configuration's read stores its alias "name"
+// as "sorted" (configschema.Canonical), so only these reach Sort.
 const (
 	OrderDefault = "default"
 	OrderSorted  = "sorted"
 	OrderShuffle = "shuffle"
 	OrderRandom  = "random"
 )
-
-// CanonicalOrder maps a configured dispatch.order value to its recorded name.
-func CanonicalOrder(order string) string {
-	if order == "name" {
-		return OrderSorted
-	}
-	return order
-}
 
 // Rank is the shuffle rank: the SHA-256 digest of the UTF-8
 // bytes of key, one NUL byte, and the lowercase device name. It is a
@@ -35,13 +27,13 @@ func Rank(key, name string) []byte {
 	return h.Sum(nil)
 }
 
-// Sort orders devices in place by the canonical order name:
+// Sort orders devices in place by the order name:
 // "default" keeps the assembled sequence, "sorted" sorts by lowercase name in
 // byte order, and "shuffle" and "random" rank by Rank(key, name) ascending
 // with ties broken by name. For "random" the caller supplies the epoch
 // seconds as key.
 func Sort(devices []Device, order, key string) {
-	switch CanonicalOrder(order) {
+	switch order {
 	case OrderSorted:
 		sort.SliceStable(devices, func(i, j int) bool {
 			return strings.ToLower(devices[i].CanonicalName) < strings.ToLower(devices[j].CanonicalName)

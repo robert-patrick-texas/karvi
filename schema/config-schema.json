@@ -628,6 +628,24 @@
       "since": "0.12.0"
     },
     {
+      "path": "ssh-algorithms.source",
+      "kind": "enum",
+      "default_literal": "\"karvi\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__SSH_ALGORITHMS__SOURCE",
+      "cli_flags": null,
+      "enum": [
+        "karvi",
+        "transport",
+        "auto"
+      ],
+      "documentation": "Where the key exchange, cipher, and MAC lists come from: `karvi` (alias `auto`), the `ssh-algorithms` lists; `transport`, each transport's own defaults (OpenSSH's compiled ones or an included `~/.ssh/config`'s, x/crypto's), the names karvi refuses among them. The host-key list is `ssh-algorithms.host-key` under either. An `ssh-algorithms-profile` may set its own `source`.",
+      "since": "0.2.0"
+    },
+    {
       "path": "native-ssh.connect-timeout",
       "kind": "duration",
       "default_literal": "\"10s\"",
@@ -2785,7 +2803,8 @@
         "kex": "string_array",
         "kex-append": "string_array",
         "macs": "string_array",
-        "macs-append": "string_array"
+        "macs-append": "string_array",
+        "source": "enum"
       },
       "lock_eligible": true
     },
@@ -3024,6 +3043,16 @@
       "fail-device",
       "continue"
     ],
+    "ssh-algorithms-profile.\u003cname\u003e.source": [
+      "karvi",
+      "transport",
+      "auto"
+    ],
+    "ssh-algorithms.source": [
+      "karvi",
+      "transport",
+      "auto"
+    ],
     "ssh.host-key-policy": [
       "accept-new",
       "secure",
@@ -3163,6 +3192,7 @@
     "config_ssh_algorithms_map_profile_unknown",
     "config_ssh_algorithms_profile_empty",
     "config_ssh_algorithms_profile_list_conflict",
+    "config_ssh_algorithms_profile_lists_unread",
     "config_ssh_identities_invalid",
     "config_ssh_legacy_hosts_removed",
     "config_toml_syntax",

@@ -50,7 +50,6 @@ func TestSortOrders(t *testing.T) {
 	}{
 		{"default", "", []string{"r3", "Core-1", "r1", "r2"}},
 		{"sorted", "", []string{"Core-1", "r1", "r2", "r3"}},
-		{"name", "", []string{"Core-1", "r1", "r2", "r3"}},
 		{"shuffle", "k", []string{"r1", "r2", "r3", "Core-1"}}, // ascending digest, see vectors above
 		{"shuffle", "", []string{"r2", "r1", "r3", "Core-1"}},  // empty key allowed, fixed order
 		{"random", "k", []string{"r1", "r2", "r3", "Core-1"}},  // same rank as shuffle with the same key
@@ -60,9 +59,6 @@ func TestSortOrders(t *testing.T) {
 		if got := orderOf(devices); !reflect.DeepEqual(got, tc.want) {
 			t.Fatalf("order=%s key=%q: %q, want %q", tc.order, tc.key, got, tc.want)
 		}
-	}
-	if CanonicalOrder("name") != OrderSorted || CanonicalOrder("shuffle") != OrderShuffle {
-		t.Fatal("CanonicalOrder")
 	}
 }
 

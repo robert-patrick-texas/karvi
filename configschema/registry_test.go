@@ -87,3 +87,25 @@ func TestLookupThroughIndex(t *testing.T) {
 		}
 	}
 }
+
+// TestCanonical: an alias is the value it stands for, a fixed key's and a
+// dynamic table field's alike; any other value, word or not, is unchanged.
+func TestCanonical(t *testing.T) {
+	for _, c := range []struct {
+		path      string
+		value, is any
+	}{
+		{"dispatch.order", "name", "sorted"},
+		{"dispatch.order", "sorted", "sorted"},
+		{"ssh-algorithms.source", "auto", "karvi"},
+		{"ssh-algorithms.source", "transport", "transport"},
+		{"ssh-algorithms-profile.routers.source", "auto", "karvi"},
+		{"display.colors.success", "auto", "auto"},
+		{"basedir", "auto", "auto"},
+		{"dispatch.parallel-workers", int64(4), int64(4)},
+	} {
+		if got := Canonical(c.path, c.value); got != c.is {
+			t.Errorf("Canonical(%q, %v) = %v, want %v", c.path, c.value, got, c.is)
+		}
+	}
+}

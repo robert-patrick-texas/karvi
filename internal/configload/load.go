@@ -327,7 +327,7 @@ func (l *loader) assign(key string, value any, src SourceRef, authority bool) er
 		}
 	}
 	old, exists := l.snap.Values[key]
-	nv := Value{Data: clone(value), Source: src}
+	nv := Value{Data: clone(configschema.Canonical(key, value)), Source: src}
 	if exists {
 		nv.Default = old.Default
 		nv.Overridden = append(append([]SourceRef(nil), old.Overridden...), old.Source)

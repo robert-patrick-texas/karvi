@@ -179,6 +179,12 @@ ciphers = ["aes256-gcm@openssh.com", "chacha20-poly1305@openssh.com", "aes256-ct
 # MACs both SSH transports offer, strongest first. UMAC-128 only in an ssh-algorithms-profile;
 # MD5, truncated, and 64-bit MACs are refused.
 macs = ["hmac-sha2-512-etm@openssh.com", "hmac-sha2-256-etm@openssh.com", "hmac-sha2-512", "hmac-sha2-256", "hmac-sha1"]
+# Where the key exchange, cipher, and MAC lists come from: karvi (alias auto), the
+# ssh-algorithms lists; transport, each transport's own defaults (OpenSSH's compiled ones or
+# an included ~/.ssh/config's, x/crypto's), the names karvi refuses among them. The host-key
+# list is ssh-algorithms.host-key under either. An ssh-algorithms-profile may set its own
+# source.
+source = "karvi"
 
 [native-ssh]
 # 1s–5m.
