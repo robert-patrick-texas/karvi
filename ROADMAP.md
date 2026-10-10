@@ -68,9 +68,11 @@ next release, which exercises the release tools they change.
   job; `--expect` and the blind returns are the precedent to grow from.
 - **Credentials.** A formula's match evidence carrying its source's file,
   line, and key; a command-line option to pin a direct target to a key;
-  further keyed backends (a SQLite or JSON store) through the keyed
-  capability; policing every backend type's keys by type; in the shared
-  tabular reader, an explicit mapping outranking a field's own header.
+  further backends, each with its own type, keys, and driver: a SQLite store
+  holding device or operator data or both, and a JSON store, a device-keyed
+  one honouring a pin through the keyed capability; policing every backend
+  type's keys by type; in the shared tabular reader, an explicit mapping
+  outranking a field's own header.
 - **The key that authenticated.** A record names the method that
   authenticated its session (`credential.auth`) and not which of the
   credential's keys the server accepted. OpenSSH names the key at `DEBUG1`

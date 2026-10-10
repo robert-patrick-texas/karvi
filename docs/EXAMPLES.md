@@ -8993,3 +8993,268 @@ a wrapper logging its calls: both devices fail with `system offered
 chacha20-poly1305@openssh.com,…,aes256-ctr`, and `ssh -G` was started twice by
 the build before S4 and once by S4's. The full battery passed on the lab build
 of S4, all 17 suites, leaving no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`.
+
+## 55. An explicit `env:NAME` cell (2026-10-10)
+
+The ROADMAP's Next item 1: a credential CSV cell that names an environment
+variable explicitly, needs no flag, and fails with its own code when the
+variable is unset, where a cell naming an unset variable under the indirection
+flags stays a literal ([`docs/CREDENTIAL-CSV.md`, section
+6](CREDENTIAL-CSV.md#6-secrets-in-the-environment-instead-of-the-file)).
+
+**The evidence.** A lab build of `35a0e55`, every place under a short lab
+directory; the target the fake device on 127.0.0.1:2223, accepting `netops` and
+`S3cret`. A credential CSV whose catch-all row's password cell is
+`NETPASS_NYC`, under `env-indirection.password = true`:
+
+```text
+NETPASS_NYC=S3cret exported   exit 0
+NETPASS_NYC unset             authentication_failed: SSH authentication failed for netops at 127.0.0.1:2223: …   exit 108
+the dry run, unset            "status": "bound", matched_on the row's line 2, exit 0
+```
+
+The name is sent as the password, and nothing names the variable. Two inventory
+devices, one whose row's password is blank:
+
+```text
+credential_password_missing: 1 of 2 targets failed credential resolution: name:bad (password is required for the selected authentication policy policy=default backend=site-creds)
+exit 6
+```
+
+One device's credential failure refuses the job at planning, before any
+connection, and the dry run says the same. Resolution runs in the client planner
+alone: the daemon receives sealed grants and never reads a credential CSV.
+
+**What it gains.** A file that names variables fails before any device is
+reached when one is unset, where today the name is sent as the password: failed
+logins, on some devices lockouts, and nothing naming the cause. It needs no
+flag. It defines the code for an unset variable and the lookup that the
+credential helper's values, the ROADMAP's next item, will reach. It waits on
+nothing.
+
+**Its issues, one at a time:** the cell's form; the CSV's three
+`env-indirection` flags beside it; the code, when it is said, and what it names;
+the lookup, the door the helper's values will come through; and, found on the
+way, a field source nothing reads, keys a backend's type never reads, and a
+backend type with no driver.
+
+**Issue 1, the cell's form, agreed.** On the lab build, the bare word `Xray` in
+each result column, the fake device expecting it in that field, the field's
+flag off and on, and a variable `Xray` unset and set to `other`:
+
+| Cell | Flag off, unset | Flag off, set | Flag on, unset | Flag on, set |
+|---|---|---|---|---|
+| `username` | `Xray` sent, exit 0 | `Xray` sent, exit 0 | `Xray` sent, exit 0 | `other` sent, exit 108 |
+| `password` | `Xray` sent, exit 0 | `Xray` sent, exit 0 | `Xray` sent, exit 0 | `other` sent, exit 108 |
+| `enable_password` | `Xray` sent, exit 0 | `Xray` sent, exit 0 | `Xray` sent, exit 0 | `other` sent, exit 107 |
+
+A password `env:Secret1`, the cell holding it as written, logs in with the flag
+off and on. A cell of the three result columns, `username`, `password`, and
+`enable_password`, whose text with its surrounding white space trimmed begins
+with `env:`, the prefix's case ignored, is a reference to the variable its rest
+names, with the field's flag or without it; a plain cell stays as the table
+shows. The name is a portable variable name, `[A-Za-z_][A-Za-z0-9_]*`, its case
+kept, checked for every row when the file loads: anything else after the prefix
+(nothing, a hyphen, a space) is `credential_csv_row_invalid`, naming the line
+and the column and never the cell, since a file's form is checked whole
+([`docs/CREDENTIAL-CSV.md`, section
+4](CREDENTIAL-CSV.md#4-how-a-row-is-chosen)). The variable is read for the
+selected row alone, at planning: a set variable gives its value, an unset one an
+error that refuses the run (issue 3). A value that begins with `env:` has no
+escape: it goes into a variable, and the cell names the variable. *Not taken:*
+an escape (`env::text`, a second rule for what a variable already carries);
+`${NAME}` (read as an expansion inside a value, which karvi does not do); a
+reference only when the rest is a valid name, else a literal (`env:NETPASS-NYC`
+sent as a password, the hazard this item removes); the prefix in lower case
+alone (`ENV:NETPASS` sent as a literal, the hazard again); a selector or
+`credkey` cell (they choose the row).
+
+**Issue 2, the CSV's three `env-indirection` flags, agreed.** Under a field's
+flag a plain cell that names a set variable is replaced by its value, and one
+that names no set variable is sent as written (issue 1's table, its last two
+columns); the flags' reason was a file mixing names and real passwords, which
+`env:NAME` gives cell by cell, an unset variable failing. A `csv` backend takes
+no `env-indirection` key: `env-indirection.username`, `.password`, or
+`.enable-password` on one is refused at load,
+`config_credential_backend_key_unsupported` (exit 2), its message saying that a
+cell names a variable as `env:NAME`. A cell of the three result columns is a
+literal, sent as written whatever variables are set, or `env:NAME`, the
+variable's value or an error; a formula reading a `csv` backend takes its row by
+the same rule. A file used under the flags writes its names as `env:NAME`. The
+env, Redis, and Vault backends keep their flags, the credential helper's to
+fold. *Not taken:* the flags kept beside the cell (a file under two rules, the
+hazard kept for every plain cell under a flag); the flags kept with an unset
+name failing (every plain cell of the column a name, no literal beside one,
+which `env:` says per cell); the flags ignored on a `csv` backend (a file under
+them sending each name as a password, nothing said).
+
+**Issue 3, the code, when it is said, and what it names, agreed.** On the lab
+build, a variable set and empty under each field's flag today: the username cell
+gives `credential_incomplete` and the password cell
+`credential_password_missing`, at planning, exit 6; the enable cell reaches the
+device with no enable secret, `privilege_failed`, exit 107. A failure at
+planning leaves no job directory and no audit event, and is said on standard
+error. A new code, `credential_env_missing`, category credential, exit 6, named
+as the other missing fields are and not after the CSV, so that the credential
+helper's other readers can say it. It is said when a device's selected row is
+resolved, at planning in the client, before any connection: the job is refused,
+every device it stops listed, and the dry run says the same. It stops the
+device, which never moves on to a later row, a later backend, `NETUSER` and
+`NETPASS`, or the prompt (section 4). A variable of a row no device took is not
+read, and `config validate`, which never opens the file, says nothing. A
+variable set and empty is missing too: an `env:` cell asks for a value, and an
+empty one comes from `export NETPASS=` or a failed substitution. The message
+names the backend, the file, the line, the column, and the variable, the `env:`
+prefix marking the cell as a reference: `VAR1 is not set`, or `VAR1 is empty`:
+
+```text
+credential_env_missing: 1 of 2 targets failed credential resolution: name:bad (credential backend site-creds: /dev/shm/k1/creds.csv:3 password: VAR1 is not set policy=default backend=site-creds)
+```
+
+A password written before this rule that begins with `env:` and a valid name has
+that rest printed once, on standard error, a cost the operator accepted. A cell
+whose rest is not a valid name is no reference, and issue 1's refusal names its
+line and column alone. *Not taken:* one code per backend
+(`credential_csv_env_unset`, another code for each later reader); an empty
+variable as set (a blank enable secret reaching the device, the failure naming
+the field and not the cell); the line and column without the name (the
+operator's remedy one look away, the name being a reference's); every row's
+variables checked at load (a run on one site's devices needing every site's
+variables exported).
+
+**At the operator's questions, blank cells, `NET*`, and keys.** On the lab
+build, every combination of blank and filled result cells in one row, the fake
+device asking for the enable secret, and this host's OpenSSH as a Linux target
+holding the operator's key:
+
+| Row (`username`, `password`, `enable_password`) | Result |
+|---|---|
+| all filled | exit 0 |
+| the enable cell blank | `privilege_failed` at the device, exit 107; `credential_enable_missing` at planning under `requires-enable = true`; exit 0 on a device that starts privileged |
+| the password cell blank, whatever else | `credential_password_missing` at planning, exit 6 |
+| the username cell blank | the operator's own name, from the password database through the backend's `transform` (`USER` beside it unread) |
+| all blank | `credential_csv_row_invalid` at load, exit 6 |
+| a blank cell, its `NET*` variable exported | as without it: `NETUSER`, `NETPASS`, and `NETENABLE` unread |
+| no row matching, `NET*` exported | the platform's fallback, `builtin-env-fallback` |
+| a Linux target, the password cell blank | `credential_password_missing`, exit 6, the operator's key never reached |
+| a Linux target, a wrong password | `authentication_failed`, exit 108, no key offered |
+| a Linux target, no row matching | the fallback's `keys`, `builtin-operator-keys`, `auth` `publickey` |
+
+`NET*` is read by the platform's fallback alone, after every backend of the
+policy has not answered, for a CSV when no row matches; a cell reads it as
+`env:NETPASS`. A row holds no key, so it needs a password; a key is the
+fallback's `keys` word (the `linux` built-ins'), and a device takes it only when
+no backend answers for it. The `env:` cell changes none of this: it decides
+where a filled cell's value comes from. Found: `[credential-transform.NAME]` is
+documented nowhere but its one error code.
+
+**Issue 4, the lookup, agreed.** In the tree, the `NET*` fallback reads the
+environment through the resolver's input provider, `TTYInput`'s `os.LookupEnv`,
+set by the planner; the CSV reads `os.LookupEnv` itself, `envindirect`
+defaulting to it when the backend's own lookup is unset, which nothing in
+production sets; the env, Redis, and Vault backends call `os.LookupEnv`
+themselves. Every implementation of the provider's lookup, two in production and
+four in tests, ignores its context and returns no error. The credential helper's
+values are held as secrets and never put into the process environment a child
+such as `ssh` inherits, so a reader of the process environment cannot see them:
+the door is karvi's own lookup. The resolver's one lookup is its input
+provider's, the one the `NET*` fallback reads, and it reaches every backend on
+`credentials.ResolveRequest`, a function from a name to its value and whether it
+is set, set where the resolver builds a request, a formula's source taking the
+same request. The CSV's `env:` cell reads it; the backend's own lookup and
+`envindirect`'s default to `os.LookupEnv` go, and a request without a lookup
+reads no variable. Today the provider reads the process environment, so nothing
+changes for the operator: `env:VAR1` finds what the shell exported. The helper,
+later, adds its values behind the provider, and every reader finds them there;
+the env, Redis, and Vault backends move onto the same lookup then. The
+provider's lookup takes a name and gives the value and whether it is set, its
+context and error gone with the fallback's unreachable error branch: the helper
+runs as a step before resolution, and the lookup reads what it left.
+`envindirect` holds the `env:` rule, the cell recognised, the name's grammar
+checked at load, and the lookup and `credential_env_missing` at resolution; its
+flag function, with no caller once the CSV takes no flags, goes. *Not taken:*
+the CSV reading `os.LookupEnv` (the helper's values out of its reach, the cell
+and the fallback reading through two doors); the helper's values put into the
+process environment (every child, `ssh` among them, inheriting them); a lookup
+given to each backend when it is built (the backends are built before the
+planner sets the provider, and one built without it reads nothing, or the
+process environment unseen); the provider itself on the request (a backend able
+to prompt); the context and error kept for the helper (it runs before
+resolution, not inside a lookup).
+
+**Issue 5, found: a field source nothing reads, agreed.** Each backend attaches
+to its credential a note per field saying where the value came from (the CSV
+`creds.csv:3 password`, or `env:NETPASS_NYC` under the flag; the env backend the
+variable; `.cloginrc` its file, line, and pattern; the fallback
+`builtin-env-fallback`), and the ROADMAP asked what it says for an `env:` cell.
+Nothing reads it: no manifest, grant, command record, audit event, or dry run
+carries it, and in the code it is written in 23 places in 8 files and read by
+one test of the CSV backend; its `Transform` part is never set.
+`credentials.FieldSource`, the credential's `FieldSources`, every backend's
+construction of it, `envindirect.Source`, and the documents' sentences about it
+go. Where an `env:` cell's value came from is said already: `matched_on` names
+the file and the line, the cell at that line says `env:NAME`, and an unset or
+empty variable names itself (issue 3). Found beside it and removed with it: the
+resolver's `finalize` takes a `promptable` parameter it never reads (`_ =
+promptable`), since the public tree began, its five callers passing `true` or
+`false` for nothing. *Not taken:* a reader given to it (the dry run or each
+record saying where each field came from, which the row says and `matched_on`
+names); the field kept for the credential helper (an unread value waits for no
+reader; if the helper's design needs one, it brings the reader and the field
+together).
+
+**Issue 6, found: keys a backend's type never reads, agreed.** On the lab build
+`config validate` accepts any credential-backend key on any type: a Redis
+backend with Vault's `mount`, a formula with a `path`, an env backend with
+`address`, a Vault backend with Redis's `tls`, a `cloginrc` backend with
+`env-indirection.password`, a `csv` backend with `token-env`, each `valid:
+true`, exit 0. The registry admits every type's keys on every type, and the load
+refuses by type only `scope` and `required` on a type that is not a file's
+(`config_credential_backend_scope_unsupported`) and the CSV's reader keys on
+another type (`config_credential_backend_key_unsupported`). A key its type
+ignores is a setting the operator takes to be in force that is not. What each
+type reads, from the code that builds it, beside `type` and `transform`, which
+every type reads:
+
+| Type | Its keys |
+|---|---|
+| `env` | `username-var-template`, `password-var-template`, `enable-var-template`, `env-indirection.*` |
+| `cloginrc` | `scope`, `path`, `required` |
+| `csv` | `scope`, `path`, `required`, `mode`, `delimiter`, `mappings.<field>`, `mandatory-fields` |
+| `redis` | `address`, `database`, `key-template`, `tls`, `ca-file`, `client-cert-file`, `client-key-file`, `auth-username-env`, `auth-password-env`, `connect-timeout`, `env-indirection.*` |
+| `vault` | `address`, `namespace`, `mount`, `path-template`, `token-env`, `ca-file`, `client-cert-file`, `client-key-file`, `connect-timeout`, `username-field`, `password-field`, `enable-field`, `env-indirection.*` |
+| `formula` | `username-template`, `password-source` |
+| `sqlite` | none (issue 7) |
+
+The list is held per type beside the registry, and any other key on a table of
+that type is refused at load, `config_credential_backend_key_unsupported` (exit
+2), naming the types that take it: `address applies to the redis and vault
+backend types only for credential-backend.e.address at …`. The two partial
+checks are cases of the one rule, issue 2's refusal among them with its hint,
+and `config_credential_backend_scope_unsupported` folds into the one code:
+`scope` on a Redis backend is a key its type does not take. The ROADMAP's
+Credentials item held it as policing every backend type's keys by type. *Not
+taken:* a warning (the setting not in force left in the file); the CSV's flags
+alone refused (every other type keeping the gap); the scope code kept (two codes
+for one rule).
+
+**Issue 7, found: the `sqlite` type, which has no driver, agreed.** On the lab
+build a `sqlite` backend with its six keys (`table`, `operator-column`,
+`username-column`, `password-column`, `enable-column`, `busy-timeout`) is
+`valid: true`, and a run reaching it fails at planning,
+`sqlite_backend_unavailable` ("the current portable build has no SQLite
+driver"), exit 6: the resolver builds a placeholder that answers that failure,
+and no code reads the keys. An unregistered key on a backend table is refused,
+`config_unknown_key`, before the table's type is checked. The type is removed
+from the code: `type = "sqlite"` is refused at load as any unknown type is,
+`config_credential_backend_type_unsupported` (exit 2); the six keys leave the
+registry and are refused as removed on any backend table, as `daemon.socket` is
+([chapter 49](#49-the-daemons-socket-path-bounded-2026-10-10)),
+`config_key_removed`, removed in v0.30.0, one hint saying that the `sqlite` type
+had no driver and is removed and that nothing read the key; the placeholder,
+`sqlite_backend_unavailable`, and its rows in the error codes go. A SQLite store
+may come back as a ROADMAP item, holding device or operator data or both, with
+its own type, keys, and driver. *Not taken:* the type kept with no keys (a
+backend that validates and can never answer); the keys left unregistered without
+a removed row (a refusal naming the key and nothing of why); a driver now (the
+later store, designed with its own keys).
