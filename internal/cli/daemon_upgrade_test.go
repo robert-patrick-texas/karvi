@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -33,7 +32,7 @@ func TestEnsureDaemonRejectsOlderDaemonWithoutSpawningReplacement(t *testing.T) 
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := ensureDaemon(ctx, g, &bytes.Buffer{})
+	_, err := ensureTestDaemon(ctx, g, &bytes.Buffer{})
 	if code := errorcodes.ExitAt(err, "daemon_start_failed"); err == nil || code != exitcode.ExitJobRejected {
 		t.Fatalf("code=%d err=%v", code, err)
 	}
@@ -80,7 +79,7 @@ func TestEnsureDaemonRejectsSameSchemaOtherVersion(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := ensureDaemon(ctx, g, &bytes.Buffer{})
+	_, err := ensureTestDaemon(ctx, g, &bytes.Buffer{})
 	if code := errorcodes.ExitAt(err, "daemon_start_failed"); err == nil || code != exitcode.ExitJobRejected {
 		t.Fatalf("code=%d err=%v", code, err)
 	}
@@ -163,7 +162,7 @@ func daemonTestRuntime(t *testing.T) (string, globalOptions, string) {
 	}
 	t.Setenv("HOME", home)
 	g := globalOptions{sets: []string{fmt.Sprintf("basedir=%q", base)}}
-	rt, err := app.ResolveDaemonRuntime(g.common())
+	rt, err := testRuntime(g)
 	if err != nil {
 		t.Fatalf("ResolveDaemonRuntime err=%v", err)
 	}

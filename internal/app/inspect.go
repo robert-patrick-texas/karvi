@@ -26,28 +26,30 @@ import (
 // ensureDaemon uses for its own probe.
 const probeTimeout = 500 * time.Millisecond
 
+// ReadTiming is when the invocation's read of its configuration began and
+// how long it took: the dry run's report gives the read as its
+// client_config_ns and runs its total_ns from the read's start.
+type ReadTiming struct {
+	Start    time.Time
+	Duration time.Duration
+}
+
 // InspectRun is run --dry-run: the shared client half, then a
 // control-plane probe of
 // the daemon when probe is set, then the inspection report to stdout.
 // Nothing is prepared, sent, launched, or written under the jobs tree. A
 // failure before the draft exists aborts as a live run would, with the
 // stage named after the code; a complete draft always yields a report.
-func InspectRun(ctx context.Context, opts RunOptions, probe bool, streams IO) ActivityResult {
-	start := time.Now()
+func InspectRun(ctx context.Context, opts RunOptions, probe bool, read ReadTiming, streams IO) ActivityResult {
 	if opts.ActivityID == "" {
 		// A dry run writes no job directory, so it reserves none: its ID is
 		// the unreserved ID of its second, in the job
-		// form every activity ID takes. The configuration is loaded twice
-		// on this path, once for the zone and once by the draft.
-		cfg, _, err := prepareConfig(opts.CommonOptions)
+		// form every activity ID takes.
+		location, err := display.Location(opts.Config.String("timezone"))
 		if err != nil {
 			return failedResult("config_load_failed", fmt.Errorf("client planning: %w", err))
 		}
-		location, err := display.Location(cfg.String("timezone"))
-		if err != nil {
-			return failedResult("config_load_failed", fmt.Errorf("client planning: %w", err))
-		}
-		opts.ActivityID = osutil.UnreservedJobID(start, location)
+		opts.ActivityID = osutil.UnreservedJobID(read.Start, location)
 	}
 	cd, code, err := draftClient(ctx, opts, streams)
 	if err != nil {
@@ -71,7 +73,7 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, streams IO) Ac
 		daemons = append(daemons, row)
 		findings = append(findings, rowFindings...)
 	}
-	report, err := cd.inspectionReport(opts.ActivityID, daemons, findings, probeNS, start)
+	report, err := cd.inspectionReport(opts.ActivityID, daemons, findings, probeNS, read)
 	if err != nil {
 		return failedResult("plan_report_invalid", err)
 	}
@@ -155,7 +157,7 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 // inspectionReport builds the kind=inspection PlanReport from the draft:
 // the draft plan, one target report per plan target in
 // plan order, the readiness rows, the report findings, counts, and timing.
-func (cd *clientDraft) inspectionReport(activityID string, daemons []executionplan.DaemonReadiness, findings []executionplan.Finding, probeNS *int64, start time.Time) (records.PlanReport, error) {
+func (cd *clientDraft) inspectionReport(activityID string, daemons []executionplan.DaemonReadiness, findings []executionplan.Finding, probeNS *int64, read ReadTiming) (records.PlanReport, error) {
 	draft := cd.draft
 	sum, err := executionplan.SumPlan(draft)
 	if err != nil {
@@ -250,7 +252,7 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 		Daemons: daemons, Preparations: []executionplan.PreparationReport{},
 		Targets:  targets,
 		Counts:   records.ReportCounts{Targets: len(targets), ByReadiness: byReadiness, ByAuthority: byAuthority, Commands: draft.CommandCount(), Errors: errorsN, Warnings: warningsN},
-		Timing:   records.ReportTiming{ClientConfigNS: ns(cd.timing.config), ClientInventoryNS: ns(cd.timing.inventory), ClientDNSNS: ns(cd.timing.dns), ClientCredentialNS: ns(cd.timing.credential), DaemonProbeNS: probeNS, TotalNS: time.Since(start).Nanoseconds()},
+		Timing:   records.ReportTiming{ClientConfigNS: ns(read.Duration), ClientInventoryNS: ns(cd.timing.inventory), ClientDNSNS: ns(cd.timing.dns), ClientCredentialNS: ns(cd.timing.credential), DaemonProbeNS: probeNS, TotalNS: time.Since(read.Start).Nanoseconds()},
 		Findings: findings, Outcome: outcome,
 		JobSubmitted: false, TargetDataSubmitted: false, DeviceContacted: false, NextOperation: records.NextCommitLiveJob,
 	}, nil

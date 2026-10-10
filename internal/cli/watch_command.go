@@ -27,7 +27,7 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if err != nil {
 		return reportError(streams.Stderr, "operator_identity_unavailable", err)
 	}
-	cfg, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.common().ConfigFlags, HomeDir: op.Home})
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home})
 	if err != nil {
 		return reportError(streams.Stderr, "config_load_failed", app.ConfigLoadError(err))
 	}

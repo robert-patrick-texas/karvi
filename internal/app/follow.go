@@ -158,13 +158,9 @@ func errorText(err error) string {
 
 // FollowJobToTerminal follows an accepted job to its terminal without
 // rendering records, as run --follow=false waits (for job cancel
-// --follow). An interrupt returns the context's error;
-// the job continues in the daemon either way.
-func FollowJobToTerminal(ctx context.Context, common CommonOptions, jobID, artifactDir string) (ipc.FollowTerminal, error) {
-	rt, err := ResolveDaemonRuntime(common)
-	if err != nil {
-		return ipc.FollowTerminal{}, err
-	}
+// --follow), through the invocation's runtime rt. An interrupt returns the
+// context's error; the job continues in the daemon either way.
+func FollowJobToTerminal(ctx context.Context, rt DaemonRuntime, jobID, artifactDir string) (ipc.FollowTerminal, error) {
 	return followJob(ctx, followOptions{cfg: rt.Config, socket: rt.Socket, maxFrame: rt.MaxFrame, jobID: jobID}, artifactDir, io.Discard)
 }
 
@@ -185,11 +181,8 @@ type FollowRenderOptions struct {
 // context's error; the job continues in the daemon either way.
 // The artifact directory is returned as soon as the stream announced it,
 // with the terminal or with the error, and is empty when no start arrived.
-func FollowJobRendering(ctx context.Context, common CommonOptions, jobID string, o FollowRenderOptions, stdout, stderr io.Writer) (ipc.FollowTerminal, string, error) {
-	rt, err := ResolveDaemonRuntime(common)
-	if err != nil {
-		return ipc.FollowTerminal{}, "", err
-	}
+// rt is the invocation's runtime, resolved from its read.
+func FollowJobRendering(ctx context.Context, common CommonOptions, rt DaemonRuntime, jobID string, o FollowRenderOptions, stdout, stderr io.Writer) (ipc.FollowTerminal, string, error) {
 	var artifactDir string
 	terminal, err := followJob(ctx, followOptions{cfg: rt.Config, socket: rt.Socket, maxFrame: rt.MaxFrame, jobID: jobID, render: true, format: o.Format, quiet: common.Quiet, debug: common.Debug, echo: o.Echo, dynamic: o.DynamicBorder, noBorder: o.NoBorder, learned: &artifactDir, stderr: stderr}, "", stdout)
 	return terminal, artifactDir, err

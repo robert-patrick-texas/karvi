@@ -32,7 +32,7 @@ func helpStyleFor(g globalOptions, stdout io.Writer) helplayout.Style {
 	if err != nil {
 		return helplayout.Style{}
 	}
-	cfg, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.common().ConfigFlags, HomeDir: op.Home})
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home})
 	if err != nil {
 		return helplayout.Style{}
 	}

@@ -34,7 +34,8 @@ type globalOptions struct {
 	warnings *app.LoadWarnings
 }
 
-func (g globalOptions) common() app.CommonOptions {
+// flags are the keys the global options set, in the read's options layer.
+func (g globalOptions) flags() map[string]configload.FlagValue {
 	values := map[string]configload.FlagValue{}
 	if g.timezone != "" {
 		setKey(values, "--timezone", "timezone", g.timezone)
@@ -47,7 +48,18 @@ func (g globalOptions) common() app.CommonOptions {
 	} else if g.ipv6 {
 		setKey(values, "--ipv6", "name.address-family-preference", "ipv6")
 	}
-	return app.CommonOptions{ConfigRoots: append([]string(nil), g.configs...), Sets: append([]string(nil), g.sets...), ConfigFlags: values, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow, Warnings: g.warnings}
+	return values
+}
+
+// read is the invocation's one read of its configuration (app.ReadConfig)
+// under flags, the keys its options set, and the common options every stage
+// takes from it. A failure is reported on stderr, and its exit returned.
+func (g globalOptions) read(flags map[string]configload.FlagValue, stderr io.Writer) (app.CommonOptions, int, bool) {
+	cfg, operator, err := app.ReadConfig(app.ConfigRequest{Roots: g.configs, Sets: g.sets, Flags: flags}, g.warnings)
+	if err != nil {
+		return app.CommonOptions{}, reportError(stderr, "config_load_failed", err), false
+	}
+	return app.CommonOptions{Config: cfg, Operator: operator, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow}, 0, true
 }
 
 // Main executes one invocation and returns the stable karvi process exit code.
@@ -168,23 +180,30 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	panic("unhandled command path " + inv.Path)
 }
 
-// common merges the global options with the same options given after the
+// global merges the global options with the same options given after the
 // command word (--quiet, --debug, --ipv4, --ipv6 are accepted in both places).
-func (inv *Invocation) common() app.CommonOptions {
+func (inv *Invocation) global() globalOptions {
 	g := inv.Global
 	g.quiet = g.quiet || inv.Flag(optQuiet)
 	g.debug = g.debug || inv.Flag(optDebug)
 	g.ipv4 = g.ipv4 || inv.Flag(optIPv4)
 	g.ipv6 = g.ipv6 || inv.Flag(optIPv6)
-	common := g.common()
+	return g
+}
+
+// flags are the keys the invocation's options set: the global options' and
+// the command's host-key policy and file, --order, the dispatch options, and
+// --ping or --noping; run and command add their own (workRead).
+func (inv *Invocation) flags() map[string]configload.FlagValue {
+	values := inv.global().flags()
 	if inv.Set(optHostKeyPolicy) {
-		setKey(common.ConfigFlags, longName(optHostKeyPolicy), "ssh.host-key-policy", inv.String(optHostKeyPolicy))
+		setKey(values, longName(optHostKeyPolicy), "ssh.host-key-policy", inv.String(optHostKeyPolicy))
 	}
 	if inv.Set(optKnownHosts) {
-		setKey(common.ConfigFlags, longName(optKnownHosts), "ssh.known-hosts-file", inv.String(optKnownHosts))
+		setKey(values, longName(optKnownHosts), "ssh.known-hosts-file", inv.String(optKnownHosts))
 	}
 	if inv.Set(optOrder) {
-		setKey(common.ConfigFlags, longName(optOrder), "dispatch.order", inv.String(optOrder))
+		setKey(values, longName(optOrder), "dispatch.order", inv.String(optOrder))
 	}
 	for _, d := range dispatchOptionKeys {
 		if !inv.Set(d.opt) {
@@ -197,16 +216,16 @@ func (inv *Invocation) common() app.CommonOptions {
 		case typeDuration:
 			v = inv.Duration(d.opt).String()
 		}
-		setKey(common.ConfigFlags, longName(d.opt), d.key, v)
+		setKey(values, longName(d.opt), d.key, v)
 	}
 	// --ping and --noping set the effective network.ping-targets through the
 	// lock-aware cli layer.
 	if inv.Flag(optPing) {
-		setKey(common.ConfigFlags, longName(optPing), "network.ping-targets", true)
+		setKey(values, longName(optPing), "network.ping-targets", true)
 	} else if inv.Flag(optNoPing) {
-		setKey(common.ConfigFlags, longName(optNoPing), "network.ping-targets", false)
+		setKey(values, longName(optNoPing), "network.ping-targets", false)
 	}
-	return common
+	return values
 }
 
 // setKey records the value an option sets for its configuration key in the

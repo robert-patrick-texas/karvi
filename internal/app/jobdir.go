@@ -22,13 +22,22 @@ import (
 // job ID and the configuration, never searched, and
 // read only for a finished job.
 
+// CheckJobID refuses a string that is not a job ID with
+// job_request_malformed, the code the daemon answers. job follow and job
+// cancel check the ID with it before their read.
+func CheckJobID(jobID string) error {
+	if !executionplan.ValidJobID(jobID) {
+		return errorcodes.Errorf("job_request_malformed", "%q is not a job ID (YYMMDD-HHMMSS-xx)", jobID)
+	}
+	return nil
+}
+
 // JobIDTime parses the instant a job ID's stamp names, read in loc, the
 // effective timezone the stamp was written in; the day folder is that
-// instant's date. A string that is not a
-// job ID is job_request_malformed, the code the daemon answers.
+// instant's date. A string that is not a job ID is refused by CheckJobID.
 func JobIDTime(jobID string, loc *time.Location) (time.Time, error) {
-	if !executionplan.ValidJobID(jobID) {
-		return time.Time{}, errorcodes.Errorf("job_request_malformed", "%q is not a job ID (YYMMDD-HHMMSS-xx)", jobID)
+	if err := CheckJobID(jobID); err != nil {
+		return time.Time{}, err
 	}
 	return osutil.JobIDTime(jobID, loc)
 }
@@ -55,10 +64,7 @@ func jobDirectoryFor(cfg configload.Snapshot, base, home, jobID string) (string,
 // configuration: the ID's instant in the effective timezone
 // gives the day folder the runner most likely wrote.
 func JobDirectoryFor(common CommonOptions, jobID string) (string, error) {
-	cfg, operator, err := prepareConfig(common)
-	if err != nil {
-		return "", err
-	}
+	cfg, operator := common.Config, common.Operator
 	base, err := osutil.ResolveBaseDir(cfg.String("basedir"), operator.Home, operator.Username)
 	if err != nil {
 		return "", errorcodes.Ensure(err, "base_directory_unavailable")
@@ -77,10 +83,7 @@ func JobDirectoryFor(common CommonOptions, jobID string) (string, error) {
 // ID is job_request_malformed. The derived day folder is returned when
 // nothing exists, so a caller can name where it looked.
 func LocateJobDirectory(common CommonOptions, jobID string) (dir string, found bool, err error) {
-	cfg, operator, err := prepareConfig(common)
-	if err != nil {
-		return "", false, err
-	}
+	cfg, operator := common.Config, common.Operator
 	base, err := osutil.ResolveBaseDir(cfg.String("basedir"), operator.Home, operator.Username)
 	if err != nil {
 		return "", false, errorcodes.Ensure(err, "base_directory_unavailable")

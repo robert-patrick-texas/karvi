@@ -39,10 +39,7 @@ import (
 // wrapper in cmd/karvi supplies the controlling PTY when transcript recording
 // is requested; askpass remains outside the recorded terminal data path.
 func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityResult {
-	cfg, operator, err := prepareConfig(opts.CommonOptions)
-	if err != nil {
-		return failedResult("config_load_failed", err)
-	}
+	cfg, operator := opts.Config, opts.Operator
 	debug := jobexec.DebugLogger(opts.CommonOptions.Debug, cfg, streams.Stderr)
 	debug(fmt.Sprintf("activity=login config_digest=%s config_sources=%q", cfg.Digest, strings.Join(cfg.Sources, ",")))
 	// --platform is checked once, after the configuration and before the

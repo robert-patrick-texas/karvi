@@ -20,14 +20,12 @@ type DaemonRuntime struct {
 	MaxJobs   int
 }
 
-// ResolveDaemonRuntime computes private daemon paths and creates the state tree.
-// Callers use this only for daemon lifecycle actions, never for help/version.
-// Every returned error carries a registered code.
+// ResolveDaemonRuntime computes private daemon paths from the invocation's
+// read and creates the state tree, once per invocation; the callers that
+// reach the daemon take the runtime it returns. Every returned error carries
+// a registered code.
 func ResolveDaemonRuntime(common CommonOptions) (DaemonRuntime, error) {
-	cfg, operator, err := prepareConfig(common)
-	if err != nil {
-		return DaemonRuntime{}, err
-	}
+	cfg, operator := common.Config, common.Operator
 	base, err := osutil.ResolveBaseDir(cfg.String("basedir"), operator.Home, operator.Username)
 	if err != nil {
 		return DaemonRuntime{}, errorcodes.Ensure(err, "base_directory_unavailable")

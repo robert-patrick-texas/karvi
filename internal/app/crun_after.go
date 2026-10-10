@@ -67,11 +67,8 @@ func RunCollectionHook(ctx context.Context, common CommonOptions, result Activit
 	if c == nil {
 		return
 	}
-	cfg, operator, err := prepareConfig(common)
-	if err != nil {
-		warning(stderr, errorcodes.Message(errorcodes.Errorf("crun_after_failed", "the configuration could not be loaded for crun.after: %s", safeError(err))))
-		return
-	}
+	// The invocation's read, the job's: the hook its configuration named.
+	cfg, operator := common.Config, common.Operator
 	path := cfg.String("crun.after")
 	if path == "" {
 		return

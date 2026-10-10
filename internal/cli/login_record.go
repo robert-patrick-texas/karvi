@@ -60,15 +60,18 @@ func recorderDiagnostics() *os.File {
 // the same invocation, uses the session ID given here, and does not record.
 func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	streams := app.IO{Stdin: stdin, Stdout: stdout, Stderr: stderr}
-	inputs, code, ok := targetInputs(inv, streams)
+	if code, ok := checkTargetSources(inv, stderr); !ok {
+		return code
+	}
+	common, code, ok := inv.global().read(inv.flags(), stderr)
 	if !ok {
 		return code
 	}
-	common := inv.common()
-	cfg, err := app.LoadConfig(common)
-	if err != nil {
-		return reportError(stderr, "config_load_failed", err)
+	inputs, code, ok := targetInputs(inv, common.Config, streams)
+	if !ok {
+		return code
 	}
+	cfg, operator := common.Config, common.Operator
 	// --platform is checked here as the child checks it: after the
 	// configuration and before the target set and the
 	// transcript claim, so a refused value creates no transcript file and
@@ -80,10 +83,6 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	format, metaFormat := cfg.String("transcript.format"), cfg.String("transcript.metadata-format")
 	if format != transcript.FormatText {
 		return reportError(stderr, "transcript_format_unavailable", errorcodes.Errorf("transcript_format_unavailable", "transcript.format %q requires the transcript event recorder, which this executable does not implement; use text", format))
-	}
-	operator, err := osutil.CurrentOperator()
-	if err != nil {
-		return reportError(stderr, "operator_identity_unavailable", err)
 	}
 	base, err := osutil.ResolveBaseDir(cfg.String("basedir"), operator.Home, operator.Username)
 	if err != nil {

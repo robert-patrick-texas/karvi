@@ -8,11 +8,10 @@ import (
 )
 
 // LoadWarnings says a process's configuration-load warnings ("optional
-// include missing", "ignored unknown environment variable") at the load,
-// each once: an invocation that loads its configuration several times (a
-// run through a daemon three times, a stream once per job) says each warning
-// at the first load that raised it. One is made per invocation and carried
-// in CommonOptions; a nil LoadWarnings says nothing (a recorded login's
+// include missing", "ignored unknown environment variable") at the read,
+// each once: a stream, which reads once per job, says each warning at the
+// first read that raised it. One is made per invocation and given to its
+// read (ReadConfig); a nil LoadWarnings says nothing (a recorded login's
 // child, whose wrapper said them).
 type LoadWarnings struct {
 	mu   sync.Mutex

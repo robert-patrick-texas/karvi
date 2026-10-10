@@ -97,7 +97,7 @@ func TestRunDryRunAgainstADaemon(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	var launch bytes.Buffer
-	rt, err := ensureDaemon(ctx, g, &launch)
+	rt, err := ensureTestDaemon(ctx, g, &launch)
 	if err != nil {
 		t.Fatalf("ensureDaemon: %v (%s)", err, launch.String())
 	}

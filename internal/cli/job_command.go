@@ -29,9 +29,12 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 	g := inv.Global
 	jobID := inv.Positional[0]
 	format := inv.String(optFormatTJ)
-	rt, err := app.ResolveDaemonRuntime(g.common())
-	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+	if err := app.CheckJobID(jobID); err != nil {
+		return reportError(streams.Stderr, "job_request_malformed", err)
+	}
+	rt, code, ok := g.runtime(streams.Stderr)
+	if !ok {
+		return code
 	}
 	probeCtx, probeCancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, err := daemon.Probe(probeCtx, rt.Socket, rt.MaxFrame)
@@ -57,7 +60,7 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if res.State != ipc.CancelStateCancelling || !inv.Flag(optFollow) {
 		return 0
 	}
-	terminal, err := app.FollowJobToTerminal(ctx, g.common(), jobID, res.ArtifactDir)
+	terminal, err := app.FollowJobToTerminal(ctx, rt, jobID, res.ArtifactDir)
 	if err != nil {
 		if ctx.Err() != nil {
 			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, res.ArtifactDir, "continues cancelling in the daemon"))
@@ -103,17 +106,20 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		format = "text"
 	}
 	render := app.FollowRenderOptions{Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder)}
-	// The directory is located first: a malformed ID fails
-	// here as the daemon would fail it. found is whether it exists yet.
-	dir, dirFound, err := app.LocateJobDirectory(g.common(), jobID)
-	if err != nil {
-		code := "config_load_failed"
-		if errorcodes.Of(err) == "job_request_malformed" {
-			code = "job_request_malformed"
-		}
-		return reportError(streams.Stderr, code, err)
+	// A malformed ID fails before the read, as the daemon would fail it.
+	if err := app.CheckJobID(jobID); err != nil {
+		return reportError(streams.Stderr, "job_request_malformed", err)
 	}
-	rt, err := app.ResolveDaemonRuntime(g.common())
+	common, code, ok := g.read(g.flags(), streams.Stderr)
+	if !ok {
+		return code
+	}
+	// The directory is located first; found is whether it exists yet.
+	dir, dirFound, err := app.LocateJobDirectory(common, jobID)
+	if err != nil {
+		return reportError(streams.Stderr, "config_load_failed", err)
+	}
+	rt, err := app.ResolveDaemonRuntime(common)
 	if err != nil {
 		return reportError(streams.Stderr, "config_load_failed", err)
 	}
@@ -137,7 +143,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		// A broken stdout must surface as a write error, not a SIGPIPE
 		// death, as for the daemon-backed run.
 		signal.Ignore(syscall.SIGPIPE)
-		terminal, artifactDir, err := app.FollowJobRendering(ctx, g.common(), jobID, render, streams.Stdout, streams.Stderr)
+		terminal, artifactDir, err := app.FollowJobRendering(ctx, common, rt, jobID, render, streams.Stdout, streams.Stderr)
 		if err == nil {
 			return jobFollowResult(g, streams, jobID, terminal.Outcome.ArtifactDir, terminal.Outcome.Summary, terminal.Outcome.ExitCode)
 		}
@@ -166,7 +172,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	switch state {
 	case app.JobDirectoryFinished:
 		signal.Ignore(syscall.SIGPIPE)
-		summary, err := app.RenderJobDirectory(g.common(), dir, render, streams.Stdout)
+		summary, err := app.RenderJobDirectory(common, dir, render, streams.Stdout)
 		if err != nil {
 			return reportError(streams.Stderr, "run_output_records_unreadable", err)
 		}

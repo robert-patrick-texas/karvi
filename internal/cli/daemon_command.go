@@ -24,12 +24,31 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
+// runtime is the daemon's runtime from the invocation's one read, under the
+// global options' keys. A failure is reported on stderr, and its exit
+// returned.
+func (g globalOptions) runtime(stderr io.Writer) (app.DaemonRuntime, int, bool) {
+	common, code, ok := g.read(g.flags(), stderr)
+	if !ok {
+		return app.DaemonRuntime{}, code, false
+	}
+	rt, err := app.ResolveDaemonRuntime(common)
+	if err != nil {
+		return app.DaemonRuntime{}, reportError(stderr, "config_load_failed", err), false
+	}
+	return rt, 0, true
+}
+
 func daemonStart(ctx context.Context, inv *Invocation, streams app.IO) int {
 	g := inv.Global
 	if inv.Flag(optForeground) {
 		return serveDaemon(g, streams.Stderr)
 	}
-	if _, err := ensureDaemon(ctx, g, streams.Stderr); err != nil {
+	rt, code, ok := g.runtime(streams.Stderr)
+	if !ok {
+		return code
+	}
+	if err := ensureDaemon(ctx, rt, g, streams.Stderr); err != nil {
 		return reportError(streams.Stderr, "daemon_start_failed", err)
 	}
 	if !g.quiet {
@@ -41,9 +60,9 @@ func daemonStart(ctx context.Context, inv *Invocation, streams app.IO) int {
 func daemonStatus(ctx context.Context, inv *Invocation, streams app.IO) int {
 	g := inv.Global
 	format := inv.String(optFormatTJ)
-	rt, err := app.ResolveDaemonRuntime(g.common())
-	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+	rt, code, ok := g.runtime(streams.Stderr)
+	if !ok {
+		return code
 	}
 	cctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
@@ -105,9 +124,9 @@ func daemonStop(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if done {
 		return code
 	}
-	rt, err := app.ResolveDaemonRuntime(g.common())
-	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+	rt, code, ok := g.runtime(streams.Stderr)
+	if !ok {
+		return code
 	}
 	probe, err := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
 	if err != nil {
@@ -129,9 +148,9 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if done {
 		return code
 	}
-	rt, err := app.ResolveDaemonRuntime(g.common())
-	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+	rt, code, ok := g.runtime(streams.Stderr)
+	if !ok {
+		return code
 	}
 	if _, statErr := os.Lstat(rt.Socket); statErr == nil {
 		stoppedProbe, stopErr := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
@@ -146,7 +165,7 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	quietStart := g
 	quietStart.quiet = true
-	if _, err := ensureDaemon(ctx, quietStart, streams.Stderr); err != nil {
+	if err := ensureDaemon(ctx, rt, quietStart, streams.Stderr); err != nil {
 		return reportError(streams.Stderr, "daemon_start_failed", err)
 	}
 	if !g.quiet {
@@ -267,9 +286,9 @@ func serveDaemon(g globalOptions, stderr io.Writer) int {
 	logger := slog.New(slog.NewTextHandler(stderr, nil))
 	// The daemon's own load's warnings go to its log, once, at its start.
 	g.warnings = app.NewLoadWarnings(func(w string) { logger.Warn("configuration warning", slog.String("warning", w)) })
-	rt, err := app.ResolveDaemonRuntime(g.common())
-	if err != nil {
-		return reportError(stderr, "config_load_failed", err)
+	rt, code, ok := g.runtime(stderr)
+	if !ok {
+		return code
 	}
 	secretVariableNotice(logger)
 	signals := make(chan os.Signal, 2)
@@ -282,33 +301,30 @@ func serveDaemon(g globalOptions, stderr io.Writer) int {
 	return 0
 }
 
-// ensureDaemon returns a running compatible daemon; every error carries a
-// registered code.
-func ensureDaemon(ctx context.Context, g globalOptions, stderr io.Writer) (app.DaemonRuntime, error) {
-	rt, err := app.ResolveDaemonRuntime(g.common())
-	if err != nil {
-		return rt, err
-	}
+// ensureDaemon makes a compatible daemon answer at the socket of rt, the
+// invocation's runtime, launching one with the global options g when none
+// does; every error carries a registered code.
+func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, stderr io.Writer) error {
 	pingCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, pingErr := daemon.Probe(pingCtx, rt.Socket, rt.MaxFrame)
 	cancel()
 	if pingErr == nil {
 		if probe.Compatible {
-			return rt, nil
+			return nil
 		}
-		return rt, incompatibleDaemonError(probe)
+		return incompatibleDaemonError(probe)
 	}
 	var mismatch *ipc.SchemaMismatchError
 	if errors.As(pingErr, &mismatch) {
-		return rt, fmt.Errorf("daemon_incompatible: running daemon uses unsupported IPC schema %d; karvi %s requires schema %d; no replacement was attempted; run \"karvi daemon stop\" with the matching older karvi executable, then retry", mismatch.DaemonSchema, buildinfo.Version, ipc.SchemaVersion)
+		return fmt.Errorf("daemon_incompatible: running daemon uses unsupported IPC schema %d; karvi %s requires schema %d; no replacement was attempted; run \"karvi daemon stop\" with the matching older karvi executable, then retry", mismatch.DaemonSchema, buildinfo.Version, ipc.SchemaVersion)
 	}
 	exe, err := os.Executable()
 	if err != nil {
-		return rt, errorcodes.Errorf("karvi_executable_unlocatable", "locate karvi executable: %w", err)
+		return errorcodes.Errorf("karvi_executable_unlocatable", "locate karvi executable: %w", err)
 	}
 	log, err := os.OpenFile(rt.LogPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		return rt, errorcodes.Errorf("daemon_log_open_failed", "open daemon log %s: %w", rt.LogPath, err)
+		return errorcodes.Errorf("daemon_log_open_failed", "open daemon log %s: %w", rt.LogPath, err)
 	}
 	childArgs := globalArgs(g)
 	childArgs = append(childArgs, "daemon", "serve")
@@ -320,7 +336,7 @@ func ensureDaemon(ctx context.Context, g globalOptions, stderr io.Writer) (app.D
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if err := cmd.Start(); err != nil {
 		log.Close()
-		return rt, errorcodes.Errorf("daemon_spawn_failed", "start daemon: %w", err)
+		return errorcodes.Errorf("daemon_spawn_failed", "start daemon: %w", err)
 	}
 	childPID := cmd.Process.Pid // Release clears it
 	_ = cmd.Process.Release()
@@ -332,7 +348,7 @@ func ensureDaemon(ctx context.Context, g globalOptions, stderr io.Writer) (app.D
 	wctx, wcancel := context.WithTimeout(ctx, timeout)
 	defer wcancel()
 	if err := ipc.Wait(wctx, rt.Socket); err != nil {
-		return rt, fmt.Errorf("daemon_start_failed: daemon failed to start; inspect %s: %w", rt.LogPath, err)
+		return fmt.Errorf("daemon_start_failed: daemon failed to start; inspect %s: %w", rt.LogPath, err)
 	}
 	// The daemon's first answer after its socket appeared: two seconds,
 	// since one second lapsed once under a full parallel `go test ./...`
@@ -341,7 +357,7 @@ func ensureDaemon(ctx context.Context, g globalOptions, stderr io.Writer) (app.D
 	defer pcancel()
 	status, err := daemon.Ping(pctx, rt.Socket, rt.MaxFrame)
 	if err != nil {
-		return rt, errorcodes.Ensure(err, "daemon_start_failed")
+		return errorcodes.Ensure(err, "daemon_start_failed")
 	}
 	// Two clients launching at once each start a child; the second child
 	// finds the socket taken and exits, and the daemon answering is the
@@ -349,7 +365,7 @@ func ensureDaemon(ctx context.Context, g globalOptions, stderr io.Writer) (app.D
 	if !g.quiet && status.PID == childPID {
 		fmt.Fprintf(stderr, "daemon started socket=%s\n", rt.Socket)
 	}
-	return rt, nil
+	return nil
 }
 
 // daemonEnvironment is what the launcher hands daemon serve: the child

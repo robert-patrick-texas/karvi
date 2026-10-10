@@ -31,12 +31,16 @@ func TestRunRetriesOnceWhenTheDaemonLeftAfterTheProbe(t *testing.T) {
 			stopTestDaemon(t, socket, maxFrame) // the daemon leaves after the probe
 			return nil
 		}
-		_, err := ensureDaemon(ctx, g, &launch)
+		_, err := ensureTestDaemon(ctx, g, &launch)
 		return err
 	}
 	// No ID is passed: the run reserves its own under the fixture's output
 	// root, as the command line's run does.
-	opts := app.RunOptions{CommonOptions: g.common(), Exercise: true, Follow: true, Format: "json",
+	common, err := testCommon(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts := app.RunOptions{CommonOptions: common, Exercise: true, Follow: true, Format: "json",
 		Targets: []records.TargetInput{{Kind: "target", Value: "127.0.0.1"}}, Transport: "system", Commands: []string{"show clock"}}
 	var stdout, stderr bytes.Buffer
 	result := app.RunViaDaemon(context.Background(), opts, socket, maxFrame, ensure, app.IO{Stdin: strings.NewReader(""), Stdout: &stdout, Stderr: &stderr})

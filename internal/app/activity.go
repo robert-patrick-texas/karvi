@@ -30,10 +30,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
-	cfg, operator, err := prepareConfig(opts.CommonOptions)
-	if err != nil {
-		return failedResult("config_load_failed", err)
-	}
+	cfg, operator := opts.Config, opts.Operator
 	// --platform is checked once here, after the configuration and before the
 	// inventory is read: a value that is not a known
 	// platform is refused before any inventory fault could mask it.
@@ -99,10 +96,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
-	cfg, operator, err := prepareConfig(opts.CommonOptions)
-	if err != nil {
-		return failedResult("config_load_failed", err)
-	}
+	cfg, operator := opts.Config, opts.Operator
 	// --platform is checked before the inventory is read, as in command.
 	platformName, err := CheckPlatformOption(cfg, opts.Platform)
 	if err != nil {
@@ -164,10 +158,7 @@ func RenderRunOutput(common CommonOptions, artifactDir, format string, echo, dyn
 	if format == "jsonl" {
 		return jobexec.RenderRunOutput(configload.Snapshot{}, common.Quiet, common.Debug, artifactDir, format, echo, dynamicBorder, noBorder, summary, out)
 	}
-	cfg, _, err := prepareConfig(common)
-	if err != nil {
-		return err
-	}
+	cfg := common.Config
 	return jobexec.RenderRunOutput(cfg, common.Quiet, common.Debug, artifactDir, format, echo || cfg.Bool("display.run.echo"), dynamicBorder, noBorder, summary, out)
 }
 
@@ -242,16 +233,27 @@ func firstDevice(set TargetSet, platformName, transport string, port int) invent
 	return d
 }
 
-// prepareConfig loads the operator and configuration; every error it returns
-// carries a registered code.
-func prepareConfig(common CommonOptions) (configload.Snapshot, credentials.Operator, error) {
+// ConfigRequest is what an invocation's read is made from: its --config
+// roots, its --set values in order, and the keys its options set.
+type ConfigRequest struct {
+	Roots []string
+	Sets  []string
+	Flags map[string]configload.FlagValue
+}
+
+// ReadConfig is an invocation's one read of its configuration: the operator
+// from the password database, the configuration loaded under req, its
+// warnings said through warnings, and the configured transports checked.
+// Every error it returns carries a registered code, a configuration's with
+// the configuration contract's exit (ConfigLoadError).
+func ReadConfig(req ConfigRequest, warnings *LoadWarnings) (configload.Snapshot, credentials.Operator, error) {
 	operator, err := osutil.CurrentOperator()
 	if err != nil {
 		return configload.Snapshot{}, credentials.Operator{}, errorcodes.Ensure(err, "operator_identity_unavailable")
 	}
-	cfg, err := configload.Load(configload.Options{ExplicitRoots: common.ConfigRoots, Sets: common.Sets, FlagValues: common.ConfigFlags, HomeDir: operator.Home})
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: req.Roots, Sets: req.Sets, FlagValues: req.Flags, HomeDir: operator.Home})
 	if err == nil {
-		common.Warnings.Say(cfg)
+		warnings.Say(cfg)
 		err = transportselect.ValidateConfigured(cfg)
 	}
 	if err != nil {

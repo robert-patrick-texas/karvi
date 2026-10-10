@@ -175,7 +175,11 @@ func TestJobFollowInterruptedBeforeTheStart(t *testing.T) {
 // derives it: an empty canonical file and a summary.
 func finishedDirectory(t *testing.T, g globalOptions, jobID string, summary records.Summary) string {
 	t.Helper()
-	dir, err := app.JobDirectoryFor(g.common(), jobID)
+	common, err := testCommon(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := app.JobDirectoryFor(common, jobID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +234,8 @@ func TestJobFollowDirectoryStates(t *testing.T) {
 		t.Fatalf("malformed: exit=%d stderr=%q", got, stderr.String())
 	}
 	stderr.Reset()
-	dir, _ := app.JobDirectoryFor(g.common(), fixtureJobID)
+	common, _ := testCommon(g)
+	dir, _ := app.JobDirectoryFor(common, fixtureJobID)
 	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_unknown: ") || !strings.Contains(stderr.String(), dir+" does not exist") || !strings.Contains(stderr.String(), "daemon_unreachable") {
 		t.Fatalf("absent: exit=%d stderr=%q", got, stderr.String())
 	}

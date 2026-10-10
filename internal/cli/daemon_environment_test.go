@@ -52,7 +52,7 @@ func TestEnsureDaemonPassesOnlyTheAllowList(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	var stderr bytes.Buffer
-	rt, err := ensureDaemon(ctx, g, &stderr)
+	rt, err := ensureTestDaemon(ctx, g, &stderr)
 	if err != nil {
 		t.Fatalf("ensureDaemon: %v (stderr %q)", err, stderr.String())
 	}

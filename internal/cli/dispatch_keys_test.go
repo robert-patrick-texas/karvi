@@ -26,7 +26,7 @@ func TestDispatchOptionsAreKeyOverrides(t *testing.T) {
 		"dispatch.wave-max-width": int64(11), "dispatch.halt-on-error-count": int64(1), "dispatch.halt-on-error-percent": int64(2),
 		"dispatch.wave-gate-error-count": int64(3), "dispatch.wave-gate-error-percent": int64(4), "dispatch.wave-gate-timed-delay": "1m30s",
 	}
-	got := inv.common().ConfigFlags
+	got := inv.flags()
 	for key, v := range want {
 		if !reflect.DeepEqual(got[key].Value, v) {
 			t.Errorf("%s = %#v, want %#v", key, got[key].Value, v)
@@ -49,7 +49,7 @@ func TestDispatchOptionsAreKeyOverrides(t *testing.T) {
 		t.Fatal(err)
 	}
 	for key := range want {
-		if v, ok := inv.common().ConfigFlags[key]; ok {
+		if v, ok := inv.flags()[key]; ok {
 			t.Errorf("%s = %#v without its option", key, v)
 		}
 	}
@@ -84,7 +84,7 @@ func TestOptionSources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	flags := inv.common().ConfigFlags
+	flags := inv.flags()
 	continueOptions(inv, "run", flags)
 	for key, source := range map[string]string{"name.address-family-preference": "--ipv4", "timezone": "--timezone", "output.ansi": "--ansi", "execution.halt-device-on-command-error": "--continue-device-on-error"} {
 		if flags[key].Option != source {
@@ -95,7 +95,7 @@ func TestOptionSources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	flags = inv.common().ConfigFlags
+	flags = inv.flags()
 	continueOptions(inv, "crun", flags)
 	if f := flags["execution.halt-device-on-command-error"]; f.Option != "crun" || f.Value != false {
 		t.Errorf("crun: %+v", f)
@@ -104,7 +104,7 @@ func TestOptionSources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	flags = inv.common().ConfigFlags
+	flags = inv.flags()
 	continueOptions(inv, "run", flags)
 	if f, ok := flags["execution.halt-device-on-command-error"]; ok {
 		t.Errorf("a run without the option: %+v", f)

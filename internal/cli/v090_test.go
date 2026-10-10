@@ -87,7 +87,7 @@ func TestV090AddressFamilyPreferenceUsesLockAwareConfigFlag(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := inv.common().ConfigFlags["name.address-family-preference"].Value; got != tc.preference {
+			if got := inv.flags()["name.address-family-preference"].Value; got != tc.preference {
 				t.Fatalf("preference=%v, want %s", got, tc.preference)
 			}
 		})

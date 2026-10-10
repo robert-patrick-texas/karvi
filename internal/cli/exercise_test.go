@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/canary"
 	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -42,7 +41,7 @@ func exerciseRuntime(t *testing.T) (string, []string, string, int64, func()) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	var launch bytes.Buffer
-	rt, err := ensureDaemon(ctx, g, &launch)
+	rt, err := ensureTestDaemon(ctx, g, &launch)
 	if err != nil {
 		t.Fatalf("ensureDaemon: %v (%s)", err, launch.String())
 	}
@@ -161,7 +160,7 @@ func TestRunExerciseNotReadyExitsWithTheFindingsCode(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	var launch bytes.Buffer
-	rt, err := ensureDaemon(ctx, g, &launch)
+	rt, err := ensureTestDaemon(ctx, g, &launch)
 	if err != nil {
 		t.Fatalf("ensureDaemon: %v (%s)", err, launch.String())
 	}
@@ -222,7 +221,7 @@ func TestRunExerciseConflictsAndStages(t *testing.T) {
 func daemonTestRuntime2(t *testing.T, base string) (string, globalOptions, string) {
 	t.Helper()
 	g := globalOptions{sets: []string{"basedir=\"" + base + "\""}}
-	rt, err := app.ResolveDaemonRuntime(g.common())
+	rt, err := testRuntime(g)
 	if err != nil {
 		t.Fatal(err)
 	}

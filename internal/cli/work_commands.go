@@ -19,42 +19,39 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
 )
 
-// targetInputs converts the parsed target inputs into the assembly inputs:
-// each keeps its command-line position, and a --tf or --tfr source is read
-// here so the daemon never opens an operator file. Standard input may feed
-// one input per invocation.
-func targetInputs(inv *Invocation, streams app.IO) ([]app.TargetInput, int, bool) {
-	stdinUses, sources := 0, 0
+// checkTargetSources refuses, before the read, what the target inputs'
+// sources cannot be on their own: standard input read by more than one input
+// (--cf - and --tf - among them), and --tfr -.
+func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
+	stdinUses := 0
 	if inv.CommandsFile == "-" {
 		stdinUses++
 	}
 	for _, t := range inv.Targets {
 		switch t.Kind {
 		case "tf":
-			sources++
 			if t.Value == "-" {
 				stdinUses++
 			}
 		case "tfr":
-			sources++
 			if t.Value == "-" {
-				return nil, usageError(streams.Stderr, "target_source_stdin_invalid", "--tfr - is not accepted; --tf - reads standard input"), false
+				return usageError(w, "target_source_stdin_invalid", "--tfr - is not accepted; --tf - reads standard input"), false
 			}
 		}
 	}
 	if stdinUses > 1 {
-		return nil, usageError(streams.Stderr, "stdin_source_repeated", "standard input may be read by one input: --cf - or one --tf -"), false
+		return usageError(w, "stdin_source_repeated", "standard input may be read by one input: --cf - or one --tf -"), false
 	}
-	// The source rules come from configuration: targets.empty-source and
-	// targets.recursion-max-depth.
-	emptyRule, maxDepth := "error", 3
-	if sources > 0 {
-		cfg, err := app.LoadConfig(inv.common())
-		if err != nil {
-			return nil, reportError(streams.Stderr, "config_load_failed", err), false
-		}
-		emptyRule, maxDepth = cfg.String("targets.empty-source"), cfg.Int("targets.recursion-max-depth")
-	}
+	return 0, true
+}
+
+// targetInputs converts the parsed target inputs into the assembly inputs:
+// each keeps its command-line position, and a --tf or --tfr source is read
+// here, after the read, so the daemon never opens an operator file. The
+// source rules come from cfg: targets.empty-source and
+// targets.recursion-max-depth.
+func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]app.TargetInput, int, bool) {
+	emptyRule, maxDepth := cfg.String("targets.empty-source"), cfg.Int("targets.recursion-max-depth")
 	inputs := make([]app.TargetInput, 0, len(inv.Targets))
 	for _, t := range inv.Targets {
 		switch t.Kind {
@@ -230,21 +227,21 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if err := collectionOptionsError(inv); err != nil {
 		return reportError(streams.Stderr, errorcodes.Of(err), err)
 	}
-	inputs, code, ok := targetInputs(inv, streams)
-	if !ok {
+	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
 	}
 	commands, decl, code, ok := commandPlan(inv, streams)
 	if !ok {
 		return code
 	}
-	common := inv.common()
-	if inv.Set(optBlindWait) {
-		setKey(common.ConfigFlags, longName(optBlindWait), "execution.blind-wait", inv.Duration(optBlindWait).String())
+	common, collection, code, ok := workRead(inv, "command", streams.Stderr)
+	if !ok {
+		return code
 	}
-	outputOptions(inv, common.ConfigFlags)
-	continueOptions(inv, "command", common.ConfigFlags)
-	collection := collectionOptions(inv, "command", common.ConfigFlags)
+	inputs, code, ok := targetInputs(inv, common.Config, streams)
+	if !ok {
+		return code
+	}
 	format := inv.String(optFormat)
 	if format == "" {
 		format = "text"
@@ -253,6 +250,22 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	collection.impliedDirectory(&result)
 	printResultError(result, streams.Stderr)
 	return result.ExitCode
+}
+
+// workRead is command's and run's read, after every refusal their command
+// line can be given without it: the keys their options set (the
+// invocation's, --blind-wait, --nof and --of, the continue option or the
+// crun word, and the collection directory) gathered, then the one read.
+func workRead(inv *Invocation, word string, stderr io.Writer) (app.CommonOptions, collection, int, bool) {
+	flags := inv.flags()
+	if inv.Set(optBlindWait) {
+		setKey(flags, longName(optBlindWait), "execution.blind-wait", inv.Duration(optBlindWait).String())
+	}
+	outputOptions(inv, flags)
+	continueOptions(inv, word, flags)
+	c := collectionOptions(inv, word, flags)
+	common, code, ok := inv.global().read(flags, stderr)
+	return common, c, code, ok
 }
 
 // declarations are the per-command interactive-prompt lists the client
@@ -458,34 +471,12 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		}
 		return reportError(streams.Stderr, "inventory_positive_selector_missing", errorcodes.Errorf("inventory_positive_selector_missing", "%s requires a target input: --target, --tf, --site, --device-group, --select-platform, or --all%s", word, hint))
 	}
-	inputs, code, ok := targetInputs(inv, streams)
-	if !ok {
+	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
 	}
 	commands, decl, code, ok := commandPlan(inv, streams)
 	if !ok {
 		return code
-	}
-	common := inv.common()
-	if inv.Set(optBlindWait) {
-		setKey(common.ConfigFlags, longName(optBlindWait), "execution.blind-wait", inv.Duration(optBlindWait).String())
-	}
-	outputOptions(inv, common.ConfigFlags)
-	continueOptions(inv, word, common.ConfigFlags)
-	collection := collectionOptions(inv, word, common.ConfigFlags)
-	format := inv.String(optFormat)
-	if format == "" {
-		format = "text"
-	}
-	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
-	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
-	opts.Collection, opts.Suffix = collection.word, collection.suffix
-	if crun {
-		// With no command on the line, each device runs its platform's
-		// list; the word runs the device's whole list past a rejected
-		// statement through its flag-origin key (continueOptions).
-		opts.PlatformCommands = len(commands) == 0
 	}
 	// The rehearsal flags exclude one another, neither detaches, and an
 	// exercise needs a
@@ -508,8 +499,32 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	case inv.Flag(optNof) && inv.Flag(optExercise):
 		return usageError(streams.Stderr, "run_mode_conflict", "--nof with --exercise contradict each other; the exercise report is a file in the job folder")
 	}
+	started := time.Now()
+	common, collection, code, ok := workRead(inv, word, streams.Stderr)
+	if !ok {
+		return code
+	}
+	read := app.ReadTiming{Start: started, Duration: time.Since(started)}
+	inputs, code, ok := targetInputs(inv, common.Config, streams)
+	if !ok {
+		return code
+	}
+	format := inv.String(optFormat)
+	if format == "" {
+		format = "text"
+	}
+	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
+	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
+	opts.Collection, opts.Suffix = collection.word, collection.suffix
+	if crun {
+		// With no command on the line, each device runs its platform's
+		// list; the word runs the device's whole list past a rejected
+		// statement through its flag-origin key (continueOptions).
+		opts.PlatformCommands = len(commands) == 0
+	}
 	if inv.Flag(optDryRun) {
-		result := app.InspectRun(ctx, opts, !inv.Flag(optNoDaemon), streams)
+		result := app.InspectRun(ctx, opts, !inv.Flag(optNoDaemon), read, streams)
 		collection.impliedDirectory(&result)
 		printResultError(result, streams.Stderr)
 		return result.ExitCode
@@ -543,7 +558,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if e != nil {
 		return reportError(streams.Stderr, "daemon_start_failed", e)
 	}
-	ensure := func(ctx context.Context) error { _, err := ensureDaemon(ctx, inv.Global, streams.Stderr); return err }
+	ensure := func(ctx context.Context) error { return ensureDaemon(ctx, rt, inv.Global, streams.Stderr) }
 	// The records are rendered as the daemon makes them durable, through
 	// the follow stream inside RunViaDaemon. A broken stdout must surface
 	// as a write error, not a SIGPIPE death, so the signal is ignored for
@@ -568,13 +583,20 @@ func commandLogin(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkPort(inv, streams.Stderr); !ok {
 		return code
 	}
-	inputs, code, ok := targetInputs(inv, streams)
+	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
+		return code
+	}
+	common, code, ok := inv.global().read(inv.flags(), streams.Stderr)
+	if !ok {
+		return code
+	}
+	inputs, code, ok := targetInputs(inv, common.Config, streams)
 	if !ok {
 		return code
 	}
 	// Recording is performed by the script(1) wrapper around this process
 	// (login_record.go); the child never records in-process.
-	result := app.ExecuteLogin(ctx, app.LoginOptions{CommonOptions: inv.common(), Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority)}, streams)
+	result := app.ExecuteLogin(ctx, app.LoginOptions{CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority)}, streams)
 	printResultError(result, streams.Stderr)
 	return result.ExitCode
 }

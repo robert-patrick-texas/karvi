@@ -43,23 +43,11 @@ func resolveOrder(cfg configload.Snapshot, now func() time.Time) (order string, 
 	return order, key
 }
 
-// AssembleTargets loads configuration and inventory, then assembles the target
-// set for inputs. The login recorder wrapper uses
-// it to learn the device a session will connect to.
+// AssembleTargets loads the inventory under the invocation's read, then
+// assembles the target set for inputs. The login recorder wrapper uses it to
+// learn the device a session will connect to.
 func AssembleTargets(ctx context.Context, common CommonOptions, inputs []TargetInput, excludes []string, stderr io.Writer) (TargetSet, error) {
-	cfg, operator, err := prepareConfig(common)
-	if err != nil {
-		return TargetSet{}, errorcodes.Ensure(err, "config_load_failed")
-	}
-	return assembleTargets(ctx, cfg, operator, inputs, excludes, stderr)
-}
-
-// LoadConfig loads the effective configuration of an invocation without
-// connecting. The command line reads --tf and --tfr sources with it, so the
-// daemon never opens an operator file.
-func LoadConfig(common CommonOptions) (configload.Snapshot, error) {
-	cfg, _, err := prepareConfig(common)
-	return cfg, err
+	return assembleTargets(ctx, common.Config, common.Operator, inputs, excludes, stderr)
 }
 
 // assembleTargets loads the inventory and assembles the target set.

@@ -43,9 +43,10 @@ type clientDraft struct {
 	release func()
 }
 
-// draftTiming is what the inspection report records per client stage.
+// draftTiming is what the inspection report records per client stage after
+// the read (ReadTiming).
 type draftTiming struct {
-	config, inventory, dns, credential time.Duration
+	inventory, dns, credential time.Duration
 }
 
 // draftClient runs the shared first half. On failure it returns the site
@@ -54,14 +55,9 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
-	t0 := time.Now()
-	cfg, operator, err := prepareConfig(opts.CommonOptions)
-	if err != nil {
-		return nil, "config_load_failed", err
-	}
+	cfg, operator := opts.Config, opts.Operator
 	cd := &clientDraft{cfg: cfg, operator: operator}
-	cd.timing.config = time.Since(t0)
-	t0 = time.Now()
+	t0 := time.Now()
 	// --platform is checked before the inventory is read, as in command.
 	platformName, err := CheckPlatformOption(cfg, opts.Platform)
 	if err != nil {
