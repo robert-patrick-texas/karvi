@@ -7672,3 +7672,101 @@ are 0.28.0's.
 daemon's socket path bounded" from Later to Next, so that the client refuses a
 `daemon.socket` too long for a path socket before it starts a daemon that
 cannot listen.
+
+## 49. The daemon's socket path bounded (2026-10-10)
+
+ROADMAP's first Next item: `daemon.socket`, by default
+`<basedir>/socket/daemon.sock`, has no length check, found in [chapter
+40](#40-the-scratch-bounded-for-the-askpass-socket-2026-10-08).
+
+**What it gains.** A `daemon.socket` too long for a path socket refused at
+once, naming the socket and its length, before anything is made, where a `run`
+waits out `daemon.start-timeout` and exits 112 with `context deadline
+exceeded`, the cause in `daemon.log` alone. It waits on nothing.
+
+**The evidence.** A lab build of `5ec02b2`, every place under a short lab
+directory, `run --transport native --platform linux --t 127.0.0.1 'echo ok'`,
+the daemon started by the run, under a `basedir` of a given length:
+
+| `basedir` | Result |
+|---|---|
+| 60 and 83 bytes | ran, exit 0 |
+| 84 and 88 bytes | exit 112 after 5.1 s, `daemon.log`: `listen unix …/socket/credentials.sock: bind: invalid argument`, `daemon.sock` bound first |
+| 89 bytes | the same, on `…/socket/daemon.sock` |
+| 84, `daemon start` | exit 112, the same text |
+| 84 and 89, `daemon status` | exit 110, `daemon_unreachable … connect: no such file or directory`, and `… invalid argument` |
+| explicit `daemon.socket`, `<91-byte directory>/d` (93 bytes) | exit 112; `credentials.sock` beside it did not bind |
+
+The daemon binds two path sockets in `daemon.socket`'s directory, the socket and
+the credential channel's beside it, and the credential channel's longer name
+failed first. At 89 bytes the state tree's six directories were made before the
+failure, and `config show daemon.socket --explain` resolved the 108-byte path
+without a word.
+
+**Issue 1, the bound and where it is checked, agreed.** Both of the daemon's
+sockets fit 107 bytes: the socket's path at most 107, and its directory at most
+107 − 1 − 6 = 100 bytes, so that the credential channel's socket fits beside
+it. The two sockets are renamed, on the operator's word, `d.sock` and
+`c.sock`, so that under `auto`, `<basedir>/socket/d.sock`, the bound is a
+`basedir` of at most 93 bytes. The bound is a constant beside
+`MaxControlPathRoot` and `MaxScratchDir`, the credential socket's name moving
+to `osutil` as `AskpassSocketName` lives there. A socket past it is
+`daemon_socket_too_long` (config, exit 2), naming the socket that does not
+fit, its length, and the bound, as `tempdir_too_long` reads. It is refused in
+`osutil.DaemonSocket`, the one resolver every caller takes: `run` and `crun`
+before the probe and the launch, `daemon start`, `status`, `stop`, `restart`,
+and `serve`, `job`, `follow`, `inspect`, and `config show --explain` on its
+`resolved:` line. `ResolveDaemonRuntime` resolves the socket before the state
+tree, so the refusal makes nothing. `daemon.socket`'s registry text and
+`ERROR-CODES.md` state the bound. *Not taken:* the check at the daemon's start
+alone (`status` and `stop` cannot reach a socket too long either; one
+resolver, one answer); the check in `daemon serve` alone (the client still
+waits out the start); an abstract socket (no 0600 file, the token its only
+guard, as chapter 40 held).
+
+**Issue 2, `auto` under a long `basedir`, agreed.** Under `auto`, a `basedir`
+over 93 bytes is `daemon_socket_too_long`, with no fallback: the message names
+`basedir` as the cause and its remedies, a shorter `basedir` or an explicit
+`daemon.socket`; an explicit path's refusal names a shorter `daemon.socket`.
+*Not taken:* a chain like the scratch's (under `auto` the socket is the
+`basedir`'s daemon, "another `basedir` reaches or starts another daemon", and
+a shorter place passed to would be shared by every long `basedir`; the scratch
+has no such identity); `basedir` itself bounded at 93 (a long `basedir` with a
+short explicit socket works, and so do native jobs under it). The control-path
+root's `auto`, `<basedir>/socket/ssh`, bounds `basedir` at 62 for the system
+transport, at planning, unchanged. *Not handled, on the operator's word:* a
+daemon of an earlier release still running on an upgraded host, listening on
+the old name while the new client starts another; no production host runs
+one.
+
+**Issue 3, the socket directory, agreed.** An explicit `daemon.socket` let the
+operator name the file while the daemon put the credential channel's socket
+beside it under a fixed name. On the lab build, `daemon.socket` naming that
+name failed after the wait with `bind: address already in use`, and of two
+daemons with explicit sockets in one directory the second failed after the
+wait, `daemon_already_running` at the first's credential socket.
+`daemon.socket` is replaced by `daemon.sockets`, the daemon's socket
+directory, as `scoreboards` is a directory: `auto` is `<basedir>/socket`, an
+explicit path a private directory, and the daemon binds `d.sock` and `c.sock`
+in it, both names fixed. Two `basedir`s naming one directory reach one daemon,
+as an explicit place already meant, the second client finding `d.sock` live.
+Issue 1's bound becomes one number, the directory at most 100 bytes, the
+path's own check gone; issue 2's stands, `basedir` at most 93 under `auto`,
+past it `daemon_socket_too_long` naming `basedir` or a shorter
+`daemon.sockets`. *Not taken:* the file key kept with `c.sock` refused as its
+name (two daemons in one directory still meet on `c.sock`); the credential
+socket's name derived from the daemon's, as `<name>.c` (no collision, but the
+bound then hangs on the operator's name). *Found:* `removeStaleSocket` takes a
+`uid` it never reads; the build removes it.
+
+**Considered, not taken: `<basedir>/tmp` for the sockets.** The operator asked
+whether the daemon's sockets and the control sockets should share
+`<basedir>/tmp` with the scratch. It gains 3 bytes (`basedir` at most 96 for
+the daemon, 65 for the control sockets) and one directory fewer, and no names
+meet, each sweep matching its own. It was kept as `<basedir>/socket`: the
+scratch's `auto` is a chain and the daemon's directory is not (issue 2), so the
+two would share the place only where the chain stops there, not under the
+site's scratch root nor under a `basedir` over 65; one directory would carry
+two rules for a length too long, passed by and refused; and the sockets live as
+long as the daemon in a directory whose name invites clearing, after which the
+next client finds no `d.sock` and starts a second daemon on the `basedir`.
