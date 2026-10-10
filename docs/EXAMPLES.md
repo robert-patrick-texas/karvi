@@ -8027,3 +8027,45 @@ session's own warnings (the platform's fallback, the host-key lines) stay the
 child's, as the wrapper leaves them today. *Not taken:* the child saying them
 and the wrapper muted (lost whenever the wrapper refuses before the child);
 both saying them.
+
+**Built.** `app.LoadWarnings` is the reporter: made in `Main` with the client's
+sink, a `warning: …` line on standard error, and carried in the global options
+and `CommonOptions` (never serialized), it says each warning of a snapshot not
+yet said. `prepareConfig` gives it every load of the activities, `job`, and
+`daemon`; `config show`, `validate`, `colors`, and `watch` give it theirs. The
+in-process job's loop and `draftClient`'s `loadWarnings` are gone. `Main` makes
+none for a login run under the recorder's variable; `daemon serve` makes its
+own with its logger as the sink. `TestLoadWarningsSaidOncePerInvocation`,
+`TestLoadWarningsRecordedLogin`, and `TestLoadWarningsDaemonServeLog` hold the
+rule through `Main` (each failed on the tree before the build, said nothing);
+`TestLoadWarningsSayEachOnce` holds the reporter's.
+
+**Executed.** The evidence's invocations on a lab build of the tree, the same
+configuration and variable:
+
+| Invocation | Said |
+|---|---|
+| every `config`, `run`, `command`, `crun`, `job`, `daemon`, `watch`, and `login` invocation of the evidence | both, once each, on standard error; none on standard output |
+| `stream`, two jobs | both, once |
+| `login --record` under `script(1)` | both, once, by the wrapper |
+| `version`, `--help`, `config generate` | nothing |
+| `daemon.log` after `daemon start` and `daemon restart` | two `configuration warning` lines at each start |
+
+```text
+$ KARVI__NOPE=1 karvi --config warn.toml config show basedir
+warning: optional include missing: /dev/shm/kw/warn.toml:1 -> /dev/shm/kw/absent.toml
+warning: ignored unknown environment variable KARVI__NOPE
+key:        basedir
+…
+$ head -2 base/logs/daemon.log
+time=… level=WARN msg="configuration warning" warning="optional include missing: /dev/shm/kw/warn.toml:1 -> /dev/shm/kw/absent.toml"
+time=… level=WARN msg="configuration warning" warning="ignored unknown environment variable KARVI__NOPE"
+```
+
+DESIGN's section 15 states the rule, OPERATIONS shows the daemon's line, and
+the ROADMAP's item is gone. The evidence is kept beside the tree
+(`release-design-evidence/load-warnings-2026-10-10`).
+
+**Closed.** `go test ./...` passed, and the full battery on a lab build of the
+tree, leaving no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The ROADMAP's
+Next is empty; the operator chooses the next item from Later.

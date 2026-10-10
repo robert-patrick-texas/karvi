@@ -25,6 +25,15 @@
   profiles, and an audit file without journald. Its effective configuration is
   unchanged. `reference.toml`, `config generate`'s starter, and the guides
   name it.
+- **Every invocation says its configuration's warnings.** A load's warnings
+  (an `@include?` file missing, a `KARVI__` variable ignored) are said once on
+  standard error by every command that loads a configuration, `config show`,
+  `config validate`, `login`, `run --dry-run`, `job`, `daemon`, and `watch`
+  among them, where a `run`, `command`, or `crun` alone said them and a
+  `stream` said them once per job; `--quiet` and the machine formats keep
+  them. `config validate`'s report is unchanged. A recorded login says them
+  once, and `daemon serve` logs its own as `level=WARN msg="configuration
+  warning"` in `daemon.log`.
 
 ## 0.29.0 - 2026-10-09
 

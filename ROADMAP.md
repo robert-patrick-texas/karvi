@@ -181,17 +181,6 @@ Nothing at present: the operator chooses the next item from Later.
   S2). The question: one function in `scripts/lib` that runs a call and, when it
   fails unexpectedly, names it and prints what karvi wrote before the suite
   exits.
-- **Every invocation says its configuration's warnings.** The load's two
-  warnings ("optional include missing", "ignored unknown environment
-  variable") are printed by a `run` or `command`, in process or through a
-  daemon, and only counted by `config validate`; `login`, `inspect`, `config
-  show`, `job follow`, and the daemon's own load say nothing of them
-  ([`docs/EXAMPLES.md`, chapter
-  47](docs/EXAMPLES.md#47-a-job-under-its-clients-configuration-2026-10-08),
-  S2.3). The item: every invocation prints its load's warnings once, at the
-  load, and the job no longer does. The questions: `--quiet`, a machine
-  format's standard error, and where a daemon's own load writes them
-  (`daemon.log`).
 - **One read of the configuration per invocation.** An invocation may load
   its configuration more than once: a `run` through a daemon, `run --dry-run`,
   and `job follow` three times, `crun` and `run --tf` four, each load reading

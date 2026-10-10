@@ -312,8 +312,17 @@ side of `daemon.max-ipc-frame-bytes` and `daemon.forced-grace-seconds`); a new
 value of one reaches the daemon at its next start (`karvi daemon restart`). A
 site's locks are enforced by each client's load; the daemon checks no lock of
 its own. A job's audit records, the cancel record among them, go where its
-configuration names, and the client of a daemon-backed run prints its load's
-warnings itself.
+configuration names.
+
+Every invocation says its configuration load's warnings, an `@include?` file
+missing or a `KARVI__` variable ignored under `config.reject-unknown-env =
+false`, once on standard error, under `--quiet` and any format too; a run
+through a daemon says them in its client. The daemon's own load writes them
+into `daemon.log` at its start:
+
+```text
+level=WARN msg="configuration warning" warning="ignored unknown environment variable KARVI__NOPE"
+```
 
 ## The daemon's idle exit
 

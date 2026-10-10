@@ -1537,8 +1537,9 @@ its process alone: the `daemon.*` keys (`daemon-start` their reload class where
 a running daemon keeps the value), its `basedir` for its socket, state, and
 log, and the sweeps at its start. The client's load enforces the locks; the
 daemon re-checks nothing. A job's audit records, its `cancel_requested` among
-them, go to the sinks its configuration names, and the daemon-path client prints
-its load's warnings. *Why:* a daemon started by one invocation ran every later
+them, go to the sinks its configuration names, and the client says its load's
+warnings as every invocation does ([section 15](#15-configuration-and-errors)).
+*Why:* a daemon started by one invocation ran every later
 job under that invocation's `--config`, `--set`, environment, and working
 directory, so a later client's settings silently missed its own job, the
 execution policy among them, and a job's records named two configurations.
@@ -2235,6 +2236,24 @@ code (`config_key_removed`), the message naming the key, the release, and the
 replacement; the environment form is refused even when unknown variables are
 tolerated. *Why:* ignoring a removed key would drop a site's intent silently.
 *Not taken:* a code per removal; documented no-op keys.
+
+**Every invocation says its load's warnings, once.** A load's warnings (an
+`@include?` file missing, a `KARVI__` variable ignored under
+`config.reject-unknown-env = false`) are said by one reporter made for the
+invocation, at the load, each once however many times the invocation loads (a
+run through a daemon three times, a stream once per job): `warning: …` lines on
+standard error under any format and under `--quiet`, changing no exit status.
+`config validate` keeps its report (`warnings: N`, the JSON array) on standard
+output. A recorded login's wrapper says them and its child does not; `daemon
+serve` logs its own load's as `level=WARN msg="configuration warning"` lines in
+`daemon.log` at its start; `--help` and tab completion say nothing. *Why:* a
+`run` or `command` alone said them, so an override karvi ignored went unsaid by
+every other command, the daemon's own load included. *Not taken:* printing at
+each load (a warning said three times); one print per command placed by hand
+(the pattern that left ten commands silent); `--quiet` suppressing them; a
+machine format carrying them in its document; one load per invocation (a
+ROADMAP item of its own) ([`docs/EXAMPLES.md`, chapter
+51](EXAMPLES.md#51-every-invocation-says-its-configurations-warnings-2026-10-10)).
 
 **Every distinct error cause has its own stable code, and the registry is
 enforced.** Two causes never share a code, a code is never reused, a retired
