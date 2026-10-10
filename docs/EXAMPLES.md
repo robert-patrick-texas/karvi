@@ -7925,3 +7925,105 @@ and `config generate --minimal` name `examples/config.toml`.
 **Closed.** `go test ./...` passed, and the full battery on a lab build of the
 tree, leaving no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The evidence is
 kept beside the tree (`release-design-evidence/one-example-config-2026-10-10`).
+
+## 51. Every invocation says its configuration's warnings (2026-10-10)
+
+A Later item the operator chose: the load's two warnings ("optional include
+missing", "ignored unknown environment variable") are printed by a `run` or
+`command` and only counted by `config validate`, the rest saying nothing
+([chapter 47](#47-a-job-under-its-clients-configuration-2026-10-08), S2.3).
+
+**What it gains.** An operator learns of a missing optional include, or of a
+`KARVI__` variable karvi ignores, from whatever command they run, where today
+only a job says it; a misspelled override is a value the operator believes set
+and is not. It waits on nothing.
+
+**The evidence.** A lab build of `9626937`, every place under a short lab
+directory, a configuration holding `@include?` of an absent file and `[config]
+reject-unknown-env = false`, and `KARVI__NOPE=1` in the environment; the
+target this host's OpenSSH over `native`. The `warning:` lines each invocation
+wrote:
+
+| Invocation | Said |
+|---|---|
+| `run`, through a daemon or `--no-daemon`, `--quiet` or `--format json` too; `run --exercise`, `--detach`; `command`; `crun` | both, on standard error |
+| `stream` | both for each job it executes, four lines for two `--go` |
+| `run --dry-run`, either path | nothing |
+| `login` (`system`, under `script(1)`) | nothing |
+| `config show`, `show --explain`, `colors` | nothing |
+| `config validate` | `warnings: 2`, counted |
+| `job follow`, `job cancel`, `watch` | nothing |
+| `daemon start`, `status`, `stop`, `restart` | nothing |
+| the daemon's own load, `serve` under the same configuration and environment | nothing; `daemon.log` holds no `WARN` line |
+
+An invocation may load its configuration more than once (counted as the opens
+of the configuration file under `strace -f`): `config show`, `command`, and
+`run --no-daemon` once; a `run` through a daemon, `run --dry-run`, and `job
+follow` three times; `crun` and `run --tf` four. The two printers sit at one
+load each, the in-process job's and the daemon path's client in
+`draftClient`.
+
+**Issue 1, who says them and how often, agreed.** The warnings are said at the
+load, by one function, once per process. The command line hands its standard
+error to the process's reporter at `Main`; `prepareConfig` and the command
+line's own loads (`config show`, `validate`, `colors`, `watch`) give it their
+snapshot, and it writes `warning: …` for each warning it has not yet written in
+the process. A `run` through a daemon, three loads, says each once; a `stream`
+says each at its first job and not again, and a warning first raised at a later
+job's load is said then. The in-process job's loop (`jobexec/activity.go`) and
+`draftClient`'s `loadWarnings` are removed. Two loads say nothing: `--help`'s,
+which only chooses the help's colours, and tab completion's, whose output is the
+shell's and whose standard error would land in the operator's command line.
+*Not taken:* one load per invocation, its snapshot passed down (it moves every
+caller of `prepareConfig` for a gain this item does not need; a ROADMAP item of
+its own); printing at each load (a `run` through a daemon would say each
+warning three times); one print per command placed by hand (today's pattern,
+which left ten commands silent).
+
+**Issue 2, `--quiet`, `config validate`, and the machine formats, agreed.** A
+load's warnings are `warning: …` lines on standard error in every invocation,
+whatever the format and under `--quiet` too, and they change no exit status, as
+the host-key warnings are said under `--quiet` ([`docs/DESIGN.md`, section
+6](DESIGN.md#6-host-keys-and-ssh-algorithms)). `config validate` says the lines
+through issue 1's reporter and keeps its report on standard output as it is,
+`warnings: N` in text and the array in JSON: standard output is the validation's
+result, which a script reads, and the count matches the lines said beside it.
+*Not taken:* `--quiet` suppressing them (an override karvi ignores is what a
+quiet script most needs to hear); a machine format carrying them in its document
+(a new kind of line in `run --format json`'s stream for a value of the load, not
+of the job); `config validate`'s count replaced by the lines on standard output
+(a result scripts read changed, and the lines said twice).
+
+**Issue 3, the daemon's own load, agreed.** `daemon serve` is launched with the
+client's `--config` and `--set` and every `KARVI__` variable, so its one load
+raises the client's warnings; its standard output and error are
+`logs/daemon.log`, `slog` text lines, or the journal of a service unit that
+runs it in the foreground. Serve writes its load's warnings into its log once,
+at its start, one line each, `level=WARN msg="configuration warning"
+warning="optional include missing: …"`, through issue 1's reporter with the
+logger as its sink. A daemon a client launched has them said twice, on the
+operator's terminal by the client's load and in the log by its own, two
+readers of two loads; a daemon a unit started has no client, and the log is
+the one place they are said; `daemon restart` starts a serve that logs them
+again. The job the daemon runs takes its configuration from the plan's block,
+which has none. *Not taken:* plain `warning: …` lines in `daemon.log` (the one
+line not in `slog`'s form, missed by a reader filtering on `level=WARN`); the
+two warnings given registered codes, carried as `code=` as the other `WARN`
+lines are (the client's lines carry none either, a question for both sides);
+serve silent since its client said them (a daemon a unit started has no
+client).
+
+**Issue 4, the recorded login's two processes, agreed.** A `login --record` is
+two processes: the wrapper, which loads the configuration twice and runs
+`script(1)`, and the child under it, which loads it twice more (four opens of
+the configuration file under `strace -f`). Under issue 1's rule each would say
+the warnings, twice for one command. The wrapper says them, and the child,
+marked by the variable the wrapper sets for it, mutes the reporter: the
+wrapper's load is the invocation's first, on the operator's terminal before
+`script(1)` holds it raw, and a wrapper that refuses afterwards (a
+`transcript.format` the operator meant to override with a misspelled
+`KARVI__…`) says them beside its refusal, where the child never runs. The
+session's own warnings (the platform's fallback, the host-key lines) stay the
+child's, as the wrapper leaves them today. *Not taken:* the child saying them
+and the wrapper muted (lost whenever the wrapper refuses before the child);
+both saying them.
