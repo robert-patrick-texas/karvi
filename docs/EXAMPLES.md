@@ -8447,3 +8447,166 @@ ROADMAP's item is gone. The evidence is kept beside the tree
 **Closed.** `go test ./...` passed at every section and the full battery on a
 lab build of the finished code (S5 changes documents alone). The ROADMAP's Next
 is empty; the operator chooses the next item from Later.
+
+## 53. A stream's restart (2026-10-10)
+
+The ROADMAP's Next item 1, the operator's request: a stream directive,
+`--restart`, that empties the draft, its commands and its targets, and starts
+the stream again under the options its command line gave, the configuration
+read again. A stream reads its configuration once, as it starts ([chapter
+52](#52-one-read-of-the-configuration-per-invocation-2026-10-10)), where a
+stream's option to read it again was left for the operator's word.
+
+**The order.** The operator set the ROADMAP's Next as five items (`06d7881`):
+this restart; a setting under which karvi defines no SSH algorithm lists; an
+explicit `env:NAME` cell for the credential CSV; a credential helper
+executable; build numbers in the version. The restart works in the code chapter
+52 rebuilt, and gives a question the helper asks, when a stream runs it, a place
+to answer: a stream's start, which a restart begins again. The setting touches
+nothing else. The two credential items go together, the cell before the helper,
+so that the cell's code for an unset variable is defined once and the helper's
+values reach it later. The helper's first part is the Credentials item's one
+environment-indirection helper, moved into it: the env, Redis, and Vault
+backends read the process environment themselves, each with its own copy of the
+rule `envindirect` holds for the CSV, and the `NET*` fallback reads it through
+the credential input, so the helper's values need one lookup to reach every
+reader. Build numbers go last, beside the next release: they alone change the
+release tools, which only a release exercises whole. *Not taken:* build numbers
+first (a lab build already carries its commit and its build time to the second,
+and the release tools would change ahead of the release that tests them); the
+helper before the cell (the cell's unset variable defined after an environment
+the helper changes).
+
+**The evidence.** A lab build of `06d7881`, every place under a short lab
+directory, a configuration `c.toml` holding `[dispatch] parallel-workers = 4`;
+the target this host's OpenSSH over `native`. A `--restart` line is no directive
+today:
+
+```text
+$ printf -- '--no-daemon\n--restart\n--end\n' | karvi --config c.toml stream
+stream line 2 dropped: cli_option_unknown: unknown option --restart in run
+```
+
+A stream whose configuration is edited to `parallel-workers = 8` between two
+jobs, `--reset` and the draft typed again before the second, then a new stream
+with the same draft:
+
+| Job | `config_digest` | `parallel-workers` |
+|---|---|---|
+| the stream's first | `d9e00405…` | 4 |
+| its second, after the edit and `--reset` | `d9e00405…` | 4 |
+| a new stream's | `951ad492…` | 8 |
+
+A stream's command line takes the global options alone (`--config`, `--set`,
+`--quiet`, `--timezone`, `--ansi`, `--ipv4` or `--ipv6`). Its reading holds the
+files with their includes and locks, the environment, `--set`, and the operator
+from the password database, and each job's snapshot is made from that reading
+with the global options' keys and the job's option lines.
+
+**What it gains.** An edit to the configuration taken without leaving the
+stream, where today the stream ends and another starts, its draft typed again.
+A stream may then hold jobs under two configurations, but at a line the
+operator typed, where chapter 52 refused one read per job, an invocation under
+two configurations that no line marked. It waits on nothing: it builds on
+chapter 52's reading, which the stream keeps and hands to its jobs.
+
+**Its issues, one at a time:** what `--restart` does and where its read sits; a
+reading that fails; what else starts again (the line count, the last exit, the
+terminal's recalled lines, the opening line).
+
+**Issue 1, what `--restart` does and where its read sits, agreed.** `--restart`
+is a directive, a whole line, one dash or two as every directive, the word whole
+(a prefix names nothing). It empties the draft, its commands and its targets, as
+`--reset` does, and reads the configuration again as the stream read it at its
+start: the files with their includes and locks, the environment, and the
+operator from the password database, under the stream's command-line options
+and `--set`, its snapshot validated. The new reading is every later job's, and
+its warnings are said as at the start. A running process's environment does not
+change, so a restart takes the files' edits. The read sits at the directive's
+line, before the next line is read. A job through a daemon after the restart
+runs under the new reading its plan carries ([chapter
+47](#47-a-job-under-its-clients-configuration-2026-10-08)), the daemon's own
+`daemon.*` values unchanged until the daemon itself restarts, as for a new
+stream. *Not taken:* `--reset` reading again (a directive's meaning changed);
+the draft kept across the read (the operator's rule: a restart is the stream as
+it starts); the read at the next `--go` (chapter 52's reason for the read at the
+start: a broken edit found after a draft is composed); the process executed
+again with its own arguments (the lines a pipe's reader has buffered lost, and a
+terminal's recalled lines); a prefix (`--re` names two directives).
+
+**Issue 2, a reading that fails, agreed.** On the lab build, a stream's start
+under a configuration that does not load, and a stream whose input fails after
+a job:
+
+```text
+$ printf -- '--no-daemon\n--t 127.0.0.1\necho x\n--go\n' | karvi --config bad.toml stream
+config_unknown_key: unknown configuration key for dispatch.parallel-workerz at /dev/shm/k1/bad.toml:2
+exit 2
+$ … a job (exit 0), then a line over the 1 MiB limit
+stream_input_read_failed: stream line 7 is longer than the 1048576-byte limit
+exit 1
+```
+
+A configuration that does not load refuses the stream before a line is read,
+exit 2 (3 for a lock violation), and a stream that fails on its way ends with
+the failure's exit, not the last job's. A `--restart` whose reading fails ends
+the stream as its start would have refused it: the failure's code and exit, 2
+or 3 for a lock violation, its line saying `stream line N:` before the cause as
+a refused job's line does. No job runs under a configuration the operator did
+not intend; at a terminal the draft is empty either way. *Not taken:* the stream
+going on under the reading it had, the failure said (a piped stream's later
+lines running jobs on devices under a configuration the operator meant to
+replace, a line on standard error the only sign); the stream going on with no
+reading, each `--go` refused until a restart reads (chapter 52's refusal at
+every `--go` again).
+
+**Found on the way, agreed: a type or enum error said twice.** The second
+configuration of issue 2's evidence, and one with an unknown `dispatch.order`,
+under `config validate`:
+
+```text
+config_type_error: dispatch.parallel-workers expects integer for dispatch.parallel-workers at /dev/shm/k1/bad2.toml:2: dispatch.parallel-workers expects integer
+config_enum_value_invalid: dispatch.order must be one of default, sorted, name, shuffle, random for dispatch.order at /dev/shm/k1/bad3.toml:2: dispatch.order must be one of default, sorted, name, shuffle, random
+```
+
+`configschema.ValidateScalar` puts the key in its text, and the loader passes
+that error as both the message and the cause of a configuration error, which
+adds the key and the cause itself; the text has read so since the public tree
+began (`010a963`). A failed restart says these lines, so this chapter's build
+mends them. Each says its fault once, in the form of the other configuration
+errors (`must be a string for KEY at SOURCE`): `config_type_error: must be an
+integer for dispatch.parallel-workers at …/bad2.toml:2` and
+`config_enum_value_invalid: must be one of default, sorted, name, shuffle,
+random for dispatch.order at …/bad3.toml:2`. The codes and exits are unchanged.
+
+**Issue 3, what else starts again, agreed.** On the lab build, a stream through
+a pipe whose job fails, then `--reset`, a bad line, and `--end`; and one at a
+terminal (`script(1)`) given `--t 127.0.0.1`, `--reset`, the up arrow twice,
+Enter, and `--end`:
+
+```text
+dns_nxdomain: 1 of 1 targets failed address resolution: name:nosuchhost.invalid (…)
+stream line 8 dropped: cli_option_unknown: unknown option --bogus in run
+exit 7
+
+stream: one run option (--target NAME) or one command per line; --go sends, --clear drops the commands, --reset clears, --end quits
+--t 127.0.0.1
+--reset
+--reset^[[7D--t 127.0.0.1
+--end
+```
+
+Through `--reset` the line count goes on, the last exit stays, and the up arrow
+recalls the lines typed before it, the line editor's and outside the stream's
+loop. A restart starts the draft and the reading again, and nothing else. The
+line count goes on, a line's number its line in the input; the last exit stays,
+the stream's exit the last executed job's, before the restart or after, since a
+restart executes nothing; the recalled lines stay, the quickest way to compose
+the draft again under the new reading. At a terminal the opening line is said
+again, as at the start (not under `--quiet`, never on a pipe), after the new
+reading's warnings, marking the boundary between the two readings. The stream's
+help names the directive; the opening line's words are unchanged. *Not taken:*
+the count from 1 again (a file's line named by a number not its own); the exit
+to 0 again (a failure before a restart hidden from a script); the recalled
+lines cleared (the draft's lines lost, and a hook into the editor); a line of
+its own, `stream: restarted` (the opening line says the stream starts).
