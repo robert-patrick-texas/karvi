@@ -32,12 +32,15 @@ func ResolveDaemonRuntime(common CommonOptions) (DaemonRuntime, error) {
 	if err != nil {
 		return DaemonRuntime{}, errorcodes.Ensure(err, "base_directory_unavailable")
 	}
-	if err := osutil.EnsureStateTree(base, operator.UID, osutil.DirectoryMode(cfg.String("output.directory-mode"))); err != nil {
-		return DaemonRuntime{}, errorcodes.Ensure(err, "state_tree_create_failed")
-	}
-	socket, err := osutil.DaemonSocket(cfg.String("daemon.socket"), base, operator.Home)
+	// The sockets' directory before the state tree, so that one too long
+	// for a socket is refused with nothing made.
+	sockets, err := osutil.DaemonSockets(cfg.String("daemon.sockets"), base, operator.Home)
 	if err != nil {
 		return DaemonRuntime{}, err
+	}
+	socket := filepath.Join(sockets, osutil.DaemonSocketName)
+	if err := osutil.EnsureStateTree(base, operator.UID, osutil.DirectoryMode(cfg.String("output.directory-mode"))); err != nil {
+		return DaemonRuntime{}, errorcodes.Ensure(err, "state_tree_create_failed")
 	}
 	return DaemonRuntime{Config: cfg, Operator: operator, BaseDir: base, Socket: socket, StatePath: filepath.Join(base, "state", "daemon.json"), LogPath: filepath.Join(base, "logs", "daemon.log"), MaxFrame: cfg.Int64("daemon.max-ipc-frame-bytes"), MaxJobs: cfg.Int("daemon.max-accepted-jobs")}, nil
 }

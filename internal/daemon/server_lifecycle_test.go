@@ -17,7 +17,7 @@ import (
 func startTestServer(t *testing.T) (*Server, string, <-chan struct{}) {
 	t.Helper()
 	dir := testsocket.Dir(t)
-	socket := filepath.Join(dir, "daemon.sock")
+	socket := filepath.Join(dir, "d.sock")
 	s := &Server{Socket: socket, StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid()}
 	ctx, stop := context.WithCancel(context.Background())
 	done := make(chan struct{})

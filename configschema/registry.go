@@ -18,9 +18,10 @@ import (
 // sessions.shared-capacity-root's default auto; 27 removes logging.level,
 // logging.file, and logging.file-required, read by nothing; 28 marks the
 // path-valued keys and their words (Place, Words, a table's Places) and
-// gives the daemon's own keys the reload class daemon-start.
+// gives the daemon's own keys the reload class daemon-start; 29 takes the
+// socket directory daemon.sockets in place of daemon.socket.
 const (
-	RegistrySchemaVersion = 28
+	RegistrySchemaVersion = 29
 	ConfigSchemaVersion   = 6
 )
 

@@ -298,6 +298,7 @@ Active failure causes.
 | `daemon_serve_failed` | dependency | 1 | no | Unclassified. The daemon cannot start serving. |
 | `daemon_socket_blank` | config | 2 | no | The daemon socket path is blank. |
 | `daemon_socket_path_not_socket` | permission | 9 | no | The daemon socket path exists and is not a socket. |
+| `daemon_socket_too_long` | config | 2 | no | `daemon.sockets` is a directory too long for the daemon's sockets: a path socket holds 107 bytes, and the daemon binds `d.sock` and `c.sock` there, so the directory may be at most 100 bytes (under `auto`, `<basedir>/socket`, a `basedir` of at most 93); refused where the directory is resolved, before the daemon is reached or started and before anything is made, naming the directory, its length, and under `auto` the `basedir`. |
 | `daemon_socket_uninspectable` | permission | 9 | no | The daemon socket path cannot be inspected. |
 | `daemon_spawn_failed` | dependency | 8 | no | The background daemon process cannot be started. |
 | `daemon_start_failed` | dependency | 112 | no | A daemon was launched but did not become ready. |

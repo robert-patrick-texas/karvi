@@ -26,7 +26,7 @@ func TestIdleTimer(t *testing.T) {
 	clock := func() time.Time { mu.Lock(); defer mu.Unlock(); return now }
 	advance := func(d time.Duration) { mu.Lock(); defer mu.Unlock(); now = now.Add(d) }
 	dir := testsocket.Dir(t)
-	socket := filepath.Join(dir, "daemon.sock")
+	socket := filepath.Join(dir, "d.sock")
 	s := &Server{Socket: socket, StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid(), IdleTimeout: time.Hour, Clock: clock}
 	done := make(chan error, 1)
 	go func() { done <- s.Serve(context.Background()) }()

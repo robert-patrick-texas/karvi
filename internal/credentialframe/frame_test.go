@@ -181,7 +181,7 @@ func TestCredentialSocketCarriesOnlyTheFrame(t *testing.T) {
 	seed := canarytest.Seed(t)
 	h, body, tok := fixtureFrame(t, seed.Raw)
 	dir := testsocket.Dir(t)
-	path := filepath.Join(dir, "credentials.sock")
+	path := filepath.Join(dir, "c.sock")
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
 	if err != nil {
 		t.Fatal(err)

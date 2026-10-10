@@ -24,7 +24,7 @@ HOME_DIR=$TMP/home
 FAKE=$TMP/fake-ssh
 BASE_S1=$TMP/state-s1
 cleanup() {
-  "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' --set "daemon.socket=\"$BASE/socket/daemon.sock\"" daemon stop >/dev/null 2>&1 || true
+  "$KARVI" --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' --set "daemon.sockets=\"$BASE/socket\"" daemon stop >/dev/null 2>&1 || true
   "$KARVI" --set "basedir=\"$BASE_S1\"" daemon stop --force >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }

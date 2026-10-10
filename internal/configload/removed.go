@@ -94,6 +94,9 @@ var removedKeys = []removedKey{
 	{path: "logging.file", environment: "KARVI__LOGGING__FILE", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "logging.file-required", environment: "KARVI__LOGGING__FILE_REQUIRED", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
+	// v0.30.0: the daemon's socket file became its socket directory, the
+	// daemon binding d.sock and c.sock in it under names of its own.
+	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: "v0.30.0", code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
 }
 
 // reviewRelease names the release that carries the configuration review:

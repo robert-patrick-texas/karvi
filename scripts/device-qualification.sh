@@ -95,7 +95,7 @@ KH=$WORK/store/known_hosts
 # askpass_start_failed (bind: invalid argument). The directory is removed
 # at exit; nothing in it is evidence.
 SOCKDIR=$(mktemp -d "${TMPDIR:-/tmp}/karvi-qual-sock.XXXXXX")
-SOCK=$SOCKDIR/daemon.sock
+SOCK=$SOCKDIR/d.sock
 RESULTS=$EVIDENCE/results.tsv
 FAILED=0
 
@@ -167,7 +167,7 @@ sharedroot = "none"
 spooldir = "$WORK/spool"
 scoreboards = "$WORK/base/score"
 [daemon]
-socket = "$SOCK"
+sockets = "$SOCKDIR"
 [ssh]
 host-key-policy = "$1"
 known-hosts-file = "$KH"

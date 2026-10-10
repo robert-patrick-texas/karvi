@@ -23,7 +23,7 @@ func TestSchemaVersionMatchesBuildInformation(t *testing.T) {
 
 func TestCallReturnsStructuredSchemaMismatch(t *testing.T) {
 	t.Helper()
-	socket := filepath.Join(testsocket.Dir(t), "daemon.sock")
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
 	listener, err := net.Listen("unix", socket)
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +74,7 @@ func TestCallReturnsStructuredSchemaMismatch(t *testing.T) {
 }
 
 func TestCallForSchemaAcceptsReleasedLifecycleEnvelope(t *testing.T) {
-	socket := filepath.Join(testsocket.Dir(t), "daemon.sock")
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
 	listener, err := net.Listen("unix", socket)
 	if err != nil {
 		t.Fatal(err)

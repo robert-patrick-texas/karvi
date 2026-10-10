@@ -1,7 +1,7 @@
 // Package daemon owns the single-UID local orchestration process: the
-// schema 6 envelope on socket/daemon.sock (ping, status, drain, stop,
+// schema 6 envelope on socket/d.sock (ping, status, drain, stop,
 // prepare_job, commit_job, follow_job) and the credential frame on
-// socket/credentials.sock. Both
+// socket/c.sock. Both
 // listeners are owner-only Unix-domain sockets and every accepted connection
 // is authenticated with SO_PEERCRED before a byte is decoded. The daemon
 // validates plans and runs them; it resolves no selector and no credential.
@@ -115,12 +115,9 @@ const (
 	StopForce = "force"
 )
 
-// CredentialSocketName is the credential channel's socket beside daemon.sock.
-const CredentialSocketName = "credentials.sock"
-
 // CredentialSocket is the credential channel's path for a daemon socket.
 func CredentialSocket(daemonSocket string) string {
-	return filepath.Join(filepath.Dir(daemonSocket), CredentialSocketName)
+	return filepath.Join(filepath.Dir(daemonSocket), osutil.CredentialSocketName)
 }
 
 func (s *Server) now() time.Time {
@@ -185,11 +182,11 @@ func (s *Server) Serve(parent context.Context) error {
 	if err := osutil.MakeDirectories(filepath.Dir(s.Socket), 0700); err != nil {
 		return err
 	}
-	if err := removeStaleSocket(s.Socket, s.UID); err != nil {
+	if err := removeStaleSocket(s.Socket); err != nil {
 		return err
 	}
 	credentialSocket := CredentialSocket(s.Socket)
-	if err := removeStaleSocket(credentialSocket, s.UID); err != nil {
+	if err := removeStaleSocket(credentialSocket); err != nil {
 		return err
 	}
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: s.Socket, Net: "unix"})
@@ -577,7 +574,7 @@ func (s *Server) writeCoded(conn io.Writer, fallback string, err error, id strin
 	s.writeError(conn, code, err, id)
 	return code
 }
-func removeStaleSocket(path string, uid int) error {
+func removeStaleSocket(path string) error {
 	fi, err := os.Lstat(path)
 	if os.IsNotExist(err) {
 		return nil
@@ -595,6 +592,5 @@ func removeStaleSocket(path string, uid int) error {
 	}
 	// The parent directory is private and owner-checked by osutil; a dead socket
 	// in that directory is safe to remove.
-	_ = uid
 	return os.Remove(path)
 }

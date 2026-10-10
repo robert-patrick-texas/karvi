@@ -130,7 +130,7 @@ func newV5FixtureWith(t *testing.T, opts v5Options) *v5Fixture {
 	operator.Home = filepath.Join(state, "home")
 	f := &v5Fixture{t: t, cfg: cfg, operator: operator, clock: time.Now()}
 	caps := resolver.Capabilities{IPv4: true, IPv6: true}
-	f.s = &Server{Socket: filepath.Join(dir, "daemon.sock"), StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid(), MaxJobs: opts.MaxJobs, MaxFrame: opts.MaxFrame, MaxPreparations: opts.MaxPreparations, Signals: opts.Signals, Config: cfg, Operator: operator,
+	f.s = &Server{Socket: filepath.Join(dir, "d.sock"), StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid(), MaxJobs: opts.MaxJobs, MaxFrame: opts.MaxFrame, MaxPreparations: opts.MaxPreparations, Signals: opts.Signals, Config: cfg, Operator: operator,
 		Clock: func() time.Time { return f.clock }, Capabilities: &caps,
 		Lookup: func(_ context.Context, _, host string) ([]netip.Addr, error) {
 			f.lookups++
@@ -442,7 +442,7 @@ func TestSchema5DaemonDNSFailureIsAFinding(t *testing.T) {
 // digest, an unaccepted receipt, a receipt naming another package, and a
 // credential channel whose peer reports a different UID.
 func TestClientRefusals(t *testing.T) {
-	socket := filepath.Join(testsocket.Dir(t), "daemon.sock")
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
 	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: socket, Net: "unix"})
 	if err != nil {
 		t.Fatal(err)

@@ -26,9 +26,13 @@ install -d -m 700 "$BASE" "$H"
 # or makes /tmp/karvi-<uid>; every prior from v0.28.0 knows the keys.
 A=(--set "basedir=\"$BASE\"" --set "scoreboards=\"$BASE/scoreboards\"" --set audit.journald-required=false
   --set 'sharedroot="none"' --set 'platform-resolution.default=""' --set "spooldir=\"$BASE/spool\"")
+# The old daemon's socket is the new client's d.sock under the base: a prior
+# release names the socket's file in daemon.socket, which the new client
+# refuses, where the new names the directory in daemon.sockets.
+O=("${A[@]}" --set "daemon.socket=\"$BASE/socket/d.sock\"")
 cleanup() {
   HOME=$H "$NEW" "${A[@]}" daemon stop --force >/dev/null 2>&1 || true
-  HOME=$H "$OLD" "${A[@]}" daemon stop >/dev/null 2>&1 || true
+  HOME=$H "$OLD" "${O[@]}" daemon stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
 trap cleanup EXIT
@@ -44,10 +48,10 @@ gone() {
   kill -0 "$1" 2>/dev/null && fail "$2: the old daemon process $1 is still running" || true
 }
 old_start() {
-  HOME=$H "$OLD" "${A[@]}" daemon start >/dev/null 2>&1 || fail "$1: the old daemon did not start"
-  [ -S "$BASE/socket/daemon.sock" ] || fail "$1: no socket after the old daemon started"
+  HOME=$H "$OLD" "${O[@]}" daemon start >/dev/null 2>&1 || fail "$1: the old daemon did not start"
+  [ -S "$BASE/socket/d.sock" ] || fail "$1: no socket after the old daemon started"
 }
-stopped() { [ ! -S "$BASE/socket/daemon.sock" ] || fail "$1: the socket remains"; }
+stopped() { [ ! -S "$BASE/socket/d.sock" ] || fail "$1: the socket remains"; }
 
 echo "old executable: $("$OLD" version | head -1); $("$OLD" version | grep '^daemon_ipc_schema')"
 echo "new executable: $("$NEW" version | head -1); $("$NEW" version | grep '^daemon_ipc_schema')"

@@ -128,7 +128,9 @@ func draftOptions(commands []string) DraftOptions {
 // unreleased): blind_wait_ns, execution, ping, output's limits, persist,
 // files, and crop_to_dot, dispatch's halt and gate values; nothing else
 // moved.
-const goldenK03Draft = "acef06bbd8bd72b2f8b1fc55a9b5cffb3fe532f9d3e943f466099579f2c18952"
+// Re-pinned at registry 29: daemon.sockets in place of daemon.socket in the
+// configuration block and its digest; nothing else moved.
+const goldenK03Draft = "683d77b02c9747701b03962761b8a975a2e9af267d641c69ff2a540d0ed39a81"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

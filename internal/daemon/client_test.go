@@ -16,7 +16,7 @@ import (
 )
 
 func TestProbeAndStopCompatibleOlderDaemon(t *testing.T) {
-	socket := filepath.Join(testsocket.Dir(t), "daemon.sock")
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
 	fixture := startLifecycleFixture(t, socket, 2, "0.8.0")
 	defer fixture.close()
 
@@ -56,7 +56,7 @@ func TestProbeSameSchemaOtherVersionIsIncompatible(t *testing.T) {
 		version    string
 		compatible bool
 	}{{"0.19.0", false}, {ClientVersion, true}} {
-		socket := filepath.Join(testsocket.Dir(t), "daemon.sock")
+		socket := filepath.Join(testsocket.Dir(t), "d.sock")
 		fixture := startLifecycleFixture(t, socket, ipc.SchemaVersion, tc.version)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		probe, err := Probe(ctx, socket, 1<<20)
@@ -72,7 +72,7 @@ func TestProbeSameSchemaOtherVersionIsIncompatible(t *testing.T) {
 }
 
 func TestProbeRefusesUnknownNewerLifecycleSchema(t *testing.T) {
-	socket := filepath.Join(testsocket.Dir(t), "daemon.sock")
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
 	fixture := startLifecycleFixture(t, socket, ipc.SchemaVersion+1, "future")
 	defer fixture.close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

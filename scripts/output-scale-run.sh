@@ -44,7 +44,7 @@ unset NETUSER NETPASS NETENABLE
 
 fail() { echo "output scale: FAIL: $*" >&2; exit 1; }
 cleanup() {
-  if [ -S "$TMP/base/socket/daemon.sock" ]; then
+  if [ -S "$TMP/base/socket/d.sock" ]; then
     HOME=$TMP/home "$KARVI" --quiet --config "$TMP/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
   fi
   [ -z "$FAKE_PID" ] || { kill "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; }

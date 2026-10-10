@@ -371,22 +371,71 @@ func TestTreePlaceWritesNothing(t *testing.T) {
 	}
 }
 
-// TestDaemonSocket: auto under basedir, ~ the home, a relative path made
+// TestDaemonSockets: auto under basedir, ~ the home, a relative path made
 // absolute, and one under an absent setup place refused.
-func TestDaemonSocket(t *testing.T) {
+func TestDaemonSockets(t *testing.T) {
 	dir := t.TempDir()
 	withSetupPlaces(t, dir)
-	if got, err := DaemonSocket("auto", "/b", "/h"); err != nil || got != "/b/socket/daemon.sock" {
+	if got, err := DaemonSockets("auto", "/b", "/h"); err != nil || got != "/b/socket" {
 		t.Fatalf("auto: %q %v", got, err)
 	}
-	if got, err := DaemonSocket("~/d.sock", "/b", "/h"); err != nil || got != "/h/d.sock" {
+	if got, err := DaemonSockets("~/d", "/b", "/h"); err != nil || got != "/h/d" {
 		t.Fatalf("~: %q %v", got, err)
 	}
-	if got, err := DaemonSocket("d.sock", "/b", "/h"); err != nil || !filepath.IsAbs(got) {
+	if got, err := DaemonSockets("d", "/b", "/h"); err != nil || !filepath.IsAbs(got) {
 		t.Fatalf("relative: %q %v", got, err)
 	}
-	if _, err := DaemonSocket(filepath.Join(ScratchRoot, "d.sock"), "/b", "/h"); errorcodes.Of(err) != "shared_directory_absent" || !strings.Contains(err.Error(), "daemon.socket") {
+	if _, err := DaemonSockets(filepath.Join(ScratchRoot, "d"), "/b", "/h"); errorcodes.Of(err) != "shared_directory_absent" || !strings.Contains(err.Error(), "daemon.sockets") {
 		t.Fatalf("guard: %v", err)
+	}
+}
+
+// TestDaemonSocketsBounded: both of the daemon's sockets bind under a
+// directory of MaxDaemonSocketDir bytes and not one byte more; the
+// resolver takes the directory at the bound, explicit or under auto, and
+// refuses one byte over with daemon_socket_too_long, naming under auto the
+// basedir.
+func TestDaemonSocketsBounded(t *testing.T) {
+	skipAsRoot(t)
+	dir, err := os.MkdirTemp("", "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	if MaxDaemonSocketDir != 100 || MaxDaemonSocketDir+1+len(DaemonSocketName) != 107 || len(CredentialSocketName) != len(DaemonSocketName) {
+		t.Fatalf("MaxDaemonSocketDir %d with %q and %q", MaxDaemonSocketDir, DaemonSocketName, CredentialSocketName)
+	}
+	fits := pathOfLength(t, dir, MaxDaemonSocketDir)
+	if err := os.Mkdir(fits, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{DaemonSocketName, CredentialSocketName} {
+		ln, err := net.Listen("unix", filepath.Join(fits, name))
+		if err != nil {
+			t.Fatalf("%s under %d bytes: %v", name, len(fits), err)
+		}
+		ln.Close()
+	}
+	if ln, err := net.Listen("unix", filepath.Join(fits, "x"+DaemonSocketName)); err == nil {
+		ln.Close()
+		t.Fatal("a 108-byte socket path bound")
+	}
+
+	withSetupPlaces(t, dir)
+	if got, err := DaemonSockets(fits, "/b", dir); err != nil || got != fits {
+		t.Fatalf("explicit at the bound: %q %v", got, err)
+	}
+	over := pathOfLength(t, dir, MaxDaemonSocketDir+1)
+	if _, err := DaemonSockets(over, "/b", dir); errorcodes.Of(err) != "daemon_socket_too_long" || !strings.Contains(err.Error(), "set daemon.sockets to a shorter directory") {
+		t.Fatalf("explicit one over: %v", err)
+	}
+	base := pathOfLength(t, dir, MaxDaemonSocketDir-len("/socket"))
+	if got, err := DaemonSockets("auto", base, dir); err != nil || got != filepath.Join(base, "socket") {
+		t.Fatalf("auto at the bound: %q %v", got, err)
+	}
+	longBase := pathOfLength(t, dir, MaxDaemonSocketDir+1-len("/socket"))
+	if _, err := DaemonSockets("auto", longBase, dir); errorcodes.Of(err) != "daemon_socket_too_long" || !strings.Contains(err.Error(), "set basedir to a directory of at most 93 bytes") {
+		t.Fatalf("auto one over: %v", err)
 	}
 }
 

@@ -114,7 +114,7 @@ func fixturePrepareResult(t *testing.T) PrepareResult {
 		t.Fatal(err)
 	}
 	tok, _ := NewChannelToken()
-	return PrepareResult{Preparation: prep, CredentialChannel: CredentialChannel{Socket: "/run/user/1000/karvi/socket/credentials.sock", Token: tok, ExpiresAt: prep.ExpiresAt, MaxFrame: 4 << 20}}
+	return PrepareResult{Preparation: prep, CredentialChannel: CredentialChannel{Socket: "/run/user/1000/karvi/socket/c.sock", Token: tok, ExpiresAt: prep.ExpiresAt, MaxFrame: 4 << 20}}
 }
 
 func fixtureCommit(t *testing.T) CommitRequest {

@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 28,
+  "registry_schema_version": 29,
   "config_schema_version": 6,
   "keys": [
     {
@@ -1266,20 +1266,20 @@
       "since": "0.2.0"
     },
     {
-      "path": "daemon.socket",
+      "path": "daemon.sockets",
       "kind": "string",
       "default_literal": "\"auto\"",
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
       "reload_class": "next-job",
-      "environment": "KARVI__DAEMON__SOCKET",
+      "environment": "KARVI__DAEMON__SOCKETS",
       "cli_flags": null,
       "place": true,
       "words": [
         "auto"
       ],
-      "documentation": "The daemon's socket, a safe per-UID path: `auto` is `\u003cbasedir\u003e/socket/daemon.sock`, so another `basedir` reaches or starts another daemon; an explicit path reaches the daemon there whatever the client's `basedir`, that daemon's own state and log staying under the `basedir` it started with.",
+      "documentation": "The daemon's socket directory, private to the operator, where the daemon binds `d.sock` and the credential channel's `c.sock`: `auto` is `\u003cbasedir\u003e/socket`, so another `basedir` reaches or starts another daemon; an explicit path reaches the daemon there whatever the client's `basedir`, that daemon's own state and log staying under the `basedir` it started with. The directory may be at most 100 bytes, so that each socket's path fits 107 (under `auto`, a `basedir` of at most 93): a longer one is `daemon_socket_too_long` wherever the daemon is reached or started.",
       "since": "0.2.0"
     },
     {

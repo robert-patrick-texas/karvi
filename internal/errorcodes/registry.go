@@ -611,6 +611,7 @@ var entries = []Entry{
 	fallback("daemon_serve_failed", "dependency", exitGen, "The daemon cannot start serving."),
 	failure("daemon_socket_blank", "config", exitConfig, false, "The daemon socket path is blank."),
 	failure("daemon_socket_path_not_socket", "permission", exitPerm, false, "The daemon socket path exists and is not a socket."),
+	failure("daemon_socket_too_long", "config", exitConfig, false, "`daemon.sockets` is a directory too long for the daemon's sockets: a path socket holds 107 bytes, and the daemon binds `d.sock` and `c.sock` there, so the directory may be at most 100 bytes (under `auto`, `<basedir>/socket`, a `basedir` of at most 93); refused where the directory is resolved, before the daemon is reached or started and before anything is made, naming the directory, its length, and under `auto` the `basedir`."),
 	failure("daemon_socket_uninspectable", "permission", exitPerm, false, "The daemon socket path cannot be inspected."),
 	failure("daemon_status_schema_mismatch", "dependency", exitJob, false, "A daemon status reports an IPC schema different from its response envelope."),
 	fallback("daemon_stop_failed", "dependency", exitConn, "The daemon does not accept the stop request."),

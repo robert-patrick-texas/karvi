@@ -47,14 +47,14 @@ func TestPlaceResolver(t *testing.T) {
 		return got
 	}
 
-	got := lines(load(), "basedir", "output.root", "tempdir", "scoreboards", "sessions.shared-capacity-root", "daemon.socket", "audit.file", "timezone", "sharedroot")
+	got := lines(load(), "basedir", "output.root", "tempdir", "scoreboards", "sessions.shared-capacity-root", "daemon.sockets", "audit.file", "timezone", "sharedroot")
 	want := map[string][]string{
 		"basedir":                       {"resolved:   " + base},
 		"output.root":                   {"resolved:   " + filepath.Join(base, "jobs")},
 		"tempdir":                       {"resolved:   " + filepath.Join(osutil.ScratchRoot, op.Username)},
 		"scoreboards":                   {"resolved:   " + filepath.Join(osutil.ScratchRoot, "scoreboards")},
 		"sessions.shared-capacity-root": {"resolved:   " + filepath.Join(osutil.ScratchRoot, "capacity")},
-		"daemon.socket":                 {"resolved:   " + filepath.Join(base, "socket", "daemon.sock")},
+		"daemon.sockets":                {"resolved:   " + filepath.Join(base, "socket")},
 	}
 	for k, w := range want {
 		if strings.Join(got[k], "\n") != strings.Join(w, "\n") {

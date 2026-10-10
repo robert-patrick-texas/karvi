@@ -167,7 +167,7 @@ func (d *fakeDaemon) serveFrame(conn *net.UnixConn, frameLog *bytes.Buffer) {
 func TestPrepareFrameCommitSequence(t *testing.T) {
 	seed := canarytest.Seed(t)
 	dir := testsocket.Dir(t)
-	envelopePath, framePath := filepath.Join(dir, "daemon.sock"), filepath.Join(dir, "credentials.sock")
+	envelopePath, framePath := filepath.Join(dir, "d.sock"), filepath.Join(dir, "c.sock")
 	d := &fakeDaemon{t: t, audience: "daemon:ops01:1000", tokens: map[string]ipc.ChannelToken{}, packages: map[string]credentialpackage.SafePackageProjection{}, drafts: map[string]executionplan.Digest{}, credential: framePath}
 	var jsonLog, frameLog bytes.Buffer
 	envelopeListener, err := net.ListenUnix("unix", &net.UnixAddr{Name: envelopePath, Net: "unix"})

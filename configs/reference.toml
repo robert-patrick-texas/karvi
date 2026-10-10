@@ -348,11 +348,14 @@ unknown-fallback = "generic"
 shared-capacity-root = "auto"
 
 [daemon]
-# The daemon's socket, a safe per-UID path: auto is <basedir>/socket/daemon.sock, so another
-# basedir reaches or starts another daemon; an explicit path reaches the daemon there whatever
-# the client's basedir, that daemon's own state and log staying under the basedir it started
-# with.
-socket = "auto"
+# The daemon's socket directory, private to the operator, where the daemon binds d.sock and
+# the credential channel's c.sock: auto is <basedir>/socket, so another basedir reaches or
+# starts another daemon; an explicit path reaches the daemon there whatever the client's
+# basedir, that daemon's own state and log staying under the basedir it started with. The
+# directory may be at most 100 bytes, so that each socket's path fits 107 (under auto, a
+# basedir of at most 93): a longer one is daemon_socket_too_long wherever the daemon is
+# reached or started.
+sockets = "auto"
 # 1s–2m.
 start-timeout = "5s"
 # 0–43,200.

@@ -744,22 +744,41 @@ func scratchSockets(username string, uid int) (Passed, bool) {
 	return Passed{Path: p, Reason: reason}, true
 }
 
-// DaemonSocket is daemon.socket's path: "auto" is
-// <basedir>/socket/daemon.sock; anything else is resolved by ResolvePath,
-// and refused when making its folder would make a place setup shared
-// makes.
-func DaemonSocket(raw, base, home string) (string, error) {
-	if raw == "" || raw == "auto" {
-		return filepath.Join(base, "socket", "daemon.sock"), nil
+// The daemon's sockets. The daemon binds two path sockets in
+// daemon.sockets: its envelope socket and, beside it, the credential
+// channel's, each path within 107 bytes (sun_path's 108 less its
+// terminating NUL).
+const (
+	DaemonSocketName     = "d.sock"
+	CredentialSocketName = "c.sock"
+)
+
+// MaxDaemonSocketDir is the longest socket directory both of the daemon's
+// sockets fit under: 107 bytes less the separator and the longer name.
+const MaxDaemonSocketDir = 107 - 1 - max(len(DaemonSocketName), len(CredentialSocketName))
+
+// DaemonSockets is daemon.sockets' directory: "auto" is <basedir>/socket;
+// anything else is resolved by ResolvePath, and refused when making it
+// would make a place setup shared makes. A directory longer than
+// MaxDaemonSocketDir is daemon_socket_too_long, naming under auto the
+// basedir that makes it so.
+func DaemonSockets(raw, base, home string) (string, error) {
+	dir := filepath.Join(base, "socket")
+	remedy := fmt.Sprintf("daemon.sockets is auto, <basedir>/socket: set basedir to a directory of at most %d bytes, or daemon.sockets to a shorter directory", MaxDaemonSocketDir-len("/socket"))
+	if raw != "" && raw != "auto" {
+		p, err := ResolvePath(raw, home)
+		if err != nil {
+			return "", err
+		}
+		if err := CheckSetupPlaces(p, "daemon.sockets"); err != nil {
+			return "", err
+		}
+		dir, remedy = p, "set daemon.sockets to a shorter directory"
 	}
-	p, err := ResolvePath(raw, home)
-	if err != nil {
-		return "", err
+	if len(dir) > MaxDaemonSocketDir {
+		return "", errorcodes.Errorf("daemon_socket_too_long", "the daemon's socket directory %s is %d bytes; the daemon binds %s and %s there, each path within 107 bytes, so the directory may be at most %d bytes; %s", dir, len(dir), DaemonSocketName, CredentialSocketName, MaxDaemonSocketDir, remedy)
 	}
-	if err := CheckSetupPlaces(filepath.Dir(p), "daemon.socket"); err != nil {
-		return "", err
-	}
-	return p, nil
+	return dir, nil
 }
 
 // EnsureCollectionDirectory prepares a crun's collection directory once,

@@ -18,7 +18,7 @@ func TestPlace(t *testing.T) {
 		}
 	}
 	sort.Strings(marked)
-	want := []string{"audit.file", "basedir", "crun.directory", "daemon.socket", "output.root", "scoreboards", "sessions.shared-capacity-root", "sharedroot", "spooldir", "ssh.control-path-root", "ssh.identities", "ssh.known-hosts-file", "tempdir", "transcript.root"}
+	want := []string{"audit.file", "basedir", "crun.directory", "daemon.sockets", "output.root", "scoreboards", "sessions.shared-capacity-root", "sharedroot", "spooldir", "ssh.control-path-root", "ssh.identities", "ssh.known-hosts-file", "tempdir", "transcript.root"}
 	if !reflect.DeepEqual(marked, want) {
 		t.Errorf("marked %v, want %v", marked, want)
 	}

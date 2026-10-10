@@ -98,8 +98,8 @@ var placeKeys = map[string]placeRule{
 	"sessions.shared-capacity-root": func(_ configload.Snapshot, raw string, op operatorPlaces, base string) (osutil.Place, error) {
 		return capacity.Place(raw, op.home, base)
 	},
-	"daemon.socket": func(_ configload.Snapshot, raw string, op operatorPlaces, base string) (osutil.Place, error) {
-		p, err := osutil.DaemonSocket(raw, base, op.home)
+	"daemon.sockets": func(_ configload.Snapshot, raw string, op operatorPlaces, base string) (osutil.Place, error) {
+		p, err := osutil.DaemonSockets(raw, base, op.home)
 		return osutil.Place{Path: p}, err
 	},
 	"audit.file": func(_ configload.Snapshot, raw string, op operatorPlaces, _ string) (osutil.Place, error) {

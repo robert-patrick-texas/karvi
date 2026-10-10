@@ -82,7 +82,7 @@ echo "v0100-smoke: rows"
 row d1 0 -- run --dry-run --target 127.0.0.1 --transport system 'show clock'
 grep -q '^outcome: planned$' "$TMP/streams/d1.out" || fail "d1: outcome"
 grep -q '^daemon local: absent' "$TMP/streams/d1.out" || fail "d1: an absent daemon was not reported"
-[ ! -S "$BASE/socket/daemon.sock" ] || fail "d1: a daemon was launched"
+[ ! -S "$BASE/socket/d.sock" ] || fail "d1: a daemon was launched"
 # shellcheck disable=SC2046
 "$KARVI" $(common_args) daemon start >/dev/null 2>&1
 row d2 0 -- run --dry-run --target 127.0.0.1 --transport system --format json 'show clock'
@@ -170,8 +170,8 @@ wait_summaries $((before + 1)) || fail "p1: the job did not finish"
 daemon_pid() { "$KARVI" $(common_args) daemon status --format json 2>/dev/null | json_get - pid 2>/dev/null || true; }
 wait_stopped() {  # until the socket is gone or 15 s pass
   local i=0
-  while [ -S "$BASE/socket/daemon.sock" ] && [ $i -lt 150 ]; do sleep 0.1; i=$((i + 1)); done
-  [ ! -S "$BASE/socket/daemon.sock" ]
+  while [ -S "$BASE/socket/d.sock" ] && [ $i -lt 150 ]; do sleep 0.1; i=$((i + 1)); done
+  [ ! -S "$BASE/socket/d.sock" ]
 }
 accounted() {  # accounted NAME DIR STATUS FINAL EXIT CAUSE REASON: the job directory's accounting
   local name=$1 dir=$2 status=$3 final=$4 exit=$5 cause=$6 reason=$7

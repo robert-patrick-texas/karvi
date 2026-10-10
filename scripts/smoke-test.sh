@@ -15,7 +15,7 @@ FAKE=$TMP/fake-ssh
 cleanup() {
   "$KARVI" \
     --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' \
-    --set "daemon.socket=\"$BASE/socket/daemon.sock\"" \
+    --set "daemon.sockets=\"$BASE/socket\"" \
     daemon stop >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
@@ -103,7 +103,7 @@ while "$KARVI" --quiet $(common_args) daemon status >/dev/null 2>&1; do
 done
 [ $i -ge 10 ] || { echo "the daemon left after ${i}x5s, before its 1m idle timer" >&2; exit 1; }
 grep -q 'msg="stopping: idle" .*key=daemon.shutdown-idle-timer value=1m0s' "$BASE/logs/daemon.log"
-[ ! -e "$BASE/socket/daemon.sock" ]
+[ ! -e "$BASE/socket/d.sock" ]
 
 if grep -R -F -l -- "$SECRET" "$BASE" "$SCORE" "$CAP" >/dev/null 2>&1; then
   echo "secret sentinel found in an artifact" >&2

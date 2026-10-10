@@ -11,7 +11,7 @@ TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-daemon-upgrade-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 BASE="$TMP/state"
 HOME_DIR="$TMP/home"
-SOCKET="$BASE/socket/daemon.sock"
+SOCKET="$BASE/socket/d.sock"
 FIXTURE_PID=
 cleanup() {
   "$KARVI" --quiet --set "basedir=\"$BASE\"" --set 'sharedroot="none"' --set "spooldir=\"$BASE/spool\"" --set 'platform-resolution.default=""' daemon stop >/dev/null 2>&1 || true

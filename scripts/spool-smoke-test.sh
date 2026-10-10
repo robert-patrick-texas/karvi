@@ -29,11 +29,11 @@ stop_fake() {
   FAKE_PID=
 }
 stop_daemon() {
-  [ -S "$TMP/base/socket/daemon.sock" ] || return 0
+  [ -S "$TMP/base/socket/d.sock" ] || return 0
   HOME=$TMP/home "$KARVI" --quiet --config "$TMP/karvi.toml" daemon stop --force >/dev/null 2>&1 || true
   i=0
-  while [ -S "$TMP/base/socket/daemon.sock" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
-  [ ! -S "$TMP/base/socket/daemon.sock" ] || fail "the daemon socket remains"
+  while [ -S "$TMP/base/socket/d.sock" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+  [ ! -S "$TMP/base/socket/d.sock" ] || fail "the daemon socket remains"
 }
 cleanup() { stop_daemon 2>/dev/null || true; stop_fake; rm -rf "$TMP"; }
 trap cleanup EXIT HUP INT TERM
