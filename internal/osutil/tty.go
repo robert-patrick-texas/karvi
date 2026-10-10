@@ -101,18 +101,24 @@ func NotifyResize() (changes <-chan os.Signal, stop func()) {
 // processing is off there, so a line feed alone moves down a row and leaves
 // the column where the line ended. Each line feed that does not follow a
 // carriage return is written after one. f that is not a terminal is
-// returned as it is, so a redirected stream keeps its bytes.
+// returned as it is, so a redirected stream keeps its bytes. The writer
+// names the terminal it writes to (Terminal), so the display's questions of
+// a terminal, its colour and its width, are answered for f.
 func RawTerminalLines(f *os.File) io.Writer {
 	if !IsTerminal(f) {
 		return f
 	}
-	return &rawLines{w: f}
+	return &rawLines{w: f, terminal: f}
 }
 
 type rawLines struct {
-	w    io.Writer
-	last byte // the last byte written, so a carriage return ending one write counts for the next
+	w        io.Writer
+	terminal *os.File
+	last     byte // the last byte written, so a carriage return ending one write counts for the next
 }
+
+// Terminal is the terminal the lines are written to.
+func (r *rawLines) Terminal() *os.File { return r.terminal }
 
 func (r *rawLines) Write(p []byte) (int, error) {
 	out := make([]byte, 0, len(p)+8)

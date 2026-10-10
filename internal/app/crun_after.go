@@ -17,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -76,10 +77,10 @@ func RunCollectionHook(ctx context.Context, common CommonOptions, result Activit
 	h := collectionHook{Path: path, Timeout: cfg.Duration("crun.after-timeout"), JobID: result.JobID, JobDir: result.ArtifactDir, Exit: result.ExitCode, Summary: c}
 	o := h.run(ctx, stderr)
 	if o.err != nil {
-		warning(stderr, errorcodes.Message(o.err))
+		jobexec.WriteWarning(stderr, cfg, errorcodes.Message(o.err))
 	}
 	if err := writeCollectionHookAudit(cfg, operator, result, h, o); err != nil {
-		warning(stderr, "audit_write_failed: the crun.after event: "+safeError(err))
+		jobexec.WriteWarning(stderr, cfg, "audit_write_failed: the crun.after event: "+safeError(err))
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/resolver"
@@ -48,7 +49,7 @@ func planAndPackage(ctx context.Context, cfg configload.Snapshot, operator crede
 	if err != nil {
 		return nil, err
 	}
-	warn := func(s string) { warning(streams.Stderr, s) }
+	warn := func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }
 	cp, err := planner.NewCredentialPlanner(cfg, operator, set.Devices, now, planner.CredentialOptions{Warn: warn})
 	if err != nil {
 		return nil, err

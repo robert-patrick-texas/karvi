@@ -48,7 +48,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	cpuProfile := osutil.ApplyGOMAXPROCS()
 	if cpuProfile.PreviousGOMAXPROCS != cpuProfile.GOMAXPROCS && !req.Quiet {
-		fmt.Fprintf(streams.Stderr, "warning: adjusted GOMAXPROCS from %d to effective CPU count %d\n", cpuProfile.PreviousGOMAXPROCS, cpuProfile.GOMAXPROCS)
+		WriteWarning(streams.Stderr, req.Config, fmt.Sprintf("adjusted GOMAXPROCS from %d to effective CPU count %d", cpuProfile.PreviousGOMAXPROCS, cpuProfile.GOMAXPROCS))
 	}
 	now := time.Now()
 	id := req.ActivityID
@@ -160,11 +160,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 			return FailedResult("output_directory_in_use", err)
 		}
 	}
-	warn := func(msg string) {
-		if streams.Stderr != nil {
-			fmt.Fprintf(streams.Stderr, "warning: %s\n", msg)
-		}
-	}
+	warn := func(msg string) { WriteWarning(streams.Stderr, req.Config, msg) }
 	// A crun's directory is checked once, before any device is contacted,
 	// with the runner's crun.directory-mode for a missing one.
 	var collection *output.CollectionOptions

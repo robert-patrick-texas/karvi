@@ -169,7 +169,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	// metadata's start record before the child runs, and the child takes it
 	// from the environment. The reservation is released if the child never
 	// writes its first snapshot.
-	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { fmt.Fprintf(stderr, "warning: %s\n", s) })
+	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { jobexec.WriteWarning(stderr, cfg, s) })
 	if err != nil {
 		return reportError(stderr, "scoreboard_directory_unavailable", err)
 	}
@@ -236,12 +236,12 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	columns, resizes, err := transcript.ReadTiming(timing.Name())
 	if err != nil {
 		columns, resizes = meta.Columns, nil
-		fmt.Fprintf(stderr, "warning: %s\n", errorcodes.Message(errorcodes.Errorf("transcript_timing_unreadable", "%s is rendered at %d columns without its resizes: %w", pair.Transcript, columns, err)))
+		jobexec.WriteWarning(stderr, cfg, errorcodes.Message(errorcodes.Errorf("transcript_timing_unreadable", "%s is rendered at %d columns without its resizes: %w", pair.Transcript, columns, err)))
 	}
 	if err := transcript.Render(pair.Transcript, columns, resizes); err != nil {
 		recordingFailed = true
 		msg := errorcodes.Message(errorcodes.Ensure(err, "transcript_create_failed"))
-		fmt.Fprintf(stderr, "warning: %s keeps the bytes script(1) wrote: %s\n", pair.Transcript, msg)
+		jobexec.WriteWarning(stderr, cfg, fmt.Sprintf("%s keeps the bytes script(1) wrote: %s", pair.Transcript, msg))
 	}
 	meta.EndedAt = time.Now()
 	meta.ExitClassification = exitcode.ExitName(exit)

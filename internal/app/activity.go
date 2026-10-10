@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -68,8 +67,8 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 		ActivityType: "command", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		Transport: opts.Transport, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: true,
-		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { warning(streams.Stderr, s) }},
-		Warn:    func(s string) { warning(streams.Stderr, s) },
+		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }},
+		Warn:    func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) },
 	}
 	authorities := []string{}
 	if opts.AddressAuthority != "" {
@@ -132,8 +131,8 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 		Transport:        opts.Transport,
 		PlatformCommands: opts.PlatformCommands, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: !opts.Detach,
-		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { warning(streams.Stderr, s) }},
-		Warn:    func(s string) { warning(streams.Stderr, s) },
+		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }},
+		Warn:    func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) },
 	}
 	selection := records.Selection{Inputs: append([]records.TargetInput{}, opts.Targets...), Excludes: nonNilStrings(opts.Excludes), ManagementAddress: opts.ManagementAddress, AddressAuthorities: nonNilStrings(opts.AddressAuthorities)}
 	job, err := planAndPackage(ctx, cfg, operator, set, draft, id, streams)
@@ -179,12 +178,6 @@ func nonNilStrings(s []string) []string {
 // siteFailure returns the registry exit and operator text for err reported at a
 
 // codedText renders err for an operator under code unless err carries a more
-
-func warning(w io.Writer, msg string) {
-	if w != nil {
-		fmt.Fprintf(w, "warning: %s\n", msg)
-	}
-}
 
 func hostname() string { h, _ := os.Hostname(); return h }
 
@@ -273,7 +266,7 @@ func ReadConfigFiles(req ConfigRequest) (ConfigReading, error) {
 // say before the configured transports are checked; a nil say says none, as
 // for a stream's job, whose stream said them at its start. Its errors are
 // coded as ReadConfigFiles's.
-func (c ConfigReading) Snapshot(flags map[string]configload.FlagValue, say func(string)) (configload.Snapshot, credentials.Operator, error) {
+func (c ConfigReading) Snapshot(flags map[string]configload.FlagValue, say WarningSink) (configload.Snapshot, credentials.Operator, error) {
 	cfg, err := c.reading.Snapshot(flags, c.sets)
 	if err == nil {
 		SayWarnings(say, cfg)
@@ -288,7 +281,7 @@ func (c ConfigReading) Snapshot(flags map[string]configload.FlagValue, say func(
 // ReadConfig is an invocation's one read of its configuration: the reading
 // of req (ReadConfigFiles) and its snapshot under req's flags, its warnings
 // said through say.
-func ReadConfig(req ConfigRequest, say func(string)) (configload.Snapshot, credentials.Operator, error) {
+func ReadConfig(req ConfigRequest, say WarningSink) (configload.Snapshot, credentials.Operator, error) {
 	c, err := ReadConfigFiles(req)
 	if err != nil {
 		return configload.Snapshot{}, credentials.Operator{}, err

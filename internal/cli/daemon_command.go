@@ -285,7 +285,7 @@ func stopTimeout(rt app.DaemonRuntime) time.Duration {
 func serveDaemon(g globalOptions, stderr io.Writer) int {
 	logger := slog.New(slog.NewTextHandler(stderr, nil))
 	// The daemon's own load's warnings go to its log, once, at its start.
-	g.say = func(w string) { logger.Warn("configuration warning", slog.String("warning", w)) }
+	g.say = func(_ configload.Snapshot, w string) { logger.Warn("configuration warning", slog.String("warning", w)) }
 	rt, code, ok := g.runtime(stderr)
 	if !ok {
 		return code

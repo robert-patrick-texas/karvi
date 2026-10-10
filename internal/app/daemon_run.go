@@ -85,7 +85,7 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 			return nil, "activity_id_generation_failed", err
 		}
 	}
-	warn := func(s string) { warning(streams.Stderr, s) }
+	warn := func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }
 	draftOpts := planner.DraftOptions{
 		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		Transport:        opts.Transport,

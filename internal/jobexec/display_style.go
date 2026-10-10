@@ -13,8 +13,20 @@ import (
 // terminal. Callers must evaluate this before wrapping the stream in a
 // transcript MultiWriter so color=auto continues to reflect the real terminal.
 func DisplayTerminal(out io.Writer) bool {
-	f, ok := out.(*os.File)
-	return ok && osutil.IsTerminal(f)
+	return terminalFile(out) != nil
+}
+
+// terminalFile is the terminal out writes to: out itself at a terminal, or
+// the terminal a writer that wraps one names (osutil.RawTerminalLines, a
+// recorded login's child writing to its wrapper's terminal); nil otherwise.
+func terminalFile(out io.Writer) *os.File {
+	if t, ok := out.(interface{ Terminal() *os.File }); ok {
+		return t.Terminal()
+	}
+	if f, ok := out.(*os.File); ok && osutil.IsTerminal(f) {
+		return f
+	}
+	return nil
 }
 
 // DisplayLineStyle resolves all semantic colors once per invocation. Templates
@@ -46,8 +58,8 @@ func DisplayDynamicBorderColor(cfg configload.Snapshot) string {
 }
 
 func DisplayTerminalWidth(out io.Writer) int {
-	f, ok := out.(*os.File)
-	if !ok {
+	f := terminalFile(out)
+	if f == nil {
 		return 0
 	}
 	return osutil.TerminalWidth(f)

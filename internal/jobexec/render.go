@@ -184,6 +184,22 @@ func WarningLine(message string, style display.LineStyle) string {
 	return display.ANSIStyle("! "+message, style.Warning, style.Enabled, display.RoleBold("warning"))
 }
 
+// WarningText is "warning: " and message, a warning's diagnostic line, the
+// whole line in the display's warning colour and bold when colour is on, as
+// WarningLine is.
+func WarningText(message string, style display.LineStyle) string {
+	return display.ANSIStyle("warning: "+message, style.Warning, style.Enabled, display.RoleBold("warning"))
+}
+
+// WriteWarning writes message's warning line on w in cfg's style for w, by
+// the display's one colour rule; a nil w writes nothing. Every warning line
+// karvi writes is written by it.
+func WriteWarning(w io.Writer, cfg configload.Snapshot, message string) {
+	if w != nil {
+		fmt.Fprintln(w, WarningText(message, DisplayLineStyle(cfg, DisplayTerminal(w))))
+	}
+}
+
 // The insecure policy's admission warning: its code, the message the
 // daemon's receipt and log carry, and the two lines a client shows for it,
 // once per job.
@@ -201,8 +217,8 @@ func PolicyInsecureWarning() string {
 }
 
 // AdmissionWarningLines are a client's lines for one admission warning: the
-// insecure policy's two lines, each a WarningLine, or "warning: " and the
-// warning.
+// insecure policy's two lines, each a WarningLine, or the warning's
+// WarningText.
 func AdmissionWarningLines(warning string, style display.LineStyle) []string {
 	if strings.HasPrefix(warning, PolicyInsecureCode+":") {
 		lines := make([]string, len(policyInsecureLines))
@@ -211,7 +227,7 @@ func AdmissionWarningLines(warning string, style display.LineStyle) []string {
 		}
 		return lines
 	}
-	return []string{"warning: " + warning}
+	return []string{WarningText(warning, style)}
 }
 
 // WriteAdmissionWarnings writes a job's admission warnings to w, a client's

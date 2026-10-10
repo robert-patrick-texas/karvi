@@ -32,7 +32,7 @@ type globalOptions struct {
 	timezone, ansi                         string
 	// say says the load's warnings at the invocation's one read
 	// (app.SayWarnings); nil says nothing.
-	say func(string)
+	say app.WarningSink
 	// reading is a stream's one reading of its configuration, from which
 	// each of its jobs' reads makes the job's snapshot; nil elsewhere.
 	reading *app.ConfigReading

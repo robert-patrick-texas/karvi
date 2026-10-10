@@ -13,6 +13,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/inventoryload"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/inventory"
@@ -61,7 +62,7 @@ func assembleTargets(ctx context.Context, cfg configload.Snapshot, operator cred
 	if err := checkPlatformSelectors(cfg, inputs); err != nil {
 		return TargetSet{}, err
 	}
-	loader := inventoryload.Loader{Config: cfg, Home: operator.Home, Warn: func(s string) { warning(stderr, s) }}
+	loader := inventoryload.Loader{Config: cfg, Home: operator.Home, Warn: func(s string) { jobexec.WriteWarning(stderr, cfg, s) }}
 	configured, provenance, err := loader.Load(ctx)
 	if err != nil {
 		return TargetSet{}, errorcodes.Ensure(err, "inventory_load_failed")

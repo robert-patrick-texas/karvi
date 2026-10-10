@@ -16,6 +16,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
 )
 
@@ -90,7 +91,7 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 				if emptyRule == "error" {
 					return nil, reportError(streams.Stderr, "target_source_empty", errorcodes.Errorf("target_source_empty", "%s %s yields no targets (targets.empty-source is error)", what, t.Value)), false
 				}
-				fmt.Fprintf(streams.Stderr, "warning: %s %s yields no targets; continuing with the other inputs\n", what, t.Value)
+				jobexec.WriteWarning(streams.Stderr, cfg, fmt.Sprintf("%s %s yields no targets; continuing with the other inputs", what, t.Value))
 			}
 			inputs = append(inputs, app.TargetInput{Kind: "names", Names: names, Source: t.Value})
 		case "all":

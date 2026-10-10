@@ -92,7 +92,7 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 					jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
 				}
 				if line := NotKeptLine(cursor, start.FirstSequence); line != "" {
-					warning(o.stderr, line)
+					jobexec.WriteWarning(o.stderr, o.cfg, line)
 				}
 				if renderer == nil && o.render {
 					r, err := jobexec.NewRunRenderer(o.cfg, o.quiet, o.debug, ArtifactsLabel(start.ArtifactDir), o.format, o.echo, o.dynamic, o.noBorder, stdout, o.stderr)

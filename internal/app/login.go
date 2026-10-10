@@ -95,7 +95,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	// it the same way, so the metadata file and the child's audit and
 	// scoreboard records agree; the wrapper releases it if this process
 	// never writes.
-	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { warning(streams.Stderr, s) })
+	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) })
 	if err != nil {
 		return failedResult("scoreboard_directory_unavailable", err)
 	}
@@ -144,7 +144,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	// platform until the credential resolver has matched its maps on it;
 	// after that the device carries the platform used, so the
 	// port, the SSH algorithms map, the display, and the records see it.
-	platforms, err := planner.ResolvePlatforms(cfg, []inventory.Device{d}, func(s string) { warning(streams.Stderr, s) })
+	platforms, err := planner.ResolvePlatforms(cfg, []inventory.Device{d}, func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) })
 	if err != nil {
 		return failedResult("platform_unknown", err)
 	}
@@ -163,7 +163,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 		}
 		pinger = capability.Pinger()
 	}
-	credResolver, err := credentialresolver.New(cfg, operator, func(s string) { warning(streams.Stderr, s) })
+	credResolver, err := credentialresolver.New(cfg, operator, func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) })
 	if err != nil {
 		return failedResult("credential_resolution_failed", err)
 	}
