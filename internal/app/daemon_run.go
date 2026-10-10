@@ -50,10 +50,7 @@ type draftTiming struct {
 
 // draftClient runs the shared first half. On failure it returns the site
 // code that names the stage and the error; the caller reports both.
-// loadWarnings prints the load's warnings after the load, before the draft:
-// a daemon's job runs under the plan's configuration block, which has
-// none, so its client says them (an in-process job prints its own).
-func draftClient(ctx context.Context, opts RunOptions, streams IO, loadWarnings bool) (*clientDraft, string, error) {
+func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft, string, error) {
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
@@ -61,11 +58,6 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO, loadWarnings 
 	cfg, operator, err := prepareConfig(opts.CommonOptions)
 	if err != nil {
 		return nil, "config_load_failed", err
-	}
-	if loadWarnings {
-		for _, w := range cfg.Warnings {
-			warning(streams.Stderr, w)
-		}
 	}
 	cd := &clientDraft{cfg: cfg, operator: operator}
 	cd.timing.config = time.Since(t0)
@@ -147,7 +139,7 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO, loadWarnings 
 // request repeated. Nothing before the request is repeated: the plan, the
 // credentials, and the identifiers are the ones already made.
 func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame int64, ensure func(context.Context) error, streams IO) ActivityResult {
-	cd, code, err := draftClient(ctx, opts, streams, true)
+	cd, code, err := draftClient(ctx, opts, streams)
 	if err != nil {
 		if ctx.Err() != nil {
 			return interrupted(stageClientPlanning, err)

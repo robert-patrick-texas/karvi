@@ -21,6 +21,8 @@ type CommonOptions struct {
 	Quiet           bool                            `json:"quiet"`
 	Debug           bool                            `json:"debug"`
 	DebugShowSecret bool                            `json:"debug_show_secrets"`
+	// Warnings says the load's warnings, once per invocation.
+	Warnings *LoadWarnings `json:"-"`
 }
 
 // CommandOptions describes scripted work on the first device of a target

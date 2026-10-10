@@ -251,6 +251,7 @@ func prepareConfig(common CommonOptions) (configload.Snapshot, credentials.Opera
 	}
 	cfg, err := configload.Load(configload.Options{ExplicitRoots: common.ConfigRoots, Sets: common.Sets, FlagValues: common.ConfigFlags, HomeDir: operator.Home})
 	if err == nil {
+		common.Warnings.Say(cfg)
 		err = transportselect.ValidateConfigured(cfg)
 	}
 	if err != nil {

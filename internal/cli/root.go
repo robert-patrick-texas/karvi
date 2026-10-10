@@ -29,6 +29,9 @@ type globalOptions struct {
 	quiet, debug, debugShow, help, version bool
 	ipv4, ipv6                             bool
 	timezone, ansi                         string
+	// warnings says the configuration load's warnings, once for the
+	// invocation (app.LoadWarnings); nil says nothing.
+	warnings *app.LoadWarnings
 }
 
 func (g globalOptions) common() app.CommonOptions {
@@ -44,7 +47,7 @@ func (g globalOptions) common() app.CommonOptions {
 	} else if g.ipv6 {
 		setKey(values, "--ipv6", "name.address-family-preference", "ipv6")
 	}
-	return app.CommonOptions{ConfigRoots: append([]string(nil), g.configs...), Sets: append([]string(nil), g.sets...), ConfigFlags: values, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow}
+	return app.CommonOptions{ConfigRoots: append([]string(nil), g.configs...), Sets: append([]string(nil), g.sets...), ConfigFlags: values, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow, Warnings: g.warnings}
 }
 
 // Main executes one invocation and returns the stable karvi process exit code.
@@ -98,6 +101,12 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	}
 	if inv.Path == "login" && inv.Record != nil && inv.Global.debugShow {
 		return usageError(stderr, "record_debug_show_secrets_conflict", "--debug-show-secrets is incompatible with transcript recording")
+	}
+	// The load's warnings are said on standard error at the load, each once
+	// for the invocation; a recorded login's child leaves them to its
+	// wrapper, whose load came first, and daemon serve logs its own.
+	if inv.Path != "login" || os.Getenv(loginTranscriptChildEnv) == "" {
+		inv.Global.warnings = app.NewLoadWarnings(app.WarningLines(stderr))
 	}
 	if inv.Path == "login" && inv.Record != nil && os.Getenv(loginTranscriptChildEnv) == "" {
 		return recordedLogin(inv, args, stdin, stdout, stderr)

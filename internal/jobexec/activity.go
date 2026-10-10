@@ -271,9 +271,6 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		return FailedResult("audit_sink_open_failed", err)
 	}
 	defer auditSink.Close()
-	for _, w := range cfg.Warnings {
-		warn(w)
-	}
 	debug(fmt.Sprintf("activity=%s activity_id=%s plan_id=%s plan_digest=%s config_digest=%s config_sources=%q", req.ActivityType, id, plan.PlanID, plan.PlanDigest, cfg.Digest, strings.Join(cfg.Sources, ",")))
 	capManager, err := capacity.New(cfg.String("sessions.shared-capacity-root"), req.Operator.Home, base, id, serverLimit, warn)
 	if err != nil {

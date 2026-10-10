@@ -31,6 +31,7 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if err != nil {
 		return reportError(streams.Stderr, "config_load_failed", app.ConfigLoadError(err))
 	}
+	g.warnings.Say(cfg)
 	// Every place an activity writes its scoreboard in, making nothing:
 	// the team's shared folder and the operator's private one.
 	base, err := osutil.BaseDirPath(cfg.String("basedir"), op.Home, op.Username)

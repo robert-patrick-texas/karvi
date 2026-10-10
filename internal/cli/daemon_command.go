@@ -264,11 +264,13 @@ func stopTimeout(rt app.DaemonRuntime) time.Duration {
 // without accounting, so the server owns SIGTERM and SIGINT itself and
 // drains, waits the grace, and accounts before it exits.
 func serveDaemon(g globalOptions, stderr io.Writer) int {
+	logger := slog.New(slog.NewTextHandler(stderr, nil))
+	// The daemon's own load's warnings go to its log, once, at its start.
+	g.warnings = app.NewLoadWarnings(func(w string) { logger.Warn("configuration warning", slog.String("warning", w)) })
 	rt, err := app.ResolveDaemonRuntime(g.common())
 	if err != nil {
 		return reportError(stderr, "config_load_failed", err)
 	}
-	logger := slog.New(slog.NewTextHandler(stderr, nil))
 	secretVariableNotice(logger)
 	signals := make(chan os.Signal, 2)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
