@@ -40,16 +40,29 @@ type Value struct {
 	MacroTrace []string    `json:"macro_trace,omitempty"`
 }
 
-// Snapshot is immutable after Load returns. Callers receive defensive copies
-// for collection values through accessors.
+// Snapshot is immutable after Load or a Reading's Snapshot returns. Callers
+// receive defensive copies for collection values through accessors.
 type Snapshot struct {
-	Values       map[string]Value `json:"values"`
-	Locks        []LockDecl       `json:"locks,omitempty"`
-	Sources      []string         `json:"sources,omitempty"`
-	Warnings     []string         `json:"warnings,omitempty"`
-	Digest       string           `json:"digest"`
-	LoadedAt     time.Time        `json:"loaded_at"`
-	EffectiveCPU int              `json:"effective_cpu_count,omitempty"`
+	Values   map[string]Value `json:"values"`
+	Locks    []LockDecl       `json:"locks,omitempty"`
+	Sources  []string         `json:"sources,omitempty"`
+	Warnings []string         `json:"warnings,omitempty"`
+	Digest   string           `json:"digest"`
+}
+
+// own is s with its own map of values and its own lists, so that the layers
+// and checks a snapshot is made with leave the reading it came from as it
+// was; they replace a value's data and never change it in place.
+func (s Snapshot) own() Snapshot {
+	values := make(map[string]Value, len(s.Values))
+	for k, v := range s.Values {
+		values[k] = v
+	}
+	s.Values = values
+	s.Locks = append([]LockDecl(nil), s.Locks...)
+	s.Sources = append([]string(nil), s.Sources...)
+	s.Warnings = append([]string(nil), s.Warnings...)
+	return s
 }
 
 // FlagValue is one value an option sets for its key, and what set it: the

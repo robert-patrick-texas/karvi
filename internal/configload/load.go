@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/configload/tomlmini"
@@ -23,8 +22,29 @@ type loader struct {
 	arrayNext map[string]int
 }
 
-// Load builds and validates an immutable configuration snapshot.
+// Reading is a configuration as its files and the environment give it: the
+// built-in defaults, the global, user, and explicit roots with their
+// includes and locks, and the KARVI__ variables, a load's warnings among
+// them. Its Snapshot takes an invocation's options and --set over it, as
+// often as a stream has jobs, without reading again.
+type Reading struct {
+	snap Snapshot
+	home string
+}
+
+// Load builds and validates an immutable configuration snapshot: the
+// Reading of opts, then its Snapshot under opts' options and --set.
 func Load(opts Options) (Snapshot, error) {
+	r, err := Read(opts)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	return r.Snapshot(opts.FlagValues, opts.Sets)
+}
+
+// Read reads the configuration's files and environment as opts names them;
+// opts' FlagValues and Sets are the Snapshot's.
+func Read(opts Options) (Reading, error) {
 	home := opts.HomeDir
 	if home == "" {
 		if u, err := user.Current(); err == nil {
@@ -34,28 +54,28 @@ func Load(opts Options) (Snapshot, error) {
 	if home == "" {
 		home = os.Getenv("HOME")
 	}
-	l := &loader{snap: Snapshot{Values: map[string]Value{}, LoadedAt: time.Now()}, inc: includeState{seen: map[string]SourceRef{}}, home: home, arrayNext: map[string]int{}}
+	l := &loader{snap: Snapshot{Values: map[string]Value{}}, inc: includeState{seen: map[string]SourceRef{}}, home: home, arrayNext: map[string]int{}}
 	if err := l.loadDefaults(); err != nil {
-		return Snapshot{}, err
+		return Reading{}, err
 	}
 	if !opts.InternalOnly && !opts.SkipAuto {
 		global, err := firstExisting(globalRoots)
 		if err != nil {
-			return Snapshot{}, err
+			return Reading{}, err
 		}
 		if global != "" {
 			if err := l.processRoot(global, "global", true); err != nil {
-				return Snapshot{}, err
+				return Reading{}, err
 			}
 		}
 		if l.boolValue("config.allow-user-layer") {
 			userPath, err := firstExisting([]string{filepath.Join(home, ".config/karvi/config.toml")})
 			if err != nil {
-				return Snapshot{}, err
+				return Reading{}, err
 			}
 			if userPath != "" {
 				if err := l.processRoot(userPath, "user", false); err != nil {
-					return Snapshot{}, err
+					return Reading{}, err
 				}
 			}
 		}
@@ -63,16 +83,16 @@ func Load(opts Options) (Snapshot, error) {
 	for _, root := range opts.ExplicitRoots {
 		abs, err := expandHome(root, home)
 		if err != nil && strings.HasPrefix(root, "~") {
-			return Snapshot{}, err
+			return Reading{}, err
 		}
 		if !strings.HasPrefix(root, "~") {
 			abs = root
 		}
 		if _, err := os.Stat(abs); err != nil {
-			return Snapshot{}, newError("config_explicit_missing", "explicit configuration root unavailable", "", SourceRef{Layer: "explicit", Path: abs}, err)
+			return Reading{}, newError("config_explicit_missing", "explicit configuration root unavailable", "", SourceRef{Layer: "explicit", Path: abs}, err)
 		}
 		if err := l.processRoot(abs, "explicit", false); err != nil {
-			return Snapshot{}, err
+			return Reading{}, err
 		}
 	}
 	env := opts.Environment
@@ -80,20 +100,28 @@ func Load(opts Options) (Snapshot, error) {
 		env = os.Environ()
 	}
 	if err := l.mergeEnvironment(env); err != nil {
-		return Snapshot{}, err
+		return Reading{}, err
 	}
-	keys := make([]string, 0, len(opts.FlagValues))
-	for k := range opts.FlagValues {
+	return Reading{snap: l.snap, home: home}, nil
+}
+
+// Snapshot builds and validates the reading's snapshot under flags, an
+// invocation's options by key, and sets, its --set in order. The reading is
+// left as it was, so every call is independent of the others.
+func (r Reading) Snapshot(flags map[string]FlagValue, sets []string) (Snapshot, error) {
+	l := &loader{snap: r.snap.own(), home: r.home}
+	keys := make([]string, 0, len(flags))
+	for k := range flags {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		f := opts.FlagValues[k]
+		f := flags[k]
 		if err := l.assign(k, f.Value, SourceRef{Layer: "cli", Path: f.Option}, false); err != nil {
 			return Snapshot{}, err
 		}
 	}
-	for i, set := range opts.Sets {
+	for i, set := range sets {
 		eq := strings.IndexByte(set, '=')
 		if eq <= 0 {
 			return Snapshot{}, newError("config_set_syntax", "--set requires key=value", "", SourceRef{Layer: "set", Path: fmt.Sprintf("--set[%d]", i+1)}, nil)

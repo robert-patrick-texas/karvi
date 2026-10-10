@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/robert-patrick-texas/karvi/configschema"
 )
@@ -28,7 +27,7 @@ func (s Snapshot) ValueMap() map[string]any {
 // (Snapshot.Float) take as the load's float64. A key the registry does not
 // know is refused.
 func FromValues(values map[string]any) (Snapshot, error) {
-	snap := Snapshot{Values: make(map[string]Value, len(values)), LoadedAt: time.Now()}
+	snap := Snapshot{Values: make(map[string]Value, len(values))}
 	for k, v := range values {
 		if !configschema.IsKnownLeaf(k) {
 			return Snapshot{}, fmt.Errorf("unknown key %q", k)
