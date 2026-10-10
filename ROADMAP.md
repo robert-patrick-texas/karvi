@@ -7,7 +7,18 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-Nothing at present: the operator chooses the next item from Later.
+1. **One read of the configuration per invocation.** An invocation may load
+   its configuration more than once: a `run` through a daemon, `run --dry-run`,
+   and `job follow` three times, `crun` and `run --tf` four, each load reading
+   the files and the environment again
+   ([`docs/EXAMPLES.md`, chapter
+   51](docs/EXAMPLES.md#51-every-invocation-says-its-configurations-warnings-2026-10-10)).
+   The item: the command line loads it once and passes the snapshot to every
+   stage, so one invocation runs under one configuration. The questions: the
+   shape every caller of `prepareConfig` takes in place of `CommonOptions`; the
+   options that set a key for one invocation (`--order`, `--workers`, a
+   `stream` line's), which today reach the load as flag values; and `stream`,
+   whose jobs each take their own options.
 
 ## Later
 
@@ -181,18 +192,6 @@ Nothing at present: the operator chooses the next item from Later.
   S2). The question: one function in `scripts/lib` that runs a call and, when it
   fails unexpectedly, names it and prints what karvi wrote before the suite
   exits.
-- **One read of the configuration per invocation.** An invocation may load
-  its configuration more than once: a `run` through a daemon, `run --dry-run`,
-  and `job follow` three times, `crun` and `run --tf` four, each load reading
-  the files and the environment again
-  ([`docs/EXAMPLES.md`, chapter
-  51](docs/EXAMPLES.md#51-every-invocation-says-its-configurations-warnings-2026-10-10)).
-  The item: the command line loads it once and passes the snapshot to every
-  stage, so one invocation runs under one configuration. The questions: the
-  shape every caller of `prepareConfig` takes in place of `CommonOptions`; the
-  options that set a key for one invocation (`--order`, `--workers`, a
-  `stream` line's), which today reach the load as flag values; and `stream`,
-  whose jobs each take their own options.
 - **A client told when a running daemon's settings differ from its own.** A
   daemon keeps the `daemon.*` values of the invocation that launched it, and a
   later client's `--set daemon.*` reaches it only at its next start, without
