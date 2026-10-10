@@ -8159,7 +8159,179 @@ system) per run, the mean of twenty:
 bytes from both builds. The evidence is kept beside the tree
 (`release-design-evidence/one-read-2026-10-10`).
 
-**Section B, one read per invocation, open.** Its issues, one at a time: what
-one invocation is and where its load sits; the shape every caller of
+**Section B, one read per invocation.** Its issues, one at a time: what one
+invocation is and where its read sits; the shape every caller of
 `prepareConfig` takes in place of the options it loads from; the options that
 set a key for one invocation; the hook.
+
+**Issue 1, what one invocation is and where its read sits, agreed.** On the lab
+build of `94c94f5`, a configuration holding an unknown key, a `--tf` decides
+which refusal an invocation gives:
+
+| Invocation under the broken configuration | Refusal |
+|---|---|
+| `run --dry-run --exercise …` | `run_mode_conflict`, exit 4 |
+| the same with `--tf t.txt` | `config_unknown_key`, exit 2 |
+| `run --cf absent.txt`, and `command` alike | `commands_file_unreadable`, exit 4 |
+| the same with `--tf t.txt` | `config_unknown_key`, exit 2 |
+| `run --cmd 'echo x' --blind --timeout 5s` | `timeout_with_blind`, exit 4 |
+| the same with `--tf t.txt` | `config_unknown_key`, exit 2 |
+| `job follow not-an-id` | `config_unknown_key`, exit 2 |
+
+Under a good configuration, `job cancel not-an-id` says `daemon_unreachable`
+(110) with no daemon and `job_request_malformed` (112) with one. A `stream`
+reads every line under the broken configuration and refuses at each `--go`, the
+same line twice for two jobs, exit 2; and its configuration edited between two
+jobs (`parallel-workers` 4, then 8) gives the second job the edit, two digests
+(`d9e00405…`, `951ad492…`) in one stream. The target files take the
+configuration for two keys alone, `targets.empty-source` (what a source yielding
+no names means) and `targets.recursion-max-depth` (how deep `--tfr` walks),
+under one load for any number of `--tf` and `--tfr`; a `--target` reads nothing.
+
+Each process an invocation starts reads its configuration once, the files, the
+environment, and all of the invocation's options together, and every stage of
+the process takes that snapshot. A `stream` reads it once as it starts, before
+its first line, and every job it executes takes that read with the job's own
+option lines over it (issue 3); an edit reaches the next stream, not the next
+job, the operator ending the stream and starting another, and a stream whose
+configuration does not load is refused once at its start, exit 2, before a line
+is read. A recorded login's wrapper and its child read once each, two reads for
+the command where they made four: the child's audit is the login's one record of
+a digest, and the wrapper's read places the transcript. `daemon serve` reads
+once at its start, an invocation of its own; a job through a daemon runs under
+its client's read, carried in the plan ([chapter
+47](#47-a-job-under-its-clients-configuration-2026-10-08)), and a `crun`'s hook
+under the same read; `--help` and completion keep their one read each. The read
+sits after every refusal that needs no configuration (the options' forms and
+conflicts, the commands file and its declarations, a job ID's form) and before
+the first thing that needs it: the target files and every stage. A mistake on
+the command line is said before one in the configuration, with `--tf` or
+without, and `job follow` and `job cancel` refuse a malformed ID with
+`job_request_malformed` (112), a daemon running or not. A stream's option to
+read the configuration again, which the operator may add later, is outside this
+item. *Not taken:* one read per job in a stream (today's: one invocation under
+two configurations); a stream's read at its first `--go` (its moment hanging on
+when the operator sends, a broken configuration found after a draft is
+composed); the recorded login's wrapper handing its read to the child (a channel
+between two processes for a window of milliseconds, where only the child records
+a digest); the read where each command's first load sits today (a `--tf` run's
+configuration refusal still before its command line's); one read in `Main`
+before every command's own checks (one place in the code, and every mistake on
+the command line said after one in the configuration); a `--tf` file read
+before the configuration and judged after it (`--tfr` needs its depth to walk,
+so one kind of input in two places).
+
+**Issue 2, the shape, agreed.** `prepareConfig(common)` is called at thirteen
+places in eight files, and through `ResolveDaemonRuntime`, each making the
+snapshot and the operator again from `CommonOptions`' `ConfigRoots`, `Sets`,
+and `ConfigFlags`; `jobexec.Request`, `daemon.Server`, and `DaemonRuntime`
+already carry the pair, `Config` and `Operator`. A `run` resolves the daemon's
+runtime and `ensureDaemon` resolves it again from the global options alone, and
+`job follow` and `job cancel --follow` resolve it once more in the follow.
+Nothing serializes the options types, so their `json` tags are unread, and two
+comments say they cross to the daemon, which receives the plan. A configuration
+failure's line is the same on every path but `run --dry-run`'s, which says
+`config_unknown_key: client planning: unknown configuration key …`.
+
+`CommonOptions` carries the read, `Config` and `Operator`, in place of the
+three fields it was read from, beside `Quiet`, `Debug`, and `DebugShowSecret`;
+every function keeps its signature and takes `common.Config` and
+`common.Operator` where it called `prepareConfig`, and `prepareConfig` and
+`LoadConfig` go. One function makes the read, `app.ReadConfig`, doing what
+`prepareConfig` did (the operator from the password database, the load, its
+warnings said, the transports checked, a failure coded `config_load_failed`,
+exit 2, or 3 for a lock violation), called by the command line at issue 1's
+place. The daemon's runtime is resolved once per invocation from the read, and
+`ensureDaemon`, `FollowJobRendering`, and `FollowJobToTerminal` take it
+resolved; the daemon is launched with the global options alone, as it is. The
+read takes the warnings' sink (the client's `warning:` lines, `daemon serve`'s
+logger, none for a recorded login's child); the reporter's memory of what it
+said goes, with its lock, `CommonOptions.Warnings`, and its own test, and
+chapter 51's rule holds by the one read. Its tests through `Main` stay and hold
+the one read too, since a second read in a process would say each warning
+twice; the build adds `job follow` of a finished job's folder, three reads
+today and no daemon needed. The tags go, and the comments say what the types
+are, the invocation's options and its read, used in this process. `run
+--dry-run`'s failure loses `client planning:`, as every other path reads.
+*Not taken:* `cfg` and `operator` as parameters beside `CommonOptions` (the
+pair in every signature `CommonOptions` already reaches); a type for the read
+beside `CommonOptions` (two values passed together wherever one goes); the
+three fields kept beside the read (a caller could read again, the habit this
+item ends); the reporter's memory kept as a safeguard (it hides the second
+read the warning lines show).
+
+**Issue 3, the options that set a key for one invocation, agreed.** The global
+options `--timezone`, `--ansi`, and `--ipv4` or `--ipv6` (these two after the
+command word too), and the command's `--ssh-host-key-policy`,
+`--ssh-known-hosts-file`, `--order`, the nine dispatch options, `--ping` or
+`--noping`, `--blind-wait`, `--nof` or `--of[=PATH]`,
+`--continue-device-on-error`, `--cd` and `--fs`, and the `crun` word, each set
+a key. They are a layer of their own, after the files and the environment and
+before `--set`, refused by a lock in the global file naming the option
+(`config_lock_violation`, exit 3):
+
+```text
+$ karvi run --dry-run --order sorted …
+dispatch: serial width=1 order=sorted
+$ karvi --set dispatch.order="shuffle" run --dry-run --order sorted …
+dispatch: serial width=1 order=shuffle
+```
+
+They are gathered in two steps, the global options and those through `--ping`
+by `inv.common()`, the rest by `run` and `command` after `targetInputs`' load. A
+stream's option lines are each job's: two `--dry-run` jobs, the first given
+`--order sorted --dispatch parallel --workers 2`, say `dispatch: parallel
+width=2 order=sorted` and then `dispatch: serial width=1 order=default`. A load
+takes the built-in defaults, the files with their includes and locks, and the
+environment, where its two warnings arise, then the options, `--set`, the
+macros, the validation, the places, and the digest.
+
+The options keep their meaning: the read's options layer, between the
+environment and `--set`, refused by a lock naming the option, each its own
+source; precedence, wording, and codes are unchanged. All of an invocation's
+key-setting options are gathered in one place before its read, so the one
+snapshot holds every one of them. `configload` loads in two steps: the reading
+(the defaults, the files with their includes and locks, the environment, the
+warnings arising there) and the snapshot made from a reading with an options
+layer and `--set` (the macros, the validation, the places, the digest). A
+one-shot invocation does both once, in `app.ReadConfig`. A stream reads once at
+its start and makes its own snapshot there from its global options, refused
+there when the configuration does not load or validate (issue 1); each job's
+snapshot is made from the same reading with the job's option lines and the
+stream's `--set`, no file or variable read again, its digest that of a `run`
+with those options. A job whose option a lock refuses is refused, exit 3, and
+the stream goes on, as it does; a snapshot raises no warnings, so a stream says
+them once, at its reading. Found while reading: `Snapshot.LoadedAt`, written at
+every load and read by nothing, and `Snapshot.EffectiveCPU`, neither written
+nor read, are removed. *Not taken:* the options applied over a finished
+snapshot as a change (the lock check, `--set`'s precedence, the macros, the
+validation, and the digest each done a second way); a stream's job reading the
+files again for its options (issue 1's one read); a stream's key-setting lines
+refused, or taken once for the whole stream (a stream line is a `run` option,
+and a job's `--order` or `--workers` its own); the options turned into fields
+the stages read beside the configuration (the plan's configuration block
+carries them to the daemon as keys, and the lock and the sources would lose
+them).
+
+**Issue 4, the hook, agreed.** `RunCollectionHook` loads the configuration again
+after the job has ended for `crun.after`, `crun.after-timeout`, and the audit's
+place, after `ExecuteRunLocal` and after `RunViaDaemon` alike: the evidence's
+edit ran `hookB.sh`, its event carrying `0a8969fc…` beside the job's
+`ba23d86c…`. In-process the job runs under the client's snapshot; through a
+daemon the plan carries its values and the daemon makes the snapshot with
+`FromValues`, and the digest, from `CanonicalJSON`, covers the keys and values
+alone, so both paths' manifests carried `ba23d86c…` for one configuration. The
+hook runs under the invocation's one read: `RunCollectionHook` takes the path,
+the timeout, and the audit's place from `common.Config` and `common.Operator`,
+the snapshot the job was planned under, so the hook is the one the job's
+configuration names and its event carries the digest of the job's manifest and
+`run.*` events, on either path; an edit during the job reaches the next
+invocation. The hook's own load failure, the warning `crun_after_failed: the
+configuration could not be loaded for crun.after: …`, has no load left to fail
+and goes; `crun_after_failed` keeps its other causes, and ERROR-CODES, which
+names only those, is unchanged. A detached `crun`, a `run` given `--cd`, and a
+stream's job run no hook, as they do. *Not taken:* the hook reading the
+configuration again at its end (today's; an edit during the job changes the
+hook); the hook's path and timeout carried in the plan or the summary for the
+client to read back (the client holds the read the plan was made from, and the
+daemon never runs the hook).
