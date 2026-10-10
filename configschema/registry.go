@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
@@ -170,10 +171,8 @@ func Entries() []Entry {
 // or a dynamic table's field named in its Places, and the words the value
 // may hold instead.
 func Place(key string) (words []string, ok bool) {
-	for _, e := range fixedEntries {
-		if e.Path == key {
-			return e.Words, e.Place
-		}
+	if e, fixed := entryIndex()[key]; fixed {
+		return e.Words, e.Place
 	}
 	parts := strings.Split(key, ".")
 	for _, t := range dynamicTables {
@@ -187,14 +186,29 @@ func Place(key string) (words []string, ok bool) {
 	return nil, false
 }
 
-func Lookup(path string) (Entry, bool) {
+// entryIndex is every fixed row by its path, as Entries gives it, built at
+// the first lookup and only read after: a load looks up each of its keys
+// more than once, so a lookup finds its row without copying the registry.
+var entryIndex = sync.OnceValue(func() map[string]Entry {
+	m := map[string]Entry{}
 	for _, e := range Entries() {
-		if e.Path == path {
-			return e, true
-		}
+		m[e.Path] = e
 	}
-	return Entry{}, false
+	return m
+})
+
+// Lookup returns the row Entries gives path, its enum values and words its
+// own.
+func Lookup(path string) (Entry, bool) {
+	e, ok := entryIndex()[path]
+	if !ok {
+		return Entry{}, false
+	}
+	e.EnumValues = append([]string(nil), e.EnumValues...)
+	e.Words = append([]string(nil), e.Words...)
+	return e, true
 }
+
 func EnvironmentIndex() map[string]string {
 	m := map[string]string{}
 	for _, e := range Entries() {

@@ -60,3 +60,30 @@ func TestReloadClass(t *testing.T) {
 		}
 	}
 }
+
+// TestLookupThroughIndex: Lookup gives every key the row Entries gives it,
+// the row's slices its own, and finds it without copying the registry: two
+// allocations at most, the enum values and the words.
+func TestLookupThroughIndex(t *testing.T) {
+	for _, e := range Entries() {
+		got, ok := Lookup(e.Path)
+		if !ok || !reflect.DeepEqual(got, e) {
+			t.Errorf("%s: %+v %v, want %+v", e.Path, got, ok, e)
+		}
+	}
+	e, _ := Lookup("ssh.host-key-policy")
+	e.EnumValues[0] = "changed"
+	w, _ := Lookup("basedir")
+	w.Words[0] = "changed"
+	if e, _ := Lookup("ssh.host-key-policy"); e.EnumValues[0] == "changed" {
+		t.Errorf("an altered row's enum values reached the next lookup")
+	}
+	if w, _ := Lookup("basedir"); w.Words[0] == "changed" {
+		t.Errorf("an altered row's words reached the next lookup")
+	}
+	for _, e := range Entries() {
+		if allocs := testing.AllocsPerRun(5, func() { Lookup(e.Path) }); allocs > 2 {
+			t.Fatalf("%s: %v allocations for one lookup", e.Path, allocs)
+		}
+	}
+}

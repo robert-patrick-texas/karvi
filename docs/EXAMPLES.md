@@ -8069,3 +8069,97 @@ the ROADMAP's item is gone. The evidence is kept beside the tree
 **Closed.** `go test ./...` passed, and the full battery on a lab build of the
 tree, leaving no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The ROADMAP's
 Next is empty; the operator chooses the next item from Later.
+
+## 52. One read of the configuration per invocation (2026-10-10)
+
+The ROADMAP's Next item, the operator's request: an invocation may load its
+configuration more than once, each load reading the files and the environment
+again ([chapter
+51](#51-every-invocation-says-its-configurations-warnings-2026-10-10)).
+
+**The evidence.** A lab build of `94c94f5`, every place under a short lab
+directory, a configuration holding `[dispatch] parallel-workers = 4`; the
+target this host's OpenSSH over `native`. The loads of each invocation, counted
+as the opens of the configuration file under `strace -f`, the daemon started
+outside the trace:
+
+| Loads | Invocation |
+|---|---|
+| 1 | `config show`, `config validate`, `command`, `run --no-daemon`, `daemon status`, `daemon stop`, `job cancel`, `watch` |
+| 2 | `crun --no-daemon`, `run --no-daemon --tf`, `run --dry-run --no-daemon` |
+| 3 | `run`, `run --detach`, `run --dry-run`, `job follow`; `daemon restart`, two in the client and one in the serve it starts |
+| 4 | `crun`, `run --tf` |
+| 1 per job | `stream` |
+
+A `crun`'s hook is read by a load after its job has ended. The configuration
+names `hookA.sh` as `crun.after` and is rewritten to name `hookB.sh` one second
+into a job of `sleep 3; echo x`; on either path:
+
+```text
+$ cat hook.log
+hook B ran
+```
+
+and the audit holds two configurations for the one invocation:
+
+| Event | `policy.config_digest` |
+|---|---|
+| `run.started`, `run.completed` (and the job's manifest) | `ba23d86c…` |
+| `crun.after.succeeded`, its `path` `hookB.sh` | `0a8969fc…` |
+
+One load (`configload.Load` under a benchmark in a copy of the tree) costs 11.8
+ms and 16.5 MB of allocation. 98% of the allocation and about half the time is
+`configschema.Lookup`, which copied the whole registry, 174 rows, for each key
+it looked up, and the loader looks up each key at least twice.
+
+**What it gains.** A `crun`'s hook is the one its job's configuration names, and
+every record and audit event of an invocation carries one configuration. The
+invocation's configuration is one snapshot read with all of its options, where
+the `--tf` load takes the run's options without the run's own keys and the
+launcher's load the global options alone (no effect found, and nothing holding
+it). And the loads' cost, which lies in the registry's lookup more than in the
+reading. It waits on nothing.
+
+**Two sections, agreed.** A, the registry finds a key through an index; B, the
+command line loads the configuration once and hands the snapshot to every stage,
+the hook taking the job's. *Not taken:* the hook alone given the run's snapshot
+(it mends the defect and keeps the habit that made it, each stage loading for
+itself).
+
+**Section A, the registry's lookup through an index, agreed.** The registry
+finds a fixed key through one map from path to row, built from `Entries()` at
+the first lookup and only read after. `Lookup` returns the row `Entries()` gives
+the key, its enum values and words its own as before, so a caller altering them
+alters nothing else; `Place` takes the fixed row from the same index. The
+registry's data, its version (29), the schema artifact, and every generated
+document are unchanged. *Not taken:* the index's rows returned without the
+copies (no allocation, and a caller's change to a slice reaching every later
+lookup); an index built at the package's start (built by `version` and
+completion too, which look up nothing); an index for the whole-registry walks
+(`validateRanges`, `EnvironmentIndex`, the render), each once per load and 3 to
+4% of one.
+
+**Built.** `configschema/registry.go`: `entryIndex`, a `sync.OnceValue`, behind
+`Lookup` and `Place`. `TestLookupThroughIndex` holds the rule: every row looked
+up equal to its `Entries()` row, an altered row's slices not reaching the next
+lookup, and at most two allocations for a lookup of any key (43 on the tree
+before the build).
+
+**Executed.** A lab build of the tree beside one of `94c94f5`; CPU (user and
+system) per run, the mean of twenty:
+
+| | `94c94f5` | the tree |
+|---|---|---|
+| one load (the benchmark) | 11.8 ms, 16.5 MB, 16,934 allocations | 0.91 ms, 301 KB, 1,218 allocations |
+| `version`, the process alone | 10.3 ms | 9.9 ms |
+| `config show basedir`, one load | 34.5 ms | 12.0 ms |
+| `run --dry-run --no-daemon`, two loads | 58.8 ms | 14.6 ms |
+
+`config validate`, `config show`, and `config show --explain` print the same
+bytes from both builds. The evidence is kept beside the tree
+(`release-design-evidence/one-read-2026-10-10`).
+
+**Section B, one read per invocation, open.** Its issues, one at a time: what
+one invocation is and where its load sits; the shape every caller of
+`prepareConfig` takes in place of the options it loads from; the options that
+set a key for one invocation; the hook.

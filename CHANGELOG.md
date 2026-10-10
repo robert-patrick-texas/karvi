@@ -34,6 +34,11 @@
   them. `config validate`'s report is unchanged. A recorded login says them
   once, and `daemon serve` logs its own as `level=WARN msg="configuration
   warning"` in `daemon.log`.
+- **A configuration load about thirteen times cheaper.** The configuration
+  registry finds a key through an index built once, where each lookup copied
+  the whole registry and a load looks up each key at least twice: one load
+  measured 11.8 ms and 16.5 MB of allocation, now 0.9 ms and 300 KB, and
+  `config show` takes about a third of the CPU it took.
 
 ## 0.29.0 - 2026-10-09
 
