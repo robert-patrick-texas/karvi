@@ -318,7 +318,8 @@ Every invocation reads its configuration once, its files, its environment,
 and its options together, and every stage of it, a `crun`'s hook among them,
 runs under that read; an edit made while a job runs reaches the next
 invocation. A `stream` reads as it starts and runs every job under that
-reading with the job's own option lines, so an edit reaches the next stream.
+reading with the job's own option lines, so an edit reaches the next stream, or
+the jobs after a `--restart` line, which reads the configuration again.
 The read's warnings, an `@include?` file missing or a `KARVI__` variable
 ignored under `config.reject-unknown-env = false`, are said once on standard
 error, in the warning colour at a terminal, under `--quiet` and any format too;
@@ -1258,9 +1259,15 @@ or a heredoc it drives several jobs through one karvi. The rules:
   every target input (`--target`, `--tl`, `--tf`, `--tfr`, `--site`,
   `--device-group`, `--all`, `--select-platform`) and keeps the other
   options; `--purge` alone names both and is refused. `--reset` empties
-  the draft. `--end`, `--quit`, `--exit`, the input's end (Ctrl-D), or
-  Ctrl-C leave without executing, and a Ctrl-C outranks lines already
-  read. Only `--go` and `--sendit` execute.
+  the draft. `--restart` empties the draft and reads the configuration
+  again as the stream's start does, under the stream's command-line
+  options and `--set`, its warnings said again and, at a terminal, the
+  opening line; the jobs after it run under the new reading, and a
+  reading that fails ends the stream with its code and exit (2, or 3 for
+  a lock violation), naming the line. The line count, the last exit, and
+  the recalled lines go on through it. `--end`, `--quit`, `--exit`, the
+  input's end (Ctrl-D), or Ctrl-C leave without executing, and a Ctrl-C
+  outranks lines already read. Only `--go` and `--sendit` execute.
 - Typed at a terminal, a line is edited before Enter sends it: Backspace
   (DEL or Ctrl-H) and the Delete key to erase, Ctrl-A and Ctrl-E to the
   line's ends, Ctrl-K, Ctrl-U, and Ctrl-W to cut, the left and right

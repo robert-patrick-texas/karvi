@@ -7,38 +7,26 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-In the operator's order: the stream's restart first, in the code chapter 52
-rebuilt ([`docs/EXAMPLES.md`, chapter
-52](docs/EXAMPLES.md#52-one-read-of-the-configuration-per-invocation-2026-10-10));
-the setting without algorithm lists, which touches nothing else; the two
-credential items together, the explicit cell before the helper whose values it
-will read; build numbers last, beside the next release, which exercises the
-release tools they change.
+In the operator's order: the setting without algorithm lists, which touches
+nothing else; the two credential items together, the explicit cell before the
+helper whose values it will read; build numbers last, beside the next release,
+which exercises the release tools they change.
 
-1. **A stream's `--restart`.** A stream reads its configuration once, as it
-   starts, and runs every job under that reading, so an edit reaches the next
-   stream and not the next job. The item: a directive, `--restart`, that
-   empties the draft, its commands and its targets, as `--reset` does, and
-   starts the stream again under the options its command line gave, the
-   configuration read again. The questions: a reading that fails (the stream
-   ending, or going on under the reading it had); what else starts again (the
-   line count, the last exit, the terminal's recalled lines, the opening
-   line); and a new reading's warnings.
-2. **A setting under which karvi defines no SSH algorithm lists**, so both
+1. **A setting under which karvi defines no SSH algorithm lists**, so both
    transports keep their own defaults. The questions: the host-key list, which
    karvi narrows to the key types the trust store holds for the device so that
    the host-key policy compares the right key; the names the transports'
    defaults hold that karvi allows only in a profile (AES-128 in both) or
    refuses (`hmac-sha1-96` in x/crypto's); the profiles and the map under the
    setting; and what the debug stream says was offered.
-3. **An explicit `env:NAME` cell** for the credential CSV, which needs no flag
+2. **An explicit `env:NAME` cell** for the credential CSV, which needs no flag
    and fails with its own code when the variable is unset, where a cell naming
    an unset variable under the indirection flags stays a literal
    ([`docs/CREDENTIAL-CSV.md`, section
    6](docs/CREDENTIAL-CSV.md#6-secrets-in-the-environment-instead-of-the-file)).
    The questions: a literal value that begins with `env:`; the code, and when
    it is said; and the field source.
-4. **A credential helper executable.** A configured executable, a site's
+3. **A credential helper executable.** A configured executable, a site's
    script in any language, that karvi runs and whose standard output sets
    values for its own use: a line `export NETUSER="xxx"` puts `NETUSER` into
    karvi's credential environment as if the operator had exported it, for the
@@ -62,7 +50,7 @@ release tools they change.
    daemon may run it for an unattended job, where no prompt can; and how it
    relates to the helper protocols operators know (git's credential helpers,
    `SSH_ASKPASS`).
-5. **Build numbers in the version.** A build identity beyond the version and
+4. **Build numbers in the version.** A build identity beyond the version and
    the commit, for telling two builds of one tree apart. A release build's
    commit is `source-release-v` and its number, and its build time the day's
    midnight, so two release builds of one tree on one day are alike; a lab

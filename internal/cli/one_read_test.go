@@ -171,3 +171,48 @@ func TestOneReadStream(t *testing.T) {
 		t.Fatalf("exit %d, %d chunks read, dispatch %q, want %q; stderr=%q", code, in.n, dispatch, want, stderr)
 	}
 }
+
+// TestStreamRestartReadsAgain: a --restart reads the configuration again
+// as the stream's start does, its warnings said again, and the jobs after
+// it run under the new reading; a restart whose reading fails ends the
+// stream with the reading's code and exit, its line named.
+func TestStreamRestartReadsAgain(t *testing.T) {
+	base := t.TempDir()
+	sets := dryRunSets(t, base)
+	t.Setenv("NETUSER", "u")
+	t.Setenv("NETPASS", "p")
+	file := filepath.Join(base, "config.toml")
+	write := func(text string) {
+		t.Helper()
+		if err := os.WriteFile(file, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	optional := "@include? " + filepath.Join(base, "absent.toml") + "\n"
+	job := "--no-daemon\n--dry-run\n--target 127.0.0.1\n--transport system\n--dispatch parallel\nshow clock\n--go\n"
+	stream := func(edit string) (int, []string, string) {
+		in := &chunkReader{chunks: []string{job, "--restart\n" + job + "--end\n"}, between: func() { write(edit) }}
+		var stdout, stderr bytes.Buffer
+		code := Main(append(append([]string{}, sets...), "--config", file, "stream"), in, &stdout, &stderr)
+		var dispatch []string
+		for _, line := range strings.Split(stdout.String(), "\n") {
+			if strings.HasPrefix(line, "dispatch: ") {
+				dispatch = append(dispatch, line)
+			}
+		}
+		return code, dispatch, stderr.String()
+	}
+
+	write(optional + "[dispatch]\nparallel-workers = 4\n")
+	code, dispatch, stderr := stream(optional + "[dispatch]\nparallel-workers = 8\n")
+	want := []string{"dispatch: parallel width=4 order=default", "dispatch: parallel width=8 order=default"}
+	if code != 0 || strings.Join(dispatch, "\n") != strings.Join(want, "\n") || strings.Count(stderr, "warning: optional include missing: ") != 2 {
+		t.Fatalf("exit %d, dispatch %q, want %q; stderr=%q", code, dispatch, want, stderr)
+	}
+
+	write("[dispatch]\nparallel-workers = 4\n")
+	code, dispatch, stderr = stream("[dispatch]\nnope = 1\n")
+	if code != exitcode.ExitConfigValidationError || len(dispatch) != 1 || !strings.HasSuffix(stderr, "stream line 8: config_unknown_key: unknown configuration key for dispatch.nope at "+file+":2\n") {
+		t.Fatalf("exit %d, dispatch %q; stderr=%q", code, dispatch, stderr)
+	}
+}

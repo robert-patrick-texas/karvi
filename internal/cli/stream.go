@@ -30,12 +30,14 @@ import (
 // it is sent once, like a bare line. The directives are whole lines, one dash or two alike: --go or
 // --sendit executes the draft and clears the commands (with nothing to send, a
 // notice and no job); --clear empties the commands alone; --reset empties the
-// draft; --end, --quit, EOF, or Ctrl-C leave without executing. A line the
-// parser refuses is reported with its number and dropped, as is an option whose
-// value attaches with = alone given text after a space. Standard input is the
-// stream, so --cf, --tf, and --tfr may not name - in any spelling. The exit is
-// the last executed job's, 0 when none ran; a read failure or a line over the
-// scanner's limit ends the stream with stream_input_read_failed.
+// draft; --restart empties it and reads the configuration again, as the
+// stream's start does; --end, --quit, EOF, or Ctrl-C leave without executing. A
+// line the parser refuses is reported with its number and dropped, as is an
+// option whose value attaches with = alone given text after a space. Standard
+// input is the stream, so --cf, --tf, and --tfr may not name - in any spelling.
+// The exit is the last executed job's, 0 when none ran; a read failure or a
+// line over the scanner's limit ends the stream with stream_input_read_failed,
+// and a --restart whose reading fails ends it with the reading's code.
 //
 // The reader turns the draft into a run invocation (Parse over a built
 // argument list) and hands it to run's handler, so the job, its records,
@@ -44,7 +46,7 @@ import (
 // an = spelling means what it means on a command line.
 
 // streamDirectives maps a directive word, without its dashes, to its act.
-var streamDirectives = map[string]string{"go": "go", "sendit": "go", "clear": "clear", "reset": "reset", "end": "end", "quit": "end", "exit": "end"}
+var streamDirectives = map[string]string{"go": "go", "sendit": "go", "clear": "clear", "reset": "reset", "restart": "restart", "end": "end", "quit": "end", "exit": "end"}
 
 // streamPurges are the two directives taken by prefix: a word from least to
 // the whole word, without its dashes, names the act. "purge" and "purge-"
@@ -144,29 +146,31 @@ func streamCommandRole(r optRole) bool {
 
 // commandStream is the stream word's handler. A terminal's lines come
 // through the editing reader (stream_terminal.go); any other input through
-// the scanner. The stream reads its configuration once, as it starts, and
-// every job's snapshot is made from that reading with the job's option
-// lines: a configuration that does not load is refused before a line is
-// read, and an edit reaches the next stream, not the next job.
+// the scanner. The stream reads its configuration as it starts and at each
+// --restart, and every job's snapshot is made from the reading before it
+// with the job's own option lines: a configuration that does not load is
+// refused before a line is read, or ends the stream at the --restart that
+// read it, and an edit reaches the next stream or the jobs after a
+// --restart, not the next job.
 func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
-	reading, err := app.ReadConfigFiles(app.ConfigRequest{Roots: inv.Global.configs, Sets: inv.Global.sets})
-	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+	if code, ok := readStreamConfig(inv, streams.Stderr, 0); !ok {
+		return code
 	}
-	if _, _, err := reading.Snapshot(inv.flags(), inv.Global.say); err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
-	}
-	inv.Global.reading = &reading
 	next := streamScanner(streams.Stdin)
+	terminal := false
 	if f, ok := streams.Stdin.(*os.File); ok && osutil.IsTerminal(f) {
+		terminal = true
 		if t, err := newStreamTerminal(f); err == nil {
 			defer t.close()
 			next = t.next
 		}
-		if !inv.Global.quiet {
+	}
+	opening := func() {
+		if terminal && !inv.Global.quiet {
 			fmt.Fprintln(streams.Stderr, "stream: one run option (--target NAME) or one command per line; --go sends, --clear drops the commands, --reset clears, --end quits")
 		}
 	}
+	opening()
 	execute := func(line int, argv []string) int {
 		sub, err := Parse(argv)
 		if err != nil {
@@ -176,7 +180,35 @@ func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
 		sub.Global = inv.Global
 		return commandRun(ctx, sub, streams)
 	}
-	return streamLoop(ctx, next, streams.Stderr, execute)
+	restart := func(line int) (int, bool) {
+		code, ok := readStreamConfig(inv, streams.Stderr, line)
+		if ok {
+			opening()
+		}
+		return code, ok
+	}
+	return streamLoop(ctx, next, streams.Stderr, execute, restart)
+}
+
+// readStreamConfig is the stream's reading of its configuration, at its
+// start (line 0) and at the --restart on line: the files and the
+// environment under the stream's command-line options and --set, its
+// snapshot validated and its warnings said, the reading every later job's
+// snapshot is made from. A failure is reported, after "stream line N: "
+// for a --restart's, and its exit returned with false.
+func readStreamConfig(inv *Invocation, stderr io.Writer, line int) (int, bool) {
+	reading, err := app.ReadConfigFiles(app.ConfigRequest{Roots: inv.Global.configs, Sets: inv.Global.sets})
+	if err == nil {
+		_, _, err = reading.Snapshot(inv.flags(), inv.Global.say)
+	}
+	if err != nil {
+		if line > 0 {
+			fmt.Fprintf(stderr, "stream line %d: ", line)
+		}
+		return reportError(stderr, "config_load_failed", err), false
+	}
+	inv.Global.reading = &reading
+	return exitcode.ExitSuccess, true
 }
 
 // streamRead is one line of the input, or the reader's failure after the
@@ -205,16 +237,20 @@ func streamScanner(in io.Reader) func() (string, error) {
 
 // streamLoop reads the lines and drives the draft; next gives one line, or
 // io.EOF at the input's end, or the input's failure; execute runs one
-// invocation, named by the line that sent it, and gives its exit. It returns
-// when the input ends, a leaving directive is read, the input fails, or ctx
-// is cancelled (Ctrl-C), with the last exit. The reader goroutine reads one
+// invocation, named by the line that sent it, and gives its exit; restart
+// reads the configuration again for the --restart on a line, giving false
+// and the failure's exit when the reading fails. It returns when the input
+// ends, a leaving directive is read, the input fails, a restart's reading
+// fails, or ctx is cancelled (Ctrl-C), with the last exit or the failure's.
+// A restart starts the draft and the reading again: the line count and the
+// last exit go on. The reader goroutine reads one
 // line when the loop asks for it and none ahead: at a terminal a read is
 // the editor's, in raw mode, and one running beside a job would hold the
 // terminal in raw mode through it, taking the job's Ctrl-C as a key and its
 // credential prompt's answer as the next line. It blocks in the input's
 // read, which takes no deadline, so it lives until the input ends or the
 // process does; after the loop returns it delivers nowhere.
-func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writer, execute func(line int, argv []string) int) int {
+func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writer, execute func(line int, argv []string) int, restart func(line int) (int, bool)) int {
 	want := make(chan struct{})
 	defer close(want)
 	lines := make(chan streamRead, 1)
@@ -299,6 +335,11 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 					draft.purgeTargets()
 				case "reset":
 					draft = &streamDraft{}
+				case "restart":
+					draft = &streamDraft{}
+					if code, ok := restart(n); !ok {
+						return code
+					}
 				case "end":
 					return last
 				}

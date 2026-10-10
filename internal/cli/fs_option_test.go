@@ -97,7 +97,7 @@ func TestFsDryRunAndStream(t *testing.T) {
 	}
 	stderr.Reset()
 	in := strings.NewReader("--target r1\n--fs=a/b\n--fs\n--end\n")
-	streamLoop(context.Background(), streamScanner(in), &stderr, func(int, []string) int { return 0 })
+	streamLoop(context.Background(), streamScanner(in), &stderr, func(int, []string) int { return 0 }, restartNone)
 	for _, want := range []string{"stream line 2 dropped: crun_suffix_invalid: ", "stream line 3 dropped: cli_option_value_missing: --fs takes its SUFFIX with ="} {
 		if !strings.Contains(stderr.String(), want) {
 			t.Errorf("stderr lacks %q:\n%s", want, stderr.String())

@@ -4,7 +4,7 @@
 package configschema
 
 import (
-	"fmt"
+	"errors"
 	"regexp"
 	"sort"
 	"strings"
@@ -334,6 +334,8 @@ func backendField(s string) bool {
 	return CredentialCSVKey(s)
 }
 
+// ValidateScalar checks v against path's kind and enumerated values. Its
+// error says the fault alone; the caller names the key and the source.
 func ValidateScalar(path string, v any) error {
 	e, ok := Lookup(path)
 	if !ok {
@@ -342,37 +344,37 @@ func ValidateScalar(path string, v any) error {
 	switch e.Kind {
 	case String, Duration, Enum:
 		if _, ok := v.(string); !ok {
-			return fmt.Errorf("%s expects string", path)
+			return errors.New("must be a string")
 		}
 	case Boolean:
 		if _, ok := v.(bool); !ok {
-			return fmt.Errorf("%s expects boolean", path)
+			return errors.New("must be a boolean")
 		}
 	case Integer:
 		if _, ok := v.(int64); !ok {
-			return fmt.Errorf("%s expects integer", path)
+			return errors.New("must be an integer")
 		}
 	case Number:
 		switch v.(type) {
 		case int64, float64:
 		default:
-			return fmt.Errorf("%s expects number", path)
+			return errors.New("must be a number")
 		}
 	case StringArray:
 		a, ok := v.([]any)
 		if !ok {
-			return fmt.Errorf("%s expects array", path)
+			return errors.New("must be an array")
 		}
 		for _, x := range a {
 			if _, ok := x.(string); !ok {
-				return fmt.Errorf("%s expects an array of strings", path)
+				return errors.New("must be an array of strings")
 			}
 		}
 	}
 	if vals := enumValues[path]; len(vals) > 0 {
 		value, _ := v.(string)
 		if !oneOf(value, vals...) {
-			return &EnumValueError{Path: path, Allowed: vals}
+			return &EnumValueError{Allowed: vals}
 		}
 	}
 	return nil
@@ -382,12 +384,11 @@ func ValidateScalar(path string, v any) error {
 // enumerated key's allowed set, so callers can distinguish it from a type
 // mismatch.
 type EnumValueError struct {
-	Path    string
 	Allowed []string
 }
 
 func (e *EnumValueError) Error() string {
-	return fmt.Sprintf("%s must be one of %s", e.Path, strings.Join(e.Allowed, ", "))
+	return "must be one of " + strings.Join(e.Allowed, ", ")
 }
 
 func SortedPaths() []string {

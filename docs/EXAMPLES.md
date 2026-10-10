@@ -8610,3 +8610,61 @@ the count from 1 again (a file's line named by a number not its own); the exit
 to 0 again (a failure before a restart hidden from a script); the recalled
 lines cleared (the draft's lines lost, and a hook into the editor); a line of
 its own, `stream: restarted` (the opening line says the stream starts).
+
+**Built.** `internal/cli/stream.go`: `--restart` among the directives;
+`readStreamConfig`, the stream's read at its start and at each restart, a
+restart's failure after its line; `streamLoop` takes the restart beside the
+job's execution, empties the draft, and returns the failure's exit when the
+reading fails; at a terminal the opening line is said again after a restart's
+read. The stream's help and its man page, the README, OPERATIONS, and DESIGN
+(the stream's directives, an entry for the restart, and section 15's one read)
+name the directive. The found item: `configschema.ValidateScalar` says the fault
+alone (`must be an integer`), `EnumValueError` loses its `Path`, which nothing
+read after, and the loader passes no cause. The tests: `TestStreamLoopRestart`
+(the draft emptied, one dash as two, `--restar` dropped, the restart named by
+its line, the line count and the last exit through it, a failure's exit),
+`TestStreamRestartReadsAgain` through `Main` (an edit taken, the warning said
+at each read, a failure's line and exit), and `TestScalarFaultSaidOnce`; each
+failed on the tree without the change.
+
+**Executed.** A lab build of the tree, every place under the lab directory as
+before. A job, `parallel-workers` edited to 8, `--restart`, the draft again, a
+job; the same through the daemon; the configuration broken before the
+`--restart`; and issue 3's failing job, `--restart` in place of `--reset`:
+
+| Stream | Result |
+|---|---|
+| the edit, `--restart` | `d9e00405…` (4), then `951ad492…` (8) |
+| the same through the daemon | `d9e00405…` (4), then `951ad492…` (8) |
+| the configuration broken, `--restart` | `stream line 7: config_unknown_key: unknown configuration key for dispatch.parallel-workerz at /dev/shm/k1/c.toml:2`, exit 2, no later job |
+| a failing job, `--restart`, a bad line | `stream line 8 dropped: …`, exit 7 |
+
+At a terminal under a configuration whose optional include is missing, `--t
+127.0.0.1`, `--restart`, the up arrow twice, Enter, `--end`, under `cat -v`:
+
+```text
+^[[1;38;5;208mwarning: optional include missing: /dev/shm/k1/w.toml:1 -> /dev/shm/k1/absent.toml^[[0m
+stream: one run option (--target NAME) or one command per line; --go sends, --clear drops the commands, --reset clears, --end quits
+--t 127.0.0.1
+--restart
+^[[1;38;5;208mwarning: optional include missing: /dev/shm/k1/w.toml:1 -> /dev/shm/k1/absent.toml^[[0m
+stream: one run option (--target NAME) or one command per line; --go sends, --clear drops the commands, --reset clears, --end quits
+--restart^[[9D--t 127.0.0.1
+--end
+```
+
+Under `--quiet` the warning is said at each read and the opening line at
+neither. `config validate` under issue 2's two configurations:
+
+```text
+config_type_error: must be an integer for dispatch.parallel-workers at /dev/shm/k1/bad2.toml:2
+config_enum_value_invalid: must be one of default, sorted, name, shuffle, random for dispatch.order at /dev/shm/k1/bad3.toml:2
+```
+
+The full battery passed on the lab build, all 17 suites, leaving no
+`/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. The evidence is kept beside the
+tree (`release-design-evidence/stream-restart-2026-10-10`).
+
+**Closed.** `go test ./...` and the full battery passed on the finished code;
+the ROADMAP's item is gone, and its Next is the setting under which karvi
+defines no SSH algorithm lists.

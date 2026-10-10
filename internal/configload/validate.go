@@ -44,7 +44,7 @@ func (l *loader) validate() error {
 			if errors.As(err, &enumErr) {
 				code = "config_enum_value_invalid"
 			}
-			return newError(code, err.Error(), k, v.Source, err)
+			return newError(code, err.Error(), k, v.Source, nil)
 		}
 		if e, ok := configschema.Lookup(k); ok && e.Kind == configschema.Duration {
 			d, err := time.ParseDuration(v.Data.(string))

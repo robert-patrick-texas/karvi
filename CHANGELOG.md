@@ -61,6 +61,19 @@
   a pipe or in a file; the words are unchanged. A recorded login's lines at its
   wrapper's terminal take that terminal's colour, its `!` host-key lines among
   them; the transcript is unchanged.
+- **A stream's `--restart`.** A `stream` directive that empties the draft, its
+  commands and its targets, and reads the configuration again as the stream's
+  start does, under the stream's command-line options and `--set`, its warnings
+  said again and, at a terminal, the opening line; the jobs after it run under
+  the new reading, so an edit is taken without leaving the stream. A reading
+  that fails ends the stream with its code and exit, 2, or 3 for a lock
+  violation, after `stream line N:`. The line count, the last exit, and the
+  recalled lines go on through it.
+- **A type or enum error said once.** A configuration value of the wrong type,
+  or outside its key's values, says its fault once, `config_type_error: must be
+  an integer for dispatch.parallel-workers at FILE:2`, where the text named the
+  key twice and repeated itself after the source. The codes and exits are
+  unchanged.
 
 ## 0.29.0 - 2026-10-09
 

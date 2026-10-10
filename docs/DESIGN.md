@@ -178,8 +178,9 @@ command is left to send; `--clear` clears them alone; `--purge-commands` (from
 every target input run's table marks (`--target`, `--tl`, `--tf`, `--tfr`,
 `--site`, `--device-group`, `--all`, `--select-platform`); `--purge` or
 `--purge-`, naming both, is refused as `cli_option_ambiguous`; `--reset` empties
-the draft; `--end`, `--quit`, `--exit`, EOF, or Ctrl-C leave, a Ctrl-C
-outranking lines already read. A bad line is reported with its number and
+the draft; `--restart` empties it and reads the configuration again (the next
+entry); `--end`, `--quit`, `--exit`, EOF, or Ctrl-C leave, a Ctrl-C outranking
+lines already read. A bad line is reported with its number and
 dropped, the draft standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any
 spelling, since standard input is the stream; a read failure or a line over 1
 MiB ends the stream with `stream_input_read_failed`. The exit is the last job's,
@@ -218,6 +219,26 @@ Ctrl-C would become a byte to read), which a reader reading ahead had done until
 the credential prompts showed it; GNU readline (not reachable without cgo;
 `rlwrap` remains an operator's choice); a generic error for the read failure
 (every path carries its own code).
+
+**A stream's restart.** `--restart`, a directive of its own (the word whole),
+empties the draft, its commands and its targets, as `--reset` does, and reads
+the configuration again as the stream's start does: the files with their
+includes and locks, the environment, and the operator, under the stream's
+command-line options and `--set`, the snapshot validated and its warnings said,
+and at a terminal the opening line again. The read sits at the directive's
+line, and every later job's snapshot is made from it; a job through a daemon
+carries it in its plan, the daemon's own `daemon.*` values unchanged. A reading
+that fails ends the stream as its start would have refused it, with the
+failure's code and exit (2, or 3 for a lock violation), after `stream line N:`.
+The line count, the last exit, and the recalled lines go on. *Why:* an edit
+taken without leaving the stream and typing its draft again, at a line the
+operator types, so one stream holds two readings only where the operator marks
+the boundary; and no job runs under a configuration the operator meant to
+replace. *Not taken:* `--reset` reading again; the draft kept across the read;
+the read at the next `--go`; the process executed again (a pipe's buffered lines
+and the recalled lines lost); the stream going on under the old reading, or with
+none, after a failed read; the line count or the exit starting again
+([`docs/EXAMPLES.md`, chapter 53](EXAMPLES.md#53-a-streams-restart-2026-10-10)).
 
 **Help is laid out at print time.** The help texts are constants kept in step
 with the parser table by a drift test; a pass at print time adds blank lines
@@ -2281,7 +2302,8 @@ record and audit event of the invocation, a `crun`'s hook the one its job's
 configuration named. A `stream` reads its files and environment once as it
 starts (`configload.Read`), refused there when they do not load, and makes each
 job's snapshot from that reading with the job's option lines and its `--set`;
-an edit reaches the next stream, not the next job. A recorded login's wrapper
+an edit reaches the next stream, or the jobs after a `--restart`, which reads
+again as the start does, not the next job. A recorded login's wrapper
 and child read once each; `daemon serve` reads at its start, and a job through
 a daemon runs under its client's read, carried in the plan. The read sits after
 every refusal that needs no configuration (the options' forms and conflicts,

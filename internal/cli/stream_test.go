@@ -60,7 +60,7 @@ func TestStreamLoopDraftsAndDirectives(t *testing.T) {
 		"--go",
 	}, "\n") + "\n")
 	var stderr bytes.Buffer
-	got := streamLoop(context.Background(), streamScanner(in), &stderr, execute)
+	got := streamLoop(context.Background(), streamScanner(in), &stderr, execute, restartNone)
 	if got != exitcode.ExitPartialFailure {
 		t.Errorf("exit %d, want the last job's %d", got, exitcode.ExitPartialFailure)
 	}
@@ -88,18 +88,18 @@ func TestStreamLoopEndsOnEOFAndCancel(t *testing.T) {
 	ran := 0
 	execute := func(int, []string) int { ran++; return 0 }
 	var stderr bytes.Buffer
-	if got := streamLoop(context.Background(), streamScanner(strings.NewReader("--target r1\nshow clock\n")), &stderr, execute); got != 0 || ran != 0 {
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader("--target r1\nshow clock\n")), &stderr, execute, restartNone); got != 0 || ran != 0 {
 		t.Errorf("EOF: exit %d, ran %d", got, ran)
 	}
 	r, w := io.Pipe()
 	defer w.Close()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if got := streamLoop(ctx, streamScanner(r), &stderr, execute); got != 0 || ran != 0 {
+	if got := streamLoop(ctx, streamScanner(r), &stderr, execute, restartNone); got != 0 || ran != 0 {
 		t.Errorf("cancel: exit %d, ran %d", got, ran)
 	}
 	// A cancellation outranks lines already read: a --go behind it never runs.
-	if got := streamLoop(ctx, streamScanner(strings.NewReader("--target r1\nshow clock\n--go\n")), &stderr, execute); got != 0 || ran != 0 {
+	if got := streamLoop(ctx, streamScanner(strings.NewReader("--target r1\nshow clock\n--go\n")), &stderr, execute, restartNone); got != 0 || ran != 0 {
 		t.Errorf("cancel with lines buffered: exit %d, ran %d", got, ran)
 	}
 }
@@ -156,7 +156,7 @@ func TestStreamLoopKeptCommandsAndPurges(t *testing.T) {
 		"--target never",
 		"--go",
 	}, "\n") + "\n"
-	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute); got != exitcode.ExitPartialFailure {
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute, restartNone); got != exitcode.ExitPartialFailure {
 		t.Errorf("exit %d", got)
 	}
 	targets := []string{"--target", "r1", "--tl", "r2,r3", "--dispatch", "parallel"}
@@ -207,7 +207,7 @@ func TestStreamLoopCommandBounds(t *testing.T) {
 		"show clock",
 		"--go",
 	}, "\n") + "\n"
-	streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute)
+	streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute, restartNone)
 	want := [][]string{
 		{"run", "--target", "r1", "--cmd", "copy scp://h/i.bin bootflash:", "--timeout", "45m", "--cmd", "show tech", "-maxbytes", "1073741824"},
 		{"run", "--target", "r1", "--cmd", "copy scp://h/i.bin bootflash:", "--timeout", "45m", "--cmd", "show clock"},
@@ -274,7 +274,7 @@ func TestStreamLoopSingleDashAndQuotes(t *testing.T) {
 		"-target never",
 		"-go",
 	}, "\n") + "\n"
-	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute); got != exitcode.ExitSuccess {
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute, restartNone); got != exitcode.ExitSuccess {
 		t.Errorf("exit %d", got)
 	}
 	want := [][]string{
@@ -315,7 +315,7 @@ func TestStreamLoopReadFailure(t *testing.T) {
 	execute := func(int, []string) int { ran++; return 0 }
 	var stderr bytes.Buffer
 	in := "--target r1\n" + strings.Repeat("x", streamLineLimit+1) + "\nshow clock\n--go\n"
-	got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute)
+	got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute, restartNone)
 	if got != exitcode.ExitGenericError || ran != 0 {
 		t.Errorf("exit %d, ran %d", got, ran)
 	}
@@ -447,7 +447,7 @@ func TestStreamTerminalEditsAndHistory(t *testing.T) {
 	execute := func(int, []string) int { runs++; return 0 }
 	var stderr bytes.Buffer
 	s = &streamTerminal{line: termline.FromReader(strings.NewReader("--target r1\nshow clock\r--go\n\x04"), io.Discard)}
-	if exit := streamLoop(context.Background(), s.next, &stderr, execute); exit != 0 || runs != 1 || stderr.Len() != 0 {
+	if exit := streamLoop(context.Background(), s.next, &stderr, execute, restartNone); exit != 0 || runs != 1 || stderr.Len() != 0 {
 		t.Errorf("exit %d, runs %d, stderr %q", exit, runs, stderr.String())
 	}
 }
@@ -476,10 +476,60 @@ func TestStreamLoopReadsNoLineAhead(t *testing.T) {
 		return 0
 	}
 	var stderr bytes.Buffer
-	if exit := streamLoop(context.Background(), next, &stderr, execute); exit != 0 {
+	if exit := streamLoop(context.Background(), next, &stderr, execute, restartNone); exit != 0 {
 		t.Fatalf("exit %d: %s", exit, stderr.String())
 	}
 	if want := [][2]int32{{3, 3}, {5, 5}}; !reflect.DeepEqual(seen, want) {
 		t.Fatalf("reads at each job's start and end %v, want %v", seen, want)
+	}
+}
+
+// restartNone is a restart that reads nothing, for the loop's tests that
+// send no --restart.
+func restartNone(int) (int, bool) { return exitcode.ExitSuccess, true }
+
+// TestStreamLoopRestart: --restart, the whole word alone, empties the
+// draft, its commands and its targets, and reads again through restart,
+// named by its line; the line count and the last exit go on through it; a
+// restart whose reading fails ends the stream with the failure's exit, no
+// later line executed.
+func TestStreamLoopRestart(t *testing.T) {
+	var runs [][]string
+	execute := func(_ int, argv []string) int {
+		runs = append(runs, append([]string{}, argv...))
+		return exitcode.ExitPartialFailure
+	}
+	var restarts []int
+	reads := func(line int) (int, bool) {
+		restarts = append(restarts, line)
+		return exitcode.ExitSuccess, true
+	}
+	in := "--target r1\nshow clock\n--go\n--target r2\n--cmd show version\n-restart\n--restar\nshow ip route\n--go\n--typo\n--end\n"
+	var stderr bytes.Buffer
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), &stderr, execute, reads); got != exitcode.ExitPartialFailure {
+		t.Errorf("exit %d, want the last job's %d", got, exitcode.ExitPartialFailure)
+	}
+	want := [][]string{{"run", "--target", "r1", "--cmd", "show clock"}, {"run", "--cmd", "show ip route"}}
+	if !reflect.DeepEqual(runs, want) || !reflect.DeepEqual(restarts, []int{6}) {
+		t.Errorf("runs %q, want %q; restarts at lines %v, want [6]", runs, want, restarts)
+	}
+	for _, m := range []string{"stream line 7 dropped: cli_option_unknown: ", "stream line 10 dropped: cli_option_unknown: "} {
+		if !strings.Contains(stderr.String(), m) {
+			t.Errorf("stderr lacks %q:\n%s", m, stderr.String())
+		}
+	}
+
+	// The last exit goes on through a restart that runs nothing after it.
+	runs, restarts = nil, nil
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader("show clock\n--go\n--restart\n")), io.Discard, execute, reads); got != exitcode.ExitPartialFailure || len(runs) != 1 || len(restarts) != 1 {
+		t.Errorf("exit %d after %d runs and %d restarts, want %d after 1 and 1", got, len(runs), len(restarts), exitcode.ExitPartialFailure)
+	}
+
+	// A reading that fails ends the stream with its exit.
+	runs = nil
+	fails := func(int) (int, bool) { return exitcode.ExitConfigValidationError, false }
+	in = "--target r1\nshow clock\n--go\n--restart\nshow version\n--go\n"
+	if got := streamLoop(context.Background(), streamScanner(strings.NewReader(in)), io.Discard, execute, fails); got != exitcode.ExitConfigValidationError || len(runs) != 1 {
+		t.Errorf("exit %d after %d runs, want %d after 1", got, len(runs), exitcode.ExitConfigValidationError)
 	}
 }

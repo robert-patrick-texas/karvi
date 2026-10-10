@@ -377,10 +377,12 @@ in option form (`--cmd`, `-c`, `--command`, `--cf`) for the next job,
 while a bare-line command is sent once; `--clear` drops the bare-line
 commands; `--purge-commands` and `--purge-targets` (from `--purge-c` and
 `--purge-t`) drop every command or every target input; `--reset` empties
-the draft; `--end` (or `--quit`, `--exit`), EOF, or Ctrl-C leave without
-executing. Typed at a terminal, a line is edited with the usual keys and
-the up arrow recalls earlier lines. A line the parser refuses is
-reported by its number and dropped. The exit is the last job's.
+the draft, and `--restart` empties it and reads the configuration again,
+a reading that fails ending the stream; `--end` (or `--quit`, `--exit`),
+EOF, or Ctrl-C leave without executing. Typed at a terminal, a line is
+edited with the usual keys and the up arrow recalls earlier lines. A line
+the parser refuses is reported by its number and dropped. The exit is the
+last job's.
 
 ```sh
 karvi - <<'EOF'
