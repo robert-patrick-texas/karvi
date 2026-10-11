@@ -13,6 +13,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/inventory"
+	"github.com/robert-patrick-texas/karvi/transform"
 )
 
 // The planning side of the resolver: the transform-only
@@ -32,21 +33,18 @@ type Transformed struct {
 	Profile      string
 }
 
-// Transform applies the device's name-transform profile (or the configured
-// default) to its name without touching DNS. It fills transformed_name and
-// suffix_action for every target, whichever actor resolves it.
+// Transform applies the device's name-transform profile to its name without
+// touching DNS. It fills transformed_name and suffix_action for every target,
+// whichever actor resolves it.
 func Transform(cfg configload.Snapshot, d inventory.Device) (Transformed, error) {
-	profiles, err := profiles(cfg)
+	profiles, err := transform.Names(cfg.NamedTables("name-transform"))
 	if err != nil {
 		return Transformed{}, err
 	}
 	profile := d.NameTransform
-	if profile == "" {
-		profile = cfg.String("name.default-transform")
-	}
 	seq, ok := profiles[profile]
 	if !ok {
-		return Transformed{}, errorcodes.Errorf("name_transform_profile_unknown", "unknown name-transform profile %q", profile)
+		return Transformed{}, errorcodes.Errorf("inventory_name_transform_unknown", "unknown name transform %q", profile)
 	}
 	name, trace, err := seq.Apply(d.Name)
 	if err != nil {

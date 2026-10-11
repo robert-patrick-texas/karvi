@@ -119,6 +119,23 @@
   `type = "sqlite"` is refused as an unsupported type, and its keys `table`,
   `operator-column`, `username-column`, `password-column`, `enable-column`, and
   `busy-timeout` with `config_key_removed`.
+- **Breaking: transforms checked at load.** `config validate` builds every
+  `[credential-transform.NAME]` and `[name-transform.NAME]` table with the
+  builder the run uses, a table nothing names included, and refuses a list that
+  does not build under the code a run gave it, naming the list and its line
+  (`transform_operation_unknown`, `transform_suffix_empty`, an operation that is
+  not an inline table); a credential backend's `transform` naming no table is
+  `credential_transform_unknown`, and an inventory source's `name-transform`
+  naming none `name_transform_profile_unknown`, exit 2, where such a
+  configuration validated and every run refused it at planning (an inventory
+  source's with exit 5). A credential transform's `operator` or `username` that
+  is not an array, which a run read as no operation, is refused with
+  `credential_transform_operations_not_array`.
+- **Breaking: `name.default-transform` removed.** It was read by nothing: a
+  device whose row and source name no name transform takes
+  `[name-transform.default]`, whatever the key said. It is refused with
+  `config_key_removed` from a file, `KARVI__NAME__DEFAULT_TRANSFORM`, and
+  `--set`; define `[name-transform.default]` to change the default.
 
 ## 0.29.0 - 2026-10-09
 

@@ -45,7 +45,7 @@ var defaultAliases = map[string][]string{
 }
 
 func (l Loader) Load(ctx context.Context) ([]inventory.Device, inventory.Provenance, error) {
-	profiles, err := buildTransforms(l.Config)
+	profiles, err := transform.Names(l.Config.NamedTables("name-transform"))
 	if err != nil {
 		return nil, inventory.Provenance{}, err
 	}
@@ -313,29 +313,6 @@ func rowDevice(v map[string]string, ref inventory.SourceRef, line int, src map[s
 		return d, err
 	}
 	return d, nil
-}
-func buildTransforms(cfg configload.Snapshot) (map[string]transform.Sequence, error) {
-	out := map[string]transform.Sequence{"default": {}}
-	for name, t := range cfg.NamedTables("name-transform") {
-		raw, ok := t["operations"].([]any)
-		if !ok {
-			return nil, errorcodes.Errorf("name_transform_operations_not_array", "name-transform.%s.operations must be an array", name)
-		}
-		items := []map[string]any{}
-		for _, v := range raw {
-			m, ok := v.(map[string]any)
-			if !ok {
-				return nil, errorcodes.Errorf("name_transform_operation_not_table", "name-transform.%s operation must be an inline table", name)
-			}
-			items = append(items, m)
-		}
-		seq, err := transform.FromMaps(items)
-		if err != nil {
-			return nil, fmt.Errorf("name-transform.%s: %w", name, err)
-		}
-		out[name] = seq
-	}
-	return out, nil
 }
 func sameDevice(a, b inventory.Device) bool {
 	return a.ID == b.ID && a.CanonicalName == b.CanonicalName && a.ManagementAddress == b.ManagementAddress && a.Platform == b.Platform && a.Transport == b.Transport && a.Port == b.Port && a.Site == b.Site && strings.Join(a.Groups, "\x00") == strings.Join(b.Groups, "\x00") &&

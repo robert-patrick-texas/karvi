@@ -6,10 +6,10 @@ package configload
 // with a code, from every layer that can set it (a file, the environment,
 // --set), so a site's configuration does not carry a setting that nothing
 // reads. The table below is the one place such keys are named in the code,
-// beside sqliteKeys for the fields of a dynamic table; each row carries the key's path, the environment variable the registry
-// gave it, the release that removed it, and the hint the refusal prints.
-// Restoration breadcrumbs, with the registry rows as they were, are kept
-// in the operator's private archive.
+// beside sqliteKeys for the fields of a dynamic table; each row carries the
+// key's path, the environment variable the registry gave it, the release that
+// removed it, and the hint the refusal prints. Restoration breadcrumbs, with
+// the registry rows as they were, are kept in the operator's private archive.
 //
 // Codes: the two compatibility-class keys keep the code they were released
 // with (config_ssh_legacy_hosts_removed); every
@@ -102,6 +102,9 @@ var removedKeys = []removedKey{
 	// release; they are fields of a dynamic table, matched by
 	// removedKeyByPath on any backend (sqliteKeys).
 	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: nextRelease, code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
+	// The same release: read by nothing, every device carrying the name
+	// transform default when its row and source name none.
+	{path: "name.default-transform", environment: "KARVI__NAME__DEFAULT_TRANSFORM", removedIn: nextRelease, code: "config_key_removed", hint: "a device whose row and source name no name transform takes [name-transform.default]; define that table to change the default"},
 }
 
 // nextRelease names the release after v0.29.0, which first refuses the keys

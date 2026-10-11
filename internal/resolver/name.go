@@ -11,10 +11,8 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
-	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/platform"
-	"github.com/robert-patrick-texas/karvi/transform"
 )
 
 type Capabilities struct {
@@ -261,27 +259,6 @@ func familyAvailable(a netip.Addr, c Capabilities) bool {
 		return c.IPv4
 	}
 	return c.IPv6
-}
-
-func profiles(cfg configload.Snapshot) (map[string]transform.Sequence, error) {
-	out := map[string]transform.Sequence{"default": {}}
-	for name, t := range cfg.NamedTables("name-transform") {
-		raw, _ := t["operations"].([]any)
-		items := []map[string]any{}
-		for _, v := range raw {
-			m, ok := v.(map[string]any)
-			if !ok {
-				return nil, errorcodes.Errorf("name_transform_operation_not_table", "name-transform.%s operation is not an inline table", name)
-			}
-			items = append(items, m)
-		}
-		seq, e := transform.FromMaps(items)
-		if e != nil {
-			return nil, e
-		}
-		out[name] = seq
-	}
-	return out, nil
 }
 
 func EffectivePort(d inventory.Device, transport string, cfg configload.Snapshot) uint16 {

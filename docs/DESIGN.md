@@ -526,6 +526,19 @@ not (a Redis backend's `mount`, a CSV's `token-env`); a type no build can read
 validates and never answers. *Not taken:* a warning (the setting left in the
 file); a code per family of keys (the scope code, retired into the one).
 
+**Every transform table is built at load, with the run's builder.** `config
+validate` builds every `[name-transform.NAME]` and `[credential-transform.NAME]`
+table with the one builder every reader at the run uses (`transform.Names`,
+`transform.Credentials`), whether or not anything names the table, and refuses a
+credential backend's `transform` or an inventory source's `name-transform` that
+names none. `name.default-transform`, which nothing read, is removed: a device
+that names no transform takes `[name-transform.default]`. *Why:* the run builds
+every table, so a typo in a table nothing names stopped every run while `config
+validate` passed it, and the builder's three copies had drifted (one refused a
+list that was no array, two read it as none). *Not taken:* the run building only
+the tables named (a typo hidden until the day the table is used); the key made
+to work (two ways to name one default).
+
 **A pin is a pin.** A device with `credkeyref` matches only rows whose key
 equals it, walks its policy's sequence asking only backends that declare the
 keyed capability, skips a formula whatever its source, and never falls to a

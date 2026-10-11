@@ -658,9 +658,12 @@ transform = "adm"
   added only to a name without a dot). A username the operations leave empty
   is `credential_incomplete`.
 - **A backend's table** is its `transform`; without one, the table named like
-  the backend, and otherwise `default`, which changes nothing unless defined.
-  A `transform` naming no table refuses the run when it is planned,
-  `credential_transform_unknown` (exit 2); `config validate` does not see it.
+  the backend, and otherwise `default`, which changes nothing unless defined. A
+  `transform` naming no table is refused when the configuration loads, `config
+  validate` included, with `credential_transform_unknown` (exit 2), and so is a
+  list that does not build in any transform table, credential or name, whether
+  or not anything names the table: `transform_operation_unknown` for an
+  operation karvi does not know, naming the list and its line.
 - **The platform's fallback** (the `NET*` variables, the prompt, and the
   operator's keys) takes `default`'s `username` operations.
 

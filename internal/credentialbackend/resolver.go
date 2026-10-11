@@ -63,7 +63,7 @@ type Resolver struct {
 	formulas       map[string]formulaSpec
 	policies       map[string]policy
 	rules          []map[string]any
-	transforms     map[string]credentialTransform
+	transforms     map[string]transform.Credential
 	backendProfile map[string]string
 	warn           func(string)
 	input          InputProvider
@@ -73,14 +73,13 @@ type Resolver struct {
 	keysOnce sync.Once
 	keys     operatorkeys.Result
 }
-type credentialTransform struct{ Operator, Username transform.Sequence }
 type credentialsBackend = credentials.Backend
 
 // New builds the resolver over the configured backends with the process
 // environment and terminal as its input provider (SetInput changes it).
 func New(cfg configload.Snapshot, operator credentials.Operator, warn func(string)) (*Resolver, error) {
 	r := &Resolver{cfg: cfg, backends: map[string]credentials.Backend{}, formulas: map[string]formulaSpec{}, backendProfile: map[string]string{}, warn: warn, input: TTYInput{}, keyRules: fileRules(cfg, operator, operatorkeys.Backend, "user", false)}
-	profiles, err := buildTransforms(cfg)
+	profiles, err := transform.Credentials(cfg.NamedTables("credential-transform"))
 	if err != nil {
 		return nil, err
 	}
@@ -524,34 +523,6 @@ func materialStrings(m credentials.Material) (string, string, string, error) {
 	return u, p, e, err
 }
 
-func buildTransforms(cfg configload.Snapshot) (map[string]credentialTransform, error) {
-	out := map[string]credentialTransform{"default": {}}
-	for name, t := range cfg.NamedTables("credential-transform") {
-		ct := credentialTransform{}
-		for _, field := range []string{"operator", "username"} {
-			raw, _ := t[field].([]any)
-			items := []map[string]any{}
-			for _, v := range raw {
-				m, ok := v.(map[string]any)
-				if !ok {
-					return nil, errorcodes.Errorf("credential_transform_operation_not_table", "credential-transform.%s.%s has a non-table operation", name, field)
-				}
-				items = append(items, m)
-			}
-			seq, err := transform.FromMaps(items)
-			if err != nil {
-				return nil, err
-			}
-			if field == "operator" {
-				ct.Operator = seq
-			} else {
-				ct.Username = seq
-			}
-		}
-		out[name] = ct
-	}
-	return out, nil
-}
 func buildPolicies(cfg configload.Snapshot) (map[string]policy, error) {
 	raw := cfg.NamedTables("credential-policy")
 	out := map[string]policy{"default": {Name: "default", Sequence: cfg.Strings("creds.backend-sequence")}}

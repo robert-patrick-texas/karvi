@@ -249,19 +249,6 @@
       "since": "0.10.0"
     },
     {
-      "path": "name.default-transform",
-      "kind": "string",
-      "default_literal": "\"default\"",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__NAME__DEFAULT_TRANSFORM",
-      "cli_flags": null,
-      "documentation": "Existing name-transform profile.",
-      "since": "0.2.0"
-    },
-    {
       "path": "name.dns-timeout",
       "kind": "duration",
       "default_literal": "\"2s\"",

@@ -283,7 +283,8 @@ Active failure causes.
 | `credential_resolution_failed` | credential | 6 | no | Unclassified. Credential resolution failed with an error that carries no specific code. |
 | `credential_transform_error` | credential | 6 | no | A credential transform cannot be applied to the username. |
 | `credential_transform_operation_not_table` | config | 2 | no | A `credential-transform` operation is not an inline table. |
-| `credential_transform_unknown` | config | 2 | no | A credential backend names a credential transform that is not defined. |
+| `credential_transform_operations_not_array` | config | 2 | no | A `credential-transform` table's `operator` or `username` is not an array. |
+| `credential_transform_unknown` | config | 2 | no | A credential backend's `transform` names a credential transform table that is not defined; refused when the configuration loads. |
 | `credential_username_missing` | credential | 6 | no | No backend answered and the platform's fallback (`NETUSER`, the terminal prompt, or the operator's keys, as its list says) supplied no username. |
 | `credkeyref_unresolved` | credential | 6 | no | A device pinned by the inventory's `credkeyref` reached the end of its policy's sequence and no backend that can honour a key answered for it (the key is absent, or its row's other selectors exclude the device); the message names the device, the key, the backends asked, and the backends skipped. A pinned device never takes a general row, the environment fallback, or a prompt. |
 | `crun_directory_not_writable` | permission | 9 | no | The collection directory (`crun.directory`, `--cd=PATH`, of a `crun` or of a `run` or `command` given `--cd`) cannot be prepared before any device is contacted: it or a folder above it is a file (the message names which), it is missing and cannot be created, the operator cannot create files in it, or it has the sticky bit and another owner, so a file another operator wrote could not be replaced by the rename. For the last two the message says that a shared collection directory needs mode 2770 or 2775: group write and search, setgid, no sticky bit. |
@@ -404,7 +405,7 @@ Active failure causes.
 | `inventory_load_failed` | inventory | 5 | no | Unclassified. Inventory loading or selection fails without a specific code. |
 | `inventory_management_address_invalid` | inventory | 5 | no | An inventory row's `management_address` is not an IP address. |
 | `inventory_missing` | inventory | 5 | no | A required inventory source path matches no files. |
-| `inventory_name_transform_unknown` | inventory | 5 | no | An inventory row or source names a name-transform profile that is not defined. |
+| `inventory_name_transform_unknown` | inventory | 5 | no | An inventory row's `name_transform` names a name-transform table that is not defined. |
 | `inventory_port_invalid` | inventory | 5 | no | An inventory row's `port` is not 1..65535. |
 | `inventory_positive_selector_missing` | inventory | 5 | no | A selection has no positive target selector. |
 | `inventory_secret_column` | inventory | 5 | no | An inventory file has a header, mapped or not, that names a secret: it equals or ends with `password`, `passwd`, `secret`, `token`, `private_key`, or `passphrase` (case ignored, a hyphen read as an underscore). An inventory file holds no secret column and there is no override; move the secrets to a credential CSV and delete the column. The message names the source, the file, the column's number, and the word, and never a cell. |
@@ -440,7 +441,7 @@ Active failure causes.
 | `name_resolution_error` | name_resolution | 7 | no | Unclassified. Name resolution failed with an error that carries no specific code. |
 | `name_transform_operation_not_table` | config | 2 | no | A `name-transform` operation is not an inline table. |
 | `name_transform_operations_not_array` | config | 2 | no | A `name-transform` table's `operations` is not an array. |
-| `name_transform_profile_unknown` | config | 2 | no | The device or `name.default-transform` names a name-transform profile that is not defined. |
+| `name_transform_profile_unknown` | config | 2 | no | An inventory source's `name-transform` names a name-transform table that is not defined; refused when the configuration loads. |
 | `native_platform_not_qualified` | dependency | 8 | no | The native transport does not admit the target's platform driver. |
 | `native_session_open_failed` | connection | 110 | yes | The native transport cannot open the device session. |
 | `native_transport_unavailable` | dependency | 8 | no | The selected native implementation is not compiled into this executable; there is no fallback to system OpenSSH. |

@@ -9353,3 +9353,69 @@ hidden until the day the table is used); a warning. Found beside it:
 `name.default-transform` is read by nothing, every device carrying `default` as
 its name transform when its own is blank (`inventory/model.go`), so
 `name.default-transform = "nope"` passes validation and every run.
+
+**Issue 9, found: `name.default-transform`, read by nothing, agreed.** On the
+lab build of S2, a direct target `edge-01` with no address, its DNS lookup
+naming the name after its transform: `[name-transform.default]` adding
+`.lab.invalid` looks up `edge-01.lab.invalid`; the same operations in
+`[name-transform.lab]` under `name.default-transform = "lab"` look up `edge-01`;
+`name.default-transform = "nope"` validates and changes nothing. Its one reader,
+`internal/resolver/plan.go`, runs for a device whose name transform is blank,
+and none is: a direct target carries `default`, and an inventory device's
+`Validate` sets `default` for a blank one. The key leaves the registry and is
+refused as removed in v0.30.0, `config_key_removed`, from a file, the
+environment (`KARVI__NAME__DEFAULT_TRANSFORM`), and `--set`, its hint that a
+device whose row and source name no transform takes `[name-transform.default]`,
+the table to define to change the default; the reader goes, and
+`name_transform_profile_unknown` names an inventory source's `name-transform`
+alone. *Not taken:* the key made to work (two ways to name one default, the key
+naming a table where the `default` table is the default already); the key kept
+with a warning.
+
+**S4 built, issues 8 and 9.** `transform.Names` and `transform.Credentials`, the
+one builder of the named tables, in the operations' own package, a list that
+does not build a `TableError` naming its key; config validate builds both and
+checks each credential backend's `transform` and each inventory source's
+`name-transform` against them, and the run's three copies (the credential
+resolver's, the address step's, the inventory loader's) are gone for it. The
+two kinds' lists alike: a list that is no array refused, a name transform's as
+the inventory loader did and a credential transform's, which the resolver read
+as no operation, under `credential_transform_operations_not_array`, new; an
+operation that is no inline table refused; the tables built in name order, so
+two bad tables always name the same one. `name.default-transform` left the
+registry for the removed keys (v0.30.0), and its reader in `resolver.Transform`
+with it, a device's transform the step cannot find there
+`inventory_name_transform_unknown`, the row's code;
+`name_transform_profile_unknown` is the source's and
+`inventory_name_transform_unknown` the row's. The k03 golden draft re-pinned,
+the configuration block's removed value and its digest alone moved;
+`removed.go`'s header rewrapped. The tests: `TestTables` and
+`TestTransformsCheckedAtLoad` (eleven refusals and five configurations that
+load), each failing on the tree of S3, and `TestRemovedKeysRefused`, which takes
+the new row from the table.
+
+**Executed.** A lab build of S4:
+
+| Case | `config validate`, and a run alike |
+|---|---|
+| a backend's `transform = "nope"` | `credential_transform_unknown: no [credential-transform.nope] table is defined for credential-backend.site-creds.transform at …/t.toml:5`, exit 2 |
+| an unknown operation, in a used table or one nothing names | `transform_operation_unknown: operation 1 has unknown op "bogus" for credential-transform.spare.username at …`, exit 2 |
+| `add-suffix` with no `suffix` | `transform_suffix_empty: operation 1: suffix must be nonempty for credential-transform.adm.operator at …`, exit 2 |
+| an operation that is not a table | `credential_transform_operation_not_table: operation 1 is not an inline table for credential-transform.adm.operator at …`, exit 2 |
+| `operator = "add-suffix"`, no array | `credential_transform_operations_not_array: … for credential-transform.adm.operator at …`, exit 2, where the build of S2 planned the device as `user=netops` |
+| a name transform's unknown operation | `transform_operation_unknown: … for name-transform.default.operations at …`, exit 2 |
+| an inventory source's `name-transform = "nope"` | `name_transform_profile_unknown: no [name-transform.nope] table is defined for inventory-source.0.name-transform at …/n.toml:6`, exit 2, where a run said exit 5 |
+| `name.default-transform`, from a file, the environment, `--set` | `config_key_removed: removed in v0.30.0; a device whose row and source name no name transform takes [name-transform.default]; define that table to change the default for name.default-transform at …`, exit 2 |
+| `transform = "default"` and no table; a defined table; `[name-transform.default]` adding `.lab.invalid` | valid; the run as before, `edge-01.lab.invalid` looked up |
+| the documents' examples: both sites, `transform = "adm"`, the fallback under `[credential-transform.default]` | as on the build of S2 |
+
+The full battery on the lab build of S4, run from a copy of the tree: lanes 1
+and 2 passed, and lane 3 through `completion-smoke`, where
+`daemon-upgrade-smoke-test` stopped with `schema-2 fixture did not start`. The
+suite gives `go run ./tools/daemon-fixture` two seconds to bind its socket, and
+its first run after S4 recompiled the packages S4 changed (2.4 seconds on the
+first run in the tree, 0.18 warm). The three suites lane 3 had not run, the
+upgrade suite, `canary-smoke-test`, and `spool-smoke-test`, then passed on the
+same build, so every suite passed, the pass lines those of S2's battery, and no
+`/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>` was left. The change after the
+build is a comment's place in `validate.go` and the documents.

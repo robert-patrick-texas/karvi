@@ -18,6 +18,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 	"github.com/robert-patrick-texas/karvi/inventory"
 	"github.com/robert-patrick-texas/karvi/platform"
+	"github.com/robert-patrick-texas/karvi/transform"
 )
 
 func (l *loader) validate() error {
@@ -124,6 +125,9 @@ func (l *loader) validate() error {
 		return err
 	}
 	if err := l.validateDynamic(); err != nil {
+		return err
+	}
+	if err := l.validateTransforms(); err != nil {
 		return err
 	}
 	return nil
@@ -768,6 +772,53 @@ func (l *loader) validateSessionInitProfiles(sessions map[string]map[string]any)
 		}
 	}
 	return nil
+}
+
+// validateTransforms builds every [name-transform.NAME] and
+// [credential-transform.NAME] table with the builder the run uses, whether
+// or not anything names the table, since the run builds them all; then a
+// credential backend's transform and an inventory source's name-transform
+// must name a table, or "default", which needs none.
+func (l *loader) validateTransforms() error {
+	names, err := transform.Names(l.snap.NamedTables("name-transform"))
+	if err != nil {
+		return l.transformErr(err)
+	}
+	credentials, err := transform.Credentials(l.snap.NamedTables("credential-transform"))
+	if err != nil {
+		return l.transformErr(err)
+	}
+	backends := l.snap.NamedTables("credential-backend")
+	backendNames := make([]string, 0, len(backends))
+	for name := range backends {
+		backendNames = append(backendNames, name)
+	}
+	sort.Strings(backendNames)
+	for _, name := range backendNames {
+		if table, _ := backends[name]["transform"].(string); table != "" {
+			if _, ok := credentials[table]; !ok {
+				return l.dynamicErr("credential_transform_unknown", "credential-backend."+name+".transform", "no [credential-transform."+table+"] table is defined")
+			}
+		}
+	}
+	for i, src := range l.snap.IndexedTables("inventory-source") {
+		if table, _ := src["name-transform"].(string); table != "" {
+			if _, ok := names[table]; !ok {
+				return l.dynamicErr("name_transform_profile_unknown", fmt.Sprintf("inventory-source.%d.name-transform", i), "no [name-transform."+table+"] table is defined")
+			}
+		}
+	}
+	return nil
+}
+
+// transformErr reports a transform table's list that does not build, under
+// its own code, at the list's place.
+func (l *loader) transformErr(err error) error {
+	var te *transform.TableError
+	if !errors.As(err, &te) {
+		return err
+	}
+	return l.semanticErr("config_type_error", te.Key, te.Err)
 }
 
 // validateSSHAlgorithms checks the algorithm configuration: the global

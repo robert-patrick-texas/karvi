@@ -77,8 +77,6 @@ address-family-preference = "ipv6"
 default-address-authority = "client"
 # Global governance gate; a daemon-authority target fails validation unless enabled.
 allow-daemon-resolution = false
-# Existing name-transform profile.
-default-transform = "default"
 # 1ms–60s; no karvi retry.
 dns-timeout = "2s"
 # V1 only system.

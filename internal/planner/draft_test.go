@@ -132,7 +132,9 @@ func draftOptions(commands []string) DraftOptions {
 // configuration block and its digest; nothing else moved.
 // Re-pinned when ssh-algorithms.source joined registry 29: the
 // configuration block's new value and its digest; nothing else moved.
-const goldenK03Draft = "c636931696cc91a733ac7361ced2b857dd6e552d34d5b0c0d3654d2d277c0def"
+// Re-pinned when name.default-transform, read by nothing, left registry 29:
+// the configuration block's value and its digest; nothing else moved.
+const goldenK03Draft = "fb24041820f696c25080a49de7b07928ad02de67e354f611be05afc3913a000b"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
