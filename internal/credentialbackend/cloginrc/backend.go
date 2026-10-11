@@ -97,20 +97,7 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	// grants only when their evidence is equal, so
 	// a device name here would give every device on one line its own sealed
 	// copy of one secret. The record's device block names the device.
-	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: b.Rules.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "device_glob", Pattern: matched.Pattern, Source: matched.Path, Line: matched.Line}, FieldSources: map[string]credentials.FieldSource{}}
-	if userRec != nil {
-		cred.FieldSources["username"] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: fmt.Sprintf("%s:%d user %s", userRec.Path, userRec.Line, userRec.Pattern)}
-	} else {
-		cred.FieldSources["username"] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: "operator-default"}
-	}
-	if userPass != nil {
-		cred.FieldSources["password"] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: fmt.Sprintf("%s:%d userpassword %s", userPass.Path, userPass.Line, userPass.Pattern)}
-	} else if passRec != nil {
-		cred.FieldSources["password"] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: fmt.Sprintf("%s:%d password %s", passRec.Path, passRec.Line, passRec.Pattern)}
-	}
-	if passRec != nil && len(passRec.Values) == 2 {
-		cred.FieldSources["enable_password"] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: fmt.Sprintf("%s:%d password %s", passRec.Path, passRec.Line, passRec.Pattern)}
-	}
+	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: b.Rules.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "device_glob", Pattern: matched.Pattern, Source: matched.Path, Line: matched.Line}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
 }
 func first(rs []record, directive, name string) *record {

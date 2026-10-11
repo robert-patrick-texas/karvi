@@ -58,13 +58,16 @@ type device struct {
 	credkeyref                    string // the inventory's pin; blank for an unpinned device
 }
 
-func resolve(b *Backend, d device) credentials.BackendResult {
+func resolve(b *Backend, d device) credentials.BackendResult { return resolveWith(b, d, nil) }
+
+// resolveWith resolves d with lookup as the request's lookup of a variable.
+func resolveWith(b *Backend, d device, lookup func(string) (string, bool)) credentials.BackendResult {
 	dev := inventory.Direct(d.name, d.platform, "system", 0)
 	dev.Site, dev.Groups, dev.CredKeyRef = d.site, d.groups, d.credkeyref
 	if d.address != "" {
 		dev.ManagementAddress = netip.MustParseAddr(d.address)
 	}
-	return b.Resolve(context.Background(), credentials.ResolveRequest{Operator: credentials.Operator{Username: "me"}, Device: dev, Policy: "default"})
+	return b.Resolve(context.Background(), credentials.ResolveRequest{Operator: credentials.Operator{Username: "me"}, Device: dev, Policy: "default", LookupEnv: lookup})
 }
 
 func material(t *testing.T, r credentials.BackendResult) (username, password, enable string) {
@@ -85,7 +88,7 @@ func material(t *testing.T, r credentials.BackendResult) (username, password, en
 
 // TestFirstMatchingRowIsTheAnswer covers the selected row's result: file
 // order, the operator's name for a blank username, blank secrets allowed,
-// the secret kept verbatim, and the evidence and field sources.
+// the secret kept verbatim, and the evidence.
 func TestFirstMatchingRowIsTheAnswer(t *testing.T) {
 	b := newBackend(t, sample, nil)
 	path := b.Path
@@ -117,24 +120,6 @@ func TestFirstMatchingRowIsTheAnswer(t *testing.T) {
 		}
 		if r.Credential.Backend != "creds" || r.Credential.Policy != "default" {
 			t.Errorf("%s: backend %q policy %q", tc.device.name, r.Credential.Backend, r.Credential.Policy)
-		}
-	}
-	// Field sources name the file, the line, and the column, or
-	// operator-default; a blank secret has no source.
-	r := resolve(b, device{name: "fw-nyc-01", site: "nyc"})
-	want := map[string]string{"username": "operator-default", "password": fmt.Sprintf("%s:7 password", path)}
-	if len(r.Credential.FieldSources) != len(want) {
-		t.Errorf("field sources %+v", r.Credential.FieldSources)
-	}
-	for field, src := range want {
-		if got := r.Credential.FieldSources[field]; got.Path != src || got.Backend != "creds" {
-			t.Errorf("field source %s = %+v, want %s", field, got, src)
-		}
-	}
-	r = resolve(b, device{name: "sw-nyc-01"})
-	for field, column := range map[string]string{"username": "username", "password": "password", "enable_password": "enable_password"} {
-		if got, want := r.Credential.FieldSources[field].Path, fmt.Sprintf("%s:3 %s", path, column); got != want {
-			t.Errorf("field source %s = %q, want %q", field, got, want)
 		}
 	}
 }
@@ -325,6 +310,12 @@ func TestLoadFailures(t *testing.T) {
 		"no result":                    {header + "sw-a,,,,svc,Hunter2,\nsw-b,,,,  ,  ,\n", nil, "credential_csv_row_invalid", []string{":3:", "no result"}},
 		"a duplicate key":              {header + "sw-a,,,Hunter2,svc,pw,\n\nsw-b,,,hunter2,svc,pw,\n", nil, "credential_csv_credkey_duplicate", []string{"lines 2 and 4"}},
 		"a shifted row, secret in key": {header + "sw-a,,,,svc,pw,\nsw-b,,,Hunter2[,svc,pw,\n", nil, "credential_csv_row_invalid", []string{":3:", "column credkey"}},
+		// An env: cell whose rest is no portable variable name, which may
+		// be a password beginning with env:, is refused naming the column.
+		"an env: cell without a name":   {header + "sw-a,,,,svc,env:,\n", nil, "credential_csv_row_invalid", []string{":2:", "column password", "variable name"}},
+		"an env: cell with a hyphen":    {header + "sw-a,,,,svc,ENV:Hunter2-x,\n", nil, "credential_csv_row_invalid", []string{":2:", "column password"}},
+		"an env: cell, a leading digit": {header + "sw-a,,,,env:2Hunter2,pw,\n", nil, "credential_csv_row_invalid", []string{":2:", "column username"}},
+		"an env: cell with a space":     {header + "sw-a,,,,svc,pw,env:Hunter2 x\n", nil, "credential_csv_row_invalid", []string{":2:", "column enable_password"}},
 	} {
 		b := newBackend(t, tc.body, tc.table)
 		r := resolve(b, device{name: "sw-nyc-01"})
@@ -398,30 +389,51 @@ func TestFileRules(t *testing.T) {
 	}
 }
 
-// TestEnvironmentIndirection: opt-in per field, applied
-// to the selected row, the field source recording env:NAME; a cell that
-// names no set variable stays a literal; the name is looked up without the
-// secret cell's surrounding spaces.
-func TestEnvironmentIndirection(t *testing.T) {
-	body := "device_name,username,password,enable_password\nsw-*,CORE_USER, CORE_PASS ,literal-enable\n"
-	env := map[string]string{"CORE_USER": "svc.core", "CORE_PASS": "from-env", "literal-enable-unset": ""}
-	lookup := func(name string) (string, bool) { v, ok := env[name]; return v, ok }
-
-	off := newBackend(t, body, nil)
-	off.LookupEnv = lookup
-	if u, p, e := material(t, resolve(off, device{name: "sw-nyc-01"})); u != "CORE_USER" || p != " CORE_PASS " || e != "literal-enable" {
-		t.Errorf("flags off: %q %q %q", u, p, e)
+// TestEnvReference is EXAMPLES chapter 55, issues 1 and 3: a result cell
+// env:NAME, its surrounding white space trimmed and the prefix's case
+// ignored, takes the variable's value through the request's lookup; a plain
+// cell naming a set variable is a literal; an unset or empty variable is
+// credential_env_missing, naming the file, the line, the column, and the
+// variable; a request without a lookup reads no variable; a row no device
+// took is not read, and a row whose results are all references loads.
+func TestEnvReference(t *testing.T) {
+	body := "device_name,username,password,enable_password\n" +
+		"sw-a,env:CORE_USER, ENV:CORE_PASS ,Env:CORE_EN\n" +
+		"sw-b,CORE_USER,CORE_PASS,\n" +
+		"sw-c,svc,env:UNSET,\n" +
+		"sw-d,svc,pw,env:EMPTY\n" +
+		"sw-e,env:UNREAD,env:UNREAD,env:UNREAD\n"
+	env := map[string]string{"CORE_USER": "svc.core", "CORE_PASS": "from-env", "CORE_EN": "en-env", "EMPTY": ""}
+	var asked []string
+	lookup := func(name string) (string, bool) {
+		asked = append(asked, name)
+		v, ok := env[name]
+		return v, ok
 	}
-
-	on := newBackend(t, body, map[string]any{"env-indirection.username": true, "env-indirection.password": true, "env-indirection.enable-password": true})
-	on.LookupEnv = lookup
-	r := resolve(on, device{name: "sw-nyc-01"})
-	if u, p, e := material(t, r); u != "svc.core" || p != "from-env" || e != "literal-enable" {
-		t.Errorf("flags on: %q %q %q", u, p, e)
+	b := newBackend(t, body, nil)
+	if u, p, e := material(t, resolveWith(b, device{name: "sw-a"}, lookup)); u != "svc.core" || p != "from-env" || e != "en-env" {
+		t.Errorf("references: %q %q %q", u, p, e)
 	}
-	for field, want := range map[string]string{"username": "env:CORE_USER", "password": "env:CORE_PASS", "enable_password": on.Path + ":2 enable_password"} {
-		if got := r.Credential.FieldSources[field].Path; got != want {
-			t.Errorf("field source %s = %q, want %q", field, got, want)
+	if u, p, e := material(t, resolveWith(b, device{name: "sw-b"}, lookup)); u != "CORE_USER" || p != "CORE_PASS" || e != "" {
+		t.Errorf("plain cells: %q %q %q", u, p, e)
+	}
+	for _, tc := range []struct {
+		device string
+		lookup func(string) (string, bool)
+		says   string
+	}{
+		{"sw-c", lookup, ":4 password: UNSET is not set"},
+		{"sw-d", lookup, ":5 enable_password: EMPTY is empty"},
+		{"sw-a", nil, ":2 username: CORE_USER is not set"},
+	} {
+		r := resolveWith(b, device{name: tc.device}, tc.lookup)
+		if r.Outcome != credentials.Incomplete || r.ErrorCode != "credential_env_missing" || r.Message != "credential backend creds: "+b.Path+tc.says {
+			t.Errorf("%s: %+v, want %q", tc.device, r, tc.says)
+		}
+	}
+	for _, name := range asked {
+		if name == "UNREAD" {
+			t.Errorf("a row no device took was read: %v", asked)
 		}
 	}
 }

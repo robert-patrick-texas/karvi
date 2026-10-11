@@ -49,14 +49,14 @@ printf 'ok\n'
 
 type envInput struct{}
 
-func (envInput) LookupEnv(_ context.Context, name string) (string, bool, error) {
+func (envInput) LookupEnv(name string) (string, bool) {
 	switch name {
 	case "NETUSER":
-		return "u", true, nil
+		return "u", true
 	case "NETPASS":
-		return "p", true, nil
+		return "p", true
 	}
-	return "", false, nil
+	return "", false
 }
 func (envInput) Prompt(context.Context, credentialbackend.PromptRequest) (string, error) {
 	return "", os.ErrNotExist

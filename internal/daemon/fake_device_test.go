@@ -128,14 +128,14 @@ func fakeSSHMain() int {
 // fixedInput answers the built-in fallback for one job.
 type fixedInput struct{ user, pass string }
 
-func (i fixedInput) LookupEnv(_ context.Context, name string) (string, bool, error) {
+func (i fixedInput) LookupEnv(name string) (string, bool) {
 	switch name {
 	case "NETUSER":
-		return i.user, true, nil
+		return i.user, true
 	case "NETPASS":
-		return i.pass, true, nil
+		return i.pass, true
 	}
-	return "", false, nil
+	return "", false
 }
 func (fixedInput) Prompt(context.Context, credentialbackend.PromptRequest) (string, error) {
 	return "", os.ErrNotExist

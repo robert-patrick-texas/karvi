@@ -63,11 +63,11 @@ type fakeInput struct {
 	reply func(field string) (string, error)
 }
 
-func (f *fakeInput) LookupEnv(_ context.Context, name string) (string, bool, error) {
+func (f *fakeInput) LookupEnv(name string) (string, bool) {
 	if name == "NETUSER" && !f.noEnv {
-		return "typed", true, nil
+		return "typed", true
 	}
-	return "", false, nil
+	return "", false
 }
 
 func (f *fakeInput) Prompt(_ context.Context, req credentialbackend.PromptRequest) (string, error) {

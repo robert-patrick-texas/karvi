@@ -33,12 +33,11 @@ func (b *Backend) Resolve(_ context.Context, req credentials.ResolveRequest) cre
 	if !uok && !pok && !eok {
 		return credentials.BackendResult{Outcome: credentials.NotFound}
 	}
-	usrc, psrc, esrc := "env:"+userVar, "env:"+passVar, "env:"+enableVar
-	username, usrc = indirect(username, b.UsernameIndirect, usrc)
-	password, psrc = indirect(password, b.PasswordIndirect, psrc)
-	enable, esrc = indirect(enable, b.EnableIndirect, esrc)
+	username = indirect(username, b.UsernameIndirect)
+	password = indirect(password, b.PasswordIndirect)
+	enable = indirect(enable, b.EnableIndirect)
 	material := secrets.NewMaterial(username, password, enable)
-	cred := credentials.Credential{Material: material, Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "environment"}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: b.BackendName, Path: usrc}, "password": {Backend: b.BackendName, Path: psrc}, "enable_password": {Backend: b.BackendName, Path: esrc}}}
+	cred := credentials.Credential{Material: material, Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "environment"}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
 }
 func format(t, key string) string {
@@ -64,12 +63,12 @@ func lookup(name string) (string, bool) {
 	}
 	return os.LookupEnv(name)
 }
-func indirect(v string, on bool, src string) (string, string) {
+func indirect(v string, on bool) string {
 	if !on {
-		return v, src
+		return v
 	}
 	if x, ok := os.LookupEnv(v); ok {
-		return x, "env:" + v
+		return x
 	}
-	return v, "literal"
+	return v
 }

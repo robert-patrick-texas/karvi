@@ -1,35 +1,58 @@
-// Package envindirect is the shared environment-indirection helper for
-// credential backends (the env-indirection.username, .password, and
-// .enable-password flags). With a
-// field's flag on, a stored value that names a set environment variable is
-// replaced by that variable's value. The env, Redis, and Vault backends
-// each hold a private copy of this rule; folding them into this package is
-// a clean-up roadmap line, and new backends use this one.
+// Package envindirect is the credential CSV's explicit environment
+// reference: a result cell env:NAME names a variable whose value the field
+// takes. The cell is read with its surrounding white space trimmed and the
+// prefix's case ignored; the name is a portable variable name, checked when
+// the file loads; the variable is read when a device selects the row,
+// through the resolver's one lookup, and one that is unset or empty is
+// credential_env_missing, which names it. A cell without the prefix is a
+// literal. The env, Redis, and Vault backends' env-indirection flags are
+// their own copies of an older rule, for the credential helper to fold.
 package envindirect
 
-import "os"
+import "strings"
 
-// Lookup resolves one field. When on is false, or value is blank, or value
-// names no set variable, it returns value unchanged and ok false, and the
-// caller keeps its own field source. Otherwise it returns the variable's
-// value, the variable's name for the field source ("env:"+name), and ok
-// true. lookup is os.LookupEnv when nil; a test passes its own.
-//
-// A variable that is set but empty counts as set: the field becomes blank
-// and the ordinary completeness rules judge the result, as they judge a
-// blank cell.
-func Lookup(value string, on bool, lookup func(string) (string, bool)) (resolved, name string, ok bool) {
-	if !on || value == "" {
-		return value, "", false
+const prefix = "env:"
+
+// Reference reports whether cell is a reference and the name it gives: ref
+// is false for a cell without the prefix, a literal; valid is false for a
+// reference whose name is not a portable variable name.
+func Reference(cell string) (name string, ref, valid bool) {
+	c := strings.TrimSpace(cell)
+	if len(c) < len(prefix) || !strings.EqualFold(c[:len(prefix)], prefix) {
+		return "", false, false
 	}
-	if lookup == nil {
-		lookup = os.LookupEnv
-	}
-	if v, set := lookup(value); set {
-		return v, value, true
-	}
-	return value, "", false
+	name = c[len(prefix):]
+	return name, true, portable(name)
 }
 
-// Source is the field source for a value Lookup replaced.
-func Source(name string) string { return "env:" + name }
+// portable reports whether name is a portable variable name: a letter or an
+// underscore, then letters, digits, and underscores.
+func portable(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i, r := range name {
+		letter := r == '_' || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
+		if !letter && (i == 0 || r < '0' || r > '9') {
+			return false
+		}
+	}
+	return true
+}
+
+// Read gives the value of the variable name through lookup, or, when it
+// gives none, the reason, which names the variable: "NAME is not set" or
+// "NAME is empty". A nil lookup reads no variable.
+func Read(name string, lookup func(string) (string, bool)) (value, missing string) {
+	v, ok := "", false
+	if lookup != nil {
+		v, ok = lookup(name)
+	}
+	switch {
+	case !ok:
+		return "", name + " is not set"
+	case v == "":
+		return "", name + " is empty"
+	}
+	return v, ""
+}

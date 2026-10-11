@@ -7,12 +7,13 @@
 // classes, and the read-once cache are credfile's; the parser is
 // tabular.CSVReader; a row's selectors are compiled and matched by
 // internal/matching. What is here is the load (every row checked once, at
-// first use), the three credential_csv_* codes, the selected row's result,
-// and its evidence and field sources.
+// first use), the three credential_csv_* codes, the selected row's result
+// with its env: references read, and its evidence.
 //
-// No message of this package quotes a cell. A misplaced delimiter can shift
-// a password into any column, so an error names the backend, the file, the
-// line, and the column, and never the text.
+// No message of this package quotes a cell but the name an env: cell gives,
+// which its prefix marks as a variable's name. A misplaced delimiter can
+// shift a password into any column, so an error names the backend, the file,
+// the line, and the column, and never the text.
 package credcsv
 
 import (
@@ -50,13 +51,6 @@ type Backend struct {
 	Columns              map[string]int
 	Mandatory            []string
 	MaxPhysicalLineBytes int
-
-	// Environment indirection, applied to the selected row only (decision
-	// 6.5). LookupEnv is os.LookupEnv when nil.
-	UsernameIndirect bool
-	PasswordIndirect bool
-	EnableIndirect   bool
-	LookupEnv        func(string) (string, bool)
 
 	cache credfile.Cache[*table]
 }
@@ -102,9 +96,6 @@ func New(rules credfile.Rules, d map[string]any, maxPhysicalLineBytes int) *Back
 			}
 		}
 	}
-	b.UsernameIndirect, _ = d["env-indirection.username"].(bool)
-	b.PasswordIndirect, _ = d["env-indirection.password"].(bool)
-	b.EnableIndirect, _ = d["env-indirection.enable-password"].(bool)
 	return b
 }
 
@@ -114,20 +105,26 @@ func (*Backend) Mode() credentials.BackendMode { return credentials.DeviceKeyed 
 // table is a loaded file: the compiled selectors and the results, index for
 // index, in file order.
 type table struct {
-	path    string // the canonical path, for evidence and field sources
+	path    string // the canonical path, for evidence and messages
 	matches []matching.Row
 	rows    []row
 }
 
 // row is one data row's result. The secrets leave string form at load:
-// a stray print of a row shows <redacted>.
+// a stray print of a row shows <redacted>. A result cell env:NAME is held as
+// the variable's name, read when a device selects the row.
 type row struct {
 	line     int
 	label    string // the row's credkey, or BACKEND:LINE for a blank cell
 	username string // trimmed; blank means the operator's own name
 	password *secrets.Value
 	enable   *secrets.Value
+	env      map[string]string // result column -> the variable an env: cell names
 }
+
+// resultColumns are the three result columns, in the order a selected row's
+// fields are read.
+var resultColumns = []string{"username", "password", "enable_password"}
 
 // load reads and checks the whole file once per backend and caches the
 // table or the classified failure. Every row is checked
@@ -204,8 +201,23 @@ func (b *Backend) read(ctx context.Context, path string) (*table, error) {
 		if err != nil {
 			return nil, invalid(err.Error())
 		}
-		r := row{line: rec.Line, username: strings.TrimSpace(rec.Values["username"]), password: secretCell(rec.Values["password"]), enable: secretCell(rec.Values["enable_password"])}
-		if r.username == "" && r.password == nil && r.enable == nil {
+		// A result cell env:NAME names a variable, whose name is checked
+		// here for every row and read only for the row a device selects;
+		// the message names the column and never the cell, which may be a
+		// password that begins with env:.
+		r := row{line: rec.Line, env: map[string]string{}}
+		for _, column := range resultColumns {
+			name, ref, valid := envindirect.Reference(rec.Values[column])
+			if ref && !valid {
+				return nil, invalid("column " + column + ": env: is not followed by a variable name (letters, digits, and underscores, not beginning with a digit)")
+			}
+			if ref {
+				r.env[column] = name
+				rec.Values[column] = ""
+			}
+		}
+		r.username, r.password, r.enable = strings.TrimSpace(rec.Values["username"]), secretCell(rec.Values["password"]), secretCell(rec.Values["enable_password"])
+		if r.username == "" && r.password == nil && r.enable == nil && len(r.env) == 0 {
 			return nil, invalid("the row has no result: username, password, and enable_password are all blank")
 		}
 		r.label = match.Key()
@@ -268,65 +280,76 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 		return credentials.BackendResult{Outcome: credentials.NotFound}
 	}
 	r := t.rows[i]
-	at := func(column string) string { return fmt.Sprintf("%s:%d %s", t.path, r.line, column) }
-	sources := map[string]credentials.FieldSource{}
 
-	// The username: the cell, or the operator's own name for a blank cell,
-	// as .cloginrc does when no user line matches. The
-	// request's operator name has the backend's operator transform applied.
-	username, usource := r.username, at("username")
-	if username == "" {
-		username, usource = req.Operator.Username, "operator-default"
-	} else if v, name, ok := envindirect.Lookup(username, b.UsernameIndirect, b.LookupEnv); ok {
-		username, usource = v, envindirect.Source(name)
+	// The username: an env: cell's variable, the cell, or the operator's own
+	// name for a blank cell, as .cloginrc does when no user line matches.
+	// The request's operator name has the backend's operator transform
+	// applied.
+	username := r.username
+	if name, ok := r.env["username"]; ok {
+		v, missing := envindirect.Read(name, req.LookupEnv)
+		if missing != "" {
+			return b.envMissing(t, r, "username", missing)
+		}
+		username = v
+	} else if username == "" {
+		username = req.Operator.Username
 	}
-	sources["username"] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: usource}
 
 	// The material is a copy of the row's stored values:
 	// destroying it after the grant is sealed leaves the cached row whole
 	// for the next device.
 	material := &secrets.Material{Username: secrets.New(username)}
-	var err error
-	if material.Password, err = b.secret(r.password, b.PasswordIndirect, "password", at, sources); err == nil {
-		material.EnablePassword, err = b.secret(r.enable, b.EnableIndirect, "enable_password", at, sources)
-	}
-	if err != nil {
-		material.Destroy()
-		return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "credential_material_error", Message: fmt.Sprintf("credential backend %s: %v", b.Rules.BackendName, err)}
+	for _, f := range []struct {
+		column string
+		stored *secrets.Value
+		into   **secrets.Value
+	}{{"password", r.password, &material.Password}, {"enable_password", r.enable, &material.EnablePassword}} {
+		v, missing, err := field(f.stored, r.env[f.column], req.LookupEnv)
+		if err != nil {
+			material.Destroy()
+			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "credential_material_error", Message: fmt.Sprintf("credential backend %s: %v", b.Rules.BackendName, err)}
+		}
+		if missing != "" {
+			material.Destroy()
+			return b.envMissing(t, r, f.column, missing)
+		}
+		*f.into = v
 	}
 	// The evidence says what matched: the row's filled selectors as
 	// written, the file, the line, and the row's key or generated label.
 	// It never names the device, so devices that take one row share one
 	// grant.
-	cred := credentials.Credential{Material: material, Backend: b.Rules.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "csv_row", Pattern: t.matches[i].String(), Source: t.path, Line: r.line, CredKey: r.label}, FieldSources: sources}
+	cred := credentials.Credential{Material: material, Backend: b.Rules.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "csv_row", Pattern: t.matches[i].String(), Source: t.path, Line: r.line, CredKey: r.label}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
 }
 
-// secret copies one stored secret into the answer and records its field
-// source. A blank cell gives an unset value and no source. With the field's
-// indirection flag on, a cell that names a set environment variable is
-// replaced by the variable's value; the name is looked up
-// without the cell's surrounding white space, and a cell that names no set
-// variable stays the literal it is.
-func (b *Backend) secret(stored *secrets.Value, indirect bool, field string, at func(string) string, sources map[string]credentials.FieldSource) (*secrets.Value, error) {
-	if stored == nil {
-		return secrets.New(""), nil
-	}
-	var out *secrets.Value
-	source := at(field)
-	err := stored.WithBytes(func(cell []byte) error {
-		if indirect {
-			if v, name, ok := envindirect.Lookup(strings.TrimSpace(string(cell)), true, b.LookupEnv); ok {
-				out, source = secrets.New(v), envindirect.Source(name)
-				return nil
-			}
+// field is one secret field of the selected row: the value of the variable
+// an env: cell names, read through lookup, or a copy of the stored cell; a
+// blank cell gives an unset value. missing names a variable that gives no
+// value.
+func field(stored *secrets.Value, env string, lookup func(string) (string, bool)) (out *secrets.Value, missing string, err error) {
+	if env != "" {
+		v, missing := envindirect.Read(env, lookup)
+		if missing != "" {
+			return nil, missing, nil
 		}
+		return secrets.New(v), "", nil
+	}
+	if stored == nil {
+		return secrets.New(""), "", nil
+	}
+	err = stored.WithBytes(func(cell []byte) error {
 		out = secrets.NewBytes(cell)
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	sources[field] = credentials.FieldSource{Backend: b.Rules.BackendName, Path: source}
-	return out, nil
+	return out, "", err
+}
+
+// envMissing is the selected row's failure when a variable an env: cell
+// names is unset or empty: credential_env_missing, naming the file, the
+// line, the column, and the variable. The device stops here, as at any
+// failure of the selected row, and never moves on to a later row or backend.
+func (b *Backend) envMissing(t *table, r row, column, missing string) credentials.BackendResult {
+	return credentials.BackendResult{Outcome: credentials.Incomplete, ErrorCode: "credential_env_missing", Message: fmt.Sprintf("credential backend %s: %s:%d %s: %s", b.Rules.BackendName, t.path, r.line, column, missing)}
 }

@@ -40,12 +40,13 @@ func (r PromptRequest) Label() string {
 	}
 }
 
-// InputProvider is the shape of the built-in fallback's input: where it reads
-// NETUSER, NETPASS, and NETENABLE, and how it asks for what is missing. It is
-// local to the submitting client; the daemon supplies none, so a resolver
-// without a provider has no environment and no terminal.
+// InputProvider is the resolver's input: its one lookup of a variable, which
+// the built-in fallback reads for NETUSER, NETPASS, and NETENABLE and every
+// backend reads through its request, and how the fallback asks for what is
+// missing. It is local to the submitting client; the daemon supplies none,
+// so a resolver without a provider has no environment and no terminal.
 type InputProvider interface {
-	LookupEnv(ctx context.Context, name string) (string, bool, error)
+	LookupEnv(name string) (string, bool)
 	Prompt(ctx context.Context, req PromptRequest) (string, error)
 }
 
@@ -53,10 +54,7 @@ type InputProvider interface {
 // provider command, login, and the client planner use.
 type TTYInput struct{}
 
-func (TTYInput) LookupEnv(_ context.Context, name string) (string, bool, error) {
-	v, ok := os.LookupEnv(name)
-	return v, ok, nil
-}
+func (TTYInput) LookupEnv(name string) (string, bool) { return os.LookupEnv(name) }
 
 // Prompt asks on the controlling terminal through the line editor
 // (termline.Prompt): the answer is edited as a stream line is, and Ctrl-C

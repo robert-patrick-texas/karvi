@@ -119,10 +119,10 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	if !uok && !pok && !eok {
 		return credentials.BackendResult{Outcome: credentials.NotFound}
 	}
-	username, usrc := indirect(username, b.UsernameIndirect, "redis:username")
-	password, psrc := indirect(password, b.PasswordIndirect, "redis:password")
-	enable, esrc := indirect(enable, b.EnableIndirect, "redis:enable_password")
-	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "redis-key-digest-not-implemented"}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: b.BackendName, Path: usrc}, "password": {Backend: b.BackendName, Path: psrc}, "enable_password": {Backend: b.BackendName, Path: esrc}}}
+	username = indirect(username, b.UsernameIndirect)
+	password = indirect(password, b.PasswordIndirect)
+	enable = indirect(enable, b.EnableIndirect)
+	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "redis-key-digest-not-implemented"}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
 }
 func (b *Backend) tlsConfig() (*tls.Config, error) {
@@ -233,12 +233,12 @@ func unavailable(err error) credentials.BackendResult {
 func malformed(err error) credentials.BackendResult {
 	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "redis_malformed", Message: err.Error()}
 }
-func indirect(v string, on bool, src string) (string, string) {
+func indirect(v string, on bool) string {
 	if !on {
-		return v, src
+		return v
 	}
 	if x, ok := os.LookupEnv(v); ok {
-		return x, "env:" + v
+		return x
 	}
-	return v, "literal"
+	return v
 }

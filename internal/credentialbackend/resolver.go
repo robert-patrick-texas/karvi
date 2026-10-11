@@ -181,7 +181,7 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 		if result.Outcome != credentials.Success {
 			return credentials.Resolved{}, &Error{Code: defaultString(result.ErrorCode, "credential_backend_error"), Message: result.Message, Backend: name, Policy: p.Name, Retryable: result.Retryable}
 		}
-		resolved, err := r.finalize(result.Credential, name, p.Name, requiredEnable, requirePassword, false)
+		resolved, err := r.finalize(result.Credential, name, p.Name, requiredEnable, requirePassword)
 		if err != nil {
 			return credentials.Resolved{}, err
 		}
@@ -220,7 +220,7 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 	var username, password, enable string
 	source := "builtin-env-fallback"
 	fieldsCredential := func() credentials.Credential {
-		return credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: source, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: source}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: source, Path: source}, "password": {Backend: source, Path: source}, "enable_password": {Backend: source, Path: source}}}
+		return credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: source, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: source}}
 	}
 	// failure is the last source's that found something; incomplete marks
 	// that it was netvars, whose fields make no whole credential, and
@@ -238,11 +238,7 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				name  string
 				field *string
 			}{{"NETUSER", &username}, {"NETPASS", &password}, {"NETENABLE", &enable}} {
-				value, ok, err := r.input.LookupEnv(ctx, v.name)
-				if err != nil {
-					return credentials.Resolved{}, &Error{Code: "credential_prompt_unavailable", Message: err.Error(), Policy: policyName}
-				}
-				if ok {
+				if value, ok := r.lookupEnv(v.name); ok {
 					found = true
 					if *v.field == "" {
 						*v.field = value
@@ -253,7 +249,7 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				continue
 			}
 			if username != "" && password != "" && (enable != "" || !requiredEnable) {
-				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true, true)
+				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true)
 			}
 			// Incomplete: the prompt, when it follows, fills the rest, and
 			// until a later source finds something of its own the fields
@@ -269,7 +265,7 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				return credentials.Resolved{}, err
 			}
 			if username != "" {
-				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true, true)
+				return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true)
 			}
 		case platform.FallbackKeys:
 			if device.Transport == "telnet" {
@@ -281,8 +277,8 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 				failure, incomplete = &Error{Code: "credential_operator_keys_missing", Message: "no key of ssh.identities is usable; examined: " + listOrNone(result.Examined), Policy: policyName}, false
 				continue
 			}
-			cred := credentials.Credential{Material: secrets.NewMaterial(operator.Username, "", ""), Backend: operatorkeys.Backend, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: operatorkeys.Backend}, FieldSources: map[string]credentials.FieldSource{"username": {Backend: operatorkeys.Backend, Path: operatorkeys.Backend}}, Keys: append([]credentials.KeyRef(nil), result.Keys...)}
-			resolved, err := r.finalize(cred, operatorkeys.Backend, policyName, requiredEnable, false, false)
+			cred := credentials.Credential{Material: secrets.NewMaterial(operator.Username, "", ""), Backend: operatorkeys.Backend, Policy: policyName, MatchedOn: credentials.Match{Category: "operator", SafeValue: operator.Username, Source: operatorkeys.Backend}, Keys: append([]credentials.KeyRef(nil), result.Keys...)}
+			resolved, err := r.finalize(cred, operatorkeys.Backend, policyName, requiredEnable, false)
 			if err != nil {
 				return credentials.Resolved{}, err
 			}
@@ -293,7 +289,7 @@ func (r *Resolver) fallback(ctx context.Context, operator credentials.Operator, 
 		}
 	}
 	if incomplete && username != "" {
-		return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true, true)
+		return r.finalize(fieldsCredential(), source, policyName, requiredEnable, true)
 	}
 	if failure != nil {
 		return credentials.Resolved{}, failure
@@ -402,7 +398,7 @@ var emptyAnswerCodes = map[string]string{
 // the row the key names, so it would answer a pin with a credential the
 // pinned row does not describe. A formula over a csv source stays a
 // legitimate answer for the policy's unpinned devices: the row supplies the
-// secrets, literal or through env-indirection, and the template the name.
+// secrets, literal or through an env: cell, and the template the name.
 // An unknown name is not keyed either; for an unpinned device
 // resolveBackend reports it.
 func (r *Resolver) keyed(name string) bool {
@@ -421,6 +417,17 @@ func listOrNone(names []string) string {
 	return strings.Join(names, ", ")
 }
 
+// lookupEnv is the resolver's one lookup of a variable, its input
+// provider's: the built-in fallback reads NETUSER, NETPASS, and NETENABLE
+// through it, and every backend through its request, so a value the
+// provider holds reaches each. Without a provider no variable is set.
+func (r *Resolver) lookupEnv(name string) (string, bool) {
+	if r.input == nil {
+		return "", false
+	}
+	return r.input.LookupEnv(name)
+}
+
 func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, operator credentials.Operator, d inventory.Device) credentials.BackendResult {
 	profile := r.transforms[r.backendProfile[name]]
 	lookup := operator.Username
@@ -431,7 +438,7 @@ func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, op
 	}
 	op := operator
 	op.Username = lookup
-	req := credentials.ResolveRequest{Operator: op, Device: d, Policy: p.Name, UsernameTemplate: p.UsernameTemplate, Now: time.Now()}
+	req := credentials.ResolveRequest{Operator: op, Device: d, Policy: p.Name, UsernameTemplate: p.UsernameTemplate, Now: time.Now(), LookupEnv: r.lookupEnv}
 	if f, ok := r.formulas[name]; ok {
 		source, ok := r.backends[f.PasswordSource]
 		if !ok {
@@ -467,7 +474,7 @@ func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, op
 	return b.Resolve(ctx, req)
 }
 
-func (r *Resolver) finalize(c credentials.Credential, backend, policyName string, requiredEnable, requirePassword, promptable bool) (credentials.Resolved, error) {
+func (r *Resolver) finalize(c credentials.Credential, backend, policyName string, requiredEnable, requirePassword bool) (credentials.Resolved, error) {
 	username, password, enable, err := materialStrings(c.Material)
 	if err != nil {
 		return credentials.Resolved{}, err
@@ -495,7 +502,6 @@ func (r *Resolver) finalize(c credentials.Credential, backend, policyName string
 		c.Material.Destroy()
 		return credentials.Resolved{}, &Error{Code: "credential_enable_missing", Message: "enable password is required by the platform", Backend: backend, Policy: policyName}
 	}
-	_ = promptable
 	c.Backend = backend
 	c.Policy = policyName
 	return credentials.Resolved{Credential: c, DeviceUsername: username}, nil

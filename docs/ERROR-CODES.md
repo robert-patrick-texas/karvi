@@ -255,6 +255,7 @@ Active failure causes.
 | `credential_csv_malformed` | credential | 6 | no | A credential CSV cannot be read as its backend declares it: an unreadable, blank, or duplicate header, a mandatory field with no column, invalid CSV, an overlong line, or a short row; the reader's reason is kept and no cell is quoted. |
 | `credential_csv_row_invalid` | credential | 6 | no | A credential CSV row does not stand: no positive selector, a malformed selector or prefix, an illegal `credkey`, or no result at all (`username`, `password`, and `enable_password` all blank); the message names the line and the column and never the cell. |
 | `credential_enable_missing` | credential | 6 | no | The platform requires an enable password and none was resolved. |
+| `credential_env_missing` | credential | 6 | no | A credential CSV cell `env:NAME` in the row a device selected names a variable that is not set or is empty; the device stops at planning, and the message names the file, the line, the column, and the variable. |
 | `credential_file_mode_unsafe` | credential | 6 | no | A user credential file's mode is not 0600; the message names the backend and the path and gives the `chmod` remedy. |
 | `credential_file_not_regular` | credential | 6 | no | A user or shared credential file's path is not a regular file. |
 | `credential_file_owner_mismatch` | credential | 6 | no | A user credential file is owned by another user. |

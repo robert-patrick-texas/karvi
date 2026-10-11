@@ -105,9 +105,7 @@ type promptOnce struct {
 	failed  map[string]error
 }
 
-func (p *promptOnce) LookupEnv(ctx context.Context, name string) (string, bool, error) {
-	return p.inner.LookupEnv(ctx, name)
-}
+func (p *promptOnce) LookupEnv(name string) (string, bool) { return p.inner.LookupEnv(name) }
 
 func (p *promptOnce) Prompt(ctx context.Context, req credentialbackend.PromptRequest) (string, error) {
 	p.mu.Lock()

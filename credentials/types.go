@@ -55,12 +55,6 @@ type Match struct {
 	CredKey string `json:"credkey,omitempty"`
 }
 
-type FieldSource struct {
-	Backend   string `json:"backend"`
-	Path      string `json:"path"`
-	Transform string `json:"transform,omitempty"`
-}
-
 // Material exposes secrets only inside caller-scoped callbacks. Implementations
 // must not provide String or serialization methods that reveal values.
 type Material interface {
@@ -82,11 +76,10 @@ type KeyRef struct {
 }
 
 type Credential struct {
-	Material     Material               `json:"-"`
-	Backend      string                 `json:"backend"`
-	MatchedOn    Match                  `json:"matched_on"`
-	Policy       string                 `json:"policy"`
-	FieldSources map[string]FieldSource `json:"field_sources"`
+	Material  Material `json:"-"`
+	Backend   string   `json:"backend"`
+	MatchedOn Match    `json:"matched_on"`
+	Policy    string   `json:"policy"`
 	// Keys are the keys the credential offers, in order; a credential
 	// with keys needs no password.
 	Keys []KeyRef `json:"keys,omitempty"`
@@ -108,6 +101,11 @@ type ResolveRequest struct {
 	UsernameTemplate string
 	RequiredEnable   bool
 	Now              time.Time
+	// LookupEnv is the resolver's one lookup of a variable by name, its
+	// input provider's: a backend reads the environment through it alone,
+	// so a value the provider holds reaches every reader. nil reads no
+	// variable.
+	LookupEnv func(name string) (string, bool)
 }
 
 type BackendResult struct {

@@ -22,9 +22,9 @@ type scriptedInput struct {
 	asked   []string
 }
 
-func (s *scriptedInput) LookupEnv(_ context.Context, name string) (string, bool, error) {
+func (s *scriptedInput) LookupEnv(name string) (string, bool) {
 	v, ok := s.env[name]
-	return v, ok, nil
+	return v, ok
 }
 
 func (s *scriptedInput) Prompt(_ context.Context, req PromptRequest) (string, error) {

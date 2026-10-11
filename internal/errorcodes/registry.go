@@ -232,6 +232,7 @@ var entries = []Entry{
 	fallback("credential_resolution_failed", "credential", exitCred, "Credential resolution failed with an error that carries no specific code."),
 	failure("credential_backend_unknown", "credential", exitCred, false, "A credential policy refers to a backend that is not registered."),
 	failure("credential_enable_missing", "credential", exitCred, false, "The platform requires an enable password and none was resolved."),
+	failure("credential_env_missing", "credential", exitCred, false, "A credential CSV cell `env:NAME` in the row a device selected names a variable that is not set or is empty; the device stops at planning, and the message names the file, the line, the column, and the variable."),
 	failure("credential_incomplete", "credential", exitCred, false, "The resolved credential has no username after transforms."),
 	failure("credential_material_error", "credential", exitCred, false, "A formula backend cannot read its password source's credential material."),
 	failure("credential_operator_keys_missing", "credential", exitCred, false, "The platform's fallback reached the operator's keys and none of `ssh.identities` is usable: each file is absent or was skipped (`operator_key_skipped`); the message lists the files examined."),
