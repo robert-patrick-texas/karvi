@@ -134,7 +134,10 @@ func draftOptions(commands []string) DraftOptions {
 // configuration block's new value and its digest; nothing else moved.
 // Re-pinned when name.default-transform, read by nothing, left registry 29:
 // the configuration block's value and its digest; nothing else moved.
-const goldenK03Draft = "fb24041820f696c25080a49de7b07928ad02de67e354f611be05afc3913a000b"
+// Re-pinned when the credential helper's four creds.helper keys joined
+// registry 29: the configuration block's four values and its digest; nothing
+// else moved.
+const goldenK03Draft = "3ed6aa458e23aa989a95322f59506b575f706a7571d68e8e3494fd217e879ff3"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

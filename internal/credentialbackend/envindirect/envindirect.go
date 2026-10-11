@@ -9,7 +9,11 @@
 // their own copies of an older rule, for the credential helper to fold.
 package envindirect
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/robert-patrick-texas/karvi/internal/envname"
+)
 
 const prefix = "env:"
 
@@ -22,22 +26,7 @@ func Reference(cell string) (name string, ref, valid bool) {
 		return "", false, false
 	}
 	name = c[len(prefix):]
-	return name, true, portable(name)
-}
-
-// portable reports whether name is a portable variable name: a letter or an
-// underscore, then letters, digits, and underscores.
-func portable(name string) bool {
-	if name == "" {
-		return false
-	}
-	for i, r := range name {
-		letter := r == '_' || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')
-		if !letter && (i == 0 || r < '0' || r > '9') {
-			return false
-		}
-	}
-	return true
+	return name, true, envname.Portable(name)
 }
 
 // Read gives the value of the variable name through lookup, or, when it

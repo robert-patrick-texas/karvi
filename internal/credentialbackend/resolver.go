@@ -126,7 +126,7 @@ func New(cfg configload.Snapshot, operator credentials.Operator, warn func(strin
 			if err != nil {
 				return nil, err
 			}
-			r.backends[name] = &redisbackend.Backend{BackendName: name, Address: str(d, "address"), Database: intVal(d, "database", 0), KeyTemplate: defaultString(str(d, "key-template"), "karvi:credential:%s"), TLS: boolVal(d, "tls", true), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], AuthUsernameEnv: str(d, "auth-username-env"), AuthPasswordEnv: str(d, "auth-password-env"), Timeout: durationVal(d, "connect-timeout", 2*time.Second), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
+			r.backends[name] = &redisbackend.Backend{BackendName: name, Address: str(d, "address"), Database: intVal(d, "database", 0), KeyTemplate: defaultString(str(d, "key-template"), "karvi:credential:"+credentials.OperatorMacro), TLS: boolVal(d, "tls", true), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], AuthUsernameEnv: str(d, "auth-username-env"), AuthPasswordEnv: str(d, "auth-password-env"), Timeout: durationVal(d, "connect-timeout", 2*time.Second), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
 		case "vault":
 			tls, err := tlsFiles(d, operator.Home)
 			if err != nil {
@@ -437,7 +437,7 @@ func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, op
 	}
 	op := operator
 	op.Username = lookup
-	req := credentials.ResolveRequest{Operator: op, Device: d, Policy: p.Name, UsernameTemplate: p.UsernameTemplate, Now: time.Now(), LookupEnv: r.lookupEnv}
+	req := credentials.ResolveRequest{Operator: op, Device: d, Policy: p.Name, LookupEnv: r.lookupEnv}
 	if f, ok := r.formulas[name]; ok {
 		source, ok := r.backends[f.PasswordSource]
 		if !ok {
@@ -458,7 +458,7 @@ func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, op
 		if tmpl == "" {
 			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "formula_template_missing", Message: "formula username template is empty"}
 		}
-		username := fmt.Sprintf(tmpl, lookup)
+		username := req.Fill(tmpl)
 		result.Credential.Material.Destroy()
 		result.Credential.Material = secrets.NewMaterial(username, pass, enable)
 		result.Credential.Backend = name

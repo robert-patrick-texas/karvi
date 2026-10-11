@@ -41,7 +41,7 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 		b.Mount = "secret"
 	}
 	if b.PathTemplate == "" {
-		b.PathTemplate = "karvi/%s"
+		b.PathTemplate = "karvi/" + credentials.OperatorMacro
 	}
 	if b.UsernameField == "" {
 		b.UsernameField = "username"
@@ -55,11 +55,12 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	if b.Timeout <= 0 {
 		b.Timeout = 5 * time.Second
 	}
+	// The load refuses an address that is not an http:// or https:// URL.
 	base, err := url.Parse(strings.TrimRight(b.Address, "/"))
 	if err != nil {
-		return malformed("vault_address", err)
+		return malformed("vault_request", err)
 	}
-	base.Path = path.Join(base.Path, "v1", b.Mount, "data", fmt.Sprintf(b.PathTemplate, req.Operator.Username))
+	base.Path = path.Join(base.Path, "v1", b.Mount, "data", req.Fill(b.PathTemplate))
 	client, err := b.client()
 	if err != nil {
 		code := errorcodes.Of(err)
@@ -129,10 +130,8 @@ func (b *Backend) client() (*http.Client, error) {
 		}
 		tlsCfg.RootCAs = pool
 	}
+	// The load refuses either file without the other.
 	if b.ClientCertFile != "" || b.ClientKeyFile != "" {
-		if b.ClientCertFile == "" || b.ClientKeyFile == "" {
-			return nil, errorcodes.Errorf("vault_client_cert_key_unpaired", "client certificate and key must be configured together")
-		}
 		cert, err := tls.LoadX509KeyPair(b.ClientCertFile, b.ClientKeyFile)
 		if err != nil {
 			return nil, err

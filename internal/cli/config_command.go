@@ -65,7 +65,7 @@ func configValidate(inv *Invocation, streams app.IO) int {
 		roots = append(roots, inv.Positional[0])
 		skip = true
 	}
-	snap, err := configload.Load(configload.Options{ExplicitRoots: roots, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, SkipAuto: skip})
+	snap, err := configload.Load(configload.Options{ExplicitRoots: roots, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, Operator: op.Username, SkipAuto: skip})
 	if err == nil {
 		app.SayWarnings(g.say, snap)
 		err = transportselect.ValidateConfigured(snap)
@@ -96,7 +96,7 @@ func loadConfigSnapshot(inv *Invocation, stderr io.Writer) (configload.Snapshot,
 	if err != nil {
 		return configload.Snapshot{}, reportError(stderr, "operator_identity_unavailable", err), false
 	}
-	snap, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home})
+	snap, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, Operator: op.Username})
 	if err == nil {
 		app.SayWarnings(g.say, snap)
 		err = transportselect.ValidateConfigured(snap)

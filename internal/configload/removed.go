@@ -98,9 +98,10 @@ var removedKeys = []removedKey{
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
 	// The release after v0.29.0: the daemon's socket file became its socket
 	// directory, the daemon binding d.sock and c.sock in it under names of
-	// its own. The sqlite credential backend type's keys left in the same
-	// release; they are fields of a dynamic table, matched by
-	// removedKeyByPath on any backend (sqliteKeys).
+	// its own. The sqlite credential backend type's keys and the backends'
+	// env-indirection flags left in the same release; they are fields of a
+	// dynamic table, matched by removedKeyByPath on any backend (sqliteKeys,
+	// indirectionKeys).
 	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: nextRelease, code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
 	// The same release: read by nothing, every device carrying the name
 	// transform default when its row and source name none.
@@ -118,14 +119,22 @@ var sqliteKeys = []string{"table", "operator-column", "username-column", "passwo
 
 const sqliteHint = "the sqlite credential backend type had no driver and is removed; nothing read the key"
 
+// indirectionKeys are the env, Redis, and Vault backends' env-indirection
+// flags, refused on any [credential-backend.NAME] table, a csv one included:
+// a Redis or Vault field names a variable as env:NAME, and an env backend's
+// template names its variable (EXAMPLES chapter 56, issue 2).
+var indirectionKeys = []string{"env-indirection.username", "env-indirection.password", "env-indirection.enable-password"}
+
+const indirectionHint = "a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable"
+
 // reviewRelease names the release that carries the configuration review:
 // v0.14.0, set when that number was assigned.
 const reviewRelease = "v0.14.0"
 
 // removedKeyByPath reports the removed key a file or --set names. The
 // per-platform session-cap pattern is matched by its prefix, and the sqlite
-// keys on any backend table by their field, since the registry knew both as
-// dynamic tables and not as fixed paths.
+// and env-indirection keys on any backend table by their field, since the
+// registry knew them as dynamic tables' fields and not as fixed paths.
 func removedKeyByPath(key string) (removedKey, bool) {
 	for _, r := range removedKeys {
 		if r.path == key {
@@ -135,8 +144,13 @@ func removedKeyByPath(key string) (removedKey, bool) {
 	if len(key) > len(platformCapsPrefix) && key[:len(platformCapsPrefix)] == platformCapsPrefix {
 		return removedKey{path: key, removedIn: reviewRelease, code: "config_key_removed", hint: "a device's session cap is its platform definition's, or the inventory row's"}, true
 	}
-	if parts := strings.SplitN(key, ".", 3); len(parts) == 3 && parts[0] == "credential-backend" && parts[1] != "" && contains(sqliteKeys, parts[2]) {
-		return removedKey{path: key, removedIn: nextRelease, code: "config_key_removed", hint: sqliteHint}, true
+	if parts := strings.SplitN(key, ".", 3); len(parts) == 3 && parts[0] == "credential-backend" && parts[1] != "" {
+		switch {
+		case contains(sqliteKeys, parts[2]):
+			return removedKey{path: key, removedIn: nextRelease, code: "config_key_removed", hint: sqliteHint}, true
+		case contains(indirectionKeys, parts[2]):
+			return removedKey{path: key, removedIn: nextRelease, code: "config_key_removed", hint: indirectionHint}, true
+		}
 	}
 	return removedKey{}, false
 }

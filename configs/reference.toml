@@ -606,6 +606,23 @@ interactive-prompt = true
 prompt-for-username = true
 # Masked prompt.
 prompt-for-password = true
+# The credential helper: an executable karvi runs once per invocation that resolves
+# credentials, before any backend is asked, whose export NAME=value lines set values every
+# credential reader finds in place of the process environment's. A name without / is that file
+# beside the running karvi executable, never searched on PATH; any other value is a place (~/
+# the operator's home, a relative path from the working directory). Not empty:
+# creds.helper-enabled = false turns the helper off. A site restricts it by locking the key.
+helper = "karvi-credh"
+# Whether the credential helper runs; --no-credh sets false for one invocation.
+helper-enabled = true
+# An enabled helper that cannot be run (no file at its path, or one the operator cannot
+# execute): skip passes it by silently, warn says why first, fail refuses the invocation
+# (credential_helper_unavailable). A helper present but unsafe, or one that fails, refuses it
+# under any value.
+helper-unavailable = "skip"
+# 1s–1h. How long the helper may run; then SIGTERM, two seconds on SIGKILL, and
+# credential_helper_failed.
+helper-timeout = "2m"
 
 [tabular]
 # 1 KiB–64 MiB; over-limit is hard file error.

@@ -5,7 +5,7 @@ package credentials
 
 import (
 	"context"
-	"time"
+	"strings"
 
 	"github.com/robert-patrick-texas/karvi/inventory"
 )
@@ -95,17 +95,27 @@ type Notice struct {
 }
 
 type ResolveRequest struct {
-	Operator         Operator
-	Device           inventory.Device
-	Policy           string
-	UsernameTemplate string
-	RequiredEnable   bool
-	Now              time.Time
+	Operator Operator
+	Device   inventory.Device
+	Policy   string
 	// LookupEnv is the resolver's one lookup of a variable by name, its
 	// input provider's: a backend reads the environment through it alone,
 	// so a value the provider holds reaches every reader. nil reads no
 	// variable.
 	LookupEnv func(name string) (string, bool)
+}
+
+// OperatorMacro is the placeholder a backend's template holds for the
+// operator's name: the configuration's built-in macro %operator%, which its
+// load keeps as written in a backend's templates and a policy's
+// username-template.
+const OperatorMacro = "%operator%"
+
+// Fill is template with every OperatorMacro replaced, as text, by the name
+// the request carries, the operator's after the backend's transform; a
+// template without one is used as written.
+func (r ResolveRequest) Fill(template string) string {
+	return strings.ReplaceAll(template, OperatorMacro, r.Operator.Username)
 }
 
 type BackendResult struct {

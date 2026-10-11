@@ -254,10 +254,10 @@ func TestCredKeyRefPin(t *testing.T) {
 	resolve := func(t *testing.T, d inventory.Device, sequence string) (credentials.Resolved, error) {
 		t.Helper()
 		sets := []string{"creds.interactive-prompt=false",
-			`credential-backend.operator-env.type="env"`, `credential-backend.operator-env.username-var-template="KARVI_%s_USERNAME"`, `credential-backend.operator-env.password-var-template="KARVI_%s_PASSWORD"`,
+			`credential-backend.operator-env.type="env"`, `credential-backend.operator-env.username-var-template="KARVI_%operator%_USERNAME"`, `credential-backend.operator-env.password-var-template="KARVI_%operator%_PASSWORD"`,
 			`credential-backend.first.type="csv"`, `credential-backend.first.scope="user"`, `credential-backend.first.path="` + first + `"`,
 			`credential-backend.second.type="csv"`, `credential-backend.second.scope="user"`, `credential-backend.second.path="` + second + `"`,
-			`credential-backend.shaped.type="formula"`, `credential-backend.shaped.username-template="%s-adm"`, `credential-backend.shaped.password-source="first"`,
+			`credential-backend.shaped.type="formula"`, `credential-backend.shaped.username-template="%operator%-adm"`, `credential-backend.shaped.password-source="first"`,
 			`creds.backend-sequence=` + sequence}
 		cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: os.Environ(), Sets: sets})
 		if err != nil {

@@ -31,11 +31,8 @@ type Backend struct {
 func (b *Backend) Name() string                { return b.BackendName }
 func (*Backend) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
 func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) credentials.BackendResult {
-	if b.Address == "" {
-		return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "redis_address_missing", Message: "Redis address is required"}
-	}
 	if b.KeyTemplate == "" {
-		b.KeyTemplate = "karvi:credential:%s"
+		b.KeyTemplate = "karvi:credential:" + credentials.OperatorMacro
 	}
 	if b.Timeout <= 0 {
 		b.Timeout = 2 * time.Second
@@ -86,7 +83,7 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "redis_select_failed", Message: err.Error()}
 		}
 	}
-	key := fmt.Sprintf(b.KeyTemplate, req.Operator.Username)
+	key := req.Fill(b.KeyTemplate)
 	reply, err := command(rw, "HGETALL", key)
 	if err != nil {
 		if code := errorcodes.Of(err); code != "" {
@@ -141,10 +138,8 @@ func (b *Backend) tlsConfig() (*tls.Config, error) {
 		}
 		cfg.RootCAs = pool
 	}
+	// The load refuses either file without the other.
 	if b.ClientCertFile != "" || b.ClientKeyFile != "" {
-		if b.ClientCertFile == "" || b.ClientKeyFile == "" {
-			return nil, errorcodes.Errorf("redis_client_cert_key_unpaired", "client certificate and key must be paired")
-		}
 		cert, err := tls.LoadX509KeyPair(b.ClientCertFile, b.ClientKeyFile)
 		if err != nil {
 			return nil, err

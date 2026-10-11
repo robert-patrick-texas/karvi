@@ -128,9 +128,9 @@ func TestCredentialCSVBackendKeys(t *testing.T) {
 		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.mode="header"`}, "config_credential_backend_key_unsupported"},
 		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.mandatory-fields=["username"]`}, "config_credential_backend_key_unsupported"},
 		{[]string{`credential-backend.e.type="env"`, `credential-backend.e.mappings.username="login"`}, "config_credential_backend_key_unsupported"},
-		// A csv backend takes no env-indirection key: a cell names a variable
-		// as env:NAME.
-		{user(`credential-backend.creds.env-indirection.password=true`), "config_credential_backend_key_unsupported"},
+		// No backend takes an env-indirection key, a csv one included: a
+		// cell names a variable as env:NAME (EXAMPLES chapter 56, issue 2).
+		{user(`credential-backend.creds.env-indirection.password=true`), "config_key_removed"},
 	} {
 		_, err := load(tc.sets...)
 		if got := errorcodes.Of(err); got != tc.code {

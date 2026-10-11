@@ -127,14 +127,16 @@ Active failure causes.
 | `config_audit_disabled` | config | 2 | no | `audit.enabled` is false; auditing cannot be disabled. |
 | `config_audit_file_required_missing` | config | 2 | no | `audit.file-required` is true but `audit.file` is empty. |
 | `config_builtin_default_invalid` | internal | 1 | no | A built-in configuration default cannot be parsed. |
+| `config_credential_backend_address_invalid` | config | 2 | no | A Redis or Vault credential backend's `address` is missing or malformed: Redis's is `host:port`, Vault's an `http://` or `https://` URL with a host. |
 | `config_credential_backend_delimiter_invalid` | config | 2 | no | A `csv` credential backend's `delimiter` is not exactly one character. |
-| `config_credential_backend_key_unsupported` | config | 2 | no | A key is set on a credential backend whose type does not read it; the message names the types that read it, and on a `csv` backend an `env-indirection` key says that a cell names a variable as `env:NAME`. |
+| `config_credential_backend_key_unsupported` | config | 2 | no | A key is set on a credential backend whose type does not read it, or whose other keys leave it unread: Redis's `auth-username-env` without `auth-password-env`, a client certificate without its key or the reverse, a TLS file or `tls-verify` under Redis's `tls = false` or with a Vault address that is not `https://`, and `ca-file` under `tls-verify = false`; the message names the types that read the key, or what it needs. |
 | `config_credential_backend_path_missing` | config | 2 | no | A `csv` credential backend has no `path`; the type has no default path. |
 | `config_credential_backend_scope_missing` | config | 2 | no | A `csv` credential backend does not declare `scope`; only `cloginrc` defaults to `user`. |
 | `config_credential_backend_shared_optional` | config | 2 | no | A shared-scope credential backend sets `required = false`; a shared file is always required. |
 | `config_credential_backend_shared_path_relative` | config | 2 | no | A shared-scope credential backend's `path` is missing or not absolute. |
 | `config_credential_backend_type_missing` | config | 2 | no | A `credential-backend` table has no `type`. |
 | `config_credential_backend_type_unsupported` | config | 2 | no | A `credential-backend` table names an unsupported `type`. |
+| `config_credential_backend_variable_invalid` | config | 2 | no | A credential backend names a variable that is not a portable variable name (letters, digits, and underscores, not beginning with a digit): Redis's `auth-username-env` or `auth-password-env`, Vault's `token-env`, or an `env` backend's template with each `%operator%` standing for a letter; the message quotes the value. |
 | `config_credential_formula_source_invalid` | config | 2 | no | A formula backend's `password-source` is empty or names the backend itself. |
 | `config_credential_formula_source_unknown` | config | 2 | no | A formula backend's `password-source` names a backend that does not exist. |
 | `config_credential_policy_backend_unknown` | config | 2 | no | A credential policy's `backend-sequence` names a backend that does not exist. |
@@ -188,6 +190,7 @@ Active failure causes.
 | `config_lock_violation` | config | 3 | no | A lower-authority layer writes a locked key. |
 | `config_lock_zero_coverage` | config | 2 | no | A lock pattern matches no configured or registered key. |
 | `config_macro_cycle` | config | 2 | no | Macros reference each other in a cycle. |
+| `config_macro_name_reserved` | config | 2 | no | The `[macros]` table defines `operator`, the built-in macro holding the operator's login name. |
 | `config_macro_scalar_type` | config | 2 | no | A list or table macro is referenced inside scalar text. |
 | `config_macro_undefined` | config | 2 | no | A value references a macro that is not defined. |
 | `config_match_rule_cidr_invalid` | config | 2 | no | A match rule's `address-cidr` is not a valid CIDR prefix. |
@@ -507,11 +510,9 @@ Active failure causes.
 | `record_session_init_profile_missing` | internal | 1 | no | A `session_init` command record's `session_init_profile` is empty or `none`. |
 | `record_status_invalid` | internal | 1 | no | A command record's status is not a terminal status. |
 | `record_stderr_encoding_invalid` | internal | 1 | no | An exec record's stderr encoding is not `utf-8` or `base64`. |
-| `redis_address_missing` | credential | 6 | no | A Redis credential backend has no address. |
 | `redis_auth_failed` | credential | 6 | no | The Redis server rejects the configured authentication. |
 | `redis_auth_missing` | credential | 6 | no | The Redis authentication environment variable is not set. |
 | `redis_ca_file_empty` | credential | 6 | no | The Redis CA file contains no certificates. |
-| `redis_client_cert_key_unpaired` | credential | 6 | no | Only one of the Redis client certificate and key is configured. |
 | `redis_command_rejected` | credential | 6 | no | The Redis server returns an error reply to the credential read. |
 | `redis_malformed` | credential | 6 | no | The Redis `HGETALL` reply is not a flat array of bulk strings. |
 | `redis_protocol_error` | credential | 6 | no | A Redis reply violates the RESP format or karvi's size limits. |
@@ -614,9 +615,7 @@ Active failure causes.
 | `transport_selector_invalid` | config | 8 | no | A transport selector from the command line or inventory is not a valid slot name. |
 | `transport_system_executable_unavailable` | dependency | 8 | no | The `system` transport slot maps to an OpenSSH executable that cannot be found. |
 | `transport_unavailable` | dependency | 8 | no | Unclassified. Transport selection failed with an error that carries no specific code. |
-| `vault_address` | credential | 6 | no | The Vault address is not a valid URL. |
 | `vault_ca_file_empty` | credential | 6 | no | The Vault CA file contains no certificates. |
-| `vault_client_cert_key_unpaired` | credential | 6 | no | Only one of the Vault client certificate and key is configured. |
 | `vault_http_error` | credential | 6 | no | Vault returns a non-success HTTP status other than 404. |
 | `vault_read` | credential | 6 | no | The Vault response body cannot be read. |
 | `vault_request` | credential | 6 | no | The Vault HTTP request cannot be constructed. |
@@ -774,6 +773,8 @@ No longer emitted. A retired code is never reused for another cause.
 | `native_response_nil` | v0.11.0 to v0.17.0 | `command_session_lost` | scrapligo's network driver returned no response; no longer used. |
 | `native_session_closed` | v0.11.0 to v0.17.0 | `command_session_lost` | A command was sent on a closed native session; the device session refuses it. |
 | `output_no_space` | v0.10.0 (catalog name) | `output_preflight_space` | Output file system full. |
+| `redis_address_missing` | v0.30.0 | `config_credential_backend_address_invalid` | A Redis credential backend had no address, found when a device reached it; the address is required and checked when the configuration loads. |
+| `redis_client_cert_key_unpaired` | v0.30.0 | `config_credential_backend_key_unsupported` | Only one of a Redis backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread. |
 | `run_output_render_failed` | v0.11.0 to v0.17.0 | `terminal_write_failed` | `run --no-daemon` rendered the completed job from `commands.jsonl` and could fail to; it now renders each record from memory as `command` does, and a display that cannot be written is the code below. |
 | `sqlite_backend_unavailable` | v0.30.0 | `config_credential_backend_type_unsupported`, `config_key_removed` | A SQLite credential backend was configured, and the build had no SQLite driver; the `sqlite` type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed. |
 | `ssh_legacy_host_pattern_all_hosts` | v0.11.0 to v0.17.0 | `config_ssh_legacy_hosts_removed`, `config_ssh_algorithms_map_catch_all` | A legacy or ancient SSH host pattern matched every host; the two keys are removed. |
@@ -793,3 +794,5 @@ No longer emitted. A retired code is never reused for another cause.
 | `transport_request_port_invalid` | v0.11.0 to v0.17.0 | `execution_target_invalid` | A transport open request's port is outside 0..65535. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `transport_request_username_missing` | v0.11.0 to v0.17.0 | `credential_username_missing` | A transport open request has no username. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `tty_unavailable` | v0.10.0 (catalog name) | `credential_prompt_unavailable` | No terminal for a credential prompt. |
+| `vault_address` | v0.30.0 | `config_credential_backend_address_invalid` | A Vault credential backend's address was not a valid URL, found when a device reached it; the address is required and checked when the configuration loads. |
+| `vault_client_cert_key_unpaired` | v0.30.0 | `config_credential_backend_key_unsupported` | Only one of a Vault backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread. |

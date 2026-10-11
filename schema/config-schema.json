@@ -2669,6 +2669,67 @@
       "since": "0.2.0"
     },
     {
+      "path": "creds.helper",
+      "kind": "string",
+      "default_literal": "\"karvi-credh\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__CREDS__HELPER",
+      "cli_flags": null,
+      "place": true,
+      "beside_executable": true,
+      "documentation": "The credential helper: an executable karvi runs once per invocation that resolves credentials, before any backend is asked, whose `export NAME=value` lines set values every credential reader finds in place of the process environment's. A name without `/` is that file beside the running karvi executable, never searched on `PATH`; any other value is a place (`~/` the operator's home, a relative path from the working directory). Not empty: `creds.helper-enabled = false` turns the helper off. A site restricts it by locking the key.",
+      "since": "0.2.0"
+    },
+    {
+      "path": "creds.helper-enabled",
+      "kind": "boolean",
+      "default_literal": "true",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__CREDS__HELPER_ENABLED",
+      "cli_flags": null,
+      "documentation": "Whether the credential helper runs; `--no-credh` sets false for one invocation.",
+      "since": "0.2.0"
+    },
+    {
+      "path": "creds.helper-unavailable",
+      "kind": "enum",
+      "default_literal": "\"skip\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__CREDS__HELPER_UNAVAILABLE",
+      "cli_flags": null,
+      "enum": [
+        "skip",
+        "warn",
+        "fail"
+      ],
+      "documentation": "An enabled helper that cannot be run (no file at its path, or one the operator cannot execute): `skip` passes it by silently, `warn` says why first, `fail` refuses the invocation (`credential_helper_unavailable`). A helper present but unsafe, or one that fails, refuses it under any value.",
+      "since": "0.2.0"
+    },
+    {
+      "path": "creds.helper-timeout",
+      "kind": "duration",
+      "default_literal": "\"2m\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__CREDS__HELPER_TIMEOUT",
+      "cli_flags": null,
+      "min": "1s",
+      "max": "1h",
+      "documentation": "1s–1h. How long the helper may run; then SIGTERM, two seconds on SIGKILL, and `credential_helper_failed`.",
+      "since": "0.2.0"
+    },
+    {
       "path": "tabular.max-physical-line-bytes",
       "kind": "integer",
       "default_literal": "1048576",
@@ -2807,6 +2868,11 @@
     "@include"
   ],
   "enums": {
+    "creds.helper-unavailable": [
+      "skip",
+      "warn",
+      "fail"
+    ],
     "crun.directory-mode": [
       "0750",
       "0755",
@@ -3078,6 +3144,7 @@
     "config_audit_disabled",
     "config_audit_file_required_missing",
     "config_builtin_default_invalid",
+    "config_credential_backend_address_invalid",
     "config_credential_backend_delimiter_invalid",
     "config_credential_backend_key_unsupported",
     "config_credential_backend_path_missing",
@@ -3086,6 +3153,7 @@
     "config_credential_backend_shared_path_relative",
     "config_credential_backend_type_missing",
     "config_credential_backend_type_unsupported",
+    "config_credential_backend_variable_invalid",
     "config_credential_formula_source_invalid",
     "config_credential_formula_source_unknown",
     "config_credential_policy_backend_unknown",
@@ -3139,6 +3207,7 @@
     "config_lock_violation",
     "config_lock_zero_coverage",
     "config_macro_cycle",
+    "config_macro_name_reserved",
     "config_macro_scalar_type",
     "config_macro_undefined",
     "config_match_rule_cidr_invalid",

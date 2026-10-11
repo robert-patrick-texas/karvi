@@ -83,14 +83,14 @@ path = "~/.cloginrc"
 # path = "/etc/karvi/credentials/cloginrc"
 
 # The environment, last: the templates below with the operator's login name
-# in %s (KARVI_netops_USERNAME for the operator netops), one credential for
-# every device this backend serves; then the built-in NETUSER, NETPASS, and
-# NETENABLE (docs/OPERATIONS.md, "The environment backend").
+# in %operator% (KARVI_netops_USERNAME for the operator netops), one
+# credential for every device this backend serves; then the built-in NETUSER,
+# NETPASS, and NETENABLE (docs/OPERATIONS.md, "The environment backend").
 [credential-backend.operator-env]
 type = "env"
-username-var-template = "KARVI_%s_USERNAME"
-password-var-template = "KARVI_%s_PASSWORD"
-enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
+username-var-template = "KARVI_%operator%_USERNAME"
+password-var-template = "KARVI_%operator%_PASSWORD"
+enable-var-template = "KARVI_%operator%_ENABLE_PASSWORD"
 
 # The policy every device takes (the map's name = "*" rule): the CSV first,
 # then the environment. A device pinned by credkeyref takes only the CSV row

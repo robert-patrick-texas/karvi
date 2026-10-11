@@ -69,10 +69,22 @@ type Entry struct {
 	// operator's home, a relative path from the working directory) unless it
 	// is empty or one of the words, so a value means the same place to every
 	// process that reads it (internal/configload/places.go).
-	Place         bool     `json:"place,omitempty"`
-	Words         []string `json:"words,omitempty"`
-	Documentation string   `json:"documentation"`
-	Since         string   `json:"since"`
+	Place bool     `json:"place,omitempty"`
+	Words []string `json:"words,omitempty"`
+	// BesideExecutable marks a Place whose value without a `/` (and not
+	// beginning with `~`) is a file's name in the running karvi executable's
+	// directory, kept as written at the load and never searched on PATH
+	// (creds.helper). BareName says which values those are.
+	BesideExecutable bool   `json:"beside_executable,omitempty"`
+	Documentation    string `json:"documentation"`
+	Since            string `json:"since"`
+}
+
+// BareName reports whether value, of key, is a name kept as written: key
+// marked BesideExecutable and value without a `/`, not beginning with `~`.
+func BareName(key, value string) bool {
+	e, ok := entryIndex()[key]
+	return ok && e.BesideExecutable && value != "" && !strings.Contains(value, "/") && !strings.HasPrefix(value, "~")
 }
 
 // DynamicTable is a table of named or indexed rows; Places names the row's
@@ -118,6 +130,7 @@ var enumValues = map[string][]string{
 	// has no "auto or a number" kind, and true/false exist only as the
 	// boolean kind, so the three-way switch is this enum.
 	"freecheck":                     {"auto", "always", "never"},
+	"creds.helper-unavailable":      {"skip", "warn", "fail"},
 	"display.colors.success":        colorValues,
 	"display.colors.warning":        colorValues,
 	"display.colors.error":          colorValues,
@@ -315,11 +328,11 @@ func CredentialCSVFields() []string {
 // and validation refuses a key its table's type does not read
 // (config_credential_backend_key_unsupported).
 var backendTypeKeys = map[string][]string{
-	"env":      {"username-var-template", "password-var-template", "enable-var-template", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password"},
+	"env":      {"username-var-template", "password-var-template", "enable-var-template"},
 	"cloginrc": {"scope", "path", "required"},
 	"csv":      {"scope", "path", "required", "mode", "delimiter", "mandatory-fields"},
-	"redis":    {"address", "database", "key-template", "tls", "ca-file", "client-cert-file", "client-key-file", "auth-username-env", "auth-password-env", "connect-timeout", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password"},
-	"vault":    {"address", "namespace", "mount", "path-template", "token-env", "ca-file", "client-cert-file", "client-key-file", "connect-timeout", "username-field", "password-field", "enable-field", "env-indirection.username", "env-indirection.password", "env-indirection.enable-password"},
+	"redis":    {"address", "database", "key-template", "tls", "tls-verify", "ca-file", "client-cert-file", "client-key-file", "auth-username-env", "auth-password-env", "connect-timeout"},
+	"vault":    {"address", "namespace", "mount", "path-template", "token-env", "tls-verify", "ca-file", "client-cert-file", "client-key-file", "connect-timeout", "username-field", "password-field", "enable-field"},
 	"formula":  {"username-template", "password-source"},
 }
 

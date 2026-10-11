@@ -13,9 +13,11 @@ import (
 // absolute, the load's last change before its digest: `~` the operator's
 // home and a relative path from the working directory, by absolutePath,
 // so `config show` prints the place a job records and a
-// process in another working directory reads the same one. An empty value
-// and the key's words (auto, none) stay as written, as does every element of
-// a list that is not a string. Validation has judged the values as written.
+// process in another working directory reads the same one. An empty value,
+// the key's words (auto, none), and a bare name of a key whose names are
+// files beside the executable (creds.helper) stay as written, as does every
+// element of a list that is not a string. Validation has judged the values
+// as written.
 func (l *loader) absolutePlaces() error {
 	keys := make([]string, 0, len(l.snap.Values))
 	for k := range l.snap.Values {
@@ -28,6 +30,9 @@ func (l *loader) absolutePlaces() error {
 			continue
 		}
 		v := l.snap.Values[key]
+		if s, ok := v.Data.(string); ok && configschema.BareName(key, s) {
+			continue
+		}
 		data, err := absolutePlace(v.Data, words, l.home)
 		if err != nil {
 			return l.semanticErr("config_working_directory_unavailable", key, err)

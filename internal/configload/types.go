@@ -81,8 +81,11 @@ type Options struct {
 	FlagValues    map[string]FlagValue
 	Sets          []string
 	HomeDir       string
-	SkipAuto      bool
-	InternalOnly  bool
+	// Operator is the operator's login name, the value of the built-in
+	// macro %operator%; empty, the password database's (as for HomeDir).
+	Operator     string
+	SkipAuto     bool
+	InternalOnly bool
 }
 
 // Error carries a stable configuration error code suitable for CLI mapping.

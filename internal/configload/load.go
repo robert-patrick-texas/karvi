@@ -19,6 +19,7 @@ type loader struct {
 	snap      Snapshot
 	inc       includeState
 	home      string
+	operator  string // the operator's login name, %operator%'s value
 	arrayNext map[string]int
 }
 
@@ -28,8 +29,9 @@ type loader struct {
 // them. Its Snapshot takes an invocation's options and --set over it, as
 // often as a stream has jobs, without reading again.
 type Reading struct {
-	snap Snapshot
-	home string
+	snap     Snapshot
+	home     string
+	operator string
 }
 
 // Load builds and validates an immutable configuration snapshot: the
@@ -45,16 +47,16 @@ func Load(opts Options) (Snapshot, error) {
 // Read reads the configuration's files and environment as opts names them;
 // opts' FlagValues and Sets are the Snapshot's.
 func Read(opts Options) (Reading, error) {
-	home := opts.HomeDir
-	if home == "" {
+	home, operator := opts.HomeDir, opts.Operator
+	if home == "" || operator == "" {
 		if u, err := user.Current(); err == nil {
-			home = u.HomeDir
+			home = defaultTo(home, u.HomeDir)
+			operator = defaultTo(operator, u.Username)
 		}
 	}
-	if home == "" {
-		home = os.Getenv("HOME")
-	}
-	l := &loader{snap: Snapshot{Values: map[string]Value{}}, inc: includeState{seen: map[string]SourceRef{}}, home: home, arrayNext: map[string]int{}}
+	home = defaultTo(home, os.Getenv("HOME"))
+	operator = defaultTo(operator, os.Getenv("USER"))
+	l := &loader{snap: Snapshot{Values: map[string]Value{}}, inc: includeState{seen: map[string]SourceRef{}}, home: home, operator: operator, arrayNext: map[string]int{}}
 	if err := l.loadDefaults(); err != nil {
 		return Reading{}, err
 	}
@@ -102,14 +104,14 @@ func Read(opts Options) (Reading, error) {
 	if err := l.mergeEnvironment(env); err != nil {
 		return Reading{}, err
 	}
-	return Reading{snap: l.snap, home: home}, nil
+	return Reading{snap: l.snap, home: home, operator: operator}, nil
 }
 
 // Snapshot builds and validates the reading's snapshot under flags, an
 // invocation's options by key, and sets, its --set in order. The reading is
 // left as it was, so every call is independent of the others.
 func (r Reading) Snapshot(flags map[string]FlagValue, sets []string) (Snapshot, error) {
-	l := &loader{snap: r.snap.own(), home: r.home}
+	l := &loader{snap: r.snap.own(), home: r.home, operator: r.operator}
 	keys := make([]string, 0, len(flags))
 	for k := range flags {
 		keys = append(keys, k)
@@ -152,6 +154,14 @@ func (r Reading) Snapshot(flags map[string]FlagValue, sets []string) (Snapshot, 
 	sum := sha256.Sum256(raw)
 	l.snap.Digest = hex.EncodeToString(sum[:])
 	return l.snap, nil
+}
+
+// defaultTo is s, or d when s is empty.
+func defaultTo(s, d string) string {
+	if s == "" {
+		return d
+	}
+	return s
 }
 
 func (l *loader) loadDefaults() error {

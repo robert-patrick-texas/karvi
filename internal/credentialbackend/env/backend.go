@@ -4,7 +4,6 @@ package env
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -24,9 +23,9 @@ type Backend struct {
 func (b *Backend) Name() string                { return b.BackendName }
 func (*Backend) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
 func (b *Backend) Resolve(_ context.Context, req credentials.ResolveRequest) credentials.BackendResult {
-	userVar := format(b.UsernameTemplate, req.Operator.Username)
-	passVar := format(b.PasswordTemplate, req.Operator.Username)
-	enableVar := format(b.EnableTemplate, req.Operator.Username)
+	userVar := req.Fill(b.UsernameTemplate)
+	passVar := req.Fill(b.PasswordTemplate)
+	enableVar := req.Fill(b.EnableTemplate)
 	username, uok := lookup(userVar)
 	password, pok := lookup(passVar)
 	enable, eok := lookup(enableVar)
@@ -39,23 +38,6 @@ func (b *Backend) Resolve(_ context.Context, req credentials.ResolveRequest) cre
 	material := secrets.NewMaterial(username, password, enable)
 	cred := credentials.Credential{Material: material, Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "environment"}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
-}
-func format(t, key string) string {
-	if t == "" {
-		return ""
-	}
-	if containsPercent(t) {
-		return fmt.Sprintf(t, key)
-	}
-	return t
-}
-func containsPercent(s string) bool {
-	for i := 0; i < len(s)-1; i++ {
-		if s[i] == '%' && s[i+1] == 's' {
-			return true
-		}
-	}
-	return false
 }
 func lookup(name string) (string, bool) {
 	if name == "" {

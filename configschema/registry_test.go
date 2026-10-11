@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestPlace: the registry marks as paths the thirteen fixed string keys,
+// TestPlace: the registry marks as paths the fourteen fixed string keys,
 // the list ssh.identities, and the dynamic tables' file fields, each with
 // its words; an executable specification and a field beside a file are not
 // paths.
@@ -18,7 +18,7 @@ func TestPlace(t *testing.T) {
 		}
 	}
 	sort.Strings(marked)
-	want := []string{"audit.file", "basedir", "crun.directory", "daemon.sockets", "output.root", "scoreboards", "sessions.shared-capacity-root", "sharedroot", "spooldir", "ssh.control-path-root", "ssh.identities", "ssh.known-hosts-file", "tempdir", "transcript.root"}
+	want := []string{"audit.file", "basedir", "creds.helper", "crun.directory", "daemon.sockets", "output.root", "scoreboards", "sessions.shared-capacity-root", "sharedroot", "spooldir", "ssh.control-path-root", "ssh.identities", "ssh.known-hosts-file", "tempdir", "transcript.root"}
 	if !reflect.DeepEqual(marked, want) {
 		t.Errorf("marked %v, want %v", marked, want)
 	}
@@ -41,6 +41,40 @@ func TestPlace(t *testing.T) {
 	for _, key := range []string{"ssh.transports.system", "credential-backend.x.type", "credential-backend.x.path-template", "inventory-source.0.name", "inventory-source.path", "timezone"} {
 		if _, ok := Place(key); ok {
 			t.Errorf("%s: marked as a path", key)
+		}
+	}
+}
+
+// TestBareName is EXAMPLES chapter 56, issue 9: creds.helper alone is a
+// place whose value without a slash names a file beside the executable,
+// kept as written; ~ and every value with a slash are places.
+func TestBareName(t *testing.T) {
+	var marked []string
+	for _, e := range Entries() {
+		if e.BesideExecutable {
+			marked = append(marked, e.Path)
+		}
+	}
+	if !reflect.DeepEqual(marked, []string{"creds.helper"}) {
+		t.Errorf("marked %v", marked)
+	}
+	for _, tc := range []struct {
+		key, value string
+		bare       bool
+	}{
+		{"creds.helper", "karvi-credh", true},
+		{"creds.helper", "credh", true},
+		{"creds.helper", "./credh", false},
+		{"creds.helper", "lib/credh", false},
+		{"creds.helper", "/usr/local/lib/karvi/credh", false},
+		{"creds.helper", "~/bin/credh", false},
+		{"creds.helper", "~", false},
+		{"creds.helper", "~other", false},
+		{"creds.helper", "", false},
+		{"audit.file", "audit.jsonl", false},
+	} {
+		if got := BareName(tc.key, tc.value); got != tc.bare {
+			t.Errorf("%s = %q: bare %v, want %v", tc.key, tc.value, got, tc.bare)
 		}
 	}
 }

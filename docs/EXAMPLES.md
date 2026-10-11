@@ -9550,7 +9550,7 @@ executable's checks, environment, timeout, standard error, and exit, and its
 configuration beside the helper protocols operators know; and, found while
 designing them or at the operator's word, refusals said without colour at a
 terminal, the operator-keyed stores' answers read once and held, and TLS to the
-stores.
+stores; and, found while building, an empty value.
 
 **Issue 1, the reads on the one lookup and `%operator%`, agreed.** On the lab
 build, with the flags off: the env backend answers when any of its variables is
@@ -10110,3 +10110,50 @@ the host's trust, as today (any CA the host trusts vouching for the store); no
 way to skip verification; a warning under `tls-verify = false` or plain text; a
 permission check on the client key (a site's machine credential as often as a
 user's).
+
+**Issue 17, found while building S1: an empty value, agreed.** On the lab builds
+of `9b722da` and of S1, a Vault backend whose `mount`, `path-template`,
+`namespace`, and three field names were each `""` validated and read
+`/v1/secret/data/karvi/netops`, every one silently its default; Redis's
+`key-template = ""` read `karvi:credential:netops`; and Redis's `ca-file` and
+client pair at `""` validated, the run trusting the host's CAs and presenting no
+certificate. At the operator's questions, on the lab build of S1: a setting is
+left undefined by leaving its key out, TOML having no null, a fixed key then
+taking its built-in default (`config show`'s source `<builtin>`) and a backend's
+key the default its backend gives it, a value (Vault's `mount`, `secret`) or
+none (Vault's `namespace`); with no configuration file karvi runs on its
+built-in defaults, with no backend table, `creds.helper` is `karvi-credh`,
+passed by silently under `skip` when absent, so no default gives `""` and an
+empty value is always written; `auto` is karvi's word where it computes a place
+from a chain, `none` is `sharedroot`'s for consulting nothing, `default` names a
+table, a policy, an order, or a colour, and `""` is already none where a key's
+default is none (`audit.file`, a display template); a default is never judged, a
+Redis backend under `tls = false` or a Vault one at an `http://` address with
+nothing else written being valid; and a `ca-file` naming a file without TLS is
+refused (issue 3). Layers merge a backend's table key by key: a second file set
+`namespace = ""` and `ca-file = ""` over a first file's values and could not
+remove either key, so `""` is the only way a later layer, or `--set`, says none
+over an earlier one's value, where a key whose default is a value restores it by
+writing it (`mount = "secret"`). A key whose default is none takes `""` as that
+none, the same as the key left out and never a key left unread (issue 3): the
+env backend's three templates; Redis's `ca-file`, `client-cert-file`,
+`client-key-file`, `auth-username-env`, and `auth-password-env`; and Vault's
+`namespace`, `ca-file`, and client pair. `ca-file = ""` under `tls = false`
+passes, and a client certificate beside `client-key-file = ""` is refused for
+want of its key. This amends issue 4, which refused `""` for
+`auth-username-env`, `auth-password-env`, and the env templates. A key whose
+default is a value refuses `""`, its own value spelling the default: Vault's
+`mount`, `path-template`, `username-field`, `password-field`, and
+`enable-field`, Redis's `key-template`, `transform` on the three types, and
+`creds.helper`, whose off switch is `creds.helper-enabled = false`; the refusal
+is `config_type_error` (exit 2), `must not be empty`, when the configuration
+loads; `token-env` keeps issue 4's code and `address` its own. A written value,
+the default's included, is a setting like any other, judged by issues 3 and 16:
+`tls-verify = true` under `tls = false` or with an `http://` address stays
+refused, at the operator's word, the written `true` claiming a verification the
+plain connection never makes, where left out it claims nothing. *Not taken:* a
+word `none` (a new spelling, and one a value may hold); `""` refused on every
+key (a later layer unable to undo an earlier one's value); `""` as the default
+where the default is a value (two spellings); a written default never refused
+(the refusal kept on `tls-verify = false`, which claims nothing untrue, and
+lifted from `true`, which does).

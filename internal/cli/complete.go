@@ -306,7 +306,7 @@ func (c *completer) config() *configload.Snapshot {
 	if err != nil {
 		return nil
 	}
-	cfg, err := configload.Load(configload.Options{ExplicitRoots: c.configs, Sets: c.sets, HomeDir: op.Home})
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: c.configs, Sets: c.sets, HomeDir: op.Home, Operator: op.Username})
 	if err != nil {
 		return nil
 	}

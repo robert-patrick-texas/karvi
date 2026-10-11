@@ -99,6 +99,7 @@ var entries = []Entry{
 	failure("config_macro_cycle", "config", exitConfig, false, "Macros reference each other in a cycle."),
 	failure("config_macro_scalar_type", "config", exitConfig, false, "A list or table macro is referenced inside scalar text."),
 	failure("config_macro_undefined", "config", exitConfig, false, "A value references a macro that is not defined."),
+	failure("config_macro_name_reserved", "config", exitConfig, false, "The `[macros]` table defines `operator`, the built-in macro holding the operator's login name."),
 
 	// Configuration value validation: one code per rule.
 	failure("config_audit_disabled", "config", exitConfig, false, "`audit.enabled` is false; auditing cannot be disabled."),
@@ -106,7 +107,9 @@ var entries = []Entry{
 	failure("config_credential_backend_type_missing", "config", exitConfig, false, "A `credential-backend` table has no `type`."),
 	failure("config_credential_backend_type_unsupported", "config", exitConfig, false, "A `credential-backend` table names an unsupported `type`."),
 	failure("config_credential_backend_delimiter_invalid", "config", exitConfig, false, "A `csv` credential backend's `delimiter` is not exactly one character."),
-	failure("config_credential_backend_key_unsupported", "config", exitConfig, false, "A key is set on a credential backend whose type does not read it; the message names the types that read it, and on a `csv` backend an `env-indirection` key says that a cell names a variable as `env:NAME`."),
+	failure("config_credential_backend_key_unsupported", "config", exitConfig, false, "A key is set on a credential backend whose type does not read it, or whose other keys leave it unread: Redis's `auth-username-env` without `auth-password-env`, a client certificate without its key or the reverse, a TLS file or `tls-verify` under Redis's `tls = false` or with a Vault address that is not `https://`, and `ca-file` under `tls-verify = false`; the message names the types that read the key, or what it needs."),
+	failure("config_credential_backend_variable_invalid", "config", exitConfig, false, "A credential backend names a variable that is not a portable variable name (letters, digits, and underscores, not beginning with a digit): Redis's `auth-username-env` or `auth-password-env`, Vault's `token-env`, or an `env` backend's template with each `%operator%` standing for a letter; the message quotes the value."),
+	failure("config_credential_backend_address_invalid", "config", exitConfig, false, "A Redis or Vault credential backend's `address` is missing or malformed: Redis's is `host:port`, Vault's an `http://` or `https://` URL with a host."),
 	failure("config_credential_backend_path_missing", "config", exitConfig, false, "A `csv` credential backend has no `path`; the type has no default path."),
 	failure("config_credential_backend_scope_missing", "config", exitConfig, false, "A `csv` credential backend does not declare `scope`; only `cloginrc` defaults to `user`."),
 	failure("config_credential_backend_shared_optional", "config", exitConfig, false, "A shared-scope credential backend sets `required = false`; a shared file is always required."),
@@ -245,14 +248,12 @@ var entries = []Entry{
 	failure("cloginrc_unknown_directive", "credential", exitCred, false, "The `.cloginrc` file contains a directive karvi does not recognize."),
 	failure("formula_source_invalid", "credential", exitCred, false, "A formula backend's password source returned no usable credential."),
 	failure("formula_template_missing", "credential", exitCred, false, "A formula backend's username template is empty."),
-	failure("redis_address_missing", "credential", exitCred, false, "A Redis credential backend has no address."),
 	failure("redis_auth_failed", "credential", exitCred, false, "The Redis server rejects the configured authentication."),
 	failure("redis_auth_missing", "credential", exitCred, false, "The Redis authentication environment variable is not set."),
 	failure("redis_malformed", "credential", exitCred, false, "The Redis `HGETALL` reply is not a flat array of bulk strings."),
 	failure("redis_select_failed", "credential", exitCred, false, "The Redis server rejects `SELECT` of the configured database."),
 	failure("redis_tls_config_invalid", "credential", exitCred, false, "The Redis CA or client certificate files cannot be loaded."),
 	failure("redis_unavailable", "credential", exitCred, true, "The Redis server cannot be reached, the TLS handshake fails, or the connection fails during the credential read."),
-	failure("vault_address", "credential", exitCred, false, "The Vault address is not a valid URL."),
 	failure("vault_http_error", "credential", exitCred, false, "Vault returns a non-success HTTP status other than 404."),
 	failure("vault_read", "credential", exitCred, false, "The Vault response body cannot be read."),
 	failure("vault_request", "credential", exitCred, false, "The Vault HTTP request cannot be constructed."),
@@ -578,7 +579,6 @@ var entries = []Entry{
 	failure("credential_transform_operations_not_array", "config", exitConfig, false, "A `credential-transform` table's `operator` or `username` is not an array."),
 	failure("credential_transform_unknown", "config", exitConfig, false, "A credential backend's `transform` names a credential transform table that is not defined; refused when the configuration loads."),
 	failure("redis_ca_file_empty", "credential", exitCred, false, "The Redis CA file contains no certificates."),
-	failure("redis_client_cert_key_unpaired", "credential", exitCred, false, "Only one of the Redis client certificate and key is configured."),
 	failure("redis_command_rejected", "credential", exitCred, false, "The Redis server returns an error reply to the credential read."),
 	failure("redis_protocol_error", "credential", exitCred, false, "A Redis reply violates the RESP format or karvi's size limits."),
 	failure("secret_destroyed", "internal", exitGen, false, "A secret value is read after it was destroyed."),
@@ -589,7 +589,6 @@ var entries = []Entry{
 	failure("secret_serialized_unexpectedly", "internal", exitGen, false, "A security test finds that a secret-bearing value serialized."),
 	failure("secret_username_unset", "credential", exitCred, false, "Username material is read but was never set."),
 	failure("vault_ca_file_empty", "credential", exitCred, false, "The Vault CA file contains no certificates."),
-	failure("vault_client_cert_key_unpaired", "credential", exitCred, false, "Only one of the Vault client certificate and key is configured."),
 	failure("askpass_material_missing", "internal", exitGen, false, "The askpass broker was started without credential material."),
 
 	// Host keys.
@@ -834,4 +833,8 @@ var entries = []Entry{
 	retired("crun_directory_unavailable", retiredV0290, "`crun.directory` could not be resolved by the client (`~` without a home, or a relative path from an unreadable working directory); every path-valued key is made absolute at the load, which refuses either cause.", "config_working_directory_unavailable", "operator_identity_unavailable"),
 	retired("config_credential_backend_scope_unsupported", retiredV0300, "`scope` or `required` was set on a credential backend that is not a file backend; every key a backend's type does not read is refused under one code.", "config_credential_backend_key_unsupported"),
 	retired("sqlite_backend_unavailable", retiredV0300, "A SQLite credential backend was configured, and the build had no SQLite driver; the `sqlite` type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed.", "config_credential_backend_type_unsupported", "config_key_removed"),
+	retired("redis_address_missing", retiredV0300, "A Redis credential backend had no address, found when a device reached it; the address is required and checked when the configuration loads.", "config_credential_backend_address_invalid"),
+	retired("vault_address", retiredV0300, "A Vault credential backend's address was not a valid URL, found when a device reached it; the address is required and checked when the configuration loads.", "config_credential_backend_address_invalid"),
+	retired("redis_client_cert_key_unpaired", retiredV0300, "Only one of a Redis backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread.", "config_credential_backend_key_unsupported"),
+	retired("vault_client_cert_key_unpaired", retiredV0300, "Only one of a Vault backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread.", "config_credential_backend_key_unsupported"),
 }

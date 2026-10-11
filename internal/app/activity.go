@@ -254,7 +254,7 @@ func ReadConfigFiles(req ConfigRequest) (ConfigReading, error) {
 	if err != nil {
 		return ConfigReading{}, errorcodes.Ensure(err, "operator_identity_unavailable")
 	}
-	r, err := configload.Read(configload.Options{ExplicitRoots: req.Roots, HomeDir: operator.Home})
+	r, err := configload.Read(configload.Options{ExplicitRoots: req.Roots, HomeDir: operator.Home, Operator: operator.Username})
 	if err != nil {
 		return ConfigReading{}, ConfigLoadError(err)
 	}

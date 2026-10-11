@@ -3,7 +3,9 @@ package configload
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/netip"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/display"
+	"github.com/robert-patrick-texas/karvi/internal/envname"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
@@ -61,6 +64,11 @@ func (l *loader) validate() error {
 	// relational rules below assume their operands are in range.
 	if err := l.validateRanges(); err != nil {
 		return err
+	}
+	// The helper's off switch is creds.helper-enabled; its path has a value
+	// for a default, which spells it (EXAMPLES chapter 56, issue 17).
+	if l.snap.String("creds.helper") == "" {
+		return l.semantic("config_type_error", "creds.helper", "must not be empty")
 	}
 	if l.snap.Int("config.schema-version") != configschema.ConfigSchemaVersion {
 		return l.semantic("config_schema_version", "config.schema-version", fmt.Sprintf("must equal %d", configschema.ConfigSchemaVersion))
@@ -216,18 +224,18 @@ func (l *loader) validateDynamic() error {
 		}
 		// A key the table's type does not read is refused, naming the types
 		// that read it. The keys are visited in sorted order so the same
-		// configuration always names the same key. A csv backend's
-		// env-indirection key says what replaced it.
+		// configuration always names the same key.
 		for _, key := range sortedKeys(b) {
 			types := configschema.BackendKeyTypes(key)
 			if contains(types, typ) {
 				continue
 			}
-			reason := key + " applies to the " + typeList(types) + " only"
-			if typ == "csv" && strings.HasPrefix(key, "env-indirection.") {
-				reason = "a csv backend takes no env-indirection key: a cell names a variable as env:NAME"
+			return l.dynamicErr("config_credential_backend_key_unsupported", "credential-backend."+name+"."+key, key+" applies to the "+typeList(types)+" only")
+		}
+		if typ == "env" || typ == "redis" || typ == "vault" {
+			if err := l.validateStoreBackend(name, typ, b); err != nil {
+				return err
 			}
-			return l.dynamicErr("config_credential_backend_key_unsupported", "credential-backend."+name+"."+key, reason)
 		}
 		scopeRaw, hasScope := b["scope"]
 		requiredRaw, hasRequired := b["required"]
@@ -486,6 +494,159 @@ func (l *loader) validateCredentialCSV(name string, b map[string]any) error {
 		}
 	}
 	return nil
+}
+
+// storeKinds are the env, Redis, and Vault keys whose kind is not a string;
+// every other key of the three types is a string.
+var storeKinds = map[string]configschema.Kind{"tls": configschema.Boolean, "tls-verify": configschema.Boolean, "database": configschema.Integer, "connect-timeout": configschema.Duration}
+
+// storeVariables are the Redis and Vault keys that name a variable, and
+// envTemplates the env backend's, whose %operator% the backend fills.
+var (
+	storeVariables = []string{"auth-username-env", "auth-password-env", "token-env"}
+	envTemplates   = []string{"username-var-template", "password-var-template", "enable-var-template"}
+)
+
+// storeDefaults are the three types' string keys whose default is a value,
+// which spells it, so "" is refused (EXAMPLES chapter 56, issue 17). Every
+// other string key's default is none, which "" spells, the same as the key
+// left out and never a key left unread, so a later layer can say none over an
+// earlier one's value; address has no default and token-env keeps issue 4's
+// code.
+var storeDefaults = []string{"mount", "path-template", "username-field", "password-field", "enable-field", "key-template", "transform"}
+
+// validateStoreBackend checks an env, Redis, or Vault backend's keys when the
+// configuration loads (EXAMPLES chapter 56, issues 3, 4, 6, 16, and 17), in
+// sorted order within each rule: each key's kind, a key whose default is a
+// value not empty; Redis's and Vault's address, required and well formed; the
+// names of variables, each a portable variable name, an env template's with
+// each %operator% standing for a letter, "" none but for token-env; then a
+// key the backend's other keys leave unread, a key at "" none and unjudged.
+func (l *loader) validateStoreBackend(name, typ string, b map[string]any) error {
+	key := func(k string) string { return "credential-backend." + name + "." + k }
+	keys := sortedKeys(b)
+	for _, k := range keys {
+		if k == "type" {
+			continue
+		}
+		raw := b[k]
+		switch storeKinds[k] {
+		case configschema.Boolean:
+			if _, ok := raw.(bool); !ok {
+				return l.dynamicErr("config_type_error", key(k), "must be a boolean")
+			}
+		case configschema.Integer:
+			n, ok := raw.(int64)
+			if !ok {
+				return l.dynamicErr("config_type_error", key(k), "must be an integer")
+			}
+			if n < 0 {
+				return l.dynamicErr("config_value_out_of_range", key(k), "must be 0 or more")
+			}
+		case configschema.Duration:
+			v, ok := raw.(string)
+			if !ok {
+				return l.dynamicErr("config_type_error", key(k), "must be a duration string")
+			}
+			d, err := time.ParseDuration(v)
+			switch {
+			case err != nil:
+				return l.dynamicErr("config_duration_error", key(k), "invalid Go duration")
+			case d < 0:
+				return l.dynamicErr("config_duration_negative", key(k), "duration cannot be negative")
+			case d == 0:
+				return l.dynamicErr("config_value_out_of_range", key(k), "must be above 0")
+			}
+		default:
+			v, ok := raw.(string)
+			if !ok {
+				return l.dynamicErr("config_type_error", key(k), "must be a string")
+			}
+			if v == "" && contains(storeDefaults, k) {
+				return l.dynamicErr("config_type_error", key(k), "must not be empty")
+			}
+		}
+	}
+	tlsOn := true
+	switch typ {
+	case "redis":
+		addr, _ := b["address"].(string)
+		if _, ok := b["address"]; !ok {
+			return newError("config_credential_backend_address_invalid", "a redis credential backend needs an address, host:port", key("address"), l.tableSource("credential-backend."+name, b), nil)
+		}
+		if !hostPort(addr) {
+			return l.dynamicErr("config_credential_backend_address_invalid", key("address"), "not host:port")
+		}
+		if v, ok := b["tls"].(bool); ok {
+			tlsOn = v
+		}
+	case "vault":
+		addr, _ := b["address"].(string)
+		if _, ok := b["address"]; !ok {
+			return newError("config_credential_backend_address_invalid", "a vault credential backend needs an address, an http:// or https:// URL", key("address"), l.tableSource("credential-backend."+name, b), nil)
+		}
+		u, err := url.Parse(addr)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.Hostname() == "" {
+			return l.dynamicErr("config_credential_backend_address_invalid", key("address"), "not an http:// or https:// URL with a host")
+		}
+		tlsOn = u.Scheme == "https"
+	}
+	for _, k := range keys {
+		v, _ := b[k].(string)
+		switch {
+		case v == "" && k != "token-env":
+			continue
+		case contains(storeVariables, k):
+		case contains(envTemplates, k):
+			v = strings.ReplaceAll(v, "%"+operatorMacro+"%", "a")
+		default:
+			continue
+		}
+		if !envname.Portable(v) {
+			return l.dynamicErr("config_credential_backend_variable_invalid", key(k), fmt.Sprintf("%q not a variable name (letters, digits, underscores; no leading digit)", b[k]))
+		}
+	}
+	set := func(k string) bool { v, ok := b[k].(string); return ok && v != "" }
+	hasPassword, hasCert, hasKey := set("auth-password-env"), set("client-cert-file"), set("client-key-file")
+	verify, _ := b["tls-verify"].(bool)
+	if _, set := b["tls-verify"]; !set {
+		verify = true
+	}
+	tlsNeed := "under tls = true"
+	if typ == "vault" {
+		tlsNeed = "for an https address"
+	}
+	for _, k := range keys {
+		need := ""
+		switch {
+		case b[k] == "":
+		case k == "auth-username-env" && !hasPassword:
+			need = "beside auth-password-env"
+		case !tlsOn && oneOfWords(k, []string{"ca-file", "client-cert-file", "client-key-file", "tls-verify"}):
+			need = tlsNeed
+		case k == "ca-file" && !verify:
+			need = "under tls-verify = true"
+		case k == "client-cert-file" && !hasKey:
+			need = "beside client-key-file"
+		case k == "client-key-file" && !hasCert:
+			need = "beside client-cert-file"
+		}
+		if need != "" {
+			return l.dynamicErr("config_credential_backend_key_unsupported", key(k), k+" read only "+need)
+		}
+	}
+	return nil
+}
+
+// hostPort reports whether addr is host:port, the port a number from 1 to
+// 65535.
+func hostPort(addr string) bool {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil || host == "" {
+		return false
+	}
+	n, err := strconv.Atoi(port)
+	return err == nil && n >= 1 && n <= 65535
 }
 
 // sortedKeys returns a table's keys in order, for a rule whose report must

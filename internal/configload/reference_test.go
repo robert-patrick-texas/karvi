@@ -55,7 +55,9 @@ func TestReferenceLoads(t *testing.T) {
 			t.Errorf("%s: under [%s]", e.Path, under)
 		}
 		want := v.Default
-		if words, ok := configschema.Place(e.Path); ok {
+		if s, ok := want.(string); ok && configschema.BareName(e.Path, s) {
+			// a bare name, kept as written
+		} else if words, ok := configschema.Place(e.Path); ok {
 			if want, err = absolutePlace(want, words, home); err != nil {
 				t.Fatal(err)
 			}
