@@ -6,36 +6,56 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/envindirect"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/storetls"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/secrets"
 )
 
+// Backend is built once by the resolver, every default set there, and
+// Resolve reads it and never writes it, so devices resolving in parallel
+// share it.
 type Backend struct {
 	BackendName, Address, KeyTemplate, CAFile, ClientCertFile, ClientKeyFile, AuthUsernameEnv, AuthPasswordEnv string
 	Database                                                                                                   int
-	TLS                                                                                                        bool
+	TLS, TLSVerify                                                                                             bool
 	Timeout                                                                                                    time.Duration
-	UsernameIndirect, PasswordIndirect, EnableIndirect                                                         bool
 }
 
 func (b *Backend) Name() string                { return b.BackendName }
 func (*Backend) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
+
+// Resolve reads the operator's record, the hash at the key-template with
+// %operator% filled. The login's variables, auth-password-env and beside it
+// auth-username-env, are read through the request's lookup before any
+// connection, an unset or empty one credential_env_missing; "" names none,
+// and no AUTH is sent. A record's field env:NAME is the value of the
+// variable NAME, read through the same lookup. The credential's source is
+// the key read.
 func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) credentials.BackendResult {
-	if b.KeyTemplate == "" {
-		b.KeyTemplate = "karvi:credential:" + credentials.OperatorMacro
-	}
-	if b.Timeout <= 0 {
-		b.Timeout = 2 * time.Second
+	var auth []string
+	if b.AuthPasswordEnv != "" {
+		pass, missing := envindirect.Read(b.AuthPasswordEnv, req.LookupEnv)
+		if missing != "" {
+			return envindirect.Missing(b.BackendName, "auth-password-env", missing)
+		}
+		auth = []string{"AUTH", pass}
+		if b.AuthUsernameEnv != "" {
+			user, missing := envindirect.Read(b.AuthUsernameEnv, req.LookupEnv)
+			if missing != "" {
+				return envindirect.Missing(b.BackendName, "auth-username-env", missing)
+			}
+			auth = []string{"AUTH", user, pass}
+		}
 	}
 	dialer := net.Dialer{Timeout: b.Timeout}
 	conn, err := dialer.DialContext(ctx, "tcp", b.Address)
@@ -43,12 +63,12 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 		return unavailable(err)
 	}
 	if b.TLS {
-		tlsCfg, err := b.tlsConfig()
+		tlsCfg, err := storetls.Config(b.CAFile, b.ClientCertFile, b.ClientKeyFile, b.TLSVerify)
 		if err != nil {
 			conn.Close()
-			code := errorcodes.Of(err)
-			if code == "" {
-				code = "redis_tls_config_invalid"
+			code := "redis_tls_config_invalid"
+			if errors.Is(err, storetls.ErrNoCertificates) {
+				code = "redis_ca_file_empty"
 			}
 			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: err.Error()}
 		}
@@ -64,17 +84,8 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(b.Timeout))
 	rw := bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-	if b.AuthPasswordEnv != "" {
-		pass, ok := os.LookupEnv(b.AuthPasswordEnv)
-		if !ok {
-			return credentials.BackendResult{Outcome: credentials.PermissionDenied, ErrorCode: "redis_auth_missing", Message: "Redis authentication environment variable is absent"}
-		}
-		args := []string{"AUTH", pass}
-		if b.AuthUsernameEnv != "" {
-			user, _ := os.LookupEnv(b.AuthUsernameEnv)
-			args = []string{"AUTH", user, pass}
-		}
-		if _, err := command(rw, args...); err != nil {
+	if auth != nil {
+		if _, err := command(rw, auth...); err != nil {
 			return credentials.BackendResult{Outcome: credentials.PermissionDenied, ErrorCode: "redis_auth_failed", Message: "Redis authentication failed"}
 		}
 	}
@@ -110,44 +121,17 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 		}
 		fields[k] = v
 	}
-	username, uok := fields["username"]
-	password, pok := fields["password"]
-	enable, eok := fields["enable_password"]
-	if !uok && !pok && !eok {
+	values, found, failed := envindirect.Record(b.BackendName, key, "redis_malformed", [3]string{"username", "password", "enable_password"}, func(f string) (string, bool) { v, ok := fields[f]; return v, ok }, req.LookupEnv)
+	if failed != nil {
+		return *failed
+	}
+	if !found {
 		return credentials.BackendResult{Outcome: credentials.NotFound}
 	}
-	username = indirect(username, b.UsernameIndirect)
-	password = indirect(password, b.PasswordIndirect)
-	enable = indirect(enable, b.EnableIndirect)
-	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "redis-key-digest-not-implemented"}}
+	cred := credentials.Credential{Material: secrets.NewMaterial(values[0], values[1], values[2]), Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: key}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
 }
-func (b *Backend) tlsConfig() (*tls.Config, error) {
-	cfg := &tls.Config{MinVersion: tls.VersionTLS12}
-	if b.CAFile != "" {
-		pem, err := os.ReadFile(b.CAFile)
-		if err != nil {
-			return nil, err
-		}
-		pool, err := x509.SystemCertPool()
-		if err != nil || pool == nil {
-			pool = x509.NewCertPool()
-		}
-		if !pool.AppendCertsFromPEM(pem) {
-			return nil, errorcodes.Errorf("redis_ca_file_empty", "CA file contains no certificates")
-		}
-		cfg.RootCAs = pool
-	}
-	// The load refuses either file without the other.
-	if b.ClientCertFile != "" || b.ClientKeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(b.ClientCertFile, b.ClientKeyFile)
-		if err != nil {
-			return nil, err
-		}
-		cfg.Certificates = []tls.Certificate{cert}
-	}
-	return cfg, nil
-}
+
 func command(rw *bufio.ReadWriter, args ...string) (any, error) {
 	fmt.Fprintf(rw, "*%d\r\n", len(args))
 	for _, a := range args {
@@ -227,13 +211,4 @@ func unavailable(err error) credentials.BackendResult {
 }
 func malformed(err error) credentials.BackendResult {
 	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "redis_malformed", Message: err.Error()}
-}
-func indirect(v string, on bool) string {
-	if !on {
-		return v
-	}
-	if x, ok := os.LookupEnv(v); ok {
-		return x
-	}
-	return v
 }

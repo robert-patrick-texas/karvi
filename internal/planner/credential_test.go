@@ -31,7 +31,8 @@ import (
 )
 
 // fakeBackend answers every device with one account, records what it was
-// asked, and can leave named devices unfound.
+// asked, and can leave named devices unfound: its answer depends on the
+// device, so it is device-keyed and asked for each.
 type fakeBackend struct {
 	password string
 	missing  map[string]bool
@@ -40,7 +41,7 @@ type fakeBackend struct {
 }
 
 func (b *fakeBackend) Name() string                  { return "fake" }
-func (b *fakeBackend) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
+func (b *fakeBackend) Mode() credentials.BackendMode { return credentials.DeviceKeyed }
 func (b *fakeBackend) Resolve(_ context.Context, req credentials.ResolveRequest) credentials.BackendResult {
 	atomic.AddInt32(&b.calls, 1)
 	if b.missing[req.Device.CanonicalName] {

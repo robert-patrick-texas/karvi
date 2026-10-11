@@ -422,9 +422,9 @@ func TestEnvReference(t *testing.T) {
 		lookup func(string) (string, bool)
 		says   string
 	}{
-		{"sw-c", lookup, ":4 password: UNSET is not set"},
-		{"sw-d", lookup, ":5 enable_password: EMPTY is empty"},
-		{"sw-a", nil, ":2 username: CORE_USER is not set"},
+		{"sw-c", lookup, ":4 password: UNSET not set"},
+		{"sw-d", lookup, ":5 enable_password: EMPTY empty"},
+		{"sw-a", nil, ":2 username: CORE_USER not set"},
 	} {
 		r := resolveWith(b, device{name: tc.device}, tc.lookup)
 		if r.Outcome != credentials.Incomplete || r.ErrorCode != "credential_env_missing" || r.Message != "credential backend creds: "+b.Path+tc.says {

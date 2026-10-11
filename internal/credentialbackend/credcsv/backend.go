@@ -351,5 +351,5 @@ func field(stored *secrets.Value, env string, lookup func(string) (string, bool)
 // line, the column, and the variable. The device stops here, as at any
 // failure of the selected row, and never moves on to a later row or backend.
 func (b *Backend) envMissing(t *table, r row, column, missing string) credentials.BackendResult {
-	return credentials.BackendResult{Outcome: credentials.Incomplete, ErrorCode: "credential_env_missing", Message: fmt.Sprintf("credential backend %s: %s:%d %s: %s", b.Rules.BackendName, t.path, r.line, column, missing)}
+	return envindirect.Missing(b.Rules.BackendName, fmt.Sprintf("%s:%d %s", t.path, r.line, column), missing)
 }

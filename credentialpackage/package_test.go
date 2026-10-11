@@ -184,6 +184,19 @@ func TestPackageRefusesEverySink(t *testing.T) {
 	}
 }
 
+// TestMatchTakesNoValueDigest is EXAMPLES chapter 56, issue 7: a match's
+// value_digest, which no code set and nothing read, is no property of the
+// schema's match, so a match carrying it is refused, and a match as the
+// resolver writes it is accepted.
+func TestMatchTakesNoValueDigest(t *testing.T) {
+	rec := &recorder{TB: t}
+	canarytest.SchemaParityAt(rec, envelopeSchema, "#/$defs/match", map[string]any{"category": "operator", "value_digest": "sha256:0"})
+	if rec.errors == 0 {
+		t.Error("the schema accepted a match carrying value_digest")
+	}
+	canarytest.SchemaParityAt(t, envelopeSchema, "#/$defs/match", credentials.Match{Category: "operator", SafeValue: "netops", Source: "karvi:credential:netops"})
+}
+
 func TestSafeTypesMatchSchemaAndAreNonSecret(t *testing.T) {
 	p := fixturePackage("p")
 	proj, err := p.SafeProjection()

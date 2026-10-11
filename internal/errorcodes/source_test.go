@@ -238,6 +238,7 @@ var detailFuncs = map[string]string{
 	"internal/credentialbackend/cloginrc/backend.go:flatten":              ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/cloginrc/backend.go:parseBraced":          ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/cloginrc/backend.go:parseBare":            ".cloginrc syntax reported under cloginrc_malformed",
+	"internal/credentialbackend/storetls/storetls.go:*":                   "a CA file holding no certificate, reported under redis_ca_file_empty or vault_ca_file_empty",
 	"internal/termtext/timing.go:ParseTiming":                             "reported under transcript_timing_unreadable",
 	"internal/hostkey/policy.go:Parse":                                    "reported under host_key_policy_invalid",
 	"internal/hostkey/inspect.go:inspectRemoteWithBinary":                 "ssh-keyscan diagnostics reported in the insecure-policy mismatch warning",
@@ -251,6 +252,7 @@ var detailFuncs = map[string]string{
 	"internal/sshalgorithms/sshalgorithms.go:CheckList":                   "returns its rule code alongside the message",
 	"internal/sshalgorithms/sshalgorithms.go:CheckProfile":                "returns a ProfileError carrying its rule code",
 	"internal/fakedevice/server.go:*":                                     "the engineering fixture's server-side diagnostics; never an operator error",
+	"internal/credentialbackend/redis/redistest/redistest.go:*":           "the Redis tests' server-side diagnostics; never an operator error",
 }
 
 // TestUncodedErrorsAreDetails fails when an error is constructed without a

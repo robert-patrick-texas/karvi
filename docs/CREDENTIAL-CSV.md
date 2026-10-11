@@ -314,10 +314,10 @@ With `NETPASS` and `NETENABLE` exported and `NETPASS_NYC` not, a run on
 `sw-nyc-01` and `sw-bos-01` is refused:
 
 ```text
-credential_env_missing: 1 of 2 targets failed credential resolution: name:sw-nyc-01 (credential backend site-creds: …/credentials.csv:2 password: NETPASS_NYC is not set policy=default backend=site-creds)
+credential_env_missing: 1 of 2 targets failed credential resolution: name:sw-nyc-01 (credential backend site-creds: …/credentials.csv:2 password: NETPASS_NYC not set policy=default backend=site-creds)
 ```
 
-The variable exported and empty says `NETPASS_NYC is empty`. A run on
+The variable exported and empty says `NETPASS_NYC empty`. A run on
 `sw-bos-01` alone reaches the device, and with `NETPASS_NYC` exported both
 do.
 
@@ -465,7 +465,7 @@ exit 6.
 | `username`, `password`, and `enable_password` all blank | `credential_csv_row_invalid`: `:2: the row has no result: username, password, and enable_password are all blank` |
 | a `credkey` with a pattern character | `credential_csv_row_invalid`: `:2: column credkey: a key holds no pattern character (*, ?, [, \): a key is a literal` |
 | `env:NETPASS-NYC` in a password cell | `credential_csv_row_invalid`: `:2: column password: env: is not followed by a variable name (letters, digits, and underscores, not beginning with a digit)` |
-| the selected row's `env:NETPASS_NYC`, the variable unset (or empty) | `credential_env_missing`: `:2 password: NETPASS_NYC is not set` (`is empty`) |
+| the selected row's `env:NETPASS_NYC`, the variable unset (or empty) | `credential_env_missing`: `:2 password: NETPASS_NYC not set` (`empty`) |
 | `Core-Admin` on line 2 and `core-admin` on line 3 | `credential_csv_credkey_duplicate`: `: lines 2 and 3 have the same credkey` |
 | a row one cell short | `credential_csv_malformed`: `: short CSV row at line 2: need column 6, got 5` |
 | no `username` column | `credential_csv_malformed`: `: mandatory field "username" has no mapping` |

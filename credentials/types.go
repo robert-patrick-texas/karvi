@@ -12,10 +12,12 @@ import (
 
 type BackendMode string
 
+// A backend's mode says what its answer depends on: an operator-keyed
+// backend's on the operator's name alone, so the resolver asks it once and
+// holds the answer for every device; a device-keyed backend's on the device.
 const (
 	OperatorKeyed BackendMode = "operator"
 	DeviceKeyed   BackendMode = "device"
-	FormulaBased  BackendMode = "formula"
 )
 
 type Outcome string
@@ -42,12 +44,11 @@ type Operator struct {
 // device being resolved: the planner merges grants only when their evidence
 // is equal, so the struct stays comparable and device-free.
 type Match struct {
-	Category    string `json:"category"`
-	SafeValue   string `json:"safe_value,omitempty"`
-	ValueDigest string `json:"value_digest,omitempty"`
-	Pattern     string `json:"pattern,omitempty"`
-	Source      string `json:"source,omitempty"`
-	Line        int    `json:"line,omitempty"`
+	Category  string `json:"category"`
+	SafeValue string `json:"safe_value,omitempty"`
+	Pattern   string `json:"pattern,omitempty"`
+	Source    string `json:"source,omitempty"`
+	Line      int    `json:"line,omitempty"`
 	// CredKey is a credential CSV row's explicit credkey or, for a blank
 	// cell, the generated label BACKEND:LINE. It is
 	// a provenance label, omitted for other backends, and distinct from a

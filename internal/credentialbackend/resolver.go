@@ -72,6 +72,22 @@ type Resolver struct {
 	keyRules credfile.Rules
 	keysOnce sync.Once
 	keys     operatorkeys.Result
+	// held are the operator-keyed backends' answers, one per backend and
+	// operator name (ask).
+	heldMu sync.Mutex
+	held   map[heldKey]*heldAnswer
+}
+
+// heldKey names one operator-keyed answer: the backend asked and the
+// operator's name after the transform the request carried.
+type heldKey struct{ backend, operator string }
+
+// heldAnswer is one backend's answer to one operator name, read once; mu is
+// held through the read, so devices resolving beside the first wait for it.
+type heldAnswer struct {
+	mu     sync.Mutex
+	read   bool
+	result credentials.BackendResult
 }
 type credentialsBackend = credentials.Backend
 
@@ -105,12 +121,12 @@ func New(cfg configload.Snapshot, operator credentials.Operator, warn func(strin
 			return nil, errorcodes.Errorf("credential_transform_unknown", "credential backend %s references unknown transform %s", name, profile)
 		}
 		r.backendProfile[name] = profile
-		indU := boolVal(d, "env-indirection.username", false)
-		indP := boolVal(d, "env-indirection.password", false)
-		indE := boolVal(d, "env-indirection.enable-password", false)
+		// Every default of a backend is set here, once: its Resolve reads
+		// the backend and never writes it, so devices resolving in parallel
+		// share it.
 		switch typ {
 		case "env":
-			r.backends[name] = &envbackend.Backend{BackendName: name, UsernameTemplate: str(d, "username-var-template"), PasswordTemplate: str(d, "password-var-template"), EnableTemplate: str(d, "enable-var-template"), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
+			r.backends[name] = &envbackend.Backend{BackendName: name, UsernameTemplate: str(d, "username-var-template"), PasswordTemplate: str(d, "password-var-template"), EnableTemplate: str(d, "enable-var-template")}
 		case "cloginrc":
 			scope := defaultString(str(d, "scope"), "user")
 			r.backends[name] = &clog.Backend{Path: defaultString(str(d, "path"), "~/.cloginrc"), Rules: fileRules(cfg, operator, name, scope, boolVal(d, "required", scope == "shared")), Warn: warn}
@@ -126,13 +142,13 @@ func New(cfg configload.Snapshot, operator credentials.Operator, warn func(strin
 			if err != nil {
 				return nil, err
 			}
-			r.backends[name] = &redisbackend.Backend{BackendName: name, Address: str(d, "address"), Database: intVal(d, "database", 0), KeyTemplate: defaultString(str(d, "key-template"), "karvi:credential:"+credentials.OperatorMacro), TLS: boolVal(d, "tls", true), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], AuthUsernameEnv: str(d, "auth-username-env"), AuthPasswordEnv: str(d, "auth-password-env"), Timeout: durationVal(d, "connect-timeout", 2*time.Second), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
+			r.backends[name] = &redisbackend.Backend{BackendName: name, Address: str(d, "address"), Database: intVal(d, "database", 0), KeyTemplate: defaultString(str(d, "key-template"), "karvi:credential:"+credentials.OperatorMacro), TLS: boolVal(d, "tls", true), TLSVerify: boolVal(d, "tls-verify", true), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], AuthUsernameEnv: str(d, "auth-username-env"), AuthPasswordEnv: str(d, "auth-password-env"), Timeout: durationVal(d, "connect-timeout", 2*time.Second)}
 		case "vault":
 			tls, err := tlsFiles(d, operator.Home)
 			if err != nil {
 				return nil, err
 			}
-			r.backends[name] = &vaultbackend.Backend{BackendName: name, Address: str(d, "address"), Namespace: str(d, "namespace"), Mount: defaultString(str(d, "mount"), "secret"), PathTemplate: str(d, "path-template"), TokenEnv: defaultString(str(d, "token-env"), "VAULT_TOKEN"), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], Timeout: durationVal(d, "connect-timeout", 5*time.Second), UsernameField: defaultString(str(d, "username-field"), "username"), PasswordField: defaultString(str(d, "password-field"), "password"), EnableField: defaultString(str(d, "enable-field"), "enable_password"), UsernameIndirect: indU, PasswordIndirect: indP, EnableIndirect: indE}
+			r.backends[name] = &vaultbackend.Backend{BackendName: name, Address: str(d, "address"), Namespace: str(d, "namespace"), Mount: defaultString(str(d, "mount"), "secret"), PathTemplate: defaultString(str(d, "path-template"), "karvi/"+credentials.OperatorMacro), TokenEnv: defaultString(str(d, "token-env"), "VAULT_TOKEN"), TLSVerify: boolVal(d, "tls-verify", true), CAFile: tls[0], ClientCertFile: tls[1], ClientKeyFile: tls[2], Timeout: durationVal(d, "connect-timeout", 5*time.Second), UsernameField: defaultString(str(d, "username-field"), "username"), PasswordField: defaultString(str(d, "password-field"), "password"), EnableField: defaultString(str(d, "enable-field"), "enable_password")}
 		case "formula":
 			r.formulas[name] = formulaSpec{Name: name, UsernameTemplate: str(d, "username-template"), PasswordSource: str(d, "password-source")}
 		default:
@@ -443,7 +459,7 @@ func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, op
 		if !ok {
 			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "formula_source_invalid", Message: "formula password source is unavailable"}
 		}
-		result := source.Resolve(ctx, req)
+		result := r.ask(ctx, f.PasswordSource, source, req)
 		if result.Outcome != credentials.Success {
 			return result
 		}
@@ -470,7 +486,80 @@ func (r *Resolver) resolveBackend(ctx context.Context, name string, p policy, op
 	if !ok {
 		return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "credential_backend_unknown", Message: "backend is not registered"}
 	}
-	return b.Resolve(ctx, req)
+	return r.ask(ctx, name, b, req)
+}
+
+// ask is backend name's answer to req. An operator-keyed backend (the env,
+// Redis, and Vault types) asks the same of every device, the operator's name
+// after its transform, so it is asked once per resolver for each name, once
+// per invocation or per job of a stream, and its answer held: a credential,
+// each device given its own copy, so that sealing one grant leaves the held
+// answer whole; not found; or a failure, every device given it without
+// asking again, so a dead store costs one timeout. Devices resolving in
+// parallel wait for the one read, and a formula over the backend takes the
+// same answer. A read the context ended is not held.
+func (r *Resolver) ask(ctx context.Context, name string, b credentials.Backend, req credentials.ResolveRequest) credentials.BackendResult {
+	if b.Mode() != credentials.OperatorKeyed {
+		return b.Resolve(ctx, req)
+	}
+	key := heldKey{name, req.Operator.Username}
+	r.heldMu.Lock()
+	if r.held == nil {
+		r.held = map[heldKey]*heldAnswer{}
+	}
+	h := r.held[key]
+	if h == nil {
+		h = &heldAnswer{}
+		r.held[key] = h
+	}
+	r.heldMu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if !h.read {
+		result := b.Resolve(ctx, req)
+		if ctx.Err() != nil && result.Outcome != credentials.Success {
+			return result
+		}
+		h.read, h.result = true, result
+	}
+	result := h.result
+	if result.Outcome == credentials.Success {
+		material, err := copyMaterial(result.Credential.Material)
+		if err != nil {
+			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "credential_material_error", Message: err.Error()}
+		}
+		result.Credential.Material = material
+		result.Credential.Keys = append([]credentials.KeyRef(nil), result.Credential.Keys...)
+		result.Credential.Policy = req.Policy
+	}
+	return result
+}
+
+// copyMaterial is a copy of m's fields, so destroying either leaves the
+// other whole; a field m does not set is unset in the copy.
+func copyMaterial(m credentials.Material) (credentials.Material, error) {
+	if m == nil {
+		return nil, errorcodes.Errorf("credential_material_missing", "credential material is nil")
+	}
+	out := &secrets.Material{Username: secrets.New(""), Password: secrets.New(""), EnablePassword: secrets.New("")}
+	for _, f := range []struct {
+		set  bool
+		with func(func([]byte) error) error
+		into **secrets.Value
+	}{
+		{m.UsernameSet(), m.WithUsername, &out.Username},
+		{m.PasswordSet(), m.WithPassword, &out.Password},
+		{m.EnablePasswordSet(), m.WithEnablePassword, &out.EnablePassword},
+	} {
+		if !f.set {
+			continue
+		}
+		if err := f.with(func(v []byte) error { *f.into = secrets.NewBytes(v); return nil }); err != nil {
+			out.Destroy()
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 func (r *Resolver) finalize(c credentials.Credential, backend, policyName string, requiredEnable, requirePassword bool) (credentials.Resolved, error) {

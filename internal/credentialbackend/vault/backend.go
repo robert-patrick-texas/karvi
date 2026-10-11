@@ -4,56 +4,44 @@ package vault
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
-	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/envindirect"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/storetls"
 	"github.com/robert-patrick-texas/karvi/internal/secrets"
 )
 
+// Backend is built once by the resolver, every default set there, and
+// Resolve reads it and never writes it, so devices resolving in parallel
+// share it.
 type Backend struct {
 	BackendName, Address, Namespace, Mount, PathTemplate, TokenEnv, CAFile, ClientCertFile, ClientKeyFile, UsernameField, PasswordField, EnableField string
+	TLSVerify                                                                                                                                        bool
 	Timeout                                                                                                                                          time.Duration
-	UsernameIndirect, PasswordIndirect, EnableIndirect                                                                                               bool
 }
 
 func (b *Backend) Name() string                { return b.BackendName }
 func (*Backend) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
+
+// Resolve reads the operator's record at the path-template with %operator%
+// filled. The token, the variable token-env names, is read through the
+// request's lookup before any connection, an unset or empty one
+// credential_env_missing. A record's field env:NAME is the value of the
+// variable NAME, read through the same lookup. The credential's source is
+// the path read.
 func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) credentials.BackendResult {
-	if b.TokenEnv == "" {
-		b.TokenEnv = "VAULT_TOKEN"
-	}
-	token, ok := os.LookupEnv(b.TokenEnv)
-	if !ok || token == "" {
-		return credentials.BackendResult{Outcome: credentials.PermissionDenied, ErrorCode: "vault_token_missing", Message: "Vault token environment variable is absent"}
-	}
-	if b.Mount == "" {
-		b.Mount = "secret"
-	}
-	if b.PathTemplate == "" {
-		b.PathTemplate = "karvi/" + credentials.OperatorMacro
-	}
-	if b.UsernameField == "" {
-		b.UsernameField = "username"
-	}
-	if b.PasswordField == "" {
-		b.PasswordField = "password"
-	}
-	if b.EnableField == "" {
-		b.EnableField = "enable_password"
-	}
-	if b.Timeout <= 0 {
-		b.Timeout = 5 * time.Second
+	token, missing := envindirect.Read(b.TokenEnv, req.LookupEnv)
+	if missing != "" {
+		return envindirect.Missing(b.BackendName, "token-env", missing)
 	}
 	// The load refuses an address that is not an http:// or https:// URL.
 	base, err := url.Parse(strings.TrimRight(b.Address, "/"))
@@ -63,9 +51,9 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	base.Path = path.Join(base.Path, "v1", b.Mount, "data", req.Fill(b.PathTemplate))
 	client, err := b.client()
 	if err != nil {
-		code := errorcodes.Of(err)
-		if code == "" {
-			code = "vault_tls"
+		code := "vault_tls"
+		if errors.Is(err, storetls.ErrNoCertificates) {
+			code = "vault_ca_file_empty"
 		}
 		return malformed(code, err)
 	}
@@ -102,41 +90,20 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		return malformed("vault_response_malformed", err)
 	}
-	username, uok := stringField(envelope.Data.Data, b.UsernameField)
-	password, pok := stringField(envelope.Data.Data, b.PasswordField)
-	enable, eok := stringField(envelope.Data.Data, b.EnableField)
-	if !uok && !pok && !eok {
+	values, found, failed := envindirect.Record(b.BackendName, base.Path, "vault_response_malformed", [3]string{b.UsernameField, b.PasswordField, b.EnableField}, func(f string) (string, bool) { return stringField(envelope.Data.Data, f) }, req.LookupEnv)
+	if failed != nil {
+		return *failed
+	}
+	if !found {
 		return credentials.BackendResult{Outcome: credentials.NotFound}
 	}
-	username = indirect(username, b.UsernameIndirect)
-	password = indirect(password, b.PasswordIndirect)
-	enable = indirect(enable, b.EnableIndirect)
-	cred := credentials.Credential{Material: secrets.NewMaterial(username, password, enable), Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: base.Path}}
+	cred := credentials.Credential{Material: secrets.NewMaterial(values[0], values[1], values[2]), Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: base.Path}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
 }
 func (b *Backend) client() (*http.Client, error) {
-	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
-	if b.CAFile != "" {
-		pem, err := os.ReadFile(b.CAFile)
-		if err != nil {
-			return nil, err
-		}
-		pool, err := x509.SystemCertPool()
-		if err != nil || pool == nil {
-			pool = x509.NewCertPool()
-		}
-		if !pool.AppendCertsFromPEM(pem) {
-			return nil, errorcodes.Errorf("vault_ca_file_empty", "CA file contains no certificates")
-		}
-		tlsCfg.RootCAs = pool
-	}
-	// The load refuses either file without the other.
-	if b.ClientCertFile != "" || b.ClientKeyFile != "" {
-		cert, err := tls.LoadX509KeyPair(b.ClientCertFile, b.ClientKeyFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsCfg.Certificates = []tls.Certificate{cert}
+	tlsCfg, err := storetls.Config(b.CAFile, b.ClientCertFile, b.ClientKeyFile, b.TLSVerify)
+	if err != nil {
+		return nil, err
 	}
 	return &http.Client{Transport: &http.Transport{TLSClientConfig: tlsCfg}, Timeout: b.Timeout}, nil
 }
@@ -161,13 +128,4 @@ func stringField(m map[string]any, k string) (string, bool) {
 	}
 	s, ok := v.(string)
 	return s, ok
-}
-func indirect(v string, on bool) string {
-	if !on {
-		return v
-	}
-	if x, ok := os.LookupEnv(v); ok {
-		return x
-	}
-	return v
 }

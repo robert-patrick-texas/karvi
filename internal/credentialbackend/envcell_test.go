@@ -65,8 +65,8 @@ func TestEnvCellReadsTheResolversLookup(t *testing.T) {
 		device string
 		says   string
 	}{
-		{input, "rt-1", file + ":3 password: ROW_UNSET is not set"},
-		{nil, "sw-1", file + ":2 password: ROW_PASS is not set"},
+		{input, "rt-1", file + ":3 password: ROW_UNSET not set"},
+		{nil, "sw-1", file + ":2 password: ROW_PASS not set"},
 	} {
 		_, err := resolve(t, tc.input, tc.device)
 		if errorcodes.Of(err) != "credential_env_missing" || !strings.Contains(err.Error(), "credential backend creds: "+tc.says) {

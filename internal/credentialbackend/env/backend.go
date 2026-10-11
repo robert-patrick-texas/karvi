@@ -4,9 +4,10 @@ package env
 
 import (
 	"context"
-	"os"
+	"fmt"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
+	"github.com/robert-patrick-texas/karvi/internal/envname"
 	"github.com/robert-patrick-texas/karvi/internal/secrets"
 )
 
@@ -15,42 +16,43 @@ type Backend struct {
 	UsernameTemplate string
 	PasswordTemplate string
 	EnableTemplate   string
-	UsernameIndirect bool
-	PasswordIndirect bool
-	EnableIndirect   bool
 }
 
 func (b *Backend) Name() string                { return b.BackendName }
 func (*Backend) Mode() credentials.BackendMode { return credentials.OperatorKeyed }
+
+// Resolve reads the three variables the templates name, each %operator%
+// filled with the operator's name after the backend's transform, through
+// the request's lookup; a template "" names none. A variable's value is the
+// field's, as written. The backend answers when any variable is set and is
+// not found when none is. A filled name that is not a portable variable name
+// stops the device, since no shell can export it, naming the remedy.
 func (b *Backend) Resolve(_ context.Context, req credentials.ResolveRequest) credentials.BackendResult {
-	userVar := req.Fill(b.UsernameTemplate)
-	passVar := req.Fill(b.PasswordTemplate)
-	enableVar := req.Fill(b.EnableTemplate)
-	username, uok := lookup(userVar)
-	password, pok := lookup(passVar)
-	enable, eok := lookup(enableVar)
-	if !uok && !pok && !eok {
+	var values [3]string
+	found := false
+	for i, t := range []struct{ key, template string }{
+		{"username-var-template", b.UsernameTemplate},
+		{"password-var-template", b.PasswordTemplate},
+		{"enable-var-template", b.EnableTemplate},
+	} {
+		if t.template == "" {
+			continue
+		}
+		name := req.Fill(t.template)
+		if !envname.Portable(name) {
+			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "config_credential_backend_variable_invalid", Message: fmt.Sprintf("credential backend %s: %s gives %q, not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform", b.BackendName, t.key, name)}
+		}
+		if req.LookupEnv == nil {
+			continue
+		}
+		if v, ok := req.LookupEnv(name); ok {
+			values[i], found = v, true
+		}
+	}
+	if !found {
 		return credentials.BackendResult{Outcome: credentials.NotFound}
 	}
-	username = indirect(username, b.UsernameIndirect)
-	password = indirect(password, b.PasswordIndirect)
-	enable = indirect(enable, b.EnableIndirect)
-	material := secrets.NewMaterial(username, password, enable)
+	material := secrets.NewMaterial(values[0], values[1], values[2])
 	cred := credentials.Credential{Material: material, Backend: b.BackendName, Policy: req.Policy, MatchedOn: credentials.Match{Category: "operator", SafeValue: req.Operator.Username, Source: "environment"}}
 	return credentials.BackendResult{Outcome: credentials.Success, Credential: cred}
-}
-func lookup(name string) (string, bool) {
-	if name == "" {
-		return "", false
-	}
-	return os.LookupEnv(name)
-}
-func indirect(v string, on bool) string {
-	if !on {
-		return v
-	}
-	if x, ok := os.LookupEnv(v); ok {
-		return x
-	}
-	return v
 }

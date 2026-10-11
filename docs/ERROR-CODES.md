@@ -136,7 +136,7 @@ Active failure causes.
 | `config_credential_backend_shared_path_relative` | config | 2 | no | A shared-scope credential backend's `path` is missing or not absolute. |
 | `config_credential_backend_type_missing` | config | 2 | no | A `credential-backend` table has no `type`. |
 | `config_credential_backend_type_unsupported` | config | 2 | no | A `credential-backend` table names an unsupported `type`. |
-| `config_credential_backend_variable_invalid` | config | 2 | no | A credential backend names a variable that is not a portable variable name (letters, digits, and underscores, not beginning with a digit): Redis's `auth-username-env` or `auth-password-env`, Vault's `token-env`, or an `env` backend's template with each `%operator%` standing for a letter; the message quotes the value. |
+| `config_credential_backend_variable_invalid` | config | 2 | no | A credential backend names a variable that is not a portable variable name (letters, digits, and underscores, not beginning with a digit): Redis's `auth-username-env` or `auth-password-env`, Vault's `token-env`, or an `env` backend's template with each `%operator%` standing for a letter, refused when the configuration loads; or an `env` backend's template filled with the operator's name after the backend's transform, which stops the device at planning and names the remedy, a transform's `replace-chars`; the message quotes the value. |
 | `config_credential_formula_source_invalid` | config | 2 | no | A formula backend's `password-source` is empty or names the backend itself. |
 | `config_credential_formula_source_unknown` | config | 2 | no | A formula backend's `password-source` names a backend that does not exist. |
 | `config_credential_policy_backend_unknown` | config | 2 | no | A credential policy's `backend-sequence` names a backend that does not exist. |
@@ -258,7 +258,7 @@ Active failure causes.
 | `credential_csv_malformed` | credential | 6 | no | A credential CSV cannot be read as its backend declares it: an unreadable, blank, or duplicate header, a mandatory field with no column, invalid CSV, an overlong line, or a short row; the reader's reason is kept and no cell is quoted. |
 | `credential_csv_row_invalid` | credential | 6 | no | A credential CSV row does not stand: no positive selector, a malformed selector or prefix, an illegal `credkey`, or no result at all (`username`, `password`, and `enable_password` all blank); the message names the line and the column and never the cell. |
 | `credential_enable_missing` | credential | 6 | no | The platform requires an enable password and none was resolved. |
-| `credential_env_missing` | credential | 6 | no | A credential CSV cell `env:NAME` in the row a device selected names a variable that is not set or is empty; the device stops at planning, and the message names the file, the line, the column, and the variable. |
+| `credential_env_missing` | credential | 6 | no | A variable a credential source names is not set or is empty: a credential CSV cell `env:NAME` in the row a device selected, a Redis or Vault record's field `env:NAME`, or the variable a Redis backend's `auth-password-env` or `auth-username-env` or a Vault backend's `token-env` names, read before any connection; the device stops at planning, and the message names the backend, the file and line or the record and field, or the key, and the variable. |
 | `credential_file_mode_unsafe` | credential | 6 | no | A user credential file's mode is not 0600; the message names the backend and the path and gives the `chmod` remedy. |
 | `credential_file_not_regular` | credential | 6 | no | A user or shared credential file's path is not a regular file. |
 | `credential_file_owner_mismatch` | credential | 6 | no | A user credential file is owned by another user. |
@@ -511,10 +511,9 @@ Active failure causes.
 | `record_status_invalid` | internal | 1 | no | A command record's status is not a terminal status. |
 | `record_stderr_encoding_invalid` | internal | 1 | no | An exec record's stderr encoding is not `utf-8` or `base64`. |
 | `redis_auth_failed` | credential | 6 | no | The Redis server rejects the configured authentication. |
-| `redis_auth_missing` | credential | 6 | no | The Redis authentication environment variable is not set. |
 | `redis_ca_file_empty` | credential | 6 | no | The Redis CA file contains no certificates. |
 | `redis_command_rejected` | credential | 6 | no | The Redis server returns an error reply to the credential read. |
-| `redis_malformed` | credential | 6 | no | The Redis `HGETALL` reply is not a flat array of bulk strings. |
+| `redis_malformed` | credential | 6 | no | The Redis `HGETALL` reply is not a flat array of bulk strings, or a field of the record is `env:` followed by something other than a variable name; the message names the backend, the key, and the field, never the value. |
 | `redis_protocol_error` | credential | 6 | no | A Redis reply violates the RESP format or karvi's size limits. |
 | `redis_select_failed` | credential | 6 | no | The Redis server rejects `SELECT` of the configured database. |
 | `redis_tls_config_invalid` | credential | 6 | no | The Redis CA or client certificate files cannot be loaded. |
@@ -619,9 +618,8 @@ Active failure causes.
 | `vault_http_error` | credential | 6 | no | Vault returns a non-success HTTP status other than 404. |
 | `vault_read` | credential | 6 | no | The Vault response body cannot be read. |
 | `vault_request` | credential | 6 | no | The Vault HTTP request cannot be constructed. |
-| `vault_response_malformed` | credential | 6 | no | The Vault response is not valid key/value version 2 JSON. |
+| `vault_response_malformed` | credential | 6 | no | The Vault response is not valid key/value version 2 JSON, or a field of the record is `env:` followed by something other than a variable name; the message names the backend, the path, and the field, never the value. |
 | `vault_tls` | credential | 6 | no | The Vault CA or client certificate files cannot be loaded. |
-| `vault_token_missing` | credential | 6 | no | The Vault token environment variable is unset or empty. |
 | `vault_unavailable` | credential | 6 | yes | The Vault server cannot be reached or the request times out. |
 | `watch_format_unsupported` | usage | 4 | no | `watch` is asked for a format other than tui, table, or json. |
 | `watch_json_filter_unsupported` | usage | 4 | no | `watch --format json` is given `--filter` or `--sort`; json prints every snapshot for the script to filter and sort itself. |
@@ -774,6 +772,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `native_session_closed` | v0.11.0 to v0.17.0 | `command_session_lost` | A command was sent on a closed native session; the device session refuses it. |
 | `output_no_space` | v0.10.0 (catalog name) | `output_preflight_space` | Output file system full. |
 | `redis_address_missing` | v0.30.0 | `config_credential_backend_address_invalid` | A Redis credential backend had no address, found when a device reached it; the address is required and checked when the configuration loads. |
+| `redis_auth_missing` | v0.30.0 | `credential_env_missing` | The variable a Redis backend's `auth-password-env` names was not set, found after the connection; that variable, and `auth-username-env`'s beside it, unset or empty, are one code with every variable a credential source names, read before any connection. |
 | `redis_client_cert_key_unpaired` | v0.30.0 | `config_credential_backend_key_unsupported` | Only one of a Redis backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread. |
 | `run_output_render_failed` | v0.11.0 to v0.17.0 | `terminal_write_failed` | `run --no-daemon` rendered the completed job from `commands.jsonl` and could fail to; it now renders each record from memory as `command` does, and a display that cannot be written is the code below. |
 | `sqlite_backend_unavailable` | v0.30.0 | `config_credential_backend_type_unsupported`, `config_key_removed` | A SQLite credential backend was configured, and the build had no SQLite driver; the `sqlite` type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed. |
@@ -796,3 +795,4 @@ No longer emitted. A retired code is never reused for another cause.
 | `tty_unavailable` | v0.10.0 (catalog name) | `credential_prompt_unavailable` | No terminal for a credential prompt. |
 | `vault_address` | v0.30.0 | `config_credential_backend_address_invalid` | A Vault credential backend's address was not a valid URL, found when a device reached it; the address is required and checked when the configuration loads. |
 | `vault_client_cert_key_unpaired` | v0.30.0 | `config_credential_backend_key_unsupported` | Only one of a Vault backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread. |
+| `vault_token_missing` | v0.30.0 | `credential_env_missing` | The variable a Vault backend's `token-env` names was unset or empty; it is one code with every variable a credential source names. |
