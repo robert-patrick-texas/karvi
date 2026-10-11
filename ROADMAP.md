@@ -236,6 +236,14 @@ last, beside the next release, which exercises the release tools they change.
   55](docs/EXAMPLES.md#55-an-explicit-envname-cell-2026-10-10)). The question:
   the directory made when the job is submitted, or removed when the client
   abandons it.
+- **Shorter output strings.** A review of every string karvi writes for the
+  operator, its warnings, refusals, notices, and prompts, shortening each where
+  a word adds nothing: `NETPASS_NYC is empty` as `NETPASS_NYC empty`,
+  `NETPASS_NYC is not set` as `NETPASS_NYC not set`. The questions: the rule,
+  stated once in [`docs/DESIGN.md`](docs/DESIGN.md) and applied to every string
+  alike; the tests, suites, and documents that quote a string, changed with it;
+  and the generated error-code descriptions
+  ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
 
 ## The device-qualification track
 
