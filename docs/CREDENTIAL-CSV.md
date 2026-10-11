@@ -70,8 +70,7 @@ file's path as `source`, and the row's `line`.
 | `delimiter` | one character | `","` |
 | `mappings.<field>` | header mode: a header name or a list of them; numeric mode: a column number from 1 | a field's own name |
 | `mandatory-fields` | the fields that must have a column | `["username"]` |
-| `transform` | the operator-name transform, as for any backend | |
-| `env-indirection.username`, `.password`, `.enable-password` | `true` lets a cell name an environment variable ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) | `false` |
+| `transform` | the operator-name transform, as for any backend ([`docs/OPERATIONS.md`](OPERATIONS.md#the-operators-name-and-the-credential-transforms)) | |
 
 Unlike `cloginrc`, `scope` and `path` have no default. A shared file read
 under an assumed user scope would fail its mode check with the advice
@@ -87,7 +86,7 @@ at the first resolution that reaches the backend.
 | `config_credential_backend_scope_missing` | is `type = "csv"` with no `scope` |
 | `config_credential_backend_path_missing` | is `type = "csv"` with no `path` |
 | `config_credential_backend_delimiter_invalid` | has a `delimiter` that is not one character |
-| `config_credential_backend_key_unsupported` | is another type and sets `mode`, `delimiter`, `mandatory-fields`, or a `mappings.<field>` key |
+| `config_credential_backend_key_unsupported` | sets a key its type does not read, naming the types that do: a reader key (`mode`, `delimiter`, `mandatory-fields`, a `mappings.<field>`) on another type, or `env-indirection.username`, `.password`, or `.enable-password` on a `csv` backend, whose cells name a variable as `env:NAME` ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
 | `config_credential_backend_shared_path_relative` | is `scope = "shared"` with a path that is not absolute |
 | `config_credential_backend_shared_optional` | is `scope = "shared"` with `required = false` |
 | `config_enum_value_invalid` | has a `mode` other than `header` or `numeric`, or a `mandatory-fields` entry that is not one of the nine fields |
@@ -106,9 +105,9 @@ at the first resolution that reaches the backend.
 | `site` | the device's site | a selector |
 | `device_group` | any one of the device's groups | a selector |
 | `credkey` | the inventory row's `credkeyref` ([section 5](#5-keys-and-pins-credkey-and-credkeyref)); also the row's label in evidence | a literal |
-| `username` | the login name; blank means the operator's own name, after the backend's `transform` | trimmed |
-| `password` | the login password; may be blank ([section 4](#4-how-a-row-is-chosen)) | **kept exactly as written** |
-| `enable_password` | the enable password; may be blank | **kept exactly as written** |
+| `username` | the login name; blank means the operator's own name, after the backend's `transform` | trimmed; or `env:NAME` ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
+| `password` | the login password; may be blank ([section 4](#4-how-a-row-is-chosen)) | **kept exactly as written**; or `env:NAME` |
+| `enable_password` | the enable password; may be blank | **kept exactly as written**; or `env:NAME` |
 
 **Headers.** In header mode a column is found under its field's own name,
 the name with hyphens (`enable-password`), or a header named by
@@ -137,7 +136,9 @@ of the file, a spreadsheet's "CSV UTF-8", is dropped.
 enable cell is never touched, leading and trailing spaces included, since a
 password may begin or end with one. A secret cell of white space alone is
 blank. karvi holds the two secret cells in its redacting secret type from
-the moment the row is read.
+the moment the row is read. A result cell that begins with `env:` is no
+value but a variable's name ([section
+6](#6-secrets-in-the-environment-instead-of-the-file)).
 
 ## 4. How a row is chosen
 
@@ -168,6 +169,7 @@ the moment the row is read.
    | `credential_password_missing` | has no password, which a row always needs (a row holds no key) |
    | `credential_enable_missing` | has no enable password and the device's platform sets `requires-enable = true` |
    | `credential_incomplete` | yields no username after the transforms |
+   | `credential_env_missing` | has an `env:NAME` cell whose variable is unset or empty ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
 
    Blanking a password to retire it therefore stops the devices that took
    the row; it does not hand them to a broader row's credential.
@@ -269,35 +271,55 @@ changed, as it does not for a site or a group.
 
 ## 6. Secrets in the environment instead of the file
 
-With `env-indirection.password = true` (and `.username`,
-`.enable-password`) on the backend, a cell of the *selected* row that names
-a set environment variable is replaced by that variable's value, and the
-field's source reads `env:NAME` rather than the file, line, and column. The
-name is looked up without a secret cell's surrounding spaces; a variable
-that is set and empty counts as set; no variable is read for a row no
-device took.
+A `username`, `password`, or `enable_password` cell `env:NAME` takes the value
+of the variable `NAME` in the operator's environment, with no setting on the
+backend:
 
 ```
 site,username,password,enable_password
-nyc,,NETPASS_NYC,NETENABLE
-bos,,NETPASS,en-bos
+nyc,,env:NETPASS_NYC,env:NETENABLE
+bos,,env:NETPASS,en-bos
 ```
 
 Such a file can hold no secret at all: it becomes a device-keyed map of
 variable names, which the operator-keyed `env` backend cannot be.
 
-> **Warning: a name that is no set variable stays a literal.** With
-> `NETPASS_NYC` not exported, the `nyc` devices still bind, the run exits
-> 0, and the password sent is the text `NETPASS_NYC`: failed logins, on
-> some devices lockouts, and nothing naming the cause. That rule lets one
-> file mix names and real passwords and is the same for every backend.
-> Until an explicit cell form exists, check that every variable the file
-> names is set before a run (`printenv NETPASS_NYC >/dev/null || echo
-> unset`). An explicit `env:NAME` cell, which needs no flag and fails with
-> its own code when the variable is not set, is on the roadmap.
+- **Only the prefix makes a reference.** The cell's surrounding spaces and
+  the prefix's case are ignored, so ` ENV:NETPASS_NYC ` is the same cell.
+  Every other cell is a literal whatever variables are set: a password cell
+  `NETPASS_NYC` sends the text `NETPASS_NYC`. There is no escape; a password
+  that begins with `env:` is given through a variable.
+- **The name is checked when the file loads:** letters, digits, and
+  underscores, not beginning with a digit. `env:NETPASS-NYC` or a bare `env:`
+  is `credential_csv_row_invalid`, naming the line and the column ([section
+  10](#10-what-a-bad-credential-csv-says)).
+- **The variable is read for the row a device selected,** when the run is
+  planned, and for no other row: the `bos` devices run with `NETPASS_NYC`
+  unset.
+- **An unset or empty variable refuses the run** at planning, before any
+  device is reached, with `credential_env_missing` (exit 6), naming the file,
+  the line, the column, and the variable, the one name this backend's messages
+  quote. The device moves on to no later row, backend, `NET*` variable, or
+  prompt; the dry run fails alike.
+- **A blank cell names no variable.** A blank `username` is the operator's own
+  name, after the backend's `transform`; a blank `password` is
+  `credential_password_missing` ([section 4](#4-how-a-row-is-chosen)). A cell
+  reads `NETUSER`, `NETPASS`, or `NETENABLE` only as `env:NETUSER`,
+  `env:NETPASS`, or `env:NETENABLE`; otherwise the platform's fallback reads
+  them, when no backend answers.
+- **The environment is the client's,** the `karvi` that plans the run; a run
+  through the daemon reads the variable before the job is sent.
 
-The dry-run report shows no secret and no field source, so it cannot show
-whether a cell was taken from a variable.
+With `NETPASS` and `NETENABLE` exported and `NETPASS_NYC` not, a run on
+`sw-nyc-01` and `sw-bos-01` is refused:
+
+```text
+credential_env_missing: 1 of 2 targets failed credential resolution: name:sw-nyc-01 (credential backend site-creds: …/credentials.csv:2 password: NETPASS_NYC is not set policy=default backend=site-creds)
+```
+
+The variable exported and empty says `NETPASS_NYC is empty`. A run on
+`sw-bos-01` alone reaches the device, and with `NETPASS_NYC` exported both
+do.
 
 ## 7. A formula over a credential CSV
 
@@ -336,6 +358,11 @@ With the sequence `["shaped"]`, the devices of both sites bind as
   not the row: two devices that took different rows show equal
   `matched_on`. (Their grants stay apart, since the secrets differ.)
   Carrying the source's file, line, and `credkey` is on the roadmap.
+- **The row's `env:` cells are read as the CSV's own,** the username's
+  too, although the formula drops it: an unset variable in the row's
+  `username` cell refuses the run with `credential_env_missing`, naming the
+  `csv` backend and the formula as `backend=shaped` ([section
+  6](#6-secrets-in-the-environment-instead-of-the-file)).
 - A device no row matches is a not-found for the formula, and the walk
   goes on.
 
@@ -426,7 +453,9 @@ guess.
 Every message names the backend, the file, and the line, and the column
 where one is at fault, and **never quotes a cell, a selector included**: a
 misplaced delimiter can put a password in any column. Read the line and
-column from the message and the value from the file. All are exit 6.
+column from the message and the value from the file. The one exception is
+the name an `env:` cell gives, which its prefix marks as a variable's. All are
+exit 6.
 
 | File | Message, after `credential backend NAME: FILE` |
 |---|---|
@@ -435,6 +464,8 @@ column from the message and the value from the file. All are exit 6.
 | a row whose only selector is `!lab` | `credential_csv_row_invalid`: `:2: the row holds only negated selectors: it needs at least one positive selector cell or a credkey` |
 | `username`, `password`, and `enable_password` all blank | `credential_csv_row_invalid`: `:2: the row has no result: username, password, and enable_password are all blank` |
 | a `credkey` with a pattern character | `credential_csv_row_invalid`: `:2: column credkey: a key holds no pattern character (*, ?, [, \): a key is a literal` |
+| `env:NETPASS-NYC` in a password cell | `credential_csv_row_invalid`: `:2: column password: env: is not followed by a variable name (letters, digits, and underscores, not beginning with a digit)` |
+| the selected row's `env:NETPASS_NYC`, the variable unset (or empty) | `credential_env_missing`: `:2 password: NETPASS_NYC is not set` (`is empty`) |
 | `Core-Admin` on line 2 and `core-admin` on line 3 | `credential_csv_credkey_duplicate`: `: lines 2 and 3 have the same credkey` |
 | a row one cell short | `credential_csv_malformed`: `: short CSV row at line 2: need column 6, got 5` |
 | no `username` column | `credential_csv_malformed`: `: mandatory field "username" has no mapping` |
@@ -459,10 +490,11 @@ the last resort and there was nowhere to show it.
 | Part | Package |
 |---|---|
 | The file rules, the availability classes, the per-run cache | `internal/credentialbackend/credfile` |
-| The backend: load, row checks, first match, evidence, field sources | `internal/credentialbackend/credcsv` |
+| The backend: load, row checks, first match, `env:` cells read, evidence | `internal/credentialbackend/credcsv` |
 | The row evaluator and the key's literal rule (`CompileRow`, `Row.Match`, `CheckKey`, `FoldKey`) | `internal/matching` |
 | The shared reader (`Spec.Trim`, `Spec.CheckHeader`, the byte-order mark) | `tabular` |
-| Environment indirection | `internal/credentialbackend/envindirect` |
+| The `env:` cell: the reference and its name (`Reference`), the variable's value or its absence (`Read`) | `internal/credentialbackend/envindirect` |
+| The one lookup of a variable (`ResolveRequest.LookupEnv`, `InputProvider.LookupEnv`, `Resolver.lookupEnv`) | `credentials`, `internal/credentialbackend` |
 | The keyed capability (`credentials.Keyed`) and the pinned walk (`Resolver.Resolve`) | `credentials`, `internal/credentialbackend` |
 | `credkeyref` and the secret-column rule (`inventory.SecretColumnWord`) | `inventory`, `internal/inventoryload` |
 | The table's validation and its key allow-list | `internal/configload`, `configschema` |

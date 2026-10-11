@@ -479,13 +479,52 @@ broader row's credential; a file checked only when a device reached a bad row
 would pass on Monday and fail on Tuesday. *Not taken:* longest-prefix
 selection; "the first complete matching row".
 
-**Secret cells are verbatim; no message quotes a cell.** A secret cell is
-never trimmed, goes into a secret value as the row is read, and may be
-replaced by an environment variable's value under the backend's indirection
-flags. No credential CSV message quotes any cell, a selector included; a
-duplicate key names two lines and not the key. *Why:* a password may begin or
-end with a space; a misplaced delimiter shifts every cell one column along,
-and then the "selector" in a message is the password.
+**Secret cells are verbatim; no message quotes a cell.** A secret cell is never
+trimmed and goes into a secret value as the row is read, unless it names a
+variable (`env:NAME`, below). No credential CSV message quotes any cell, a
+selector included, but the name an `env:` cell gives; a duplicate key names two
+lines and not the key. *Why:* a password may begin or end with a space; a
+misplaced delimiter shifts every cell one column along, and then the "selector"
+in a message is the password.
+
+**A result cell names a variable explicitly, and an unset one stops the
+device.** A `username`, `password`, or `enable_password` cell that begins with
+`env:`, the cell trimmed and the prefix's case ignored, names a variable: its
+name, a portable variable name, is checked when the file loads, and its value is
+read when a device selects the row. An unset or empty variable is
+`credential_env_missing` at planning, naming the file, the line, the column, and
+the variable, and the device moves on to no later row, backend, or fallback.
+Every other cell is a literal, and a `csv` backend takes no `env-indirection`
+key. *Why:* under the flags a cell naming an unset variable was sent as the
+password, failed logins and, on some devices, lockouts, with nothing naming the
+cause; a reference marked as one fails before any device is reached, and its
+name may be said, the prefix marking it as a name. *Not taken:* the flags kept
+beside the cell (a file under two rules); an escape for a literal that begins
+with `env:` (a variable carries it); a reference only when its rest is a valid
+name (a typo sent as a password); an empty variable taken as set (a blank enable
+secret reaching the device); every row's variables read at load (a run on one
+site's devices needing every site's variables).
+
+**The credential CSV and the `NET*` fallback read the environment through the
+resolver's one lookup.** The resolver's lookup is its input provider's, the
+client's, and reaches every backend on `credentials.ResolveRequest.LookupEnv`; a
+resolver without a provider reads no variable. *Why:* the credential helper's
+values are held as secrets and never put into the process environment a child
+such as `ssh` inherits, so a reader of the process environment could not see
+them; one door gives them to each reader. The env, Redis, and Vault backends
+read the process environment themselves until the helper's first part moves
+them. *Not taken:* the helper's values put into the process environment; a
+lookup given to each backend as it is built (the backends are built before the
+planner sets the provider).
+
+**A credential backend takes its type's keys alone.** The registry holds one key
+list per backend type, and any other key on a table of that type is
+`config_credential_backend_key_unsupported`, naming the types that read it. The
+`sqlite` type, which had no driver, is refused, and its keys as removed. *Why:*
+a key its type ignores is a setting the operator takes to be in force that is
+not (a Redis backend's `mount`, a CSV's `token-env`); a type no build can read
+validates and never answers. *Not taken:* a warning (the setting left in the
+file); a code per family of keys (the scope code, retired into the one).
 
 **A pin is a pin.** A device with `credkeyref` matches only rows whose key
 equals it, walks its policy's sequence asking only backends that declare the

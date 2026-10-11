@@ -56,6 +56,13 @@ path = "~/.karvi/credentials.csv"
 # An absent optional file is a silent not-found; true makes it an error.
 required = false
 mandatory-fields = ["username", "password"]
+# The operator's name, before the backend is asked, and the username it
+# answers, rewritten by a [credential-transform.NAME] table
+# (docs/OPERATIONS.md, "The operator's name and the credential transforms"):
+# transform = "adm"
+
+# [credential-transform.adm]
+# operator = [{op = "add-suffix", suffix = "-adm"}]
 
 # A RANCID .cloginrc read as data (examples/cloginrc), for a site that keeps
 # one; name it in a policy's backend-sequence to use it.

@@ -536,8 +536,10 @@ password-var-template = "KARVI_%s_PASSWORD"
 enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
 ```
 
-- **`%s` is the operator's login name**, as the account has it, case kept:
-  for the operator `netops` the templates above read `KARVI_netops_USERNAME`,
+- **`%s` is the operator's login name**, as the account has it, case kept,
+  after the backend's `transform` ([the credential
+  transforms](#the-operators-name-and-the-credential-transforms)): for the
+  operator `netops` the templates above read `KARVI_netops_USERNAME`,
   `KARVI_netops_PASSWORD`, and `KARVI_netops_ENABLE_PASSWORD`. A template
   without `%s` is the variable's name as written (`SRV_USER`); a template holds
   at most one `%s`; a template left out reads nothing for its field.
@@ -614,10 +616,10 @@ says where to look in it:
 | The nine fields, headers and mappings, numeric mode, quoting, verbatim secret cells | [section 3](CREDENTIAL-CSV.md#3-the-file) |
 | Which row a device takes (top to bottom, first match, no longest prefix); a blank password; `matched_on` for a `csv_row` | [section 4](CREDENTIAL-CSV.md#4-how-a-row-is-chosen) |
 | Pinning a device to a row with the inventory's `credkeyref`; `credkeyref_unresolved`, `inventory_credkeyref_invalid` | [section 5](CREDENTIAL-CSV.md#5-keys-and-pins-credkey-and-credkeyref) |
-| Cells that name environment variables, and the unset-variable hazard | [section 6](CREDENTIAL-CSV.md#6-secrets-in-the-environment-instead-of-the-file) |
+| Cells that name environment variables, `env:NAME`; `credential_env_missing` | [section 6](CREDENTIAL-CSV.md#6-secrets-in-the-environment-instead-of-the-file) |
 | A formula whose password source is a credential CSV; the row's username is dropped | [section 7](CREDENTIAL-CSV.md#7-a-formula-over-a-credential-csv) |
 | `inventory_secret_column`, `config_inventory_source_secret_mapping`: an inventory file holds no secrets, there is no override, and what the check does not find | [section 9](CREDENTIAL-CSV.md#9-an-inventory-file-holds-no-secrets) |
-| `credential_csv_malformed`, `credential_csv_row_invalid`, `credential_csv_credkey_duplicate`: the messages, which never quote a cell | [section 10](CREDENTIAL-CSV.md#10-what-a-bad-credential-csv-says) |
+| `credential_csv_malformed`, `credential_csv_row_invalid`, `credential_csv_credkey_duplicate`, `credential_env_missing`: the messages, which never quote a cell but an `env:` cell's variable | [section 10](CREDENTIAL-CSV.md#10-what-a-bad-credential-csv-says) |
 
 Two things to know at an upgrade. An inventory file with a column named
 like a secret (`password`, `enable-password`, `api_token`) no longer loads
@@ -625,6 +627,54 @@ like a secret (`password`, `enable-password`, `api_token`) no longer loads
 a pinned device never falls to a general row, to `NETUSER`/`NETPASS`, or to
 a prompt: a mistyped `credkeyref` stops that device with
 `credkeyref_unresolved`, naming the device and the key.
+
+## The operator's name and the credential transforms
+
+A backend reads the operator's login name where a credential is the
+operator's: the `env` backend's templates, the Redis key and the Vault path, a
+formula's username, and the username of a `.cloginrc` with no `user` line or
+of a credential CSV row whose `username` cell is blank. A
+`[credential-transform.NAME]` table rewrites that name, and the username a
+backend answers:
+
+```toml
+[credential-transform.adm]
+operator = [{op = "add-suffix", suffix = "-adm"}]
+
+[credential-backend.site-creds]
+type = "csv"
+scope = "user"
+path = "~/.karvi/credentials.csv"
+transform = "adm"
+```
+
+- **`operator`** rewrites the operator's name before the backend is asked;
+  **`username`** rewrites the username the backend answers, from a cell, a
+  variable, or the operator's name, before the credential is judged. Each is
+  a list of operations applied in order: `lowercase`, `uppercase`,
+  `crop-to-dot` (up to the first dot), `strip-chars` (`chars`),
+  `replace-chars` (`pairs`, each `{from, to}`), `strip-suffix` (`suffix`),
+  `replace-suffix` (`suffix`, `replacement`), and `add-suffix` (`suffix`,
+  added only to a name without a dot). A username the operations leave empty
+  is `credential_incomplete`.
+- **A backend's table** is its `transform`; without one, the table named like
+  the backend, and otherwise `default`, which changes nothing unless defined.
+  A `transform` naming no table refuses the run when it is planned,
+  `credential_transform_unknown` (exit 2); `config validate` does not see it.
+- **The platform's fallback** (the `NET*` variables, the prompt, and the
+  operator's keys) takes `default`'s `username` operations.
+
+Under the table above the operator `netops`, given a row whose `username` cell
+is blank, logs in as `netops-adm`, and the dry run's credential line names
+`user=netops-adm`:
+
+```text
+! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=netops-adm backend=site-creds transport=native
+```
+
+With `username = [{op = "lowercase"}, {op = "add-suffix", suffix = "-adm"}]`
+under `[credential-transform.default]`, the fallback given `NETUSER=NetOps`
+logs in as `netops-adm`, `backend=builtin-env-fallback`.
 
 ## Address-family troubleshooting
 

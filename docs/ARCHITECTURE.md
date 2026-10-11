@@ -490,10 +490,16 @@ inventory's (category and exit). `Resolve` builds the device view the policy map
 is matched against, takes the first matching row, and answers with a copy of its
 secrets, so destroying the material after sealing leaves the cache whole.
 Completeness is the resolver's `finalize`, as for every backend. No message
-quotes a cell, which is why `matching.RowError` reasons are value-free and the
-reader's duplicate-header reason is restated. Environment indirection for a new
-backend is `internal/credentialbackend/envindirect`; the env, Redis, and Vault
-backends still hold their private copies (a roadmap line).
+quotes a cell but an `env:` cell's variable name, which is why
+`matching.RowError` reasons are value-free and the reader's duplicate-header
+reason is restated. A result cell `env:NAME` is
+`internal/credentialbackend/envindirect`'s: the load finds it (`Reference`),
+checks its name, and keeps the name in place of a value; `Resolve` reads it
+(`Read`) through the request's `LookupEnv`, the resolver's one lookup, its input
+provider's, which the `NET*` fallback reads too, and answers
+`credential_env_missing` for an unset or empty variable. The env, Redis, and
+Vault backends still read the process environment themselves, for the credential
+helper to fold.
 
 The inventory's `credkeyref` column is a
 logical field of `internal/inventoryload` like any other

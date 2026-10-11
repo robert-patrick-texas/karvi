@@ -9258,3 +9258,98 @@ its own type, keys, and driver. *Not taken:* the type kept with no keys (a
 backend that validates and can never answer); the keys left unregistered without
 a removed row (a refusal naming the key and nothing of why); a driver now (the
 later store, designed with its own keys).
+
+**Built.** In three sections. S1 (`7608e50`), the configuration: one key list
+per backend type in the registry, the allow-list their union; a key the table's
+type does not read refused at load, `config_credential_backend_key_unsupported`
+naming the types that read it, a `csv` backend's `env-indirection` keys with the
+reason that a cell names a variable as `env:NAME`;
+`config_credential_backend_scope_unsupported` retired into it; `type = "sqlite"`
+refused as unsupported and its six keys as removed in the release after v0.29.0
+(`nextRelease`, `daemon.socket`'s too), the resolver's placeholder and
+`sqlite_backend_unavailable` gone. S2 (`3a395bf`), the credential path:
+`envindirect.Reference`, a cell's reference and its name, and `Read`, the
+variable's value or why there is none; the CSV keeping a reference's name in
+place of a value when the file loads, a name that is no variable name
+`credential_csv_row_invalid`, and reading the variable when a device selects the
+row, through `ResolveRequest.LookupEnv`, an unset or empty one
+`credential_env_missing`; the provider's lookup a name to a value and whether it
+is set, the resolver's `lookupEnv` the one door of the request and of the `NET*`
+fallback, the provider's unused context and error and the fallback's
+unreachable branch gone; `credentials.FieldSource`, `Credential.FieldSources`,
+and `finalize`'s `promptable` removed, the env, Redis, and Vault backends'
+copies of the old rule returning the value alone. S3, the documents:
+CREDENTIAL-CSV (section 6 rewritten on the cell; sections 2, 3, 4, 7, 10, and
+11), OPERATIONS (the credential transforms, which no document described, and the
+`env` backend's `%s` after its transform), DESIGN (three entries, the verbatim
+cells amended), ARCHITECTURE, `examples/credentials.csv` (the `nyc` row's
+password from `NETPASS_NYC`) and `examples/config.toml` (a commented transform),
+the ROADMAP, and the CHANGELOG. The tests: `TestBackendKeysByType` and the
+removed keys' `sqlite` case (S1); `TestEnvReference`, the four `env:` cases of
+`TestLoadFailures`, `TestEnvCellReadsTheResolversLookup`, `TestReference`, and
+`TestRead` (S2); each failed on the tree before its section.
+
+**Executed.** Lab builds of S1 and S2, the fake device on 127.0.0.1:2223:
+
+| Case | Result |
+|---|---|
+| `env:NETPASS_NYC`, exported | reached, exit 0 |
+| the same, unset | `credential_env_missing: … creds.csv:2 password: NETPASS_NYC is not set …`, exit 6, no job directory |
+| the same, exported empty | `NETPASS_NYC is empty`, exit 6 |
+| ` ENV:NETPASS_NYC ` | reached, exit 0 |
+| `env:NETPASS-NYC` | `credential_csv_row_invalid: … creds.csv:2: column password: env: is not followed by a variable name (…)`, exit 6 |
+| `env:NETPASS`, the fallback's variable | reached, exit 0 |
+| the enable cell `env:KEN`, unset | `enable_password: KEN is not set`, exit 6 |
+| the plain cell `NETPASS_NYC`, exported | the literal sent, `authentication_failed`, exit 108 |
+| `env:Secret1`, the accepted cost | `Secret1 is not set`, exit 6 |
+| two devices, the second's variable unset | `1 of 2 targets failed credential resolution: name:bad (… creds1.csv:3 password: BAD_PASS is not set …)`, exit 6, the first not reached |
+| the first alone, the second's variable unset | reached, exit 0 |
+| through the daemon, and the dry run, unset | the same code at client planning, exit 6 |
+| a formula over a row `env:FORMULA_U,env:FORMULA_P`, `FORMULA_U` unset | `username: FORMULA_U is not set … backend=shaped`, exit 6, though the formula drops the username |
+| a `csv` backend with `env-indirection.password` | `config_credential_backend_key_unsupported: a csv backend takes no env-indirection key: a cell names a variable as env:NAME …`, exit 2 |
+| a Redis backend with `mount`; a formula with `path` | `mount applies to the vault backend type only`; `path applies to the cloginrc and csv backend types only`; exit 2 |
+| `type = "sqlite"`; with its keys | `config_credential_backend_type_unsupported`; `config_key_removed: removed in v0.30.0; the sqlite credential backend type had no driver and is removed; nothing read the key …`; exit 2 |
+| `transform = "adm"`, its `operator` adding `-adm`, a blank `username` cell | `user=netops-adm`, in the run and the dry run |
+| `[credential-transform.default]` lowercasing and adding `-adm`, `NETUSER=NetOps` | `user=netops-adm backend=builtin-env-fallback` |
+
+The full battery passed on the lab build of S2, all 17 suites, leaving no
+`/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`. Found on the way, both before this
+chapter: a run through the daemon refused at client planning leaves an empty
+job directory, which the daemon made for the job (a ROADMAP line); and
+`config validate` says `valid: true` for a backend whose `transform` names no
+table, which every run then refuses, `credential_transform_unknown`, exit 2
+(issue 8, below). The evidence is kept beside the tree
+(`release-design-evidence/env-cell-2026-10-10`).
+
+**Closed.** `go test ./...` passed at every section, and the full battery on the
+lab build of S2 (S3 changes the documents and the examples alone;
+`examples/config.toml` validates and `examples/credentials.csv` loads on that
+build). The ROADMAP's item is gone, and its Next is the credential helper, whose
+first part moves the env, Redis, and Vault backends onto the one lookup. The
+removed keys' v0.30.0 and the codes' retirement in it are the next release's
+number, to be checked when the release is given its number.
+
+**Issue 8, found: transforms checked at load, agreed.** On the lab build of S2,
+`config validate` says `valid: true` for every transform a run cannot use, and
+the run refuses it at planning: a backend's `transform` naming no table
+(`credential_transform_unknown`), an unknown operation
+(`transform_operation_unknown`), `add-suffix` with no `suffix`
+(`transform_suffix_empty`), an operation that is not a table
+(`credential_transform_operation_not_table`), each exit 2, and an inventory
+source's `name-transform` naming no table (`inventory_name_transform_unknown`,
+exit 5). The run builds every transform table, so a bad operation in a
+`[credential-transform.spare]` no backend names stops every run alike. `config
+validate` builds every `[credential-transform.NAME]` and `[name-transform.NAME]`
+table with the builder the run uses, a bad operation refused with the run's own
+code, naming the key and its place, whether or not anything names the table. A
+credential backend's `transform` names a defined table or `default`, else
+`credential_transform_unknown`, exit 2; an inventory source's `name-transform`
+alike, `name_transform_profile_unknown` (exit 2), a code nothing raised, its
+description updated. A row's `name_transform` cell is data and is still checked
+when the inventory loads, `inventory_name_transform_unknown` (exit 5). *Not
+taken:* the reference alone checked (a bad operation, in a table nothing names
+too, still stopping every run); the run building only the tables named (a typo
+hidden until the day the table is used); a warning. Found beside it:
+`name.default-transform` is read by nothing, every device carrying `default` as
+its name transform when its own is blank (`inventory/model.go`), so
+`name.default-transform = "nope"` passes validation and every run.

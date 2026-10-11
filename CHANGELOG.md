@@ -94,6 +94,31 @@
   `sorted`, so `config show` says `sorted` and the configuration digest is
   `sorted`'s, where the two spellings gave two digests;
   `ssh-algorithms.source`'s `auto` is stored as `karvi` alike.
+- **Breaking: an explicit `env:NAME` cell in the credential CSV.** A `username`,
+  `password`, or `enable_password` cell `env:NAME`, the cell's surrounding
+  spaces and the prefix's case ignored, takes the variable's value, with no
+  flag; an unset or empty variable refuses the run at planning with
+  `credential_env_missing` (exit 6), naming the file, the line, the column, and
+  the variable, before any device is reached, where under `env-indirection` an
+  unset variable's name was sent as the password. A name that is no variable
+  name is `credential_csv_row_invalid` when the file loads. A `csv` backend's
+  `env-indirection.username`, `.password`, and `.enable-password` are refused
+  (`config_credential_backend_key_unsupported`): a plain cell is a literal
+  whatever variables are set, and a literal password that begins with `env:` is
+  given through a variable. The cell reads the resolver's one lookup, its input
+  provider's, which the `NET*` fallback reads too: `credentials.ResolveRequest`
+  carries it as `LookupEnv`, and `credentials.FieldSource` and
+  `Credential.FieldSources`, which nothing read, are removed.
+- **Breaking: a credential backend takes its type's keys alone.** A key its type
+  does not read is refused at load, `config_credential_backend_key_unsupported`
+  (exit 2), naming the types that read it, where a Redis backend took Vault's
+  `mount`, or a CSV `token-env`, and read neither;
+  `config_credential_backend_scope_unsupported` is retired into it.
+- **Breaking: the `sqlite` credential backend type removed.** It had no driver,
+  and a run reaching it failed with `sqlite_backend_unavailable`, now retired;
+  `type = "sqlite"` is refused as an unsupported type, and its keys `table`,
+  `operator-column`, `username-column`, `password-column`, `enable-column`, and
+  `busy-timeout` with `config_key_removed`.
 
 ## 0.29.0 - 2026-10-09
 
