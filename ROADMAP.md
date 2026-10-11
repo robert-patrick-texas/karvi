@@ -180,21 +180,29 @@ last, beside the next release, which exercises the release tools they change.
   The question: whether karvi guards against one, for instance by keeping the
   client's input open so that the master never closes first, and what that costs
   a device that waits for its input to end.
-- **A suite's failure that names its call.** A suite under `set -eu` that
-  runs karvi with its output redirected into the work directory dies at a
-  refused call with karvi's exit status and prints nothing, and its cleanup
-  removes the files that held karvi's message: under umask 0002 ten suites
-  ended so, most with exit 109 and no line, while karvi had written
+- **A suite's failure that names its call.** A suite under `set -eu` that runs
+  karvi with its output redirected into the work directory dies at a refused
+  call with karvi's exit status and prints nothing, and its cleanup removes the
+  files that held karvi's message: under umask 0002 ten suites ended so, most
+  with exit 109 and no line, while karvi had written
   `host_key_directory_permission` and the reason on its standard error
   ([`docs/EXAMPLES.md`, chapter
   41](docs/EXAMPLES.md#41-the-suites-work-directories-made-0700-2026-10-08)).
-  The bundle's verifier has the same gap: `verify-shipped.sh`'s checks are
-  bare tests under `set -eu`, so a release missing its number in that script
-  ended `verify-bundle.sh` with exit 1 and an empty log ([chapter
-  43](docs/EXAMPLES.md#43-the-release-with-the-debian-package-2026-10-08),
-  S2). The question: one function in `scripts/lib` that runs a call and, when it
-  fails unexpectedly, names it and prints what karvi wrote before the suite
-  exits.
+  The bundle's verifier has the same gap: `verify-shipped.sh`'s checks are bare
+  tests under `set -eu`, so a release missing its number in that script ended
+  `verify-bundle.sh` with exit 1 and an empty log ([chapter
+  43](docs/EXAMPLES.md#43-the-release-with-the-debian-package-2026-10-08), S2).
+  A suite's own start budget stops a lane too, though with its line:
+  `daemon-upgrade-smoke-test` gives `go run ./tools/daemon-fixture` two seconds
+  to bind its socket, and the first run after a change to the packages it builds
+  compiles them first (2.4 seconds on the operator's host, 0.18 with the cache
+  warm), so a battery on a cold cache stopped there with `schema-2 fixture did
+  not start` and the rest of its lane unrun ([chapter
+  55](docs/EXAMPLES.md#55-an-explicit-envname-cell-2026-10-10), S4). The
+  questions: one function in `scripts/lib` that runs a call and, when it fails
+  unexpectedly, names it and prints what karvi wrote before the suite exits; and
+  the fixture built before its wait begins, so the wait measures its start and
+  not a compile.
 - **A client told when a running daemon's settings differ from its own.** A
   daemon keeps the `daemon.*` values of the invocation that launched it, and a
   later client's `--set daemon.*` reaches it only at its next start, without
