@@ -191,7 +191,7 @@ func Header(plan executionplan.ExecutionPlan, stage executionplan.Stage) executi
 	must(err)
 	h := executionplan.PublicJobHeader{
 		SchemaVersion: executionplan.SchemaVersion, IdempotencyKey: "idem-1", JobID: JobID,
-		Operator: plan.Operator, Client: executionplan.ClientIdentity{AppName: "karvi", Version: "0.9.2", Commit: "development", PID: 4242, Hostname: "ops01"},
+		Operator: plan.Operator, Client: executionplan.ClientIdentity{PID: 4242, Hostname: "ops01"},
 		Mode: executionplan.ModeLive, ExecutionDomain: executionplan.ExecutionDomainLocal, CommandPlanDigest: plan.CommandPlanDigest, PlanDigest: sum,
 	}
 	if stage == executionplan.Committed {

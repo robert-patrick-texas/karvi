@@ -39,8 +39,10 @@ import (
 // the execution and ping blocks, blind_wait_ns, output's byte limits,
 // persist, files, and crop_to_dot, the collection's file_mode, and
 // dispatch's halt and gate values with continue_device_on_error, which the
-// job reads from that configuration.
-const SchemaVersion = 12
+// job reads from that configuration; 13 the header's client its pid and host
+// alone, its app name, version, and commit, which nothing read, removed
+// (EXAMPLES chapter 57, issue 3).
+const SchemaVersion = 13
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -381,12 +383,11 @@ type PublicJobHeader struct {
 	CredentialPackage *PackageReference `json:"credential_package,omitempty"`
 }
 
-// ClientIdentity names the submitting executable; it is hashed into the
-// manifest, unlike the IPC envelope's client_pid.
+// ClientIdentity names the process that planned the job, recorded in the
+// manifest. Its version and build are not the client's to report: the build
+// that ran the job is the manifest's app.build, the daemon's, and the client
+// judges the daemon (EXAMPLES chapter 57, issue 3).
 type ClientIdentity struct {
-	AppName  string `json:"app_name"`
-	Version  string `json:"version"`
-	Commit   string `json:"commit"`
 	PID      int    `json:"pid"`
 	Hostname string `json:"hostname"`
 }
@@ -951,9 +952,6 @@ func (h *PublicJobHeader) Validate(stage Stage) error {
 	}
 	if f, m := h.Operator.problem(); f != "" {
 		return headerInvalid("operator."+f, "%s", m)
-	}
-	if strings.TrimSpace(h.Client.AppName) == "" || strings.TrimSpace(h.Client.Version) == "" {
-		return headerInvalid("client", "app_name and version are required")
 	}
 	switch h.Mode {
 	case ModeLive, ModeExercise:

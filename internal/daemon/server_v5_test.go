@@ -396,7 +396,7 @@ func TestSchema5RefusalVectors(t *testing.T) {
 	}
 	// submit_job, a provide_credentials envelope, a foreign header UID
 	for _, tc := range []struct{ op, code string }{{"submit_job", "ipc_operation_unknown"}, {ipc.OpProvideCredentials, "credential_channel_required"}} {
-		req, _ := ipc.NewRequest(mustID(t), tc.op, "0.9.2", map[string]any{})
+		req, _ := ipc.NewRequest(mustID(t), tc.op, map[string]any{})
 		var out json.RawMessage
 		if err := ipc.Call(f.ctx(), f.socket, req, 1<<20, &out); errorcodes.Of(err) != tc.code {
 			t.Fatalf("%s: %v", tc.op, err)

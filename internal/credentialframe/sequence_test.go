@@ -201,7 +201,7 @@ func TestPrepareFrameCommitSequence(t *testing.T) {
 	}()
 	call := func(op string, payload any, out any) {
 		t.Helper()
-		req, err := ipc.NewRequestForSchema(ipc.PrepareCommitSchema, op+"-1", op, "0.9.2", payload)
+		req, err := ipc.NewRequestForSchema(ipc.PrepareCommitSchema, op+"-1", op, payload)
 		if err != nil {
 			t.Fatal(err)
 		}

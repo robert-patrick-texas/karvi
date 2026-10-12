@@ -156,7 +156,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
       "properties": {
-        "schema_version": {"const": 12},
+        "schema_version": {"const": 13},
         "plan_id": {"$ref": "#/$defs/identifier"},
         "plan_digest": {"$ref": "#/$defs/digest"},
         "operator": {"$ref": "#/$defs/operator"},
@@ -188,8 +188,8 @@
     },
     "client_identity": {
       "type": "object", "additionalProperties": false,
-      "required": ["app_name", "version", "commit", "pid", "hostname"],
-      "properties": {"app_name": {"type": "string"}, "version": {"type": "string"}, "commit": {"type": "string"}, "pid": {"type": "integer"}, "hostname": {"type": "string"}}
+      "required": ["pid", "hostname"],
+      "properties": {"pid": {"type": "integer"}, "hostname": {"type": "string"}}
     },
     "package_reference": {
       "type": "object", "additionalProperties": false,
@@ -200,7 +200,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "command_plan_digest", "plan_digest"],
       "properties": {
-        "schema_version": {"const": 12},
+        "schema_version": {"const": 13},
         "idempotency_key": {"type": "string"},
         "job_id": {"$ref": "#/$defs/identifier"},
         "operator": {"$ref": "#/$defs/operator"},

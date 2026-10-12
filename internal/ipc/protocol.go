@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"syscall"
 	"time"
 
@@ -24,8 +23,11 @@ import (
 // commands.jsonl; 9 names jobs by the job
 // ID `YYMMDD-HHMMSS-xx` in commit_job, follow_job, and cancel_job,
 // which each side's validator requires of the other; 11 carries the
-// execution plan at 12, its configuration block the job's configuration.
-const SchemaVersion = 11
+// execution plan at 12, its configuration block the job's configuration; 12
+// drops the request's client_version and client_pid, which nothing read, and
+// carries the execution plan at 13, whose header names the client's pid and
+// host alone (EXAMPLES chapter 57, issue 3).
+const SchemaVersion = 12
 
 // SchemaMismatchError reports the protocol versions observed on each side of
 // an IPC exchange. Callers use the structured values to provide safe upgrade
@@ -46,8 +48,6 @@ type Request struct {
 	IPCSchemaVersion int             `json:"ipc_schema_version"`
 	RequestID        string          `json:"request_id"`
 	Operation        string          `json:"operation"`
-	ClientPID        int             `json:"client_pid"`
-	ClientVersion    string          `json:"client_version"`
 	IdempotencyKey   string          `json:"idempotency_key,omitempty"`
 	Payload          json.RawMessage `json:"payload"`
 }
@@ -69,15 +69,15 @@ type Response struct {
 	Event string `json:"event,omitempty"`
 }
 
-func NewRequest(id, op, version string, payload any) (Request, error) {
-	return NewRequestForSchema(SchemaVersion, id, op, version, payload)
+func NewRequest(id, op string, payload any) (Request, error) {
+	return NewRequestForSchema(SchemaVersion, id, op, payload)
 }
 
 // NewRequestForSchema creates a request using an explicitly selected wire
 // schema. It exists only for the stable ping/status/stop lifecycle envelope so
 // a newly installed client can inspect and explicitly stop an older same-UID
 // daemon. Job submission always uses NewRequest and the current exact schema.
-func NewRequestForSchema(schema int, id, op, version string, payload any) (Request, error) {
+func NewRequestForSchema(schema int, id, op string, payload any) (Request, error) {
 	if schema <= 0 {
 		return Request{}, errorcodes.Errorf("ipc_schema_invalid", "invalid IPC schema %d", schema)
 	}
@@ -85,7 +85,7 @@ func NewRequestForSchema(schema int, id, op, version string, payload any) (Reque
 	if err != nil {
 		return Request{}, err
 	}
-	return Request{IPCSchemaVersion: schema, RequestID: id, Operation: op, ClientPID: os.Getpid(), ClientVersion: version, IdempotencyKey: id, Payload: raw}, nil
+	return Request{IPCSchemaVersion: schema, RequestID: id, Operation: op, IdempotencyKey: id, Payload: raw}, nil
 }
 
 func Call(ctx context.Context, socket string, req Request, maxBytes int64, out any) error {

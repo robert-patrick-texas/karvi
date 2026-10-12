@@ -301,7 +301,7 @@ Active failure causes.
 | `daemon_already_running` | dependency | 1 | no | `daemon serve` finds a live daemon already listening on the socket. |
 | `daemon_drain_failed` | dependency | 110 | no | The daemon does not accept the drain request. |
 | `daemon_draining` | dependency | 112 | yes | A job is submitted while the daemon is draining. |
-| `daemon_incompatible` | dependency | 112 | no | The running daemon's version or IPC schema differs from this client's (both must match); no job is submitted and the daemon is not replaced. |
+| `daemon_incompatible` | dependency | 112 | no | The running daemon's IPC schema or build differs from this client's (both must match), or a daemon of another build prepared the job; no job is submitted and the daemon is not replaced. |
 | `daemon_log_open_failed` | permission | 9 | no | The daemon log file cannot be opened. |
 | `daemon_resolution_not_allowed` | policy | 9 | no | A target has daemon address authority while `name.allow-daemon-resolution` is false. |
 | `daemon_serve_failed` | dependency | 1 | no | Unclassified. The daemon cannot start serving. |

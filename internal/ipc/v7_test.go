@@ -23,13 +23,13 @@ func TestSchema7CancelPayloadsMatchTheSchema(t *testing.T) {
 	// The terminal form with a real outcome is checked against the schema by
 	// the daemon's cancel test, which has a summary the runner wrote.
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/cancel_result", CancelResult{JobID: plantest.JobID, ArtifactDir: "/tmp/j", State: CancelStateTerminal})
-	req, err := NewRequest("r1", OpCancelJob, "0.10.0", cr)
+	req, err := NewRequest("r1", OpCancelJob, cr)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Schema 11: the execution plan at 12, its configuration block.
-	if req.IPCSchemaVersion != 11 || SchemaVersion != 11 {
-		t.Errorf("schema %d, want 11", req.IPCSchemaVersion)
+	// Schema 12: no client_version or client_pid, the execution plan at 13.
+	if req.IPCSchemaVersion != 12 || SchemaVersion != 12 {
+		t.Errorf("schema %d, want 12", req.IPCSchemaVersion)
 	}
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/request", req)
 }

@@ -131,6 +131,7 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 	case err == nil && probe.Compatible:
 		row.Reachable, row.Status = true, probe.Status.Status
 		row.PID, row.Version, row.IPCSchemaVersion = probe.Status.PID, probe.Status.Version, probe.DaemonSchema
+		row.Commit, row.Build = probe.Status.Commit, probe.Status.Build
 		row.Capabilities = []string{ipc.OpPrepareJob, ipc.OpProvideCredentials, ipc.OpCommitJob}
 		if row.Status != executionplan.DaemonRunning && row.Status != executionplan.DaemonDraining {
 			row.Status = executionplan.DaemonRunning
@@ -141,8 +142,9 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 	case err == nil:
 		row.Reachable, row.Status = true, executionplan.DaemonIncompatible
 		row.PID, row.Version, row.IPCSchemaVersion = probe.Status.PID, probe.Status.Version, probe.DaemonSchema
+		row.Commit, row.Build = probe.Status.Commit, probe.Status.Build
 		row.Capabilities = []string{"ping", "status", "stop"}
-		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the running daemon version %s uses IPC schema %d; this client is %s at schema %d, and both must match; a live run would not replace it", probe.Status.Version, probe.DaemonSchema, buildinfo.Version, ipc.SchemaVersion))
+		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the running daemon version %s build %s uses IPC schema %d; this client is %s build %s at schema %d, and the schema and the build must both match; a live run would not replace it", probe.Status.Version, displayNone(probe.Status.Build), probe.DaemonSchema, buildinfo.Version, buildinfo.BuildOrNone(), ipc.SchemaVersion))
 	case errors.As(err, &mismatch):
 		row.Reachable, row.Status = true, executionplan.DaemonIncompatible
 		row.IPCSchemaVersion = mismatch.DaemonSchema
@@ -386,4 +388,12 @@ func describeIntendedPing(p records.IntendedPing) string {
 		capability += " via " + p.Method
 	}
 	return fmt.Sprintf("enabled (%d probes, %s, %s)", p.Probes, time.Duration(p.TimeoutNS), capability)
+}
+
+// displayNone is a value a daemon may not name, "none" when empty.
+func displayNone(value string) string {
+	if value == "" {
+		return "none"
+	}
+	return value
 }

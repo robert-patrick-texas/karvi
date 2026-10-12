@@ -9,7 +9,6 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
-	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -488,7 +487,7 @@ func Header(plan executionplan.ExecutionPlan, jobID string, mode executionplan.M
 	return executionplan.PublicJobHeader{
 		SchemaVersion: executionplan.SchemaVersion, IdempotencyKey: jobID, JobID: jobID,
 		Operator: plan.Operator,
-		Client:   executionplan.ClientIdentity{AppName: buildinfo.AppName, Version: buildinfo.Version, Commit: buildinfo.Commit, PID: os.Getpid(), Hostname: hostname},
+		Client:   executionplan.ClientIdentity{PID: os.Getpid(), Hostname: hostname},
 		Mode:     mode, ExecutionDomain: executionplan.ExecutionDomainLocal, Priority: 0,
 		CommandPlanDigest: plan.CommandPlanDigest, PlanDigest: digest,
 	}, nil

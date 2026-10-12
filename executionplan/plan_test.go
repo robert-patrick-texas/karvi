@@ -17,9 +17,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "b12d172ca3ba4d209b931be4dfe984259397ea06085c133b47774c282484e0eb"
-	goldenPrepared = "6d4b944e5a30f37dca02172653d18695eb4315d4905d008a5ea7378460c9db20"
-	goldenFinal    = "55acdb7e77067719b452a19cba6b65047deb7795befe43e55f9405e3d4366ae1"
+	goldenDraft    = "4d9c0f474c1f41775e18afb6313dbb8b71d2fc4f843945d848dc67014c13b6ee"
+	goldenPrepared = "82791b617945ba4f4678bc748412a0f517bd2674833608489f610cf69d176603"
+	goldenFinal    = "46c741f1dd91d75d37da1a67d3af99cd70329d663c4c946ef22dd141b30a9f1c"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -101,7 +101,7 @@ func fixtureHeader(t *testing.T, plan ExecutionPlan, stage Stage) PublicJobHeade
 	}
 	h := PublicJobHeader{
 		SchemaVersion: SchemaVersion, IdempotencyKey: "idem-1", JobID: fixtureJobID,
-		Operator: plan.Operator, Client: ClientIdentity{AppName: "karvi", Version: "0.9.2", Commit: "development", PID: 4242, Hostname: "ops01"},
+		Operator: plan.Operator, Client: ClientIdentity{PID: 4242, Hostname: "ops01"},
 		Mode: ModeLive, ExecutionDomain: ExecutionDomainLocal, CommandPlanDigest: plan.CommandPlanDigest, PlanDigest: sum,
 	}
 	if stage == Committed {
@@ -349,7 +349,6 @@ func TestHeaderValidationAndMatching(t *testing.T) {
 		{"schema", func(h *PublicJobHeader) { h.SchemaVersion = 0 }, "job_header_invalid: schema_version"},
 		{"idempotency", func(h *PublicJobHeader) { h.IdempotencyKey = "" }, "job_header_invalid: idempotency_key"},
 		{"job id", func(h *PublicJobHeader) { h.JobID = "job" }, "job_header_invalid: job_id"},
-		{"client", func(h *PublicJobHeader) { h.Client.Version = "" }, "job_header_invalid: client"},
 		{"mode", func(h *PublicJobHeader) { h.Mode = "dry-run" }, "job_header_invalid: mode"},
 		{"domain", func(h *PublicJobHeader) { h.ExecutionDomain = "site-b" }, "job_header_invalid: execution_domain"},
 		{"priority", func(h *PublicJobHeader) { h.Priority = 1 }, "job_header_invalid: priority"},

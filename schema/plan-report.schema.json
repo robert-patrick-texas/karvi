@@ -95,6 +95,12 @@
         "version": {
           "type": "string"
         },
+        "commit": {
+          "type": "string"
+        },
+        "build": {
+          "type": "string"
+        },
         "ipc_schema_version": {
           "type": "integer"
         },

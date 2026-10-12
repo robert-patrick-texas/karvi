@@ -10,6 +10,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 )
 
@@ -53,5 +54,38 @@ func TestServeRefusesWithoutItsOwnBuild(t *testing.T) {
 	}
 	if _, statErr := os.Stat(s.StatePath); !os.IsNotExist(statErr) {
 		t.Fatalf("state stat=%v, want none", statErr)
+	}
+}
+
+// TestPrepareJobRefusesAnotherBuildsPreparation: a prepare answer from a
+// daemon of another build than the client's is refused before any
+// credential, daemon_incompatible naming both builds (EXAMPLES chapter 57,
+// issue 3); from the client's own build it is accepted and names the
+// daemon's build and commit.
+func TestPrepareJobRefusesAnotherBuildsPreparation(t *testing.T) {
+	f := newV5Fixture(t)
+	own, err := buildinfo.Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft, header, cp, _ := f.draft(mustID(t), []string{"show clock"})
+	defer cp.Destroy()
+	saved := clientBuild
+	clientBuild = func() (string, error) { return "XfTtoeK1qq9HkGakcVu7", nil }
+	_, err = PrepareJob(f.ctx(), f.socket, 1<<20, ipc.PrepareRequest{Header: header, Draft: draft})
+	clientBuild = saved
+	var other *OtherBuildError
+	if !errors.As(err, &other) || errorcodes.Of(err) != "daemon_incompatible" || other.Daemon != own || other.Client != "XfTtoeK1qq9HkGakcVu7" {
+		t.Fatalf("PrepareJob: %v, want daemon_incompatible from build %s", err, own)
+	}
+	if want := "the daemon that prepared the job is build " + own + ", this karvi build XfTtoeK1qq9HkGakcVu7; none submitted"; errorcodes.Message(err) != "daemon_incompatible: "+want {
+		t.Fatalf("message %q, want %q", errorcodes.Message(err), want)
+	}
+	prepared, err := PrepareJob(f.ctx(), f.socket, 1<<20, ipc.PrepareRequest{Header: header, Draft: draft})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := prepared.Preparation.Daemon; d.Build != own || d.Commit != buildinfo.Commit {
+		t.Fatalf("prepare answer's daemon block %+v, want build %s commit %s", d, own, buildinfo.Commit)
 	}
 }

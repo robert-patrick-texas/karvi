@@ -44,6 +44,11 @@ type ProbeResult struct {
 	Compatible   bool
 }
 
+// clientBuild is the client's own build (buildinfo.Build), which the probe
+// and a prepare answer are compared with; a test replaces it, apart from the
+// server's ownBuild.
+var clientBuild = buildinfo.Build
+
 func Ping(ctx context.Context, socket string, maxFrame int64) (Status, error) {
 	return pingSchema(ctx, socket, maxFrame, ipc.SchemaVersion)
 }
@@ -55,7 +60,7 @@ func Probe(ctx context.Context, socket string, maxFrame int64) (ProbeResult, err
 	status, err := Ping(ctx, socket, maxFrame)
 	if err == nil {
 		// The schema matched; the build decides.
-		client, _ := buildinfo.Build()
+		client, _ := clientBuild()
 		return ProbeResult{Status: status, DaemonSchema: ipc.SchemaVersion, ClientSchema: ipc.SchemaVersion, Compatible: client != "" && status.Build == client}, nil
 	}
 	var mismatch *ipc.SchemaMismatchError
@@ -90,7 +95,7 @@ func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode str
 	if probe.Compatible {
 		payload = StopRequest{Mode: mode}
 	}
-	req, err := ipc.NewRequestForSchema(probe.DaemonSchema, id, "stop", buildinfo.Version, payload)
+	req, err := ipc.NewRequestForSchema(probe.DaemonSchema, id, "stop", payload)
 	if err != nil {
 		return probe, err
 	}
@@ -108,7 +113,7 @@ func Drain(ctx context.Context, socket string, maxFrame int64) (Status, error) {
 	if err != nil {
 		return Status{}, err
 	}
-	req, err := ipc.NewRequest(id, "drain", buildinfo.Version, map[string]any{})
+	req, err := ipc.NewRequest(id, "drain", map[string]any{})
 	if err != nil {
 		return Status{}, err
 	}
@@ -121,7 +126,7 @@ func Drain(ctx context.Context, socket string, maxFrame int64) (Status, error) {
 
 func Stop(ctx context.Context, socket string, maxFrame int64) error {
 	id, _ := osutil.NewID(now())
-	req, err := ipc.NewRequest(id, "stop", buildinfo.Version, map[string]any{})
+	req, err := ipc.NewRequest(id, "stop", map[string]any{})
 	if err != nil {
 		return err
 	}
@@ -137,7 +142,7 @@ func PrepareJob(ctx context.Context, socket string, maxFrame int64, pr ipc.Prepa
 	if err != nil {
 		return ipc.PrepareResult{}, err
 	}
-	req, err := ipc.NewRequest(id, ipc.OpPrepareJob, buildinfo.Version, pr)
+	req, err := ipc.NewRequest(id, ipc.OpPrepareJob, pr)
 	if err != nil {
 		return ipc.PrepareResult{}, err
 	}
@@ -151,7 +156,34 @@ func PrepareJob(ctx context.Context, socket string, maxFrame int64, pr ipc.Prepa
 	if result.Preparation.DraftDigest != pr.Header.PlanDigest {
 		return ipc.PrepareResult{}, errorcodes.Errorf("plan_digest_mismatch", "the daemon prepared draft %s, not the %s sent", result.Preparation.DraftDigest, pr.Header.PlanDigest)
 	}
+	// The client judges the daemon that prepared (EXAMPLES chapter 57, issue
+	// 3): nothing holds the daemon between the probe and this request, so one
+	// of another build, started in that moment, is sent no credential and its
+	// preparation expires in its sweep.
+	if own, _ := clientBuild(); own == "" || result.Preparation.Daemon.Build != own {
+		return ipc.PrepareResult{}, &OtherBuildError{Daemon: result.Preparation.Daemon.Build, Client: own}
+	}
 	return result, nil
+}
+
+// OtherBuildError is a prepare answer from a daemon of another build than
+// the client's; the caller abandons the preparation and begins again.
+type OtherBuildError struct {
+	Daemon, Client string
+}
+
+// ErrorCode returns the registered code: the daemon is not the client's.
+func (e *OtherBuildError) ErrorCode() string { return "daemon_incompatible" }
+
+func (e *OtherBuildError) Error() string {
+	daemonBuild, clientBuild := e.Daemon, e.Client
+	if daemonBuild == "" {
+		daemonBuild = "none"
+	}
+	if clientBuild == "" {
+		clientBuild = "none"
+	}
+	return fmt.Sprintf("the daemon that prepared the job is build %s, this karvi build %s; none submitted", daemonBuild, clientBuild)
 }
 
 // peerUID is the client-side kernel peer check on the credential socket;
@@ -220,7 +252,7 @@ func CommitJob(ctx context.Context, socket string, maxFrame int64, cr ipc.Commit
 	if err != nil {
 		return ipc.CommitResult{}, err
 	}
-	req, err := ipc.NewRequest(id, ipc.OpCommitJob, buildinfo.Version, cr)
+	req, err := ipc.NewRequest(id, ipc.OpCommitJob, cr)
 	if err != nil {
 		return ipc.CommitResult{}, err
 	}
@@ -240,7 +272,7 @@ func pingSchema(ctx context.Context, socket string, maxFrame int64, schema int) 
 	if err != nil {
 		return Status{}, err
 	}
-	req, err := ipc.NewRequestForSchema(schema, id, "ping", buildinfo.Version, map[string]any{})
+	req, err := ipc.NewRequestForSchema(schema, id, "ping", map[string]any{})
 	if err != nil {
 		return Status{}, err
 	}
@@ -279,7 +311,7 @@ func FollowJob(ctx context.Context, socket string, maxFrame int64, fr ipc.Follow
 	if err != nil {
 		return ipc.FollowTerminal{}, err
 	}
-	req, err := ipc.NewRequest(id, ipc.OpFollowJob, buildinfo.Version, fr)
+	req, err := ipc.NewRequest(id, ipc.OpFollowJob, fr)
 	if err != nil {
 		return ipc.FollowTerminal{}, err
 	}
@@ -350,7 +382,7 @@ func CancelJob(ctx context.Context, socket string, maxFrame int64, cr ipc.Cancel
 	if err != nil {
 		return ipc.CancelResult{}, err
 	}
-	req, err := ipc.NewRequest(id, ipc.OpCancelJob, buildinfo.Version, cr)
+	req, err := ipc.NewRequest(id, ipc.OpCancelJob, cr)
 	if err != nil {
 		return ipc.CancelResult{}, err
 	}

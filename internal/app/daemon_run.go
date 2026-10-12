@@ -170,9 +170,11 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 		return failedResult("daemon_start_failed", err)
 	}
 	prepared, err := daemon.PrepareJob(ctx, socket, maxFrame, ipc.PrepareRequest{Header: header, Draft: draft})
-	if err != nil && ctx.Err() == nil && daemonGone(err) {
+	if err != nil && ctx.Err() == nil && prepareAgain(err) {
 		// The daemon left between the probe and the request (its idle
-		// timer, or a stop): once more, with a daemon that answers.
+		// timer, or a stop), or another build's took its place, whose
+		// preparation is abandoned before any credential: once more, with
+		// a daemon that answers.
 		if err = ensure(ctx); err != nil {
 			return failedResult("daemon_start_failed", err)
 		}
@@ -430,4 +432,12 @@ func renderReceipt(out io.Writer, format string, r ipc.JobReceipt) error {
 // daemon_draining. Any other failure is the request's own.
 func daemonGone(err error) bool {
 	return errorcodes.Of(err) == "daemon_draining" || errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, fs.ErrNotExist)
+}
+
+// prepareAgain says whether a prepare_job that failed with err is made once
+// more after the client's sequence: the daemon gone, or a daemon of another
+// build than the client's preparing (EXAMPLES chapter 57, issue 3).
+func prepareAgain(err error) bool {
+	var other *daemon.OtherBuildError
+	return daemonGone(err) || errors.As(err, &other)
 }

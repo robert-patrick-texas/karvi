@@ -76,16 +76,21 @@ func (f Finding) Validate(field string) error {
 // DaemonReadiness is what the client learned from one execution endpoint's
 // control plane.
 type DaemonReadiness struct {
-	ExecutionEndpoint string    `json:"execution_endpoint"`
-	Audience          string    `json:"audience,omitempty"`
-	Reachable         bool      `json:"reachable"`
-	AutoLaunched      bool      `json:"auto_launched"`
-	Status            string    `json:"status"`
-	PID               int       `json:"pid,omitempty"`
-	Version           string    `json:"version,omitempty"`
-	IPCSchemaVersion  int       `json:"ipc_schema_version,omitempty"`
-	Capabilities      []string  `json:"capabilities"`
-	Findings          []Finding `json:"findings"`
+	ExecutionEndpoint string `json:"execution_endpoint"`
+	Audience          string `json:"audience,omitempty"`
+	Reachable         bool   `json:"reachable"`
+	AutoLaunched      bool   `json:"auto_launched"`
+	Status            string `json:"status"`
+	PID               int    `json:"pid,omitempty"`
+	Version           string `json:"version,omitempty"`
+	// Commit and Build name the daemon's program (EXAMPLES chapter 57,
+	// issue 3): in a prepare answer the client compares the build with its
+	// own before it sends any credential.
+	Commit           string    `json:"commit,omitempty"`
+	Build            string    `json:"build,omitempty"`
+	IPCSchemaVersion int       `json:"ipc_schema_version,omitempty"`
+	Capabilities     []string  `json:"capabilities"`
+	Findings         []Finding `json:"findings"`
 }
 
 // Validate checks the readiness record.

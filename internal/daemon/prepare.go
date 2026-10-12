@@ -191,7 +191,7 @@ func (s *Server) prepareJob(ctx context.Context, conn net.Conn, req ipc.Request)
 		Evidence: executionplan.PreparationEvidence{ExecutionEndpoint: executionplan.EndpointLocal, PreparationID: prepID, PreparedAt: now, Addresses: evidence},
 		Daemon: executionplan.DaemonReadiness{
 			ExecutionEndpoint: executionplan.EndpointLocal, Audience: s.Audience(), Reachable: true, Status: s.state(),
-			PID: os.Getpid(), Version: buildinfo.Version, IPCSchemaVersion: ipc.SchemaVersion,
+			PID: os.Getpid(), Version: buildinfo.Version, Commit: buildinfo.Commit, Build: s.build, IPCSchemaVersion: ipc.SchemaVersion,
 			Capabilities: []string{ipc.OpPrepareJob, ipc.OpProvideCredentials, ipc.OpCommitJob}, Findings: []executionplan.Finding{},
 		},
 		Findings: findings,

@@ -81,7 +81,7 @@ func TestEnvelopeRefusesSecretPayloads(t *testing.T) {
 	seed := canarytest.Seed(t)
 	pkg := credentialpackage.CredentialPackage{SchemaVersion: 1, Grants: []credentialpackage.CredentialGrant{{Password: credentials.NewSecretString(seed.Raw)}}}
 	for name, payload := range map[string]any{"package": pkg, "grant": pkg.Grants[0], "secret": credentials.NewSecretString(seed.Raw), "bytes": credentials.NewSecretBytes([]byte(seed.Raw)), "wrapped": map[string]any{"pkg": pkg}} {
-		_, err := NewRequest("r1", OpProvideCredentials, "0.9.2", payload)
+		_, err := NewRequest("r1", OpProvideCredentials, payload)
 		if errorcodes.Of(err) != "secret_serialization_refused" {
 			t.Errorf("NewRequest(%s): %v", name, err)
 		}
@@ -145,7 +145,7 @@ func TestSchema5PayloadsValidateAndMatchTheSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/commit_result", CommitResult{Receipt: receipt})
-	req, err := NewRequestForSchema(PrepareCommitSchema, "r1", OpPrepareJob, "0.9.2", pr)
+	req, err := NewRequestForSchema(PrepareCommitSchema, "r1", OpPrepareJob, pr)
 	if err != nil {
 		t.Fatal(err)
 	}

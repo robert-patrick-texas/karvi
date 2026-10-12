@@ -350,7 +350,7 @@ var entries = []Entry{
 	// Daemon and IPC.
 	failure("daemon_active_jobs", "usage", exitJob, true, "`daemon stop` or `restart` without `--grace`, `--after`, or `--force` while jobs are active."),
 	failure("daemon_draining", "dependency", exitJob, true, "A job is submitted while the daemon is draining."),
-	failure("daemon_incompatible", "dependency", exitJob, false, "The running daemon's version or IPC schema differs from this client's (both must match); no job is submitted and the daemon is not replaced."),
+	failure("daemon_incompatible", "dependency", exitJob, false, "The running daemon's IPC schema or build differs from this client's (both must match), or a daemon of another build prepared the job; no job is submitted and the daemon is not replaced."),
 	failure("daemon_start_failed", "dependency", exitJob, false, "A daemon was launched but did not become ready."),
 	failure("daemon_stop_mode_unknown", "usage", exitJob, false, "A stop request names a stop mode the daemon does not support."),
 	failure("daemon_stop_request_malformed", "internal", exitJob, false, "A stop request payload is not valid JSON."),

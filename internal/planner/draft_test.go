@@ -139,7 +139,9 @@ func draftOptions(commands []string) DraftOptions {
 // else moved.
 // Re-pinned when creds.helper-timeout's default became 60s: the
 // configuration block's value and its digest; nothing else moved.
-const goldenK03Draft = "cf108ba0905531adce5d5f6e4e8b321c38c8f24f1b5a729dd0c949ab08450a4c"
+// Re-pinned at execution plan 13 (EXAMPLES chapter 57, issue 3): the draft's
+// schema_version alone; the logged draft at 12 gave the former digest.
+const goldenK03Draft = "f0ca4c9355357deedc23be040d80f2f4607bd6382e5edb8998eda7fb4bebc31c"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -353,7 +355,7 @@ func TestHeaderAtDraftAndCommitted(t *testing.T) {
 	if err := h.Matches(&draft, executionplan.Draft); err != nil {
 		t.Fatal(err)
 	}
-	if h.IdempotencyKey != plantest.JobID || h.JobID != plantest.JobID || h.Client.AppName != "karvi" || h.Client.PID == 0 || h.Priority != 0 || h.ExecutionDomain != "local" {
+	if h.IdempotencyKey != plantest.JobID || h.JobID != plantest.JobID || h.Client.Hostname == "" || h.Client.PID == 0 || h.Priority != 0 || h.ExecutionDomain != "local" {
 		t.Fatalf("header=%+v", h)
 	}
 	for i := range draft.Targets {

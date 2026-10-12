@@ -54,7 +54,7 @@ func TestCallReturnsStructuredSchemaMismatch(t *testing.T) {
 		}, 1<<20)
 	}()
 
-	req, err := ipc.NewRequest("request-2", "ping", buildinfo.Version, map[string]any{})
+	req, err := ipc.NewRequest("request-2", "ping", map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestCallForSchemaAcceptsReleasedLifecycleEnvelope(t *testing.T) {
 		serverErr <- ipc.Write(conn, ipc.Response{IPCSchemaVersion: 2, RequestID: req.RequestID, Result: raw}, 1<<20)
 	}()
 
-	req, err := ipc.NewRequestForSchema(2, "request-3", "ping", buildinfo.Version, map[string]any{})
+	req, err := ipc.NewRequestForSchema(2, "request-3", "ping", map[string]any{})
 	if err != nil {
 		t.Fatal(err)
 	}
