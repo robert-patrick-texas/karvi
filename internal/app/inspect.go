@@ -130,9 +130,17 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 	case errors.As(err, &mismatch):
 		row.Reachable, row.Status = true, executionplan.DaemonIncompatible
 		row.IPCSchemaVersion = mismatch.DaemonSchema
-		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the daemon speaks a newer IPC schema, %d, than this client's %d; a live run would be refused; karvi daemon stop from the newer karvi", mismatch.DaemonSchema, ipc.SchemaVersion))
+		remedy := "karvi daemon stop from the newer karvi"
+		if rt.Systemd() {
+			remedy = "systemctl restart " + rt.Unit()
+		}
+		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the daemon speaks a newer IPC schema, %d, than this client's %d; a live run would be refused; %s", mismatch.DaemonSchema, ipc.SchemaVersion, remedy))
 	case err != nil:
 		row.Reachable, row.Status = false, executionplan.DaemonAbsent
+		if rt.Systemd() {
+			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_unreachable", "no daemon answers at the socket; a live run would be refused; systemctl start %s", rt.Unit()))
+			break
+		}
 		finding(executionplan.SeverityInfo, errorcodes.Errorf("daemon_absent", "no daemon answers at the socket; a live run would launch one"))
 	default:
 		// What a live run's sequence would do, nothing drained (EXAMPLES
@@ -152,6 +160,12 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 			row.Capabilities = []string{"ping", "status", "drain", "stop"}
 		}
 		switch jobs := probe.Status.ActiveJobs; {
+		case draining && rt.Systemd():
+			// The unit's daemon, stopping, which a live run neither waits
+			// for nor replaces (EXAMPLES chapter 57, issue 15).
+			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_draining", "the daemon is draining, %s; a live run would be refused until it exits", JobsRunning(jobs)))
+		case !probe.Compatible && rt.Systemd():
+			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the daemon is another build's; a live run would be refused; systemctl restart %s", rt.Unit()))
 		case draining && jobs > 0:
 			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_draining", "the daemon is draining, %s; a live run would be refused until it exits", JobsRunning(jobs)))
 		case !probe.Compatible && jobs > 0:

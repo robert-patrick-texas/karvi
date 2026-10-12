@@ -360,6 +360,15 @@ shared-capacity-root = "auto"
 # basedir of at most 93): a longer one is daemon_socket_too_long wherever the daemon is
 # reached or started.
 sockets = "auto"
+# Who starts the account's daemon. client, the default: the client launches its own daemon
+# when none of its build answers and drains one of another build, as on an operator's jump
+# box. systemd: the daemon is the unit karvi-daemon@USER.service's, USER the client's own
+# account, which no client drains or starts: a daemon of another build, or none, refuses a
+# submission and daemon start, naming systemctl restart or systemctl start of the unit, and
+# daemon stop and daemon restart are refused, daemon_managed. sudo karvi-sysutil daemon
+# install sets it in the service account's own configuration (karvi-sysutil(8)); a site that
+# runs every operator's daemon so sets it in its global file, locked.
+launch = "client"
 # 1s–2m.
 start-timeout = "5s"
 # 0–43,200. After a SIGTERM, how long the daemon waits for its jobs before it cancels and

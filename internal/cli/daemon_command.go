@@ -78,9 +78,23 @@ func daemonStatus(ctx context.Context, inv *Invocation, streams app.IO) int {
 		b, _ := json.MarshalIndent(view, "", "  ")
 		fmt.Fprintf(streams.Stdout, "%s\n", b)
 	default:
-		view.render(streams.Stdout, g.style(streams.Stdout), !probe.Compatible)
+		remedy := ""
+		if !probe.Compatible {
+			remedy = restartCommand(rt)
+		}
+		view.render(streams.Stdout, g.style(streams.Stdout), remedy)
 	}
 	return 0
+}
+
+// restartCommand is what restarts the account's daemon: karvi daemon restart,
+// or under daemon.launch = "systemd" the unit's restart (EXAMPLES chapter 57,
+// issue 15).
+func restartCommand(rt app.DaemonRuntime) string {
+	if rt.Systemd() {
+		return "systemctl restart " + rt.Unit()
+	}
+	return "karvi daemon restart"
 }
 
 // daemonStatusView is daemon status's answer (EXAMPLES chapter 57, issue 2):
@@ -121,8 +135,8 @@ func newDaemonStatusView(probe daemon.ProbeResult) daemonStatusView {
 
 // render writes the text form: each pair's values in the success colour when
 // they are equal and in the error colour when not, compatible's value alike,
-// and the remediation after compatible when the daemon is not.
-func (v daemonStatusView) render(w io.Writer, style display.LineStyle, remedy bool) {
+// and remedy, when there is one, after compatible.
+func (v daemonStatusView) render(w io.Writer, style display.LineStyle, remedy string) {
 	line := func(key, value string) {
 		if value == "" {
 			fmt.Fprintf(w, "%s:\n", key)
@@ -150,8 +164,8 @@ func (v daemonStatusView) render(w io.Writer, style display.LineStyle, remedy bo
 	pair("ipc_schema", strconv.Itoa(v.DaemonIPCSchema), strconv.Itoa(v.ClientIPCSchema), v.DaemonIPCSchema == v.ClientIPCSchema)
 	pair("build", v.DaemonBuild, v.ClientBuild, v.DaemonBuild != "" && v.DaemonBuild == v.ClientBuild && v.ClientBuild != "none")
 	line("compatible", paint(strconv.FormatBool(v.Compatible), v.Compatible))
-	if remedy {
-		line("remediation", "karvi daemon restart")
+	if remedy != "" {
+		line("remediation", remedy)
 	}
 	line("started_at", v.StartedAt.Format(time.RFC3339Nano))
 	line("active_jobs", strconv.FormatInt(v.ActiveJobs, 10))
@@ -198,6 +212,9 @@ func daemonStop(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if !ok {
 		return code
 	}
+	if rt.Systemd() {
+		return g.reportError(streams.Stderr, "daemon_managed", managed(rt, "stop"))
+	}
 	probe, err := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
 	if err != nil {
 		return g.reportError(streams.Stderr, "daemon_stop_failed", err)
@@ -222,6 +239,9 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if !ok {
 		return code
 	}
+	if rt.Systemd() {
+		return g.reportError(streams.Stderr, "daemon_managed", managed(rt, "restart"))
+	}
 	if _, statErr := os.Lstat(rt.Socket); statErr == nil {
 		stoppedProbe, stopErr := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
 		if stopErr != nil {
@@ -242,6 +262,13 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 		fmt.Fprintln(streams.Stdout, "daemon restarted")
 	}
 	return 0
+}
+
+// managed is daemon stop's or restart's refusal under daemon.launch =
+// "systemd" (EXAMPLES chapter 57, issue 15): the unit's daemon is stopped and
+// restarted with systemctl, verb its command.
+func managed(rt app.DaemonRuntime, verb string) error {
+	return errorcodes.Errorf("daemon_managed", "daemon.launch is systemd; systemctl %s %s", verb, rt.Unit())
 }
 
 // stopDaemonRuntime applies the stop/restart option semantics and waits for the
@@ -409,8 +436,9 @@ var ownBuild = buildinfo.Build
 // does (EXAMPLES chapter 57, issue 5): its own build, not draining, is used;
 // another build, or any daemon draining, is drained at its own IPC schema,
 // and one holding no job is waited for and replaced, while one with jobs
-// refuses the submission until it has exited. Every error carries a
-// registered code.
+// refuses the submission until it has exited. Under daemon.launch =
+// "systemd" it drains and launches nothing (systemdDaemon). Every error
+// carries a registered code.
 func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, stderr io.Writer) error {
 	// A client that cannot read its own build has nothing to compare a
 	// daemon with (EXAMPLES chapter 57, issue 2).
@@ -420,6 +448,9 @@ func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, st
 	pingCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, pingErr := daemon.Probe(pingCtx, rt.Socket, rt.MaxFrame)
 	cancel()
+	if rt.Systemd() {
+		return systemdDaemon(rt, probe, pingErr)
+	}
 	var mismatch *ipc.SchemaMismatchError
 	switch {
 	case pingErr == nil && probe.Compatible && probe.Status.Status != "draining":
@@ -477,6 +508,26 @@ func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, st
 		fmt.Fprintf(stderr, "daemon started socket=%s\n", rt.Socket)
 	}
 	return nil
+}
+
+// systemdDaemon is ensureDaemon under daemon.launch = "systemd" (EXAMPLES
+// chapter 57, issue 15), from its probe: a daemon of this build, not
+// draining, is used; any other daemon, or none, is the unit's to replace or
+// start, never the client's, and refuses the submission naming the unit's
+// systemctl. Nothing is drained or launched.
+func systemdDaemon(rt app.DaemonRuntime, probe daemon.ProbeResult, pingErr error) error {
+	var mismatch *ipc.SchemaMismatchError
+	switch {
+	case pingErr == nil && probe.Status.Status == "draining":
+		return errorcodes.Errorf("daemon_draining", "%s; none submitted; retry when it exits, or --no-daemon\n%s", app.JobsRunning(probe.Status.ActiveJobs), buildsStacked(probe.Status))
+	case pingErr == nil && !probe.Compatible:
+		return errorcodes.Errorf("daemon_incompatible", "the daemon runs another build; none submitted; systemctl restart %s, or --no-daemon\n%s", rt.Unit(), buildsStacked(probe.Status))
+	case pingErr == nil:
+		return nil
+	case errors.As(pingErr, &mismatch):
+		return errorcodes.Errorf("daemon_incompatible", "the daemon speaks a newer IPC schema; none submitted; systemctl restart %s, or --no-daemon\n%s", rt.Unit(), schemasStacked(mismatch.DaemonSchema, mismatch.ClientSchema))
+	}
+	return errorcodes.Errorf("daemon_unreachable", "no daemon running; none submitted; systemctl start %s, or --no-daemon", rt.Unit())
 }
 
 // daemonEnvironment is what the launcher hands daemon serve: the child

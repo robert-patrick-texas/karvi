@@ -126,6 +126,7 @@ var enumValues = map[string][]string{
 	"transcript.format": {"text", "jsonl", "json"}, "transcript.metadata-format": {"text", "jsonl", "json"},
 	"session-init.<name>.on-error": {"fail-device", "continue"}, "display.theme": {"auto", "dark", "light", "nocolor"},
 	"display.color": {"auto", "always", "never"},
+	"daemon.launch": {"client", "systemd"},
 	// freecheck takes display.color's three words: the registry
 	// has no "auto or a number" kind, and true/false exist only as the
 	// boolean kind, so the three-way switch is this enum.

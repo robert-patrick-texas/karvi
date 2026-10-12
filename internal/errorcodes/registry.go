@@ -349,8 +349,9 @@ var entries = []Entry{
 
 	// Daemon and IPC.
 	failure("daemon_active_jobs", "usage", exitJob, true, "`daemon stop` or `restart` without `--grace`, `--after`, or `--force` while jobs are active."),
-	failure("daemon_draining", "dependency", exitJob, true, "The daemon is draining and admits no job: drained by this client's submission because it is another build's and holds jobs, or by an earlier drain, stop, or signal; or, holding no job, it has not exited within `daemon.start-timeout`. Nothing is submitted; the daemon exits after its last job, the next submission starts one of this build, and `--no-daemon` runs meanwhile."),
-	failure("daemon_incompatible", "dependency", exitJob, false, "The running daemon speaks a newer IPC schema than this client, which cannot drain it: no job is submitted, and `karvi daemon stop` from the newer karvi ends it. `job follow` and `job cancel` refuse a daemon of another schema, older or newer, naming the karvi that speaks it; and a submission is refused when a daemon of another build prepares its job twice."),
+	failure("daemon_draining", "dependency", exitJob, true, "The daemon is draining and admits no job: drained by this client's submission because it is another build's and holds jobs, or by an earlier drain, stop, or signal; or, holding no job, it has not exited within `daemon.start-timeout`. Nothing is submitted; the daemon exits after its last job, the next submission starts one of this build, and `--no-daemon` runs meanwhile. Under `daemon.launch = \"systemd\"` it is the unit's daemon, stopped or restarted with `systemctl`, which no client drains: a submission refused so is made again once the unit's next daemon answers."),
+	failure("daemon_incompatible", "dependency", exitJob, false, "The running daemon speaks a newer IPC schema than this client, which cannot drain it: no job is submitted, and `karvi daemon stop` from the newer karvi ends it. Under `daemon.launch = \"systemd\"` a daemon of another build or a newer schema, which no client drains, refuses a submission and `daemon start`, naming `systemctl restart` of the unit. `job follow` and `job cancel` refuse a daemon of another schema, older or newer, naming the karvi that speaks it; and a submission is refused when a daemon of another build prepares its job twice."),
+	failure("daemon_managed", "usage", exitJob, false, "`daemon stop` or `daemon restart` under `daemon.launch = \"systemd\"`: the daemon is the unit `karvi-daemon@USER.service`'s, stopped and restarted with `systemctl`, which the refusal names."),
 	failure("daemon_start_failed", "dependency", exitJob, false, "A daemon was launched but did not become ready."),
 	failure("daemon_stop_mode_unknown", "usage", exitJob, false, "A stop request names a stop mode the daemon does not support."),
 	failure("daemon_stop_request_malformed", "internal", exitJob, false, "A stop request payload is not valid JSON."),
@@ -622,7 +623,7 @@ var entries = []Entry{
 	fallback("daemon_stop_failed", "dependency", exitConn, "The daemon does not accept the stop request."),
 	failure("daemon_stop_timeout", "shutdown", exitcode.ExitShutdownIncomplete, false, "The daemon socket remains after the stop timeout."),
 	fallback("daemon_submit_failed", "dependency", exitJob, "A job cannot be submitted to the daemon."),
-	fallback("daemon_unreachable", "connection", exitConn, "The daemon socket cannot be reached or does not answer."),
+	fallback("daemon_unreachable", "connection", exitConn, "The daemon socket cannot be reached or does not answer. Under `daemon.launch = \"systemd\"`, where no client starts a daemon, a submission and `daemon start` finding none are refused so, naming `systemctl start` of the unit."),
 	failure("daemon_log_open_failed", "permission", exitPerm, false, "The daemon log file cannot be opened."),
 	failure("daemon_spawn_failed", "dependency", exitDep, false, "The background daemon process cannot be started."),
 	failure("ipc_peer_credentials_missing", "dependency", exitJob, false, "The IPC socket reports no peer credentials."),

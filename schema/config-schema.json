@@ -1288,6 +1288,23 @@
       "since": "0.2.0"
     },
     {
+      "path": "daemon.launch",
+      "kind": "enum",
+      "default_literal": "\"client\"",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__DAEMON__LAUNCH",
+      "cli_flags": null,
+      "enum": [
+        "client",
+        "systemd"
+      ],
+      "documentation": "Who starts the account's daemon. `client`, the default: the client launches its own daemon when none of its build answers and drains one of another build, as on an operator's jump box. `systemd`: the daemon is the unit `karvi-daemon@USER.service`'s, USER the client's own account, which no client drains or starts: a daemon of another build, or none, refuses a submission and `daemon start`, naming `systemctl restart` or `systemctl start` of the unit, and `daemon stop` and `daemon restart` are refused, `daemon_managed`. `sudo karvi-sysutil daemon install` sets it in the service account's own configuration (`karvi-sysutil(8)`); a site that runs every operator's daemon so sets it in its global file, locked.",
+      "since": "0.30.0"
+    },
+    {
       "path": "daemon.start-timeout",
       "kind": "duration",
       "default_literal": "\"5s\"",
@@ -2882,6 +2899,10 @@
       "0640",
       "0644",
       "0660"
+    ],
+    "daemon.launch": [
+      "client",
+      "systemd"
     ],
     "dispatch.default": [
       "serial",

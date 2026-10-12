@@ -42,3 +42,16 @@ func ResolveDaemonRuntime(common CommonOptions) (DaemonRuntime, error) {
 	}
 	return DaemonRuntime{Config: cfg, Operator: operator, BaseDir: base, Socket: socket, StatePath: filepath.Join(base, "state", "daemon.json"), LogPath: filepath.Join(base, "logs", "daemon.log"), MaxFrame: cfg.Int64("daemon.max-ipc-frame-bytes"), MaxJobs: cfg.Int("daemon.max-accepted-jobs")}, nil
 }
+
+// Systemd says whether daemon.launch is "systemd": the account's daemon is
+// the unit's, which a client neither drains nor starts (EXAMPLES chapter 57,
+// issue 15).
+func (rt DaemonRuntime) Systemd() bool {
+	return rt.Config.String("daemon.launch") == "systemd"
+}
+
+// Unit is the unit that runs the account's daemon under daemon.launch =
+// "systemd": the packaged template's instance for the client's own account.
+func (rt DaemonRuntime) Unit() string {
+	return "karvi-daemon@" + rt.Operator.Username + ".service"
+}

@@ -615,6 +615,12 @@ one with jobs finishes them and exits, every submission refused until then
 the client's IPC schema. Status, stop, restart, and the drain reach a daemon of
 an older IPC schema at its own; one of a newer schema is stopped with the newer
 karvi.
+
+Under daemon.launch = "systemd" the daemon is the unit
+karvi-daemon@USER.service's, USER the client's own account (karvi-sysutil(8)
+installs it), which no client drains or starts: a daemon of another build, or
+none, refuses a submission and daemon start, naming systemctl restart or start
+of the unit, and stop and restart are refused (daemon_managed).
 `
 const jobHelp = `Usage:
   karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border | --noborder]

@@ -34,7 +34,7 @@ var statusView = daemonStatusView{
 // pair, and the lines without a client's value under their own names.
 func TestDaemonStatusStacksEachPair(t *testing.T) {
 	var out bytes.Buffer
-	statusView.render(&out, display.LineStyle{}, true)
+	statusView.render(&out, display.LineStyle{}, "karvi daemon restart")
 	want := `status: running
 pid: 2267268
 uid: 1000
@@ -66,7 +66,7 @@ func TestDaemonStatusColoursEachPair(t *testing.T) {
 	ok := func(v string) string { return display.ANSIStyle(v, "green", true, false) }
 	bad := func(v string) string { return display.ANSIStyle(v, "red", true, false) }
 	var out bytes.Buffer
-	statusView.render(&out, style, true)
+	statusView.render(&out, style, "karvi daemon restart")
 	for _, line := range []string{
 		"status: running\n",
 		"daemon_version: " + ok("0.29.0") + "\n", "client_version: " + ok("0.29.0") + "\n",
@@ -83,7 +83,7 @@ func TestDaemonStatusColoursEachPair(t *testing.T) {
 	same := statusView
 	same.DaemonCommit, same.DaemonBuild, same.Compatible = same.ClientCommit, same.ClientBuild, true
 	out.Reset()
-	same.render(&out, style, false)
+	same.render(&out, style, "")
 	for _, line := range []string{"daemon_build: " + ok("XfTtoeK1qq9HkGakcVu7") + "\n", "compatible: " + ok("true") + "\n"} {
 		if !strings.Contains(out.String(), line) {
 			t.Fatalf("status %q missing %q", out.String(), line)
