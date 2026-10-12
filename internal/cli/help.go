@@ -90,8 +90,9 @@ Directives, each a whole line, one dash or two:
                                  --device-group, --all, --select-platform
   --reset                        Empty the draft
   --restart                      Empty the draft and read the configuration
-                                 again, as the stream's start does; a
-                                 reading that fails ends the stream
+                                 again, as the stream's start does; the
+                                 next job runs the credential helper again;
+                                 a reading that fails ends the stream
   --end, --quit, --exit          Leave without executing; so do EOF (Ctrl-D)
                                  and Ctrl-C
 
@@ -105,6 +106,9 @@ count, the last exit, and the recalled lines. Global options go before
 the word: karvi --quiet --config FILE stream.
 
 Options:
+  --no-credh                     Run no credential helper for any job; as a
+                                 line, for the jobs whose draft holds it
+                                 (creds.helper-enabled=false)
   --help, -h                     Show this help
 `
 
@@ -275,6 +279,8 @@ Options:
                                  transport; skip a target that answers neither
   --noping                       Send no ICMP probes (the default unless
                                  network.ping-targets is true)
+  --no-credh                     Run no credential helper this invocation
+                                 (creds.helper-enabled=false)
   --ipv4, --4                    Prefer IPv4 when both families are available
   --ipv6, --6                    Prefer IPv6 when both families are available
   --help, --h                    Show this help
@@ -483,6 +489,8 @@ Options:
                                  transport; skip a target that answers neither
   --noping                       Send no ICMP probes (the default unless
                                  network.ping-targets is true)
+  --no-credh                     Run no credential helper this invocation
+                                 (creds.helper-enabled=false)
   --debug                        Safe transport, resolution, and timing diagnostics
   --help, --h                    Show this help
 
@@ -548,6 +556,8 @@ Options:
                                  transport; skip a target that answers neither
   --noping                       Send no ICMP probes (the default unless
                                  network.ping-targets is true)
+  --no-credh                     Run no credential helper this invocation
+                                 (creds.helper-enabled=false)
   --quiet                        Suppress configured login header and footer
   --debug                        Safe transport, resolution, and timing diagnostics
   --help, --h                    Show this help

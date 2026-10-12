@@ -75,7 +75,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 		authorities = append(authorities, opts.AddressAuthority)
 	}
 	selection := records.Selection{Inputs: append([]records.TargetInput{}, opts.Targets...), Excludes: nonNilStrings(opts.Excludes), ManagementAddress: opts.Address, AddressAuthorities: authorities}
-	job, err := planAndPackage(ctx, cfg, operator, one, draft, id, streams)
+	job, err := planAndPackage(ctx, opts.CommonOptions, one, draft, id, streams)
 	if err != nil {
 		return failedResult("execution_plan_invalid", err)
 	}
@@ -135,7 +135,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 		Warn:    func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) },
 	}
 	selection := records.Selection{Inputs: append([]records.TargetInput{}, opts.Targets...), Excludes: nonNilStrings(opts.Excludes), ManagementAddress: opts.ManagementAddress, AddressAuthorities: nonNilStrings(opts.AddressAuthorities)}
-	job, err := planAndPackage(ctx, cfg, operator, set, draft, id, streams)
+	job, err := planAndPackage(ctx, opts.CommonOptions, set, draft, id, streams)
 	if err != nil {
 		return failedResult("execution_plan_invalid", err)
 	}

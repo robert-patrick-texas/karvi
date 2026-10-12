@@ -18,6 +18,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/completion"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credhelper"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
@@ -29,13 +30,19 @@ type globalOptions struct {
 	configs, sets                          []string
 	quiet, debug, debugShow, help, version bool
 	ipv4, ipv6                             bool
-	timezone, ansi                         string
+	// noCredh is --no-credh: on a word that takes it, or on a stream's
+	// command line for every job.
+	noCredh        bool
+	timezone, ansi string
 	// say says the load's warnings at the invocation's one read
 	// (app.SayWarnings); nil says nothing.
 	say app.WarningSink
 	// reading is a stream's one reading of its configuration, from which
 	// each of its jobs' reads makes the job's snapshot; nil elsewhere.
 	reading *app.ConfigReading
+	// helper holds the credential helper's values for the invocation, or
+	// for a stream's jobs until --restart.
+	helper *credhelper.Holder
 }
 
 // flags are the keys the global options set, in the read's options layer.
@@ -51,6 +58,9 @@ func (g globalOptions) flags() map[string]configload.FlagValue {
 		setKey(values, "--ipv4", "name.address-family-preference", "ipv4")
 	} else if g.ipv6 {
 		setKey(values, "--ipv6", "name.address-family-preference", "ipv6")
+	}
+	if g.noCredh {
+		setKey(values, "--no-credh", "creds.helper-enabled", false)
 	}
 	return values
 }
@@ -72,7 +82,7 @@ func (g globalOptions) read(flags map[string]configload.FlagValue, stderr io.Wri
 	if err != nil {
 		return app.CommonOptions{}, reportError(stderr, "config_load_failed", err), false
 	}
-	return app.CommonOptions{Config: cfg, Operator: operator, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow}, 0, true
+	return app.CommonOptions{Config: cfg, Operator: operator, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow, Helper: g.helper}, 0, true
 }
 
 // Main executes one invocation and returns the stable karvi process exit code.
@@ -149,6 +159,10 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+	// The credential helper's values, held from the invocation's first
+	// credential step to its end, and cleared then.
+	inv.Global.helper = &credhelper.Holder{}
+	defer inv.Global.helper.Destroy()
 	streams := app.IO{Stdin: stdin, Stdout: stdout, Stderr: stderr}
 	switch inv.Path {
 	case "version":
@@ -201,6 +215,7 @@ func (inv *Invocation) global() globalOptions {
 	g.debug = g.debug || inv.Flag(optDebug)
 	g.ipv4 = g.ipv4 || inv.Flag(optIPv4)
 	g.ipv6 = g.ipv6 || inv.Flag(optIPv6)
+	g.noCredh = g.noCredh || inv.Flag(optNoCredh)
 	return g
 }
 

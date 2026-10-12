@@ -1,0 +1,81 @@
+#!/bin/sh
+# karvi-credh: an example credential helper. karvi runs it once per
+# invocation that resolves credentials, before any credential backend is
+# asked, with no argument, standard input /dev/null, and standard error
+# discarded, and reads its standard output: NAME=value lines, which set the
+# values karvi's credential readers find in place of the process
+# environment's (NETUSER, NETPASS, and NETENABLE for the fallback, or any
+# name an env: cell, an env backend's template, or a store's token names).
+# Its values stay in karvi's memory; no program karvi starts receives them.
+#
+# karvi reads each line as a shell's eval would and refuses anything else,
+# so test it as karvi reads it:
+#
+#   eval "$(./karvi-credh)" && echo "$NETUSER"
+#
+# Install it where it is to run, writable by its owner alone (karvi refuses
+# a helper its group or others may write, or one a symlink names):
+#
+#   install -m 0755 examples/karvi-credh /usr/local/lib/karvi/credh
+#
+# and name it in the configuration, [creds] helper = "/usr/local/lib/karvi/credh";
+# or install it beside the karvi executable as karvi-credh, the default.
+# It runs through the descriptor karvi checked, so $0 is /proc/self/fd/3:
+# name its own files by absolute paths.
+#
+# A reason the operator should see goes to /dev/tty: karvi says only that
+# the helper failed, its path and its exit status. Without a terminal (a
+# timer's run) nothing is shown; run it by hand to see why.
+
+set -u
+
+# credh_quote VALUE prints VALUE in double quotes with \, ", $, and ` each
+# escaped by a backslash: the one form karvi's parser and the shells read
+# alike, whatever the value holds but a control character, which karvi
+# refuses.
+credh_quote() {
+	printf '"%s"' "$(printf '%s' "$1" | sed 's/[\\"$`]/\\&/g')"
+}
+
+# credh_tty MESSAGE tells the operator on the terminal karvi runs at, and
+# nobody when there is none.
+credh_tty() {
+	{ printf 'karvi-credh: %s\n' "$1" >/dev/tty; } 2>/dev/null
+}
+
+# credh_fetch ENTRY prints the first line of the secret ENTRY names in the
+# operator's store, or fails. pass(1) is used here; a site with another
+# store keeps one of the commented lines in its place.
+credh_nl='
+'
+credh_fetch() {
+	credh_fetch_out=$(pass show "karvi/$1" 2>/dev/null) || return 1
+	# credh_fetch_out=$(secret-tool lookup service karvi entry "$1") || return 1
+	# credh_fetch_out=$(vault kv get -field=value "secret/karvi/$1") || return 1
+	# credh_fetch_out=$(printf 'protocol=https\nhost=karvi\nusername=%s\n\n' "$1" | git credential fill) || return 1
+	# credh_fetch_out=$(printf '%s\n' "$credh_fetch_out" | sed -n 's/^password=//p')
+	printf '%s' "${credh_fetch_out%%"$credh_nl"*}"
+}
+
+# gpg's pinentry asks on the operator's terminal for the store's
+# passphrase; standard input is /dev/null, so name that terminal for it.
+if credh_term=$(tty </dev/tty 2>/dev/null); then
+	GPG_TTY=$credh_term
+	export GPG_TTY
+fi
+
+credh_user=$(id -un)
+credh_tty "reading karvi/$credh_user from the password store"
+# Drop enable where no device asks for an enable secret.
+for credh_entry in username password enable; do
+	if ! credh_value=$(credh_fetch "$credh_user/$credh_entry"); then
+		credh_tty "cannot read karvi/$credh_user/$credh_entry; try: pass show karvi/$credh_user/$credh_entry"
+		exit 1
+	fi
+	case $credh_entry in
+	username) credh_name=NETUSER ;;
+	password) credh_name=NETPASS ;;
+	enable) credh_name=NETENABLE ;;
+	esac
+	printf 'export %s=%s\n' "$credh_name" "$(credh_quote "$credh_value")"
+done

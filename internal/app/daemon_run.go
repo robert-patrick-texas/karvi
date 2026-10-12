@@ -103,7 +103,11 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 	cd.draft = draft
 	cd.timing.dns = time.Since(t0)
 	t0 = time.Now()
-	cp, err := planner.NewCredentialPlanner(cfg, operator, set.Devices, now, planner.CredentialOptions{Warn: warn})
+	input, err := credentialInput(ctx, opts.CommonOptions, streams)
+	if err != nil {
+		return nil, "credential_resolution_failed", err
+	}
+	cp, err := planner.NewCredentialPlanner(cfg, operator, set.Devices, now, planner.CredentialOptions{Warn: warn, Input: input})
 	if err != nil {
 		return nil, "credential_resolution_failed", err
 	}

@@ -102,6 +102,19 @@ func TestPlaceResolver(t *testing.T) {
 	if len(got["credential-backend.mine.type"]) != 0 {
 		t.Errorf("a backend's type has a line: %q", got["credential-backend.mine.type"])
 	}
+
+	// The credential helper (EXAMPLES chapter 56, issue 9): a bare name is
+	// the file beside the running executable, any other value as loaded.
+	exe, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for value, w := range map[string]string{"karvi-credh": filepath.Join(filepath.Dir(exe), "karvi-credh"), "./credh": filepath.Join(wd, "credh")} {
+		got = lines(load(`creds.helper="`+value+`"`), "creds.helper")
+		if strings.Join(got["creds.helper"], "\n") != "resolved:   "+w {
+			t.Errorf("creds.helper %s: %q, want %q", value, got["creds.helper"], w)
+		}
+	}
 }
 
 // TestPlaceKeysMarked: every key the view has a rule for is one the

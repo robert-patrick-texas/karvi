@@ -12,6 +12,7 @@ at are under `docs/`.
 | `cloginrc` | a RANCID `.cloginrc`, read as data: `add user` and `add password` lines | `#` to the end of the line |
 | `targets.txt` | a target file for `--tf`: one device name per line | a line beginning with `#` or `!` |
 | `commands.txt` | a commands file for `--cf`: one device command per line, sent as written | none: every line is sent to the device, so a comment line would be too |
+| `karvi-credh` | a credential helper: a POSIX `sh` script that prints `NETUSER`, `NETPASS`, and `NETENABLE` from `pass show` as `export` lines, with commented lines for `secret-tool`, `vault kv get`, and `git credential fill` | `#` to the end of the line (`sh`) |
 
 The passwords in `credentials.csv` and `cloginrc` are placeholders. A
 user-scoped credential file is refused unless the operator owns it at mode
@@ -20,6 +21,21 @@ user-scoped credential file is refused unless the operator owns it at mode
 ```sh
 install -m 0600 examples/credentials.csv ~/.karvi/credentials.csv
 install -m 0600 examples/cloginrc ~/.cloginrc
+```
+
+The helper runs where `creds.helper` names it, or as `karvi-credh` beside the
+karvi executable; the package installs none. karvi refuses a helper that its
+group or others may write, so install it where it is to run, test it as karvi
+reads it, and name it in the configuration:
+
+```sh
+install -m 0755 examples/karvi-credh /usr/local/lib/karvi/credh
+eval "$(/usr/local/lib/karvi/credh)" && echo "$NETUSER"
+```
+
+```toml
+[creds]
+helper = "/usr/local/lib/karvi/credh"
 ```
 
 Try the set from the source root, where the relative paths resolve, without

@@ -402,7 +402,7 @@ func TestCredentialHelperKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snap.String("creds.helper") != "karvi-credh" || !snap.Bool("creds.helper-enabled") || snap.String("creds.helper-unavailable") != "skip" || snap.String("creds.helper-timeout") != "2m" {
+	if snap.String("creds.helper") != "karvi-credh" || !snap.Bool("creds.helper-enabled") || snap.String("creds.helper-unavailable") != "skip" || snap.String("creds.helper-timeout") != "60s" {
 		t.Errorf("defaults: %q %v %q %q", snap.String("creds.helper"), snap.Bool("creds.helper-enabled"), snap.String("creds.helper-unavailable"), snap.String("creds.helper-timeout"))
 	}
 	wd, err := os.Getwd()

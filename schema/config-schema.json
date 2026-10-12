@@ -2717,7 +2717,7 @@
     {
       "path": "creds.helper-timeout",
       "kind": "duration",
-      "default_literal": "\"2m\"",
+      "default_literal": "\"60s\"",
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
@@ -2726,7 +2726,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "1h",
-      "documentation": "1s–1h. How long the helper may run; then SIGTERM, two seconds on SIGKILL, and `credential_helper_failed`.",
+      "documentation": "1s–1h. How long the helper may run; then SIGTERM to it and every process it started that is still its descendant, two seconds on SIGKILL, and `credential_helper_failed`.",
       "since": "0.2.0"
     },
     {

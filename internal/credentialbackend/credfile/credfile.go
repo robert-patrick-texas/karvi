@@ -193,7 +193,7 @@ func (r Rules) check(path string, fi fs.FileInfo) error {
 	if fi.Mode().Perm() != 0o640 {
 		return errorcodes.Errorf("credential_file_shared_mode_invalid", "credential backend %s: shared credential file %s mode is %04o and must be 0640", r.BackendName, path, fi.Mode().Perm())
 	}
-	if !r.approvedUID(int(st.Uid)) {
+	if !r.ApprovedUID(int(st.Uid)) {
 		return errorcodes.Errorf("credential_file_shared_owner_unapproved", "credential backend %s: shared credential file %s owner uid %d is not root or in security.approved-admin-users", r.BackendName, path, st.Uid)
 	}
 	if r.SharedGroup != "" {
@@ -209,7 +209,10 @@ func (r Rules) check(path string, fi fs.FileInfo) error {
 	return nil
 }
 
-func (r Rules) approvedUID(uid int) bool {
+// ApprovedUID reports whether uid is root or a name in
+// ApprovedAdminUsers: an owner a shared credential file, or the credential
+// helper, may have.
+func (r Rules) ApprovedUID(uid int) bool {
 	if uid == 0 {
 		return true
 	}

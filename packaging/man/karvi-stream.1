@@ -55,8 +55,9 @@ Empty the draft
 .TP
 \fB\-\-restart\fR
 Empty the draft and read the configuration
-again, as the stream's start does; a
-reading that fails ends the stream
+again, as the stream's start does; the
+next job runs the credential helper again;
+a reading that fails ends the stream
 .TP
 \fB\-\-end\fR, \fB\-\-quit\fR, \fB\-\-exit\fR
 Leave without executing; so do EOF (Ctrl\-D)
@@ -71,6 +72,11 @@ reading fails ends it with the reading's code. A restart keeps the line
 count, the last exit, and the recalled lines. Global options go before
 the word: karvi \-\-quiet \-\-config FILE stream.
 .SS "Options"
+.TP
+\fB\-\-no\-credh\fR
+Run no credential helper for any job; as a
+line, for the jobs whose draft holds it
+(creds.helper\-enabled=false)
 .TP
 \fB\-\-help\fR, \fB\-h\fR
 Show this help

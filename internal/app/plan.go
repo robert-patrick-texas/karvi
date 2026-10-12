@@ -6,9 +6,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentialpackage"
-	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
-	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -43,14 +41,19 @@ const LocalAudience = executionplan.EndpointLocal
 // client-authority credentials, prepare daemon-authority targets in this
 // process, which is the endpoint, resolve theirs, bind, finalize, and build
 // and validate the package. Any failure returns before a job exists.
-func planAndPackage(ctx context.Context, cfg configload.Snapshot, operator credentials.Operator, set planner.TargetSet, opts planner.DraftOptions, activityID string, streams IO) (*localJob, error) {
+func planAndPackage(ctx context.Context, common CommonOptions, set planner.TargetSet, opts planner.DraftOptions, activityID string, streams IO) (*localJob, error) {
+	cfg, operator := common.Config, common.Operator
 	now := time.Now()
 	plan, err := planner.Draft(ctx, cfg, operator, set, opts, now)
 	if err != nil {
 		return nil, err
 	}
+	input, err := credentialInput(ctx, common, streams)
+	if err != nil {
+		return nil, err
+	}
 	warn := func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }
-	cp, err := planner.NewCredentialPlanner(cfg, operator, set.Devices, now, planner.CredentialOptions{Warn: warn})
+	cp, err := planner.NewCredentialPlanner(cfg, operator, set.Devices, now, planner.CredentialOptions{Warn: warn, Input: input})
 	if err != nil {
 		return nil, err
 	}

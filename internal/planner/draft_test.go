@@ -137,7 +137,9 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned when the credential helper's four creds.helper keys joined
 // registry 29: the configuration block's four values and its digest; nothing
 // else moved.
-const goldenK03Draft = "3ed6aa458e23aa989a95322f59506b575f706a7571d68e8e3494fd217e879ff3"
+// Re-pinned when creds.helper-timeout's default became 60s: the
+// configuration block's value and its digest; nothing else moved.
+const goldenK03Draft = "cf108ba0905531adce5d5f6e4e8b321c38c8f24f1b5a729dd0c949ab08450a4c"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

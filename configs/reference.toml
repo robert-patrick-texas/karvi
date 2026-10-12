@@ -620,9 +620,9 @@ helper-enabled = true
 # (credential_helper_unavailable). A helper present but unsafe, or one that fails, refuses it
 # under any value.
 helper-unavailable = "skip"
-# 1s–1h. How long the helper may run; then SIGTERM, two seconds on SIGKILL, and
-# credential_helper_failed.
-helper-timeout = "2m"
+# 1s–1h. How long the helper may run; then SIGTERM to it and every process it started that
+# is still its descendant, two seconds on SIGKILL, and credential_helper_failed.
+helper-timeout = "60s"
 
 [tabular]
 # 1 KiB–64 MiB; over-limit is hard file error.

@@ -6,6 +6,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/configschema"
 	"github.com/robert-patrick-texas/karvi/internal/capacity"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credhelper"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
@@ -16,8 +17,8 @@ import (
 // activity in process, by the activity's own chooser and without creating
 // anything: the private root, the trust store, the three trees, the
 // scratch, the spool, the control sockets, the scoreboards, the ledger, the
-// daemon's socket, and, when set, the audit file, the inventory sources'
-// files, and the credential backends' files. The configuration is the one
+// daemon's socket, the credential helper, and, when set, the audit file,
+// the inventory sources' files, and the credential backends' files. The configuration is the one
 // the invocation loaded; a running daemon is never asked.
 func placeResolver(snap configload.Snapshot) configload.Resolver {
 	var (
@@ -100,6 +101,12 @@ var placeKeys = map[string]placeRule{
 	},
 	"daemon.sockets": func(_ configload.Snapshot, raw string, op operatorPlaces, base string) (osutil.Place, error) {
 		p, err := osutil.DaemonSockets(raw, base, op.home)
+		return osutil.Place{Path: p}, err
+	},
+	// The helper's file: a bare name beside the running executable, any
+	// other value as the load made it absolute.
+	"creds.helper": func(_ configload.Snapshot, raw string, _ operatorPlaces, _ string) (osutil.Place, error) {
+		p, err := credhelper.Locate(raw)
 		return osutil.Place{Path: p}, err
 	},
 	"audit.file": func(_ configload.Snapshot, raw string, op operatorPlaces, _ string) (osutil.Place, error) {

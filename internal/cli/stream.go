@@ -31,7 +31,9 @@ import (
 // --sendit executes the draft and clears the commands (with nothing to send, a
 // notice and no job); --clear empties the commands alone; --reset empties the
 // draft; --restart empties it and reads the configuration again, as the
-// stream's start does; --end, --quit, EOF, or Ctrl-C leave without executing. A
+// stream's start does, and the next job runs the credential helper again,
+// whose values the stream holds from its first job; --end, --quit, EOF, or
+// Ctrl-C leave without executing. A
 // line the parser refuses is reported with its number and dropped, as is an
 // option whose value attaches with = alone given text after a space. Standard
 // input is the stream, so --cf, --tf, and --tfr may not name - in any spelling.
@@ -153,6 +155,8 @@ func streamCommandRole(r optRole) bool {
 // read it, and an edit reaches the next stream or the jobs after a
 // --restart, not the next job.
 func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
+	// --no-credh on the stream's command line is every job's.
+	inv.Global.noCredh = inv.Flag(optNoCredh)
 	if code, ok := readStreamConfig(inv, streams.Stderr, 0); !ok {
 		return code
 	}
@@ -181,6 +185,9 @@ func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return commandRun(ctx, sub, streams)
 	}
 	restart := func(line int) (int, bool) {
+		// The helper's values go with the draft: the first job after the
+		// restart runs it again (EXAMPLES chapter 56, issue 8).
+		inv.Global.helper.Destroy()
 		code, ok := readStreamConfig(inv, streams.Stderr, line)
 		if ok {
 			opening()

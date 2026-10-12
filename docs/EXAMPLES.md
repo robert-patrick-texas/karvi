@@ -9550,7 +9550,8 @@ executable's checks, environment, timeout, standard error, and exit, and its
 configuration beside the helper protocols operators know; and, found while
 designing them or at the operator's word, refusals said without colour at a
 terminal, the operator-keyed stores' answers read once and held, and TLS to the
-stores; and, found while building, an empty value.
+stores; and, found while building, an empty value and what a helper leaves
+running.
 
 **Issue 1, the reads on the one lookup and `%operator%`, agreed.** On the lab
 build, with the flags off: the env backend answers when any of its variables is
@@ -10157,3 +10158,51 @@ key (a later layer unable to undo an earlier one's value); `""` as the default
 where the default is a value (two spellings); a written default never refused
 (the refusal kept on `tls-verify = false`, which claims nothing untrue, and
 lifted from `true`, which does).
+
+**Issue 18, found while building S3: what a helper leaves running, agreed.** At
+the operator's questions, on the lab build of S3: a helper that prints and
+exits at once costs its own time (2 ms), its output read to the end of the
+pipe, which closes as it exits; the two seconds after an exit are spent only
+when a child it left in the background holds its output (2.004 s); a compiled
+Go program at mode 0711, which the operator may execute and not read, runs as
+a script does; an exit 0 with no output sets nothing, every name the
+environment's. A helper that never exits was refused after
+`creds.helper-timeout`, `credential_helper_failed`, two seconds later if it
+ignored SIGTERM, and left running the processes it had started: a fetch hung
+in a command substitution (`v=$(…)`, the shape of `examples/karvi-credh`'s
+`pass show`), which SIGTERM to the helper's shell never reached; a child in the
+background; a child that ignored SIGTERM as its helper did and held its
+output, so karvi waited its two seconds for the end, 7 seconds at a 3-second
+timeout; and the same fetch when karvi was sent SIGTERM, as a timer's unit is
+stopped, exit 113. Without a terminal each stays running after karvi ends,
+one more for each timed-out run of an unattended collection. The helper runs
+in karvi's process group (issue 12), so karvi cannot signal the group without
+signalling itself. A prototype ran a helper both ways at a pseudo-terminal: in
+a group of its own, made the terminal's foreground while it runs, a timeout's
+signal to the group ended every child and a PIN asked on `/dev/tty` was read,
+but Ctrl-C reached the helper alone, one that caught it carrying on and karvi
+going on with its output, and Ctrl-Z stopped the helper alone, the shell given
+the terminal back only at the timeout; in karvi's group Ctrl-C reached both
+and Ctrl-Z stopped both, `fg` resuming them. The helper stays in karvi's
+process group. When it is to be ended, past `creds.helper-timeout` or with the
+invocation cancelled, karvi lists the processes descended from it, by their
+parents in `/proc`, while it still runs, and sends SIGTERM to the helper and
+each of them, and two seconds on SIGKILL to each still running, listing them
+again first while the helper runs; each is held by a pidfd opened while its
+start time matched the listing, so no signal reaches a process that took its
+pid since. A process that has left the tree, its parent ended before it (a
+daemon's double fork, as `gpg-agent` makes), is no descendant and is left
+running, and a helper that exits by itself, 0 or not, leaves what it started,
+as it chose. On the lab build of issue 18 nothing was left running in those
+cases but the double fork's, the stubborn child's took 5 seconds, and the
+cancelled run's fetch ended with it. `creds.helper-timeout`'s default is
+`60s`, at the operator's word, amending issue 12's `2m`: a helper that never
+exits is refused 60 seconds from its start, 62 if it ignores SIGTERM, 64 at
+most if a process outside its tree holds its output. *Not taken:* a group of
+its own (karvi's Ctrl-C lost to a helper that catches it, and Ctrl-Z leaving
+the terminal held); a group of its own without a terminal alone (two
+behaviours, a terminal's strays kept); the strays left as the helper's own (a
+timer's run adding one each time); karvi made the child subreaper, adopting
+the orphans (every orphan below karvi, an `ssh` control master's among them,
+karvi's to reap); descendants ended after a helper exits by itself (an agent
+it started on purpose ended).

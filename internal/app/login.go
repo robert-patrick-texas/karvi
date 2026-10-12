@@ -167,6 +167,11 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("credential_resolution_failed", err)
 	}
+	input, err := credentialInput(ctx, opts.CommonOptions, streams)
+	if err != nil {
+		return failedResult("credential_resolution_failed", err)
+	}
+	credResolver.SetInput(input)
 	d.PlatformUsed = platformUsed // the enable rule reads the platform used
 	resolved, err := credResolver.Resolve(ctx, operator, d)
 	if err != nil {

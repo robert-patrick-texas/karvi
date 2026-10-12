@@ -554,15 +554,20 @@ var entries = []Entry{
 	failure("cloginrc_include_other_user_forbidden", "credential", exitCred, false, "A `.cloginrc` include uses `~otheruser`."),
 	// The credential-file safety checks, one meaning each for every file
 	// backend; they run on the opened descriptor.
-	failure("credential_file_mode_unsafe", "credential", exitCred, false, "A user credential file's mode is not 0600; the message names the backend and the path and gives the `chmod` remedy."),
-	failure("credential_file_not_regular", "credential", exitCred, false, "A user or shared credential file's path is not a regular file."),
-	failure("credential_file_owner_mismatch", "credential", exitCred, false, "A user credential file is owned by another user."),
-	failure("credential_file_owner_uninspectable", "credential", exitCred, false, "The owner of a user or shared credential file cannot be read."),
+	failure("credential_file_mode_unsafe", "credential", exitCred, false, "A user credential file's mode is not 0600, or the credential helper is writable by its group or others; the message names the backend or the helper and the path and gives the `chmod` remedy."),
+	failure("credential_file_not_regular", "credential", exitCred, false, "A user or shared credential file's path, or the credential helper's, is not a regular file."),
+	failure("credential_file_owner_mismatch", "credential", exitCred, false, "A user credential file is owned by another user, or the credential helper by a user who is neither the operator, root, nor in `security.approved-admin-users`."),
+	failure("credential_file_owner_uninspectable", "credential", exitCred, false, "The owner of a user or shared credential file, or of the credential helper, cannot be read."),
 	failure("credential_file_shared_group_mismatch", "credential", exitCred, false, "A shared credential file's group is not `security.shared-group`."),
 	failure("credential_file_shared_group_unknown", "credential", exitCred, false, "`security.shared-group` does not name a known group, so a shared credential file's group cannot be checked."),
 	failure("credential_file_shared_mode_invalid", "credential", exitCred, false, "A shared credential file's mode is not 0640."),
 	failure("credential_file_shared_owner_unapproved", "credential", exitCred, false, "A shared credential file is owned by a user who is neither root nor in `security.approved-admin-users`."),
-	failure("credential_file_symlink_rejected", "credential", exitCred, false, "A user or shared credential file's path is a symlink while `security.allow-credential-symlinks` is off."),
+	failure("credential_file_symlink_rejected", "credential", exitCred, false, "A user or shared credential file's path, or the credential helper's, is a symlink while `security.allow-credential-symlinks` is off."),
+	// The credential helper (EXAMPLES chapter 56): each refuses the
+	// invocation, or the stream's job, at planning, before any device.
+	failure("credential_helper_failed", "credential", exitCred, false, "The credential helper ran and exited non-zero, was ended by a signal, or did not exit within `creds.helper-timeout`; its output is not read, and the message names the path and the status or the signal, never the helper's standard error, which is discarded: run it by hand to see its message."),
+	failure("credential_helper_output_invalid", "credential", exitCred, false, "The credential helper's output is not lines of `NAME=value` assignments as dash and bash would read them under `eval` (a blank around `=`, an unquoted special character, a bare `$` or backtick in double quotes, a control character, a word that is no assignment), sets a name twice, or is longer than 64 KiB or a line than 4 KiB; the message names the path, the line, and the reason, and quotes nothing from the line."),
+	failure("credential_helper_unavailable", "credential", exitCred, false, "An enabled credential helper cannot be run under `creds.helper-unavailable = \"fail\"`: no file at its path, or one the operator cannot execute; the message names the path and the reason."),
 	// The credential CSV's load failures. Each
 	// message names the backend, the file, and the line, never a cell.
 	failure("credkeyref_unresolved", "credential", exitCred, false, "A device pinned by the inventory's `credkeyref` reached the end of its policy's sequence and no backend that can honour a key answered for it (the key is absent, or its row's other selectors exclude the device); the message names the device, the key, the backends asked, and the backends skipped. A pinned device never takes a general row, the environment fallback, or a prompt."),

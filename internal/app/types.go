@@ -7,6 +7,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credhelper"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -22,6 +23,10 @@ type CommonOptions struct {
 	Quiet           bool
 	Debug           bool
 	DebugShowSecret bool
+	// Helper holds the credential helper's values for the invocation, or
+	// for a stream's jobs until --restart (credentialInput); nil runs the
+	// helper for the one credential step alone.
+	Helper *credhelper.Holder
 }
 
 // CommandOptions describes scripted work on the first device of a target

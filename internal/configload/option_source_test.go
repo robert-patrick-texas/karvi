@@ -42,3 +42,28 @@ func TestOptionSource(t *testing.T) {
 		t.Errorf("lock: %v", err)
 	}
 }
+
+// TestNoCredhLock is EXAMPLES chapter 56, issue 9: --no-credh is
+// creds.helper-enabled = false in the flags layer, sourced to the option,
+// and a site that locks the key refuses it.
+func TestNoCredhLock(t *testing.T) {
+	saved := globalRoots
+	t.Cleanup(func() { globalRoots = saved })
+	globalRoots = []string{filepath.Join(t.TempDir(), "absent.toml")}
+	flags := map[string]FlagValue{"creds.helper-enabled": {Value: false, Option: "--no-credh"}}
+	load := func() (Snapshot, error) {
+		return Load(Options{HomeDir: t.TempDir(), Environment: []string{}, FlagValues: flags})
+	}
+	snap, err := load()
+	if err != nil || snap.Bool("creds.helper-enabled") || snap.Values["creds.helper-enabled"].Source != (SourceRef{Layer: "cli", Path: "--no-credh"}) {
+		t.Fatalf("%v %+v %v", snap.Bool("creds.helper-enabled"), snap.Values["creds.helper-enabled"].Source, err)
+	}
+	global := filepath.Join(t.TempDir(), "global.toml")
+	globalRoots = []string{global}
+	if err := os.WriteFile(global, []byte("[config-lock]\n\"creds.helper-enabled\" = true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = load(); errorcodes.Of(err) != "config_lock_violation" || !strings.HasSuffix(err.Error(), "at --no-credh") {
+		t.Errorf("lock: %v", err)
+	}
+}

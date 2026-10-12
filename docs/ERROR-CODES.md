@@ -259,18 +259,21 @@ Active failure causes.
 | `credential_csv_row_invalid` | credential | 6 | no | A credential CSV row does not stand: no positive selector, a malformed selector or prefix, an illegal `credkey`, or no result at all (`username`, `password`, and `enable_password` all blank); the message names the line and the column and never the cell. |
 | `credential_enable_missing` | credential | 6 | no | The platform requires an enable password and none was resolved. |
 | `credential_env_missing` | credential | 6 | no | A variable a credential source names is not set or is empty: a credential CSV cell `env:NAME` in the row a device selected, a Redis or Vault record's field `env:NAME`, or the variable a Redis backend's `auth-password-env` or `auth-username-env` or a Vault backend's `token-env` names, read before any connection; the device stops at planning, and the message names the backend, the file and line or the record and field, or the key, and the variable. |
-| `credential_file_mode_unsafe` | credential | 6 | no | A user credential file's mode is not 0600; the message names the backend and the path and gives the `chmod` remedy. |
-| `credential_file_not_regular` | credential | 6 | no | A user or shared credential file's path is not a regular file. |
-| `credential_file_owner_mismatch` | credential | 6 | no | A user credential file is owned by another user. |
-| `credential_file_owner_uninspectable` | credential | 6 | no | The owner of a user or shared credential file cannot be read. |
+| `credential_file_mode_unsafe` | credential | 6 | no | A user credential file's mode is not 0600, or the credential helper is writable by its group or others; the message names the backend or the helper and the path and gives the `chmod` remedy. |
+| `credential_file_not_regular` | credential | 6 | no | A user or shared credential file's path, or the credential helper's, is not a regular file. |
+| `credential_file_owner_mismatch` | credential | 6 | no | A user credential file is owned by another user, or the credential helper by a user who is neither the operator, root, nor in `security.approved-admin-users`. |
+| `credential_file_owner_uninspectable` | credential | 6 | no | The owner of a user or shared credential file, or of the credential helper, cannot be read. |
 | `credential_file_shared_group_mismatch` | credential | 6 | no | A shared credential file's group is not `security.shared-group`. |
 | `credential_file_shared_group_unknown` | credential | 6 | no | `security.shared-group` does not name a known group, so a shared credential file's group cannot be checked. |
 | `credential_file_shared_mode_invalid` | credential | 6 | no | A shared credential file's mode is not 0640. |
 | `credential_file_shared_owner_unapproved` | credential | 6 | no | A shared credential file is owned by a user who is neither root nor in `security.approved-admin-users`. |
-| `credential_file_symlink_rejected` | credential | 6 | no | A user or shared credential file's path is a symlink while `security.allow-credential-symlinks` is off. |
+| `credential_file_symlink_rejected` | credential | 6 | no | A user or shared credential file's path, or the credential helper's, is a symlink while `security.allow-credential-symlinks` is off. |
 | `credential_file_unavailable` | credential | 6 | no | A required user or shared credential file is absent, untraversable, or unreadable; the message names the backend and path only. |
 | `credential_frame_malformed` | dependency | 112 | no | A credential frame has a bad magic, version, flags, or length, or is truncated. |
 | `credential_frame_too_large` | dependency | 112 | no | A credential frame header, body, or receipt exceeds its bound. |
+| `credential_helper_failed` | credential | 6 | no | The credential helper ran and exited non-zero, was ended by a signal, or did not exit within `creds.helper-timeout`; its output is not read, and the message names the path and the status or the signal, never the helper's standard error, which is discarded: run it by hand to see its message. |
+| `credential_helper_output_invalid` | credential | 6 | no | The credential helper's output is not lines of `NAME=value` assignments as dash and bash would read them under `eval` (a blank around `=`, an unquoted special character, a bare `$` or backtick in double quotes, a control character, a word that is no assignment), sets a name twice, or is longer than 64 KiB or a line than 4 KiB; the message names the path, the line, and the reason, and quotes nothing from the line. |
+| `credential_helper_unavailable` | credential | 6 | no | An enabled credential helper cannot be run under `creds.helper-unavailable = "fail"`: no file at its path, or one the operator cannot execute; the message names the path and the reason. |
 | `credential_incomplete` | credential | 6 | no | The resolved credential has no username after transforms. |
 | `credential_material_error` | credential | 6 | no | A formula backend cannot read its password source's credential material. |
 | `credential_material_missing` | internal | 6 | no | Credential material is missing when it is read. |
