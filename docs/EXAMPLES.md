@@ -10368,3 +10368,543 @@ env backend's template names its variable`. On the lab build of it the flag on a
 `TestRemovedKeysRefused` pins it, and failed before the change. *Not taken:* a
 hint per type (a removed key is refused by its path, before its table's type is
 judged, so the type may be missing or wrong); the CSV's way alone.
+
+## 57. A build names its tree (2026-10-12)
+
+The ROADMAP's Next item 1, opened as build numbers and rescoped at the
+operator's word (`deac902`): two builds of different trees told apart wherever
+a build is named; the daemon's part buildable now, the stamp beside the next
+release.
+
+**The evidence.** What each build says in `karvi version`, which reads no
+configuration:
+
+| Build | `commit` | `build_time` |
+|---|---|---|
+| the released `bin/` | `source-release-v0.29.0` | 2026-10-09T00:00:00Z |
+| the dev line's `make build` of `70d6f5c` | `development` | 1970-01-01T00:00:00Z |
+| the same of `be2d8d7` | `development` | 1970-01-01T00:00:00Z |
+| a lab build of `be2d8d7` | `be2d8d7-lab` | the second it was built |
+| a release-style `make build` of `be2d8d7`, twice | `source-release-v0.29.0` | the day's midnight |
+
+The two dev-line builds are different programs and say the same, in `karvi
+version` and in a job's manifest; the two release-style builds were byte for
+byte the same. A job's manifest names the build that ran it (`app.build`) and
+the client's version and commit (`header.client`); `daemon status`, an audit
+event's `process`, and the scoreboard's producer name the version alone. The
+`be2d8d7` build's client asking the `70d6f5c` build's daemon was told `version:
+0.29.0` and `compatible: true`, nothing naming the build.
+
+**What it gains.** In development, a build that names its tree and a daemon
+that names its build: chapter 56's lab stopped the daemon between builds for
+want of it. For a site on releases, nothing: a release is one identity, its
+rebuild byte-identical.
+
+**What it waits on.** The stamp waits on the next release, whose tools set and
+check it (the day's midnight, the `source-release-v` commit,
+`scripts/verify-release.sh`, `scripts/build-deb.sh`); the daemon's part waits on
+nothing. Rescoped at the operator's word from a build counter, which nothing
+would read and which a release's one identity would break, to `make build`'s
+default commit taken from git and the daemon's commit named in `daemon status`
+and the compatibility line.
+
+**The operator's rule: a daemon of another version or build, agreed.** On a lab
+of three builds, A a lab build of `deac902`, B the same tree stamped otherwise,
+and V the same tree at version 0.29.9, with A's daemon running a 20-second job
+on the fake device: B's `daemon status` said `compatible: true`, and B's run
+went to A's daemon, its manifest naming A's build and B's client; V's run was
+refused, `daemon_incompatible` (exit 112), the daemon not replaced; V's `daemon
+restart` was refused while the job ran, and `--grace` waited without draining a
+daemon of another version, so a run of A's client during the wait was accepted
+before V stopped the daemon and started its own. Three ways to have a daemon
+finish its jobs and exit exist. SIGTERM drained it at once (a new run
+`daemon_draining`, exit 112) and it exited at its job's end, 20.4 s; but at
+`daemon.shutdown-grace-seconds` (120 by default) it cancels what still runs, and
+at 5 the job ended `incomplete_shutdown`, exit 106. A `drain` sent as V's client
+would send it was accepted, the daemon checking the IPC schema alone, and the
+job finished; but the daemon stayed, draining with no job. The client's
+`--grace` waits in the client. Under a user unit with the packaged unit's
+`Restart=on-failure`, an install that replaced the executable left the daemon
+running the old program; the installed client's `daemon restart` stopped it,
+exit 0, which systemd did not restart, and started its own in the operator's
+session scope, outside the unit; `systemctl --user restart` started the
+installed build in the unit. The rule. A daemon serves a client only when its
+version, its IPC schema, and its build all equal the client's. A client that
+reaches a daemon of another version or build drains it: from then the daemon
+admits no job from any client, finishes every job it holds with no time limit,
+and exits after the last, killing nothing. A daemon holding no job exits at
+once, and the client starts a daemon of its own build and runs its job in the
+same invocation; for one holding jobs, the client refuses its job, naming the
+daemon's version, its build, the jobs it is finishing, and `--no-daemon`, and
+every client's job is refused alike until the daemon has exited, the first
+client after it starting a daemon of its own build. The drain is the existing
+request, its daemon now exiting after its last job: a drained daemon with no job
+refuses every job and serves nothing, and `--grace` and `--after`, the drain's
+only senders, stop it next. The drain joins the lifecycle requests sent at the
+daemon's own schema, as `stop` is, so it reaches a daemon of an older schema.
+Two builds used in turn drain each other's daemon, and a second build's way is
+`--no-daemon`; a binary elsewhere on the host beside the installed one is the
+operator's to sort out. This replaces DESIGN section 8's entry "A client keeps
+lifecycle access to a daemon of another release, and compatibility is the pair",
+whose *Why* said a client never kills an incompatible daemon automatically and
+whose *Not taken* named comparing the commit. *Not taken:* the signal (it
+cancels the jobs past the old daemon's grace, and lifting that lengthens a
+`systemctl stop`); a new request beside the drain (the same effect, keeping a
+drain without an exit that nothing uses); the client waiting out the drain (a
+run held for the old jobs' length, and an interrupt leaving the daemon
+draining); a second daemon beside the draining one (two daemons for one
+operator, the old jobs out of reach of `job follow` and `job cancel`, the job
+and capacity limits counted twice); a notice alone, as the ROADMAP had it.
+
+**Its issues, one at a time:** the build's identity, what is compared; the
+daemon's answer naming its build, and whether it moves the IPC schema; found
+while designing that answer, what the client reports to the daemon and the
+moment between its probe and its submission; the drain that exits; the
+client's sequence, its refusal, and the commands that apply the rule; a
+draining daemon's jobs reached from another build; the daemon under a systemd
+unit; the stamp and the release tools' checks; and the documents.
+
+**Issue 1, the build's identity, agreed.** In a worktree of `deac902`, `make
+build` with its commit taken from `git describe --always --dirty`: the clean
+tree said `karvi-v0.29.0-43-gdeac902`, naming the tag before it; after one
+string changed, and after a second, both said
+`karvi-v0.29.0-43-gdeac902-dirty`, two programs whose executables and Go build
+IDs differed; a comment added to the second changed neither its executable nor
+its build ID; two release-style builds were the same in both, and the lab
+builds A and B, which differ by their stamp alone, differed in both. Go's own
+stamp, `-buildvcs=true`, records `vcs.modified=true`, the same for every change.
+The build ID,
+`actionID(binary)/actionID(main.a)/contentID(main.a)/contentID(binary)`
+in the executable's ELF note `.note.go.buildid`, was read from a 12 MB
+executable in 7 to 11 µs, where its SHA-256 took 32 to 34 ms; a running program
+whose file had been deleted gave its own through `/proc/PID/exe`. The rule. A
+build is derived from the Go build ID its executable carries, which the process
+reads from its own executable, `/proc/self/exe`: the daemon at its start, the
+client when it reaches a daemon. After the IPC schema, which must match for the
+daemon's answer to be read, the build decides: a daemon is of the client's
+build when its build equals the client's, and the version and the commit,
+compiled into the program, differ only with it; a daemon that names no build is
+of another build. The version and the commit stay what an operator reads, in
+`daemon status` and in the refusal; the commit taken from git names the tree for
+people and no longer has to tell two programs apart. *Not taken:* the commit
+alone (two programs of a modified tree, one name); Go's VCS stamp (the same,
+and it needs `.git`); the commit with the modified tree's contents hashed (a
+comment another build, only `make build` stamping it, and two toolchains or
+flags on one tree one name); the executable's SHA-256 (the same verdicts, at 33
+ms an invocation).
+
+**Issue 2, the daemon's answer and where a build is named, agreed.** Go's build
+ID for an executable is four hashes,
+`actionID(binary)/actionID(main.a)/contentID(main.a)/contentID(binary)`, the
+last "a hash of the action output, namely the archive or binary itself"
+(`cmd/go/internal/work/buildid.go`), stored so that it is read without hashing
+the file: the last parts of issue 1's builds were `Fjp47FjoGz2mPlGLdc4E` (the
+first change), `XfTtoeK1qq9HkGakcVu7` (the second, and the comment), and
+`koTfnKBP37SejCB-tkZv` (both release-style builds). A build made with
+`-ldflags=-buildid=` carries none, and runs. The ping and status answer is the
+response's `result`, which the IPC schema leaves unconstrained. The rule. The
+build is the build ID's last part, its 20 characters shown as they are. The ping
+and status answer gains `build` and `commit`, the client comparing the IPC
+schema and then the build, and no schema moves. `daemon status` names the
+daemon's values that have a client's beside them with `daemon_`, as the client's
+carry `client_`, and stacks each pair, the daemon's over the client's, keys of
+one length so that the values line up: `daemon_version:` over `client_version:`,
+`daemon_commit:` over `client_commit:`, `daemon_ipc_schema:` over
+`client_ipc_schema:`, and `daemon_build:` over `client_build:`, the last pair
+over `compatible:`, which the schema and the build decide; the lines without a
+client's value keep their names. When colour is on, each pair's two values are
+in the success colour when they are equal and in the error colour when not, and
+`compatible:`'s value alike. Its JSON takes the same keys (amended at the
+operator's word, the daemon's version once `version:` and its schema
+`ipc_schema_version` there). Beside a daemon of another build it reads:
+
+```
+status: running
+pid: 2267268
+uid: 1000
+socket: /home/netops/.local/share/karvi/socket/d.sock
+daemon_version: 0.29.0
+client_version: 0.29.0
+daemon_commit: karvi-v0.29.0-43-gdeac902
+client_commit: karvi-v0.29.0-43-gdeac902-dirty
+daemon_ipc_schema: 11
+client_ipc_schema: 11
+daemon_build: 9Au3WHU839F5xE-67H93
+client_build: XfTtoeK1qq9HkGakcVu7
+compatible: false
+remediation: karvi daemon restart
+started_at: 2026-10-12T01:34:55.610075038-04:00
+active_jobs: 1
+accepted_jobs: 3
+```
+
+`karvi version` gains `build:` after `commit:`, and with it the manifest's
+`app.build`, the same identity under an open schema, names the build that ran
+each job. A process that cannot read its own build stops: `daemon serve` refuses
+to start, and a client refuses to submit through a daemon, each with a
+registered code, `build_unreadable`; an empty build is never compared.
+`--no-daemon` and `karvi version`, which says `build: none`, are unaffected.
+*Not taken:* the builds four lines apart, each after its version (two values
+compared are read at a glance stacked); the whole build ID (83 characters, four
+hashes, the program the last); a hash of karvi's own (a second name for what Go
+names); `buildid` as the field (Go's name for the whole string); the build in
+every record, an audit event's `process` and the scoreboard's producer (the
+manifest names it once a job, and every record names its job).
+
+**Issue 3, found while designing the daemon's answer: the client controls,
+agreed.** Every request carries `client_version` and `client_pid`, which the
+schema requires and the daemon reads neither of; the job header's `client`
+(version, commit, pid, hostname) is read by nothing, only recorded in the
+manifest; and the client probes the daemon and then sends `prepare_job` on a
+new connection, nothing holding the daemon between the two, so a daemon
+replaced in that moment takes the job, as a daemon took another build's job on
+the lab. The daemon's answer to `prepare_job` already reports the preparing
+daemon, its `daemon` block holding `pid`, `version`, and `ipc_schema_version`
+under an open schema, read today by the exercise report and the dry run alone.
+The rule. Whether a daemon is acceptable is the client's judgment alone: the
+daemon takes a job from a client of any version or build and checks nothing of
+the client's, so a later client may accept a daemon of another version or build
+without the daemon changing. The client reports neither its version nor its
+build to the daemon: the request loses `client_version`, and `client_pid`,
+which nothing reads either; the job header's `client` keeps the client's pid
+and hostname and loses its version and commit. The daemon reports its own, and
+the client closes the moment between its probe and its submission: the prepare
+answer's `daemon` block gains `build` and `commit`, as the status does, and a
+client that finds the preparing daemon unacceptable abandons the preparation
+before any credential is sent, the preparation expiring in the daemon's sweep,
+and begins its sequence again. The request moves the IPC schema to 12, and the
+header the execution plan's to 13 with the planner's pinned draft digest; the
+`daemon` block's fields move nothing. A manifest no longer names the build of
+the client that planned its job, under this rule always `app.build`'s; a client
+that accepts another daemon would bring it back. *Not taken:* the daemon
+checking the client's build (the judgment is the client's); the moment left
+open (a daemon replaced between the probe and the request takes the job).
+
+**Issue 4, the drain that exits, agreed.** On the lab build, a daemon drained
+during a 20-second job served its run to the end and a second follower, `job
+follow` from the same build, both receiving the terminal at 20.4 s, and then
+stayed, `draining` with no job, until stopped; during the drain `daemon stop`
+was refused, `daemon_active_jobs` (exit 112), and `--force` cut the job,
+`incomplete_shutdown` (exit 106); `daemon stop --grace` drained, polled until no
+job was active, and stopped, the job ending at 20.4 s and the daemon gone at
+20.6 s. In the code, the commit of a preparation made before a drain is refused,
+`daemon_draining`, and a follow stream under the server's cancel waits for its
+job and sends the terminal. The rule. A drained daemon exits when its last
+running job ends, and at once with none: no time limit, nothing killed, the
+drain answered first, `stopping: drained` logged, exit 0. Only accepted jobs
+hold it; a preparation not yet committed does not, its commit refused. Until it
+exits it serves as before: `ping` and `status` (`draining`, its jobs),
+`follow_job` and `cancel_job` for its jobs, every follower receiving its
+terminal before the exit; `prepare_job` and `commit_job` refused,
+`daemon_draining`; a stop during a drain as at any other time, refused while
+jobs run, `--force` cancelling them, a signal applying its grace; a second drain
+answered `draining`. The drain is sent at the daemon's own IPC schema, as `stop`
+is, so it reaches a daemon of an older schema. `daemon stop --grace` becomes a
+drain and a wait for the daemon to go, `--after=DURATION` a drain, a wait up to
+the limit, and a forced stop, and `daemon restart` with either the same and then
+a start; an interrupt ends the wait alone, the daemon finishing its jobs and
+exiting, as its message says; and both drain whatever daemon they reach, where
+`--grace` did not drain a daemon of another version. A client replaces an idle
+daemon by draining it, waiting up to `daemon.start-timeout` for it to go, and
+starting its own. *Not taken:* a time limit (the jobs finish); a drained daemon
+kept after its last job (it refuses every job); the draining daemon starting its
+successor (the client starts one, or the unit).
+
+**Issue 5, the client's sequence, its refusal, and the commands, agreed.** On
+the lab, beside an idle daemon of another version, `daemon start`, `run
+--exercise`, `run --detach`, and each job of a stream were refused,
+`daemon_incompatible` (exit 112), the stream going on to its next job; the dry
+run reported the daemon `incompatible` with the error finding "a live run would
+not replace it", exit 112; beside one of another build of the same version, each
+used it. Every submission, `run`, `crun`, `--exercise`, `--detach`, and a
+stream's job, reaches the daemon through one function, `ensureDaemon`, as do
+`daemon start` and `daemon restart` after its stop; `RunViaDaemon` already
+repeats its first request once when the daemon is gone or draining. The rule.
+Before every submission the client probes: nothing answering, it starts a daemon
+of its build; its own build running, it uses it; another build, or any daemon
+draining, it drains it at the daemon's own schema and reads its jobs from the
+answer. With none the daemon exits at once, and the client waits up to
+`daemon.start-timeout` for it to go, starts its own, and goes on, saying `daemon
+drained version=… build=…` before `daemon started socket=…` unless `--quiet`,
+the notice without the commit as the refusal is (at the operator's word); with
+jobs, or not gone within the wait (the refusal then naming `karvi daemon stop`),
+the submission is refused, `daemon_draining`, exit 112, the daemon's build over
+the client's, each with its version and no commit, and every line in the
+refusal's colour when colour is on, opened and closed on the line itself, by the
+display's one rule (plain under `--nocolor`, through a pipe unless
+`display.color = always`, and in a file):
+
+```
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 9Au3WHU839F5xE-67H93 0.29.0
+  client build XfTtoeK1qq9HkGakcVu7 0.29.0
+```
+
+A daemon whose schema the client cannot speak, a newer one, is refused
+`daemon_incompatible` as before, its text naming `karvi daemon stop` from the
+newer karvi and no longer saying it was not replaced automatically. A prepare
+answer naming another build (issue 3) abandons the preparation and runs the
+sequence once more, within the repeat that exists; a second is refused alike.
+`run`, `crun`, `--exercise`, `--detach`, every job of a stream (a refused job
+reported and the stream going on), and `daemon start` drain; `daemon stop` and
+`daemon restart` are explicit and keep issue 4's options; `daemon status` reads
+and never drains; `--no-daemon` never reaches the daemon. The dry run says what
+a live run would do and drains nothing: for an idle daemon of another build an
+info finding, `daemon_other_build`, a live run draining it and starting one of
+this build; for one with jobs the error finding `daemon_draining`, exit 112.
+*Not taken:* the client waiting out the jobs (the rule refuses); a code of its
+own for the refusal (`daemon_draining` already says the daemon takes no job,
+whoever drained it); an older client draining a newer daemon (the daemon would
+answer every older schema; after an upgrade an older karvi's operator stops it
+explicitly); the builds on one line (the two set one over the other are read at
+a glance); the commit beside them (the build tells them apart).
+
+**Issue 6, a daemon's jobs reached from another build, agreed.** On the lab,
+beside a daemon running a job, a client of another version was refused `job
+follow` as `job_orphaned`, "no running daemon holds the job", while that daemon
+ran it, the job directory's state judged before the daemon's, and `job cancel`
+as `daemon_incompatible` (exit 112); after the job's end its follow rendered
+from the files, exit 0. A client of another build of the same version
+cancelled the job, and its follow, begun before, showed the cancel, exit 113.
+The follow stream and the cancel are one wire under one IPC schema, and a
+follower decodes each record as it reads a finished job's files, which any
+build reads. The rule. `job follow` and `job cancel` use a daemon of any version
+or build that speaks the client's IPC schema, the client's judgment (issue 3)
+for verbs that plan nothing: after an upgrade the jobs a draining daemon
+finishes are followed and cancelled one at a time, not only all at once with
+`daemon stop --force`; neither drains, since neither submits. A daemon whose
+schema the client cannot speak refuses a running job's follow and cancel,
+`daemon_incompatible`, naming the karvi that speaks it, and a job that has ended
+still renders from its directory. Found: such a job is never reported
+`job_orphaned`, the daemon judged before the directory. The probe answers two
+questions: a submission needs the schema and the build, follow and cancel the
+schema. *Not taken:* follow and cancel refused across builds (the old daemon's
+jobs out of reach but by cancelling them all); a drain on follow or cancel
+(nothing is submitted).
+
+**Issue 7, the daemon under a systemd unit, agreed.** On transient user units
+with the packaged unit's restart settings: an install that replaced the
+executable left the unit's daemon running the old program; drained or stopped,
+it exits 0, which `Restart=on-failure` does not restart, and the next client
+started one in the operator's session, outside the unit. The unit's daemon
+carries `INVOCATION_ID` and `SYSTEMD_EXEC_PID` and the unit's cgroup, a
+client-launched daemon neither. A client run 0.3 s after the unit's daemon was
+killed started its own, and the unit's restarts failed, `daemon_already_running`
+(exit 1), five in 12 s. `RestartForceExitStatus=` restarts an exit it names, and
+a socket unit started a service that had exited 0 at the next connection. An
+operator of another UID was refused at the socket's directory (`drwx------`),
+`Permission denied`, before a byte, the daemon's peer check behind it. systemd's
+stop timeout defaults to 90 s beside the daemon's 120-second grace: with 5 s
+standing for it, `systemctl stop` during a 20-second job killed the draining
+daemon at 5.3 s, the run losing its follow (`follow_stream_lost`, exit 111) and
+the job its summary; with `TimeoutStopSec=infinity` the stop waited for the job,
+which ended exit 0 with its summary. The rule. Two shapes: an operator's own
+daemon, launched by the operator's client under the operator's UID, as on a jump
+box, under issues 1 to 6; and a service account's daemon under its systemd unit,
+centrally administered, whose life is the unit's and its administrator's, which
+a client never drains, replaces, or starts a daemon beside. Only the daemon's
+own UID reaches it, so an individual operator sends no job to a service
+account's daemon. A daemon started by systemd knows it from `INVOCATION_ID` at
+its start and names its unit in `daemon status`, `unit: karvi-daemon.service`,
+text and JSON; a client-launched daemon names none. A unit's daemon of another
+build is refused, never drained, in issue 5's layout:
+
+```
+daemon_incompatible: karvi-daemon.service runs another build; none submitted; restart the unit, or --no-daemon
+  daemon build 9Au3WHU839F5xE-67H93 0.29.0
+  client build XfTtoeK1qq9HkGakcVu7 0.29.0
+```
+
+A new key, `daemon.launch` (default true), set false in the service account's or
+the site's configuration and lockable, keeps every client from starting a
+daemon: one that finds none refuses, `daemon_unreachable`, the daemon being
+started by its unit, and `daemon start` refuses alike. `karvi daemon stop` and
+`daemon restart` refuse a unit's daemon, naming `systemctl --user stop` or
+`restart` of its unit. The packaged unit gains `TimeoutStopSec=infinity`, the
+daemon's grace keys bounding its stop, so a site that raises the grace changes
+no unit. After an install the administrator restarts the unit, which drains the
+old daemon under its grace and starts the installed build; OPERATIONS says so as
+the unit's part of an upgrade, and the idle timer stays off under the unit.
+`daemon.launch` is documented as the key of the centralized install, a service
+account's daemon under its unit, which packagers and sites are to note (at the
+operator's word): OPERATIONS gains that install method, the service account, its
+user manager kept running (`loginctl enable-linger`), the packaged user unit
+installed for it, `daemon.launch = false` in its configuration or, for every
+operator of the host, locked in the site's global file, and the administrator's
+restart after an install; the packaged unit's comments name the key and the
+restart; `examples/config.toml` carries the key, commented, with its reason;
+FILES section 4.7 (what the package installs) and BUILD-HOWTO section 4.3 (the
+Debian package) point to the method; and the reference, the manual page
+`karvi-daemon(1)`, and the CHANGELOG name it. In `daemon status`, `unit:`
+follows `socket:`, and a unit's daemon's `remediation:` names `systemctl --user
+restart` of its unit. *Not taken:* socket activation, and an exit status of its
+own for systemd to restart (a client's touch choosing the moment the service
+changes build, which is the administrator's); `Restart=always` (a stop undone,
+and the moment before a restart left open); a client draining a unit's daemon
+(the administrator's act).
+
+**Issue 8, the stamp and the release tools' checks; first, the stamp, agreed.**
+The documents' command that reproduces a release's executables, `make build
+COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z` in the
+README, BUILDING, BUILD-HOWTO section 4.2, and BUILD-QUALIFICATION, was run on
+the v0.29.0 bundle: all three executables failed `sha256sum -c
+CHECKSUMS.sha256`; with the release's own date, 2026-10-09, all three passed,
+the build the shipped one's, `gyzw8oOlJCNN-GsQ0BRT`. That date was right for
+v0.24.0 and v0.25.0 alone, and in the bundle the release's date is written only
+in the CHANGELOG's heading and `release/evidence/version.txt`. The tree
+`deac902` built twice with the time it was built, two seconds apart, gave two
+builds, `WErTs2nB46MMqFsVvCKo` and `I13-a3nJoa99NEpnQTvN`, and twice with one
+fixed time one build and the same bytes. A dev build had two defaults, the
+Makefile's `development` and 1970 and `verify-release.sh`'s own `git rev-parse
+--short=12 HEAD` and the time it ran. `git describe --always --dirty` named a
+clean clone of dev `karvi-v0.29.0-43-gdeac902`, added `-dirty` while a tracked
+file differed and not for an untracked one, and with no tag reachable gave the
+commit's hash where `--dirty` alone failed; in a copy without `.git` placed
+inside another checkout it named that checkout's commit. The rule. A build is
+stamped with its version and its commit, and the build time is removed: from
+`karvi version`, text and JSON, and with it the manifest's `app.build`; from
+the Makefile and `verify-release.sh`; and from the release tools, `common.sh`'s
+midnight and `evidence-rest.sh`'s two passes. Nothing compares it; a release's
+repeats the CHANGELOG's heading; a dev build's says nothing at 1970 and makes
+every `make build` another build at the time it ran; and it is the one value a
+rebuild must be told from outside the tree. `karvi version` reads:
+
+```
+karvi 0.29.0
+commit: karvi-v0.29.0-43-gdeac902-dirty
+build: XfTtoeK1qq9HkGakcVu7
+go: go1.27.1
+```
+
+`make build`'s commit is `git describe --always --dirty` in a git checkout's
+root, `.git` present there, and `development` elsewhere. It is the one default:
+`verify-release.sh` loses its own, `make` taking `COMMIT` from the environment
+when it is set, and `make html`'s footer takes the same. A release passes
+`COMMIT=source-release-vVERSION`, as its tools do, and `make build
+COMMIT=source-release-v$(cat VERSION)` reproduces its bytes, the command the
+documents give. `verify-shipped.sh` and `verify-release.sh` check that `karvi
+version` names a build, 20 characters and never `none`, so that a release
+without its Go build ID, whose daemon would refuse to start, is found in
+seconds; `build-deb.sh`'s check that a dev-line package carries no release's
+commit stays; and at the next release `BUILD-RESULT.md`'s identity block and
+`release-manifest.json` name the build where they named the build time. An
+untracked file leaves the commit clean: the build tells such builds apart
+(issue 1), and a release tree holds none (`release-tools/artifacts.sh`). *Not
+taken:* the dates derived, a release's from the CHANGELOG's heading and a dev
+build's from its commit (dates the version and the commit imply, and a modified
+tree dated by a commit it does not match); the release's commit derived from
+the heading (a modified tree under it would claim the release); the tag's name,
+which `git describe` gives at the tag (the bundle has no `.git`, so its rebuild
+would say `development`).
+
+**Issue 8, continued: the lifecycle replay, agreed.** The next release moves the
+IPC schema to 12, so the newest release of another schema is v0.29.0. Its
+daemon, idle and drained at schema 11 as the new client drains one, was still
+there 6.3 s later, `draining` with no job, and a run was refused
+`daemon_draining` (exit 112); its own client's `daemon stop --grace`, which
+waits for no job and then stops, ended it in 0.1 s. Under issues 4 and 5 a
+replay against it would wait without end on `--grace` and refuse its run after
+`daemon.start-timeout`. `run --exercise` through a daemon to 192.0.2.1 with the
+replay's credentials exited 0, `device_contacted: false`, no `ssh` process
+started. The rule. Nothing is done for a daemon from before this chapter (at the
+operator's word: no one runs one, and the next client never reaches its
+`daemon.sock`), and issues 4 and 5 stand. The next release has no lifecycle
+replay: at that release `common.sh`'s `PRIOR_VERSION` is emptied, its comment
+saying why, v0.29.0's daemon predating the drain that exits and listening on
+`daemon.sock`; `evidence-rest.sh`'s skip line names `common.sh` for the reason,
+no longer saying that no release's schema differs; and BUILD-QUALIFICATION's
+history of priors says there was none for it. In the build the replay moves to
+this rule: the status read by its stacked keys; its run step `run --exercise` to
+192.0.2.1, the idle older daemon drained, exiting, and replaced by the client's;
+and `--grace` and `--after` draining first. Its first run is at the release that
+next moves the schema, against the next release. *Not taken:* the wait after a
+drain ending at no job and stopping a daemon still answering, and a daemon's
+missing commit and build shown `none` (each for a past release's daemon alone);
+the replay run in the build against a lab build at another schema.
+
+**Issue 9, the documents, agreed.** The documents that say what this chapter
+changes, found by their words (`compatible`, `daemon restart`, `--grace`,
+`drain`, `daemon_incompatible`, `build_time`, `Restart=`, `upgrad`): DESIGN
+sections 7, 8, and 16; OPERATIONS' "Upgrade" and "The daemon's idle exit";
+QUICKSTART's "After upgrading from an older daemon"; ARCHITECTURE's "Daemon
+upgrade boundary"; README's "Release status"; BUILD-HOWTO sections 4.2, 4.3,
+and 8; BUILDING; BUILD-QUALIFICATION; the manual page `karvi-daemon(1)`, its
+DESCRIPTION generated from the help and its FILES written by hand; ERROR-CODES
+and the reference, generated from their registries; `examples/config.toml`; the
+packaged unit; FILES section 4.7; the CHANGELOG; and the ROADMAP. Found:
+README's counters line and BUILD-HOWTO section 8 name the configuration
+registry 28, the tree at 29 since `daemon.sockets`, which `daemon.launch` does
+not move again (the counter moves once a release); and BUILD-QUALIFICATION's
+daemon upgrade gates require a run beside the schema-2 fixture to fail with exit
+112 and start no daemon, where under this chapter the run drains an older
+daemon. The rule. The documents say what this chapter builds, and nothing of a
+daemon from before it. The generated ones move with their code in each section
+of the build, `make generated-clean` holding at every commit: ERROR-CODES
+(`build_unreadable` and `daemon_other_build` new; `daemon_incompatible` a newer
+schema, or a unit's daemon of another build; `daemon_draining` the client's own
+drain of a busy daemon as well; `daemon_stop_wait_interrupted` the daemon
+finishing its jobs and exiting, no longer remaining draining); the reference and
+the configuration schema (`daemon.launch`, its documentation naming the
+centralized install); and `karvi-daemon(1)`'s SYNOPSIS and DESCRIPTION from the
+help.
+
+The written ones come in the build's closing section, one commit, then `make
+html`. DESIGN: section 8's entry replaced by "A daemon serves its own build; a
+client drains another's" (the rule, issues 5 and 6; its *Why* that nothing is
+killed, the drain finishing the jobs); "`daemon stop` and `daemon restart`
+refuse an active daemon without an option" amended by issue 4's `--grace`,
+`--after`, and interrupt, and "`job follow` renders the whole job as the
+foreground run would have" by issue 6; new entries, "A drained daemon exits
+after its last job" (issue 4) and "A unit's daemon is its administrator's"
+(issue 7) in section 8, "A build is its Go build ID's last part" (issues 1 and
+2) and "The client judges the daemon; the daemon checks nothing of the
+client's" (issue 3) in section 7, and "A build is stamped with its version and
+its commit" (issue 8) in section 16; "Shutdown is a cause, not a cancel" and
+"The daemon leaves by itself when idle" unchanged. OPERATIONS: "Upgrade"
+rewritten for the operator's own daemon, with nothing to run: the next
+submission drains a daemon of another build, an idle one replaced in the same
+invocation (`daemon drained …`, `daemon started …`), a busy one refused with
+the builds stacked until its jobs end, `--no-daemon` meanwhile, and `job follow`
+and `job cancel` reaching its jobs; `daemon status`'s pairs; `daemon stop
+--grace` to end it; an older karvi beside a newer daemon refused, `karvi daemon
+stop` from the newer; the v0.10.0 preview's paragraph removed. A new section
+after "The daemon's idle exit", "A service account's daemon under its unit":
+the centralized install (the service account, `loginctl enable-linger`, the
+packaged user unit installed for it, `daemon.launch = false` in its
+configuration or locked in the site's global file, the administrator's
+`systemctl --user restart` after an install), `TimeoutStopSec=infinity` and the
+grace keys, a client of another build refused naming the unit, `daemon stop`
+and `restart` refused naming `systemctl`, `unit:` in `daemon status`, and no
+other UID reaching the daemon; "The daemon's idle exit"'s unit paragraph points
+to it. QUICKSTART's section becomes "After an upgrade", two sentences and
+`karvi daemon status`. ARCHITECTURE's "Daemon upgrade boundary" rewritten: the
+build read from `/proc/self/exe`; the probe at the lifecycle envelope, the
+schema and then the build; `ensureDaemon`'s sequence; the drain at the daemon's
+schema; follow and cancel at the schema alone; the prepare answer's `daemon`
+block checked; `INVOCATION_ID` and `daemon.launch`. README: "Release status"'s
+compatibility sentence and its paragraph "A newer client still inspects, stops,
+and restarts a daemon launched by an older executable" replaced by the rule; the
+counters line (registry 29, IPC 12, plan 13) and the reproduction command
+(issue 8). BUILD-HOWTO: section 4.2's command; section 4.3 pointing to the
+install method; section 8 rewritten as OPERATIONS' "Upgrade" in short, with the
+counters. BUILDING: the command, and its sentence on `COMMIT`, no `BUILD_TIME`
+and the default from git. BUILD-QUALIFICATION: the commands; the verifiers'
+check of the build; the daemon upgrade gates rewritten for the rule, the
+fixture answering a drain by exiting as a daemon of this chapter does (built
+with the suite). `karvi-daemon(1)`'s FILES: the drained daemon's exit, and the
+unit's paragraph (`TimeoutStopSec=infinity`, `daemon.launch`, the
+administrator's restart). `examples/config.toml`: a commented `[daemon]` table
+with `launch = false` and its reason. The packaged unit:
+`TimeoutStopSec=infinity` with its comment, and a comment naming
+`daemon.launch` and the restart after an install. FILES section 4.7: the units'
+row pointing to OPERATIONS' new section. The CHANGELOG's `## Unreleased`, the
+breaking changes first: a daemon serves its own build, a client draining
+another's; `daemon status`'s keys renamed, text and JSON; IPC 12 and plan 13; a
+drained daemon exiting, and `--grace` and `--after` draining any daemon; the
+unit; `karvi version`'s `build:` and no `build_time`, and `make build`'s commit
+from git; then follow and cancel across builds, `job_orphaned`'s fix, and the
+new codes. The ROADMAP: Next 1 removed once built, the next item the
+operator's, asked at the build's end. At the release, not before:
+`BUILD-RESULT.md` and `release-manifest.json` name the build, `common.sh`'s
+prior emptied, and BUILD-QUALIFICATION's history of priors gains the release
+(issue 8).
