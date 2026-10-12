@@ -81,7 +81,7 @@ func Probe(ctx context.Context, socket string, maxFrame int64) (ProbeResult, err
 // older same-UID daemon using a released lifecycle schema. This operation is
 // invoked only by an operator's daemon stop/restart command; run submission
 // never kills or replaces an incompatible daemon automatically. The mode is
-// sent only to a current-schema daemon; an older daemon always stops at once.
+// always sent, and the daemon refuses an if_idle stop while jobs run.
 func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode string) (ProbeResult, error) {
 	probe, err := Probe(ctx, socket, maxFrame)
 	if err != nil {
@@ -91,11 +91,7 @@ func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode str
 	if err != nil {
 		return probe, err
 	}
-	var payload any = map[string]any{}
-	if probe.Compatible {
-		payload = StopRequest{Mode: mode}
-	}
-	req, err := ipc.NewRequestForSchema(probe.DaemonSchema, id, "stop", payload)
+	req, err := ipc.NewRequestForSchema(probe.DaemonSchema, id, "stop", StopRequest{Mode: mode})
 	if err != nil {
 		return probe, err
 	}
@@ -106,32 +102,25 @@ func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode str
 	return probe, nil
 }
 
-// Drain stops a current-schema daemon from admitting new jobs while its active
-// jobs continue.
-func Drain(ctx context.Context, socket string, maxFrame int64) (Status, error) {
+// Drain drains the daemon at socket, sent at schema, the daemon's own as a
+// probe found it, so that it reaches a daemon of an older schema as stop does
+// (EXAMPLES chapter 57, issue 4): the daemon admits no job from then, finishes
+// those it holds, and exits after the last, at once with none. The answer is
+// its status at the drain.
+func Drain(ctx context.Context, socket string, maxFrame int64, schema int) (Status, error) {
 	id, err := osutil.NewID(now())
 	if err != nil {
 		return Status{}, err
 	}
-	req, err := ipc.NewRequest(id, "drain", map[string]any{})
+	req, err := ipc.NewRequestForSchema(schema, id, "drain", map[string]any{})
 	if err != nil {
 		return Status{}, err
 	}
 	var status Status
-	if err := ipc.Call(ctx, socket, req, maxFrame, &status); err != nil {
+	if err := ipc.CallForSchema(ctx, socket, req, schema, maxFrame, &status); err != nil {
 		return Status{}, err
 	}
 	return status, nil
-}
-
-func Stop(ctx context.Context, socket string, maxFrame int64) error {
-	id, _ := osutil.NewID(now())
-	req, err := ipc.NewRequest(id, "stop", map[string]any{})
-	if err != nil {
-		return err
-	}
-	var result map[string]any
-	return ipc.Call(ctx, socket, req, maxFrame, &result)
 }
 
 // PrepareJob sends the draft and header and returns the validated prepare
@@ -276,17 +265,9 @@ func pingSchema(ctx context.Context, socket string, maxFrame int64, schema int) 
 	if err != nil {
 		return Status{}, err
 	}
-	var raw json.RawMessage
-	if err := ipc.CallForSchema(ctx, socket, req, schema, maxFrame, &raw); err != nil {
-		return Status{}, err
-	}
 	var status Status
-	if err := json.Unmarshal(raw, &status); err != nil {
+	if err := ipc.CallForSchema(ctx, socket, req, schema, maxFrame, &status); err != nil {
 		return Status{}, err
-	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &fields); err == nil {
-		_, status.ActiveJobsReported = fields["active_jobs"]
 	}
 	if status.IPCSchemaVersion != schema {
 		return Status{}, errorcodes.Errorf("daemon_status_schema_mismatch", "daemon status schema %d does not match response schema %d", status.IPCSchemaVersion, schema)

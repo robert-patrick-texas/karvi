@@ -1305,7 +1305,7 @@
     {
       "path": "daemon.shutdown-grace-seconds",
       "kind": "integer",
-      "default_literal": "120",
+      "default_literal": "60",
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
@@ -1314,7 +1314,7 @@
       "cli_flags": null,
       "min": "0",
       "max": "43200",
-      "documentation": "0–43,200.",
+      "documentation": "0–43,200. After a SIGTERM, how long the daemon waits for its jobs before it cancels and records them; the default stays under systemd's 90-second stop limit for a login session, so a host's shutdown records them.",
       "since": "0.2.0"
     },
     {

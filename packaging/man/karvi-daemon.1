@@ -24,12 +24,13 @@ karvi\-daemon \- manage the private per\-user daemon
 .\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
 .PP
 Without an option, stop and restart refuse while the daemon reports active
-jobs. \-\-grace drains the daemon, so it rejects new jobs, and waits for active
-jobs to finish. \-\-after=DURATION drains and waits until jobs finish or DURATION
-elapses, whichever comes first, then forces the stop. \-\-force stops at once;
-unfinished work still receives terminal records. Interrupting a wait leaves the
-daemon draining. \-\-help shows this text. Specified, not yet available:
-daemon start \-\-start\-timeout DURATION.
+jobs. \-\-grace drains the daemon, of any version or build, so that it rejects
+new jobs and exits after the last it holds, and waits for it to exit.
+\-\-after=DURATION drains and waits until the daemon exits or DURATION elapses,
+whichever comes first, then forces the stop. \-\-force stops at once; unfinished
+work still receives terminal records. Interrupting a wait ends the wait alone:
+the daemon finishes its jobs and exits. \-\-help shows this text. Specified, not
+yet available: daemon start \-\-start\-timeout DURATION.
 .PP
 A daemon is compatible when its IPC schema and its build, the Go build ID's
 last part that karvi version names, both equal the client's; status shows each

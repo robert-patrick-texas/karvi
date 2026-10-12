@@ -362,8 +362,10 @@ shared-capacity-root = "auto"
 sockets = "auto"
 # 1s–2m.
 start-timeout = "5s"
-# 0–43,200.
-shutdown-grace-seconds = 120
+# 0–43,200. After a SIGTERM, how long the daemon waits for its jobs before it cancels and
+# records them; the default stays under systemd's 90-second stop limit for a login session, so
+# a host's shutdown records them.
+shutdown-grace-seconds = 60
 # 0 never exits; else 1m–30d. The daemon stops itself, as daemon stop would, once this long
 # has passed with no active job, no preparation in progress, and no request but ping and
 # status; checked once a minute. The packaged systemd unit sets 0.

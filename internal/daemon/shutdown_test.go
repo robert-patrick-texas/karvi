@@ -231,6 +231,43 @@ func TestSignalDrainsAndStopsWhenTheJobsFinish(t *testing.T) {
 	h.assertAccounted(t, "succeeded", "", "completed", exitcode.ExitSuccess, "", "")
 }
 
+// TestDrainExitsAfterTheLastJob: a drain during a job (EXAMPLES chapter 57,
+// issue 4). The drain is answered, draining with the job counted, and a
+// second drain alike; until the job ends the daemon refuses the commit of a
+// preparation made before the drain and a new preparation, daemon_draining,
+// and a stop without force, daemon_active_jobs; the job runs to its end, its
+// follower receiving the terminal, and the daemon then exits by itself, the
+// uncommitted preparation not holding it.
+func TestDrainExitsAfterTheLastJob(t *testing.T) {
+	h := startHeldJob(t, "500ms", nil)
+	pending := h.f.prepareAndPackageWith(mustID(t), []string{"show b"}, []inventory.Device{direct("127.0.0.1")}, fixedInput{"alice", "pw"})
+	if receipt, err := h.f.provide(pending); err != nil || !receipt.Accepted {
+		t.Fatalf("frame: %+v %v", receipt, err)
+	}
+	for _, which := range []string{"first", "second"} {
+		status, err := Drain(h.f.ctx(), h.f.socket, 1<<20, ipc.SchemaVersion)
+		if err != nil || status.Status != "draining" || status.ActiveJobs != 1 {
+			t.Fatalf("%s drain = %+v, %v", which, status, err)
+		}
+	}
+	if _, err := CommitJob(h.f.ctx(), h.f.socket, 1<<20, pending.request); err == nil || !strings.Contains(err.Error(), "daemon_draining") {
+		t.Errorf("commit of a preparation made before the drain: %v", err)
+	}
+	draft, header, _, _ := h.f.draftWith(mustID(t), []string{"show b"}, []inventory.Device{direct("127.0.0.1")}, fixedInput{"alice", "pw"})
+	if _, err := PrepareJob(h.f.ctx(), h.f.socket, 1<<20, ipc.PrepareRequest{Header: header, Draft: draft}); err == nil || !strings.Contains(err.Error(), "daemon_draining") {
+		t.Errorf("prepare on a drained daemon: %v", err)
+	}
+	if _, err := StopCompatible(h.f.ctx(), h.f.socket, 1<<20, StopIfIdle); err == nil || !strings.Contains(err.Error(), "daemon_active_jobs") {
+		t.Errorf("stop without force during the drain: %v", err)
+	}
+	took := h.waitStopped(t, 60*time.Second)
+	t.Logf("the drained daemon exited %s after the checks", took)
+	if n := h.sent(); n != len(h.devices)*len(h.commands) {
+		t.Errorf("the fake device received %d commands, want all %d", n, len(h.devices)*len(h.commands))
+	}
+	h.assertAccounted(t, "succeeded", "", "completed", exitcode.ExitSuccess, "", "")
+}
+
 // TestSignalGraceExpiryAccountsIncomplete: the grace expires under a
 // held session; every unfinished
 // unit is incomplete_shutdown under the cause shutdown_grace_expired at

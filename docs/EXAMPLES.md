@@ -10908,3 +10908,62 @@ operator's, asked at the build's end. At the release, not before:
 `BUILD-RESULT.md` and `release-manifest.json` name the build, `common.sh`'s
 prior emptied, and BUILD-QUALIFICATION's history of priors gains the release
 (issue 8).
+
+**Issue 10, found while building S3: the stop's mode, its count, and the wait,
+agreed.** On the lab build of section 3, during a 30-second job, a stop naming
+`if_idle` was refused, `daemon_active_jobs`, and one naming no mode was answered
+`stopping`: the run lost its follow at 5.1 s (`follow_stream_lost`, exit 111),
+and the daemon left at 10.1 s logging `shutdown_incomplete`, the job's folder
+without its summary. The client named the mode only to a daemon it judged
+compatible, of its schema and version and, since section 1, its build, so a
+build of section 2 beside the section's daemon sent `daemon stop --force` with
+none: `daemon_stop_timeout` (exit 106) after 10 s and the job lost so, where a
+build of section 3 had it recorded `incomplete_shutdown` (exit 106) with its
+summary. With no option that client counted the daemon's jobs itself, from its
+probe, which no job another client submits before the stop reaches. A drained
+daemon stopped with `--force` logged `stopping: drained` as its cancelled job
+ended, and one sent SIGTERM after a drain logged the signal's stop and the
+drain's. `--grace`'s client waited without a word; ended by SIGINT or SIGTERM
+(exit 113, its message), SIGHUP (129), or SIGKILL (137), it left the drained
+daemon to finish its job and exit; and an `--after=5s` interrupted at 1 s forced
+nothing at 5 s. The rule. Every stop and restart the client sends names its
+mode, `if_idle` without an option and `force` under `--force` and at `--after`'s
+limit, and the client counts nothing: the daemon alone counts its jobs, under
+the lock that admits them, so that no job is admitted between the count and the
+stop; it refuses an `if_idle` stop while any run and takes a stop that names no
+mode as `if_idle`; `--grace`, `--after`, and `--force` overrule the refusal (at
+the operator's word, no daemon of an older release considered). A stop or a
+signal after a drain takes over from it, so that the log names the stop that
+ended the daemon. A `--grace` or `--after` wait on a daemon with jobs begins
+with a line on standard error, the jobs from the drain's answer and an earlier
+drain from the probe's status, every time, so that an operator back after a
+broken wait is told; `--quiet` leaves it out:
+
+```
+daemon draining: 1 job running; waiting for it to exit
+daemon already draining: 2 jobs running; waiting for it to exit
+daemon draining: 1 job running; waiting up to 5s, then forcing
+```
+
+*Not taken:* the client's count before the stop (blind to other clients, the
+daemon's needed anyway); a stop naming no mode stopping at once (its jobs lost
+unrecorded); the daemon holding `--after`'s limit, so that it outlives the
+client (at the operator's word, the wait and its limit are the client's).
+
+**Issue 11, found while building S3: the grace and systemd's stop limits,
+agreed.** This host's systemd 259 (Ubuntu) stops a login session's scope, where
+a client-launched daemon runs, in 90 s, `KillMode=control-group`, and
+`user@.service`, the user manager under which a user unit runs, in 5 s, by the
+package's drop-in `user@.service.d/timeout.conf`, `KillMode=mixed`; read from
+the configuration, no shutdown run. At a shutdown a daemon receives SIGTERM,
+drains, every new job refused (`daemon_draining`), and waits
+`daemon.shutdown-grace-seconds`, 120 by default, for its jobs before cancelling
+and recording them: the scope's 90 s killed it first. Scaled on transient user
+scopes with `TimeoutStopSec=5`, a 30-second job stopped with the scope: under a
+grace of 3 the job was recorded `incomplete` (exit 106) with its summary and the
+socket removed; under a grace of 8 the daemon was killed at 5.2 s, the run
+losing its follow (exit 111), the job without its summary and the socket left.
+The rule. `daemon.shutdown-grace-seconds` defaults to 60, under a session's
+90 s, its registry text saying why, and the planner's pinned draft digest moves
+with it. A user unit's 5 s, which the unit's `TimeoutStopSec=infinity` cannot
+lengthen, is issue 7's, opened for section 5's design.

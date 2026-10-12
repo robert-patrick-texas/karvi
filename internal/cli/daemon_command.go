@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -158,17 +159,19 @@ func (v daemonStatusView) render(w io.Writer, style display.LineStyle, remedy bo
 }
 
 // stopOptions holds the mutually exclusive waiting choices shared by daemon
-// stop and restart. With none selected, the stop is refused while jobs run.
+// stop and restart. With none selected, the stop is refused while jobs run;
+// quiet leaves out the line a wait begins with.
 type stopOptions struct {
 	grace bool
 	after time.Duration
 	force bool
+	quiet bool
 }
 
 // parseStopOptions checks the parsed stop/restart options. It returns
 // done=true when the caller should return code immediately.
 func parseStopOptions(inv *Invocation, streams app.IO) (opts stopOptions, done bool, code int) {
-	opts = stopOptions{grace: inv.Flag(optGrace), after: inv.Duration(optAfter), force: inv.Flag(optForce)}
+	opts = stopOptions{grace: inv.Flag(optGrace), after: inv.Duration(optAfter), force: inv.Flag(optForce), quiet: inv.Global.quiet}
 	afterSet := inv.Set(optAfter)
 	if afterSet && opts.after <= 0 {
 		return opts, true, inv.Global.usageError(streams.Stderr, "daemon_stop_after_not_positive", "--after requires a positive duration such as 90s or 5m")
@@ -242,8 +245,11 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 }
 
 // stopDaemonRuntime applies the stop/restart option semantics and waits for the
-// daemon to exit. Waiting options drain a current-schema daemon first so new
-// submissions cannot extend the wait.
+// daemon to exit (EXAMPLES chapter 57, issue 4). Without an option the stop is
+// if_idle, and the daemon, which alone counts its jobs, refuses it while any
+// run. The waiting options drain the daemon reached, of any version or build,
+// at its own IPC schema, and wait for it to exit after its last job, the wait
+// begun with a line naming its jobs; --after forces the stop at its limit.
 func stopDaemonRuntime(ctx context.Context, rt app.DaemonRuntime, opts stopOptions, stderr io.Writer) (daemon.ProbeResult, error) {
 	probeCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, err := daemon.Probe(probeCtx, rt.Socket, rt.MaxFrame)
@@ -251,27 +257,25 @@ func stopDaemonRuntime(ctx context.Context, rt app.DaemonRuntime, opts stopOptio
 	if err != nil {
 		return probe, errorcodes.Ensure(err, "daemon_unreachable")
 	}
-	mode := daemon.StopForce
+	mode := daemon.StopIfIdle
 	switch {
 	case opts.grace || opts.after > 0:
-		if probe.Compatible {
-			drainCtx, drainCancel := context.WithTimeout(ctx, 2*time.Second)
-			_, err := daemon.Drain(drainCtx, rt.Socket, rt.MaxFrame)
-			drainCancel()
-			if err != nil {
-				return probe, errorcodes.Ensure(err, "daemon_drain_failed")
-			}
+		drainCtx, drainCancel := context.WithTimeout(ctx, 2*time.Second)
+		drained, err := daemon.Drain(drainCtx, rt.Socket, rt.MaxFrame, probe.DaemonSchema)
+		drainCancel()
+		if err != nil {
+			return probe, errorcodes.Ensure(err, "daemon_drain_failed")
 		}
-		if err := waitForIdle(ctx, rt, opts.after, stderr); err != nil {
+		if !opts.quiet && drained.ActiveJobs > 0 {
+			fmt.Fprintln(stderr, drainingLine(probe.Status.Status == "draining", drained.ActiveJobs, opts.after))
+		}
+		gone, err := waitGone(ctx, rt, drained.PID, opts.after, stderr)
+		if err != nil || gone {
 			return probe, err
 		}
-	case !opts.force:
-		if !probe.Compatible && (!probe.Status.ActiveJobsReported || probe.Status.ActiveJobs > 0) {
-			return probe, activeJobsError(probe.Status)
-		}
-		if probe.Compatible {
-			mode = daemon.StopIfIdle
-		}
+		mode = daemon.StopForce
+	case opts.force:
+		mode = daemon.StopForce
 	}
 	stopCtx, stopCancel := context.WithTimeout(ctx, stopTimeout(rt))
 	defer stopCancel()
@@ -296,45 +300,73 @@ func stopDaemonRuntime(ctx context.Context, rt app.DaemonRuntime, opts stopOptio
 
 const activeJobsRemedy = "use --grace to wait for active jobs, --after=DURATION to wait up to a limit, or --force to stop now"
 
-func activeJobsError(status daemon.Status) error {
-	count := "an unknown number of"
-	if status.ActiveJobsReported {
-		count = strconv.FormatInt(status.ActiveJobs, 10)
+// drainingLine is the line a --grace or --after wait begins with: the jobs
+// the drain's answer names, whether the probe found the daemon draining
+// before this command (an operator back after a broken wait), and the wait.
+func drainingLine(before bool, jobs int64, after time.Duration) string {
+	state := "daemon draining"
+	if before {
+		state = "daemon already draining"
 	}
-	return fmt.Errorf("daemon_active_jobs: daemon reports %s active job(s); %s", count, activeJobsRemedy)
+	running := "1 job running"
+	if jobs != 1 {
+		running = fmt.Sprintf("%d jobs running", jobs)
+	}
+	wait := "waiting for it to exit"
+	if after > 0 {
+		wait = fmt.Sprintf("waiting up to %s, then forcing", after)
+	}
+	return fmt.Sprintf("%s: %s; %s", state, running, wait)
 }
 
-// waitForIdle polls until the daemon reports no active jobs. With a positive
-// limit it returns nil once the limit elapses so the caller forces the stop.
-// Interrupting the wait leaves a drained daemon draining.
-func waitForIdle(ctx context.Context, rt app.DaemonRuntime, limit time.Duration, stderr io.Writer) error {
+// waitGone waits for a drained daemon, pid, to exit (daemonExited). At a
+// positive limit a daemon still answering is reported and false returned, so
+// the caller forces the stop; one no longer answering is leaving and is waited
+// for up to the stop's own bound. The operator's interrupt ends the wait alone:
+// the daemon finishes its jobs and exits.
+func waitGone(ctx context.Context, rt app.DaemonRuntime, pid int, limit time.Duration, stderr io.Writer) (bool, error) {
 	var deadline <-chan time.Time
 	if limit > 0 {
 		timer := time.NewTimer(limit)
 		defer timer.Stop()
 		deadline = timer.C
 	}
-	ticker := time.NewTicker(250 * time.Millisecond)
+	leaving := false
+	ticker := time.NewTicker(25 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		pctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-		probe, err := daemon.Probe(pctx, rt.Socket, rt.MaxFrame)
-		cancel()
-		if err == nil && probe.Status.ActiveJobsReported && probe.Status.ActiveJobs == 0 {
-			return nil
-		}
-		if err != nil && ctx.Err() == nil {
-			return errorcodes.Ensure(err, "daemon_unreachable")
+		if daemonExited(rt.Socket, pid) {
+			return true, nil
 		}
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("daemon_stop_wait_interrupted: stopped waiting; the daemon remains draining and rejects new jobs; run \"karvi daemon stop --force\" to stop it now or \"karvi daemon status\" to check it")
+			return false, errorcodes.Errorf("daemon_stop_wait_interrupted", "stopped waiting; the daemon finishes its jobs and exits; \"karvi daemon stop --force\" stops it now")
 		case <-deadline:
-			fmt.Fprintf(stderr, "daemon still reports %d active job(s) after %s; forcing stop\n", probe.Status.ActiveJobs, limit)
-			return nil
+			if leaving {
+				return false, errorcodes.Errorf("daemon_stop_timeout", "daemon stop timed out")
+			}
+			pctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+			probe, err := daemon.Probe(pctx, rt.Socket, rt.MaxFrame)
+			cancel()
+			if err == nil && probe.Status.PID == pid {
+				fmt.Fprintf(stderr, "daemon still reports %d active job(s) after %s; forcing stop\n", probe.Status.ActiveJobs, limit)
+				return false, nil
+			}
+			leaving = true
+			deadline = time.After(stopTimeout(rt))
 		case <-ticker.C:
 		}
 	}
+}
+
+// daemonExited says whether the daemon pid has left the socket: the socket
+// removed, the last of its files a daemon removes as it exits, or the process
+// gone, killed or exited before another daemon took the socket.
+func daemonExited(socket string, pid int) bool {
+	if _, err := os.Lstat(socket); errors.Is(err, fs.ErrNotExist) {
+		return true
+	}
+	return pid > 0 && errors.Is(syscall.Kill(pid, 0), syscall.ESRCH)
 }
 
 func stopTimeout(rt app.DaemonRuntime) time.Duration {

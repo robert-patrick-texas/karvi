@@ -141,7 +141,10 @@ func draftOptions(commands []string) DraftOptions {
 // configuration block's value and its digest; nothing else moved.
 // Re-pinned at execution plan 13 (EXAMPLES chapter 57, issue 3): the draft's
 // schema_version alone; the logged draft at 12 gave the former digest.
-const goldenK03Draft = "f0ca4c9355357deedc23be040d80f2f4607bd6382e5edb8998eda7fb4bebc31c"
+// Re-pinned when daemon.shutdown-grace-seconds' default became 60 (EXAMPLES
+// chapter 57): the configuration block's value and its digest; nothing else
+// moved.
+const goldenK03Draft = "759102a9b1e8da92a2dc0a0f5329fbe58e55db66eb538985b74ffd8117a134a3"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

@@ -80,7 +80,12 @@ type Server struct {
 	// was not ping or status, or of the last job's end, whichever is later.
 	lastActive atomic.Int64
 	draining   atomic.Bool
-	mu         sync.Mutex
+	// drained is the drain request's: the daemon exits after its last
+	// accepted job, once (exitIfDrained). A stop or a signal after it takes
+	// over and clears it, so the log names the stop that ended the daemon.
+	drained     atomic.Bool
+	drainedExit sync.Once
+	mu          sync.Mutex
 	// build is this executable's build, read at Serve's start and named in
 	// every status (buildinfo.Build).
 	build string
@@ -108,18 +113,18 @@ type Status struct {
 	// before them names neither.
 	Commit string `json:"commit"`
 	Build  string `json:"build"`
-	// ActiveJobsReported is false when a daemon's status omitted active_jobs,
-	// which only older released lifecycle envelopes can do.
-	ActiveJobsReported bool `json:"-"`
 }
 
 // StopRequest selects how the daemon treats active jobs when asked to stop.
+// The daemon alone counts them, under the admission lock, so that no job is
+// admitted between the count and the stop (EXAMPLES chapter 57, issue 4).
 type StopRequest struct {
 	Mode string `json:"mode,omitempty"`
 }
 
 const (
-	// StopIfIdle stops only when no job is active.
+	// StopIfIdle stops only when no job is active; a stop that names no mode
+	// is this one.
 	StopIfIdle = "if_idle"
 	// StopForce stops without waiting; unfinished work is cancelled and still
 	// receives terminal records.
@@ -304,6 +309,7 @@ func (s *Server) handleSignals(ctx context.Context) {
 	}
 	s.mu.Lock()
 	s.draining.Store(true)
+	s.drained.Store(false)
 	s.mu.Unlock()
 	_ = s.writeState("draining")
 	grace := time.Duration(s.Config.Int("daemon.shutdown-grace-seconds")) * time.Second
@@ -460,9 +466,15 @@ func (s *Server) handle(ctx context.Context, conn *net.UnixConn) {
 	case "ping", "status":
 		s.writeResult(conn, req.RequestID, s.status(s.state()))
 	case "drain":
+		// Under the admission lock, so that a job is either admitted and
+		// counted before the drain or refused after it.
+		s.mu.Lock()
 		s.draining.Store(true)
+		s.drained.Store(true)
+		s.mu.Unlock()
 		_ = s.writeState("draining")
 		s.writeResult(conn, req.RequestID, s.status("draining"))
+		s.exitIfDrained()
 	case "stop":
 		var stop StopRequest
 		if len(req.Payload) > 0 {
@@ -479,6 +491,7 @@ func (s *Server) handle(ctx context.Context, conn *net.UnixConn) {
 			s.writeError(conn, "daemon_active_jobs", fmt.Errorf("daemon reports %d active job(s)", s.active.Load()), req.RequestID)
 			return
 		}
+		s.drained.Store(false)
 		_ = s.writeState("draining")
 		s.writeResult(conn, req.RequestID, map[string]any{"stopping": true})
 		if stop.Mode == StopForce {
@@ -530,6 +543,24 @@ func (s *Server) stopIfIdle() {
 	s.cancel()
 }
 
+// exitIfDrained ends a drained daemon once no accepted job is left (EXAMPLES
+// chapter 57, issue 4), after the drain's answer and after each job's end: no
+// time limit and nothing killed, the jobs' accounting awaited and every
+// follower given its terminal as at any stop, and Serve returning nil, exit 0.
+// A preparation not yet committed does not hold it; its commit is refused,
+// daemon_draining.
+func (s *Server) exitIfDrained() {
+	if !s.drained.Load() || s.active.Load() > 0 {
+		return
+	}
+	s.drainedExit.Do(func() {
+		if s.Logger != nil {
+			s.Logger.Info("stopping: drained")
+		}
+		s.cancel()
+	})
+}
+
 // admit and beginStop share one lock so no job can be admitted between an
 // idle check and the transition to draining.
 func (s *Server) admit() bool {
@@ -545,7 +576,7 @@ func (s *Server) admit() bool {
 func (s *Server) beginStop(mode string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if mode == StopIfIdle && s.active.Load() > 0 {
+	if mode != StopForce && s.active.Load() > 0 {
 		return false
 	}
 	s.draining.Store(true)

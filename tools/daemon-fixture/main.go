@@ -66,12 +66,19 @@ func handle(conn *net.UnixConn, socket string, schema int, version, build string
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Error: &ipc.Error{Code: "ipc_schema_incompatible", Message: fmt.Sprintf("client schema %d, daemon schema %d", req.IPCSchemaVersion, schema), Details: map[string]any{}}}, 1<<20)
 		return false
 	}
+	status := func(state string) json.RawMessage {
+		raw, _ := json.Marshal(daemon.Status{IPCSchemaVersion: schema, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 0, Version: version, Build: build})
+		return raw
+	}
 	switch req.Operation {
 	case "ping", "status":
-		status := daemon.Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 0, Version: version, Build: build}
-		raw, _ := json.Marshal(status)
-		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)
+		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: status("running")}, 1<<20)
 		return false
+	case "drain":
+		// A drained daemon holding no job answers and exits (EXAMPLES
+		// chapter 57, issue 4).
+		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: status("draining")}, 1<<20)
+		return true
 	case "stop":
 		raw, _ := json.Marshal(map[string]any{"stopping": true})
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)

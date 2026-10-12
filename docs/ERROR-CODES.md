@@ -318,7 +318,7 @@ Active failure causes.
 | `daemon_stop_options_conflict` | usage | 4 | no | `daemon stop` or `restart` is given more than one of `--grace`, `--after`, and `--force`. |
 | `daemon_stop_request_malformed` | internal | 112 | no | A stop request payload is not valid JSON. |
 | `daemon_stop_timeout` | shutdown | 106 | no | The daemon socket remains after the stop timeout. |
-| `daemon_stop_wait_interrupted` | shutdown | 113 | no | The operator interrupted `--grace` or `--after` waiting; the daemon remains draining. |
+| `daemon_stop_wait_interrupted` | shutdown | 113 | no | The operator interrupted `--grace` or `--after` waiting; the daemon finishes its jobs and exits. |
 | `daemon_submit_failed` | dependency | 112 | no | Unclassified. A job cannot be submitted to the daemon. |
 | `daemon_unreachable` | connection | 110 | no | Unclassified. The daemon socket cannot be reached or does not answer. |
 | `debug_show_secrets_requires_debug` | usage | 4 | no | `--debug-show-secrets` is given without `--debug`. |

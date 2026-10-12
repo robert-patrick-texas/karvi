@@ -508,6 +508,7 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 		<-s.jobs
 		_ = s.writeState(s.state())
 		s.logf(ipc.OpCommitJob, req.RequestID, ref.PreparationID, jobID, result.ExitName)
+		s.exitIfDrained()
 		finished <- result
 	}()
 	acceptedAt := s.now()

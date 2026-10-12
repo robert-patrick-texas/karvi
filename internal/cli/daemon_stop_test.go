@@ -23,11 +23,16 @@ import (
 )
 
 // stopFixture emulates a current-schema daemon whose active-job count the test
-// controls, recording every lifecycle operation it receives.
+// controls, recording every lifecycle operation it receives. Drained, it exits
+// once it holds no job, as a daemon does (EXAMPLES chapter 57, issue 4): at
+// the drain with none, else at finish.
 type stopFixture struct {
 	active   atomic.Int64
 	draining atomic.Bool
 	onDrain  func(*stopFixture)
+	// build is the build its status names, the client's unless set.
+	build    string
+	listener net.Listener
 	mu       sync.Mutex
 	ops      []string
 	done     chan struct{}
@@ -40,6 +45,12 @@ type stopFixture struct {
 
 func startStopFixture(t *testing.T, socket string, active int64, onDrain func(*stopFixture)) *stopFixture {
 	t.Helper()
+	return startStopFixtureBuild(t, socket, active, buildinfo.BuildOrNone(), onDrain)
+}
+
+// startStopFixtureBuild is startStopFixture naming build in its status.
+func startStopFixtureBuild(t *testing.T, socket string, active int64, build string, onDrain func(*stopFixture)) *stopFixture {
+	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(socket), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +58,7 @@ func startStopFixture(t *testing.T, socket string, active int64, onDrain func(*s
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := &stopFixture{onDrain: onDrain, done: make(chan struct{})}
+	f := &stopFixture{onDrain: onDrain, build: build, listener: listener, done: make(chan struct{})}
 	f.active.Store(active)
 	go func() {
 		defer close(f.done)
@@ -86,7 +97,7 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 		if f.draining.Load() {
 			state = "draining"
 		}
-		return daemon.Status{IPCSchemaVersion: ipc.SchemaVersion, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: f.active.Load(), Version: buildinfo.Version, Commit: buildinfo.Commit, Build: buildinfo.BuildOrNone()}
+		return daemon.Status{IPCSchemaVersion: ipc.SchemaVersion, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: f.active.Load(), Version: buildinfo.Version, Commit: buildinfo.Commit, Build: f.build}
 	}
 	switch req.Operation {
 	case "ping", "status":
@@ -98,6 +109,7 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 			f.onDrain(f)
 		}
 		reply(status())
+		return f.active.Load() == 0
 	case "stop":
 		var stop daemon.StopRequest
 		_ = json.Unmarshal(req.Payload, &stop)
@@ -151,6 +163,14 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 // unknownJobSuffix marks a job ID the fixture does not hold.
 const unknownJobSuffix = "zz"
 
+// finish ends the fixture's jobs: drained, it exits.
+func (f *stopFixture) finish() {
+	f.active.Store(0)
+	if f.draining.Load() {
+		_ = f.listener.Close()
+	}
+}
+
 func (f *stopFixture) record(op string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -199,18 +219,67 @@ func TestDaemonStopWithoutOptionRefusesActiveJobs(t *testing.T) {
 	}
 }
 
-func TestDaemonStopGraceDrainsThenStops(t *testing.T) {
+func TestDaemonStopWithoutOptionSendsTheModeToAnotherBuild(t *testing.T) {
+	_, g, socket := daemonTestRuntime(t)
+	f := startStopFixtureBuild(t, socket, 1, otherBuild, nil)
+	var stdout, stderr bytes.Buffer
+	if got := daemonStop(context.Background(), stopInvocation(t, g), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected {
+		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
+	}
+	// A daemon of the client's schema refuses the stop itself, whatever its
+	// build.
+	if ops := f.operations(); ops != "stop:if_idle" || !strings.Contains(stderr.String(), "daemon_active_jobs") {
+		t.Fatalf("operations=%q stderr=%q", ops, stderr.String())
+	}
+}
+
+func TestDaemonStopForceSendsTheModeToAnotherBuild(t *testing.T) {
+	_, g, socket := daemonTestRuntime(t)
+	f := startStopFixtureBuild(t, socket, 1, otherBuild, nil)
+	var stdout, stderr bytes.Buffer
+	if got := daemonStop(context.Background(), stopInvocation(t, g, "--force"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
+		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
+	}
+	if ops := f.operations(); ops != "stop:force" {
+		t.Fatalf("operations=%q, want stop:force", ops)
+	}
+}
+
+// The waiting options (EXAMPLES chapter 57, issue 4): --grace drains the
+// daemon, of any build, and waits for it to exit after its last job, sending
+// no stop; --after drains, waits up to its limit, and forces; an interrupt
+// ends the wait alone.
+
+func TestDaemonStopGraceDrainsAndWaitsForTheExit(t *testing.T) {
 	_, g, socket := daemonTestRuntime(t)
 	f := startStopFixture(t, socket, 1, func(f *stopFixture) {
-		go func() { time.Sleep(300 * time.Millisecond); f.active.Store(0) }()
+		go func() { time.Sleep(300 * time.Millisecond); f.finish() }()
 	})
 	var stdout, stderr bytes.Buffer
 	if got := daemonStop(context.Background(), stopInvocation(t, g, "--grace"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
-	ops := f.operations()
-	if !strings.HasPrefix(ops, "drain") || !strings.HasSuffix(ops, "stop:force") {
-		t.Fatalf("operations=%q, want drain then stop:force", ops)
+	if ops := f.operations(); ops != "drain" {
+		t.Fatalf("operations=%q, want the drain alone", ops)
+	}
+	if stderr.String() != "daemon draining: 1 job running; waiting for it to exit\n" {
+		t.Fatalf("stderr=%q", stderr.String())
+	}
+	if _, err := os.Stat(socket); !os.IsNotExist(err) || stdout.String() != "daemon stopped\n" {
+		t.Fatalf("socket: %v; stdout=%q", err, stdout.String())
+	}
+}
+
+func TestDaemonStopGraceDrainsAnotherBuild(t *testing.T) {
+	_, g, socket := daemonTestRuntime(t)
+	f := startStopFixtureBuild(t, socket, 0, otherBuild, nil)
+	var stdout, stderr bytes.Buffer
+	if got := daemonStop(context.Background(), stopInvocation(t, g, "--grace"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
+		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
+	}
+	// A daemon holding no job exits at once: no line before the wait.
+	if ops := f.operations(); ops != "drain" || !strings.HasPrefix(stdout.String(), "daemon stopped (version=") || stderr.Len() != 0 {
+		t.Fatalf("operations=%q stdout=%q stderr=%q", ops, stdout.String(), stderr.String())
 	}
 }
 
@@ -221,15 +290,15 @@ func TestDaemonStopAfterForcesWhenLimitElapses(t *testing.T) {
 	if got := daemonStop(context.Background(), stopInvocation(t, g, "--after=300ms"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "forcing stop") {
+	if stderr.String() != "daemon draining: 1 job running; waiting up to 300ms, then forcing\ndaemon still reports 1 active job(s) after 300ms; forcing stop\n" {
 		t.Fatalf("stderr=%q", stderr.String())
 	}
-	if ops := f.operations(); !strings.HasPrefix(ops, "drain") || !strings.HasSuffix(ops, "stop:force") {
+	if ops := f.operations(); ops != "drain,stop:force" {
 		t.Fatalf("operations=%q, want drain then stop:force", ops)
 	}
 }
 
-func TestDaemonStopGraceInterruptLeavesDaemonDraining(t *testing.T) {
+func TestDaemonStopGraceInterruptEndsTheWaitAlone(t *testing.T) {
 	_, g, socket := daemonTestRuntime(t)
 	f := startStopFixture(t, socket, 1, nil)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -238,13 +307,43 @@ func TestDaemonStopGraceInterruptLeavesDaemonDraining(t *testing.T) {
 	if got := daemonStop(ctx, stopInvocation(t, g, "--grace"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitCancelled {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "remains draining") || !f.draining.Load() {
+	if !strings.Contains(stderr.String(), "daemon_stop_wait_interrupted: stopped waiting; the daemon finishes its jobs and exits") || !f.draining.Load() {
 		t.Fatalf("stderr=%q draining=%t", stderr.String(), f.draining.Load())
 	}
-	if strings.Contains(f.operations(), "stop:") {
-		t.Fatalf("interrupted wait still sent stop: %q", f.operations())
+	if ops := f.operations(); ops != "drain" {
+		t.Fatalf("operations=%q, want the drain alone", ops)
 	}
 }
+
+// TestDaemonStopGraceAgainNamesTheDrainBefore: an operator back after a
+// broken wait drains again; the line says the daemon was draining before, and
+// --quiet leaves it out.
+func TestDaemonStopGraceAgainNamesTheDrainBefore(t *testing.T) {
+	for _, quiet := range []bool{false, true} {
+		t.Run(fmt.Sprintf("quiet=%t", quiet), func(t *testing.T) {
+			_, g, socket := daemonTestRuntime(t)
+			g.quiet = quiet
+			f := startStopFixture(t, socket, 2, func(f *stopFixture) {
+				go func() { time.Sleep(200 * time.Millisecond); f.finish() }()
+			})
+			f.draining.Store(true)
+			var stdout, stderr bytes.Buffer
+			if got := daemonStop(context.Background(), stopInvocation(t, g, "--grace"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
+				t.Fatalf("exit=%d stderr=%q", got, stderr.String())
+			}
+			want := "daemon already draining: 2 jobs running; waiting for it to exit\n"
+			if quiet {
+				want = ""
+			}
+			if stderr.String() != want {
+				t.Fatalf("stderr=%q, want %q", stderr.String(), want)
+			}
+		})
+	}
+}
+
+// otherBuild is a build no test binary has.
+const otherBuild = "9Au3WHU839F5xE-67H93"
 
 // stopInvocation parses "daemon stop" with args and attaches the fixture's
 // global options.

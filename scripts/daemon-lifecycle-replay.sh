@@ -101,14 +101,22 @@ HOME=$H "$NEW" "${A[@]}" daemon stop --force >/dev/null 2>&1 || fail "4: cleanup
 stopped 4
 gone "$p4n" 4
 
+# drained counts the daemons' drained stops in the log they share.
+drained() { grep -c 'stopping: drained' "$BASE/logs/daemon.log" 2>/dev/null || true; }
 for opt in --force --grace --after=2s; do
   echo "[5] daemon stop $opt against the old daemon"
   old_start "5 $opt"
   p5=$(pid)
+  d5=$(drained)
   HOME=$H "$NEW" "${A[@]}" daemon stop "$opt" 2>&1 | sed 's/^/    /' | tee "$TMP/stop5"
   grep -q "ipc_schema=$old_schema" "$TMP/stop5" || fail "5 $opt: no stop line"
   stopped "5 $opt"
   gone "$p5" "5 $opt"
+  # --grace and --after drain first, at the old daemon's schema: holding no
+  # job, it exits drained (EXAMPLES chapter 57, issue 4).
+  if [ "$opt" != --force ] && [ "$(drained)" -le "${d5:-0}" ]; then
+    fail "5 $opt: the old daemon did not exit drained"
+  fi
 done
 
 if [ "$failures" -ne 0 ]; then

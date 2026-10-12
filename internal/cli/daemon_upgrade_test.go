@@ -204,6 +204,16 @@ func startCLILifecycleFixture(t *testing.T, socket string, schema int, version s
 				continue
 			}
 			if req.Operation == "stop" {
+				// A stop is refused while jobs run unless it names force, as
+				// a daemon does: the daemon alone counts its jobs (EXAMPLES
+				// chapter 57, issue 10).
+				var stop daemon.StopRequest
+				_ = json.Unmarshal(req.Payload, &stop)
+				if stop.Mode != daemon.StopForce && activeJobs > 0 {
+					_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Error: &ipc.Error{Code: "daemon_active_jobs", Message: fmt.Sprintf("daemon reports %d active job(s)", activeJobs), Details: map[string]any{}}}, 1<<20)
+					conn.Close()
+					continue
+				}
 				raw, _ := json.Marshal(map[string]any{"stopping": true})
 				_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)
 				conn.Close()

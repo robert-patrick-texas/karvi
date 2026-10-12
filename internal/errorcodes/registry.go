@@ -354,7 +354,7 @@ var entries = []Entry{
 	failure("daemon_start_failed", "dependency", exitJob, false, "A daemon was launched but did not become ready."),
 	failure("daemon_stop_mode_unknown", "usage", exitJob, false, "A stop request names a stop mode the daemon does not support."),
 	failure("daemon_stop_request_malformed", "internal", exitJob, false, "A stop request payload is not valid JSON."),
-	failure("daemon_stop_wait_interrupted", "shutdown", exitCancel, false, "The operator interrupted `--grace` or `--after` waiting; the daemon remains draining."),
+	failure("daemon_stop_wait_interrupted", "shutdown", exitCancel, false, "The operator interrupted `--grace` or `--after` waiting; the daemon finishes its jobs and exits."),
 	failure("ipc_encode_failed", "internal", exitJob, false, "The daemon cannot encode a response."),
 	failure("ipc_frame_too_large", "dependency", exitJob, false, "An IPC frame exceeds the maximum frame size."),
 	failure("ipc_invalid_json", "dependency", exitJob, false, "An IPC frame is not valid JSON."),

@@ -271,7 +271,7 @@ grep -q 'forcing stop' "$TMP/streams/s5.err" || fail "s5: no forcing line after 
 wait_stopped || fail "s5: the daemon socket remains"
 accounted s5 "$s4_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_forced shutdown_forced
 printf 1 >"$TMP/slow"
-# s6: --grace drains and waits for the job to finish.
+# s6: --grace drains and waits for the daemon to exit after the job.
 "$KARVI" $(common_args) daemon start >/dev/null 2>&1
 before_sent=$(grep -c '^SENT:' "$FAKE.log" || true)
 s6_dir=$(held_job s6)
@@ -280,14 +280,12 @@ row s6 0 -- daemon stop --grace
 wait_stopped || fail "s6: the daemon socket remains"
 [ "$(grep -c '^SENT:' "$FAKE.log" || true)" -eq $((before_sent + 4)) ] || fail "s6: the device did not receive all four commands before the stop"
 accounted s6 "$s6_dir" succeeded completed 0 "" ""
-# s7: Ctrl-C during --grace ends only the client's wait; the daemon stays
-# draining on the same pid, a run is refused without launching another
-# daemon, and --force then accounts the job. The device takes three seconds
-# a command again: the row's four steps before --force take about 1.3
-# seconds, and at one second a command the first record was complete by
-# then (the row passed only while the
-# operator's own trust store, which the suite then read, cost the session
-# a host-key scan first).
+# s7: Ctrl-C during --grace ends only the client's wait: the drained daemon
+# stays on the same pid while its job runs, a run is refused without
+# launching another daemon, and the daemon exits by itself at the job's end,
+# the job complete (EXAMPLES chapter 57, issue 4). The device takes three
+# seconds a command until the refused run, so that the job is still running
+# through the row's checks, then one.
 printf 3 >"$TMP/slow"
 "$KARVI" $(common_args) daemon start >/dev/null 2>&1
 s7_pid=$(daemon_pid)
@@ -303,7 +301,7 @@ kill -INT "$s7_client"
 wait "$s7_client"; s7_rc=$?
 set -e
 printf '%-4s exit %d  (Ctrl-C during --grace)\n' s7 "$s7_rc"
-[ "$s7_rc" -eq 113 ] && grep -q '^daemon_stop_wait_interrupted: ' "$TMP/streams/s7.err" || fail "s7: exit $s7_rc, $(head -1 "$TMP/streams/s7.err")"
+[ "$s7_rc" -eq 113 ] && grep -q '^daemon_stop_wait_interrupted: .*the daemon finishes its jobs and exits' "$TMP/streams/s7.err" || fail "s7: exit $s7_rc, $(head -1 "$TMP/streams/s7.err")"
 "$KARVI" $(common_args) daemon status 2>/dev/null | grep -q '^status: draining$' || fail "s7: the daemon is not draining after the interrupt"
 [ "$(daemon_pid)" = "$s7_pid" ] || fail "s7: the interrupt stopped or replaced the daemon"
 set +e
@@ -314,10 +312,11 @@ set -e
 [ "$s7r_rc" -eq 112 ] && grep -q 'daemon_draining' "$TMP/streams/s7r.err" || fail "s7: run against the draining daemon: exit $s7r_rc, $(head -1 "$TMP/streams/s7r.err")"
 [ "$(daemon_pid)" = "$s7_pid" ] || fail "s7: the refused run replaced the daemon"
 [ "$(serving)" -eq 1 ] || fail "s7: $(serving) daemon serve processes for this base directory, want one"
-row s7f 0 -- daemon stop --force
-wait_stopped || fail "s7: the daemon socket remains after --force"
-accounted s7 "$s7_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_forced shutdown_forced
 printf 1 >"$TMP/slow"
+wait_stopped || fail "s7: the drained daemon did not exit after its job"
+printf '%-4s exit -  (the drained daemon exited after its job)\n' s7x
+accounted s7 "$s7_dir" succeeded completed 0 "" ""
+grep -q 'stopping: drained' "$BASE/logs/daemon.log" || fail "s7: the daemon log lacks the drained stop"
 # s8: restart --force under a held job accounts the old daemon's job and
 # serves from a new pid; s9: restart with no option and an active job
 # refuses.
