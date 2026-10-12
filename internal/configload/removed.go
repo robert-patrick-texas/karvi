@@ -119,13 +119,14 @@ var sqliteKeys = []string{"table", "operator-column", "username-column", "passwo
 
 const sqliteHint = "the sqlite credential backend type had no driver and is removed; nothing read the key"
 
-// indirectionKeys are the env, Redis, and Vault backends' env-indirection
-// flags, refused on any [credential-backend.NAME] table, a csv one included:
-// a Redis or Vault field names a variable as env:NAME, and an env backend's
-// template names its variable (EXAMPLES chapter 56, issue 2).
+// indirectionKeys are the backends' env-indirection flags, refused on any
+// [credential-backend.NAME] table: a credential CSV cell or a Redis or Vault
+// field names a variable as env:NAME, and an env backend's template names its
+// variable (EXAMPLES chapter 56, issues 2 and 20). The hint names each type's
+// way, so it is one for every table.
 var indirectionKeys = []string{"env-indirection.username", "env-indirection.password", "env-indirection.enable-password"}
 
-const indirectionHint = "a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable"
+const indirectionHint = "a credential CSV cell or a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable"
 
 // reviewRelease names the release that carries the configuration review:
 // v0.14.0, set when that number was assigned.

@@ -71,14 +71,16 @@ func TestRemovedKeysRefused(t *testing.T) {
 		}
 	})
 	// The backends' env-indirection flags, on every type, a csv one
-	// included, from a file and from --set (EXAMPLES chapter 56, issue 2).
+	// included, from a file and from --set (EXAMPLES chapter 56, issue 2),
+	// the hint naming each type's own way, the credential CSV's cell among
+	// them (issue 20).
 	t.Run("env-indirection keys", func(t *testing.T) {
 		for _, key := range indirectionKeys {
 			for _, typ := range []string{"env", "redis", "vault", "csv", "cloginrc"} {
 				section, leaf, _ := strings.Cut(key, ".")
 				err := load(t, "[credential-backend.b]\ntype = \""+typ+"\"\n\n[credential-backend.b."+section+"]\n"+leaf+" = true\n", nil, nil)
 				want(t, err, "config_key_removed", "credential-backend.b."+key)
-				if !strings.Contains(err.Error(), "removed in "+nextRelease+"; a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable") {
+				if !strings.Contains(err.Error(), "removed in "+nextRelease+"; a credential CSV cell or a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable") {
 					t.Fatalf("message: %v", err)
 				}
 				want(t, load(t, "", nil, []string{`credential-backend.c.type="` + typ + `"`, "credential-backend.c." + key + "=true"}), "config_key_removed", "credential-backend.c."+key)

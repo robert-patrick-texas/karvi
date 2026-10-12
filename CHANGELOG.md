@@ -170,7 +170,8 @@
 - **Breaking: `env-indirection` removed; a Redis or Vault record names a
   variable as `env:NAME`.** `env-indirection.username`, `.password`, and
   `.enable-password` are refused on every backend with `config_key_removed`,
-  where under a flag a field whose variable was unset was sent as the password.
+  its hint naming each type's way, where under a flag a field whose variable
+  was unset was sent as the password.
   A Redis or Vault record's username, password, or enable field `env:NAME`
   takes the variable's value, an unset or empty one `credential_env_missing`
   (exit 6) naming the backend, the record, the field, and the variable; any

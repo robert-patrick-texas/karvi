@@ -9552,7 +9552,7 @@ designing them or at the operator's word, refusals said without colour at a
 terminal, the operator-keyed stores' answers read once and held, and TLS to the
 stores; and, found while building, an empty value, what a helper leaves
 running, and colour turned off for one invocation and never written into a
-file.
+file; and, found while writing its documents, the removed flags' hint.
 
 **Issue 1, the reads on the one lookup and `%operator%`, agreed.** On the lab
 build, with the flags off: the env backend answers when any of its variables is
@@ -10353,3 +10353,18 @@ uncommented). The ROADMAP's item is gone, and its Next is build numbers, beside
 the next release. The codes this chapter retires and the keys it removes are
 the next release's (`retiredV0300`, `nextRelease`), to be checked when the
 release is given its number.
+
+**Issue 20, found while writing the documents: the removed flags' hint,
+agreed.** On the lab build of S4, `env-indirection.password` on a `csv` backend
+was refused, `config_key_removed: removed in v0.30.0; a Redis or Vault field
+names a variable as env:NAME; an env backend's template names its variable`,
+exit 2: the hint said how Redis, Vault, and the env backend name a variable and
+not how the credential CSV does, its own `env:` cell, though the flag left the
+CSV in chapter 55. The hint, one for every table, names each type's way: `a
+credential CSV cell or a Redis or Vault field names a variable as env:NAME; an
+env backend's template names its variable`. On the lab build of it the flag on a
+`csv`, `env`, `redis`, `vault`, or `cloginrc` backend from a file, and on a
+`csv` one from `--set`, was refused with that hint, exit 2.
+`TestRemovedKeysRefused` pins it, and failed before the change. *Not taken:* a
+hint per type (a removed key is refused by its path, before its table's type is
+judged, so the type may be missing or wrong); the CSV's way alone.
