@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
-	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -128,7 +127,18 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 	probe, err := daemon.Probe(pctx, rt.Socket, rt.MaxFrame)
 	var mismatch *ipc.SchemaMismatchError
 	switch {
-	case err == nil && probe.Compatible:
+	case errors.As(err, &mismatch):
+		row.Reachable, row.Status = true, executionplan.DaemonIncompatible
+		row.IPCSchemaVersion = mismatch.DaemonSchema
+		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the daemon speaks a newer IPC schema, %d, than this client's %d; a live run would be refused; karvi daemon stop from the newer karvi", mismatch.DaemonSchema, ipc.SchemaVersion))
+	case err != nil:
+		row.Reachable, row.Status = false, executionplan.DaemonAbsent
+		finding(executionplan.SeverityInfo, errorcodes.Errorf("daemon_absent", "no daemon answers at the socket; a live run would launch one"))
+	default:
+		// What a live run's sequence would do, nothing drained (EXAMPLES
+		// chapter 57, issue 5): its own build, not draining, is used;
+		// another build, or a draining daemon, is drained, and replaced
+		// when it holds no job, the run refused while it holds any.
 		row.Reachable, row.Status = true, probe.Status.Status
 		row.PID, row.Version, row.IPCSchemaVersion = probe.Status.PID, probe.Status.Version, probe.DaemonSchema
 		row.Commit, row.Build = probe.Status.Commit, probe.Status.Build
@@ -136,22 +146,19 @@ func probeDaemon(ctx context.Context, common CommonOptions) (executionplan.Daemo
 		if row.Status != executionplan.DaemonRunning && row.Status != executionplan.DaemonDraining {
 			row.Status = executionplan.DaemonRunning
 		}
-		if row.Status == executionplan.DaemonDraining {
-			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_draining", "the daemon is draining and accepts no new jobs"))
+		draining := row.Status == executionplan.DaemonDraining
+		if !probe.Compatible {
+			row.Status = executionplan.DaemonIncompatible
+			row.Capabilities = []string{"ping", "status", "drain", "stop"}
 		}
-	case err == nil:
-		row.Reachable, row.Status = true, executionplan.DaemonIncompatible
-		row.PID, row.Version, row.IPCSchemaVersion = probe.Status.PID, probe.Status.Version, probe.DaemonSchema
-		row.Commit, row.Build = probe.Status.Commit, probe.Status.Build
-		row.Capabilities = []string{"ping", "status", "stop"}
-		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the running daemon version %s build %s uses IPC schema %d; this client is %s build %s at schema %d, and the schema and the build must both match; a live run would not replace it", probe.Status.Version, displayNone(probe.Status.Build), probe.DaemonSchema, buildinfo.Version, buildinfo.BuildOrNone(), ipc.SchemaVersion))
-	case errors.As(err, &mismatch):
-		row.Reachable, row.Status = true, executionplan.DaemonIncompatible
-		row.IPCSchemaVersion = mismatch.DaemonSchema
-		finding(executionplan.SeverityError, errorcodes.Errorf("daemon_incompatible", "the running daemon uses IPC schema %d; this client requires schema %d; a live run would not replace it", mismatch.DaemonSchema, ipc.SchemaVersion))
-	default:
-		row.Reachable, row.Status = false, executionplan.DaemonAbsent
-		finding(executionplan.SeverityInfo, errorcodes.Errorf("daemon_absent", "no daemon answers at the socket; a live run would launch one"))
+		switch jobs := probe.Status.ActiveJobs; {
+		case draining && jobs > 0:
+			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_draining", "the daemon is draining, %s; a live run would be refused until it exits", JobsRunning(jobs)))
+		case !probe.Compatible && jobs > 0:
+			finding(executionplan.SeverityError, errorcodes.Errorf("daemon_draining", "the daemon is another build's, %s; a live run would drain it and be refused until it exits", JobsRunning(jobs)))
+		case !probe.Compatible:
+			finding(executionplan.SeverityInfo, errorcodes.Errorf("daemon_other_build", "the daemon is another build's and holds no job; a live run would drain it and start one of this build"))
+		}
 	}
 	return row, findings, rt.Socket, nil
 }
@@ -303,7 +310,7 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		case executionplan.DaemonAbsent:
 			fmt.Fprintf(&b, "daemon %s: absent (no daemon answers; a live run would launch one)", d.ExecutionEndpoint)
 		default:
-			fmt.Fprintf(&b, "daemon %s: %s pid=%d version=%s ipc_schema=%d", d.ExecutionEndpoint, d.Status, d.PID, d.Version, d.IPCSchemaVersion)
+			fmt.Fprintf(&b, "daemon %s: %s pid=%d version=%s build=%s ipc_schema=%d", d.ExecutionEndpoint, d.Status, d.PID, d.Version, displayNone(d.Build), d.IPCSchemaVersion)
 		}
 		if socket != "" {
 			fmt.Fprintf(&b, " socket=%s", socket)

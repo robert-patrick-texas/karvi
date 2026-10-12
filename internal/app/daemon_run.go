@@ -130,14 +130,15 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 // follow the accepted job to its terminal. The daemon at socket must
 // already be running and compatible.
 //
-// ensure makes a compatible daemon answer at socket, launching one when none
-// does (the client's ensureDaemon). It is called after the client has
-// planned and just before the first request, so that the idle timer
-// has the least room to end the daemon
+// ensure makes a daemon of the client's build answer at socket, draining
+// another and launching one when none does (the client's ensureDaemon). It
+// is called after the client has planned and just before the first
+// request, so that the idle timer has the least room to end the daemon
 // between the probe and the request; and when that first request still
-// finds the daemon gone or draining, ensure is called once more and the
-// request repeated. Nothing before the request is repeated: the plan, the
-// credentials, and the identifiers are the ones already made.
+// finds the daemon gone or draining, or a daemon of another build prepares,
+// ensure is called once more and the request repeated. Nothing before the
+// request is repeated: the plan, the credentials, and the identifiers are
+// the ones already made.
 func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame int64, ensure func(context.Context) error, streams IO) ActivityResult {
 	cd, code, err := draftClient(ctx, opts, streams)
 	if err != nil {
@@ -167,7 +168,7 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 		return failedResult("job_header_invalid", err)
 	}
 	if err := ensure(ctx); err != nil {
-		return failedResult("daemon_start_failed", err)
+		return ensureFailed(ctx, err)
 	}
 	prepared, err := daemon.PrepareJob(ctx, socket, maxFrame, ipc.PrepareRequest{Header: header, Draft: draft})
 	if err != nil && ctx.Err() == nil && prepareAgain(err) {
@@ -176,7 +177,7 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 		// preparation is abandoned before any credential: once more, with
 		// a daemon that answers.
 		if err = ensure(ctx); err != nil {
-			return failedResult("daemon_start_failed", err)
+			return ensureFailed(ctx, err)
 		}
 		prepared, err = daemon.PrepareJob(ctx, socket, maxFrame, ipc.PrepareRequest{Header: header, Draft: draft})
 	}
@@ -398,6 +399,16 @@ func findingParts(findings []executionplan.Finding) []string {
 	return parts
 }
 
+// ensureFailed is the abort of the client's sequence (ensure): an interrupt
+// during its wait, for a drained daemon to exit or a launched one to answer,
+// is an interrupt before any job was submitted.
+func ensureFailed(ctx context.Context, err error) ActivityResult {
+	if ctx.Err() != nil {
+		return interrupted(stageDaemonValidation, err)
+	}
+	return failedResult("daemon_start_failed", err)
+}
+
 // interrupted is the abort of an interrupt before the frame: cancelled,
 // the stage named, nothing left on the daemon
 // that does not expire on its own.
@@ -425,6 +436,15 @@ func renderReceipt(out io.Writer, format string, r ipc.JobReceipt) error {
 	}
 	_, err := fmt.Fprintf(out, "job_id: %s\nartifact_dir: %s\n", r.JobID, r.ArtifactDir)
 	return err
+}
+
+// JobsRunning names a draining daemon's jobs: "1 job running", "2 jobs
+// running".
+func JobsRunning(jobs int64) string {
+	if jobs == 1 {
+		return "1 job running"
+	}
+	return fmt.Sprintf("%d jobs running", jobs)
 }
 
 // daemonGone reports whether a request failed because no daemon accepts

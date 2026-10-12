@@ -32,13 +32,16 @@ work still receives terminal records. Interrupting a wait ends the wait alone:
 the daemon finishes its jobs and exits. \-\-help shows this text. Specified, not
 yet available: daemon start \-\-start\-timeout DURATION.
 .PP
-A daemon is compatible when its IPC schema and its build, the Go build ID's
-last part that karvi version names, both equal the client's; status shows each
-of the daemon's values over the client's. An upgraded client never submits
-a job to, kills, or silently replaces an incompatible running daemon. Status
-and explicit stop/restart use the stable same\-UID lifecycle envelope for
-released IPC schemas, allowing an operator to recover after an upgrade without
-reinstalling the older karvi executable.
+A daemon serves the clients of its own build: its IPC schema and its build,
+the Go build ID's last part that karvi version names, both equal the client's;
+status shows each of the daemon's values over the client's. A submission (run,
+crun, a stream's job) and daemon start drain a daemon of another build, killing
+nothing: one holding no job exits and is replaced in the same invocation, and
+one with jobs finishes them and exits, every submission refused until then
+(daemon_draining). job follow and job cancel reach a daemon of any build at
+the client's IPC schema. Status, stop, restart, and the drain reach a daemon of
+an older IPC schema at its own; one of a newer schema is stopped with the newer
+karvi.
 .\" END GENERATED DESCRIPTION
 .SH FILES
 .TP

@@ -10967,3 +10967,48 @@ The rule. `daemon.shutdown-grace-seconds` defaults to 60, under a session's
 90 s, its registry text saying why, and the planner's pinned draft digest moves
 with it. A user unit's 5 s, which the unit's `TimeoutStopSec=infinity` cannot
 lengthen, is issue 7's, opened for section 5's design.
+
+**Issue 12, found while building S4: what issues 5 and 6 left unsaid, agreed.**
+On the lab of section 4, A and B two builds of the tree and N the tree at
+0.30.0 and IPC schema 13: B's run beside A's idle daemon drained it and started
+B's in the same invocation, exit 0; beside A running a job it was refused,
+`daemon_draining` (exit 112), and so was A's own run, A exiting by itself at
+its job's end; N drained and replaced B's idle daemon, of an older schema to N;
+and B beside N's daemon was refused. Four things the issues did not say were
+settled in the build. The rule. A drained daemon holding no job that has not
+exited within `daemon.start-timeout` refuses the submission in issue 5's
+layout (in the unit test: a daemon exits within milliseconds):
+
+```
+daemon_draining: no job running, not exited after 5s; none submitted; karvi daemon stop, or --no-daemon
+  daemon build 9Au3WHU839F5xE-67H93 0.29.0
+  client build XfTtoeK1qq9HkGakcVu7 0.29.0
+```
+
+A daemon of a newer IPC schema, whose build the client cannot read, is refused
+with the schemas stacked as the builds are, and `job follow` and `job cancel`
+beside a daemon of another schema name the karvi that speaks it, an older
+daemon's by the version it answered with, a newer one's as the newer karvi:
+
+```
+daemon_incompatible: the daemon speaks a newer IPC schema; none submitted; karvi daemon stop from the newer karvi, or --no-daemon
+  daemon ipc_schema 13
+  client ipc_schema 12
+daemon_incompatible: the daemon speaks an older IPC schema; follow its jobs with karvi 0.29.0
+  daemon ipc_schema 12
+  client ipc_schema 13
+```
+
+The dry run's daemon line and the exercise report's name the daemon's build
+after its version, so that `daemon_other_build`'s finding is read against it:
+`daemon local: incompatible pid=… version=0.29.0 build=XvVcKUyDY-UJ1l3tZw8E
+ipc_schema=12`. An interrupt during the sequence's wait, for a drained daemon
+to exit or a launched one to answer, is `cancelled` (exit 113), nothing having
+been submitted, where it was `daemon_start_failed` (112). A daemon of another
+build that prepares the job a second time, after the sequence has run once
+more, is refused `daemon_incompatible`, its registry text saying so. *Not
+taken:* the client stopping a drained daemon that has not exited (a client
+drains and never stops); the schemas on one line (two values compared are read
+stacked); the client's build on the dry run's line (`karvi version` names it);
+a code of its own for the second prepare (three daemons in one invocation, the
+code that names a daemon the client will not use).

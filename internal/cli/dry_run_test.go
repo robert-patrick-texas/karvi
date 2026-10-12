@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/canary"
 	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
@@ -232,40 +234,97 @@ func TestRunDryRunWithoutADaemon(t *testing.T) {
 	}
 }
 
-// TestRunDryRunIncompatibleDaemonIsInvalid: an older-schema daemon answers
-// the probe; the report says incompatible with an error finding, the
-// outcome is invalid, and the exit is the finding code's (112).
-func TestRunDryRunIncompatibleDaemonIsInvalid(t *testing.T) {
-	base, _, socket := daemonTestRuntime(t)
-	sets := dryRunSets(t, base)
-	t.Setenv("NETUSER", "u")
-	t.Setenv("NETPASS", "p")
-	done := startCLILifecycleFixture(t, socket, 2, "0.8.0", 0)
-	defer func() {
-		// The fixture ends on a stop request, which the older schema accepts.
-		sctx, scancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer scancel()
-		_, _ = daemon.StopCompatible(sctx, socket, 1<<20, daemon.StopForce)
-		select {
-		case <-done:
-		case <-time.After(2 * time.Second):
-			t.Error("the lifecycle fixture did not stop")
-		}
-	}()
-	var stdout, stderr bytes.Buffer
-	got := Main(dryRunArgs(sets, "--format", "json"), strings.NewReader(""), &stdout, &stderr)
-	if got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "daemon_incompatible: ") {
-		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
-	}
-	var report records.PlanReport
-	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
-		t.Fatal(err)
-	}
-	if err := report.Validate(); err != nil {
-		t.Fatal(err)
-	}
-	if report.Outcome != records.OutcomeInvalid || report.Daemons[0].Status != executionplan.DaemonIncompatible || report.Daemons[0].IPCSchemaVersion != 2 || report.Counts.Errors != 1 {
-		t.Fatalf("report: outcome=%s daemon=%+v counts=%+v", report.Outcome, report.Daemons[0], report.Counts)
+// TestRunDryRunBesideAnotherBuild (EXAMPLES chapter 57, issue 5): the dry
+// run says what a live run's sequence would do and drains nothing. An idle
+// daemon of another build, of an older IPC schema or of this one, is the
+// info finding daemon_other_build, the outcome planned; one holding a job,
+// or one of this build draining with one, the error finding daemon_draining;
+// one of a newer schema the error finding daemon_incompatible; the errors
+// invalid, exit 112. The text names the daemon's build.
+func TestRunDryRunBesideAnotherBuild(t *testing.T) {
+	own := buildinfo.BuildOrNone()
+	// older names a lifecycle fixture's schema; without it the daemon is
+	// one of this schema naming build.
+	for _, tc := range []struct {
+		name                           string
+		older                          int
+		build                          string
+		jobs                           int64
+		draining                       bool
+		status, finding, message, line string
+	}{
+		{name: "an older schema, idle", older: 2, status: executionplan.DaemonIncompatible, finding: "info daemon_other_build",
+			message: "the daemon is another build's and holds no job; a live run would drain it and start one of this build",
+			line:    "daemon local: incompatible pid=%d version=0.8.0 build=none ipc_schema=2 "},
+		{name: "another build, idle", build: fixtureBuild, status: executionplan.DaemonIncompatible, finding: "info daemon_other_build",
+			message: "the daemon is another build's and holds no job; a live run would drain it and start one of this build",
+			line:    "daemon local: incompatible pid=%d version=" + buildinfo.Version + " build=" + fixtureBuild + " ipc_schema=" + strconv.Itoa(ipc.SchemaVersion) + " "},
+		{name: "another build with a job", build: fixtureBuild, jobs: 1, status: executionplan.DaemonIncompatible, finding: "error daemon_draining",
+			message: "the daemon is another build's, 1 job running; a live run would drain it and be refused until it exits"},
+		{name: "this build draining with a job", build: own, jobs: 1, draining: true, status: executionplan.DaemonDraining, finding: "error daemon_draining",
+			message: "the daemon is draining, 1 job running; a live run would be refused until it exits",
+			line:    "daemon local: draining pid=%d version=" + buildinfo.Version + " build=" + own + " ipc_schema=" + strconv.Itoa(ipc.SchemaVersion) + " "},
+		{name: "a newer schema", older: ipc.SchemaVersion + 1, status: executionplan.DaemonIncompatible, finding: "error daemon_incompatible",
+			message: fmt.Sprintf("the daemon speaks a newer IPC schema, %d, than this client's %d; a live run would be refused; karvi daemon stop from the newer karvi", ipc.SchemaVersion+1, ipc.SchemaVersion)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			base, _, socket := daemonTestRuntime(t)
+			sets := dryRunSets(t, base)
+			t.Setenv("NETUSER", "u")
+			t.Setenv("NETPASS", "p")
+			var f *stopFixture
+			if tc.older != 0 {
+				startCLILifecycleFixture(t, socket, tc.older, "0.8.0", 0)
+			} else {
+				f = startStopFixtureBuild(t, socket, tc.jobs, tc.build, nil)
+				f.draining.Store(tc.draining)
+			}
+			severity, code, _ := strings.Cut(tc.finding, " ")
+			wantExit := exitcode.ExitSuccess
+			if severity == executionplan.SeverityError {
+				wantExit = exitcode.ExitJobRejected
+			}
+			var stdout, stderr bytes.Buffer
+			got := Main(dryRunArgs(sets, "--format", "json"), strings.NewReader(""), &stdout, &stderr)
+			if got != wantExit {
+				t.Fatalf("exit=%d stderr=%q", got, stderr.String())
+			}
+			if wantExit != 0 && stderr.String() != code+": "+tc.message+"\n" {
+				t.Fatalf("stderr=%q", stderr.String())
+			}
+			var report records.PlanReport
+			if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
+				t.Fatal(err)
+			}
+			if err := report.Validate(); err != nil {
+				t.Fatal(err)
+			}
+			wantOutcome := records.OutcomePlanned
+			if wantExit != 0 {
+				wantOutcome = records.OutcomeInvalid
+			}
+			var finding *executionplan.Finding
+			for i := range report.Findings {
+				if report.Findings[i].Stage == "daemon_probe" {
+					finding = &report.Findings[i]
+				}
+			}
+			if report.Outcome != wantOutcome || report.Daemons[0].Status != tc.status || finding == nil || finding.Severity != severity || finding.Code != code || finding.Message != tc.message {
+				t.Fatalf("report: outcome=%s daemon=%+v finding=%+v", report.Outcome, report.Daemons[0], finding)
+			}
+			if f != nil {
+				if ops := f.operations(); ops != "" {
+					t.Fatalf("the dry run reached the daemon: %q", ops)
+				}
+			}
+			if tc.line != "" {
+				stdout.Reset()
+				Main(dryRunArgs(sets), strings.NewReader(""), &stdout, &stderr)
+				if want := fmt.Sprintf(tc.line, report.Daemons[0].PID); !strings.Contains(stdout.String(), want) {
+					t.Fatalf("text=%q missing %q", stdout.String(), want)
+				}
+			}
+		})
 	}
 }
 

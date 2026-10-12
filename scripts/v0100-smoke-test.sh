@@ -168,6 +168,10 @@ wait_summaries $((before + 1)) || fail "p1: the job did not finish"
 # The shutdown accounting. The fake device is
 # still slow, so each job is caught mid-command.
 daemon_pid() { "$KARVI" $(common_args) daemon status --format json 2>/dev/null | json_get - pid 2>/dev/null || true; }
+# daemon_state prints the daemon's status, json_get reading the answer whole:
+# a `grep -q` that exits at its match, the first line, would break karvi's
+# later writes, and SIGPIPE fails the pipeline under pipefail.
+daemon_state() { "$KARVI" $(common_args) daemon status --format json 2>/dev/null | json_get - status 2>/dev/null || true; }
 wait_stopped() {  # until the socket is gone or 15 s pass
   local i=0
   while [ -S "$BASE/socket/d.sock" ] && [ $i -lt 150 ]; do sleep 0.1; i=$((i + 1)); done
@@ -254,7 +258,7 @@ sleep 0.5
 row s4 112 -- daemon stop
 grep -q '^daemon_active_jobs: ' "$TMP/streams/s4.err" && grep -q -- '--grace' "$TMP/streams/s4.err" && grep -q -- '--after' "$TMP/streams/s4.err" && grep -q -- '--force' "$TMP/streams/s4.err" || fail "s4: the refusal does not name the three options"
 [ "$(daemon_pid)" = "$s4_pid" ] || fail "s4: the refused stop replaced or stopped the daemon"
-"$KARVI" $(common_args) daemon status 2>/dev/null | grep -q '^status: running$' || fail "s4: the daemon is not running after the refusal"
+[ "$(daemon_state)" = running ] || fail "s4: the daemon is not running after the refusal"
 for combo in "stop --grace --force" "restart --after=1s --force" "stop --after=0s"; do
   rows=$((rows + 1))
   set +e
@@ -302,7 +306,7 @@ wait "$s7_client"; s7_rc=$?
 set -e
 printf '%-4s exit %d  (Ctrl-C during --grace)\n' s7 "$s7_rc"
 [ "$s7_rc" -eq 113 ] && grep -q '^daemon_stop_wait_interrupted: .*the daemon finishes its jobs and exits' "$TMP/streams/s7.err" || fail "s7: exit $s7_rc, $(head -1 "$TMP/streams/s7.err")"
-"$KARVI" $(common_args) daemon status 2>/dev/null | grep -q '^status: draining$' || fail "s7: the daemon is not draining after the interrupt"
+[ "$(daemon_state)" = draining ] || fail "s7: the daemon is not draining after the interrupt"
 [ "$(daemon_pid)" = "$s7_pid" ] || fail "s7: the interrupt stopped or replaced the daemon"
 set +e
 # shellcheck disable=SC2046
@@ -327,7 +331,7 @@ sleep 0.5
 row s8 0 -- daemon restart --force
 grep -q '^daemon restarted$' "$TMP/streams/s8.out" || fail "s8: no restarted line"
 [ -n "$(daemon_pid)" ] && [ "$(daemon_pid)" != "$s8_pid" ] || fail "s8: the daemon was not replaced (pid $s8_pid then $(daemon_pid))"
-"$KARVI" $(common_args) daemon status 2>/dev/null | grep -q '^status: running$' || fail "s8: the new daemon is not running"
+[ "$(daemon_state)" = running ] || fail "s8: the new daemon is not running"
 i=0; while [ ! -f "$s8_dir/summary.json" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
 accounted s8 "$s8_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_forced shutdown_forced
 s9_pid=$(daemon_pid)
@@ -365,7 +369,7 @@ sleep 0.5
 row c4f 113 -- job cancel "$c4_job" --follow
 grep -q "^job $c4_job cancelled; artifacts $c4_dir (exit 113)\$" "$TMP/streams/c4f.out" || fail "c4: no cancelled terminal line"
 accounted c4 "$c4_dir" cancelled cancelled 113 halt:cancelled cancelled
-"$KARVI" $(common_args) daemon status --format json 2>/dev/null | grep -q '"active_jobs": *0' || fail "c4: the daemon still reports active jobs"
+[ "$("$KARVI" $(common_args) daemon status --format json 2>/dev/null | json_get - active_jobs 2>/dev/null)" = 0 ] || fail "c4: the daemon still reports active jobs"
 "$KARVI" $(common_args) daemon stop >/dev/null 2>&1 || fail "c4: the idle daemon refused a plain stop"
 wait_stopped || fail "c4: the daemon socket remains after the stop"
 rm -f "$TMP/slow"

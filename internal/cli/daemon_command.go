@@ -308,15 +308,11 @@ func drainingLine(before bool, jobs int64, after time.Duration) string {
 	if before {
 		state = "daemon already draining"
 	}
-	running := "1 job running"
-	if jobs != 1 {
-		running = fmt.Sprintf("%d jobs running", jobs)
-	}
 	wait := "waiting for it to exit"
 	if after > 0 {
 		wait = fmt.Sprintf("waiting up to %s, then forcing", after)
 	}
-	return fmt.Sprintf("%s: %s; %s", state, running, wait)
+	return fmt.Sprintf("%s: %s; %s", state, app.JobsRunning(jobs), wait)
 }
 
 // waitGone waits for a drained daemon, pid, to exit (daemonExited). At a
@@ -370,11 +366,16 @@ func daemonExited(socket string, pid int) bool {
 }
 
 func stopTimeout(rt app.DaemonRuntime) time.Duration {
-	timeout := rt.Config.Duration("daemon.start-timeout")
-	if timeout <= 0 {
-		timeout = 5 * time.Second
+	return startTimeout(rt) + time.Duration(rt.Config.Int("daemon.forced-grace-seconds"))*time.Second
+}
+
+// startTimeout is daemon.start-timeout, 5 s when unset: the wait for a
+// launched daemon's socket and for a drained one to exit.
+func startTimeout(rt app.DaemonRuntime) time.Duration {
+	if timeout := rt.Config.Duration("daemon.start-timeout"); timeout > 0 {
+		return timeout
 	}
-	return timeout + time.Duration(rt.Config.Int("daemon.forced-grace-seconds"))*time.Second
+	return 5 * time.Second
 }
 
 // serveDaemon runs the daemon in this process. It takes no context from
@@ -400,12 +401,16 @@ func serveDaemon(g globalOptions, stderr io.Writer) int {
 	return 0
 }
 
-// ensureDaemon makes a compatible daemon answer at the socket of rt, the
-// invocation's runtime, launching one with the global options g when none
-// does; every error carries a registered code.
 // ownBuild is this executable's build (buildinfo.Build); a test replaces it.
 var ownBuild = buildinfo.Build
 
+// ensureDaemon makes a daemon of this build answer at the socket of rt, the
+// invocation's runtime, launching one with the global options g when none
+// does (EXAMPLES chapter 57, issue 5): its own build, not draining, is used;
+// another build, or any daemon draining, is drained at its own IPC schema,
+// and one holding no job is waited for and replaced, while one with jobs
+// refuses the submission until it has exited. Every error carries a
+// registered code.
 func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, stderr io.Writer) error {
 	// A client that cannot read its own build has nothing to compare a
 	// daemon with (EXAMPLES chapter 57, issue 2).
@@ -415,15 +420,18 @@ func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, st
 	pingCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, pingErr := daemon.Probe(pingCtx, rt.Socket, rt.MaxFrame)
 	cancel()
-	if pingErr == nil {
-		if probe.Compatible {
-			return nil
-		}
-		return incompatibleDaemonError(probe)
-	}
 	var mismatch *ipc.SchemaMismatchError
-	if errors.As(pingErr, &mismatch) {
-		return fmt.Errorf("daemon_incompatible: running daemon uses unsupported IPC schema %d; karvi %s requires schema %d; no replacement was attempted; run \"karvi daemon stop\" with the matching older karvi executable, then retry", mismatch.DaemonSchema, buildinfo.Version, ipc.SchemaVersion)
+	switch {
+	case pingErr == nil && probe.Compatible && probe.Status.Status != "draining":
+		return nil
+	case pingErr == nil:
+		if err := replaceDaemon(ctx, rt, probe, g.quiet, stderr); err != nil {
+			return err
+		}
+	case errors.As(pingErr, &mismatch):
+		// A newer schema, which this client cannot speak: the newer karvi
+		// stops it.
+		return errorcodes.Errorf("daemon_incompatible", "the daemon speaks a newer IPC schema; none submitted; karvi daemon stop from the newer karvi, or --no-daemon\n%s", schemasStacked(mismatch.DaemonSchema, mismatch.ClientSchema))
 	}
 	exe, err := os.Executable()
 	if err != nil {
@@ -448,11 +456,7 @@ func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, st
 	childPID := cmd.Process.Pid // Release clears it
 	_ = cmd.Process.Release()
 	_ = log.Close()
-	timeout := rt.Config.Duration("daemon.start-timeout")
-	if timeout <= 0 {
-		timeout = 5 * time.Second
-	}
-	wctx, wcancel := context.WithTimeout(ctx, timeout)
+	wctx, wcancel := context.WithTimeout(ctx, startTimeout(rt))
 	defer wcancel()
 	if err := ipc.Wait(wctx, rt.Socket); err != nil {
 		return fmt.Errorf("daemon_start_failed: daemon failed to start; inspect %s: %w", rt.LogPath, err)
@@ -504,11 +508,58 @@ func secretVariableNotice(logger *slog.Logger) {
 	}
 }
 
-// incompatibleDaemonError words a probe that found the daemon incompatible:
-// its version, build, and IPC schema beside the client's, since the schema
-// and the build decide and the version names the release for people.
-func incompatibleDaemonError(probe daemon.ProbeResult) error {
-	return fmt.Errorf("daemon_incompatible: running daemon version %s build %s uses IPC schema %d; karvi %s build %s uses schema %d, and the schema and the build must both match; no job was submitted and the daemon was not replaced automatically; run \"karvi daemon status\" and, when active_jobs is 0, run \"karvi daemon restart\", then retry (or use \"karvi run --no-daemon ...\" for an explicit foreground run)", displayUnknown(probe.Status.Version), displayUnknown(probe.Status.Build), probe.DaemonSchema, buildinfo.Version, buildinfo.BuildOrNone(), probe.ClientSchema)
+// replaceDaemon drains the daemon probe found, of another build or draining,
+// at its own IPC schema, and waits up to daemon.start-timeout for it to exit,
+// saying so unless quiet, so that the caller starts one of this build
+// (EXAMPLES chapter 57, issue 5). A daemon with jobs finishes them and exits
+// by itself, killing nothing; until then the submission is refused, as it is
+// when the drained daemon has not exited within the wait.
+func replaceDaemon(ctx context.Context, rt app.DaemonRuntime, probe daemon.ProbeResult, quiet bool, stderr io.Writer) error {
+	pid := probe.Status.PID
+	drainCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	drained, err := daemon.Drain(drainCtx, rt.Socket, rt.MaxFrame, probe.DaemonSchema)
+	cancel()
+	if err != nil {
+		if daemonExited(rt.Socket, pid) {
+			// It left between the probe and the drain.
+			return nil
+		}
+		return errorcodes.Ensure(err, "daemon_drain_failed")
+	}
+	if drained.ActiveJobs > 0 {
+		return errorcodes.Errorf("daemon_draining", "%s; none submitted; retry when it exits, or --no-daemon\n%s", app.JobsRunning(drained.ActiveJobs), buildsStacked(probe.Status))
+	}
+	limit := startTimeout(rt)
+	deadline := time.NewTimer(limit)
+	defer deadline.Stop()
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+	for !daemonExited(rt.Socket, pid) {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-deadline.C:
+			return errorcodes.Errorf("daemon_draining", "no job running, not exited after %s; none submitted; karvi daemon stop, or --no-daemon\n%s", limit, buildsStacked(probe.Status))
+		case <-ticker.C:
+		}
+	}
+	if !quiet {
+		fmt.Fprintf(stderr, "daemon drained version=%s build=%s\n", displayUnknown(probe.Status.Version), displayNone(probe.Status.Build))
+	}
+	return nil
+}
+
+// buildsStacked is the two lines a refusal compares the daemon with this
+// client by: the daemon's build over the client's, each with its version
+// (EXAMPLES chapter 57, issue 5).
+func buildsStacked(s daemon.Status) string {
+	return fmt.Sprintf("  daemon build %s %s\n  client build %s %s", displayNone(s.Build), displayUnknown(s.Version), buildinfo.BuildOrNone(), buildinfo.Version)
+}
+
+// schemasStacked is the same for a daemon whose IPC schema is not the
+// client's: the daemon's schema over the client's.
+func schemasStacked(daemonSchema, clientSchema int) string {
+	return fmt.Sprintf("  daemon ipc_schema %d\n  client ipc_schema %d", daemonSchema, clientSchema)
 }
 
 func displayUnknown(value string) string {
@@ -516,6 +567,14 @@ func displayUnknown(value string) string {
 		return "unknown"
 	}
 	return value
+}
+
+// displayNone is a build as karvi version names a missing one.
+func displayNone(build string) string {
+	if build == "" {
+		return "none"
+	}
+	return build
 }
 
 func globalArgs(g globalOptions) []string {

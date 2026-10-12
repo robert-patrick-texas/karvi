@@ -349,8 +349,8 @@ var entries = []Entry{
 
 	// Daemon and IPC.
 	failure("daemon_active_jobs", "usage", exitJob, true, "`daemon stop` or `restart` without `--grace`, `--after`, or `--force` while jobs are active."),
-	failure("daemon_draining", "dependency", exitJob, true, "A job is submitted while the daemon is draining."),
-	failure("daemon_incompatible", "dependency", exitJob, false, "The running daemon's IPC schema or build differs from this client's (both must match), or a daemon of another build prepared the job; no job is submitted and the daemon is not replaced."),
+	failure("daemon_draining", "dependency", exitJob, true, "The daemon is draining and admits no job: drained by this client's submission because it is another build's and holds jobs, or by an earlier drain, stop, or signal; or, holding no job, it has not exited within `daemon.start-timeout`. Nothing is submitted; the daemon exits after its last job, the next submission starts one of this build, and `--no-daemon` runs meanwhile."),
+	failure("daemon_incompatible", "dependency", exitJob, false, "The running daemon speaks a newer IPC schema than this client, which cannot drain it: no job is submitted, and `karvi daemon stop` from the newer karvi ends it. `job follow` and `job cancel` refuse a daemon of another schema, older or newer, naming the karvi that speaks it; and a submission is refused when a daemon of another build prepares its job twice."),
 	failure("daemon_start_failed", "dependency", exitJob, false, "A daemon was launched but did not become ready."),
 	failure("daemon_stop_mode_unknown", "usage", exitJob, false, "A stop request names a stop mode the daemon does not support."),
 	failure("daemon_stop_request_malformed", "internal", exitJob, false, "A stop request payload is not valid JSON."),
@@ -710,6 +710,7 @@ var entries = []Entry{
 	notice("host_key_policy_insecure", "A job runs under `ssh.host-key-policy = \"insecure\"`, the daemon's own policy for a daemon's job: said once, at the job's admission (and before a login's contact), as two lines on standard error in the warning colour, `--quiet` included; through the daemon it rides the receipt as an admission warning."),
 	notice("icmp_packet_loss", "The ICMP gate received one validated reply of two; the device proceeds and its first record carries the notice."),
 	notice("daemon_absent", "A dry-run found no daemon answering at the socket; a live run would launch one."),
+	notice("daemon_other_build", "A dry-run found a daemon of another build than this client's holding no job; a live run would drain it, wait for it to exit, and start one of this build."),
 	notice("daemon_environment_secret_variable", "A daemon started outside the launcher inherited `NETUSER`, `NETPASS`, or `NETENABLE`; the daemon does not read them, and the notice names the variable only."),
 	notice("platform_unknown_fallback", "An inventory row named a platform that is not known and `platform-resolution.on-unknown` is `warn`: the device proceeds as `platform-resolution.unknown-fallback`, the client prints a warning line at planning, and the device's first record carries the notice with `supplied`, `source`, and `used`."),
 	notice("operator_key_skipped", "A file of `ssh.identities` exists and is not used: a symbolic link where `security.allow-credential-symlinks` is false, not a regular file, not the operator's, readable by group or others, protected by a passphrase, or of a type neither transport signs with (a hardware-backed key); the notice names the file and the reason, never the contents, on the dry run and the device's first record."),

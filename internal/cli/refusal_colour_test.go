@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/configschema"
+	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/display"
+	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 )
 
@@ -243,5 +245,52 @@ func TestRefusalBuiltinStyle(t *testing.T) {
 		if zero.Enabled != builtin.Enabled || zero.Error != builtin.Error || zero.Warning != builtin.Warning {
 			t.Fatalf("destination %d: the zero snapshot's style %+v, the defaults' %+v", to, zero, builtin)
 		}
+	}
+}
+
+// TestStackedRefusalColoured (EXAMPLES chapter 57, issue 5): a refusal with
+// values stacked under it, a run beside a daemon of another build holding a
+// job, has each line opened and closed in the error colour at a terminal,
+// by the display's one rule: no escape under --nocolor, through a pipe, or in
+// a file.
+func TestStackedRefusalColoured(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("NETUSER", "u")
+	t.Setenv("NETPASS", "p")
+	base, _, socket := daemonTestRuntime(t)
+	startStopFixtureBuild(t, socket, 1, fixtureBuild, nil)
+	args := append(dryRunSets(t, base), "--set", `display.color="auto"`, "run", "--target", "127.0.0.1", "--transport", "system", "show clock")
+	lines := []string{
+		"daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon",
+		"  daemon build " + fixtureBuild + " " + buildinfo.Version,
+		"  client build " + buildinfo.BuildOrNone() + " " + buildinfo.Version,
+	}
+	for _, tc := range []struct {
+		name, to string
+		nocolor  bool
+		open     string
+	}{
+		{"a terminal", toTerminal, false, refusalRed},
+		{"a terminal, --nocolor", toTerminal, true, ""},
+		{"a pipe", toPipe, false, ""},
+		{"a file", toFile, false, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := args
+			if tc.nocolor {
+				a = append([]string{"--nocolor"}, args...)
+			}
+			got, stderr := mainTo(t, tc.to, a, "")
+			want := ""
+			for _, line := range lines {
+				if tc.open != "" {
+					line = tc.open + line + colourEnd
+				}
+				want += line + "\n"
+			}
+			if got != exitcode.ExitJobRejected || stderr != want {
+				t.Fatalf("exit=%d stderr=%q, want %q", got, stderr, want)
+			}
+		})
 	}
 }

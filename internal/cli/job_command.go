@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/signal"
 	"syscall"
@@ -39,11 +40,11 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 	probeCtx, probeCancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, err := daemon.Probe(probeCtx, rt.Socket, rt.MaxFrame)
 	probeCancel()
+	if err := otherSchema("cancel", probe, err); err != nil {
+		return g.reportError(streams.Stderr, "daemon_incompatible", err)
+	}
 	if err != nil {
 		return g.reportError(streams.Stderr, "daemon_unreachable", fmt.Errorf("daemon not running or unreadable, so there is nothing to cancel: %w", err))
-	}
-	if !probe.Compatible {
-		return g.reportError(streams.Stderr, "daemon_incompatible", fmt.Errorf("%w; a job of that daemon ends only with \"karvi daemon stop --force\"", incompatibleDaemonError(probe)))
 	}
 	callCtx, callCancel := context.WithTimeout(ctx, 5*time.Second)
 	res, err := daemon.CancelJob(callCtx, rt.Socket, rt.MaxFrame, ipc.CancelRequest{JobID: jobID, Reason: inv.String(optReason)})
@@ -80,6 +81,22 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 		}
 	}
 	return o.ExitCode
+}
+
+// otherSchema is follow's and cancel's refusal of a daemon whose IPC schema
+// is not the client's, and nil for any other probe (EXAMPLES chapter 57,
+// issue 6): the verbs use a daemon of any version or build at the client's
+// schema, and name the karvi that speaks another's, an older daemon's by the
+// version it answered with.
+func otherSchema(verb string, probe daemon.ProbeResult, probeErr error) error {
+	var mismatch *ipc.SchemaMismatchError
+	switch {
+	case probeErr == nil && probe.DaemonSchema != probe.ClientSchema:
+		return errorcodes.Errorf("daemon_incompatible", "the daemon speaks an older IPC schema; %s its jobs with karvi %s\n%s", verb, displayUnknown(probe.Status.Version), schemasStacked(probe.DaemonSchema, probe.ClientSchema))
+	case errors.As(probeErr, &mismatch):
+		return errorcodes.Errorf("daemon_incompatible", "the daemon speaks a newer IPC schema; %s its jobs with the newer karvi\n%s", verb, schemasStacked(mismatch.DaemonSchema, mismatch.ClientSchema))
+	}
+	return nil
 }
 
 // cancelResultLine renders the two cancel answers.
@@ -132,13 +149,13 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, "", "continues in the daemon"))
 		return exitcode.ExitCancelled
 	}
-	// The daemon first, when reachable and compatible.
-	var daemonErr error
+	// The daemon first, when reachable at the client's IPC schema, of any
+	// version or build (EXAMPLES chapter 57, issue 6).
+	daemonErr := otherSchema("follow", probe, err)
 	switch {
+	case daemonErr != nil:
 	case err != nil:
 		daemonErr = errorcodes.Errorf("daemon_unreachable", "daemon not running or unreadable: %w", err)
-	case !probe.Compatible:
-		daemonErr = errorcodes.Errorf("daemon_incompatible", "%w", incompatibleDaemonError(probe))
 	default:
 		// A broken stdout must surface as a write error, not a SIGPIPE
 		// death, as for the daemon-backed run.
@@ -178,10 +195,14 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		}
 		return jobFollowResult(g, streams, jobID, dir, summary, summary.ExitCode)
 	case app.JobDirectoryOrphaned:
-		return g.reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no summary and no running daemon holds the job (%v); the daemon that ran it is gone, or output.files.summary-json was false for the job", jobID, dir, daemonErr))
+		if errorcodes.Of(daemonErr) != "daemon_incompatible" {
+			return g.reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no summary and no running daemon holds the job (%v); the daemon that ran it is gone, or output.files.summary-json was false for the job", jobID, dir, daemonErr))
+		}
 	}
 	if errorcodes.Of(daemonErr) == "daemon_incompatible" {
-		// No directory to fall back on: the job may be that daemon's (3.4).
+		// A job not ended, or no directory: the job may be that daemon's,
+		// which is judged before the directory (EXAMPLES chapter 57, issue
+		// 6).
 		return g.reportError(streams.Stderr, "daemon_incompatible", daemonErr)
 	}
 	return g.reportError(streams.Stderr, "job_unknown", errorcodes.Errorf("job_unknown", "no job %s: %v, and %s does not exist", jobID, daemonErr, dir))

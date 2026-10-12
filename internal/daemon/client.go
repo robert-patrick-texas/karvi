@@ -35,8 +35,8 @@ const MinLifecycleSchema = 1
 // last part, tells two programs apart where the version and the commit cannot;
 // they differ only with it. A daemon that names no build, or a client that
 // cannot read its own, is never compatible: an empty build is never compared.
-// The lifecycle operations (ping, status, stop, restart) keep their reach over
-// every supported schema so the operator can see the mismatch.
+// The lifecycle operations (ping, status, drain, stop) keep their reach over
+// every older schema, so that a client sees, drains, and stops such a daemon.
 type ProbeResult struct {
 	Status       Status
 	DaemonSchema int
@@ -77,10 +77,10 @@ func Probe(ctx context.Context, socket string, maxFrame int64) (ProbeResult, err
 	return ProbeResult{Status: status, DaemonSchema: mismatch.DaemonSchema, ClientSchema: ipc.SchemaVersion, Compatible: false}, nil
 }
 
-// StopCompatible explicitly stops the daemon reached at socket, including an
-// older same-UID daemon using a released lifecycle schema. This operation is
-// invoked only by an operator's daemon stop/restart command; run submission
-// never kills or replaces an incompatible daemon automatically. The mode is
+// StopCompatible explicitly stops the daemon reached at socket, including a
+// same-UID daemon of an older IPC schema, at its own. This operation is
+// invoked only by an operator's daemon stop/restart command; a submission
+// drains a daemon of another build (Drain) and never stops one. The mode is
 // always sent, and the daemon refuses an if_idle stop while jobs run.
 func StopCompatible(ctx context.Context, socket string, maxFrame int64, mode string) (ProbeResult, error) {
 	probe, err := Probe(ctx, socket, maxFrame)

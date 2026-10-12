@@ -369,9 +369,14 @@ func (g globalOptions) dropped(w io.Writer, format string, args ...any) {
 
 // refusalLine is a refusal, its code and message, the whole line in the
 // error colour and bold when colour is on, as a device's failure line is
-// (EXAMPLES chapter 56, issue 13).
-func refusalLine(line string, style display.LineStyle) string {
-	return display.ANSIStyle(line, style.Error, style.Enabled, true)
+// (EXAMPLES chapter 56, issue 13); a refusal whose values are stacked below
+// it has each line opened and closed on itself (chapter 57, issue 5).
+func refusalLine(text string, style display.LineStyle) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		lines[i] = display.ANSIStyle(line, style.Error, style.Enabled, true)
+	}
+	return strings.Join(lines, "\n")
 }
 
 // style is the display style of g's refusals on w, by the display's one

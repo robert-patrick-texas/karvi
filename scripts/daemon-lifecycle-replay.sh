@@ -5,9 +5,10 @@
 # executable from the newest release whose daemon IPC schema differs from
 # the new client's, and save the output beside the release evidence as
 # <old>-to-<new>-lifecycle.log. The bundle verifier does not depend on it.
-# A same-schema daemon is simply compatible and proves nothing here, so the
-# script refuses one before it starts anything (v0.12.0 kept v0.11.0's
-# schema 7 and replays against v0.10.0, schema 6).
+# A same-schema daemon is reached at the client's own schema and proves
+# nothing of the older envelope, so the script refuses one before it starts
+# anything (v0.12.0 kept v0.11.0's schema 7 and replays against v0.10.0,
+# schema 6).
 #
 #   scripts/daemon-lifecycle-replay.sh /path/to/prior-release/bin/karvi-linux-amd64
 #
@@ -66,20 +67,32 @@ HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status" 2>&1 || fail "1: daemon st
 sed 's/^/    /' "$TMP/status" | grep -E '^    (status|daemon_version|client_version|daemon_ipc_schema|client_ipc_schema|compatible|active_jobs|remediation):'
 grep -q "^daemon_ipc_schema: $old_schema\$" "$TMP/status" && grep -q "^client_ipc_schema: $new_schema\$" "$TMP/status" && grep -q '^compatible: false$' "$TMP/status" && grep -q '^active_jobs: 0$' "$TMP/status" && grep -q '^remediation: karvi daemon restart$' "$TMP/status" || fail "1: status fields"
 
-echo "[2] the new client's run is refused and launches no replacement"
+# The new client's run is an exercise to 192.0.2.1, which reaches no device,
+# its scratch under the work directory.
+echo "[2] the new client's run drains the idle old daemon and starts its own"
 set +e
-HOME=$H NETUSER=u NETPASS=p "$NEW" "${A[@]}" run --target 127.0.0.1 --transport system 'show clock' >"$TMP/run.out" 2>"$TMP/run.err"
+HOME=$H NETUSER=u NETPASS=p "$NEW" "${A[@]}" --set "tempdir=\"$TMP\"" run --exercise --target 192.0.2.1 --transport system 'show clock' >"$TMP/run.out" 2>"$TMP/run.err"
 rc=$?
 set -e
-echo "    exit $rc: $(head -1 "$TMP/run.err" | cut -c1-100)"
-[ "$rc" -eq 112 ] && grep -q '^daemon_incompatible: ' "$TMP/run.err" || fail "2: run exit $rc"
-[ "$(pid)" = "$p1" ] || fail "2: the refused run replaced the old daemon"
+sed 's/^/    /' "$TMP/run.err"
+echo "    exit $rc"
+[ "$rc" -eq 0 ] && grep -q '^daemon drained version=' "$TMP/run.err" && grep -q '^daemon started socket=' "$TMP/run.err" || fail "2: run exit $rc"
+gone "$p1" 2
+p2=$(pid)
+[ -n "$p2" ] && [ "$p2" != "$p1" ] || fail "2: no daemon replaced the old one"
+HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status2" 2>&1 || fail "2: daemon status exit $?"
+grep -q '^compatible: true$' "$TMP/status2" || fail "2: the new daemon is not compatible"
+HOME=$H "$NEW" "${A[@]}" daemon stop >/dev/null 2>&1 || fail "2: the new daemon's stop"
+stopped 2
+gone "$p2" 2
 
 echo "[3] daemon stop with no option (the old daemon reports no active job)"
+old_start 3
+p3=$(pid)
 HOME=$H "$NEW" "${A[@]}" daemon stop 2>&1 | sed 's/^/    /' | tee "$TMP/stop"
 grep -q "ipc_schema=$old_schema; client_schema=$new_schema" "$TMP/stop" || fail "3: the stop line does not name both schemas"
 stopped 3
-gone "$p1" 3
+gone "$p3" 3
 
 echo "[4] daemon restart replaces the old daemon with a compatible one"
 old_start 4

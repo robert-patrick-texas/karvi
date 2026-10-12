@@ -31,7 +31,10 @@ type stopFixture struct {
 	draining atomic.Bool
 	onDrain  func(*stopFixture)
 	// build is the build its status names, the client's unless set.
-	build    string
+	build string
+	// stay keeps it running when drained with no job, as a daemon that
+	// does not exit.
+	stay     atomic.Bool
 	listener net.Listener
 	mu       sync.Mutex
 	ops      []string
@@ -109,7 +112,7 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 			f.onDrain(f)
 		}
 		reply(status())
-		return f.active.Load() == 0
+		return f.active.Load() == 0 && !f.stay.Load()
 	case "stop":
 		var stop daemon.StopRequest
 		_ = json.Unmarshal(req.Payload, &stop)

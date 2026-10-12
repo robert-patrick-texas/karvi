@@ -1,6 +1,7 @@
-// Command daemon-fixture provides a protocol-oriented older-daemon process for
-// release upgrade tests. It is a development tool and is not installed as a
-// karvi operator executable.
+// Command daemon-fixture provides a lifecycle-only daemon of another build or
+// an older IPC schema for the upgrade tests: it answers ping, status, drain,
+// and stop. It is a development tool and is not installed as a karvi operator
+// executable.
 package main
 
 import (
@@ -21,6 +22,7 @@ func main() {
 	schema := flag.Int("schema", 2, "emulated IPC schema")
 	version := flag.String("version", "0.8.0", "emulated daemon version")
 	build := flag.String("build", "", "emulated daemon build (none by default, as a release before builds)")
+	jobs := flag.Int64("jobs", 0, "emulated active jobs: drained, a fixture holding any stays, answering draining")
 	flag.Parse()
 	if *socket == "" || *schema <= 0 {
 		fmt.Fprintln(os.Stderr, "--socket and a positive --schema are required")
@@ -39,12 +41,13 @@ func main() {
 	if err := os.Chmod(*socket, 0600); err != nil {
 		fatal(err)
 	}
+	f := &fixture{socket: *socket, schema: *schema, version: *version, build: *build, jobs: *jobs}
 	for {
 		conn, err := listener.AcceptUnix()
 		if err != nil {
 			fatal(err)
 		}
-		stop := handle(conn, *socket, *schema, *version, *build)
+		stop := f.handle(conn)
 		_ = conn.Close()
 		if stop {
 			return
@@ -52,7 +55,17 @@ func main() {
 	}
 }
 
-func handle(conn *net.UnixConn, socket string, schema int, version, build string) bool {
+// fixture is the emulated daemon: its schema, version, build, and jobs, and
+// whether it has been drained.
+type fixture struct {
+	socket, version, build string
+	schema                 int
+	jobs                   int64
+	draining               bool
+}
+
+func (f *fixture) handle(conn *net.UnixConn) bool {
+	socket, schema := f.socket, f.schema
 	uid, err := ipc.PeerUID(conn)
 	if err != nil || int(uid) != os.Geteuid() {
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, Error: &ipc.Error{Code: "peer_uid_denied", Message: "same UID required", Details: map[string]any{}}}, 1<<20)
@@ -66,20 +79,33 @@ func handle(conn *net.UnixConn, socket string, schema int, version, build string
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Error: &ipc.Error{Code: "ipc_schema_incompatible", Message: fmt.Sprintf("client schema %d, daemon schema %d", req.IPCSchemaVersion, schema), Details: map[string]any{}}}, 1<<20)
 		return false
 	}
-	status := func(state string) json.RawMessage {
-		raw, _ := json.Marshal(daemon.Status{IPCSchemaVersion: schema, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 0, Version: version, Build: build})
+	status := func() json.RawMessage {
+		state := "running"
+		if f.draining {
+			state = "draining"
+		}
+		raw, _ := json.Marshal(daemon.Status{IPCSchemaVersion: schema, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: f.jobs, AcceptedJobs: f.jobs, Version: f.version, Build: f.build})
 		return raw
 	}
 	switch req.Operation {
 	case "ping", "status":
-		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: status("running")}, 1<<20)
+		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: status()}, 1<<20)
 		return false
 	case "drain":
-		// A drained daemon holding no job answers and exits (EXAMPLES
-		// chapter 57, issue 4).
-		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: status("draining")}, 1<<20)
-		return true
+		// A drained daemon answers draining and exits holding no job; one
+		// holding jobs stays to finish them (EXAMPLES chapter 57, issue 4).
+		f.draining = true
+		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: status()}, 1<<20)
+		return f.jobs == 0
 	case "stop":
+		// The daemon alone counts its jobs: a stop that does not name force
+		// is refused while any run (EXAMPLES chapter 57, issue 10).
+		var stop daemon.StopRequest
+		_ = json.Unmarshal(req.Payload, &stop)
+		if stop.Mode != daemon.StopForce && f.jobs > 0 {
+			_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Error: &ipc.Error{Code: "daemon_active_jobs", Message: fmt.Sprintf("daemon reports %d active job(s)", f.jobs), Details: map[string]any{}}}, 1<<20)
+			return false
+		}
 		raw, _ := json.Marshal(map[string]any{"stopping": true})
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)
 		return true
