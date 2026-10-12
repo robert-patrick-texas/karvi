@@ -74,6 +74,7 @@ type Info struct {
 	Application                 string `json:"application"`
 	Version                     string `json:"version"`
 	Commit                      string `json:"commit"`
+	Build                       string `json:"build"`
 	BuildTime                   string `json:"build_time"`
 	GoVersion                   string `json:"go_version"`
 	ConfigSchemaVersion         int    `json:"config_schema_version"`
@@ -92,7 +93,7 @@ type Info struct {
 
 func Current() Info {
 	return Info{
-		Application: AppName, Version: Version, Commit: Commit, BuildTime: BuildTime,
+		Application: AppName, Version: Version, Commit: Commit, Build: BuildOrNone(), BuildTime: BuildTime,
 		GoVersion: runtime.Version(), ConfigSchemaVersion: ConfigSchemaVersion,
 		CommandRecordSchemaVersion: CommandRecordSchema, ScoreboardSchemaVersion: ScoreboardSchema,
 		AuditSchemaVersion: AuditSchema, JobSchemaVersion: JobSchema,

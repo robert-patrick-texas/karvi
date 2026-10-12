@@ -29,26 +29,20 @@ import (
 const MinLifecycleSchema = 1
 
 // ProbeResult describes the daemon reached at a socket and whether it can
-// accept jobs from this executable. Compatible is the pair's equality: the
-// daemon's version and IPC schema both equal this executable's. The IPC
-// schema alone
-// let the execution plan move under an unchanged schema twice (v0.16.0 and
-// v0.19.0), the status saying compatible while the first run was refused at
-// prepare_job; the version alone would read a pre-release tree of the
-// released version as compatible while its wire had moved. Either
-// difference is incompatible, and the lifecycle operations (ping, status,
-// stop, restart) keep their reach over every supported schema so the
-// operator can see the mismatch and restart.
+// accept jobs from this executable. Compatible is the schema's equality and
+// then the build's (EXAMPLES chapter 57, issues 1 and 2): the IPC schema must
+// match for the daemon's answer to be read, and the build, the Go build ID's
+// last part, tells two programs apart where the version and the commit cannot;
+// they differ only with it. A daemon that names no build, or a client that
+// cannot read its own, is never compatible: an empty build is never compared.
+// The lifecycle operations (ping, status, stop, restart) keep their reach over
+// every supported schema so the operator can see the mismatch.
 type ProbeResult struct {
 	Status       Status
 	DaemonSchema int
 	ClientSchema int
 	Compatible   bool
 }
-
-// ClientVersion is this executable's version, the one a compatible daemon
-// reports.
-const ClientVersion = buildinfo.Version
 
 func Ping(ctx context.Context, socket string, maxFrame int64) (Status, error) {
 	return pingSchema(ctx, socket, maxFrame, ipc.SchemaVersion)
@@ -60,9 +54,9 @@ func Ping(ctx context.Context, socket string, maxFrame int64) (Status, error) {
 func Probe(ctx context.Context, socket string, maxFrame int64) (ProbeResult, error) {
 	status, err := Ping(ctx, socket, maxFrame)
 	if err == nil {
-		// The schema matched; the version decides (a same-schema daemon of
-		// another release, or a released daemon beside a pre-release tree).
-		return ProbeResult{Status: status, DaemonSchema: ipc.SchemaVersion, ClientSchema: ipc.SchemaVersion, Compatible: status.Version == ClientVersion}, nil
+		// The schema matched; the build decides.
+		client, _ := buildinfo.Build()
+		return ProbeResult{Status: status, DaemonSchema: ipc.SchemaVersion, ClientSchema: ipc.SchemaVersion, Compatible: client != "" && status.Build == client}, nil
 	}
 	var mismatch *ipc.SchemaMismatchError
 	if !errors.As(err, &mismatch) {

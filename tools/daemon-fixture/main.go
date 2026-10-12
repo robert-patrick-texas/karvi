@@ -20,6 +20,7 @@ func main() {
 	socket := flag.String("socket", "", "Unix socket path")
 	schema := flag.Int("schema", 2, "emulated IPC schema")
 	version := flag.String("version", "0.8.0", "emulated daemon version")
+	build := flag.String("build", "", "emulated daemon build (none by default, as a release before builds)")
 	flag.Parse()
 	if *socket == "" || *schema <= 0 {
 		fmt.Fprintln(os.Stderr, "--socket and a positive --schema are required")
@@ -43,7 +44,7 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
-		stop := handle(conn, *socket, *schema, *version)
+		stop := handle(conn, *socket, *schema, *version, *build)
 		_ = conn.Close()
 		if stop {
 			return
@@ -51,7 +52,7 @@ func main() {
 	}
 }
 
-func handle(conn *net.UnixConn, socket string, schema int, version string) bool {
+func handle(conn *net.UnixConn, socket string, schema int, version, build string) bool {
 	uid, err := ipc.PeerUID(conn)
 	if err != nil || int(uid) != os.Geteuid() {
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, Error: &ipc.Error{Code: "peer_uid_denied", Message: "same UID required", Details: map[string]any{}}}, 1<<20)
@@ -67,7 +68,7 @@ func handle(conn *net.UnixConn, socket string, schema int, version string) bool 
 	}
 	switch req.Operation {
 	case "ping", "status":
-		status := daemon.Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 0, Version: version}
+		status := daemon.Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 0, Version: version, Build: build}
 		raw, _ := json.Marshal(status)
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)
 		return false

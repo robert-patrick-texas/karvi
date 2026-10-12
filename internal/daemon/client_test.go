@@ -11,13 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/internal/testsocket"
 )
 
 func TestProbeAndStopCompatibleOlderDaemon(t *testing.T) {
 	socket := filepath.Join(testsocket.Dir(t), "d.sock")
-	fixture := startLifecycleFixture(t, socket, 2, "0.8.0")
+	fixture := startLifecycleFixture(t, socket, 2, "0.8.0", "")
 	defer fixture.close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -47,17 +48,26 @@ func TestProbeAndStopCompatibleOlderDaemon(t *testing.T) {
 	}
 }
 
-// TestProbeSameSchemaOtherVersionIsIncompatible covers the pair rule: a
-// daemon at this executable's IPC schema but
-// another version is reached, reported, and incompatible; the same fixture
-// at this executable's version is compatible.
-func TestProbeSameSchemaOtherVersionIsIncompatible(t *testing.T) {
+// TestProbeSameSchemaComparesTheBuild covers the rule (EXAMPLES chapter 57,
+// issues 1 and 2): at this executable's IPC schema the build decides; a
+// daemon of another build, or naming none, is incompatible whatever its
+// version, and one of this build is compatible.
+func TestProbeSameSchemaComparesTheBuild(t *testing.T) {
+	own, err := buildinfo.Build()
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct {
-		version    string
-		compatible bool
-	}{{"0.19.0", false}, {ClientVersion, true}} {
+		version, build string
+		compatible     bool
+	}{
+		{buildinfo.Version, "XfTtoeK1qq9HkGakcVu7", false},
+		{buildinfo.Version, "", false},
+		{"0.19.0", "XfTtoeK1qq9HkGakcVu7", false},
+		{buildinfo.Version, own, true},
+	} {
 		socket := filepath.Join(testsocket.Dir(t), "d.sock")
-		fixture := startLifecycleFixture(t, socket, ipc.SchemaVersion, tc.version)
+		fixture := startLifecycleFixture(t, socket, ipc.SchemaVersion, tc.version, tc.build)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		probe, err := Probe(ctx, socket, 1<<20)
 		cancel()
@@ -65,15 +75,15 @@ func TestProbeSameSchemaOtherVersionIsIncompatible(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if probe.Compatible != tc.compatible || probe.DaemonSchema != ipc.SchemaVersion || probe.ClientSchema != ipc.SchemaVersion || probe.Status.Version != tc.version {
-			t.Fatalf("version %s: probe=%+v", tc.version, probe)
+		if probe.Compatible != tc.compatible || probe.DaemonSchema != ipc.SchemaVersion || probe.ClientSchema != ipc.SchemaVersion || probe.Status.Version != tc.version || probe.Status.Build != tc.build {
+			t.Fatalf("version %s build %q: probe=%+v", tc.version, tc.build, probe)
 		}
 	}
 }
 
 func TestProbeRefusesUnknownNewerLifecycleSchema(t *testing.T) {
 	socket := filepath.Join(testsocket.Dir(t), "d.sock")
-	fixture := startLifecycleFixture(t, socket, ipc.SchemaVersion+1, "future")
+	fixture := startLifecycleFixture(t, socket, ipc.SchemaVersion+1, "future", "")
 	defer fixture.close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -88,7 +98,7 @@ type lifecycleFixture struct {
 	once     sync.Once
 }
 
-func startLifecycleFixture(t *testing.T, socket string, schema int, version string) *lifecycleFixture {
+func startLifecycleFixture(t *testing.T, socket string, schema int, version, build string) *lifecycleFixture {
 	t.Helper()
 	listener, err := net.Listen("unix", socket)
 	if err != nil {
@@ -102,7 +112,7 @@ func startLifecycleFixture(t *testing.T, socket string, schema int, version stri
 			if err != nil {
 				return
 			}
-			stop := f.handle(conn, schema, version, socket)
+			stop := f.handle(conn, schema, version, build, socket)
 			_ = conn.Close()
 			if stop {
 				_ = listener.Close()
@@ -113,7 +123,7 @@ func startLifecycleFixture(t *testing.T, socket string, schema int, version stri
 	return f
 }
 
-func (f *lifecycleFixture) handle(conn net.Conn, schema int, version, socket string) bool {
+func (f *lifecycleFixture) handle(conn net.Conn, schema int, version, build, socket string) bool {
 	var req ipc.Request
 	if err := ipc.Read(conn, &req, 1<<20); err != nil {
 		return false
@@ -124,7 +134,7 @@ func (f *lifecycleFixture) handle(conn net.Conn, schema int, version, socket str
 	}
 	switch req.Operation {
 	case "ping", "status":
-		raw, _ := json.Marshal(Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 7, Version: version})
+		raw, _ := json.Marshal(Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: 0, AcceptedJobs: 7, Version: version, Build: build})
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)
 		return false
 	case "stop":

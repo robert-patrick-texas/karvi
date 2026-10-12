@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -36,7 +37,7 @@ func TestEnsureDaemonRejectsOlderDaemonWithoutSpawningReplacement(t *testing.T) 
 	if code := errorcodes.ExitAt(err, "daemon_start_failed"); err == nil || code != exitcode.ExitJobRejected {
 		t.Fatalf("code=%d err=%v", code, err)
 	}
-	for _, want := range []string{"daemon_incompatible", "version 0.8.0", "IPC schema 2", "both must match", "karvi daemon restart", "no job was submitted"} {
+	for _, want := range []string{"daemon_incompatible", "version 0.8.0", "IPC schema 2", "must both match", "karvi daemon restart", "no job was submitted"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("error=%q missing %q", err, want)
 		}
@@ -62,20 +63,21 @@ func TestEnsureDaemonRejectsOlderDaemonWithoutSpawningReplacement(t *testing.T) 
 	}
 }
 
-// TestEnsureDaemonRejectsSameSchemaOtherVersion covers the version-and-schema
-// pair rule on the run path and the status line: a daemon
-// of another release at this executable's IPC schema is incompatible, the
-// message names both versions and both schemas, no replacement is launched,
-// and status says so with the remediation.
-func TestEnsureDaemonRejectsSameSchemaOtherVersion(t *testing.T) {
+// TestEnsureDaemonRejectsSameSchemaOtherBuild covers the build rule on the
+// run path and the status (EXAMPLES chapter 57, issues 1 and 2): a daemon of
+// another build at this executable's IPC schema and version is incompatible,
+// the message names both builds, no replacement is launched, and status
+// stacks each pair, the daemon's over the client's, with the remediation.
+func TestEnsureDaemonRejectsSameSchemaOtherBuild(t *testing.T) {
 	base, g, socket := daemonTestRuntime(t)
-	fixtureDone := startCLILifecycleFixture(t, socket, ipc.SchemaVersion, "0.19.0", 0)
+	fixtureDone := startCLILifecycleFixture(t, socket, ipc.SchemaVersion, buildinfo.Version, 0)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		_, _ = daemon.StopCompatible(ctx, socket, 1<<20, daemon.StopForce)
 		<-fixtureDone
 	}()
+	own := buildinfo.BuildOrNone()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -83,7 +85,7 @@ func TestEnsureDaemonRejectsSameSchemaOtherVersion(t *testing.T) {
 	if code := errorcodes.ExitAt(err, "daemon_start_failed"); err == nil || code != exitcode.ExitJobRejected {
 		t.Fatalf("code=%d err=%v", code, err)
 	}
-	for _, want := range []string{"daemon_incompatible: running daemon version 0.19.0", fmt.Sprintf("IPC schema %d; karvi %s uses schema %d, and both must match", ipc.SchemaVersion, daemon.ClientVersion, ipc.SchemaVersion), "karvi daemon restart", "no job was submitted"} {
+	for _, want := range []string{fmt.Sprintf("daemon_incompatible: running daemon version %s build %s", buildinfo.Version, fixtureBuild), fmt.Sprintf("IPC schema %d; karvi %s build %s uses schema %d, and the schema and the build must both match", ipc.SchemaVersion, buildinfo.Version, own, ipc.SchemaVersion), "karvi daemon restart", "no job was submitted"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("error=%q missing %q", err, want)
 		}
@@ -97,10 +99,9 @@ func TestEnsureDaemonRejectsSameSchemaOtherVersion(t *testing.T) {
 	if got := Main(args, strings.NewReader(""), &stdout, &stderr); got != 0 {
 		t.Fatalf("status exit=%d stdout=%q stderr=%q", got, stdout.String(), stderr.String())
 	}
-	for _, want := range []string{"version: 0.19.0", fmt.Sprintf("daemon_ipc_schema: %d", ipc.SchemaVersion), fmt.Sprintf("client_ipc_schema: %d", ipc.SchemaVersion), "compatible: false", "remediation: karvi daemon restart"} {
-		if !strings.Contains(stdout.String(), want) {
-			t.Fatalf("stdout=%q missing %q", stdout.String(), want)
-		}
+	want := fmt.Sprintf("daemon_version: %[1]s\nclient_version: %[1]s\ndaemon_commit: %[2]s\nclient_commit: %[2]s\ndaemon_ipc_schema: %[3]d\nclient_ipc_schema: %[3]d\ndaemon_build: %[4]s\nclient_build: %[5]s\ncompatible: false\nremediation: karvi daemon restart\nstarted_at: ", buildinfo.Version, buildinfo.Commit, ipc.SchemaVersion, fixtureBuild, own)
+	if !strings.Contains(stdout.String(), want) {
+		t.Fatalf("stdout=%q missing %q", stdout.String(), want)
 	}
 }
 
@@ -119,7 +120,7 @@ func TestDaemonStatusReportsOlderSchemaAndRemediation(t *testing.T) {
 	if got := Main(args, strings.NewReader(""), &stdout, &stderr); got != 0 {
 		t.Fatalf("status exit=%d stdout=%q stderr=%q", got, stdout.String(), stderr.String())
 	}
-	for _, want := range []string{"version: 0.8.0", "daemon_ipc_schema: 2", "compatible: false", "remediation: karvi daemon restart"} {
+	for _, want := range []string{"daemon_version: 0.8.0\n", "daemon_ipc_schema: 2\n", "daemon_build:\n", "compatible: false\n", "remediation: karvi daemon restart\n"} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Fatalf("stdout=%q missing %q", stdout.String(), want)
 		}
@@ -169,6 +170,10 @@ func daemonTestRuntime(t *testing.T) (string, globalOptions, string) {
 	return base, g, rt.Socket
 }
 
+// fixtureBuild is the build the lifecycle fixture names at this schema: a
+// build of another program (EXAMPLES chapter 57, issue 2's example).
+const fixtureBuild = "9Au3WHU839F5xE-67H93"
+
 func startCLILifecycleFixture(t *testing.T, socket string, schema int, version string, activeJobs int64) <-chan struct{} {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(socket), 0700); err != nil {
@@ -204,7 +209,12 @@ func startCLILifecycleFixture(t *testing.T, socket string, schema int, version s
 				conn.Close()
 				return
 			}
-			status := daemon.Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: activeJobs, Version: version}
+			status := daemon.Status{IPCSchemaVersion: schema, Status: "running", PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: activeJobs, Version: version, Commit: buildinfo.Commit}
+			if schema == ipc.SchemaVersion {
+				// A daemon of this schema names its build, never the test's;
+				// an older one names none.
+				status.Build = fixtureBuild
+			}
 			raw, _ := json.Marshal(status)
 			_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: schema, RequestID: req.RequestID, Result: raw}, 1<<20)
 			conn.Close()

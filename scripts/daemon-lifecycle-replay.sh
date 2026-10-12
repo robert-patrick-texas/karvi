@@ -63,7 +63,7 @@ echo "[1] the old daemon, then the new client's status"
 old_start 1
 p1=$(pid)
 HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status" 2>&1 || fail "1: daemon status exit $?"
-sed 's/^/    /' "$TMP/status" | grep -E '^    (status|version|daemon_ipc_schema|client_ipc_schema|compatible|active_jobs|remediation):'
+sed 's/^/    /' "$TMP/status" | grep -E '^    (status|daemon_version|client_version|daemon_ipc_schema|client_ipc_schema|compatible|active_jobs|remediation):'
 grep -q "^daemon_ipc_schema: $old_schema\$" "$TMP/status" && grep -q "^client_ipc_schema: $new_schema\$" "$TMP/status" && grep -q '^compatible: false$' "$TMP/status" && grep -q '^active_jobs: 0$' "$TMP/status" && grep -q '^remediation: karvi daemon restart$' "$TMP/status" || fail "1: status fields"
 
 echo "[2] the new client's run is refused and launches no replacement"
@@ -92,7 +92,7 @@ fi
 sed 's/^/    /' "$TMP/restart"
 grep -q "stopped incompatible daemon version=.* ipc_schema=$old_schema" "$TMP/restart" && grep -q 'daemon restarted' "$TMP/restart" || fail "4: restart lines"
 HOME=$H "$NEW" "${A[@]}" daemon status >"$TMP/status4" 2>&1
-sed 's/^/    /' "$TMP/status4" | grep -E '^    (status|pid|version|daemon_ipc_schema|compatible):'
+sed 's/^/    /' "$TMP/status4" | grep -E '^    (status|pid|daemon_version|daemon_ipc_schema|daemon_build|client_build|compatible):'
 grep -q "^daemon_ipc_schema: $new_schema\$" "$TMP/status4" && grep -q '^compatible: true$' "$TMP/status4" || fail "4: the new daemon is not compatible"
 [ "$(pid)" != "$p4" ] || fail "4: the pid did not change"
 gone "$p4" 4

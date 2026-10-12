@@ -81,11 +81,17 @@ type Server struct {
 	lastActive atomic.Int64
 	draining   atomic.Bool
 	mu         sync.Mutex
+	// build is this executable's build, read at Serve's start and named in
+	// every status (buildinfo.Build).
+	build string
 
 	preparations preparationTable
 	idempotency  idempotencyTable
 	jobTable     jobTable
 }
+
+// ownBuild is this executable's build (buildinfo.Build); a test replaces it.
+var ownBuild = buildinfo.Build
 
 type Status struct {
 	IPCSchemaVersion int       `json:"ipc_schema_version"`
@@ -97,6 +103,11 @@ type Status struct {
 	ActiveJobs       int64     `json:"active_jobs"`
 	AcceptedJobs     int64     `json:"accepted_jobs"`
 	Version          string    `json:"version"`
+	// Commit and Build name the daemon's program (EXAMPLES chapter 57, issue
+	// 2): the commit for people, the build to compare; a daemon of a release
+	// before them names neither.
+	Commit string `json:"commit"`
+	Build  string `json:"build"`
 	// ActiveJobsReported is false when a daemon's status omitted active_jobs,
 	// which only older released lifecycle envelopes can do.
 	ActiveJobsReported bool `json:"-"`
@@ -139,6 +150,11 @@ func (s *Server) Serve(parent context.Context) error {
 	if s.Socket == "" {
 		return errorcodes.Errorf("daemon_socket_blank", "daemon socket is blank")
 	}
+	build, err := ownBuild()
+	if err != nil {
+		return errorcodes.Errorf("build_unreadable", "no daemon started: %v", err)
+	}
+	s.build = build
 	if s.UID == 0 && os.Geteuid() != 0 {
 		s.UID = os.Geteuid()
 	}
@@ -544,7 +560,7 @@ func (s *Server) state() string {
 }
 
 func (s *Server) status(state string) Status {
-	return Status{IPCSchemaVersion: ipc.SchemaVersion, Status: state, PID: os.Getpid(), UID: s.UID, Socket: s.Socket, StartedAt: s.StartedAt, ActiveJobs: s.active.Load(), AcceptedJobs: s.total.Load(), Version: buildinfo.Version}
+	return Status{IPCSchemaVersion: ipc.SchemaVersion, Status: state, PID: os.Getpid(), UID: s.UID, Socket: s.Socket, StartedAt: s.StartedAt, ActiveJobs: s.active.Load(), AcceptedJobs: s.total.Load(), Version: buildinfo.Version, Commit: buildinfo.Commit, Build: s.build}
 }
 func (s *Server) writeState(state string) error {
 	if s.StatePath == "" {

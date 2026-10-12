@@ -86,7 +86,7 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 		if f.draining.Load() {
 			state = "draining"
 		}
-		return daemon.Status{IPCSchemaVersion: ipc.SchemaVersion, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: f.active.Load(), Version: buildinfo.Version}
+		return daemon.Status{IPCSchemaVersion: ipc.SchemaVersion, Status: state, PID: os.Getpid(), UID: os.Geteuid(), Socket: socket, StartedAt: time.Now(), ActiveJobs: f.active.Load(), Version: buildinfo.Version, Commit: buildinfo.Commit, Build: buildinfo.BuildOrNone()}
 	}
 	switch req.Operation {
 	case "ping", "status":

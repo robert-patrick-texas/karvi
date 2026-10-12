@@ -78,6 +78,7 @@ Active failure causes.
 | `blind_return_conflict` | usage | 4 | no | One command both ends in `\r` sequences and is given `--blind-return`, or is given `--blind-return` more than once; the two counts contradict, and one form is written. |
 | `blind_return_out_of_range` | usage | 4 | no | `--blind-return` is outside 0..20, or a command ends in more than twenty `\r` sequences. |
 | `border_options_conflict` | usage | 4 | no | `--border` and `--noborder` are both given. |
+| `build_unreadable` | dependency | 8 | no | The running karvi executable carries no Go build ID it can read (`/proc/self/exe`, the note `.note.go.buildid`): `daemon serve` starts no daemon and a client submits no job through one; `--no-daemon` runs without. |
 | `capacity_admission_failed` | capacity | 110 | yes | A device session slot cannot be acquired before the activity is cancelled. |
 | `capacity_ledger_malformed` | dependency | 8 | no | A capacity ledger file is not valid JSON. |
 | `capacity_root_blank` | internal | 1 | no | The capacity manager was given a blank root directory. |

@@ -19,6 +19,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/buildinfo"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
+	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -70,24 +71,90 @@ func daemonStatus(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if err != nil {
 		return g.reportError(streams.Stderr, "daemon_unreachable", fmt.Errorf("daemon not running or unreadable: %w", err))
 	}
-	status := probe.Status
+	view := newDaemonStatusView(probe)
 	switch format {
 	case "json":
-		out := struct {
-			daemon.Status
-			Compatible      bool   `json:"compatible"`
-			ClientVersion   string `json:"client_version"`
-			ClientIPCSchema int    `json:"client_ipc_schema"`
-		}{Status: status, Compatible: probe.Compatible, ClientVersion: buildinfo.Version, ClientIPCSchema: probe.ClientSchema}
-		b, _ := json.MarshalIndent(out, "", "  ")
+		b, _ := json.MarshalIndent(view, "", "  ")
 		fmt.Fprintf(streams.Stdout, "%s\n", b)
 	default:
-		fmt.Fprintf(streams.Stdout, "status: %s\npid: %d\nuid: %d\nsocket: %s\nversion: %s\ndaemon_ipc_schema: %d\nclient_version: %s\nclient_ipc_schema: %d\ncompatible: %t\nstarted_at: %s\nactive_jobs: %d\naccepted_jobs: %d\n", status.Status, status.PID, status.UID, status.Socket, status.Version, probe.DaemonSchema, buildinfo.Version, probe.ClientSchema, probe.Compatible, status.StartedAt.Format(time.RFC3339Nano), status.ActiveJobs, status.AcceptedJobs)
-		if !probe.Compatible {
-			fmt.Fprintln(streams.Stdout, "remediation: karvi daemon restart")
-		}
+		view.render(streams.Stdout, g.style(streams.Stdout), !probe.Compatible)
 	}
 	return 0
+}
+
+// daemonStatusView is daemon status's answer (EXAMPLES chapter 57, issue 2):
+// the daemon's values that have a client's beside them prefixed daemon_, the
+// client's client_, each pair the daemon's over the client's; the same keys in
+// the text, in this order, and in JSON.
+type daemonStatusView struct {
+	Status          string    `json:"status"`
+	PID             int       `json:"pid"`
+	UID             int       `json:"uid"`
+	Socket          string    `json:"socket"`
+	DaemonVersion   string    `json:"daemon_version"`
+	ClientVersion   string    `json:"client_version"`
+	DaemonCommit    string    `json:"daemon_commit"`
+	ClientCommit    string    `json:"client_commit"`
+	DaemonIPCSchema int       `json:"daemon_ipc_schema"`
+	ClientIPCSchema int       `json:"client_ipc_schema"`
+	DaemonBuild     string    `json:"daemon_build"`
+	ClientBuild     string    `json:"client_build"`
+	Compatible      bool      `json:"compatible"`
+	StartedAt       time.Time `json:"started_at"`
+	ActiveJobs      int64     `json:"active_jobs"`
+	AcceptedJobs    int64     `json:"accepted_jobs"`
+}
+
+func newDaemonStatusView(probe daemon.ProbeResult) daemonStatusView {
+	s := probe.Status
+	return daemonStatusView{
+		Status: s.Status, PID: s.PID, UID: s.UID, Socket: s.Socket,
+		DaemonVersion: s.Version, ClientVersion: buildinfo.Version,
+		DaemonCommit: s.Commit, ClientCommit: buildinfo.Commit,
+		DaemonIPCSchema: probe.DaemonSchema, ClientIPCSchema: probe.ClientSchema,
+		DaemonBuild: s.Build, ClientBuild: buildinfo.BuildOrNone(),
+		Compatible: probe.Compatible,
+		StartedAt:  s.StartedAt, ActiveJobs: s.ActiveJobs, AcceptedJobs: s.AcceptedJobs,
+	}
+}
+
+// render writes the text form: each pair's values in the success colour when
+// they are equal and in the error colour when not, compatible's value alike,
+// and the remediation after compatible when the daemon is not.
+func (v daemonStatusView) render(w io.Writer, style display.LineStyle, remedy bool) {
+	line := func(key, value string) {
+		if value == "" {
+			fmt.Fprintf(w, "%s:\n", key)
+			return
+		}
+		fmt.Fprintf(w, "%s: %s\n", key, value)
+	}
+	paint := func(value string, equal bool) string {
+		color := style.Error
+		if equal {
+			color = style.Success
+		}
+		return display.ANSIStyle(value, color, style.Enabled, false)
+	}
+	pair := func(key, daemonValue, clientValue string, equal bool) {
+		line("daemon_"+key, paint(daemonValue, equal))
+		line("client_"+key, paint(clientValue, equal))
+	}
+	line("status", v.Status)
+	line("pid", strconv.Itoa(v.PID))
+	line("uid", strconv.Itoa(v.UID))
+	line("socket", v.Socket)
+	pair("version", v.DaemonVersion, v.ClientVersion, v.DaemonVersion == v.ClientVersion)
+	pair("commit", v.DaemonCommit, v.ClientCommit, v.DaemonCommit == v.ClientCommit)
+	pair("ipc_schema", strconv.Itoa(v.DaemonIPCSchema), strconv.Itoa(v.ClientIPCSchema), v.DaemonIPCSchema == v.ClientIPCSchema)
+	pair("build", v.DaemonBuild, v.ClientBuild, v.DaemonBuild != "" && v.DaemonBuild == v.ClientBuild && v.ClientBuild != "none")
+	line("compatible", paint(strconv.FormatBool(v.Compatible), v.Compatible))
+	if remedy {
+		line("remediation", "karvi daemon restart")
+	}
+	line("started_at", v.StartedAt.Format(time.RFC3339Nano))
+	line("active_jobs", strconv.FormatInt(v.ActiveJobs, 10))
+	line("accepted_jobs", strconv.FormatInt(v.AcceptedJobs, 10))
 }
 
 // stopOptions holds the mutually exclusive waiting choices shared by daemon
@@ -304,7 +371,15 @@ func serveDaemon(g globalOptions, stderr io.Writer) int {
 // ensureDaemon makes a compatible daemon answer at the socket of rt, the
 // invocation's runtime, launching one with the global options g when none
 // does; every error carries a registered code.
+// ownBuild is this executable's build (buildinfo.Build); a test replaces it.
+var ownBuild = buildinfo.Build
+
 func ensureDaemon(ctx context.Context, rt app.DaemonRuntime, g globalOptions, stderr io.Writer) error {
+	// A client that cannot read its own build has nothing to compare a
+	// daemon with (EXAMPLES chapter 57, issue 2).
+	if _, err := ownBuild(); err != nil {
+		return errorcodes.Errorf("build_unreadable", "this karvi cannot read its own build: %v; --no-daemon runs without a daemon", err)
+	}
 	pingCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, pingErr := daemon.Probe(pingCtx, rt.Socket, rt.MaxFrame)
 	cancel()
@@ -398,11 +473,10 @@ func secretVariableNotice(logger *slog.Logger) {
 }
 
 // incompatibleDaemonError words a probe that found the daemon incompatible:
-// its version and IPC schema are both named beside the client's, since either
-// difference is the reason, and the remediation
-// is the same for both.
+// its version, build, and IPC schema beside the client's, since the schema
+// and the build decide and the version names the release for people.
 func incompatibleDaemonError(probe daemon.ProbeResult) error {
-	return fmt.Errorf("daemon_incompatible: running daemon version %s uses IPC schema %d; karvi %s uses schema %d, and both must match; no job was submitted and the daemon was not replaced automatically; run \"karvi daemon status\" and, when active_jobs is 0, run \"karvi daemon restart\", then retry (or use \"karvi run --no-daemon ...\" for an explicit foreground run)", displayUnknown(probe.Status.Version), probe.DaemonSchema, buildinfo.Version, probe.ClientSchema)
+	return fmt.Errorf("daemon_incompatible: running daemon version %s build %s uses IPC schema %d; karvi %s build %s uses schema %d, and the schema and the build must both match; no job was submitted and the daemon was not replaced automatically; run \"karvi daemon status\" and, when active_jobs is 0, run \"karvi daemon restart\", then retry (or use \"karvi run --no-daemon ...\" for an explicit foreground run)", displayUnknown(probe.Status.Version), displayUnknown(probe.Status.Build), probe.DaemonSchema, buildinfo.Version, buildinfo.BuildOrNone(), probe.ClientSchema)
 }
 
 func displayUnknown(value string) string {

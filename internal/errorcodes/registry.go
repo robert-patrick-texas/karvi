@@ -387,6 +387,7 @@ var entries = []Entry{
 	failure("activity_id_generation_failed", "internal", exitGen, false, "A random activity or event identifier cannot be generated."),
 	failure("activity_scope_empty", "internal", exitUsage, false, "An activity was started with no device or no command."),
 	fallback("base_directory_unavailable", "permission", exitPerm, "The karvi base directory cannot be resolved or created."),
+	failure("build_unreadable", "dependency", exitDep, false, "The running karvi executable carries no Go build ID it can read (`/proc/self/exe`, the note `.note.go.buildid`): `daemon serve` starts no daemon and a client submits no job through one; `--no-daemon` runs without."),
 	fallback("control_path_root_unavailable", "permission", exitPerm, "The OpenSSH control-path root cannot be resolved or created."),
 	failure("karvi_executable_unlocatable", "dependency", exitDep, false, "The path of the running karvi executable cannot be determined."),
 	failure("operator_identity_unavailable", "internal", exitGen, false, "The current operator's user name, UID, or home directory cannot be determined."),

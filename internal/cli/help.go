@@ -604,8 +604,9 @@ unfinished work still receives terminal records. Interrupting a wait leaves the
 daemon draining. --help shows this text. Specified, not yet available:
 daemon start --start-timeout DURATION.
 
-A daemon is compatible when its version and its IPC schema both equal the
-client's; either difference is incompatible. An upgraded client never submits
+A daemon is compatible when its IPC schema and its build, the Go build ID's
+last part that karvi version names, both equal the client's; status shows each
+of the daemon's values over the client's. An upgraded client never submits
 a job to, kills, or silently replaces an incompatible running daemon. Status
 and explicit stop/restart use the stable same-UID lifecycle envelope for
 released IPC schemas, allowing an operator to recover after an upgrade without
