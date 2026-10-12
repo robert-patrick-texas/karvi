@@ -121,6 +121,19 @@ job, its records, and its display are a run's and no rule lives twice.
 are deterministic, every write crosses the config-lock gate, macros expand
 after merge, and semantic validation completes before network access.
 
+Macros are `configload.expandMacros` (`macro.go`): every `macros.NAME` of the
+merged layers, each expanded once and held, a value that is a macro alone taking
+the macro's kind and a list macro spliced into a list. `%operator%` is the
+built-in `operatorMacro`, the name `Options.Operator` gives (every caller passes
+its operator's; empty, the password database's, then `$USER`); `operatorKept`
+keeps it as written in the seven keys a backend fills, the key being filled
+deciding, and the backend fills it with `credentials.ResolveRequest.Fill`, a
+plain replacement of `credentials.OperatorMacro` by the name after its
+transform. The loader may not import a backend package (the job runner's and
+the daemon's boundary tests), so the portable-name rule the loader, the `env:`
+references, and the credential helper's parser share is `internal/envname`
+(`Portable`).
+
 A key the registry once held and has since dropped is refused at load from
 every layer: `configload/removed.go` is the one table of removed keys
 (path, environment name, release, code, hint), consulted by the file and
@@ -196,6 +209,19 @@ showed it (`internal/termtext`), at the widths `script(1)`'s timing log records.
 
 `internal/display` owns templates, human timestamps, themes, colors, visible
 width, and border expansion. Machine records bypass this path.
+
+Whether a line is coloured is `display.ColorEnabled(mode, theme, to)`, where
+`to` is the destination (`display.Destination`: `Terminal`, `File`, or
+`Elsewhere`, a pipe), `display.DestinationOf(terminal, regular)` given
+`osutil`'s answers (`display` cannot import `osutil`, whose tests reach
+`configload`); `jobexec.DisplayDestination(w)` asks them of a writer and
+`jobexec.DisplayLineStyle(cfg, to)` gives a line's style, for the run renderer,
+the warnings, login's lines, the help, `config colors`, the watch screen, and
+`karvi-prune -h` alike. The CLI's refusals go through methods of
+`globalOptions` (`reportError`, `usageError`, `printResultError`, `refuse`,
+`dropped`), which colour by `globalOptions.shown`: the built-in defaults under
+the command line's own `display.*` options until the invocation's read, then
+each read's snapshot.
 
 The text renderer defers each border until another record arrives. This makes a
 border a true separator and permits `last-border=false` without buffering
@@ -497,9 +523,44 @@ reason is restated. A result cell `env:NAME` is
 checks its name, and keeps the name in place of a value; `Resolve` reads it
 (`Read`) through the request's `LookupEnv`, the resolver's one lookup, its input
 provider's, which the `NET*` fallback reads too, and answers
-`credential_env_missing` for an unset or empty variable. The env, Redis, and
-Vault backends still read the process environment themselves, for the credential
-helper to fold.
+`credential_env_missing` for an unset or empty variable.
+
+The env, Redis, and Vault backends read through the same lookup and call no
+`os.LookupEnv`. A Redis or Vault record is `envindirect.Record`'s, its three
+fields each a literal or an `env:` reference, the store's malformed-record code
+passed in, and every unset or empty variable, a record's or the configuration's
+(`token-env`, `auth-password-env`), is `envindirect.Missing`'s one result,
+`credential backend B: WHERE: REASON`. Both stores' TLS is one function,
+`internal/credentialbackend/storetls.Config(ca, cert, key, verify)`, whose
+`ErrNoCertificates` maps to `redis_ca_file_empty` or `vault_ca_file_empty`. The
+resolver sets every default where it builds a backend (`New`), and `Resolve`
+reads its backend and never writes it, so devices resolving in parallel share
+it (a concurrent test under `-race`). A backend whose `Mode()` is
+`credentials.OperatorKeyed` asks the same of every device, so `Resolver.ask`
+holds its answer per resolver under `heldKey{backend, operator}`, devices in
+parallel waiting for the one read, each given its own copy (`copyMaterial`); a
+read the context ended is not held. The store tests run against
+`redis/redistest` (a RESP server counting commands and connections) and
+`storetls/tlstest` (a CA, a server certificate for 127.0.0.1, and a client pair
+whose file holds a chain of two).
+
+The credential helper is `internal/credentialbackend/credhelper`, out of the
+daemon's and the job runner's reach by their boundary tests: `Settings` and
+`FromConfig` the four `creds.helper*` keys, `Locate` the path (a bare name
+beside the running executable, as `findAskpass` finds `karvi-askpass`), `Run`
+one run, `Values` the parsed values with their `LookupEnv`, `Holder` the values
+an invocation or a stream holds, and `Input` the provider that reads them ahead
+of the process environment; `parse.go` is the output grammar and `proctree.go`
+the descendants ended at a timeout or cancellation, each held by a pidfd
+(`golang.org/x/sys/unix`, a direct requirement for it). `Run` opens the file
+`O_PATH`, `O_NOFOLLOW` unless symlinks are allowed, checks the descriptor with
+the credential file rules (`credfile.Rules.ApprovedUID` for the owner), and runs
+it as `/proc/self/fd/3` through `ExtraFiles`. `internal/app/credhelper.go`'s
+`credentialInput` is the one credential step, used by `planAndPackage`, the
+draft's client, and `login`, so every invocation that resolves runs the helper
+at one place; the CLI makes the `Holder` in `Main` (`globalOptions.helper`,
+`CommonOptions.Helper`), destroys it at the end, and a stream's `--restart`
+destroys the values it holds.
 
 The inventory's `credkeyref` column is a
 logical field of `internal/inventoryload` like any other

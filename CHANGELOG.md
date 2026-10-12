@@ -101,11 +101,11 @@
   `credential_env_missing` (exit 6), naming the file, the line, the column, and
   the variable, before any device is reached, where under `env-indirection` an
   unset variable's name was sent as the password. A name that is no variable
-  name is `credential_csv_row_invalid` when the file loads. A `csv` backend's
-  `env-indirection.username`, `.password`, and `.enable-password` are refused
-  (`config_credential_backend_key_unsupported`): a plain cell is a literal
-  whatever variables are set, and a literal password that begins with `env:` is
-  given through a variable. The cell reads the resolver's one lookup, its input
+  name is `credential_csv_row_invalid` when the file loads.
+  `env-indirection.username`, `.password`, and `.enable-password` are removed
+  from every backend (below): a plain cell is a literal whatever variables are
+  set, and a literal password that begins with `env:` is given through a
+  variable. The cell reads the resolver's one lookup, its input
   provider's, which the `NET*` fallback reads too: `credentials.ResolveRequest`
   carries it as `LookupEnv`, and `credentials.FieldSource` and
   `Credential.FieldSources`, which nothing read, are removed.
@@ -136,6 +136,93 @@
   `[name-transform.default]`, whatever the key said. It is refused with
   `config_key_removed` from a file, `KARVI__NAME__DEFAULT_TRANSFORM`, and
   `--set`; define `[name-transform.default]` to change the default.
+- **A credential helper.** `creds.helper` names an executable, by default
+  `karvi-credh` beside the karvi executable, that an invocation resolving
+  credentials (`login`, `command`, `run` and its dry run, `crun`) runs once
+  before any backend is asked, and a `stream` at its first job, holding its
+  values until `--restart`. Its standard output, `export NAME="value"` lines
+  read by a parser and never by a shell, sets values for karvi's credential
+  readers alone, ahead of the process environment: the `NET*` fallback, an
+  `env:` cell or field, an env backend's templates, Redis's login variables,
+  and Vault's token. It runs with karvi's environment, standard input
+  `/dev/null`, and its standard error discarded, after a credential file's
+  checks (its owner, no write by group or others, no symlink unless allowed).
+  `creds.helper-unavailable` (`skip`, `warn`, or `fail`) says what a helper
+  that cannot be run does, and one that fails always refuses the run:
+  `credential_helper_unavailable`, `credential_helper_failed`, and
+  `credential_helper_output_invalid` (exit 6). `creds.helper-timeout` (`60s`)
+  ends it and the processes it started. `--no-credh` on `login`, `command`,
+  `run`, `crun`, and `stream` skips it for the invocation.
+  `examples/karvi-credh` is a POSIX `sh` helper over `pass show`; the package
+  installs none.
+  `golang.org/x/sys` becomes a direct requirement. The configuration registry
+  stays at 29.
+- **Breaking: `%operator%` in a credential template, and `%s` is text.**
+  `%operator%` is a built-in configuration macro, the operator's login name,
+  filled in every value and kept for the backend in the env backend's three
+  templates, Redis's `key-template`, Vault's `path-template`, and a formula's
+  and a policy's `username-template`, filled there with the name after the
+  backend's transform; the defaults are `karvi:credential:%operator%` and
+  `karvi/%operator%`. These templates were Go's `printf` over `%s`: `%s` is now
+  text, so a Redis key or Vault path holding it finds no record, a formula
+  sends it, and an env template holding it is refused at load (below).
+  `[macros] operator` is refused with `config_macro_name_reserved` (exit 2).
+- **Breaking: `env-indirection` removed; a Redis or Vault record names a
+  variable as `env:NAME`.** `env-indirection.username`, `.password`, and
+  `.enable-password` are refused on every backend with `config_key_removed`,
+  where under a flag a field whose variable was unset was sent as the password.
+  A Redis or Vault record's username, password, or enable field `env:NAME`
+  takes the variable's value, an unset or empty one `credential_env_missing`
+  (exit 6) naming the backend, the record, the field, and the variable; any
+  other value is a literal. An env backend's variable's value is the value.
+- **Breaking: every credential reader on the one lookup.** The env, Redis, and
+  Vault backends read the environment through the resolver's lookup, where the
+  helper's values are. A variable Redis's or Vault's configuration names
+  (`auth-username-env`, `auth-password-env`, `token-env`), unset or empty, is
+  `credential_env_missing` (exit 6) before any connection, `credential backend
+  v: token-env: VAULT_TOKEN not set`, where Redis sent `AUTH` with an empty
+  password; `redis_auth_missing` and `vault_token_missing` are retired.
+- **Breaking: a store backend's keys checked at load.** The env, Redis, and
+  Vault backends' keys have kinds (`tls` and `tls-verify` booleans, `database`
+  an integer of 0 or more, `connect-timeout` a duration above zero); `address`
+  is required and well formed, `config_credential_backend_address_invalid`,
+  retiring `redis_address_missing` and `vault_address`; `token-env`,
+  `auth-username-env`, `auth-password-env`, and the env templates are portable
+  variable names, `config_credential_backend_variable_invalid`; and a key the
+  backend's other keys leave unread is
+  `config_credential_backend_key_unsupported` (`auth-username-env` alone, half
+  a client pair, TLS keys without TLS, `ca-file` under `tls-verify = false`),
+  retiring `redis_client_cert_key_unpaired` and
+  `vault_client_cert_key_unpaired`. Each is exit 2, where these validated and
+  fell to a default or a refusal at the run. `""` is none for a key whose
+  default is none and refused where the default is a value. An env template
+  that the operator's transformed name makes no variable name stops the device
+  at planning, naming `replace-chars`.
+- **Breaking: a store's `ca-file` is its whole trust.** A Redis or Vault
+  backend's `ca-file`, when given, is the backend's whole trust, where it was
+  added to the host's. A new key, `tls-verify` (`true`), verifies the server's
+  certificate chain and name, and `false` checks neither. A client certificate
+  file's further certificates are sent as its chain.
+  [`docs/OPERATIONS.md`](docs/OPERATIONS.md) gains the Redis and Vault
+  backends, how to trust a self-signed store, and the configuration's macros.
+- **A store asked once.** An env, Redis, or Vault backend is asked once per
+  invocation, or per job of a stream, its answer held for every device: forty
+  devices made one read where they made forty, and a store that never answers
+  costs one timeout. Vault's defaults, written by every device's resolution
+  while devices resolved in parallel, are set once.
+- **Redis's `matched_on.source` is the key read**, where it was the text
+  `redis-key-digest-not-implemented`. `value_digest`, set by nothing, leaves
+  the credential package's schema; the package counter stays at 2.
+- **Refusals in colour, and `--nocolor`.** At a terminal a refusal, its code
+  and message, is bold in the `error` role's colour, as a device's failure line
+  is, and a line a stream drops and goes on from bold in the `warning` role's
+  colour; a refusal before the configuration is read takes the built-in
+  settings. `--nocolor`, a global option before the command word, sets
+  `display.theme = "nocolor"` for the invocation.
+- **Breaking: no colour in a file.** A regular file is written plain whatever
+  `display.color` says, and `always` colours a terminal and a pipe, where it
+  coloured a file too: a script that read escapes from a file reads them
+  through a pipe.
 
 ## 0.29.0 - 2026-10-09
 

@@ -423,12 +423,83 @@ A server is qualified by the rows of
 [`docs/DEVICE-QUALIFICATION-RUNBOOK.md`, section
 9](DEVICE-QUALIFICATION-RUNBOOK.md#9-a-production-server).
 
+## Configuration macros
+
+A `[macros]` table names values that any other value of the configuration takes
+as `%NAME%`, the name a letter and then up to 63 letters, digits, `_`, and `-`.
+The layers are merged first, so a macro one file defines reaches the values of
+every other, and `--set 'macros.region="bos"'`, a TOML value, replaces one for
+an invocation. A macro is filled when the configuration loads: `config show`,
+the configuration digest, and the plan hold the filled values, and `config show
+--explain` names the macros a value took:
+
+```toml
+[macros]
+region = "nyc"
+core = ["show version", "show inventory"]
+
+[crun]
+directory = "/srv/karvi/%region%/%operator%"
+
+[platform.c9300]
+driver = "cisco_iosxe"
+crun-commands = ["%core%", "show running-config"]
+```
+
+```text
+$ karvi config show --explain crun.directory | grep 'key:\|value:\|macros:'
+key:        crun.directory
+value:      "/srv/karvi/nyc/netops"
+macros:      region, operator
+$ karvi config show platform.c9300.crun-commands | grep 'value:'
+value:      ["show version", "show inventory", "show running-config"]
+```
+
+- **A value that is the macro alone takes the macro's kind**, a list or a table
+  as well as a string, and a list macro inside a list is spliced into it, as
+  `%core%` above. Inside text a macro must be a string, a number, or a boolean.
+- **`%operator%` is built in**: the operator's login name from the password
+  database, filled in every value as a site's macro is. `[macros] operator` is
+  refused, and `%Operator%` is an ordinary macro.
+- **Seven keys keep `%operator%` as written**, and the backend fills it when it
+  is asked, with the operator's name after the backend's `operator` transform
+  ([the credential
+  transforms](#the-operators-name-and-the-credential-transforms)): the env
+  backend's three templates, Redis's `key-template`, Vault's `path-template`,
+  and the `username-template` of a formula and of a policy. The key being filled
+  decides, so a site's macro holding `%operator%` keeps it there too. Every
+  `%operator%` in such a key is replaced as text, and a template without one is
+  used as written: `karvi:shared` is one record for every operator. `%s` is
+  text: a Redis key or a Vault path holding it finds no record, a formula sends
+  it, and an env template holding it names no variable and is refused.
+- **A store's answer is never expanded.** A username, password, or enable
+  password from a credential CSV, a `.cloginrc`, or a Redis or Vault record is
+  sent as written, `%operator%` and `%HOME%` included.
+
+Refused when the configuration loads, `config validate` included (exit 2):
+
+| Code | The value |
+|---|---|
+| `config_macro_undefined` | names a macro no layer defines |
+| `config_macro_cycle` | names macros that name each other in a cycle |
+| `config_macro_scalar_type` | has a list or table macro inside text |
+| `config_macro_name_reserved` | is `[macros] operator` |
+
+```text
+config_macro_undefined: undefined macro %site% for crun.directory at FILE:2
+```
+
+`%operator%` with no name known for the operator is
+`operator_identity_unavailable`.
+
 ## The platform's fallback and the operator's keys
 
 When no backend of the policy answers for a device, its platform's
 `fallback` says what follows, in order: `netvars` reads `NETUSER`, `NETPASS`,
-and `NETENABLE`; `keys` is the operator's login name and own keys; `prompt`
-asks at the terminal ([the credential prompts](#the-credential-prompts)).
+and `NETENABLE` (the credential helper's values where it set them, else the
+process environment's: [the credential helper](#the-credential-helper)); `keys`
+is the operator's login name and own keys; `prompt` asks at the terminal ([the
+credential prompts](#the-credential-prompts)).
 The network built-ins and `generic` are `["netvars", "prompt"]`, `linux` and
 `linux_shell` `["keys"]`, an alias its driver's; a table replaces the list
 whole, and an empty list is no fallback. The variables an operator exports
@@ -525,24 +596,44 @@ names a backend, since nothing can be asked.
 ## The environment backend
 
 A backend of `type = "env"` reads one credential from environment variables in
-the client, before the job is planned. Three optional templates name the
-variables, one per field:
+the client, before the job is planned, the credential helper's values where it
+set them ([the credential helper](#the-credential-helper)). Three optional
+templates name the variables, one per field:
 
 ```toml
 [credential-backend.operator-env]
 type = "env"
-username-var-template = "KARVI_%s_USERNAME"
-password-var-template = "KARVI_%s_PASSWORD"
-enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
+username-var-template = "KARVI_%operator%_USERNAME"
+password-var-template = "KARVI_%operator%_PASSWORD"
+enable-var-template = "KARVI_%operator%_ENABLE_PASSWORD"
 ```
 
-- **`%s` is the operator's login name**, as the account has it, case kept,
-  after the backend's `transform` ([the credential
+- **`%operator%` is the operator's login name**, as the account has it, case
+  kept, after the backend's `transform` ([the credential
   transforms](#the-operators-name-and-the-credential-transforms)): for the
   operator `netops` the templates above read `KARVI_netops_USERNAME`,
-  `KARVI_netops_PASSWORD`, and `KARVI_netops_ENABLE_PASSWORD`. A template
-  without `%s` is the variable's name as written (`SRV_USER`); a template holds
-  at most one `%s`; a template left out reads nothing for its field.
+  `KARVI_netops_PASSWORD`, and `KARVI_netops_ENABLE_PASSWORD`. The templates
+  keep it as written ([configuration macros](#configuration-macros)), so
+  `config show` prints `KARVI_%operator%_PASSWORD`. A template without
+  `%operator%` is the variable's name as written (`SRV_USER`,
+  `enable-var-template = "NETENABLE"`); a template left out, or `""`, reads
+  nothing for its field.
+- **A template names a variable.** Each template, with `%operator%` stood in by
+  a letter, must be a portable variable name, letters, digits, and underscores,
+  not beginning with a digit; anything else is refused when the configuration
+  loads, `config validate` included, with
+  `config_credential_backend_variable_invalid` (exit 2), `%s` among it:
+
+  ```text
+  config_credential_backend_variable_invalid: "KARVI-%operator%-PASSWORD" not a variable name (letters, digits, underscores; no leading digit) for credential-backend.e.password-var-template at FILE:15
+  ```
+
+  An operator's name that makes no variable name, after the transform, stops
+  the device at planning under the same code, naming the remedy:
+
+  ```text
+  config_credential_backend_variable_invalid: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend e: password-var-template gives "KARVI_netops.adm_PASSWORD", not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform policy=default backend=e)
+  ```
 - **One credential per operator.** Nothing in a template names the device, so
   every device the policy sends to the backend takes the same credential. A
   credential per device comes from a backend whose rows select devices: the
@@ -554,10 +645,13 @@ enable-var-template = "KARVI_%s_ENABLE_PASSWORD"
   the credential is judged as any backend's: a field the device needs and the
   backend left empty is that field's missing code (`credential_password_missing`
   for a password), and no later backend, variable, or prompt is asked.
-- **Indirection.** `env-indirection.username`, `.password`, and
-  `.enable-password`, each `false` by default, make the variable's value the
-  name of another variable whose value is used; when that variable is not set,
-  the value is taken as written.
+- **A variable's value is the value.** `env:X` in a variable is the text
+  `env:X`; a template names the variable to read. `env-indirection.username`,
+  `.password`, and `.enable-password` are refused as removed,
+  `config_key_removed` (exit 2).
+- **Asked once.** The backend asks the same of every device, so it is asked
+  once per invocation, or per job of a stream, and its answer held for every
+  device the policies send to it.
 - **Not keyed.** A device pinned by `credkeyref` skips the backend
   ([`docs/CREDENTIAL-CSV.md`, section
   5](CREDENTIAL-CSV.md#5-keys-and-pins-credkey-and-credkeyref)). The record's
@@ -567,6 +661,341 @@ The fallback's `NETUSER`, `NETPASS`, and `NETENABLE` are read without a
 backend, after the policy's backends, where the platform's fallback holds
 `netvars` ([the platform's fallback](#the-platforms-fallback-and-the-operators-keys));
 an `env` backend is how a site names variables of its own.
+
+## The Vault backend
+
+A backend of `type = "vault"` reads the operator's record from a Vault KV
+version 2 engine, in the client before the job is planned, with a token from a
+variable. It is asked only for a device whose policy's `backend-sequence` names
+it:
+
+```toml
+[credential-backend.vault]
+type = "vault"
+address = "https://vault.example.net:8200"
+# mount = "secret"
+# path-template = "karvi/%operator%"
+# token-env = "VAULT_TOKEN"
+
+[credential-policy.default]
+backend-sequence = ["vault"]
+```
+
+- **The keys.** `address` is required, an `http://` or `https://` URL with a
+  host. `mount` (default `secret`) and `path-template` (default
+  `karvi/%operator%`) make the read `GET <address>/v1/<mount>/data/<path>`,
+  `%operator%` filled with the operator's name after the backend's transform;
+  `namespace` is sent as `X-Vault-Namespace`; `username-field`,
+  `password-field`, and `enable-field` (defaults `username`, `password`, and
+  `enable_password`) name the record's fields; `connect-timeout` (default `5s`)
+  bounds the read. `ca-file`, `client-cert-file`, `client-key-file`, and
+  `tls-verify` are the TLS settings ([TLS to a store](#tls-to-a-store)).
+- **The token** is the value of the variable `token-env` names (default
+  `VAULT_TOKEN`), the credential helper's where it set it. It is read when a
+  device's policy reaches the backend, and never by `config validate`; unset or
+  empty, the device stops at planning before any connection, and the run with
+  it:
+
+  ```text
+  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: token-env: VAULT_TOKEN not set policy=default backend=v)
+  ```
+
+  A token the store refuses is `vault_http_error` (`Vault returned HTTP 403`)
+  and a store that does not answer `vault_unavailable`, each exit 6.
+- **The record** gives the username, the password, and the enable password. A
+  field whose value, trimmed, begins with `env:` (the prefix's case ignored)
+  names a variable, read as the token is: `enable_password = "env:NETENABLE"`
+  takes `NETENABLE`'s value, and an unset or empty one stops the device, naming
+  the record, the field, and the variable:
+
+  ```text
+  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: v1/secret/data/karvi/netops enable_password: NETENABLE not set policy=default backend=v)
+  ```
+
+  A rest that is no variable name is the record's form wrong,
+  `vault_response_malformed`, naming the field and never the value. Any other
+  value is a literal, so a password that begins with `env:` lives in a variable
+  and is named. The credential is judged as any backend's: a field the device
+  needs and the record left blank is that field's missing code, a blank
+  username `credential_incomplete`.
+- **No record** at the path, or one holding none of the three fields, is not
+  found: the device goes on to the policy's next backend, then the platform's
+  fallback.
+- **Asked once.** The read is the operator's, the same for every device, so the
+  backend is asked once per invocation, or per job of a stream, and its answer
+  held for every device the policies send to it: forty devices made one `GET`,
+  and a store that does not answer costs one timeout, every device given the
+  failure. A password rotated in the store reaches a stream's next job.
+- **`matched_on.source`** is the path read, in each command record, the grant,
+  and `--debug`:
+
+  ```text
+  DEBUG device credential target="d1" device_user="netops" backend="v" policy="default" matched_category="operator" matched_pattern="" matched_source="v1/secret/data/karvi/netops" credential_id=…
+  ```
+
+## The Redis backend
+
+A backend of `type = "redis"` reads the operator's record, a hash, from a Redis
+server (`AUTH` when a password is configured, `SELECT` for a database other
+than 0, then `HGETALL`), in the client before the job is planned. It is asked
+only for a device whose policy's `backend-sequence` names it:
+
+```toml
+[credential-backend.redis]
+type = "redis"
+address = "redis.example.net:6380"
+auth-password-env = "REDIS_PASS"
+# key-template = "karvi:credential:%operator%"
+```
+
+- **The keys.** `address` is required, `host:port`. `key-template` (default
+  `karvi:credential:%operator%`) is the hash read, `%operator%` filled with the
+  operator's name after the backend's transform; `database` (default 0);
+  `connect-timeout` (default `2s`). `tls` (default `true`), `ca-file`,
+  `client-cert-file`, `client-key-file`, and `tls-verify` are the TLS settings
+  ([TLS to a store](#tls-to-a-store)).
+- **The login.** A server that asks for a password takes `auth-password-env`,
+  the variable holding it, and one with users `auth-username-env` beside it;
+  `auth-username-env` alone is refused at load. Each is read as Vault's token
+  is, the credential helper's value where it set it, and unset or empty stops
+  the device before any connection:
+
+  ```text
+  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend r: auth-password-env: REDIS_PASS not set policy=default backend=r)
+  ```
+
+  A password the server refuses is `redis_auth_failed`, exit 6. With neither
+  key, no `AUTH` is sent.
+- **The record**'s fields are `username`, `password`, and `enable_password`,
+  each a literal or an `env:NAME` reference as Vault's are; a bad reference is
+  `redis_malformed`. No hash at the key, or one holding none of the three
+  fields, is not found.
+- **Asked once**, as Vault is: three devices made one `AUTH` and one `HGETALL`.
+- **`matched_on.source`** is the key read, `karvi:credential:netops` for the
+  operator `netops` under the default template, or the template as written
+  when it holds no `%operator%`.
+
+## A store backend's keys at load
+
+The env, Redis, and Vault backends' keys are checked when the configuration
+loads, `config validate` included, each refusal exit 2 and naming the key and
+its line:
+
+- **Kinds.** Every key is a string but Redis's `tls` and both types'
+  `tls-verify` (booleans), Redis's `database` (an integer of 0 or more), and
+  `connect-timeout` (a duration above zero): `config_type_error`,
+  `config_duration_error`, `config_duration_negative`, or
+  `config_value_out_of_range`.
+- **The address**, missing or malformed:
+  `config_credential_backend_address_invalid`.
+- **A variable's name.** `token-env`, `auth-username-env`, and
+  `auth-password-env` must be portable variable names:
+  `config_credential_backend_variable_invalid`, quoting the value.
+- **A key the other keys leave unread**,
+  `config_credential_backend_key_unsupported`:
+  `auth-username-env` without `auth-password-env`; a client certificate without
+  its key, or the reverse; Redis's `ca-file`, `client-cert-file`,
+  `client-key-file`, and `tls-verify` under `tls = false`; Vault's with an
+  `http://` address; `ca-file` under `tls-verify = false`.
+- **An empty value.** `""` is none where a key's default is none (the env
+  templates, `ca-file`, the client pair, Redis's two login variables, Vault's
+  `namespace`), the same as the key left out, so a later layer or `--set`
+  removes an earlier one's value with it. Where the default is a value (Vault's
+  `mount`, `path-template`, and three field names, Redis's `key-template`,
+  `transform` on the three types), `""` is refused, `config_type_error`, `must
+  not be empty`: write the default to restore it.
+
+```text
+config_credential_backend_key_unsupported: ca-file read only under tls = true for credential-backend.r.ca-file at FILE:17
+config_credential_backend_address_invalid: not an http:// or https:// URL with a host for credential-backend.v.address at FILE:15
+config_value_out_of_range: must be above 0 for credential-backend.v.connect-timeout at FILE:16
+```
+
+Whether a named file exists is a question of the run: `config validate` opens no
+credential file.
+
+## TLS to a store
+
+Redis speaks TLS unless `tls = false`, and Vault for an `https://` address. The
+server's name is checked against the address, TLS 1.2 is the least, and what
+the client trusts is the backend's:
+
+- **`tls-verify = true`**, the default, verifies the server's certificate chain
+  and its name: to a CA in `ca-file` when one is named, the file then the
+  backend's whole trust, or else to the host's trust, the public roots and the
+  CAs the site installed. A server the trust does not vouch for is refused
+  before anything is sent:
+
+  ```text
+  vault_unavailable: client planning: 1 of 1 targets failed credential resolution: name:d1 (Get "https://127.0.0.1:8202/v1/secret/data/karvi/netops": tls: failed to verify certificate: x509: certificate signed by unknown authority policy=default backend=v)
+  ```
+
+- **`tls-verify = false`** checks neither the chain nor the name; the
+  connection is still encrypted, but a host on the path can pose as the store
+  and receive its token or password. `ca-file` beside it is refused at load.
+- **A client certificate** is optional: given `client-cert-file` and
+  `client-key-file`, a pair, karvi presents the certificate, with every further
+  certificate in the file as its chain, to a store that asks for one. Neither
+  file's permissions are checked, since a site's machine certificate may serve
+  here; restrict them as the site installs them. A file karvi cannot read is
+  `redis_tls_config_invalid` or `vault_tls`.
+- **Plain text**, Redis's `tls = false` or a Vault `http://` address, is the
+  site's choice, said nowhere; the token or password then crosses the network
+  as written.
+
+**A self-signed store** is trusted by naming its own certificate in `ca-file`,
+`tls-verify` left `true`. Best, copy the certificate file from the store's
+host. Else collect it from the store and compare its SHA-256 fingerprint with
+the one read on the store's host, before naming it:
+
+```sh
+openssl s_client -connect vault.example.net:8200 </dev/null 2>/dev/null | openssl x509 -out ~/.karvi/vault-store.pem
+openssl x509 -in ~/.karvi/vault-store.pem -noout -fingerprint -sha256
+```
+
+```toml
+[credential-backend.vault]
+type = "vault"
+address = "https://vault.example.net:8200"
+ca-file = "~/.karvi/vault-store.pem"
+```
+
+The same lines collect a TLS Redis's certificate. A store whose certificate is
+replaced is refused until `ca-file` holds the new one; a store under a private
+CA is trusted through that CA's certificate. The file is public, any mode.
+
+## The credential helper
+
+A credential helper is a site's executable, a script in any language, that
+karvi runs before it resolves any credential and whose standard output sets
+values for karvi's credential readers alone. A line `export NETPASS="…"` puts
+`NETPASS` where every reader looks, as if the operator had exported it: the
+`NET*` fallback, a credential CSV's `env:` cell, a Redis or Vault record's
+`env:` field, an env backend's templates, Redis's login variables, and Vault's
+token. A name it sets overrides the process environment's silently. Its values
+configure nothing (the `KARVI__*` variables are read apart), enter no child's
+environment, `ssh`'s included, and reach the daemon only inside the sealed
+credentials.
+
+```toml
+[creds]
+helper = "/usr/local/lib/karvi/credh"
+# helper-enabled = true
+# helper-unavailable = "skip"   # skip, warn, or fail
+# helper-timeout = "60s"
+```
+
+`examples/karvi-credh` is a commented POSIX `sh` helper that prints `NETUSER`,
+`NETPASS`, and `NETENABLE` from `pass show`, and
+[`examples/README.md`](../examples/README.md) says how to install it.
+
+- **Where it is.** `creds.helper` (default `karvi-credh`): a name without `/`
+  is that file in the directory of the running karvi executable, where
+  `karvi-askpass` is found, and never searched on `PATH`; any other value is a
+  place, `~/` under the operator's home, an absolute path, or a path from the
+  working directory (`./credh`), made absolute at load. `config show --explain
+  creds.helper` prints the file that runs on its `resolved:` line. The package
+  installs no `karvi-credh`, so the default is absent until a site places one.
+- **When it runs.** Once per invocation that resolves credentials (`login`,
+  `command`, `run` and its dry run, `crun`), at its first credential step,
+  before any backend or fallback is asked, whether or not a device then reads
+  a variable; `config validate`, `daemon`, `job`, `prune`, `version`, and the
+  daemon never run it. A `stream` runs it at its first job and holds its values
+  for every later job until `--restart`, after which the next job runs it again,
+  so a rotated secret is fetched without leaving the stream. A failure refuses
+  the invocation, or the stream's job, at planning, before any device is
+  reached; nothing is held, and the stream's next job runs it again.
+- **How it runs.** With no argument, standard input `/dev/null`, the operator's
+  working directory, and karvi's environment as karvi received it, unfiltered,
+  so an agent's socket, a keyring's session bus, and a vault client's settings
+  reach it as they do in the operator's shell. karvi runs the file it checked
+  through its descriptor, so a script's `$0` is `/proc/self/fd/3`: a helper
+  names its own files by absolute paths. It runs in karvi's process group, so it
+  can ask at the terminal and Ctrl-C reaches it with karvi (exit 113). Its
+  standard error is discarded: a helper that must ask, a PIN, a passphrase, or a
+  push approval, asks on `/dev/tty`, as `pinentry` and `ssh` do, and writes the
+  reason for a failure there.
+- **Its checks**, on the file karvi opened, as a credential file's: a symlink
+  is refused unless `security.allow-credential-symlinks` is on; the file must be
+  regular, owned by the operator, root, or a name in
+  `security.approved-admin-users`, and writable by neither its group nor others
+  (`0700`, `0750`, and `0755` pass; `0775` does not). A failed check is a
+  credential file code ([credential files](#credential-files)), exit 6, whatever
+  `creds.helper-unavailable` says:
+
+  ```text
+  credential_file_mode_unsafe: client planning: credential helper PATH writable by group or others; remediation: chmod go-w PATH
+  ```
+
+- **Unavailable**, no file at the path or one the operator cannot execute,
+  follows `creds.helper-unavailable`: `skip`, the default, passes it by
+  silently, `--debug` saying `credential helper skipped path="…": REASON`;
+  `warn` passes it by after a warning, at every job of a stream, since nothing
+  is held; `fail` refuses the invocation at planning,
+  `credential_helper_unavailable` (exit 6). A site that locks
+  `creds.helper-enabled = true` and `creds.helper-unavailable = "fail"` makes
+  its helper mandatory.
+
+  ```text
+  warning: credential_helper_unavailable: credential helper PATH: no such file or directory; continuing without it
+  ```
+
+- **Its exit.** Exit 0 has its output read. Anything else is
+  `credential_helper_failed` (exit 6), naming the path and the status or the
+  signal, its output unread: karvi never goes on without the values of a helper
+  that failed.
+
+  ```text
+  credential_helper_failed: client planning: credential helper PATH exited 1; run it by hand to see its message
+  ```
+
+- **Its time.** A helper that prints and exits costs its own time. Past
+  `creds.helper-timeout` (default `60s`, from `1s` to `1h`) karvi sends SIGTERM
+  to the helper and to every process descended from it, SIGKILL two seconds on
+  to any still running, and refuses the invocation, `credential_helper_failed`,
+  `did not exit within 60s; run it by hand to see why`; a cancelled invocation
+  ends them alike. A process that left the tree, a daemon's double fork as
+  `gpg-agent` makes, is not ended, and a helper that exits by itself leaves what
+  it started. After the helper exits, karvi reads its output to the end, at most
+  two seconds more while a process it left holds the output open: a helper that
+  never exits is refused 60 seconds from its start, 62 if it ignores SIGTERM, 64
+  at most.
+- **`--no-credh`**, on `login`, `command`, `run`, `crun`, and `stream`, sets
+  `creds.helper-enabled = false` for the invocation, a site's lock refusing it
+  (`config_lock_violation`, exit 3). In a stream it is a run option: on the
+  stream's command line it covers every job, as a draft line the jobs whose
+  draft holds it.
+- **`--debug`** names the path, the names it set, and the time, never a value:
+  `credential helper ran path="…" names=NETUSER,NETPASS,NETENABLE elapsed=…`.
+- **Under a timer** there is no terminal, so a collection's helper answers
+  without asking, and its failure says only the status: run it by hand, as the
+  account the timer runs as, to see its message.
+
+**Its output** is read as text, line by line, and never given to a shell, and a
+line karvi accepts means what dash and bash give it under `eval`, so a site
+tests its helper with `eval "$(karvi-credh)"`:
+
+- A blank line is skipped, and so is a comment, its first non-blank character
+  `#`.
+- Any other line is an optional `export` and one or more assignments separated
+  by blanks, each a portable variable name, `=` with no blank on either side,
+  and a value. Unquoted, a value is letters, digits, and `_ . , : / @ % + = -`
+  alone. Double-quoted, blanks and `; | & #` are literal, `\"`, `\\`, `\$`, and
+  `` \` `` are the four escapes, any other backslash is kept, and a bare `$` or
+  `` ` `` is refused. Single-quoted, every character is as written but `'`.
+  Empty (`NETPASS=`, `""`, `''`), the name is set and empty.
+- A comment after a blank ends the line. A value holds no control character, a
+  tab and a carriage return included.
+- Anything else is refused, `credential_helper_output_invalid` (exit 6),
+  naming the line and the reason and never quoting the line, which may hold a
+  secret: a blank on either side of `=`, an unquoted special character, a bare
+  `$` or `` ` `` in double quotes, a control character, a word that is no
+  assignment (`export NETPASS=a b`), a name set twice (both lines named), and
+  output past 64 KiB or a line past 4 KiB. An empty output sets nothing.
+
+```text
+credential_helper_output_invalid: client planning: credential helper PATH output line 1: a blank before =
+```
 
 ## Credential files
 
@@ -596,6 +1025,10 @@ code each, the message naming the backend and the path and never a value:
 | `credential_file_shared_owner_unapproved` | is a shared file owned by neither root nor an approved administrator |
 | `credential_file_shared_group_unknown` | is a shared file and `security.shared-group` names no group |
 | `credential_file_shared_group_mismatch` | is a shared file in another group |
+
+The credential helper's file takes the first five codes under its own owner
+and mode rule, its message naming `credential helper PATH` ([the credential
+helper](#the-credential-helper)).
 
 karvi opens the file first and checks the file it opened, so the file that
 passed the checks is the file that is read. A file that is present but cannot be
@@ -631,9 +1064,10 @@ a prompt: a mistyped `credkeyref` stops that device with
 ## The operator's name and the credential transforms
 
 A backend reads the operator's login name where a credential is the
-operator's: the `env` backend's templates, the Redis key and the Vault path, a
-formula's username, and the username of a `.cloginrc` with no `user` line or
-of a credential CSV row whose `username` cell is blank. A
+operator's: the `%operator%` of the `env` backend's templates, the Redis key,
+the Vault path, and a formula's username ([configuration
+macros](#configuration-macros)), and the username of a `.cloginrc` with no
+`user` line or of a credential CSV row whose `username` cell is blank. A
 `[credential-transform.NAME]` table rewrites that name, and the username a
 backend answers:
 

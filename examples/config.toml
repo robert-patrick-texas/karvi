@@ -92,6 +92,30 @@ username-var-template = "KARVI_%operator%_USERNAME"
 password-var-template = "KARVI_%operator%_PASSWORD"
 enable-var-template = "KARVI_%operator%_ENABLE_PASSWORD"
 
+# A Vault KV version 2 store, the operator's record at the mount's
+# karvi/%operator% with the token in VAULT_TOKEN, read once per invocation
+# (docs/OPERATIONS.md, "The Vault backend"); name it in a policy's
+# backend-sequence to use it. Under tls-verify = true, the default, the
+# server is verified against ca-file alone when it is given, else against the
+# host's trust; a self-signed store is trusted by naming its own certificate
+# (docs/OPERATIONS.md, "TLS to a store").
+# [credential-backend.vault]
+# type = "vault"
+# address = "https://vault.example.net:8200"
+# path-template = "karvi/%operator%"
+# ca-file = "~/.karvi/vault-store.pem"
+# tls-verify = true
+
+# The credential helper (docs/OPERATIONS.md, "The credential helper"): an
+# executable run once per invocation before any backend is asked, whose
+# export lines set NETUSER, NETPASS, NETENABLE, VAULT_TOKEN, or any variable
+# a backend reads, in karvi's memory alone. By default karvi-credh beside the
+# karvi executable, passed by while absent; examples/karvi-credh is one.
+# [creds]
+# helper = "/usr/local/lib/karvi/credh"
+# helper-unavailable = "fail"   # skip (the default), warn, or fail
+# helper-timeout = "60s"
+
 # The policy every device takes (the map's name = "*" rule): the CSV first,
 # then the environment. A device pinned by credkeyref takes only the CSV row
 # whose credkey equals it.

@@ -86,11 +86,12 @@ at the first resolution that reaches the backend.
 | `config_credential_backend_scope_missing` | is `type = "csv"` with no `scope` |
 | `config_credential_backend_path_missing` | is `type = "csv"` with no `path` |
 | `config_credential_backend_delimiter_invalid` | has a `delimiter` that is not one character |
-| `config_credential_backend_key_unsupported` | sets a key its type does not read, naming the types that do: a reader key (`mode`, `delimiter`, `mandatory-fields`, a `mappings.<field>`) on another type, or `env-indirection.username`, `.password`, or `.enable-password` on a `csv` backend, whose cells name a variable as `env:NAME` ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
+| `config_credential_backend_key_unsupported` | sets a key its type does not read, naming the types that do: a reader key (`mode`, `delimiter`, `mandatory-fields`, a `mappings.<field>`) on another type, or another type's key (`token-env`) on a `csv` backend |
 | `config_credential_backend_shared_path_relative` | is `scope = "shared"` with a path that is not absolute |
 | `config_credential_backend_shared_optional` | is `scope = "shared"` with `required = false` |
 | `config_enum_value_invalid` | has a `mode` other than `header` or `numeric`, or a `mandatory-fields` entry that is not one of the nine fields |
 | `config_type_error` | has a mapping of the wrong type for its mode (a column number under `header`, a header name under `numeric`), or another key of the wrong type |
+| `config_key_removed` | sets `env-indirection.username`, `.password`, or `.enable-password`, removed from every backend type: a cell names a variable as `env:NAME` ([section 6](#6-secrets-in-the-environment-instead-of-the-file)) |
 | `config_unknown_key` | has a `mappings.<name>` key for something that is not one of the nine fields (`mappings.name`: the key is `mappings.device_name`) |
 
 ## 3. The file
@@ -308,7 +309,10 @@ variable names, which the operator-keyed `env` backend cannot be.
   `env:NETPASS`, or `env:NETENABLE`; otherwise the platform's fallback reads
   them, when no backend answers.
 - **The environment is the client's,** the `karvi` that plans the run; a run
-  through the daemon reads the variable before the job is sent.
+  through the daemon reads the variable before the job is sent. A credential
+  helper's value for the name, where one ran, is read in place of the
+  environment's ([`docs/OPERATIONS.md`, "The credential
+  helper"](OPERATIONS.md#the-credential-helper)).
 
 With `NETPASS` and `NETENABLE` exported and `NETPASS_NYC` not, a run on
 `sw-nyc-01` and `sw-bos-01` is refused:
@@ -324,13 +328,16 @@ do.
 ## 7. A formula over a credential CSV
 
 A formula backend may name a `csv` backend as its `password-source`. The
-formula shapes the username from the operator's name; the CSV supplies what
-varies by device.
+formula shapes the username from the operator's name, its `username-template`'s
+`%operator%` filled with the name after the formula's transform when it is asked
+([`docs/OPERATIONS.md`, "Configuration
+macros"](OPERATIONS.md#configuration-macros)); the CSV supplies what varies by
+device.
 
 ```toml
 [credential-backend.shaped]
 type = "formula"
-username-template = "%s-adm"
+username-template = "%operator%-adm"
 password-source = "site-creds"
 ```
 
@@ -493,8 +500,9 @@ the last resort and there was nowhere to show it.
 | The backend: load, row checks, first match, `env:` cells read, evidence | `internal/credentialbackend/credcsv` |
 | The row evaluator and the key's literal rule (`CompileRow`, `Row.Match`, `CheckKey`, `FoldKey`) | `internal/matching` |
 | The shared reader (`Spec.Trim`, `Spec.CheckHeader`, the byte-order mark) | `tabular` |
-| The `env:` cell: the reference and its name (`Reference`), the variable's value or its absence (`Read`) | `internal/credentialbackend/envindirect` |
-| The one lookup of a variable (`ResolveRequest.LookupEnv`, `InputProvider.LookupEnv`, `Resolver.lookupEnv`) | `credentials`, `internal/credentialbackend` |
+| The `env:` cell: the reference (`Reference`), the variable's value or its absence (`Read`), the message (`Missing`) | `internal/credentialbackend/envindirect` |
+| A portable variable name (`Portable`) | `internal/envname` |
+| The one lookup of a variable (`ResolveRequest.LookupEnv`, `InputProvider.LookupEnv`, `Resolver.lookupEnv`), the credential helper's values first (`credhelper.Input`) | `credentials`, `internal/credentialbackend`, `internal/credentialbackend/credhelper` |
 | The keyed capability (`credentials.Keyed`) and the pinned walk (`Resolver.Resolve`) | `credentials`, `internal/credentialbackend` |
 | `credkeyref` and the secret-column rule (`inventory.SecretColumnWord`) | `inventory`, `internal/inventoryload` |
 | The table's validation and its key allow-list | `internal/configload`, `configschema` |

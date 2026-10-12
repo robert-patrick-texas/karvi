@@ -97,6 +97,14 @@ System OpenSSH receives them through the authenticated, one-use
 copies through karvi-owned secret wrappers. Audit records contain the operator,
 device-facing username, backend, and safe match metadata, never secret values.
 
+A credential helper (`creds.helper`) runs as the operator in the client. Its
+file is checked as a credential file is (the owner, no write by group or
+others, no symlink unless allowed) and run through the descriptor checked; its
+values are held as secrets for the invocation and put into no child's
+environment, and its standard error is discarded. A Redis or Vault store's
+certificate is verified, against `ca-file` alone when one is named, unless
+`tls-verify = false`.
+
 ## Legacy cryptography
 
 Legacy SSH algorithms are enabled only for explicitly scoped host patterns.

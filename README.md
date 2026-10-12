@@ -519,7 +519,8 @@ Operator guides:
 - [`docs/QUICKSTART.md`](docs/QUICKSTART.md): inspect the executable, first
   configuration, first commands.
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md): upgrade, the daemon, retention,
-  credential files.
+  configuration macros, the credential backends and files, the credential
+  helper.
 - [`docs/FILES.md`](docs/FILES.md): every directory and file karvi reads or
   writes, in shared and in individual mode, with its mode, owner, and group,
   and how karvi chooses each place.

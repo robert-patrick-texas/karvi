@@ -7,38 +7,9 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-In the operator's order: the credential helper, whose values reach the one
-lookup the credential CSV's `env:NAME` cell and the `NET*` fallback read
-([`docs/EXAMPLES.md`, chapter
-55](docs/EXAMPLES.md#55-an-explicit-envname-cell-2026-10-10)); build numbers
-last, beside the next release, which exercises the release tools they change.
+Beside the next release, which exercises the release tools it changes:
 
-1. **A credential helper executable.** A configured executable, a site's script
-   in any language, that karvi runs and whose standard output sets values for
-   its own use: a line `export NETUSER="xxx"` puts `NETUSER` into karvi's
-   credential environment as if the operator had exported it, for the `NET*`
-   fallback, an `env` backend's templates, or the token a `vault` or `redis`
-   backend reads from the environment. Its first part moves the env, Redis, and
-   Vault backends' reads of the environment, their templates' variables, their
-   tokens, and their `env-indirection` flags (each a private copy of the rule
-   the CSV's `env:NAME` cell replaced), onto the resolver's one lookup, which
-   the `NET*` fallback and the CSV's `env:` cells read, so that the helper's
-   values reach every reader through it; whether those backends take `env:NAME`
-   in place of their flags is its question. The questions: when it runs (once
-   per invocation in the client, before resolution, or per device with the
-   device's name); which names it may set (the credential names alone, or any a
-   backend reads); the grammar of its output, parsed and never evaluated by a
-   shell (`export NAME="value"` and `NAME=value`, the double-quoted form's
-   escapes, anything else refused naming the line number and never the line);
-   its value held as a secret from the read on and never put into the process
-   environment a child such as `ssh` inherits; the executable's own checks as a
-   credential file's (an absolute path, the owner, the mode, no symlink); its
-   environment, timeout, standard error (not echoed, since it may hold a
-   secret), and a non-zero exit as a failure with its own code; whether the
-   daemon may run it for an unattended job, where no prompt can; and how it
-   relates to the helper protocols operators know (git's credential helpers,
-   `SSH_ASKPASS`).
-2. **Build numbers in the version.** A build identity beyond the version and
+1. **Build numbers in the version.** A build identity beyond the version and
    the commit, for telling two builds of one tree apart. A release build's
    commit is `source-release-v` and its number, and its build time the day's
    midnight, so two release builds of one tree on one day are alike; a lab

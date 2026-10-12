@@ -132,15 +132,25 @@ borders gray. Timestamp and dynamic-border roles
 are independently configurable.
 
 Colour is `display.color`'s: `auto`, the default, colours at a terminal
-and not on a pipe or in a file, unless `NO_COLOR` is set and not empty
-(the no-color.org convention); `always` colours wherever the output goes
-and `never` nowhere, and `NO_COLOR` overrides neither. The rule is one,
-for the help, a run's display on both paths, every warning line (`warning:
-…`, the whole line in the `warning` role's colour and bold, as the `!`
-warning lines; a recorded login's lines at its wrapper's terminal too),
-`config colors`, the watch screen (whose `--color` sets it for the screen),
-and `karvi-prune -h`, which reads no configuration and colours under `auto`
-alone.
+and not on a pipe, unless `NO_COLOR` is set and not empty (the no-color.org
+convention); `always` colours a terminal and a pipe, so `| less -R` keeps
+it; `never` colours nothing; and `NO_COLOR` overrides neither `always` nor
+`never`. A regular file is written plain whatever the policy, so a
+redirected stream or a log holds no escape. `--nocolor`, a global option
+before the command word, sets `display.theme = "nocolor"` for the
+invocation and so turns every colour off: `config show` names it the
+value's source, `--set` outranks it, and a site that locks `display.theme`
+refuses it. The rule is one, for the help, a run's display on both paths,
+every warning line (`warning: …`, the whole line in the `warning` role's
+colour and bold, as the `!` warning lines; a recorded login's lines at its
+wrapper's terminal too), every refusal (the code and its message, in the
+`error` role's colour and bold, as a device's failure line), a line a
+stream drops and goes on from (`stream line 3 dropped: …`, in the `warning`
+role's colour and bold), `config colors`, the watch screen (whose `--color`
+sets it for the screen), and `karvi-prune -h`, which reads no configuration
+and colours under `auto` alone. A refusal before the configuration is read,
+a mistake on the command line or a configuration that does not load, takes
+the built-in settings under the command line's own `--nocolor`.
 
 `karvi config colors` prints the colour test:
 every `display.colors.*` role under the configured theme first and then
@@ -152,7 +162,7 @@ words print alone and the escape column still says what a terminal gets;
 `--set display.color=always` forces it.
 
 `--help` follows the same rule: under
-`display.color` and `display.theme`, on a terminal, the title line's tag
+`display.color` and `display.theme`, where colour is on, the title line's tag
 (`- run the fleet, gather the output`) takes the `label` colour, a
 section heading is bold, an option's words take the `accent` colour, and
 the action words of
@@ -160,10 +170,11 @@ the `Usage:` lines (`run` in `karvi run [target inputs]`, `daemon start`,
 `setup shared` after a plain `sudo`, `<command>` in the top text) take
 the `success` colour, green under both
 themes and `display.colors.success` overriding; a `--config` or `--set`
-before the `--help` is read; `--ansi strip` turns it off; a configuration
-that does not load gives plain help. The words are never changed, so
-`--help | grep` reads as before; the layout adds a blank line around a
-paragraph inside a section and after an entry of three lines or more.
+before the `--help` is read; `--nocolor` or `--ansi strip` turns it off; a
+configuration that does not load gives plain help. The words are never
+changed, so `--help | grep` reads as before; the layout adds a blank line
+around a paragraph inside a section and after an entry of three lines or
+more.
 
 ## Echo
 

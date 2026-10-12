@@ -244,7 +244,8 @@ none, after a failed read; the line count or the exit starting again
 with the parser table by a drift test; a pass at print time adds blank lines
 and colour (headings bold, option words in the `accent` role, the action word
 of every `Usage:` line in the `success` role, the title's tag in `label`),
-following the display's colour rule and off under a pipe or `--ansi strip`.
+following the display's colour rule, plain on a pipe under `auto`, in a file,
+and under `--nocolor` or `--ansi strip`.
 *Why:* readable on a terminal while the constants, the drift test, and pipes
 carry no escapes. *Not taken:* escapes in the constants; a `--color` option
 for help alone.
@@ -494,8 +495,8 @@ name, a portable variable name, is checked when the file loads, and its value is
 read when a device selects the row. An unset or empty variable is
 `credential_env_missing` at planning, naming the file, the line, the column, and
 the variable, and the device moves on to no later row, backend, or fallback.
-Every other cell is a literal, and a `csv` backend takes no `env-indirection`
-key. *Why:* under the flags a cell naming an unset variable was sent as the
+Every other cell is a literal, and no backend takes an `env-indirection` key
+(below). *Why:* under the flags a cell naming an unset variable was sent as the
 password, failed logins and, on some devices, lockouts, with nothing naming the
 cause; a reference marked as one fails before any device is reached, and its
 name may be said, the prefix marking it as a name. *Not taken:* the flags kept
@@ -505,17 +506,69 @@ name (a typo sent as a password); an empty variable taken as set (a blank enable
 secret reaching the device); every row's variables read at load (a run on one
 site's devices needing every site's variables).
 
-**The credential CSV and the `NET*` fallback read the environment through the
-resolver's one lookup.** The resolver's lookup is its input provider's, the
-client's, and reaches every backend on `credentials.ResolveRequest.LookupEnv`; a
-resolver without a provider reads no variable. *Why:* the credential helper's
+**Every credential reader reads the environment through the resolver's one
+lookup.** The resolver's lookup is its input provider's, the client's, the
+credential helper's values ahead of the process environment, and reaches every
+backend on `credentials.ResolveRequest.LookupEnv`: the credential CSV's `env:`
+cells, the `NET*` fallback, the env backend's templates, Redis's
+`auth-username-env` and `auth-password-env`, Vault's `token-env`, and a Redis or
+Vault record's `env:` fields. No backend calls `os.LookupEnv`, and a resolver
+without a provider reads no variable. A variable a Redis or Vault backend's
+configuration names, unset or empty, is `credential_env_missing` (exit 6), read
+before any connection, naming the backend, the key, and the variable
+(`credential backend v: token-env: VAULT_TOKEN not set`); `redis_auth_missing`
+and `vault_token_missing` are retired into it. *Why:* the credential helper's
 values are held as secrets and never put into the process environment a child
 such as `ssh` inherits, so a reader of the process environment could not see
-them; one door gives them to each reader. The env, Redis, and Vault backends
-read the process environment themselves until the helper's first part moves
-them. *Not taken:* the helper's values put into the process environment; a
-lookup given to each backend as it is built (the backends are built before the
-planner sets the provider).
+them; one door gives them to each reader; Redis sent an empty `AUTH` for an
+empty variable where Vault called it missing. *Not taken:* the helper's values
+put into the process environment; a lookup given to each backend as it is built
+(the backends are built before the planner sets the provider).
+
+**`%operator%` is the operator's name in a template, and `%s` is text.**
+`%operator%` is a built-in macro, the operator's login name from the password
+database, filled when the configuration loads in every value of every layer, as
+a site's macro is. Seven keys keep it as written for their backend, which fills
+it when it is asked with the name after its `operator` transform: the env
+backend's three variable templates, Redis's `key-template`, Vault's
+`path-template`, and the `username-template` of a formula and of a policy; the
+key being filled decides, so a site's macro holding `%operator%` keeps it there
+too. Each `%operator%` is replaced as text, a template without one is used as
+written (`karvi:shared`, `SRV_USER`), and the defaults are
+`karvi:credential:%operator%` and `karvi/%operator%`. `[macros] operator` is
+`config_macro_name_reserved` (exit 2), and `%Operator%` an ordinary macro. A
+store's answer is data and is never expanded. *Why:* each template was Go's
+`printf` given the operator's name, so `username-template = "svc"` sent
+`svc%!(EXTRA string=netops)` and a fixed Redis key or Vault path was never
+found, and `%s` stood beside the configuration's `%name%` macros with no rule
+for how the two meet. A configuration that still writes `%s` reads it as text:
+a Redis key or Vault path finds no record, a formula sends it, and an env
+template names no variable and is refused at load (below). *Not taken:* `%s`
+kept (`printf` exposed, a fixed name broken); the name filled at load in every
+key (a backend's transform no longer reaching its templates); a placeholder
+outside the macro syntax, `{operator}`; `%user%` (the device's username
+everywhere else); `%s` refused in the seven keys (a guard for an upgrade); a
+store's answer expanded (a password holding `%operator%` changed).
+
+**A store names a variable as `env:NAME`; no backend takes `env-indirection`.**
+A Redis or Vault record's username, password, or enable field whose value,
+trimmed, begins with `env:`, the prefix's case ignored, names a variable, read
+through the one lookup by the credential CSV's own functions
+(`envindirect.Reference`, `Read`); unset or empty, it is
+`credential_env_missing`, naming the backend, the record, the field, and the
+variable; a rest that is no variable name is the store's code for a malformed
+record (`redis_malformed`, `vault_response_malformed`), naming the field and
+never the value. Any other value is a literal. An env backend's variable's value
+is the value, its template naming the variable. `env-indirection.username`,
+`.password`, and `.enable-password` are removed from every type,
+`config_key_removed`. *Why:* under a flag a field was a name or a value as the
+environment happened to say: a name whose variable was unset was sent as the
+password (exit 108), and a real password that named a variable was replaced by
+its value; without one a store could not name `NETENABLE`. *Not taken:* the
+flags kept; the flags kept with an unset name failing (every field of the
+column a name); no reference in a store; `env:` in the env backend's values (a
+variable naming a variable, which its template does); a new code for a bad
+reference.
 
 **A credential backend takes its type's keys alone.** The registry holds one key
 list per backend type, and any other key on a table of that type is
@@ -525,6 +578,70 @@ a key its type ignores is a setting the operator takes to be in force that is
 not (a Redis backend's `mount`, a CSV's `token-env`); a type no build can read
 validates and never answers. *Not taken:* a warning (the setting left in the
 file); a code per family of keys (the scope code, retired into the one).
+
+**A store backend's keys are judged at load.** Each key of the env, Redis, and
+Vault types has a kind, a string but Redis's `tls` and both stores' `tls-verify`
+(booleans), Redis's `database` (an integer of 0 or more), and `connect-timeout`
+(a duration above zero), checked when the configuration loads, `config validate`
+included, under the general codes. Redis's and Vault's `address` is required and
+well formed, `host:port` or an `http://` or `https://` URL with a host
+(`config_credential_backend_address_invalid`). `token-env`, `auth-username-env`,
+`auth-password-env`, and the env templates, `%operator%` stood in by a letter,
+are portable variable names (`config_credential_backend_variable_invalid`,
+quoting the value); an env template that the operator's transformed name makes
+no name stops the device at planning under the same code, naming `replace-chars`
+as the remedy. A key the backend's other keys leave unread is
+`config_credential_backend_key_unsupported`: `auth-username-env` without
+`auth-password-env`, half a client pair, Redis's TLS keys under `tls = false`,
+Vault's with an `http://` address, `ca-file` under `tls-verify = false`. `""` is
+none where a key's default is none (the env templates, `ca-file`, the client
+pair, Redis's login variables, Vault's `namespace`), and refused, `must not be
+empty`, where the default is a value; a written value, the default's included,
+is judged as any other, so `tls-verify = true` beside plain text is refused. The
+defaults are set once, where the resolver builds the backend, and `Resolve`
+never writes its backend. `redis_address_missing`, `vault_address`,
+`redis_client_cert_key_unpaired`, and `vault_client_cert_key_unpaired` are
+retired into these. *Why:* each of these validated and was silently a default, a
+key not in force, or a name no shell can export (`tls = "false"` sent a TLS
+hello to a plain server, `token-env = "VAULT TOKEN"` was missing with
+`VAULT_TOKEN` exported); Vault's `Resolve` wrote its defaults into the backend
+every device shares, a data race under the planning pool; layers merge a
+backend's table key by key, so `""` is the one way a later layer says none over
+an earlier one's value. *Not taken:* a warning (the setting left in the file);
+the race fixed alone (the silent defaults kept); a code per key; the operator's
+name checked at load (a shared configuration refused for `j.smith`, whose runs
+never reach the env backend); `""` refused on every key; a word `none`.
+
+**An operator-keyed store is asked once per resolver.** The env, Redis, and
+Vault backends declare `credentials.OperatorKeyed`: their request is the
+operator's name after the backend's transform, the same for every device. Such a
+backend is asked once per resolver, once per invocation or per job of a stream,
+and its answer held for every device the policies send to it: a credential, each
+device given its own copy so that sealing one grant leaves the held answer
+whole; not found; or a failure, every device given it without asking again.
+Devices resolving in parallel wait for the one read, as `credfile.Cache` holds a
+file's rows; a formula takes its source's held answer; a read the context ended
+is not held. *Why:* forty devices made forty logins and reads, and a store that
+never answered held a job for a timeout per device, sixteen at a time: for 2,500
+devices about five minutes at Redis's two seconds. *Not taken:* a cache across
+invocations (secrets at rest or in a resident process); answers held across a
+stream's jobs (a rotation waiting for `--restart`); failures not held; planning
+stopped at the first failure.
+
+**TLS to a store trusts what its backend names.** `tls-verify`, `true` by
+default, on a Redis or Vault backend verifies the server's certificate chain and
+its name, the chain leading to a CA in `ca-file` when one is named, the file
+then the backend's whole trust, or else to the host's trust; `false` checks
+neither, the connection still encrypted. TLS 1.2 is the least. A client pair is
+presented with its file's further certificates as the chain, and neither file's
+permissions are checked. Plain text and `tls-verify = false` are the site's
+choices, said nowhere. One function serves both stores (`storetls.Config`).
+*Why:* `ca-file` was added to the host's pool, so under a site CA's file a
+server from any CA the host trusted was given the token; a self-signed store is
+trusted by naming its own certificate; one certificate may serve a site's
+machine authentication. *Not taken:* `ca-file` added to the host's trust; no way
+to skip verification; a warning under `tls-verify = false` or plain text; a
+permission check on the client key.
 
 **Every transform table is built at load, with the run's builder.** `config
 validate` builds every `[name-transform.NAME]` and `[credential-transform.NAME]`
@@ -555,9 +672,15 @@ join by one method); a request field every backend must remember.
 backends `matched_on` carries the category, pattern, file, and line, and no
 value naming the device, so devices sharing one line share one sealed grant;
 grants are merged when secrets, policy, backend, evidence, transport, and port
-are all equal. *Why:* at 2,500 devices on one shared line, per-device evidence
-meant 2,500 sealed copies of one secret; two lines holding the same secret must
-not merge into a grant that can name only one.
+are all equal. An operator-keyed store's evidence is the operator and the
+record read, Redis's key or Vault's path, as its `source`. `value_digest`, which
+nothing set or read, is not part of `credentials.Match` or the package schema's
+match, and the package counter did not move for it, since no package carried it.
+*Why:* at 2,500 devices on one shared line, per-device evidence meant 2,500
+sealed copies of one secret; two lines holding the same secret must not merge
+into a grant that can name only one; Redis's `source` was the text
+`redis-key-digest-not-implemented`, the one store whose records did not say
+where a credential came from.
 
 **The enable secret is optional unless the platform requires it.** No built-in
 requires one; `[platform.NAME] requires-enable = true` requires it for that
@@ -585,6 +708,96 @@ expects the shell back, where the prompt had held the key until the input
 ended. *Not taken:* asking again after an empty answer; a generic code for
 the three ways a prompt ends (each is its own cause); Ctrl-D as an
 interrupt (it is the input's end, as everywhere else).
+
+**The credential helper runs once per invocation in the client, and its values
+reach the credential readers alone.** Under `creds.helper-enabled`, `true` by
+default, an invocation that resolves credentials (`login`, `command`, `run`,
+`crun`) runs `creds.helper` once, at its first credential step, before any
+backend or fallback is asked, and holds its values for the invocation; a stream
+runs it at its first job and holds its values until `--restart`. `creds.helper`
+is `karvi-credh` by default, a bare name being the file beside the running
+executable, never searched on `PATH`, and any other value a place. The values
+may set any portable variable name and sit behind the provider's lookup ahead
+of the process environment; they configure nothing, enter no child's
+environment, and reach the daemon only inside the sealed credentials, `--debug`
+naming the path and the names. A helper that cannot be run is passed by under
+`creds.helper-unavailable = "skip"`, the default, after a warning under `warn`,
+and refuses the invocation under `fail` (`credential_helper_unavailable`); one
+that ran and failed always refuses it (`credential_helper_failed`), at planning
+before any device; a failure is never held, so a stream's next job runs it
+again. `--no-credh` sets `creds.helper-enabled = false` for the invocation.
+*Why:* a site's script fetches secrets from a password manager, a vault client,
+or a keyring into karvi's memory alone, where `eval "$(script)"` gives them to
+every program the shell starts; the daemon resolves nothing, so the helper runs
+where resolution runs; a helper that unlocks a store must not ask at every
+`--go`. *Not taken:* per device with the device's name (a credential backend, a
+type of its own); lazily at the first lookup (a failure landing on whichever
+device asked first); per job of a stream; at the stream's start; a failure held
+until `--restart`; the daemon running it; the credential names alone; the
+process environment winning; `PATH` searched; a `required` boolean; going on
+after a non-zero exit.
+
+**The helper's output is read, never evaluated.** Line by line: a blank line
+and a comment skipped; otherwise an optional `export` and one or more
+assignments, a portable variable name, `=` with no blank beside it, and a value
+unquoted from letters, digits, and `_ . , : / @ % + = -`, double-quoted with the
+four escapes `\"`, `\\`, `\$`, and `` \` `` and a bare `$` or `` ` `` refused,
+single-quoted as written, or empty; no control character. A word that is no
+assignment, a name set twice, output past 64 KiB, or a line past 4 KiB is
+refused, `credential_helper_output_invalid`, naming the line and the reason and
+quoting nothing. A line karvi accepts means what dash and bash give it under
+`eval`, so a site tests its helper with `eval "$(karvi-credh)"`, and a test
+holds `examples/karvi-credh`'s quoting function to `sh -c 'eval …'`. *Why:* a
+shell runs what the output names (`A=a echo INJECTED`), and a line taken
+verbatim makes `export NETPASS="x"` a password with quotes. *Not taken:* a
+shell; blanks around `=` trimmed; `$` expanded from karvi's environment; `~`
+unquoted (the shells disagree); the last assignment winning; a bad line dropped
+silently (a stale export read in its place); the line's text in the error.
+
+**The helper file is checked as a credential file is, and the file checked is
+the file run.** karvi opens `creds.helper` without following a symlink unless
+`security.allow-credential-symlinks` is on, checks the descriptor (a regular
+file, owned by the operator, root, or an approved administrator, writable by
+neither its group nor others), and runs it through that descriptor, so a
+script's `$0` is `/proc/self/fd/3` and a binary the operator may execute and
+not read runs too; a failed check is a credential file code, whatever
+`creds.helper-unavailable` says. *Why:* on a shared host a second account in
+the operator's group edited a group-writable helper through its directory and
+read the secret it captured; a helper holds no secret and runs as the operator,
+so others changing it is its risk, where others reading is a credential file's.
+*Not taken:* no checks, as git's helpers and `SSH_ASKPASS` have; the credential
+file's exact mode; group write under a private group; every directory checked;
+symlinks always followed.
+
+**The helper is the operator's program, ended with its tree.** It runs with
+karvi's environment unfiltered, no argument, standard input `/dev/null`, the
+operator's working directory, and karvi's process group, so it asks on
+`/dev/tty` and Ctrl-C reaches it with karvi (exit 113); its standard error is
+discarded. Past `creds.helper-timeout` (`60s` by default, `1s` to `1h`), or with
+the invocation cancelled, karvi lists the processes descended from it by their
+parents in `/proc` while it runs, holds each by a pidfd opened while its start
+time matched, and sends SIGTERM to all and SIGKILL two seconds on to each still
+running; a process that left the tree, a double fork, is left. After an exit
+its output is read to the end, at most two seconds more while a process it left
+holds it open. *Why:* fetching a secret needs the session's agents and bus,
+which the child filter drops; a trace under `set -x` printed the secret on
+standard error; in a group of its own Ctrl-C reached the helper alone and Ctrl-Z
+held the terminal; a fetch hung in a command substitution outlived SIGTERM to
+the helper's shell, one stray per timed-out run of a timer; a pidfd keeps a
+signal from a process that took a pid since. *Not taken:* the filtered
+environment; an allow-list key of its own; standard input passed through;
+standard error shown; no timeout; a process group of its own; karvi the child
+subreaper; descendants ended after a helper exits by itself.
+
+**The helper has its own protocol.** Not git's credential helper (a request per
+host on standard input, one credential per call) nor `SSH_ASKPASS` (one prompt,
+one answer): no request, any number of named values once per invocation, as
+`export` lines a shell can test. A helper that asks the operator asks on
+`/dev/tty`, as `pinentry` does, and says why it failed there; karvi says only
+that it failed. `examples/karvi-credh` is a commented POSIX `sh` helper over
+`pass show`, and the package installs none. *Why:* karvi's readers ask by name,
+and one run serves them all. *Not taken:* a git mode; an askpass mode; no
+example (each site's own quoting, where mistakes are made).
 
 **A server's credential is a backend's or its platform's fallback, and a key is
 a file.** Servers take policies and backends as routers do, a policy map rule
@@ -1982,7 +2195,8 @@ terminal unless `NO_COLOR` is set and not empty. The rule is
 `display.ColorEnabled`'s, so the help, a run's display on both paths,
 `config colors`, the watch screen, and `karvi-prune -h` (whose mode is `auto`
 alone) follow it; `always` and `never` are explicit choices `NO_COLOR` does
-not override, watch's `--color` among them. *Why:* the convention (no-color.org)
+not override, watch's `--color` among them, and a regular file is plain under
+every mode (below). *Why:* the convention (no-color.org)
 asks a program that colours by default to honour a non-empty `NO_COLOR` and
 lets a configuration or a per-invocation option override it; the watch screen
 alone read it, beating even its own `--color always`, and every other path
@@ -1995,7 +2209,8 @@ error, a load's warnings and every other, is written by one function
 (`jobexec.WriteWarning`) in the invocation's read's style for the stream it goes
 to: the whole line in the `warning` role's colour and bold, as the `!` warning
 lines are, when colour is on by `display.ColorEnabled`'s rule, and plain on a
-pipe, in a file, under `never`, `NO_COLOR`, or a `nocolor` theme; the words
+pipe under `auto`, in a file, under `never`, `NO_COLOR`, or a `nocolor` theme
+(`--nocolor`); the words
 never change. A recorded login's child writes to its wrapper's terminal through
 a writer that names that terminal, so the display's colour and width questions
 are the terminal's; the transcript stays the device's bytes. *Why:* the `!`
@@ -2005,6 +2220,39 @@ showed them coloured in a plain login. *Not taken:* the word `warning:` alone
 coloured; the load's warnings alone; the colour decided by `output.ansi` (it
 governs device output's escapes) ([`docs/EXAMPLES.md`, chapter 52, issue
 5](EXAMPLES.md#52-one-read-of-the-configuration-per-invocation-2026-10-10)).
+
+**A refusal in the error colour, a dropped line in the warning colour.** Every
+refusal that ends an invocation, the code and its message, is written bold in
+the `error` role's colour, as a device's failure line is, and a line a stream
+drops and goes on from (its three `dropped:` lines, `standard input is the
+stream; --cf - is not accepted`, and `nothing to send`) bold in the `warning`
+role's colour, by the methods every refusal goes through (`reportError`,
+`usageError`, `printResultError`, `refuse`, `dropped`) under the display's rule.
+Until the invocation's one read they take the built-in settings under the
+command line's own display options, so `karvi --nocolor run --bogus` and a
+configuration that does not load are plain. *Why:* a configuration warning and
+a device's failure were coloured while a refusal at planning, the line an
+operator most needs to see, was in none. *Not taken:* the credential helper's
+refusals coloured alone; a role of its own for refusals (the error role means
+failed); refusals left plain; the configuration's display keys read for a
+refusal of the command line (a second read).
+
+**A file is written plain, and `--nocolor` turns colour off for one
+invocation.** `display.ColorEnabled(mode, theme, to)` decides every line karvi
+colours by where it goes (`display.Destination`: a terminal, a regular file, or
+elsewhere, a pipe): `auto` colours a terminal unless `NO_COLOR` is set,
+`always` a terminal and a pipe, `never` nothing, and a regular file nothing
+under any mode. `--nocolor`, a global option before the command word alone,
+sets `display.theme = "nocolor"` for the invocation in the options layer, as
+`--ansi` sets `output.ansi`: `config show` names it the value's source, `--set`
+outranks it, `watch`'s own `--theme` outranks it for the screen, and a site that
+locks `display.theme` refuses it (`config_lock_violation`, exit 3). *Why:*
+escapes written into a log are read with an editor; `| less -R` keeps its
+colour under `always`; an option that sets a key belongs to the options layer.
+*Not taken:* `--nocolor` after the command word too (a second place for one
+global switch); `--nocolor` above `--set` and a lock; a pipe plain under
+`always`; `always` colouring a file ([`docs/EXAMPLES.md`, chapter 56, issue
+19](EXAMPLES.md#56-the-credential-helper-2026-10-11)).
 
 **Debug output shows each command once and never a payload.** Debug never
 contains passwords, tokens, or device output; it shows each command sent

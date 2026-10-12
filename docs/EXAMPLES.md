@@ -10244,3 +10244,112 @@ and a lock (an option unlike every other that sets a key); the configuration's
 display keys read for a refusal of the command line (a second read); a pipe
 written plain under `always` (`| less -R` losing its colour, at the operator's
 word); `always` colouring a file (escapes in a log read with an editor).
+
+**Built.** In five sections, each committed on the operator's word, and every
+new string in the short form, a word that adds nothing dropped, at the
+operator's word: `envindirect.Read` says `NAME not set` and `NAME empty` (the
+issues above quote the long form, as designed), so chapter 55's CSV cell says
+`…/creds.csv:2 password: NETPASS_NYC not set` too; the ROADMAP's review of
+output strings takes the rest of karvi's. S1 (`36d0b05`), the configuration:
+`%operator%` at load (`operatorMacro` and `operatorKept` in `configload`,
+`Options.Operator` from every caller, `operator_identity_unavailable` with no
+name known) and its fill, moved from S2 since S1 refused `%s` and the backends'
+`fmt.Sprintf` would have broken every template between the two commits:
+`credentials.ResolveRequest.Fill`, a plain replacement in the env backend,
+Redis's key, Vault's path, and the formula's username, and
+`ResolveRequest.UsernameTemplate`, `RequiredEnable`, and `Now`, read by nothing,
+removed; the `env-indirection` keys removed (issue 2); keys left unread (3, 16),
+variable names (4, the grammar moved to `internal/envname`, which the loader,
+`envindirect`, and the helper's parser share, since the loader may import no
+backend), kinds and the address (6), and `""` (17) refused at load; the helper's
+four keys and `tls-verify`, `creds.helper` a place whose bare name is kept as
+written (`Entry.BesideExecutable`, `configschema.BareName`). S2 (`96bf169`), the
+three backends: every read on the one lookup (1B), `envindirect.Record` and
+`Missing` shared by the CSV, Redis, and Vault; a store's `env:` field (2);
+Redis's source (5); the defaults set once in the resolver (6); `ValueDigest`
+removed (7), and `credentials.FormulaBased`, read by nothing, with it; the hold
+(15: `Resolver.ask`, `heldKey`, `copyMaterial`, by `Backend.Mode()`, the
+planner's test fake declaring `DeviceKeyed`); TLS (16, `storetls.Config`);
+`redis/redistest` and `storetls/tlstest` for the tests. S3 (`22984d8`), the
+helper (8 to 12, 14, and 18): the package `credhelper`; `credentialInput` the
+one credential step of the planner, the draft's client, and `login`; the file
+opened `O_PATH` and run as `/proc/self/fd/3`, so a binary at `0711` runs and
+`golang.org/x/sys` is a direct requirement; unavailable every open and exec
+failure (no exec permission, an exec format error, a missing `#!`
+interpreter), the checks and anything after a start hard failures; the output
+read to the pipe's end, at most two seconds more; the default timeout `60s`
+(18), the golden K03 draft re-pinned for it. S4 (`1ea520f`), refusal colours
+(13 and 19): the refusal methods of `globalOptions` (112 call sites) colouring
+by `globalOptions.shown`, the built-in settings under the command line's
+display options until the read; `Parse` setting the global options before an
+error in the global position; `--nocolor`; `display.Destination`,
+`DestinationOf`, and `ColorEnabled(mode, theme, to)`, `osutil.IsRegularFile`,
+and `jobexec.DisplayDestination` in place of `DisplayTerminal`, which nothing
+else read; `v070-smoke-test` reading the display through a pipe. S5, the
+documents: OPERATIONS (configuration macros, the env backend's `%operator%`
+and its names, the Vault and Redis backends, a store backend's keys at load,
+TLS to a store with the `openssl s_client` method, the credential helper),
+DESIGN (section 4: ten entries new and three amended; section 12: two new and
+two amended; section 2's help line), ARCHITECTURE, DISPLAY-CONFIGURATION,
+CREDENTIAL-CSV (sections 2, 6, 7, and 11), BUILD-HOWTO (the modules),
+`examples/config.toml` (a commented Vault block with its TLS lines and a
+`[creds]` block) and `examples/README.md`, the ROADMAP, and the CHANGELOG;
+ERROR-CODES, the reference, the schema, and the man pages were regenerated in
+the sections that changed them. The tests: `TestOperatorMacro`, `TestFill`,
+`TestStoreBackendKinds`, `TestStoreBackendAddress`,
+`TestStoreBackendVariables`, `TestStoreBackendUnreadKeys`,
+`TestStoreBackendEmpty`, `TestCredentialHelperKeys`, `TestBareName`, and
+`TestRemovedKeysRefused` (S1); `TestLoginVariables`, `TestToken`, `TestRecord`,
+`TestRecordReferences`, `TestSourceIsTheKey`, `TestStoreAnswersHeld`,
+`TestStoresBuiltWithTheirDefaults` with its concurrent case under `-race`,
+`TestTLS`, and `TestMatchTakesNoValueDigest` (S2);
+`TestStreamHoldsTheCredentialHelper`, `TestCredentialHelperRefusesTheRun`,
+`TestPlaceResolver`, `TestRunEndsDescendants`, and the new package's own,
+`TestExampleQuoting` among them, reading the example's quoting function as `sh
+-c 'eval …'` does (S3); `TestRefusalColours`, `TestStreamLinesColoured`,
+`TestParseGlobalRegion`, and `TestRefusalBuiltinStyle` (S4). Each failed on the
+tree before its section, the shims named in the evidence, but the new package's,
+which compile only with it, and `TestRefusalBuiltinStyle`, which names the new
+`display.Destination`; `TestNoCredhLock` and `TestNoColorLock`, which guard the
+two options' keys under a lock, passed before them.
+
+**Executed.** Lab builds of each section beside the one before, the fake device
+on 127.0.0.1:2223, the stand-in Redis and Vault servers logging what they were
+sent:
+
+| Case | Result |
+|---|---|
+| 40 devices, one Vault or Redis backend | 1 read (before S2, 40) |
+| a Redis address that never answers, `connect-timeout = "1s"` | refused after 1.0 s (before S2, 3.0 s) |
+| a stream of two jobs on three devices | 2 reads (before S2, 6); a password rotated in the store reaches the second job |
+| `ca-file` the site CA, the server from a CA the host trusts | refused (before S2, read) |
+| a self-signed Vault, `ca-file` its certificate collected by `openssl s_client` | read; refused without it, and a replaced certificate refused |
+| `VAULT_TOKEN` unset | `credential backend v: token-env: VAULT_TOKEN not set`, exit 6, nothing sent |
+| a helper, three devices | one run |
+| a helper exiting 1 | `credential_helper_failed`, exit 6, no device reached |
+| a helper past `creds.helper-timeout = 2s` | refused at 2.04 s, nothing left running |
+| a stream, `--restart`, a third job | the helper run twice |
+| `warn`, no helper, a stream of two jobs | a warning at each job |
+| a refusal at a pseudo-terminal | bold red, `ESC[1;31m` |
+| `display.color = always` | refusal, warning, and run plain in a file, coloured through a pipe |
+| `--nocolor` | refusals before and after the read, help, a run, and a stream plain |
+
+The full battery passed on the lab builds of S1 to S4, all 17 suites, leaving
+no `/tmp/karvi-<uid>` or `/var/tmp/karvi-<uid>`; the first run on S4's stopped
+in lane 3 at `v070-smoke-test`, which read `always`'s escapes from a file. Noted
+while writing the documents: `%s` in an env backend's template is refused at
+load under issue 4's rule, `config_credential_backend_variable_invalid`, where
+issue 1 said its variable is never set; and on a `csv` backend
+`config_key_removed`'s hint for an `env-indirection` key names the ways of
+Redis, Vault, and the env backend and not the CSV's own `env:` cell. The
+evidence is kept beside the tree
+(`release-design-evidence/credential-helper-2026-10-11`).
+
+**Closed.** `go test ./...`, `go vet`, and `make generated-clean` passed at
+every section, `-race` on the packages each touched, and the full battery on
+the lab builds of S1 to S4 (S5 changes the documents and the example's comments
+alone; `examples/config.toml` validates on S4's build with its new blocks
+uncommented). The ROADMAP's item is gone, and its Next is build numbers, beside
+the next release. The codes this chapter retires and the keys it removes are
+the next release's (`retiredV0300`, `nextRelease`), to be checked when the
+release is given its number.
