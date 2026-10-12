@@ -9550,8 +9550,9 @@ executable's checks, environment, timeout, standard error, and exit, and its
 configuration beside the helper protocols operators know; and, found while
 designing them or at the operator's word, refusals said without colour at a
 terminal, the operator-keyed stores' answers read once and held, and TLS to the
-stores; and, found while building, an empty value and what a helper leaves
-running.
+stores; and, found while building, an empty value, what a helper leaves
+running, and colour turned off for one invocation and never written into a
+file.
 
 **Issue 1, the reads on the one lookup and `%operator%`, agreed.** On the lab
 build, with the flags off: the env backend answers when any of its variables is
@@ -10206,3 +10207,40 @@ timer's run adding one each time); karvi made the child subreaper, adopting
 the orphans (every orphan below karvi, an `ssh` control master's among them,
 karvi's to reap); descendants ended after a helper exits by itself (an agent
 it started on purpose ended).
+
+**Issue 19, found while building S4: colour off for one invocation, and none in
+a file, agreed.** On the lab build of S4, at a pseudo-terminal, a refusal was
+in bold red, as a device's failure line is, and a stream's dropped line in bold
+orange, as a warning line is: the three `dropped:` lines and two more lines the
+stream passes over, `standard input is the stream; --cf - is not accepted` and
+`nothing to send`, with `stream line N: ` on the red line of a job the stream
+refuses. Before the read, `display.color = never` in a file and
+`KARVI__DISPLAY__COLOR=never` left the refusal of `run --bogus` red, `NO_COLOR`
+alone turning it off; issue 13's `--nocolor` named no option karvi had; and
+under `display.color = always` a refusal, a warning, and a run's own display
+written into a file carried their escapes. At the operator's word: `--nocolor`,
+a global option before the command word, sets `display.theme = "nocolor"` for
+the invocation in the options layer, as `--ansi` sets `output.ansi`, so `config
+show` names it the value's source, `--set` outranks it, `watch`'s own `--theme`
+outranks it for the screen, a site that locks `display.theme` refuses it
+(`config_lock_violation`, exit 3), and after the command word it is an unknown
+option. It turns off every colour of the invocation, a refusal before the read
+included: until the read a refusal takes the built-in settings under the command
+line's own display options, so `karvi --nocolor run --bogus` and a configuration
+that fails to load are plain. Warnings stay orange and errors red. A stream
+written into a regular file is plain whatever `display.color` says, by the
+display's one rule (`display.ColorEnabled`) for every line karvi colours, its
+refusals, warnings, dropped lines, a run's display, the help, `config colors`,
+the watch screen, and `karvi-prune -h`: `auto` colours a terminal unless
+`NO_COLOR` is set, `always` a terminal and a pipe, and `never` nothing. On the
+lab build of it, under `always` the refusal, the warning, and the run's display
+were plain in a file and coloured through a pipe, and with `--nocolor` the
+refusals before and after the read, the help, a run, and a stream were plain.
+`v070-smoke-test`, which read `always`'s escapes from a file, reads the display
+through a pipe; the battery's first run on the build stopped there. *Not taken:*
+`--nocolor` after the command word too (a second place for one global switch,
+where `--ansi` has one); `--nocolor` outside the options layer, above `--set`
+and a lock (an option unlike every other that sets a key); the configuration's
+display keys read for a refusal of the command line (a second read); a pipe
+written plain under `always` (`| less -R` losing its colour, at the operator's
+word); `always` colouring a file (escapes in a log read with an editor).

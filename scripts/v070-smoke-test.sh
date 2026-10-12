@@ -106,15 +106,18 @@ absent 'DO-NOT-LOG-THIS' "$TMP/command.err"
 [ "$(grep 'show clock\|show version' "$TMP/command.err" | grep -c 'device command start .* command=')" -eq 2 ]
 
 # Color=always allows exact semantic-role verification even though this smoke
-# test captures stdout rather than allocating a terminal.
-rm -f "$LOG"
+# test captures stdout rather than allocating a terminal. It colours a pipe
+# and never a file, so the display is read through a pipe, and the status
+# file holds a line only when karvi exits 0 (a pipeline's status is cat's).
+rm -f "$LOG" "$TMP/color.status"
 # shellcheck disable=SC2046
-HOME="$HOME_DIR" NETUSER=svc.quinlan NETPASS=DO-NOT-LOG-THIS "$KARVI" $(common_args) \
+{ HOME="$HOME_DIR" NETUSER=svc.quinlan NETPASS=DO-NOT-LOG-THIS "$KARVI" $(common_args) \
   --set display.color=always \
   --set 'display.command.border="<repeat:-:8>\n"' \
   --set display.command.last-border=true \
   command --host vzn-ohio --address 10.0.2.9 --cmd 'show clock' \
-  >"$TMP/color.out" 2>"$TMP/color.err"
+  2>"$TMP/color.err" && echo 0 >"$TMP/color.status"; } | cat >"$TMP/color.out"
+[ -s "$TMP/color.status" ]
 ESC=$(printf '\033')
 grep -Fq "${ESC}[1;33mvzn-ohio${ESC}[0m" "$TMP/color.out"
 # The dark palette: the address bold magenta, the

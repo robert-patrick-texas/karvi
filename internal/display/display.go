@@ -811,18 +811,46 @@ func formatElapsed(value time.Duration) string {
 	return value.Round(10 * time.Millisecond).String()
 }
 
+// Destination is where a stream's lines go, as the colour rule tells them
+// apart.
+type Destination int
+
+const (
+	// Elsewhere is a pipe, a socket, a device, or a writer that names no
+	// file.
+	Elsewhere Destination = iota
+	// Terminal is a terminal, or a writer that names one.
+	Terminal
+	// File is a regular file, which is written plain.
+	File
+)
+
+// DestinationOf is where a stream's lines go from what its file is
+// (osutil.IsTerminal, osutil.IsRegularFile): a terminal, else a regular
+// file, else elsewhere.
+func DestinationOf(terminal, regular bool) Destination {
+	switch {
+	case terminal:
+		return Terminal
+	case regular:
+		return File
+	}
+	return Elsewhere
+}
+
 // ColorEnabled applies the central terminal color policy: never, or the
-// nocolor theme, is off; always is on; auto is on at a terminal unless
-// NO_COLOR is set and not empty (no-color.org). always and never are
-// explicit choices NO_COLOR does not override.
-func ColorEnabled(mode, theme string, terminal bool) bool {
-	if strings.EqualFold(theme, "nocolor") || strings.EqualFold(mode, "never") {
+// nocolor theme, is off, and a regular file is written plain whatever the
+// mode; always is on at a terminal and elsewhere (a pipe); auto is on at a
+// terminal unless NO_COLOR is set and not empty (no-color.org). always and
+// never are explicit choices NO_COLOR does not override.
+func ColorEnabled(mode, theme string, to Destination) bool {
+	if strings.EqualFold(theme, "nocolor") || strings.EqualFold(mode, "never") || to == File {
 		return false
 	}
 	if strings.EqualFold(mode, "always") {
 		return true
 	}
-	return terminal && os.Getenv("NO_COLOR") == ""
+	return to == Terminal && os.Getenv("NO_COLOR") == ""
 }
 
 // EffectiveTheme resolves auto using the widely supported COLORFGBG hint.

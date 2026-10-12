@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -19,10 +20,12 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/completion"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credhelper"
+	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 	"github.com/robert-patrick-texas/karvi/internal/icmpgate"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
@@ -32,7 +35,10 @@ type globalOptions struct {
 	ipv4, ipv6                             bool
 	// noCredh is --no-credh: on a word that takes it, or on a stream's
 	// command line for every job.
-	noCredh        bool
+	noCredh bool
+	// noColor is --nocolor: display.theme = "nocolor" in the read's
+	// options layer, and for a refusal before the read (unread).
+	noColor        bool
 	timezone, ansi string
 	// say says the load's warnings at the invocation's one read
 	// (app.SayWarnings); nil says nothing.
@@ -43,6 +49,12 @@ type globalOptions struct {
 	// helper holds the credential helper's values for the invocation, or
 	// for a stream's jobs until --restart.
 	helper *credhelper.Holder
+	// shown is the snapshot whose display keys colour the invocation's
+	// refusals and a stream's dropped lines (refuse, dropped): Main's holds
+	// the built-in defaults under the command line's display keys (unread)
+	// until the invocation's read puts its own there (show); nil, in an
+	// invocation made without Main, the built-in defaults.
+	shown *configload.Snapshot
 }
 
 // flags are the keys the global options set, in the read's options layer.
@@ -53,6 +65,9 @@ func (g globalOptions) flags() map[string]configload.FlagValue {
 	}
 	if g.ansi != "" {
 		setKey(values, "--ansi", "output.ansi", g.ansi)
+	}
+	if g.noColor {
+		setKey(values, "--nocolor", "display.theme", "nocolor")
 	}
 	if g.ipv4 {
 		setKey(values, "--ipv4", "name.address-family-preference", "ipv4")
@@ -80,8 +95,9 @@ func (g globalOptions) read(flags map[string]configload.FlagValue, stderr io.Wri
 		cfg, operator, err = app.ReadConfig(app.ConfigRequest{Roots: g.configs, Sets: g.sets, Flags: flags}, g.say)
 	}
 	if err != nil {
-		return app.CommonOptions{}, reportError(stderr, "config_load_failed", err), false
+		return app.CommonOptions{}, g.reportError(stderr, "config_load_failed", err), false
 	}
+	g.show(cfg)
 	return app.CommonOptions{Config: cfg, Operator: operator, Quiet: g.quiet, Debug: g.debug, DebugShowSecret: g.debugShow, Helper: g.helper}, 0, true
 }
 
@@ -105,8 +121,12 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 		return completeMain(args[1:], stdout)
 	}
 	inv, err := Parse(args)
+	// The invocation's refusals are coloured by the built-in defaults and
+	// the display keys its options set until its read (globalOptions.shown),
+	// a refusal of the command line among them.
+	inv.Global.shown = inv.Global.unread()
 	if err != nil {
-		return reportError(stderr, "cli_option_unknown", err)
+		return inv.Global.reportError(stderr, "cli_option_unknown", err)
 	}
 	if inv.Help {
 		fmt.Fprint(stdout, helplayout.Layout(inv.helpText(), helpStyleFor(inv.Global, stdout)))
@@ -121,21 +141,21 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 	}
 	if len(inv.Pending) > 0 {
 		o := inv.Pending[0]
-		return usageError(stderr, "cli_option_unavailable", "--%s is in the specification but is not available in this executable", o.name)
+		return inv.Global.usageError(stderr, "cli_option_unavailable", "--%s is in the specification but is not available in this executable", o.name)
 	}
 	if inv.Global.debugShow && !inv.Global.debug {
-		return usageError(stderr, "debug_show_secrets_requires_debug", "--debug-show-secrets requires --debug")
+		return inv.Global.usageError(stderr, "debug_show_secrets_requires_debug", "--debug-show-secrets requires --debug")
 	}
 	if inv.Flag(optIPv4) && inv.Flag(optIPv6) {
-		return usageError(stderr, "address_family_conflict", "--ipv4/--4 and --ipv6/--6 are mutually exclusive")
+		return inv.Global.usageError(stderr, "address_family_conflict", "--ipv4/--4 and --ipv6/--6 are mutually exclusive")
 	}
 	// Both ping flags are refused here, before any configuration loads,
 	// hence before DNS, credentials, submission, ICMP, or a device.
 	if inv.Flag(optPing) && inv.Flag(optNoPing) {
-		return usageError(stderr, "ping_flag_conflict", "--ping and --noping are mutually exclusive")
+		return inv.Global.usageError(stderr, "ping_flag_conflict", "--ping and --noping are mutually exclusive")
 	}
 	if inv.Path == "login" && inv.Record != nil && inv.Global.debugShow {
-		return usageError(stderr, "record_debug_show_secrets_conflict", "--debug-show-secrets is incompatible with transcript recording")
+		return inv.Global.usageError(stderr, "record_debug_show_secrets_conflict", "--debug-show-secrets is incompatible with transcript recording")
 	}
 	// The load's warnings are said on standard error at the invocation's one
 	// read; a recorded login's child leaves them to its wrapper, whose read
@@ -311,22 +331,78 @@ func renderVersion(format string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func printResultError(result app.ActivityResult, stderr io.Writer) {
+// printResultError prints an activity's refusal, its result's code and
+// message, as reportError prints one.
+func (g globalOptions) printResultError(result app.ActivityResult, stderr io.Writer) {
 	if result.Error != "" {
-		fmt.Fprintln(stderr, result.Error)
+		fmt.Fprintln(stderr, refusalLine(result.Error, g.style(stderr)))
 	}
 }
 
 // reportError prints err under the site code that names its cause, unless err
 // carries a more specific registered code, and returns the registry exit.
-func reportError(w io.Writer, code string, err error) int {
+func (g globalOptions) reportError(w io.Writer, code string, err error) int {
+	return g.refuse(w, "", code, err)
+}
+
+// refuse is reportError with prefix before the code, on the one line: a
+// stream's "stream line N: " for the line that sent the job it refuses.
+func (g globalOptions) refuse(w io.Writer, prefix, code string, err error) int {
 	err = errorcodes.Ensure(err, code)
-	fmt.Fprintln(w, errorcodes.Message(err))
+	fmt.Fprintln(w, refusalLine(prefix+errorcodes.Message(err), g.style(w)))
 	return errorcodes.ExitAt(err, code)
 }
 
 // usageError reports an option value or combination check made after parsing
 // under its own registered code.
-func usageError(w io.Writer, code, format string, args ...any) int {
-	return reportError(w, code, errorcodes.Errorf(code, format, args...))
+func (g globalOptions) usageError(w io.Writer, code, format string, args ...any) int {
+	return g.reportError(w, code, errorcodes.Errorf(code, format, args...))
+}
+
+// dropped prints a line a stream drops and goes on from, its words
+// unchanged, the whole line in the warning colour and bold as a warning
+// line is (jobexec.WarningText).
+func (g globalOptions) dropped(w io.Writer, format string, args ...any) {
+	style := g.style(w)
+	fmt.Fprintln(w, display.ANSIStyle(fmt.Sprintf(format, args...), style.Warning, style.Enabled, display.RoleBold("warning")))
+}
+
+// refusalLine is a refusal, its code and message, the whole line in the
+// error colour and bold when colour is on, as a device's failure line is
+// (EXAMPLES chapter 56, issue 13).
+func refusalLine(line string, style display.LineStyle) string {
+	return display.ANSIStyle(line, style.Error, style.Enabled, true)
+}
+
+// style is the display style of g's refusals on w, by the display's one
+// colour rule: the shown snapshot's display keys, the zero snapshot's empty
+// ones being the built-in defaults (TestRefusalBuiltinStyle).
+func (g globalOptions) style(w io.Writer) display.LineStyle {
+	var cfg configload.Snapshot
+	if g.shown != nil {
+		cfg = *g.shown
+	}
+	return jobexec.DisplayLineStyle(cfg, jobexec.DisplayDestination(w))
+}
+
+// unread is the snapshot a refusal before the invocation's read is coloured
+// by: the built-in defaults, the zero snapshot, under the display keys the
+// command line's options set (--nocolor), which the read takes in its
+// options layer.
+func (g globalOptions) unread() *configload.Snapshot {
+	cfg := configload.Snapshot{Values: map[string]configload.Value{}}
+	for key, f := range g.flags() {
+		if strings.HasPrefix(key, "display.") {
+			cfg.Values[key] = configload.Value{Data: f.Value}
+		}
+	}
+	return &cfg
+}
+
+// show makes cfg, a read's snapshot, the one the invocation's refusals are
+// coloured by from here on.
+func (g globalOptions) show(cfg configload.Snapshot) {
+	if g.shown != nil {
+		*g.shown = cfg
+	}
 }

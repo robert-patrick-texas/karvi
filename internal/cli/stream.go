@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/app"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -178,8 +179,7 @@ func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
 	execute := func(line int, argv []string) int {
 		sub, err := Parse(argv)
 		if err != nil {
-			fmt.Fprintf(streams.Stderr, "stream line %d: ", line)
-			return reportError(streams.Stderr, errorcodes.Of(err), err)
+			return inv.Global.refuse(streams.Stderr, fmt.Sprintf("stream line %d: ", line), errorcodes.Of(err), err)
 		}
 		sub.Global = inv.Global
 		return commandRun(ctx, sub, streams)
@@ -194,27 +194,31 @@ func commandStream(ctx context.Context, inv *Invocation, streams app.IO) int {
 		}
 		return code, ok
 	}
-	return streamLoop(ctx, next, streams.Stderr, execute, restart)
+	return streamLoop(ctx, next, inv.Global, streams.Stderr, execute, restart)
 }
 
 // readStreamConfig is the stream's reading of its configuration, at its
 // start (line 0) and at the --restart on line: the files and the
 // environment under the stream's command-line options and --set, its
 // snapshot validated and its warnings said, the reading every later job's
-// snapshot is made from. A failure is reported, after "stream line N: "
+// snapshot is made from, and the snapshot the stream's refusals and dropped
+// lines are coloured by. A failure is reported, after "stream line N: "
 // for a --restart's, and its exit returned with false.
 func readStreamConfig(inv *Invocation, stderr io.Writer, line int) (int, bool) {
 	reading, err := app.ReadConfigFiles(app.ConfigRequest{Roots: inv.Global.configs, Sets: inv.Global.sets})
+	var cfg configload.Snapshot
 	if err == nil {
-		_, _, err = reading.Snapshot(inv.flags(), inv.Global.say)
+		cfg, _, err = reading.Snapshot(inv.flags(), inv.Global.say)
 	}
 	if err != nil {
+		prefix := ""
 		if line > 0 {
-			fmt.Fprintf(stderr, "stream line %d: ", line)
+			prefix = fmt.Sprintf("stream line %d: ", line)
 		}
-		return reportError(stderr, "config_load_failed", err), false
+		return inv.Global.refuse(stderr, prefix, "config_load_failed", err), false
 	}
 	inv.Global.reading = &reading
+	inv.Global.show(cfg)
 	return exitcode.ExitSuccess, true
 }
 
@@ -243,7 +247,8 @@ func streamScanner(in io.Reader) func() (string, error) {
 }
 
 // streamLoop reads the lines and drives the draft; next gives one line, or
-// io.EOF at the input's end, or the input's failure; execute runs one
+// io.EOF at the input's end, or the input's failure; g's shown snapshot
+// colours its refusal and its dropped lines on stderr; execute runs one
 // invocation, named by the line that sent it, and gives its exit; restart
 // reads the configuration again for the --restart on a line, giving false
 // and the failure's exit when the reading fails. It returns when the input
@@ -257,7 +262,7 @@ func streamScanner(in io.Reader) func() (string, error) {
 // credential prompt's answer as the next line. It blocks in the input's
 // read, which takes no deadline, so it lives until the input ends or the
 // process does; after the loop returns it delivers nowhere.
-func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writer, execute func(line int, argv []string) int, restart func(line int) (int, bool)) int {
+func streamLoop(ctx context.Context, next func() (string, error), g globalOptions, stderr io.Writer, execute func(line int, argv []string) int, restart func(line int) (int, bool)) int {
 	want := make(chan struct{})
 	defer close(want)
 	lines := make(chan streamRead, 1)
@@ -307,7 +312,7 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 			} else {
 				err = errorcodes.Errorf("stream_input_read_failed", "standard input failed after stream line %d: %v", n, r.err)
 			}
-			return reportError(stderr, "stream_input_read_failed", err)
+			return g.reportError(stderr, "stream_input_read_failed", err)
 		}
 		n++
 		text := strings.TrimSpace(r.text)
@@ -320,7 +325,7 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 			if !ok {
 				purge, err := streamPurge(word)
 				if err != nil {
-					fmt.Fprintf(stderr, "stream line %d dropped: %s\n", n, errorcodes.Message(err))
+					g.dropped(stderr, "stream line %d dropped: %s", n, errorcodes.Message(err))
 					continue
 				}
 				act, ok = purge, purge != ""
@@ -329,7 +334,7 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 				switch act {
 				case "go":
 					if len(draft.commands) == 0 {
-						fmt.Fprintf(stderr, "stream line %d: nothing to send\n", n)
+						g.dropped(stderr, "stream line %d: nothing to send", n)
 						continue
 					}
 					last = execute(n, draft.argv())
@@ -354,11 +359,11 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 			}
 			args, role, stdinOption, detached := streamOptionArgs(text)
 			if stdinOption != "" {
-				fmt.Fprintf(stderr, "stream line %d: standard input is the stream; %s - is not accepted\n", n, stdinOption)
+				g.dropped(stderr, "stream line %d: standard input is the stream; %s - is not accepted", n, stdinOption)
 				continue
 			}
 			if detached != nil {
-				fmt.Fprintf(stderr, "stream line %d dropped: %s\n", n, errorcodes.Message(detached))
+				g.dropped(stderr, "stream line %d dropped: %s", n, errorcodes.Message(detached))
 				continue
 			}
 			// A declaration joins the command before it; with none, it
@@ -391,7 +396,7 @@ func streamLoop(ctx context.Context, next func() (string, error), stderr io.Writ
 				err = collectionOptionsError(probed)
 			}
 			if err != nil {
-				fmt.Fprintf(stderr, "stream line %d dropped: %s\n", n, errorcodes.Message(err))
+				g.dropped(stderr, "stream line %d dropped: %s", n, errorcodes.Message(err))
 				continue
 			}
 			draft = candidate

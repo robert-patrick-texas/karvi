@@ -76,7 +76,7 @@ func TestHostKeyLinesColours(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	style := DisplayLineStyle(cfg, false)
+	style := DisplayLineStyle(cfg, display.Elsewhere)
 	notices := []records.Notice{
 		{Code: "host_key_enrolled", Details: map[string]any{"key_type": "ED25519"}},
 		{Code: "host_key_mismatch_accepted"},
@@ -106,7 +106,7 @@ func TestHostKeyLinesOfEachCode(t *testing.T) {
 		{Code: "host_key_not_compared", Message: "ssh host-key r1 not compared: ssh-keyscan timed out", Details: map[string]any{"cause": "ssh-keyscan timed out", "reason": "ssh-keyscan timed out: no key within 5s"}},
 	}
 	want := "! ssh host-key mismatch r1 proceeding at risk\n! ssh host-key r1 not compared: ssh-keyscan timed out"
-	if got := strings.Join(HostKeyLines("r1", notices, DisplayLineStyle(cfg, false)), "\n"); got != want {
+	if got := strings.Join(HostKeyLines("r1", notices, DisplayLineStyle(cfg, display.Elsewhere)), "\n"); got != want {
 		t.Fatalf("lines %q", got)
 	}
 	line, err := json.Marshal(records.CommandRecord{Device: records.DeviceProjection{CanonicalName: "r1"}, Status: "succeeded", Notices: notices})
@@ -150,7 +150,7 @@ func TestAdmissionWarningLines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, l := range AdmissionWarningLines(PolicyInsecureWarning(), DisplayLineStyle(coloured, false)) {
+	for _, l := range AdmissionWarningLines(PolicyInsecureWarning(), DisplayLineStyle(coloured, display.Elsewhere)) {
 		if !strings.HasPrefix(l, "\x1b[") || !strings.HasSuffix(l, "\x1b[0m") {
 			t.Fatalf("uncoloured %q", l)
 		}

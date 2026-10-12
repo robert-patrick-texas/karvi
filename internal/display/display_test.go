@@ -247,22 +247,35 @@ func TestCropLinesKeepsEscapesWhole(t *testing.T) {
 
 // TestColorEnabledNoColor: under auto, colour is on at a terminal unless
 // NO_COLOR is set and not empty; always and never are explicit choices
-// NO_COLOR does not override; the nocolor theme is off whatever the mode.
+// NO_COLOR does not override; the nocolor theme is off whatever the mode;
+// a regular file is plain whatever the mode, and always colours a pipe.
 func TestColorEnabledNoColor(t *testing.T) {
 	for _, tc := range []struct {
 		mode, theme, noColor string
-		terminal, want       bool
+		to                   Destination
+		want                 bool
 	}{
-		{"auto", "dark", "", true, true},
-		{"auto", "dark", "1", true, false},
-		{"auto", "dark", "", false, false},
-		{"always", "dark", "1", false, true},
-		{"never", "dark", "", true, false},
-		{"always", "nocolor", "", true, false},
+		{"auto", "dark", "", Terminal, true},
+		{"auto", "dark", "1", Terminal, false},
+		{"auto", "dark", "", Elsewhere, false},
+		{"auto", "dark", "", File, false},
+		{"always", "dark", "1", Elsewhere, true},
+		{"always", "dark", "", Terminal, true},
+		{"always", "dark", "", File, false},
+		{"never", "dark", "", Terminal, false},
+		{"always", "nocolor", "", Terminal, false},
 	} {
 		t.Setenv("NO_COLOR", tc.noColor)
-		if got := ColorEnabled(tc.mode, tc.theme, tc.terminal); got != tc.want {
-			t.Errorf("ColorEnabled(%s, %s, terminal=%v) with NO_COLOR=%q = %v, want %v", tc.mode, tc.theme, tc.terminal, tc.noColor, got, tc.want)
+		if got := ColorEnabled(tc.mode, tc.theme, tc.to); got != tc.want {
+			t.Errorf("ColorEnabled(%s, %s, %d) with NO_COLOR=%q = %v, want %v", tc.mode, tc.theme, tc.to, tc.noColor, got, tc.want)
 		}
+	}
+}
+
+// TestDestinationOf: a terminal is a terminal whatever else it is, a
+// regular file a file, and anything else elsewhere.
+func TestDestinationOf(t *testing.T) {
+	if DestinationOf(true, false) != Terminal || DestinationOf(false, true) != File || DestinationOf(false, false) != Elsewhere {
+		t.Errorf("terminal %d, file %d, other %d", DestinationOf(true, false), DestinationOf(false, true), DestinationOf(false, false))
 	}
 }

@@ -128,7 +128,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 	if dynamicDefault < 1 {
 		dynamicDefault = 72
 	}
-	style := DisplayLineStyle(cfg, terminal)
+	style := DisplayLineStyle(cfg, DisplayDestination(out))
 	return &recordRenderer{
 		out: out, format: format, stripANSI: strip, quiet: quiet, debug: debug, pingTemplate: cfg.String("display.ping.header"), echo: echo, activityType: activityType,
 		colorEnabled: style.Enabled, lineStyle: style, borderColor: DisplayBorderColor(cfg),
@@ -145,7 +145,7 @@ func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, qu
 // in-process job's renderer and a followed job's, not a past job's
 // directory shown again.
 func (r *recordRenderer) sayTo(w io.Writer, cfg configload.Snapshot) {
-	r.warnOut, r.warnStyle = w, DisplayLineStyle(cfg, DisplayTerminal(w))
+	r.warnOut, r.warnStyle = w, DisplayLineStyle(cfg, DisplayDestination(w))
 }
 
 // HostKeyLines are the client's lines for a record's host-key notices on
@@ -196,7 +196,7 @@ func WarningText(message string, style display.LineStyle) string {
 // karvi writes is written by it.
 func WriteWarning(w io.Writer, cfg configload.Snapshot, message string) {
 	if w != nil {
-		fmt.Fprintln(w, WarningText(message, DisplayLineStyle(cfg, DisplayTerminal(w))))
+		fmt.Fprintln(w, WarningText(message, DisplayLineStyle(cfg, DisplayDestination(w))))
 	}
 }
 
@@ -233,7 +233,7 @@ func AdmissionWarningLines(warning string, style display.LineStyle) []string {
 // WriteAdmissionWarnings writes a job's admission warnings to w, a client's
 // standard error, as AdmissionWarningLines in w's colours.
 func WriteAdmissionWarnings(w io.Writer, cfg configload.Snapshot, warnings []string) {
-	style := DisplayLineStyle(cfg, DisplayTerminal(w))
+	style := DisplayLineStyle(cfg, DisplayDestination(w))
 	for _, warning := range warnings {
 		for _, line := range AdmissionWarningLines(warning, style) {
 			fmt.Fprintln(w, line)
@@ -935,7 +935,7 @@ func NewRunRenderer(cfg configload.Snapshot, quiet, debug bool, artifactDir, for
 	if format == "" {
 		format = "text"
 	}
-	rr := &RunRenderer{out: out, format: format, warnOut: errOut, warnStyle: DisplayLineStyle(cfg, DisplayTerminal(errOut))}
+	rr := &RunRenderer{out: out, format: format, warnOut: errOut, warnStyle: DisplayLineStyle(cfg, DisplayDestination(errOut))}
 	if format == "jsonl" {
 		return rr, nil
 	}

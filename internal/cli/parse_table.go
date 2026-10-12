@@ -175,10 +175,11 @@ var (
 	optDebugShow   = flagOpt("debug-show-secrets")
 	optTimezone    = valueOpt("timezone", "ZONE")
 	optAnsi        = enumOpt("ansi", "auto", "strip", "preserve")
+	optNoColor     = flagOpt("nocolor")
 	optVersionFlag = flagOpt("version")
 )
 
-var globalOptionTable = []*option{optConfig, optSet, optQuiet, optDebug, optDebugShow, optTimezone, optAnsi, optIPv4, optIPv6, optVersionFlag, optHelp}
+var globalOptionTable = []*option{optConfig, optSet, optQuiet, optDebug, optDebugShow, optTimezone, optAnsi, optNoColor, optIPv4, optIPv6, optVersionFlag, optHelp}
 
 // login options.
 var (

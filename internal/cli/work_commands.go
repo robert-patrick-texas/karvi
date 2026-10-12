@@ -36,12 +36,12 @@ func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 			}
 		case "tfr":
 			if t.Value == "-" {
-				return usageError(w, "target_source_stdin_invalid", "--tfr - is not accepted; --tf - reads standard input"), false
+				return inv.Global.usageError(w, "target_source_stdin_invalid", "--tfr - is not accepted; --tf - reads standard input"), false
 			}
 		}
 	}
 	if stdinUses > 1 {
-		return usageError(w, "stdin_source_repeated", "standard input may be read by one input: --cf - or one --tf -"), false
+		return inv.Global.usageError(w, "stdin_source_repeated", "standard input may be read by one input: --cf - or one --tf -"), false
 	}
 	return 0, true
 }
@@ -68,7 +68,7 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 				names, err = targetsource.Read(t.Value, targetsource.Options{Recursive: true, MaxDepth: maxDepth})
 			}
 			if err != nil {
-				return nil, reportError(streams.Stderr, "target_source_unreadable", err), false
+				return nil, inv.Global.reportError(streams.Stderr, "target_source_unreadable", err), false
 			}
 			source := t.Value
 			if source == "-" {
@@ -76,7 +76,7 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 			}
 			for _, name := range names {
 				if err := checkSelector("target file "+source+" entry", name, false); err != nil {
-					return nil, reportError(streams.Stderr, "target_selector_pattern_invalid", err), false
+					return nil, inv.Global.reportError(streams.Stderr, "target_selector_pattern_invalid", err), false
 				}
 			}
 			if len(names) == 0 {
@@ -89,7 +89,7 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 					what = "target folder"
 				}
 				if emptyRule == "error" {
-					return nil, reportError(streams.Stderr, "target_source_empty", errorcodes.Errorf("target_source_empty", "%s %s yields no targets (targets.empty-source is error)", what, t.Value)), false
+					return nil, inv.Global.reportError(streams.Stderr, "target_source_empty", errorcodes.Errorf("target_source_empty", "%s %s yields no targets (targets.empty-source is error)", what, t.Value)), false
 				}
 				jobexec.WriteWarning(streams.Stderr, cfg, fmt.Sprintf("%s %s yields no targets; continuing with the other inputs", what, t.Value))
 			}
@@ -106,7 +106,7 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 func checkPort(inv *Invocation, w io.Writer) (int, bool) {
 	port := inv.Int(optPort)
 	if inv.Set(optPort) && (port < 1 || port > 65535) {
-		return usageError(w, "port_out_of_range", "--port must be 1..65535, got %d", port), false
+		return inv.Global.usageError(w, "port_out_of_range", "--port must be 1..65535, got %d", port), false
 	}
 	return 0, true
 }
@@ -116,7 +116,7 @@ func checkPort(inv *Invocation, w io.Writer) (int, bool) {
 // (output_options_conflict).
 func checkExclusive(inv *Invocation, w io.Writer, code string, a, b *option) (int, bool) {
 	if inv.Flag(a) && inv.Flag(b) {
-		return usageError(w, code, "--%s and --%s are mutually exclusive", a.name, b.name), false
+		return inv.Global.usageError(w, code, "--%s and --%s are mutually exclusive", a.name, b.name), false
 	}
 	return 0, true
 }
@@ -226,7 +226,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return code
 	}
 	if err := collectionOptionsError(inv); err != nil {
-		return reportError(streams.Stderr, errorcodes.Of(err), err)
+		return inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err)
 	}
 	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
@@ -249,7 +249,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder)}, streams)
 	collection.impliedDirectory(&result)
-	printResultError(result, streams.Stderr)
+	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
 }
 
@@ -292,13 +292,13 @@ func commandPlan(inv *Invocation, streams app.IO) ([]string, declarations, int, 
 	if inv.Set(optCf) {
 		lines, err := loadCommandsFile(inv.CommandsFile, streams.Stdin)
 		if err != nil {
-			return nil, declarations{}, reportError(streams.Stderr, "commands_file_unreadable", err), false
+			return nil, declarations{}, inv.Global.reportError(streams.Stderr, "commands_file_unreadable", err), false
 		}
 		commands = append(commands, lines...)
 	}
 	decl, err := declarationLists(commands, inv.Declarations, inv.Flag(optLiteral))
 	if err != nil {
-		return nil, declarations{}, reportError(streams.Stderr, errorcodes.Of(err), err), false
+		return nil, declarations{}, inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err), false
 	}
 	return commands, decl, 0, true
 }
@@ -446,7 +446,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return code
 	}
 	if err := collectionOptionsError(inv); err != nil {
-		return reportError(streams.Stderr, errorcodes.Of(err), err)
+		return inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err)
 	}
 	if code, ok := checkExclusive(inv, streams.Stderr, "output_options_conflict", optOf, optNof); !ok {
 		return code
@@ -454,14 +454,14 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	address := inv.String(optAddress)
 	if address != "" {
 		if _, err := netip.ParseAddr(address); err != nil {
-			return reportError(streams.Stderr, "management_address_invalid", fmt.Errorf("invalid --management-address %q: %w", address, err))
+			return inv.Global.reportError(streams.Stderr, "management_address_invalid", fmt.Errorf("invalid --management-address %q: %w", address, err))
 		}
 	}
 	authorities := inv.Strings(optAddrAuthorityRun)
 	for _, raw := range authorities {
 		target, value, ok := strings.Cut(raw, "=")
 		if !ok || strings.TrimSpace(target) == "" || (!strings.EqualFold(value, "client") && !strings.EqualFold(value, "daemon")) {
-			return usageError(streams.Stderr, "cli_option_value_invalid", "--address-authority %q must be TARGET=client|daemon", raw)
+			return inv.Global.usageError(streams.Stderr, "cli_option_value_invalid", "--address-authority %q must be TARGET=client|daemon", raw)
 		}
 	}
 	if len(inv.Targets) == 0 {
@@ -470,7 +470,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		if inv.Set(optPlatform) {
 			hint = " (--platform names the platform the devices run as and selects none; --select-platform selects by platform)"
 		}
-		return reportError(streams.Stderr, "inventory_positive_selector_missing", errorcodes.Errorf("inventory_positive_selector_missing", "%s requires a target input: --target, --tf, --site, --device-group, --select-platform, or --all%s", word, hint))
+		return inv.Global.reportError(streams.Stderr, "inventory_positive_selector_missing", errorcodes.Errorf("inventory_positive_selector_missing", "%s requires a target input: --target, --tf, --site, --device-group, --select-platform, or --all%s", word, hint))
 	}
 	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
@@ -484,21 +484,21 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	// daemon. While --detach is pending, the parser's refusal comes first.
 	switch {
 	case inv.Flag(optDryRun) && inv.Flag(optExercise):
-		return usageError(streams.Stderr, "run_mode_conflict", "--dry-run and --exercise are mutually exclusive")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--dry-run and --exercise are mutually exclusive")
 	case (inv.Flag(optDryRun) || inv.Flag(optExercise)) && inv.Flag(optDetach):
-		return usageError(streams.Stderr, "run_mode_conflict", "--dry-run and --exercise cannot be combined with --detach")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--dry-run and --exercise cannot be combined with --detach")
 	case inv.Flag(optExercise) && inv.Flag(optNoDaemon):
-		return usageError(streams.Stderr, "run_mode_conflict", "--exercise is daemon-side validation and cannot be combined with --no-daemon; use --dry-run for the in-process rehearsal")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--exercise is daemon-side validation and cannot be combined with --no-daemon; use --dry-run for the in-process rehearsal")
 	case inv.Flag(optDetach) && inv.Set(optFollow) && inv.Flag(optFollow):
-		return usageError(streams.Stderr, "run_mode_conflict", "--detach and --follow contradict each other; follow is true unless detached")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--detach and --follow contradict each other; follow is true unless detached")
 	case inv.Flag(optDetach) && inv.Flag(optNoDaemon):
-		return usageError(streams.Stderr, "run_mode_conflict", "--detach needs a daemon to leave the job with and cannot be combined with --no-daemon")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--detach needs a daemon to leave the job with and cannot be combined with --no-daemon")
 	case inv.Flag(optNof) && inv.Flag(optDetach):
 		// Nothing persisted and nobody following; --nof --follow=false is
 		// allowed, a run for its exit code.
-		return usageError(streams.Stderr, "run_mode_conflict", "--nof with --detach would leave a job that persists nothing and that nobody follows")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--nof with --detach would leave a job that persists nothing and that nobody follows")
 	case inv.Flag(optNof) && inv.Flag(optExercise):
-		return usageError(streams.Stderr, "run_mode_conflict", "--nof with --exercise contradict each other; the exercise report is a file in the job folder")
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--nof with --exercise contradict each other; the exercise report is a file in the job folder")
 	}
 	started := time.Now()
 	common, collection, code, ok := workRead(inv, word, streams.Stderr)
@@ -527,7 +527,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if inv.Flag(optDryRun) {
 		result := app.InspectRun(ctx, opts, !inv.Flag(optNoDaemon), read, streams)
 		collection.impliedDirectory(&result)
-		printResultError(result, streams.Stderr)
+		inv.Global.printResultError(result, streams.Stderr)
 		return result.ExitCode
 	}
 	if inv.Flag(optNoDaemon) {
@@ -546,7 +546,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		}
 		result := app.ExecuteRunLocal(ctx, opts, runStreams)
 		collection.impliedDirectory(&result)
-		printResultError(result, streams.Stderr)
+		inv.Global.printResultError(result, streams.Stderr)
 		if crun {
 			// The hook after the display's end, a crun's alone.
 			app.RunCollectionHook(ctx, common, result, streams.Stderr)
@@ -557,7 +557,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	// request, inside RunViaDaemon; here only the paths are resolved.
 	rt, e := app.ResolveDaemonRuntime(common)
 	if e != nil {
-		return reportError(streams.Stderr, "daemon_start_failed", e)
+		return inv.Global.reportError(streams.Stderr, "daemon_start_failed", e)
 	}
 	ensure := func(ctx context.Context) error { return ensureDaemon(ctx, rt, inv.Global, streams.Stderr) }
 	// The records are rendered as the daemon makes them durable, through
@@ -570,7 +570,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 		fmt.Fprintf(streams.Stderr, "%s %s accepted artifacts=%s\n", word, result.JobID, app.ArtifactsLabel(result.ArtifactDir))
 	}
 	collection.impliedDirectory(&result)
-	printResultError(result, streams.Stderr)
+	inv.Global.printResultError(result, streams.Stderr)
 	if crun && !opts.Detach {
 		// The hook after the display's end (the footer and the collection
 		// line), on the daemon path as on the in-process one; a detached
@@ -598,7 +598,7 @@ func commandLogin(ctx context.Context, inv *Invocation, streams app.IO) int {
 	// Recording is performed by the script(1) wrapper around this process
 	// (login_record.go); the child never records in-process.
 	result := app.ExecuteLogin(ctx, app.LoginOptions{CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority)}, streams)
-	printResultError(result, streams.Stderr)
+	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
 }
 

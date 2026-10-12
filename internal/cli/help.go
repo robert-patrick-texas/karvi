@@ -149,6 +149,7 @@ Global options (before the command word):
   --debug-show-secrets           Console-only bounded hints; requires --debug
   --timezone ZONE                Override timezone
   --ansi auto|strip|preserve     Device stdout ANSI behavior
+  --nocolor                      No colour: the nocolor theme (display.theme)
   --ipv4, --4                    Prefer IPv4 when both families are available
   --ipv6, --6                    Prefer IPv6 when both families are available
   --version                      Print version without creating state

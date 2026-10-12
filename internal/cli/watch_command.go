@@ -20,27 +20,28 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	if format == "tui" {
 		if f, ok := streams.Stdout.(*os.File); !ok || !osutil.IsTerminal(f) {
-			return usageError(streams.Stderr, "watch_tui_requires_terminal", "noninteractive stdout requires --format table or --format json")
+			return g.usageError(streams.Stderr, "watch_tui_requires_terminal", "noninteractive stdout requires --format table or --format json")
 		}
 	}
 	op, err := osutil.CurrentOperator()
 	if err != nil {
-		return reportError(streams.Stderr, "operator_identity_unavailable", err)
+		return g.reportError(streams.Stderr, "operator_identity_unavailable", err)
 	}
 	cfg, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, Operator: op.Username})
 	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", app.ConfigLoadError(err))
+		return g.reportError(streams.Stderr, "config_load_failed", app.ConfigLoadError(err))
 	}
+	g.show(cfg)
 	app.SayWarnings(g.say, cfg)
 	// Every place an activity writes its scoreboard in, making nothing:
 	// the team's shared folder and the operator's private one.
 	base, err := osutil.BaseDirPath(cfg.String("basedir"), op.Home, op.Username)
 	if err != nil {
-		return reportError(streams.Stderr, "base_directory_unavailable", err)
+		return g.reportError(streams.Stderr, "base_directory_unavailable", err)
 	}
 	dirs, err := scoreboard.Directories(cfg.String("scoreboards"), op.Home, base)
 	if err != nil {
-		return reportError(streams.Stderr, "watch_render_failed", err)
+		return g.reportError(streams.Stderr, "watch_render_failed", err)
 	}
 	// The footer names the folders read, or, on a host where no activity
 	// has written one yet, the folder the next would write.
@@ -73,7 +74,7 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 		colors[role] = cfg.String("display.colors." + role)
 	}
 	if err := watchui.Run(ctx, watchui.Options{Directories: dirs, Directory: label, Format: format, Theme: theme, Color: color, TimestampPattern: cfg.String("display.timestamp"), Timezone: cfg.String("timezone"), Colors: colors, Refresh: refresh, StaleAfter: stale, MaxFiles: cfg.Int("watch.max-files"), Once: once, Filter: inv.String(optWatchFilter), Sort: inv.String(optWatchSort)}, streams.Stdin, streams.Stdout); err != nil {
-		return reportError(streams.Stderr, "watch_render_failed", err)
+		return g.reportError(streams.Stderr, "watch_render_failed", err)
 	}
 	return 0
 }

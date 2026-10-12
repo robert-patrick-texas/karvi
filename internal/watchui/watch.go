@@ -64,8 +64,17 @@ func Run(ctx context.Context, opts Options, in io.Reader, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	// The screen is coloured at a terminal; the table and the JSON only
+	// under always, and never in a file.
 	file, isFile := out.(*os.File)
-	colour := display.ColorEnabled(opts.Color, opts.Theme, isFile && opts.Format == "tui")
+	to := display.Elsewhere
+	if isFile {
+		to = display.DestinationOf(osutil.IsTerminal(file), osutil.IsRegularFile(file))
+	}
+	if to == display.Terminal && opts.Format != "tui" {
+		to = display.Elsewhere
+	}
+	colour := display.ColorEnabled(opts.Color, opts.Theme, to)
 	if opts.Sort != "" && !ValidSortKey(opts.Sort) {
 		return errorcodes.Errorf("watch_sort_unknown", "unknown watch sort key %q: one of %s", opts.Sort, strings.Join(SortKeys, ", "))
 	}

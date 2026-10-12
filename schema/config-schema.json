@@ -1743,7 +1743,7 @@
         "light",
         "nocolor"
       ],
-      "documentation": "Shared terminal theme: `auto`, `dark`, `light`, or `nocolor`.",
+      "documentation": "Shared terminal theme: `auto`, `dark`, `light`, or `nocolor`; `--nocolor` sets `nocolor` for one invocation.",
       "since": "0.5.0"
     },
     {
@@ -1761,7 +1761,7 @@
         "always",
         "never"
       ],
-      "documentation": "Terminal color policy: `auto`, `always`, or `never`. `auto` colours at a terminal unless `NO_COLOR` is set and not empty; `always` and `never` are explicit and `NO_COLOR` does not override them.",
+      "documentation": "Terminal color policy: `auto`, `always`, or `never`. `auto` colours at a terminal unless `NO_COLOR` is set and not empty; `always` colours a terminal and a pipe; `always` and `never` are explicit and `NO_COLOR` does not override them. A regular file is written plain whatever the policy.",
       "since": "0.5.0"
     },
     {

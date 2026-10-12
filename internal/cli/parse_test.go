@@ -725,6 +725,15 @@ func TestParseGlobalRegion(t *testing.T) {
 	if f := inv.flags(); f["ssh.host-key-policy"] != (configload.FlagValue{Value: "insecure", Option: "--ssh-host-key-policy"}) || f["ssh.known-hosts-file"].Value != "auto" {
 		t.Fatalf("%+v", f)
 	}
+	// --nocolor, a global option, is the nocolor theme in the flags layer,
+	// and before the command word alone (EXAMPLES chapter 56, issue 13).
+	inv = mustParse(t, "--nocolor", "run", "--target", "r1", "show", "clock")
+	if f := inv.flags(); f["display.theme"] != (configload.FlagValue{Value: "nocolor", Option: "--nocolor"}) {
+		t.Fatalf("%+v", f)
+	}
+	if _, err := Parse([]string{"run", "--target", "r1", "--nocolor", "show", "clock"}); errorcodes.Of(err) != "cli_option_unknown" {
+		t.Fatalf("--nocolor after the word: %v", err)
+	}
 }
 
 // TestMainParserDiagnostics checks the parser's diagnostics at the process

@@ -556,7 +556,7 @@ func Parse(args []string) (*Invocation, error) {
 			configs: inv.Strings(optConfig), sets: inv.Strings(optSet),
 			quiet: inv.Flag(optQuiet), debug: inv.Flag(optDebug), debugShow: inv.Flag(optDebugShow),
 			version: inv.Flag(optVersionFlag), ipv4: inv.Flag(optIPv4), ipv6: inv.Flag(optIPv6),
-			timezone: inv.String(optTimezone), ansi: inv.String(optAnsi),
+			timezone: inv.String(optTimezone), ansi: inv.String(optAnsi), noColor: inv.Flag(optNoColor),
 		}
 	}
 	i := 0
@@ -568,11 +568,15 @@ func Parse(args []string) (*Invocation, error) {
 		if !isOptionArg(args[i]) {
 			break
 		}
+		// A refusal here is said under the global options taken so far
+		// (--nocolor), as one after them is.
 		o, value, err := p.takeOption(globalOptionTable, "global options", &i)
 		if err != nil {
+			setGlobal()
 			return inv, err
 		}
 		if done, err := p.apply(o, value); err != nil {
+			setGlobal()
 			return inv, err
 		} else if done {
 			setGlobal()

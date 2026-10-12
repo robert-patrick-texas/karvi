@@ -38,7 +38,7 @@ func helpStyleFor(g globalOptions, stdout io.Writer) helplayout.Style {
 	}
 	theme := cfg.String("display.theme")
 	return helplayout.Style{
-		Enabled: display.ColorEnabled(cfg.String("display.color"), theme, jobexec.DisplayTerminal(stdout)),
+		Enabled: display.ColorEnabled(cfg.String("display.color"), theme, jobexec.DisplayDestination(stdout)),
 		Accent:  display.RoleColor(theme, "accent", cfg.String("display.colors.accent")),
 		Action:  display.RoleColor(theme, "success", cfg.String("display.colors.success")),
 		Label:   display.RoleColor(theme, "label", cfg.String("display.colors.label")),

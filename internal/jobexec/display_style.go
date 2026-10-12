@@ -9,11 +9,19 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
 
-// DisplayTerminal reports whether the original operator output stream is a
-// terminal. Callers must evaluate this before wrapping the stream in a
+// DisplayDestination is where the original operator output stream goes, as
+// the colour rule tells it: a terminal when out is one or names one
+// (terminalFile), a file when out is a regular file, elsewhere otherwise (a
+// pipe, a buffer). Callers must evaluate this before wrapping the stream in a
 // transcript MultiWriter so color=auto continues to reflect the real terminal.
-func DisplayTerminal(out io.Writer) bool {
-	return terminalFile(out) != nil
+func DisplayDestination(out io.Writer) display.Destination {
+	if terminalFile(out) != nil {
+		return display.Terminal
+	}
+	if f, ok := out.(*os.File); ok {
+		return display.DestinationOf(osutil.IsTerminal(f), osutil.IsRegularFile(f))
+	}
+	return display.Elsewhere
 }
 
 // terminalFile is the terminal out writes to: out itself at a terminal, or
@@ -32,10 +40,10 @@ func terminalFile(out io.Writer) *os.File {
 // DisplayLineStyle resolves all semantic colors once per invocation. Templates
 // remain plain text in configuration; operators never need to embed ANSI
 // escape sequences to distinguish identity, address, labels, and values.
-func DisplayLineStyle(cfg configload.Snapshot, terminal bool) display.LineStyle {
+func DisplayLineStyle(cfg configload.Snapshot, to display.Destination) display.LineStyle {
 	theme := cfg.String("display.theme")
 	return display.LineStyle{
-		Enabled:   display.ColorEnabled(cfg.String("display.color"), theme, terminal),
+		Enabled:   display.ColorEnabled(cfg.String("display.color"), theme, to),
 		Target:    display.RoleColor(theme, "target", cfg.String("display.colors.target")),
 		Address:   display.RoleColor(theme, "address", cfg.String("display.colors.address")),
 		Label:     display.RoleColor(theme, "label", cfg.String("display.colors.label")),

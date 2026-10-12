@@ -67,3 +67,28 @@ func TestNoCredhLock(t *testing.T) {
 		t.Errorf("lock: %v", err)
 	}
 }
+
+// TestNoColorLock is EXAMPLES chapter 56, issue 13: --nocolor is
+// display.theme = "nocolor" in the flags layer, sourced to the option, and
+// a site that locks the key refuses it.
+func TestNoColorLock(t *testing.T) {
+	saved := globalRoots
+	t.Cleanup(func() { globalRoots = saved })
+	globalRoots = []string{filepath.Join(t.TempDir(), "absent.toml")}
+	flags := map[string]FlagValue{"display.theme": {Value: "nocolor", Option: "--nocolor"}}
+	load := func() (Snapshot, error) {
+		return Load(Options{HomeDir: t.TempDir(), Environment: []string{}, FlagValues: flags})
+	}
+	snap, err := load()
+	if err != nil || snap.String("display.theme") != "nocolor" || snap.Values["display.theme"].Source != (SourceRef{Layer: "cli", Path: "--nocolor"}) {
+		t.Fatalf("%q %+v %v", snap.String("display.theme"), snap.Values["display.theme"].Source, err)
+	}
+	global := filepath.Join(t.TempDir(), "global.toml")
+	globalRoots = []string{global}
+	if err := os.WriteFile(global, []byte("[config-lock]\n\"display.theme\" = true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = load(); errorcodes.Of(err) != "config_lock_violation" || !strings.HasSuffix(err.Error(), "at --nocolor") {
+		t.Errorf("lock: %v", err)
+	}
+}

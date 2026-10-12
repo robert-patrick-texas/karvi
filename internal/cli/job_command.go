@@ -30,7 +30,7 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 	jobID := inv.Positional[0]
 	format := inv.String(optFormatTJ)
 	if err := app.CheckJobID(jobID); err != nil {
-		return reportError(streams.Stderr, "job_request_malformed", err)
+		return g.reportError(streams.Stderr, "job_request_malformed", err)
 	}
 	rt, code, ok := g.runtime(streams.Stderr)
 	if !ok {
@@ -40,16 +40,16 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 	probe, err := daemon.Probe(probeCtx, rt.Socket, rt.MaxFrame)
 	probeCancel()
 	if err != nil {
-		return reportError(streams.Stderr, "daemon_unreachable", fmt.Errorf("daemon not running or unreadable, so there is nothing to cancel: %w", err))
+		return g.reportError(streams.Stderr, "daemon_unreachable", fmt.Errorf("daemon not running or unreadable, so there is nothing to cancel: %w", err))
 	}
 	if !probe.Compatible {
-		return reportError(streams.Stderr, "daemon_incompatible", fmt.Errorf("%w; a job of that daemon ends only with \"karvi daemon stop --force\"", incompatibleDaemonError(probe)))
+		return g.reportError(streams.Stderr, "daemon_incompatible", fmt.Errorf("%w; a job of that daemon ends only with \"karvi daemon stop --force\"", incompatibleDaemonError(probe)))
 	}
 	callCtx, callCancel := context.WithTimeout(ctx, 5*time.Second)
 	res, err := daemon.CancelJob(callCtx, rt.Socket, rt.MaxFrame, ipc.CancelRequest{JobID: jobID, Reason: inv.String(optReason)})
 	callCancel()
 	if err != nil {
-		return reportError(streams.Stderr, "daemon_unreachable", err)
+		return g.reportError(streams.Stderr, "daemon_unreachable", err)
 	}
 	if format == "json" {
 		b, _ := json.MarshalIndent(res, "", "  ")
@@ -66,7 +66,7 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, res.ArtifactDir, "continues cancelling in the daemon"))
 			return exitcode.ExitCancelled
 		}
-		return reportError(streams.Stderr, "follow_stream_lost", err)
+		return g.reportError(streams.Stderr, "follow_stream_lost", err)
 	}
 	o := terminal.Outcome
 	if format == "json" {
@@ -108,7 +108,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	render := app.FollowRenderOptions{Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder)}
 	// A malformed ID fails before the read, as the daemon would fail it.
 	if err := app.CheckJobID(jobID); err != nil {
-		return reportError(streams.Stderr, "job_request_malformed", err)
+		return g.reportError(streams.Stderr, "job_request_malformed", err)
 	}
 	common, code, ok := g.read(g.flags(), streams.Stderr)
 	if !ok {
@@ -117,11 +117,11 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	// The directory is located first; found is whether it exists yet.
 	dir, dirFound, err := app.LocateJobDirectory(common, jobID)
 	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+		return g.reportError(streams.Stderr, "config_load_failed", err)
 	}
 	rt, err := app.ResolveDaemonRuntime(common)
 	if err != nil {
-		return reportError(streams.Stderr, "config_load_failed", err)
+		return g.reportError(streams.Stderr, "config_load_failed", err)
 	}
 	probeCtx, probeCancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	probe, err := daemon.Probe(probeCtx, rt.Socket, rt.MaxFrame)
@@ -157,7 +157,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 			} else {
 				fmt.Fprintf(streams.Stderr, "job %s continues in the daemon\n", jobID)
 			}
-			return reportError(streams.Stderr, "follow_stream_lost", err)
+			return g.reportError(streams.Stderr, "follow_stream_lost", err)
 		}
 		daemonErr = err
 	}
@@ -166,7 +166,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if dirFound {
 		state, err = app.InspectJobDirectory(dir)
 		if err != nil {
-			return reportError(streams.Stderr, "run_output_records_unreadable", err)
+			return g.reportError(streams.Stderr, "run_output_records_unreadable", err)
 		}
 	}
 	switch state {
@@ -174,17 +174,17 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		signal.Ignore(syscall.SIGPIPE)
 		summary, err := app.RenderJobDirectory(common, dir, render, streams.Stdout)
 		if err != nil {
-			return reportError(streams.Stderr, "run_output_records_unreadable", err)
+			return g.reportError(streams.Stderr, "run_output_records_unreadable", err)
 		}
 		return jobFollowResult(g, streams, jobID, dir, summary, summary.ExitCode)
 	case app.JobDirectoryOrphaned:
-		return reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no summary and no running daemon holds the job (%v); the daemon that ran it is gone, or output.files.summary-json was false for the job", jobID, dir, daemonErr))
+		return g.reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no summary and no running daemon holds the job (%v); the daemon that ran it is gone, or output.files.summary-json was false for the job", jobID, dir, daemonErr))
 	}
 	if errorcodes.Of(daemonErr) == "daemon_incompatible" {
 		// No directory to fall back on: the job may be that daemon's (3.4).
-		return reportError(streams.Stderr, "daemon_incompatible", daemonErr)
+		return g.reportError(streams.Stderr, "daemon_incompatible", daemonErr)
 	}
-	return reportError(streams.Stderr, "job_unknown", errorcodes.Errorf("job_unknown", "no job %s: %v, and %s does not exist", jobID, daemonErr, dir))
+	return g.reportError(streams.Stderr, "job_unknown", errorcodes.Errorf("job_unknown", "no job %s: %v, and %s does not exist", jobID, daemonErr, dir))
 }
 
 // jobFollowResult prints the cancelled line when the job ended cancelled

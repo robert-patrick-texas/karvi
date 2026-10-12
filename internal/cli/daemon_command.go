@@ -34,7 +34,7 @@ func (g globalOptions) runtime(stderr io.Writer) (app.DaemonRuntime, int, bool) 
 	}
 	rt, err := app.ResolveDaemonRuntime(common)
 	if err != nil {
-		return app.DaemonRuntime{}, reportError(stderr, "config_load_failed", err), false
+		return app.DaemonRuntime{}, g.reportError(stderr, "config_load_failed", err), false
 	}
 	return rt, 0, true
 }
@@ -49,7 +49,7 @@ func daemonStart(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return code
 	}
 	if err := ensureDaemon(ctx, rt, g, streams.Stderr); err != nil {
-		return reportError(streams.Stderr, "daemon_start_failed", err)
+		return g.reportError(streams.Stderr, "daemon_start_failed", err)
 	}
 	if !g.quiet {
 		fmt.Fprintln(streams.Stdout, "daemon running")
@@ -68,7 +68,7 @@ func daemonStatus(ctx context.Context, inv *Invocation, streams app.IO) int {
 	defer cancel()
 	probe, err := daemon.Probe(cctx, rt.Socket, rt.MaxFrame)
 	if err != nil {
-		return reportError(streams.Stderr, "daemon_unreachable", fmt.Errorf("daemon not running or unreadable: %w", err))
+		return g.reportError(streams.Stderr, "daemon_unreachable", fmt.Errorf("daemon not running or unreadable: %w", err))
 	}
 	status := probe.Status
 	switch format {
@@ -104,7 +104,7 @@ func parseStopOptions(inv *Invocation, streams app.IO) (opts stopOptions, done b
 	opts = stopOptions{grace: inv.Flag(optGrace), after: inv.Duration(optAfter), force: inv.Flag(optForce)}
 	afterSet := inv.Set(optAfter)
 	if afterSet && opts.after <= 0 {
-		return opts, true, usageError(streams.Stderr, "daemon_stop_after_not_positive", "--after requires a positive duration such as 90s or 5m")
+		return opts, true, inv.Global.usageError(streams.Stderr, "daemon_stop_after_not_positive", "--after requires a positive duration such as 90s or 5m")
 	}
 	selected := 0
 	for _, on := range []bool{opts.grace, afterSet, opts.force} {
@@ -113,7 +113,7 @@ func parseStopOptions(inv *Invocation, streams app.IO) (opts stopOptions, done b
 		}
 	}
 	if selected > 1 {
-		return opts, true, usageError(streams.Stderr, "daemon_stop_options_conflict", "--grace, --after, and --force are mutually exclusive")
+		return opts, true, inv.Global.usageError(streams.Stderr, "daemon_stop_options_conflict", "--grace, --after, and --force are mutually exclusive")
 	}
 	return opts, false, 0
 }
@@ -130,7 +130,7 @@ func daemonStop(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	probe, err := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
 	if err != nil {
-		return reportError(streams.Stderr, "daemon_stop_failed", err)
+		return g.reportError(streams.Stderr, "daemon_stop_failed", err)
 	}
 	if !g.quiet {
 		if probe.Compatible {
@@ -155,18 +155,18 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if _, statErr := os.Lstat(rt.Socket); statErr == nil {
 		stoppedProbe, stopErr := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
 		if stopErr != nil {
-			return reportError(streams.Stderr, "daemon_stop_failed", stopErr)
+			return g.reportError(streams.Stderr, "daemon_stop_failed", stopErr)
 		}
 		if !g.quiet && !stoppedProbe.Compatible {
 			fmt.Fprintf(streams.Stderr, "stopped incompatible daemon version=%s ipc_schema=%d\n", displayUnknown(stoppedProbe.Status.Version), stoppedProbe.DaemonSchema)
 		}
 	} else if !os.IsNotExist(statErr) {
-		return reportError(streams.Stderr, "daemon_socket_uninspectable", statErr)
+		return g.reportError(streams.Stderr, "daemon_socket_uninspectable", statErr)
 	}
 	quietStart := g
 	quietStart.quiet = true
 	if err := ensureDaemon(ctx, rt, quietStart, streams.Stderr); err != nil {
-		return reportError(streams.Stderr, "daemon_start_failed", err)
+		return g.reportError(streams.Stderr, "daemon_start_failed", err)
 	}
 	if !g.quiet {
 		fmt.Fprintln(streams.Stdout, "daemon restarted")
@@ -296,7 +296,7 @@ func serveDaemon(g globalOptions, stderr io.Writer) int {
 	defer signal.Stop(signals)
 	server := &daemon.Server{Socket: rt.Socket, StatePath: rt.StatePath, MaxFrame: rt.MaxFrame, MaxJobs: rt.MaxJobs, UID: rt.Operator.UID, Config: rt.Config, Operator: rt.Operator, Logger: logger, Signals: signals, IdleTimeout: rt.Config.Duration("daemon.shutdown-idle-timer")}
 	if err := server.Serve(context.Background()); err != nil {
-		return reportError(stderr, "daemon_serve_failed", err)
+		return g.reportError(stderr, "daemon_serve_failed", err)
 	}
 	return 0
 }

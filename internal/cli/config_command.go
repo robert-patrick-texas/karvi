@@ -21,7 +21,7 @@ import (
 
 func configGenerate(inv *Invocation, streams app.IO) int {
 	if inv.Flag(optMinimal) && inv.Flag(optFull) {
-		return usageError(streams.Stderr, "config_generate_mode_conflict", "--minimal and --full are mutually exclusive")
+		return inv.Global.usageError(streams.Stderr, "config_generate_mode_conflict", "--minimal and --full are mutually exclusive")
 	}
 	content := configload.RenderReference()
 	if inv.Flag(optMinimal) {
@@ -37,7 +37,7 @@ func configGenerate(inv *Invocation, streams app.IO) int {
 	}
 	f, err := os.OpenFile(inv.Positional[0], flags, 0600)
 	if err != nil {
-		return reportError(streams.Stderr, "config_generate_destination_unavailable", err)
+		return inv.Global.reportError(streams.Stderr, "config_generate_destination_unavailable", err)
 	}
 	if _, err = io.WriteString(f, content); err == nil {
 		err = f.Sync()
@@ -47,7 +47,7 @@ func configGenerate(inv *Invocation, streams app.IO) int {
 		err = cerr
 	}
 	if err != nil {
-		return reportError(streams.Stderr, "config_generate_write_failed", err)
+		return inv.Global.reportError(streams.Stderr, "config_generate_write_failed", err)
 	}
 	return 0
 }
@@ -57,7 +57,7 @@ func configValidate(inv *Invocation, streams app.IO) int {
 	format := inv.String(optFormatTJ)
 	op, err := osutil.CurrentOperator()
 	if err != nil {
-		return reportError(streams.Stderr, "operator_identity_unavailable", err)
+		return g.reportError(streams.Stderr, "operator_identity_unavailable", err)
 	}
 	roots := append([]string(nil), g.configs...)
 	skip := false
@@ -67,6 +67,7 @@ func configValidate(inv *Invocation, streams app.IO) int {
 	}
 	snap, err := configload.Load(configload.Options{ExplicitRoots: roots, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, Operator: op.Username, SkipAuto: skip})
 	if err == nil {
+		g.show(snap)
 		app.SayWarnings(g.say, snap)
 		err = transportselect.ValidateConfigured(snap)
 	}
@@ -76,7 +77,7 @@ func configValidate(inv *Invocation, streams app.IO) int {
 			_ = json.NewEncoder(streams.Stdout).Encode(map[string]any{"valid": false, "code": errorcodes.Of(err), "error": errorcodes.Message(err)})
 			return errorcodes.ExitAt(err, "config_load_failed")
 		}
-		return reportError(streams.Stderr, "config_load_failed", err)
+		return g.reportError(streams.Stderr, "config_load_failed", err)
 	}
 	if format == "json" {
 		_ = json.NewEncoder(streams.Stdout).Encode(map[string]any{"valid": true, "digest": snap.Digest, "sources": snap.Sources, "warnings": snap.Warnings})
@@ -94,15 +95,16 @@ func loadConfigSnapshot(inv *Invocation, stderr io.Writer) (configload.Snapshot,
 	g := inv.Global
 	op, err := osutil.CurrentOperator()
 	if err != nil {
-		return configload.Snapshot{}, reportError(stderr, "operator_identity_unavailable", err), false
+		return configload.Snapshot{}, g.reportError(stderr, "operator_identity_unavailable", err), false
 	}
 	snap, err := configload.Load(configload.Options{ExplicitRoots: g.configs, Sets: g.sets, FlagValues: g.flags(), HomeDir: op.Home, Operator: op.Username})
 	if err == nil {
+		g.show(snap)
 		app.SayWarnings(g.say, snap)
 		err = transportselect.ValidateConfigured(snap)
 	}
 	if err != nil {
-		return configload.Snapshot{}, reportError(stderr, "config_load_failed", app.ConfigLoadError(err)), false
+		return configload.Snapshot{}, g.reportError(stderr, "config_load_failed", app.ConfigLoadError(err)), false
 	}
 	return snap, 0, true
 }
@@ -129,7 +131,7 @@ func configColors(inv *Invocation, streams app.IO) int {
 	if first == "light" {
 		themes = []string{"light", "dark"}
 	}
-	enabled := display.ColorEnabled(snap.String("display.color"), configuredTheme, jobexec.DisplayTerminal(streams.Stdout))
+	enabled := display.ColorEnabled(snap.String("display.color"), configuredTheme, jobexec.DisplayDestination(streams.Stdout))
 	width := 0
 	for _, role := range colorRoles {
 		if n := len("display.colors." + role); n > width {

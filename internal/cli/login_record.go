@@ -78,30 +78,30 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	// launches no child. The name is the metadata's platform.
 	platformName, err := app.CheckPlatformOption(cfg, inv.String(optPlatform))
 	if err != nil {
-		return reportError(stderr, "platform_option_unknown", err)
+		return inv.Global.reportError(stderr, "platform_option_unknown", err)
 	}
 	format, metaFormat := cfg.String("transcript.format"), cfg.String("transcript.metadata-format")
 	if format != transcript.FormatText {
-		return reportError(stderr, "transcript_format_unavailable", errorcodes.Errorf("transcript_format_unavailable", "transcript.format %q requires the transcript event recorder, which this executable does not implement; use text", format))
+		return inv.Global.reportError(stderr, "transcript_format_unavailable", errorcodes.Errorf("transcript_format_unavailable", "transcript.format %q requires the transcript event recorder, which this executable does not implement; use text", format))
 	}
 	base, err := osutil.ResolveBaseDir(cfg.String("basedir"), operator.Home, operator.Username)
 	if err != nil {
-		return reportError(stderr, "base_directory_unavailable", err)
+		return inv.Global.reportError(stderr, "base_directory_unavailable", err)
 	}
 	directoryMode := osutil.DirectoryMode(cfg.String("output.directory-mode"))
 	if err := osutil.EnsureStateTree(base, operator.UID, directoryMode); err != nil {
-		return reportError(stderr, "state_tree_create_failed", err)
+		return inv.Global.reportError(stderr, "state_tree_create_failed", err)
 	}
 	location, err := display.Location(cfg.String("timezone"))
 	if err != nil {
-		return reportError(stderr, "config_display_timestamp_invalid", err)
+		return inv.Global.reportError(stderr, "config_display_timestamp_invalid", err)
 	}
 	set, err := app.AssembleTargets(context.Background(), common, inputs, inv.Strings(optExclude), stderr)
 	if err != nil {
-		return reportError(stderr, "inventory_load_failed", err)
+		return inv.Global.reportError(stderr, "inventory_load_failed", err)
 	}
 	if err := app.CheckManagementAddress(set, inv.String(optAddress)); err != nil {
-		return reportError(stderr, "management_address_invalid", err)
+		return inv.Global.reportError(stderr, "management_address_invalid", err)
 	}
 	device := set.Devices[0]
 	// The platform the session uses, for the metadata: an unknown row
@@ -110,44 +110,44 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	if platformName == "" {
 		resolution, err := planner.ResolvePlatform(cfg, device)
 		if err != nil {
-			return reportError(stderr, "platform_unknown", err)
+			return inv.Global.reportError(stderr, "platform_unknown", err)
 		}
 		platformName = resolution.Platform
 	}
 	selection, err := transportselect.Resolve(cfg, "login", inv.String(optTransport))
 	if err != nil {
-		return reportError(stderr, "transport_unavailable", err)
+		return inv.Global.reportError(stderr, "transport_unavailable", err)
 	}
 	// The two lines naming the transcript are display templates, checked
 	// here with the formatter so a bad one creates no transcript and
 	// launches no child.
 	formatter, err := display.NewFormatter(cfg.String("display.timestamp"), cfg.String("timezone"))
 	if err != nil {
-		return reportError(stderr, "config_display_timestamp_invalid", err)
+		return inv.Global.reportError(stderr, "config_display_timestamp_invalid", err)
 	}
 	for _, key := range []string{"display.record.header", "display.record.footer"} {
 		if err := display.ValidateLineTemplate(cfg.String(key)); err != nil {
-			return reportError(stderr, "config_display_template_invalid", err)
+			return inv.Global.reportError(stderr, "config_display_template_invalid", err)
 		}
 	}
 	started := time.Now()
 	dest, err := transcript.Resolve(*inv.Record, cfg.String("transcript.root"), cfg.String("sharedroot"), base, operator.Home, cfg.Locked("transcript.root"), started, location)
 	if err != nil {
-		return reportError(stderr, "transcript_path_invalid", err)
+		return inv.Global.reportError(stderr, "transcript_path_invalid", err)
 	}
 	// The transcripts root's free space: a session's length is nobody's
 	// estimate, so the root is
 	// floored alone under `freecheck`, before the recorder and the child.
 	if _, err := (output.Preflight{Check: cfg.String("freecheck"), Floor: cfg.Int64("output.min-free-bytes-after-job"), Places: []output.Place{{Path: dest.Root}}}).Run(); err != nil {
-		return reportError(stderr, "output_preflight_space", err)
+		return inv.Global.reportError(stderr, "output_preflight_space", err)
 	}
 	scriptPath, err := exec.LookPath("script")
 	if err != nil {
-		return reportError(stderr, "dependency_script_unavailable", fmt.Errorf("karvi login recording requires util-linux script(1): %w", err))
+		return inv.Global.reportError(stderr, "dependency_script_unavailable", fmt.Errorf("karvi login recording requires util-linux script(1): %w", err))
 	}
 	executable, err := os.Executable()
 	if err != nil {
-		return reportError(stderr, "karvi_executable_unlocatable", err)
+		return inv.Global.reportError(stderr, "karvi_executable_unlocatable", err)
 	}
 	// script(1)'s timing log, the terminal's widths for the rendering at the
 	// session's end, is written into the scratch and removed after; it is
@@ -155,11 +155,11 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	// leaves no transcript.
 	scratch, err := osutil.ResolveScratch(cfg.String("tempdir"), base, operator.Home, operator.Username, operator.UID)
 	if err != nil {
-		return reportError(stderr, "scratch_directory_unavailable", err)
+		return inv.Global.reportError(stderr, "scratch_directory_unavailable", err)
 	}
 	timing, err := os.CreateTemp(scratch, osutil.ScratchFilePattern("karvi-script-", ".timing"))
 	if err != nil {
-		return reportError(stderr, "scratch_directory_unavailable", err)
+		return inv.Global.reportError(stderr, "scratch_directory_unavailable", err)
 	}
 	timing.Close()
 	defer os.Remove(timing.Name())
@@ -171,16 +171,16 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	// writes its first snapshot.
 	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { jobexec.WriteWarning(stderr, cfg, s) })
 	if err != nil {
-		return reportError(stderr, "scoreboard_directory_unavailable", err)
+		return inv.Global.reportError(stderr, "scoreboard_directory_unavailable", err)
 	}
 	sessionID, err := sb.Reserve(started, location)
 	if err != nil {
-		return reportError(stderr, "activity_id_generation_failed", err)
+		return inv.Global.reportError(stderr, "activity_id_generation_failed", err)
 	}
 	defer sb.Release()
 	pair, err := transcript.Claim(dest, device.CanonicalName, started, location, transcript.TranscriptExtension(format), transcript.MetadataExtension(metaFormat), directoryMode)
 	if err != nil {
-		return reportError(stderr, "transcript_create_failed", err)
+		return inv.Global.reportError(stderr, "transcript_create_failed", err)
 	}
 	rows, columns := 0, 0
 	if f, ok := stdout.(*os.File); ok {
@@ -193,7 +193,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		TranscriptFile: filepath.Base(pair.Transcript), TranscriptFormat: format, Rows: rows, Columns: columns, StartedAt: started,
 	}
 	if err := transcript.WriteStart(pair.Metadata, metaFormat, meta); err != nil {
-		return reportError(stderr, "transcript_create_failed", err)
+		return inv.Global.reportError(stderr, "transcript_create_failed", err)
 	}
 	commandParts := []string{shellQuote(executable)}
 	for _, arg := range args {
@@ -227,7 +227,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 			exit = exitErr.ExitCode()
 		} else {
 			recordingFailed = true
-			exit = reportError(stderr, "transcript_recorder_failed", err)
+			exit = inv.Global.reportError(stderr, "transcript_recorder_failed", err)
 		}
 	}
 	// The transcript as the operator saw it, before its digest: at the
@@ -252,7 +252,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		meta.RecordingFailed = true
 	}
 	if err := transcript.WriteEnd(pair.Metadata, metaFormat, meta); err != nil {
-		code := reportError(stderr, "transcript_create_failed", err)
+		code := inv.Global.reportError(stderr, "transcript_create_failed", err)
 		if exit == 0 {
 			exit = code
 		}
@@ -274,7 +274,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 // formatter and both templates were checked before the transcript was
 // claimed, so nothing here can refuse, and the session's outcome stands.
 func writeRecordLine(cfg configload.Snapshot, formatter display.Formatter, key string, values display.Values, w io.Writer) {
-	lines, err := formatter.RenderStyledLines(cfg.String(key), values, jobexec.DisplayLineStyle(cfg, jobexec.DisplayTerminal(w)), jobexec.DisplayTerminalWidth(w))
+	lines, err := formatter.RenderStyledLines(cfg.String(key), values, jobexec.DisplayLineStyle(cfg, jobexec.DisplayDestination(w)), jobexec.DisplayTerminalWidth(w))
 	if err != nil {
 		return
 	}

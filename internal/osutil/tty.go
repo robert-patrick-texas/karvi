@@ -33,6 +33,13 @@ func IsTerminal(f *os.File) bool {
 	return ioctlTermios(f.Fd(), tcgets, &t) == nil
 }
 
+// IsRegularFile reports whether f is a regular file, as a stream redirected
+// into a file is; the display writes one plain.
+func IsRegularFile(f *os.File) bool {
+	info, err := f.Stat()
+	return err == nil && info.Mode().IsRegular()
+}
+
 // TerminalWidth returns the current terminal column count. It returns zero
 // when the descriptor is not a terminal or when the kernel does not report a
 // usable width. Callers treat zero as "do not alter layout" rather than

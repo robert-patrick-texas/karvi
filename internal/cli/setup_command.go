@@ -38,7 +38,7 @@ var setupIsRoot = func() bool { return os.Geteuid() == 0 }
 func setupShared(inv *Invocation, streams app.IO) int {
 	root := osutil.SharedRoots[0]
 	if !setupIsRoot() {
-		return usageError(streams.Stderr, "setup_requires_root", "karvi setup shared creates %s and its %s, %s beside it, and the scratch root %s with its tmpfiles rule %s, as root: run it as sudo karvi setup shared [--group NAME]", root, strings.Join(osutil.SharedTrees, ", "), filepath.Join(filepath.Dir(root), "users"), osutil.ScratchRoot, osutil.TmpfilesPath)
+		return inv.Global.usageError(streams.Stderr, "setup_requires_root", "karvi setup shared creates %s and its %s, %s beside it, and the scratch root %s with its tmpfiles rule %s, as root: run it as sudo karvi setup shared [--group NAME]", root, strings.Join(osutil.SharedTrees, ", "), filepath.Join(filepath.Dir(root), "users"), osutil.ScratchRoot, osutil.TmpfilesPath)
 	}
 	group := inv.String(optGroupName)
 	if group == "" {
@@ -49,15 +49,15 @@ func setupShared(inv *Invocation, streams app.IO) int {
 		}
 	}
 	if group == "" {
-		return usageError(streams.Stderr, "setup_group_required", "the group that shares the trees is not known: give --group NAME (the operators' group), or run through sudo from an operator's shell, whose primary group is taken")
+		return inv.Global.usageError(streams.Stderr, "setup_group_required", "the group that shares the trees is not known: give --group NAME (the operators' group), or run through sudo from an operator's shell, whose primary group is taken")
 	}
 	gr, err := user.LookupGroup(group)
 	if err != nil {
-		return usageError(streams.Stderr, "setup_group_required", "group %q is not known to this host: %v", group, err)
+		return inv.Global.usageError(streams.Stderr, "setup_group_required", "group %q is not known to this host: %v", group, err)
 	}
 	gid, err := strconv.Atoi(gr.Gid)
 	if err != nil {
-		return usageError(streams.Stderr, "setup_group_required", "group %q has gid %q, not a number", group, gr.Gid)
+		return inv.Global.usageError(streams.Stderr, "setup_group_required", "group %q has gid %q, not a number", group, gr.Gid)
 	}
 	modeWord := inv.String(optSharedMode)
 	if modeWord == "" {
@@ -75,7 +75,7 @@ func setupShared(inv *Invocation, streams app.IO) int {
 		}
 	}
 	if err != nil {
-		return reportError(streams.Stderr, "setup_directory_mismatch", err)
+		return inv.Global.reportError(streams.Stderr, "setup_directory_mismatch", err)
 	}
 	return setupTmpfiles(inv, streams, group, mode)
 }
@@ -93,7 +93,7 @@ func setupTmpfiles(inv *Invocation, streams app.IO, group string, mode os.FileMo
 	path := osutil.TmpfilesPath
 	rule := osutil.TmpfilesRule(osutil.ScratchRoot, group, mode)
 	if fi, err := os.Stat(filepath.Dir(path)); err != nil || !fi.IsDir() {
-		return reportError(streams.Stderr, "setup_tmpfiles_dir_missing", errorcodes.Errorf("setup_tmpfiles_dir_missing", "the directories are made, but %s is not present, so no systemd-tmpfiles rule was written: %s is a tmpfs emptied at every boot, and the site makes the scratch root again at boot its own way, or runs sudo karvi setup shared after each", filepath.Dir(path), osutil.ScratchRoot))
+		return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_dir_missing", errorcodes.Errorf("setup_tmpfiles_dir_missing", "the directories are made, but %s is not present, so no systemd-tmpfiles rule was written: %s is a tmpfs emptied at every boot, and the site makes the scratch root again at boot its own way, or runs sudo karvi setup shared after each", filepath.Dir(path), osutil.ScratchRoot))
 	}
 	state := "created"
 	if data, err := os.ReadFile(path); err == nil {
@@ -103,14 +103,14 @@ func setupTmpfiles(inv *Invocation, streams app.IO, group string, mode os.FileMo
 		case strings.HasPrefix(string(data), osutil.TmpfilesMarker+"\n"):
 			state = "updated"
 		default:
-			return reportError(streams.Stderr, "setup_tmpfiles_mismatch", errorcodes.Errorf("setup_tmpfiles_mismatch", "the directories are made, but %s exists and is not a rule karvi wrote; nothing was changed there: move the site's file aside to let karvi place its own, or keep the site's if it makes %s in the operators' group", path, osutil.ScratchRoot))
+			return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_mismatch", errorcodes.Errorf("setup_tmpfiles_mismatch", "the directories are made, but %s exists and is not a rule karvi wrote; nothing was changed there: move the site's file aside to let karvi place its own, or keep the site's if it makes %s in the operators' group", path, osutil.ScratchRoot))
 		}
 	} else if !os.IsNotExist(err) {
-		return reportError(streams.Stderr, "setup_tmpfiles_write_failed", errorcodes.Errorf("setup_tmpfiles_write_failed", "%s: %v", path, err))
+		return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_write_failed", errorcodes.Errorf("setup_tmpfiles_write_failed", "%s: %v", path, err))
 	}
 	if state != "exists" {
 		if err := writeSiteFile(path, rule, tmpfilesMode); err != nil {
-			return reportError(streams.Stderr, "setup_tmpfiles_write_failed", errorcodes.Errorf("setup_tmpfiles_write_failed", "write %s: %v", path, err))
+			return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_write_failed", errorcodes.Errorf("setup_tmpfiles_write_failed", "write %s: %v", path, err))
 		}
 	}
 	if !inv.Global.quiet {

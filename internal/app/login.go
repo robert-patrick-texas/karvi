@@ -190,7 +190,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("config_display_timestamp_invalid", err)
 	}
-	lineStyle := jobexec.DisplayLineStyle(cfg, jobexec.DisplayTerminal(streams.Stdout))
+	lineStyle := jobexec.DisplayLineStyle(cfg, jobexec.DisplayDestination(streams.Stdout))
 	terminalWidth := jobexec.DisplayTerminalWidth(streams.Stdout)
 	if pinger != nil {
 		gate := loginGate(ctx, pinger, resolution.SelectedAddress, cfg.Duration("network.ping-timeout"), debug)
@@ -234,7 +234,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if cfg.String("ssh.host-key-policy") == "insecure" {
 		jobexec.WriteAdmissionWarnings(streams.Stderr, cfg, []string{jobexec.PolicyInsecureWarning()})
 	}
-	keyStyle := jobexec.DisplayLineStyle(cfg, jobexec.DisplayTerminal(streams.Stderr))
+	keyStyle := jobexec.DisplayLineStyle(cfg, jobexec.DisplayDestination(streams.Stderr))
 	debug(fmt.Sprintf("login transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, resolution.SelectedAddress.String(), port, definition.Name))
 	openReq := platform.OpenRequest{Address: resolution.SelectedAddress.String(), Port: port, Username: resolved.DeviceUsername, EnablePassword: func(fn func([]byte) error) error { return resolved.Credential.Material.WithEnablePassword(fn) }, Definition: definition, Timeout: cfg.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName, "activity_type": "login", "transport_selector": selection.Selector}}
 	// The notices are kept for the login's end event; the transport reports

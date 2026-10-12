@@ -113,7 +113,7 @@ func run(args []string, stdout, stderr *os.File) int {
 func helpStyle(w *os.File) helplayout.Style {
 	const theme = "dark"
 	return helplayout.Style{
-		Enabled: display.ColorEnabled("auto", theme, osutil.IsTerminal(w)),
+		Enabled: display.ColorEnabled("auto", theme, display.DestinationOf(osutil.IsTerminal(w), osutil.IsRegularFile(w))),
 		Accent:  display.RoleColor(theme, "accent", "default"),
 		Action:  display.RoleColor(theme, "success", "default"),
 		Label:   display.RoleColor(theme, "label", "default"),

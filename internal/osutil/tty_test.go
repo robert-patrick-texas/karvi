@@ -73,3 +73,25 @@ func openPTY(t *testing.T) (master, slave *os.File) {
 	}
 	return master, slave
 }
+
+// TestIsRegularFile: a regular file is one, as a stream redirected into a
+// file is; a pipe is not.
+func TestIsRegularFile(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "out")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if !IsRegularFile(f) {
+		t.Errorf("a regular file is not one")
+	}
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	defer w.Close()
+	if IsRegularFile(w) {
+		t.Errorf("a pipe taken for a regular file")
+	}
+}

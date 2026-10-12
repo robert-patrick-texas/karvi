@@ -19,20 +19,33 @@ type namedTerminal struct {
 
 func (n namedTerminal) Terminal() *os.File { return n.f }
 
-// TestDisplayTerminalSeesThroughAWriterNamingItsTerminal: a writer that names
-// the terminal it writes to is that terminal to the display's questions; one
-// naming none, a buffer, and a file that is no terminal are not.
-func TestDisplayTerminalSeesThroughAWriterNamingItsTerminal(t *testing.T) {
+// TestDisplayDestinationSeesThroughAWriterNamingItsTerminal: a writer that
+// names the terminal it writes to is that terminal to the display's
+// questions; one naming none, a buffer, and a pipe are elsewhere, and a
+// regular file is a file.
+func TestDisplayDestinationSeesThroughAWriterNamingItsTerminal(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "terminal")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	if !DisplayTerminal(namedTerminal{io.Discard, f}) {
+	if DisplayDestination(namedTerminal{io.Discard, f}) != display.Terminal {
 		t.Errorf("a writer naming its terminal is not one")
 	}
-	if DisplayTerminal(namedTerminal{io.Discard, nil}) || DisplayTerminal(&bytes.Buffer{}) || DisplayTerminal(f) {
-		t.Errorf("a writer naming no terminal, a buffer, or a plain file taken for a terminal")
+	if DisplayDestination(namedTerminal{io.Discard, nil}) != display.Elsewhere || DisplayDestination(&bytes.Buffer{}) != display.Elsewhere {
+		t.Errorf("a writer naming no terminal, or a buffer, taken for a terminal or a file")
+	}
+	if DisplayDestination(f) != display.File {
+		t.Errorf("a regular file is not a file")
+	}
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	defer w.Close()
+	if DisplayDestination(w) != display.Elsewhere {
+		t.Errorf("a pipe is not elsewhere")
 	}
 }
 

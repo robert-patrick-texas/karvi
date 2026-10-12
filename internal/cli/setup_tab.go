@@ -70,11 +70,11 @@ const completionMode os.FileMode = 0o644
 func setupTab(inv *Invocation, streams app.IO) int {
 	path := filepath.Join(completionDir, "karvi")
 	if !setupIsRoot() {
-		return usageError(streams.Stderr, "setup_requires_root", "karvi setup tab writes %s as root: run it as sudo karvi setup tab", path)
+		return inv.Global.usageError(streams.Stderr, "setup_requires_root", "karvi setup tab writes %s as root: run it as sudo karvi setup tab", path)
 	}
 	fi, err := os.Lstat(completionDir)
 	if err != nil || !fi.IsDir() {
-		return usageError(streams.Stderr, "setup_completion_dir_missing", "the completions directory %s is not present: install the bash-completion package, which reads it, then run sudo karvi setup tab again", completionDir)
+		return inv.Global.usageError(streams.Stderr, "setup_completion_dir_missing", "the completions directory %s is not present: install the bash-completion package, which reads it, then run sudo karvi setup tab again", completionDir)
 	}
 	state := "created"
 	if data, err := os.ReadFile(path); err == nil {
@@ -84,14 +84,14 @@ func setupTab(inv *Invocation, streams app.IO) int {
 		case strings.HasPrefix(string(data), completionMarker+"\n"):
 			state = "updated"
 		default:
-			return reportError(streams.Stderr, "setup_completion_mismatch", errorcodes.Errorf("setup_completion_mismatch", "%s exists and is not a script karvi wrote; nothing was changed: move the site's file aside to let karvi place its own", path))
+			return inv.Global.reportError(streams.Stderr, "setup_completion_mismatch", errorcodes.Errorf("setup_completion_mismatch", "%s exists and is not a script karvi wrote; nothing was changed: move the site's file aside to let karvi place its own", path))
 		}
 	} else if !os.IsNotExist(err) {
-		return reportError(streams.Stderr, "setup_completion_write_failed", errorcodes.Errorf("setup_completion_write_failed", "%s: %v", path, err))
+		return inv.Global.reportError(streams.Stderr, "setup_completion_write_failed", errorcodes.Errorf("setup_completion_write_failed", "%s: %v", path, err))
 	}
 	if state != "exists" {
 		if err := writeSiteFile(path, completionScript, completionMode); err != nil {
-			return reportError(streams.Stderr, "setup_completion_write_failed", errorcodes.Errorf("setup_completion_write_failed", "write %s: %v", path, err))
+			return inv.Global.reportError(streams.Stderr, "setup_completion_write_failed", errorcodes.Errorf("setup_completion_write_failed", "write %s: %v", path, err))
 		}
 	}
 	if !inv.Global.quiet {
