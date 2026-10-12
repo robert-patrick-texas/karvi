@@ -11335,3 +11335,32 @@ host); `--privileged` (every capability and the host's devices, where one
 capability and the cgroup's remount do); a network in the container (it reaches
 this host and what this host reaches, the site's devices among them, and tests
 nothing loopback does not).
+
+**Issue 17, found while building S5, agreed but its first point.** On S5's lab
+builds, the client's (`5a429b3-s5a`) and the package's (`5a429b3-s5b`), the
+battery and `scripts/sysutil-smoke-test.sh` passed. The points. (1) A daemon of
+a newer IPC schema under `daemon.launch = "systemd"`, which issue 15 left
+unsaid: built refusing the submission, `daemon start`, and the dry run,
+`daemon_incompatible`, the schemas stacked, naming `systemctl restart` of the
+unit, where `karvi daemon stop` from the newer karvi would be refused
+`daemon_managed`; its review is the next issue. (2) `karvi-sysutil` reports a
+part it makes `created`, the word `karvi setup shared` writes in the same output
+above it; the record keeps `made` and `found`. (3) An existing account `karvi`
+is taken only when it is a system user whose home is `/opt/karvi/users/karvi`,
+since karvi reads the account's configuration from the home the password
+database names; another home is refused, the two stacked. (4) `--purge` removes
+the account's own spool directories, `/tmp/karvi-UID` and `/var/tmp/karvi-UID`,
+with its home. (5) The package depends on `adduser`, whose `adduser`,
+`addgroup`, `deluser`, and `delgroup` the script runs. (6) The template keeps
+the user unit's other settings, `NoNewPrivileges=yes`, its limits, `UMask=0077`,
+and no file-system sandbox, the daemon writing where its clients read; under it
+a job's folder was 2750 and its files 0640 in the operators' group, as FILES
+says. (7) The test's job runs on karvi's fake device, built from the tree, and
+the operator logs in through the container's sshd, both on its 127.0.0.1. Found
+by the test: the account made again with its recorded uid, 100 in the container,
+by `adduser --system --group --uid 100` failed, `groupadd: GID '100' already
+exists`, Ubuntu's `users`: the script makes the account's group first, `addgroup
+--system`, at a gid of its own, and the account in it. Noted, not opened: the
+daemon upgrade suite waits 2 s for `go run` of its fixture, which a cold build
+cache exceeded under three lanes in a fresh copy of the tree; the battery passed
+again with the cache warm.

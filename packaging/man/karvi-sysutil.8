@@ -1,0 +1,143 @@
+.\" karvi-sysutil(8): the administrator's tool for the service account's
+.\" daemon. Written by hand; its rules are docs/EXAMPLES.md chapter 57's,
+.\" issues 14 to 16, and its usage is the script's own (--help), so a change
+.\" to the script changes this page.
+.TH KARVI-SYSUTIL 8 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-sysutil \- set up or remove the service account's karvi daemon
+.SH SYNOPSIS
+.B sudo karvi\-sysutil daemon install
+.RB [ "\-\-group \fINAME\fP" ]
+.br
+.B sudo karvi\-sysutil daemon remove
+.RB [ \-\-purge ]
+.SH DESCRIPTION
+.B karvi\-sysutil
+sets up a host's service account,
+.BR karvi ,
+whose daemon runs under systemd as the template unit's instance
+.BR karvi\-daemon@karvi.service ,
+started after the network, stopped before it at a shutdown, and bounded by
+the daemon's grace alone. It runs as root, directly or through
+.BR sudo ,
+and exits 1 otherwise. An operator's own daemon, launched by the operator's
+client, needs none of it.
+.PP
+.B daemon install
+checks every refusal before it changes anything, then, in order: runs
+.BR "karvi setup shared \-\-group" " \fINAME\fP,"
+which reports each place
+.B exists
+on a host already set up; makes the system user
+.B karvi
+with its group, its home
+.I /opt/karvi/users/karvi
+(0750), which is also its private root, and no login shell, an existing
+account of that name taken only when it is a system user with that home;
+adds it to the operators' group,
+.B netops
+unless
+.B \-\-group
+names another; writes its configuration,
+.I /opt/karvi/users/karvi/.config/karvi/config.toml
+(0600, the account's), with
+.BR "daemon.launch = \(dqsystemd\(dq" ,
+under which no client of the account drains or starts a daemon; checks as
+the account that karvi reads that value, which a global file setting
+.B config.allow\-user\-layer = false
+would prevent; enables and starts
+.BR karvi\-daemon@karvi.service ;
+and checks
+.B karvi daemon status
+as the account. Each part is reported
+.BR created ,
+.BR exists ,
+or
+.BR repaired ,
+and entered in the record as it is made or found.
+.PP
+Run again,
+.B daemon install
+finishes an install that failed partway and, over a whole one, changes
+nothing. It repairs what the record lists as made: a part missing is made
+again, the account with its recorded uid, so that its files keep their
+owner; the account's home and login shell, the owner and mode of its home
+and of its configuration, and its group membership are set back; and the
+instance is enabled and started when it is not. A repaired part's value as
+found is shown over the value set. It never rewrites the configuration's
+content, refusing a
+.B daemon.launch
+other than
+.BR systemd ,
+and never restarts a daemon of another build, which waits on the
+administrator's
+.BR "systemctl restart karvi\-daemon@karvi.service" .
+.PP
+.B daemon remove
+undoes what the record lists as made, in reverse: it disables and stops the
+instance, the stop waiting for the daemon's jobs under its grace as at a
+shutdown, and removes the configuration file and the group membership. The
+account and its home stay, so that its files keep their owner, and their
+lines stay in the record; a later
+.B daemon install
+takes the account back.
+.B \-\-purge
+also gives every file the account owns in the shared trees and the shared
+scratch to root, their group and mode unchanged, so that operators still
+read them and no later account owns them, and removes the account and its
+home and the record. What the install found is left, and so are the shared
+trees, which hold every operator's work, and the template unit, which is the
+package's. A part already gone is reported
+.BR absent ;
+without a record,
+.B daemon remove
+is refused.
+.SH OPTIONS
+.TP
+.BI \-\-group " NAME"
+The operators' group, which must exist:
+.B karvi setup shared
+makes the shared trees in it and the account joins it.
+.B netops
+when not given; an install whose record names another group is refused.
+.TP
+.B \-\-purge
+With
+.BR "daemon remove" :
+remove the account and its home as well.
+.TP
+.B \-\-nocolor
+No colour on standard error, which at a terminal shows errors in red and
+warnings in orange, as karvi does;
+.B NO_COLOR
+set and not empty does the same.
+.TP
+.BR \-h ", " \-\-help
+The usage.
+.SH FILES
+.TP
+.I /usr/lib/systemd/system/karvi\-daemon@.service
+The package's template unit: nothing runs until an instance is enabled, and
+an upgrade replaces it and reloads systemd. A site's own settings go in a
+drop-in under
+.IR /etc/systemd/system/karvi\-daemon@.service.d/ ,
+which an upgrade never touches.
+.TP
+.I /etc/karvi/service\-karvi.installed
+The record: the configuration the unit's daemon runs with, the global file
+and then the account's own, and one line per part, made or found.
+.TP
+.I /opt/karvi/users/karvi/.config/karvi/config.toml
+The account's configuration.
+.SH EXIT STATUS
+0 when done; 1 for a refusal or a failure, nothing changed by a refusal; 2
+for a usage error.
+.SH SEE ALSO
+.BR karvi\-daemon (1),
+.BR karvi\-setup (1),
+.BR systemctl (1),
+.I /usr/share/doc/karvi/docs/OPERATIONS.md

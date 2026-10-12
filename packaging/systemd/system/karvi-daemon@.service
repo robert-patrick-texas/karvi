@@ -1,0 +1,45 @@
+[Unit]
+Description=karvi daemon of the service account %i
+Documentation=man:karvi-sysutil(8) file:/usr/share/doc/karvi/docs/OPERATIONS.md
+# The service account's daemon (docs/EXAMPLES.md chapter 57, issues 14 to
+# 16). The package installs this template under /usr/lib/systemd/system and
+# runs nothing: `sudo karvi-sysutil daemon install` makes the system user
+# karvi, sets daemon.launch = "systemd" in its configuration, under which no
+# client of the account drains or starts a daemon, and enables the instance,
+# `systemctl enable --now karvi-daemon@karvi.service`. An upgrade replaces
+# this file and reloads systemd; `systemctl restart karvi-daemon@karvi.service`
+# then drains the old daemon under its grace and starts the installed one. A
+# site's own settings go in a drop-in under
+# /etc/systemd/system/karvi-daemon@.service.d/, which an upgrade never
+# touches. Started after the network, so stopped before it at a shutdown.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=%i
+# Under systemd the daemon stays: the idle timer (daemon.shutdown-idle-timer,
+# 1h by default) is off, since an idle exit is a clean exit that
+# Restart=on-failure would not restart. --set outranks every file.
+ExecStart=/usr/bin/karvi --set daemon.shutdown-idle-timer=0 daemon serve
+Restart=on-failure
+RestartSec=2s
+# A stop, a restart, or a shutdown signals the daemon alone (KillMode=mixed):
+# it admits no job, lets its jobs finish within daemon.shutdown-grace-seconds,
+# cancels and records what remains, and ends its own sessions, the system
+# transport's OpenSSH processes among them; systemd kills whatever is left
+# once the daemon has exited. TimeoutStopSec=infinity leaves the bound to the
+# daemon's grace keys, so a site that raises the grace changes no unit.
+KillMode=mixed
+TimeoutStopSec=infinity
+NoNewPrivileges=yes
+# No file-system sandbox (PrivateTmp, ProtectSystem, ProtectHome): the daemon
+# writes where its clients read, the shared trees, the shared scratch, and
+# the spool, so a path means the same to both.
+LimitNOFILE=131072
+LimitNPROC=65535
+TasksMax=65535
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

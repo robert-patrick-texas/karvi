@@ -8,6 +8,8 @@
 #   - every document and example configuration packaging/debian/rules
 #     installs is in the package under its own name, the same bytes, so none
 #     was gzipped or left out;
+#   - karvi-sysutil and the service account's template unit are the tree's
+#     bytes, the template where systemd finds a package's units;
 #   - every unit's Documentation=file: target is in the package;
 #   - configs/reference.toml under the documents reaches the one copy under
 #     /usr/share/karvi;
@@ -46,8 +48,11 @@ for cd_f in "$TREE"/release/*.md; do same_file "$cd_f" "$DOC/release/${cd_f##*/}
 for cd_f in "$TREE"/examples/*; do same_file "$cd_f" "$DOC/examples/${cd_f##*/}"; done
 same_file "$TREE/configs/development.toml" "$DOC/configs/development.toml"
 
-cd_docs=$(grep -rh '^Documentation=file:' "$R/usr/share/karvi/systemd" | sed 's/^Documentation=file://' | tr ' ' '\n' | sort -u)
-[ -n "$cd_docs" ] || fail "no unit under usr/share/karvi/systemd names a Documentation=file: target"
+same_file "$TREE/packaging/sbin/karvi-sysutil" "$R/usr/sbin/karvi-sysutil"
+same_file "$TREE/packaging/systemd/system/karvi-daemon@.service" "$R/usr/lib/systemd/system/karvi-daemon@.service"
+
+cd_docs=$(grep -rh '^Documentation=' "$R/usr/share/karvi/systemd" "$R/usr/lib/systemd/system" | sed 's/^Documentation=//' | tr ' ' '\n' | sed -n 's/^file://p' | sort -u)
+[ -n "$cd_docs" ] || fail "no unit names a Documentation=file: target"
 for cd_d in $cd_docs; do
   [ -f "$R$cd_d" ] || fail "a unit's Documentation=file:$cd_d is not in the package"
 done
@@ -60,4 +65,4 @@ lintian --fail-on error,warning "$PKG" >"$cd_work/lintian.txt" 2>&1 ||
   fail "lintian: $(cat "$cd_work/lintian.txt")"
 
 [ "$cd_failed" -eq 0 ] || exit 1
-echo "check-deb: ${PKG##*/} matches ${TREE}: executables, documents, units' documentation, reference link, lintian"
+echo "check-deb: ${PKG##*/} matches ${TREE}: executables, karvi-sysutil, the template unit, documents, units' documentation, reference link, lintian"

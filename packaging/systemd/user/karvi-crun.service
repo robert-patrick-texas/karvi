@@ -13,8 +13,8 @@ After=network-online.target
 Type=oneshot
 # --no-daemon: a oneshot's control group ends with its main process, and a
 # daemon this unit launched would be terminated with it; the
-# in-process path needs none. A site whose daemon runs under karvi-daemon.service
-# may drop the option and submit to it instead.
+# in-process path needs none. The daemon of karvi-daemon@.service is its
+# service account's alone, which this unit, an operator's, does not reach.
 ExecStart=/usr/bin/karvi crun --all --no-daemon --format jsonl
 NoNewPrivileges=yes
 # No file-system sandbox (PrivateTmp, ProtectSystem, ProtectHome): a user

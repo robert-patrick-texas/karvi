@@ -308,6 +308,8 @@ owner's next run sets it right, or the site resets it.
 |---|---|---|---|---|
 | `/etc/tmpfiles.d/karvi.conf` | `0644` | root | `sudo karvi setup shared` | the rule that makes `/dev/shm/karvi`, `scoreboards`, and `capacity` at every boot, in the group and modes setup used; a file there without karvi's first line is the site's and is left |
 | `/etc/bash_completion.d/karvi` | `0644` | root | `sudo karvi setup tab` | Tab completion for bash |
+| `/etc/karvi/service-karvi.installed` | `0644` | root | `sudo karvi-sysutil daemon install` | the record of the service account's install: the configuration its daemon runs with, and each part the install made or found, which `daemon remove` undoes in reverse (`karvi-sysutil(8)`) |
+| `/opt/karvi/users/karvi/.config/karvi/config.toml` | `0600` | the account `karvi` | `sudo karvi-sysutil daemon install` | the service account's configuration: `daemon.launch = "systemd"`, its daemon the unit `karvi-daemon@karvi.service`'s |
 
 ### 4.7 What the package installs
 
@@ -316,7 +318,9 @@ owner's next run sets it right, or the site resets it.
 | `/usr/bin/karvi` | `0755` | the program |
 | `/usr/bin/karvi-askpass` | `0755` | the helper `ssh` runs for a secret; never run by an operator |
 | `/usr/bin/karvi-prune` | `0755` | retention: removes old job and transcript folders ([`docs/PRUNE.md`](PRUNE.md)) |
-| `/usr/share/man/man1/karvi*.1`, `/usr/share/man/man8/karvi-prune.8` | `0644` | the manual pages |
+| `/usr/sbin/karvi-sysutil` | `0755` | the administrator's tool for the service account's daemon, run as root (`karvi-sysutil(8)`) |
+| `/usr/lib/systemd/system/karvi-daemon@.service` | `0644` | the service account's template unit, where systemd finds a package's units: nothing runs until `sudo karvi-sysutil daemon install` enables its instance, and an upgrade replaces it |
+| `/usr/share/man/man1/karvi*.1`, `/usr/share/man/man8/karvi-prune.8`, `/usr/share/man/man8/karvi-sysutil.8` | `0644` | the manual pages |
 | `/usr/share/doc/karvi/` | `0644` | the top-level documents (`README.md`, `CHANGELOG.md`, `LICENSE.md`, `BUILD-HOWTO.md`, …), `docs/`, `release/`'s records, `examples/`, and `configs/` (`development.toml`, and `reference.toml` a link to `/usr/share/karvi/reference.toml`), in the source tree's layout so their links and the `configs/` files they name hold |
 | `/usr/share/karvi/systemd/user/`, `/usr/share/karvi/systemd/system/` | `0644` | the units and timers, per operator and for the site |
 | `/usr/share/karvi/cron/` | `0755` | the cron scripts `karvi-crun` and `karvi-prune` |
@@ -326,7 +330,10 @@ owner's next run sets it right, or the site resets it.
 | `/usr/share/lintian/overrides/karvi` | `0644` | the package's two deliberate `lintian` findings with their reasons: static executables, and hook examples not executable |
 
 Nothing under `/usr/share/karvi` is active until the site copies it into place,
-each guide giving the copy; a host installed from the release bundle
+each guide giving the copy. The package's maintainer scripts reload systemd at
+its install, upgrade, and removal, so that the template's instance runs the
+installed unit at its next start; they enable, start, and restart nothing. A
+host installed from the release bundle
 ([`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back))
 finds the same files in the bundle's `packaging/`, `configs/`, `schema/`, and
 `docs/`. The cron script `karvi-crun` holds a lock at

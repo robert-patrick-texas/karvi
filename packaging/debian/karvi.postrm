@@ -1,0 +1,9 @@
+#!/bin/sh
+# The template unit removed with the package: systemd forgets it
+# (karvi.postinst).
+set -e
+if [ "$1" = remove ] && [ -z "${DPKG_ROOT:-}" ] && [ -d /run/systemd/system ]; then
+  systemctl --system daemon-reload >/dev/null || true
+fi
+#DEBHELPER#
+exit 0
