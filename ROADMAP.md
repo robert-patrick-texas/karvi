@@ -7,17 +7,26 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-Beside the next release, which exercises the release tools it changes:
-
-1. **Build numbers in the version.** A build identity beyond the version and
-   the commit, for telling two builds of one tree apart. A release build's
-   commit is `source-release-v` and its number, and its build time the day's
-   midnight, so two release builds of one tree on one day are alike; a lab
-   build carries its commit and its second. The questions: what the number is
-   and who assigns it; what reads it (`karvi version` shows the commit and the
-   build time, while the records' producer and `daemon status` name the version
-   alone); and the controlled build a release reproduces
-   ([`BUILD-HOWTO.md`](BUILD-HOWTO.md)).
+1. **A build names its tree.** Two builds of different trees can be told apart
+   wherever a build is named. The dev line's `make build` stamps every tree
+   `commit: development` and `build_time: 1970-01-01T00:00:00Z`, so two
+   different programs say the same in `karvi version` and in a job's manifest;
+   and `daemon status` names the version alone, so a client that reaches
+   another build's daemon of the same version is told `compatible: true` and
+   nothing more. The scope: `make build`'s default commit taken from git
+   (`git describe --always --dirty`, as `make html` names the tree), a release
+   build passing its own (`source-release-v` and its number, the day's
+   midnight) and staying byte for byte the same when rebuilt; and `daemon
+   status` and the client's compatibility line naming the daemon's commit
+   beside its version. No build counter: a release is one identity, its
+   rebuilds identical, and nothing would read a number. The questions: a dev
+   build's default build time; whether the daemon's status reply, whose
+   `result` the IPC schema leaves open, takes the commit without moving the
+   schema; what a client does when the daemon's build is not its own (a notice,
+   as "A client told when a running daemon's settings differ from its own"
+   below); and the release tools' checks of the stamp, which the next release
+   exercises ([`BUILD-HOWTO.md`](BUILD-HOWTO.md)). The daemon's part can be
+   built at any time; the stamp's waits for that release.
 
 ## Later
 
