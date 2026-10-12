@@ -11012,3 +11012,326 @@ drains and never stops); the schemas on one line (two values compared are read
 stacked); the client's build on the dry run's line (`karvi version` names it);
 a code of its own for the second prepare (three daemons in one invocation, the
 code that names a daemon the client will not use).
+
+**Issue 13, found while designing section 5: the unit's kill mode, agreed.** The
+packaged unit names no `KillMode`, so systemd's `control-group` applies: a stop
+sends SIGTERM to every process of the unit at once, the daemon and each OpenSSH
+process of the system transport. On a transient user service with
+`TimeoutStopSec=infinity`, as issue 7 has the unit, a 12-second job (`sleep 12;
+echo done`) through the system transport to 127.0.0.1 and the unit stopped 3 s
+into it: under `control-group` the stop returned at 3.1 s, the job's session
+lost (`command_session_lost`, exit 101, its summary `errored`); under
+`KillMode=mixed`, SIGTERM to the daemon alone and SIGKILL to what remains once
+it has exited, the job ran to its end, exit 0, `completed`, the stop returning
+at 12.3 s; under `mixed` with a grace of 4 the daemon cancelled and recorded it
+at 7.1 s, `incomplete_shutdown` (exit 106), nothing left in the unit's cgroup. A
+job of the native transport has no child and drained under either, as on issue
+7's lab. The rule. The packaged daemon unit sets `KillMode=mixed` beside
+`TimeoutStopSec=infinity`: a stop or a restart signals the daemon alone, which
+drains and ends its own sessions within its grace, and systemd kills what
+remains after it exits; the unit's comment says so. A login session's scope,
+where a client-launched daemon runs, stops by `control-group` too, so at a
+shutdown, or a logout that ends the user's processes, that daemon's jobs of the
+system transport end at once, recorded as on the service; no unit of karvi's
+sets that scope. *Not taken:* `control-group` (every OpenSSH session cut with
+the daemon's SIGTERM, the drain defeated for the system transport); `process`
+(the daemon alone signalled, and what it leaves keeps running after it).
+
+**Issue 14, the service account's daemon at a host's shutdown, agreed.** Issue
+11 found a user unit's daemon under `user@.service`'s 5-second stop at a
+shutdown, which the unit's `TimeoutStopSec=infinity` cannot lengthen. With
+netops.test standing for the service account, a 12-second job on the fake
+device, and the stop 3 s into it. A user unit (`TimeoutStopSec=infinity`,
+`KillMode=mixed`) under the account's user manager, the manager stopped as a
+shutdown stops it: the daemon killed 5 s later, the run losing its follow
+(`follow_stream_lost`, exit 111), the job without its summary, `d.sock` left.
+The same with a drop-in for that account's manager alone raising its stop to 90
+s: the job completed, exit 0; but a drop-in named `karvi-s5.conf` sorted before
+Ubuntu's `timeout.conf`, which won, and the stop stayed 5 s, where one of the
+same name or sorting after it took. A transient system unit, `User=netops.test`,
+`TimeoutStopSec=infinity`, `KillMode=mixed`, `Wants=` and
+`After=network-online.target`, no user manager and no linger: the stop waited,
+and the job completed, exit 0, at 12.7 s. `network-online.target` is loaded and
+active in the system manager and `not-found` in a user manager, so the packaged
+user unit's `After=` ordered nothing. Found: logind's `RemoveIPC=yes`, the
+default, removes every file an account owns under `/dev/shm` 10 s
+(`UserStopDelaySec`) after its last logind session ends, a user manager started
+for it counting as one: a first run of the system unit's case lost its running
+job's manifest and `commands.jsonl` so, the job ending `errored`. System users
+are excluded (`logind.conf(5)`), a lingering user is never finalized, and `sudo
+-u` opens no session. The rule. A service account's daemon runs under a system
+unit: the package ships the template `karvi-daemon@.service`, `User=%i`, which
+the administrator enables for the account, `systemctl enable --now
+karvi-daemon@ACCOUNT.service`, started after the network, stopped at a shutdown
+before the network goes, and bounded by the daemon's grace alone
+(`TimeoutStopSec=infinity`, `KillMode=mixed`), with `Restart=on-failure` and the
+idle timer off as before, and no user manager or linger. The account is a system
+user (`adduser --system`), whose files logind leaves alone. The packaged user
+unit `karvi-daemon.service` is removed. Issue 7's words move with it: no
+`loginctl enable-linger` and no `systemctl --user`; `daemon status` names `unit:
+karvi-daemon@ACCOUNT.service`; `daemon stop` and `daemon restart` refuse naming
+`systemctl restart` of that unit; and the crun unit's comment names the
+template. An operator's own daemon is the client's launch (issues 1 to 6); an
+operator who kept one through a logout under the user unit on a host that ends
+users' processes at logout no longer can. *Not taken:* the user unit as issue 7
+had it (killed 5 s into every shutdown on Ubuntu); the user unit with a drop-in
+for the account's user manager (three things to set, a drop-in's name that
+loses without a word, and no order against the network); a packaged drop-in for
+every user's manager (every user's shutdown changed). Noted, not opened: an
+operator's own daemon running after the operator's last logout loses the
+operator's files under `/dev/shm`, the scoreboards among them, 10 s later.
+
+**Issue 15, how a client knows a daemon is systemd's, agreed.** Issue 7 has a
+client never drain a unit's daemon: drained, the daemon exits 0, which
+`Restart=on-failure` does not restart, so after an install the account's first
+run would leave it without a daemon until the administrator acted. Neither the
+daemon's pid nor its parent tells who started it: a client's launch from a login
+session has PID 1 for its parent, as a system unit's daemon has, and a client's
+launch from a user service's shell the user manager, as a user unit's daemon
+has. The daemon's environment and cgroup would tell it (`INVOCATION_ID` set and
+the cgroup ending in the unit's `.service`, where a client's launch, which
+filters the environment, has no `INVOCATION_ID`), at the price of the daemon
+reading both and its answer naming its unit and its manager. The client's own
+configuration says it more plainly. The rule. `daemon.launch` names who starts
+the account's daemon, a word, as `display.color` takes one: `"client"`, the
+default, the client starting its own daemon as issues 1 to 6 have it, for an
+operator; `"systemd"`, set for the service account by the install script, or
+locked for every operator of a host in the site's global file, the daemon
+started by the unit `karvi-daemon@USER.service`, USER the client's own account.
+Under `"systemd"` a client sends no drain and starts no daemon: a daemon of its
+own build not draining takes the submission; a daemon of another build refuses
+it, never drained, in issue 5's layout:
+
+```
+daemon_incompatible: the daemon runs another build; none submitted; systemctl restart karvi-daemon@karvi.service, or --no-daemon
+  daemon build 9Au3WHU839F5xE-67H93 0.29.0
+  client build XfTtoeK1qq9HkGakcVu7 0.29.0
+```
+
+A draining daemon, stopping under its unit, refuses it `daemon_draining` as in
+issue 5; with no daemon the submission and `daemon start` are refused
+`daemon_unreachable`, naming `systemctl start` of the unit; `daemon stop` and
+`daemon restart` are refused with a new code, `daemon_managed`:
+
+```
+daemon_managed: daemon.launch is systemd; systemctl stop karvi-daemon@karvi.service
+```
+
+The dry run reports a daemon of another build as an error, and `daemon status`'s
+remediation names the unit's restart. The daemon is unchanged: it names no unit
+and reads neither its environment nor its cgroup, which replaces issue 7's
+`unit:` line, its `INVOCATION_ID`, and its boolean `daemon.launch`. *Not taken:*
+the daemon knowing its unit from `INVOCATION_ID` and its cgroup (a reading and
+two fields where the client's setting says it); the parent pid (above);
+`daemon.launch` a boolean (`false` says what a client does not do, not who
+does); `"systemd-managed"` (the key already says launch); the refusals naming
+"its unit" (the install script enables exactly `karvi-daemon@USER.service`).
+
+**Issue 16, the service account's install and its removal, agreed.** What it
+gains: the service account's daemon under systemd set up on a host in one
+command, run as root, and undone in one, where OPERATIONS would otherwise give
+the administrator steps to follow and to remember for their undoing. It waits on
+issues 14 and 15, the template unit and `daemon.launch = "systemd"`, and is
+built with them. Found while designing it: a home at `/var/lib/karvi`, one of
+karvi's two system roots, owned by the account at 0700, would refuse other
+operators' runs, which look for `/var/lib/karvi/shared` and
+`/var/lib/karvi/users/<username>` there and pass by an absent one but not one
+they may not read (`internal/osutil/paths.go`, read, not run). The rule. A bash
+script, `karvi-sysutil`, in the tree's `packaging/sbin/` and installed as
+`/usr/sbin/karvi-sysutil` with a manual page `karvi-sysutil(8)`, its commands
+naming their object as karvi's do: `sudo karvi-sysutil daemon install [--group
+NAME]` and `sudo karvi-sysutil daemon remove [--purge]`. It runs as root alone,
+directly or through `sudo`, and exits 1 otherwise. `daemon install`, in order:
+runs `karvi setup shared --group NAME`, which reports each place `exists` on a
+host already set up, so that the site's shared trees and `/opt/karvi/users`
+exist, every operator's jobs, collections, and transcripts then going to the
+trees under `/opt/karvi/shared`; makes the account `karvi`, a system user (issue
+14) with its group, its home `/opt/karvi/users/karvi`, which is also its private
+root, and no login shell, an existing account of that name taken only when it is
+a system user; adds it to the operators' group, `netops` unless `--group` names
+another, a group that does not exist refused; writes the account's
+`/opt/karvi/users/karvi/.config/karvi/config.toml`, its own and mode 0600, with
+`[daemon] launch = "systemd"`, a file already there refused, never edited;
+checks as the account that `karvi config show daemon.launch` says `systemd`, so
+that a global file setting `config.allow-user-layer = false` is found; checks
+that the package's template unit is installed, refusing without it, and runs
+`systemctl enable --now karvi-daemon@karvi.service`; checks `karvi daemon
+status` as the account; each part entered in the record
+`/etc/karvi/service-karvi.installed` as it is made or found (below). The record
+states that the unit runs the daemon as the account with the configuration karvi
+reads for it, the global file (`/etc/karvi/config.toml`, else
+`/opt/karvi/config.toml`, the first that exists) and then the account's own,
+named by its full path, and lists what the install made as against what it
+found. `daemon remove` undoes what the record lists, in reverse: `systemctl
+disable --now` of the instance, the stop waiting for its jobs under the daemon's
+grace as at a shutdown; and the configuration file and the group membership,
+each when the install made it. The account and its home stay, and the record
+keeps their lines; under `--purge` the account's files in the shared trees and
+the shared scratch go to root, and the account with its home, when the install
+made it, and the record go too (below). What the install found is left, and so
+are the template unit, the package's, and the shared trees, which hold every
+operator's work. karvi reads no configuration file in a private root: only the
+global file, the account's `~/.config/karvi/config.toml`, and `--config`. *Not
+taken:* the home `/var/lib/karvi` (above); `karvi-service` (at the operator's
+word, a name for root's system tasks); the bare `install` and `remove` (read as
+installing karvi); the script in `/usr/share/karvi` (not on root's path) or
+`scripts/` (the tree's test and release tools, not shipped); `karvi setup
+service` in Go (the operator's bash, its work `useradd` and `systemctl`).
+
+**Issue 16, continued: the template unit's place, agreed.** What it gains: the
+unit an instance runs is the installed release's, where a copy the install made
+into `/etc/systemd/system` from `/usr/share/karvi/systemd/system` would keep its
+settings through every later upgrade without a word, this chapter's own
+`KillMode` and `TimeoutStopSec` among them. It waits on nothing. The rule. The
+package installs the template where systemd finds a package's units,
+`/usr/lib/systemd/system/karvi-daemon@.service`, the one unit it installs there,
+and an upgrade replaces it. A template runs nothing until an instance is
+enabled, so nothing the package installs is active until the site chooses, as
+before. The package never enables, starts, or restarts an instance (issue 7):
+`dh_installsystemd` makes no maintainer-script snippet for a unit named with `@`
+(`/usr/bin/dh_installsystemd`, read, not run), so the rules need no override. A
+site's own settings go in a drop-in,
+`/etc/systemd/system/karvi-daemon@.service.d/`, which an upgrade never touches.
+`karvi-sysutil` copies no unit: `daemon install` refuses without the template
+(`karvi-daemon@.service not installed; install the karvi package`), and `daemon
+remove` leaves it. An install from the release bundle places the file as
+BUILD-HOWTO section 10 says. *Not taken:* the install's copy into
+`/etc/systemd/system` (stale after every upgrade); `systemctl link` (a second
+way of placing a unit for the administrator to recognise); `daemon install` run
+again after each upgrade to refresh the copy (a step to forget).
+
+**Issue 16, continued: the reload at an upgrade, agreed.** What it gains: the
+administrator's restart after an upgrade runs the new release's unit. It waits
+on the template's place (above). Found: an upgrade replaces the template's file
+and systemd keeps the unit it loaded. On a runtime user template standing for
+it, its file replaced while an instance ran: a restart without a `daemon-reload`
+warned that the file had changed on disk and ran the old unit, its `KillMode`
+and its command; a `daemon-reload` alone gave the running instance the new
+`KillMode` at once, its pid the same, and the new command at its next restart.
+`dh_installsystemd` makes no reload for a template, and systemd's dpkg triggers
+watch no unit directory. The rule. The package runs `systemctl --system
+daemon-reload` itself, as debhelper's snippets do for any other unit:
+`packaging/debian/karvi.postinst` at `configure` and dpkg's `abort-` cases,
+`packaging/debian/karvi.postrm` at `remove`, each when systemd runs
+(`/run/systemd/system` exists) and `DPKG_ROOT` is empty, a failure ignored. It
+enables, starts, and restarts nothing. After an upgrade the administrator's one
+step is `systemctl restart karvi-daemon@karvi.service`. *Not taken:* the
+administrator's own `daemon-reload` before the restart (forgotten, the restart
+runs the old unit with a warning alone).
+
+**Issue 16, continued: what a removal keeps, and `--purge`, agreed.** What it
+gains: no later account takes over the service account's files. It waits on
+nothing. Found: with the shared trees in place, the account's home holds its
+configuration, its trust store, and the daemon's log and state; its jobs,
+collection files, and transcripts are in the shared trees, and its scoreboards,
+the ledger files it last wrote, and its scratch in the shared scratch, all owned
+by its uid (FILES section 2). `adduser --system` gives a new account the lowest
+free uid from 100 (`first_avail_uid` in `/usr/sbin/adduser`, read, not run): an
+account removed hands its uid to the next system account a package makes, which
+would own the service account's jobs and collections, devices' configurations
+among them, and could open them to anyone. The rule. `daemon remove` stops and
+disables the instance and removes the configuration file and the group
+membership, each when the install made it; the account and its home stay, its
+files keeping their owner, and a later `daemon install` takes the account back
+with its trust store; the record keeps its lines for the account and its home,
+so that a later `daemon remove --purge` knows the install made them. `daemon
+remove --purge` does the same, then gives every file the account owns in the
+shared trees and the shared scratch to root, its group and mode unchanged, so
+that the operators read them still and no later account owns them; removes the
+account and its home, when the install made it; and removes the record. *Not
+taken:* the account removed by a plain `daemon remove` (its uid reused); its
+files left in the shared trees under a removed uid at `--purge` (the same); its
+files there removed at `--purge` (other operators' jobs sit in day folders it
+made, and they are the site's records).
+
+**Issue 16, continued: an install or a removal run again, agreed.** What it
+gains: an install that failed partway is finished by running it again, or
+undone, where a record written last would leave none: its account taken as found
+by the next run, and so never removed, and its configuration file refused. It
+waits on nothing. The rule. The install enters each part in the record as it
+makes or finds it, so that a failed install leaves the list of what it did.
+`daemon install` reads the record: each part it lists is checked and reported
+`exists`, a part missing is made, and the two checks, `daemon.launch` and
+`daemon status`, always run; run again on a whole install, it changes nothing
+and reports each part `exists`, as `karvi setup shared` does, and after a plain
+`daemon remove` it takes the account back and makes the rest. A configuration
+file the record does not list is refused, as before. A `--group` other than the
+one whose membership the record lists is refused, the two stacked, naming
+`daemon remove`. `daemon remove` reports a part already gone `absent`, and
+without a record is refused: `no service installed:
+/etc/karvi/service-karvi.installed absent`. *Not taken:* a second install
+refused outright (a failed one cleaned by hand); the record written last
+(above).
+
+**Issue 16, continued: no dry run, and an install that repairs, agreed.** What
+it gains: a refused install leaves the host as it was, and an install run over
+an existing one sets right what has drifted from what it made. It waits on
+nothing. The rule. `karvi-sysutil` has no `--dry-run`: `daemon install` checks
+every refusal before it changes anything (root, the template installed, the
+group, an account `karvi` that is not a system user, a configuration file the
+record does not list, a `--group` other than the record's, the recorded uid held
+by another account), so that a refusal changes nothing and a failure partway is
+an error it did not foresee, which the record covers; the manual page lists the
+steps. Over an existing install, `daemon install` repairs each part the record
+lists as made: a part missing is made again, the account with the uid the record
+holds, so that its files keep their owner; the account's home and login shell,
+the home's owner and mode, the configuration file's owner and mode (the
+account's, 0600), and the group membership are set back; and the instance is
+enabled and started when it is not, after `systemctl reset-failed` when it
+failed. Each part is reported `made`, `exists`, or `repaired`, a repaired part's
+value as found over the value set, stacked. It repairs neither the configuration
+file's content, which the administrator may have added to (a `daemon.launch`
+other than `systemd` is refused, stacked, naming the file), nor a running daemon
+of another build, which waits on the administrator's restart (issue 7), the
+status naming it. *Not taken:* `--dry-run` (a second path through the script to
+keep in step with the first, its answer only as good as what it can check before
+anything is made); a repair that rewrites the configuration file (the
+administrator's additions lost); a repair that restarts the daemon (the
+restart's moment the administrator's).
+
+**Issue 16, continued: the test, in a container, agreed.** What it gains:
+`karvi-sysutil`, the package's template and maintainer scripts, and the
+account's daemon tested as root on an Ubuntu 26.04 host that is not this one, at
+the operator's word, so that nothing here needs `sudo` or changes. It waits on
+the S5 build. Found: `ubuntu:26.04` (Ubuntu 26.04.1 LTS, systemd 259.5) with
+systemd its PID 1 under Docker 29.8.2, without `--privileged`; as Docker runs
+it, systemd exits 255, `Failed to create /init.scope control group: Read-only
+file system`, and with `--cap-add SYS_ADMIN` alone the same; with `SYS_ADMIN`,
+AppArmor unconfined, a private cgroup namespace, and an entrypoint that remounts
+`/sys/fs/cgroup` writable, it runs with no unit failed, logind and sshd up. In
+it, logind removed an ordinary user's `/dev/shm` file 13 s after the user's ssh
+session ended and kept a system user's, and `docker stop`, systemd's halt
+signal, waited out a unit's 8-s stop, systemd exiting 0, as on this host (issue
+14). The rule. `scripts/sysutil-smoke-test.sh PACKAGE` builds the image
+(`ubuntu:26.04` with systemd, logind, adduser, sudo, and OpenSSH), boots it with
+no network, installs PACKAGE with `dpkg -i`, and runs: the refusals (not root,
+no template, the group missing, a `karvi` account not a system user, a
+configuration file the record does not list), each exiting 1 with the accounts,
+`/opt/karvi`, and `/etc/karvi` as before; the install, each part `made`,
+`daemon.launch` `systemd` as the account, and `daemon status` running; the
+install again, each part `exists` and nothing changed; the repair, the
+membership, the configuration file's mode, and the instance broken and the
+account removed, each `repaired` or `made`, the account with its uid; a
+`--group` other than the record's, refused, stacked; the shutdown, a 12-s job
+and `docker stop` 3 s into it, the job's summary after `docker start` saying it
+completed; RemoveIPC, an operator's ssh login and logout, the account's files
+under `/dev/shm` there 13 s later; the upgrade, the installed template changed
+by hand and PACKAGE installed again, the instance no longer needing a reload and
+its daemon's pid the same; the removal, the account and its home kept, `absent`
+at a second removal, the account taken back by an install, `--purge` giving its
+shared files to root and removing it, and a removal without a record refused;
+and `dpkg -r`, the template gone and systemd reloaded. It removes its container
+and image at the end, and touches no other. Every connection is to the
+container's own sshd on 127.0.0.1, which needs no network; the image is built
+with one, for its packages. The unit's order against the network is the one
+thing the container cannot show, with a network or without: Docker sets up its
+interface outside its systemd. The test reads the unit's `Wants=` and `After=`
+instead, systemd stopping units in the reverse of their start order. It is run
+by hand at S5's end and by `verify-release.sh` beside `check-deb.sh` (S6); the
+battery does not run it, since it needs Docker and a package. *Not taken:* the
+test with `sudo` on this host (the host changed); LXD (here only its installer,
+which needs `sudo` and adds a bridge, NAT rules, and a storage pool to this
+host); `--privileged` (every capability and the host's devices, where one
+capability and the cgroup's remount do); a network in the container (it reaches
+this host and what this host reaches, the site's devices among them, and tests
+nothing loopback does not).
