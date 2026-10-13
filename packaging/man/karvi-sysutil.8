@@ -91,7 +91,7 @@ scratch to root, their group and mode unchanged, so that operators still
 read them and no later account owns them, and removes the account and its
 home and the record. What the install found is left, and so are the shared
 trees, which hold every operator's work, and the template unit, which is the
-package's. A part already gone is reported
+install's. A part already gone is reported
 .BR absent ;
 without a record,
 .B daemon remove
@@ -120,9 +120,20 @@ set and not empty does the same.
 The usage.
 .SH FILES
 .TP
-.I /usr/lib/systemd/system/karvi\-daemon@.service
-The package's template unit: nothing runs until an instance is enabled, and
-an upgrade replaces it and reloads systemd. A site's own settings go in a
+.IR /usr/lib/systemd/system/karvi\-daemon@.service ", " /usr/local/lib/systemd/system/karvi\-daemon@.service
+The template unit, the package's or the bundle's
+.RB ( scripts/install.sh ):
+nothing runs until an instance is enabled, and an upgrade replaces it and
+reloads systemd. Its
+.B ExecStart
+names
+.B karvi
+bare, which systemd finds in
+.I /usr/local/bin
+before
+.IR /usr/bin ;
+.B karvi\-sysutil
+runs the same. A site's own settings go in a
 drop-in under
 .IR /etc/systemd/system/karvi\-daemon@.service.d/ ,
 which an upgrade never touches.

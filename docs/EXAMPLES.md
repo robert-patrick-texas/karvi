@@ -11426,3 +11426,50 @@ section 7; CONTRIBUTING; the CHANGELOG; and the ROADMAP, whose Next item is
 removed, the next the operator's. At the release, not before:
 `BUILD-RESULT.md` and `release-manifest.json` name the build, and
 BUILD-QUALIFICATION's history of priors says there was none for it.
+
+**Issue 19, found writing the documents: the service account's setup from the
+bundle, agreed.** What it gains: the operator's rule that neither the package
+nor the bundle sets up a model, and both carry the same method for the site
+that chooses a service account's daemon over operators' own daemons, with the
+shared trees or without. It waits on nothing. Found: `karvi-sysutil` and the
+template unit both named `/usr/bin/karvi`, the package's place, where an
+install from the bundle linked karvi from `/usr/local/bin` and placed neither,
+BUILD-HOWTO section 10 giving its commands by hand; this host's systemd 259
+resolves a bare program name in `ExecStart` along its fixed search path,
+`/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin` (`systemd-path
+search-binaries-default`, `systemd.service(5)`), and reads system units from
+`/usr/local/lib/systemd/system`. The rule. The template's `ExecStart` names
+`karvi` bare, so one file serves both installs, systemd finding the bundle's
+`/usr/local/bin/karvi` first as `PATH` does; `karvi-sysutil` runs the first of
+`/usr/local/bin/karvi` and `/usr/bin/karvi`, in that order, and its refusal
+without the template names both installs. The bundle carries the install,
+`sudo ./scripts/install.sh`, in place of section 10's commands: the four
+executables `karvi`, `karvi-askpass`, `karvi-prune`, and `karvi-sysutil` under
+versioned names in `/usr/local/lib/karvi`, the first three linked from
+`/usr/local/bin` and `karvi-sysutil` from `/usr/local/sbin`, as the package has
+it in `/usr/sbin`; its manual page in `/usr/local/share/man/man8`; the template
+in `/usr/local/lib/systemd/system`; and `systemctl daemon-reload`, enabling and
+starting nothing. The site opts in with `sudo karvi-sysutil daemon install` as
+under the package. A rollback is the older bundle's `install.sh`, as `apt
+install --allow-downgrades` is the package's: the links repointed, that
+release's template back, systemd reloaded, and the administrator's restart of
+the unit where one runs. The container test gains a step: the install from the
+bundle on the host without the package, the daemon set up and running the
+bundle's karvi, then removed. *Not taken:* `karvi-sysutil` writing a drop-in
+for `ExecStart` (a second file to keep in step); the copied template edited
+with `sed` (a unit other than the release's); a bundle install into
+`/usr/bin` (the package's place); `ExecStart=/usr/bin/env karvi` (the bare
+name, one process fewer); the commands left by hand (three more steps to
+remember at each upgrade and rollback).
+
+**Issue 19, built.** `verify-release.sh` in a clone of the tree with the issue
+applied passed the tests, every suite, and the package's check, and the
+container test stopped at its new step: in the container root may not read the
+daemon's `/proc/PID/exe` (another account's, and Docker grants no
+`CAP_SYS_PTRACE`), and systemd's `ExecStart` property keeps the bare name,
+resolved only at the exec. The step now holds the bundle's
+`/usr/local/bin/karvi` the host's one karvi and the daemon answering it
+`compatible: true`; run again on the same package, the container test passed its
+eleven steps, the daemon set up from the bundle running
+`/usr/local/lib/karvi/karvi-v0.29.0`, a second `install.sh` reloading systemd
+with the daemon's pid the same.

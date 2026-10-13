@@ -62,7 +62,18 @@
   `daemon remove` undoes what the record lists, keeping the account and its
   home, and `--purge` gives the account's files in the shared trees to root
   and removes the account. After an upgrade or a rollback the administrator
-  runs `sudo systemctl restart karvi-daemon@karvi.service`.
+  runs `sudo systemctl restart karvi-daemon@karvi.service`. The template's
+  `ExecStart` names `karvi` bare, which systemd finds in `/usr/local/bin`
+  before `/usr/bin`, and `karvi-sysutil` runs the same.
+- **Breaking: the bundle installs itself, `sudo ./scripts/install.sh`.** In
+  place of BUILD-HOWTO section 10's commands by hand: the four executables
+  under versioned names in `/usr/local/lib/karvi`, `karvi`, `karvi-askpass`,
+  and `karvi-prune` linked from `/usr/local/bin` and `karvi-sysutil` from
+  `/usr/local/sbin`; `karvi-sysutil(8)` in `/usr/local/share/man/man8`; the
+  service account's template in `/usr/local/lib/systemd/system`; and systemd
+  reloaded, nothing enabled or started. An earlier bundle's `install.sh` rolls
+  back. A site that chooses the service account's daemon runs `sudo
+  karvi-sysutil daemon install` under either install.
 - **`daemon.launch`, who starts the account's daemon.** `"client"`, the
   default, the client launching its own and draining one of another build; or
   `"systemd"`, the daemon the unit `karvi-daemon@USER.service`'s, which no

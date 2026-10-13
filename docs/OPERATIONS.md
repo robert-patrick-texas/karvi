@@ -397,8 +397,11 @@ peer's uid, so the jobs it runs are the account's: its timers and its
 automation, run as `karvi`.
 
 The package installs the template unit
-`/usr/lib/systemd/system/karvi-daemon@.service` and runs nothing. The
-administrator sets the account up once, as root:
+`/usr/lib/systemd/system/karvi-daemon@.service`, and the bundle's `sudo
+./scripts/install.sh` the same under `/usr/local/lib/systemd/system`, with
+`karvi-sysutil` in `/usr/local/sbin`; neither runs anything. The template names
+`karvi` bare, which systemd finds in `/usr/local/bin` before `/usr/bin`. The
+administrator sets the account up once, as root, under either install:
 
 ```bash
 sudo karvi-sysutil daemon install
@@ -442,9 +445,10 @@ go in a drop-in under `/etc/systemd/system/karvi-daemon@.service.d/`, which an
 upgrade never touches.
 
 **After an upgrade**, and after a rollback (`apt install --allow-downgrades`,
-[`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back)), the
-package has replaced the template and reloaded systemd, and the daemon still
-runs the program it started with. The administrator's one step:
+or an earlier bundle's `install.sh`, [`BUILD-HOWTO.md` section
+10](../BUILD-HOWTO.md#10-install-and-roll-back)), the template has been
+replaced and systemd reloaded, and the daemon still runs the program it
+started with. The administrator's one step:
 
 ```bash
 sudo systemctl restart karvi-daemon@karvi.service

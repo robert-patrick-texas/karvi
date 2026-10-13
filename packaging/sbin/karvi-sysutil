@@ -7,8 +7,9 @@
 #
 # install runs karvi setup shared, makes the system user karvi in the
 # operators' group with its home /opt/karvi/users/karvi, writes its
-# configuration with daemon.launch = "systemd", and enables the package's
-# template unit for it, karvi-daemon@karvi.service. Every refusal is checked
+# configuration with daemon.launch = "systemd", and enables the template unit
+# for it, karvi-daemon@karvi.service, which the package or the bundle's
+# scripts/install.sh installed. Every refusal is checked
 # before anything changes. Each part is entered in the record,
 # /etc/karvi/service-karvi.installed, as it is made or found, so that a failed
 # install is finished by running it again, and an install run over an
@@ -25,7 +26,12 @@ RECORD_DIR=/etc/karvi
 RECORD=$RECORD_DIR/service-$ACCOUNT.installed
 TEMPLATE=karvi-daemon@.service
 UNIT=karvi-daemon@$ACCOUNT.service
+# The karvi the unit runs: its ExecStart names karvi bare, which systemd
+# finds along its fixed search path, /usr/local/bin before /usr/bin, so the
+# bundle's install (scripts/install.sh) is taken before the package's
+# (docs/EXAMPLES.md chapter 57, issue 19).
 KARVI=/usr/bin/karvi
+[ -x /usr/local/bin/karvi ] && KARVI=/usr/local/bin/karvi
 # The places another account's files may be in, given to root at --purge:
 # the shared trees of both system roots and the shared scratch.
 SHARED_PLACES=(/opt/karvi/shared /var/lib/karvi/shared /dev/shm/karvi)
@@ -137,9 +143,9 @@ set_owner_mode() {
 install_daemon() {
   local group=$1 rec_group rec_uid uid home shell holder value source enabled active out answered
   # The refusals, every one before anything changes.
-  [ -x "$KARVI" ] || refuse "$KARVI not found; install the karvi package"
+  [ -x "$KARVI" ] || refuse "karvi not found in /usr/local/bin or /usr/bin; install the karvi package, or the bundle with scripts/install.sh"
   [ -n "$(systemctl list-unit-files --no-legend "$TEMPLATE" 2>/dev/null)" ] ||
-    refuse "$TEMPLATE not installed; install the karvi package"
+    refuse "$TEMPLATE not installed; install the karvi package, or the bundle with scripts/install.sh"
   getent group "$group" >/dev/null || refuse "group $group does not exist; nothing changed"
   rec_group=$(record_field membership 2)
   if [ -n "$rec_group" ] && [ "$rec_group" != "$group" ]; then

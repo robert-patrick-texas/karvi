@@ -333,12 +333,15 @@ Nothing under `/usr/share/karvi` is active until the site copies it into place,
 each guide giving the copy. The package's maintainer scripts reload systemd at
 its install, upgrade, and removal, so that the template's instance runs the
 installed unit at its next start; they enable, start, and restart nothing. A
-host installed from the release bundle
-([`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back))
-finds the same files in the bundle's `packaging/`, `configs/`, `schema/`, and
-`docs/`. The cron script `karvi-crun` holds a lock at
-`${TMPDIR:-/tmp}/karvi-crun.<uid>.lock` (`KARVI_CRUN_LOCK`) for the length of a
-collection.
+host installed from the release bundle with `sudo ./scripts/install.sh`
+([`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back)) has
+the executables under versioned names in `/usr/local/lib/karvi`, linked from
+`/usr/local/bin` and, `karvi-sysutil`, from `/usr/local/sbin`;
+`karvi-sysutil(8)` in `/usr/local/share/man/man8`; and the template in
+`/usr/local/lib/systemd/system`, systemd reloaded; it finds the other files in
+the bundle's `packaging/`, `configs/`, `schema/`, and `docs/`. The cron script
+`karvi-crun` holds a lock at `${TMPDIR:-/tmp}/karvi-crun.<uid>.lock`
+(`KARVI_CRUN_LOCK`) for the length of a collection.
 
 ## 5. Signs a host is not as intended
 

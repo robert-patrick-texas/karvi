@@ -422,41 +422,43 @@ A minimized image, one whose dpkg excludes `/usr/share/doc/*` and
 executables and `/usr/share/karvi` alone, no document or manual page; the
 documents are in the bundle and the repository.
 
-After an upgrade or a rollback the package has replaced the service account's
-template unit and reloaded systemd; a running instance keeps its program until
-`sudo systemctl restart karvi-daemon@karvi.service`. An operator's own daemon
-is drained by the next run of the installed karvi; after a rollback, an older
-karvi is refused beside a newer daemon until the administrator ends it, the
-host restarts, or it exits idle after `daemon.shutdown-idle-timer`.
-
-Without the package, use versioned destinations and an atomic symlink. A host
-installed so finds the units, cron scripts, hook examples, and documents the
-package puts under `/usr/share/karvi` and `/usr/share/doc/karvi` in the
-bundle's `packaging/`, `configs/`, `schema/`, and `docs/`. Use one way or the
-other on a host: `/usr/local/bin` comes before `/usr/bin` on the usual `PATH`.
-Neither way sets up a service account's daemon: a site that chooses that model
-sets it up as [`docs/OPERATIONS.md`, "A service account's daemon under
-systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd) says.
+Without the package, the bundle installs itself into `/usr/local`, from the
+extracted bundle after `./scripts/verify-bundle.sh` has passed
+([§4.2](#42-verify-the-shipped-executables-without-rebuilding)); running an
+earlier bundle's script rolls back:
 
 ```bash
-sudo install -d -m 0755 /usr/local/lib/karvi
-sudo install -m 0755 bin/karvi-linux-amd64 \
-  /usr/local/lib/karvi/karvi-v0.29.0
-sudo install -m 0755 bin/karvi-askpass-linux-amd64 \
-  /usr/local/lib/karvi/karvi-askpass-v0.29.0
-sudo install -m 0755 bin/karvi-prune-linux-amd64 \
-  /usr/local/lib/karvi/karvi-prune-v0.29.0
-sudo ln -sfn /usr/local/lib/karvi/karvi-v0.29.0 /usr/local/bin/karvi
-sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.29.0 \
-  /usr/local/bin/karvi-askpass
-sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.29.0 \
-  /usr/local/bin/karvi-prune
+sudo ./scripts/install.sh
 karvi version --format json
+sudo ./scripts/install.sh            # from the earlier bundle: roll back
 ```
 
-Rollback by repointing the symlinks to the prior verified version. Keep the
-source archive, its SHA-256 file, the test log, the dependency list, and the
-`go version -m` output together as the local release record.
+`scripts/install.sh` places the four executables under versioned names in
+`/usr/local/lib/karvi` (`karvi-vVERSION` and the like), `karvi`,
+`karvi-askpass`, and `karvi-prune` linked from `/usr/local/bin` and
+`karvi-sysutil` from `/usr/local/sbin`, each link replaced in one rename;
+`karvi-sysutil`'s manual page in `/usr/local/share/man/man8`; the service
+account's template unit in `/usr/local/lib/systemd/system`; and reloads
+systemd. A host installed so finds the other units, cron scripts, hook
+examples, and documents the package puts under `/usr/share/karvi` and
+`/usr/share/doc/karvi` in the bundle's `packaging/`, `configs/`, `schema/`, and
+`docs/`. Use one way or the other on a host: `/usr/local/bin` comes before
+`/usr/bin` on the usual `PATH`, and systemd finds the template's bare `karvi`
+in the same order.
+
+Neither way enables or starts anything, nor sets up a model: a site that
+chooses the service account's daemon runs `sudo karvi-sysutil daemon install`
+under either ([`docs/OPERATIONS.md`, "A service account's daemon under
+systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd)). After
+an upgrade or a rollback, by either way, the template has been replaced and
+systemd reloaded; a running instance keeps its program until `sudo systemctl
+restart karvi-daemon@karvi.service`. An operator's own daemon is drained by
+the next run of the installed karvi; after a rollback, an older karvi is
+refused beside a newer daemon until the administrator ends it, the host
+restarts, or it exits idle after `daemon.shutdown-idle-timer`.
+
+Keep the source archive, its SHA-256 file, the test log, the dependency list,
+and the `go version -m` output together as the local release record.
 
 ## 11. Evidence required from future AI or human development teams
 

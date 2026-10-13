@@ -1792,8 +1792,14 @@ schema refuses a submission and `daemon start`, `daemon_incompatible`, and none
 refuses them `daemon_unreachable`, each naming `systemctl restart` or `start` of
 the unit; `daemon stop` and `daemon restart` are refused `daemon_managed`. The
 package ships the template `/usr/lib/systemd/system/karvi-daemon@.service`
-(`User=%i`), enables nothing, and reloads systemd at an upgrade; the account is
-a system user with no user manager or linger. The unit starts after the
+(`User=%i`), and the bundle's `scripts/install.sh` places it under
+`/usr/local/lib/systemd/system` with `karvi-sysutil` in `/usr/local/sbin`;
+neither enables anything, and both reload systemd. Its `ExecStart` names
+`karvi` bare, which systemd finds in `/usr/local/bin` before `/usr/bin`, and
+`karvi-sysutil` runs the same, so one method serves both installs; neither
+sets up a model, the site choosing operators' own daemons, with the shared
+trees or without, or the service account's. The account is a system user with
+no user manager or linger. The unit starts after the
 network, signals the daemon alone at a stop (`KillMode=mixed`), and leaves the
 bound to the daemon's grace (`TimeoutStopSec=infinity`), with
 `Restart=on-failure` and the idle timer off. The daemon itself is unchanged: it
@@ -1808,7 +1814,8 @@ systemd to restart (a client's touch choosing the moment); `Restart=always` (a
 stop undone); the user unit with linger or a drop-in for the account's user
 manager; the daemon knowing its unit from `INVOCATION_ID` and its cgroup (the
 client's setting says it); `daemon.launch` a boolean (`false` says what a
-client does not do, not who does).
+client does not do, not who does); the template edited at the bundle's install
+(a unit other than the release's); the bundle's commands left by hand.
 
 ## 9. Dispatch and the ICMP gate
 

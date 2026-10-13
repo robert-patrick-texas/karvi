@@ -105,8 +105,9 @@ last, exit 0, with a
 line in its log; a run of another build drains an operator's daemon so and,
 when it holds no job, starts one of its own build at once.
 .PP
-The service account's daemon runs under the package's template unit
-.IR /usr/lib/systemd/system/karvi\-daemon@.service ,
+The service account's daemon runs under the template unit
+.BR karvi\-daemon@.service ,
+the package's or the bundle's,
 as
 .BR karvi\-daemon@karvi.service ,
 which

@@ -30,8 +30,9 @@ race detector in vendor mode, the build, its module metadata, version
 counters, and build, and the same smoke suites; then the tree's package, which
 `scripts/check-deb.sh` checks against the tree and
 `scripts/sysutil-smoke-test.sh` tests as root in an Ubuntu 26.04 container
-under Docker (`karvi-sysutil`, the template unit, the maintainer scripts, and
-the service account's daemon), never on the build host. It rebuilds `bin/` and
+under Docker (`karvi-sysutil`, the template unit, the maintainer scripts, the
+service account's daemon, and the bundle's `scripts/install.sh` on the host
+without the package), never on the build host. It rebuilds `bin/` and
 rewrites `CHECKSUMS.sha256`; with the release's `COMMIT` the bytes do not
 change. A build is stamped with its version and its commit, and no build time.
 

@@ -28,7 +28,13 @@
 #      absent, a second removal, an install taking the account back, --purge
 #      giving the account's shared files to root, their modes the same, and a
 #      removal without a record refused;
-#  10. dpkg -r: the template gone and systemd reloaded.
+#  10. dpkg -r: the template gone and systemd reloaded;
+#  11. the bundle on the host without the package (chapter 57, issue 19):
+#      scripts/install.sh with the package's executables, the links, the
+#      page, and the template placed and systemd reloaded; the install run by
+#      karvi-sysutil from /usr/local/sbin, the daemon running the bundle's
+#      karvi; install.sh again as an upgrade, the reload done and the
+#      daemon's pid the same; and the removal with --purge.
 # The container and its image are removed at the end; nothing else of
 # Docker's is touched. Needs Docker, the network to build the image, and Go
 # to build the fake device from the tree.
@@ -126,7 +132,7 @@ ok "$(xsh '. /etc/os-release; echo "$PRETTY_NAME"'), $(x systemctl --version | s
 # 1. The refusals.
 refused "not root" "run as root" docker exec -u nobody -w / "$TAG" karvi-sysutil daemon install
 xsh "mv $TEMPLATE /root/"
-refused "no template" "karvi-daemon@.service not installed; install the karvi package" sysutil install
+refused "no template" "karvi-daemon@.service not installed; install the karvi package, or the bundle with scripts/install.sh" sysutil install
 xsh "mv /root/karvi-daemon@.service $TEMPLATE"
 refused "the group missing" "group netops does not exist" sysutil install
 x groupadd netops
@@ -273,4 +279,46 @@ x dpkg -r karvi >/dev/null || fail "dpkg -r"
 [ -z "$(x systemctl list-unit-files --no-legend karvi-daemon@.service)" ] || fail "the template is still known"
 [[ $(x journalctl -b _PID=1 --since "@$mark" -o cat) == *Reloading* ]] || fail "systemd did not reload at dpkg -r"
 ok "dpkg -r: the template gone, systemd reloaded"
+
+# 11. The bundle: install.sh with the package's executables, on the host
+# without the package.
+VERSION=$(cat "$ROOT/VERSION")
+B=$TMP/bundle
+mkdir -p "$B/bin" "$B/scripts" "$B/packaging/sbin" "$B/packaging/man" "$B/packaging/systemd/system" "$TMP/pkg"
+dpkg-deb -x "$PKG" "$TMP/pkg" || fail "dpkg-deb -x ${PKG##*/}"
+for name in karvi karvi-askpass karvi-prune; do cp "$TMP/pkg/usr/bin/$name" "$B/bin/$name-linux-amd64"; done
+cp "$ROOT/VERSION" "$B/" && cp "$ROOT/scripts/install.sh" "$B/scripts/" && cp "$ROOT/packaging/sbin/karvi-sysutil" "$B/packaging/sbin/" &&
+  cp "$ROOT/packaging/man/karvi-sysutil.8" "$B/packaging/man/" && cp "$ROOT/packaging/systemd/system/karvi-daemon@.service" "$B/packaging/systemd/system/" ||
+  fail "the bundle's files"
+docker cp "$B" "$TAG:/root/bundle" >/dev/null || fail "copy the bundle into the container"
+mark=$(x date +%s)
+out=$(x /root/bundle/scripts/install.sh --nocolor 2>&1) || fail "install.sh: $out"
+LIB=/usr/local/lib/karvi
+for line in "/usr/local/bin/karvi -> $LIB/karvi-v$VERSION" "/usr/local/bin/karvi-askpass -> $LIB/karvi-askpass-v$VERSION" \
+  "/usr/local/bin/karvi-prune -> $LIB/karvi-prune-v$VERSION" "/usr/local/sbin/karvi-sysutil -> $LIB/karvi-sysutil-v$VERSION" \
+  "/usr/local/share/man/man8/karvi-sysutil.8" "/usr/local/lib/systemd/system/karvi-daemon@.service" "systemd reloaded" \
+  "karvi $VERSION installed; nothing enabled or started"; do
+  has "$out" "$line" || fail "install.sh: no \"$line\" in: $out"
+done
+[ "$(x readlink /usr/local/sbin/karvi-sysutil)" = "$LIB/karvi-sysutil-v$VERSION" ] && x test ! -e /usr/bin/karvi &&
+  [ -n "$(x systemctl list-unit-files --no-legend karvi-daemon@.service)" ] || fail "after install.sh: the links or the template"
+[[ $(x journalctl -b _PID=1 --since "@$mark" -o cat) == *Reloading* ]] || fail "systemd did not reload at install.sh"
+out=$(sysutil install 2>&1) || fail "install from the bundle: $out"
+has "$out" "created  instance $UNIT  enabled, active" && has "$out" "running  daemon pid " || fail "install from the bundle: $out"
+running
+# The unit's bare karvi found in /usr/local/bin, the host's one karvi: the
+# daemon answers the bundle's karvi as its own build (the daemon's
+# /proc/PID/exe is closed to other processes).
+pid=$(prop MainPID)
+status=$(as_karvi karvi daemon status 2>&1)
+x test ! -e /usr/bin/karvi && [ "$(x readlink -f /usr/local/bin/karvi)" = "$LIB/karvi-v$VERSION" ] && has "$status" "compatible: true" ||
+  fail "the unit's daemon is not the bundle's karvi: $status"
+xsh "echo '# changed by hand' >>/usr/local/lib/systemd/system/karvi-daemon@.service"
+[ "$(prop NeedDaemonReload)" = yes ] || fail "the bundle's changed template needs no reload"
+x /root/bundle/scripts/install.sh --nocolor >/dev/null 2>&1 || fail "install.sh again"
+[ "$(prop NeedDaemonReload)" = no ] && [ "$(prop MainPID)" = "$pid" ] ||
+  fail "after install.sh again: NeedDaemonReload=$(prop NeedDaemonReload) MainPID=$(prop MainPID), was $pid"
+out=$(sysutil remove --purge 2>&1) || fail "remove --purge from the bundle: $out"
+has "$out" "removed  account karvi" || fail "remove --purge from the bundle: $out"
+ok "bundle: install.sh placed the four executables, the page, and the template, systemd reloaded; the daemon set up ran $LIB/karvi-v$VERSION; install.sh again reloaded, the pid $pid the same; removed"
 ok "pass"
