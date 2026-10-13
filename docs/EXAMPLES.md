@@ -11503,3 +11503,98 @@ for, `built` within 30 s; each of the site's 43 files answered 200 at
 then, rebuilt the site from the tag the same to the byte and left the branch
 (`gh-pages unchanged`). README's HTML item names the site, and DESIGN section
 16's entry the branch and the step.
+
+## 59. The release 0.30.0 (2026-10-13)
+
+The seventh public release, on the operator's word and number, carrying
+chapters 49 to 57 (58, the Pages site, adds none); the daemon IPC schema moves
+from 11 to 12, and for the first time since it moved there is no lifecycle
+replay. The sequence is [chapter 48](#48-the-release-0290-2026-10-09)'s, with
+the differences chapter 57 left for the release.
+
+**What it gains.** A site upgrades an operator's daemon by running karvi, the
+next submission draining a daemon of another build; runs a service account's
+daemon under the package's template, set up by `karvi-sysutil`; installs the
+bundle with `scripts/install.sh`; and has every change since 0.29.0, the
+socket directory, one read of the configuration, the credential helper and
+`%operator%`, the stores' keys checked at load, the transports' own algorithm
+lists, and a stream's `--restart`, from a published, checksummed bundle and
+package, with the documents on GitHub Pages at the release.
+
+**Before the number.** The release tools were archived first
+(`~/karvi/backup/archive-2026-10-12-8`: a mirror of the tree at `45a3a8e` and
+the six tools as they were). Nothing in them changed: `common.sh`'s prior was
+already empty and `evidence-rest.sh`'s skip line named `common.sh`, both since
+chapter 57's S6. The verifiers already checked the tree's counters (IPC 12,
+job 3, registry 29). The registry's new keys already said `Since: "0.30.0"`
+and the error registry's retirements `v0.30.0`; `internal/configload`'s
+removed keys named their release by a constant `nextRelease`, "the release
+after v0.29.0", already `"v0.30.0"`. At the number it became `removedV0300`,
+its comments saying v0.30.0, as `reviewRelease` was named at v0.14.0, so that
+no later key takes "next" for a release that has shipped.
+
+**The compatibility example.** v0.29.0's daemon listens on `daemon.sock`,
+which this client never reaches (chapter 57, issue 8), so the example shows
+that, not a refusal: the released v0.29.0 executable, copied out of `bin/` and
+checked against `CHECKSUMS.sha256` before the rebuild, started its daemon; this
+client's `daemon status` said `daemon_unreachable` (exit 110) for `d.sock`; its
+run, an exercise to 192.0.2.1 so that the daemon it started contacted no
+address, started a daemon of this build on `d.sock` beside the older one (exit
+0, `device_contacted: false`); and each executable stopped its own daemon,
+the older still running after this client's stop. *Not taken:* the older
+daemon given `daemon.socket` at the new client's `d.sock`, as the replay can:
+it predates the drain that exits, so it would stay `draining` (chapter 57,
+issue 8), a case no site meets.
+
+**The sequence, as run**, from the archive at 03:02 to the published check at
+03:30 (UTC; 23:02 to 23:30 on the 12th, EDT):
+
+| Step | Wall (UTC) | Result |
+|---|---|---|
+| the tools archived | 03:02:34 | a mirror at `45a3a8e` and the six tools; no tool changed |
+| the baseline on a clean clone of `dev` at `45a3a8e` | 03:03:46 to 03:11:27 | gofmt, make, the release verifier with its package and container steps, exit 0 each |
+| the number, the compatibility example, 1/3 | 03:11:52, 03:12:06 | `36812ae`; the build `P7zVqO_tVBEzQMcMrxna`; the released v0.29.0 daemon unseen by this client, each executable stopping its own |
+| the core evidence | 03:12:11 to 03:14:06 | 1,020 named tests across 89 packages, vet 0, both socket lengths exit 0 |
+| the documents | 03:15:03 | `f7c7dab` (2/3): `release/` from the v0.29.0 pattern, the build where the build time was, the upgrade by the drain; OPERATIONS' examples at 0.30.0 |
+| the remaining evidence | 03:15:12 to 03:22:30 | the shipped checks exit 0, the release verifier exit 0 with the package and its container test, the checksums unchanged by its rebuild; the replay skipped |
+| 3/3, the tag, `main` | 03:22:57 | `fdd19fe`, `karvi-v0.30.0`, `main` fast-forwarded from `c4e8e16` |
+| the artifacts | 03:23:09 to 03:28:22 | the bundle and the package each reproducible byte for byte; the bundle verified from its own archive, the package checked against its extraction; 37,778,234 and 5,939,740 bytes |
+| the package installed in a throwaway `ubuntu:26.04` | 03:28:42 | `apt install` exit 0 with `openssh-client` and `adduser`; the installed executables `CHECKSUMS.sha256`'s; `karvi-sysutil` and the template unit in place; 22 files under `/usr/share/karvi`, 0.29.0's 23 less the user daemon unit |
+| the push, the site, the GitHub release | 03:28:53 to 03:29:49 | `dev`, `main`, and the tag pushed; `pages.sh` pushed the release's site (`dd08645`), built, its 51 files 200 and its footer `karvi-v0.30.0`; release `karvi-v0.30.0` with the five assets, marked latest; the assets downloaded back match |
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[2] the client's executable asks its daemon's status
+daemon_unreachable: daemon not running or unreadable: dial unix …/base/socket/d.sock: connect: no such file or directory
+exit=110
+[3] the client exercises a run (target 192.0.2.1, TEST-NET-1)
+exit=0
+device_contacted: false
+-- stderr
+daemon started socket=…/base/socket/d.sock
+[6] the client stops its daemon; the older is still there
+pid 3213449 gone
+pid 3213394 still present
+[7] the older executable stops its daemon
+pid 3213394 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)"'
+latest: karvi-v0.30.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.30.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.30.0-source-linux-amd64.tar.gz: OK
+karvi_0.30.0_amd64.deb: OK
+```
+
+**Found on the way.** BUILD-RESULT named a forty-five-row v0100 suite; it runs
+44 rows, and the 2/3 sweep says so. OPERATIONS' upgrade examples showed a drain
+of `version=0.29.0`, true of the development builds that printed it but not of
+the release, which never reaches a 0.29.0 daemon; 2/3 set them to 0.30.0. The
+bundle is 37.8 MB, 21.9 MB more than v0.29.0's, 21.8 MB of it the seven images
+added since, 2.9 to 3.3 MB each. The release verifier's container test pulled
+`ubuntu:26.04` through the build and left no image; the install check pulled it
+as an image, removed after, so Docker was as found. `golang.org/x/sys` is a
+direct requirement now, and `go-version-m.txt` is v0.29.0's.
+
+**Roadmap.** Unchanged by the release; Next is empty, the operator's next item
+to be asked.
