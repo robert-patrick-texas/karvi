@@ -1,4 +1,4 @@
-bin/karvi-linux-amd64: go1.27.1
+bin/karvi-linux-amd64: go1.27.2
 	path	github.com/robert-patrick-texas/karvi/cmd/karvi
 	mod	github.com/robert-patrick-texas/karvi	(devel)	
 	dep	github.com/creack/pty	v1.1.23	
@@ -14,7 +14,7 @@ bin/karvi-linux-amd64: go1.27.1
 	build	GOARCH=amd64
 	build	GOOS=linux
 	build	GOAMD64=v1
-bin/karvi-askpass-linux-amd64: go1.27.1
+bin/karvi-askpass-linux-amd64: go1.27.2
 	path	github.com/robert-patrick-texas/karvi/cmd/karvi-askpass
 	mod	github.com/robert-patrick-texas/karvi	(devel)	
 	build	-buildmode=exe
@@ -24,7 +24,7 @@ bin/karvi-askpass-linux-amd64: go1.27.1
 	build	GOARCH=amd64
 	build	GOOS=linux
 	build	GOAMD64=v1
-bin/karvi-prune-linux-amd64: go1.27.1
+bin/karvi-prune-linux-amd64: go1.27.2
 	path	github.com/robert-patrick-texas/karvi/cmd/karvi-prune
 	mod	github.com/robert-patrick-texas/karvi	(devel)	
 	build	-buildmode=exe
