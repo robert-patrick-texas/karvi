@@ -21,9 +21,8 @@ const (
 )
 
 var (
-	Commit    = "development"
-	BuildTime = "unknown"
-	FIPSMode  = "false"
+	Commit   = "development"
+	FIPSMode = "false"
 )
 
 // SSHTransport describes an SSH implementation that is usable by this exact
@@ -75,7 +74,6 @@ type Info struct {
 	Version                     string `json:"version"`
 	Commit                      string `json:"commit"`
 	Build                       string `json:"build"`
-	BuildTime                   string `json:"build_time"`
 	GoVersion                   string `json:"go_version"`
 	ConfigSchemaVersion         int    `json:"config_schema_version"`
 	CommandRecordSchemaVersion  int    `json:"command_record_schema_version"`
@@ -93,7 +91,7 @@ type Info struct {
 
 func Current() Info {
 	return Info{
-		Application: AppName, Version: Version, Commit: Commit, Build: BuildOrNone(), BuildTime: BuildTime,
+		Application: AppName, Version: Version, Commit: Commit, Build: BuildOrNone(),
 		GoVersion: runtime.Version(), ConfigSchemaVersion: ConfigSchemaVersion,
 		CommandRecordSchemaVersion: CommandRecordSchema, ScoreboardSchemaVersion: ScoreboardSchema,
 		AuditSchemaVersion: AuditSchema, JobSchemaVersion: JobSchema,

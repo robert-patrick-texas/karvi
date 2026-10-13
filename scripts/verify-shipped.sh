@@ -1,12 +1,12 @@
 #!/bin/sh
 # Verify the shipped executables as bytes, in seconds and without a build:
-# the version, the checksums, the file
-# format, the links, every counter the executable reports, both transports,
-# a stateless --help and version, every command's help, the configuration
-# examples, and the removed keys refused. scripts/verify-bundle.sh runs this
-# first and then the tests and the suites; the release evidence runs this on
-# the shipped bytes and lets scripts/verify-release.sh, which rebuilds to the
-# same checksums, carry the tests and the suites once.
+# the version, the checksums, the file format, the links, every counter the
+# executable reports, its build, both transports, a stateless --help and
+# version, every command's help, the configuration examples, and the removed
+# keys refused. scripts/verify-bundle.sh runs this first and then the tests
+# and the suites; the release evidence runs this on the shipped bytes and lets
+# scripts/verify-release.sh, which rebuilds to the same checksums, carry the
+# tests and the suites once.
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$ROOT"
@@ -33,6 +33,11 @@ file bin/karvi-prune-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "scrapligo-v1"' \
   || { echo 'bin/karvi-linux-amd64 lacks scrapligo-v1: build it with make build checksums' >&2; exit 1; }
 ./bin/karvi-linux-amd64 --version | grep -q '^  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)$'
+# The executable names its build, the Go build ID's last part: without it
+# its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
+. "$ROOT/scripts/lib/json.sh"
+build=$(./bin/karvi-linux-amd64 version --format json | json_get - build)
+[ ${#build} -eq 20 ] || { echo "bin/karvi-linux-amd64 names no build (build: $build)" >&2; exit 1; }
 
 STATELESS=$(mktemp -d)
 rm -rf "$STATELESS/home"
@@ -69,4 +74,4 @@ for removed in   'output.command-headers=true'   'ssh.binary="ssh"'   'login.tra
   grep -q 'config_unknown_key' "$TMP/removed.err"
 done
 
-echo 'shipped executables: pass (bytes, counters, transports, helps, examples, removed keys)'
+echo 'shipped executables: pass (bytes, counters, build, transports, helps, examples, removed keys)'

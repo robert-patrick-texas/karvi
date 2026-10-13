@@ -1,7 +1,12 @@
 GO ?= go
 VERSION ?= 0.29.0
-COMMIT ?= development
-BUILD_TIME ?= 1970-01-01T00:00:00Z
+# The commit a build and the HTML footers name: COMMIT when given, on the
+# command line or in the environment (a release passes
+# source-release-vVERSION); else the checkout's own, git describe --always
+# --dirty, when .git is in the tree's root; else development. Taken once.
+ifeq ($(origin COMMIT),undefined)
+COMMIT := $(shell if [ -e .git ]; then git describe --always --dirty 2>/dev/null || echo development; else echo development; fi)
+endif
 HTMLDIR ?= ../html
 FIPS_MODE ?= false
 GOOS ?= linux
@@ -10,7 +15,6 @@ GOARCH ?= amd64
 MODULE := github.com/robert-patrick-texas/karvi
 LDFLAGS := -s -w \
 	-X $(MODULE)/internal/buildinfo.Commit=$(COMMIT) \
-	-X $(MODULE)/internal/buildinfo.BuildTime=$(BUILD_TIME) \
 	-X $(MODULE)/internal/buildinfo.FIPSMode=$(FIPS_MODE)
 
 .PHONY: all fmt generate generated-clean deps vendor test vet build native-build checksums html deb smoke halt-smoke k03-smoke native-smoke clean
@@ -50,9 +54,9 @@ generated-clean:
 
 # The documentation as HTML (tools/md-to-html): every Markdown file of the
 # tree, an index, and images/, in HTMLDIR beside the tree, replaced whole.
-# The footers name the checkout's commit, or COMMIT outside a git checkout.
+# The footers name COMMIT, as a build does.
 html:
-	$(GO) run ./tools/md-to-html -src . -out "$(HTMLDIR)" -commit "$$(git describe --always --dirty 2>/dev/null || echo '$(COMMIT)')"
+	$(GO) run ./tools/md-to-html -src . -out "$(HTMLDIR)" -commit "$(COMMIT)"
 
 # The Debian package of the tree as it stands, bin/'s executables as they
 # are, into dist/ (scripts/build-deb.sh).

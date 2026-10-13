@@ -43,9 +43,9 @@ host_before=$(host_shared_entries)
 go test -count=1 -mod=vendor ./...
 go vet -mod=vendor ./...
 go test -race -count=1 -mod=vendor ./...
-BUILD_TIME=${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
-COMMIT=${COMMIT:-$(git rev-parse --short=12 HEAD 2>/dev/null || printf source-build)}
-make build COMMIT="$COMMIT" BUILD_TIME="$BUILD_TIME"
+# The commit is the Makefile's: COMMIT from the environment when set (a
+# release's source-release-vVERSION), else the checkout's.
+make build
 
 # The executable's module metadata names the pinned dependency. (Held in a
 # variable: the verifier leaves no by-product in the tree, and grep -q on a
@@ -61,6 +61,11 @@ grep -Eq 'dep[[:space:]]+github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2' <<<"$
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "scrapligo-v1"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)$'
+# The executable names its build, the Go build ID's last part: without it
+# its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
+. "$ROOT/scripts/lib/json.sh"
+build=$(./bin/karvi-linux-amd64 version --format json | json_get - build)
+[[ ${#build} -eq 20 ]] || { echo "bin/karvi-linux-amd64 names no build (build: $build)" >&2; exit 1; }
 for command in login command cmd run daemon config watch version; do
   ./bin/karvi-linux-amd64 "$command" --help >/dev/null
 done
@@ -74,10 +79,13 @@ host_shared_unchanged "$host_before"
 # The package of this tree (docs/EXAMPLES.md chapter 43), before the checksums
 # are rewritten: under a release's heading bin/ is the build CHECKSUMS.sha256
 # lists, on the dev line a build of its own identity. Built into a directory
-# of its own, checked against the tree, and removed: the tree gains nothing.
+# of its own, checked against the tree, tested as root in a container
+# (karvi-sysutil, the template unit, the service account's daemon; chapter
+# 57, issue 16), and removed: the tree gains nothing.
 deb_dist=$(mktemp -d "${TMPDIR:-/tmp}/karvi-verify-deb-XXXXXX")
 DIST=$deb_dist make deb
 ./scripts/check-deb.sh "$deb_dist"/karvi_*_amd64.deb "$ROOT"
+./scripts/sysutil-smoke-test.sh "$deb_dist"/karvi_*_amd64.deb
 rm -rf "${deb_dist:?}"
 make checksums
 printf 'karvi native release verification passed\n'

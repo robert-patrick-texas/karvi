@@ -319,7 +319,7 @@ func renderVersion(format string, stdout, stderr io.Writer) int {
 		b, _ := json.MarshalIndent(info, "", "  ")
 		fmt.Fprintf(stdout, "%s\n", b)
 	default:
-		fmt.Fprintf(stdout, "%s %s\ncommit: %s\nbuild: %s\nbuild_time: %s\ngo: %s\nconfig_schema: %d\ncommand_record_schema: %d\nscoreboard_schema: %d\naudit_schema: %d\njob_schema: %d\ndaemon_ipc_schema: %d\nconfig_registry_schema: %d\nfips_mode: %s\nicmp_method: %s\nssh_transports:\n", info.Application, info.Version, info.Commit, info.Build, info.BuildTime, info.GoVersion, info.ConfigSchemaVersion, info.CommandRecordSchemaVersion, info.ScoreboardSchemaVersion, info.AuditSchemaVersion, info.JobSchemaVersion, info.DaemonIPCSchemaVersion, info.ConfigRegistrySchemaVersion, info.FIPSMode, info.ICMPMethod)
+		fmt.Fprintf(stdout, "%s %s\ncommit: %s\nbuild: %s\ngo: %s\nconfig_schema: %d\ncommand_record_schema: %d\nscoreboard_schema: %d\naudit_schema: %d\njob_schema: %d\ndaemon_ipc_schema: %d\nconfig_registry_schema: %d\nfips_mode: %s\nicmp_method: %s\nssh_transports:\n", info.Application, info.Version, info.Commit, info.Build, info.GoVersion, info.ConfigSchemaVersion, info.CommandRecordSchemaVersion, info.ScoreboardSchemaVersion, info.AuditSchemaVersion, info.JobSchemaVersion, info.DaemonIPCSchemaVersion, info.ConfigRegistrySchemaVersion, info.FIPSMode, info.ICMPMethod)
 		for _, transport := range info.SSHTransports {
 			if transport.Version != "" {
 				fmt.Fprintf(stdout, "  %s: %s (id=%s, linkage=%s)\n", transport.Name, transport.Version, transport.ID, transport.Linkage)
