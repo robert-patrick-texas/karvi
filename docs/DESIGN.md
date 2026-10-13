@@ -3057,10 +3057,17 @@ it refuses a tree whose Markdown files are not the table's. The output is the
 tree's parent's `html/` (`HTMLDIR`), never the tree: a page per document at the
 tree's path with `.html`, `index.html` (the README's image and opening
 paragraph, then the documents by group), `images/` as the tree's, and one
-stylesheet. *Why:*
-the documents read in a browser on any host, and the package can install them.
-*Not taken:* pandoc (not a Go build dependency); a converter written here; the
-HTML committed; the README as the index.
+stylesheet. The latest release's site is published on GitHub Pages,
+<https://robert-patrick-texas.github.io/karvi/>, from the branch `gh-pages`,
+which holds the site `make html` builds at the release's tag and `.nojekyll`
+alone: `release-tools/pages.sh` commits it there at each release, and Pages
+serves the branch as it is. *Why:* the documents read in a browser on any host,
+and the package can install them; a site's readers have the released bundle, so
+the published site is the release's. *Not taken:* pandoc (not a Go build
+dependency); a converter written here; the HTML committed to the tree's
+branches; the README as the index; a GitHub Actions workflow building the site
+(a file on `main`, which moves only at a release, and Go on GitHub's runners);
+the development line's site published (features the release has not).
 
 **Headings take GitHub's ids, from their rendered text.** The converter sets
 each heading's id itself: the text as it reads, lowercased, every character but

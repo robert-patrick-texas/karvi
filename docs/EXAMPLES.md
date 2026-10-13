@@ -11473,3 +11473,33 @@ resolved only at the exec. The step now holds the bundle's
 eleven steps, the daemon set up from the bundle running
 `/usr/local/lib/karvi/karvi-v0.29.0`, a second `install.sh` reloading systemd
 with the daemon's pid the same.
+
+## 58. The documents on GitHub Pages (2026-10-12)
+
+At the operator's word: the HTML published with the repository's Pages.
+
+**The evidence.** The repository is public, and its Pages were on with GitHub
+Actions as their source and `main` named, but nothing had deployed: the
+repository has no workflow, and `https://robert-patrick-texas.github.io/karvi/`
+answered 404. `make html` at the tag `karvi-v0.29.0`, in a clone, wrote 40
+pages and 3 other files, 4.3 MB, the footer `karvi-v0.29.0`.
+
+**The rule, agreed.** The published site is the latest release's, since its
+readers have the released bundle and the development line's documents name
+what the release has not (`scripts/install.sh`, the service account's daemon,
+the drain). It is the branch `gh-pages`, holding the site `make html` builds at
+the release's tag and an empty `.nojekyll`, so that Pages serves it as it is,
+with no history of the tree's; Pages deploys from that branch. At each release
+`release-tools/pages.sh` builds the site from the tag, replaces the branch's
+content with it, and commits and pushes it when it differs. *Not taken:* a
+GitHub Actions workflow building the site (a file on `main`, which moves only
+at a release, and Go 1.27 on GitHub's runners); the development line's site.
+
+**Executed.** The branch made from the site, `2c5a773`, pushed, and Pages set
+to deploy from `gh-pages` at its root (`build_type` legacy); the build asked
+for, `built` within 30 s; each of the site's 43 files answered 200 at
+`https://robert-patrick-texas.github.io/karvi/`, the index's footer
+`karvi-v0.29.0`, the stylesheet `text/css`. `release-tools/pages.sh`, run
+then, rebuilt the site from the tag the same to the byte and left the branch
+(`gh-pages unchanged`). README's HTML item names the site, and DESIGN section
+16's entry the branch and the step.

@@ -515,7 +515,8 @@ Operator guides:
 - The documentation as HTML: `make html` writes every document below, an
   index, and the images into `../html`, beside the tree; open
   `html/index.html`. Every link in it is relative, so the directory can be
-  copied anywhere and read without the network.
+  copied anywhere and read without the network. The latest release's is
+  published at <https://robert-patrick-texas.github.io/karvi/>.
 - `packaging/man/`: the manual pages the package installs: `man karvi`
   (the configuration, the values, the environment, the files, the exit
   statuses), `man karvi WORD` for each command word (`man karvi run`), `man
