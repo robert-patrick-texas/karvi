@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>karvi v0.29.0 build and qualification result — karvi</title>
+<title>karvi v0.30.0 build and qualification result — karvi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -54,7 +54,7 @@
 <li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.29.0 build and qualification result</a>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.30.0 build and qualification result</a>
 <ul class="sections">
 <li><a href="#result">Result</a></li>
 <li><a href="#build-identity">Build identity</a></li>
@@ -63,8 +63,8 @@
 <li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
 <li><a href="#remaining-boundary">Remaining boundary</a></li>
 </ul></li>
-<li><a href="DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
-<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+<li><a href="DOWNLOADS.html">karvi v0.30.0 artifact index</a></li>
+<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -120,7 +120,7 @@
 <li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.29.0 build and qualification result</a>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.30.0 build and qualification result</a>
 <ul class="sections">
 <li><a href="#result">Result</a></li>
 <li><a href="#build-identity">Build identity</a></li>
@@ -129,8 +129,8 @@
 <li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
 <li><a href="#remaining-boundary">Remaining boundary</a></li>
 </ul></li>
-<li><a href="DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
-<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+<li><a href="DOWNLOADS.html">karvi v0.30.0 artifact index</a></li>
+<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -141,38 +141,42 @@
 </ul>
 </nav>
 <main>
-<h1 id="karvi-v0290-build-and-qualification-result">karvi v0.29.0 build and qualification result <a class="anchor" href="#karvi-v0290-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
+<h1 id="karvi-v0300-build-and-qualification-result">karvi v0.30.0 build and qualification result <a class="anchor" href="#karvi-v0300-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
 <h2 id="result">Result <a class="anchor" href="#result" aria-label="Link to this section">#</a></h2>
 <p>The build, with the native scrapligo-v1 transport compiled in beside the
 external <code>system</code> transport, is <strong>qualified as an engineering candidate</strong>.
-v0.29.0 (2026-10-09) is a minor release on 0.28.0. The configuration registry
-moves from 27 to 28, the execution plan from 11 to 12, the daemon IPC schema
-from 10 to 11, the job manifest and summary from 2 to 3, and the plan report
-from 1 to 2; every other counter is 0.28.0's. Among the changes: a job runs
-under its client's configuration, sent in the plan's <code>configuration</code> block, and
-the plan carries no copy of a key; the job's audit records, the cancel record
-included, go to the sinks its configuration names; path-valued keys are made
-absolute when the configuration loads (<code>config_working_directory_unavailable</code>,
-<code>crun_directory_unavailable</code> retired); the reload class says which keys wait
-for a daemon restart; the packaged user units carry no file-system sandbox; and
-<code>crun_directory_not_writable</code> names its cause. The changes are in
-<a href="../CHANGELOG.html"><code>CHANGELOG.md</code></a>. It is not a production claim and not a
-real-device qualification: the native transport is proven against the fake
-device built from the tree, its IOS XE and Linux personas.</p>
+v0.30.0 (2026-10-13) is a minor release on 0.29.0. The configuration registry
+moves from 28 to 29, the execution plan from 12 to 13, and the daemon IPC
+schema from 11 to 12; every other counter is 0.29.0's. Among the changes: a
+daemon serves only a client of its own build, and a client that launches its
+own daemon drains one of another build and starts its own, a busy one
+finishing its jobs first; <code>daemon status</code> stacks the daemon's values over the
+client's; a build names its Go build ID and its commit, and no build time; the
+service account's daemon runs under the package's system template, set up by
+<code>karvi-sysutil</code>, and the bundle installs itself (<code>scripts/install.sh</code>); the
+daemon binds its sockets in the directory <code>daemon.sockets</code>; an invocation
+reads its configuration once and says its warnings; a credential helper
+(<code>creds.helper</code>), <code>%operator%</code> in the credential templates, an explicit
+<code>env:NAME</code> cell or field, and the store backends' keys checked at load; the
+transports' own SSH algorithm lists; a stream's <code>--restart</code>; and refusals in
+colour. The changes are in <a href="../CHANGELOG.html"><code>CHANGELOG.md</code></a>. It is not a
+production claim and not a real-device qualification: the native transport is
+proven against the fake device built from the tree, its IOS XE and Linux
+personas.</p>
 <h2 id="build-identity">Build identity <a class="anchor" href="#build-identity" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-text">version:                  0.29.0
-commit:                   source-release-v0.29.0
-build time:               2026-10-09T00:00:00Z
+<pre><code class="language-text">version:                  0.30.0
+commit:                   source-release-v0.30.0
+build:                    P7zVqO_tVBEzQMcMrxna
 Go toolchain:             go1.27.1
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
 configuration schema:    6
-configuration registry:  28
+configuration registry:  29
 command record schema:   3
-daemon IPC schema:       11
+daemon IPC schema:       12
 job manifest/summary:    3
-execution plan:          12
+execution plan:          13
 scoreboard:              3
 credential package:      2
 plan report:             2
@@ -185,7 +189,7 @@ transports.</p>
 <h2 id="qualification-performed">Qualification performed <a class="anchor" href="#qualification-performed" aria-label="Link to this section">#</a></h2>
 <p>The release source passed, with Go 1.27.1:</p>
 <ul>
-<li>912 top-level named Go tests across 84 packages in vendor mode, no
+<li>1,020 top-level named Go tests across 89 packages in vendor mode, no
 build tag, 0 failures (<code>evidence/core-qualification.log</code>);</li>
 <li><code>go vet</code> across all packages, and the Go race detector across all
 packages in the release verifier's run
@@ -200,7 +204,7 @@ and the manual pages under <code>packaging/man</code>;</li>
 <li>all seventeen executable suites against the native executable, in three lanes
 (<code>scripts/lib/suites.sh</code>): the parity suite (<code>command</code> and <code>run</code> over <code>system</code>
 and <code>scrapligo-v1</code> against the fake device's IOS XE and Linux personas, the
-exec channel included, records compared path by path), the forty-five-row
+exec channel included, records compared path by path), the forty-four-row
 v0100 suite (rehearsals, detach, follow, the interrupted client, the ICMP
 gate, shutdown accounting, stop and restart, cancel, <code>job follow</code>), and the
 fifteen others in order, among them the spool suite (a 65.7 MB response
@@ -216,17 +220,16 @@ identity to unchanged checksums, so that its battery ran against the
 shipped bytes (<code>evidence/release-qualification.log</code>): the adapter's
 import boundary and host-key assertions, <code>go mod verify</code>, the module
 metadata of the executable;</li>
-<li>the lifecycle replay against the released v0.28.0 executable, the newest
-release whose daemon IPC schema (10) differs from this client's (11): this
-client's status reports its daemon <code>compatible: false</code>, refuses a run with
-<code>daemon_incompatible</code> (exit 112) without replacing it, and stops it with no
-option, by <code>restart</code>, and with <code>--force</code>, <code>--grace</code>, and <code>--after</code>
-(<code>evidence/v0280-to-v0290-lifecycle.log</code>); the compatibility example ran
-before the number was committed: the released v0.28.0 daemon, started from
-the released executable of the tree's <code>bin/</code> before the rebuild, reported
-<code>compatible: false</code> to this client on the version and the IPC schema, refused
-its run with <code>daemon_incompatible</code> (exit 112) before any job, and was stopped
-by the client (<code>evidence/ipc-schema-compat.log</code>);</li>
+<li>no lifecycle replay: the newest release whose daemon IPC schema (11) differs
+from this client's (12) is v0.29.0, whose daemon predates the drain that exits
+and listens on <code>daemon.sock</code>, which this client never reaches; the drain is
+the daemon-upgrade suite's, against a fixture daemon of an older schema and of
+another build. The compatibility example ran before the number was committed:
+beside the released v0.29.0 daemon, started from the released executable of
+the tree's <code>bin/</code> before the rebuild, the client's <code>daemon status</code> found no
+daemon of its own (<code>daemon_unreachable</code>, exit 110), its run's exercise started
+one on <code>d.sock</code> (exit 0, no device contacted), and each executable stopped its
+own daemon (<code>evidence/ipc-schema-compat.log</code>);</li>
 <li>the host's shared places (the shared scoreboard directory, the shared
 directories <code>/opt/karvi/shared</code> and <code>/var/lib/karvi/shared</code>) as they
 were after the Go tests and the suites, in both verifiers
@@ -235,7 +238,12 @@ were after the Go tests and the suites, in both verifiers
 by <code>scripts/check-deb.sh</code>: the three executables <code>bin/</code>'s bytes, every
 document and example configuration under its own name, uncompressed, each
 unit's documentation target, the reference configuration's link, and
-<code>lintian --fail-on error,warning</code> with the package's overrides;</li>
+<code>lintian --fail-on error,warning</code> with the package's overrides, then tested
+as root in an Ubuntu 26.04 container under Docker by
+<code>scripts/sysutil-smoke-test.sh</code>: <code>karvi-sysutil</code>'s refusals, install,
+repair, and removal, the template unit and the maintainer scripts, the
+service account's daemon through a shutdown and an upgrade, and the bundle's
+<code>scripts/install.sh</code>;</li>
 <li>byte-for-byte reproduction of the source bundle across two packaging
 runs, and the bundle verified from its own archive with its own verifier;
 and</li>
@@ -244,7 +252,7 @@ same bytes, its executables the bundle's <code>CHECKSUMS.sha256</code>, and chec
 <code>scripts/check-deb.sh</code> against it.</li>
 </ul>
 <p>The release verifier had first passed on a clean clone of <code>dev</code> at
-<code>18c2fbd</code> before the number was assigned (the maintainer's release tools
+<code>45a3a8e</code> before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.</p>
@@ -261,45 +269,49 @@ suites ran enforced throughout.</p>
 <tbody>
 <tr>
 <td><code>bin/karvi-linux-amd64</code></td>
-<td style="text-align:right">12,263,584</td>
-<td><code>2a0890711f2d63d206cd1240848d43862131181b395788688d738a3f472e9ed0</code></td>
+<td style="text-align:right">12,636,320</td>
+<td><code>ec2f2466a97264b9cc7a78a13b3e94047734d9c0bf142986f0faf1d1f640b8df</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-askpass-linux-amd64</code></td>
-<td style="text-align:right">3,907,744</td>
-<td><code>0f338266d60a4ec846a1fb6da24d4715454d6588b463195d49f577bc33a2cb85</code></td>
+<td style="text-align:right">3,911,840</td>
+<td><code>dbafbb9af9bf2bde030f93c61a6a241f8b2fe1e80fec2f0c1133bebe7738aff2</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-prune-linux-amd64</code></td>
-<td style="text-align:right">3,776,672</td>
-<td><code>153b40bc78e375e0e9f8723da4da09df37ae1bc483f232a4c01d7c747e9e92b1</code></td>
+<td style="text-align:right">3,788,960</td>
+<td><code>05adab25dfb1136bd1d3c109e42271f29bd2cf30eadaf6b92564d6262eddd271</code></td>
 </tr>
 </tbody>
 </table>
 <h2 id="operational-upgrade-sequence">Operational upgrade sequence <a class="anchor" href="#operational-upgrade-sequence" aria-label="Link to this section">#</a></h2>
-<p>A daemon is compatible only when its version and its daemon IPC schema both
-equal the client's, so a running v0.28.0 daemon is <code>compatible: false</code> to
-this client on the version and the IPC schema (10 against 11), and the client
-refuses a job to it with <code>daemon_incompatible</code> (exit 112) before any job is
-submitted, naming both pairs and the remediation. Every release restarts
-the daemon:</p>
+<p>A daemon serves a client only when its daemon IPC schema and its build, the Go
+build ID of its executable, equal the client's. An operator's own daemon, the
+one the client launches (<code>daemon.launch = &quot;client&quot;</code>, the default), needs
+nothing run after an upgrade: the next submission drains a daemon of another
+build, an idle one exiting and replaced in the same invocation, a busy one
+finishing its jobs and exiting after the last while each submission is refused
+<code>daemon_draining</code> (exit 112), the daemon's build over the client's. To end it
+rather than wait:</p>
 <pre><code class="language-bash">karvi daemon status
-karvi daemon restart
-karvi daemon status
+karvi daemon stop --grace
 </code></pre>
-<p>With active jobs reported, <code>restart --grace</code> waits for them and <code>--force</code>
-stops at once; a forced stop accounts every unfinished unit as
-<code>incomplete_shutdown</code>. A daemon started by the client stops itself after an
-hour idle (<code>daemon.shutdown-idle-timer</code>); the packaged unit sets the timer
-to <code>0</code>. Every release is installed as new from its bundle; no source patch
-is shipped.</p>
+<p><code>--after=DURATION</code> drains and waits up to the limit, then forces; <code>--force</code>
+stops at once, and a forced stop accounts every unfinished unit as
+<code>incomplete_shutdown</code>. An operator's idle daemon stops itself after ten
+minutes (<code>daemon.shutdown-idle-timer</code>). A service account's daemon under the
+template <code>karvi-daemon@.service</code> is never drained by a client; after an upgrade
+the administrator restarts its unit:</p>
+<pre><code class="language-bash">sudo systemctl restart karvi-daemon@karvi.service
+</code></pre>
+<p>Every release is installed as new, from its package or its bundle (<code>sudo ./scripts/install.sh</code>); no source patch is shipped.</p>
 <h2 id="remaining-boundary">Remaining boundary <a class="anchor" href="#remaining-boundary" aria-label="Link to this section">#</a></h2>
 <p>What karvi does not do yet is <a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, none of which this
 release claims. Cisco IOS XE laboratory qualification on real devices was not
 performed and follows on this executable
 (<a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a>).</p>
 
-<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
+<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.30.0</code>.</footer>
 </main>
 </body>
 </html>

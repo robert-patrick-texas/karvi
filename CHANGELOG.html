@@ -46,7 +46,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
-<li><a href="#unreleased">Unreleased</a></li>
+<li><a href="#0300---2026-10-13">0.30.0 - 2026-10-13</a></li>
 <li><a href="#0290---2026-10-09">0.29.0 - 2026-10-09</a></li>
 <li><a href="#0280---2026-10-08">0.28.0 - 2026-10-08</a></li>
 <li><a href="#0270---2026-10-06">0.27.0 - 2026-10-06</a></li>
@@ -65,9 +65,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.30.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.30.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -115,7 +115,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
-<li><a href="#unreleased">Unreleased</a></li>
+<li><a href="#0300---2026-10-13">0.30.0 - 2026-10-13</a></li>
 <li><a href="#0290---2026-10-09">0.29.0 - 2026-10-09</a></li>
 <li><a href="#0280---2026-10-08">0.28.0 - 2026-10-08</a></li>
 <li><a href="#0270---2026-10-06">0.27.0 - 2026-10-06</a></li>
@@ -134,9 +134,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.30.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.30.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -148,7 +148,27 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
-<h2 id="unreleased">Unreleased <a class="anchor" href="#unreleased" aria-label="Link to this section">#</a></h2>
+<h2 id="0300---2026-10-13">0.30.0 - 2026-10-13 <a class="anchor" href="#0300---2026-10-13" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.29.0. The configuration registry moves from 28 to 29, the
+execution plan from 12 to 13, and the daemon IPC schema from 11 to 12; every
+other counter is 0.29.0's (configuration schema 6, command record 3, job
+manifest and summary 3, plan report 2, credential package 2, scoreboard 3,
+audit 1, metrics 1, inventory 1). A daemon serves only a client of its own
+build, and a client that launches its own daemon drains one of another build
+and starts its own; a service account's daemon runs under the package's system
+template, set up by <code>karvi-sysutil</code>. A site has something to change where its
+configuration names <code>daemon.socket</code> (now the directory <code>daemon.sockets</code>),
+<code>name.default-transform</code>, <code>env-indirection</code>, the <code>sqlite</code> backend type, a key
+its credential backend's type does not read, or a transform table that does
+not build (each refused at load); where a credential template holds <code>%s</code> (now
+text; <code>%operator%</code> is the operator's name) or a CSV cell or a Redis or Vault
+field begins with <code>env:</code> (now a variable's value); where a Redis or Vault
+<code>ca-file</code> was meant to add to the host's trust (it is the whole trust); where a
+script reads <code>daemon status</code>'s <code>version:</code> or <code>ipc_schema_version</code>, <code>karvi version</code>'s <code>build_time</code>, or colour escapes from a file; where it used the
+packaged user unit (removed) or installed the bundle by hand (<code>sudo ./scripts/install.sh</code> now); and where it relied on a daemon's stop grace of 120
+seconds or its idle hour (<code>daemon.shutdown-grace-seconds</code> 60 and
+<code>daemon.shutdown-idle-timer</code> <code>10m</code> now). The module graph is 0.29.0's,
+<code>golang.org/x/sys</code> now a direct requirement.</p>
 <ul>
 <li><strong>Breaking: a daemon serves its own build; a client drains another's.</strong> A
 daemon serves a client only when its IPC schema and its build, the last part
@@ -1376,7 +1396,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.30.0</code>.</footer>
 </main>
 </body>
 </html>
