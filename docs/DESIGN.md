@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="A Viking with hammer and shield standing against a storm of flying network switches" src="../images/viking-versus-network-storm.png" />
+
 # karvi design: why it does what it does
 
 This document states the settled design decisions of karvi in present tense:
