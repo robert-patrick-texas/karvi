@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="Two Vikings on a winter dock watching karvi longships come in at dawn" src="../images/karvi-longships-at-dawn.png" />
+
 # SSH transports and selection
 
 ## Goals
