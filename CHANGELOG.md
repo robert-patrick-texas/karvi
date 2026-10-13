@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Go 1.27.2.** The executables are built with Go 1.27.2, where 0.30.0's
+  were built with Go 1.27.1; no code changed. Go 1.27.2 carries security fixes
+  to `crypto/tls`, `net/http`, `net/textproto`, and `os`, which `karvi` links
+  (`karvi-askpass` and `karvi-prune` link `os` alone), and to `html/template`
+  and the `go` command, which no executable links. The rebuilt executables are
+  another build: an operator's daemon of the previous build is drained by the
+  first submission after the upgrade, and a service account's daemon takes its
+  unit's restart ([`docs/OPERATIONS.md`,
+  "Upgrade"](docs/OPERATIONS.md#upgrade)).
+
 ## 0.30.0 - 2026-10-13
 
 A minor release on 0.29.0. The configuration registry moves from 28 to 29, the
