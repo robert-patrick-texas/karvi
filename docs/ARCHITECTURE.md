@@ -101,12 +101,12 @@ exercise refuse a platform their configuration does not know (`platform.Lookup`,
 whose own configuration does not know its platform. Two checks run before the
 inventory is read: `--platform` in `login`, `command`, and `run` must name a
 known platform (`app.CheckPlatformOption`; the shortcuts `--pi`, `--pn`, `--pr`,
-`--pj`, `--pa`, `--pl`, and `--pg` are that option with its value, made so by
-the parser table's `standsFor`, which also makes `--dp`, `--dw`, and `--ds`
-`--dispatch` with a value; `--tl LIST` is each of its names as a `--target` at
-the list's position, `parser.addTarget`), and each `--select-platform` selector
-must reach one (`checkPlatformSelectors`), the known set being
-`platform.KnownNames` over the configured tables; the three
+`--pj`, `--pa`, `--pl`, `--ps`, and `--pg` are that option with its value, made
+so by the parser table's `standsFor`, which also makes `--dp`, `--dw`, and
+`--ds` `--dispatch` with a value; `--tl LIST` is each of its names as a
+`--target` at the list's position, `parser.addTarget`), and each
+`--select-platform` selector must reach one (`checkPlatformSelectors`), the
+known set being `platform.KnownNames` over the configured tables; the three
 `platform-resolution` keys and a source's `defaults.platform` are validated
 against the same set at load, whatever `on-unknown` says.
 

@@ -28,10 +28,10 @@ const platformOptionHelp = `  --platform NAME                The platform the de
                                  platform-resolution.default (else generic); an
                                  unknown row platform is refused unless
                                  platform-resolution.on-unknown = "warn"
-  --pi, --pn, --pr, --pj, --pa, --pl, --pg
+  --pi, --pn, --pr, --pj, --pa, --pl, --ps, --pg
                                  Short for --platform cisco_iosxe, cisco_nxos,
                                  cisco_iosxr, juniper_junos, arista_eos, linux,
-                                 generic
+                                 linux_shell, generic
 `
 
 // commandBoundsHelp is the per-command bounds, shared by command and run:

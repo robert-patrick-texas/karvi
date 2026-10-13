@@ -2,11 +2,12 @@
 
 ## Unreleased
 
-- **`--pl` is `--platform linux`.** `login`, `command`, and `run` take `--pl`
-  beside `--pi`, `--pn`, `--pr`, `--pj`, `--pa`, and `--pg`. It is a whole
-  word, so it is no longer a prefix of `--platform`: a script that typed
-  `--pl NAME` for `--platform NAME` now gets `linux` and `NAME` as a target or
-  command word (`--pla` is still `--platform`).
+- **`--pl` is `--platform linux`, `--ps` is `--platform linux_shell`.**
+  `login`, `command`, and `run` take them beside `--pi`, `--pn`, `--pr`,
+  `--pj`, `--pa`, and `--pg`. `--pl` is a whole word, so it is no longer a
+  prefix of `--platform`: a script that typed `--pl NAME` for
+  `--platform NAME` now gets `linux` and `NAME` as a target or command word
+  (`--pla` is still `--platform`).
 
 ## 0.30.1 - 2026-10-13
 

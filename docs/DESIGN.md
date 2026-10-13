@@ -100,12 +100,13 @@ every candidate. *Why:* the unique-error-code rule of the whole program (see
 [§15](#15-configuration-and-errors)). *Not taken:* a single `cli_usage` code.
 
 **Shortcuts stand for an option with its value.** `--pi`, `--pn`, `--pr`,
-`--pj`, `--pa`, `--pl`, `--pg` stand for `--platform` with a built-in platform
-name; `--dp`, `--dw`, `--ds` stand for `--dispatch parallel|wave|serial`. A
-shortcut is a whole word of the table that carries the value, so no handler
-knows the shortcuts exist and the last spelling on a line wins. `--tl LIST`
-adds each comma- or whitespace-separated name as a `--target` at the list's
-position, so the plan and manifest record target inputs and never a list.
+`--pj`, `--pa`, `--pl`, `--ps`, `--pg` stand for `--platform` with a built-in
+platform name; `--dp`, `--dw`, `--ds` stand for
+`--dispatch parallel|wave|serial`. A shortcut is a whole word of the table that
+carries the value, so no handler knows the shortcuts exist and the last
+spelling on a line wins. `--tl LIST` adds each comma- or whitespace-separated
+name as a `--target` at the list's position, so the plan and manifest record
+target inputs and never a list.
 *Why:* the operator's most typed values; nothing after the parser changes.
 *Not taken:* aliases (an alias still takes a value); a list kind in the plan.
 
