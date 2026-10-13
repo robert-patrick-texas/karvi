@@ -378,7 +378,7 @@ shutdown-grace-seconds = 60
 # 0 never exits; else 1m–30d. The daemon stops itself, as daemon stop would, once this long
 # has passed with no active job, no preparation in progress, and no request but ping and
 # status; checked once a minute. The packaged systemd unit sets 0.
-shutdown-idle-timer = "1h"
+shutdown-idle-timer = "10m"
 # 0–60; ≤ normal grace unless normal 0.
 forced-grace-seconds = 5
 # 64 KiB–64 MiB.

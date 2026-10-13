@@ -11364,3 +11364,38 @@ exists`, Ubuntu's `users`: the script makes the account's group first, `addgroup
 daemon upgrade suite waits 2 s for `go run` of its fixture, which a cold build
 cache exceeded under three lanes in a fresh copy of the tree; the battery passed
 again with the cache warm.
+
+**Issue 17, continued: the first point, agreed.** On S5a's lab build beside a
+fixture daemon of IPC schema 13, the client's 12: under `daemon.launch =
+"client"` `daemon start` was refused naming `karvi daemon stop` from the newer
+karvi; under `"systemd"` naming `systemctl restart` of the unit, and `daemon
+stop` was refused `daemon_managed`; exit 112 throughout. Under `"systemd"` the
+unit runs `/usr/bin/karvi`, so a daemon newer than the client follows a rollback
+(BUILD-HOWTO section 10, `apt install --allow-downgrades`), its daemon running
+the newer program until restarted, or a client that is not the installed karvi.
+The rule, as built: the refusal names `systemctl restart` of the unit, which
+stops the daemon under its grace whatever its schema and starts the installed
+karvi; for a client that is not the installed karvi the stacked schemas show it.
+*Not taken:* the client shape's `karvi daemon stop` from the newer karvi
+(refused `daemon_managed`, and gone after a rollback); the client reading the
+daemon's `/proc/PID/exe` to tell a rollback from another copy (a reading for a
+rare case).
+
+**Issue 18: the jump box's rollback, not taken; the idle timer's default
+10m.** On the lab, build N's daemon (0.30.0, IPC schema 13) ran a 12 s job
+beside S5a's karvi (0.29.0, schema 12), its operator's own under `"client"`:
+`run` was refused naming `karvi daemon stop` from the newer karvi, which the
+rollback removed; `daemon status` said `daemon not running or unreadable`;
+`daemon stop` and `daemon stop --grace` were refused `ipc_schema_incompatible`;
+exit 112 throughout. A `SIGTERM` to the socket's listener drained the daemon,
+the job completed with exit 0, and the older karvi then launched its own. The
+gap considered: `daemon stop` reaching a newer daemon by signal, its pid from
+the socket's peer credentials. Not taken, on the owner's word: an operator
+does not downgrade; the administrator does, and ends the running daemons or
+restarts the host. In its place, `daemon.shutdown-idle-timer`'s default
+becomes `10m` from `1h`, so that after an upgrade or a downgrade an idle daemon
+of the old build is gone within some ten minutes of its last job, at the cost
+of a relaunch of some 80 ms after a longer pause. The unit's timer stays off.
+*Not taken:* the signal from `daemon stop`, its options `--grace`, `--after`,
+and `--force` (the operator's tool for the administrator's step); naming
+`kill PID` in the refusal; the default left at an hour.

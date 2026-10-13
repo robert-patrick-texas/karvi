@@ -1337,7 +1337,7 @@
     {
       "path": "daemon.shutdown-idle-timer",
       "kind": "duration",
-      "default_literal": "\"1h\"",
+      "default_literal": "\"10m\"",
       "required": false,
       "lock_eligible": true,
       "sensitive": false,

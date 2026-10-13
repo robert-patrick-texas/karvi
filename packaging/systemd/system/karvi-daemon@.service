@@ -19,7 +19,7 @@ After=network-online.target
 Type=simple
 User=%i
 # Under systemd the daemon stays: the idle timer (daemon.shutdown-idle-timer,
-# 1h by default) is off, since an idle exit is a clean exit that
+# 10m by default) is off, since an idle exit is a clean exit that
 # Restart=on-failure would not restart. --set outranks every file.
 ExecStart=/usr/bin/karvi --set daemon.shutdown-idle-timer=0 daemon serve
 Restart=on-failure

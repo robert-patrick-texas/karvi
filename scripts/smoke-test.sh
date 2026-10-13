@@ -89,7 +89,7 @@ find "$BASE/jobs" -name summary.json -type f | grep -q .
 # minutes (the check runs once a minute), status probes every five seconds
 # notwithstanding, writes one log line naming the key, and removes its
 # socket; the next client finds none. The daemon the run above launched
-# carries the default (1h) and is stopped first.
+# carries the default (10m) and is stopped first.
 # shellcheck disable=SC2046
 "$KARVI" $(common_args) daemon stop >/dev/null 2>&1 || true
 # shellcheck disable=SC2046

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **A daemon idle ten minutes stops itself.** `daemon.shutdown-idle-timer`
+  defaults to `10m`, where it was `1h`: after an upgrade or a downgrade an
+  operator's idle daemon of the old build is gone within some ten minutes of
+  its last job, and the next run launches the installed karvi (some 80 ms).
+  The range, `0` for never, and the packaged unit's `0` are unchanged.
 - **Breaking: `daemon.socket` replaced by the socket directory
   `daemon.sockets`.** The daemon binds `d.sock` and the credential channel's
   `c.sock`, until now `daemon.sock` and `credentials.sock`, in

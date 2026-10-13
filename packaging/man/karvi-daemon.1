@@ -91,7 +91,7 @@ never reaches it; the client resolves credentials and hands them over per
 job.
 After
 .B daemon.shutdown\-idle\-timer
-(1h) with no job and no request but a status, the daemon stops itself,
+(10m) with no job and no request but a status, the daemon stops itself,
 exit 0, with a
 .B stopping: idle
 line in its log, and the next run launches another; 0 never stops.

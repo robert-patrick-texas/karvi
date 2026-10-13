@@ -336,8 +336,8 @@ A daemon a client launched is one process per operator and per configuration
 (`basedir`), and it outlives the terminal and the login that started it. On a
 host used by a team, that is one daemon per operator, each holding its
 start-time executable and `daemon.*` settings, for as long as no one stops it.
-`daemon.shutdown-idle-timer` (`"1h"` by default) ends that: after that long with
-no active job, no preparation in progress, and no request but `ping` and
+`daemon.shutdown-idle-timer` (`"10m"` by default) ends that: after that long
+with no active job, no preparation in progress, and no request but `ping` and
 `status`, the daemon stops itself exactly as `daemon stop` on an idle daemon
 would, exit 0, with one line in `logs/daemon.log` (`stopping: idle`, the idle
 time, the key and its value). The check runs once a minute, so the exit comes

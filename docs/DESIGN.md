@@ -1581,16 +1581,19 @@ daemon's (the bound then hangs on the operator's name); the sockets in
 and a name that invites clearing under a running daemon); an abstract socket.
 
 **The daemon leaves by itself when idle.** `daemon.shutdown-idle-timer`
-(default `1h`; `0` never) ends a daemon with no active job and no live
+(default `10m`; `0` never) ends a daemon with no active job and no live
 preparation after the timer since its last request other than `ping` or
 `status`; the client, finding the socket gone at its first request, launches
 once more and repeats the request with the plan it already made. The packaged
 unit starts the daemon with the timer off. *Why:* a team host gets one daemon
 per operator and some sit for months, running the executable and the `daemon.*`
-settings of that day; the cost is staleness, not memory; a unit's idle exit
-is a clean exit `Restart=on-failure` would not restart. *Not taken:* default
-off; counting `status` as activity (a dashboard would keep every daemon
-alive); a daemon that reloads its configuration.
+settings of that day; the cost is staleness, not memory; ten minutes, so that
+after an upgrade or a downgrade a daemon of the old build is gone soon after
+its last job, for a relaunch of some 80 ms; a unit's idle exit is a clean exit
+`Restart=on-failure` would not restart. *Not taken:* default off; an hour (an
+old build's daemon outstays the administrator's change); counting `status` as
+activity (a dashboard would keep every daemon alive); a daemon that reloads
+its configuration.
 
 **The manifest is the record of intent.** It holds the commit header, the final
 plan with its configuration block (every value the job ran under), the safe
