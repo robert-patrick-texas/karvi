@@ -1,24 +1,15 @@
-# karvi v0.30.0 build and qualification result
+# karvi v0.30.1 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.30.0 (2026-10-13) is a minor release on 0.29.0. The configuration registry
-moves from 28 to 29, the execution plan from 12 to 13, and the daemon IPC
-schema from 11 to 12; every other counter is 0.29.0's. Among the changes: a
-daemon serves only a client of its own build, and a client that launches its
-own daemon drains one of another build and starts its own, a busy one
-finishing its jobs first; `daemon status` stacks the daemon's values over the
-client's; a build names its Go build ID and its commit, and no build time; the
-service account's daemon runs under the package's system template, set up by
-`karvi-sysutil`, and the bundle installs itself (`scripts/install.sh`); the
-daemon binds its sockets in the directory `daemon.sockets`; an invocation
-reads its configuration once and says its warnings; a credential helper
-(`creds.helper`), `%operator%` in the credential templates, an explicit
-`env:NAME` cell or field, and the store backends' keys checked at load; the
-transports' own SSH algorithm lists; a stream's `--restart`; and refusals in
-colour. The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It is not a
+v0.30.1 (2026-10-13) is a patch release on 0.30.0 for the Go toolchain: no
+code changed, and the executables are rebuilt with Go 1.27.2, which carries
+security fixes to `crypto/tls`, `net/http`, `net/textproto`, and `os`, all of
+which `karvi` links; every counter is 0.30.0's, and the rebuilt executables are
+another build, so the first submission after the upgrade drains a 0.30.0
+daemon. The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It is not a
 production claim and not a real-device qualification: the native transport is
 proven against the fake device built from the tree, its IOS XE and Linux
 personas.
@@ -26,10 +17,10 @@ personas.
 ## Build identity
 
 ```text
-version:                  0.30.0
-commit:                   source-release-v0.30.0
-build:                    P7zVqO_tVBEzQMcMrxna
-Go toolchain:             go1.27.1
+version:                  0.30.1
+commit:                   source-release-v0.30.1
+build:                    N5PmKyJFWom88FQHvi1o
+Go toolchain:             go1.27.2
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
@@ -52,7 +43,7 @@ transports.
 
 ## Qualification performed
 
-The release source passed, with Go 1.27.1:
+The release source passed, with Go 1.27.2:
 
 - 1,020 top-level named Go tests across 89 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
@@ -89,12 +80,15 @@ The release source passed, with Go 1.27.1:
   from this client's (12) is v0.29.0, whose daemon predates the drain that exits
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
-  another build. The compatibility example ran before the number was committed:
-  beside the released v0.29.0 daemon, started from the released executable of
-  the tree's `bin/` before the rebuild, the client's `daemon status` found no
-  daemon of its own (`daemon_unreachable`, exit 110), its run's exercise started
-  one on `d.sock` (exit 0, no device contacted), and each executable stopped its
-  own daemon (`evidence/ipc-schema-compat.log`);
+  another build. The compatibility example ran before the number was committed,
+  beside the released v0.30.0 daemon, started from the released executable of
+  the tree's `bin/` before the rebuild, at this client's IPC schema and of
+  another build: the client's `daemon status` stacked the two builds
+  (`compatible: false`); its run's exercise drained the idle daemon and started
+  one of its own (exit 0, no device contacted); with the older daemon holding a
+  job on the fake device, the client's run was refused `daemon_draining` (exit
+  112), the daemon's build over the client's, and the daemon exited after the
+  job (`evidence/ipc-schema-compat.log`);
 - the host's shared places (the shared scoreboard directory, the shared
   directories `/opt/karvi/shared` and `/var/lib/karvi/shared`) as they
   were after the Go tests and the suites, in both verifiers
@@ -117,7 +111,7 @@ The release source passed, with Go 1.27.1:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`45a3a8e` before the number was assigned (the maintainer's release tools
+`3a15ff7` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -128,9 +122,9 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,636,320 | `ec2f2466a97264b9cc7a78a13b3e94047734d9c0bf142986f0faf1d1f640b8df` |
-| `bin/karvi-askpass-linux-amd64` | 3,911,840 | `dbafbb9af9bf2bde030f93c61a6a241f8b2fe1e80fec2f0c1133bebe7738aff2` |
-| `bin/karvi-prune-linux-amd64` | 3,788,960 | `05adab25dfb1136bd1d3c109e42271f29bd2cf30eadaf6b92564d6262eddd271` |
+| `bin/karvi-linux-amd64` | 12,648,608 | `76ddee7ff9881afe76283a29905ce7448e5fc9a8cb68ded8f9cebcfbcb9368f9` |
+| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `05238f93f53c550e18927cc3ad56e9d0c9c0ef293899c563c4dcae211b5d7431` |
+| `bin/karvi-prune-linux-amd64` | 3,788,960 | `3acca5ec07c4578472485cbb98ff3581d81d066460e8d49e0cfbcc0888ef947a` |
 
 ## Operational upgrade sequence
 
