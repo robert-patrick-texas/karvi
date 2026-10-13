@@ -68,6 +68,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -130,20 +131,20 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1672" height="941" alt="A karvi longship sailing a fjord toward glowing network islands" src="images/karvi-voyage-across-network-fjords.png" />
 <h1 id="roadmap">Roadmap <a class="anchor" href="#roadmap" aria-label="Link to this section">#</a></h1>
 <p>What karvi does not do yet and has decided to do, or to consider, in the order
 the operator has set. A settled decision is an entry in
 <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a>; a session that builds an item is a chapter
 of <a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>. Nothing here is a promise of a date.</p>
 <h2 id="next">Next <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
-<p>Nothing at present: the operator chooses the next item from Later.</p>
+<p>None chosen: the operator names the next item, from &quot;Later&quot; or anew.</p>
 <h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
 <ul>
-<li><strong>Build numbers in the version.</strong> A build identity beyond the version and
-the commit, for telling two builds of one tree apart.</li>
 <li><strong>Macro files, <code>--mf PATH</code>.</strong> A command file with a parser: variable
 substitution from the command line, the file, or the device's inventory
 row, expanded in the client before the plan, so the plan, its digest,
@@ -156,33 +157,26 @@ replaces, plus logic. The logic's first question is where it runs: a
 decision taken from a device's answer is taken in the session, per device,
 while the command plan is fixed and digested before the daemon accepts the
 job; <code>--expect</code> and the blind returns are the precedent to grow from.</li>
-<li><strong>Credentials.</strong> An explicit <code>env:NAME</code> cell form for the credential CSV
-that needs no flag and fails with its own code when the variable is unset;
-a formula's match evidence carrying its source's file, line, and key; a
-command-line option to pin a direct target to a key; further keyed
-backends (a SQLite or JSON store) through the keyed capability; policing
-every backend type's keys by type; one environment-indirection helper for
-the env, Redis, Vault, and CSV backends; in the shared tabular reader, an
-explicit mapping outranking a field's own header.</li>
-<li><strong>A credential helper executable.</strong> A configured executable, a site's
-script in any language, that karvi runs and whose standard output sets
-values for its own use: a line <code>export NETUSER=&quot;xxx&quot;</code> puts <code>NETUSER</code> into
-karvi's credential environment as if the operator had exported it, for the
-<code>NET*</code> fallback, an <code>env</code> backend's templates, or the token a <code>vault</code> or
-<code>redis</code> backend reads from the environment. The questions: when it runs
-(once per invocation in the client, before resolution, or per device with
-the device's name); which names it may set (the credential names alone, or
-any a backend reads); the grammar of its output, parsed and never evaluated
-by a shell (<code>export NAME=&quot;value&quot;</code> and <code>NAME=value</code>, the double-quoted form's
-escapes, anything else refused naming the line number and never the line);
-its value held as a secret from the read on and never put into the process
-environment a child such as <code>ssh</code> inherits; the executable's own checks as a
-credential file's (an absolute path, the owner, the mode, no symlink); its
-environment, timeout, standard error (not echoed, since it may hold a
-secret), and a non-zero exit as a failure with its own code; whether the
-daemon may run it for an unattended job, where no prompt can; and how it
-relates to the environment-indirection helper above and to the helper
-protocols operators know (git's credential helpers, <code>SSH_ASKPASS</code>).</li>
+<li><strong>Credentials.</strong> A formula's match evidence carrying its source's file,
+line, and key; a command-line option to pin a direct target to a key;
+further backends, each with its own type, keys, and driver: a SQLite store
+holding device or operator data or both, and a JSON store, a device-keyed
+one honouring a pin through the keyed capability; in the shared tabular
+reader, an explicit mapping outranking a field's own header.</li>
+<li><strong><code>sudo</code> on an exec channel: <code>--sudo</code> and <code>NETSUDO</code>.</strong> A command over the
+exec channel that needs <code>sudo</code> runs only as written, <code>sudo -n …</code>, and a
+refused one records <code>command_exit_nonzero</code> with <code>sudo</code>'s message; nothing
+reads <code>NETSUDO</code>. The design is recorded (<a href="docs/DESIGN.html#5-transports-and-the-device-session"><code>docs/DESIGN.md</code>, section
+5</a>): <code>--sudo</code> attaches to
+the <code>--cmd</code> it follows and runs it as <code>sudo -S -p 'karvi-sudo-&lt;16 hex&gt;:' -- sh -c '&lt;the command&gt;'</code>, the password written once and only after that prompt
+appears on standard error, a second appearance <code>privilege_failed</code>; the
+password is the credential's enable field, then <code>NETSUDO</code>, then <code>NETENABLE</code>
+where the platform's fallback holds <code>netvars</code>, and with none the command runs
+under <code>sudo -n</code> and never waits. The questions: the run-wide spelling for
+command files; and whether <code>NETSUDO</code> and <code>NETENABLE</code> fill a backend's blank
+field, which the <code>NET*</code> variables never do for a device a backend answered
+(<a href="docs/EXAMPLES.html#56-the-credential-helper-2026-10-11"><code>docs/EXAMPLES.md</code>, chapter
+56</a>).</li>
 <li><strong>The key that authenticated.</strong> A record names the method that
 authenticated its session (<code>credential.auth</code>) and not which of the
 credential's keys the server accepted. OpenSSH names the key at <code>DEBUG1</code>
@@ -212,8 +206,6 @@ declare one as required for its consumption. The review lists each digest
 the program computes or records with who computes it, who reads it, and
 what breaks without it, and removes those nothing consumes in production;
 the development use, comparing two outputs, stays.</li>
-<li><strong>A setting under which karvi defines no SSH algorithm lists</strong> and both
-transports keep their own defaults.</li>
 <li><strong><code>Sealed</code> credential packages.</strong> The envelope schema accepts the
 protection and the <code>Sealer</code> interface is fixed, but no channel carries it
 and no reviewed provider exists; it waits for the stage that brings a
@@ -297,49 +289,28 @@ would lose the status over <code>system</code>, recorded <code>command_exit_miss
 The question: whether karvi guards against one, for instance by keeping the
 client's input open so that the master never closes first, and what that costs
 a device that waits for its input to end.</li>
-<li><strong>The daemon's socket path bounded.</strong> <code>daemon.socket</code>, by default
-<code>&lt;basedir&gt;/socket/daemon.sock</code>, has no length check: under a 100-byte
-<code>basedir</code> a <code>run</code> waited out the daemon's start and exited 112,
-<code>daemon_start_failed: … context deadline exceeded</code>, the cause,
-<code>daemon_serve_failed: listen unix …/daemon.sock: bind: invalid argument</code>, in
-<code>daemon.log</code> alone (<a href="docs/EXAMPLES.html#40-the-scratch-bounded-for-the-askpass-socket-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
-40</a>).
-A path socket holds at most 107 bytes, as the control-path root and
-<code>tempdir</code> are bounded for theirs. The question: where the client refuses a
-socket path too long, before it starts a daemon that cannot listen.</li>
-<li><strong>A suite's failure that names its call.</strong> A suite under <code>set -eu</code> that
-runs karvi with its output redirected into the work directory dies at a
-refused call with karvi's exit status and prints nothing, and its cleanup
-removes the files that held karvi's message: under umask 0002 ten suites
-ended so, most with exit 109 and no line, while karvi had written
+<li><strong>A suite's failure that names its call.</strong> A suite under <code>set -eu</code> that runs
+karvi with its output redirected into the work directory dies at a refused
+call with karvi's exit status and prints nothing, and its cleanup removes the
+files that held karvi's message: under umask 0002 ten suites ended so, most
+with exit 109 and no line, while karvi had written
 <code>host_key_directory_permission</code> and the reason on its standard error
 (<a href="docs/EXAMPLES.html#41-the-suites-work-directories-made-0700-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
 41</a>).
-The bundle's verifier has the same gap: <code>verify-shipped.sh</code>'s checks are
-bare tests under <code>set -eu</code>, so a release missing its number in that script
-ended <code>verify-bundle.sh</code> with exit 1 and an empty log (<a href="docs/EXAMPLES.html#43-the-release-with-the-debian-package-2026-10-08">chapter
-43</a>,
-S2). The question: one function in <code>scripts/lib</code> that runs a call and, when it
-fails unexpectedly, names it and prints what karvi wrote before the suite
-exits.</li>
-<li><strong>One example configuration.</strong> <code>configs/example.toml</code>, which the package
-installs under <code>/usr/share/doc/karvi/configs/</code> and <code>config generate</code>'s output
-names, and <code>examples/config.toml</code>, the curated site configuration, are two
-examples of one thing; merging them is a documentation change of its own:
-which keeps its name, what each document and <code>config generate</code> then point at,
-and the package's rules and <code>scripts/check-deb.sh</code>'s list
-(<a href="docs/EXAMPLES.html#42-the-example-configurations-in-the-package-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
-42</a>).</li>
-<li><strong>Every invocation says its configuration's warnings.</strong> The load's two
-warnings (&quot;optional include missing&quot;, &quot;ignored unknown environment
-variable&quot;) are printed by a <code>run</code> or <code>command</code>, in process or through a
-daemon, and only counted by <code>config validate</code>; <code>login</code>, <code>inspect</code>, <code>config show</code>, <code>job follow</code>, and the daemon's own load say nothing of them
-(<a href="docs/EXAMPLES.html#47-a-job-under-its-clients-configuration-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
-47</a>,
-S2.3). The item: every invocation prints its load's warnings once, at the
-load, and the job no longer does. The questions: <code>--quiet</code>, a machine
-format's standard error, and where a daemon's own load writes them
-(<code>daemon.log</code>).</li>
+The bundle's verifier has the same gap: <code>verify-shipped.sh</code>'s checks are bare
+tests under <code>set -eu</code>, so a release missing its number in that script ended
+<code>verify-bundle.sh</code> with exit 1 and an empty log (<a href="docs/EXAMPLES.html#43-the-release-with-the-debian-package-2026-10-08">chapter
+43</a>, S2).
+A suite's own start budget stops a lane too, though with its line:
+<code>daemon-upgrade-smoke-test</code> gives <code>go run ./tools/daemon-fixture</code> two seconds
+to bind its socket, and the first run after a change to the packages it builds
+compiles them first (2.4 seconds on the operator's host, 0.18 with the cache
+warm), so a battery on a cold cache stopped there with <code>schema-2 fixture did not start</code> and the rest of its lane unrun (<a href="docs/EXAMPLES.html#55-an-explicit-envname-cell-2026-10-10">chapter
+55</a>, S4). The
+questions: one function in <code>scripts/lib</code> that runs a call and, when it fails
+unexpectedly, names it and prints what karvi wrote before the suite exits; and
+the fixture built before its wait begins, so the wait measures its start and
+not a compile.</li>
 <li><strong>A client told when a running daemon's settings differ from its own.</strong> A
 daemon keeps the <code>daemon.*</code> values of the invocation that launched it, and a
 later client's <code>--set daemon.*</code> reaches it only at its next start, without
@@ -349,6 +320,23 @@ values in its status reply, and a client whose own differ prints a notice
 naming the keys and <code>karvi daemon restart</code>. The questions: which keys (the
 <code>daemon-start</code> class alone), the notice's wording and its code, and whether
 <code>--quiet</code> keeps it.</li>
+<li><strong>No job directory for a run refused at planning.</strong> A run through the
+daemon whose credential resolution fails in the client
+(<code>credential_env_missing</code>, <code>credential_password_missing</code>, exit 6) leaves an
+empty job directory, which the daemon made for the job before the client's
+resolution failed; the same run without the daemon makes none
+(<a href="docs/EXAMPLES.html#55-an-explicit-envname-cell-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter
+55</a>). The question:
+the directory made when the job is submitted, or removed when the client
+abandons it.</li>
+<li><strong>Shorter output strings.</strong> A review of every string karvi writes for the
+operator, its warnings, refusals, notices, and prompts, shortening each where
+a word adds nothing: <code>NETPASS_NYC is empty</code> as <code>NETPASS_NYC empty</code>,
+<code>NETPASS_NYC is not set</code> as <code>NETPASS_NYC not set</code>. The questions: the rule,
+stated once in <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a> and applied to every string
+alike; the tests, suites, and documents that quote a string, changed with it;
+and the generated error-code descriptions
+(<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>) under the same rule.</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -383,7 +371,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

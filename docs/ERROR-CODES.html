@@ -71,6 +71,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -136,6 +137,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -467,6 +469,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
 <td><code>--border</code> and <code>--noborder</code> are both given.</td>
+</tr>
+<tr>
+<td><code>build_unreadable</code></td>
+<td>dependency</td>
+<td style="text-align:right">8</td>
+<td style="text-align:center">no</td>
+<td>The running karvi executable carries no Go build ID it can read (<code>/proc/self/exe</code>, the note <code>.note.go.buildid</code>): <code>daemon serve</code> starts no daemon and a client submits no job through one; <code>--no-daemon</code> runs without.</td>
 </tr>
 <tr>
 <td><code>capacity_admission_failed</code></td>
@@ -812,6 +821,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A built-in configuration default cannot be parsed.</td>
 </tr>
 <tr>
+<td><code>config_credential_backend_address_invalid</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td>A Redis or Vault credential backend's <code>address</code> is missing or malformed: Redis's is <code>host:port</code>, Vault's an <code>http://</code> or <code>https://</code> URL with a host.</td>
+</tr>
+<tr>
 <td><code>config_credential_backend_delimiter_invalid</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -823,7 +839,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>A reader key of the <code>csv</code> type (<code>mode</code>, <code>delimiter</code>, <code>mandatory-fields</code>, or a <code>mappings.&lt;field&gt;</code> key) is set on a credential backend of another type.</td>
+<td>A key is set on a credential backend whose type does not read it, or whose other keys leave it unread: Redis's <code>auth-username-env</code> without <code>auth-password-env</code>, a client certificate without its key or the reverse, a TLS file or <code>tls-verify</code> under Redis's <code>tls = false</code> or with a Vault address that is not <code>https://</code>, and <code>ca-file</code> under <code>tls-verify = false</code>; the message names the types that read the key, or what it needs.</td>
 </tr>
 <tr>
 <td><code>config_credential_backend_path_missing</code></td>
@@ -838,13 +854,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
 <td>A <code>csv</code> credential backend does not declare <code>scope</code>; only <code>cloginrc</code> defaults to <code>user</code>.</td>
-</tr>
-<tr>
-<td><code>config_credential_backend_scope_unsupported</code></td>
-<td>config</td>
-<td style="text-align:right">2</td>
-<td style="text-align:center">no</td>
-<td><code>scope</code> or <code>required</code> is set on a credential backend that is not a file backend (<code>cloginrc</code> or <code>csv</code>).</td>
 </tr>
 <tr>
 <td><code>config_credential_backend_shared_optional</code></td>
@@ -873,6 +882,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
 <td>A <code>credential-backend</code> table names an unsupported <code>type</code>.</td>
+</tr>
+<tr>
+<td><code>config_credential_backend_variable_invalid</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td>A credential backend names a variable that is not a portable variable name (letters, digits, and underscores, not beginning with a digit): Redis's <code>auth-username-env</code> or <code>auth-password-env</code>, Vault's <code>token-env</code>, or an <code>env</code> backend's template with each <code>%operator%</code> standing for a letter, refused when the configuration loads; or an <code>env</code> backend's template filled with the operator's name after the backend's transform, which stops the device at planning and names the remedy, a transform's <code>replace-chars</code>; the message quotes the value.</td>
 </tr>
 <tr>
 <td><code>config_credential_formula_source_invalid</code></td>
@@ -1246,6 +1262,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>Macros reference each other in a cycle.</td>
 </tr>
 <tr>
+<td><code>config_macro_name_reserved</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td>The <code>[macros]</code> table defines <code>operator</code>, the built-in macro holding the operator's login name.</td>
+</tr>
+<tr>
 <td><code>config_macro_scalar_type</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -1509,7 +1532,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>An <code>ssh-algorithms-profile</code> sets no list.</td>
+<td>An <code>ssh-algorithms-profile</code> sets no list and no <code>source</code>.</td>
 </tr>
 <tr>
 <td><code>config_ssh_algorithms_profile_list_conflict</code></td>
@@ -1517,6 +1540,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
 <td>An <code>ssh-algorithms-profile</code> sets both a list and its <code>-append</code> form.</td>
+</tr>
+<tr>
+<td><code>config_ssh_algorithms_profile_lists_unread</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td>An <code>ssh-algorithms-profile</code> sets a key exchange, cipher, or MAC list while its devices take the transport's lists (its <code>source</code>, else <code>ssh-algorithms.source</code>, is <code>transport</code>); set <code>source = &quot;karvi&quot;</code> in it.</td>
 </tr>
 <tr>
 <td><code>config_ssh_identities_invalid</code></td>
@@ -1708,32 +1738,39 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>The platform requires an enable password and none was resolved.</td>
 </tr>
 <tr>
+<td><code>credential_env_missing</code></td>
+<td>credential</td>
+<td style="text-align:right">6</td>
+<td style="text-align:center">no</td>
+<td>A variable a credential source names is not set or is empty: a credential CSV cell <code>env:NAME</code> in the row a device selected, a Redis or Vault record's field <code>env:NAME</code>, or the variable a Redis backend's <code>auth-password-env</code> or <code>auth-username-env</code> or a Vault backend's <code>token-env</code> names, read before any connection; the device stops at planning, and the message names the backend, the file and line or the record and field, or the key, and the variable.</td>
+</tr>
+<tr>
 <td><code>credential_file_mode_unsafe</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>A user credential file's mode is not 0600; the message names the backend and the path and gives the <code>chmod</code> remedy.</td>
+<td>A user credential file's mode is not 0600, or the credential helper is writable by its group or others; the message names the backend or the helper and the path and gives the <code>chmod</code> remedy.</td>
 </tr>
 <tr>
 <td><code>credential_file_not_regular</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>A user or shared credential file's path is not a regular file.</td>
+<td>A user or shared credential file's path, or the credential helper's, is not a regular file.</td>
 </tr>
 <tr>
 <td><code>credential_file_owner_mismatch</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>A user credential file is owned by another user.</td>
+<td>A user credential file is owned by another user, or the credential helper by a user who is neither the operator, root, nor in <code>security.approved-admin-users</code>.</td>
 </tr>
 <tr>
 <td><code>credential_file_owner_uninspectable</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>The owner of a user or shared credential file cannot be read.</td>
+<td>The owner of a user or shared credential file, or of the credential helper, cannot be read.</td>
 </tr>
 <tr>
 <td><code>credential_file_shared_group_mismatch</code></td>
@@ -1768,7 +1805,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>A user or shared credential file's path is a symlink while <code>security.allow-credential-symlinks</code> is off.</td>
+<td>A user or shared credential file's path, or the credential helper's, is a symlink while <code>security.allow-credential-symlinks</code> is off.</td>
 </tr>
 <tr>
 <td><code>credential_file_unavailable</code></td>
@@ -1790,6 +1827,27 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">112</td>
 <td style="text-align:center">no</td>
 <td>A credential frame header, body, or receipt exceeds its bound.</td>
+</tr>
+<tr>
+<td><code>credential_helper_failed</code></td>
+<td>credential</td>
+<td style="text-align:right">6</td>
+<td style="text-align:center">no</td>
+<td>The credential helper ran and exited non-zero, was ended by a signal, or did not exit within <code>creds.helper-timeout</code>; its output is not read, and the message names the path and the status or the signal, never the helper's standard error, which is discarded: run it by hand to see its message.</td>
+</tr>
+<tr>
+<td><code>credential_helper_output_invalid</code></td>
+<td>credential</td>
+<td style="text-align:right">6</td>
+<td style="text-align:center">no</td>
+<td>The credential helper's output is not lines of <code>NAME=value</code> assignments as dash and bash would read them under <code>eval</code> (a blank around <code>=</code>, an unquoted special character, a bare <code>$</code> or backtick in double quotes, a control character, a word that is no assignment), sets a name twice, or is longer than 64 KiB or a line than 4 KiB; the message names the path, the line, and the reason, and quotes nothing from the line.</td>
+</tr>
+<tr>
+<td><code>credential_helper_unavailable</code></td>
+<td>credential</td>
+<td style="text-align:right">6</td>
+<td style="text-align:center">no</td>
+<td>An enabled credential helper cannot be run under <code>creds.helper-unavailable = &quot;fail&quot;</code>: no file at its path, or one the operator cannot execute; the message names the path and the reason.</td>
 </tr>
 <tr>
 <td><code>credential_incomplete</code></td>
@@ -1897,11 +1955,18 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A <code>credential-transform</code> operation is not an inline table.</td>
 </tr>
 <tr>
+<td><code>credential_transform_operations_not_array</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td>A <code>credential-transform</code> table's <code>operator</code> or <code>username</code> is not an array.</td>
+</tr>
+<tr>
 <td><code>credential_transform_unknown</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>A credential backend names a credential transform that is not defined.</td>
+<td>A credential backend's <code>transform</code> names a credential transform table that is not defined; refused when the configuration loads.</td>
 </tr>
 <tr>
 <td><code>credential_username_missing</code></td>
@@ -1964,14 +2029,14 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>dependency</td>
 <td style="text-align:right">112</td>
 <td style="text-align:center">yes</td>
-<td>A job is submitted while the daemon is draining.</td>
+<td>The daemon is draining and admits no job: drained by this client's submission because it is another build's and holds jobs, or by an earlier drain, stop, or signal; or, holding no job, it has not exited within <code>daemon.start-timeout</code>. Nothing is submitted; the daemon exits after its last job, the next submission starts one of this build, and <code>--no-daemon</code> runs meanwhile. Under <code>daemon.launch = &quot;systemd&quot;</code> it is the unit's daemon, stopped or restarted with <code>systemctl</code>, which no client drains: a submission refused so is made again once the unit's next daemon answers.</td>
 </tr>
 <tr>
 <td><code>daemon_incompatible</code></td>
 <td>dependency</td>
 <td style="text-align:right">112</td>
 <td style="text-align:center">no</td>
-<td>The running daemon's version or IPC schema differs from this client's (both must match); no job is submitted and the daemon is not replaced.</td>
+<td>The running daemon speaks a newer IPC schema than this client, which cannot drain it: no job is submitted, and <code>karvi daemon stop</code> from the newer karvi ends it. Under <code>daemon.launch = &quot;systemd&quot;</code> a daemon of another build or a newer schema, which no client drains, refuses a submission and <code>daemon start</code>, naming <code>systemctl restart</code> of the unit. <code>job follow</code> and <code>job cancel</code> refuse a daemon of another schema, older or newer, naming the karvi that speaks it; and a submission is refused when a daemon of another build prepares its job twice.</td>
 </tr>
 <tr>
 <td><code>daemon_log_open_failed</code></td>
@@ -1979,6 +2044,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
 <td>The daemon log file cannot be opened.</td>
+</tr>
+<tr>
+<td><code>daemon_managed</code></td>
+<td>usage</td>
+<td style="text-align:right">112</td>
+<td style="text-align:center">no</td>
+<td><code>daemon stop</code> or <code>daemon restart</code> under <code>daemon.launch = &quot;systemd&quot;</code>: the daemon is the unit <code>karvi-daemon@USER.service</code>'s, stopped and restarted with <code>systemctl</code>, which the refusal names.</td>
 </tr>
 <tr>
 <td><code>daemon_resolution_not_allowed</code></td>
@@ -2007,6 +2079,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
 <td>The daemon socket path exists and is not a socket.</td>
+</tr>
+<tr>
+<td><code>daemon_socket_too_long</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td><code>daemon.sockets</code> is a directory too long for the daemon's sockets: a path socket holds 107 bytes, and the daemon binds <code>d.sock</code> and <code>c.sock</code> there, so the directory may be at most 100 bytes (under <code>auto</code>, <code>&lt;basedir&gt;/socket</code>, a <code>basedir</code> of at most 93); refused where the directory is resolved, before the daemon is reached or started and before anything is made, naming the directory, its length, and under <code>auto</code> the <code>basedir</code>.</td>
 </tr>
 <tr>
 <td><code>daemon_socket_uninspectable</code></td>
@@ -2083,7 +2162,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>shutdown</td>
 <td style="text-align:right">113</td>
 <td style="text-align:center">no</td>
-<td>The operator interrupted <code>--grace</code> or <code>--after</code> waiting; the daemon remains draining.</td>
+<td>The operator interrupted <code>--grace</code> or <code>--after</code> waiting; the daemon finishes its jobs and exits.</td>
 </tr>
 <tr>
 <td><code>daemon_submit_failed</code></td>
@@ -2097,7 +2176,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>connection</td>
 <td style="text-align:right">110</td>
 <td style="text-align:center">no</td>
-<td>Unclassified. The daemon socket cannot be reached or does not answer.</td>
+<td>Unclassified. The daemon socket cannot be reached or does not answer. Under <code>daemon.launch = &quot;systemd&quot;</code>, where no client starts a daemon, a submission and <code>daemon start</code> finding none are refused so, naming <code>systemctl start</code> of the unit.</td>
 </tr>
 <tr>
 <td><code>debug_show_secrets_requires_debug</code></td>
@@ -2741,7 +2820,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>inventory</td>
 <td style="text-align:right">5</td>
 <td style="text-align:center">no</td>
-<td>An inventory row or source names a name-transform profile that is not defined.</td>
+<td>An inventory row's <code>name_transform</code> names a name-transform table that is not defined.</td>
 </tr>
 <tr>
 <td><code>inventory_port_invalid</code></td>
@@ -2993,7 +3072,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>The device or <code>name.default-transform</code> names a name-transform profile that is not defined.</td>
+<td>An inventory source's <code>name-transform</code> names a name-transform table that is not defined; refused when the configuration loads.</td>
 </tr>
 <tr>
 <td><code>native_platform_not_qualified</code></td>
@@ -3451,13 +3530,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>An exec record's stderr encoding is not <code>utf-8</code> or <code>base64</code>.</td>
 </tr>
 <tr>
-<td><code>redis_address_missing</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>A Redis credential backend has no address.</td>
-</tr>
-<tr>
 <td><code>redis_auth_failed</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
@@ -3465,25 +3537,11 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>The Redis server rejects the configured authentication.</td>
 </tr>
 <tr>
-<td><code>redis_auth_missing</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>The Redis authentication environment variable is not set.</td>
-</tr>
-<tr>
 <td><code>redis_ca_file_empty</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
 <td>The Redis CA file contains no certificates.</td>
-</tr>
-<tr>
-<td><code>redis_client_cert_key_unpaired</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>Only one of the Redis client certificate and key is configured.</td>
 </tr>
 <tr>
 <td><code>redis_command_rejected</code></td>
@@ -3497,7 +3555,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>The Redis <code>HGETALL</code> reply is not a flat array of bulk strings.</td>
+<td>The Redis <code>HGETALL</code> reply is not a flat array of bulk strings, or a field of the record is <code>env:</code> followed by something other than a variable name; the message names the backend, the key, and the field, never the value.</td>
 </tr>
 <tr>
 <td><code>redis_protocol_error</code></td>
@@ -3764,13 +3822,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">9</td>
 <td style="text-align:center">no</td>
 <td>No candidate spool directory can be created and written: <code>spooldir</code> names a path, or its <code>auto</code> chain <code>/tmp/karvi-&lt;uid&gt;</code> then <code>/var/tmp/karvi-&lt;uid&gt;</code>, and none is a real directory the effective uid can create a file in. Reported at the job's admission before any device is contacted; the daemon logs it at its start and starts anyway, since the job is what needs the directory.</td>
-</tr>
-<tr>
-<td><code>sqlite_backend_unavailable</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>A SQLite credential backend is configured but this build has no SQLite driver.</td>
 </tr>
 <tr>
 <td><code>ssh_algorithm_negotiation_failed</code></td>
@@ -4207,25 +4258,11 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>Unclassified. Transport selection failed with an error that carries no specific code.</td>
 </tr>
 <tr>
-<td><code>vault_address</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>The Vault address is not a valid URL.</td>
-</tr>
-<tr>
 <td><code>vault_ca_file_empty</code></td>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
 <td>The Vault CA file contains no certificates.</td>
-</tr>
-<tr>
-<td><code>vault_client_cert_key_unpaired</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>Only one of the Vault client certificate and key is configured.</td>
 </tr>
 <tr>
 <td><code>vault_http_error</code></td>
@@ -4253,7 +4290,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>credential</td>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
-<td>The Vault response is not valid key/value version 2 JSON.</td>
+<td>The Vault response is not valid key/value version 2 JSON, or a field of the record is <code>env:</code> followed by something other than a variable name; the message names the backend, the path, and the field, never the value.</td>
 </tr>
 <tr>
 <td><code>vault_tls</code></td>
@@ -4261,13 +4298,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">6</td>
 <td style="text-align:center">no</td>
 <td>The Vault CA or client certificate files cannot be loaded.</td>
-</tr>
-<tr>
-<td><code>vault_token_missing</code></td>
-<td>credential</td>
-<td style="text-align:right">6</td>
-<td style="text-align:center">no</td>
-<td>The Vault token environment variable is unset or empty.</td>
 </tr>
 <tr>
 <td><code>vault_unavailable</code></td>
@@ -4459,6 +4489,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
 <td>A daemon started outside the launcher inherited <code>NETUSER</code>, <code>NETPASS</code>, or <code>NETENABLE</code>; the daemon does not read them, and the notice names the variable only.</td>
+</tr>
+<tr>
+<td><code>daemon_other_build</code></td>
+<td>notice</td>
+<td style="text-align:right">—</td>
+<td style="text-align:center">no</td>
+<td>A dry-run found a daemon of another build than this client's holding no job; a live run would drain it, wait for it to exit, and start one of this build.</td>
 </tr>
 <tr>
 <td><code>dispatch_assessment</code></td>
@@ -4777,6 +4814,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>Device reported a command error.</td>
 </tr>
 <tr>
+<td><code>config_credential_backend_scope_unsupported</code></td>
+<td>v0.30.0</td>
+<td><code>config_credential_backend_key_unsupported</code></td>
+<td><code>scope</code> or <code>required</code> was set on a credential backend that is not a file backend; every key a backend's type does not read is refused under one code.</td>
+</tr>
+<tr>
 <td><code>config_daemon_idle_timer_out_of_range</code></td>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>config_value_out_of_range</code></td>
@@ -4911,7 +4954,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td><code>credential_backend_unavailable</code></td>
 <td>v0.10.0 (catalog name)</td>
-<td><code>redis_unavailable</code>, <code>vault_unavailable</code>, <code>sqlite_backend_unavailable</code></td>
+<td><code>redis_unavailable</code>, <code>vault_unavailable</code></td>
 <td>Credential backend unavailable.</td>
 </tr>
 <tr>
@@ -5113,10 +5156,34 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>Output file system full.</td>
 </tr>
 <tr>
+<td><code>redis_address_missing</code></td>
+<td>v0.30.0</td>
+<td><code>config_credential_backend_address_invalid</code></td>
+<td>A Redis credential backend had no address, found when a device reached it; the address is required and checked when the configuration loads.</td>
+</tr>
+<tr>
+<td><code>redis_auth_missing</code></td>
+<td>v0.30.0</td>
+<td><code>credential_env_missing</code></td>
+<td>The variable a Redis backend's <code>auth-password-env</code> names was not set, found after the connection; that variable, and <code>auth-username-env</code>'s beside it, unset or empty, are one code with every variable a credential source names, read before any connection.</td>
+</tr>
+<tr>
+<td><code>redis_client_cert_key_unpaired</code></td>
+<td>v0.30.0</td>
+<td><code>config_credential_backend_key_unsupported</code></td>
+<td>Only one of a Redis backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread.</td>
+</tr>
+<tr>
 <td><code>run_output_render_failed</code></td>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>terminal_write_failed</code></td>
 <td><code>run --no-daemon</code> rendered the completed job from <code>commands.jsonl</code> and could fail to; it now renders each record from memory as <code>command</code> does, and a display that cannot be written is the code below.</td>
+</tr>
+<tr>
+<td><code>sqlite_backend_unavailable</code></td>
+<td>v0.30.0</td>
+<td><code>config_credential_backend_type_unsupported</code>, <code>config_key_removed</code></td>
+<td>A SQLite credential backend was configured, and the build had no SQLite driver; the <code>sqlite</code> type, which nothing could read, is removed and refused at load as an unsupported type, its keys as removed.</td>
 </tr>
 <tr>
 <td><code>ssh_legacy_host_pattern_all_hosts</code></td>
@@ -5220,10 +5287,28 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>credential_prompt_unavailable</code></td>
 <td>No terminal for a credential prompt.</td>
 </tr>
+<tr>
+<td><code>vault_address</code></td>
+<td>v0.30.0</td>
+<td><code>config_credential_backend_address_invalid</code></td>
+<td>A Vault credential backend's address was not a valid URL, found when a device reached it; the address is required and checked when the configuration loads.</td>
+</tr>
+<tr>
+<td><code>vault_client_cert_key_unpaired</code></td>
+<td>v0.30.0</td>
+<td><code>config_credential_backend_key_unsupported</code></td>
+<td>Only one of a Vault backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread.</td>
+</tr>
+<tr>
+<td><code>vault_token_missing</code></td>
+<td>v0.30.0</td>
+<td><code>credential_env_missing</code></td>
+<td>The variable a Vault backend's <code>token-env</code> names was unset or empty; it is one code with every variable a credential source names.</td>
+</tr>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

@@ -29,11 +29,19 @@
 <li><a href="#daemon-environment">Daemon environment</a></li>
 <li><a href="#the-daemon-and-the-jobs-configuration">The daemon and the job&#39;s configuration</a></li>
 <li><a href="#the-daemons-idle-exit">The daemon&#39;s idle exit</a></li>
+<li><a href="#a-service-accounts-daemon-under-systemd">A service account&#39;s daemon under systemd</a></li>
 <li><a href="#linux-servers">Linux servers</a></li>
+<li><a href="#configuration-macros">Configuration macros</a></li>
 <li><a href="#the-platforms-fallback-and-the-operators-keys">The platform&#39;s fallback and the operator&#39;s keys</a></li>
 <li><a href="#the-credential-prompts">The credential prompts</a></li>
 <li><a href="#the-environment-backend">The environment backend</a></li>
+<li><a href="#the-vault-backend">The Vault backend</a></li>
+<li><a href="#the-redis-backend">The Redis backend</a></li>
+<li><a href="#a-store-backends-keys-at-load">A store backend&#39;s keys at load</a></li>
+<li><a href="#tls-to-a-store">TLS to a store</a></li>
+<li><a href="#the-credential-helper">The credential helper</a></li>
 <li><a href="#credential-files">Credential files</a></li>
+<li><a href="#the-operators-name-and-the-credential-transforms">The operator&#39;s name and the credential transforms</a></li>
 <li><a href="#address-family-troubleshooting">Address-family troubleshooting</a></li>
 <li><a href="#border-operation">Border operation</a></li>
 <li><a href="#device-error-echo">Device-error echo</a></li>
@@ -91,6 +99,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -114,11 +123,19 @@
 <li><a href="#daemon-environment">Daemon environment</a></li>
 <li><a href="#the-daemon-and-the-jobs-configuration">The daemon and the job&#39;s configuration</a></li>
 <li><a href="#the-daemons-idle-exit">The daemon&#39;s idle exit</a></li>
+<li><a href="#a-service-accounts-daemon-under-systemd">A service account&#39;s daemon under systemd</a></li>
 <li><a href="#linux-servers">Linux servers</a></li>
+<li><a href="#configuration-macros">Configuration macros</a></li>
 <li><a href="#the-platforms-fallback-and-the-operators-keys">The platform&#39;s fallback and the operator&#39;s keys</a></li>
 <li><a href="#the-credential-prompts">The credential prompts</a></li>
 <li><a href="#the-environment-backend">The environment backend</a></li>
+<li><a href="#the-vault-backend">The Vault backend</a></li>
+<li><a href="#the-redis-backend">The Redis backend</a></li>
+<li><a href="#a-store-backends-keys-at-load">A store backend&#39;s keys at load</a></li>
+<li><a href="#tls-to-a-store">TLS to a store</a></li>
+<li><a href="#the-credential-helper">The credential helper</a></li>
 <li><a href="#credential-files">Credential files</a></li>
+<li><a href="#the-operators-name-and-the-credential-transforms">The operator&#39;s name and the credential transforms</a></li>
 <li><a href="#address-family-troubleshooting">Address-family troubleshooting</a></li>
 <li><a href="#border-operation">Border operation</a></li>
 <li><a href="#device-error-echo">Device-error echo</a></li>
@@ -176,37 +193,55 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1672" height="941" alt="A Viking keeping watch over the network racks of a datacenter" src="../images/viking-guardian-of-the-datacenter.png" />
 <h1 id="operations-guide">Operations guide <a class="anchor" href="#operations-guide" aria-label="Link to this section">#</a></h1>
 <h2 id="upgrade">Upgrade <a class="anchor" href="#upgrade" aria-label="Link to this section">#</a></h2>
-<p>After replacing the executable, inspect the private per-user daemon:</p>
-<pre><code class="language-bash">karvi daemon status
+<p>An operator's own daemon, the one the operator's client launches
+(<code>daemon.launch = &quot;client&quot;</code>, the default), needs nothing run after an upgrade.
+A daemon serves a client only when its IPC schema and its build, the Go build ID
+of its executable, equal the client's. The next submission (<code>run</code>, <code>crun</code>,
+<code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
+another build. Holding no job, it exits at once, and the client starts one of
+its own build in the same invocation:</p>
+<pre><code>daemon drained version=0.29.0 build=9Au3WHU839F5xE-67H93
+daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
-<p>A daemon is compatible when its version and its IPC schema both equal the
-client's, so every upgrade restarts the daemon. When either differs, karvi
-reports <code>compatible: false</code> and the exact remediation. Confirm
-<code>active_jobs: 0</code>, then perform an explicit restart:</p>
-<pre><code class="language-bash">karvi daemon restart
+<p>Holding jobs, the drained daemon finishes them and exits after the last,
+killing nothing. Until then every submission is refused, the daemon's build
+over the client's:</p>
+<pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 9Au3WHU839F5xE-67H93 0.29.0
+  client build XfTtoeK1qq9HkGakcVu7 0.29.0
 </code></pre>
-<p>With no option, stop and restart refuse while the daemon reports active jobs.
-<code>--grace</code> drains and waits for them, <code>--after=DURATION</code> drains and waits up to
-the limit before forcing, and <code>--force</code> stops immediately for an operator who
-intentionally accepts interruption; forced work still receives terminal
-records. Interrupting a <code>--grace</code> or <code>--after</code> wait leaves the daemon draining.</p>
+<p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
+any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
+daemon's values over the client's, <code>daemon_version:</code> over <code>client_version:</code>,
+then the commit, the IPC schema, and the build, above <code>compatible:</code>; <code>--format json</code> takes the same keys.</p>
+<p>To end the daemon rather than wait for the next submission:</p>
+<pre><code class="language-bash">karvi daemon stop --grace
+</code></pre>
+<p><code>--grace</code> drains the daemon and waits for it to exit; <code>--after=DURATION</code> drains
+and waits up to the limit, then forces; <code>--force</code> stops it at once, forced work
+still receiving terminal records. A wait begins with a line naming the jobs
+(<code>daemon draining: 1 job running; waiting for it to exit</code>), which <code>--quiet</code>
+leaves out; interrupted, the wait ends and the daemon still finishes its jobs
+and exits. With no option, <code>daemon stop</code> and <code>daemon restart</code> are refused while
+the daemon runs a job, which it alone counts.</p>
+<p>An older karvi beside a newer daemon is refused, <code>daemon_incompatible</code>, the
+schemas stacked: the older client cannot speak the newer schema, so it neither
+drains nor stops that daemon. A downgrade is the administrator's, who ends the
+operators' running daemons or restarts the host; an idle daemon exits by itself
+after <code>daemon.shutdown-idle-timer</code> (below).</p>
+<p>A service account's daemon under systemd is never drained by a client; its
+upgrade is the administrator's restart of its unit (see &quot;A service account's
+daemon under systemd&quot;, below).</p>
 <p>Error messages begin with a registered code;
 <a href="ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a> lists each code with its cause and exit
 status.</p>
-<p>A daemon left by a v0.10.0 preview before schema 6 (pre4 and earlier) answers
-the same way: <code>compatible: false</code>, stop it with its own executable or <code>karvi daemon restart</code>. The new client uses lifecycle-only compatibility to stop the
-older same-UID daemon and then starts the current executable. Job requests are
-never downgraded, and a normal <code>karvi run</code> never kills or silently replaces an
-incompatible daemon. Operators who need a one-shot foreground run before
-restarting may explicitly use <code>karvi run --no-daemon ...</code>.</p>
-<p>For a planned upgrade, stopping before binary replacement remains valid:</p>
-<pre><code class="language-bash">karvi daemon stop
-</code></pre>
 <h2 id="rehearsal-detach-and-follow">Rehearsal, detach, and follow <a class="anchor" href="#rehearsal-detach-and-follow" aria-label="Link to this section">#</a></h2>
 <p><code>karvi run --dry-run ...</code> plans on the client and probes the daemon without
 launching one: it prints the inspection report (text, or <code>--format json</code>
@@ -422,7 +457,7 @@ working directory reach its own job; a relative path in any of them is made
 absolute against the client's working directory when it loads, so <code>karvi config show</code> prints the path the job records. Two clients through one daemon, each
 naming its own trust store:</p>
 <pre><code class="language-text">$ karvi --set ssh.known-hosts-file=kh1/known_hosts run --target 127.0.0.1 --platform linux --cmd 'echo 1'
-daemon started socket=…/socket/daemon.sock
+daemon started socket=…/socket/d.sock
 ! ssh accepted new host-key 127.0.0.1 (ED25519)
 1
 $ karvi --set ssh.known-hosts-file=kh2/known_hosts run --target 127.0.0.1 --platform linux --cmd 'echo 2'
@@ -439,15 +474,27 @@ side of <code>daemon.max-ipc-frame-bytes</code> and <code>daemon.forced-grace-se
 value of one reaches the daemon at its next start (<code>karvi daemon restart</code>). A
 site's locks are enforced by each client's load; the daemon checks no lock of
 its own. A job's audit records, the cancel record among them, go where its
-configuration names, and the client of a daemon-backed run prints its load's
-warnings itself.</p>
+configuration names.</p>
+<p>Every invocation reads its configuration once, its files, its environment,
+and its options together, and every stage of it, a <code>crun</code>'s hook among them,
+runs under that read; an edit made while a job runs reaches the next
+invocation. A <code>stream</code> reads as it starts and runs every job under that
+reading with the job's own option lines, so an edit reaches the next stream, or
+the jobs after a <code>--restart</code> line, which reads the configuration again.
+The read's warnings, an <code>@include?</code> file missing or a <code>KARVI__</code> variable
+ignored under <code>config.reject-unknown-env = false</code>, are said once on standard
+error, in the warning colour at a terminal, under <code>--quiet</code> and any format too;
+a run through a daemon says them in its client. The daemon's own read writes
+them into <code>daemon.log</code> at its start:</p>
+<pre><code class="language-text">level=WARN msg=&quot;configuration warning&quot; warning=&quot;ignored unknown environment variable KARVI__NOPE&quot;
+</code></pre>
 <h2 id="the-daemons-idle-exit">The daemon's idle exit <a class="anchor" href="#the-daemons-idle-exit" aria-label="Link to this section">#</a></h2>
 <p>A daemon a client launched is one process per operator and per configuration
 (<code>basedir</code>), and it outlives the terminal and the login that started it. On a
 host used by a team, that is one daemon per operator, each holding its
 start-time executable and <code>daemon.*</code> settings, for as long as no one stops it.
-<code>daemon.shutdown-idle-timer</code> (<code>&quot;1h&quot;</code> by default) ends that: after that long with
-no active job, no preparation in progress, and no request but <code>ping</code> and
+<code>daemon.shutdown-idle-timer</code> (<code>&quot;10m&quot;</code> by default) ends that: after that long
+with no active job, no preparation in progress, and no request but <code>ping</code> and
 <code>status</code>, the daemon stops itself exactly as <code>daemon stop</code> on an idle daemon
 would, exit 0, with one line in <code>logs/daemon.log</code> (<code>stopping: idle</code>, the idle
 time, the key and its value). The check runs once a minute, so the exit comes
@@ -461,18 +508,85 @@ as it likes. Every other request, and a job's end, restarts the clock.
 The client probes the daemon just before its first request and repeats
 that request once, with the plan it already made, if the daemon left in
 between; an operator sees at most a <code>daemon started</code> line.</p>
-<p>Under systemd the packaged unit
-(<code>/usr/share/karvi/systemd/user/karvi-daemon.service</code>) starts the daemon with
-<code>--set daemon.shutdown-idle-timer=0</code>, because an idle exit is a clean exit that
-<code>Restart=on-failure</code> would not restart, and the next client would then launch a
-daemon outside the unit and its limits. A site running its own unit does the
-same. The timer is not what ends a daemon at logout: a host whose logind has
-<code>KillUserProcesses=yes</code> ends every process of the session, a running job
-included, with or without the timer; <code>loginctl enable-linger</code> or the unit keeps
-a daemon through logout there.</p>
+<p>The service account's unit, <code>karvi-daemon@.service</code> (below), starts the daemon
+with <code>--set daemon.shutdown-idle-timer=0</code>, because an idle exit is a clean exit
+that <code>Restart=on-failure</code> would not restart. The timer is not what ends a daemon
+at logout: a daemon a client launched runs in the login session's scope, and a
+host whose logind has <code>KillUserProcesses=yes</code> ends every process of the session
+at logout, a running job included, with or without the timer; a shutdown stops
+the scope at once, the daemon's OpenSSH sessions with it.</p>
 <p><code>karvi-daemon(1)</code> (<code>man karvi daemon</code>), FILES, restates the daemon's
 places, its filtered environment, and the idle exit for the terminal; a
 change to one changes both.</p>
+<h2 id="a-service-accounts-daemon-under-systemd">A service account's daemon under systemd <a class="anchor" href="#a-service-accounts-daemon-under-systemd" aria-label="Link to this section">#</a></h2>
+<p>A site chooses how karvi runs: each operator's own daemon on the operator's own
+trees; the same with the site's shared trees (<code>sudo karvi setup shared</code>); or a
+service account's daemon under systemd. Neither the package nor an install from
+the bundle sets any of them up. On a service platform the daemon is a service
+account's, <code>karvi</code>, run by systemd and administered centrally, where on a jump
+box each operator's client launches the operator's own. Only the daemon's own
+account reaches it, its socket's directory 0700 and the daemon checking each
+peer's uid, so the jobs it runs are the account's: its timers and its
+automation, run as <code>karvi</code>.</p>
+<p>The package installs the template unit
+<code>/usr/lib/systemd/system/karvi-daemon@.service</code>, and the bundle's <code>sudo ./scripts/install.sh</code> the same under <code>/usr/local/lib/systemd/system</code>, with
+<code>karvi-sysutil</code> in <code>/usr/local/sbin</code>; neither runs anything. The template names
+<code>karvi</code> bare, which systemd finds in <code>/usr/local/bin</code> before <code>/usr/bin</code>. The
+administrator sets the account up once, as root, under either install:</p>
+<pre><code class="language-bash">sudo karvi-sysutil daemon install
+</code></pre>
+<p>It runs <code>karvi setup shared</code> (the shared trees, in the operators' group,
+<code>netops</code> unless <code>--group NAME</code> names another); makes the system user <code>karvi</code>,
+its group, and its home <code>/opt/karvi/users/karvi</code> (0750), with no login shell;
+adds it to the operators' group; writes its configuration,
+<code>/opt/karvi/users/karvi/.config/karvi/config.toml</code> (0600), with <code>[daemon] launch = &quot;systemd&quot;</code>; and enables and starts <code>karvi-daemon@karvi.service</code>,
+checking <code>karvi daemon status</code> as the account. Each part is entered in the
+record <code>/etc/karvi/service-karvi.installed</code> as it is made or found. Run again,
+it changes nothing over a whole install and repairs what has drifted from what
+it made; <code>karvi-sysutil(8)</code> lists every step and refusal. The account is a
+system user, so logind's <code>RemoveIPC</code> leaves its files under <code>/dev/shm</code> alone,
+and it needs no user manager and no <code>loginctl enable-linger</code>.</p>
+<p>Under <code>daemon.launch = &quot;systemd&quot;</code> the account's client neither drains nor
+starts a daemon:</p>
+<ul>
+<li>a daemon of its own build, not draining, takes the submission;</li>
+<li>a daemon of another build, or of a newer IPC schema, refuses it,
+<code>daemon_incompatible</code>, naming <code>systemctl restart karvi-daemon@karvi.service</code>;</li>
+<li>with no daemon, a submission and <code>daemon start</code> are refused,
+<code>daemon_unreachable</code>, naming <code>systemctl start</code> of the unit;</li>
+<li>a draining daemon, stopping under its unit, refuses it, <code>daemon_draining</code>;</li>
+<li><code>daemon stop</code> and <code>daemon restart</code> are refused, <code>daemon_managed</code> (exit 112),
+naming <code>systemctl stop</code> or <code>restart</code> of the unit;</li>
+<li><code>daemon status</code>'s <code>remediation:</code> names the unit's restart.</li>
+</ul>
+<p>The unit starts the daemon after the network, so a shutdown stops it before the
+network goes. A stop, a restart, or a shutdown signals the daemon alone
+(<code>KillMode=mixed</code>): it admits no job, lets its jobs finish within
+<code>daemon.shutdown-grace-seconds</code> (60 by default), cancels and records what
+remains, and ends its own sessions; systemd kills what is left once it has
+exited. <code>TimeoutStopSec=infinity</code> leaves that bound to the daemon's grace keys,
+so a site that raises the grace changes no unit. <code>Restart=on-failure</code> restarts
+a daemon that fails, and the idle timer is off (above). A site's own settings
+go in a drop-in under <code>/etc/systemd/system/karvi-daemon@.service.d/</code>, which an
+upgrade never touches.</p>
+<p><strong>After an upgrade</strong>, and after a rollback (<code>apt install --allow-downgrades</code>,
+or an earlier bundle's <code>install.sh</code>, <a href="../BUILD-HOWTO.html#10-install-and-roll-back"><code>BUILD-HOWTO.md</code> section
+10</a>), the template has been
+replaced and systemd reloaded, and the daemon still runs the program it
+started with. The administrator's one step:</p>
+<pre><code class="language-bash">sudo systemctl restart karvi-daemon@karvi.service
+</code></pre>
+<p>The restart drains the old daemon under its grace and starts the installed
+karvi. Until then the account's submissions are refused, <code>daemon_incompatible</code>,
+the builds stacked.</p>
+<p><strong>Removal.</strong> <code>sudo karvi-sysutil daemon remove</code> disables and stops the
+instance, the stop waiting for its jobs as at a shutdown, and removes the
+configuration file and the group membership it made. The account and its home
+stay, so that their files keep their owner, and a later <code>daemon install</code> takes
+the account back. <code>--purge</code> also gives every file the account owns in the
+shared trees and the shared scratch to root, their group and mode unchanged,
+and removes the account, its home, its spool directories, and the record. The
+shared trees and the template unit stay.</p>
 <h2 id="linux-servers">Linux servers <a class="anchor" href="#linux-servers" aria-label="Link to this section">#</a></h2>
 <p>A server is the built-in <code>linux</code>, an alias of it, or <code>linux_shell</code>. <code>linux</code>
 runs each command on an exec channel of its own over either transport: one
@@ -520,11 +634,91 @@ DEBUG control_socket_abandoned_removed: removed the abandoned control socket /ho
 <p>A server is qualified by the rows of
 <a href="DEVICE-QUALIFICATION-RUNBOOK.html#9-a-production-server"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code>, section
 9</a>.</p>
+<h2 id="configuration-macros">Configuration macros <a class="anchor" href="#configuration-macros" aria-label="Link to this section">#</a></h2>
+<p>A <code>[macros]</code> table names values that any other value of the configuration takes
+as <code>%NAME%</code>, the name a letter and then up to 63 letters, digits, <code>_</code>, and <code>-</code>.
+The layers are merged first, so a macro one file defines reaches the values of
+every other, and <code>--set 'macros.region=&quot;bos&quot;'</code>, a TOML value, replaces one for
+an invocation. A macro is filled when the configuration loads: <code>config show</code>,
+the configuration digest, and the plan hold the filled values, and <code>config show --explain</code> names the macros a value took:</p>
+<pre><code class="language-toml">[macros]
+region = &quot;nyc&quot;
+core = [&quot;show version&quot;, &quot;show inventory&quot;]
+
+[crun]
+directory = &quot;/srv/karvi/%region%/%operator%&quot;
+
+[platform.c9300]
+driver = &quot;cisco_iosxe&quot;
+crun-commands = [&quot;%core%&quot;, &quot;show running-config&quot;]
+</code></pre>
+<pre><code class="language-text">$ karvi config show --explain crun.directory | grep 'key:\|value:\|macros:'
+key:        crun.directory
+value:      &quot;/srv/karvi/nyc/netops&quot;
+macros:      region, operator
+$ karvi config show platform.c9300.crun-commands | grep 'value:'
+value:      [&quot;show version&quot;, &quot;show inventory&quot;, &quot;show running-config&quot;]
+</code></pre>
+<ul>
+<li><strong>A value that is the macro alone takes the macro's kind</strong>, a list or a table
+as well as a string, and a list macro inside a list is spliced into it, as
+<code>%core%</code> above. Inside text a macro must be a string, a number, or a boolean.</li>
+<li><strong><code>%operator%</code> is built in</strong>: the operator's login name from the password
+database, filled in every value as a site's macro is. <code>[macros] operator</code> is
+refused, and <code>%Operator%</code> is an ordinary macro.</li>
+<li><strong>Seven keys keep <code>%operator%</code> as written</strong>, and the backend fills it when it
+is asked, with the operator's name after the backend's <code>operator</code> transform
+(<a href="#the-operators-name-and-the-credential-transforms">the credential
+transforms</a>): the env
+backend's three templates, Redis's <code>key-template</code>, Vault's <code>path-template</code>,
+and the <code>username-template</code> of a formula and of a policy. The key being filled
+decides, so a site's macro holding <code>%operator%</code> keeps it there too. Every
+<code>%operator%</code> in such a key is replaced as text, and a template without one is
+used as written: <code>karvi:shared</code> is one record for every operator. <code>%s</code> is
+text: a Redis key or a Vault path holding it finds no record, a formula sends
+it, and an env template holding it names no variable and is refused.</li>
+<li><strong>A store's answer is never expanded.</strong> A username, password, or enable
+password from a credential CSV, a <code>.cloginrc</code>, or a Redis or Vault record is
+sent as written, <code>%operator%</code> and <code>%HOME%</code> included.</li>
+</ul>
+<p>Refused when the configuration loads, <code>config validate</code> included (exit 2):</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>The value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config_macro_undefined</code></td>
+<td>names a macro no layer defines</td>
+</tr>
+<tr>
+<td><code>config_macro_cycle</code></td>
+<td>names macros that name each other in a cycle</td>
+</tr>
+<tr>
+<td><code>config_macro_scalar_type</code></td>
+<td>has a list or table macro inside text</td>
+</tr>
+<tr>
+<td><code>config_macro_name_reserved</code></td>
+<td>is <code>[macros] operator</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-text">config_macro_undefined: undefined macro %site% for crun.directory at FILE:2
+</code></pre>
+<p><code>%operator%</code> with no name known for the operator is
+<code>operator_identity_unavailable</code>.</p>
 <h2 id="the-platforms-fallback-and-the-operators-keys">The platform's fallback and the operator's keys <a class="anchor" href="#the-platforms-fallback-and-the-operators-keys" aria-label="Link to this section">#</a></h2>
 <p>When no backend of the policy answers for a device, its platform's
 <code>fallback</code> says what follows, in order: <code>netvars</code> reads <code>NETUSER</code>, <code>NETPASS</code>,
-and <code>NETENABLE</code>; <code>keys</code> is the operator's login name and own keys; <code>prompt</code>
-asks at the terminal (<a href="#the-credential-prompts">the credential prompts</a>).
+and <code>NETENABLE</code> (the credential helper's values where it set them, else the
+process environment's: <a href="#the-credential-helper">the credential helper</a>); <code>keys</code>
+is the operator's login name and own keys; <code>prompt</code> asks at the terminal (<a href="#the-credential-prompts">the
+credential prompts</a>).
 The network built-ins and <code>generic</code> are <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, <code>linux</code> and
 <code>linux_shell</code> <code>[&quot;keys&quot;]</code>, an alias its driver's; a table replaces the list
 whole, and an empty list is no fallback. The variables an operator exports
@@ -621,44 +815,415 @@ credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name
 names a backend, since nothing can be asked.</p>
 <h2 id="the-environment-backend">The environment backend <a class="anchor" href="#the-environment-backend" aria-label="Link to this section">#</a></h2>
 <p>A backend of <code>type = &quot;env&quot;</code> reads one credential from environment variables in
-the client, before the job is planned. Three optional templates name the
-variables, one per field:</p>
+the client, before the job is planned, the credential helper's values where it
+set them (<a href="#the-credential-helper">the credential helper</a>). Three optional
+templates name the variables, one per field:</p>
 <pre><code class="language-toml">[credential-backend.operator-env]
 type = &quot;env&quot;
-username-var-template = &quot;KARVI_%s_USERNAME&quot;
-password-var-template = &quot;KARVI_%s_PASSWORD&quot;
-enable-var-template = &quot;KARVI_%s_ENABLE_PASSWORD&quot;
+username-var-template = &quot;KARVI_%operator%_USERNAME&quot;
+password-var-template = &quot;KARVI_%operator%_PASSWORD&quot;
+enable-var-template = &quot;KARVI_%operator%_ENABLE_PASSWORD&quot;
 </code></pre>
 <ul>
-<li><strong><code>%s</code> is the operator's login name</strong>, as the account has it, case kept:
-for the operator <code>netops</code> the templates above read <code>KARVI_netops_USERNAME</code>,
-<code>KARVI_netops_PASSWORD</code>, and <code>KARVI_netops_ENABLE_PASSWORD</code>. A template
-without <code>%s</code> is the variable's name as written (<code>SRV_USER</code>); a template holds
-at most one <code>%s</code>; a template left out reads nothing for its field.</li>
-<li><strong>One credential per operator.</strong> Nothing in a template names the device, so
+<li>
+<p><strong><code>%operator%</code> is the operator's login name</strong>, as the account has it, case
+kept, after the backend's <code>transform</code> (<a href="#the-operators-name-and-the-credential-transforms">the credential
+transforms</a>): for the
+operator <code>netops</code> the templates above read <code>KARVI_netops_USERNAME</code>,
+<code>KARVI_netops_PASSWORD</code>, and <code>KARVI_netops_ENABLE_PASSWORD</code>. The templates
+keep it as written (<a href="#configuration-macros">configuration macros</a>), so
+<code>config show</code> prints <code>KARVI_%operator%_PASSWORD</code>. A template without
+<code>%operator%</code> is the variable's name as written (<code>SRV_USER</code>,
+<code>enable-var-template = &quot;NETENABLE&quot;</code>); a template left out, or <code>&quot;&quot;</code>, reads
+nothing for its field.</p>
+</li>
+<li>
+<p><strong>A template names a variable.</strong> Each template, with <code>%operator%</code> stood in by
+a letter, must be a portable variable name, letters, digits, and underscores,
+not beginning with a digit; anything else is refused when the configuration
+loads, <code>config validate</code> included, with
+<code>config_credential_backend_variable_invalid</code> (exit 2), <code>%s</code> among it:</p>
+<pre><code class="language-text">config_credential_backend_variable_invalid: &quot;KARVI-%operator%-PASSWORD&quot; not a variable name (letters, digits, underscores; no leading digit) for credential-backend.e.password-var-template at FILE:15
+</code></pre>
+<p>An operator's name that makes no variable name, after the transform, stops
+the device at planning under the same code, naming the remedy:</p>
+<pre><code class="language-text">config_credential_backend_variable_invalid: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend e: password-var-template gives &quot;KARVI_netops.adm_PASSWORD&quot;, not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform policy=default backend=e)
+</code></pre>
+</li>
+<li>
+<p><strong>One credential per operator.</strong> Nothing in a template names the device, so
 every device the policy sends to the backend takes the same credential. A
 credential per device comes from a backend whose rows select devices: the
 credential CSV (<a href="CREDENTIAL-CSV.html"><code>docs/CREDENTIAL-CSV.md</code></a>) or a
 <code>.cloginrc</code>. A policy map rule sends a class of devices to a policy of its
-own (<code>platform = &quot;linux&quot;</code>, or a glob such as <code>linux*</code>).</li>
-<li><strong>It answers when any of its variables is set.</strong> With none set it answers
+own (<code>platform = &quot;linux&quot;</code>, or a glob such as <code>linux*</code>).</p>
+</li>
+<li>
+<p><strong>It answers when any of its variables is set.</strong> With none set it answers
 nothing and the policy's next backend is asked. With one set it answers, and
 the credential is judged as any backend's: a field the device needs and the
 backend left empty is that field's missing code (<code>credential_password_missing</code>
-for a password), and no later backend, variable, or prompt is asked.</li>
-<li><strong>Indirection.</strong> <code>env-indirection.username</code>, <code>.password</code>, and
-<code>.enable-password</code>, each <code>false</code> by default, make the variable's value the
-name of another variable whose value is used; when that variable is not set,
-the value is taken as written.</li>
-<li><strong>Not keyed.</strong> A device pinned by <code>credkeyref</code> skips the backend
+for a password), and no later backend, variable, or prompt is asked.</p>
+</li>
+<li>
+<p><strong>A variable's value is the value.</strong> <code>env:X</code> in a variable is the text
+<code>env:X</code>; a template names the variable to read. <code>env-indirection.username</code>,
+<code>.password</code>, and <code>.enable-password</code> are refused as removed,
+<code>config_key_removed</code> (exit 2).</p>
+</li>
+<li>
+<p><strong>Asked once.</strong> The backend asks the same of every device, so it is asked
+once per invocation, or per job of a stream, and its answer held for every
+device the policies send to it.</p>
+</li>
+<li>
+<p><strong>Not keyed.</strong> A device pinned by <code>credkeyref</code> skips the backend
 (<a href="CREDENTIAL-CSV.html#5-keys-and-pins-credkey-and-credkeyref"><code>docs/CREDENTIAL-CSV.md</code>, section
 5</a>). The record's
-<code>matched_on</code> names the operator, not the device.</li>
+<code>matched_on</code> names the operator, not the device.</p>
+</li>
 </ul>
 <p>The fallback's <code>NETUSER</code>, <code>NETPASS</code>, and <code>NETENABLE</code> are read without a
 backend, after the policy's backends, where the platform's fallback holds
 <code>netvars</code> (<a href="#the-platforms-fallback-and-the-operators-keys">the platform's fallback</a>);
 an <code>env</code> backend is how a site names variables of its own.</p>
+<h2 id="the-vault-backend">The Vault backend <a class="anchor" href="#the-vault-backend" aria-label="Link to this section">#</a></h2>
+<p>A backend of <code>type = &quot;vault&quot;</code> reads the operator's record from a Vault KV
+version 2 engine, in the client before the job is planned, with a token from a
+variable. It is asked only for a device whose policy's <code>backend-sequence</code> names
+it:</p>
+<pre><code class="language-toml">[credential-backend.vault]
+type = &quot;vault&quot;
+address = &quot;https://vault.example.net:8200&quot;
+# mount = &quot;secret&quot;
+# path-template = &quot;karvi/%operator%&quot;
+# token-env = &quot;VAULT_TOKEN&quot;
+
+[credential-policy.default]
+backend-sequence = [&quot;vault&quot;]
+</code></pre>
+<ul>
+<li>
+<p><strong>The keys.</strong> <code>address</code> is required, an <code>http://</code> or <code>https://</code> URL with a
+host. <code>mount</code> (default <code>secret</code>) and <code>path-template</code> (default
+<code>karvi/%operator%</code>) make the read <code>GET &lt;address&gt;/v1/&lt;mount&gt;/data/&lt;path&gt;</code>,
+<code>%operator%</code> filled with the operator's name after the backend's transform;
+<code>namespace</code> is sent as <code>X-Vault-Namespace</code>; <code>username-field</code>,
+<code>password-field</code>, and <code>enable-field</code> (defaults <code>username</code>, <code>password</code>, and
+<code>enable_password</code>) name the record's fields; <code>connect-timeout</code> (default <code>5s</code>)
+bounds the read. <code>ca-file</code>, <code>client-cert-file</code>, <code>client-key-file</code>, and
+<code>tls-verify</code> are the TLS settings (<a href="#tls-to-a-store">TLS to a store</a>).</p>
+</li>
+<li>
+<p><strong>The token</strong> is the value of the variable <code>token-env</code> names (default
+<code>VAULT_TOKEN</code>), the credential helper's where it set it. It is read when a
+device's policy reaches the backend, and never by <code>config validate</code>; unset or
+empty, the device stops at planning before any connection, and the run with
+it:</p>
+<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: token-env: VAULT_TOKEN not set policy=default backend=v)
+</code></pre>
+<p>A token the store refuses is <code>vault_http_error</code> (<code>Vault returned HTTP 403</code>)
+and a store that does not answer <code>vault_unavailable</code>, each exit 6.</p>
+</li>
+<li>
+<p><strong>The record</strong> gives the username, the password, and the enable password. A
+field whose value, trimmed, begins with <code>env:</code> (the prefix's case ignored)
+names a variable, read as the token is: <code>enable_password = &quot;env:NETENABLE&quot;</code>
+takes <code>NETENABLE</code>'s value, and an unset or empty one stops the device, naming
+the record, the field, and the variable:</p>
+<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: v1/secret/data/karvi/netops enable_password: NETENABLE not set policy=default backend=v)
+</code></pre>
+<p>A rest that is no variable name is the record's form wrong,
+<code>vault_response_malformed</code>, naming the field and never the value. Any other
+value is a literal, so a password that begins with <code>env:</code> lives in a variable
+and is named. The credential is judged as any backend's: a field the device
+needs and the record left blank is that field's missing code, a blank
+username <code>credential_incomplete</code>.</p>
+</li>
+<li>
+<p><strong>No record</strong> at the path, or one holding none of the three fields, is not
+found: the device goes on to the policy's next backend, then the platform's
+fallback.</p>
+</li>
+<li>
+<p><strong>Asked once.</strong> The read is the operator's, the same for every device, so the
+backend is asked once per invocation, or per job of a stream, and its answer
+held for every device the policies send to it: forty devices made one <code>GET</code>,
+and a store that does not answer costs one timeout, every device given the
+failure. A password rotated in the store reaches a stream's next job.</p>
+</li>
+<li>
+<p><strong><code>matched_on.source</code></strong> is the path read, in each command record, the grant,
+and <code>--debug</code>:</p>
+<pre><code class="language-text">DEBUG device credential target=&quot;d1&quot; device_user=&quot;netops&quot; backend=&quot;v&quot; policy=&quot;default&quot; matched_category=&quot;operator&quot; matched_pattern=&quot;&quot; matched_source=&quot;v1/secret/data/karvi/netops&quot; credential_id=…
+</code></pre>
+</li>
+</ul>
+<h2 id="the-redis-backend">The Redis backend <a class="anchor" href="#the-redis-backend" aria-label="Link to this section">#</a></h2>
+<p>A backend of <code>type = &quot;redis&quot;</code> reads the operator's record, a hash, from a Redis
+server (<code>AUTH</code> when a password is configured, <code>SELECT</code> for a database other
+than 0, then <code>HGETALL</code>), in the client before the job is planned. It is asked
+only for a device whose policy's <code>backend-sequence</code> names it:</p>
+<pre><code class="language-toml">[credential-backend.redis]
+type = &quot;redis&quot;
+address = &quot;redis.example.net:6380&quot;
+auth-password-env = &quot;REDIS_PASS&quot;
+# key-template = &quot;karvi:credential:%operator%&quot;
+</code></pre>
+<ul>
+<li>
+<p><strong>The keys.</strong> <code>address</code> is required, <code>host:port</code>. <code>key-template</code> (default
+<code>karvi:credential:%operator%</code>) is the hash read, <code>%operator%</code> filled with the
+operator's name after the backend's transform; <code>database</code> (default 0);
+<code>connect-timeout</code> (default <code>2s</code>). <code>tls</code> (default <code>true</code>), <code>ca-file</code>,
+<code>client-cert-file</code>, <code>client-key-file</code>, and <code>tls-verify</code> are the TLS settings
+(<a href="#tls-to-a-store">TLS to a store</a>).</p>
+</li>
+<li>
+<p><strong>The login.</strong> A server that asks for a password takes <code>auth-password-env</code>,
+the variable holding it, and one with users <code>auth-username-env</code> beside it;
+<code>auth-username-env</code> alone is refused at load. Each is read as Vault's token
+is, the credential helper's value where it set it, and unset or empty stops
+the device before any connection:</p>
+<pre><code class="language-text">credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend r: auth-password-env: REDIS_PASS not set policy=default backend=r)
+</code></pre>
+<p>A password the server refuses is <code>redis_auth_failed</code>, exit 6. With neither
+key, no <code>AUTH</code> is sent.</p>
+</li>
+<li>
+<p><strong>The record</strong>'s fields are <code>username</code>, <code>password</code>, and <code>enable_password</code>,
+each a literal or an <code>env:NAME</code> reference as Vault's are; a bad reference is
+<code>redis_malformed</code>. No hash at the key, or one holding none of the three
+fields, is not found.</p>
+</li>
+<li>
+<p><strong>Asked once</strong>, as Vault is: three devices made one <code>AUTH</code> and one <code>HGETALL</code>.</p>
+</li>
+<li>
+<p><strong><code>matched_on.source</code></strong> is the key read, <code>karvi:credential:netops</code> for the
+operator <code>netops</code> under the default template, or the template as written
+when it holds no <code>%operator%</code>.</p>
+</li>
+</ul>
+<h2 id="a-store-backends-keys-at-load">A store backend's keys at load <a class="anchor" href="#a-store-backends-keys-at-load" aria-label="Link to this section">#</a></h2>
+<p>The env, Redis, and Vault backends' keys are checked when the configuration
+loads, <code>config validate</code> included, each refusal exit 2 and naming the key and
+its line:</p>
+<ul>
+<li><strong>Kinds.</strong> Every key is a string but Redis's <code>tls</code> and both types'
+<code>tls-verify</code> (booleans), Redis's <code>database</code> (an integer of 0 or more), and
+<code>connect-timeout</code> (a duration above zero): <code>config_type_error</code>,
+<code>config_duration_error</code>, <code>config_duration_negative</code>, or
+<code>config_value_out_of_range</code>.</li>
+<li><strong>The address</strong>, missing or malformed:
+<code>config_credential_backend_address_invalid</code>.</li>
+<li><strong>A variable's name.</strong> <code>token-env</code>, <code>auth-username-env</code>, and
+<code>auth-password-env</code> must be portable variable names:
+<code>config_credential_backend_variable_invalid</code>, quoting the value.</li>
+<li><strong>A key the other keys leave unread</strong>,
+<code>config_credential_backend_key_unsupported</code>:
+<code>auth-username-env</code> without <code>auth-password-env</code>; a client certificate without
+its key, or the reverse; Redis's <code>ca-file</code>, <code>client-cert-file</code>,
+<code>client-key-file</code>, and <code>tls-verify</code> under <code>tls = false</code>; Vault's with an
+<code>http://</code> address; <code>ca-file</code> under <code>tls-verify = false</code>.</li>
+<li><strong>An empty value.</strong> <code>&quot;&quot;</code> is none where a key's default is none (the env
+templates, <code>ca-file</code>, the client pair, Redis's two login variables, Vault's
+<code>namespace</code>), the same as the key left out, so a later layer or <code>--set</code>
+removes an earlier one's value with it. Where the default is a value (Vault's
+<code>mount</code>, <code>path-template</code>, and three field names, Redis's <code>key-template</code>,
+<code>transform</code> on the three types), <code>&quot;&quot;</code> is refused, <code>config_type_error</code>, <code>must not be empty</code>: write the default to restore it.</li>
+</ul>
+<pre><code class="language-text">config_credential_backend_key_unsupported: ca-file read only under tls = true for credential-backend.r.ca-file at FILE:17
+config_credential_backend_address_invalid: not an http:// or https:// URL with a host for credential-backend.v.address at FILE:15
+config_value_out_of_range: must be above 0 for credential-backend.v.connect-timeout at FILE:16
+</code></pre>
+<p>Whether a named file exists is a question of the run: <code>config validate</code> opens no
+credential file.</p>
+<h2 id="tls-to-a-store">TLS to a store <a class="anchor" href="#tls-to-a-store" aria-label="Link to this section">#</a></h2>
+<p>Redis speaks TLS unless <code>tls = false</code>, and Vault for an <code>https://</code> address. The
+server's name is checked against the address, TLS 1.2 is the least, and what
+the client trusts is the backend's:</p>
+<ul>
+<li>
+<p><strong><code>tls-verify = true</code></strong>, the default, verifies the server's certificate chain
+and its name: to a CA in <code>ca-file</code> when one is named, the file then the
+backend's whole trust, or else to the host's trust, the public roots and the
+CAs the site installed. A server the trust does not vouch for is refused
+before anything is sent:</p>
+<pre><code class="language-text">vault_unavailable: client planning: 1 of 1 targets failed credential resolution: name:d1 (Get &quot;https://127.0.0.1:8202/v1/secret/data/karvi/netops&quot;: tls: failed to verify certificate: x509: certificate signed by unknown authority policy=default backend=v)
+</code></pre>
+</li>
+<li>
+<p><strong><code>tls-verify = false</code></strong> checks neither the chain nor the name; the
+connection is still encrypted, but a host on the path can pose as the store
+and receive its token or password. <code>ca-file</code> beside it is refused at load.</p>
+</li>
+<li>
+<p><strong>A client certificate</strong> is optional: given <code>client-cert-file</code> and
+<code>client-key-file</code>, a pair, karvi presents the certificate, with every further
+certificate in the file as its chain, to a store that asks for one. Neither
+file's permissions are checked, since a site's machine certificate may serve
+here; restrict them as the site installs them. A file karvi cannot read is
+<code>redis_tls_config_invalid</code> or <code>vault_tls</code>.</p>
+</li>
+<li>
+<p><strong>Plain text</strong>, Redis's <code>tls = false</code> or a Vault <code>http://</code> address, is the
+site's choice, said nowhere; the token or password then crosses the network
+as written.</p>
+</li>
+</ul>
+<p><strong>A self-signed store</strong> is trusted by naming its own certificate in <code>ca-file</code>,
+<code>tls-verify</code> left <code>true</code>. Best, copy the certificate file from the store's
+host. Else collect it from the store and compare its SHA-256 fingerprint with
+the one read on the store's host, before naming it:</p>
+<pre><code class="language-sh">openssl s_client -connect vault.example.net:8200 &lt;/dev/null 2&gt;/dev/null | openssl x509 -out ~/.karvi/vault-store.pem
+openssl x509 -in ~/.karvi/vault-store.pem -noout -fingerprint -sha256
+</code></pre>
+<pre><code class="language-toml">[credential-backend.vault]
+type = &quot;vault&quot;
+address = &quot;https://vault.example.net:8200&quot;
+ca-file = &quot;~/.karvi/vault-store.pem&quot;
+</code></pre>
+<p>The same lines collect a TLS Redis's certificate. A store whose certificate is
+replaced is refused until <code>ca-file</code> holds the new one; a store under a private
+CA is trusted through that CA's certificate. The file is public, any mode.</p>
+<h2 id="the-credential-helper">The credential helper <a class="anchor" href="#the-credential-helper" aria-label="Link to this section">#</a></h2>
+<p>A credential helper is a site's executable, a script in any language, that
+karvi runs before it resolves any credential and whose standard output sets
+values for karvi's credential readers alone. A line <code>export NETPASS=&quot;…&quot;</code> puts
+<code>NETPASS</code> where every reader looks, as if the operator had exported it: the
+<code>NET*</code> fallback, a credential CSV's <code>env:</code> cell, a Redis or Vault record's
+<code>env:</code> field, an env backend's templates, Redis's login variables, and Vault's
+token. A name it sets overrides the process environment's silently. Its values
+configure nothing (the <code>KARVI__*</code> variables are read apart), enter no child's
+environment, <code>ssh</code>'s included, and reach the daemon only inside the sealed
+credentials.</p>
+<pre><code class="language-toml">[creds]
+helper = &quot;/usr/local/lib/karvi/credh&quot;
+# helper-enabled = true
+# helper-unavailable = &quot;skip&quot;   # skip, warn, or fail
+# helper-timeout = &quot;60s&quot;
+</code></pre>
+<p><code>examples/karvi-credh</code> is a commented POSIX <code>sh</code> helper that prints <code>NETUSER</code>,
+<code>NETPASS</code>, and <code>NETENABLE</code> from <code>pass show</code>, and
+<a href="../examples/README.html"><code>examples/README.md</code></a> says how to install it.</p>
+<ul>
+<li>
+<p><strong>Where it is.</strong> <code>creds.helper</code> (default <code>karvi-credh</code>): a name without <code>/</code>
+is that file in the directory of the running karvi executable, where
+<code>karvi-askpass</code> is found, and never searched on <code>PATH</code>; any other value is a
+place, <code>~/</code> under the operator's home, an absolute path, or a path from the
+working directory (<code>./credh</code>), made absolute at load. <code>config show --explain creds.helper</code> prints the file that runs on its <code>resolved:</code> line. The package
+installs no <code>karvi-credh</code>, so the default is absent until a site places one.</p>
+</li>
+<li>
+<p><strong>When it runs.</strong> Once per invocation that resolves credentials (<code>login</code>,
+<code>command</code>, <code>run</code> and its dry run, <code>crun</code>), at its first credential step,
+before any backend or fallback is asked, whether or not a device then reads
+a variable; <code>config validate</code>, <code>daemon</code>, <code>job</code>, <code>prune</code>, <code>version</code>, and the
+daemon never run it. A <code>stream</code> runs it at its first job and holds its values
+for every later job until <code>--restart</code>, after which the next job runs it again,
+so a rotated secret is fetched without leaving the stream. A failure refuses
+the invocation, or the stream's job, at planning, before any device is
+reached; nothing is held, and the stream's next job runs it again.</p>
+</li>
+<li>
+<p><strong>How it runs.</strong> With no argument, standard input <code>/dev/null</code>, the operator's
+working directory, and karvi's environment as karvi received it, unfiltered,
+so an agent's socket, a keyring's session bus, and a vault client's settings
+reach it as they do in the operator's shell. karvi runs the file it checked
+through its descriptor, so a script's <code>$0</code> is <code>/proc/self/fd/3</code>: a helper
+names its own files by absolute paths. It runs in karvi's process group, so it
+can ask at the terminal and Ctrl-C reaches it with karvi (exit 113). Its
+standard error is discarded: a helper that must ask, a PIN, a passphrase, or a
+push approval, asks on <code>/dev/tty</code>, as <code>pinentry</code> and <code>ssh</code> do, and writes the
+reason for a failure there.</p>
+</li>
+<li>
+<p><strong>Its checks</strong>, on the file karvi opened, as a credential file's: a symlink
+is refused unless <code>security.allow-credential-symlinks</code> is on; the file must be
+regular, owned by the operator, root, or a name in
+<code>security.approved-admin-users</code>, and writable by neither its group nor others
+(<code>0700</code>, <code>0750</code>, and <code>0755</code> pass; <code>0775</code> does not). A failed check is a
+credential file code (<a href="#credential-files">credential files</a>), exit 6, whatever
+<code>creds.helper-unavailable</code> says:</p>
+<pre><code class="language-text">credential_file_mode_unsafe: client planning: credential helper PATH writable by group or others; remediation: chmod go-w PATH
+</code></pre>
+</li>
+<li>
+<p><strong>Unavailable</strong>, no file at the path or one the operator cannot execute,
+follows <code>creds.helper-unavailable</code>: <code>skip</code>, the default, passes it by
+silently, <code>--debug</code> saying <code>credential helper skipped path=&quot;…&quot;: REASON</code>;
+<code>warn</code> passes it by after a warning, at every job of a stream, since nothing
+is held; <code>fail</code> refuses the invocation at planning,
+<code>credential_helper_unavailable</code> (exit 6). A site that locks
+<code>creds.helper-enabled = true</code> and <code>creds.helper-unavailable = &quot;fail&quot;</code> makes
+its helper mandatory.</p>
+<pre><code class="language-text">warning: credential_helper_unavailable: credential helper PATH: no such file or directory; continuing without it
+</code></pre>
+</li>
+<li>
+<p><strong>Its exit.</strong> Exit 0 has its output read. Anything else is
+<code>credential_helper_failed</code> (exit 6), naming the path and the status or the
+signal, its output unread: karvi never goes on without the values of a helper
+that failed.</p>
+<pre><code class="language-text">credential_helper_failed: client planning: credential helper PATH exited 1; run it by hand to see its message
+</code></pre>
+</li>
+<li>
+<p><strong>Its time.</strong> A helper that prints and exits costs its own time. Past
+<code>creds.helper-timeout</code> (default <code>60s</code>, from <code>1s</code> to <code>1h</code>) karvi sends SIGTERM
+to the helper and to every process descended from it, SIGKILL two seconds on
+to any still running, and refuses the invocation, <code>credential_helper_failed</code>,
+<code>did not exit within 60s; run it by hand to see why</code>; a cancelled invocation
+ends them alike. A process that left the tree, a daemon's double fork as
+<code>gpg-agent</code> makes, is not ended, and a helper that exits by itself leaves what
+it started. After the helper exits, karvi reads its output to the end, at most
+two seconds more while a process it left holds the output open: a helper that
+never exits is refused 60 seconds from its start, 62 if it ignores SIGTERM, 64
+at most.</p>
+</li>
+<li>
+<p><strong><code>--no-credh</code></strong>, on <code>login</code>, <code>command</code>, <code>run</code>, <code>crun</code>, and <code>stream</code>, sets
+<code>creds.helper-enabled = false</code> for the invocation, a site's lock refusing it
+(<code>config_lock_violation</code>, exit 3). In a stream it is a run option: on the
+stream's command line it covers every job, as a draft line the jobs whose
+draft holds it.</p>
+</li>
+<li>
+<p><strong><code>--debug</code></strong> names the path, the names it set, and the time, never a value:
+<code>credential helper ran path=&quot;…&quot; names=NETUSER,NETPASS,NETENABLE elapsed=…</code>.</p>
+</li>
+<li>
+<p><strong>Under a timer</strong> there is no terminal, so a collection's helper answers
+without asking, and its failure says only the status: run it by hand, as the
+account the timer runs as, to see its message.</p>
+</li>
+</ul>
+<p><strong>Its output</strong> is read as text, line by line, and never given to a shell, and a
+line karvi accepts means what dash and bash give it under <code>eval</code>, so a site
+tests its helper with <code>eval &quot;$(karvi-credh)&quot;</code>:</p>
+<ul>
+<li>A blank line is skipped, and so is a comment, its first non-blank character
+<code>#</code>.</li>
+<li>Any other line is an optional <code>export</code> and one or more assignments separated
+by blanks, each a portable variable name, <code>=</code> with no blank on either side,
+and a value. Unquoted, a value is letters, digits, and <code>_ . , : / @ % + = -</code>
+alone. Double-quoted, blanks and <code>; | &amp; #</code> are literal, <code>\&quot;</code>, <code>\\</code>, <code>\$</code>, and
+<code>\`</code> are the four escapes, any other backslash is kept, and a bare <code>$</code> or
+<code>`</code> is refused. Single-quoted, every character is as written but <code>'</code>.
+Empty (<code>NETPASS=</code>, <code>&quot;&quot;</code>, <code>''</code>), the name is set and empty.</li>
+<li>A comment after a blank ends the line. A value holds no control character, a
+tab and a carriage return included.</li>
+<li>Anything else is refused, <code>credential_helper_output_invalid</code> (exit 6),
+naming the line and the reason and never quoting the line, which may hold a
+secret: a blank on either side of <code>=</code>, an unquoted special character, a bare
+<code>$</code> or <code>`</code> in double quotes, a control character, a word that is no
+assignment (<code>export NETPASS=a b</code>), a name set twice (both lines named), and
+output past 64 KiB or a line past 4 KiB. An empty output sets nothing.</li>
+</ul>
+<pre><code class="language-text">credential_helper_output_invalid: client planning: credential helper PATH output line 1: a blank before =
+</code></pre>
 <h2 id="credential-files">Credential files <a class="anchor" href="#credential-files" aria-label="Link to this section">#</a></h2>
 <p>A <code>cloginrc</code> backend declares <code>scope = &quot;user&quot;</code> (the default) or
 <code>scope = &quot;shared&quot;</code> and, for a user file, <code>required</code>. A user file is the
@@ -719,6 +1284,9 @@ code each, the message naming the backend and the path and never a value:</p>
 </tr>
 </tbody>
 </table>
+<p>The credential helper's file takes the first five codes under its own owner
+and mode rule, its message naming <code>credential helper PATH</code> (<a href="#the-credential-helper">the credential
+helper</a>).</p>
 <p>karvi opens the file first and checks the file it opened, so the file that
 passed the checks is the file that is read. A file that is present but cannot be
 opened (mode <code>0000</code>, say) is reported by its check and is not treated as absent.
@@ -754,7 +1322,7 @@ says where to look in it:</p>
 <td><a href="CREDENTIAL-CSV.html#5-keys-and-pins-credkey-and-credkeyref">section 5</a></td>
 </tr>
 <tr>
-<td>Cells that name environment variables, and the unset-variable hazard</td>
+<td>Cells that name environment variables, <code>env:NAME</code>; <code>credential_env_missing</code></td>
 <td><a href="CREDENTIAL-CSV.html#6-secrets-in-the-environment-instead-of-the-file">section 6</a></td>
 </tr>
 <tr>
@@ -766,7 +1334,7 @@ says where to look in it:</p>
 <td><a href="CREDENTIAL-CSV.html#9-an-inventory-file-holds-no-secrets">section 9</a></td>
 </tr>
 <tr>
-<td><code>credential_csv_malformed</code>, <code>credential_csv_row_invalid</code>, <code>credential_csv_credkey_duplicate</code>: the messages, which never quote a cell</td>
+<td><code>credential_csv_malformed</code>, <code>credential_csv_row_invalid</code>, <code>credential_csv_credkey_duplicate</code>, <code>credential_env_missing</code>: the messages, which never quote a cell but an <code>env:</code> cell's variable</td>
 <td><a href="CREDENTIAL-CSV.html#10-what-a-bad-credential-csv-says">section 10</a></td>
 </tr>
 </tbody>
@@ -777,6 +1345,50 @@ like a secret (<code>password</code>, <code>enable-password</code>, <code>api_to
 a pinned device never falls to a general row, to <code>NETUSER</code>/<code>NETPASS</code>, or to
 a prompt: a mistyped <code>credkeyref</code> stops that device with
 <code>credkeyref_unresolved</code>, naming the device and the key.</p>
+<h2 id="the-operators-name-and-the-credential-transforms">The operator's name and the credential transforms <a class="anchor" href="#the-operators-name-and-the-credential-transforms" aria-label="Link to this section">#</a></h2>
+<p>A backend reads the operator's login name where a credential is the
+operator's: the <code>%operator%</code> of the <code>env</code> backend's templates, the Redis key,
+the Vault path, and a formula's username (<a href="#configuration-macros">configuration
+macros</a>), and the username of a <code>.cloginrc</code> with no
+<code>user</code> line or of a credential CSV row whose <code>username</code> cell is blank. A
+<code>[credential-transform.NAME]</code> table rewrites that name, and the username a
+backend answers:</p>
+<pre><code class="language-toml">[credential-transform.adm]
+operator = [{op = &quot;add-suffix&quot;, suffix = &quot;-adm&quot;}]
+
+[credential-backend.site-creds]
+type = &quot;csv&quot;
+scope = &quot;user&quot;
+path = &quot;~/.karvi/credentials.csv&quot;
+transform = &quot;adm&quot;
+</code></pre>
+<ul>
+<li><strong><code>operator</code></strong> rewrites the operator's name before the backend is asked;
+<strong><code>username</code></strong> rewrites the username the backend answers, from a cell, a
+variable, or the operator's name, before the credential is judged. Each is
+a list of operations applied in order: <code>lowercase</code>, <code>uppercase</code>,
+<code>crop-to-dot</code> (up to the first dot), <code>strip-chars</code> (<code>chars</code>),
+<code>replace-chars</code> (<code>pairs</code>, each <code>{from, to}</code>), <code>strip-suffix</code> (<code>suffix</code>),
+<code>replace-suffix</code> (<code>suffix</code>, <code>replacement</code>), and <code>add-suffix</code> (<code>suffix</code>,
+added only to a name without a dot). A username the operations leave empty
+is <code>credential_incomplete</code>.</li>
+<li><strong>A backend's table</strong> is its <code>transform</code>; without one, the table named like
+the backend, and otherwise <code>default</code>, which changes nothing unless defined. A
+<code>transform</code> naming no table is refused when the configuration loads, <code>config validate</code> included, with <code>credential_transform_unknown</code> (exit 2), and so is a
+list that does not build in any transform table, credential or name, whether
+or not anything names the table: <code>transform_operation_unknown</code> for an
+operation karvi does not know, naming the list and its line.</li>
+<li><strong>The platform's fallback</strong> (the <code>NET*</code> variables, the prompt, and the
+operator's keys) takes <code>default</code>'s <code>username</code> operations.</li>
+</ul>
+<p>Under the table above the operator <code>netops</code>, given a row whose <code>username</code> cell
+is blank, logs in as <code>netops-adm</code>, and the dry run's credential line names
+<code>user=netops-adm</code>:</p>
+<pre><code class="language-text">! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=netops-adm backend=site-creds transport=native
+</code></pre>
+<p>With <code>username = [{op = &quot;lowercase&quot;}, {op = &quot;add-suffix&quot;, suffix = &quot;-adm&quot;}]</code>
+under <code>[credential-transform.default]</code>, the fallback given <code>NETUSER=NetOps</code>
+logs in as <code>netops-adm</code>, <code>backend=builtin-env-fallback</code>.</p>
 <h2 id="address-family-troubleshooting">Address-family troubleshooting <a class="anchor" href="#address-family-troubleshooting" aria-label="Link to this section">#</a></h2>
 <p>The configured default is IPv6-first. Use <code>--ipv4</code>/<code>--4</code> or <code>--ipv6</code>/<code>--6</code> for
 one invocation and <code>--debug</code> to inspect the selected address. The flags are
@@ -1130,7 +1742,7 @@ behind (0700, the first operator's) is set right by <code>sudo karvi setup share
 <p><strong>The operators' roots.</strong> Once <code>/opt/karvi/users</code> exists, an operator's
 first activity that needs the private root creates
 <code>/opt/karvi/users/&lt;username&gt;</code> (0750) and every later one uses it: the
-daemon's socket and state, the logs, and the jobs and transcripts a site
+daemon's sockets and state, the logs, and the jobs and transcripts a site
 without shared trees keeps there. The name is the operator's username, so
 an administrator reads the tree without a lookup. A <code>users</code> directory the
 site did not provision is never created by karvi, and the operator's root
@@ -1154,9 +1766,9 @@ and the setting); <code>sharedroot = &quot;none&quot;</code> keeps every tree un
 every test suite sets it. <code>basedir</code> itself is never shared: its <code>socket</code> and
 <code>state</code> are one operator's daemon. <code>job cancel</code> reaches only the caller's own
 daemon, so another operator's job is cancelled by its owner.</p>
-<p>The packaged systemd user unit gives the daemon the operator's own view of
-the files, as the client has, so it writes wherever the operator may
-(&quot;Retention&quot; says why the user units carry no sandbox).</p>
+<p>The service account's daemon unit sets no sandbox, so its daemon writes in the
+shared trees wherever the account may, as a client-launched daemon does for its
+operator (&quot;Retention&quot; says why).</p>
 <h2 id="retention">Retention <a class="anchor" href="#retention" aria-label="Link to this section">#</a></h2>
 <p><code>karvi-prune</code> removes finished work older than the retention age (thirty-one
 days by default) from the trees karvi writes: finished jobs, ended transcripts,
@@ -1210,18 +1822,19 @@ gives the command another <code>--basedir</code>, <code>--sharedroot</code>, or 
 adds that path to the line, with the dash, or every removal there fails as
 <code>read-only file system</code> and the run exits 1 daily. The run makes
 nothing: a root that does not exist is not walked.</p>
-<p>The user units (<code>karvi-daemon.service</code>, <code>karvi-prune.service</code>,
-<code>karvi-crun.service</code>) carry no file-system sandbox: each runs with the
-operator's own view of the files, as the client does, so a path means the same
-to the daemon and to the client that names it, and the unit writes wherever
-the operator may. A user manager sets up a mount namespace only inside an
-unprivileged user namespace, and a host that restricts those (Ubuntu's
-<code>kernel.apparmor_restrict_unprivileged_userns = 1</code>) denies it the capability:
-systemd starts the unit without the sandbox and says nothing. <code>PrivateTmp</code>,
-<code>ProtectSystem</code>, and <code>ProtectHome</code> in a user unit would promise what such a
-host does not give, and where they did apply a <code>/tmp</code> path would land in the
-daemon's private <code>/tmp</code>, out of the client's sight. The site's unit runs under
-the system manager, where the sandbox applies.</p>
+<p>The user units (<code>karvi-prune.service</code>, <code>karvi-crun.service</code>) carry no
+file-system sandbox: each runs with the operator's own view of the files, as the
+client does, so a path means the same to the unit and to the operator, and the
+unit writes wherever the operator may. A user manager sets up a mount namespace
+only inside an unprivileged user namespace, and a host that restricts those
+(Ubuntu's <code>kernel.apparmor_restrict_unprivileged_userns = 1</code>) denies it the
+capability: systemd starts the unit without the sandbox and says nothing.
+<code>PrivateTmp</code>, <code>ProtectSystem</code>, and <code>ProtectHome</code> in a user unit would promise
+what such a host does not give, and where they did apply a <code>/tmp</code> path would
+land in the unit's private <code>/tmp</code>, out of the operator's sight. The site's prune
+unit runs under the system manager, where the sandbox applies. The service
+account's daemon unit, a system unit too, sets none: its daemon writes where its
+clients read, the shared trees, the shared scratch, and the spool.</p>
 <h2 id="tab-completion">Tab completion <a class="anchor" href="#tab-completion" aria-label="Link to this section">#</a></h2>
 <p>Bash completes karvi's words when the site has placed the function once,
 as root:</p>
@@ -1323,9 +1936,9 @@ a file at or above the path, or a missing directory that cannot be made,
 with the cause alone, naming that file or the directory.</p>
 </li>
 <li>
-<p><strong>Under systemd.</strong> The packaged user unit gives the daemon the operator's
-own view of the files (&quot;Retention&quot;), so a collection directory anywhere the
-operator may write serves through it as in the client process.</p>
+<p><strong>Under systemd.</strong> The service account's daemon unit sets no sandbox
+(&quot;Retention&quot;), so a collection directory anywhere the account may write
+serves through its daemon as in the client process.</p>
 </li>
 <li>
 <p><strong><code>--fs=SUFFIX</code></strong> appends a literal suffix to each file's name in the
@@ -1432,9 +2045,15 @@ empties every command; <code>--purge-targets</code> (from <code>--purge-t</code>
 every target input (<code>--target</code>, <code>--tl</code>, <code>--tf</code>, <code>--tfr</code>, <code>--site</code>,
 <code>--device-group</code>, <code>--all</code>, <code>--select-platform</code>) and keeps the other
 options; <code>--purge</code> alone names both and is refused. <code>--reset</code> empties
-the draft. <code>--end</code>, <code>--quit</code>, <code>--exit</code>, the input's end (Ctrl-D), or
-Ctrl-C leave without executing, and a Ctrl-C outranks lines already
-read. Only <code>--go</code> and <code>--sendit</code> execute.</li>
+the draft. <code>--restart</code> empties the draft and reads the configuration
+again as the stream's start does, under the stream's command-line
+options and <code>--set</code>, its warnings said again and, at a terminal, the
+opening line; the jobs after it run under the new reading, and a
+reading that fails ends the stream with its code and exit (2, or 3 for
+a lock violation), naming the line. The line count, the last exit, and
+the recalled lines go on through it. <code>--end</code>, <code>--quit</code>, <code>--exit</code>, the
+input's end (Ctrl-D), or Ctrl-C leave without executing, and a Ctrl-C
+outranks lines already read. Only <code>--go</code> and <code>--sendit</code> execute.</li>
 <li>Typed at a terminal, a line is edited before Enter sends it: Backspace
 (DEL or Ctrl-H) and the Delete key to erase, Ctrl-A and Ctrl-E to the
 line's ends, Ctrl-K, Ctrl-U, and Ctrl-W to cut, the left and right
@@ -1462,7 +2081,7 @@ exit. Global options go before the word: <code>karvi --quiet --config FILE strea
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

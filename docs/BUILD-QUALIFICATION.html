@@ -73,6 +73,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -140,6 +141,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -147,14 +149,15 @@
 <h2 id="build-gates">Build gates <a class="anchor" href="#build-gates" aria-label="Link to this section">#</a></h2>
 <p>The release ships the scrapligo-v1 executable. Both
 verifiers run offline from the committed <code>vendor/</code> tree:</p>
-<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION)
 make checksums tools-build
 ./scripts/verify-bundle.sh
-COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z ./scripts/verify-release.sh
+COMMIT=source-release-v$(cat VERSION) ./scripts/verify-release.sh
 </code></pre>
 <p><code>verify-bundle.sh</code> verifies the executables as they are in <code>bin/</code>, without
-rebuilding them: identity and checksums, static Linux binaries, both transport
-IDs in <code>version</code> (it refuses an executable without <code>scrapligo-v1</code>), stateless
+rebuilding them: identity and checksums, static Linux binaries, the build
+<code>karvi version</code> names (20 characters, never <code>none</code>), both transport IDs in
+<code>version</code> (it refuses an executable without <code>scrapligo-v1</code>), stateless
 help/version behavior, script syntax, <code>gofmt</code> over the Go source outside
 <code>vendor/</code>, the unit tests and vet in vendor mode, deterministic generated files,
 the example configurations, removed-key rejection, and every historical smoke
@@ -163,10 +166,15 @@ daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.sh</c
 suite <code>scripts/native-smoke-test.sh</code>.</p>
 <p><code>verify-release.sh</code> builds from source: the import boundary and host-key
 assertions on the adapter, <code>gofmt</code>, <code>go mod verify</code>, the tests, vet, and the
-race detector in vendor mode, the build, its module metadata and version
-counters, and the same smoke suites. It rebuilds <code>bin/</code> and rewrites
-<code>CHECKSUMS.sha256</code>; with the release's <code>COMMIT</code> and <code>BUILD_TIME</code> the bytes do
-not change.</p>
+race detector in vendor mode, the build, its module metadata, version
+counters, and build, and the same smoke suites; then the tree's package, which
+<code>scripts/check-deb.sh</code> checks against the tree and
+<code>scripts/sysutil-smoke-test.sh</code> tests as root in an Ubuntu 26.04 container
+under Docker (<code>karvi-sysutil</code>, the template unit, the maintainer scripts, the
+service account's daemon, and the bundle's <code>scripts/install.sh</code> on the host
+without the package), never on the build host. It rebuilds <code>bin/</code> and
+rewrites <code>CHECKSUMS.sha256</code>; with the release's <code>COMMIT</code> the bytes do not
+change. A build is stamped with its version and its commit, and no build time.</p>
 <p>A must-not-appear check in a script MUST be able to stop it: a bare
 <code>! command</code> line is exempt from <code>set -e</code>. The
 smoke suites use <code>absent PATTERN FILE</code> or <code>! … || fail &quot;…&quot;</code>.</p>
@@ -213,7 +221,7 @@ validates against its own plan, header, and credential-package
 projection; the k03 assertions on <code>dispatch_order</code> and <code>shuffle_key</code>
 read them inside the plan's dispatch block.</li>
 <li>A daemon-backed run passes through <code>prepare_job</code>, the credential frame
-on <code>socket/credentials.sock</code>, and <code>commit_job</code>; the canary suite's
+on <code>socket/c.sock</code>, and <code>commit_job</code>; the canary suite's
 daemon-backed row finds the canary on no JSON socket, log, or artifact.</li>
 <li>A resolution or credential failure on any target refuses the run before
 a job directory exists; <code>--address-authority daemon</code> without
@@ -266,9 +274,11 @@ cancelled job to its exit, and w1–w6 follow a
 held job live under <code>jsonl</code> to byte equality with <code>commands.jsonl</code>, the
 finished job again, an unknown ID, an interrupted follow, the finished
 job from its directory after a forced restart, and a cancelled job.</li>
-<li><code>scripts/daemon-lifecycle-replay.sh OLD_KARVI</code> replays <code>status</code>, <code>run</code>,
-<code>stop</code>, and <code>restart</code> against a daemon launched by an older executable;
-release engineering runs it with the prior bundle's executable and keeps
+<li><code>scripts/daemon-lifecycle-replay.sh OLD_KARVI</code> replays, against a daemon
+launched by an older executable, <code>status</code> with its stacked pairs, a run's
+exercise to 192.0.2.1 that drains the idle older daemon and starts its own,
+<code>stop</code>, and <code>restart</code>, <code>--grace</code> and <code>--after</code> draining first; release
+engineering runs it with the prior bundle's executable and keeps
 the output with the release's evidence; the prior
 is the newest karvi release whose daemon IPC schema differs from the new
 client's, and until one exists the replay is skipped and the evidence
@@ -294,12 +304,21 @@ digest or a binding that differs from the final plan waits for commit.</li>
 <code>.required</code>; an absent optional user <code>.cloginrc</code> no longer fails a run.</li>
 </ul>
 <h2 id="daemon-upgrade-gates">Daemon upgrade gates <a class="anchor" href="#daemon-upgrade-gates" aria-label="Link to this section">#</a></h2>
+<p><code>scripts/daemon-upgrade-smoke-test.sh</code> runs each step beside a lifecycle-only
+fixture daemon, built from <code>tools/daemon-fixture</code>, which answers a drain as a
+daemon of this tree does: holding no job it exits, and holding its emulated
+jobs it stays, answering <code>draining</code>. Each run is an exercise to 192.0.2.1,
+which reaches no device.</p>
 <ul>
-<li>A schema-2 fixture MUST be visible through <code>daemon status</code> as incompatible.</li>
-<li>A daemon-backed run MUST fail with exit 112 and actionable restart guidance,
-without creating a competing daemon log or submitting a job.</li>
-<li><code>daemon stop</code> and <code>daemon restart</code> MUST use the older lifecycle envelope and
-leave a daemon of the current schema ready.</li>
+<li>An idle daemon of an older IPC schema MUST be reported incompatible by
+<code>daemon status</code>, and a run MUST drain it, wait for it to exit, and start a
+daemon of this build in the same invocation, saying both.</li>
+<li>An idle daemon at this schema and version but of another build MUST be
+reported with its pairs stacked, and drained and replaced by a run alike.</li>
+<li>A daemon of an older schema holding a job MUST be drained, the run refused,
+<code>daemon_draining</code> (exit 112), the builds stacked, with no daemon started
+beside it; <code>daemon stop --force</code> MUST reach it at its schema.</li>
+<li><code>daemon restart</code> MUST replace an idle daemon of another build.</li>
 <li>The prior release's executable SHOULD be replayed with
 <code>scripts/daemon-lifecycle-replay.sh</code> during release engineering when its
 bundle is available and its daemon IPC schema differs.</li>
@@ -350,7 +369,7 @@ no daemon is left running. <code>make native-smoke</code> runs it alone after <c
 <a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a> holds the
 laboratory matrix and <a href="../ROADMAP.html"><code>ROADMAP.md</code></a> the open production gates.</p>
 
-<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

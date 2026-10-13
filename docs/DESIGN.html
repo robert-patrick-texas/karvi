@@ -82,6 +82,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -158,9 +159,11 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1672" height="941" alt="A Viking with hammer and shield standing against a storm of flying network switches" src="../images/viking-versus-network-storm.png" />
 <h1 id="karvi-design-why-it-does-what-it-does">karvi design: why it does what it does <a class="anchor" href="#karvi-design-why-it-does-what-it-does" aria-label="Link to this section">#</a></h1>
 <p>This document states the settled design decisions of karvi in present tense:
 what the program does, why that was chosen, and what was not taken. It is the
@@ -211,7 +214,7 @@ read before allocation; a shuffle is a hash of a recorded key. <em>Why:</em> a r
 must be repeatable from what it wrote, and no input may size memory.</p>
 <p><strong>Breaking changes accepted.</strong> The program is pre-1.0 and its operator has
 chosen speed over compatibility: renamed options and removed keys are not
-aliased, every release restarts the daemon, and a digest is kept only where a
+aliased, every build replaces the daemon, and a digest is kept only where a
 consumer requires it. <em>Why:</em> aliases reintroduce the ambiguities a rename
 removed and a compatibility lane is a maintenance line nobody asked for.</p>
 <h2 id="2-the-command-line">2. The command line <a class="anchor" href="#2-the-command-line" aria-label="Link to this section">#</a></h2>
@@ -317,8 +320,9 @@ command is left to send; <code>--clear</code> clears them alone; <code>--purge-c
 every target input run's table marks (<code>--target</code>, <code>--tl</code>, <code>--tf</code>, <code>--tfr</code>,
 <code>--site</code>, <code>--device-group</code>, <code>--all</code>, <code>--select-platform</code>); <code>--purge</code> or
 <code>--purge-</code>, naming both, is refused as <code>cli_option_ambiguous</code>; <code>--reset</code> empties
-the draft; <code>--end</code>, <code>--quit</code>, <code>--exit</code>, EOF, or Ctrl-C leave, a Ctrl-C
-outranking lines already read. A bad line is reported with its number and
+the draft; <code>--restart</code> empties it and reads the configuration again (the next
+entry); <code>--end</code>, <code>--quit</code>, <code>--exit</code>, EOF, or Ctrl-C leave, a Ctrl-C outranking
+lines already read. A bad line is reported with its number and
 dropped, the draft standing; <code>--cf</code>, <code>--tf</code>, and <code>--tfr</code> may not name <code>-</code> in any
 spelling, since standard input is the stream; a read failure or a line over 1
 MiB ends the stream with <code>stream_input_read_failed</code>. The exit is the last job's,
@@ -357,11 +361,31 @@ Ctrl-C would become a byte to read), which a reader reading ahead had done until
 the credential prompts showed it; GNU readline (not reachable without cgo;
 <code>rlwrap</code> remains an operator's choice); a generic error for the read failure
 (every path carries its own code).</p>
+<p><strong>A stream's restart.</strong> <code>--restart</code>, a directive of its own (the word whole),
+empties the draft, its commands and its targets, as <code>--reset</code> does, and reads
+the configuration again as the stream's start does: the files with their
+includes and locks, the environment, and the operator, under the stream's
+command-line options and <code>--set</code>, the snapshot validated and its warnings said,
+and at a terminal the opening line again. The read sits at the directive's
+line, and every later job's snapshot is made from it; a job through a daemon
+carries it in its plan, the daemon's own <code>daemon.*</code> values unchanged. A reading
+that fails ends the stream as its start would have refused it, with the
+failure's code and exit (2, or 3 for a lock violation), after <code>stream line N:</code>.
+The line count, the last exit, and the recalled lines go on. <em>Why:</em> an edit
+taken without leaving the stream and typing its draft again, at a line the
+operator types, so one stream holds two readings only where the operator marks
+the boundary; and no job runs under a configuration the operator meant to
+replace. <em>Not taken:</em> <code>--reset</code> reading again; the draft kept across the read;
+the read at the next <code>--go</code>; the process executed again (a pipe's buffered lines
+and the recalled lines lost); the stream going on under the old reading, or with
+none, after a failed read; the line count or the exit starting again
+(<a href="EXAMPLES.html#53-a-streams-restart-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter 53</a>).</p>
 <p><strong>Help is laid out at print time.</strong> The help texts are constants kept in step
 with the parser table by a drift test; a pass at print time adds blank lines
 and colour (headings bold, option words in the <code>accent</code> role, the action word
 of every <code>Usage:</code> line in the <code>success</code> role, the title's tag in <code>label</code>),
-following the display's colour rule and off under a pipe or <code>--ansi strip</code>.
+following the display's colour rule, plain on a pipe under <code>auto</code>, in a file,
+and under <code>--nocolor</code> or <code>--ansi strip</code>.
 <em>Why:</em> readable on a terminal while the constants, the drift test, and pipes
 carry no escapes. <em>Not taken:</em> escapes in the constants; a <code>--color</code> option
 for help alone.</p>
@@ -568,13 +592,169 @@ decide the winner would let a blanked password silently hand the device to a
 broader row's credential; a file checked only when a device reached a bad row
 would pass on Monday and fail on Tuesday. <em>Not taken:</em> longest-prefix
 selection; &quot;the first complete matching row&quot;.</p>
-<p><strong>Secret cells are verbatim; no message quotes a cell.</strong> A secret cell is
-never trimmed, goes into a secret value as the row is read, and may be
-replaced by an environment variable's value under the backend's indirection
-flags. No credential CSV message quotes any cell, a selector included; a
-duplicate key names two lines and not the key. <em>Why:</em> a password may begin or
-end with a space; a misplaced delimiter shifts every cell one column along,
-and then the &quot;selector&quot; in a message is the password.</p>
+<p><strong>Secret cells are verbatim; no message quotes a cell.</strong> A secret cell is never
+trimmed and goes into a secret value as the row is read, unless it names a
+variable (<code>env:NAME</code>, below). No credential CSV message quotes any cell, a
+selector included, but the name an <code>env:</code> cell gives; a duplicate key names two
+lines and not the key. <em>Why:</em> a password may begin or end with a space; a
+misplaced delimiter shifts every cell one column along, and then the &quot;selector&quot;
+in a message is the password.</p>
+<p><strong>A result cell names a variable explicitly, and an unset one stops the
+device.</strong> A <code>username</code>, <code>password</code>, or <code>enable_password</code> cell that begins with
+<code>env:</code>, the cell trimmed and the prefix's case ignored, names a variable: its
+name, a portable variable name, is checked when the file loads, and its value is
+read when a device selects the row. An unset or empty variable is
+<code>credential_env_missing</code> at planning, naming the file, the line, the column, and
+the variable, and the device moves on to no later row, backend, or fallback.
+Every other cell is a literal, and no backend takes an <code>env-indirection</code> key
+(below). <em>Why:</em> under the flags a cell naming an unset variable was sent as the
+password, failed logins and, on some devices, lockouts, with nothing naming the
+cause; a reference marked as one fails before any device is reached, and its
+name may be said, the prefix marking it as a name. <em>Not taken:</em> the flags kept
+beside the cell (a file under two rules); an escape for a literal that begins
+with <code>env:</code> (a variable carries it); a reference only when its rest is a valid
+name (a typo sent as a password); an empty variable taken as set (a blank enable
+secret reaching the device); every row's variables read at load (a run on one
+site's devices needing every site's variables).</p>
+<p><strong>Every credential reader reads the environment through the resolver's one
+lookup.</strong> The resolver's lookup is its input provider's, the client's, the
+credential helper's values ahead of the process environment, and reaches every
+backend on <code>credentials.ResolveRequest.LookupEnv</code>: the credential CSV's <code>env:</code>
+cells, the <code>NET*</code> fallback, the env backend's templates, Redis's
+<code>auth-username-env</code> and <code>auth-password-env</code>, Vault's <code>token-env</code>, and a Redis or
+Vault record's <code>env:</code> fields. No backend calls <code>os.LookupEnv</code>, and a resolver
+without a provider reads no variable. A variable a Redis or Vault backend's
+configuration names, unset or empty, is <code>credential_env_missing</code> (exit 6), read
+before any connection, naming the backend, the key, and the variable
+(<code>credential backend v: token-env: VAULT_TOKEN not set</code>); <code>redis_auth_missing</code>
+and <code>vault_token_missing</code> are retired into it. <em>Why:</em> the credential helper's
+values are held as secrets and never put into the process environment a child
+such as <code>ssh</code> inherits, so a reader of the process environment could not see
+them; one door gives them to each reader; Redis sent an empty <code>AUTH</code> for an
+empty variable where Vault called it missing. <em>Not taken:</em> the helper's values
+put into the process environment; a lookup given to each backend as it is built
+(the backends are built before the planner sets the provider).</p>
+<p><strong><code>%operator%</code> is the operator's name in a template, and <code>%s</code> is text.</strong>
+<code>%operator%</code> is a built-in macro, the operator's login name from the password
+database, filled when the configuration loads in every value of every layer, as
+a site's macro is. Seven keys keep it as written for their backend, which fills
+it when it is asked with the name after its <code>operator</code> transform: the env
+backend's three variable templates, Redis's <code>key-template</code>, Vault's
+<code>path-template</code>, and the <code>username-template</code> of a formula and of a policy; the
+key being filled decides, so a site's macro holding <code>%operator%</code> keeps it there
+too. Each <code>%operator%</code> is replaced as text, a template without one is used as
+written (<code>karvi:shared</code>, <code>SRV_USER</code>), and the defaults are
+<code>karvi:credential:%operator%</code> and <code>karvi/%operator%</code>. <code>[macros] operator</code> is
+<code>config_macro_name_reserved</code> (exit 2), and <code>%Operator%</code> an ordinary macro. A
+store's answer is data and is never expanded. <em>Why:</em> each template was Go's
+<code>printf</code> given the operator's name, so <code>username-template = &quot;svc&quot;</code> sent
+<code>svc%!(EXTRA string=netops)</code> and a fixed Redis key or Vault path was never
+found, and <code>%s</code> stood beside the configuration's <code>%name%</code> macros with no rule
+for how the two meet. A configuration that still writes <code>%s</code> reads it as text:
+a Redis key or Vault path finds no record, a formula sends it, and an env
+template names no variable and is refused at load (below). <em>Not taken:</em> <code>%s</code>
+kept (<code>printf</code> exposed, a fixed name broken); the name filled at load in every
+key (a backend's transform no longer reaching its templates); a placeholder
+outside the macro syntax, <code>{operator}</code>; <code>%user%</code> (the device's username
+everywhere else); <code>%s</code> refused in the seven keys (a guard for an upgrade); a
+store's answer expanded (a password holding <code>%operator%</code> changed).</p>
+<p><strong>A store names a variable as <code>env:NAME</code>; no backend takes <code>env-indirection</code>.</strong>
+A Redis or Vault record's username, password, or enable field whose value,
+trimmed, begins with <code>env:</code>, the prefix's case ignored, names a variable, read
+through the one lookup by the credential CSV's own functions
+(<code>envindirect.Reference</code>, <code>Read</code>); unset or empty, it is
+<code>credential_env_missing</code>, naming the backend, the record, the field, and the
+variable; a rest that is no variable name is the store's code for a malformed
+record (<code>redis_malformed</code>, <code>vault_response_malformed</code>), naming the field and
+never the value. Any other value is a literal. An env backend's variable's value
+is the value, its template naming the variable. <code>env-indirection.username</code>,
+<code>.password</code>, and <code>.enable-password</code> are removed from every type,
+<code>config_key_removed</code>. <em>Why:</em> under a flag a field was a name or a value as the
+environment happened to say: a name whose variable was unset was sent as the
+password (exit 108), and a real password that named a variable was replaced by
+its value; without one a store could not name <code>NETENABLE</code>. <em>Not taken:</em> the
+flags kept; the flags kept with an unset name failing (every field of the
+column a name); no reference in a store; <code>env:</code> in the env backend's values (a
+variable naming a variable, which its template does); a new code for a bad
+reference.</p>
+<p><strong>A credential backend takes its type's keys alone.</strong> The registry holds one key
+list per backend type, and any other key on a table of that type is
+<code>config_credential_backend_key_unsupported</code>, naming the types that read it. The
+<code>sqlite</code> type, which had no driver, is refused, and its keys as removed. <em>Why:</em>
+a key its type ignores is a setting the operator takes to be in force that is
+not (a Redis backend's <code>mount</code>, a CSV's <code>token-env</code>); a type no build can read
+validates and never answers. <em>Not taken:</em> a warning (the setting left in the
+file); a code per family of keys (the scope code, retired into the one).</p>
+<p><strong>A store backend's keys are judged at load.</strong> Each key of the env, Redis, and
+Vault types has a kind, a string but Redis's <code>tls</code> and both stores' <code>tls-verify</code>
+(booleans), Redis's <code>database</code> (an integer of 0 or more), and <code>connect-timeout</code>
+(a duration above zero), checked when the configuration loads, <code>config validate</code>
+included, under the general codes. Redis's and Vault's <code>address</code> is required and
+well formed, <code>host:port</code> or an <code>http://</code> or <code>https://</code> URL with a host
+(<code>config_credential_backend_address_invalid</code>). <code>token-env</code>, <code>auth-username-env</code>,
+<code>auth-password-env</code>, and the env templates, <code>%operator%</code> stood in by a letter,
+are portable variable names (<code>config_credential_backend_variable_invalid</code>,
+quoting the value); an env template that the operator's transformed name makes
+no name stops the device at planning under the same code, naming <code>replace-chars</code>
+as the remedy. A key the backend's other keys leave unread is
+<code>config_credential_backend_key_unsupported</code>: <code>auth-username-env</code> without
+<code>auth-password-env</code>, half a client pair, Redis's TLS keys under <code>tls = false</code>,
+Vault's with an <code>http://</code> address, <code>ca-file</code> under <code>tls-verify = false</code>. <code>&quot;&quot;</code> is
+none where a key's default is none (the env templates, <code>ca-file</code>, the client
+pair, Redis's login variables, Vault's <code>namespace</code>), and refused, <code>must not be empty</code>, where the default is a value; a written value, the default's included,
+is judged as any other, so <code>tls-verify = true</code> beside plain text is refused. The
+defaults are set once, where the resolver builds the backend, and <code>Resolve</code>
+never writes its backend. <code>redis_address_missing</code>, <code>vault_address</code>,
+<code>redis_client_cert_key_unpaired</code>, and <code>vault_client_cert_key_unpaired</code> are
+retired into these. <em>Why:</em> each of these validated and was silently a default, a
+key not in force, or a name no shell can export (<code>tls = &quot;false&quot;</code> sent a TLS
+hello to a plain server, <code>token-env = &quot;VAULT TOKEN&quot;</code> was missing with
+<code>VAULT_TOKEN</code> exported); Vault's <code>Resolve</code> wrote its defaults into the backend
+every device shares, a data race under the planning pool; layers merge a
+backend's table key by key, so <code>&quot;&quot;</code> is the one way a later layer says none over
+an earlier one's value. <em>Not taken:</em> a warning (the setting left in the file);
+the race fixed alone (the silent defaults kept); a code per key; the operator's
+name checked at load (a shared configuration refused for <code>j.smith</code>, whose runs
+never reach the env backend); <code>&quot;&quot;</code> refused on every key; a word <code>none</code>.</p>
+<p><strong>An operator-keyed store is asked once per resolver.</strong> The env, Redis, and
+Vault backends declare <code>credentials.OperatorKeyed</code>: their request is the
+operator's name after the backend's transform, the same for every device. Such a
+backend is asked once per resolver, once per invocation or per job of a stream,
+and its answer held for every device the policies send to it: a credential, each
+device given its own copy so that sealing one grant leaves the held answer
+whole; not found; or a failure, every device given it without asking again.
+Devices resolving in parallel wait for the one read, as <code>credfile.Cache</code> holds a
+file's rows; a formula takes its source's held answer; a read the context ended
+is not held. <em>Why:</em> forty devices made forty logins and reads, and a store that
+never answered held a job for a timeout per device, sixteen at a time: for 2,500
+devices about five minutes at Redis's two seconds. <em>Not taken:</em> a cache across
+invocations (secrets at rest or in a resident process); answers held across a
+stream's jobs (a rotation waiting for <code>--restart</code>); failures not held; planning
+stopped at the first failure.</p>
+<p><strong>TLS to a store trusts what its backend names.</strong> <code>tls-verify</code>, <code>true</code> by
+default, on a Redis or Vault backend verifies the server's certificate chain and
+its name, the chain leading to a CA in <code>ca-file</code> when one is named, the file
+then the backend's whole trust, or else to the host's trust; <code>false</code> checks
+neither, the connection still encrypted. TLS 1.2 is the least. A client pair is
+presented with its file's further certificates as the chain, and neither file's
+permissions are checked. Plain text and <code>tls-verify = false</code> are the site's
+choices, said nowhere. One function serves both stores (<code>storetls.Config</code>).
+<em>Why:</em> <code>ca-file</code> was added to the host's pool, so under a site CA's file a
+server from any CA the host trusted was given the token; a self-signed store is
+trusted by naming its own certificate; one certificate may serve a site's
+machine authentication. <em>Not taken:</em> <code>ca-file</code> added to the host's trust; no way
+to skip verification; a warning under <code>tls-verify = false</code> or plain text; a
+permission check on the client key.</p>
+<p><strong>Every transform table is built at load, with the run's builder.</strong> <code>config validate</code> builds every <code>[name-transform.NAME]</code> and <code>[credential-transform.NAME]</code>
+table with the one builder every reader at the run uses (<code>transform.Names</code>,
+<code>transform.Credentials</code>), whether or not anything names the table, and refuses a
+credential backend's <code>transform</code> or an inventory source's <code>name-transform</code> that
+names none. <code>name.default-transform</code>, which nothing read, is removed: a device
+that names no transform takes <code>[name-transform.default]</code>. <em>Why:</em> the run builds
+every table, so a typo in a table nothing names stopped every run while <code>config validate</code> passed it, and the builder's three copies had drifted (one refused a
+list that was no array, two read it as none). <em>Not taken:</em> the run building only
+the tables named (a typo hidden until the day the table is used); the key made
+to work (two ways to name one default).</p>
 <p><strong>A pin is a pin.</strong> A device with <code>credkeyref</code> matches only rows whose key
 equals it, walks its policy's sequence asking only backends that declare the
 keyed capability, skips a formula whatever its source, and never falls to a
@@ -590,9 +770,15 @@ join by one method); a request field every backend must remember.</p>
 backends <code>matched_on</code> carries the category, pattern, file, and line, and no
 value naming the device, so devices sharing one line share one sealed grant;
 grants are merged when secrets, policy, backend, evidence, transport, and port
-are all equal. <em>Why:</em> at 2,500 devices on one shared line, per-device evidence
-meant 2,500 sealed copies of one secret; two lines holding the same secret must
-not merge into a grant that can name only one.</p>
+are all equal. An operator-keyed store's evidence is the operator and the
+record read, Redis's key or Vault's path, as its <code>source</code>. <code>value_digest</code>, which
+nothing set or read, is not part of <code>credentials.Match</code> or the package schema's
+match, and the package counter did not move for it, since no package carried it.
+<em>Why:</em> at 2,500 devices on one shared line, per-device evidence meant 2,500
+sealed copies of one secret; two lines holding the same secret must not merge
+into a grant that can name only one; Redis's <code>source</code> was the text
+<code>redis-key-digest-not-implemented</code>, the one store whose records did not say
+where a credential came from.</p>
 <p><strong>The enable secret is optional unless the platform requires it.</strong> No built-in
 requires one; <code>[platform.NAME] requires-enable = true</code> requires it for that
 platform, read from the platform the device actually runs as. When optional,
@@ -618,6 +804,91 @@ expects the shell back, where the prompt had held the key until the input
 ended. <em>Not taken:</em> asking again after an empty answer; a generic code for
 the three ways a prompt ends (each is its own cause); Ctrl-D as an
 interrupt (it is the input's end, as everywhere else).</p>
+<p><strong>The credential helper runs once per invocation in the client, and its values
+reach the credential readers alone.</strong> Under <code>creds.helper-enabled</code>, <code>true</code> by
+default, an invocation that resolves credentials (<code>login</code>, <code>command</code>, <code>run</code>,
+<code>crun</code>) runs <code>creds.helper</code> once, at its first credential step, before any
+backend or fallback is asked, and holds its values for the invocation; a stream
+runs it at its first job and holds its values until <code>--restart</code>. <code>creds.helper</code>
+is <code>karvi-credh</code> by default, a bare name being the file beside the running
+executable, never searched on <code>PATH</code>, and any other value a place. The values
+may set any portable variable name and sit behind the provider's lookup ahead
+of the process environment; they configure nothing, enter no child's
+environment, and reach the daemon only inside the sealed credentials, <code>--debug</code>
+naming the path and the names. A helper that cannot be run is passed by under
+<code>creds.helper-unavailable = &quot;skip&quot;</code>, the default, after a warning under <code>warn</code>,
+and refuses the invocation under <code>fail</code> (<code>credential_helper_unavailable</code>); one
+that ran and failed always refuses it (<code>credential_helper_failed</code>), at planning
+before any device; a failure is never held, so a stream's next job runs it
+again. <code>--no-credh</code> sets <code>creds.helper-enabled = false</code> for the invocation.
+<em>Why:</em> a site's script fetches secrets from a password manager, a vault client,
+or a keyring into karvi's memory alone, where <code>eval &quot;$(script)&quot;</code> gives them to
+every program the shell starts; the daemon resolves nothing, so the helper runs
+where resolution runs; a helper that unlocks a store must not ask at every
+<code>--go</code>. <em>Not taken:</em> per device with the device's name (a credential backend, a
+type of its own); lazily at the first lookup (a failure landing on whichever
+device asked first); per job of a stream; at the stream's start; a failure held
+until <code>--restart</code>; the daemon running it; the credential names alone; the
+process environment winning; <code>PATH</code> searched; a <code>required</code> boolean; going on
+after a non-zero exit.</p>
+<p><strong>The helper's output is read, never evaluated.</strong> Line by line: a blank line
+and a comment skipped; otherwise an optional <code>export</code> and one or more
+assignments, a portable variable name, <code>=</code> with no blank beside it, and a value
+unquoted from letters, digits, and <code>_ . , : / @ % + = -</code>, double-quoted with the
+four escapes <code>\&quot;</code>, <code>\\</code>, <code>\$</code>, and <code>\`</code> and a bare <code>$</code> or <code>`</code> refused,
+single-quoted as written, or empty; no control character. A word that is no
+assignment, a name set twice, output past 64 KiB, or a line past 4 KiB is
+refused, <code>credential_helper_output_invalid</code>, naming the line and the reason and
+quoting nothing. A line karvi accepts means what dash and bash give it under
+<code>eval</code>, so a site tests its helper with <code>eval &quot;$(karvi-credh)&quot;</code>, and a test
+holds <code>examples/karvi-credh</code>'s quoting function to <code>sh -c 'eval …'</code>. <em>Why:</em> a
+shell runs what the output names (<code>A=a echo INJECTED</code>), and a line taken
+verbatim makes <code>export NETPASS=&quot;x&quot;</code> a password with quotes. <em>Not taken:</em> a
+shell; blanks around <code>=</code> trimmed; <code>$</code> expanded from karvi's environment; <code>~</code>
+unquoted (the shells disagree); the last assignment winning; a bad line dropped
+silently (a stale export read in its place); the line's text in the error.</p>
+<p><strong>The helper file is checked as a credential file is, and the file checked is
+the file run.</strong> karvi opens <code>creds.helper</code> without following a symlink unless
+<code>security.allow-credential-symlinks</code> is on, checks the descriptor (a regular
+file, owned by the operator, root, or an approved administrator, writable by
+neither its group nor others), and runs it through that descriptor, so a
+script's <code>$0</code> is <code>/proc/self/fd/3</code> and a binary the operator may execute and
+not read runs too; a failed check is a credential file code, whatever
+<code>creds.helper-unavailable</code> says. <em>Why:</em> on a shared host a second account in
+the operator's group edited a group-writable helper through its directory and
+read the secret it captured; a helper holds no secret and runs as the operator,
+so others changing it is its risk, where others reading is a credential file's.
+<em>Not taken:</em> no checks, as git's helpers and <code>SSH_ASKPASS</code> have; the credential
+file's exact mode; group write under a private group; every directory checked;
+symlinks always followed.</p>
+<p><strong>The helper is the operator's program, ended with its tree.</strong> It runs with
+karvi's environment unfiltered, no argument, standard input <code>/dev/null</code>, the
+operator's working directory, and karvi's process group, so it asks on
+<code>/dev/tty</code> and Ctrl-C reaches it with karvi (exit 113); its standard error is
+discarded. Past <code>creds.helper-timeout</code> (<code>60s</code> by default, <code>1s</code> to <code>1h</code>), or with
+the invocation cancelled, karvi lists the processes descended from it by their
+parents in <code>/proc</code> while it runs, holds each by a pidfd opened while its start
+time matched, and sends SIGTERM to all and SIGKILL two seconds on to each still
+running; a process that left the tree, a double fork, is left. After an exit
+its output is read to the end, at most two seconds more while a process it left
+holds it open. <em>Why:</em> fetching a secret needs the session's agents and bus,
+which the child filter drops; a trace under <code>set -x</code> printed the secret on
+standard error; in a group of its own Ctrl-C reached the helper alone and Ctrl-Z
+held the terminal; a fetch hung in a command substitution outlived SIGTERM to
+the helper's shell, one stray per timed-out run of a timer; a pidfd keeps a
+signal from a process that took a pid since. <em>Not taken:</em> the filtered
+environment; an allow-list key of its own; standard input passed through;
+standard error shown; no timeout; a process group of its own; karvi the child
+subreaper; descendants ended after a helper exits by itself.</p>
+<p><strong>The helper has its own protocol.</strong> Not git's credential helper (a request per
+host on standard input, one credential per call) nor <code>SSH_ASKPASS</code> (one prompt,
+one answer): no request, any number of named values once per invocation, as
+<code>export</code> lines a shell can test. A helper that asks the operator asks on
+<code>/dev/tty</code>, as <code>pinentry</code> does, and says why it failed there; karvi says only
+that it failed. <code>examples/karvi-credh</code> is a commented POSIX <code>sh</code> helper over
+<code>pass show</code>, and the package installs none. <em>Why:</em> karvi's readers ask by name,
+and one run serves them all. <em>Not taken:</em> a git mode; an askpass mode; no
+example (each site's own quoting, where mistakes are made).</p>
 <p><strong>A server's credential is a backend's or its platform's fallback, and a key is
 a file.</strong> Servers take policies and backends as routers do, a policy map rule
 selecting by platform. A credential is a username with a password, a key, or
@@ -1096,17 +1367,18 @@ an earlier release (the operator re-enrolls under <code>accept-new</code>).</p>
 whose value is a place karvi writes or reads has a <code>resolved: PATH</code> line, the
 path the operator's next activity would use: <code>basedir</code>, the trust store, the
 three trees, <code>tempdir</code>, <code>spooldir</code>, the control sockets, <code>scoreboards</code>, the
-ledger's root, the daemon's socket, and, when set, <code>audit.file</code>, the inventory
-sources' and the credential backends' files; an explicit value has it too, an
-empty one none. Each chain is found by its own chooser, the one the activity's
-maker calls, without creating anything: a candidate present is judged by
-<code>access(2)</code>, its owner and mode where the place is private, and the free inodes
-of its filesystem; one absent is the folder the activity would make where its
-rule lets it. A candidate present and passed by adds a <code>passed:</code> line with the
-reason, in the activity's words where it warns, and so does a scratch candidate
-too long for the askpass socket, present or not; a refusal is <code>resolved: error: CODE: message</code>, and the view exits 0. The lines come from the
+ledger's root, the daemon's socket directory, and, when set, <code>audit.file</code>, the
+inventory sources' and the credential backends' files; an explicit value has it
+too, an empty one none. Each chain is found by its own chooser, the one the
+activity's maker calls, without creating anything: a candidate present is judged
+by <code>access(2)</code>, its owner and mode where the place is private, and the free
+inodes of its filesystem; one absent is the folder the activity would make where
+its rule lets it. A candidate present and passed by adds a <code>passed:</code> line with
+the reason, in the activity's words where it warns, and so does a scratch
+candidate too long for the askpass socket, present or not; a refusal is
+<code>resolved: error: CODE: message</code>, and the view exits 0. The lines come from the
 configuration the invocation loads, which its job runs under on every path; a
-running daemon keeps only its own socket, state, and log under the <code>basedir</code> it
+running daemon keeps only its own sockets, state, and log under the <code>basedir</code> it
 started with, and swept its places at its start. The view takes several keys,
 and the whole table is a recipe over it (<a href="FILES.html"><code>docs/FILES.md</code></a>). A
 controlled enrollment takes the store's path from the line. <em>Why:</em> under <code>auto</code>
@@ -1140,6 +1412,32 @@ with none is refused before connecting. <em>Why:</em> the operator's order, and 
 exception's record in configuration rather than a per-device audit field.
 <em>Not taken:</em> the removed <code>ssh.legacy-hosts</code> classes with fixed algorithm
 blocks; a <code>crypto_exception</code> field on every record.</p>
+<p><strong>A device's key exchange, cipher, and MAC lists may be its transport's own.</strong>
+<code>ssh-algorithms.source</code> is <code>karvi</code> (alias <code>auto</code>), the lists above, or
+<code>transport</code>: karvi writes no key exchange, cipher, or MAC line into the
+generated OpenSSH configuration and leaves x/crypto's unset, so OpenSSH takes
+its compiled defaults or an included <code>~/.ssh/config</code>'s, and x/crypto its own,
+the names karvi refuses or allows only in a profile among them. The host-key
+list is <code>ssh-algorithms.host-key</code> under either, narrowed to the stored key
+types, so what a first contact stores depends on neither the transport nor the
+setting. A profile may set <code>source</code>, and a device's source is its profile's,
+else the global one; a profile whose key exchange, cipher, or MAC lists would go
+unread under its devices' source is
+<code>config_ssh_algorithms_profile_lists_unread</code>, while the global lists stay valid
+under either. The device's debug line says the source, and a negotiation failure
+under <code>transport</code> names the transport's own offer, x/crypto's from its error,
+OpenSSH's from <code>ssh -G</code> with the session's arguments, run at most once per job
+and binary, every later failure of the job taking its lists. <em>Why:</em> the system
+transport following OpenSSH's choices as OpenSSH changes them, an included
+<code>~/.ssh/config</code> able to set the lists, and a device that <code>ssh</code> reaches compared
+without karvi's lists; a site that needs karvi's refusals keeps <code>karvi</code>, and
+can lock it. <em>Not taken:</em> the transports' own host-key order (a first contact
+storing ECDSA over native and Ed25519 over <code>system</code>, <code>ssh-dss</code> among x/crypto's
+names, OpenSSH's without <code>ssh-rsa</code>); the defaults filtered by karvi's refusals
+(karvi writing lines again, and over native a copy of x/crypto's lists); each
+list's source chosen apart; <code>/etc/ssh/ssh_config</code> read under the setting
+(<a href="EXAMPLES.html#54-the-transports-own-ssh-algorithm-lists-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter
+54</a>).</p>
 <h2 id="7-the-plan-the-daemon-and-the-credential-channel">7. The plan, the daemon, and the credential channel <a class="anchor" href="#7-the-plan-the-daemon-and-the-credential-channel" aria-label="Link to this section">#</a></h2>
 <p><strong>The client plans; the daemon validates and executes.</strong> The client owns
 configuration, inventory, target assembly, address resolution under client
@@ -1191,9 +1489,9 @@ plaintext package would be an offline-guessable password fingerprint; a key
 would be revisited only after measuring provide-to-commit times. <em>Not taken:</em>
 configuration keys for the bounds.</p>
 <p><strong>Two sockets: the JSON envelope and the credential frame.</strong> The
-newline-delimited JSON envelope on <code>socket/daemon.sock</code> carries <code>prepare_job</code>,
+newline-delimited JSON envelope on <code>socket/d.sock</code> carries <code>prepare_job</code>,
 <code>commit_job</code>, <code>follow_job</code>, <code>cancel_job</code>, and the lifecycle operations. A
-second owner-only socket, <code>socket/credentials.sock</code>, carries one length-prefixed
+second owner-only socket, <code>socket/c.sock</code>, carries one length-prefixed
 binary frame per connection and one receipt back; its reader never parses an
 envelope and the envelope reader never opens it, so exclusion of the secret
 from request logging is a property of the code structure. The frame's bounds
@@ -1295,17 +1593,41 @@ client's, admission is still the one check); the bound judged by the running
 pid; a shorter name (the pid is the sweep's, and any name leaves a bound); an
 abstract socket (no 0600 file, the token its only guard); a warning when <code>auto</code>
 passes a candidate by (the next is as private).</p>
+<p><strong>The daemon's sockets are bounded in a directory of their own.</strong>
+<code>daemon.sockets</code> is the daemon's socket directory (<code>auto</code>: <code>&lt;basedir&gt;/socket</code>),
+where the daemon binds <code>d.sock</code> and the credential channel's <code>c.sock</code> under
+names of its own; a path socket holds 107 bytes, so the directory may be at
+most 100 (<code>osutil.MaxDaemonSocketDir</code>), a <code>basedir</code> of at most 93 under <code>auto</code>.
+A longer directory is <code>daemon_socket_too_long</code> where it is resolved, for every
+caller (a run before the probe and the launch, every <code>daemon</code> word, <code>job</code>,
+<code>follow</code>, <code>inspect</code>, and <code>config show --explain</code>), before the state tree is
+made; under <code>auto</code> the message names <code>basedir</code>. <em>Why:</em> a socket too long let a
+run wait out <code>daemon.start-timeout</code> and exit 112, <code>context deadline exceeded</code>,
+the cause in <code>daemon.log</code> alone, the credential channel's longer name failing
+first; and with the socket's file the operator's to name, an explicit file of
+the credential socket's name, or two daemons' sockets in one directory, met on
+the credential socket (executed). <em>Not taken:</em> a chain for <code>auto</code> (the socket
+is the <code>basedir</code>'s daemon, and a shorter place would be shared by every long
+<code>basedir</code>); <code>basedir</code> bounded at 93 (a long one with a short explicit directory
+works); the file key with the credential socket's name refused (two daemons in
+one directory still meet); the credential socket's name derived from the
+daemon's (the bound then hangs on the operator's name); the sockets in
+<code>&lt;basedir&gt;/tmp</code> beside the scratch (one directory with two rules for a length,
+and a name that invites clearing under a running daemon); an abstract socket.</p>
 <p><strong>The daemon leaves by itself when idle.</strong> <code>daemon.shutdown-idle-timer</code>
-(default <code>1h</code>; <code>0</code> never) ends a daemon with no active job and no live
+(default <code>10m</code>; <code>0</code> never) ends a daemon with no active job and no live
 preparation after the timer since its last request other than <code>ping</code> or
 <code>status</code>; the client, finding the socket gone at its first request, launches
 once more and repeats the request with the plan it already made. The packaged
 unit starts the daemon with the timer off. <em>Why:</em> a team host gets one daemon
 per operator and some sit for months, running the executable and the <code>daemon.*</code>
-settings of that day; the cost is staleness, not memory; a unit's idle exit
-is a clean exit <code>Restart=on-failure</code> would not restart. <em>Not taken:</em> default
-off; counting <code>status</code> as activity (a dashboard would keep every daemon
-alive); a daemon that reloads its configuration.</p>
+settings of that day; the cost is staleness, not memory; ten minutes, so that
+after an upgrade or a downgrade a daemon of the old build is gone soon after
+its last job, for a relaunch of some 80 ms; a unit's idle exit is a clean exit
+<code>Restart=on-failure</code> would not restart. <em>Not taken:</em> default off; an hour (an
+old build's daemon outstays the administrator's change); counting <code>status</code> as
+activity (a dashboard would keep every daemon alive); a daemon that reloads
+its configuration.</p>
 <p><strong>The manifest is the record of intent.</strong> It holds the commit header, the final
 plan with its configuration block (every value the job ran under), the safe
 package projection as typed fields, and the operator's selection inputs;
@@ -1313,6 +1635,35 @@ duplicates of plan content are gone, and a validator checks the plan's digest,
 the header against the plan, and every record's device against a plan target.
 <em>Why:</em> the plan and header are the record; duplicating them invites
 disagreement.</p>
+<p><strong>A build is its Go build ID's last part.</strong> The process reads the Go build ID
+from its own executable (<code>/proc/self/exe</code>, the ELF note <code>.note.go.buildid</code>),
+the daemon at its start and the client when it reaches a daemon; the build is
+the ID's last part, the content hash of the executable, its 20 characters shown
+as they are. <code>karvi version</code> names it (<code>build:</code>), and with it the manifest's
+<code>app.build</code>; the ping and status answer carries <code>build</code> and <code>commit</code>; <code>daemon status</code> stacks each of the daemon's values over the client's,
+<code>daemon_version:</code> over <code>client_version:</code>, then the commit, the IPC schema, and
+the build, above <code>compatible:</code>, its JSON taking the same keys. A process that
+cannot read its own build stops, <code>build_unreadable</code>: <code>daemon serve</code> refuses to
+start and a client to submit through a daemon; an empty build is never
+compared, and <code>karvi version</code> says <code>build: none</code>. <em>Why:</em> two programs of one
+modified tree share a commit, and the build ID tells them apart in
+microseconds, where a hash of the file takes 33 ms. <em>Not taken:</em> the commit
+alone; Go's VCS stamp (the same, and it needs <code>.git</code>); the executable's SHA-256;
+the whole build ID (83 characters, four hashes); the build in every record (the
+manifest names it once a job).</p>
+<p><strong>The client judges the daemon; the daemon checks nothing of the client's.</strong>
+Whether a daemon is acceptable is the client's judgment alone: the daemon takes
+a job from a client of any version or build. The client reports neither its
+version nor its build: a request carries no <code>client_version</code> or <code>client_pid</code>
+(IPC schema 12), and the job header's <code>client</code> holds the client's pid and
+hostname alone (execution plan 13). The daemon reports its own, and the prepare
+answer's <code>daemon</code> block names its <code>build</code> and <code>commit</code>, so a client that finds
+the preparing daemon unacceptable, one replaced between the probe and the
+request, abandons the preparation before any credential is sent and runs its
+sequence once more; a second such answer is refused, <code>daemon_incompatible</code>.
+<em>Why:</em> a later client may accept a daemon of another build without the daemon
+changing, and the moment between the probe and the submission is closed.
+<em>Not taken:</em> the daemon checking the client's build; the moment left open.</p>
 <h2 id="8-rehearsal-follow-cancel-and-the-daemons-lifecycle">8. Rehearsal, follow, cancel, and the daemon's lifecycle <a class="anchor" href="#8-rehearsal-follow-cancel-and-the-daemons-lifecycle" aria-label="Link to this section">#</a></h2>
 <p><strong><code>--dry-run</code> shares the live run's first half and calls only the probe.</strong> The
 inspection drafts the plan exactly as a live run does, binds client-selected
@@ -1360,9 +1711,16 @@ follows from the zero cursor; the daemon catches it up and feeds it live; the
 display ends with the footer or the jsonl summary line, and the exit is the
 job's own. A job the daemon does not hold is read from its directory, located
 as the day folder holding a subdirectory named by the ID; a directory without
-<code>summary.json</code> and no daemon holding the job is <code>job_orphaned</code>. <em>Why:</em> the
-operator who detached wants the job; the files are the canonical record and
-the daemon serves the stream from them.</p>
+<code>summary.json</code> and no daemon holding the job is <code>job_orphaned</code>, the daemon
+judged before the directory. <code>job follow</code> and <code>job cancel</code> use a daemon of any
+version or build that speaks the client's IPC schema, and neither drains, since
+neither submits; a daemon of another schema refuses a running job's follow and
+cancel, <code>daemon_incompatible</code>, naming the karvi that speaks it, and a job that
+has ended renders from its directory. <em>Why:</em> the operator who detached wants
+the job; the files are the canonical record and the daemon serves the stream
+from them; after an upgrade the jobs a draining daemon finishes are followed and
+cancelled one at a time. <em>Not taken:</em> follow and cancel refused across builds
+(the old daemon's jobs out of reach but by cancelling them all).</p>
 <p><strong>Cancellation is a job-scoped cause with shutdown's accounting.</strong> <code>cancel_job</code>
 cancels one job's context with a cause carrying the reason, requester, and
 time; the daemon answers <code>cancelling</code> or <code>terminal</code> at once and never waits. A
@@ -1386,19 +1744,89 @@ drains and waits <code>daemon.shutdown-grace-seconds</code>, a second shortens t
 terminal record received none; a forced stop must be distinguishable from a
 device failure and an operator cancel.</p>
 <p><strong><code>daemon stop</code> and <code>daemon restart</code> refuse an active daemon without an
-option.</strong> With active jobs and no option they refuse naming <code>--grace</code> (drain
-and wait), <code>--after=X</code> (drain, then force), and <code>--force</code>; Ctrl-C during the
-wait ends only the wait. <em>Why:</em> the earlier <code>stop</code> stopped without checking.</p>
-<p><strong>A client keeps lifecycle access to a daemon of another release, and
-compatibility is the pair.</strong> <code>ping</code>, <code>status</code>, <code>stop</code>, and <code>restart</code> reach a
-same-UID daemon launched by another executable; a run is refused before any job
-with <code>daemon_incompatible</code> unless the daemon's version and IPC schema both
-equal the client's, and every release restarts the daemon. <em>Why:</em> an upgrade
-never requires the old executable and never kills an incompatible daemon
-automatically; the execution plan moved twice under an unchanged IPC schema
-while the status said compatible, so the version catches every release and the
-schema catches a pre-release client beside a released daemon. <em>Not taken:</em> the
-version alone; comparing the commit; naming the plan schema on the status line.</p>
+option.</strong> Every stop names its mode, and the daemon alone counts its jobs,
+under the lock that admits them. Without an option the mode is <code>if_idle</code>,
+refused while any job runs (<code>daemon_active_jobs</code>), the refusal naming
+<code>--grace</code>, <code>--after=DURATION</code>, and <code>--force</code>; a stop naming no mode is taken as
+<code>if_idle</code>. <code>--grace</code> drains the daemon and waits for it to exit; <code>--after</code>
+drains, waits up to the limit, and forces; <code>--force</code> cancels the jobs and
+stops. Both drains reach any daemon, at its own schema. A wait begins with a
+line naming the jobs (<code>daemon draining: 1 job running; waiting for it to exit</code>), which <code>--quiet</code> leaves out; an interrupt ends the wait alone, the
+daemon finishing its jobs and exiting. A stop or a signal after a drain takes
+over from it, so the log names the stop that ended the daemon. <em>Why:</em> the
+earlier <code>stop</code> stopped without checking, and a client's count is blind to the
+jobs other clients submit before the stop arrives. <em>Not taken:</em> the client's
+count; a stop naming no mode stopping at once (its jobs lost unrecorded); the
+daemon holding <code>--after</code>'s limit (the wait and its limit are the client's).</p>
+<p><strong>A daemon serves its own build; a client drains another's.</strong> A daemon serves a
+client only when its IPC schema and its build equal the client's; the version
+and the commit, compiled into the program, differ only with the build. Every
+submission (<code>run</code>, <code>crun</code>, <code>--exercise</code>, <code>--detach</code>, a stream's job, <code>daemon start</code>) passes one sequence, <code>ensureDaemon</code>: nothing answering, the client
+starts a daemon of its build; its own build, it uses it; another build, or any
+daemon draining, it drains it at the daemon's own schema and reads its jobs
+from the answer. With none the daemon exits, and the client waits up to
+<code>daemon.start-timeout</code> for it to go, starts its own, and runs the job in the
+same invocation, saying <code>daemon drained version=… build=…</code> before <code>daemon started</code>. With jobs, or not gone within the wait, the submission is refused,
+<code>daemon_draining</code> (exit 112), the daemon's build over the client's, and every
+client alike until the daemon exits. A daemon of a newer schema, which the
+client cannot drain, is refused <code>daemon_incompatible</code>, the schemas stacked. The
+dry run drains nothing: an idle daemon of another build is the info finding
+<code>daemon_other_build</code>, a busy one the error <code>daemon_draining</code>. <code>daemon status</code>
+reads and never drains; <code>--no-daemon</code> never reaches the daemon. <em>Why:</em> an
+upgrade needs nothing from the operator, and nothing is killed: the drain
+finishes the jobs; two builds of one version are different programs, and a
+daemon of one serving the other ran code the client did not plan with. <em>Not
+taken:</em> the signal (it cancels the jobs past the old daemon's grace); a new
+request beside the drain; the client waiting out the drain (a run held for the
+old jobs' length); a second daemon beside the draining one (two daemons for one
+operator, the old jobs out of reach of <code>job follow</code>); a notice alone; an older
+client draining a newer daemon (a downgrade is the administrator's).</p>
+<p><strong>A drained daemon exits after its last job.</strong> From a drain the daemon admits
+no job from any client, <code>prepare_job</code> and <code>commit_job</code> refused
+<code>daemon_draining</code>, and finishes every job it holds with no time limit, killing
+nothing; it exits when the last ends, at once with none, logging <code>stopping: drained</code>, exit 0. Only accepted jobs hold it; a preparation not yet committed
+does not, its commit refused. Until it exits it answers <code>ping</code> and <code>status</code>
+(<code>draining</code>, its jobs), <code>follow_job</code>, and <code>cancel_job</code>, every follower
+receiving its terminal before the exit. <em>Why:</em> a drained daemon refuses every
+job, so one kept after its last job serves nothing. <em>Not taken:</em> a time limit
+(the jobs finish); the draining daemon starting its successor (the client
+starts one, or the unit).</p>
+<p><strong>A unit's daemon is its administrator's.</strong> Two shapes: an operator's own
+daemon, launched by the operator's client, as on a jump box; and a service
+account's daemon run by systemd, whose life is the unit's and the
+administrator's. <code>daemon.launch</code> names who starts the account's daemon:
+<code>&quot;client&quot;</code>, the default, or <code>&quot;systemd&quot;</code>, set by <code>karvi-sysutil daemon install</code>
+in the service account's configuration, the daemon then the unit
+<code>karvi-daemon@USER.service</code>'s, USER the client's own account. Under <code>&quot;systemd&quot;</code>
+a client never drains or starts a daemon: a daemon of another build or a newer
+schema refuses a submission and <code>daemon start</code>, <code>daemon_incompatible</code>, and none
+refuses them <code>daemon_unreachable</code>, each naming <code>systemctl restart</code> or <code>start</code> of
+the unit; <code>daemon stop</code> and <code>daemon restart</code> are refused <code>daemon_managed</code>. The
+package ships the template <code>/usr/lib/systemd/system/karvi-daemon@.service</code>
+(<code>User=%i</code>), and the bundle's <code>scripts/install.sh</code> places it under
+<code>/usr/local/lib/systemd/system</code> with <code>karvi-sysutil</code> in <code>/usr/local/sbin</code>;
+neither enables anything, and both reload systemd. Its <code>ExecStart</code> names
+<code>karvi</code> bare, which systemd finds in <code>/usr/local/bin</code> before <code>/usr/bin</code>, and
+<code>karvi-sysutil</code> runs the same, so one method serves both installs; neither
+sets up a model, the site choosing operators' own daemons, with the shared
+trees or without, or the service account's. The account is a system user with
+no user manager or linger. The unit starts after the
+network, signals the daemon alone at a stop (<code>KillMode=mixed</code>), and leaves the
+bound to the daemon's grace (<code>TimeoutStopSec=infinity</code>), with
+<code>Restart=on-failure</code> and the idle timer off. The daemon itself is unchanged: it
+names no unit. <em>Why:</em> a drained daemon exits 0, which <code>Restart=on-failure</code> does
+not restart, and the moment a service changes build is the administrator's; a
+user unit is killed 5 s into every shutdown on Ubuntu (<code>user@.service</code>'s
+drop-in) and orders nothing against the network; logind's <code>RemoveIPC</code> removes
+an ordinary user's files under <code>/dev/shm</code> after the last logout, and a system
+user's never; <code>control-group</code> cuts the system transport's OpenSSH sessions with
+the daemon's SIGTERM. <em>Not taken:</em> socket activation and an exit status for
+systemd to restart (a client's touch choosing the moment); <code>Restart=always</code> (a
+stop undone); the user unit with linger or a drop-in for the account's user
+manager; the daemon knowing its unit from <code>INVOCATION_ID</code> and its cgroup (the
+client's setting says it); <code>daemon.launch</code> a boolean (<code>false</code> says what a
+client does not do, not who does); the template edited at the bundle's install
+(a unit other than the release's); the bundle's commands left by hand.</p>
 <h2 id="9-dispatch-and-the-icmp-gate">9. Dispatch and the ICMP gate <a class="anchor" href="#9-dispatch-and-the-icmp-gate" aria-label="Link to this section">#</a></h2>
 <p><strong>Dispatch is <code>serial</code>, <code>parallel</code>, or <code>wave</code>, bounded by a shared cap.</strong>
 <code>serial</code> runs one device at a time (the default), <code>parallel</code> a fixed width,
@@ -1535,8 +1963,9 @@ its process alone: the <code>daemon.*</code> keys (<code>daemon-start</code> the
 a running daemon keeps the value), its <code>basedir</code> for its socket, state, and
 log, and the sweeps at its start. The client's load enforces the locks; the
 daemon re-checks nothing. A job's audit records, its <code>cancel_requested</code> among
-them, go to the sinks its configuration names, and the daemon-path client prints
-its load's warnings. <em>Why:</em> a daemon started by one invocation ran every later
+them, go to the sinks its configuration names, and the client says its load's
+warnings as every invocation does (<a href="#15-configuration-and-errors">section 15</a>).
+<em>Why:</em> a daemon started by one invocation ran every later
 job under that invocation's <code>--config</code>, <code>--set</code>, environment, and working
 directory, so a later client's settings silently missed its own job, the
 execution policy among them, and a job's records named two configurations.
@@ -1697,8 +2126,8 @@ keys and the <code>crun_directory_*</code> codes keep their names and document e
 collection; <code>--cd</code> is <code>crun.directory</code> as a flag-origin value on every word, so
 a site that locks the key refuses <code>run --cd</code> and <code>command --cd</code> as it refuses
 <code>crun --cd</code>. Through the daemon the path means what it means to the client,
-since the packaged user unit carries no file-system sandbox. <em>Why:</em> one rule
-for one kind of directory. <em>Not taken:</em> <code>collection.*</code> keys and
+since the service account's daemon unit carries no file-system sandbox. <em>Why:</em>
+one rule for one kind of directory. <em>Not taken:</em> <code>collection.*</code> keys and
 <code>collection_directory_*</code> codes (every site's configuration broken for a name).</p>
 <p><strong><code>--fs=SUFFIX</code> appends a literal suffix to each collection file's name; on
 <code>run</code> and <code>command</code> it implies <code>--cd=.</code>.</strong> The value is appended as written to
@@ -1846,13 +2275,60 @@ terminal unless <code>NO_COLOR</code> is set and not empty. The rule is
 <code>display.ColorEnabled</code>'s, so the help, a run's display on both paths,
 <code>config colors</code>, the watch screen, and <code>karvi-prune -h</code> (whose mode is <code>auto</code>
 alone) follow it; <code>always</code> and <code>never</code> are explicit choices <code>NO_COLOR</code> does
-not override, watch's <code>--color</code> among them. <em>Why:</em> the convention (no-color.org)
+not override, watch's <code>--color</code> among them, and a regular file is plain under
+every mode (below). <em>Why:</em> the convention (no-color.org)
 asks a program that colours by default to honour a non-empty <code>NO_COLOR</code> and
 lets a configuration or a per-invocation option override it; the watch screen
 alone read it, beating even its own <code>--color always</code>, and every other path
 ignored it. <em>Not taken:</em> <code>NO_COLOR</code> over <code>always</code>; <code>NO_COLOR</code> as a
 configuration layer setting <code>display.color = &quot;never&quot;</code> (locks, and an order
 above the files); a karvi variable of its own.</p>
+<p><strong>Every warning line in the warning colour.</strong> A <code>warning: …</code> line on standard
+error, a load's warnings and every other, is written by one function
+(<code>jobexec.WriteWarning</code>) in the invocation's read's style for the stream it goes
+to: the whole line in the <code>warning</code> role's colour and bold, as the <code>!</code> warning
+lines are, when colour is on by <code>display.ColorEnabled</code>'s rule, and plain on a
+pipe under <code>auto</code>, in a file, under <code>never</code>, <code>NO_COLOR</code>, or a <code>nocolor</code> theme
+(<code>--nocolor</code>); the words
+never change. A recorded login's child writes to its wrapper's terminal through
+a writer that names that terminal, so the display's colour and width questions
+are the terminal's; the transcript stays the device's bytes. <em>Why:</em> the <code>!</code>
+lines took the colour and the <code>warning:</code> lines did not, so one kind of line had
+two looks, and the recorded child's <code>!</code> lines were plain at the terminal that
+showed them coloured in a plain login. <em>Not taken:</em> the word <code>warning:</code> alone
+coloured; the load's warnings alone; the colour decided by <code>output.ansi</code> (it
+governs device output's escapes) (<a href="EXAMPLES.html#52-one-read-of-the-configuration-per-invocation-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter 52, issue
+5</a>).</p>
+<p><strong>A refusal in the error colour, a dropped line in the warning colour.</strong> Every
+refusal that ends an invocation, the code and its message, is written bold in
+the <code>error</code> role's colour, as a device's failure line is, and a line a stream
+drops and goes on from (its three <code>dropped:</code> lines, <code>standard input is the stream; --cf - is not accepted</code>, and <code>nothing to send</code>) bold in the <code>warning</code>
+role's colour, by the methods every refusal goes through (<code>reportError</code>,
+<code>usageError</code>, <code>printResultError</code>, <code>refuse</code>, <code>dropped</code>) under the display's rule.
+Until the invocation's one read they take the built-in settings under the
+command line's own display options, so <code>karvi --nocolor run --bogus</code> and a
+configuration that does not load are plain. <em>Why:</em> a configuration warning and
+a device's failure were coloured while a refusal at planning, the line an
+operator most needs to see, was in none. <em>Not taken:</em> the credential helper's
+refusals coloured alone; a role of its own for refusals (the error role means
+failed); refusals left plain; the configuration's display keys read for a
+refusal of the command line (a second read).</p>
+<p><strong>A file is written plain, and <code>--nocolor</code> turns colour off for one
+invocation.</strong> <code>display.ColorEnabled(mode, theme, to)</code> decides every line karvi
+colours by where it goes (<code>display.Destination</code>: a terminal, a regular file, or
+elsewhere, a pipe): <code>auto</code> colours a terminal unless <code>NO_COLOR</code> is set,
+<code>always</code> a terminal and a pipe, <code>never</code> nothing, and a regular file nothing
+under any mode. <code>--nocolor</code>, a global option before the command word alone,
+sets <code>display.theme = &quot;nocolor&quot;</code> for the invocation in the options layer, as
+<code>--ansi</code> sets <code>output.ansi</code>: <code>config show</code> names it the value's source, <code>--set</code>
+outranks it, <code>watch</code>'s own <code>--theme</code> outranks it for the screen, and a site that
+locks <code>display.theme</code> refuses it (<code>config_lock_violation</code>, exit 3). <em>Why:</em>
+escapes written into a log are read with an editor; <code>| less -R</code> keeps its
+colour under <code>always</code>; an option that sets a key belongs to the options layer.
+<em>Not taken:</em> <code>--nocolor</code> after the command word too (a second place for one
+global switch); <code>--nocolor</code> above <code>--set</code> and a lock; a pipe plain under
+<code>always</code>; <code>always</code> colouring a file (<a href="EXAMPLES.html#56-the-credential-helper-2026-10-11"><code>docs/EXAMPLES.md</code>, chapter 56, issue
+19</a>).</p>
 <p><strong>Debug output shows each command once and never a payload.</strong> Debug never
 contains passwords, tokens, or device output; it shows each command sent
 exactly once, from the plan and never from the device's echo, with a marked
@@ -2068,21 +2544,23 @@ directory its command walks; a site that gives the unit another path adds it to
 the line. <em>Why:</em> the shipped line failed every unit on a host lacking one of its
 paths; a place the helper walks that is not on the line is a failed line per
 item, daily.</p>
-<p><strong>The user units carry no file-system sandbox.</strong> <code>karvi-daemon.service</code>,
-<code>karvi-prune.service</code>, and <code>karvi-crun.service</code> run with the operator's own view
-of the files, as the client does: no <code>PrivateTmp</code>, <code>ProtectSystem</code>,
-<code>ProtectHome</code>, or <code>ReadWritePaths</code>; <code>NoNewPrivileges</code>, the umask, and the limits
-stay. Confinement is the system units'. <em>Why:</em> a user manager makes a mount
-namespace only inside an unprivileged user namespace, and on a host that
-restricts those (Ubuntu's <code>kernel.apparmor_restrict_unprivileged_userns = 1</code>)
-AppArmor denies it <code>CAP_SYS_ADMIN</code> and systemd starts the unit unsandboxed
-without a word; where the sandbox did apply, a <code>/tmp</code> path the client named
-landed in the daemon's private <code>/tmp</code> and a home path was refused, so one path
-meant two places. <em>Not taken:</em> keeping the lines and stating the limit (the
-behaviour differing by host); a system unit per operator (<code>User=</code>), where the
-divergence stays; an AppArmor profile granting the executor a user namespace
-(the host's restriction weakened for every user manager); <code>PrivateUsers=</code>,
-which asks for the very namespace denied.</p>
+<p><strong>The user units carry no file-system sandbox.</strong> <code>karvi-prune.service</code> and
+<code>karvi-crun.service</code> run with the operator's own view of the files, as the
+client does: no <code>PrivateTmp</code>, <code>ProtectSystem</code>, <code>ProtectHome</code>, or
+<code>ReadWritePaths</code>; <code>NoNewPrivileges</code>, the umask, and the limits stay. The service
+account's daemon template, a system unit, sets none either, its daemon writing
+where its clients read; confinement is the site's prune unit's. <em>Why:</em> a user
+manager makes a mount namespace only inside an unprivileged user namespace, and
+on a host that restricts those (Ubuntu's
+<code>kernel.apparmor_restrict_unprivileged_userns = 1</code>) AppArmor denies it
+<code>CAP_SYS_ADMIN</code> and systemd starts the unit unsandboxed without a word; where
+the sandbox did apply, a <code>/tmp</code> path the client named landed in the daemon's
+private <code>/tmp</code> and a home path was refused, so one path meant two places. <em>Not
+taken:</em> keeping the lines and stating the limit (the behaviour differing by
+host); a system unit per operator (<code>User=</code>), where the divergence stays; an
+AppArmor profile granting the executor a user namespace (the host's restriction
+weakened for every user manager); <code>PrivateUsers=</code>, which asks for the very
+namespace denied.</p>
 <h2 id="15-configuration-and-errors">15. Configuration and errors <a class="anchor" href="#15-configuration-and-errors" aria-label="Link to this section">#</a></h2>
 <p><strong>The registry is the source; everything else is generated.</strong> Every fixed key is
 a row of the configuration registry with its kind, default, lock eligibility,
@@ -2092,6 +2570,15 @@ compared byte for byte by the verifiers. Layers apply in order: files, the
 <code>KARVI__</code> environment, flags, <code>--set</code>. Locks may be declared only by the
 auto-discovered global configuration. <em>Why:</em> the registry is the operator's view
 of what karvi reads, and a row nothing reads misleads.</p>
+<p><strong>An alias is stored as the value it stands for.</strong> One table in the registry
+holds a key's other words, <code>dispatch.order</code>'s <code>name</code> for <code>sorted</code> and
+<code>ssh-algorithms.source</code>'s <code>auto</code> for <code>karvi</code>, a profile's <code>source</code> alike, and
+the read stores the value from every layer, so <code>config show</code>, the digest, and
+every record carry one word for one meaning. <em>Why:</em> <code>name</code> was kept as written,
+one behaviour under two digests. <em>Not taken:</em> <code>default</code> as <code>karvi</code>'s alias (on
+that key it reads as the transports' defaults)
+(<a href="EXAMPLES.html#54-the-transports-own-ssh-algorithm-lists-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter
+54</a>).</p>
 <p><strong>The reference configuration is rendered table by table, and it loads.</strong>
 <code>configs/reference.toml</code> and <code>karvi config generate</code> give the top-level keys
 first, with no table, then each table once, in the order of its first row in
@@ -2107,6 +2594,17 @@ not loaded since the public tree began, and <code>generated-clean</code> compare
 the generator alone. <em>Not taken:</em> reordering the registry (the next row splits
 a table again); dotted keys without tables; a suite running <code>config validate</code>
 on the generated file.</p>
+<p><strong>One example configuration.</strong> <code>examples/config.toml</code> is karvi's one example,
+with the inventory, credentials, and targets it names beside it; <code>configs/</code>
+holds the generated reference and the development overlay. A section is active
+where its value is karvi's default or the example set needs it, and commented
+where it is a shape a site adds; what a guide holds stays in the guide. Every
+pointer, <code>reference.toml</code>'s, <code>config generate</code>'s, and the guides', names it.
+<em>Why:</em> <code>configs/example.toml</code> beside it had drifted (its transports under a
+stale comment, a policy without the csv backend), so that the set's own dry
+run could not plan under it (executed). <em>Not taken:</em> both kept, one pointing at
+the other; everything active (a copied example would change what every IOS XE
+device is sent); the CSV's rules repeated in the file.</p>
 <p><strong>Every documented range is enforced by one loop.</strong> A row carries <code>Min</code>,
 <code>Max</code>, and <code>ZeroDisables</code>; one loop applies them to every bounded row after
 the type check, refusing as <code>config_value_out_of_range</code> in the row's words.
@@ -2115,18 +2613,19 @@ disagreed on what an unbounded value meant. <em>Not taken:</em> hand-written rul
 beside the loop.</p>
 <p><strong>An option that stands for a key is that key's override.</strong> Every command-line
 option that stands for one configuration key is applied as an override of the
-key in the lock-aware layer (<code>ConfigFlags</code>), so the key's type, range, cross-key
-checks, and lock apply to it as to <code>--set</code>: <code>--order</code>, <code>--blind-wait</code>,
-<code>--ssh-host-key-policy</code>, <code>--ssh-known-hosts-file</code>, <code>--ping</code> and <code>--noping</code>,
-<code>--4</code> and <code>--6</code>, <code>--of</code> and <code>--nof</code>, and <code>--cd</code> as before, and <code>run</code>'s Dispatch
-options with them: <code>--dispatch</code> and <code>--dp</code>, <code>--dw</code>, <code>--ds</code> (<code>dispatch.default</code>),
-<code>--workers</code> (<code>dispatch.parallel-workers</code>), <code>--start-width</code> and <code>--max-width</code>
-(<code>dispatch.wave-start-width</code>, <code>dispatch.wave-max-width</code>), the two halts and the
-two wave gates (<code>dispatch.halt-on-error-*</code>, <code>dispatch.wave-gate-error-*</code>), and
-<code>--wave-delay</code> (<code>dispatch.wave-gate-timed-delay</code>). A locked key refuses its
-option (<code>config_lock_violation</code>), an out-of-range value is the key's own error,
-and the planner reads the keys alone; the plan's dispatch block is unchanged.
-The command line's own dispatch checks, <code>dispatch_value_negative</code> and
+key in the lock-aware options layer of the invocation's read, so the key's type,
+range, cross-key checks, and lock apply to it as to <code>--set</code>: <code>--order</code>,
+<code>--blind-wait</code>, <code>--ssh-host-key-policy</code>, <code>--ssh-known-hosts-file</code>, <code>--ping</code> and
+<code>--noping</code>, <code>--4</code> and <code>--6</code>, <code>--of</code> and <code>--nof</code>, and <code>--cd</code> as before, and
+<code>run</code>'s Dispatch options with them: <code>--dispatch</code> and <code>--dp</code>, <code>--dw</code>, <code>--ds</code>
+(<code>dispatch.default</code>), <code>--workers</code> (<code>dispatch.parallel-workers</code>), <code>--start-width</code>
+and <code>--max-width</code> (<code>dispatch.wave-start-width</code>, <code>dispatch.wave-max-width</code>), the
+two halts and the two wave gates (<code>dispatch.halt-on-error-*</code>,
+<code>dispatch.wave-gate-error-*</code>), and <code>--wave-delay</code>
+(<code>dispatch.wave-gate-timed-delay</code>). A locked key refuses its option
+(<code>config_lock_violation</code>), an out-of-range value is the key's own error, and the
+planner reads the keys alone; the plan's dispatch block is unchanged. The
+command line's own dispatch checks, <code>dispatch_value_negative</code> and
 <code>dispatch_percent_out_of_range</code>, are retired to <code>config_value_out_of_range</code>.
 <code>--address-authority</code> is not one: it names a device's authority, above the
 inventory row, and <code>name.default-address-authority</code> is the default beneath both.
@@ -2157,6 +2656,48 @@ code (<code>config_key_removed</code>), the message naming the key, the release,
 replacement; the environment form is refused even when unknown variables are
 tolerated. <em>Why:</em> ignoring a removed key would drop a site's intent silently.
 <em>Not taken:</em> a code per removal; documented no-op keys.</p>
+<p><strong>Every invocation says its load's warnings, once.</strong> A load's warnings (an
+<code>@include?</code> file missing, a <code>KARVI__</code> variable ignored under
+<code>config.reject-unknown-env = false</code>) are said at the invocation's one read (a
+stream's at its start), through the sink the command line gives it: <code>warning: …</code> lines on standard error, in the warning colour at a terminal, under any
+format and under <code>--quiet</code>, changing no exit status.
+<code>config validate</code> keeps its report (<code>warnings: N</code>, the JSON array) on standard
+output. A recorded login's wrapper says them and its child does not; <code>daemon serve</code> logs its own load's as <code>level=WARN msg=&quot;configuration warning&quot;</code> lines in
+<code>daemon.log</code> at its start; <code>--help</code> and tab completion say nothing. <em>Why:</em> a
+<code>run</code> or <code>command</code> alone said them, so an override karvi ignored went unsaid by
+every other command, the daemon's own load included. <em>Not taken:</em> printing at
+each load (a warning said three times); one print per command placed by hand
+(the pattern that left ten commands silent); <code>--quiet</code> suppressing them; a
+machine format carrying them in its document (<a href="EXAMPLES.html#51-every-invocation-says-its-configurations-warnings-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter
+51</a>;
+the one read, <a href="EXAMPLES.html#52-one-read-of-the-configuration-per-invocation-2026-10-10">chapter
+52</a>).</p>
+<p><strong>One read of the configuration per invocation.</strong> Each process an invocation
+starts reads its configuration once, the files, the environment, and all of
+its options together (<code>app.ReadConfig</code>), and every stage of the process takes
+that snapshot (<code>CommonOptions.Config</code> and <code>Operator</code>): one digest in every
+record and audit event of the invocation, a <code>crun</code>'s hook the one its job's
+configuration named. A <code>stream</code> reads its files and environment once as it
+starts (<code>configload.Read</code>), refused there when they do not load, and makes each
+job's snapshot from that reading with the job's option lines and its <code>--set</code>;
+an edit reaches the next stream, or the jobs after a <code>--restart</code>, which reads
+again as the start does, not the next job. A recorded login's wrapper
+and child read once each; <code>daemon serve</code> reads at its start, and a job through
+a daemon runs under its client's read, carried in the plan. The read sits after
+every refusal that needs no configuration (the options' forms and conflicts,
+the commands file and its declarations, a job ID's form) and before the target
+files and every stage, so a mistake on the command line is said first, with
+<code>--tf</code> or without. The daemon's runtime is resolved once from the read; the dry
+run's report gives the read as <code>client_config_ns</code>. A load finds a key through
+an index built once (<code>configschema.Lookup</code>). <em>Why:</em> a run through a daemon
+loaded three times and <code>crun</code> four, under different sets of options, and the
+hook read the configuration after its job had ended, so an edit during the job
+ran another hook under another digest; and each lookup copied the whole
+registry, 98% of a load's allocation. <em>Not taken:</em> the hook alone given the
+run's snapshot (the habit kept); a stream reading once per job (one invocation
+under two configurations); the recorded login's wrapper handing its read to the
+child (a channel for a window of milliseconds) (<a href="EXAMPLES.html#52-one-read-of-the-configuration-per-invocation-2026-10-10"><code>docs/EXAMPLES.md</code>, chapter
+52</a>).</p>
 <p><strong>Every distinct error cause has its own stable code, and the registry is
 enforced.</strong> Two causes never share a code, a code is never reused, a retired
 code stays with a named successor, and a fallback code is registered as
@@ -2205,6 +2746,20 @@ resolver isolates it, with a scratch root of its own made under <code>/tmp</code
 scripts once enrolled into the operator's real trust store, and a verifier run
 left job folders in a site's shared tree; a root under <code>TMPDIR</code> failed twenty
 socket tests at the 0.26.0 release.</p>
+<p><strong>A build is stamped with its version and its commit.</strong> <code>make build</code> stamps
+the commit <code>git describe --always --dirty</code> names in a git checkout's root
+(<code>.git</code> there), and <code>development</code> elsewhere: the one default, which <code>COMMIT</code>
+on the command line or in the environment outranks, and <code>make html</code>'s footers
+take the same. A release passes <code>COMMIT=source-release-vVERSION</code>, and <code>make build COMMIT=source-release-v$(cat VERSION)</code> reproduces its bytes. No build
+time is stamped. <code>verify-shipped.sh</code> and <code>verify-release.sh</code> check that <code>karvi version</code> names a build of 20 characters, and <code>verify-release.sh</code> tests the
+package's <code>karvi-sysutil</code>, template unit, and maintainer scripts as root in an
+Ubuntu container under Docker (<code>scripts/sysutil-smoke-test.sh</code>). <em>Why:</em> the
+build time was the one value a rebuild had to be told from outside the tree;
+nothing compared it; a dev build's said 1970 and made every build another; a
+release without its Go build ID, whose daemon would refuse to start, is found
+in seconds. <em>Not taken:</em> the dates derived from the CHANGELOG's heading or the
+commit; the release's commit derived from the heading (a modified tree would
+claim the release); the tag's name (the bundle has no <code>.git</code>).</p>
 <p><strong>A man page is roff written by hand, its SYNOPSIS and OPTIONS generated.</strong>
 <code>packaging/man/karvi-prune.8</code> is one committed file; between the comment lines
 <code>.\&quot; BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there</code>
@@ -2393,10 +2948,17 @@ it refuses a tree whose Markdown files are not the table's. The output is the
 tree's parent's <code>html/</code> (<code>HTMLDIR</code>), never the tree: a page per document at the
 tree's path with <code>.html</code>, <code>index.html</code> (the README's image and opening
 paragraph, then the documents by group), <code>images/</code> as the tree's, and one
-stylesheet. <em>Why:</em>
-the documents read in a browser on any host, and the package can install them.
-<em>Not taken:</em> pandoc (not a Go build dependency); a converter written here; the
-HTML committed; the README as the index.</p>
+stylesheet. The latest release's site is published on GitHub Pages,
+<a href="https://robert-patrick-texas.github.io/karvi/">https://robert-patrick-texas.github.io/karvi/</a>, from the branch <code>gh-pages</code>,
+which holds the site <code>make html</code> builds at the release's tag and <code>.nojekyll</code>
+alone: <code>release-tools/pages.sh</code> commits it there at each release, and Pages
+serves the branch as it is. <em>Why:</em> the documents read in a browser on any host,
+and the package can install them; a site's readers have the released bundle, so
+the published site is the release's. <em>Not taken:</em> pandoc (not a Go build
+dependency); a converter written here; the HTML committed to the tree's
+branches; the README as the index; a GitHub Actions workflow building the site
+(a file on <code>main</code>, which moves only at a release, and Go on GitHub's runners);
+the development line's site published (features the release has not).</p>
 <p><strong>Headings take GitHub's ids, from their rendered text.</strong> The converter sets
 each heading's id itself: the text as it reads, lowercased, every character but
 a letter, digit, mark, hyphen, underscore, or space removed, each space a
@@ -2434,11 +2996,11 @@ meets a dead link, and the tool's own rewriting is checked with the documents.
 <em>Not taken:</em> a check of the Markdown alone; fetching external links.</p>
 <p><strong>The licence is one document, <code>LICENSE.md</code>.</strong> The MIT text is the tree's
 <code>LICENSE.md</code>, its first line the heading <code># MIT License</code> that titles its page,
-the rest the text unchanged; README's License section links to it and <code>NOTICE</code>
-names it. <em>Why:</em> the site carries the licence like any document, GitHub reads
-<code>LICENSE.md</code> as the repository's licence, and one copy cannot drift from
-another. <em>Not taken:</em> a <code>LICENSE.md</code> beside <code>LICENSE</code>; a converter exception
-for a file without a heading.</p>
+the rest the text unchanged; README's License section links to it and
+<a href="../NOTICE.html"><code>NOTICE.md</code></a> names it. <em>Why:</em> the site carries the licence like
+any document, GitHub reads <code>LICENSE.md</code> as the repository's licence, and one
+copy cannot drift from another. <em>Not taken:</em> a <code>LICENSE.md</code> beside <code>LICENSE</code>; a
+converter exception for a file without a heading.</p>
 <p><strong>One document indexes every place karvi uses.</strong> <a href="FILES.html"><code>docs/FILES.md</code></a>
 lists each directory and file karvi reads or writes, in shared and in
 individual mode, with its mode, owner, group, writer, and purpose, and states
@@ -2458,7 +3020,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

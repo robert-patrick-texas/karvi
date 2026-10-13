@@ -70,6 +70,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -134,6 +135,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -245,10 +247,10 @@ one warning, since a job can run without them.</p>
 <td><code>known_hosts</code> errors</td>
 </tr>
 <tr>
-<td>Daemon socket</td>
-<td><code>daemon.socket</code></td>
+<td>Daemon sockets</td>
+<td><code>daemon.sockets</code></td>
 <td>none: never shared</td>
-<td><code>&lt;basedir&gt;/socket/daemon.sock</code></td>
+<td><code>&lt;basedir&gt;/socket</code></td>
 <td>the daemon does not start</td>
 </tr>
 </tbody>
@@ -263,7 +265,10 @@ one operator's daemon.</p>
 bytes with a name of up to 37, so the scratch may be at most 69 bytes: <code>auto</code>
 passes a longer candidate by, named on <code>config show --explain</code>'s <code>passed:</code>
 line, and an explicit <code>tempdir</code> longer is refused, <code>tempdir_too_long</code>, at every
-job's admission and a login's start.</p>
+job's admission and a login's start. The daemon's socket directory holds
+<code>d.sock</code> and <code>c.sock</code>, so it may be at most 100 bytes, a <code>basedir</code> of at most
+93 under <code>auto</code>: a longer one is refused, <code>daemon_socket_too_long</code>, wherever
+the daemon is reached or started, before anything is made.</p>
 <p>Every place key and every file key (<code>audit.file</code>, an inventory source's
 <code>path</code>, a credential file) takes a path by one rule: <code>~</code> and <code>~/…</code> are the
 operator's home from the password database, <code>~user</code> is refused
@@ -297,7 +302,7 @@ host after <code>setup shared</code>, before the operator's first activity:</p>
 </code></pre>
 <pre><code class="language-text">basedir: resolved:   /opt/karvi/users/netops
 crun.directory: resolved:   /opt/karvi/shared/crun
-daemon.socket: resolved:   /opt/karvi/users/netops/socket/daemon.sock
+daemon.sockets: resolved:   /opt/karvi/users/netops/socket
 inventory-source.0.path: resolved:   /mnt/lab/sb/inv.csv
 output.root: resolved:   /opt/karvi/shared/jobs
 scoreboards: resolved:   /dev/shm/karvi/scoreboards
@@ -724,16 +729,16 @@ in a shared place and the operator's primary group in a private one.</p>
 <td>the trust store: every host key karvi accepted (<a href="SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>)</td>
 </tr>
 <tr>
-<td><code>daemon.sock</code></td>
-<td><code>&lt;basedir&gt;/socket/</code></td>
+<td><code>d.sock</code></td>
+<td><code>&lt;basedir&gt;/socket/</code> (<code>daemon.sockets</code>)</td>
 <td><code>0600</code> socket</td>
 <td><code>0600</code> socket</td>
 <td>while the daemon runs</td>
 <td>the client's requests to the daemon; peer credentials checked</td>
 </tr>
 <tr>
-<td><code>credentials.sock</code></td>
-<td><code>&lt;basedir&gt;/socket/</code></td>
+<td><code>c.sock</code></td>
+<td><code>&lt;basedir&gt;/socket/</code> (<code>daemon.sockets</code>)</td>
 <td><code>0600</code> socket</td>
 <td><code>0600</code> socket</td>
 <td>while the daemon runs</td>
@@ -1009,6 +1014,20 @@ owner's next run sets it right, or the site resets it.</p>
 <td><code>sudo karvi setup tab</code></td>
 <td>Tab completion for bash</td>
 </tr>
+<tr>
+<td><code>/etc/karvi/service-karvi.installed</code></td>
+<td><code>0644</code></td>
+<td>root</td>
+<td><code>sudo karvi-sysutil daemon install</code></td>
+<td>the record of the service account's install: the configuration its daemon runs with, and each part the install made or found, which <code>daemon remove</code> undoes in reverse (<code>karvi-sysutil(8)</code>)</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/users/karvi/.config/karvi/config.toml</code></td>
+<td><code>0600</code></td>
+<td>the account <code>karvi</code></td>
+<td><code>sudo karvi-sysutil daemon install</code></td>
+<td>the service account's configuration: <code>daemon.launch = &quot;systemd&quot;</code>, its daemon the unit <code>karvi-daemon@karvi.service</code>'s</td>
+</tr>
 </tbody>
 </table>
 <h3 id="47-what-the-package-installs">4.7 What the package installs <a class="anchor" href="#47-what-the-package-installs" aria-label="Link to this section">#</a></h3>
@@ -1037,14 +1056,24 @@ owner's next run sets it right, or the site resets it.</p>
 <td>retention: removes old job and transcript folders (<a href="PRUNE.html"><code>docs/PRUNE.md</code></a>)</td>
 </tr>
 <tr>
-<td><code>/usr/share/man/man1/karvi*.1</code>, <code>/usr/share/man/man8/karvi-prune.8</code></td>
+<td><code>/usr/sbin/karvi-sysutil</code></td>
+<td><code>0755</code></td>
+<td>the administrator's tool for the service account's daemon, run as root (<code>karvi-sysutil(8)</code>)</td>
+</tr>
+<tr>
+<td><code>/usr/lib/systemd/system/karvi-daemon@.service</code></td>
+<td><code>0644</code></td>
+<td>the service account's template unit, where systemd finds a package's units: nothing runs until <code>sudo karvi-sysutil daemon install</code> enables its instance, and an upgrade replaces it (<a href="OPERATIONS.html#a-service-accounts-daemon-under-systemd"><code>docs/OPERATIONS.md</code>, &quot;A service account's daemon under systemd&quot;</a>)</td>
+</tr>
+<tr>
+<td><code>/usr/share/man/man1/karvi*.1</code>, <code>/usr/share/man/man8/karvi-prune.8</code>, <code>/usr/share/man/man8/karvi-sysutil.8</code></td>
 <td><code>0644</code></td>
 <td>the manual pages</td>
 </tr>
 <tr>
 <td><code>/usr/share/doc/karvi/</code></td>
 <td><code>0644</code></td>
-<td>the top-level documents (<code>README.md</code>, <code>CHANGELOG.md</code>, <code>LICENSE.md</code>, <code>BUILD-HOWTO.md</code>, …), <code>docs/</code>, <code>release/</code>'s records, <code>examples/</code>, and <code>configs/</code> (<code>example.toml</code>, <code>development.toml</code>, and <code>reference.toml</code> a link to <code>/usr/share/karvi/reference.toml</code>), in the source tree's layout so their links and the <code>configs/</code> files they name hold</td>
+<td>the top-level documents (<code>README.md</code>, <code>CHANGELOG.md</code>, <code>LICENSE.md</code>, <code>BUILD-HOWTO.md</code>, …), <code>docs/</code>, <code>release/</code>'s records, <code>examples/</code>, and <code>configs/</code> (<code>development.toml</code>, and <code>reference.toml</code> a link to <code>/usr/share/karvi/reference.toml</code>), in the source tree's layout so their links and the <code>configs/</code> files they name hold</td>
 </tr>
 <tr>
 <td><code>/usr/share/karvi/systemd/user/</code>, <code>/usr/share/karvi/systemd/system/</code></td>
@@ -1079,12 +1108,18 @@ owner's next run sets it right, or the site resets it.</p>
 </tbody>
 </table>
 <p>Nothing under <code>/usr/share/karvi</code> is active until the site copies it into place,
-each guide giving the copy; a host installed from the release bundle
-(<a href="../BUILD-HOWTO.html#10-install-and-roll-back"><code>BUILD-HOWTO.md</code> section 10</a>)
-finds the same files in the bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and
-<code>docs/</code>. The cron script <code>karvi-crun</code> holds a lock at
-<code>${TMPDIR:-/tmp}/karvi-crun.&lt;uid&gt;.lock</code> (<code>KARVI_CRUN_LOCK</code>) for the length of a
-collection.</p>
+each guide giving the copy. The package's maintainer scripts reload systemd at
+its install, upgrade, and removal, so that the template's instance runs the
+installed unit at its next start; they enable, start, and restart nothing. A
+host installed from the release bundle with <code>sudo ./scripts/install.sh</code>
+(<a href="../BUILD-HOWTO.html#10-install-and-roll-back"><code>BUILD-HOWTO.md</code> section 10</a>) has
+the executables under versioned names in <code>/usr/local/lib/karvi</code>, linked from
+<code>/usr/local/bin</code> and, <code>karvi-sysutil</code>, from <code>/usr/local/sbin</code>;
+<code>karvi-sysutil(8)</code> in <code>/usr/local/share/man/man8</code>; and the template in
+<code>/usr/local/lib/systemd/system</code>, systemd reloaded; it finds the other files in
+the bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and <code>docs/</code>. The cron script
+<code>karvi-crun</code> holds a lock at <code>${TMPDIR:-/tmp}/karvi-crun.&lt;uid&gt;.lock</code>
+(<code>KARVI_CRUN_LOCK</code>) for the length of a collection.</p>
 <h2 id="5-signs-a-host-is-not-as-intended">5. Signs a host is not as intended <a class="anchor" href="#5-signs-a-host-is-not-as-intended" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>A shared directory without its setgid bit or outside the operators' group,
@@ -1103,7 +1138,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

@@ -76,6 +76,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -146,6 +147,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -270,8 +272,9 @@ match is decided on a key the store knows rather than on whichever type the
 device prefers. A store that holds only types the configured list does not
 offer is <code>host_key_changed</code> before any connection. Under <code>insecure</code>, or for
 an unknown device, the whole configured list is offered. The list is
-<code>[ssh-algorithms] host-key</code> in <code>configs/reference.toml</code>; both transports
-offer the names they implement (<a href="SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>).</p>
+<code>[ssh-algorithms] host-key</code> in <code>configs/reference.toml</code>, under either
+<code>ssh-algorithms.source</code>; both transports offer the names they implement
+(<a href="SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>).</p>
 <h2 id="trust-store-selection-and-permissions">Trust-store selection and permissions <a class="anchor" href="#trust-store-selection-and-permissions" aria-label="Link to this section">#</a></h2>
 <p><code>known-hosts-file = &quot;auto&quot;</code> selects <code>&lt;basedir&gt;/known_hosts</code>, the operator's
 private root
@@ -447,7 +450,7 @@ STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: 
 stat -c '%U %a %n' &quot;$(dirname &quot;$STORE&quot;)&quot; &quot;$STORE&quot;
 </code></pre>
 
-<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

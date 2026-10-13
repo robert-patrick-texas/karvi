@@ -84,6 +84,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -162,6 +163,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -184,9 +186,11 @@ Items still open are listed in <a href="ROADMAP.html"><code>ROADMAP.md</code></a
 describe the behavior of the code as it exists; <code>VERSION</code> names the release.</p>
 <h2 id="release-status">Release status <a class="anchor" href="#release-status" aria-label="Link to this section">#</a></h2>
 <p><a href="CHANGELOG.html"><code>CHANGELOG.md</code></a> lists every release's changes, the breaking ones
-first in each release's block. A running daemon of another release accepts no
-job from the new client until <code>karvi daemon restart</code>: a daemon is compatible
-only when its version and its daemon IPC schema both equal the client's
+first in each release's block. A daemon serves a client only when its IPC
+schema and its build, the Go build ID of its executable, equal the client's:
+after an upgrade the next submission drains an operator's daemon of the older
+build, replacing an idle one in the same invocation and refusing new jobs while
+a busy one finishes its own and exits
 (<a href="docs/OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code>, &quot;Upgrade&quot;</a>); since v0.14.0
 the records of a run travel over the socket, the invocation decides the job's
 files on every path, and the configuration keys nothing read are refused. The
@@ -200,13 +204,16 @@ devices or jobs.</li>
 unless <code>--grace</code>, <code>--after=DURATION</code>, or <code>--force</code> is given.</li>
 <li>Every error carries one registered code, listed in
 <a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>.</li>
-<li>Configuration schema 6; this tree's other counters: registry schema 28,
-daemon IPC schema 11, execution plan 12, job manifest and summary 3, plan
+<li>Configuration schema 6; this tree's other counters: registry schema 29,
+daemon IPC schema 12, execution plan 13, job manifest and summary 3, plan
 report 2, scoreboard 3.</li>
 </ol>
-<p>A newer client still inspects, stops, and restarts a daemon launched by an
-older executable. Job submission remains exact-schema only; <code>karvi run</code> never
-silently downgrades a request or kills an incompatible daemon.</p>
+<p>A client drains a daemon of another build at that daemon's own IPC schema and
+kills nothing; job submission stays exact-schema, and a daemon of a newer
+schema is refused. A service account's daemon under systemd is never drained
+by a client: its administrator restarts its unit
+(<a href="docs/OPERATIONS.html#a-service-accounts-daemon-under-systemd"><code>docs/OPERATIONS.md</code>, &quot;A service account's daemon under
+systemd&quot;</a>).</p>
 <p>The official Linux/amd64 executable is the <strong>scrapligo-v1 build</strong> (<code>make build</code>; <code>scripts/verify-release.sh</code>), whose version output lists the
 external <code>system</code> transport and <code>scrapligo: 1.4.2</code> compiled in. The source
 pins ScrapliGo <strong>v1.4.2</strong> behind the karvi-owned adapter boundary, with the
@@ -467,10 +474,12 @@ in option form (<code>--cmd</code>, <code>-c</code>, <code>--command</code>, <co
 while a bare-line command is sent once; <code>--clear</code> drops the bare-line
 commands; <code>--purge-commands</code> and <code>--purge-targets</code> (from <code>--purge-c</code> and
 <code>--purge-t</code>) drop every command or every target input; <code>--reset</code> empties
-the draft; <code>--end</code> (or <code>--quit</code>, <code>--exit</code>), EOF, or Ctrl-C leave without
-executing. Typed at a terminal, a line is edited with the usual keys and
-the up arrow recalls earlier lines. A line the parser refuses is
-reported by its number and dropped. The exit is the last job's.</p>
+the draft, and <code>--restart</code> empties it and reads the configuration again,
+a reading that fails ending the stream; <code>--end</code> (or <code>--quit</code>, <code>--exit</code>),
+EOF, or Ctrl-C leave without executing. Typed at a terminal, a line is
+edited with the usual keys and the up arrow recalls earlier lines. A line
+the parser refuses is reported by its number and dropped. The exit is the
+last job's.</p>
 <pre><code class="language-sh">karvi - &lt;&lt;'EOF'
 --tl core-nyc-01,core-nyc-02
 --dp
@@ -553,7 +562,7 @@ their source without rebuilding them (offline, from the vendor tree):</p>
 </code></pre>
 <p>Rebuild with the release identity, which reproduces <code>CHECKSUMS.sha256</code> byte
 for byte:</p>
-<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION)
 sha256sum -c CHECKSUMS.sha256
 </code></pre>
 <p>The full build-and-verify run, with the race detector and the parity suite
@@ -568,7 +577,8 @@ sha256sum -c CHECKSUMS.sha256
 <li>The documentation as HTML: <code>make html</code> writes every document below, an
 index, and the images into <code>../html</code>, beside the tree; open
 <code>html/index.html</code>. Every link in it is relative, so the directory can be
-copied anywhere and read without the network.</li>
+copied anywhere and read without the network. The latest release's is
+published at <a href="https://robert-patrick-texas.github.io/karvi/">https://robert-patrick-texas.github.io/karvi/</a>.</li>
 <li><code>packaging/man/</code>: the manual pages the package installs: <code>man karvi</code>
 (the configuration, the values, the environment, the files, the exit
 statuses), <code>man karvi WORD</code> for each command word (<code>man karvi run</code>), <code>man karvi-prune</code>, and <code>man karvi-askpass</code>; each word's SYNOPSIS and DESCRIPTION
@@ -576,7 +586,8 @@ are its <code>--help</code>, generated (<code>make generate</code>).</li>
 <li><a href="docs/QUICKSTART.html"><code>docs/QUICKSTART.md</code></a>: inspect the executable, first
 configuration, first commands.</li>
 <li><a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>: upgrade, the daemon, retention,
-credential files.</li>
+configuration macros, the credential backends and files, the credential
+helper.</li>
 <li><a href="docs/FILES.html"><code>docs/FILES.md</code></a>: every directory and file karvi reads or
 writes, in shared and in individual mode, with its mode, owner, and group,
 and how karvi chooses each place.</li>
@@ -639,7 +650,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

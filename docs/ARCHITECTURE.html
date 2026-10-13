@@ -75,6 +75,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -144,9 +145,11 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1536" height="1024" alt="A Viking on a karvi's deck reading a network map, satellites linking the datacenters of an arctic coast" src="../images/viking-karvi-across-arctic-network.png" />
 <h1 id="architecture-of-the-karvi-implementation">Architecture of the karvi implementation <a class="anchor" href="#architecture-of-the-karvi-implementation" aria-label="Link to this section">#</a></h1>
 <p>The executable is a thin process boundary over reusable application services.
 Core packages depend on karvi-owned contracts; operating-system and third-party
@@ -255,6 +258,18 @@ job, its records, and its display are a run's and no rule lives twice.</p>
 <code>configs/reference.toml</code>. Each source file is parsed independently, includes
 are deterministic, every write crosses the config-lock gate, macros expand
 after merge, and semantic validation completes before network access.</p>
+<p>Macros are <code>configload.expandMacros</code> (<code>macro.go</code>): every <code>macros.NAME</code> of the
+merged layers, each expanded once and held, a value that is a macro alone taking
+the macro's kind and a list macro spliced into a list. <code>%operator%</code> is the
+built-in <code>operatorMacro</code>, the name <code>Options.Operator</code> gives (every caller passes
+its operator's; empty, the password database's, then <code>$USER</code>); <code>operatorKept</code>
+keeps it as written in the seven keys a backend fills, the key being filled
+deciding, and the backend fills it with <code>credentials.ResolveRequest.Fill</code>, a
+plain replacement of <code>credentials.OperatorMacro</code> by the name after its
+transform. The loader may not import a backend package (the job runner's and
+the daemon's boundary tests), so the portable-name rule the loader, the <code>env:</code>
+references, and the credential helper's parser share is <code>internal/envname</code>
+(<code>Portable</code>).</p>
 <p>A key the registry once held and has since dropped is refused at load from
 every layer: <code>configload/removed.go</code> is the one table of removed keys
 (path, environment name, release, code, hint), consulted by the file and
@@ -279,16 +294,35 @@ configuration writes, so locks and provenance apply identically:</p>
 <p>The resolver applies inventory literal-address precedence, then preferred DNS
 family, fallback family, and numeric-lowest selection.</p>
 <h2 id="daemon-upgrade-boundary">Daemon upgrade boundary <a class="anchor" href="#daemon-upgrade-boundary" aria-label="Link to this section">#</a></h2>
-<p><code>ipc.Call</code> returns a structured schema-mismatch error. <code>daemon.Probe</code> may use
-the stable, credential-free lifecycle envelope of every released schema from
-<code>MinLifecycleSchema</code> to the current one to read status, and it judges
-compatibility by the pair: the daemon's version and its IPC schema both equal
-this executable's, either difference incompatible.
-<code>daemon.StopCompatible</code> is reachable only through explicit
-operator lifecycle commands. Submit paths always use the current schema and
-never translate or omit request fields. <code>ensureDaemon</code> recognizes a live
-incompatible daemon and returns <code>daemon_incompatible</code> before opening the
-daemon log or starting a child process.</p>
+<p>A process's build is the last part of the Go build ID its executable carries,
+read once from the ELF note of <code>/proc/self/exe</code> (<code>buildinfo.Build</code>); the daemon
+reads its own at its start and refuses to start without one
+(<code>build_unreadable</code>). <code>daemon.Probe</code> pings at the current IPC schema; a daemon
+of an older released schema answers a structured schema-mismatch error, and the
+probe repeats the ping in that daemon's lifecycle envelope, any schema from
+<code>MinLifecycleSchema</code> to the current one. A daemon is compatible when the
+schema matches and then its build equals the client's; one that names no
+build never is. Submit paths always use the current schema and never translate
+or omit request fields.</p>
+<p>Every submission and <code>daemon start</code> pass <code>ensureDaemon</code> (<code>internal/cli</code>).
+Under <code>daemon.launch = &quot;client&quot;</code> it starts a daemon when none answers, uses one
+of its own build, and drains any other, or a draining one, with <code>daemon.Drain</code>
+at the daemon's own schema, the answer naming its jobs: with none it waits up
+to <code>daemon.start-timeout</code> for the daemon to go and starts its own; with jobs it
+refuses, <code>daemon_draining</code>, the builds stacked; a newer schema it refuses,
+<code>daemon_incompatible</code>. Under <code>&quot;systemd&quot;</code>, <code>systemdDaemon</code> sends no drain and
+starts nothing, refusing what the client would otherwise drain or start with
+the unit's <code>systemctl</code> command, and <code>daemon stop</code> and <code>daemon restart</code> refuse,
+<code>daemon_managed</code>. Nothing holds the daemon between the probe and the request,
+so <code>daemon.PrepareJob</code> checks the prepare answer's <code>daemon</code> block: another
+build's preparation is abandoned before any credential is sent
+(<code>OtherBuildError</code>), and <code>app.RunViaDaemon</code> runs the sequence once more within
+its one repeat. <code>job follow</code> and <code>job cancel</code> need the schema alone, and use a
+daemon of any build that speaks it; the daemon is judged before the job's
+directory. <code>daemon.StopCompatible</code> is reached only through the operator's
+<code>daemon stop</code> and <code>daemon restart</code>, at the daemon's own schema, always naming
+the mode. The daemon checks nothing of the client's: a request carries no
+client version.</p>
 <h2 id="execution">Execution <a class="anchor" href="#execution" aria-label="Link to this section">#</a></h2>
 <p>The client drafts the plan (<code>internal/planner.Draft</code>): one execution target
 per device of the assembled set with the selection kind and effective port,
@@ -317,6 +351,18 @@ showed it (<code>internal/termtext</code>), at the widths <code>script(1)</code>
 <h2 id="display-pipeline">Display pipeline <a class="anchor" href="#display-pipeline" aria-label="Link to this section">#</a></h2>
 <p><code>internal/display</code> owns templates, human timestamps, themes, colors, visible
 width, and border expansion. Machine records bypass this path.</p>
+<p>Whether a line is coloured is <code>display.ColorEnabled(mode, theme, to)</code>, where
+<code>to</code> is the destination (<code>display.Destination</code>: <code>Terminal</code>, <code>File</code>, or
+<code>Elsewhere</code>, a pipe), <code>display.DestinationOf(terminal, regular)</code> given
+<code>osutil</code>'s answers (<code>display</code> cannot import <code>osutil</code>, whose tests reach
+<code>configload</code>); <code>jobexec.DisplayDestination(w)</code> asks them of a writer and
+<code>jobexec.DisplayLineStyle(cfg, to)</code> gives a line's style, for the run renderer,
+the warnings, login's lines, the help, <code>config colors</code>, the watch screen, and
+<code>karvi-prune -h</code> alike. The CLI's refusals go through methods of
+<code>globalOptions</code> (<code>reportError</code>, <code>usageError</code>, <code>printResultError</code>, <code>refuse</code>,
+<code>dropped</code>), which colour by <code>globalOptions.shown</code>: the built-in defaults under
+the command line's own <code>display.*</code> options until the invocation's read, then
+each read's snapshot.</p>
 <p>The text renderer defers each border until another record arrives. This makes a
 border a true separator and permits <code>last-border=false</code> without buffering
 command output:</p>
@@ -357,32 +403,33 @@ implementation without a registered provider is
 (<code>TestUnregisteredNativeImplementationFailsClosed</code>).</p>
 <h2 id="daemon-and-storage">Daemon and storage <a class="anchor" href="#daemon-and-storage" aria-label="Link to this section">#</a></h2>
 <p>The daemon is per effective UID, uses two owner-only Unix sockets in the
-<code>socket</code> subtree, and checks peer credentials on both. Protocol schema 9 carries
-<code>prepare_job</code>, <code>commit_job</code>, <code>follow_job</code>, and <code>cancel_job</code> on <code>daemon.sock</code>
-beside the lifecycle operations of schemas 3 and 4, and the credential package
-crosses <code>credentials.sock</code> as one length-prefixed frame per connection under a
-one-use token; <code>submit_job</code> is gone. The daemon holds at most 128 preparations
-for ten minutes each, retains 1,024 commit receipts for idempotent replay, logs
-one <code>slog</code> line per request outcome to <code>logs/daemon.log</code> with the token
-redacted, and runs every job under its own configuration and operator, but for
-what the plan carries from the invocation (the job's files, the ICMP gate, the
-timeouts and the command byte limit, each command's own among them, and the
-halt rule). It stops
-itself after <code>daemon.shutdown-idle-timer</code> (default one hour;
-<code>Server.IdleTimeout</code>) with no active job, no live preparation, and no request
-but <code>ping</code> and <code>status</code>: the check <code>stopIfIdle</code> runs on the minute ticker that
-sweeps preparations, takes <code>beginStop(if_idle)</code> under the admission lock as
-<code>daemon stop</code> does, and cancels the serve, so the drain and the accounting are
-the ordinary ones and the exit is 0. The idle clock (<code>lastActive</code>) is restarted
-by every request that is not <code>ping</code> or <code>status</code> and by a job's end. On the
-client's side <code>RunViaDaemon</code> takes an <code>ensure</code> step and calls it just before
-<code>prepare_job</code>, after planning, and once more with the same plan if that request
-finds the socket gone or the daemon draining (<code>daemonGone</code>), so the timer has
-the least room to end a daemon between the probe and the request. Every error
-returned to a client carries a registered code (<code>internal/errorcodes</code>).
-<code>commit_job</code> answers at acceptance and the job runs on its own goroutine; the
-client follows it through <code>follow_job</code>. The <code>socket</code> and <code>state</code> subtrees are
-mode 0700; a state root and <code>logs</code> are 0750; job and transcript folders take
+<code>socket</code> subtree, and checks peer credentials on both. IPC schema 12 carries
+<code>prepare_job</code>, <code>commit_job</code>, <code>follow_job</code>, and <code>cancel_job</code> on <code>d.sock</code> beside
+the lifecycle operations <code>ping</code>, <code>status</code>, <code>drain</code>, and <code>stop</code>, and the
+credential package crosses <code>c.sock</code> as one length-prefixed frame per connection
+under a one-use token; <code>submit_job</code> is gone. The daemon holds at most 128
+preparations for ten minutes each, retains 1,024 commit receipts for idempotent
+replay, logs one <code>slog</code> line per request outcome to <code>logs/daemon.log</code> with the
+token redacted, and runs every job under its own configuration and operator, but
+for what the plan carries from the invocation (the job's files, the ICMP gate,
+the timeouts and the command byte limit, each command's own among them, and the
+halt rule). It stops itself after <code>daemon.shutdown-idle-timer</code> (default ten
+minutes; <code>Server.IdleTimeout</code>) with no active job, no live preparation, and no
+request but <code>ping</code> and <code>status</code>: the check <code>stopIfIdle</code> runs on the minute
+ticker that sweeps preparations, takes <code>beginStop(if_idle)</code> under the admission
+lock as <code>daemon stop</code> does, and cancels the serve, so the drain and the
+accounting are the ordinary ones and the exit is 0. A drained daemon admits no
+job, finishes those it holds, and exits after the last, at once with none,
+logging <code>stopping: drained</code>. The idle clock (<code>lastActive</code>) is restarted by every
+request that is not <code>ping</code> or <code>status</code> and by a job's end. On the client's side
+<code>RunViaDaemon</code> takes an <code>ensure</code> step and calls it just before <code>prepare_job</code>,
+after planning, and once more with the same plan if that request finds the
+socket gone or the daemon draining (<code>daemonGone</code>), so the timer has the least
+room to end a daemon between the probe and the request. Every error returned to
+a client carries a registered code (<code>internal/errorcodes</code>). <code>commit_job</code> answers
+at acceptance and the job runs on its own goroutine; the client follows it
+through <code>follow_job</code>. The <code>socket</code> and <code>state</code> subtrees are mode 0700; a state
+root and <code>logs</code> are 0750; job and transcript folders take
 <code>output.directory-mode</code> (default 0750) and their files are 0640. <code>cancel_job</code>
 cancels one accepted job through its own context; crash reconstruction is a
 roadmap capability: a job whose daemon died is <code>job_orphaned</code> to <code>job follow</code>,
@@ -584,10 +631,49 @@ inventory's (category and exit). <code>Resolve</code> builds the device view the
 is matched against, takes the first matching row, and answers with a copy of its
 secrets, so destroying the material after sealing leaves the cache whole.
 Completeness is the resolver's <code>finalize</code>, as for every backend. No message
-quotes a cell, which is why <code>matching.RowError</code> reasons are value-free and the
-reader's duplicate-header reason is restated. Environment indirection for a new
-backend is <code>internal/credentialbackend/envindirect</code>; the env, Redis, and Vault
-backends still hold their private copies (a roadmap line).</p>
+quotes a cell but an <code>env:</code> cell's variable name, which is why
+<code>matching.RowError</code> reasons are value-free and the reader's duplicate-header
+reason is restated. A result cell <code>env:NAME</code> is
+<code>internal/credentialbackend/envindirect</code>'s: the load finds it (<code>Reference</code>),
+checks its name, and keeps the name in place of a value; <code>Resolve</code> reads it
+(<code>Read</code>) through the request's <code>LookupEnv</code>, the resolver's one lookup, its input
+provider's, which the <code>NET*</code> fallback reads too, and answers
+<code>credential_env_missing</code> for an unset or empty variable.</p>
+<p>The env, Redis, and Vault backends read through the same lookup and call no
+<code>os.LookupEnv</code>. A Redis or Vault record is <code>envindirect.Record</code>'s, its three
+fields each a literal or an <code>env:</code> reference, the store's malformed-record code
+passed in, and every unset or empty variable, a record's or the configuration's
+(<code>token-env</code>, <code>auth-password-env</code>), is <code>envindirect.Missing</code>'s one result,
+<code>credential backend B: WHERE: REASON</code>. Both stores' TLS is one function,
+<code>internal/credentialbackend/storetls.Config(ca, cert, key, verify)</code>, whose
+<code>ErrNoCertificates</code> maps to <code>redis_ca_file_empty</code> or <code>vault_ca_file_empty</code>. The
+resolver sets every default where it builds a backend (<code>New</code>), and <code>Resolve</code>
+reads its backend and never writes it, so devices resolving in parallel share
+it (a concurrent test under <code>-race</code>). A backend whose <code>Mode()</code> is
+<code>credentials.OperatorKeyed</code> asks the same of every device, so <code>Resolver.ask</code>
+holds its answer per resolver under <code>heldKey{backend, operator}</code>, devices in
+parallel waiting for the one read, each given its own copy (<code>copyMaterial</code>); a
+read the context ended is not held. The store tests run against
+<code>redis/redistest</code> (a RESP server counting commands and connections) and
+<code>storetls/tlstest</code> (a CA, a server certificate for 127.0.0.1, and a client pair
+whose file holds a chain of two).</p>
+<p>The credential helper is <code>internal/credentialbackend/credhelper</code>, out of the
+daemon's and the job runner's reach by their boundary tests: <code>Settings</code> and
+<code>FromConfig</code> the four <code>creds.helper*</code> keys, <code>Locate</code> the path (a bare name
+beside the running executable, as <code>findAskpass</code> finds <code>karvi-askpass</code>), <code>Run</code>
+one run, <code>Values</code> the parsed values with their <code>LookupEnv</code>, <code>Holder</code> the values
+an invocation or a stream holds, and <code>Input</code> the provider that reads them ahead
+of the process environment; <code>parse.go</code> is the output grammar and <code>proctree.go</code>
+the descendants ended at a timeout or cancellation, each held by a pidfd
+(<code>golang.org/x/sys/unix</code>, a direct requirement for it). <code>Run</code> opens the file
+<code>O_PATH</code>, <code>O_NOFOLLOW</code> unless symlinks are allowed, checks the descriptor with
+the credential file rules (<code>credfile.Rules.ApprovedUID</code> for the owner), and runs
+it as <code>/proc/self/fd/3</code> through <code>ExtraFiles</code>. <code>internal/app/credhelper.go</code>'s
+<code>credentialInput</code> is the one credential step, used by <code>planAndPackage</code>, the
+draft's client, and <code>login</code>, so every invocation that resolves runs the helper
+at one place; the CLI makes the <code>Holder</code> in <code>Main</code> (<code>globalOptions.helper</code>,
+<code>CommonOptions.Helper</code>), destroys it at the end, and a stream's <code>--restart</code>
+destroys the values it holds.</p>
 <p>The inventory's <code>credkeyref</code> column is a
 logical field of <code>internal/inventoryload</code> like any other
 (<code>mappings.credkeyref</code> in <code>configschema.inventoryField</code>, a field of the
@@ -747,7 +833,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

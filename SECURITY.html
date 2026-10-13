@@ -74,6 +74,7 @@
 <li><a href="#telnet">Telnet</a></li>
 </ul></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -142,6 +143,7 @@
 <li><a href="#telnet">Telnet</a></li>
 </ul></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -225,6 +227,13 @@ System OpenSSH receives them through the authenticated, one-use
 <code>karvi-askpass</code> callback. The transport/driver adapter receives short-lived
 copies through karvi-owned secret wrappers. Audit records contain the operator,
 device-facing username, backend, and safe match metadata, never secret values.</p>
+<p>A credential helper (<code>creds.helper</code>) runs as the operator in the client. Its
+file is checked as a credential file is (the owner, no write by group or
+others, no symlink unless allowed) and run through the descriptor checked; its
+values are held as secrets for the invocation and put into no child's
+environment, and its standard error is discarded. A Redis or Vault store's
+certificate is verified, against <code>ca-file</code> alone when one is named, unless
+<code>tls-verify = false</code>.</p>
 <h2 id="legacy-cryptography">Legacy cryptography <a class="anchor" href="#legacy-cryptography" aria-label="Link to this section">#</a></h2>
 <p>Legacy SSH algorithms are enabled only for explicitly scoped host patterns.
 All-host patterns are rejected. Host-key policy and algorithm compatibility are
@@ -235,7 +244,7 @@ allowing a legacy algorithm does not bypass host identity verification.</p>
 <code>security.allow-telnet=true</code>. It is never an SSH fallback and provides no host
 identity or confidentiality.</p>
 
-<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

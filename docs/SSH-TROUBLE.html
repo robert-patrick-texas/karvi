@@ -69,6 +69,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -132,6 +133,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -256,7 +258,10 @@ method that authenticated; and it detects the prompt, a missing one being
 none. <code>native</code> is <code>scrapligo-v1</code>, another SSH stack altogether: when it reaches
 the prompt and <code>system</code> does not, the difference is OpenSSH's or the generated
 configuration's, and a plain <code>ssh -vvv</code> beside <code>ssh -vvv -F</code> a copy of karvi's
-configuration finds the setting.
+configuration finds the setting. <code>--set 'ssh-algorithms.source=&quot;transport&quot;'</code>
+takes karvi's key exchange, cipher, and MAC lists out of the comparison: a
+device that connects under it and fails without is refused by karvi's lists,
+and the failure's <code>karvi offered</code> against <code>the device offered</code> names the list.
 <a href="COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a> reads a
 command's capture.</p>
 <h2 id="4-on-the-device">4. On the device <a class="anchor" href="#4-on-the-device" aria-label="Link to this section">#</a></h2>
@@ -264,7 +269,7 @@ command's capture.</p>
 the session there, and in what state), <code>show ip ssh</code>, <code>show aaa servers</code>, <code>show logging</code>, and <code>debug ip ssh detail</code> during an attempt. They say whether the
 device got past authentication on its side.</p>
 
-<footer>Generated from <code>docs/SSH-TROUBLE.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-TROUBLE.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

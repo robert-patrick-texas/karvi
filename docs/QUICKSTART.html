@@ -17,7 +17,7 @@
 <li><a href="QUICKSTART.html" aria-current="page">Quick start</a>
 <ul class="sections">
 <li><a href="#inspect-the-executable">Inspect the executable</a></li>
-<li><a href="#after-upgrading-from-an-older-daemon">After upgrading from an older daemon</a></li>
+<li><a href="#after-an-upgrade">After an upgrade</a></li>
 <li><a href="#minimal-configuration">Minimal configuration</a></li>
 <li><a href="#login">Login</a></li>
 <li><a href="#one-device-commands">One-device commands</a></li>
@@ -72,6 +72,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -83,7 +84,7 @@
 <li><a href="QUICKSTART.html" aria-current="page">Quick start</a>
 <ul class="sections">
 <li><a href="#inspect-the-executable">Inspect the executable</a></li>
-<li><a href="#after-upgrading-from-an-older-daemon">After upgrading from an older daemon</a></li>
+<li><a href="#after-an-upgrade">After an upgrade</a></li>
 <li><a href="#minimal-configuration">Minimal configuration</a></li>
 <li><a href="#login">Login</a></li>
 <li><a href="#one-device-commands">One-device commands</a></li>
@@ -138,9 +139,11 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1672" height="941" alt="A Viking steadying a network rack on a longship's deck in a storm" src="../images/stormbound-viking-and-network-rack.png" />
 <h1 id="quick-start">Quick start <a class="anchor" href="#quick-start" aria-label="Link to this section">#</a></h1>
 <h2 id="inspect-the-executable">Inspect the executable <a class="anchor" href="#inspect-the-executable" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">./bin/karvi --version
@@ -151,13 +154,12 @@
 <p>The included executable lists <code>system</code> and <code>scrapligo-v1</code>. <code>command</code> and
 <code>run</code> use the native transport by default and <code>login</code> uses <code>system</code>; pass
 <code>--transport</code> to choose.</p>
-<h2 id="after-upgrading-from-an-older-daemon">After upgrading from an older daemon <a class="anchor" href="#after-upgrading-from-an-older-daemon" aria-label="Link to this section">#</a></h2>
+<h2 id="after-an-upgrade">After an upgrade <a class="anchor" href="#after-an-upgrade" aria-label="Link to this section">#</a></h2>
+<p>Nothing to run: the next run drains your daemon of the older build, which
+exits after its last job, and starts one of the new build
+(<a href="OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code> &quot;Upgrade&quot;</a>). Each side's build:</p>
 <pre><code class="language-bash">karvi daemon status
-karvi daemon restart
 </code></pre>
-<p>A schema mismatch blocks job submission but does not require the older binary:
-karvi can explicitly stop released older lifecycle schemas. Normal runs never
-replace an incompatible daemon automatically.</p>
 <h2 id="minimal-configuration">Minimal configuration <a class="anchor" href="#minimal-configuration" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-toml">[config]
 schema-version = 6
@@ -207,7 +209,7 @@ karvi command --host router1 --format jsonl --cmd 'show clock'
 karvi command --host router1 --format json --cmd 'show clock'
 </code></pre>
 
-<footer>Generated from <code>docs/QUICKSTART.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/QUICKSTART.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

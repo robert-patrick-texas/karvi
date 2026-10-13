@@ -73,6 +73,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -140,9 +141,11 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1672" height="941" alt="A karvi under sail through fjords, its links reaching enterprise, service-provider, lab, and small-business shores" src="../images/karvi-orchestrating-network-fjords.png" />
 <h1 id="the-collection-run-karvi-crun">The collection run: <code>karvi crun</code> <a class="anchor" href="#the-collection-run-karvi-crun" aria-label="Link to this section">#</a></h1>
 <p><code>karvi crun</code> collects the output of one or more commands from one or more
 devices and stores, per device, one file named by the device in one flat
@@ -794,12 +797,12 @@ and <code>Persistent=true</code> runs a collection the host missed at its next s
 tick that elapses meanwhile is dropped, not queued, so two collections never
 overlap in one directory. <code>--no-daemon</code> is deliberate: a oneshot's control group
 ends with its main process, and a daemon the tick launched would be terminated
-with it; a site whose daemon runs under <code>karvi-daemon.service</code> may drop the
-option and submit to it instead. The unit carries no file-system sandbox: it
-writes wherever the operator may, a collection directory anywhere included
-(<a href="OPERATIONS.html#retention"><code>docs/OPERATIONS.md</code> &quot;Retention&quot;</a> says why). The
-hook runs inside the unit, so a git repository over the collection directory is
-written there too.</p>
+with it; a collection run as the service account, whose daemon runs under
+<code>karvi-daemon@karvi.service</code>, may drop the option and submit to that daemon
+instead. The unit carries no file-system sandbox: it writes wherever the
+operator may, a collection directory anywhere included (<a href="OPERATIONS.html#retention"><code>docs/OPERATIONS.md</code>
+&quot;Retention&quot;</a> says why). The hook runs inside the unit,
+so a git repository over the collection directory is written there too.</p>
 <p><strong>The cron</strong>, where a site schedules with cron:</p>
 <pre><code class="language-text"># /etc/cron.d/karvi-crun, as the collecting operator
 15 2 * * *  netops  /usr/share/karvi/cron/karvi-crun &gt;&gt; /var/log/karvi-crun.jsonl 2&gt;&amp;1
@@ -829,12 +832,12 @@ and <a href="OPERATIONS.html#the-shared-trees">&quot;The shared trees&quot;</a>.
 <li><code>karvi-crun(1)</code> (<code>man karvi crun</code>), COLLECTION: the terminal's restatement of
 <a href="#1-what-a-collection-is">section 1</a>, the hook's input, and the drop list; a
 change to one changes both.</li>
-<li><code>configs/example.toml</code>: the <code>[platform.NAME]</code> tables' shape.</li>
+<li><code>examples/config.toml</code>: the <code>[platform.NAME]</code> tables' shape.</li>
 <li><code>/usr/share/karvi/systemd/user/karvi-crun.service</code> and <code>karvi-crun.timer</code>,
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

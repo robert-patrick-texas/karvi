@@ -66,6 +66,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -126,6 +127,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -138,7 +140,7 @@ builds, installation, and rollback.</p>
 are committed, so the build needs Go 1.27 or later and no network:</p>
 <pre><code class="language-bash">./scripts/verify-shipped.sh     # the shipped executables as bytes, in seconds
 ./scripts/verify-bundle.sh      # the shipped executables and source, not rebuilt
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION)
 sha256sum -c CHECKSUMS.sha256   # the rebuild reproduces the shipped bytes
 ./scripts/verify-release.sh     # build from source, race run, every suite
 </code></pre>
@@ -151,15 +153,17 @@ every build carries the adapter. Its text version output MUST include:</p>
 <p>The suites run in three lanes at once (<code>scripts/lib/suites.sh</code>);
 <code>KARVI_SUITE_LANES=1</code> runs them one after
 another with the output live.</p>
-<p><code>scripts/verify-release.sh</code> rebuilds <code>bin/</code> with the identity in <code>COMMIT</code>
-and <code>BUILD_TIME</code> (a development identity if they are unset) and rewrites
-<code>CHECKSUMS.sha256</code>; pass the release's values to keep the shipped bytes.</p>
+<p>A build is stamped with its version and its commit, and no build time: <code>make build</code> takes <code>COMMIT</code> from the command line or the environment, else <code>git describe --always --dirty</code> in a git checkout's root, else <code>development</code>.
+<code>scripts/verify-release.sh</code> rebuilds <code>bin/</code> with that commit and rewrites
+<code>CHECKSUMS.sha256</code>, so pass <code>COMMIT=source-release-v$(cat VERSION)</code> to keep
+the shipped bytes. It also tests the tree's package as root in an Ubuntu
+container, which needs Docker.</p>
 <p>A compiled adapter is not device qualification. Complete the Cisco IOS XE
 qualification plan
 (<a href="docs/CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a>)
 before relying on the native transport in production.</p>
 
-<footer>Generated from <code>BUILDING.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>BUILDING.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

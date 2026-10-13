@@ -73,6 +73,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -140,9 +141,11 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
+<img width="1672" height="941" alt="Two Vikings on a winter dock watching karvi longships come in at dawn" src="../images/karvi-longships-at-dawn.png" />
 <h1 id="ssh-transports-and-selection">SSH transports and selection <a class="anchor" href="#ssh-transports-and-selection" aria-label="Link to this section">#</a></h1>
 <h2 id="goals">Goals <a class="anchor" href="#goals" aria-label="Link to this section">#</a></h2>
 <p>karvi owns the transport contract. CLI, inventory, credentials, dispatch,
@@ -281,7 +284,11 @@ callback in x/crypto's handshake on <code>scrapligo-v1</code>, which runs no
 <li><strong>Algorithms.</strong> Both transports offer karvi's lists under <code>[ssh-algorithms]</code>,
 strongest first, with per-host profiles (<code>[ssh-algorithms-profile.NAME]</code>)
 selected by <code>[[ssh-algorithms-map]]</code> rules for devices that need an
-allowed-only name; each transport offers the names it implements.
+allowed-only name; each transport offers the names it implements. Under
+<code>ssh-algorithms.source = &quot;transport&quot;</code>, or a profile's <code>source</code>, a device's
+key exchanges, ciphers, and MACs are its transport's own (OpenSSH's compiled
+defaults or an included <code>~/.ssh/config</code>'s, x/crypto's), while the host-key
+list stays karvi's.
 <code>configs/reference.toml</code> holds the lists and their comments;
 <a href="SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a> the rules.</li>
 <li><strong>Timeouts and keepalives.</strong> <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>; one
@@ -355,7 +362,7 @@ open production gates of <a href="../ROADMAP.html"><code>ROADMAP.md</code></a>. 
 use the system process contract; a future device-handler protocol will require
 its own versioned interface before general third-party handlers are advertised.</p>
 
-<footer>Generated from <code>docs/SSH-TRANSPORTS.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-TRANSPORTS.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

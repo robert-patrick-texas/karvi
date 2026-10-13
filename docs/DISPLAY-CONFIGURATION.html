@@ -74,6 +74,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -142,6 +143,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -251,12 +253,25 @@ light theme does), labels and brackets blue, values white, success green, and
 borders gray. Timestamp and dynamic-border roles
 are independently configurable.</p>
 <p>Colour is <code>display.color</code>'s: <code>auto</code>, the default, colours at a terminal
-and not on a pipe or in a file, unless <code>NO_COLOR</code> is set and not empty
-(the no-color.org convention); <code>always</code> colours wherever the output goes
-and <code>never</code> nowhere, and <code>NO_COLOR</code> overrides neither. The rule is one,
-for the help, a run's display on both paths, <code>config colors</code>, the watch
-screen (whose <code>--color</code> sets it for the screen), and <code>karvi-prune -h</code>,
-which reads no configuration and colours under <code>auto</code> alone.</p>
+and not on a pipe, unless <code>NO_COLOR</code> is set and not empty (the no-color.org
+convention); <code>always</code> colours a terminal and a pipe, so <code>| less -R</code> keeps
+it; <code>never</code> colours nothing; and <code>NO_COLOR</code> overrides neither <code>always</code> nor
+<code>never</code>. A regular file is written plain whatever the policy, so a
+redirected stream or a log holds no escape. <code>--nocolor</code>, a global option
+before the command word, sets <code>display.theme = &quot;nocolor&quot;</code> for the
+invocation and so turns every colour off: <code>config show</code> names it the
+value's source, <code>--set</code> outranks it, and a site that locks <code>display.theme</code>
+refuses it. The rule is one, for the help, a run's display on both paths,
+every warning line (<code>warning: …</code>, the whole line in the <code>warning</code> role's
+colour and bold, as the <code>!</code> warning lines; a recorded login's lines at its
+wrapper's terminal too), every refusal (the code and its message, in the
+<code>error</code> role's colour and bold, as a device's failure line), a line a
+stream drops and goes on from (<code>stream line 3 dropped: …</code>, in the <code>warning</code>
+role's colour and bold), <code>config colors</code>, the watch screen (whose <code>--color</code>
+sets it for the screen), and <code>karvi-prune -h</code>, which reads no configuration
+and colours under <code>auto</code> alone. A refusal before the configuration is read,
+a mistake on the command line or a configuration that does not load, takes
+the built-in settings under the command line's own <code>--nocolor</code>.</p>
 <p><code>karvi config colors</code> prints the colour test:
 every <code>display.colors.*</code> role under the configured theme first and then
 the other, each line the key rendered as a display line renders that role
@@ -266,7 +281,7 @@ holds under both themes. Colour follows the rule above, so on a pipe the
 words print alone and the escape column still says what a terminal gets;
 <code>--set display.color=always</code> forces it.</p>
 <p><code>--help</code> follows the same rule: under
-<code>display.color</code> and <code>display.theme</code>, on a terminal, the title line's tag
+<code>display.color</code> and <code>display.theme</code>, where colour is on, the title line's tag
 (<code>- run the fleet, gather the output</code>) takes the <code>label</code> colour, a
 section heading is bold, an option's words take the <code>accent</code> colour, and
 the action words of
@@ -274,10 +289,11 @@ the <code>Usage:</code> lines (<code>run</code> in <code>karvi run [target input
 <code>setup shared</code> after a plain <code>sudo</code>, <code>&lt;command&gt;</code> in the top text) take
 the <code>success</code> colour, green under both
 themes and <code>display.colors.success</code> overriding; a <code>--config</code> or <code>--set</code>
-before the <code>--help</code> is read; <code>--ansi strip</code> turns it off; a configuration
-that does not load gives plain help. The words are never changed, so
-<code>--help | grep</code> reads as before; the layout adds a blank line around a
-paragraph inside a section and after an entry of three lines or more.</p>
+before the <code>--help</code> is read; <code>--nocolor</code> or <code>--ansi strip</code> turns it off; a
+configuration that does not load gives plain help. The words are never
+changed, so <code>--help | grep</code> reads as before; the layout adds a blank line
+around a paragraph inside a section and after an entry of three lines or
+more.</p>
 <h2 id="echo">Echo <a class="anchor" href="#echo" aria-label="Link to this section">#</a></h2>
 <p><code>display.command.echo</code>, <code>display.run.echo</code>, and <code>--echo</code> show the effective
 prompt plus exact command before text output. This includes device-reported
@@ -290,7 +306,7 @@ command errors. Structured records distinguish observed and inferred prompts.</p
 </ul>
 <p><code>display.json.indent</code> accepts 1 through 8 and affects only <code>json</code>.</p>
 
-<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

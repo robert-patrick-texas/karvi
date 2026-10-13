@@ -76,6 +76,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -146,6 +147,7 @@
 <li><a href="CONTRIBUTING.html">Contributing</a></li>
 <li><a href="SECURITY.html">karvi security</a></li>
 <li><a href="LICENSE.html">MIT License</a></li>
+<li><a href="NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -229,13 +231,12 @@ cat go.mod
 </code></pre>
 <h2 id="4-choose-the-build-path">4. Choose the build path <a class="anchor" href="#4-choose-the-build-path" aria-label="Link to this section">#</a></h2>
 <h3 id="41-official-native-enabled-build">4.1 Official native-enabled build <a class="anchor" href="#41-official-native-enabled-build" aria-label="Link to this section">#</a></h3>
-<p>The source carries every module scrapligo-v1 needs: <code>go.mod</code> names
-scrapligo v1.4.2, golang.org/x/crypto v0.26.0, and golang.org/x/term v0.23.0
-with their three indirect requirements, <code>go.sum</code> holds their
-sums, and <code>vendor/</code> holds their sources. goldmark v1.8.6 is vendored beside
-them for <code>tools/md-to-html</code> (<code>make html</code>); no executable contains it. A build
-host needs no network. On a host with an approved module proxy, <code>make deps</code>
-re-downloads the modules and checks them against <code>go.sum</code> first:</p>
+<p>The source carries every module the build needs: <code>go.mod</code> names scrapligo
+v1.4.2, golang.org/x/crypto v0.26.0, golang.org/x/sys v0.23.0, and
+golang.org/x/term v0.23.0 with their two indirect requirements, <code>go.sum</code> holds
+their sums, and <code>vendor/</code> holds their sources. goldmark v1.8.6 is vendored
+beside them for <code>tools/md-to-html</code> (<code>make html</code>); no executable contains it. A
+build host needs no network. On a host with an approved module proxy, <code>make deps</code> re-downloads the modules and checks them against <code>go.sum</code> first:</p>
 <pre><code class="language-bash">export GOPROXY='https://proxy.golang.org,direct'   # or the approved internal proxy
 export GOSUMDB='sum.golang.org'                    # or the approved internal sumdb
 
@@ -275,21 +276,28 @@ go version -m bin/karvi-linux-amd64 | \
 <code>CHECKSUMS.sha256</code> names them:</p>
 <pre><code class="language-bash">./scripts/verify-bundle.sh
 </code></pre>
-<p>It checks the checksums and the executable's version counters and both
-transport IDs, refuses Go source that <code>gofmt</code> would change, tests and vets
+<p>It checks the checksums, the executable's version counters, its build, and
+both transport IDs, refuses Go source that <code>gofmt</code> would change, tests and vets
 offline from <code>vendor/</code>, compares the generated files,
 validates the example configurations, and runs every smoke suite, the
 canary suite, and the parity suite against <code>bin/</code> as shipped. To reproduce
 the shipped bytes, rebuild with the release identity:</p>
-<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION)
 sha256sum -c CHECKSUMS.sha256
 </code></pre>
 <h3 id="43-build-the-debian-package">4.3 Build the Debian package <a class="anchor" href="#43-build-the-debian-package" aria-label="Link to this section">#</a></h3>
-<p>The package carries <code>bin/</code>'s executables as they are, the manual pages, the
-documents under <code>/usr/share/doc/karvi</code>, and the units, cron scripts, hook
+<p>The package carries <code>bin/</code>'s executables as they are, <code>karvi-sysutil</code> in
+<code>/usr/sbin</code>, the manual pages, the documents under <code>/usr/share/doc/karvi</code>, the
+service account's template unit <code>karvi-daemon@.service</code> where systemd finds a
+package's units, and the per-operator and site units, cron scripts, hook
 examples, tmpfiles rule, reference configuration, and schemas under
 <code>/usr/share/karvi</code>, none of them active (<a href="docs/FILES.html#47-what-the-package-installs"><code>docs/FILES.md</code>
-§4.7</a>). It needs the <code>dpkg-dev</code>
+§4.7</a>). It reloads systemd when it
+is installed, upgraded, or removed, and enables, starts, and restarts nothing;
+<code>sudo karvi-sysutil daemon install</code> sets the service account's daemon up
+(<a href="docs/OPERATIONS.html#a-service-accounts-daemon-under-systemd"><code>docs/OPERATIONS.md</code>, &quot;A service account's daemon under
+systemd&quot;</a>). It
+depends on <code>openssh-client</code> and <code>adduser</code>. Building it needs the <code>dpkg-dev</code>
 and <code>debhelper</code> packages, and no Go:</p>
 <pre><code class="language-bash">make deb                          # dist/karvi_&lt;version&gt;_amd64.deb
 dpkg-deb -c dist/karvi_*_amd64.deb
@@ -302,9 +310,13 @@ karvi's identity tells apart (<code>karvi version</code>'s commit
 <code>source-release-vVERSION</code>). The tree is built in a copy, so neither it nor its
 parent gains a file but the package; <code>DIST=DIR make deb</code> writes it to <code>DIR</code>.
 <code>scripts/check-deb.sh PACKAGE TREE</code> checks a package against the tree it was
-built from: the executables, the documents and example configurations under
-their own names, the units' documentation, and <code>lintian</code> with the package's
-overrides. The release verifier builds and checks the tree's package.</p>
+built from: the executables, <code>karvi-sysutil</code> and the template unit, the
+documents and example configurations under their own names, the units'
+documentation, and <code>lintian</code> with the package's overrides. The release
+verifier builds and checks the tree's package, and tests it as root in an
+Ubuntu 26.04 container under Docker (<code>scripts/sysutil-smoke-test.sh PACKAGE</code>:
+<code>karvi-sysutil</code>, the template unit, the maintainer scripts, and the service
+account's daemon), never on the build host.</p>
 <h2 id="5-direct-go-build-commands">5. Direct Go build commands <a class="anchor" href="#5-direct-go-build-commands" aria-label="Link to this section">#</a></h2>
 <p>The Makefile is preferred because it keeps the build metadata consistent.
 The equivalent core commands are (no build tag is needed; every build
@@ -376,21 +388,22 @@ using <code>login</code>, <code>command</code>, or <code>run</code>, by
 <a href="docs/SSH-HOST-KEY-POLICY.html#controlled-enrollment"><code>docs/SSH-HOST-KEY-POLICY.md</code>, &quot;Controlled enrollment&quot;</a>.</p>
 <p><code>ssh-keyscan</code> discovers a presented key; it does not authenticate that key.</p>
 <h2 id="8-confirm-the-configuration-and-daemondisplay-boundary">8. Confirm the configuration and daemon/display boundary <a class="anchor" href="#8-confirm-the-configuration-and-daemondisplay-boundary" aria-label="Link to this section">#</a></h2>
-<p>This release requires configuration schema 6, daemon IPC schema 11, and
-configuration-registry schema 28 (<code>karvi version</code>). After replacing the binary,
-inspect and, when needed, explicitly restart a still-running older per-user
-daemon:</p>
-<pre><code class="language-bash">karvi daemon status
-# Confirm active_jobs is 0 before restart.
-karvi daemon restart
+<p>This release requires configuration schema 6, daemon IPC schema 12, execution
+plan 13, and configuration-registry schema 29 (<code>karvi version</code>). After an
+upgrade an operator's own daemon needs nothing run: the next submission drains
+a daemon of another build, an idle one replaced in the same invocation, a busy
+one finishing its jobs and exiting while new ones are refused, the builds
+stacked. <code>karvi daemon status</code> stacks each of the daemon's values over the
+client's; to end the daemon rather than wait:</p>
+<pre><code class="language-bash">karvi daemon stop --grace
 </code></pre>
 <p>With no option, <code>daemon stop</code> and <code>daemon restart</code> refuse while the daemon
-reports active jobs. <code>--grace</code> drains and waits, <code>--after=DURATION</code> drains and
-waits up to the limit before forcing, and <code>--force</code> stops immediately; forced
-work still receives terminal records.
-A normal run never kills an incompatible daemon or downgrades a job request.
-The restart command is the explicit operator authorization to stop the older
-same-UID daemon and launch the current executable.</p>
+runs a job. <code>--grace</code> drains and waits for it to exit, <code>--after=DURATION</code>
+drains and waits up to the limit before forcing, and <code>--force</code> stops
+immediately; forced work still receives terminal records. The service
+account's daemon under systemd is restarted by its administrator after an
+upgrade or a rollback, <code>sudo systemctl restart karvi-daemon@karvi.service</code>
+(<a href="docs/OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code>, &quot;Upgrade&quot;</a>).</p>
 <p>Validate configuration before a maintenance window:</p>
 <pre><code class="language-bash">./bin/karvi-linux-amd64 config validate
 ./bin/karvi-linux-amd64 config show | grep -E \
@@ -458,8 +471,8 @@ go mod vendor
 <h2 id="10-install-and-roll-back">10. Install and roll back <a class="anchor" href="#10-install-and-roll-back" aria-label="Link to this section">#</a></h2>
 <p>The package (<a href="#43-build-the-debian-package">§4.3</a>), published with each
 release beside the bundle, installs into <code>/usr/bin</code>; <code>apt</code> installs a package
-file with its dependency, <code>openssh-client</code>, where <code>dpkg -i</code> refuses on a host
-without it; installing an earlier one rolls back:</p>
+file with its dependencies, <code>openssh-client</code> and <code>adduser</code>, where <code>dpkg -i</code>
+refuses on a host without them; installing an earlier one rolls back:</p>
 <pre><code class="language-bash">sha256sum -c karvi_&lt;version&gt;_amd64.deb.sha256
 sudo apt install ./karvi_&lt;version&gt;_amd64.deb
 karvi version --format json
@@ -469,28 +482,37 @@ sudo apt install --allow-downgrades ./karvi_&lt;earlier&gt;_amd64.deb   # roll b
 <code>/usr/share/man/*</code> (Docker's Ubuntu, the minimal cloud images), installs the
 executables and <code>/usr/share/karvi</code> alone, no document or manual page; the
 documents are in the bundle and the repository.</p>
-<p>Without the package, use versioned destinations and an atomic symlink. A host
-installed so finds the units, cron scripts, hook examples, and documents the
-package puts under <code>/usr/share/karvi</code> and <code>/usr/share/doc/karvi</code> in the
-bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and <code>docs/</code>. Use one way or the
-other on a host: <code>/usr/local/bin</code> comes before <code>/usr/bin</code> on the usual <code>PATH</code>.</p>
-<pre><code class="language-bash">sudo install -d -m 0755 /usr/local/lib/karvi
-sudo install -m 0755 bin/karvi-linux-amd64 \
-  /usr/local/lib/karvi/karvi-v0.29.0
-sudo install -m 0755 bin/karvi-askpass-linux-amd64 \
-  /usr/local/lib/karvi/karvi-askpass-v0.29.0
-sudo install -m 0755 bin/karvi-prune-linux-amd64 \
-  /usr/local/lib/karvi/karvi-prune-v0.29.0
-sudo ln -sfn /usr/local/lib/karvi/karvi-v0.29.0 /usr/local/bin/karvi
-sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.29.0 \
-  /usr/local/bin/karvi-askpass
-sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.29.0 \
-  /usr/local/bin/karvi-prune
+<p>Without the package, the bundle installs itself into <code>/usr/local</code>, from the
+extracted bundle after <code>./scripts/verify-bundle.sh</code> has passed
+(<a href="#42-verify-the-shipped-executables-without-rebuilding">§4.2</a>); running an
+earlier bundle's script rolls back:</p>
+<pre><code class="language-bash">sudo ./scripts/install.sh
 karvi version --format json
+sudo ./scripts/install.sh            # from the earlier bundle: roll back
 </code></pre>
-<p>Rollback by repointing the symlinks to the prior verified version. Keep the
-source archive, its SHA-256 file, the test log, the dependency list, and the
-<code>go version -m</code> output together as the local release record.</p>
+<p><code>scripts/install.sh</code> places the four executables under versioned names in
+<code>/usr/local/lib/karvi</code> (<code>karvi-vVERSION</code> and the like), <code>karvi</code>,
+<code>karvi-askpass</code>, and <code>karvi-prune</code> linked from <code>/usr/local/bin</code> and
+<code>karvi-sysutil</code> from <code>/usr/local/sbin</code>, each link replaced in one rename;
+<code>karvi-sysutil</code>'s manual page in <code>/usr/local/share/man/man8</code>; the service
+account's template unit in <code>/usr/local/lib/systemd/system</code>; and reloads
+systemd. A host installed so finds the other units, cron scripts, hook
+examples, and documents the package puts under <code>/usr/share/karvi</code> and
+<code>/usr/share/doc/karvi</code> in the bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and
+<code>docs/</code>. Use one way or the other on a host: <code>/usr/local/bin</code> comes before
+<code>/usr/bin</code> on the usual <code>PATH</code>, and systemd finds the template's bare <code>karvi</code>
+in the same order.</p>
+<p>Neither way enables or starts anything, nor sets up a model: a site that
+chooses the service account's daemon runs <code>sudo karvi-sysutil daemon install</code>
+under either (<a href="docs/OPERATIONS.html#a-service-accounts-daemon-under-systemd"><code>docs/OPERATIONS.md</code>, &quot;A service account's daemon under
+systemd&quot;</a>). After
+an upgrade or a rollback, by either way, the template has been replaced and
+systemd reloaded; a running instance keeps its program until <code>sudo systemctl restart karvi-daemon@karvi.service</code>. An operator's own daemon is drained by
+the next run of the installed karvi; after a rollback, an older karvi is
+refused beside a newer daemon until the administrator ends it, the host
+restarts, or it exits idle after <code>daemon.shutdown-idle-timer</code>.</p>
+<p>Keep the source archive, its SHA-256 file, the test log, the dependency list,
+and the <code>go version -m</code> output together as the local release record.</p>
 <h2 id="11-evidence-required-from-future-ai-or-human-development-teams">11. Evidence required from future AI or human development teams <a class="anchor" href="#11-evidence-required-from-future-ai-or-human-development-teams" aria-label="Link to this section">#</a></h2>
 <p>Every release should provide:</p>
 <ul>
@@ -505,7 +527,7 @@ source archive, its SHA-256 file, the test log, the dependency list, and the
 <li>a statement of all remaining production gates.</li>
 </ul>
 
-<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>

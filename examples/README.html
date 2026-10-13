@@ -63,6 +63,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 </details>
@@ -120,6 +121,7 @@
 <li><a href="../CONTRIBUTING.html">Contributing</a></li>
 <li><a href="../SECURITY.html">karvi security</a></li>
 <li><a href="../LICENSE.html">MIT License</a></li>
+<li><a href="../NOTICE.html">Notice</a></li>
 </ul>
 </nav>
 <main>
@@ -138,7 +140,7 @@ at are under <code>docs/</code>.</p>
 <tbody>
 <tr>
 <td><code>config.toml</code></td>
-<td>a site configuration: an inventory source, three credential backends and the policy that orders them, a platform alias, the transports, dispatch, display, and the job's folder mode</td>
+<td>a site configuration: an inventory source, three credential backends and the policy that orders them, a platform alias, platform resolution, the collection run, the transports, dispatch, display, and the job's folder mode; commented, the shapes a site adds: a shared <code>.cloginrc</code>, a Vault store with its TLS trust, a credential helper, a drop list, start statements for generic devices, session-init, algorithm profiles, and an audit file without journald</td>
 <td><code>#</code> anywhere (TOML)</td>
 </tr>
 <tr>
@@ -166,6 +168,11 @@ at are under <code>docs/</code>.</p>
 <td>a commands file for <code>--cf</code>: one device command per line, sent as written</td>
 <td>none: every line is sent to the device, so a comment line would be too</td>
 </tr>
+<tr>
+<td><code>karvi-credh</code></td>
+<td>a credential helper: a POSIX <code>sh</code> script that prints <code>NETUSER</code>, <code>NETPASS</code>, and <code>NETENABLE</code> from <code>pass show</code> as <code>export</code> lines, with commented lines for <code>secret-tool</code>, <code>vault kv get</code>, and <code>git credential fill</code></td>
+<td><code>#</code> to the end of the line (<code>sh</code>)</td>
+</tr>
 </tbody>
 </table>
 <p>The passwords in <code>credentials.csv</code> and <code>cloginrc</code> are placeholders. A
@@ -173,6 +180,16 @@ user-scoped credential file is refused unless the operator owns it at mode
 0600, so copy them to their places first:</p>
 <pre><code class="language-sh">install -m 0600 examples/credentials.csv ~/.karvi/credentials.csv
 install -m 0600 examples/cloginrc ~/.cloginrc
+</code></pre>
+<p>The helper runs where <code>creds.helper</code> names it, or as <code>karvi-credh</code> beside the
+karvi executable; the package installs none. karvi refuses a helper that its
+group or others may write, so install it where it is to run, test it as karvi
+reads it, and name it in the configuration:</p>
+<pre><code class="language-sh">install -m 0755 examples/karvi-credh /usr/local/lib/karvi/credh
+eval &quot;$(/usr/local/lib/karvi/credh)&quot; &amp;&amp; echo &quot;$NETUSER&quot;
+</code></pre>
+<pre><code class="language-toml">[creds]
+helper = &quot;/usr/local/lib/karvi/credh&quot;
 </code></pre>
 <p>Try the set from the source root, where the relative paths resolve, without
 touching a device:</p>
@@ -184,7 +201,7 @@ resolves each device's credential row, and stops before any network contact,
 reporting per device which row answered and why (<code>--format json</code> for the
 record). <a href="../docs/QUICKSTART.html"><code>docs/QUICKSTART.md</code></a> takes it from there.</p>
 
-<footer>Generated from <code>examples/README.md</code> at <code>karvi-v0.29.0</code>.</footer>
+<footer>Generated from <code>examples/README.md</code> at <code>karvi-v0.29.0-68-g45a3a8e</code>.</footer>
 </main>
 </body>
 </html>
