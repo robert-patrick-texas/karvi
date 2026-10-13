@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.30.1 - 2026-10-13
+
+A patch release on 0.30.0 for the Go toolchain, which changes no record, file,
+key, or schema; every counter is 0.30.0's (configuration schema 6, registry 29,
+execution plan 13, daemon IPC 12, command record 3, job manifest and summary 3,
+plan report 2, credential package 2, scoreboard 3, audit 1, metrics 1,
+inventory 1), the module graph is 0.30.0's, and a site has nothing to change.
 
 - **Go 1.27.2.** The executables are built with Go 1.27.2, where 0.30.0's
   were built with Go 1.27.1; no code changed. Go 1.27.2 carries security fixes
