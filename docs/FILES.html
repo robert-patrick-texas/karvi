@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Files and directories — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html" aria-current="page">Files and directories</a>
+<ul class="sections">
+<li><a href="#1-how-karvi-chooses-each-place">1. How karvi chooses each place</a></li>
+<li><a href="#2-directories-in-shared-mode">2. Directories in shared mode</a></li>
+<li><a href="#3-directories-in-individual-mode">3. Directories in individual mode</a></li>
+<li><a href="#4-files">4. Files</a></li>
+<li><a href="#5-signs-a-host-is-not-as-intended">5. Signs a host is not as intended</a></li>
+</ul></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html" aria-current="page">Files and directories</a>
+<ul class="sections">
+<li><a href="#1-how-karvi-chooses-each-place">1. How karvi chooses each place</a></li>
+<li><a href="#2-directories-in-shared-mode">2. Directories in shared mode</a></li>
+<li><a href="#3-directories-in-individual-mode">3. Directories in individual mode</a></li>
+<li><a href="#4-files">4. Files</a></li>
+<li><a href="#5-signs-a-host-is-not-as-intended">5. Signs a host is not as intended</a></li>
+</ul></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="files-and-directories">Files and directories <a class="anchor" href="#files-and-directories" aria-label="Link to this section">#</a></h1>
+<p>Every place karvi reads or writes on a host: which directories it uses in
+shared mode and in individual mode, how it chooses between them, and each file
+with its mode, owner, group, writer, and purpose. The modes and owners below
+are the ones karvi left on a host, observed in both modes with two
+operators (<code>netops</code> and <code>netops.test</code>, both in the group <code>netops</code>).</p>
+<p>Two facts govern the rest:</p>
+<ul>
+<li><strong>The operator's home is the password database's</strong>, not <code>$HOME</code>. Every <code>~</code>
+below, and the private root under <code>~/.local/share/karvi</code> with the trust
+store in it, are the home <code>getent passwd USER</code> names, whatever <code>HOME</code> holds.</li>
+<li><strong>There is no shared switch.</strong> Each place is chosen at the start of each
+activity by looking at what exists (<a href="#1-how-karvi-chooses-each-place">section
+1</a>). A site turns shared mode on by making
+the shared places once, with <code>sudo karvi setup shared</code>; a host without them is
+in individual mode, and a host can be in shared mode for some places and
+individual for others.</li>
+</ul>
+<h2 id="1-how-karvi-chooses-each-place">1. How karvi chooses each place <a class="anchor" href="#1-how-karvi-chooses-each-place" aria-label="Link to this section">#</a></h2>
+<p>For each place karvi looks for the shared candidate first. A candidate that
+does not exist is passed by without a word. One that exists but that the
+operator cannot use is refused, warned about, or passed by, as the last
+column says: the trees and the private root are refused, since the site made
+them for the operator and a silent fall-through would split the operator's
+work across two places; the scratch root's two folders are passed by with
+one warning, since a job can run without them.</p>
+<table>
+<thead>
+<tr>
+<th>Place</th>
+<th>Key</th>
+<th>Shared candidates, in order</th>
+<th>Otherwise</th>
+<th>A candidate present but unusable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Private root</td>
+<td><code>basedir</code></td>
+<td><code>/opt/karvi/users/&lt;user&gt;</code>, <code>/var/lib/karvi/users/&lt;user&gt;</code> (only where the site made <code>users</code>)</td>
+<td><code>~/.local/share/karvi</code></td>
+<td>refused: <code>private_directory_not_real</code>, <code>private_directory_not_writable</code></td>
+</tr>
+<tr>
+<td>Job tree</td>
+<td><code>output.root</code></td>
+<td><code>jobs</code> under <code>sharedroot</code>: <code>/opt/karvi/shared</code>, then <code>/var/lib/karvi/shared</code></td>
+<td><code>&lt;basedir&gt;/jobs</code></td>
+<td>refused: <code>output_directory_not_writable</code></td>
+</tr>
+<tr>
+<td>Transcript tree</td>
+<td><code>transcript.root</code></td>
+<td><code>transcripts</code> under <code>sharedroot</code>, the same roots</td>
+<td><code>&lt;basedir&gt;/transcripts</code></td>
+<td>refused: <code>transcript_directory_not_writable</code></td>
+</tr>
+<tr>
+<td>Collection directory</td>
+<td><code>crun.directory</code></td>
+<td><code>crun</code> under <code>sharedroot</code>, the same roots</td>
+<td><code>&lt;basedir&gt;/crun</code></td>
+<td>refused: <code>crun_directory_not_writable</code></td>
+</tr>
+<tr>
+<td>Scratch</td>
+<td><code>tempdir</code></td>
+<td><code>/dev/shm/karvi/&lt;user&gt;</code> (only where <code>/dev/shm/karvi</code> exists)</td>
+<td><code>&lt;basedir&gt;/tmp</code>, then <code>/tmp/karvi-&lt;uid&gt;</code>, then <code>/var/tmp/karvi-&lt;uid&gt;</code></td>
+<td>the next candidate</td>
+</tr>
+<tr>
+<td>Control sockets</td>
+<td><code>ssh.control-path-root</code></td>
+<td><code>/dev/shm/karvi/&lt;user&gt;/sockets</code></td>
+<td><code>&lt;basedir&gt;/socket/ssh</code></td>
+<td>the fallback</td>
+</tr>
+<tr>
+<td>Scoreboards</td>
+<td><code>scoreboards</code></td>
+<td><code>/dev/shm/karvi/scoreboards</code></td>
+<td><code>&lt;basedir&gt;/state/scoreboards</code></td>
+<td>the fallback, with one warning: <code>shared scoreboard directory unavailable</code></td>
+</tr>
+<tr>
+<td>Session ledger</td>
+<td><code>sessions.shared-capacity-root</code></td>
+<td><code>/dev/shm/karvi/capacity</code></td>
+<td><code>&lt;basedir&gt;/state/capacity</code></td>
+<td>the fallback, with one warning: <code>capacity_root_unusable</code></td>
+</tr>
+<tr>
+<td>Spool</td>
+<td><code>spooldir</code></td>
+<td>none: never shared</td>
+<td><code>/tmp/karvi-&lt;uid&gt;</code>, then <code>/var/tmp/karvi-&lt;uid&gt;</code></td>
+<td>the next candidate</td>
+</tr>
+<tr>
+<td>Trust store</td>
+<td><code>ssh.known-hosts-file</code></td>
+<td>none: never shared; it follows the private root, <code>&lt;basedir&gt;/known_hosts</code></td>
+<td><code>&lt;basedir&gt;/known_hosts</code></td>
+<td><code>known_hosts</code> errors</td>
+</tr>
+<tr>
+<td>Daemon socket</td>
+<td><code>daemon.socket</code></td>
+<td>none: never shared</td>
+<td><code>&lt;basedir&gt;/socket/daemon.sock</code></td>
+<td>the daemon does not start</td>
+</tr>
+</tbody>
+</table>
+<p>An explicit value of any key replaces its chain: the path is used as given,
+or refused if it cannot be. <code>sharedroot = &quot;none&quot;</code> keeps the three trees under
+<code>basedir</code> whatever exists; <code>sharedroot = PATH</code> consults that root alone. The
+private root, the spool, the trust store, and the daemon's sockets are always
+one operator's: <code>basedir</code> is never shared, since its <code>socket</code> and <code>state</code> are
+one operator's daemon.</p>
+<p>The scratch holds the askpass socket, whose path a Unix socket bounds at 107
+bytes with a name of up to 37, so the scratch may be at most 69 bytes: <code>auto</code>
+passes a longer candidate by, named on <code>config show --explain</code>'s <code>passed:</code>
+line, and an explicit <code>tempdir</code> longer is refused, <code>tempdir_too_long</code>, at every
+job's admission and a login's start.</p>
+<p>Every place key and every file key (<code>audit.file</code>, an inventory source's
+<code>path</code>, a credential file) takes a path by one rule: <code>~</code> and <code>~/…</code> are the
+operator's home from the password database, <code>~user</code> is refused
+(<code>path_other_user_home_unsupported</code>), and a relative path is taken from the
+working directory of the invocation and made absolute.</p>
+<p>No operator's run makes a place <code>setup shared</code> makes: the scratch root
+<code>/dev/shm/karvi</code>, <code>/opt/karvi</code> and <code>/var/lib/karvi</code>, their <code>users</code> and
+<code>shared</code>, and the trees under <code>shared</code>, whether a path reaches them by <code>auto</code>
+or explicitly, since the first operator to make one would close it to every
+other. An explicit value that would need one made is refused before any
+device is contacted, <code>shared_directory_absent</code>, naming the place, <code>sudo karvi setup shared</code>, and the key to set elsewhere. Inside the places that exist an
+operator's run makes its own folders: its <code>&lt;user&gt;</code> folder in the scratch root,
+a missing <code>scoreboards</code> or <code>capacity</code> folder in the root's group, its folder
+under <code>users</code>, the day and job folders in the trees. <code>/dev/shm</code> is emptied at
+every boot, and <code>systemd-tmpfiles</code> makes the scratch root again from the rule
+<code>setup shared</code> writes; a host where the rule did not run is in individual mode
+for the scratch, the scoreboards, and the ledger until it does.</p>
+<p><strong>A quick look at a host.</strong> <code>karvi config show KEY…</code> names on each key's
+<code>resolved:</code> line the place the next activity would use, by the rule above and
+without creating anything: <code>karvi config show basedir ssh.known-hosts-file</code>
+names the operator's private root and trust store. A candidate present on the
+host and passed by follows on a <code>passed:</code> line with its reason, and a place the
+activity would refuse is <code>resolved:   error: CODE: message</code>. Each candidate is
+judged as the activity judges it, by its permissions (<code>access(2)</code>), its owner
+and mode where it is private, and the free inodes of its filesystem; what only
+a write shows, a network filesystem's refusal or a quota, can still differ.
+Every place at once, one line for each key that names one and for each
+candidate passed by, from the configuration this invocation loads, here on a
+host after <code>setup shared</code>, before the operator's first activity:</p>
+<pre><code class="language-bash">karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k&quot;: &quot;$0}'
+</code></pre>
+<pre><code class="language-text">basedir: resolved:   /opt/karvi/users/netops
+crun.directory: resolved:   /opt/karvi/shared/crun
+daemon.socket: resolved:   /opt/karvi/users/netops/socket/daemon.sock
+inventory-source.0.path: resolved:   /mnt/lab/sb/inv.csv
+output.root: resolved:   /opt/karvi/shared/jobs
+scoreboards: resolved:   /dev/shm/karvi/scoreboards
+sessions.shared-capacity-root: resolved:   /dev/shm/karvi/capacity
+spooldir: resolved:   /tmp/karvi-1000
+ssh.control-path-root: resolved:   /dev/shm/karvi/netops/sockets
+ssh.known-hosts-file: resolved:   /opt/karvi/users/netops/known_hosts
+tempdir: resolved:   /dev/shm/karvi/netops
+transcript.root: resolved:   /opt/karvi/shared/transcripts
+</code></pre>
+<p>The lines come from the invocation's configuration, which its job runs under on
+every path: a running daemon keeps only its socket, state, and log under the
+<code>basedir</code> it started with, and swept its own <code>tempdir</code>, <code>spooldir</code>, and
+<code>ssh.control-path-root</code> at its start. The shared places and their modes, here as
+<code>sudo karvi setup shared --group netops</code> leaves them (<code>--mode 2775</code> gives
+<code>drwxrwsr-x</code> to the four 2770 directories under <code>/opt/karvi</code>):</p>
+<pre><code class="language-bash">stat -c '%A %U:%G %n' /opt/karvi /opt/karvi/users /opt/karvi/shared \
+  /opt/karvi/shared/* /var/lib/karvi/users /var/lib/karvi/shared \
+  /dev/shm/karvi /dev/shm/karvi/* 2&gt;/dev/null
+</code></pre>
+<pre><code class="language-text">drwxr-xr-x root:root /opt/karvi
+drwxrwx--T root:netops /opt/karvi/users
+drwxrws--- root:netops /opt/karvi/shared
+drwxrws--- root:netops /opt/karvi/shared/crun
+drwxrws--- root:netops /opt/karvi/shared/jobs
+drwxrws--- root:netops /opt/karvi/shared/transcripts
+drwxrws--T root:netops /dev/shm/karvi
+drwxrws--- root:netops /dev/shm/karvi/capacity
+drwxrws--T root:netops /dev/shm/karvi/scoreboards
+</code></pre>
+<p>Lines missing from the output are places the host does not have, which the
+operators take in individual mode. The operator's own folder
+(<code>/dev/shm/karvi/&lt;user&gt;</code>) appears after the operator's first activity. <code>sudo karvi setup shared</code> reports a directory found with another group or mode as
+<code>repaired</code> and sets it right, so running it again is also the repair
+(<a href="OPERATIONS.html#the-shared-trees"><code>docs/OPERATIONS.md</code>, &quot;The shared trees&quot;</a>).</p>
+<h2 id="2-directories-in-shared-mode">2. Directories in shared mode <a class="anchor" href="#2-directories-in-shared-mode" aria-label="Link to this section">#</a></h2>
+<p>The group is the operators' group (<code>netops</code> here), <code>&lt;user&gt;</code> the operator's
+username, <code>&lt;group&gt;</code> the operator's primary group. Setgid on a directory makes
+what is created in it take the directory's group, which is how every file in
+a shared tree stays in the operators' group; the sticky bit (<code>T</code>) keeps a
+member from removing or renaming another's entry.</p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Mode</th>
+<th>Owner</th>
+<th>Group</th>
+<th>Made by</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/opt/karvi</code></td>
+<td><code>0755</code></td>
+<td>root</td>
+<td>root</td>
+<td><code>setup shared</code></td>
+<td>the shared trees and the operators' roots; the global configuration, if the site keeps it here</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/shared</code></td>
+<td><code>2770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code></td>
+<td>the three trees</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/shared/jobs</code></td>
+<td><code>2770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code></td>
+<td>the job tree: one day folder per day</td>
+</tr>
+<tr>
+<td><code>jobs/YYMMDD</code></td>
+<td><code>2770</code> (the tree's own bits)</td>
+<td>the first operator that day</td>
+<td>operators</td>
+<td>the first job of the day</td>
+<td>that day's job folders</td>
+</tr>
+<tr>
+<td><code>jobs/YYMMDD/&lt;job-id&gt;</code></td>
+<td><code>2750</code> (<code>output.directory-mode</code>, setgid inherited)</td>
+<td>the job's operator</td>
+<td>operators</td>
+<td>each job</td>
+<td>the job's files (<a href="#43-a-jobs-files">section 4.3</a>)</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/shared/transcripts</code></td>
+<td><code>2770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code></td>
+<td>the transcript tree: one day folder per day</td>
+</tr>
+<tr>
+<td><code>transcripts/YYMMDD</code></td>
+<td><code>2770</code></td>
+<td>the first operator that day</td>
+<td>operators</td>
+<td>the first recorded login of the day</td>
+<td>that day's transcripts</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/shared/crun</code></td>
+<td><code>2770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code></td>
+<td>the collection files, one per device</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/users</code></td>
+<td><code>1770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code></td>
+<td>the operators' private roots</td>
+</tr>
+<tr>
+<td><code>/opt/karvi/users/&lt;user&gt;</code></td>
+<td><code>0750</code></td>
+<td>the operator</td>
+<td><code>&lt;group&gt;</code></td>
+<td>the operator's first activity</td>
+<td>the private root (<code>basedir</code>) and the trust store</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/socket</code></td>
+<td><code>0700</code></td>
+<td>the operator</td>
+<td><code>&lt;group&gt;</code></td>
+<td>the private root's first use</td>
+<td>the daemon's two sockets</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/state</code></td>
+<td><code>0700</code></td>
+<td>the operator</td>
+<td><code>&lt;group&gt;</code></td>
+<td>the same</td>
+<td>the daemon's state file</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/logs</code></td>
+<td><code>0750</code></td>
+<td>the operator</td>
+<td><code>&lt;group&gt;</code></td>
+<td>the same</td>
+<td>the daemon's log</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/jobs</code>, <code>&lt;basedir&gt;/transcripts</code></td>
+<td><code>0750</code></td>
+<td>the operator</td>
+<td><code>&lt;group&gt;</code></td>
+<td>the same</td>
+<td>nothing while the shared trees exist</td>
+</tr>
+<tr>
+<td><code>/dev/shm/karvi</code></td>
+<td><code>3770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code>; at boot, <code>systemd-tmpfiles</code></td>
+<td>the scratch root</td>
+</tr>
+<tr>
+<td><code>/dev/shm/karvi/scoreboards</code></td>
+<td><code>3770</code></td>
+<td>root</td>
+<td>operators</td>
+<td>the same</td>
+<td>every operator's scoreboards, what <code>karvi watch</code> reads</td>
+</tr>
+<tr>
+<td><code>/dev/shm/karvi/capacity</code></td>
+<td><code>2770</code></td>
+<td>root</td>
+<td>operators</td>
+<td>the same</td>
+<td>the host's session ledger</td>
+</tr>
+<tr>
+<td><code>capacity/devices</code></td>
+<td><code>2770</code></td>
+<td>root</td>
+<td>operators</td>
+<td><code>setup shared</code>; at boot, <code>systemd-tmpfiles</code></td>
+<td>one ledger per device</td>
+</tr>
+<tr>
+<td><code>/dev/shm/karvi/&lt;user&gt;</code></td>
+<td><code>2700</code> (setgid inherited)</td>
+<td>the operator</td>
+<td>operators</td>
+<td>the operator's first activity</td>
+<td>the operator's scratch (<code>tempdir</code>)</td>
+</tr>
+<tr>
+<td><code>/dev/shm/karvi/&lt;user&gt;/sockets</code></td>
+<td><code>2700</code></td>
+<td>the operator</td>
+<td>operators</td>
+<td>the same</td>
+<td>the exec devices' control sockets</td>
+</tr>
+<tr>
+<td><code>/tmp/karvi-&lt;uid&gt;</code></td>
+<td><code>0700</code></td>
+<td>the operator</td>
+<td><code>&lt;group&gt;</code></td>
+<td>each activity</td>
+<td>the output spool</td>
+</tr>
+</tbody>
+</table>
+<p>In shared mode the operator's home holds nothing of karvi's but the operator's
+configuration (<code>~/.config/karvi/config.toml</code>), when there is one.</p>
+<p><code>/var/lib/karvi</code> takes the place of <code>/opt/karvi</code> throughout on a site that
+made its trees and <code>users</code> there by hand; <code>setup shared</code> makes <code>/opt/karvi</code>.
+A site that made <code>shared</code> and not <code>users</code> keeps every operator's private root
+under the home while the trees are shared; the reverse keeps the trees under
+each private root.</p>
+<h2 id="3-directories-in-individual-mode">3. Directories in individual mode <a class="anchor" href="#3-directories-in-individual-mode" aria-label="Link to this section">#</a></h2>
+<p>Every place is under the operator's private root, except the spool. The
+group is the operator's primary group throughout.</p>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Mode</th>
+<th>Made by</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>~/.local/share/karvi</code></td>
+<td><code>0750</code></td>
+<td>the first activity</td>
+<td>the private root (<code>basedir</code>) and the trust store</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/jobs</code></td>
+<td><code>0750</code> (<code>output.directory-mode</code>)</td>
+<td>the first activity</td>
+<td>the job tree</td>
+</tr>
+<tr>
+<td><code>jobs/YYMMDD</code></td>
+<td><code>0750</code></td>
+<td>the first job of the day</td>
+<td>that day's job folders</td>
+</tr>
+<tr>
+<td><code>jobs/YYMMDD/&lt;job-id&gt;</code></td>
+<td><code>0750</code></td>
+<td>each job</td>
+<td>the job's files (<a href="#43-a-jobs-files">section 4.3</a>)</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/transcripts</code></td>
+<td><code>0750</code></td>
+<td>the first activity</td>
+<td>the transcript tree</td>
+</tr>
+<tr>
+<td><code>transcripts/YYMMDD</code></td>
+<td><code>0750</code></td>
+<td>the first recorded login of the day</td>
+<td>that day's transcripts</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/crun</code></td>
+<td><code>0770</code> (<code>crun.directory-mode</code>)</td>
+<td>the first collection</td>
+<td>the collection files</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/socket</code></td>
+<td><code>0700</code></td>
+<td>the first activity</td>
+<td>the daemon's two sockets</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/socket/ssh</code></td>
+<td><code>0700</code></td>
+<td>the first activity</td>
+<td>the exec devices' control sockets</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/state</code></td>
+<td><code>0700</code></td>
+<td>the first activity</td>
+<td>the daemon's state file, the scoreboards, the ledger</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/state/scoreboards</code></td>
+<td><code>0700</code></td>
+<td>the first activity</td>
+<td>the operator's scoreboards</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/state/capacity</code>, <code>capacity/devices</code></td>
+<td><code>0700</code></td>
+<td>the first activity</td>
+<td>the operator's session ledger</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/logs</code></td>
+<td><code>0750</code></td>
+<td>the first activity</td>
+<td>the daemon's log</td>
+</tr>
+<tr>
+<td><code>&lt;basedir&gt;/tmp</code></td>
+<td><code>0700</code></td>
+<td>the first activity</td>
+<td>the scratch (<code>tempdir</code>)</td>
+</tr>
+<tr>
+<td><code>/tmp/karvi-&lt;uid&gt;</code></td>
+<td><code>0700</code></td>
+<td>each activity</td>
+<td>the output spool</td>
+</tr>
+</tbody>
+</table>
+<p>A private root the site made by hand is taken as it is, whatever its mode; an
+existing <code>socket</code> or <code>state</code> must be a real directory the operator owns with
+no group or other access, or the activity is refused.</p>
+<h2 id="4-files">4. Files <a class="anchor" href="#4-files" aria-label="Link to this section">#</a></h2>
+<p>The mode, owner, and group of each file karvi writes. &quot;Shared&quot; and
+&quot;individual&quot; give the mode in each; the owner is the operator whose activity
+wrote it unless the row says otherwise, and the group is the operators' group
+in a shared place and the operator's primary group in a private one.</p>
+<h3 id="41-what-karvi-reads">4.1 What karvi reads <a class="anchor" href="#41-what-karvi-reads" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Where</th>
+<th>Required owner and mode</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The global configuration</td>
+<td><code>/etc/karvi/config.toml</code>, else <code>/opt/karvi/config.toml</code> (the first that exists)</td>
+<td>the site's</td>
+<td>the site's settings; the only file that may declare locks (<code>[config-lock]</code>)</td>
+</tr>
+<tr>
+<td>The operator's configuration</td>
+<td><code>~/.config/karvi/config.toml</code></td>
+<td>the operator's</td>
+<td>the operator's settings, unless the global file sets <code>config.allow-user-layer = false</code></td>
+</tr>
+<tr>
+<td><code>--config PATH</code></td>
+<td>as given: a file, or a directory whose <code>.toml</code> files are read</td>
+<td>the operator's</td>
+<td>read after the two above, in order</td>
+</tr>
+<tr>
+<td>An included file or directory</td>
+<td>as a configuration's <code>include</code> directives name it</td>
+<td>regular files; no directory symlinks</td>
+<td>part of the including file</td>
+</tr>
+<tr>
+<td>An inventory source</td>
+<td><code>[[inventory-source]] path</code></td>
+<td>readable</td>
+<td>the devices: name, address, platform, groups</td>
+</tr>
+<tr>
+<td>A credential file (CSV, <code>.cloginrc</code>)</td>
+<td>its backend's <code>path</code></td>
+<td>user scope: the operator, <code>0600</code>; shared scope: root or an approved admin, <code>0640</code>, <code>security.shared-group</code></td>
+<td>the devices' credentials (<a href="CREDENTIAL-CSV.html#8-the-files-owner-and-mode"><code>docs/CREDENTIAL-CSV.md</code>, section 8</a>)</td>
+</tr>
+<tr>
+<td>A command or target file</td>
+<td><code>--cf PATH</code>, <code>--tf PATH</code>, <code>--tfr PATH</code></td>
+<td>readable</td>
+<td>the commands or targets of one run</td>
+</tr>
+<tr>
+<td>The trust store</td>
+<td><code>&lt;basedir&gt;/known_hosts</code></td>
+<td>written by karvi, <code>0600</code></td>
+<td>read before every SSH session (4.2)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-the-operators-own-files">4.2 The operator's own files <a class="anchor" href="#42-the-operators-own-files" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Where</th>
+<th>Shared</th>
+<th>Individual</th>
+<th>Lifetime</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>known_hosts</code></td>
+<td><code>&lt;basedir&gt;/</code> (<code>ssh.known-hosts-file</code>)</td>
+<td><code>0600</code></td>
+<td><code>0600</code></td>
+<td>kept</td>
+<td>the trust store: every host key karvi accepted (<a href="SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>)</td>
+</tr>
+<tr>
+<td><code>daemon.sock</code></td>
+<td><code>&lt;basedir&gt;/socket/</code></td>
+<td><code>0600</code> socket</td>
+<td><code>0600</code> socket</td>
+<td>while the daemon runs</td>
+<td>the client's requests to the daemon; peer credentials checked</td>
+</tr>
+<tr>
+<td><code>credentials.sock</code></td>
+<td><code>&lt;basedir&gt;/socket/</code></td>
+<td><code>0600</code> socket</td>
+<td><code>0600</code> socket</td>
+<td>while the daemon runs</td>
+<td>the credential package, one frame per connection under a one-use token</td>
+</tr>
+<tr>
+<td><code>daemon.json</code></td>
+<td><code>&lt;basedir&gt;/state/</code></td>
+<td><code>0600</code></td>
+<td><code>0600</code></td>
+<td>while the daemon runs</td>
+<td>the running daemon's status (pid, socket, version, schema, jobs), removed when it stops</td>
+</tr>
+<tr>
+<td><code>daemon.log</code></td>
+<td><code>&lt;basedir&gt;/logs/</code></td>
+<td><code>0600</code>, appended</td>
+<td><code>0600</code>, appended</td>
+<td>kept</td>
+<td>one line per request outcome, the token redacted</td>
+</tr>
+<tr>
+<td><code>karvi-ssh-&lt;pid&gt;-*.conf</code></td>
+<td>the scratch (<code>tempdir</code>)</td>
+<td><code>0600</code></td>
+<td><code>0600</code></td>
+<td>one system-transport session; one a karvi killed outright left is swept at the next admission, daemon start, or login</td>
+<td>the <code>ssh</code> configuration karvi writes for the session, named by its maker's pid</td>
+</tr>
+<tr>
+<td><code>askpass-&lt;pid&gt;-&lt;16 hex&gt;.sock</code></td>
+<td>the scratch</td>
+<td><code>0600</code> socket</td>
+<td><code>0600</code> socket</td>
+<td>one authentication; one a karvi killed outright left is swept as above</td>
+<td>where <code>karvi-askpass</code> fetches the secret <code>ssh</code> asks for, named by its maker's pid</td>
+</tr>
+<tr>
+<td><code>&lt;16 hex&gt;</code></td>
+<td>the control sockets (<code>ssh.control-path-root</code>)</td>
+<td><code>0600</code> socket</td>
+<td><code>0600</code> socket</td>
+<td>one exec device session</td>
+<td>an exec device's OpenSSH ControlMaster, a client of it per command; one a killed master left is swept at the next daemon start or admission</td>
+</tr>
+<tr>
+<td><code>karvi-script-&lt;pid&gt;-*.timing</code></td>
+<td>the scratch</td>
+<td><code>0600</code></td>
+<td><code>0600</code></td>
+<td>one recorded login</td>
+<td><code>script(1)</code>'s timing log, the terminal's widths, read when the transcript is rendered at the session's end and removed then; a session killed before its end leaves it, swept as above</td>
+</tr>
+<tr>
+<td><code>&lt;activity&gt;.&lt;device&gt;.&lt;index&gt;.&lt;pid&gt;.spool</code></td>
+<td>the spool (<code>spooldir</code>)</td>
+<td><code>0600</code></td>
+<td><code>0600</code></td>
+<td>one command</td>
+<td>a response past <code>output.spool-threshold-bytes</code>, removed once its record is written; one left by a process that died is swept at the next daemon start or admission</td>
+</tr>
+<tr>
+<td>The audit file</td>
+<td><code>audit.file</code>, when set</td>
+<td><code>0600</code>, appended</td>
+<td><code>0600</code>, appended</td>
+<td>kept</td>
+<td>the audit events, beside journald (always written)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-a-jobs-files">4.3 A job's files <a class="anchor" href="#43-a-jobs-files" aria-label="Link to this section">#</a></h3>
+<p>In the job folder <code>jobs/YYMMDD/&lt;job-id&gt;</code>, every file <code>0640</code>: in shared mode
+in the operators' group, so any member reads another's job (<code>karvi job follow ID</code>). Each is written as the job runs, so a job cut short leaves what it
+had; each has its switch, <code>output.files.*</code>, and <code>--nof</code> writes no folder
+(<a href="OPERATIONS.html#the-jobs-output-files"><code>docs/OPERATIONS.md</code>, &quot;The job's output files&quot;</a>).</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Switch</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manifest.json</code></td>
+<td><code>manifest-json</code></td>
+<td>the job as it was accepted: the plan, the targets, the configuration that mattered</td>
+</tr>
+<tr>
+<td><code>commands.jsonl</code></td>
+<td><code>commands-jsonl</code></td>
+<td>every command's record, one JSON line each; what <code>job follow</code> replays</td>
+</tr>
+<tr>
+<td><code>commands.txt</code></td>
+<td><code>commands-txt</code></td>
+<td>the job's commands, as a command file for a rerun (<code>--cf</code>)</td>
+</tr>
+<tr>
+<td><code>commands.&lt;platform&gt;.txt</code></td>
+<td><code>commands-txt</code></td>
+<td>a collection's commands, one file per platform</td>
+</tr>
+<tr>
+<td><code>errors.jsonl</code></td>
+<td><code>errors-jsonl</code></td>
+<td>the records that did not succeed (each is also in <code>commands.jsonl</code>)</td>
+</tr>
+<tr>
+<td><code>failed-devices.txt</code></td>
+<td><code>failed-devices-txt</code></td>
+<td>the devices that failed, as a target file for a rerun (<code>--tf</code>)</td>
+</tr>
+<tr>
+<td><code>output.&lt;target&gt;.txt</code></td>
+<td><code>output-txt</code></td>
+<td>each device's session as text</td>
+</tr>
+<tr>
+<td><code>metrics.json</code></td>
+<td><code>metrics-json</code></td>
+<td>the job's timings, widths, and wave decisions</td>
+</tr>
+<tr>
+<td><code>summary.json</code></td>
+<td><code>summary-json</code></td>
+<td>the job's result: the counts, the exit, the paths; written last</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-transcripts-and-collection-files">4.4 Transcripts and collection files <a class="anchor" href="#44-transcripts-and-collection-files" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Where</th>
+<th>Shared</th>
+<th>Individual</th>
+<th>Owner</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;device&gt;-HHMMSS.log</code></td>
+<td><code>transcripts/YYMMDD/</code></td>
+<td><code>0640</code></td>
+<td><code>0640</code></td>
+<td>the operator who logged in</td>
+<td>a recorded login (<code>login --record</code>), as the terminal showed it (<a href="LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>)</td>
+</tr>
+<tr>
+<td><code>&lt;device&gt;-HHMMSS.meta.jsonl</code></td>
+<td>the same</td>
+<td><code>0640</code></td>
+<td><code>0640</code></td>
+<td>the same</td>
+<td>the recording's metadata</td>
+</tr>
+<tr>
+<td><code>&lt;device&gt;[SUFFIX]</code></td>
+<td>the collection directory</td>
+<td><code>0660</code> (<code>crun.file-mode</code>)</td>
+<td><code>0660</code></td>
+<td>the operator who last collected the device</td>
+<td>the device's collected output, replaced only when the device succeeds (<a href="COLLECTION.html"><code>docs/COLLECTION.md</code></a>)</td>
+</tr>
+<tr>
+<td><code>.&lt;file&gt;.&lt;job-id&gt;</code></td>
+<td>the same</td>
+<td><code>0660</code></td>
+<td><code>0660</code></td>
+<td>the collecting operator</td>
+<td>the replacement while it is written, renamed over the file; a stale one is swept by its job ID</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-the-shared-scratch-scoreboards-and-the-session-ledger">4.5 The shared scratch: scoreboards and the session ledger <a class="anchor" href="#45-the-shared-scratch-scoreboards-and-the-session-ledger" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Where</th>
+<th>Shared</th>
+<th>Individual</th>
+<th>Owner</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;job-id&gt;.json</code></td>
+<td>the scoreboards</td>
+<td><code>0640</code></td>
+<td><code>0600</code></td>
+<td>the job's operator</td>
+<td>the job's live progress, what <code>karvi watch</code> reads; one per activity</td>
+</tr>
+<tr>
+<td><code>server.json</code></td>
+<td>the ledger</td>
+<td><code>0660</code></td>
+<td><code>0600</code></td>
+<td><strong>the operator who last changed it</strong></td>
+<td>the host's leases: one entry per device session in flight, across every operator in shared mode</td>
+</tr>
+<tr>
+<td><code>server.lock</code></td>
+<td>the ledger</td>
+<td><code>0660</code></td>
+<td><code>0600</code></td>
+<td>the operator who first made it, kept</td>
+<td>the lock every writer holds (<code>flock</code>) while it rewrites <code>server.json</code>; its content is never read</td>
+</tr>
+<tr>
+<td><code>devices/&lt;sha256&gt;.json</code></td>
+<td>the ledger</td>
+<td><code>0660</code></td>
+<td><code>0600</code></td>
+<td>the last writer</td>
+<td>one device's leases, against its session cap; named by the SHA-256 of the device's name</td>
+</tr>
+<tr>
+<td><code>devices/&lt;sha256&gt;.lock</code></td>
+<td>the ledger</td>
+<td><code>0660</code></td>
+<td><code>0600</code></td>
+<td>the first creator, kept</td>
+<td>that ledger's lock</td>
+</tr>
+</tbody>
+</table>
+<p>A ledger file is rewritten whole, through a temporary file set to its mode
+and renamed over it, so its owner becomes the operator who last wrote it and a
+reader never sees half a file; its group is the directory's. A lease names its
+job, process, start time, and boot, and an entry whose process is gone is
+dropped at the next change, so a stopped job or a reboot leaves no lease.
+Between runs, with no session active, the ledger holds no lasting state; it is
+never removed while jobs run, since a lock file removed mid-run would let two
+writers race.</p>
+<p>The shared modes come from the folder: under a folder with the setgid bit, the
+ledger's files take the folder's permission bits without search (<code>2770</code> gives
+<code>0660</code>) and its folders the folder's bits with setgid, so every member takes
+and releases leases in files another member made. A file at <code>0600</code>, or outside
+the operators' group, in a shared ledger is one an earlier release left: other
+operators meet <code>capacity_admission_failed … permission denied</code> until its
+owner's next run sets it right, or the site resets it.</p>
+<h3 id="46-what-the-sites-commands-write">4.6 What the site's commands write <a class="anchor" href="#46-what-the-sites-commands-write" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Mode</th>
+<th>Owner</th>
+<th>Written by</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/etc/tmpfiles.d/karvi.conf</code></td>
+<td><code>0644</code></td>
+<td>root</td>
+<td><code>sudo karvi setup shared</code></td>
+<td>the rule that makes <code>/dev/shm/karvi</code>, <code>scoreboards</code>, and <code>capacity</code> at every boot, in the group and modes setup used; a file there without karvi's first line is the site's and is left</td>
+</tr>
+<tr>
+<td><code>/etc/bash_completion.d/karvi</code></td>
+<td><code>0644</code></td>
+<td>root</td>
+<td><code>sudo karvi setup tab</code></td>
+<td>Tab completion for bash</td>
+</tr>
+</tbody>
+</table>
+<h3 id="47-what-the-package-installs">4.7 What the package installs <a class="anchor" href="#47-what-the-package-installs" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Mode</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/usr/bin/karvi</code></td>
+<td><code>0755</code></td>
+<td>the program</td>
+</tr>
+<tr>
+<td><code>/usr/bin/karvi-askpass</code></td>
+<td><code>0755</code></td>
+<td>the helper <code>ssh</code> runs for a secret; never run by an operator</td>
+</tr>
+<tr>
+<td><code>/usr/bin/karvi-prune</code></td>
+<td><code>0755</code></td>
+<td>retention: removes old job and transcript folders (<a href="PRUNE.html"><code>docs/PRUNE.md</code></a>)</td>
+</tr>
+<tr>
+<td><code>/usr/share/man/man1/karvi*.1</code>, <code>/usr/share/man/man8/karvi-prune.8</code></td>
+<td><code>0644</code></td>
+<td>the manual pages</td>
+</tr>
+<tr>
+<td><code>/usr/share/doc/karvi/</code></td>
+<td><code>0644</code></td>
+<td>the top-level documents (<code>README.md</code>, <code>CHANGELOG.md</code>, <code>LICENSE.md</code>, <code>BUILD-HOWTO.md</code>, …), <code>docs/</code>, <code>release/</code>'s records, <code>examples/</code>, and <code>configs/</code> (<code>example.toml</code>, <code>development.toml</code>, and <code>reference.toml</code> a link to <code>/usr/share/karvi/reference.toml</code>), in the source tree's layout so their links and the <code>configs/</code> files they name hold</td>
+</tr>
+<tr>
+<td><code>/usr/share/karvi/systemd/user/</code>, <code>/usr/share/karvi/systemd/system/</code></td>
+<td><code>0644</code></td>
+<td>the units and timers, per operator and for the site</td>
+</tr>
+<tr>
+<td><code>/usr/share/karvi/cron/</code></td>
+<td><code>0755</code></td>
+<td>the cron scripts <code>karvi-crun</code> and <code>karvi-prune</code></td>
+</tr>
+<tr>
+<td><code>/usr/share/karvi/crun/</code></td>
+<td><code>0644</code></td>
+<td>the <code>crun.after</code> hook examples</td>
+</tr>
+<tr>
+<td><code>/usr/share/karvi/tmpfiles.d/karvi.conf</code></td>
+<td><code>0644</code></td>
+<td>the tmpfiles rule for the group <code>netops</code>; <code>sudo karvi setup shared</code> writes the live one</td>
+</tr>
+<tr>
+<td><code>/usr/share/karvi/reference.toml</code>, <code>/usr/share/karvi/schema/</code></td>
+<td><code>0644</code></td>
+<td>every configuration key with its default, and the records' schemas</td>
+</tr>
+<tr>
+<td><code>/usr/share/lintian/overrides/karvi</code></td>
+<td><code>0644</code></td>
+<td>the package's two deliberate <code>lintian</code> findings with their reasons: static executables, and hook examples not executable</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing under <code>/usr/share/karvi</code> is active until the site copies it into place,
+each guide giving the copy; a host installed from the release bundle
+(<a href="../BUILD-HOWTO.html#10-install-and-roll-back"><code>BUILD-HOWTO.md</code> section 10</a>)
+finds the same files in the bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and
+<code>docs/</code>. The cron script <code>karvi-crun</code> holds a lock at
+<code>${TMPDIR:-/tmp}/karvi-crun.&lt;uid&gt;.lock</code> (<code>KARVI_CRUN_LOCK</code>) for the length of a
+collection.</p>
+<h2 id="5-signs-a-host-is-not-as-intended">5. Signs a host is not as intended <a class="anchor" href="#5-signs-a-host-is-not-as-intended" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>A shared directory without its setgid bit or outside the operators' group,
+or <code>/dev/shm/karvi/capacity</code> with the sticky bit: run <code>sudo karvi setup shared</code> again, which reports what it repaired.</li>
+<li><code>/dev/shm/karvi</code> at <code>0700</code> and owned by an operator: a release before 0.26.0
+made it on that operator's first run; <code>setup shared</code> repairs it.</li>
+<li>An operator's job, transcript, or collection under the private root on a
+host with the shared trees: that activity ran with <code>sharedroot = &quot;none&quot;</code> or
+an explicit <code>output.root</code>, <code>transcript.root</code>, or <code>crun.directory</code>.</li>
+<li><code>&lt;basedir&gt;/state/scoreboards</code> or <code>&lt;basedir&gt;/state/capacity</code> filling on a host
+with the scratch root: the operator's runs passed the shared folders by, each
+with its warning (<a href="#1-how-karvi-chooses-each-place">section 1</a>), or ran before
+the boot rule made them.</li>
+<li>A <code>known_hosts</code> or a private root missing where <code>HOME</code> points: karvi takes
+the home from the password database, so a run under another <code>HOME</code> still
+writes to the account's own.</li>
+</ul>
+
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

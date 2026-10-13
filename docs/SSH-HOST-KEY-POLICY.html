@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH host-key policy — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html" aria-current="page">SSH host-key policy</a>
+<ul class="sections">
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#policy-modes">Policy modes</a></li>
+<li><a href="#the-identity-a-key-is-enrolled-under">The identity a key is enrolled under</a></li>
+<li><a href="#which-key-types-are-offered">Which key types are offered</a></li>
+<li><a href="#trust-store-selection-and-permissions">Trust-store selection and permissions</a></li>
+<li><a href="#controlled-enrollment">Controlled enrollment</a></li>
+<li><a href="#changed-key-behavior-in-direct-modes">Changed-key behavior in direct modes</a></li>
+<li><a href="#changed-key-behavior-in-fleet-runs">Changed-key behavior in fleet runs</a></li>
+<li><a href="#breaking-changes-in-v0100">Breaking changes in v0.10.0</a></li>
+<li><a href="#breaking-changes-in-v050">Breaking changes in v0.5.0</a></li>
+<li><a href="#diagnostics">Diagnostics</a></li>
+</ul></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html" aria-current="page">SSH host-key policy</a>
+<ul class="sections">
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#policy-modes">Policy modes</a></li>
+<li><a href="#the-identity-a-key-is-enrolled-under">The identity a key is enrolled under</a></li>
+<li><a href="#which-key-types-are-offered">Which key types are offered</a></li>
+<li><a href="#trust-store-selection-and-permissions">Trust-store selection and permissions</a></li>
+<li><a href="#controlled-enrollment">Controlled enrollment</a></li>
+<li><a href="#changed-key-behavior-in-direct-modes">Changed-key behavior in direct modes</a></li>
+<li><a href="#changed-key-behavior-in-fleet-runs">Changed-key behavior in fleet runs</a></li>
+<li><a href="#breaking-changes-in-v0100">Breaking changes in v0.10.0</a></li>
+<li><a href="#breaking-changes-in-v050">Breaking changes in v0.5.0</a></li>
+<li><a href="#diagnostics">Diagnostics</a></li>
+</ul></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="ssh-host-key-policy">SSH host-key policy <a class="anchor" href="#ssh-host-key-policy" aria-label="Link to this section">#</a></h1>
+<p>karvi retains one host-key policy and one karvi-owned trust store for <code>login</code>,
+<code>command</code>, and <code>run</code>, independent of whether the implementation is system
+OpenSSH or a configured native adapter. Transport selection is documented in
+<a href="SSH-TRANSPORTS.html"><code>SSH-TRANSPORTS.md</code></a>.</p>
+<h2 id="configuration">Configuration <a class="anchor" href="#configuration" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-toml">[ssh]
+host-key-policy = &quot;accept-new&quot;
+known-hosts-file = &quot;auto&quot;
+halt-run-on-host-key-mismatch = false
+</code></pre>
+<p><code>host-key-policy</code> and <code>known-hosts-file</code> are lock-eligible. When the policy is
+not locked, any operator may select <code>insecure</code>; lock the policy to forbid it.</p>
+<h2 id="policy-modes">Policy modes <a class="anchor" href="#policy-modes" aria-label="Link to this section">#</a></h2>
+<h3 id="accept-new--default"><code>accept-new</code> — default <a class="anchor" href="#accept-new--default" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>A previously unseen public host key is accepted and added to the karvi trust
+store.</li>
+<li>A matching enrolled key is accepted.</li>
+<li>A changed key is rejected as <code>host_key_changed</code>.</li>
+</ul>
+<p>System OpenSSH receives:</p>
+<pre><code class="language-text">StrictHostKeyChecking accept-new
+UserKnownHostsFile &quot;&lt;karvi-known-hosts&gt;&quot;
+GlobalKnownHostsFile &quot;/dev/null&quot;
+</code></pre>
+<p>On <code>scrapligo-v1</code>, karvi's callback in the SSH handshake reads the same
+file: a key found under the device's identity must match; an unknown device
+is enrolled as one line under the file lock (re-read while locked, so two
+concurrent connections enrol once). No <code>ssh-keyscan</code> runs.</p>
+<p>A session that stores a key says so on either transport, in the client and
+through the daemon, on standard error, <code>--quiet</code> included, the device's name in
+the target colour and the rest in the warning colour:</p>
+<pre><code class="language-text">! ssh accepted new host-key router1 (ED25519)
+</code></pre>
+<p>The device's first record carries the notice <code>host_key_enrolled</code> with the key
+type, and its <code>command_completed</code> audit event <code>details.host_key_enrolled</code>.
+<code>scrapligo-v1</code> says it when its own enrollment wrote the line; over <code>system</code>
+karvi takes OpenSSH's <code>Warning: Permanently added …</code> line from the standard
+error of the exec master and the command session. A job that finds the key
+stored meanwhile by another says nothing. A login runs OpenSSH at <code>LogLevel ERROR</code>, where it says nothing of the key (nor shows a device's banner), so
+karvi reads the store before the session and, when it holds nothing for the
+device, again at the session's first password prompt, OpenSSH having stored
+the key during key exchange, or at the session's end when nothing was asked;
+the line comes then, and the login's <code>login.completed</code> or <code>login.errored</code>
+event names the type. A login whose first contact overlaps another's with the
+same device can say it of a key the other stored.</p>
+<h3 id="secure"><code>secure</code> <a class="anchor" href="#secure" aria-label="Link to this section">#</a></h3>
+<p>A matching key must already exist. Unknown keys fail as
+<code>host_key_not_enrolled</code>; mismatches fail as <code>host_key_changed</code>.</p>
+<p>System OpenSSH receives <code>StrictHostKeyChecking yes</code>. On <code>scrapligo-v1</code> the
+handshake callback refuses an unknown device as <code>host_key_not_enrolled</code> and
+a changed key as <code>host_key_changed</code>; the connection is closed before
+authentication. A missing trust store is <code>host_key_not_enrolled</code> before any
+connection.</p>
+<h3 id="insecure"><code>insecure</code> <a class="anchor" href="#insecure" aria-label="Link to this section">#</a></h3>
+<p>Unknown and changed keys are accepted, and nothing is stored. A job under
+<code>insecure</code> says so once, at its admission, in two lines on standard error in
+the warning colour, <code>--quiet</code> included; through the daemon they ride the
+job's receipt (a daemon's job runs under its client's policy). A login
+says them before its contact.</p>
+<pre><code class="language-text">! ssh host-key policy insecure: unknown and changed keys accepted;
+!  connecting to devices with wrong keys and MITM attacks allowed
+</code></pre>
+<p>When the store holds the device under another key, the device's first record
+carries the notice <code>host_key_mismatch_accepted</code> with both keys' public
+fingerprints, the client shows <code>! ssh host-key mismatch DEVICE proceeding at risk</code> in the error colour, and the audit event's <code>details</code> name both keys. A
+new key is not announced.</p>
+<p>System OpenSSH receives <code>StrictHostKeyChecking no</code> and isolated known-hosts
+inputs; when the store holds the device, karvi runs a bounded <code>ssh-keyscan</code>
+comparison beside the connection (the one <code>ssh-keyscan</code> left). When it cannot
+complete (not installed, past its five seconds, the device refusing the extra
+connection, no usable key) the session goes on uncompared, and the first
+record carries <code>host_key_not_compared</code> with a short cause and the whole
+reason, shown as <code>! ssh host-key DEVICE not compared: CAUSE</code>, one of
+<code>ssh-keyscan not installed</code>, <code>ssh-keyscan timed out</code>, <code>ssh-keyscan failed</code>,
+<code>no usable key</code>, <code>trust store unreadable</code>. On <code>scrapligo-v1</code>
+the handshake callback accepts the key and compares it to the enrolled one
+itself.</p>
+<p>This mode permits machine-in-the-middle impersonation and should be locked out
+in governed production environments.</p>
+<h2 id="the-identity-a-key-is-enrolled-under">The identity a key is enrolled under <a class="anchor" href="#the-identity-a-key-is-enrolled-under" aria-label="Link to this section">#</a></h2>
+<p>Both transports enrol and check a device's key under one identity, not
+under its address:</p>
+<table>
+<thead>
+<tr>
+<th>Device</th>
+<th>Identity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>canonical name <code>router1</code>, port 22</td>
+<td><code>router1</code></td>
+</tr>
+<tr>
+<td>canonical name <code>router1</code>, port 2222</td>
+<td><code>[router1]:2222</code></td>
+</tr>
+</tbody>
+</table>
+<p>Another port on the same host may be another SSH server with another key,
+so the port is part of the identity. The system transport passes the
+identity to OpenSSH as <code>HostKeyAlias</code>, so OpenSSH neither looks up nor
+writes the address; <code>scrapligo-v1</code> looks up only the identity. A line
+<code>accept-new</code> writes reads</p>
+<pre><code class="language-text">[router1]:2222 ssh-ed25519 AAAA... karvi-auto-enrolled
+</code></pre>
+<p>Entries enrolled before this rule for a port other than 22, under the bare
+name by system OpenSSH or as <code>[name]:port,[address]:port</code> by the earlier
+native adapter, no longer match: <code>accept-new</code> enrols the device again and
+<code>secure</code> refuses it until it is enrolled under the identity. Port 22
+entries are unchanged.</p>
+<h2 id="which-key-types-are-offered">Which key types are offered <a class="anchor" href="#which-key-types-are-offered" aria-label="Link to this section">#</a></h2>
+<p>Under <code>accept-new</code> and <code>secure</code>, a device the store already holds is
+offered only the host-key algorithms of its enrolled key types, so the
+match is decided on a key the store knows rather than on whichever type the
+device prefers. A store that holds only types the configured list does not
+offer is <code>host_key_changed</code> before any connection. Under <code>insecure</code>, or for
+an unknown device, the whole configured list is offered. The list is
+<code>[ssh-algorithms] host-key</code> in <code>configs/reference.toml</code>; both transports
+offer the names they implement (<a href="SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>).</p>
+<h2 id="trust-store-selection-and-permissions">Trust-store selection and permissions <a class="anchor" href="#trust-store-selection-and-permissions" aria-label="Link to this section">#</a></h2>
+<p><code>known-hosts-file = &quot;auto&quot;</code> selects <code>&lt;basedir&gt;/known_hosts</code>, the operator's
+private root
+(<a href="FILES.html#1-how-karvi-chooses-each-place"><code>docs/FILES.md</code>, section 1</a>):</p>
+<table>
+<thead>
+<tr>
+<th>The host</th>
+<th>The store under <code>auto</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the site made <code>/opt/karvi/users</code> (<code>sudo karvi setup shared</code>)</td>
+<td><code>/opt/karvi/users/&lt;user&gt;/known_hosts</code></td>
+</tr>
+<tr>
+<td>the site made <code>/var/lib/karvi/users</code> alone</td>
+<td><code>/var/lib/karvi/users/&lt;user&gt;/known_hosts</code></td>
+</tr>
+<tr>
+<td>neither</td>
+<td><code>~/.local/share/karvi/known_hosts</code></td>
+</tr>
+<tr>
+<td><code>basedir</code> set to a path</td>
+<td><code>&lt;that path&gt;/known_hosts</code></td>
+</tr>
+</tbody>
+</table>
+<p>There is no fallback location, and a store elsewhere, such as one an earlier
+release made in the home on a host with <code>users</code>, is not read.
+<code>karvi config show --explain ssh.known-hosts-file</code> names the file on its
+<code>resolved:</code> line, before anything exists.</p>
+<p>In <code>accept-new</code> policy, karvi creates the store. In <code>secure</code> policy, absence is
+a hard failure. The containing directory must be real, operator-owned, and
+writable by neither group nor others (the private root karvi makes is <code>0750</code>);
+the file must be regular, operator-owned, and non-symlink. One store for every
+operator cannot pass these checks, so each operator has an own store.</p>
+<p>karvi sets permissions only on what it creates and never changes the
+permissions of a file that exists: an unacceptable mode is refused, not
+repaired. For the store's mode that gives, the same with <code>&quot;auto&quot;</code> as with an
+explicit path:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>No store</th>
+<th>A store of mode <code>0600</code></th>
+<th>A store of any other mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>accept-new</code></td>
+<td>created <code>0600</code> (its directory <code>0700</code> if missing)</td>
+<td>used</td>
+<td>refused: <code>host_key_trust_store_permission</code>, the message names <code>chmod 600</code>; the file is not changed</td>
+</tr>
+<tr>
+<td><code>secure</code></td>
+<td>refused: <code>host_key_not_enrolled</code></td>
+<td>used</td>
+<td>refused the same way</td>
+</tr>
+<tr>
+<td><code>insecure</code></td>
+<td>continues; nothing is created</td>
+<td>read, to warn of a mismatch</td>
+<td>continues: it takes no trust from the store</td>
+</tr>
+</tbody>
+</table>
+<p>The directory, the file's type, and its owner are checked under all three
+policies. A symbolic link at the store's path is refused and nothing is
+created through it.</p>
+<p>An explicit path may be configured. <code>~</code> is the operator's home from the
+password database, <code>~user</code> is refused, and a relative path is taken from the
+working directory of the invocation and made absolute, as in every place key
+(<a href="FILES.html#1-how-karvi-chooses-each-place"><code>docs/FILES.md</code></a>); a path whose
+folder would be a place <code>sudo karvi setup shared</code> makes is refused before any
+device (<code>shared_directory_absent</code>):</p>
+<pre><code class="language-toml">[ssh]
+known-hosts-file = &quot;~/trust/known_hosts&quot;
+</code></pre>
+<h2 id="controlled-enrollment">Controlled enrollment <a class="anchor" href="#controlled-enrollment" aria-label="Link to this section">#</a></h2>
+<p>The line must carry the device's identity (above), not the address
+<code>ssh-keyscan</code> prints, or neither transport will find it. Scan the address
+and port, rewrite the host field, and verify the fingerprint before
+appending:</p>
+<pre><code class="language-bash">STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: *//p')
+mkdir -p -m 0700 &quot;$(dirname &quot;$STORE&quot;)&quot;   # an existing one is left as it is
+[ -e &quot;$STORE&quot; ] || install -m 0600 /dev/null &quot;$STORE&quot;
+
+ADDRESS=192.0.2.10
+PORT=22
+IDENTITY=router1            # the inventory's canonical name on port 22;
+                            # &quot;[router1]:2222&quot; for a device on port 2222
+TMP=&quot;$(mktemp)&quot;
+ssh-keyscan -T 5 -p &quot;$PORT&quot; &quot;$ADDRESS&quot; | sed &quot;s/^[^ ]* /$IDENTITY /&quot; &gt;&quot;$TMP&quot;
+ssh-keygen -lf &quot;$TMP&quot;
+</code></pre>
+<p>Verify the fingerprint through an independent authoritative channel before
+accepting it:</p>
+<pre><code class="language-bash">cat &quot;$TMP&quot; &gt;&gt;&quot;$STORE&quot;
+chmod 0600 &quot;$STORE&quot;
+rm -f &quot;$TMP&quot;
+</code></pre>
+<p><code>ssh-keyscan</code> discovers the key presented on the network; it does not prove the
+identity of that endpoint. karvi reads plain and hashed host fields; the
+identity is a name the operator chose, so there is nothing to hide by
+hashing it.</p>
+<h2 id="changed-key-behavior-in-direct-modes">Changed-key behavior in direct modes <a class="anchor" href="#changed-key-behavior-in-direct-modes" aria-label="Link to this section">#</a></h2>
+<p><code>login</code> and <code>command</code> reject a mismatch under <code>accept-new</code> or <code>secure</code>, return
+<code>ExitHostKeyFailure</code> (109), and print a stable diagnostic even when routine
+narration is quiet.</p>
+<p>Investigate replacement, reimaging, DNS/inventory changes, NAT/bastion changes,
+or possible interception before changing the enrolled key.</p>
+<h2 id="changed-key-behavior-in-fleet-runs">Changed-key behavior in fleet runs <a class="anchor" href="#changed-key-behavior-in-fleet-runs" aria-label="Link to this section">#</a></h2>
+<p>By default, a mismatch is a device-local failure. It is recorded as:</p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;connection_error&quot;,
+  &quot;error&quot;: {
+    &quot;code&quot;: &quot;host_key_changed&quot;,
+    &quot;category&quot;: &quot;connection&quot;,
+    &quot;external&quot;: true
+  }
+}
+</code></pre>
+<p>Other devices continue unless an ordinary run halt or wave gate trips.</p>
+<p>To make a mismatch a dedicated run-wide scheduling halt:</p>
+<pre><code class="language-toml">[ssh]
+halt-run-on-host-key-mismatch = true
+</code></pre>
+<p>When enabled:</p>
+<ol>
+<li>the first terminal <code>host_key_changed</code> result sets halt reason
+<code>host_key_mismatch</code>;</li>
+<li>no new device is admitted;</li>
+<li>all devices already in flight finish;</li>
+<li>never-started command-plan entries are written as <code>not_started_halt</code> with
+reason <code>halt_host_key_mismatch</code>; and</li>
+<li>the process returns <code>ExitHaltHostKeyMismatch</code> (114).</li>
+</ol>
+<p>This control is orthogonal to <code>dispatch.halt-on-error-count</code>,
+<code>dispatch.halt-on-error-percent</code>, and wave-local gates. It is checked as a
+specific error-code halt before generic count/percentage evaluation.</p>
+<p><code>karvi-login(1)</code> (<code>man karvi login</code>), HOST KEYS, restates the policies,
+the trust store, the identity, and the controlled enrollment for the
+terminal; a change to one changes both.</p>
+<h2 id="breaking-changes-in-v0100">Breaking changes in v0.10.0 <a class="anchor" href="#breaking-changes-in-v0100" aria-label="Link to this section">#</a></h2>
+<p>Configuration schema 6 renames the default policy from <code>auto</code> to <code>accept-new</code>.
+The values <code>auto</code> and <code>default</code> are rejected with no alias; replace them with
+<code>accept-new</code>. Configuration files that declare <code>schema-version = 5</code> must be
+updated to <code>6</code>.</p>
+<h2 id="breaking-changes-in-v050">Breaking changes in v0.5.0 <a class="anchor" href="#breaking-changes-in-v050" aria-label="Link to this section">#</a></h2>
+<p>Configuration schema 2 carries no host-key migration aliases. These old keys
+are unknown and fail validation:</p>
+<pre><code class="language-text">ssh.strict-host-key-checking
+ssh.user-known-hosts-file
+native-ssh.strict-host-key-checking
+native-ssh.known-hosts-file
+</code></pre>
+<p>Use only:</p>
+<pre><code class="language-text">ssh.host-key-policy
+ssh.known-hosts-file
+ssh.halt-run-on-host-key-mismatch
+</code></pre>
+<h2 id="diagnostics">Diagnostics <a class="anchor" href="#diagnostics" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi config validate /path/to/config.toml
+karvi config show ssh.host-key-policy ssh.known-hosts-file ssh.halt-run-on-host-key-mismatch
+STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: *//p')
+stat -c '%U %a %n' &quot;$(dirname &quot;$STORE&quot;)&quot; &quot;$STORE&quot;
+</code></pre>
+
+<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

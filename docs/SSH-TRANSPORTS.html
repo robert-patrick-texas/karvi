@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH transports and selection — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html" aria-current="page">SSH transports and selection</a>
+<ul class="sections">
+<li><a href="#goals">Goals</a></li>
+<li><a href="#version-inventory">Version inventory</a></li>
+<li><a href="#configuration-model">Configuration model</a></li>
+<li><a href="#mapping-values">Mapping values</a></li>
+<li><a href="#selection-precedence">Selection precedence</a></li>
+<li><a href="#the-device-session">The device session</a></li>
+<li><a href="#build-composition">Build composition</a></li>
+<li><a href="#current-limitations">Current limitations</a></li>
+</ul></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html" aria-current="page">SSH transports and selection</a>
+<ul class="sections">
+<li><a href="#goals">Goals</a></li>
+<li><a href="#version-inventory">Version inventory</a></li>
+<li><a href="#configuration-model">Configuration model</a></li>
+<li><a href="#mapping-values">Mapping values</a></li>
+<li><a href="#selection-precedence">Selection precedence</a></li>
+<li><a href="#the-device-session">The device session</a></li>
+<li><a href="#build-composition">Build composition</a></li>
+<li><a href="#current-limitations">Current limitations</a></li>
+</ul></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="ssh-transports-and-selection">SSH transports and selection <a class="anchor" href="#ssh-transports-and-selection" aria-label="Link to this section">#</a></h1>
+<h2 id="goals">Goals <a class="anchor" href="#goals" aria-label="Link to this section">#</a></h2>
+<p>karvi owns the transport contract. CLI, inventory, credentials, dispatch,
+records, and audit code do not import ScrapliGo or any future SSH library. A
+build-composition registry exposes exactly which adapters are present in the
+running executable.</p>
+<h2 id="version-inventory">Version inventory <a class="anchor" href="#version-inventory" aria-label="Link to this section">#</a></h2>
+<p>Text output:</p>
+<pre><code class="language-bash">karvi --version
+</code></pre>
+<p>contains a repeatable section:</p>
+<pre><code class="language-text">ssh_transports:
+  system: external (id=system, linkage=external-executable)
+  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+</code></pre>
+<p>The second line appears only in a native-enabled build. JSON consumers use
+<code>ssh_transports[]</code>, whose fields are <code>id</code>, <code>name</code>, optional <code>version</code>, and
+<code>linkage</code>. The inventory describes executable composition and is independent
+of configuration preferences.</p>
+<p>A future ScrapliGo v2 adapter registers a different ID, for example
+<code>scrapligo-v2</code>, so v1 and v2 can coexist in one binary during qualification.</p>
+<h2 id="configuration-model">Configuration model <a class="anchor" href="#configuration-model" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-toml">[ssh.login]
+transport = &quot;default&quot;
+
+[ssh.command]
+transport = &quot;default&quot;
+
+[ssh.run]
+transport = &quot;default&quot;
+
+[ssh.transports]
+system = &quot;ssh&quot;
+native = &quot;scrapligo-v1&quot;
+# alternate1 = &quot;scrapligo-v2&quot;
+# alternate2 = &quot;exec:./future-device-handler&quot;
+</code></pre>
+<p>Mode selector resolution is:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th><code>default</code> result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>login</code></td>
+<td><code>system</code></td>
+</tr>
+<tr>
+<td><code>command</code></td>
+<td><code>system</code></td>
+</tr>
+<tr>
+<td><code>run</code></td>
+<td><code>native</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>preferred</code> is an operator-facing synonym for the current <code>native</code> slot. A
+literal compiled implementation ID such as <code>scrapligo-v1</code> may be selected
+directly, but named slots are preferred because governance can remap them.</p>
+<h2 id="mapping-values">Mapping values <a class="anchor" href="#mapping-values" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><code>ssh.transports.system = &quot;ssh&quot;</code> resolves <code>ssh</code> through <code>PATH</code>.</li>
+<li>A value containing <code>/</code> is a path. An absolute path is used as written. A
+relative path is resolved from the directory containing the resolved karvi
+executable, not from the caller's current directory.</li>
+<li><code>ssh.transports.native = &quot;scrapligo-v1&quot;</code> selects that compiled implementation.</li>
+<li>Another built-in implementation uses its registered ID.</li>
+<li>An external alternate is explicit: <code>exec:PROGRAM</code> or <code>exec:PATH</code>.</li>
+<li><code>telnet</code> remains an explicit secondary selector and does not participate in
+SSH version inventory.</li>
+</ul>
+<p>A configured executable must be a regular executable file. An explicitly
+configured built-in must be present in this exact binary. Validation fails
+before any network connection with the code for the specific cause — for example
+<code>transport_mapping_missing</code>, <code>transport_system_executable_unavailable</code>, or
+<code>native_transport_unavailable</code>. <a href="ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a> lists
+every code.</p>
+<p>One exception keeps an executable usable when its default native
+implementation has no registered provider (no shipped executable is in that
+state now that every build carries scrapligo-v1): the
+built-in defaults <code>native = &quot;scrapligo-v1&quot;</code> and mode <code>transport = &quot;default&quot;</code>
+are lazy. They are allowed at config-validation time, but selecting native (the
+default of <code>command</code> and <code>run</code>) fails explicitly when the adapter is absent. An
+operator-authored non-default unavailable mapping is never lazy.</p>
+<h2 id="selection-precedence">Selection precedence <a class="anchor" href="#selection-precedence" aria-label="Link to this section">#</a></h2>
+<p>For one device, the resolver applies:</p>
+<ol>
+<li>CLI transport override.</li>
+<li>Explicit inventory transport selector.</li>
+<li>Mode-specific <code>ssh.&lt;mode&gt;.transport</code>.</li>
+<li>Mode default.</li>
+<li>Named-slot mapping to an executable or compiled adapter.</li>
+</ol>
+<p>The selected implementation is written to command records. There is no silent
+fallback from a missing native adapter to system OpenSSH.</p>
+<h2 id="the-device-session">The device session <a class="anchor" href="#the-device-session" aria-label="Link to this section">#</a></h2>
+<p>The platform's <code>channel</code> decides what a device's session asks of SSH, on
+either transport (<a href="COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>).</p>
+<ul>
+<li><strong>The shell</strong> (every built-in but <code>linux</code>, <code>linux_shell</code> among them).
+<code>command</code> and <code>run</code> over the system implementation open one fresh interactive
+<code>ssh -tt</code> process per device, with ControlMaster, ControlPath, and
+ControlPersist pinned off on the command line. One karvi session
+(<code>internal/devsession</code>) drives that shell: it waits for the first prompt,
+reaches the platform's privileged level with one enable attempt when the shell
+starts below it, sends the platform's paging commands, then sends every
+requested command and reads until the prompt returns. The same session drives
+scrapligo-v1's connection, so the two transports give the same records for the
+same commands. This avoids Cisco IOS XE servers that authenticate a master but
+refuse another session channel, and it never requests a second session channel
+or a replacement login between commands.</li>
+<li><strong>The exec channel</strong> (built-in <code>linux</code>, and any table that sets <code>channel = &quot;exec&quot;</code>). One connection per device for its command list and one exec channel
+per command: on <code>system</code> an OpenSSH ControlMaster, its socket in
+<code>ssh.control-path-root</code> (at most 73 bytes, <code>control_path_root_too_long</code> at
+planning otherwise), and an <code>ssh -S</code> client per command; on <code>scrapligo-v1</code> a
+session channel per command on karvi's own connection. One exec session
+(<code>internal/devsession</code>) settles both streams and classifies each command by
+its exit status, so the two transports give the same records but for what
+OpenSSH's client cannot do: name a signal (<code>exit_signal</code> <code>unnamed</code> on
+<code>system</code>) and ask the device to end a command given up (the notice
+<code>remote_command_not_stopped</code>). Telnet has no exec channel, and a target
+planned over telnet whose platform says <code>exec</code> is refused at planning.</li>
+</ul>
+<p>What the session does beyond that is documented once, elsewhere; this
+document only points there:</p>
+<ul>
+<li><strong>Host keys.</strong> The unified policy (<code>ssh.host-key-policy</code>) runs in the
+handshake on both transports: OpenSSH's own check on <code>system</code>, karvi's
+callback in x/crypto's handshake on <code>scrapligo-v1</code>, which runs no
+<code>ssh-keyscan</code> pre-scan and no subprocess.
+<a href="SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>.</li>
+<li><strong>Algorithms.</strong> Both transports offer karvi's lists under <code>[ssh-algorithms]</code>,
+strongest first, with per-host profiles (<code>[ssh-algorithms-profile.NAME]</code>)
+selected by <code>[[ssh-algorithms-map]]</code> rules for devices that need an
+allowed-only name; each transport offers the names it implements.
+<code>configs/reference.toml</code> holds the lists and their comments;
+<a href="SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a> the rules.</li>
+<li><strong>Timeouts and keepalives.</strong> <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>; one
+command's own <code>--timeout</code> and <code>--maxbytes</code> are
+<a href="COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>'s.</li>
+<li><strong>Blind sends and expectations.</strong> A command ending in <code>\r</code> sequences or given
+<code>--blind-return</code> is sent and waited for <code>execution.blind-wait</code>; an <code>--expect</code>
+declaration answers a prompt the platform's pattern does not match.
+<a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a> for the wait;
+<a href="COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a> for the declarations.</li>
+<li><strong>Session-init.</strong> A <code>[session-init.NAME]</code> profile, selected for the device
+by <code>[[session-init-map]]</code>, runs after paging and before the requested
+commands (<a href="COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>).</li>
+<li><strong>Platform admission.</strong> The platform definition comes from
+<code>platform.Lookup</code>; <code>scrapligo-v1</code> admits every built-in
+platform, so <code>native_platform_not_qualified</code> is unreachable on it. An
+unknown platform is refused before any connection (<code>platform_unknown</code>).</li>
+<li><strong>Parity.</strong> <code>scripts/native-smoke-test.sh</code> runs every case as <code>command</code>
+and <code>run</code> over both transports against the fake, its IOS XE persona and its
+Linux persona for the exec channel and <code>linux_shell</code>, and compares the
+requested-command records path by path (<code>tools/paritycheck</code>); a difference
+by design is pinned per transport (<code>-pin</code>), not excluded. The cases are
+listed in the script.</li>
+</ul>
+<h2 id="build-composition">Build composition <a class="anchor" href="#build-composition" aria-label="Link to this section">#</a></h2>
+<p>There is one build, from the committed <code>go.mod</code>, <code>go.sum</code>, and <code>vendor/</code>
+The <code>scrapligo_v1</code> build tag and the
+dependency-free preview module that once gave a <code>system</code>-only executable
+were removed:</p>
+<pre><code class="language-bash">make build
+</code></pre>
+<p>What every build carries:</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>internal/adapters/scrapligov1</code></td>
+<td>karvi's connection: x/crypto SSH through scrapligo's transport wrapper, the host-key policy in the handshake, the algorithm lists, as a session stream</td>
+</tr>
+<tr>
+<td><code>internal/transport/native</code></td>
+<td>the <code>scrapligo-v1</code> provider built on the session layer, and the registry that says which built-in implementations are present and which platforms each admits</td>
+</tr>
+<tr>
+<td><code>internal/devsession</code></td>
+<td>the session both transports drive (not tagged; the system transport uses it too)</td>
+</tr>
+<tr>
+<td><code>internal/fakedevice</code>, <code>cmd/karvi-fake-device</code></td>
+<td>the fake SSH device the tests and the parity suite run against</td>
+</tr>
+</tbody>
+</table>
+<p><code>internal/adapters/scrapligov1</code> is the only package that may import
+<code>github.com/scrapli/scrapligo</code>; <code>scripts/verify-release.sh</code> fails on any
+other import. scrapligo's channel and network driver are not used, and
+<code>scrapligo-v1</code> runs no subprocess (no <code>ssh</code>, <code>ssh-keyscan</code>, or askpass).</p>
+<h2 id="current-limitations">Current limitations <a class="anchor" href="#current-limitations" aria-label="Link to this section">#</a></h2>
+<p>Interactive login requires a system-compatible slot because it hands the
+terminal to OpenSSH; another kind is refused as
+<code>login_transport_not_interactive</code>. Every built-in platform is admitted on
+<code>scrapligo-v1</code>; its engineering evidence is the fake and the parity suite, and
+what stands between the build and production use is the laboratory matrix
+(<a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a>) and the
+open production gates of <a href="../ROADMAP.html"><code>ROADMAP.md</code></a>. External <code>exec:</code> slots
+use the system process contract; a future device-handler protocol will require
+its own versioned interface before general third-party handlers are advertised.</p>
+
+<footer>Generated from <code>docs/SSH-TRANSPORTS.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

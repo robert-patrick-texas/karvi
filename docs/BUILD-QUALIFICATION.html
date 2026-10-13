@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build qualification — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html" aria-current="page">Build qualification</a>
+<ul class="sections">
+<li><a href="#build-gates">Build gates</a></li>
+<li><a href="#release-gates">Release gates</a></li>
+<li><a href="#v0100-planning-boundary-expectations">v0.10.0 planning-boundary expectations</a></li>
+<li><a href="#v0100-icmp-gate-expectations">v0.10.0 ICMP-gate expectations</a></li>
+<li><a href="#v0100-shutdown-accounting-expectations">v0.10.0 shutdown-accounting expectations</a></li>
+<li><a href="#v0100-credential-delivery-expectations">v0.10.0 credential-delivery expectations</a></li>
+<li><a href="#daemon-upgrade-gates">Daemon upgrade gates</a></li>
+<li><a href="#official-native-build-and-session-gates">Official native build and session gates</a></li>
+</ul></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html" aria-current="page">Build qualification</a>
+<ul class="sections">
+<li><a href="#build-gates">Build gates</a></li>
+<li><a href="#release-gates">Release gates</a></li>
+<li><a href="#v0100-planning-boundary-expectations">v0.10.0 planning-boundary expectations</a></li>
+<li><a href="#v0100-icmp-gate-expectations">v0.10.0 ICMP-gate expectations</a></li>
+<li><a href="#v0100-shutdown-accounting-expectations">v0.10.0 shutdown-accounting expectations</a></li>
+<li><a href="#v0100-credential-delivery-expectations">v0.10.0 credential-delivery expectations</a></li>
+<li><a href="#daemon-upgrade-gates">Daemon upgrade gates</a></li>
+<li><a href="#official-native-build-and-session-gates">Official native build and session gates</a></li>
+</ul></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="build-qualification">Build qualification <a class="anchor" href="#build-qualification" aria-label="Link to this section">#</a></h1>
+<h2 id="build-gates">Build gates <a class="anchor" href="#build-gates" aria-label="Link to this section">#</a></h2>
+<p>The release ships the scrapligo-v1 executable. Both
+verifiers run offline from the committed <code>vendor/</code> tree:</p>
+<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+make checksums tools-build
+./scripts/verify-bundle.sh
+COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z ./scripts/verify-release.sh
+</code></pre>
+<p><code>verify-bundle.sh</code> verifies the executables as they are in <code>bin/</code>, without
+rebuilding them: identity and checksums, static Linux binaries, both transport
+IDs in <code>version</code> (it refuses an executable without <code>scrapligo-v1</code>), stateless
+help/version behavior, script syntax, <code>gofmt</code> over the Go source outside
+<code>vendor/</code>, the unit tests and vet in vendor mode, deterministic generated files,
+the example configurations, removed-key rejection, and every historical smoke
+suite through <code>v090-smoke-test.sh</code>, plus the k03 parser suite, the
+daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.sh</code> (<code>make v0100-smoke</code>), the canary suite <code>scripts/canary-smoke-test.sh</code>, and the parity
+suite <code>scripts/native-smoke-test.sh</code>.</p>
+<p><code>verify-release.sh</code> builds from source: the import boundary and host-key
+assertions on the adapter, <code>gofmt</code>, <code>go mod verify</code>, the tests, vet, and the
+race detector in vendor mode, the build, its module metadata and version
+counters, and the same smoke suites. It rebuilds <code>bin/</code> and rewrites
+<code>CHECKSUMS.sha256</code>; with the release's <code>COMMIT</code> and <code>BUILD_TIME</code> the bytes do
+not change.</p>
+<p>A must-not-appear check in a script MUST be able to stop it: a bare
+<code>! command</code> line is exempt from <code>set -e</code>. The
+smoke suites use <code>absent PATTERN FILE</code> or <code>! … || fail &quot;…&quot;</code>.</p>
+<h2 id="release-gates">Release gates <a class="anchor" href="#release-gates" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>The expectations below are the suite-level form of the release gates.</li>
+<li>Every unit test that creates a Unix socket, or whose scratch must fit the
+askpass socket's bound, MUST pass regardless of <code>TMPDIR</code> length; release
+evidence uses 25-byte and 145-byte values. Such a test takes its directory
+from <code>internal/testdir</code>, under <code>/tmp</code>, not from <code>t.TempDir()</code>.</li>
+<li><code>scripts/package-source-bundle.sh</code> MUST name the archive root from <code>VERSION</code>
+regardless of the working-directory name and MUST exclude <code>.git</code>.</li>
+<li>The release tree MUST be clean at the tag, no untracked or modified entry
+and no empty directory (<code>release-tools/artifacts.sh</code> refuses otherwise): the
+bundle is packaged from the tree as it stands. This gate replaced the
+cumulative patch's equivalence check when the patch stream was retired.</li>
+<li>The published Debian package MUST be built from the bundle's extraction
+after its <code>verify-bundle.sh</code> passes, twice to the same bytes, and pass
+<code>scripts/check-deb.sh</code> against that extraction; <code>release-tools/artifacts.sh</code>
+stops otherwise and writes neither the package nor the aggregate checksums.</li>
+<li><code>scripts/daemon-lifecycle-replay.sh</code> passes against the newest release whose
+daemon IPC schema differs from the new client's (it refuses a same-schema
+executable; for v0.12.0, v0.12.1, and v0.13.0 that release was v0.10.0, for
+v0.14.0, which moved the schema to 8, and v0.14.1 it was v0.13.0, for v0.15.0,
+which moved the schema to 9, it was v0.14.1, and for v0.16.0 to v0.19.0, which
+keep 9, it stayed v0.14.1, and for v0.20.0, which moved the schema to 10, and
+v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
+line's first release, and v0.23.0 to v0.28.0, which keep 10, there was none;
+for v0.29.0, which moved the schema to 11, it is v0.28.0).</li>
+<li>The Go tests and the suites MUST leave the host's shared places as they
+were: both verifiers list the shared scoreboard directory and the shared
+trees under <code>/opt/karvi</code> and <code>/var/lib/karvi</code>, and whether
+<code>/tmp/karvi-&lt;uid&gt;</code> and <code>/var/tmp/karvi-&lt;uid&gt;</code> exist, before the tests and
+fail after the suites when the list changed (<code>scripts/lib/host.sh</code>).</li>
+</ul>
+<h2 id="v0100-planning-boundary-expectations">v0.10.0 planning-boundary expectations <a class="anchor" href="#v0100-planning-boundary-expectations" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><code>karvi version</code> reports daemon IPC schema 5, registry schema 9, and
+configuration schema 6; <code>daemon status</code> reports <code>daemon_ipc_schema: 5</code>
+and <code>client_ipc_schema: 5</code>; the upgrade suite's schema-2 fixture stays
+visible as incompatible.</li>
+<li>Every job directory holds a manifest of schema 2 that <code>schema-check</code>
+validates against its own plan, header, and credential-package
+projection; the k03 assertions on <code>dispatch_order</code> and <code>shuffle_key</code>
+read them inside the plan's dispatch block.</li>
+<li>A daemon-backed run passes through <code>prepare_job</code>, the credential frame
+on <code>socket/credentials.sock</code>, and <code>commit_job</code>; the canary suite's
+daemon-backed row finds the canary on no JSON socket, log, or artifact.</li>
+<li>A resolution or credential failure on any target refuses the run before
+a job directory exists; <code>--address-authority daemon</code> without
+<code>name.allow-daemon-resolution</code> is <code>daemon_resolution_not_allowed</code>.</li>
+<li>The two boundary tests pass: <code>internal/daemon</code> and <code>internal/jobexec</code>
+reach no inventory loader, tabular reader, target source, credential
+backend, planner, or application package.</li>
+</ul>
+<h2 id="v0100-icmp-gate-expectations">v0.10.0 ICMP-gate expectations <a class="anchor" href="#v0100-icmp-gate-expectations" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>The canary suite runs twelve rows (thirteen with shutdown accounting): p1 runs
+<code>--ping</code> over <code>127.0.0.1</code> and <code>192.0.2.1</code> with the real pinger and asserts one
+new session at the fake device, the TEST-NET record <code>icmp_unreachable</code> with
+decision <code>skip</code>, the loopback record <code>succeeded</code> with decision <code>proceed</code>, the
+summary block, and the skipped gate within two timeouts plus one second; p2
+runs <code>login --ping</code> against <code>192.0.2.1</code> and asserts exit 110 with no session;
+p3 asserts <code>ping_flag_conflict</code>. The final scan covers 106 files.</li>
+<li>The v0100 suite runs twenty-two rows (twenty-five with shutdown accounting):
+g1–g7 assert the one-line text result for a proceeding and a skipped device,
+an empty <code>display.ping.header</code>, <code>--quiet</code>, the <code>--debug</code> gate line, the
+dry-run's and the exercise's capability lines with the fake device untouched,
+and the conflict.</li>
+<li>Both suites read <code>icmp_method</code> from <code>karvi version --format json</code> first
+and skip their gate rows with the reason when the host grants this
+process no ICMP method (no ping socket for its group and no <code>ping</code> on
+<code>PATH</code>), so <code>verify-bundle.sh</code> passes on such a host; the gate is claimed
+from a host with a method. On this host the method is the ping socket
+(<code>net.ipv4.ping_group_range = 1000 9999</code>).</li>
+<li><code>karvi version --format json</code> reports <code>&quot;config_registry_schema_version&quot;: 10</code>
+and an <code>icmp_method</code>; both verifiers check the registry counter.</li>
+</ul>
+<h2 id="v0100-shutdown-accounting-expectations">v0.10.0 shutdown-accounting expectations <a class="anchor" href="#v0100-shutdown-accounting-expectations" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>The canary suite runs thirteen rows: s1 starts a daemon on its own state
+tree from an environment holding only <code>HOME</code> and <code>PATH</code>, before the row's
+two canaries exist, runs two sequential jobs through it with different
+passwords, and asserts the device received each job's own password, the
+daemon's pid unchanged, and no canary in the daemon process. The
+final scan covers 133 files and six canaries.</li>
+<li>The v0100 suite runs twenty-five rows (thirty-five with s4–s9): s1 forces a
+stop with a job in flight, s2 sends SIGTERM under a one-second grace, and s3
+sends SIGTERM under the default grace; s1 and s2 assert four
+<code>incomplete_shutdown</code> records, the summary <code>incomplete</code> at exit 106 under
+<code>shutdown_forced</code> or <code>shutdown_grace_expired</code>, and the audit reason; s3
+asserts the job completed before the stop.</li>
+<li>The v0100 suite runs forty-five rows: s4–s9 run the stop
+and restart cases against the real daemon with a held device,
+c1–c4 cancel a held job, an unknown job, and a finished job and follow a
+cancelled job to its exit, and w1–w6 follow a
+held job live under <code>jsonl</code> to byte equality with <code>commands.jsonl</code>, the
+finished job again, an unknown ID, an interrupted follow, the finished
+job from its directory after a forced restart, and a cancelled job.</li>
+<li><code>scripts/daemon-lifecycle-replay.sh OLD_KARVI</code> replays <code>status</code>, <code>run</code>,
+<code>stop</code>, and <code>restart</code> against a daemon launched by an older executable;
+release engineering runs it with the prior bundle's executable and keeps
+the output with the release's evidence; the prior
+is the newest karvi release whose daemon IPC schema differs from the new
+client's, and until one exists the replay is skipped and the evidence
+says so.</li>
+<li>A forced stop takes up to <code>daemon.forced-grace-seconds</code> (floor two
+seconds) longer than before while the jobs write their terminal records;
+the stop client's socket wait already allows for it.</li>
+</ul>
+<h2 id="v0100-credential-delivery-expectations">v0.10.0 credential-delivery expectations <a class="anchor" href="#v0100-credential-delivery-expectations" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>The canary suite runs nine rows (d1 the dry-run and e1 the exercise, each
+asserting the fake device's log unchanged): row r2 scans the auto-launched
+daemon's command line and environment and reports one process and no hits
+(gate 7); row r3 runs two parallel <code>run</code> clients with different canaries and
+the fake device records that each session authenticated with its own job's
+password; the final scan covers 79 files and four canaries.</li>
+<li>A package fault is refused at the credential frame with its rule
+(<code>credential_package_invalid: rule=...</code>) before commit; only a wrong plan
+digest or a binding that differs from the final plan waits for commit.</li>
+<li>A <code>daemon start --foreground</code> from a shell that exports <code>NETPASS</code> writes a
+<code>daemon_environment_secret_variable</code> notice, name only, to its log.</li>
+<li><code>config validate</code> accepts <code>credential-backend.&lt;name&gt;.scope</code> and
+<code>.required</code>; an absent optional user <code>.cloginrc</code> no longer fails a run.</li>
+</ul>
+<h2 id="daemon-upgrade-gates">Daemon upgrade gates <a class="anchor" href="#daemon-upgrade-gates" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>A schema-2 fixture MUST be visible through <code>daemon status</code> as incompatible.</li>
+<li>A daemon-backed run MUST fail with exit 112 and actionable restart guidance,
+without creating a competing daemon log or submitting a job.</li>
+<li><code>daemon stop</code> and <code>daemon restart</code> MUST use the older lifecycle envelope and
+leave a daemon of the current schema ready.</li>
+<li>The prior release's executable SHOULD be replayed with
+<code>scripts/daemon-lifecycle-replay.sh</code> during release engineering when its
+bundle is available and its daemon IPC schema differs.</li>
+</ul>
+<h2 id="official-native-build-and-session-gates">Official native build and session gates <a class="anchor" href="#official-native-build-and-session-gates" aria-label="Link to this section">#</a></h2>
+<p>On an approved Go 1.27+ builder:</p>
+<pre><code class="language-bash">make deps            # optional on a connected host: download and verify
+./scripts/verify-release.sh
+</code></pre>
+<ul>
+<li>Vendor metadata, executable module metadata, JSON version output, and
+text version output MUST identify ScrapliGo v1.4.2 (v1.4.1 in earlier
+releases). Only
+<code>internal/adapters/scrapligov1</code> may import it; the verifier fails on any
+other import.</li>
+<li>The scrapligo-v1 path MUST be karvi's connection under karvi's session:
+the verifier asserts <code>WithCustomTransport</code>, <code>HostKeyCallback</code>, and
+<code>hostkey.Verify</code> in the adapter and <code>devsession.Open</code> in the provider,
+and fails if either references <code>ssh-keyscan</code>, <code>os/exec</code>, or the removed
+pre-scan (<code>PrepareNative</code>, <code>InspectRemote</code>).</li>
+<li>The tagged tests, <code>go vet</code>, and the race run MUST pass under
+<code>-mod=vendor</code>.</li>
+<li><code>karvi version --format json</code> MUST report the schema counters the
+verifiers check (configuration, command record, daemon IPC, job, and
+registry) and both transport IDs; the text form's transport line is
+checked verbatim.</li>
+<li><strong>The parity suite</strong> (<code>scripts/native-smoke-test.sh</code>) MUST pass: every
+case the script lists, each as <code>command</code> and <code>run --no-daemon</code> over
+<code>system</code> and <code>scrapligo-v1</code> (S1 through the daemon as well), against the
+fake device built from the tree into the suite's work directory with its
+own trust store, base directory, and <code>HOME</code>: its IOS XE persona, and its
+Linux persona for the exec channel and <code>linux_shell</code> (S35).
+<code>tools/paritycheck</code> compares every requested-command record path by path,
+excluding only <code>record_id</code>, <code>job_id</code>, <code>activity_id</code>, <code>activity_type</code>,
+<code>candidate_count</code>, <code>credential.credential_id</code>, <code>timing.*</code>, <code>transport</code>,
+and <code>error.message</code> for a failure at open, with the observed count in the
+output-limit message normalised; a new record field is compared until
+excluded on purpose, and a difference by design between the transports is
+pinned per transport (<code>-pin</code>: the exec channel's <code>exit_signal</code> and the
+notice <code>remote_command_not_stopped</code>), checked in every stream. The suite
+also asserts the records' count, each case's statuses and codes, the lines
+the fake received equal across the four combinations, one connection per
+combination with one shell or a channel per command, the activity's exit
+status, that the operator's trust store is unchanged, and that no fake and
+no daemon is left running. <code>make native-smoke</code> runs it alone after <code>make build</code>; <code>ONLY=S21</code> selects one case.</li>
+</ul>
+<p>A passing verifier qualifies the executable, not native production use:
+<a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a> holds the
+laboratory matrix and <a href="../ROADMAP.html"><code>ROADMAP.md</code></a> the open production gates.</p>
+
+<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

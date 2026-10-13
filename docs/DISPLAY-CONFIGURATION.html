@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Display configuration — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html" aria-current="page">Display configuration</a>
+<ul class="sections">
+<li><a href="#defaults">Defaults</a></li>
+<li><a href="#the-footer">The footer</a></li>
+<li><a href="#the-collection-line">The collection line</a></li>
+<li><a href="#the-ping-line">The ping line</a></li>
+<li><a href="#the-recorded-logins-lines">The recorded login&#39;s lines</a></li>
+<li><a href="#borders-as-separators">Borders as separators</a></li>
+<li><a href="#width-and-colors">Width and colors</a></li>
+<li><a href="#echo">Echo</a></li>
+<li><a href="#output-formats">Output formats</a></li>
+</ul></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html" aria-current="page">Display configuration</a>
+<ul class="sections">
+<li><a href="#defaults">Defaults</a></li>
+<li><a href="#the-footer">The footer</a></li>
+<li><a href="#the-collection-line">The collection line</a></li>
+<li><a href="#the-ping-line">The ping line</a></li>
+<li><a href="#the-recorded-logins-lines">The recorded login&#39;s lines</a></li>
+<li><a href="#borders-as-separators">Borders as separators</a></li>
+<li><a href="#width-and-colors">Width and colors</a></li>
+<li><a href="#echo">Echo</a></li>
+<li><a href="#output-formats">Output formats</a></li>
+</ul></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="display-configuration">Display configuration <a class="anchor" href="#display-configuration" aria-label="Link to this section">#</a></h1>
+<p>Display settings affect human-facing terminal projections only. JSONL, JSON
+records, audit events, logs, manifests, summaries, and persisted scoreboards do
+not receive display ANSI sequences or border text.</p>
+<h2 id="defaults">Defaults <a class="anchor" href="#defaults" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-toml">[display]
+theme = &quot;dark&quot;
+color = &quot;auto&quot;
+timestamp = &quot;hh:mm:ss yyyy-mm-dd&quot;
+
+[display.command]
+header = &quot;! &lt;target&gt; [&lt;address&gt;] platform=&lt;platform&gt; user=&lt;user&gt; backend=&lt;auth-backend&gt; transport=&lt;transport&gt;&quot;
+footer = &quot;! exit=&lt;exit-code&gt; elapsed=&lt;elapsed&gt; artifacts=&lt;artifacts&gt;&quot;
+border = &quot;\n&quot;
+dynamic-border-length = 72
+last-border = false
+echo = false
+
+[display.run]
+header = &quot;! &lt;target&gt; [&lt;address&gt;] platform=&lt;platform&gt; user=&lt;user&gt; backend=&lt;auth-backend&gt; transport=&lt;transport&gt;&quot;
+footer = &quot;! exit=&lt;exit-code&gt; elapsed=&lt;elapsed&gt; artifacts=&lt;artifacts&gt;&quot;
+border = &quot;\n&quot;
+dynamic-border-length = 72
+last-border = false
+echo = false
+
+[display.record]
+header = &quot;! transcript=&lt;transcript&gt;&quot;
+footer = &quot;! transcript=&lt;transcript&gt;&quot;
+
+[display.collection]
+footer = &quot;! collection=&lt;collection&gt; replaced=&lt;replaced&gt; kept=&lt;kept&gt;&quot;
+
+[display.json]
+indent = 2
+</code></pre>
+<h2 id="the-footer">The footer <a class="anchor" href="#the-footer" aria-label="Link to this section">#</a></h2>
+<p><code>display.command.footer</code> ends a <code>command</code>'s display. <code>display.run.footer</code> ends a
+run's text display on every path, the daemon follow, <code>--no-daemon</code>, <code>job follow</code>, and a finished job's replay, with the job's exit, elapsed time, and job
+folder from its summary; nothing ends a run on standard error. Under <code>--format jsonl</code> the summary document is the stream's last line instead, and <code>--format json</code> stays the records' array. An empty template disables either footer. With
+<code>cmd --nof</code>, or with all eight <code>output.files</code> keys false
+(<a href="OPERATIONS.html"><code>docs/OPERATIONS.md</code></a> <a href="OPERATIONS.html#the-jobs-output-files">&quot;The job's output
+files&quot;</a>), <code>&lt;artifacts&gt;</code> is <code>none</code>.</p>
+<h2 id="the-collection-line">The collection line <a class="anchor" href="#the-collection-line" aria-label="Link to this section">#</a></h2>
+<p><code>display.collection.footer</code> follows the footer of a job with a collection
+(<code>crun</code>, or <code>run</code> or <code>command</code> given <code>--cd</code>,
+<a href="COLLECTION.html"><code>docs/COLLECTION.md</code></a>), on standard output directly after it, on
+every text path: <code>--no-daemon</code>, the daemon follow, <code>job follow</code>, and a finished
+job's replay. The default, <code>&quot;! collection=&lt;collection&gt; replaced=&lt;replaced&gt; kept=&lt;kept&gt;&quot;</code>, renders <code>&lt;collection&gt;</code> (the absolute collection directory),
+<code>&lt;replaced&gt;</code>, and <code>&lt;kept&gt;</code> (the devices whose files were replaced and kept) in
+the <code>value</code> role, the literals in the <code>label</code> role, as the footer is rendered:</p>
+<pre><code class="language-text">! exit=101 elapsed=900ms artifacts=/srv/karvi/jobs/261003/261003-103623-00
+! collection=/srv/configs replaced=1 kept=1
+</code></pre>
+<p>Under <code>--format json</code> and <code>--format jsonl</code> nothing is printed; the jsonl
+summary document and <code>summary.json</code> carry the <code>collection</code> block. An empty
+template prints no line, <code>--quiet</code> suppresses it, and a template that does
+not render refuses the configuration (<code>config_display_template_invalid</code>).
+It replaced the plain <code>crun JOB-ID exit=… collection=…</code> line on standard
+error.</p>
+<h2 id="the-ping-line">The ping line <a class="anchor" href="#the-ping-line" aria-label="Link to this section">#</a></h2>
+<p><code>display.ping.header</code> is the ICMP gate's line for each gated device
+(<code>network.ping-targets</code>, <code>--ping</code>), printed before the device's header in
+text output and rendered as the headers are: the literals in the <code>label</code>
+role, <code>&lt;target&gt;</code> and <code>&lt;address&gt;</code> in theirs, <code>&lt;rtt1&gt;</code> and <code>&lt;rtt2&gt;</code> (each
+probe's round-trip time, <code>timeout</code>, or <code>error</code>) in the <code>value</code> role, and
+<code>&lt;result&gt;</code> bold in the <code>success</code> role for <code>proceeding</code> or the <code>error</code> role
+for <code>skipped</code>. The default is
+<code>&quot;! &lt;target&gt; [&lt;address&gt;] ping(1) &lt;rtt1&gt;, ping(2) &lt;rtt2&gt;, &lt;result&gt;&quot;</code>. An
+empty template prints no line; <code>--quiet</code> suppresses it; <code>--debug</code> adds the
+error details and the packet-loss notice after it. <code>login</code> prints the same
+line on standard error. The template replaced a boolean switch.</p>
+<h2 id="the-recorded-logins-lines">The recorded login's lines <a class="anchor" href="#the-recorded-logins-lines" aria-label="Link to this section">#</a></h2>
+<p><code>display.record.header</code> and <code>display.record.footer</code> name a recorded login's
+transcript (<code>login --record</code>,
+<a href="LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>): the header before the
+session's first line, the footer as its last, after the device's last output and
+for a session that failed as well. Both default to <code>&quot;! transcript=&lt;transcript&gt;&quot;</code>, so the two lines match; <code>&lt;transcript&gt;</code> is the file's
+path, in the <code>value</code> role with the literals in the <code>label</code> role, as the login's
+header is rendered. The templates may also use <code>&lt;timestamp&gt;</code>, <code>&lt;target&gt;</code>,
+<code>&lt;platform&gt;</code>, and <code>&lt;transport&gt;</code>, and the footer <code>&lt;exit-status&gt;</code>, <code>&lt;exit-code&gt;</code>,
+and <code>&lt;elapsed&gt;</code>. They go to standard error, on the terminal and never into the
+transcript; an empty template prints no line; <code>--quiet</code> suppresses both; a
+template that does not render refuses the login before a transcript is created
+(<code>config_display_template_invalid</code>).</p>
+<h2 id="borders-as-separators">Borders as separators <a class="anchor" href="#borders-as-separators" aria-label="Link to this section">#</a></h2>
+<p>A border separates adjacent command records. With the default <code>&quot;\n&quot;</code>, two
+records have one blank line between them. No border follows the last record
+unless the applicable <code>last-border</code> is true.</p>
+<p><code>--border</code> replaces the configured border with dashes. The length is the visible
+width of the displayed header; with no header, the mode-specific
+<code>dynamic-border-length</code> is used. The line is capped at terminal width.</p>
+<p><code>--noborder</code> suppresses configured and dynamic borders. Combining <code>--border</code>
+and <code>--noborder</code> is a usage error. A configured empty string disables the
+static separator without requiring a CLI option.</p>
+<h2 id="width-and-colors">Width and colors <a class="anchor" href="#width-and-colors" aria-label="Link to this section">#</a></h2>
+<p>Visible width excludes ANSI escape sequences. Overlong headers and footers are
+split only between complete template elements, with a trailing artifacts
+element moved to a new line first. Only border lines may be cropped. Device
+output and prompt/command echo are preserved byte-for-byte after the existing
+ANSI policy.</p>
+<p>Dark-theme defaults render target bold yellow, address bold magenta (as the
+light theme does), labels and brackets blue, values white, success green, and
+borders gray. Timestamp and dynamic-border roles
+are independently configurable.</p>
+<p>Colour is <code>display.color</code>'s: <code>auto</code>, the default, colours at a terminal
+and not on a pipe or in a file, unless <code>NO_COLOR</code> is set and not empty
+(the no-color.org convention); <code>always</code> colours wherever the output goes
+and <code>never</code> nowhere, and <code>NO_COLOR</code> overrides neither. The rule is one,
+for the help, a run's display on both paths, <code>config colors</code>, the watch
+screen (whose <code>--color</code> sets it for the screen), and <code>karvi-prune -h</code>,
+which reads no configuration and colours under <code>auto</code> alone.</p>
+<p><code>karvi config colors</code> prints the colour test:
+every <code>display.colors.*</code> role under the configured theme first and then
+the other, each line the key rendered as a display line renders that role
+(the target and the address bold), the colour it resolves to, <code>default</code>
+or <code>configured</code>, and the escape a terminal receives; a configured override
+holds under both themes. Colour follows the rule above, so on a pipe the
+words print alone and the escape column still says what a terminal gets;
+<code>--set display.color=always</code> forces it.</p>
+<p><code>--help</code> follows the same rule: under
+<code>display.color</code> and <code>display.theme</code>, on a terminal, the title line's tag
+(<code>- run the fleet, gather the output</code>) takes the <code>label</code> colour, a
+section heading is bold, an option's words take the <code>accent</code> colour, and
+the action words of
+the <code>Usage:</code> lines (<code>run</code> in <code>karvi run [target inputs]</code>, <code>daemon start</code>,
+<code>setup shared</code> after a plain <code>sudo</code>, <code>&lt;command&gt;</code> in the top text) take
+the <code>success</code> colour, green under both
+themes and <code>display.colors.success</code> overriding; a <code>--config</code> or <code>--set</code>
+before the <code>--help</code> is read; <code>--ansi strip</code> turns it off; a configuration
+that does not load gives plain help. The words are never changed, so
+<code>--help | grep</code> reads as before; the layout adds a blank line around a
+paragraph inside a section and after an entry of three lines or more.</p>
+<h2 id="echo">Echo <a class="anchor" href="#echo" aria-label="Link to this section">#</a></h2>
+<p><code>display.command.echo</code>, <code>display.run.echo</code>, and <code>--echo</code> show the effective
+prompt plus exact command before text output. This includes device-reported
+command errors. Structured records distinguish observed and inferred prompts.</p>
+<h2 id="output-formats">Output formats <a class="anchor" href="#output-formats" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><code>text</code>: human projection with optional header, echo, separator, and footer.</li>
+<li><code>jsonl</code>: one compact record per line for programs.</li>
+<li><code>json</code>: one indented JSON array for human inspection.</li>
+</ul>
+<p><code>display.json.indent</code> accepts 1 through 8 and affects only <code>json</code>.</p>
+
+<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

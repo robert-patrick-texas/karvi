@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The collection run: karvi crun — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html" aria-current="page">The collection run: karvi crun</a>
+<ul class="sections">
+<li><a href="#1-what-a-collection-is">1. What a collection is</a></li>
+<li><a href="#2-the-built-in-lists">2. The built-in lists</a></li>
+<li><a href="#3-what-rancid-and-oxidized-collect-per-karvi-platform">3. What RANCID and Oxidized collect, per karvi platform</a></li>
+<li><a href="#4-a-sites-lists-per-platform-and-per-model-as-sub-platforms">4. A site&#39;s lists: per platform, and per model as sub-platforms</a></li>
+<li><a href="#5-the-commit-and-the-diff-mail-the-hook">5. The commit and the diff mail: the hook</a></li>
+<li><a href="#6-the-volatile-lines-the-drop-list">6. The volatile lines: the drop list</a></li>
+<li><a href="#7-the-schedule">7. The schedule</a></li>
+<li><a href="#8-related-documents">8. Related documents</a></li>
+</ul></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html" aria-current="page">The collection run: karvi crun</a>
+<ul class="sections">
+<li><a href="#1-what-a-collection-is">1. What a collection is</a></li>
+<li><a href="#2-the-built-in-lists">2. The built-in lists</a></li>
+<li><a href="#3-what-rancid-and-oxidized-collect-per-karvi-platform">3. What RANCID and Oxidized collect, per karvi platform</a></li>
+<li><a href="#4-a-sites-lists-per-platform-and-per-model-as-sub-platforms">4. A site&#39;s lists: per platform, and per model as sub-platforms</a></li>
+<li><a href="#5-the-commit-and-the-diff-mail-the-hook">5. The commit and the diff mail: the hook</a></li>
+<li><a href="#6-the-volatile-lines-the-drop-list">6. The volatile lines: the drop list</a></li>
+<li><a href="#7-the-schedule">7. The schedule</a></li>
+<li><a href="#8-related-documents">8. Related documents</a></li>
+</ul></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="the-collection-run-karvi-crun">The collection run: <code>karvi crun</code> <a class="anchor" href="#the-collection-run-karvi-crun" aria-label="Link to this section">#</a></h1>
+<p><code>karvi crun</code> collects the output of one or more commands from one or more
+devices and stores, per device, one file named by the device in one flat
+directory, replaced only when that device's collection succeeded. It is karvi's
+replacement for <code>rancid-run</code> and for the Oxidized collector: one directory of
+one file per device, ready for <code>git diff</code>, a cron, and an operator's
+before-and-after look around a change. The design is
+<a href="DESIGN.html"><code>docs/DESIGN.md</code></a>, the collection run; the operator's short form is
+<a href="OPERATIONS.html#the-collection-run"><code>docs/OPERATIONS.md</code> &quot;The collection run&quot;</a>.
+This document is the guide to what to collect: the command lists RANCID and
+Oxidized send to each platform, consolidated per karvi platform as examples, and
+how a site sets its own lists per platform and per device model.</p>
+<h2 id="1-what-a-collection-is">1. What a collection is <a class="anchor" href="#1-what-a-collection-is" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi crun --all                                   # each device its platform's list
+karvi crun --select-platform cisco_nxos            # one platform
+karvi crun --target core-nyc-01.example.net        # one device, before a change
+karvi crun --target core-nyc-01.example.net --cmd 'show running-config'
+karvi crun --all --cf site-collect.txt             # one list for every device
+karvi crun --all --dry-run                         # each device's list, no device contacted
+</code></pre>
+<ul>
+<li><strong>The file</strong> is <code>DIR/NAME</code>: the device name's first label lowercased
+(<code>core-nyc-01.example.net</code> → <code>core-nyc-01</code>; <code>output.crop-to-dot = false</code>
+keeps the whole name), or an address with its dots and colons as hyphens.
+<code>--fs=SUFFIX</code> appends a literal suffix to every file's name (<code>--fs=.cfg</code>
+writes <code>core-nyc-01.cfg</code>), never to the directory's; it holds no <code>/</code>,
+NUL, or control character (<code>crun_suffix_invalid</code>). Two devices that
+would share a file name are refused at planning.</li>
+<li><strong>The content</strong> is each command's output under a marker line
+<code>! COMMAND</code>, a blank line before every marker but the first, and nothing
+else: no header, no prompt, no sent statement, no timestamp, no error
+line. A rejected statement's block is the device's own error text.</li>
+<li><strong>Replacement only on success.</strong> The file is written as a hidden
+temporary and renamed into place when every command of the device came
+back; a device not reached, timed out, halted, or cancelled keeps its
+previous file and leaves nothing behind. The display ends, after the
+footer, with <code>! collection=DIR replaced=N kept=M</code>
+(<code>display.collection.footer</code>; under jsonl the summary document carries
+the counts); <code>failed-devices.txt</code> in the job folder is the rerun.</li>
+<li><strong>The directory</strong> is <code>crun.directory</code>: <code>auto</code> is the site's shared
+<code>/opt/karvi/shared/crun</code> when <code>sudo karvi setup shared</code> made it, else
+<code>&lt;basedir&gt;/crun</code>; <code>--cd=PATH</code> names another for one run. A shared
+directory has mode <code>2770</code> or <code>2775</code> in the operators' group, and every
+member replaces every file.</li>
+<li><strong>The commands</strong> are the line's <code>--cmd</code>, <code>--cf</code>, or device text, sent to
+every device; with none, each device is sent its platform's
+<code>crun-commands</code> list, and a device whose platform has no list is refused
+at planning. The job folder holds <code>commands.PLATFORM.txt</code> per list sent.</li>
+<li><strong>The job folder</strong> is the collection's audit: <code>commands.jsonl</code> with every
+record, <code>summary.json</code> with the <code>collection</code> block naming each device's
+file and outcome, <code>manifest.json</code> with the plan. <code>--nof</code> collects with no
+job folder.</li>
+<li><strong>The drop list</strong> <code>crun-filters</code> of the device's platform leaves out of the
+collection file the output lines that change at every collection without the
+device having changed (<a href="#6-the-volatile-lines-the-drop-list">section 6</a>); the
+record keeps them.</li>
+<li><strong>The hook</strong> <code>crun.after</code> is an executable the client runs once the collection
+has ended and its display is printed (<a href="#5-the-commit-and-the-diff-mail-the-hook">section
+5</a>): in the collection directory,
+the replaced files' names on stdin, the job in the environment. A failure is a
+warning; the run's exit code stands.</li>
+</ul>
+<h3 id="11-a-runs-collection---cd-on-run-and-command">1.1 A run's collection: <code>--cd</code> on <code>run</code> and <code>command</code> <a class="anchor" href="#11-a-runs-collection---cd-on-run-and-command" aria-label="Link to this section">#</a></h3>
+<p><code>run</code> and <code>command</code> given <code>--cd=PATH</code> write the same file into PATH beside
+their usual job folder, for an operator's capture rather than the site's
+nightly collection:</p>
+<pre><code class="language-bash">cd ~/change-4411
+karvi run --site nyc --cmd 'show running-config' --cmd 'show version' --cd=.
+karvi command --cd=. core-nyc-01 show ip route summary
+</code></pre>
+<ul>
+<li>
+<p>The file's name, shape, and replacement are the collection's above;
+<code>--cd=PATH</code> is resolved as <code>crun.directory</code> is (<code>~</code> expanded, a relative
+path from the working directory, <code>auto</code> the collection tree) and checked
+once before any device, and a site that locks <code>crun.directory</code> refuses
+it.</p>
+</li>
+<li>
+<p>The file is <strong>unfiltered</strong>: <code>crun-filters</code> are <code>crun</code>'s, so the uptime
+and byte-count lines a <code>crun</code> drops are kept. A run's file written into
+the <code>crun</code> tree therefore differs from the next <code>crun</code>'s by those lines.</p>
+</li>
+<li>
+<p><code>--continue-device-on-error</code> stays the run's own: without it a rejected
+statement ends the device, its later commands are not attempted, and
+the previous file is kept; with it the file is replaced, the rejection
+in its block. A <code>crun</code> always continues.</p>
+</li>
+<li>
+<p>The job folder is the run's as without <code>--cd</code>, <code>output.NAME.txt</code>
+included, so a device whose file was kept has the folder's text file
+saying what happened this time; <code>--nof --cd</code> collects with no folder.</p>
+</li>
+<li>
+<p>The display ends with the same collection line after the footer; no
+<code>crun.after</code> hook runs, whatever the directory; the watch screen shows
+<code>run</code> or <code>cmd</code>.</p>
+</li>
+<li>
+<p><code>--fs=SUFFIX</code> without <code>--cd</code> is <code>--cd=.</code> as well: <code>karvi run --site nyc --cmd 'show running-config' --fs=.cfg</code> writes <code>core-nyc-01.cfg</code> and its
+neighbours into the working directory. A failure to resolve or prepare
+that directory says &quot;the working directory, implied by --fs&quot;. On <code>crun</code>,
+<code>--fs</code> alone keeps <code>crun.directory</code>, so a scheduled <code>crun --all --fs=.cfg</code> stays in the site's tree.</p>
+</li>
+<li>
+<p>In a stream, <code>--cd=PATH</code> and <code>--fs=SUFFIX</code> are option lines that stay,
+<code>--clear</code> keeping them and <code>--reset</code> removing them; a later job to a
+device replaces the file an earlier job wrote, and a new <code>--fs</code> line
+keeps the two apart:</p>
+<pre><code class="language-text">--target core-nyc-01
+--fs=.ver
+show version
+--go
+--fs=.run
+show running-config
+--go
+</code></pre>
+<p>leaves <code>core-nyc-01.ver</code> and <code>core-nyc-01.run</code> in the working directory.</p>
+</li>
+</ul>
+<h2 id="2-the-built-in-lists">2. The built-in lists <a class="anchor" href="#2-the-built-in-lists" aria-label="Link to this section">#</a></h2>
+<p>Every built-in platform with a configuration ships the shortest list that
+makes a collection worth committing: the configuration, then the version. A
+server's list is its own (<a href="#21-servers-linux-and-linux_shell">section 2.1</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Built-in <code>crun-commands</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cisco_iosxe</code></td>
+<td><code>show running-config</code>, <code>show version</code></td>
+</tr>
+<tr>
+<td><code>cisco_iosxr</code></td>
+<td><code>show running-config</code>, <code>show version</code></td>
+</tr>
+<tr>
+<td><code>cisco_nxos</code></td>
+<td><code>show running-config</code>, <code>show version</code></td>
+</tr>
+<tr>
+<td><code>juniper_junos</code></td>
+<td><code>show configuration</code>, <code>show version</code></td>
+</tr>
+<tr>
+<td><code>arista_eos</code></td>
+<td><code>show running-config</code>, <code>show version</code></td>
+</tr>
+<tr>
+<td><code>linux</code>, <code>linux_shell</code></td>
+<td><code>cat /etc/os-release</code>, <code>uname -snrm</code>, <code>ip -br address</code>, <code>ip route show table all</code>, <code>systemctl list-unit-files --state=enabled --no-pager --no-legend</code></td>
+</tr>
+<tr>
+<td><code>generic</code></td>
+<td>none: a <code>crun</code> over such a device names its commands</td>
+</tr>
+</tbody>
+</table>
+<p>A site's <code>[platform.NAME] crun-commands</code> replaces the built-in list whole;
+the lists below are what to replace it with.</p>
+<h3 id="21-servers-linux-and-linux_shell">2.1 Servers: <code>linux</code> and <code>linux_shell</code> <a class="anchor" href="#21-servers-linux-and-linux_shell" aria-label="Link to this section">#</a></h3>
+<p>A server's list is the version first and the configuration last, each command
+portable across distributions, answered without root, and stable while
+nothing changes: the distribution (<code>/etc/os-release</code>), the kernel and the
+hostname (<code>uname -snrm</code>), the addresses (<code>ip -br address</code>), every routing
+table, IPv6 and <code>local</code> included (<code>ip route show table all</code>), and the enabled
+systemd units. Two collections of the list seconds apart are identical, so
+there is no built-in drop list. RANCID and Oxidized collect no servers, so
+section 3 has no list to compare.</p>
+<p><code>linux</code> runs each command on an exec channel of its own, and a block is the
+<code>! COMMAND</code> marker, then what the command wrote to stdout, then what it wrote
+to stderr (their interleaving is lost). A command that exits non-zero is a
+rejected statement: its block is its error text and the file is still
+replaced, the exit status staying in the record; a server without systemd
+answers <code>systemctl</code> with an error block, as a router model lacks a command. A
+command ended by a signal or closed without a status keeps the previous file,
+as a lost session does. A collection with a missing file in a site's list:</p>
+<pre><code class="language-text">$ karvi crun --target srv1 --cmd 'uname -r' --cmd 'cat /etc/missing'
+! srv1 [192.0.2.10] platform=linux user=netops backend=builtin-operator-keys transport=native
+6.8.0-146-generic
+cat: /etc/missing: No such file or directory
+karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 1
+! exit=101 …
+! collection=/opt/karvi/shared/crun replaced=1 kept=0
+</code></pre>
+<p>leaves the file</p>
+<pre><code class="language-text">! uname -r
+6.8.0-146-generic
+
+! cat /etc/missing
+cat: /etc/missing: No such file or directory
+</code></pre>
+<p><code>linux_shell</code> sends the same list through the server's interactive shell,
+whose output is stdout and stderr together as the terminal showed them; a
+failed command is not a failure there, since the shell does not report a
+status. The two differ in one more way: the shell's last line before a prompt
+loses its trailing blanks (<code>ip -br address</code> pads its columns), so a server
+moved between <code>linux</code> and <code>linux_shell</code> shows that one line in its next diff.</p>
+<p>A command that needs root is written <code>sudo -n …</code> in a site's list, which fails
+cleanly with <code>sudo</code>'s message where a password would be asked. The
+distribution's own state (the package list, the firewall rules) is a site's
+list on an alias:</p>
+<pre><code class="language-toml">[platform.debian]
+driver = &quot;linux&quot;
+crun-commands = [
+  &quot;cat /etc/os-release&quot;,
+  &quot;uname -snrm&quot;,
+  &quot;ip -br address&quot;,
+  &quot;ip route show table all&quot;,
+  &quot;systemctl list-unit-files --state=enabled --no-pager --no-legend&quot;,
+  &quot;dpkg-query -W -f '${Package} ${Version}\\n'&quot;,
+  &quot;sudo -n nft list ruleset&quot;,
+]
+</code></pre>
+<h2 id="3-what-rancid-and-oxidized-collect-per-karvi-platform">3. What RANCID and Oxidized collect, per karvi platform <a class="anchor" href="#3-what-rancid-and-oxidized-collect-per-karvi-platform" aria-label="Link to this section">#</a></h2>
+<p>The lists are taken from RANCID's <code>rancid.types.base</code> (the <code>cisco</code>,
+<code>cisco-nx</code>, <code>cisco-xr</code>, <code>junos</code>, and <code>arista</code> types) and Oxidized's models
+(<code>ios</code>, <code>nxos</code>, <code>iosxr</code>, <code>junos</code>, <code>eos</code>) as they stand in 2026. Oxidized
+collects little beyond the configuration and keeps the rest as commented
+context; RANCID collects the hardware and file-system state in detail and
+carries a long tail of commands for hardware it once supported (every
+<code>dir /all</code> variant of a 7500 or 6500, <code>show c7200</code>, <code>show spe version</code>),
+which is left out here. Each list is in the order the two tools send it:
+the version and inventory first, the configuration last, so that a device
+whose configuration is long fails late and the file that was kept is the
+whole picture. A command a device does not know is a rejected statement:
+its block is the device's error text and the file is still replaced, so a
+list can carry a command only some models answer, at the cost of one error
+block in those that do not.</p>
+<h3 id="31-cisco_iosxe-cisco-ios-and-ios-xe">3.1 <code>cisco_iosxe</code> (Cisco IOS and IOS XE) <a class="anchor" href="#31-cisco_iosxe-cisco-ios-and-ios-xe" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.cisco_iosxe]
+crun-commands = [
+  &quot;show version&quot;,                 # both tools
+  &quot;show inventory&quot;,               # both tools (RANCID: show inventory raw)
+  &quot;show redundancy&quot;,              # RANCID (dual supervisor / dual RP)
+  &quot;show install active&quot;,          # RANCID (IOS XE install mode)
+  &quot;show boot&quot;,                    # RANCID (show bootvar on older IOS)
+  &quot;show license summary&quot;,         # RANCID (show license udi, show license feature)
+  &quot;show env all&quot;,                 # RANCID
+  &quot;show module&quot;,                  # RANCID (chassis; show switch detail on a stack)
+  &quot;show vtp status&quot;,              # both tools
+  &quot;show vlan&quot;,                    # RANCID
+  &quot;show sdm prefer&quot;,              # RANCID (Catalyst)
+  &quot;show system mtu&quot;,              # RANCID (Catalyst)
+  &quot;show diag&quot;,                    # RANCID
+  &quot;dir /all bootflash:&quot;,          # RANCID (dir /all nvram:, flash:, disk0:, harddisk: as fitted)
+  &quot;show debug&quot;,                   # RANCID
+  &quot;show running-config&quot;,          # both tools; RANCID also 'show running-config view full'
+]
+</code></pre>
+<p>Not carried from the two tools: RANCID's <code>show idprom backplane</code>,
+<code>show rsp chassis-info</code>, <code>show gsr chassis</code>, <code>show controllers</code>,
+<code>show diagbus</code>, <code>show c7200</code>, <code>show spe version</code>, <code>show cellular 0 profile</code>, <code>show hw-programmable all</code>, <code>show dot1x</code>, <code>show activation-key</code>,
+<code>show shun</code>, and <code>show capture</code> (the last three are ASA/PIX), and the
+thirty <code>dir /all</code> variants; Oxidized's <code>show running-config view full</code>
+(role-based CLI only).</p>
+<h3 id="32-cisco_nxos-cisco-nexus">3.2 <code>cisco_nxos</code> (Cisco Nexus) <a class="anchor" href="#32-cisco_nxos-cisco-nexus" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.cisco_nxos]
+crun-commands = [
+  &quot;show version&quot;,                        # both tools
+  &quot;show version build-info all&quot;,         # RANCID
+  &quot;show inventory all&quot;,                  # Oxidized (RANCID: show inventory)
+  &quot;show module&quot;,                         # RANCID
+  &quot;show module xbar&quot;,                    # RANCID (modular chassis)
+  &quot;show module fex&quot;,                     # RANCID (fabric extenders)
+  &quot;show fex&quot;,                            # RANCID
+  &quot;show system redundancy status&quot;,       # RANCID
+  &quot;show license usage&quot;,                  # RANCID (show license, show license host-id)
+  &quot;show boot&quot;,                           # RANCID
+  &quot;show environment power&quot;,              # RANCID (also clock, fan, temperature)
+  &quot;show interface transceiver&quot;,          # RANCID
+  &quot;show vlan&quot;,                           # RANCID
+  &quot;show vtp status&quot;,                     # RANCID, marked &quot;drop?&quot;
+  &quot;show cores vdc-all&quot;,                  # RANCID
+  &quot;show debug&quot;,                          # RANCID
+  &quot;dir bootflash:&quot;,                      # RANCID (dir logflash:, usb1:, volatile: as fitted)
+  &quot;show running-config&quot;,                 # both tools
+]
+</code></pre>
+<p>RANCID first sends <code>term no monitor-force</code>, a session setting, not a
+collection command; karvi's platform table holds such lines in
+<code>paging-commands</code>. Not carried: <code>show processes log vdc-all</code>, <code>show environment fex all fan</code>, <code>dir debug:</code>, <code>dir slot0:</code>, <code>dir usb2:</code>.</p>
+<h3 id="33-cisco_iosxr-cisco-ios-xr">3.3 <code>cisco_iosxr</code> (Cisco IOS XR) <a class="anchor" href="#33-cisco_iosxr-cisco-ios-xr" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.cisco_iosxr]
+crun-commands = [
+  &quot;show version&quot;,                        # RANCID: admin show version
+  &quot;show inventory all&quot;,                  # Oxidized (RANCID: admin show inventory raw)
+  &quot;show platform&quot;,                       # Oxidized
+  &quot;show redundancy&quot;,                     # RANCID
+  &quot;show install active&quot;,                 # RANCID (admin show install active as well)
+  &quot;show license udi&quot;,                    # RANCID (admin)
+  &quot;show hw-module fpd location all&quot;,     # RANCID (admin; line-card firmware)
+  &quot;show environment all&quot;,                # RANCID (admin show env all)
+  &quot;show vlan&quot;,                           # RANCID
+  &quot;show rpl maximum&quot;,                    # RANCID
+  &quot;show debug&quot;,                          # RANCID
+  &quot;dir /all harddisk:&quot;,                  # RANCID (dir /all disk0:, bootflash:, nvram: as fitted)
+  &quot;admin show running-config&quot;,           # RANCID (admin show running)
+  &quot;show running-config&quot;,                 # both tools
+]
+</code></pre>
+<p>RANCID sends <code>terminal no-timestamp</code> or <code>terminal exec prompt no-timestamp</code>
+first, a session setting; on karvi it is a <code>paging-commands</code> line for a
+site that wants it. The <code>admin</code> forms differ between 32-bit IOS XR and
+IOS XR 64-bit (eXR), where <code>admin show …</code> is a separate mode; a site
+keeps the forms its images answer.</p>
+<h3 id="34-juniper_junos-juniper-junos">3.4 <code>juniper_junos</code> (Juniper Junos) <a class="anchor" href="#34-juniper_junos-juniper-junos" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.juniper_junos]
+crun-commands = [
+  &quot;show version&quot;,                              # both tools (RANCID: show version detail)
+  &quot;show version invoke-on other-routing-engine&quot;, # RANCID (dual RE)
+  &quot;show chassis hardware&quot;,                     # both tools (RANCID: detail, and models)
+  &quot;show chassis routing-engine&quot;,               # RANCID
+  &quot;show chassis fpc detail&quot;,                   # RANCID
+  &quot;show chassis firmware&quot;,                     # RANCID
+  &quot;show chassis environment&quot;,                  # RANCID
+  &quot;show chassis alarms&quot;,                       # RANCID
+  &quot;show system alarms&quot;,                        # RANCID
+  &quot;show system license&quot;,                       # both tools (Oxidized: show system license keys as well)
+  &quot;show system boot-messages&quot;,                 # RANCID
+  &quot;show system core-dumps&quot;,                    # RANCID
+  &quot;show configuration&quot;,                        # both tools (Oxidized: | display omit)
+]
+</code></pre>
+<p>Oxidized adds <code>show chassis fabric reachability</code> on an MX960, <code>show virtual-chassis</code> on EX and QFX, and <code>show chassis cluster status</code> on an SRX:
+model lists, which is what <a href="#4-a-sites-lists-per-platform-and-per-model-as-sub-platforms">section
+4</a>'s sub-platform
+tables are for. Not carried: RANCID's <code>show chassis clocks</code>, <code>show chassis scb</code>,
+<code>sfm</code>, <code>ssb</code>, <code>feb</code>, <code>cfeb</code> (M and T series hardware).</p>
+<h3 id="35-arista_eos-arista-eos">3.5 <code>arista_eos</code> (Arista EOS) <a class="anchor" href="#35-arista_eos-arista-eos" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.arista_eos]
+crun-commands = [
+  &quot;show version&quot;,                        # RANCID
+  &quot;show inventory&quot;,                      # both tools (Oxidized: | no-more)
+  &quot;show boot-config&quot;,                    # RANCID
+  &quot;show boot-extensions&quot;,                # RANCID
+  &quot;show extensions&quot;,                     # RANCID
+  &quot;show env all&quot;,                        # RANCID
+  &quot;dir flash:&quot;,                          # RANCID
+  &quot;diff startup-config running-config&quot;,  # RANCID
+  &quot;show running-config&quot;,                 # both tools (Oxidized: | no-more | exclude ! Time:)
+]
+</code></pre>
+<p>Oxidized's <code>| exclude ! Time:</code> drops the stamp line on the device; on
+karvi the built-in <code>crun-filters</code> of <code>arista_eos</code> drop it in the file
+(<a href="#6-the-volatile-lines-the-drop-list">section 6</a>).</p>
+<h2 id="4-a-sites-lists-per-platform-and-per-model-as-sub-platforms">4. A site's lists: per platform, and per model as sub-platforms <a class="anchor" href="#4-a-sites-lists-per-platform-and-per-model-as-sub-platforms" aria-label="Link to this section">#</a></h2>
+<p>A <code>[platform.NAME]</code> table for a built-in name overrides that platform's
+fields; a table for any other name is an alias that names its base with
+<code>driver = &quot;&lt;built-in&gt;&quot;</code> and inherits the whole built-in definition (the
+prompts, the enable step, the paging commands, the built-in command list
+and drop list; not the site's table for the base name). An alias is a
+sub-platform: a name for one model, or one role, of a base platform, with
+its own <code>crun-commands</code>. This is the recommended way to collect what each
+model answers without sending every model every command:</p>
+<pre><code class="language-toml"># Catalyst 9300 stacks: the stack, the SDM template, the licences
+[platform.c9300]
+driver = &quot;cisco_iosxe&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory&quot;, &quot;show switch detail&quot;, &quot;show sdm prefer&quot;,
+  &quot;show license summary&quot;, &quot;show vlan&quot;, &quot;show vtp status&quot;, &quot;show running-config&quot;,
+]
+
+# Catalyst 9500 with StackWise Virtual
+[platform.c9500]
+driver = &quot;cisco_iosxe&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory&quot;, &quot;show stackwise-virtual&quot;, &quot;show redundancy&quot;,
+  &quot;show module&quot;, &quot;show license summary&quot;, &quot;show running-config&quot;,
+]
+
+# ISR and Catalyst 8000 edge routers: install mode and the platform
+[platform.c8300]
+driver = &quot;cisco_iosxe&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory&quot;, &quot;show platform&quot;, &quot;show install active&quot;,
+  &quot;show license summary&quot;, &quot;show running-config&quot;,
+]
+
+# Nexus 9500 modular: the modules, the fabric, the power
+[platform.nx9500]
+driver = &quot;cisco_nxos&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory all&quot;, &quot;show module&quot;, &quot;show module xbar&quot;,
+  &quot;show system redundancy status&quot;, &quot;show environment power&quot;,
+  &quot;show interface transceiver&quot;, &quot;show license usage&quot;, &quot;show running-config&quot;,
+]
+
+# Nexus 9300 fixed: no xbar, no redundancy
+[platform.nx9300]
+driver = &quot;cisco_nxos&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory all&quot;, &quot;show module&quot;, &quot;show license usage&quot;,
+  &quot;show interface transceiver&quot;, &quot;show running-config&quot;,
+]
+
+# ASR 9000: the line cards' firmware and the admin plane
+[platform.asr9k]
+driver = &quot;cisco_iosxr&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory all&quot;, &quot;show platform&quot;, &quot;show redundancy&quot;,
+  &quot;show install active&quot;, &quot;show hw-module fpd location all&quot;,
+  &quot;admin show running-config&quot;, &quot;show running-config&quot;,
+]
+
+# MX480: dual routing engines and the fabric
+[platform.mx480]
+driver = &quot;juniper_junos&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show version invoke-on other-routing-engine&quot;,
+  &quot;show chassis hardware&quot;, &quot;show chassis routing-engine&quot;, &quot;show chassis fpc detail&quot;,
+  &quot;show chassis fabric reachability&quot;, &quot;show system license&quot;, &quot;show configuration&quot;,
+]
+
+# EX4300 virtual chassis
+[platform.ex4300]
+driver = &quot;juniper_junos&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show chassis hardware&quot;, &quot;show virtual-chassis&quot;,
+  &quot;show system license&quot;, &quot;show configuration&quot;,
+]
+
+# SRX cluster
+[platform.srx]
+driver = &quot;juniper_junos&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show chassis hardware&quot;, &quot;show chassis cluster status&quot;,
+  &quot;show system license&quot;, &quot;show configuration&quot;,
+]
+
+# Arista 7050 leaf
+[platform.dcs7050]
+driver = &quot;arista_eos&quot;
+crun-commands = [
+  &quot;show version&quot;, &quot;show inventory&quot;, &quot;show boot-config&quot;, &quot;show extensions&quot;,
+  &quot;show running-config&quot;,
+]
+</code></pre>
+<p>How the sub-platform reaches a device:</p>
+<ol>
+<li><strong>The inventory names it.</strong> The inventory row's platform field carries
+the sub-platform's name (<code>c9300</code>, <code>nx9500</code>) where it carried the base;
+the alias inherits everything else from its driver, so nothing about
+the session changes. A site whose inventory already holds a model
+column can map that column as the platform field
+(<code>[inventory-source.mappings] platform = [&quot;model&quot;]</code>) and name the alias
+tables after the model values, provided each value is a valid platform
+name (compared without regard to case, no glob character, not
+beginning with <code>!</code>).</li>
+<li><strong><code>--platform NAME</code> on the line</strong> runs one device or one invocation as
+a sub-platform without touching the inventory (<code>karvi crun --target sw-lab-01 --platform c9300</code>); <code>--select-platform 'c9*'</code> selects every
+device of the 9000-series aliases for one collection.</li>
+<li><strong>The plan carries a list per platform name</strong>, the alias under its own
+name, so a <code>crun --all</code> over a fleet of ten sub-platforms sends each
+device its model's list, and the job folder holds
+<code>commands.c9300.txt</code>, <code>commands.nx9500.txt</code>, and so on. <code>--dry-run</code>
+shows each device's list before any device is contacted.</li>
+<li><strong>A record says which platform ran</strong> (<code>platform</code> in <code>commands.jsonl</code>),
+so the audit names the sub-platform, and the file in the collection
+directory is named by the device as before: the model does not appear
+in the file name.</li>
+</ol>
+<p>Two rules keep the lists honest. An alias inherits the built-in
+definition of its driver, not a site's <code>[platform.cisco_iosxe]</code> table, so
+an alias without <code>crun-commands</code> of its own sends the built-in list (the
+configuration and the version), whatever the site set on the base; a
+model's table names its whole list. A command only some models answer
+belongs on the model's table, not on a base table that other models share,
+so that no device collects an error block every day.</p>
+<h2 id="5-the-commit-and-the-diff-mail-the-hook">5. The commit and the diff mail: the hook <a class="anchor" href="#5-the-commit-and-the-diff-mail-the-hook" aria-label="Link to this section">#</a></h2>
+<p><code>crun.after</code> names one executable the client runs once a <code>crun</code> has ended
+and its display is printed, on the in-process path and through the
+daemon alike, never for <code>--detach</code> (a detached run has no client at its
+end; a cron does not detach). The hook runs in the collection directory,
+reads the replaced files' names on standard input, one per line, sorted
+(empty when nothing was replaced), and finds the job in its environment:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>KARVI_JOB_ID</code></td>
+<td>the job's ID</td>
+</tr>
+<tr>
+<td><code>KARVI_JOB_DIR</code></td>
+<td>the job folder (empty under <code>--nof</code>)</td>
+</tr>
+<tr>
+<td><code>KARVI_CRUN_DIRECTORY</code></td>
+<td>the collection directory, the working directory too</td>
+</tr>
+<tr>
+<td><code>KARVI_CRUN_REPLACED</code>, <code>KARVI_CRUN_KEPT</code></td>
+<td>the counts of the collection line</td>
+</tr>
+<tr>
+<td><code>KARVI_EXIT</code></td>
+<td>the run's exit code</td>
+</tr>
+</tbody>
+</table>
+<p>Its output, both streams, goes to karvi's stderr after the display, so a
+<code>--format jsonl</code> stdout stays records. A hook that cannot start, exits
+non-zero, or runs past <code>crun.after-timeout</code> (<code>5m</code> by default, <code>1s</code> to
+<code>1h</code>; the hook's process group is sent SIGTERM, then killed) is the warning
+<code>crun_after_failed</code>; the collection stands and the run's exit code is
+unchanged, and the audit holds a <code>crun.after.succeeded</code> or
+<code>crun.after.failed</code> event with the path, the exit code, and the duration.</p>
+<p>Two hooks ship as examples in <code>/usr/share/karvi/crun/</code>, for a git repository
+the site made once over the collection directory (<code>git init</code> there, the
+operators' group able to write <code>.git</code>):</p>
+<ul>
+<li><code>crun-git-commit.example</code>: <code>git add</code> the files on stdin and commit with
+the job ID and the counts as the message; nothing staged, nothing
+committed. A device kept (not reached) leaves its previous file in the
+working tree, so every commit holds the last good collection of every
+device.</li>
+<li><code>crun-diff-mail.example</code>: the same commit, then <code>git show --stat -p</code> of it
+to <code>sendmail</code>, one mail per collection with the subject in <code>rancid-run</code>'s
+form (<code>HOST config diffs</code>), the devices kept listed first from the job
+folder's <code>failed-devices.txt</code>; <code>KARVI_CRUN_MAIL_TO</code> names the recipient.</li>
+</ul>
+<pre><code class="language-toml">[crun]
+after = &quot;/etc/karvi/crun-diff-mail&quot;     # copied without .example, mode 0755
+after-timeout = &quot;5m&quot;
+</code></pre>
+<pre><code class="language-text">$ karvi crun --all
+…
+! exit=101 elapsed=4m12s artifacts=/opt/karvi/shared/jobs/260926/260926-103409-00
+! collection=/opt/karvi/shared/crun replaced=212 kept=3
+$ git -C /opt/karvi/shared/crun log --oneline -1
+10738a1 crun 260926-103409-00: 212 replaced, 3 kept, exit 101
+</code></pre>
+<p>The schedule that runs the collection every night is <a href="#7-the-schedule">section
+7</a>; the hook runs in the tick's process, so git's identity and
+the mail transport are the collecting operator's.</p>
+<h2 id="6-the-volatile-lines-the-drop-list">6. The volatile lines: the drop list <a class="anchor" href="#6-the-volatile-lines-the-drop-list" aria-label="Link to this section">#</a></h2>
+<p>A collected file holds lines that change at every collection without the
+device having changed: on IOS XE the byte count (<code>Current configuration : 512 bytes</code>), <code>ntp clock-period</code>, and the uptime; on NX-OS <code>!Time:</code>; on EOS
+<code>! Time:</code>, the uptime, and the free memory. Left in, every diff, commit,
+and mail carries them. A platform's <code>crun-filters</code> is its drop list:
+regular expressions in Go's syntax, one per entry, each matched against an
+output line of a block without its terminator; a line that matches any
+entry is left out of the collection file and nowhere else. The <code>! COMMAND</code>
+marker lines are never matched, so an emptied block keeps its marker; the
+record, <code>commands.jsonl</code>, and <code>output.NAME.txt</code> keep every line, and the
+plan carries the lists per platform, so a run through the daemon drops the
+same lines and the manifest shows which patterns applied.</p>
+<p>The built-in lists drop only lines that carry no information about the
+device, and never the stamp that says when, and on many platforms by whom,
+the configuration last changed (<code>! Last configuration change at …</code>,
+<code>!Running configuration last done at:</code>, <code>## Last commit:</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Built-in <code>crun-filters</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cisco_iosxe</code></td>
+<td><code>^Building configuration\.\.\.$</code>, <code>^Current configuration : \d+ bytes$</code>, <code>^ntp clock-period \d+$</code>, <code>uptime is</code>, <code>^Load for five secs</code>, <code>^Time source is </code></td>
+</tr>
+<tr>
+<td><code>cisco_iosxr</code></td>
+<td><code>^Building configuration\.\.\.$</code>, <code>uptime is</code></td>
+</tr>
+<tr>
+<td><code>cisco_nxos</code></td>
+<td><code>^!Time: </code>, <code>uptime is</code></td>
+</tr>
+<tr>
+<td><code>arista_eos</code></td>
+<td><code>^! Time: </code>, <code>^Uptime: </code>, <code>^Free memory: </code></td>
+</tr>
+<tr>
+<td><code>juniper_junos</code></td>
+<td>none: <code>show version</code> has no uptime, and <code>## Last commit:</code> is a stamp worth keeping</td>
+</tr>
+<tr>
+<td><code>linux</code>, <code>linux_shell</code></td>
+<td>none: the list is stable while nothing changes</td>
+</tr>
+<tr>
+<td><code>generic</code></td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p>A site's array replaces the built-in list whole, <code>crun-filters = []</code> turns
+the filter off for that platform, and an alias (a model table of section
+4) inherits its driver's built-in list unless it sets its own. Write the
+patterns in TOML literal strings, so a backslash stays one:</p>
+<pre><code class="language-toml">[platform.cisco_iosxe]
+crun-filters = [
+  '^Building configuration\.\.\.$',
+  '^Current configuration : \d+ bytes$',
+  '^ntp clock-period \d+$',
+  ' uptime is ',
+  '^Load for five secs',
+  '^Time source is ',
+  '^ip route-cache flow$',          # the site's own addition
+]
+
+[platform.c9300]
+driver = &quot;cisco_iosxe&quot;
+crun-filters = []                   # this model's files raw
+</code></pre>
+<p>A pattern that does not compile refuses the configuration before any
+device is contacted (<code>config_platform_crun_filter_invalid</code>, exit 2, naming
+the table and the entry). A list only some models need belongs on the
+model's table, as the command lists do. The reference for what other
+tools drop is RANCID's per-type filters and Oxidized's model clean-ups;
+karvi drops less by design, since the stamps
+are the history a diff wants.</p>
+<h2 id="7-the-schedule">7. The schedule <a class="anchor" href="#7-the-schedule" aria-label="Link to this section">#</a></h2>
+<p>A recurring collection is the site's systemd timer or cron over <code>karvi crun --all</code>, with the hook doing the rest. It is not a configuration key
+and not a schedule the daemon keeps: a resident
+schedule pulls against the daemon's idle exit, the hook runs in the
+client, and the credentials are resolved per job, while systemd and cron
+give the calendar, the catch-up after downtime, the jitter, one instance
+at a time, and the journal. Two forms ship in <code>/usr/share/karvi/</code>.</p>
+<p><strong>The systemd user timer</strong>, on the same pattern as <code>karvi-prune.timer</code>:</p>
+<pre><code class="language-bash"># as the collecting operator, whose credential backend answers without a
+# prompt (docs/CREDENTIAL-CSV.md); a git identity in ~/.gitconfig for the hook
+install -d ~/.config/systemd/user
+cp /usr/share/karvi/systemd/user/karvi-crun.service \
+   /usr/share/karvi/systemd/user/karvi-crun.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now karvi-crun.timer
+loginctl enable-linger &quot;$USER&quot;          # the timer runs with no session open
+systemctl --user list-timers karvi-crun.timer
+journalctl --user -u karvi-crun.service --since today
+</code></pre>
+<p><code>karvi-crun.timer</code> fires at 02:15 with up to fifteen minutes of random delay,
+and <code>Persistent=true</code> runs a collection the host missed at its next start.
+<code>karvi-crun.service</code> is a oneshot over <code>karvi crun --all --no-daemon --format jsonl</code>: systemd never starts it while the previous run is still active, and a
+tick that elapses meanwhile is dropped, not queued, so two collections never
+overlap in one directory. <code>--no-daemon</code> is deliberate: a oneshot's control group
+ends with its main process, and a daemon the tick launched would be terminated
+with it; a site whose daemon runs under <code>karvi-daemon.service</code> may drop the
+option and submit to it instead. The unit carries no file-system sandbox: it
+writes wherever the operator may, a collection directory anywhere included
+(<a href="OPERATIONS.html#retention"><code>docs/OPERATIONS.md</code> &quot;Retention&quot;</a> says why). The
+hook runs inside the unit, so a git repository over the collection directory is
+written there too.</p>
+<p><strong>The cron</strong>, where a site schedules with cron:</p>
+<pre><code class="language-text"># /etc/cron.d/karvi-crun, as the collecting operator
+15 2 * * *  netops  /usr/share/karvi/cron/karvi-crun &gt;&gt; /var/log/karvi-crun.jsonl 2&gt;&amp;1
+</code></pre>
+<p><code>karvi-crun</code> runs <code>karvi crun --all --no-daemon --format jsonl</code> with the
+arguments appended (<code>--select-platform</code>, <code>--cd=PATH</code>, <code>--transport</code>),
+under a lock it holds for the run's duration (<code>flock</code>, per user under
+<code>TMPDIR</code>; <code>KARVI_CRUN_LOCK</code> names another path). A cron starts a tick
+whatever the previous one is doing, so a tick that finds the lock held is
+skipped with one line on stderr and exit 75, never queued:</p>
+<pre><code class="language-text">karvi-crun: skipped: the previous collection is still running (/tmp/karvi-crun.1000.lock)
+</code></pre>
+<p><strong>What karvi does not do.</strong> It does not refuse a second <code>crun</code> into one
+directory. Every file is whole, since it is renamed into place; the only
+harm of an overlap is one device collected by two runs landing in finish
+order, which the scheduler prevents at the source; and an operator's
+<code>crun --target core-nyc-01</code> before a change, while the nightly run is
+collecting, must not be turned away. <code>crun --every DURATION</code> under the
+daemon is on the roadmap and unlikely to be pursued, for the reasons
+above.</p>
+<h2 id="8-related-documents">8. Related documents <a class="anchor" href="#8-related-documents" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><a href="DESIGN.html"><code>docs/DESIGN.md</code></a>, the collection run: the design questions, the
+hook, the drop list, and the schedule, with the reasons.</li>
+<li><a href="OPERATIONS.html#the-collection-run"><code>docs/OPERATIONS.md</code> &quot;The collection run&quot;</a>
+and <a href="OPERATIONS.html#the-shared-trees">&quot;The shared trees&quot;</a>.</li>
+<li><code>karvi-crun(1)</code> (<code>man karvi crun</code>), COLLECTION: the terminal's restatement of
+<a href="#1-what-a-collection-is">section 1</a>, the hook's input, and the drop list; a
+change to one changes both.</li>
+<li><code>configs/example.toml</code>: the <code>[platform.NAME]</code> tables' shape.</li>
+<li><code>/usr/share/karvi/systemd/user/karvi-crun.service</code> and <code>karvi-crun.timer</code>,
+<code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
+</ul>
+
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

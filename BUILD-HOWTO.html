@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BUILD-HOWTO — karvi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html" aria-current="page">BUILD-HOWTO</a>
+<ul class="sections">
+<li><a href="#1-install-operating-system-prerequisites">1. Install operating-system prerequisites</a></li>
+<li><a href="#2-install-the-newest-stable-go-release">2. Install the newest stable Go release</a></li>
+<li><a href="#3-verify-and-extract-the-full-source-bundle">3. Verify and extract the full source bundle</a></li>
+<li><a href="#4-choose-the-build-path">4. Choose the build path</a></li>
+<li><a href="#5-direct-go-build-commands">5. Direct Go build commands</a></li>
+<li><a href="#6-verify-generated-files-and-behavior">6. Verify generated files and behavior</a></li>
+<li><a href="#7-ssh-host-key-configuration">7. SSH host-key configuration</a></li>
+<li><a href="#8-confirm-the-configuration-and-daemondisplay-boundary">8. Confirm the configuration and daemon/display boundary</a></li>
+<li><a href="#9-refresh-dependencies">9. Refresh dependencies</a></li>
+<li><a href="#10-install-and-roll-back">10. Install and roll back</a></li>
+<li><a href="#11-evidence-required-from-future-ai-or-human-development-teams">11. Evidence required from future AI or human development teams</a></li>
+</ul></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html" aria-current="page">BUILD-HOWTO</a>
+<ul class="sections">
+<li><a href="#1-install-operating-system-prerequisites">1. Install operating-system prerequisites</a></li>
+<li><a href="#2-install-the-newest-stable-go-release">2. Install the newest stable Go release</a></li>
+<li><a href="#3-verify-and-extract-the-full-source-bundle">3. Verify and extract the full source bundle</a></li>
+<li><a href="#4-choose-the-build-path">4. Choose the build path</a></li>
+<li><a href="#5-direct-go-build-commands">5. Direct Go build commands</a></li>
+<li><a href="#6-verify-generated-files-and-behavior">6. Verify generated files and behavior</a></li>
+<li><a href="#7-ssh-host-key-configuration">7. SSH host-key configuration</a></li>
+<li><a href="#8-confirm-the-configuration-and-daemondisplay-boundary">8. Confirm the configuration and daemon/display boundary</a></li>
+<li><a href="#9-refresh-dependencies">9. Refresh dependencies</a></li>
+<li><a href="#10-install-and-roll-back">10. Install and roll back</a></li>
+<li><a href="#11-evidence-required-from-future-ai-or-human-development-teams">11. Evidence required from future AI or human development teams</a></li>
+</ul></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="build-howto">BUILD-HOWTO <a class="anchor" href="#build-howto" aria-label="Link to this section">#</a></h1>
+<p>This procedure covers Ubuntu 24.04 LTS and Ubuntu 26.04 LTS, initial source
+installation, official and isolated builds, verification, and rollback. Run
+builds as an ordinary release-engineering account; use <code>sudo</code> only for
+operating-system packages, <code>/usr/local</code>, and final installation.</p>
+<h2 id="1-install-operating-system-prerequisites">1. Install operating-system prerequisites <a class="anchor" href="#1-install-operating-system-prerequisites" aria-label="Link to this section">#</a></h2>
+<p>The same packages are used on Ubuntu 24.04 and 26.04:</p>
+<pre><code class="language-bash">sudo apt-get update
+sudo apt-get install -y \
+  ca-certificates curl git make gcc libc6-dev python3 \
+  openssh-client util-linux patch xz-utils tar gzip file \
+  dpkg-dev debhelper lintian
+</code></pre>
+<p><code>openssh-client</code> supplies system SSH, <code>ssh-keyscan</code>, and <code>ssh-keygen</code>.
+<code>util-linux</code> supplies <code>script(1)</code>, which karvi uses for PTY-backed login
+transcripts. <code>dpkg-dev</code>, <code>debhelper</code>, and <code>lintian</code> build and check the Debian
+package (<a href="#43-build-the-debian-package">§4.3</a>); the release verifier builds
+one and fails without them.</p>
+<h2 id="2-install-the-newest-stable-go-release">2. Install the newest stable Go release <a class="anchor" href="#2-install-the-newest-stable-go-release" aria-label="Link to this section">#</a></h2>
+<p>The following sequence asks the official Go download metadata for the newest
+stable release matching the server architecture, verifies the published
+SHA-256, and installs it under <code>/usr/local/go</code>.</p>
+<pre><code class="language-bash">set -euo pipefail
+
+case &quot;$(dpkg --print-architecture)&quot; in
+  amd64) GO_ARCH=amd64 ;;
+  arm64) GO_ARCH=arm64 ;;
+  *) echo &quot;unsupported build architecture&quot; &gt;&amp;2; exit 1 ;;
+esac
+
+GO_VERSION=&quot;$({
+  curl -fsSL https://go.dev/dl/?mode=json
+} | python3 -c '
+import json, sys
+for release in json.load(sys.stdin):
+    if release.get(&quot;stable&quot;):
+        print(release[&quot;version&quot;])
+        break
+')&quot;
+
+GO_FILE=&quot;${GO_VERSION}.linux-${GO_ARCH}.tar.gz&quot;
+export GO_FILE
+GO_SHA256=&quot;$({
+  curl -fsSL https://go.dev/dl/?mode=json
+} | python3 -c '
+import json, os, sys
+name = os.environ[&quot;GO_FILE&quot;]
+for release in json.load(sys.stdin):
+    for f in release.get(&quot;files&quot;, []):
+        if f.get(&quot;filename&quot;) == name:
+            print(f[&quot;sha256&quot;])
+            raise SystemExit
+raise SystemExit(&quot;official archive not found&quot;)
+')&quot;
+
+curl -fL &quot;https://go.dev/dl/${GO_FILE}&quot; -o &quot;/tmp/${GO_FILE}&quot;
+printf '%s  %s\n' &quot;$GO_SHA256&quot; &quot;/tmp/${GO_FILE}&quot; | sha256sum -c -
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf &quot;/tmp/${GO_FILE}&quot;
+sudo tee /etc/profile.d/go.sh &gt;/dev/null &lt;&lt;'PROFILE'
+export PATH=/usr/local/go/bin:$PATH
+PROFILE
+. /etc/profile.d/go.sh
+go version
+</code></pre>
+<p>For a controlled/reproducible build, install the exact approved Go version
+instead of automatically selecting the newest one. The authoritative minimum
+is the <code>go</code> directive in karvi's <code>go.mod</code>.</p>
+<h2 id="3-verify-and-extract-the-full-source-bundle">3. Verify and extract the full source bundle <a class="anchor" href="#3-verify-and-extract-the-full-source-bundle" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">sha256sum -c karvi-v0.29.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.29.0-source-linux-amd64.tar.gz &gt;/dev/null
+tar -xzf karvi-v0.29.0-source-linux-amd64.tar.gz
+cd karvi-v0.29.0
+</code></pre>
+<p>Review the release boundary before building:</p>
+<pre><code class="language-bash">cat VERSION
+cat go.mod
+</code></pre>
+<h2 id="4-choose-the-build-path">4. Choose the build path <a class="anchor" href="#4-choose-the-build-path" aria-label="Link to this section">#</a></h2>
+<h3 id="41-official-native-enabled-build">4.1 Official native-enabled build <a class="anchor" href="#41-official-native-enabled-build" aria-label="Link to this section">#</a></h3>
+<p>The source carries every module scrapligo-v1 needs: <code>go.mod</code> names
+scrapligo v1.4.2, golang.org/x/crypto v0.26.0, and golang.org/x/term v0.23.0
+with their three indirect requirements, <code>go.sum</code> holds their
+sums, and <code>vendor/</code> holds their sources. goldmark v1.8.6 is vendored beside
+them for <code>tools/md-to-html</code> (<code>make html</code>); no executable contains it. A build
+host needs no network. On a host with an approved module proxy, <code>make deps</code>
+re-downloads the modules and checks them against <code>go.sum</code> first:</p>
+<pre><code class="language-bash">export GOPROXY='https://proxy.golang.org,direct'   # or the approved internal proxy
+export GOSUMDB='sum.golang.org'                    # or the approved internal sumdb
+
+make deps            # optional on a connected host: download and verify
+./scripts/verify-release.sh
+</code></pre>
+<p><code>verify-release.sh</code> is the official build's gate. It asserts in source that
+the scrapligo-v1 adapter carries karvi's host-key callback on scrapligo's
+custom transport and that the provider opens karvi's device session, and
+fails if that path references <code>ssh-keyscan</code>, <code>os/exec</code>, or the removed
+pre-scan; runs <code>go mod verify</code>, the tests, <code>go vet</code>, and the race run
+under <code>-mod=vendor</code>; builds the executable and
+checks its module metadata, its version counters, and both transport IDs;
+runs every historical smoke suite; then runs the parity suite
+<code>scripts/native-smoke-test.sh</code>, which builds the fake device from the tree
+and runs every case as <code>command</code> and <code>run</code> over <code>system</code> and
+<code>scrapligo-v1</code> with its own trust store, base directory, and <code>HOME</code>,
+comparing the records path by path (about a minute; no fake or daemon is
+left running and the operator's trust store is unchanged); then the canary
+suite. <code>make native-smoke</code> runs the parity suite alone after <code>make build</code>;
+<code>ONLY=S21 scripts/native-smoke-test.sh</code> runs one case.
+<a href="docs/BUILD-QUALIFICATION.html"><code>docs/BUILD-QUALIFICATION.md</code></a> states the gates.</p>
+<p>The release must contain exactly:</p>
+<pre><code class="language-text">github.com/scrapli/scrapligo v1.4.2
+</code></pre>
+<p>Confirm the dependency in source, vendor metadata, and the executable:</p>
+<pre><code class="language-bash">grep -F 'github.com/scrapli/scrapligo v1.4.2' go.mod
+grep -F '# github.com/scrapli/scrapligo v1.4.2' vendor/modules.txt
+go version -m bin/karvi-linux-amd64 | \
+  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2'
+./bin/karvi-linux-amd64 --version | grep -F 'scrapligo: 1.4.2'
+</code></pre>
+<p>Do not use <code>go get ...@latest</code> in a release tree.</p>
+<h3 id="42-verify-the-shipped-executables-without-rebuilding">4.2 Verify the shipped executables without rebuilding <a class="anchor" href="#42-verify-the-shipped-executables-without-rebuilding" aria-label="Link to this section">#</a></h3>
+<p>The bundle's <code>bin/</code> holds the scrapligo-v1 executables of
+<a href="#41-official-native-enabled-build">§4.1</a>, built with the release identity, and
+<code>CHECKSUMS.sha256</code> names them:</p>
+<pre><code class="language-bash">./scripts/verify-bundle.sh
+</code></pre>
+<p>It checks the checksums and the executable's version counters and both
+transport IDs, refuses Go source that <code>gofmt</code> would change, tests and vets
+offline from <code>vendor/</code>, compares the generated files,
+validates the example configurations, and runs every smoke suite, the
+canary suite, and the parity suite against <code>bin/</code> as shipped. To reproduce
+the shipped bytes, rebuild with the release identity:</p>
+<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+sha256sum -c CHECKSUMS.sha256
+</code></pre>
+<h3 id="43-build-the-debian-package">4.3 Build the Debian package <a class="anchor" href="#43-build-the-debian-package" aria-label="Link to this section">#</a></h3>
+<p>The package carries <code>bin/</code>'s executables as they are, the manual pages, the
+documents under <code>/usr/share/doc/karvi</code>, and the units, cron scripts, hook
+examples, tmpfiles rule, reference configuration, and schemas under
+<code>/usr/share/karvi</code>, none of them active (<a href="docs/FILES.html#47-what-the-package-installs"><code>docs/FILES.md</code>
+§4.7</a>). It needs the <code>dpkg-dev</code>
+and <code>debhelper</code> packages, and no Go:</p>
+<pre><code class="language-bash">make deb                          # dist/karvi_&lt;version&gt;_amd64.deb
+dpkg-deb -c dist/karvi_*_amd64.deb
+</code></pre>
+<p>In a release bundle the package is the release's, <code>VERSION</code>, and <code>bin/</code> must
+hold the executables <code>CHECKSUMS.sha256</code> lists; on the development line
+(<code>CHANGELOG.md</code> headed <code>## Unreleased</code>) it is <code>VERSION+dev</code>, and <code>bin/</code> must
+hold a build of the tree (<code>make build</code>), not the release's executables, which
+karvi's identity tells apart (<code>karvi version</code>'s commit
+<code>source-release-vVERSION</code>). The tree is built in a copy, so neither it nor its
+parent gains a file but the package; <code>DIST=DIR make deb</code> writes it to <code>DIR</code>.
+<code>scripts/check-deb.sh PACKAGE TREE</code> checks a package against the tree it was
+built from: the executables, the documents and example configurations under
+their own names, the units' documentation, and <code>lintian</code> with the package's
+overrides. The release verifier builds and checks the tree's package.</p>
+<h2 id="5-direct-go-build-commands">5. Direct Go build commands <a class="anchor" href="#5-direct-go-build-commands" aria-label="Link to this section">#</a></h2>
+<p>The Makefile is preferred because it keeps the build metadata consistent.
+The equivalent core commands are (no build tag is needed; every build
+carries the scrapligo-v1 adapter):</p>
+<pre><code class="language-bash">export CGO_ENABLED=0
+
+go test -mod=vendor ./...
+go vet  -mod=vendor ./...
+
+go build -buildvcs=false -mod=vendor -trimpath \
+  -ldflags='-s -w' -o bin/karvi-linux-amd64 ./cmd/karvi
+go build -buildvcs=false -mod=vendor -trimpath -ldflags='-s -w' \
+  -o bin/karvi-askpass-linux-amd64 ./cmd/karvi-askpass
+go build -buildvcs=false -mod=vendor -trimpath -ldflags='-s -w' \
+  -o bin/karvi-prune-linux-amd64 ./cmd/karvi-prune
+</code></pre>
+<h2 id="6-verify-generated-files-and-behavior">6. Verify generated files and behavior <a class="anchor" href="#6-verify-generated-files-and-behavior" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">make generated-clean
+./bin/karvi-linux-amd64 version --format json
+./bin/karvi-linux-amd64 login --help
+./bin/karvi-linux-amd64 command --help
+./bin/karvi-linux-amd64 run --help
+./bin/karvi-linux-amd64 config validate configs/development.toml
+./scripts/smoke-test.sh
+./scripts/halt-smoke-test.sh
+./scripts/hostkey-smoke-test.sh
+./scripts/transcript-smoke-test.sh
+./scripts/display-smoke-test.sh
+./scripts/v060-smoke-test.sh
+./scripts/v061-smoke-test.sh
+./scripts/v070-smoke-test.sh
+./scripts/v080-smoke-test.sh
+./scripts/v090-smoke-test.sh
+</code></pre>
+<p>The supplied smoke suite proves the following observable behavior:</p>
+<ul>
+<li><code>accept-new</code> accepts new keys and rejects a mismatch;</li>
+<li>one mismatch in a multi-target run does not suppress later targets by
+default;</li>
+<li><code>secure</code> rejects a missing enrollment;</li>
+<li><code>insecure</code> warns and allows a mismatch;</li>
+<li>the optional host-key mismatch halt produces exit 114 and explicit unstarted
+records;</li>
+<li>display templates, border expansion, and local <code>--quiet</code> behave as
+configured;</li>
+<li>multiple command-mode commands use one fresh authenticated interactive
+OpenSSH shell, with ControlMaster and ControlPath explicitly disabled;</li>
+<li>semantic colors distinguish target, resolved address, labels/brackets,
+values, status, and borders; and</li>
+<li><code>--debug</code> emits safe session/timing/hash diagnostics without passwords or raw
+command text;</li>
+<li>terminal-width layout ignores ANSI, splits complete display elements,
+relocates artifacts, and crops only borders;</li>
+<li><code>--format json</code> emits valid pretty JSON using the configured indent; and</li>
+<li>two-target daemon execution persists and visibly reports both success and an
+outputless later-target failure.</li>
+</ul>
+<h2 id="7-ssh-host-key-configuration">7. SSH host-key configuration <a class="anchor" href="#7-ssh-host-key-configuration" aria-label="Link to this section">#</a></h2>
+<p>The unified default is:</p>
+<pre><code class="language-toml">[ssh]
+host-key-policy = &quot;accept-new&quot;
+known-hosts-file = &quot;auto&quot;
+</code></pre>
+<p>The removed values <code>auto</code> and <code>default</code> are rejected. Under <code>known-hosts-file = &quot;auto&quot;</code> the trust store is <code>known_hosts</code> in the operator's private root:
+<code>/opt/karvi/users/&lt;user&gt;/known_hosts</code> where the site made the operators' roots,
+<code>~/.local/share/karvi/known_hosts</code> otherwise; <code>karvi config show --explain ssh.known-hosts-file</code> names it on its <code>resolved:</code> line.</p>
+<p>For authenticated pre-enrollment, select <code>secure</code> and populate the store before
+using <code>login</code>, <code>command</code>, or <code>run</code>, by
+<a href="docs/SSH-HOST-KEY-POLICY.html#controlled-enrollment"><code>docs/SSH-HOST-KEY-POLICY.md</code>, &quot;Controlled enrollment&quot;</a>.</p>
+<p><code>ssh-keyscan</code> discovers a presented key; it does not authenticate that key.</p>
+<h2 id="8-confirm-the-configuration-and-daemondisplay-boundary">8. Confirm the configuration and daemon/display boundary <a class="anchor" href="#8-confirm-the-configuration-and-daemondisplay-boundary" aria-label="Link to this section">#</a></h2>
+<p>This release requires configuration schema 6, daemon IPC schema 11, and
+configuration-registry schema 28 (<code>karvi version</code>). After replacing the binary,
+inspect and, when needed, explicitly restart a still-running older per-user
+daemon:</p>
+<pre><code class="language-bash">karvi daemon status
+# Confirm active_jobs is 0 before restart.
+karvi daemon restart
+</code></pre>
+<p>With no option, <code>daemon stop</code> and <code>daemon restart</code> refuse while the daemon
+reports active jobs. <code>--grace</code> drains and waits, <code>--after=DURATION</code> drains and
+waits up to the limit before forcing, and <code>--force</code> stops immediately; forced
+work still receives terminal records.
+A normal run never kills an incompatible daemon or downgrades a job request.
+The restart command is the explicit operator authorization to stop the older
+same-UID daemon and launch the current executable.</p>
+<p>Validate configuration before a maintenance window:</p>
+<pre><code class="language-bash">./bin/karvi-linux-amd64 config validate
+./bin/karvi-linux-amd64 config show | grep -E \
+  'name.dns-timeout|telnet.read-timeout|display.(command|run).(border|last-border)'
+./bin/karvi-linux-amd64 --version
+</code></pre>
+<p>Expected defaults include:</p>
+<pre><code class="language-toml">[name]
+address-family-preference = &quot;ipv6&quot;
+dns-timeout = &quot;2s&quot;
+
+[telnet]
+read-timeout = &quot;60s&quot;
+
+[display.command]
+border = &quot;\n&quot;
+dynamic-border-length = 72
+last-border = false
+
+[display.run]
+border = &quot;\n&quot;
+dynamic-border-length = 72
+last-border = false
+</code></pre>
+<p><code>--ipv4</code>/<code>--4</code> and <code>--ipv6</code>/<code>--6</code> provide lock-aware, one-invocation overrides
+for login, command, and run. Supplying both must fail with exit 4 before any
+connection. A literal <code>--address</code>/<code>--management-address</code> continues to bypass
+DNS.</p>
+<p>Borders are separators between records. The default blank line appears only
+between adjacent command records. <code>--border</code> selects a dynamic dash line;
+<code>--noborder</code> suppresses configured and dynamic separators; combining both is a
+usage error. Set the mode's <code>last-border = true</code> only when a trailing separator
+is desired.</p>
+<p>Validate the direct command error-echo path:</p>
+<pre><code class="language-bash">./bin/karvi command --debug --echo --host DEVICE \
+  --cmd 'show clock' --cmd 'intentionally invalid command' \
+  &gt;command.out 2&gt;command.debug
+</code></pre>
+<p>The prompt plus exact sent command must appear before both successful and
+device-error output. Debug output must not contain credentials, raw command
+text, or device output.</p>
+<p>Confirm human and machine projections:</p>
+<pre><code class="language-bash">./bin/karvi command --border --host DEVICE --cmd 'show clock' --cmd 'show version'
+./bin/karvi run --noborder --target DEVICE --transport system --format text --cmd 'show clock'
+./bin/karvi run --target DEVICE --transport system --format jsonl --cmd 'show clock'
+./bin/karvi run --target DEVICE --transport system --format json --cmd 'show clock' | python3 -m json.tool &gt;/dev/null
+</code></pre>
+<p>Review <a href="docs/DISPLAY-CONFIGURATION.html"><code>docs/DISPLAY-CONFIGURATION.md</code></a> and
+<a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>.</p>
+<h2 id="9-refresh-dependencies">9. Refresh dependencies <a class="anchor" href="#9-refresh-dependencies" aria-label="Link to this section">#</a></h2>
+<p>A dependency change changes <code>go.mod</code>, <code>go.sum</code>, and <code>vendor/</code> together, so the
+source carries the complete reviewed vendor tree and an offline host builds
+without a network. Review the change before building:</p>
+<pre><code class="language-bash">git diff --stat -- go.mod go.sum vendor
+go list -mod=vendor -m all
+go mod verify        # on a connected host: the sums against the proxy
+</code></pre>
+<p>To regenerate the three from <code>go.mod</code> on a connected host, for example at a
+dependency bump:</p>
+<pre><code class="language-bash">rm -rf vendor
+go mod tidy
+go mod verify
+go mod vendor
+</code></pre>
+<h2 id="10-install-and-roll-back">10. Install and roll back <a class="anchor" href="#10-install-and-roll-back" aria-label="Link to this section">#</a></h2>
+<p>The package (<a href="#43-build-the-debian-package">§4.3</a>), published with each
+release beside the bundle, installs into <code>/usr/bin</code>; <code>apt</code> installs a package
+file with its dependency, <code>openssh-client</code>, where <code>dpkg -i</code> refuses on a host
+without it; installing an earlier one rolls back:</p>
+<pre><code class="language-bash">sha256sum -c karvi_&lt;version&gt;_amd64.deb.sha256
+sudo apt install ./karvi_&lt;version&gt;_amd64.deb
+karvi version --format json
+sudo apt install --allow-downgrades ./karvi_&lt;earlier&gt;_amd64.deb   # roll back
+</code></pre>
+<p>A minimized image, one whose dpkg excludes <code>/usr/share/doc/*</code> and
+<code>/usr/share/man/*</code> (Docker's Ubuntu, the minimal cloud images), installs the
+executables and <code>/usr/share/karvi</code> alone, no document or manual page; the
+documents are in the bundle and the repository.</p>
+<p>Without the package, use versioned destinations and an atomic symlink. A host
+installed so finds the units, cron scripts, hook examples, and documents the
+package puts under <code>/usr/share/karvi</code> and <code>/usr/share/doc/karvi</code> in the
+bundle's <code>packaging/</code>, <code>configs/</code>, <code>schema/</code>, and <code>docs/</code>. Use one way or the
+other on a host: <code>/usr/local/bin</code> comes before <code>/usr/bin</code> on the usual <code>PATH</code>.</p>
+<pre><code class="language-bash">sudo install -d -m 0755 /usr/local/lib/karvi
+sudo install -m 0755 bin/karvi-linux-amd64 \
+  /usr/local/lib/karvi/karvi-v0.29.0
+sudo install -m 0755 bin/karvi-askpass-linux-amd64 \
+  /usr/local/lib/karvi/karvi-askpass-v0.29.0
+sudo install -m 0755 bin/karvi-prune-linux-amd64 \
+  /usr/local/lib/karvi/karvi-prune-v0.29.0
+sudo ln -sfn /usr/local/lib/karvi/karvi-v0.29.0 /usr/local/bin/karvi
+sudo ln -sfn /usr/local/lib/karvi/karvi-askpass-v0.29.0 \
+  /usr/local/bin/karvi-askpass
+sudo ln -sfn /usr/local/lib/karvi/karvi-prune-v0.29.0 \
+  /usr/local/bin/karvi-prune
+karvi version --format json
+</code></pre>
+<p>Rollback by repointing the symlinks to the prior verified version. Keep the
+source archive, its SHA-256 file, the test log, the dependency list, and the
+<code>go version -m</code> output together as the local release record.</p>
+<h2 id="11-evidence-required-from-future-ai-or-human-development-teams">11. Evidence required from future AI or human development teams <a class="anchor" href="#11-evidence-required-from-future-ai-or-human-development-teams" aria-label="Link to this section">#</a></h2>
+<p>Every release should provide:</p>
+<ul>
+<li>the exact version and its tag;</li>
+<li>SHA-256 for every distributed artifact;</li>
+<li>updated <code>go.mod</code> and <code>go.sum</code> plus an offline dependency path when needed;</li>
+<li>successful tests, vet, generated-file comparison, and smoke tests;</li>
+<li>executable <code>go version -m</code> output;</li>
+<li>schema/config breaking-change notes;</li>
+<li>implementation and qualification boundaries;</li>
+<li>installation and rollback instructions; and</li>
+<li>a statement of all remaining production gates.</li>
+</ul>
+
+<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

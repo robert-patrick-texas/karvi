@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>karvi-prune: retention — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html" aria-current="page">karvi-prune: retention</a>
+<ul class="sections">
+<li><a href="#the-short-form">The short form</a></li>
+<li><a href="#why-it-is-a-helper-of-its-own">Why it is a helper of its own</a></li>
+<li><a href="#what-goes-and-when">What goes, and when</a></li>
+<li><a href="#where-it-looks-in-sequence">Where it looks, in sequence</a></li>
+<li><a href="#the-report">The report</a></li>
+<li><a href="#the-exits">The exits</a></li>
+<li><a href="#the-flags">The flags</a></li>
+<li><a href="#the-schedules">The schedules</a></li>
+<li><a href="#related-documents">Related documents</a></li>
+</ul></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html" aria-current="page">karvi-prune: retention</a>
+<ul class="sections">
+<li><a href="#the-short-form">The short form</a></li>
+<li><a href="#why-it-is-a-helper-of-its-own">Why it is a helper of its own</a></li>
+<li><a href="#what-goes-and-when">What goes, and when</a></li>
+<li><a href="#where-it-looks-in-sequence">Where it looks, in sequence</a></li>
+<li><a href="#the-report">The report</a></li>
+<li><a href="#the-exits">The exits</a></li>
+<li><a href="#the-flags">The flags</a></li>
+<li><a href="#the-schedules">The schedules</a></li>
+<li><a href="#related-documents">Related documents</a></li>
+</ul></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="karvi-prune-retention">karvi-prune: retention <a class="anchor" href="#karvi-prune-retention" aria-label="Link to this section">#</a></h1>
+<p><code>karvi-prune</code> is the retention helper: the one executable behind the
+per-operator timer, the site's root timer, the cron script, and the hand run. It
+removes finished work older than the retention age from the trees karvi writes
+and leaves everything else where it is. This guide says what it removes and why,
+where it looks and in which order, how a site schedules it, and how an operator
+runs it by hand. The design, with the decision that keeps retention outside the
+daemon, is <a href="DESIGN.html"><code>docs/DESIGN.md</code></a>.</p>
+<h2 id="the-short-form">The short form <a class="anchor" href="#the-short-form" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi-prune --dry-run            # what would go, as this operator: nothing removed
+karvi-prune                      # remove it
+karvi-prune --dry-run --verbose  # also why each item stays, and the places looked at
+sudo karvi-prune --dry-run       # the site: every operator's, as root
+sudo karvi-prune
+</code></pre>
+<p>A site that does not install the timer or the cron, or simply wants to
+clean up by hand, needs nothing more: <code>sudo karvi-prune</code> is sufficient
+for the default practice on a shared or site install, and any operator
+runs <code>karvi-prune</code> to clean their own folders. <code>--dry-run</code> first is the
+habit worth keeping.</p>
+<h2 id="why-it-is-a-helper-of-its-own">Why it is a helper of its own <a class="anchor" href="#why-it-is-a-helper-of-its-own" aria-label="Link to this section">#</a></h2>
+<p>Long-running karvi processes never delete retained history: the daemon
+writes, the helper removes, and each can be
+reasoned about alone. The helper reads no configuration; its flags carry
+the settings' words, and a site's values live on the unit's line. It
+shares two things with karvi so that the three cannot disagree: the one
+list of final statuses (<code>records.FinalStatuses</code>, the list the watch
+screen and the scoreboard reader use), and the one day-folder matcher
+(<code>osutil.IsDayFolder</code>, beside the one layout the writers use). Both
+schedules and the hand run invoke the same executable with the same
+flags, so they make the same decisions.</p>
+<h2 id="what-goes-and-when">What goes, and when <a class="anchor" href="#what-goes-and-when" aria-label="Link to this section">#</a></h2>
+<p>Everything below is judged against the retention age, <code>--days</code> (31 by
+default), the cutoff being now less that many days.</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>What it is</th>
+<th>Goes when</th>
+<th>Under pressure</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>activity</code></td>
+<td>a job folder whose <code>summary.json</code> has a final status: <code>completed</code>, <code>halted</code>, <code>errored</code>, <code>cancelled</code>, <code>incomplete</code>, or <code>exercised</code></td>
+<td><code>ended_at</code> is before the cutoff</td>
+<td>yes, oldest first</td>
+</tr>
+<tr>
+<td><code>transcript</code></td>
+<td>a recorded login: the metadata file with its end record and the transcript that shares its name</td>
+<td><code>ended_at</code> is before the cutoff</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>scoreboard</code></td>
+<td>a scoreboard file at a final status</td>
+<td><code>last_updated_at</code> is before the cutoff</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>orphan</code></td>
+<td>a job folder without <code>summary.json</code>: a job the daemon's death cut short, or one run with <code>output.files.summary-json</code> false</td>
+<td>its day folder's date is before the cutoff, nothing in it is newer, and its scoreboard file, if any, is final or older than the age</td>
+<td>never</td>
+</tr>
+<tr>
+<td><code>stale-scoreboard</code></td>
+<td>a scoreboard file at a running status that nothing has touched for the age (the file a crashed daemon's job leaves)</td>
+<td><code>last_updated_at</code> is before the cutoff</td>
+<td>never</td>
+</tr>
+<tr>
+<td><code>day</code></td>
+<td>a <code>YYMMDD</code> day folder that holds nothing</td>
+<td>its date is before the cutoff; removed after the run's other removals, with a plain <code>rmdir</code>, so a folder that gained a job in the meantime stays</td>
+<td>never</td>
+</tr>
+</tbody>
+</table>
+<p>What never goes: a running job (its summary is not final, or its
+scoreboard file is live), a transcript still being recorded (no end
+record), a folder under a name that is not a <code>YYMMDD</code> day folder, a
+symbolic link, a file the helper cannot read, the collection directory
+(<code>crun</code>; the latest file per device is not retention), the audit log,
+and anything in journald. Long-term audit retention is journald's and the
+central forwarder's, never this helper's.</p>
+<p><strong>Pressure.</strong> <code>--minfree</code> (5 by default) is a free-space floor in
+percent. A tree whose filesystem is under the floor gives up its oldest
+finished items before their age, one at a time until the floor is met,
+the newest kept. The floor is judged on each tree's own
+filesystem, so a private root on one disk and a shared tree on another
+are judged apart. Orphans, stale snapshots, and empty folders are never
+taken under pressure: their state is not a finished job's. <code>--minfree 0</code>
+turns pressure off.</p>
+<p><strong>Ownership.</strong> A run removes what the invoking user owns, wherever it is,
+and passes every other user's item by, counted as <code>not_owned</code>. A root run
+removes everything eligible. This is the rule the trees already make
+real: in a shared tree a job folder is mode 2750 in its operator's name,
+so a colleague can read it and cannot empty it, while root can. One
+executable therefore serves both a per-operator timer and a site's root
+timer.</p>
+<p><strong>Failure is a line, not the end.</strong> A removal that fails (a folder made
+unwritable, a file system gone read-only) is reported as <code>failed</code> with
+its reason and the run goes on to the next item; the summary counts it
+and the exit is 1. A tree that cannot be walked is reported the same way.</p>
+<h2 id="where-it-looks-in-sequence">Where it looks, in sequence <a class="anchor" href="#where-it-looks-in-sequence" aria-label="Link to this section">#</a></h2>
+<p>A run walks its trees in this order and reports each under <code>--verbose</code>
+as a <code>walk</code> line. It makes nothing: a place that does not exist is not
+walked. The defaults, with nothing given:</p>
+<p><strong>As an operator (<code>karvi-prune</code>).</strong></p>
+<ol>
+<li>
+<p>Every private root of the operator's that exists, <code>--basedir auto</code>, in
+this order, so what a run left under one before the site made another
+is pruned too:</p>
+<ol>
+<li><code>/opt/karvi/users/&lt;username&gt;</code> (where the site has provisioned
+<code>/opt/karvi/users</code>, <a href="OPERATIONS.html#the-shared-trees"><code>docs/OPERATIONS.md</code> &quot;The shared
+trees&quot;</a>)</li>
+<li><code>/var/lib/karvi/users/&lt;username&gt;</code> (the same under that root)</li>
+<li><code>~/.local/share/karvi</code></li>
+</ol>
+<p>The home is the passwd entry's, as for karvi: <code>HOME</code> does not move it.
+Under each root: <code>jobs/</code>, <code>transcripts/</code>, and <code>state/scoreboards/</code>.</p>
+</li>
+<li>
+<p>The shared trees, <code>--sharedroot auto</code>, chosen as karvi chooses them for
+<code>sharedroot</code>, judged by permissions without writing: for each tree the
+first root that holds it,</p>
+<ol>
+<li><code>/opt/karvi/shared/jobs</code>, else <code>/var/lib/karvi/shared/jobs</code></li>
+<li><code>/opt/karvi/shared/transcripts</code>, else <code>/var/lib/karvi/shared/transcripts</code></li>
+</ol>
+<p>A shared tree the operator cannot write to is reported as skipped and
+the run goes on. <code>crun</code> is never walked.</p>
+</li>
+<li>
+<p>The shared scoreboards, <code>--scoreboards</code>: <code>/dev/shm/karvi/scoreboards</code>.</p>
+</li>
+</ol>
+<p>The walk is by kind: the job trees (private, then shared), the transcript
+trees (private, then shared), then the scoreboards (private, then shared).
+Candidates from every tree are then removed oldest first.</p>
+<p><strong>As root (<code>sudo karvi-prune</code>).</strong> Root's own basedir holds no operator's
+jobs, so a root run walks instead:</p>
+<ol>
+<li>
+<p>The private roots under the system roots' <code>users</code> directories, every
+username present, in this order:</p>
+<ol>
+<li><code>/opt/karvi/users/&lt;username&gt;</code> for each</li>
+<li><code>/var/lib/karvi/users/&lt;username&gt;</code> for each</li>
+</ol>
+<p>Under each: <code>jobs/</code>, <code>transcripts/</code>, and <code>state/scoreboards/</code>.</p>
+</li>
+<li>
+<p>The shared trees, as above.</p>
+</li>
+<li>
+<p>The shared scoreboards, as above.</p>
+</li>
+</ol>
+<p>A private root under an operator's home (<code>~/.local/share/karvi</code>) is
+that operator's own: their <code>karvi-prune</code>, their
+timer, or their cron prunes it, and a root run does not look there.</p>
+<p><code>--basedir PATH</code> replaces the private roots with that one, and
+<code>--sharedroot PATH|none</code> the shared root, for a run over one root, as the
+suites and the examples do.</p>
+<h2 id="the-report">The report <a class="anchor" href="#the-report" aria-label="Link to this section">#</a></h2>
+<p>One line per item on standard output, the summary last, so <code>&gt; file</code> and
+<code>| logger</code> each hold the whole; standard error carries only a usage error
+or an error that stops the run.</p>
+<pre><code class="language-text">removed kind=activity path=/opt/karvi/shared/jobs/260817/260817-153859-00 age=40d bytes=14151
+removed kind=transcript path=/opt/karvi/shared/transcripts/260817/core-01-153900.meta.jsonl transcript=/opt/karvi/shared/transcripts/260817/core-01-153900.log age=40d bytes=1220
+removed kind=orphan path=/opt/karvi/shared/jobs/260810/260810-090000-00 age=47d bytes=10221
+removed kind=stale-scoreboard path=/dev/shm/karvi/scoreboards/260817-172446-00.json age=40d bytes=1316
+removed kind=day path=/opt/karvi/shared/jobs/260801 age=56d bytes=0
+failed kind=activity path=/opt/karvi/shared/jobs/260817/260817-153859-02 error=unlinkat …/summary.json: permission denied
+examined=31 removed=15 skipped=4 not_owned=0 failed=1 bytes=137313 dry_run=false
+</code></pre>
+<p><code>would-remove</code> replaces <code>removed</code> under <code>--dry-run</code>. The age is whole
+days, hours under a day, minutes under an hour; a job's age counts from
+its end, an orphan's from the newest thing in it, a day folder's from
+its date. Under <code>--verbose</code> every examined item that stays has a <code>kept</code>
+line with one reason: <code>young</code> (within the age), <code>live</code> (a running job's
+summary or snapshot, a transcript without its end record, an orphan whose
+snapshot is live), <code>not-owned</code>, <code>not-a-day-folder</code>, <code>symlink</code>,
+<code>unreadable</code>; and every place looked at has a <code>walk</code> line.</p>
+<p>The summary: <code>examined</code> records read, <code>removed</code> items removed (or that
+would be), <code>skipped</code> entries passed by (a name that is not a day folder,
+a live record, a tree not walked), <code>not_owned</code> items another user owns,
+<code>failed</code> removals that returned an error, <code>bytes</code> the size removed.</p>
+<p><strong><code>--format jsonl</code></strong> writes the same report as one JSON document per line
+for a site's log pipeline: the event word under
+<code>event</code> (<code>removed</code>, <code>would-remove</code>, <code>failed</code>, <code>kept</code>, <code>skipped</code>, <code>walk</code>,
+and <code>summary</code> for the last line), the fields under the keys the text form
+prints, the age as <code>age_days</code> (a whole number), an error as its text, the
+counts and <code>dry_run</code> as numbers and a boolean. Nothing else changes: one
+line per item, the summary last, standard error for a usage error alone.</p>
+<pre><code class="language-text">{&quot;event&quot;:&quot;would-remove&quot;,&quot;kind&quot;:&quot;activity&quot;,&quot;path&quot;:&quot;/opt/karvi/shared/jobs/260817/260817-153859-00&quot;,&quot;age_days&quot;:40,&quot;bytes&quot;:14151}
+{&quot;event&quot;:&quot;kept&quot;,&quot;kind&quot;:&quot;activity&quot;,&quot;path&quot;:&quot;/opt/karvi/shared/jobs/260926/260926-153859-00&quot;,&quot;reason&quot;:&quot;young&quot;}
+{&quot;event&quot;:&quot;summary&quot;,&quot;examined&quot;:31,&quot;removed&quot;:15,&quot;skipped&quot;:4,&quot;not_owned&quot;:0,&quot;failed&quot;:1,&quot;bytes&quot;:137313,&quot;dry_run&quot;:true}
+</code></pre>
+<h2 id="the-exits">The exits <a class="anchor" href="#the-exits" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Exit</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>everything eligible went (or would, under <code>--dry-run</code>)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>a removal failed or a tree could not be walked; the report says which</td>
+</tr>
+<tr>
+<td>2</td>
+<td>a usage error: an unknown flag, a positional argument, <code>--days</code> below one, <code>--minfree</code> outside 0 to 100, <code>--format</code> neither <code>text</code> nor <code>jsonl</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-flags">The flags <a class="anchor" href="#the-flags" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-text">karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH] [--scoreboards PATH]
+            [--days N] [--minfree PERCENT] [--dry-run] [--verbose] [--format text|jsonl]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--basedir</code></td>
+<td><code>auto</code></td>
+<td>the private roots; <code>auto</code> is every root of the operator's that exists, or the site's provisioned roots for a root run; a path is that root alone</td>
+</tr>
+<tr>
+<td><code>--sharedroot</code></td>
+<td><code>auto</code></td>
+<td>the site's shared root; <code>auto</code> consults the two system roots, <code>none</code> consults nothing, a path consults that root</td>
+</tr>
+<tr>
+<td><code>--scoreboards</code></td>
+<td><code>/dev/shm/karvi/scoreboards</code></td>
+<td>the shared scoreboards, walked beside each private root's <code>state/scoreboards</code> (the <code>scoreboards</code> key's shared place)</td>
+</tr>
+<tr>
+<td><code>--days</code></td>
+<td><code>31</code></td>
+<td>the retention age in days, one or more</td>
+</tr>
+<tr>
+<td><code>--minfree</code></td>
+<td><code>5</code></td>
+<td>the free-space floor in percent; 0 turns pressure off</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>off</td>
+<td>report what would go and remove nothing</td>
+</tr>
+<tr>
+<td><code>--verbose</code></td>
+<td>off</td>
+<td>add the <code>walk</code> and <code>kept</code> lines</td>
+</tr>
+<tr>
+<td><code>--format</code></td>
+<td><code>text</code></td>
+<td>the report's form: <code>text</code>, or <code>jsonl</code> for one JSON document per line with the same fields</td>
+</tr>
+</tbody>
+</table>
+<p>Tab completes the flags, their words, and a path once the site has run <code>sudo karvi setup tab</code> (<a href="OPERATIONS.html#tab-completion"><code>docs/OPERATIONS.md</code> &quot;Tab
+completion&quot;</a>); the candidates come from the
+helper's own flag set, so they are these and no others.</p>
+<h2 id="the-schedules">The schedules <a class="anchor" href="#the-schedules" aria-label="Link to this section">#</a></h2>
+<p>The release ships three forms over the one executable; a site picks one
+per host, or none and runs the helper by hand.</p>
+<p><strong>Per operator, systemd.</strong> <code>/usr/share/karvi/systemd/user/karvi-prune.service</code>
+and <code>karvi-prune.timer</code>: install under <code>~/.config/systemd/user/</code> and <code>systemctl --user enable --now karvi-prune.timer</code>. Daily, persistent across a missed day, a
+randomized delay of up to thirty minutes. The unit carries no file-system
+sandbox and removes only what this operator owns (<a href="OPERATIONS.html#retention"><code>docs/OPERATIONS.md</code>
+&quot;Retention&quot;</a> says why a user unit has none).</p>
+<p><strong>The site, systemd.</strong> <code>/usr/share/karvi/systemd/system/karvi-prune.service</code>
+and <code>karvi-prune.timer</code>: install under <code>/etc/systemd/system/</code> and
+<code>systemctl enable --now karvi-prune.timer</code>. The same line as root, so the
+site's provisioned private roots, the shared trees, and the scoreboards
+are pruned whoever owns the item.</p>
+<p><strong>cron.</strong> <code>/usr/share/karvi/cron/karvi-prune</code>, one line per identity:</p>
+<pre><code class="language-text">17 3 * * *  root    /usr/share/karvi/cron/karvi-prune 2&gt;&amp;1 | logger -t karvi-prune
+23 3 * * *  netops  /usr/share/karvi/cron/karvi-prune 2&gt;&amp;1 | logger -t karvi-prune
+</code></pre>
+<p><code>KARVI_PRUNE</code> names another executable; arguments are appended to the
+line (<code>--dry-run</code>, <code>--verbose</code>, <code>--days 14</code>).</p>
+<p><strong>By hand.</strong> <code>karvi-prune --dry-run</code>, then <code>karvi-prune</code>; <code>sudo karvi-prune --dry-run</code>, then <code>sudo karvi-prune</code> for the site. Both
+helpers install at <code>/usr/bin</code> beside <code>karvi</code>, so the word is on every
+operator's path.</p>
+<h2 id="related-documents">Related documents <a class="anchor" href="#related-documents" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><code>packaging/man/karvi-prune.8</code>, installed as <code>man karvi-prune</code>: the
+terminal reference. It restates this guide's rules, the report, and the
+exits (not the schedules), so a change to the helper changes both; its
+SYNOPSIS and OPTIONS are generated from the helper's flag definition
+(<code>make generate</code>).</li>
+<li><a href="OPERATIONS.html#retention"><code>docs/OPERATIONS.md</code> &quot;Retention&quot;</a>: the operator's
+short form; <a href="OPERATIONS.html#tab-completion">&quot;Tab completion&quot;</a> for the helper's
+flags under Tab.</li>
+<li><a href="DESIGN.html"><code>docs/DESIGN.md</code></a>: the retention rules and the reasons behind
+them.</li>
+<li><a href="OPERATIONS.html#the-shared-trees"><code>docs/OPERATIONS.md</code> &quot;The shared trees&quot;</a>: the
+shared root and the modes the ownership rule rests on.</li>
+<li><a href="COLLECTION.html#7-the-schedule"><code>docs/COLLECTION.md</code> section 7</a>: the collection
+run's schedule, the same timer pattern; the collection directory is not
+pruned.</li>
+<li><a href="ARCHITECTURE.html#daemon-and-storage"><code>docs/ARCHITECTURE.md</code> &quot;Daemon and
+storage&quot;</a>: the helper's place beside the
+daemon.</li>
+</ul>
+
+<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

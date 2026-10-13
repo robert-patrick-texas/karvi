@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login transcript behavior — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html" aria-current="page">Login transcript behavior</a>
+<ul class="sections">
+<li><a href="#destination-and-layout">Destination and layout</a></li>
+<li><a href="#formats">Formats</a></li>
+<li><a href="#content">Content</a></li>
+</ul></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html" aria-current="page">Login transcript behavior</a>
+<ul class="sections">
+<li><a href="#destination-and-layout">Destination and layout</a></li>
+<li><a href="#formats">Formats</a></li>
+<li><a href="#content">Content</a></li>
+</ul></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="login-transcript-behavior">Login transcript behavior <a class="anchor" href="#login-transcript-behavior" aria-label="Link to this section">#</a></h1>
+<p><code>karvi login --record HOST</code> and <code>karvi login HOST --record</code> are equivalent, and
+<code>--rec</code> is an alias. PATH is given only with <code>=</code>, so <code>karvi login --rec router01</code> records a session with <code>router01</code>. The v0.9.1 spellings
+<code>--record-file</code> and <code>--record-path</code> are not accepted.</p>
+<p>A recorded login runs through a real pseudo-terminal owned by a small parent
+karvi process, the recording wrapper, which uses util-linux <code>script(1)</code>. The
+child login performs configuration, inventory, credential resolution, auditing,
+and system-OpenSSH execution exactly as an unrecorded login does; it uses the
+session ID the wrapper chose, so the metadata, audit, and scoreboard records
+agree. The session ID is the login's activity ID in the job form,
+<code>YYMMDD-HHMMSS-xx</code>, the form every <code>run</code> and <code>cmd</code> has: the wrapper reserves
+it by creating the scoreboard file exclusively before the child runs, the
+child writes its snapshots into that file, and an unrecorded login reserves
+the same way for itself.</p>
+<h2 id="destination-and-layout">Destination and layout <a class="anchor" href="#destination-and-layout" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>
+<p>Without PATH, sessions record below <code>transcript.root</code> (default
+<code>&lt;basedir&gt;/transcripts</code>). <code>--record=PATH</code> uses PATH in its place; when
+<code>transcript.root</code> is locked, <code>--record=PATH</code> is refused with
+<code>transcript_root_locked</code>. PATH attaches with <code>=</code> only: <code>--record /x r1</code>
+is refused as <code>cli_option_value_detached</code>, where the path had been taken
+for the device. No environment variable selects a destination.</p>
+</li>
+<li>
+<p>A session writes into <code>&lt;destination&gt;/YYMMDD/</code>, named from the start
+date in the effective <code>timezone</code>; a session that crosses midnight stays in
+its start-day folder. <code>--record=session.log</code> therefore creates a folder
+named <code>session.log</code>, and a PATH that exists and is not a folder is refused
+with <code>transcript_path_not_directory</code>.</p>
+</li>
+<li>
+<p>The transcript <code>&lt;device&gt;-&lt;HHMMSS&gt;.log</code> and its metadata
+<code>&lt;device&gt;-&lt;HHMMSS&gt;.meta.jsonl</code> sit side by side, where <code>&lt;device&gt;</code> is the
+lowercase target name with every character other than letters, digits,
+<code>.</code>, <code>_</code>, and <code>-</code> replaced by <code>_</code>. When either name is taken, both are
+bumped together: <code>router01-143005.1.log</code> and
+<code>router01-143005.1.meta.jsonl</code>, then <code>.2</code>.</p>
+</li>
+<li>
+<p>The terminal names the transcript twice, with one line in the display's style:
+<code>display.record.header</code> before the session and <code>display.record.footer</code> as the
+last line, after the device's last output, a session that failed included.
+Both default to <code>! transcript=&lt;transcript&gt;</code>, so the two lines match, colored
+as the login's header is
+(<a href="DISPLAY-CONFIGURATION.html"><code>docs/DISPLAY-CONFIGURATION.md</code></a> <a href="DISPLAY-CONFIGURATION.html#the-recorded-logins-lines">&quot;The recorded
+login's lines&quot;</a>);
+<code>--quiet</code> suppresses them. A login refused before the recording starts (a
+free-space floor, a refused option) names none, since none was written.</p>
+<pre><code class="language-text">! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log
+! router01 [10.0.0.1] platform=cisco_iosxe user=netops backend=interactive-tty transport=system
+...
+router01#exit
+! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log
+</code></pre>
+</li>
+<li>
+<p>Folders karvi creates take <code>output.directory-mode</code> (default <code>0750</code>); files
+are <code>0640</code>, created exclusively without following links. An existing folder
+is accepted when the operator can create files in it, else
+<code>transcript_directory_not_writable</code>.</p>
+</li>
+</ul>
+<h2 id="formats">Formats <a class="anchor" href="#formats" aria-label="Link to this section">#</a></h2>
+<p><code>transcript.format</code> is <code>text</code>; the values <code>jsonl</code> and <code>json</code> name the
+transcript event recorder, which this release does not implement, and are
+refused with <code>transcript_format_unavailable</code>. <code>transcript.metadata-format</code>
+accepts <code>jsonl</code> (default: a <code>start</code> line at session begin and an <code>end</code> line at
+the end, so a killed session still leaves a readable record), <code>json</code> (one end
+document written by atomic replacement), or <code>text</code> (<code>key: value</code> lines).
+Metadata records the session ID, operator, target as typed, device, transport,
+dispatch order and shuffle key, candidate count, transcript file and format,
+terminal size, start and end times, the exit classification, and the SHA-256
+of the transcript.</p>
+<h2 id="content">Content <a class="anchor" href="#content" aria-label="Link to this section">#</a></h2>
+<p>The transcript holds only the stream the device returns, as the terminal
+showed it: device output, echoed characters, and prompts, which show the
+commands sent. Operator keystrokes are not recorded, so a password typed at a
+prompt that does not echo is not written. Karvi's own header, footer, and
+warnings go to the terminal, not the transcript.</p>
+<p>When the session ends, karvi rewrites the file once, before taking its SHA-256
+for the metadata. It removes the <code>Script started</code> and <code>Script done</code> lines
+<code>script(1)</code> writes into the file, and renders the bytes between them as the
+terminal showed them: the line editor's corrections are applied (<code>echo helo</code>
+corrected by two backspaces is recorded as sent, not as <code>echo helolo</code>), colours,
+window titles, and terminal modes are dropped, a line longer than the terminal
+is one line, its wrapped rows joined, and every line ends in a newline, with no
+carriage return. The widths are <code>script(1)</code>'s timing log's (<code>-T FILE -m advanced</code>): the terminal's columns at the start and each resize. The log is
+written into the scratch (<code>tempdir</code>) and removed after; should it be unreadable,
+the transcript is rendered at the columns the session started with, with the
+warning <code>transcript_timing_unreadable</code>. No raw copy is kept. A session killed
+before its end keeps the bytes <code>script(1)</code> wrote, its two lines included, and
+leaves its timing log in the scratch.</p>
+<pre><code class="language-text">$ cat -v raw          the bytes the terminal was sent
+^[[?2004h^[]0;netops@dev: ~^G^[[01;32mnetops@dev^[[00m:^[[01;34m~^[[00m$ echo helo^H^[[K^H^[[Klo^M
+^[[?2004l^Mhelo^M
+$ cat transcript      the transcript
+netops@dev:~$ echo helo
+helo
+</code></pre>
+<p>The limits are the terminal's: a key the far end does not echo cannot appear,
+a full-screen program (an editor, <code>top</code>) comes out as its text in the order it
+was drawn, and a device that shows a long line as a scrolled window records the
+window. The runbook's row D16 records what IOS XE's line editor gives
+(<a href="DEVICE-QUALIFICATION-RUNBOOK.html#4-the-rows"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code>, section
+4</a>).</p>
+<p>Cleanup: <code>karvi-prune</code> recognizes an ended session by the end record in its
+metadata file and removes the transcript and metadata together.</p>
+<p><code>karvi-login(1)</code> (<code>man karvi login</code>), TRANSCRIPTS, restates the
+destination, the names, the two lines, and what the transcript holds for
+the terminal; a change to one changes both.</p>
+
+<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

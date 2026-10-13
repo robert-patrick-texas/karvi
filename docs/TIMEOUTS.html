@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timeouts and keepalives — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html" aria-current="page">Timeouts and keepalives</a>
+<ul class="sections">
+<li><a href="#1-configuration-keys">1. Configuration keys</a></li>
+<li><a href="#2-how-the-values-relate">2. How the values relate</a></li>
+<li><a href="#3-what-each-expiry-records">3. What each expiry records</a></li>
+<li><a href="#4-names-in-the-code">4. Names in the code</a></li>
+<li><a href="#5-test-and-fixture-labels">5. Test and fixture labels</a></li>
+</ul></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html" aria-current="page">Timeouts and keepalives</a>
+<ul class="sections">
+<li><a href="#1-configuration-keys">1. Configuration keys</a></li>
+<li><a href="#2-how-the-values-relate">2. How the values relate</a></li>
+<li><a href="#3-what-each-expiry-records">3. What each expiry records</a></li>
+<li><a href="#4-names-in-the-code">4. Names in the code</a></li>
+<li><a href="#5-test-and-fixture-labels">5. Test and fixture labels</a></li>
+</ul></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="timeouts-and-keepalives">Timeouts and keepalives <a class="anchor" href="#timeouts-and-keepalives" aria-label="Link to this section">#</a></h1>
+<p>What bounds a device session in karvi, which configuration key sets each bound,
+how the values relate, what each expiry records, and where each lives in the
+code, the blind wait among them. The decisions are
+<a href="DESIGN.html"><code>docs/DESIGN.md</code></a>; <a href="ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a> holds the
+codes, <code>configs/reference.toml</code> the keys. The <code>system</code> transport is OpenSSH's
+<code>ssh</code>; <code>scrapligo-v1</code> is karvi's own connection.</p>
+<p>No timer ends an open session on its total age except
+<code>execution.device-timeout</code>. The others bound one step each, prove the peer
+alive, or belong to the operator (a cancel) and the daemon (its shutdown
+grace).</p>
+<h2 id="1-configuration-keys">1. Configuration keys <a class="anchor" href="#1-configuration-keys" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Key (environment variable)</th>
+<th>Default</th>
+<th>Range (refused at load as <code>config_value_out_of_range</code>)</th>
+<th>Bounds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ssh.connect-timeout</code> (<code>KARVI__SSH__CONNECT_TIMEOUT</code>)</td>
+<td>10s</td>
+<td>1s–5m</td>
+<td><code>system</code>: the TCP connect (OpenSSH <code>ConnectTimeout</code>); also part of its first-prompt allowance</td>
+</tr>
+<tr>
+<td><code>native-ssh.connect-timeout</code> (<code>KARVI__NATIVE_SSH__CONNECT_TIMEOUT</code>)</td>
+<td>10s</td>
+<td>1s–5m</td>
+<td>scrapligo-v1: the TCP dial</td>
+</tr>
+<tr>
+<td><code>native-ssh.handshake-timeout</code> (<code>KARVI__NATIVE_SSH__HANDSHAKE_TIMEOUT</code>)</td>
+<td>10s</td>
+<td>1s–5m</td>
+<td>scrapligo-v1: the SSH handshake, authentication, and the PTY and shell requests</td>
+</tr>
+<tr>
+<td><code>telnet.connect-timeout</code> (<code>KARVI__TELNET__CONNECT_TIMEOUT</code>)</td>
+<td>10s</td>
+<td>1s–5m</td>
+<td>telnet: the TCP connect</td>
+</tr>
+<tr>
+<td><code>execution.prompt-timeout</code> (<code>KARVI__EXECUTION__PROMPT_TIMEOUT</code>)</td>
+<td>10s</td>
+<td>1s–5m</td>
+<td>the first prompt after login; the prompt after each paging command</td>
+</tr>
+<tr>
+<td><code>execution.enable-timeout</code> (<code>KARVI__EXECUTION__ENABLE_TIMEOUT</code>)</td>
+<td>10s</td>
+<td>1s–5m</td>
+<td>one privilege level's whole step, from the escalate command to that level's prompt</td>
+</tr>
+<tr>
+<td><code>execution.command-timeout</code> (<code>KARVI__EXECUTION__COMMAND_TIMEOUT</code>)</td>
+<td>120s</td>
+<td>1s–12h</td>
+<td>each requested command</td>
+</tr>
+<tr>
+<td><code>[session-init.NAME] command-timeout</code></td>
+<td>unset: <code>execution.command-timeout</code></td>
+<td></td>
+<td>each command of that session-init profile</td>
+</tr>
+<tr>
+<td><code>--timeout DURATION</code>, a declaration on one requested command</td>
+<td>unset: <code>execution.command-timeout</code></td>
+<td>1s–12h, when parsed; at most a set <code>execution.device-timeout</code>, at planning (<code>timeout_over_device_timeout</code>); refused on a blind command (<code>timeout_with_blind</code>)</td>
+<td>that command, in place of <code>execution.command-timeout</code> and over telnet of <code>telnet.read-timeout</code> too</td>
+</tr>
+<tr>
+<td><code>execution.device-timeout</code> (<code>KARVI__EXECUTION__DEVICE_TIMEOUT</code>)</td>
+<td>0s (unbounded)</td>
+<td>0, or 1s–168h</td>
+<td>one device's whole command list, the session-init profile and the requested commands, from the prepared session</td>
+</tr>
+<tr>
+<td><code>ssh.server-alive-interval</code> (<code>KARVI__SSH__SERVER_ALIVE_INTERVAL</code>), <code>ssh.server-alive-count-max</code> (<code>KARVI__SSH__SERVER_ALIVE_COUNT_MAX</code>)</td>
+<td>15s, 3</td>
+<td>0 disables, else 1s–10m; 1–100</td>
+<td><code>system</code>: OpenSSH <code>ServerAliveInterval</code> (whole seconds, rounded up) and <code>ServerAliveCountMax</code></td>
+</tr>
+<tr>
+<td><code>native-ssh.keepalive-interval</code> (<code>KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL</code>), <code>native-ssh.keepalive-count-max</code> (<code>KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX</code>)</td>
+<td>15s, 3</td>
+<td>0 disables, else 1s–10m; 1–100</td>
+<td>scrapligo-v1: karvi's <code>keepalive@openssh.com</code> requests</td>
+</tr>
+<tr>
+<td><code>telnet.read-timeout</code> (<code>KARVI__TELNET__READ_TIMEOUT</code>)</td>
+<td>60s</td>
+<td>1s–12h</td>
+<td>telnet: each command whole, from the write to the prompt, the smaller of it and the command's timeout (not reset by output); a command given <code>--timeout</code> has that alone</td>
+</tr>
+<tr>
+<td><code>execution.blind-wait</code> (<code>KARVI__EXECUTION__BLIND_WAIT</code>; <code>--blind-wait</code>)</td>
+<td>10s</td>
+<td>0–10m</td>
+<td>the prompt's return after a blind command (<code>--blind</code>, <code>--blind-return N</code> with 0–20 returns, or a command ending in <code>\r</code> sequences), in place of its command timeout; 0 sends and does not wait</td>
+</tr>
+</tbody>
+</table>
+<p>None of these keys but <code>execution.blind-wait</code> has a command-line option; each
+is set for one invocation with <code>--set KEY=VALUE</code> before the mode. One command
+takes its own timeout with <code>--timeout</code> after its <code>--cmd</code>, the rest of the list
+keeping the key's. Every range
+in the table is enforced when the configuration loads
+(<code>config_value_out_of_range</code>), and <code>execution.blind-wait</code>'s again when the plan
+is drafted (<code>execution_plan_invalid</code>).</p>
+<p>The invocation's values bound its job on every path. A job runs under its
+client's configuration, which reaches the daemon in the plan's <code>configuration</code>
+block, so every key on this page, the connect and handshake timeouts and the
+keepalives among them, is the invocation's; the plan carries each command's
+<code>--timeout</code> in <code>timeouts_ns</code> (0 for the key's), and the daemon's own values for
+these keys bound no job. A daemon's plan check refuses a negative or miscounted
+<code>timeouts_ns</code>; the client's load has checked every key's range.</p>
+<h2 id="2-how-the-values-relate">2. How the values relate <a class="anchor" href="#2-how-the-values-relate" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th><code>system</code></th>
+<th><code>scrapligo-v1</code></th>
+<th>telnet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Connect</td>
+<td><code>ssh.connect-timeout</code></td>
+<td><code>native-ssh.connect-timeout</code>, then <code>native-ssh.handshake-timeout</code></td>
+<td><code>telnet.connect-timeout</code></td>
+</tr>
+<tr>
+<td>First prompt (login)</td>
+<td><code>ssh.connect-timeout</code> + <code>execution.prompt-timeout</code>, from the start of the <code>ssh</code> process</td>
+<td><code>execution.prompt-timeout</code>, after the handshake</td>
+<td><code>execution.prompt-timeout</code></td>
+</tr>
+<tr>
+<td>Enable, per privilege level</td>
+<td><code>execution.enable-timeout</code>: one deadline across the secret's prompt and the level's prompt</td>
+<td>the same</td>
+<td>the same (the second wait has what remains)</td>
+</tr>
+<tr>
+<td>Each paging command</td>
+<td><code>execution.prompt-timeout</code></td>
+<td>the same</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>Each command</td>
+<td>the smaller of its command timeout (its <code>--timeout</code>, the profile's, or <code>execution.command-timeout</code>) and what remains of <code>execution.device-timeout</code></td>
+<td>the same</td>
+<td>the smaller of those and <code>telnet.read-timeout</code>; with <code>--timeout</code>, the smaller of it and what remains of the device timeout</td>
+</tr>
+<tr>
+<td>A blind command</td>
+<td><code>execution.blind-wait</code> in place of the command timeout, under what remains of <code>execution.device-timeout</code>; any blind returns are written with the command, before any read</td>
+<td>the same</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>An answered prompt (<code>--expect</code>)</td>
+<td>the command's timeout (its <code>--timeout</code> when given), or the blind wait when the command is blind: one deadline across every prompt and answer, never reset; a pattern that never appears is <code>command_timeout</code> naming the last line seen and the count answered</td>
+<td>the same</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>The device's whole list</td>
+<td><code>execution.device-timeout</code>, from the prepared session</td>
+<td>the same</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>A peer gone silent</td>
+<td>ended (count-max + 1) × interval after the last data received</td>
+<td>ended (count-max + 1) × interval after the last device output</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The first-prompt allowance differs by transport.</strong> The <code>ssh</code> process
+dials, authenticates, and starts the shell in one stretch karvi cannot see
+into, so <code>system</code> awaits the first prompt for the connect and prompt
+timeouts together; scrapligo-v1 times its dial and handshake itself and
+awaits the prompt for <code>execution.prompt-timeout</code> alone. A device whose
+first prompt is slower than the prompt timeout can open on <code>system</code> and be
+<code>command_session_prompt_timeout</code> on scrapligo-v1.</li>
+<li><strong>The device clock</strong> starts when the session is prepared. The ICMP gate,
+the capacity wait, connect, login, enable, and paging are outside it, each
+under its own bound.</li>
+<li><strong>The longest a list can run</strong> with <code>execution.device-timeout = 0</code> is the
+sum of its commands' timeouts; with the key set, that value beside the
+separately bounded open.</li>
+<li><strong>Liveness and the command timeout:</strong> a silent peer is ended by the
+smaller of (count-max + 1) × interval and the command's deadline; with
+keepalives off, only by the command timeout, as <code>command_timeout</code>.</li>
+<li><strong>The blind wait is not a timeout.</strong> The operator declared the send blind,
+so the prompt's absence at the end of the wait is recorded as a success
+with the notice <code>prompt_not_observed_after_blind_send</code>, and the same when
+the stream ends during the wait (a real <code>reload</code>). A short command timeout
+does not cut a long confirm: the wait replaces it. The client's effective
+value travels in the execution plan (<code>blind_wait_ns</code>), so <code>--blind-wait</code>
+reaches the daemon, as the other timeouts do in the plan's <code>execution</code>
+block. Session-init profile commands are never blind.</li>
+<li><strong>Keepalive timing seen</strong> against the fake with 1s × 2: 3.0s from the
+silence on scrapligo-v1, 5.3–5.6s on <code>system</code>, where OpenSSH's own
+whole-second timers are the likely cause. At the defaults the difference
+is small beside the total.</li>
+<li><strong>The keepalive request</strong> is the global request <code>keepalive@openssh.com</code>
+with want-reply on both transports, sent only when nothing has arrived for
+the interval. Any reply counts, a refusal included: no server implements
+the name, and the refusal the protocol requires is the proof of life. The
+name is not configurable.</li>
+</ul>
+<h2 id="3-what-each-expiry-records">3. What each expiry records <a class="anchor" href="#3-what-each-expiry-records" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Expired</th>
+<th>Code</th>
+<th>Category and record status</th>
+<th>Retryable</th>
+<th><code>command</code> exit</th>
+<th>The rest of the device's list</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First prompt</td>
+<td><code>command_session_prompt_timeout</code></td>
+<td>timeout; <code>connection_error</code> (a failure at open)</td>
+<td>yes</td>
+<td>110</td>
+<td>not attempted</td>
+</tr>
+<tr>
+<td><code>execution.enable-timeout</code></td>
+<td><code>privilege_failed</code></td>
+<td>device; <code>privilege_error</code></td>
+<td>no</td>
+<td>107</td>
+<td>not attempted</td>
+</tr>
+<tr>
+<td>A paging command's prompt</td>
+<td><code>paging_disable_failed</code></td>
+<td>device; <code>device_error</code></td>
+<td>no</td>
+<td>107</td>
+<td>not attempted</td>
+</tr>
+<tr>
+<td>A command's timeout</td>
+<td><code>command_timeout</code></td>
+<td>timeout; <code>timeout</code></td>
+<td>yes</td>
+<td>107</td>
+<td>not attempted; the session is ended, under <code>--continue-device-on-error</code> too</td>
+</tr>
+<tr>
+<td><code>execution.device-timeout</code></td>
+<td><code>device_timeout</code></td>
+<td>timeout; <code>timeout</code></td>
+<td>yes</td>
+<td>107</td>
+<td><code>not_attempted_prior_command_failure</code>; the requested records are <code>not_attempted_session_init_failure</code> when a profile command was cut</td>
+</tr>
+<tr>
+<td>Keepalives unanswered</td>
+<td><code>session_keepalive_timeout</code></td>
+<td>connection; <code>connection_error</code></td>
+<td>yes</td>
+<td>110</td>
+<td>not attempted</td>
+</tr>
+<tr>
+<td>scrapligo-v1's dial or handshake</td>
+<td><code>native_session_open_failed</code></td>
+<td>connection; <code>connection_error</code></td>
+<td>yes</td>
+<td>110</td>
+<td>not attempted</td>
+</tr>
+<tr>
+<td><code>execution.blind-wait</code> (the prompt absent after a blind command: <code>--blind</code>, a count, or the escape; its declared prompts answered as they appeared)</td>
+<td>none; the notice <code>prompt_not_observed_after_blind_send</code> (<code>reason</code> <code>blind_wait_expired</code>, or <code>session_ended</code> when the stream ended first)</td>
+<td><code>succeeded</code>, all bytes read as the output, <code>prompt_observed</code> false</td>
+<td>—</td>
+<td>0</td>
+<td><code>not_attempted_prior_command_failure</code> naming the blind send, the device <code>command_session_lost</code>; as the last command the device succeeds</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>A failed <code>run</code> exits 101 whatever the code.</li>
+<li>The earlier of a command's own deadline and the device's names the code, on
+every transport, telnet included. A device deadline that has passed between
+two commands leaves the next one unsent under <code>device_timeout</code>, and the
+shell, still in step, is closed with the platform's exit commands.</li>
+<li>A timed-out command's record holds what settled by the cut; on the shell
+the session is closed without a graceful exit, since a desynchronised shell
+cannot serve another command, and on an exec channel the command is stopped
+and its connection serves the next. After a blind command whose prompt did
+not return the session is likewise closed without the exit commands, the
+shell being out of step.</li>
+<li>A command timeout's message names the bound that expired: <code>command timed out after 45m0s (--timeout)</code>, <code>(execution.command-timeout)</code>, a profile's
+<code>(session-init.NAME.command-timeout)</code>, or over telnet
+<code>(telnet.read-timeout)</code> when its cap was the smaller.</li>
+</ul>
+<h2 id="4-names-in-the-code">4. Names in the code <a class="anchor" href="#4-names-in-the-code" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Go name</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First prompt</td>
+<td><code>devsession.Options.LoginTimeout</code> (fallback 40s)</td>
+<td><code>internal/devsession/session.go</code>; filled in <code>internal/transport/systemssh/systemssh.go</code> <code>Prepare</code> (<code>connectTimeout + promptTimeout</code>) and <code>internal/transport/native/provider_scrapligov1.go</code> (<code>promptTimeout</code>)</td>
+</tr>
+<tr>
+<td>Enable</td>
+<td><code>devsession.Options.EnableTimeout</code> (fallback 10s); <code>stepCtx</code> in <code>escalate</code></td>
+<td>the same files; telnet: <code>enableTimeout</code>, <code>enableDeadline</code> in <code>internal/transport/telnet/telnet.go</code></td>
+</tr>
+<tr>
+<td>Paging</td>
+<td><code>devsession.Options.PromptTimeout</code> (fallback 10s)</td>
+<td>the same files</td>
+</tr>
+<tr>
+<td>Command</td>
+<td><code>platform.Command.Timeout</code>, <code>TimeoutSource</code> (<code>platform.DeclaredTimeout</code>, <code>platform.SessionTimeout</code>); the executor's <code>step.timeout</code>, <code>step.source</code>; <code>executionplan.SessionInitProfile.CommandTimeoutNS</code></td>
+<td><code>internal/executor/executor.go</code> <code>sequence</code></td>
+</tr>
+<tr>
+<td>A command's own timeout</td>
+<td><code>executionplan.ExecutionPlan.TimeoutsNS</code>; the executor's <code>Options.TimeoutsNS</code>; the client's <code>optTimeout</code>, <code>checkDeclaredBound</code>, <code>declarationLists</code>, and the planner's <code>checkCommandBounds</code></td>
+<td><code>executionplan/plan.go</code>; <code>internal/executor/executor.go</code>; <code>internal/cli/parse.go</code>, <code>internal/cli/work_commands.go</code>; <code>internal/planner/draft.go</code></td>
+</tr>
+<tr>
+<td>Blind send</td>
+<td><code>platform.Command.Blind</code> (the tolerance; <code>Timeout</code> is then the blind wait), <code>BlindReturns</code>; the executor's <code>step.blind</code>, <code>step.returns</code>, <code>Options.Blind</code>, <code>Options.BlindReturns</code>, <code>Options.BlindWait</code>; <code>executionplan.ExecutionPlan.Blind</code>, <code>BlindReturns</code>, <code>BlindWaitNS</code> (<code>BlindReturnsMax</code>, <code>BlindWaitMax</code>); the client's <code>Declaration</code>, <code>declarationLists</code>, and <code>declarations</code></td>
+<td><code>internal/devsession/session.go</code> <code>Execute</code>; <code>internal/executor/executor.go</code> <code>sequence</code>; <code>executionplan/plan.go</code>; <code>internal/cli/work_commands.go</code></td>
+</tr>
+<tr>
+<td>Expect-and-send</td>
+<td><code>platform.Command.Expectations</code> (compiled); the session's <code>expecter</code>; the executor's <code>step.expect</code>, <code>Options.Expectations</code>; <code>executionplan.ExecutionPlan.Expectations</code>, <code>Expectation</code> (<code>ExpectationsMax</code>); the client's <code>splitExpect</code>, <code>Declaration</code>, <code>declarationLists</code>, and <code>declarations</code></td>
+<td>the same files; <code>internal/cli/parse.go</code></td>
+</tr>
+<tr>
+<td>Device</td>
+<td><code>deviceTimeout</code>, <code>deviceDeadline</code>, <code>deviceExpired</code>, <code>deviceCut</code>, <code>skipRest</code></td>
+<td><code>internal/executor/executor.go</code>, the command loop</td>
+</tr>
+<tr>
+<td>scrapligo-v1 connect, handshake</td>
+<td><code>DialRequest.ConnectTimeout</code>, <code>DialRequest.HandshakeTimeout</code></td>
+<td><code>internal/adapters/scrapligov1/dial.go</code></td>
+</tr>
+<tr>
+<td>scrapligo-v1 keepalive</td>
+<td><code>DialRequest.KeepaliveInterval</code>, <code>DialRequest.KeepaliveCountMax</code>; <code>connection.keepalive</code>, <code>connection.lastRead</code>, <code>connection.lost</code>; the constant <code>keepaliveRequest</code></td>
+<td><code>internal/adapters/scrapligov1/dial.go</code></td>
+</tr>
+<tr>
+<td><code>system</code> keepalive</td>
+<td><code>processStream.aliveInterval</code>, <code>processStream.aliveCountMax</code>; <code>classify</code>'s &quot;not responding&quot; case</td>
+<td><code>internal/transport/systemssh/stream.go</code>, <code>systemssh.go</code></td>
+</tr>
+<tr>
+<td>The keepalive timeout's wording</td>
+<td><code>devsession.KeepaliveTimeout(count, interval, detail)</code></td>
+<td><code>internal/devsession/session.go</code></td>
+</tr>
+<tr>
+<td>Fixed waits, not configurable</td>
+<td><code>promptSettleDelay</code> (100ms, a prompt-shaped last line must stay unchanged); <code>shellEndGrace</code> (2s, the shell's end after the exit commands)</td>
+<td><code>internal/devsession/session.go</code>; <code>internal/adapters/scrapligov1/dial.go</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-test-and-fixture-labels">5. Test and fixture labels <a class="anchor" href="#5-test-and-fixture-labels" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fake device flags <code>-login-delay</code>, <code>-enable-delay</code>, <code>-secret-delay</code>, <code>-slow</code></td>
+<td>the delay before the first prompt, before <code>Password:</code>, before the answer to the enable secret, before <code>show slow</code> answers and how long the Linux persona's <code>slow</code> runs (<code>cmd/karvi-fake-device</code>)</td>
+</tr>
+<tr>
+<td>Fake device flag <code>-persona linux</code>; command <code>slow</code>; <code>Server.Signals()</code>, <code>Server.LeftRunning()</code></td>
+<td>the Linux persona answers exec requests from a table; <code>slow</code> runs for <code>-slow</code> unless a signal request ends it by that signal (<code>signal: NAME</code> on the fake's stderr), and a channel closed under it leaves it running (<code>left running: &quot;slow&quot;</code>)</td>
+</tr>
+<tr>
+<td>Fake device command <code>show mute</code>; <code>Server.Keepalives()</code></td>
+<td>the peer goes silent with the connection up, keepalive requests unanswered; the count of keepalive requests received</td>
+</tr>
+<tr>
+<td>Fake device commands <code>clear counters</code>, <code>reload</code></td>
+<td>a <code>[confirm]</code> taking one unechoed key (a return or <code>y</code> confirms, <code>&lt;confirm&gt;</code> among the recorded lines; any other key abandons, <code>&lt;abandon&gt;</code>); after <code>clear counters</code> the prompt returns, after <code>reload</code> nothing more is written, the connection up</td>
+</tr>
+<tr>
+<td>Fake device command <code>copy running-config startup-config</code>; flag <code>-unsaved</code></td>
+<td>a value prompt (<code>Destination filename [startup-config]? </code>, the trailing space kept) taking one echoed line, <code>&lt;value:TEXT&gt;</code> among the recorded lines (<code>&lt;value:&gt;</code> for the default), answered <code>Building configuration...</code> and <code>[OK]</code>; under <code>-unsaved</code> each shell starts with the running configuration modified, so <code>reload</code> first asks <code>System configuration has been modified. Save? [yes/no]: </code> (<code>y</code>/<code>yes</code> saves, <code>n</code>/<code>no</code> skips, anything else re-asks) before its <code>[confirm]</code>, and the copy clears the state</td>
+</tr>
+<tr>
+<td>Parity suite settings <code>COMMAND_TIMEOUT</code>, <code>EXECUTION</code>, <code>SSH</code>, <code>SHELL_OPENED</code></td>
+<td>the <code>[execution]</code> table's command timeout, further <code>[execution]</code> lines, further <code>[ssh]</code> lines, a shell that opens and receives no line (<code>scripts/native-smoke-test.sh</code>)</td>
+</tr>
+<tr>
+<td>Parity cases S3, S15, S16, S17, S18, S19, S20, S21, S22, S23, S24</td>
+<td>the command timeout, the login allowance, the enable timeout, the device timeout, the keepalives, a blind send whose prompt returns, one whose prompt never returns under a 2 s blind wait, a value prompt answered by <code>--expect</code>, a mistyped pattern under the 2 s command timeout, a blind reload with the save and confirm declarations against an unsaved and a saved device</td>
+</tr>
+<tr>
+<td>Evidence <code>ex39</code>, <code>ex40</code>, <code>ex41</code>, <code>ex42</code></td>
+<td>the timeouts before and after (Q1–Q4, B1–B4); the keepalives (K1, K2); the blind sends before (Q1–Q5) and after (B1–B4); expect-and-send before (A1–A4) and after (B1–B4)</td>
+</tr>
+</tbody>
+</table>
+
+<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>karvi v0.29.0 build and qualification result — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="../docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="../docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="../docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="../docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="../docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="../docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="../docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="../docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="../docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="../docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="../docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="../docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="../docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="../docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="../docs/FILES.html">Files and directories</a></li>
+<li><a href="../docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="../docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="../docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="../docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="../docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.29.0 build and qualification result</a>
+<ul class="sections">
+<li><a href="#result">Result</a></li>
+<li><a href="#build-identity">Build identity</a></li>
+<li><a href="#qualification-performed">Qualification performed</a></li>
+<li><a href="#included-executable-checksums">Included executable checksums</a></li>
+<li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
+<li><a href="#remaining-boundary">Remaining boundary</a></li>
+</ul></li>
+<li><a href="DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="../docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="../docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="../docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="../docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="../docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="../docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="../docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="../docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="../docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="../docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="../docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="../docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="../docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="../docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="../docs/FILES.html">Files and directories</a></li>
+<li><a href="../docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="../docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="../docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="../docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="../docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.29.0 build and qualification result</a>
+<ul class="sections">
+<li><a href="#result">Result</a></li>
+<li><a href="#build-identity">Build identity</a></li>
+<li><a href="#qualification-performed">Qualification performed</a></li>
+<li><a href="#included-executable-checksums">Included executable checksums</a></li>
+<li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
+<li><a href="#remaining-boundary">Remaining boundary</a></li>
+</ul></li>
+<li><a href="DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="karvi-v0290-build-and-qualification-result">karvi v0.29.0 build and qualification result <a class="anchor" href="#karvi-v0290-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
+<h2 id="result">Result <a class="anchor" href="#result" aria-label="Link to this section">#</a></h2>
+<p>The build, with the native scrapligo-v1 transport compiled in beside the
+external <code>system</code> transport, is <strong>qualified as an engineering candidate</strong>.
+v0.29.0 (2026-10-09) is a minor release on 0.28.0. The configuration registry
+moves from 27 to 28, the execution plan from 11 to 12, the daemon IPC schema
+from 10 to 11, the job manifest and summary from 2 to 3, and the plan report
+from 1 to 2; every other counter is 0.28.0's. Among the changes: a job runs
+under its client's configuration, sent in the plan's <code>configuration</code> block, and
+the plan carries no copy of a key; the job's audit records, the cancel record
+included, go to the sinks its configuration names; path-valued keys are made
+absolute when the configuration loads (<code>config_working_directory_unavailable</code>,
+<code>crun_directory_unavailable</code> retired); the reload class says which keys wait
+for a daemon restart; the packaged user units carry no file-system sandbox; and
+<code>crun_directory_not_writable</code> names its cause. The changes are in
+<a href="../CHANGELOG.html"><code>CHANGELOG.md</code></a>. It is not a production claim and not a
+real-device qualification: the native transport is proven against the fake
+device built from the tree, its IOS XE and Linux personas.</p>
+<h2 id="build-identity">Build identity <a class="anchor" href="#build-identity" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-text">version:                  0.29.0
+commit:                   source-release-v0.29.0
+build time:               2026-10-09T00:00:00Z
+Go toolchain:             go1.27.1
+build tag:                none (every build carries the adapter)
+dependencies:             vendored (go.mod, go.sum, vendor/); no network
+scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+configuration schema:    6
+configuration registry:  28
+command record schema:   3
+daemon IPC schema:       11
+job manifest/summary:    3
+execution plan:          12
+scoreboard:              3
+credential package:      2
+plan report:             2
+CGO:                      disabled
+</code></pre>
+<p>The authoritative <code>go.mod</code> names the Go 1.27 floor and pins
+<code>github.com/scrapli/scrapligo v1.4.2</code>; <code>evidence/go-version-m.txt</code> shows the
+module in the shipped executables, and <code>evidence/version.txt</code> lists both
+transports.</p>
+<h2 id="qualification-performed">Qualification performed <a class="anchor" href="#qualification-performed" aria-label="Link to this section">#</a></h2>
+<p>The release source passed, with Go 1.27.1:</p>
+<ul>
+<li>912 top-level named Go tests across 84 packages in vendor mode, no
+build tag, 0 failures (<code>evidence/core-qualification.log</code>);</li>
+<li><code>go vet</code> across all packages, and the Go race detector across all
+packages in the release verifier's run
+(<code>evidence/release-qualification.log</code>; the battery runs once per bytes);</li>
+<li>every Unix-socket test with 25-byte and 145-byte <code>TMPDIR</code> values
+(<code>evidence/socket-tmpdir-qualification.log</code>);</li>
+<li><code>gofmt</code> listing nothing outside <code>vendor/</code>;</li>
+<li>deterministic regeneration of <code>schema/config-schema.json</code>,
+<code>configs/reference.toml</code>, <a href="../docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>,
+and the manual pages under <code>packaging/man</code>;</li>
+<li>example configuration validation and removed-key rejection;</li>
+<li>all seventeen executable suites against the native executable, in three lanes
+(<code>scripts/lib/suites.sh</code>): the parity suite (<code>command</code> and <code>run</code> over <code>system</code>
+and <code>scrapligo-v1</code> against the fake device's IOS XE and Linux personas, the
+exec channel included, records compared path by path), the forty-five-row
+v0100 suite (rehearsals, detach, follow, the interrupted client, the ICMP
+gate, shutdown accounting, stop and restart, cancel, <code>job follow</code>), and the
+fifteen others in order, among them the spool suite (a 65.7 MB response
+through the spool and across a mid-line threshold), the k03 parser suite, the
+daemon-upgrade suite, the completion suite, and the canary suite with
+<code>secret-scan</code>;</li>
+<li><code>scripts/verify-shipped.sh</code> on the executables as shipped: the version,
+the checksums, the ELF format, the links, every counter the executable
+reports, both transports, the helps, the configuration examples, the
+removed keys refused (<code>evidence/bundle-qualification.log</code>);</li>
+<li><code>scripts/verify-release.sh</code> end to end, rebuilding with the release
+identity to unchanged checksums, so that its battery ran against the
+shipped bytes (<code>evidence/release-qualification.log</code>): the adapter's
+import boundary and host-key assertions, <code>go mod verify</code>, the module
+metadata of the executable;</li>
+<li>the lifecycle replay against the released v0.28.0 executable, the newest
+release whose daemon IPC schema (10) differs from this client's (11): this
+client's status reports its daemon <code>compatible: false</code>, refuses a run with
+<code>daemon_incompatible</code> (exit 112) without replacing it, and stops it with no
+option, by <code>restart</code>, and with <code>--force</code>, <code>--grace</code>, and <code>--after</code>
+(<code>evidence/v0280-to-v0290-lifecycle.log</code>); the compatibility example ran
+before the number was committed: the released v0.28.0 daemon, started from
+the released executable of the tree's <code>bin/</code> before the rebuild, reported
+<code>compatible: false</code> to this client on the version and the IPC schema, refused
+its run with <code>daemon_incompatible</code> (exit 112) before any job, and was stopped
+by the client (<code>evidence/ipc-schema-compat.log</code>);</li>
+<li>the host's shared places (the shared scoreboard directory, the shared
+directories <code>/opt/karvi/shared</code> and <code>/var/lib/karvi/shared</code>) as they
+were after the Go tests and the suites, in both verifiers
+(<code>scripts/lib/host.sh</code>);</li>
+<li>the tree's Debian package built in the release verifier's run and checked
+by <code>scripts/check-deb.sh</code>: the three executables <code>bin/</code>'s bytes, every
+document and example configuration under its own name, uncompressed, each
+unit's documentation target, the reference configuration's link, and
+<code>lintian --fail-on error,warning</code> with the package's overrides;</li>
+<li>byte-for-byte reproduction of the source bundle across two packaging
+runs, and the bundle verified from its own archive with its own verifier;
+and</li>
+<li>the published package built from that verified extraction twice to the
+same bytes, its executables the bundle's <code>CHECKSUMS.sha256</code>, and checked by
+<code>scripts/check-deb.sh</code> against it.</li>
+</ul>
+<p>The release verifier had first passed on a clean clone of <code>dev</code> at
+<code>18c2fbd</code> before the number was assigned (the maintainer's release tools
+run it there, since a clone has no shipped bytes to check; the logs are kept
+with the maintainer's release evidence). The must-not-appear checks of the
+suites ran enforced throughout.</p>
+<p>Evidence for this release is in <code>evidence/</code>.</p>
+<h2 id="included-executable-checksums">Included executable checksums <a class="anchor" href="#included-executable-checksums" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Executable</th>
+<th style="text-align:right">Bytes</th>
+<th>SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bin/karvi-linux-amd64</code></td>
+<td style="text-align:right">12,263,584</td>
+<td><code>2a0890711f2d63d206cd1240848d43862131181b395788688d738a3f472e9ed0</code></td>
+</tr>
+<tr>
+<td><code>bin/karvi-askpass-linux-amd64</code></td>
+<td style="text-align:right">3,907,744</td>
+<td><code>0f338266d60a4ec846a1fb6da24d4715454d6588b463195d49f577bc33a2cb85</code></td>
+</tr>
+<tr>
+<td><code>bin/karvi-prune-linux-amd64</code></td>
+<td style="text-align:right">3,776,672</td>
+<td><code>153b40bc78e375e0e9f8723da4da09df37ae1bc483f232a4c01d7c747e9e92b1</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="operational-upgrade-sequence">Operational upgrade sequence <a class="anchor" href="#operational-upgrade-sequence" aria-label="Link to this section">#</a></h2>
+<p>A daemon is compatible only when its version and its daemon IPC schema both
+equal the client's, so a running v0.28.0 daemon is <code>compatible: false</code> to
+this client on the version and the IPC schema (10 against 11), and the client
+refuses a job to it with <code>daemon_incompatible</code> (exit 112) before any job is
+submitted, naming both pairs and the remediation. Every release restarts
+the daemon:</p>
+<pre><code class="language-bash">karvi daemon status
+karvi daemon restart
+karvi daemon status
+</code></pre>
+<p>With active jobs reported, <code>restart --grace</code> waits for them and <code>--force</code>
+stops at once; a forced stop accounts every unfinished unit as
+<code>incomplete_shutdown</code>. A daemon started by the client stops itself after an
+hour idle (<code>daemon.shutdown-idle-timer</code>); the packaged unit sets the timer
+to <code>0</code>. Every release is installed as new from its bundle; no source patch
+is shipped.</p>
+<h2 id="remaining-boundary">Remaining boundary <a class="anchor" href="#remaining-boundary" aria-label="Link to this section">#</a></h2>
+<p>What karvi does not do yet is <a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, none of which this
+release claims. Cisco IOS XE laboratory qualification on real devices was not
+performed and follows on this executable
+(<a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a>).</p>
+
+<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

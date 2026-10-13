@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap — karvi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html" aria-current="page">Roadmap</a>
+<ul class="sections">
+<li><a href="#next">Next</a></li>
+<li><a href="#later">Later</a></li>
+<li><a href="#the-device-qualification-track">The device-qualification track</a></li>
+</ul></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html" aria-current="page">Roadmap</a>
+<ul class="sections">
+<li><a href="#next">Next</a></li>
+<li><a href="#later">Later</a></li>
+<li><a href="#the-device-qualification-track">The device-qualification track</a></li>
+</ul></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="roadmap">Roadmap <a class="anchor" href="#roadmap" aria-label="Link to this section">#</a></h1>
+<p>What karvi does not do yet and has decided to do, or to consider, in the order
+the operator has set. A settled decision is an entry in
+<a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a>; a session that builds an item is a chapter
+of <a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>. Nothing here is a promise of a date.</p>
+<h2 id="next">Next <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
+<p>Nothing at present: the operator chooses the next item from Later.</p>
+<h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><strong>Build numbers in the version.</strong> A build identity beyond the version and
+the commit, for telling two builds of one tree apart.</li>
+<li><strong>Macro files, <code>--mf PATH</code>.</strong> A command file with a parser: variable
+substitution from the command line, the file, or the device's inventory
+row, expanded in the client before the plan, so the plan, its digest,
+<code>commands.txt</code>, and every record are those of an ordinary job. A value that
+differs per device makes the command list per device, which the plan holds
+today only for a collection's platform lists; that is the design question.</li>
+<li><strong>Job files, <code>--jf PATH</code>.</strong> A saved <code>run</code> invocation (targets, commands or
+macros, options) that must plan to the same job as the command line it
+replaces, plus logic. The logic's first question is where it runs: a
+decision taken from a device's answer is taken in the session, per device,
+while the command plan is fixed and digested before the daemon accepts the
+job; <code>--expect</code> and the blind returns are the precedent to grow from.</li>
+<li><strong>Credentials.</strong> An explicit <code>env:NAME</code> cell form for the credential CSV
+that needs no flag and fails with its own code when the variable is unset;
+a formula's match evidence carrying its source's file, line, and key; a
+command-line option to pin a direct target to a key; further keyed
+backends (a SQLite or JSON store) through the keyed capability; policing
+every backend type's keys by type; one environment-indirection helper for
+the env, Redis, Vault, and CSV backends; in the shared tabular reader, an
+explicit mapping outranking a field's own header.</li>
+<li><strong>A credential helper executable.</strong> A configured executable, a site's
+script in any language, that karvi runs and whose standard output sets
+values for its own use: a line <code>export NETUSER=&quot;xxx&quot;</code> puts <code>NETUSER</code> into
+karvi's credential environment as if the operator had exported it, for the
+<code>NET*</code> fallback, an <code>env</code> backend's templates, or the token a <code>vault</code> or
+<code>redis</code> backend reads from the environment. The questions: when it runs
+(once per invocation in the client, before resolution, or per device with
+the device's name); which names it may set (the credential names alone, or
+any a backend reads); the grammar of its output, parsed and never evaluated
+by a shell (<code>export NAME=&quot;value&quot;</code> and <code>NAME=value</code>, the double-quoted form's
+escapes, anything else refused naming the line number and never the line);
+its value held as a secret from the read on and never put into the process
+environment a child such as <code>ssh</code> inherits; the executable's own checks as a
+credential file's (an absolute path, the owner, the mode, no symlink); its
+environment, timeout, standard error (not echoed, since it may hold a
+secret), and a non-zero exit as a failure with its own code; whether the
+daemon may run it for an unattended job, where no prompt can; and how it
+relates to the environment-indirection helper above and to the helper
+protocols operators know (git's credential helpers, <code>SSH_ASKPASS</code>).</li>
+<li><strong>The key that authenticated.</strong> A record names the method that
+authenticated its session (<code>credential.auth</code>) and not which of the
+credential's keys the server accepted. OpenSSH names the key at <code>DEBUG1</code>
+(<code>Server accepts key: PATH TYPE FINGERPRINT</code>) on the stderr the system
+transport already reads, so a line filter could take it and drop every other
+<code>debug1:</code> line before the diagnostics; an exec device's master already runs
+at <code>DEBUG1</code> through such a filter, so its stream carries the line, while the
+shell's runs at <code>VERBOSE</code>; the native adapter could note the signer that
+signed. The questions: the record's field (path and fingerprint
+beside <code>auth</code>), the audit's, and <code>login</code>, whose stderr is the operator's
+terminal (<a href="docs/DESIGN.html#4-credentials"><code>docs/DESIGN.md</code>, section 4</a>).</li>
+<li><strong>A login's OpenSSH log level.</strong> A <code>login</code> runs OpenSSH at <code>LogLevel ERROR</code>,
+fixed in the configuration karvi generates, so a session that never reaches
+the prompt says nothing of how far it got;
+<a href="docs/SSH-TROUBLE.html"><code>docs/SSH-TROUBLE.md</code></a> restores OpenSSH's account
+through a wrapper named by <code>ssh.transports.system</code>. The item: a login run so
+that OpenSSH writes a higher level to a file (<code>-E</code>), the terminal staying the
+operator's, and the file's path named on the debug stream. The questions:
+the level (<code>VERBOSE</code>, as <code>command</code> runs it, or <code>DEBUG1</code> to <code>DEBUG3</code>); what
+turns it on (<code>--debug</code>, a key, an option of <code>login</code>); where the file lives
+and for how long (the scratch under the sweep's rule, or beside a recorded
+login's transcript); whether karvi reads it back at the session's end to
+classify a failure as it does for <code>command</code>; and what it holds that is
+sensitive (the address, the user name, the host key, never a password).</li>
+<li><strong>A review of every digest.</strong> No digest over an output that does not
+declare one as required for its consumption. The review lists each digest
+the program computes or records with who computes it, who reads it, and
+what breaks without it, and removes those nothing consumes in production;
+the development use, comparing two outputs, stays.</li>
+<li><strong>A setting under which karvi defines no SSH algorithm lists</strong> and both
+transports keep their own defaults.</li>
+<li><strong><code>Sealed</code> credential packages.</strong> The envelope schema accepts the
+protection and the <code>Sealer</code> interface is fixed, but no channel carries it
+and no reviewed provider exists; it waits for the stage that brings a
+remote channel. The contract's one known fault, that the envelope's
+ciphertext digest cannot be compared with the projection's own sum, is
+recorded for that stage: under authenticated encryption a successful open
+is the validity check.</li>
+<li><strong>Crash recovery.</strong> A daemon journal, reconstruction of an unfinished job
+after a daemon crash or restart, and an <code>incomplete_daemon_recovery</code>
+terminal status. Today a job whose daemon died leaves its directory
+without a summary, <code>job follow</code> answers <code>job_orphaned</code> for it, the pruner
+retires it by age, and an abandoned spool's name carries what a
+reconstruction would need.</li>
+<li><strong>A <code>--from-now</code> follow</strong> starting at the live edge, with its own header
+saying what it left out.</li>
+<li><strong>Field prefixes in the watch screen's filter</strong> (<code>op:</code>, <code>mode:</code>), if the
+word filter proves too broad.</li>
+<li><strong>ScrapliGo v2.</strong> <code>github.com/scrapli/scrapligo/v2</code> (v2.0.0, 2026-10-03) is a
+Go binding, through <code>ebitengine/purego</code>, to <code>libscrapli</code>, a Zig shared library
+(0.0.1, released the same day; 14.6 MB for x86_64 Linux) that holds the
+session, the channel, and the SSH (libssh2) and Telnet transports. It loads
+the library from <code>LIBSCRAPLI_PATH</code>, else from <code>~/.cache/scrapli</code>, downloading
+it there from GitHub at first use without checking the published <code>.sha256</code>.
+karvi stays on v1.4.2, whose line is maintained, until four questions are
+answered: whether a release can ship the library beside the static executables
+and always names it, so no session reaches the network or writes into the
+operator's home; whether karvi's host-key policy, today inside its own SSH
+handshake under v1's driver and channel (<a href="SECURITY.html"><code>SECURITY.md</code></a>), has a
+place in v2 beyond a known-hosts file; the adapter's shape, with the session
+in the library and not shared with <code>system</code>
+(<a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html"><code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code></a>);
+and what it gains for a fleet karvi qualifies on <code>cisco_iosxe</code> over SSH
+(NETCONF, Telnet, more platform definitions). A v2 adapter registers
+<code>scrapligo-v2</code> beside <code>scrapligo-v1</code>
+(<a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>).</li>
+<li><strong>NETCONF.</strong> NETCONF over SSH (RFC 6242): the <code>netconf</code> subsystem on the
+session channel, port 830 by default, in place of a shell or an exec. The
+platform's <code>channel</code> word has room for it (<code>channel = &quot;subsystem&quot;</code> or
+<code>&quot;netconf&quot;</code>), and both transports can ask for a subsystem (<code>ssh -s</code>, and
+x/crypto's <code>RequestSubsystem</code>). The questions: the hello exchange and the two
+framings (the 1.0 end-of-message marker and 1.1's chunks); an RPC as the
+command and its <code>&lt;rpc-reply&gt;</code> as the record, with <code>&lt;rpc-error&gt;</code> as the
+device's failure in place of a pattern; how an operator writes an RPC on the
+command line, in a command file, and in <code>crun</code>; and which platforms get it
+(IOS XE's <code>netconf-yang</code>, Junos, EOS, IOS XR). It waits on the exec channel
+for Linux servers (<a href="docs/EXAMPLES.html#24-jobs-across-linux-servers-2026-10-04"><code>docs/EXAMPLES.md</code>, chapter
+24</a>), whose record
+of a command without a prompt it would build on.</li>
+<li><strong>A device's banner kept out of <code>system</code>'s failure text.</strong> OpenSSH writes a
+device's pre-authentication banner on its standard error at <code>LogLevel INFO</code>
+and above, among its own lines; the shell's command session (<code>VERBOSE</code>) and
+the exec master (<code>DEBUG1</code>) receive it, so a failure over <code>system</code> carries the
+banner in its error text and records, and the classification of the failure
+reads it by substring, where a banner's words could name the code. No byte
+tells it apart: a Cisco IOS XE banner ends its lines in <code>\r\n</code>, as OpenSSH's
+own lines do (<a href="docs/EXAMPLES.html#37-the-first-contact-said-alike-over-both-transports-2026-10-07"><code>docs/EXAMPLES.md</code>, chapter
+37</a>).
+A login, at <code>LogLevel ERROR</code>, receives no banner, and the native transport
+drops one. The question: an exact separator, <code>-E</code> to a FIFO for OpenSSH's
+log, which takes <code>docs/SSH-TROUBLE.md</code>'s <code>-vvv</code> trace from its file into
+karvi's; the same <code>-E</code> &quot;A login's OpenSSH log level&quot; asks of a login.</li>
+<li><strong><code>insecure</code>'s comparison from the exec master's own line.</strong> Over <code>system</code>
+under <code>ssh.host-key-policy = &quot;insecure&quot;</code> the trust store given to OpenSSH is
+<code>/dev/null</code>, so a stored device's key is compared by an <code>ssh-keyscan</code> beside
+the connection, and when that second connection fails (not installed, past its
+five seconds, a router with few vty lines refusing it) the session goes on
+uncompared, <code>host_key_not_compared</code>. The exec master runs at <code>DEBUG1</code>, where
+OpenSSH writes <code>Server host key: TYPE FINGERPRINT</code>, so an exec device could be
+compared from that line without a second connection; the shell's command
+session and a login do not receive it
+(<a href="docs/EXAMPLES.html#37-the-first-contact-said-alike-over-both-transports-2026-10-07"><code>docs/EXAMPLES.md</code>, chapter
+37</a>,
+issue 5a).</li>
+<li><strong>A server that closes before its exit status.</strong> The system transport's exec
+master closes the channel at the end of output; <code>sshd</code> still sends the status
+after that close, and the master takes it, but a server that sends its end of
+output, then its status, and nothing after a close, as the fake device did,
+would lose the status over <code>system</code>, recorded <code>command_exit_missing</code>, rightly
+(<a href="docs/EXAMPLES.html#32-the-lost-exit-status-found-in-the-fake-device-2026-10-07"><code>docs/EXAMPLES.md</code>, chapter
+32</a>).
+The question: whether karvi guards against one, for instance by keeping the
+client's input open so that the master never closes first, and what that costs
+a device that waits for its input to end.</li>
+<li><strong>The daemon's socket path bounded.</strong> <code>daemon.socket</code>, by default
+<code>&lt;basedir&gt;/socket/daemon.sock</code>, has no length check: under a 100-byte
+<code>basedir</code> a <code>run</code> waited out the daemon's start and exited 112,
+<code>daemon_start_failed: … context deadline exceeded</code>, the cause,
+<code>daemon_serve_failed: listen unix …/daemon.sock: bind: invalid argument</code>, in
+<code>daemon.log</code> alone (<a href="docs/EXAMPLES.html#40-the-scratch-bounded-for-the-askpass-socket-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
+40</a>).
+A path socket holds at most 107 bytes, as the control-path root and
+<code>tempdir</code> are bounded for theirs. The question: where the client refuses a
+socket path too long, before it starts a daemon that cannot listen.</li>
+<li><strong>A suite's failure that names its call.</strong> A suite under <code>set -eu</code> that
+runs karvi with its output redirected into the work directory dies at a
+refused call with karvi's exit status and prints nothing, and its cleanup
+removes the files that held karvi's message: under umask 0002 ten suites
+ended so, most with exit 109 and no line, while karvi had written
+<code>host_key_directory_permission</code> and the reason on its standard error
+(<a href="docs/EXAMPLES.html#41-the-suites-work-directories-made-0700-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
+41</a>).
+The bundle's verifier has the same gap: <code>verify-shipped.sh</code>'s checks are
+bare tests under <code>set -eu</code>, so a release missing its number in that script
+ended <code>verify-bundle.sh</code> with exit 1 and an empty log (<a href="docs/EXAMPLES.html#43-the-release-with-the-debian-package-2026-10-08">chapter
+43</a>,
+S2). The question: one function in <code>scripts/lib</code> that runs a call and, when it
+fails unexpectedly, names it and prints what karvi wrote before the suite
+exits.</li>
+<li><strong>One example configuration.</strong> <code>configs/example.toml</code>, which the package
+installs under <code>/usr/share/doc/karvi/configs/</code> and <code>config generate</code>'s output
+names, and <code>examples/config.toml</code>, the curated site configuration, are two
+examples of one thing; merging them is a documentation change of its own:
+which keeps its name, what each document and <code>config generate</code> then point at,
+and the package's rules and <code>scripts/check-deb.sh</code>'s list
+(<a href="docs/EXAMPLES.html#42-the-example-configurations-in-the-package-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
+42</a>).</li>
+<li><strong>Every invocation says its configuration's warnings.</strong> The load's two
+warnings (&quot;optional include missing&quot;, &quot;ignored unknown environment
+variable&quot;) are printed by a <code>run</code> or <code>command</code>, in process or through a
+daemon, and only counted by <code>config validate</code>; <code>login</code>, <code>inspect</code>, <code>config show</code>, <code>job follow</code>, and the daemon's own load say nothing of them
+(<a href="docs/EXAMPLES.html#47-a-job-under-its-clients-configuration-2026-10-08"><code>docs/EXAMPLES.md</code>, chapter
+47</a>,
+S2.3). The item: every invocation prints its load's warnings once, at the
+load, and the job no longer does. The questions: <code>--quiet</code>, a machine
+format's standard error, and where a daemon's own load writes them
+(<code>daemon.log</code>).</li>
+<li><strong>A client told when a running daemon's settings differ from its own.</strong> A
+daemon keeps the <code>daemon.*</code> values of the invocation that launched it, and a
+later client's <code>--set daemon.*</code> reaches it only at its next start, without
+a word (chapter 47, S1's reload class, executed with
+<code>daemon.shutdown-idle-timer</code>). The item: the daemon reports its <code>daemon.*</code>
+values in its status reply, and a client whose own differ prints a notice
+naming the keys and <code>karvi daemon restart</code>. The questions: which keys (the
+<code>daemon-start</code> class alone), the notice's wording and its code, and whether
+<code>--quiet</code> keeps it.</li>
+</ul>
+<h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
+<p>Independent of the items above. The runbook
+(<a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a>)
+and the evidence-collecting script (<code>scripts/device-qualification.sh</code>) cover
+both transports as rows D1 to D14, and the script passes against the fake
+device; the laboratory run needs the operator and a device:</p>
+<ol>
+<li>Validate IPv4 and IPv6 selection and fallback with controlled dual-stack
+DNS.</li>
+<li>Re-run successful and intentionally invalid multi-command sessions
+against the ISR 4451-X and Catalyst 9300 with <code>--echo</code> and safe <code>--debug</code>.</li>
+<li>Qualify paging, privilege, and prompt and error behaviour on both
+transports, <code>command</code> and <code>run</code> sharing one device session on each.</li>
+<li>Complete the Catalyst 9300 matrix of
+<a href="docs/CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a> on
+both transports before other IOS XE families; the rows the fake already
+evidences are marked there.</li>
+<li>Qualify how a login ends (runbook row D15, by hand): whether the
+device sends an exit status when a session ends with <code>exit</code>. If it
+does, the fake learns to send one, and nothing changes in karvi. If it
+closes the session without one, as the fake does (OpenSSH exits 255,
+and <code>karvi login</code> exits 110 as <code>ssh_process_failed</code>), the rule is: an
+interactive login that authenticated and ended with the device closing
+the session is a completed session, exit 0, with the notice
+<code>login_closed_without_status</code> in its metadata and audit, &quot;authenticated&quot;
+read from OpenSSH's own log (<code>-E</code> at <code>VERBOSE</code>, the terminal unchanged);
+a device that dies mid-session then ends 0 too, accepted for an
+interactive session whose operator saw it end.</li>
+</ol>
+<p>Production activation of the daemon, the shared trees, the timers, and the
+2,500-device accounting gate waits on that run and on review by the network
+operations and security owners.</p>
+
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

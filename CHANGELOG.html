@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changelog — karvi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
+<ul class="sections">
+<li><a href="#0290---2026-10-09">0.29.0 - 2026-10-09</a></li>
+<li><a href="#0280---2026-10-08">0.28.0 - 2026-10-08</a></li>
+<li><a href="#0270---2026-10-06">0.27.0 - 2026-10-06</a></li>
+<li><a href="#0260---2026-10-04">0.26.0 - 2026-10-04</a></li>
+<li><a href="#0250---2026-09-30">0.25.0 - 2026-09-30</a></li>
+<li><a href="#0240---2026-09-30">0.24.0 - 2026-09-30</a></li>
+<li><a href="#0230---2026-09-29">0.23.0 - 2026-09-29</a></li>
+<li><a href="#earlier-releases">Earlier releases</a></li>
+</ul></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
+<ul class="sections">
+<li><a href="#0290---2026-10-09">0.29.0 - 2026-10-09</a></li>
+<li><a href="#0280---2026-10-08">0.28.0 - 2026-10-08</a></li>
+<li><a href="#0270---2026-10-06">0.27.0 - 2026-10-06</a></li>
+<li><a href="#0260---2026-10-04">0.26.0 - 2026-10-04</a></li>
+<li><a href="#0250---2026-09-30">0.25.0 - 2026-09-30</a></li>
+<li><a href="#0240---2026-09-30">0.24.0 - 2026-09-30</a></li>
+<li><a href="#0230---2026-09-29">0.23.0 - 2026-09-29</a></li>
+<li><a href="#earlier-releases">Earlier releases</a></li>
+</ul></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0290---2026-10-09">0.29.0 - 2026-10-09 <a class="anchor" href="#0290---2026-10-09" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.28.0. The configuration registry moves from 27 to 28, the
+execution plan from 11 to 12, the daemon IPC schema from 10 to 11, the job
+schema from 2 to 3, and the plan report from 1 to 2; every other counter is
+0.28.0's (configuration schema 6, command record 3, credential package 2,
+scoreboard 3, audit 1, metrics 1, inventory 1), and a running 0.28.0 daemon is
+<code>compatible: false</code> by its version and its IPC schema and is restarted. A site
+has something to change where its jobs relied on a daemon's own <code>--config</code>,
+<code>--set</code>, environment, or working directory (each job now runs under its
+client's), where it reads a job's audit records, the cancel record included,
+from the sink the daemon's launcher named (they go where the job's client's
+<code>audit.*</code> says), where its configuration names a path relative to a working
+directory or under <code>~user</code> (a relative path resolves at the client's load and
+<code>config show</code> prints it absolute; <code>~user</code> is refused), where it reads the
+manifest's <code>policy</code> block or the readiness <code>policy_digest</code> (removed), and where
+it copied <code>karvi-daemon.service.d/crun.conf.example</code> (removed, no longer
+needed). The module graph is 0.28.0's.</p>
+<ul>
+<li><strong>A job runs under its client's configuration.</strong> A daemon ran every job under
+the configuration it loaded at its start, its first launcher's <code>--config</code>,
+<code>--set</code>, <code>KARVI__*</code> variables, and working directory, so a later client's
+settings missed its own job without a word, the host-key policy among them.
+The client now sends its resolved values in the plan's <code>configuration</code>
+block and the daemon builds the job's configuration from it, refusing a
+block whose digest is not the plan's <code>sources.config_digest</code>
+(<code>execution_plan_invalid</code>); the daemon's own configuration serves its process
+alone (the <code>daemon.*</code> keys, its <code>basedir</code>, the sweeps at its start), and a
+site's locks are enforced by each client's load. A job's audit records go to
+the sinks its configuration names, <code>run.cancel_requested</code> included, and the
+daemon opens no audit sink of its own; the audit's <code>policy.config_digest</code>
+names the job's configuration, where it named the daemon's. The client of a
+daemon-backed run prints its load's warnings, which no daemon-backed run
+printed.</li>
+<li><strong>The plan carries no copy of a key; the schemas move.</strong> Execution plan 12:
+the <code>configuration</code> block is added, and the <code>execution</code> and <code>ping</code> blocks,
+<code>blind_wait_ns</code>, <code>output</code>'s <code>max_command_bytes</code>, <code>max_job_bytes</code>, <code>persist</code>,
+<code>files</code>, and <code>crop_to_dot</code>, the collection's <code>file_mode</code>, and <code>dispatch</code>'s
+halt and gate values with <code>continue_device_on_error</code> are removed, the job
+reading those keys from its configuration. Daemon IPC 11 carries it. Job 3:
+the manifest's <code>policy</code> block is removed (the summary moves with it). Plan
+report 2: the daemon row's <code>execution_policy_digest</code> is removed, and
+<code>--exercise</code>'s daemon line no longer prints <code>policy_digest</code>. A running 0.28.0
+daemon is <code>compatible: false</code> and is restarted.</li>
+<li><strong>Path-valued keys are made absolute when the configuration loads.</strong> The
+registry marks every key whose value is a path (<code>place</code>, with the key's
+<code>words</code> such as <code>auto</code> kept as written, and a dynamic table's <code>places</code>); <code>~</code>
+is the operator's home and a relative path is taken from the working directory
+at the load, so <code>config show</code> prints the path a job records and the digest
+covers it, the built-in <code>ssh.identities</code> included. <code>~user</code> fails the load; a
+relative path from a working directory that cannot be read is
+<code>config_working_directory_unavailable</code>, and <code>crun_directory_unavailable</code>,
+whose causes now fail at the load, is retired. Registry 28.</li>
+<li><strong>The reload class says which keys wait for a daemon restart.</strong> <code>config show --explain</code> printed <code>reload: next-job</code> for every key;
+<code>daemon.max-accepted-jobs</code>, <code>daemon.shutdown-idle-timer</code>,
+<code>daemon.shutdown-grace-seconds</code>, and the daemon's side of
+<code>daemon.max-ipc-frame-bytes</code> and <code>daemon.forced-grace-seconds</code> are now
+<code>daemon-start</code>: a running daemon keeps the value it started with.</li>
+<li><strong>The user units carry no file-system sandbox.</strong> <code>karvi-daemon.service</code>,
+<code>karvi-prune.service</code>, and <code>karvi-crun.service</code> under
+<code>/usr/share/karvi/systemd/user/</code> no longer set <code>PrivateTmp</code>,
+<code>ProtectSystem</code>, <code>ProtectHome</code>, or <code>ReadWritePaths</code>: a user manager on a host
+that restricts unprivileged user namespaces (Ubuntu's
+<code>kernel.apparmor_restrict_unprivileged_userns = 1</code>) started them unsandboxed
+without a word, and where the sandbox applied a <code>/tmp</code> path the client named
+landed in the daemon's private <code>/tmp</code>. Each runs with the operator's own view
+of the files, as the client does. The daemon's drop-in example
+(<code>karvi-daemon.service.d/crun.conf.example</code>) is removed; a copied drop-in
+is no longer needed. The site's <code>karvi-prune.service</code> keeps its sandbox.</li>
+<li><strong><code>crun_directory_not_writable</code> names its cause.</strong> The shape a shared
+collection directory needs (mode 2770 or 2775) is in the message only where it
+is the remedy, a present directory the operator cannot create files in and the
+sticky case, and no longer after a file in the way or a directory that cannot
+be made. A path whose folder above is a file names that file, where it named
+the path itself as the one that &quot;exists and is not a folder&quot;; the job and
+transcript trees' codes take the same naming.</li>
+<li><strong>The lifecycle replay keeps the older daemon under its base.</strong>
+<code>scripts/daemon-lifecycle-replay.sh</code> gave the older release's daemon only
+<code>basedir</code> and <code>scoreboards</code>, taking it not to know <code>sharedroot</code>, <code>spooldir</code>,
+or <code>platform-resolution.default</code>; a 0.28.0 daemon knows them, so its start
+resolved <code>spooldir = auto</code> and made <code>/tmp/karvi-&lt;uid&gt;</code> on the host, and
+consulted the host's shared root. Both executables now take the same keys,
+every tree and the spool under the replay's base.</li>
+</ul>
+<h2 id="0280---2026-10-08">0.28.0 - 2026-10-08 <a class="anchor" href="#0280---2026-10-08" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.27.0. The configuration registry moves from 26 to 27; the
+daemon IPC schema and every other counter are 0.27.0's (execution plan 11,
+command record 3, credential package 2, scoreboard 3, configuration schema 6,
+job 2, audit 1, plan report 1), and a running 0.27.0 daemon is <code>compatible: false</code> by its version alone and is restarted. A site has something to change
+where it relied on <code>command</code> reaching OpenSSH by default (now <code>native</code>;
+<code>ssh.command.transport = &quot;system&quot;</code> keeps OpenSSH), where it set
+<code>logging.level</code>, <code>logging.file</code>, or <code>logging.file-required</code> (removed and
+refused), where it installed <code>packaging/sysctl/90-karvi.conf</code> or used
+<code>configs/ssh-legacy.conf</code> or <code>configs/ssh-ancient.conf</code> (removed), and where
+its <code>tempdir</code> is longer than 69 bytes (refused); a build takes Go 1.27. The
+release publishes a Debian package beside the bundle. The module graph is
+0.27.0's.</p>
+<ul>
+<li><strong>Breaking: <code>command</code> runs over the native transport by default.</strong>
+<code>ssh.command.transport = &quot;default&quot;</code> resolves to <code>native</code> (<code>scrapligo-v1</code>), as
+<code>run</code>'s does, where it resolved to <code>system</code>; <code>login</code> keeps <code>system</code>, which
+attaches the operator's terminal to OpenSSH. A site that wants OpenSSH for
+<code>command</code> sets <code>ssh.command.transport = &quot;system&quot;</code> or passes <code>--transport system</code>; an inventory row's transport, or its source's default, still comes
+first. The key and its default value are unchanged.</li>
+<li><strong>Breaking: <code>logging.level</code>, <code>logging.file</code>, and <code>logging.file-required</code>
+removed.</strong> They were validated and read by nothing: a configured file was
+never written. A file, an environment variable, or <code>--set</code> naming one is
+refused with <code>config_key_removed</code>, and <code>config_logging_file_required_missing</code>
+is gone with them. The daemon's log is <code>&lt;basedir&gt;/logs/daemon.log</code>, the
+audit's journald and <code>audit.file</code>. The configuration registry moves from 26
+to 27.</li>
+<li><strong>The Debian package, built by <code>make deb</code>, carries the documents and the
+material a site installs.</strong> Besides the executables and the manual pages,
+it installs the documents under <code>/usr/share/doc/karvi</code> (the tree's layout,
+uncompressed, so their links and the units' <code>Documentation=</code> paths hold) and
+the units and timers, cron scripts, <code>crun</code> hook examples, tmpfiles rule,
+reference configuration, and schemas under <code>/usr/share/karvi</code>, none of them
+active; the documents and the units name those paths, where they named the
+tree's <code>packaging/</code> or places nothing installed. <code>make deb</code> builds a copy of
+the tree into <code>dist/</code> with a changelog written from <code>VERSION</code> and
+<code>CHANGELOG.md</code>'s first heading, and carries <code>bin/</code>'s executables as they
+are: under a release's heading they must be the ones <code>CHECKSUMS.sha256</code>
+lists, and under <code>## Unreleased</code> the package is <code>VERSION+dev</code> and they must
+not be. The package names no Go in <code>Build-Depends</code>; BUILD-HOWTO offers it as
+the install. The example configurations are under
+<code>/usr/share/doc/karvi/configs/</code>, uncompressed, where the documents' and
+<code>config generate</code>'s <code>configs/example.toml</code> and <code>configs/reference.toml</code>
+resolve.</li>
+<li><strong>The release publishes the package, built from its bundle and checked.</strong>
+<code>karvi_X.Y.Z_amd64.deb</code> and its <code>.sha256</code> are release assets beside the
+bundle, listed in the aggregate checksums, built from the verified bundle
+twice to the same bytes; BUILD-HOWTO §10 installs it by <code>apt install ./karvi_X.Y.Z_amd64.deb</code>, which brings <code>openssh-client</code> where <code>dpkg -i</code>
+refused without it. <code>scripts/check-deb.sh</code> checks a package against its tree
+(the executables, every document and example configuration under its own
+name, the units' documentation, <code>lintian</code> with the package's overrides), and
+the release verifier builds and checks the tree's package, so it needs
+<code>dpkg-dev</code>, <code>debhelper</code>, and <code>lintian</code>. On the development line <code>make deb</code>
+refuses only executables whose identity is the release's
+(<code>source-release-vVERSION</code>), where it had refused any build matching
+<code>CHECKSUMS.sha256</code>, which a dev build does after <code>make checksums</code>.</li>
+<li><strong>The tests pass at any <code>TMPDIR</code> length, and the verifiers fail when a run
+makes the host's scratch.</strong> Five tests put the scratch, or a <code>basedir</code> whose
+<code>tmp</code> is <code>auto</code>'s candidate, under <code>TMPDIR</code>, which with the test's name passed
+the askpass socket's 69-byte bound under the release's 25-byte and 145-byte
+<code>TMPDIR</code> runs, so <code>auto</code> fell through to <code>/tmp/karvi-&lt;uid&gt;</code> and one of them
+made it on the host; each takes a short directory under <code>/tmp</code> from one
+helper, <code>internal/testdir</code>. Both verifiers now count <code>/tmp/karvi-&lt;uid&gt;</code> and
+<code>/var/tmp/karvi-&lt;uid&gt;</code> among the host's places a run must leave as they were.</li>
+<li><strong><code>configs/ssh-legacy.conf</code> and <code>configs/ssh-ancient.conf</code> removed.</strong> Two
+inert OpenSSH <code>Host</code> snippets left from <code>ssh.legacy-hosts</code>; karvi's own
+algorithm lists come before any operator's file, so they reached no
+session. A legacy device is reached by <code>[ssh-algorithms-profile.NAME]</code> and
+<code>[[ssh-algorithms-map]]</code>, shown in <code>configs/example.toml</code>.</li>
+<li><strong>Breaking: <code>packaging/sysctl/90-karvi.conf</code> removed.</strong> Its one line,
+<code>fs.file-max = 2097152</code>, lowered the ceiling on current kernels, whose
+default is the maximum; karvi's bound is its per-process open-file limit,
+which it raises itself and the daemon's unit sets.</li>
+<li><strong>Go 1.27.</strong> <code>go.mod</code> names <code>go 1.27.0</code>, and the build documents Go 1.27 or
+later.</li>
+<li><strong>Every session process ends with karvi.</strong> The system transport's <code>ssh</code> on
+the shell channel, a login's <code>ssh</code>, and a recorded login's <code>script(1)</code> are
+started with <code>SIGTERM</code> as their parent-death signal, as the exec masters were.
+A karvi, client or daemon, killed outright had left them under init, holding
+the device's session: a router's vty until its exec-timeout, a server's shell
+for good, and a killed login's <code>ssh</code> competing with the shell for the
+terminal.</li>
+<li><strong>The scratch is swept.</strong> The system transport's configuration, a
+recorded login's timing log, and the askpass socket are named by their
+maker's pid, <code>karvi-ssh-&lt;pid&gt;-*.conf</code>, <code>karvi-script-&lt;pid&gt;-*.timing</code>, and
+<code>askpass-&lt;pid&gt;-&lt;16 hex&gt;.sock</code>. One whose maker is not alive as karvi is
+removed at every admission, at the daemon's start, and at a login's start,
+logged <code>scratch_abandoned_removed</code>, where what a killed karvi left had
+stayed for good, on disk under <code>&lt;basedir&gt;/tmp</code> in individual mode. The sweep
+connects to no socket. Files under an earlier release's names are not
+touched.</li>
+<li><strong>The scratch fits the askpass socket.</strong> A <code>tempdir</code> longer than 69 bytes
+is refused, <code>tempdir_too_long</code>, at every job's admission and a login's
+start, naming its length, where the job had been admitted and every device
+over the system transport failed with <code>askpass_start_failed: … bind: invalid argument</code>: a Unix socket's path holds 107 bytes and the askpass socket's
+name up to 37. A 70-byte directory had worked only while the pids had six
+digits. <code>tempdir = &quot;auto&quot;</code> passes a candidate too long by, as <code>&lt;basedir&gt;/tmp</code>
+under a long <code>basedir</code>, and takes the next; <code>config show --explain</code> names it
+on a <code>passed:</code> line.</li>
+<li><strong>A first contact is said on every path.</strong> Under <code>ssh.host-key-policy = &quot;accept-new&quot;</code>, a session that stores a device's host key, unknown until
+then, says so on either transport: <code>! ssh accepted new host-key DEVICE (TYPE)</code> on the client's standard error, under <code>--quiet</code> too, in the
+display's warning colour, the device's name in the target colour; the
+device's first record carries the notice
+<code>host_key_enrolled</code> with the key type, and its <code>command_completed</code> audit
+event <code>details.host_key_enrolled</code>. <code>scrapligo-v1</code>'s warning <code>accepted and stored new SSH host key …</code> had been printed only by a job in the client and
+dropped by the daemon, and <code>system</code> said nothing: OpenSSH's <code>Permanently added</code> line is now taken from the standard error karvi reads. A job that
+finds the key stored meanwhile by another says nothing. A login, whose
+OpenSSH says nothing of it at its log level, reads the trust store at its
+first password prompt, or at its end when it asks none, says the same line,
+and names the key type in its <code>login.completed</code> or <code>login.errored</code> audit
+event's <code>details</code>.</li>
+<li><strong><code>insecure</code> is said on every path.</strong> A job under <code>ssh.host-key-policy = &quot;insecure&quot;</code> says so once at its admission, two lines on standard error,
+where both transports had warned at every connection; a key differing from
+the stored one is the notice <code>host_key_mismatch_accepted</code> on the device's
+first record with both keys' fingerprints, shown as <code>! ssh host-key mismatch DEVICE proceeding at risk</code> in the error colour and named in the audit's
+<code>details</code>; a <code>system</code> comparison that could not complete is
+<code>host_key_not_compared</code>, shown as <code>! ssh host-key DEVICE not compared: CAUSE</code>. Through the daemon all three warnings had been
+dropped, so a <code>run</code> under <code>insecure</code> accepted a changed key in silence.</li>
+<li><strong>A recorded login's own lines start at the first column.</strong> Under <code>login --record</code>, karvi's lines on the terminal, the login's header, a warning, an
+error, and under <code>--debug</code> every <code>DEBUG</code> line, are written while <code>script(1)</code>
+holds the terminal raw, where a line feed alone keeps the column; each line
+began where the one before it ended, so the screen read as shifted by
+whitespace. Each line now ends in a carriage return and a line feed when the
+stream is a terminal; a redirected stderr keeps its bytes, and the transcript
+is unchanged.</li>
+<li><strong><code>command_completed</code> names its process.</strong> The audit event written for each
+device's record carried <code>process.pid</code> 0; it carries the id of the process
+that wrote it, the client's for a job run in the client and the daemon's for
+a daemon's job, as the job's other events do. Every audit line's
+<code>schema_version</code> is now set where the line is written, from the audit
+schema's version, where four writers each wrote a literal <code>1</code>.</li>
+<li><strong><code>docs/SSH-TROUBLE.md</code>, a session that never reaches the prompt.</strong> A guide
+for a <code>login</code> that hangs after <code>login interactive session starting</code>, or a
+<code>command</code> that ends in a prompt timeout: OpenSSH at <code>-vvv</code> under karvi through
+a wrapper named by <code>ssh.transports.system</code>, its trace's last lines read
+against where the session waits, what <code>--debug</code>, the footer, the generated
+configuration, and a recorded login's transcript show, <code>command</code> over both
+transports beside the login, and the device's side.</li>
+</ul>
+<h2 id="0270---2026-10-06">0.27.0 - 2026-10-06 <a class="anchor" href="#0270---2026-10-06" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.26.0. The configuration registry moves from 24 to 26, the
+execution plan from 10 to 11, the command record from 2 to 3, and the
+credential package from 1 to 2; the daemon IPC schema and every other counter
+are 0.26.0's (scoreboard 3, configuration schema 6, job 2, audit 1, plan report
+1), and a running 0.26.0 daemon is <code>compatible: false</code> by its version alone and
+is restarted. A site has something to change where it set <code>watch.directory</code>
+(now the top-level <code>scoreboards</code>), <code>ssh.pubkey-authentication</code>, or a platform's
+<code>control-master</code> (both removed; a backend row without a password is refused);
+where it relied on <code>NETUSER</code> and <code>NETPASS</code> reaching a <code>linux</code> target (now the
+platform's <code>fallback</code>), on a <code>linux</code> target's shell (now the exec channel;
+<code>linux_shell</code> keeps it), on <code>audit.file</code>'s <code>~</code> as <code>$HOME</code>, on a relative trust
+store under the home, or on an explicit place under an absent <code>/dev/shm/karvi</code>,
+<code>/opt/karvi</code>, or <code>/var/lib/karvi</code>; where its operators' trust stores are under
+the home on a host with <code>setup shared</code>'s roots (the store follows the private
+root); and where it reads the command records (schema 3) or sends a stream-mode
+line beginning with one dash. The module graph is 0.26.0's.</p>
+<ul>
+<li><strong>Breaking: <code>watch.directory</code> is now <code>scoreboards</code>, and both scratch folders
+default to <code>auto</code>.</strong> The top-level <code>scoreboards</code> (<code>KARVI__SCOREBOARDS</code>) is
+where every activity writes its scoreboard: <code>auto</code> is
+<code>/dev/shm/karvi/scoreboards</code> where the site's scratch root exists (made in it
+with the root's bits when missing), else <code>&lt;basedir&gt;/state/scoreboards</code>; a
+shared folder present but not writable by the operator is passed by with its
+warning; a path is used or refused. A configuration that sets
+<code>watch.directory</code>, from a file, the environment, or <code>--set</code>, is refused at
+load (<code>config_key_removed</code>), the message naming <code>scoreboards</code>; <code>[watch]</code> keeps
+the screen's own settings. <code>sessions.shared-capacity-root</code> defaults to <code>auto</code>
+by the same shape (<code>/dev/shm/karvi/capacity</code>, else
+<code>&lt;basedir&gt;/state/capacity</code>), and the ledger passes by a root it cannot write.
+A <code>~</code> in either, which both had ignored for the private fallback, is the home.
+<code>karvi watch</code> makes nothing and reads every place that exists, the shared
+folder and the operator's own, one row per job: it had made the private root,
+and with the shared folder closed it did not show the operator's own jobs
+written to the fallback. The configuration registry moves to 26.</li>
+<li><strong>Breaking: one rule for <code>~</code> and a relative path.</strong> In every place key and
+every file key, <code>~</code> and <code>~/…</code> are the operator's home from the password
+database, <code>~user</code> is refused (<code>path_other_user_home_unsupported</code>), and a
+relative path is taken from the invocation's working directory and made
+absolute. <code>audit.file</code>'s <code>~</code> had been <code>$HOME</code>; a relative
+<code>ssh.known-hosts-file</code> had been under the home and is now under the working
+directory; <code>daemon.socket</code>'s <code>~</code> and a relative path are made absolute, where
+they had made a folder named <code>~</code> or a socket in the working directory and the
+run exited 112 (<code>ipc_result_malformed</code>); an inventory source's or a credential
+file's <code>~user</code> is refused, where it had been taken as a name.</li>
+<li><strong>Breaking: no operator's run makes a place <code>setup shared</code> makes.</strong> An
+explicit <code>tempdir</code>, <code>spooldir</code>, <code>ssh.control-path-root</code>, <code>scoreboards</code>, ledger
+root, trust store, <code>audit.file</code>, <code>daemon.socket</code>, or tree under an absent
+<code>/dev/shm/karvi</code>, <code>/opt/karvi</code>, or <code>/var/lib/karvi</code>, their <code>users</code> and
+<code>shared</code>, or a tree under <code>shared</code>, had made it, 0700 and the operator's,
+closed to every other until root repaired it. It is now refused before any
+device is contacted, <code>shared_directory_absent</code>, naming the place, <code>sudo karvi setup shared</code>, and the key to set elsewhere; under <code>auto</code> nothing changes. The
+trust store's path is checked at the job's admission, so a path refused there
+is the job's refusal, not each device's.</li>
+<li><strong><code>karvi-prune</code> walks every private root of the operator's, making nothing.</strong>
+An operator's run walks each private root that exists, the site's
+<code>/opt/karvi/users/&lt;user&gt;</code> and <code>/var/lib/karvi/users/&lt;user&gt;</code> and the home's
+<code>~/.local/share/karvi</code>, each one's <code>jobs</code>, <code>transcripts</code>, and
+<code>state/scoreboards</code>, with the shared trees and the shared scoreboards, so the
+jobs left under the home before the site made <code>users</code>, and the scoreboards
+that fell to a private folder, are pruned too; <code>--basedir PATH</code> replaces the
+private roots with that one. It no longer makes the private root, and it
+judges a shared tree by its permissions without writing a probe file there.
+Root's run adds each site root's <code>state/scoreboards</code>. The units' and the cron
+script's comments say so.</li>
+<li><strong><code>setup shared</code> makes the ledger's <code>devices</code> folder, and the boot rule
+remakes it.</strong> <code>/dev/shm/karvi/capacity/devices</code> is made at 2770, root's, in
+the operators' group, after <code>capacity</code>, and <code>/etc/tmpfiles.d/karvi.conf</code>
+(and <code>packaging/tmpfiles.d/karvi.conf</code>) names it, where the first activity
+after each boot had made it, owned by that operator, who could close it to
+the rest.</li>
+<li><strong>The trust store follows the private root.</strong> Under <code>ssh.known-hosts-file = &quot;auto&quot;</code> the store is <code>&lt;basedir&gt;/known_hosts</code>: on a host where the site made
+the operators' roots (<code>sudo karvi setup shared</code>),
+<code>/opt/karvi/users/&lt;user&gt;/known_hosts</code>, where it had been
+<code>~/.local/share/karvi/known_hosts</code> whatever <code>basedir</code> was; on any other host
+the same file as before. A store an earlier release made in the home is not
+read on such a host: <code>accept-new</code> enrolls each device again, and <code>secure</code>
+needs its store in the new place. An explicit path is unchanged.
+<code>host_key_trust_store_candidates_exhausted</code> is retired; a store that cannot
+be made reports its own step's code.</li>
+<li><strong><code>config show --explain</code> names every place.</strong> Every key whose value is a
+place karvi writes or reads has <code>resolved: PATH</code>, the path the next activity
+in process would use, found by the activity's own chooser without creating
+anything (a candidate judged by <code>access(2)</code>, its owner and mode where it is
+private, and its filesystem's free inodes): <code>basedir</code>, the trust store,
+<code>output.root</code>, <code>transcript.root</code>, <code>crun.directory</code>, <code>tempdir</code>, <code>spooldir</code>,
+<code>ssh.control-path-root</code>, <code>scoreboards</code>, <code>sessions.shared-capacity-root</code>,
+<code>daemon.socket</code>, and, when set, <code>audit.file</code>, an inventory source's <code>path</code>,
+and a credential backend's <code>path</code>, <code>ca-file</code>, <code>client-cert-file</code>, and
+<code>client-key-file</code>. A candidate present on the host and passed by follows as
+<code>passed: PATH: reason</code>; a place the activity would refuse is <code>resolved: error: CODE: message</code>, and the view exits 0. <code>karvi config show KEY…</code> takes several
+keys, in their order, an unknown one <code>error: not found</code> among them, where a
+second key was <code>cli_positional_unexpected</code>. <code>docs/FILES.md</code> gives the recipe
+for every place at once; the host-key guide's enrollment recipe takes the
+store from the line. The lines come from the invocation's configuration: a
+running daemon keeps its scratch, spool, control sockets, scoreboards, and
+ledger until it is restarted.</li>
+<li><strong><code>docs/FILES.md</code>, every place karvi uses.</strong> One reference for the
+directories and files karvi reads and writes in shared and in individual
+mode, each with its mode, owner, group, writer, and purpose, and the rule by
+which each place is chosen (the shared candidate first, what a missing or an
+unusable one does), as karvi 0.26.0 leaves them on a host with two
+operators. It names a setting with no use in this release, <code>logging.file</code>,
+to which nothing is written.</li>
+<li><strong>A platform's <code>channel</code>, and the built-in <code>linux_shell</code>.</strong> A
+<code>[platform.NAME]</code> table takes <code>channel = &quot;shell&quot;</code> or <code>&quot;exec&quot;</code>, what karvi asks
+of the SSH session channel; built-in <code>linux</code> is <code>exec</code>, every other built-in
+<code>shell</code>, and a table that leaves it unset is <code>shell</code>; another word is
+<code>config_platform_channel_invalid</code>. Each target's channel is resolved at
+planning, carried in the plan (execution plan schema 11) and the manifest, and
+shown on the dry run's <code>intended:</code> line (<code>channel=shell</code>). A target whose
+platform says <code>exec</code> over telnet, which has no exec, is refused at planning
+with <code>channel_exec_over_telnet</code>. An eighth built-in, <code>linux_shell</code>, is <code>linux</code>
+on the shell channel with <code>linux</code> as its base, so it is admitted wherever
+<code>linux</code> is and its records name <code>linux_shell</code>. The platform field
+<code>control-master</code>, read by nothing, is removed: a table that sets it is refused
+as <code>config_unknown_key</code>, and <code>config_platform_control_master_not_boolean</code> is
+retired. The configuration registry moves to 25.</li>
+<li><strong>A platform's <code>fallback</code>, and the operator's own keys for servers.</strong> What
+follows a credential policy's backends is the platform's <code>fallback</code>, an
+ordered list of <code>netvars</code> (<code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code>), <code>keys</code>, and
+<code>prompt</code> (another word, or one twice, is <code>config_platform_fallback_invalid</code>):
+the network built-ins and <code>generic</code> are <code>[&quot;netvars&quot;, &quot;prompt&quot;]</code>, as before;
+<code>linux</code> and <code>linux_shell</code> are <code>[&quot;keys&quot;]</code>, so the variables an operator exports
+for routers no longer reach a server (a site that wants them writes
+<code>[platform.linux] fallback = [&quot;netvars&quot;, &quot;keys&quot;]</code>). <code>keys</code> is the operator's
+login name and the files of the new <code>ssh.identities</code>, by default
+<code>~/.ssh/id_ed25519</code>, <code>~/.ssh/id_ecdsa</code>, <code>~/.ssh/id_rsa</code>, each an absolute path
+or one beginning with <code>~/</code> (<code>config_ssh_identities_invalid</code> otherwise), judged
+at planning: a file that is not the operator's own, has group or other access,
+holds a passphrase, or is hardware-backed is skipped with the notice
+<code>operator_key_skipped</code>, and with none left the device fails with
+<code>credential_operator_keys_missing</code> (exit 6). The credential
+(<code>builtin-operator-keys</code>) carries each key's path and fingerprint, never its
+bytes, in the grant, the credential package (schema 2), and the manifest, and
+the dry run shows a <code>key:</code> line per key. Both transports offer the keys in
+order, read at the connection: the system transport with <code>IdentitiesOnly yes</code>,
+<code>IdentityAgent none</code>, and an <code>IdentityFile</code> per key, <code>scrapligo-v1</code> as
+signers, so <code>run</code>'s default transport now reaches a key-only server; a
+credential with keys and no password offers no password method. Both try the
+methods in the order <code>publickey</code>, <code>keyboard-interactive</code>, <code>password</code>
+(<code>scrapligo-v1</code> had tried password first). Each record's <code>credential.auth</code>
+names the method that authenticated the session, and every <code>command_completed</code>
+audit event names it with the device username and the credential backend. The
+fake device takes <code>-authorized-keys PATH</code> and <code>-no-keyboard-interactive</code>.
+<code>ssh.pubkey-authentication</code> is removed and refused at load
+(<code>config_key_removed</code>): a backend's credential holds no key and needs a
+password, so a backend row without one is <code>credential_password_missing</code> where
+that setting had let it pass; <code>config_ssh_auth_mechanisms_disabled</code> is
+retired.</li>
+<li><strong>The shell's output and prompts are the text the terminal showed.</strong> In
+<code>command</code>, <code>run</code>, and <code>crun</code>, on every platform and over SSH and telnet, a
+command's output and the prompts in its record are rendered as the terminal
+showed them, where only carriage returns were dropped and only CSI sequences
+were removed from the prompt line: colours, window titles, terminal modes,
+and bash's bracketed-paste switches are gone, a backspace or an erase is
+applied, and a carriage return returns to the line's start. A record of a
+Linux server's shell that held <code>\x1b[?2004l…\x1b]0;netops@dev: ~\x07…</code> now
+holds the command's text alone, and its <code>prompt</code> is <code>netops@dev:~$</code>, no
+longer carrying the window title. The stream is rendered at no width, as the
+transports ask the far end for no size; a space the device wrote is kept on
+an inner line. Records and their digests move wherever a device sent such
+bytes; the IOS XE fake sends none, and its records are unchanged.</li>
+<li><strong>A recorded login's transcript is the text the terminal showed.</strong> It had been
+the bytes the terminal was sent, colours, window titles, and the line editor's
+controls included, so a word corrected with two backspaces read <code>echo helolo</code>
+once the controls were deleted. At the session's end <code>login --record</code> now
+removes <code>script(1)</code>'s two lines and renders the rest before the metadata's
+digest: the corrections applied, colours, titles, and terminal modes dropped,
+a line longer than the terminal one line, every line ending in a newline with
+no carriage return. The widths come from <code>script(1)</code>'s timing log (<code>-T FILE -m advanced</code>, the scratch's <code>karvi-script-*.timing</code>, removed after). A timing log
+that cannot be read leaves the transcript rendered at the starting columns,
+under the notice <code>transcript_timing_unreadable</code>. No raw copy is kept; a
+session killed before its end keeps its bytes as <code>script(1)</code> wrote them. The
+runbook gains row D16, IOS XE's line editor in a recorded login, done by hand.</li>
+<li><strong>The fake device is <code>karvi-fake-device</code>, with a Linux persona.</strong> The test
+fixture's package is <code>internal/fakedevice</code> and its command
+<code>cmd/karvi-fake-device</code>, renamed from <code>fakeiosxe</code> and <code>karvi-fake-iosxe</code>; the
+IOS XE persona stays the default, and the suites' device <code>fake-iosxe</code> keeps
+its name. <code>-persona linux</code> answers exec requests from a fixed table (the
+servers' collection list, <code>fail N</code>, <code>both</code>, <code>big</code> and <code>bigerr</code>, <code>slow</code>,
+<code>signal TERM</code>, <code>nostatus</code>, <code>sudo -n id -u</code>, and <code>sh</code>'s not-found message with
+exit 127 for any other command) and has a shell for <code>linux_shell</code>
+(<code>netops@fake:~$</code>, bash's decorations under <code>-decorations</code>); <code>-sudo-asks</code>
+makes <code>sudo -n</code> refuse. Its standard error adds <code>signal: NAME</code>, <code>left running: &quot;LINE&quot;</code>, and a closing <code>channels=N</code> line beside the unchanged <code>connections=</code>
+line.</li>
+<li><strong>Command record schema 3: every record's channel, an exec command's exit and
+stderr.</strong> Every record carries <code>channel</code> (<code>shell</code> or <code>exec</code>); an exec record
+adds <code>exit_status</code>, <code>exit_signal</code> (the signal's name, <code>unnamed</code> where the
+transport gives none), and <code>stderr</code> with <code>stderr_encoding</code>, <code>stderr_bytes</code>,
+and <code>stderr_sha256</code>, the stream spooled past <code>output.spool-threshold-bytes</code> as
+<code>output</code> is. On a shell record the new fields are null; on an exec record a
+null <code>stderr</code> says the command did not run (its channel never opened, or the
+device refused the exec request), an empty one that it wrote nothing there,
+and <code>prompt_source</code> is the new value <code>none</code>. A consumer that checks
+<code>schema_version</code> reads 3, and every line of <code>commands.jsonl</code> gains the null
+fields; the daemon IPC schema stays 10. A record that breaks the new fields'
+rules is <code>record_channel_invalid</code> or <code>record_stderr_encoding_invalid</code>.</li>
+<li><strong>The exec channel, on both transports.</strong> A target whose platform's <code>channel</code>
+is <code>exec</code> gets one connection for its command list and one exec channel per
+command, without a pty, with standard input at its end, and with no prompt,
+privilege step, paging command, or exit command. Exit 0 is <code>succeeded</code>
+whatever stderr holds; a non-zero exit is <code>command_exit_nonzero</code>, a signal
+<code>command_exit_signal</code>, and a channel closed without a status on a live
+connection <code>command_exit_missing</code>, each a device error (exit 107); a device
+that refuses the channel or the exec request is <code>ssh_session_channel_refused</code>,
+and its session ends. A command timeout, a cancel, and the output limit
+(stdout and stderr counted together) stop the command, and the connection
+serves the next under the device-error policy. Blind sends, <code>\r</code> endings,
+<code>--blind-return</code>, and <code>--expect</code> are refused at planning for an exec target
+(<code>channel_exec_declaration_refused</code>, exit 4), by the client and the daemon's
+plan check alike. On <code>scrapligo-v1</code> each command is a session channel on
+karvi's connection, and a command given up is asked to end with <code>KILL</code>. On
+<code>system</code> the connection is an OpenSSH ControlMaster (<code>ssh -M -N</code>, the client's
+child for <code>command</code> and the daemon's for <code>run</code>, started with a death signal)
+and each command an <code>ssh -S</code> client of it at <code>LogLevel QUIET</code> with
+<code>ProxyCommand false</code>; the master runs at <code>LogLevel DEBUG1</code>, its stderr read
+for the method that authenticated, each command's exit status or signal, and a
+refused exec request. OpenSSH names no signal, so <code>exit_signal</code> is <code>unnamed</code>
+there, and its client cannot ask the device to end a command, so a command
+given up carries the notice <code>remote_command_not_stopped</code> and may still be
+running. A master not ready within the login's bound is
+<code>command_session_prompt_timeout</code>, its cause naming the master's <code>-O check</code>.</li>
+<li><strong>The control sockets' place.</strong> <code>ssh.control-path-root</code>, read by nothing
+before, holds the exec masters' sockets: <code>/dev/shm/karvi/&lt;user&gt;/sockets</code> where
+the site's scratch root exists, else <code>&lt;basedir&gt;/socket/ssh</code>, one
+16-hex-character name per device session, removed when the session ends. <code>~</code>
+in the key is the home the password database names, where it had been
+<code>basedir</code>'s grandparent. A root longer than 73 bytes, which OpenSSH's socket
+path cannot hold, is <code>control_path_root_too_long</code> (exit 2) at planning for an
+exec target over <code>system</code>. A socket a killed master left is removed at the
+daemon's start and at each job's admission, only a name karvi makes and only
+when nothing answers, logged <code>control_socket_abandoned_removed</code>.</li>
+<li><strong>Built-in <code>linux</code> runs on the exec channel.</strong> A <code>linux</code> target's commands run
+as exec commands on both transports, each with its exit status and its stderr
+apart: <code>ls /nonexistent</code> is <code>command_exit_nonzero</code> (exit 107) where the shell
+had recorded <code>succeeded</code> with bash's bracketed-paste switches, the window
+title, and the login shell's aliases in the output. A server that refuses exec
+requests takes <code>linux_shell</code>, which keeps the shell. <code>docs/OPERATIONS.md</code>
+gains &quot;Linux servers&quot;, and <code>docs/COMMAND-SESSION.md</code> &quot;The exec channel&quot;.</li>
+<li><strong>A server's collection.</strong> <code>linux</code> and <code>linux_shell</code> carry a built-in
+<code>crun-commands</code>: <code>cat /etc/os-release</code>, <code>uname -snrm</code>, <code>ip -br address</code>, <code>ip route show table all</code>, and <code>systemctl list-unit-files --state=enabled --no-pager --no-legend</code>, so <code>crun</code> over a fleet with servers no longer refuses
+them with <code>crun_platform_commands_missing</code>. Under exec a block is the
+command's stdout, then its stderr; a non-zero exit leaves its error text in
+the block and the file is replaced, the status kept in the record.
+<code>docs/COLLECTION.md</code> gains section 2.1, the servers.</li>
+<li><strong>The parity suite covers the exec channel.</strong> <code>scripts/native-smoke-test.sh</code>
+runs S35a to S35f over the fake's Linux persona (each way a command ends, the
+output limit, both spools, a refused <code>sudo</code>, a refused exec request, and a
+<code>linux_shell</code> row with bash's decorations). <code>tools/paritycheck -pin N.PATH=TRANSPORT:JSON;…</code> states a difference between the transports by design,
+checked in every stream and left out of the comparison: the exec cases pin
+<code>exit_signal</code> and the notice <code>remote_command_not_stopped</code>.</li>
+<li><strong>A production server's qualification rows.</strong>
+<code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> gains section 9, rows L1 to L6 run by
+hand against one server of each kind: the server's SSH, the exec records on
+four streams, <code>sudo -n</code>, a command given up and what it left, the collection,
+and <code>linux_shell</code>.</li>
+<li><strong>Stream mode: one dash or two, quotes, and the commands that stay.</strong> A line
+beginning with a dash and one more character is a run option with one dash or
+two alike, as on a <code>run</code> command line: <code>-c show clock</code>, <code>-target r1</code>, and
+<code>-go</code> mean what <code>--cmd</code>, <code>--target</code>, and <code>--go</code> mean, where a one-dash line
+had been sent to the devices as a command (<code>-</code> alone still is one). An
+option's value wholly wrapped in one pair of quotes loses them as a shell
+would remove them (<code>--cmd &quot;show clock&quot;</code>, <code>--target 'r1'</code>), where the quotes
+had reached the command or the target's name; every other quote, and every
+quote on a bare line, is sent as written. A command given in option form
+(<code>--cmd</code> and its aliases, <code>--cf</code>) now stays in the draft after <code>--go</code>,
+<code>--sendit</code>, and <code>--clear</code>, with its declarations, and is sent by every later
+job; a bare line is sent once. <code>--purge-commands</code> (from <code>--purge-c</code>) empties
+every command and <code>--purge-targets</code> (from <code>--purge-t</code>) every target input;
+<code>--purge</code> alone is refused as <code>cli_option_ambiguous</code>. <code>--exit</code> leaves as
+<code>--end</code> and <code>--quit</code> do.</li>
+<li><strong>Stream mode: a line no longer swallows the commands after it.</strong> A flag given
+text after a space (<code>--no-daemon yes</code>), or a <code>--</code> line (<code>-- foo</code>), put text no
+option takes into the draft, which <code>run</code> read as freeform command text: every
+later command line joined it, and the job sent the one line <code>yes --cmd …</code> to
+its targets. Such a line is now dropped with its number as
+<code>cli_positional_unexpected</code>, the draft standing.</li>
+<li><strong>A run through the daemon is bounded as its invocation said.</strong> The daemon's
+job took <code>execution.command-timeout</code>, <code>execution.device-timeout</code>,
+<code>execution.prompt-timeout</code>, <code>execution.enable-timeout</code>, <code>telnet.read-timeout</code>,
+<code>output.max-command-bytes</code>, and <code>execution.halt-device-on-command-error</code> from
+the daemon's configuration, so a <code>--set</code> of any of them, or a client
+configuration that differed, did not reach a <code>run</code> through the daemon, while
+the daemon kept the <code>--set</code> of whichever invocation had started it for every
+later job. The plan carries them (a new <code>execution</code> block; the output block's
+<code>max_command_bytes</code>, carried and not read until now; the dispatch block's
+<code>continue_device_on_error</code>), and the executor and the transports read them
+from the plan on every path. The plan schema stays 11.</li>
+<li><strong><code>--timeout</code> and <code>--maxbytes</code>, one command's own bounds.</strong> On <code>run</code>,
+<code>command</code>, <code>crun</code>, and in stream mode, <code>--timeout DURATION</code> and <code>--maxbytes BYTES</code> are declarations on the <code>--cmd</code> before them, as <code>--expect</code> is: the
+command's timeout in place of <code>execution.command-timeout</code> (over telnet, of
+<code>telnet.read-timeout</code> too), and its output limit in place of
+<code>output.max-command-bytes</code>, in those keys' forms and ranges (1s to 12h; whole
+bytes, 1024 to 1 GiB), at most one of each per command
+(<code>declaration_repeated</code>). A copy of an image can run 45 minutes beside <code>show</code>
+commands that keep their 120 seconds. <code>--timeout</code> on a blind command is
+<code>timeout_with_blind</code>; above a set <code>execution.device-timeout</code> it is
+<code>timeout_over_device_timeout</code>, and a <code>--maxbytes</code> above
+<code>output.max-job-bytes</code> is <code>maxbytes_over_job_limit</code>, each naming both values
+and the <code>--set</code> that raises the ceiling. The plan carries <code>timeouts_ns</code> and
+<code>max_bytes</code> (schema 11 stays); the free-space check's spool term is the
+width times the largest command limit in the job. A timeout's or a limit's
+message names its source: <code>command timed out after 45m0s (--timeout)</code>, <code>… after 2s (execution.command-timeout)</code>, <code>command output exceeded 2048 bytes (--maxbytes) across stdout and stderr, 5000 observed</code>; the observed count of
+every limit message now follows a comma. The debug line <code>device command start</code> carries <code>timeout=</code> and <code>maxbytes=</code>.</li>
+<li><strong>Over telnet, the device deadline names its cut.</strong> A command cut by
+<code>execution.device-timeout</code> over telnet was recorded <code>command_timeout</code>; it is
+<code>device_timeout</code>, as on SSH, and a telnet timeout's message reads <code>command timed out after …</code> naming the bound that expired, where it was the socket's
+<code>i/o timeout</code>.</li>
+</ul>
+<h2 id="0260---2026-10-04">0.26.0 - 2026-10-04 <a class="anchor" href="#0260---2026-10-04" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.25.0. The configuration registry moves from 22 to 24
+and the execution plan from 9 to 10; the daemon IPC schema and every other
+counter are 0.25.0's (scoreboard 3, configuration schema 6, command record
+2, job 2, credential package 1, plan report 1), and a running 0.25.0 daemon
+is <code>compatible: false</code> by its version alone and is restarted. A site has
+something to change where it set <code>output.files.failures-jsonl</code> (now
+<code>output.files.errors-jsonl</code>, the job's <code>errors.jsonl</code>), relied on <code>run</code>'s
+Dispatch options passing a lock or a range, or read <code>crun</code>'s result line on
+standard error (now the display's collection footer). The module graph gains
+<code>github.com/yuin/goldmark</code>, for <code>tools/md-to-html</code> alone.</p>
+<ul>
+<li><strong>The capacity ledger is shared across operators.</strong> Under a group-shared
+capacity root (setgid, <code>sessions.shared-capacity-root</code>), the ledger's
+directory and files take the root's group modes (2770 gives 0660), where
+they were 0700 and 0600 whatever the root: the second operator's every
+device failed with <code>capacity_admission_failed</code> (<code>open …/server.lock: permission denied</code>). An operator's own files left private by an earlier
+release are widened at their next use. The reaper counts another user's
+process as alive, where it reaped every other operator's live lease and
+so let each operator fill the host-wide cap alone. A ledger that cannot
+be read is an error, never an empty ledger whose write would replace
+another operator's leases. A shared root that exists but is closed to
+the operator (the sticky bit on another's directory, or a directory or
+lock it cannot use) is said once as the new <code>capacity_root_unusable</code> in
+the fallback warning, and the private root is taken, where every device
+had met the refusal.</li>
+<li><strong>No operator creates the scratch root.</strong> <code>/dev/shm/karvi</code> is the
+site's: an operator's process makes only its own folder inside it and a
+missing <code>scoreboards</code> or <code>capacity</code> folder in an existing parent (with a
+setgid parent's group bits), and never a missing parent. The first
+operator's run had created <code>/dev/shm/karvi</code> at 0700, closing it to every
+other, whose scratch, control sockets, scoreboards, and capacity leases
+then fell to private places, so <code>karvi watch</code> showed one operator's work
+and the host-wide cap held per operator. On a host without the scratch
+root the private places are taken without a warning; a shared folder
+that exists but cannot be written is taken with one, naming it. The Go
+tests no longer reach the host's <code>/dev/shm/karvi</code>: the test isolation
+gives each test binary a scratch root and a capacity root of its own.
+The documentation of <code>tempdir</code>, <code>ssh.control-path-root</code>,
+<code>sessions.shared-capacity-root</code>, and <code>watch.directory</code> says so.</li>
+<li><strong><code>setup shared</code> makes the scratch root and its boot rule.</strong> Beside the
+shared trees and <code>users</code>, <code>sudo karvi setup shared</code> makes
+<code>/dev/shm/karvi</code> and its <code>scoreboards</code> (3770: setgid and sticky, so no
+member removes another's folder or file) and <code>capacity</code> (2770, the
+ledger every member rewrites) in the operators' group, repairing a group
+or mode found otherwise, such as the 0700 root an earlier release's run
+left. It writes <code>/etc/tmpfiles.d/karvi.conf</code> in that group, so
+systemd-tmpfiles makes the scratch root again at every boot, and reports
+it as created, exists, or updated; a rule karvi did not write is
+reported and left (<code>setup_tmpfiles_mismatch</code>), and a host without
+<code>/etc/tmpfiles.d</code> is told (<code>setup_tmpfiles_dir_missing</code>), the
+directories made either way. <code>packaging/tmpfiles.d/karvi.conf</code> is the
+rule for the default group, where it had given <code>capacity</code> the sticky
+bit, under which no member could replace a ledger another wrote. The
+setup help says what the command does, which had still described a
+mismatched directory as left alone.</li>
+<li><strong>The credential prompts edit as stream mode does, and Ctrl-C there
+exits.</strong> The username and password prompts read through the line
+editor stream mode uses (<code>internal/termline</code>, shared by both):
+Backspace as DEL or Ctrl-H, the Delete key, the arrows, Ctrl-A, Ctrl-E,
+Ctrl-K, Ctrl-U, Ctrl-W; the password without echo. Ctrl-H and the
+Delete key had gone into the username as bytes. Ctrl-C at a prompt ends
+karvi at once with the new <code>credential_prompt_interrupted</code> (exit 113),
+in a stream too, where it had been held until the input ended; an empty
+answer ends it at once with the field's missing code
+(<code>credential_username_missing</code>, <code>credential_password_missing</code>,
+<code>credential_enable_missing</code>), before any later prompt; Ctrl-D on an
+empty line stays <code>credential_prompt_unavailable</code>. A prompt that failed
+is not asked again for the targets resolving beside the first, and a
+username and password typed or pasted ahead are both read. In stream
+mode the Delete key deletes forward.</li>
+<li><strong>Stream mode reads no line ahead.</strong> At a terminal the reader had read
+the next line while a job ran, holding the terminal in raw mode
+through the job, so the job's Ctrl-C was taken as a key (the job ran
+on and the stream with it) and a credential prompt competed with the
+stream for the operator's keys. The reader now reads a line when the
+loop asks for it, so a Ctrl-C during a job is the signal it is: the
+follow stops, a daemon's job continues, and the stream ends.</li>
+<li><strong>A recorded login names its transcript at the end too, in the
+display's style.</strong> <code>login --record</code> prints the transcript's path before
+the session and again as its last line, after the device's last output,
+a failed session included, where the header had been a plain
+<code>Recording login transcript to PATH</code> that a long session scrolled away.
+Both lines are display templates, the new <code>display.record.header</code> and
+<code>display.record.footer</code>, with one default, <code>! transcript=&lt;transcript&gt;</code>
+(the new <code>&lt;transcript&gt;</code> placeholder), rendered and colored as every
+header and footer and suppressed by <code>--quiet</code>; a template that does not
+render refuses the login before a transcript is created. The
+configuration registry moves from 22 to 23.</li>
+<li><strong>The dispatch reports say what a job runs.</strong> A dry run's <code>dispatch:</code>
+line printed the parallel width whatever the mode, <code>width=4</code> on a
+4-CPU host for a serial job (one worker) and for a wave job (16 to 32);
+it now reads <code>serial width=1</code>, <code>parallel width=N</code>, or <code>wave start-width=N max-width=N depth-multiplier=N</code>, as does the exercise's
+<code>dispatch_assessment</code>, and the scoreboard's first snapshot takes the
+width the job starts at. A wave decision held at the ceiling with the
+CPU under the band is <code>cpu_below_zone_at_ceiling</code>, and one held at the
+start width over it <code>cpu_above_zone_at_floor</code>, where both had read
+<code>cpu_in_zone</code>; <code>metrics.json</code>'s <code>wave_decisions</code> carry the width before
+each decision, which had been 0.</li>
+<li><strong><code>--cd=PATH</code> on <code>run</code> and <code>command</code>.</strong> A run or command given <code>--cd</code>
+writes each device's collection file into PATH, in <code>crun</code>'s shape (a
+<code>! COMMAND</code> marker before each command's output and nothing else),
+unfiltered, replaced only when the device succeeds, its
+<code>--continue-device-on-error</code> its own; the job folder is the run's,
+<code>output.NAME.txt</code> included; <code>--nof</code> collects with no folder; no
+<code>crun.after</code> hook runs and the watch screen shows <code>run</code> or <code>cmd</code>. In a
+stream <code>--cd=PATH</code> is a line that stays, and a bare <code>--cd</code> is dropped
+when read. The execution plan's collection block carries the word that
+asked (<code>crun</code>, <code>run</code>, or <code>command</code>), at plan schema 10; a schema-9 plan
+or daemon is refused.</li>
+<li><strong>A manual page for <code>karvi-askpass</code>.</strong> <code>packaging/man/karvi-askpass.1</code>,
+installed as <code>/usr/share/man/man1/karvi-askpass.1</code>: what the helper is,
+that <code>ssh</code> runs it for karvi and an operator does not, how karvi finds
+it, its environment, its one-use token and socket, and its exits; the
+groff lint now covers every page.</li>
+<li><strong>A manual page for <code>karvi-prune</code>.</strong> <code>packaging/man/karvi-prune.8</code>, installed
+by the debian rules as <code>/usr/share/man/man8/karvi-prune.8</code>, is the terminal
+reference: what goes and never goes, the flags, where it looks, the report,
+the exits, the files, and examples. Its SYNOPSIS and OPTIONS are generated
+from the helper's flag definition by the new <code>tools/mangen</code> under <code>make generate</code>; <code>make generated-clean</code> and the bundle verifier compare them, and a
+test lints the page with groff. <code>make generated-clean</code> now fails on any stale
+generated file, where only the last one compared
+(<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>) could fail it.</li>
+<li><strong><code>karvi-prune -h</code> reads as karvi's help does.</strong> <code>-h</code> and <code>--help</code> print
+to standard output in karvi's layout: a title line, <code>Usage:</code> with the
+synopsis wrapped at 79 columns, and <code>Options:</code> with each flag in the
+synopsis's order, its value's name (<code>--basedir auto|PATH</code>, <code>--days N</code>,
+<code>--minfree PERCENT</code>, <code>--format text|jsonl</code>) in the option column and its
+description beside it, the default after; coloured at a terminal with
+the display's default roles (the helper reads no configuration, so a
+site's <code>display.*</code> does not reach it). Go's own printer had listed
+<code>-basedir string</code>, <code>-days int</code>, and <code>-minfree float</code> alphabetically on
+standard error. A usage error prints its message and the help on
+standard error, exit 2. The names, the order, and the synopsis are
+defined once in the helper's flag definition, which Tab and the man page
+read too; karvi's help is unchanged, its layout now shared
+(<code>internal/helplayout</code>).</li>
+<li><strong><code>--fs=SUFFIX</code>, a suffix on each collection file's name.</strong> On <code>crun</code>,
+<code>run</code>, and <code>command</code>, <code>--fs=.cfg</code> writes <code>NAME.cfg</code> (and its temporary
+<code>.NAME.cfg.JOBID</code>) in the collection directory, never renaming the
+directory; on <code>run</code> and <code>command</code> without <code>--cd</code> it is <code>--cd=.</code> as
+well, and a failure of that directory says it was implied by <code>--fs</code>; on
+<code>crun</code> alone it keeps <code>crun.directory</code>. A bare <code>--fs</code> or <code>--fs=</code> is
+<code>cli_option_value_missing</code>; a suffix holding <code>/</code>, NUL, or a control
+character is the new <code>crun_suffix_invalid</code>. The plan's collection block
+carries <code>suffix</code>; the summary, the hook's input, the collision check,
+and the dry run name the suffixed file. The stale-temporary sweep removes
+only <code>.FILE.</code> and a job ID's form, compared as strings, where its glob
+<code>.NAME.*</code> would have removed a concurrent <code>--fs=.cfg</code> run's temporary.</li>
+<li><strong>The collection line is a display template.</strong> A job with a collection
+ends its text display with <code>display.collection.footer</code>, default <code>! collection=&lt;collection&gt; replaced=&lt;replaced&gt; kept=&lt;kept&gt;</code>, on standard
+output directly after the footer and in its colors, on every path
+(<code>--no-daemon</code>, the daemon follow, <code>job follow</code>, a replay); <code>--quiet</code> or
+an empty template suppresses it. It replaces <code>crun</code>'s plain <code>crun JOB-ID exit=… artifacts=… collection=…</code> line on standard error, which
+was printed under every format: under json and jsonl nothing is printed
+now, and the jsonl summary document and <code>summary.json</code> carry the
+counts. The configuration registry moves from 23 to 24.</li>
+<li><strong>An option that takes its value with <code>=</code> alone refuses a detached
+value.</strong> <code>--of[=PATH]</code>, <code>--record[=PATH]</code>, and <code>--cd=PATH</code> are written
+alone or as <code>--NAME=VALUE</code>. A bare <code>--of</code> or <code>--record</code> followed by a
+word of a path's form (beginning with <code>/</code>, <code>~</code>, <code>./</code>, or <code>../</code>, or <code>.</code>
+or <code>..</code>) is the new <code>cli_option_value_detached</code>, naming the <code>=</code> form,
+where <code>run --of /x --cmd 'show clock'</code> had sent <code>/x --cmd show clock</code> to
+the device and <code>command --of /x r1</code> and <code>login --record /y r1</code> had taken
+the path for the device. A stream line <code>--of PATH</code> is dropped with its
+number for the same code, where the path had been sent as command text
+at every job. Any other word after a bare <code>--of</code> keeps its meaning
+(<code>command --of r1 'show clock'</code>), so a relative path is written
+<code>--of=out</code>.</li>
+<li><strong><code>--ssh-host-key-policy</code> and <code>run</code>'s Dispatch options say what they
+do.</strong> <code>login</code>, <code>command</code>, and <code>run</code> (and <code>crun</code>) share one entry for
+<code>--ssh-host-key-policy</code>, naming <code>ssh.host-key-policy</code> and the three
+modes with the default; <code>login</code>'s separate &quot;Host-key modes&quot; table is
+gone, and the other two had said nothing. <code>run</code>'s <code>--dispatch</code>,
+<code>--workers</code>, <code>--start-width</code>, <code>--max-width</code>, the two halts, the two wave
+gates, and <code>--wave-delay</code> each have an entry with its key and what 0
+means, where eight of them were listed without a word; the percent halt
+is described as built, against the devices ended so far. A test fails
+on a help line in a shape the layout does not know.</li>
+<li><strong><code>run</code>'s Dispatch options obey their keys' locks and ranges.</strong>
+<code>--dispatch</code> (and <code>--dp</code>, <code>--dw</code>, <code>--ds</code>), <code>--workers</code>, <code>--start-width</code>,
+<code>--max-width</code>, the two halts, the two wave gates, and <code>--wave-delay</code> set
+their <code>dispatch.*</code> keys through the lock-aware layer, as <code>--order</code> and
+<code>--blind-wait</code> do, where they had gone to the planner beside the
+configuration: a site's lock on any of those keys was passed by the
+option (<code>--max-width 64</code> under a lock of 8 ran at 64), and values the
+keys refuse were clamped without a word (<code>--max-width 600</code> ran at 512,
+<code>--start-width 100 --max-width 10</code> at 10) or accepted (<code>--wave-delay 2h</code>, past the key's <code>0s..1h</code>). A locked key now refuses its option
+(<code>config_lock_violation</code>, exit 3), and an out-of-range value is the
+key's own error (<code>config_value_out_of_range</code>, exit 2), where
+<code>dispatch_value_negative</code> and <code>dispatch_percent_out_of_range</code> (exit 4)
+are retired; <code>--set</code> still outranks an option, and <code>--halt-on-error-count 0</code> now turns a configured halt off. The top help says so for every
+option that stands for a key.</li>
+<li><strong>Every exit status has a written meaning.</strong>
+<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a> opens with an <a href="docs/ERROR-CODES.html#exit-statuses">&quot;Exit
+statuses&quot;</a> table: the 24 statuses, the name
+the records and the audit carry (<code>ExitPartialFailure</code>), and what each means,
+with the order in which they apply to a job, where the statuses had names
+alone and only the error codes said which exit they set. The list is defined
+once in <code>internal/exitcode</code>, a test holds every constant to it, and the error
+registry refuses a code naming an undefined exit.</li>
+<li><strong>Manual pages for <code>karvi</code> and each of its words.</strong> <code>karvi.1</code> and
+<code>karvi-login.1</code>, <code>karvi-command.1</code>, <code>karvi-run.1</code>, <code>karvi-crun.1</code>,
+<code>karvi-stream.1</code>, <code>karvi-daemon.1</code>, <code>karvi-job.1</code>, <code>karvi-config.1</code>,
+<code>karvi-setup.1</code>, <code>karvi-watch.1</code>, and <code>karvi-version.1</code>, installed in
+section 1 (<code>man karvi run</code> finds <code>karvi-run</code>). Each page's SYNOPSIS and
+DESCRIPTION are its word's help text, generated by <code>tools/mangen</code> through
+the terminal layout's own analysis (<code>helplayout.Roff</code>), so a page cannot
+drift from <code>--help</code>; <code>karvi.1</code>'s EXIT STATUS is the list of
+<code>internal/exitcode</code>. A command word without its page fails <code>make generate</code>, and <code>make generated-clean</code> and the bundle verifier compare
+every page. <code>karvi.1</code> states once what every word shares: the
+configuration's layers and locks, the values (DURATION, N), the
+environment, the files, and how the exit is chosen; each word's page adds
+what its help does not say (<code>karvi-run.1</code> the dispatch modes, the widths
+at 0 by CPU count against the host's cap, the halts, the output, and the
+rehearsal; <code>karvi-crun.1</code> the collection; <code>karvi-login.1</code> the
+transcripts and the host keys), and the guides it restates say so.</li>
+<li><strong>The reference configuration loads.</strong> <code>karvi config generate</code> and
+<code>configs/reference.toml</code> opened <code>[dispatch]</code> twice, <code>[output]</code> four
+times, and <code>[display.run]</code> twice, so <code>karvi config validate</code> refused the
+file a site starts from (<code>table redefined: dispatch</code>), and the top-level
+keys (<code>basedir</code>, <code>sharedroot</code>, <code>tempdir</code>, <code>spooldir</code>, <code>freecheck</code>,
+<code>timezone</code>) stood under <code>[config]</code>, where an edit was refused as
+<code>config.basedir</code>. The reference is now written table by table, the
+top-level keys first; no key's value changes, and a test holds that every
+key loads from its own line at its default. The 0.24.0 and 0.25.0
+references have the same fault.</li>
+<li><strong><code>NO_COLOR</code> turns colour off everywhere under <code>auto</code>.</strong> With
+<code>display.color</code> at <code>auto</code>, the default, a non-empty <code>NO_COLOR</code> now keeps
+karvi's colour off on every path: the help, a run's display, <code>config colors</code>, the watch screen, and <code>karvi-prune -h</code>, where the watch screen
+alone had read it. <code>display.color = &quot;always&quot;</code> (or <code>--set</code>) and the
+watch screen's <code>--color always</code> now win over <code>NO_COLOR</code>, where the
+screen had dropped colour even under <code>--color always</code>.</li>
+<li><strong>A refused option names itself.</strong> A value an option sets is now
+sourced to the option: <code>--blind-wait 20m</code> is <code>… for execution.blind-wait at --blind-wait</code>, a lock's refusal of <code>--continue-device-on-error</code> names
+it (and a <code>crun</code>'s, which continues by itself, names <code>crun</code>), and
+<code>config show --explain</code> says <code>source: --ipv4</code>, where every option had been
+<code>command-line</code>. An unknown zone is reported against <code>timezone</code> at its
+source (<code>--timezone</code>, the environment, a file's line), where it was
+<code>display.timestamp</code> at <code>&lt;builtin&gt;</code>.</li>
+<li><strong>The device-qualification runbook records how a login ends.</strong> Row D15,
+by hand: plain <code>ssh</code>'s exit and <code>karvi login</code>'s after <code>exit</code> on each
+laboratory device. Against the fake, which sends no exit status, a login
+ended with <code>exit</code> exits 110 (<code>ssh_process_failed</code>); the roadmap holds the
+rule to take if a device does the same.</li>
+<li><strong>The failures file is <code>errors.jsonl</code>.</strong> A job folder's file of the
+records that did not succeed, device and command errors alike, is
+<code>errors.jsonl</code>, where it was <code>failures.jsonl</code>; its switch is
+<code>output.files.errors-jsonl</code> (<code>KARVI__OUTPUT__FILES__ERRORS_JSONL</code>), the
+execution plan's field <code>errors_jsonl</code>, and the summary's path
+<code>errors_jsonl</code>. <code>output.files.failures-jsonl</code> is refused from a file,
+the environment, and <code>--set</code> with <code>config_key_removed</code>, naming the new
+key.</li>
+<li><strong>The documents link to each other.</strong> A document named in another,
+with or without a section, is a relative link to it or to the heading,
+where it was a code span; numbered sections and chapters link to their
+headings. The documents' prose is wrapped at 80 columns, ERROR-CODES'
+in its generator.</li>
+<li><strong>The README's image is in the tree.</strong>
+<code>images/karvi-viking-fleet-command.png</code>, where the README had named GitHub's
+attachment storage.</li>
+<li><strong>The documentation as HTML.</strong> <code>make html</code> writes every Markdown file of the
+tree as a page, an index with the documents by group, and the images into
+<code>../html</code>, beside the tree, by the new <code>tools/md-to-html</code>; every link is
+relative and every link and anchor is checked before the directory is
+replaced. Each directory below the root has an <code>index.html</code> that sends the
+browser to the parent's, so a server lists none. goldmark is vendored for the
+tool alone.</li>
+<li><strong>The licence is <code>LICENSE.md</code>.</strong> The MIT License, where it was <code>LICENSE</code>,
+with its title a heading, so the HTML has it as a page; README's License
+section links to it, and <code>NOTICE</code> names it.</li>
+</ul>
+<h2 id="0250---2026-09-30">0.25.0 - 2026-09-30 <a class="anchor" href="#0250---2026-09-30" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.24.0, the same day. Every counter is 0.24.0's (daemon
+IPC 10, execution plan 9, scoreboard 3, configuration schema 6, registry
+22, command record 2, job 2, credential package 1, plan report 1); a
+running 0.24.0 daemon is <code>compatible: false</code> by its version alone and is
+restarted. The behaviour change is stream mode's, below; <code>run</code>, <code>command</code>,
+and the daemon are 0.24.0's. The module graph gains <code>golang.org/x/term</code>.</p>
+<ul>
+<li><strong>Stream mode's draft.</strong> A <code>--cmd</code>, <code>--command</code>, or <code>--cf</code> line is a
+command like a bare line, cleared by <code>--go</code> with the rest, where it had
+stayed among the options and been re-sent by every later job. <code>--clear</code>
+empties the commands and keeps the targets and options. <code>--go</code> and
+<code>--sendit</code> with nothing to send print a notice and run nothing, so a
+stream that sent no job exits 0. <code>--cf</code>, <code>--tf</code>, and <code>--tfr</code> naming <code>-</code>
+are refused in every spelling (<code>--tf=-</code> had reached the run). A read
+failure or a line over 1 MiB ends the stream with the new
+<code>stream_input_read_failed</code> (exit 1) naming the line, where it had ended
+silently with exit 0. A Ctrl-C outranks lines already read; a command
+line loses its trailing blanks; a parse error at <code>--go</code> names its line.</li>
+<li><strong>Line editing in stream mode.</strong> Typed at a terminal, a line is edited
+with Ctrl-A, Ctrl-E, Ctrl-K, Ctrl-U, Ctrl-W, and the arrows, and the up
+arrow recalls earlier lines (<code>golang.org/x/term</code>, vendored, which
+brings <code>golang.org/x/sys</code> into <code>vendor/</code>; <code>go mod tidy</code> also marked
+<code>golang.org/x/crypto</code> the direct requirement it is and dropped
+<code>gopkg.in/yaml.v3</code>, which nothing required). Piped input is read as
+before.</li>
+</ul>
+<h2 id="0240---2026-09-30">0.24.0 - 2026-09-30 <a class="anchor" href="#0240---2026-09-30" aria-label="Link to this section">#</a></h2>
+<p>The first release from the public repository, on 0.23.0. No behaviour of the
+executables changed, and every counter is 0.23.0's (daemon IPC 10, execution
+plan 9, scoreboard 3, configuration schema 6, registry 22, command record 2, job
+2, credential package 1, plan report 1); a running 0.23.0 daemon is <code>compatible: false</code> by its version alone and is restarted. The tree was prepared for public
+release. The cumulative patch stream shipped beside each release's bundle since
+0.10.0 is retired: a release is the source bundle, its checksum, and an
+aggregate checksum file, and the release tools refuse a tree that holds anything
+git does not track. The specification the program was built from is frozen and
+archived with its earlier revisions, the decision records, the worked design
+sessions, and the session hand-offs; <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a> states
+the settled decisions and why, and the code and its tests are the reference.
+Every pointer at the archived documents was removed from the tree, the module
+path is <code>github.com/robert-patrick-texas/karvi</code>, and the public history begins
+at the root commit of this tree. Three messages that named a specification
+section now say &quot;a valid identifier&quot;, and the error catalogue's retired codes
+name the release span that retired them.</p>
+<h2 id="0230---2026-09-29">0.23.0 - 2026-09-29 <a class="anchor" href="#0230---2026-09-29" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.22.0. <strong>Breaking in three places:</strong> under
+<code>--format jsonl</code> a run's stream ends with the job's summary document, so a
+consumer that took every line for a record reads the last line as the
+summary; a run prints no result line on standard error (the job folder is
+the footer's <code>artifacts=</code> on standard output or the summary line's <code>paths</code>;
+<code>--detach</code> keeps its acceptance line and <code>crun</code> its result line); and the
+boolean <code>display.ping</code> is removed and refused at load naming
+<code>display.ping.header</code>, which moves the configuration registry from 21 to
+22. Every other counter is 0.22.0's (daemon IPC 10, execution plan 9,
+scoreboard 3, configuration schema 6, command record 2, job 2, credential
+package 1, plan report 1); a running 0.22.0 daemon is <code>compatible: false</code>
+by its version alone and is restarted.</p>
+<ul>
+<li><strong>The examples folder.</strong> <code>examples/</code> holds one commented example of each
+file karvi reads: <code>config.toml</code>, <code>inventory.csv</code>, <code>credentials.csv</code>,
+<code>cloginrc</code>, <code>targets.txt</code>, <code>commands.txt</code>, and a README with the dry run
+that tries them.</li>
+<li><strong><code>--tl LIST</code>, and <code>--dp</code>, <code>--dw</code>, <code>--ds</code>.</strong> In <code>command</code> and <code>run</code>,
+<code>--tl LIST</code> takes target names separated by commas or whitespace in any
+mix, each a <code>--target</code> at the list's position (an empty list
+<code>cli_device_empty</code>, a bad name refused naming <code>--tl</code>); in <code>run</code>, the three
+shortcuts stand for <code>--dispatch parallel</code>, <code>wave</code>, and <code>serial</code>, the last
+on a line winning.</li>
+<li><strong>The watch screen's <code>/</code> filter as words.</strong> The text is split at
+whitespace and every term must occur, as a case-insensitive substring, in
+one of the five fields; a trailing space changes nothing and a second word
+narrows (before, one literal substring, and a text ending in a space hid
+every row). <code>--filter TEXT</code> takes the same rule.</li>
+<li><strong><code>display.ping.header</code>.</strong> The ICMP gate's line is a template rendered as
+the headers are, <code>! </code> prefixed and coloured by role, with <code>&lt;rtt1&gt;</code>,
+<code>&lt;rtt2&gt;</code>, and <code>&lt;result&gt;</code> (<code>proceeding</code> in the success role, <code>skipped</code> in
+the error role); an empty template prints no line. <code>login</code> renders the
+same template. The boolean <code>display.ping</code> cannot stand beside a table of
+the same name in TOML and is removed; a configuration that sets it is
+refused at load as <code>config_key_removed</code> naming the template.</li>
+<li><strong>The run footer on every path, and the jsonl summary line.</strong> A run's
+text display ends with <code>display.run.footer</code> from the job's summary on the
+daemon follow, <code>--no-daemon</code>, <code>job follow</code>, and a finished job's replay
+alike; under <code>--format jsonl</code> the summary document is the stream's last
+line; no result line on standard error for a run, and <code>--follow=false</code>
+prints nothing (the exit is the job's). A follow whose stream is lost
+closes the format without a footer; the footer's artifacts label <code>none</code>
+for a run that keeps no files.</li>
+<li><strong>The help's wording.</strong> The title line reads <code>karvi - run the fleet, gather the output</code>; <code>--tf</code>'s placeholder is <code>FILE|PATH|-</code> in <code>run</code>,
+<code>command</code>, and <code>login</code>.</li>
+<li><strong>Stream mode, <code>karvi stream</code> and <code>karvi -</code>.</strong> A run read line by line
+from standard input: blank, <code>!</code>, and <code>#</code> lines skipped; a <code>--</code> line one run
+option, the word and the rest of the line its value; any other line one
+command as written, <code>\r</code> as <code>--cmd</code> reads it, the declarations attaching
+to the command before them; <code>--cf -</code> and <code>--tf -</code> refused. <code>--go</code> or
+<code>--sendit</code> executes the draft as <code>run</code> would, keeping the targets and
+options and clearing the commands; <code>--reset</code> empties it; <code>--end</code>,
+<code>--quit</code>, EOF, or Ctrl-C leave without executing; a line the parser
+refuses is reported by its number and dropped; the exit is the last
+executed job's. The draft is a <code>run</code> argument list parsed and run by
+run's own code, so the job, its records, and its display are a run's.</li>
+</ul>
+<h2 id="earlier-releases">Earlier releases <a class="anchor" href="#earlier-releases" aria-label="Link to this section">#</a></h2>
+<p>Releases 0.1.0 to 0.22.0 (2026-09-08 to 2026-09-28) were made before the
+tree was prepared for public release; their changelog is kept in the
+operator's private archive. Their executables are not installed anywhere
+outside the operator's own environment, and every release is installed as
+new.</p>
+
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

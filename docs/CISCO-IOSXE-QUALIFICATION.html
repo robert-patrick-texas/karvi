@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cisco IOS XE qualification — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html" aria-current="page">Cisco IOS XE qualification</a>
+<ul class="sections">
+<li><a href="#scope">Scope</a></li>
+<li><a href="#what-the-fixture-already-shows">What the fixture already shows</a></li>
+<li><a href="#the-laboratory-run">The laboratory run</a></li>
+<li><a href="#host-key-matrix">Host-key matrix</a></li>
+<li><a href="#session-and-command-matrix">Session and command matrix</a></li>
+<li><a href="#required-evidence">Required evidence</a></li>
+</ul></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html" aria-current="page">Cisco IOS XE qualification</a>
+<ul class="sections">
+<li><a href="#scope">Scope</a></li>
+<li><a href="#what-the-fixture-already-shows">What the fixture already shows</a></li>
+<li><a href="#the-laboratory-run">The laboratory run</a></li>
+<li><a href="#host-key-matrix">Host-key matrix</a></li>
+<li><a href="#session-and-command-matrix">Session and command matrix</a></li>
+<li><a href="#required-evidence">Required evidence</a></li>
+</ul></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="cisco-ios-xe-qualification">Cisco IOS XE qualification <a class="anchor" href="#cisco-ios-xe-qualification" aria-label="Link to this section">#</a></h1>
+<h2 id="scope">Scope <a class="anchor" href="#scope" aria-label="Link to this section">#</a></h2>
+<p>The laboratory qualifies <code>cisco_iosxe</code> first, on both transports together:
+one device session (<code>internal/devsession</code>) drives the system OpenSSH
+process and the <code>scrapligo-v1</code> connection alike, so every row below is run
+over <code>system</code> and <code>scrapligo-v1</code> and the two records compared. Every
+built-in platform is admitted on <code>scrapligo-v1</code>; IOS XE is the platform
+qualified first. The intended device families are:</p>
+<ul>
+<li>Cisco Catalyst 9000-series switches;</li>
+<li>Cisco Catalyst 3650-series switches;</li>
+<li>Cisco ISR 4451-X routers;</li>
+<li>Cisco ASR 1000-series routers;</li>
+<li>Cisco Catalyst 8300 routers; and</li>
+<li>Cisco Catalyst 8500 routers.</li>
+</ul>
+<p>Catalyst 9300 is the first focused no-production-impact test model. Listing
+a family here records intended scope; it does not claim completed
+qualification. The executable under test is the official build (<code>make build</code>, <code>scripts/verify-release.sh</code> passed), on which both transports open,
+escalate once, and record alike.</p>
+<h2 id="what-the-fixture-already-shows">What the fixture already shows <a class="anchor" href="#what-the-fixture-already-shows" aria-label="Link to this section">#</a></h2>
+<p>The engineering fixture is the fake SSH device (<code>internal/fakedevice</code>,
+<code>cmd/karvi-fake-device</code>), whose default persona answers as IOS XE. It models the
+<code>&gt;</code> and <code>#</code> prompts, <code>enable</code> with and without a secret, the paging commands,
+the <code>% Invalid input</code> line, delays before the first prompt, the secret's answer,
+and a command's answer, a peer gone silent (<code>show mute</code>), the <code>[confirm]</code> of
+<code>reload</code>, the <code>Destination filename</code> value prompt of <code>copy</code>, the <code>Save? [yes/no]:</code> prompt of an unsaved configuration, global configuration mode with
+its <code>(config)#</code> prompt (<code>configure terminal</code>, <code>end</code>; no configuration line is
+modelled), <code>show privilege</code>, <code>show users</code>, a large output (<code>show big</code>), a fixed
+or changed host key, extra key types, a SHA-1-only RSA key, and a restricted
+algorithm offer. It refuses exec requests and records every PTY request and
+every line received; exec belongs to its Linux persona (<code>-persona linux</code>).</p>
+<p>The fixture grows on demand and only as far as the prompt: a command is
+added when a suite or a script
+row sends it, with a unit test, and it models what the session layer
+sees (prompts, paging, echo, error text), never the device's state. No
+configuration is stored, no user table is kept, and nothing is added for
+completeness; the laboratory run stays the authority on a device.</p>
+<p>The parity suite <code>scripts/native-smoke-test.sh</code> (run by
+<code>scripts/verify-release.sh</code>) runs twenty-six cases against it, each as
+<code>command</code> and <code>run</code> over both transports, and <code>tools/paritycheck</code> compares
+the requested-command records path by path:</p>
+<table>
+<thead>
+<tr>
+<th>Cases</th>
+<th>What they evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1–S3</td>
+<td>success, a rejected command under halt and under continue, a command timeout; the daemon path</td>
+</tr>
+<tr>
+<td>S4–S5</td>
+<td>a session-init profile under <code>fail-device</code> and under <code>continue</code></td>
+</tr>
+<tr>
+<td>S6, S25, S26</td>
+<td>an alias of <code>cisco_iosxe</code>, an alias with its own paging command, an unknown row platform under <code>warn</code></td>
+</tr>
+<tr>
+<td>S7–S9</td>
+<td>privilege 15 at login (nothing sent), a secret asked with none resolved, a wrong secret</td>
+</tr>
+<tr>
+<td>S10</td>
+<td><code>generic</code> records a rejected command as it comes</td>
+</tr>
+<tr>
+<td>S11</td>
+<td>the output limit</td>
+</tr>
+<tr>
+<td>S12</td>
+<td>the legacy device under the defaults (<code>ssh_algorithm_negotiation_failed</code>) and through an algorithm profile</td>
+</tr>
+<tr>
+<td>S13</td>
+<td>a rejected password</td>
+</tr>
+<tr>
+<td>S14</td>
+<td><code>secure</code> with an empty store and with another key enrolled; <code>insecure</code> with the mismatch warning; one transport's enrollment read by the other</td>
+</tr>
+<tr>
+<td>S15–S18</td>
+<td>the login allowance, the enable timeout, the device timeout, the keepalive expiry</td>
+</tr>
+<tr>
+<td>S19–S24</td>
+<td>a <code>[confirm]</code> by the escape with and without a returning prompt, a value prompt by <code>--expect</code>, a mistyped pattern, a blind reload with the save and confirm declarations, unsaved and saved</td>
+</tr>
+</tbody>
+</table>
+<p>Unit tests cover the identity per port, enrollment under the file lock, the
+enrolled-type filter, the trust store's permission rules, ControlMaster off
+on every system command line, and cancellation mid-command. A row marked
+<strong>fake</strong> below is evidenced there; the laboratory confirms it on the device.
+A row marked <strong>device</strong> is laboratory work only.</p>
+<h2 id="the-laboratory-run">The laboratory run <a class="anchor" href="#the-laboratory-run" aria-label="Link to this section">#</a></h2>
+<p><code>scripts/device-qualification.sh</code> runs the rows marked <strong>device</strong> below against
+one laboratory device on both transports and collects the evidence of &quot;Required
+evidence&quot; into one directory;
+<a href="DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a> says
+what the run needs, maps each script row (D1 to D14) to its line here, and lists
+the rows done by hand (D15 and D16 among them). With <code>FAKE=1</code> the same rows run
+against the fake, which is how the script itself is checked before a laboratory
+run. Every mismatch row writes a wrong entry into a scratch trust store; the
+device's key and the operator's own store are never touched.</p>
+<h2 id="host-key-matrix">Host-key matrix <a class="anchor" href="#host-key-matrix" aria-label="Link to this section">#</a></h2>
+<p>For each model and software train, and for name and literal-address
+targeting, test on both transports:</p>
+<ol>
+<li><code>accept-new</code>: empty trust file, first acceptance said once (<code>! ssh accepted new host-key</code>, the notice <code>host_key_enrolled</code>), repeated match,
+changed key (<strong>fake</strong>); an entry enrolled by one transport accepted by the
+other
+(<strong>fake</strong>); concurrent first enrollment from two clients (<strong>device</strong>);
+hashed entries written by hand (<strong>device</strong>).</li>
+<li>The identity (<a href="SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>): a
+device on port 22 is enrolled under its canonical name, a device on another
+port as <code>[name]:PORT</code>, on both transports (<strong>fake</strong>); a manual enrollment
+under the identity accepted under <code>secure</code> (<strong>device</strong>); an entry left from
+an earlier release for a non-22 port not matched (<strong>device</strong>).</li>
+<li><code>secure</code>: missing file, unknown host, matching host, changed key
+(<strong>fake</strong>); wrong owner, symlink, non-<code>0700</code> directory, non-<code>0600</code> file
+(unit tests; <strong>device</strong> for the message an operator sees).</li>
+<li>The enrolled-type filter: a device presenting a key type the store does
+not hold under its identity is <code>host_key_changed</code> before authentication
+(<strong>fake</strong>); a device that rotates from RSA to ECDSA (<strong>device</strong>).</li>
+<li><code>insecure</code>: the policy's two lines once per job, the mismatch line and
+<code>host_key_mismatch_accepted</code>, the not-compared line and
+<code>host_key_not_compared</code> when the scan fails, and access after each
+(<strong>fake</strong>, but the scan failure <strong>device</strong>).</li>
+<li>Fleet isolation: one mismatch produces one failed device while subsequent
+targets continue unless a configured halt or gate trips; the run-wide
+halt under <code>ssh.halt-run-on-host-key-mismatch</code> (<strong>device</strong>).</li>
+</ol>
+<p>Never manufacture a mismatch on a production management plane. Use an
+isolated fixture, a controlled alternate SSH endpoint, or a temporary lab
+key.</p>
+<h2 id="session-and-command-matrix">Session and command matrix <a class="anchor" href="#session-and-command-matrix" aria-label="Link to this section">#</a></h2>
+<p>Record evidence, on both transports, for:</p>
+<ul>
+<li>password and enable-password authentication; a rejected password
+(<strong>fake</strong>);</li>
+<li>the first prompt at user and at privileged level; one <code>enable</code> from the
+user prompt, the secret at its prompt, nothing sent when the shell is
+already at or above the level, never a <code>disable</code> (<strong>fake</strong>);</li>
+<li>a wrong enable secret and an absent one, each <code>privilege_failed</code>, one
+attempt (<strong>fake</strong>);</li>
+<li>the paging commands (<code>terminal length 0</code>, <code>terminal width 512</code>) accepted
+(<strong>fake</strong>); a rejected one <code>paging_disable_failed</code> (<strong>device</strong>: a
+restricted user);</li>
+<li>a session-init profile under <code>fail-device</code> and under <code>continue</code>
+(<strong>fake</strong>);</li>
+<li>show commands and configuration-mode transitions, the <code>(config)#</code> prompt
+level observed (<strong>device</strong>);</li>
+<li>device-reported syntax failures (<strong>fake</strong>); authorization and
+configuration failures (<strong>device</strong>);</li>
+<li>multi-command stop and <code>--continue-device-on-error</code> (<strong>fake</strong>);</li>
+<li>a <code>[confirm]</code> answered by the escape and by <code>--blind-return</code>; a value
+prompt answered by <code>--expect</code>; a blind <code>reload</code> with the save and confirm
+declarations, unsaved and saved (<strong>fake</strong>; the reload itself <strong>device</strong>,
+on a lab unit);</li>
+<li>a mistyped <code>--expect</code> pattern waiting out the command timeout (<strong>fake</strong>);</li>
+<li>the command, enable, and device timeouts, the keepalive expiry
+(<strong>fake</strong>); cancellation and the daemon's shutdown grace (unit tests and
+the v0100 suite; <strong>device</strong> for the shell's end);</li>
+<li>the legacy device under the defaults and through an algorithm profile
+(<strong>fake</strong>; a real SHA-1-only train <strong>device</strong>);</li>
+<li>ANSI and line-ending handling from a real terminal (<strong>device</strong>);</li>
+<li>an interactive <code>login</code> ended with <code>exit</code>: whether the device sends an
+exit status when the session ends (plain <code>ssh</code>'s exit), and <code>karvi login</code>'s exit and the transcript's classification (<strong>device</strong>, D15 by
+hand; the fake sends none, so its login ends 110);</li>
+<li>a recorded login's transcript against the line editor's keys, a line wider
+than the terminal included: each command line as the device received it
+(<strong>device</strong>, D16 by hand; the fake has no line editor);</li>
+<li>typical output and output at the limit (<code>output.max-command-bytes</code>, 64 MiB
+by default; <strong>fake</strong> at a lowered limit, <strong>device</strong> at the default);</li>
+<li>concurrent sessions up to the configured session cap (<strong>device</strong>);</li>
+<li><code>--echo</code> reproducing the observed prompt plus the sent command, <code>--debug</code>
+exposing hashes, timing, and session state and no password or command
+text (<strong>fake</strong>);</li>
+<li>the two transports' requested-command records equal path by path but for
+identifiers, timing, and the transport (<strong>fake</strong>; the real device
+<strong>device</strong>); and</li>
+<li>exact JSONL, failure subset, audit, metrics, summary, and scoreboard
+counts (<strong>device</strong>).</li>
+</ul>
+<h2 id="required-evidence">Required evidence <a class="anchor" href="#required-evidence" aria-label="Link to this section">#</a></h2>
+<p>For each qualified combination retain the karvi version and commit, the Go
+version, the ScrapliGo version, the fake's commit where a row was confirmed
+against it, the device model, the IOS XE release, the command plan digest,
+sanitized records and debug output, resource measurements, and the pass/fail
+disposition (the script's evidence directory,
+<a href="DEVICE-QUALIFICATION-RUNBOOK.html#5-the-evidence"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code>
+§5</a>). Production activation
+requires review by the network operations and security owners; the open gates
+are listed in <a href="../ROADMAP.html"><code>ROADMAP.md</code></a>.</p>
+
+<footer>Generated from <code>docs/CISCO-IOSXE-QUALIFICATION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

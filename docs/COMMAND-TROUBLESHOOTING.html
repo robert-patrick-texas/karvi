@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command-mode troubleshooting — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html" aria-current="page">Command-mode troubleshooting</a>
+<ul class="sections">
+<li><a href="#recommended-first-capture">Recommended first capture</a></li>
+<li><a href="#what-debug-contains">What debug contains</a></li>
+<li><a href="#a-karvi-killed-outright">A karvi killed outright</a></li>
+<li><a href="#master-refused-session-request-permission-denied">Master refused session request: Permission denied</a></li>
+<li><a href="#promptcommand-missing-from-a-device-error">Prompt/command missing from a device error</a></li>
+<li><a href="#prompt-timeout">Prompt timeout</a></li>
+<li><a href="#platform-appears-as-generic">Platform appears as generic</a></li>
+<li><a href="#output-truncation-or-timeout">Output truncation or timeout</a></li>
+</ul></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html" aria-current="page">Command-mode troubleshooting</a>
+<ul class="sections">
+<li><a href="#recommended-first-capture">Recommended first capture</a></li>
+<li><a href="#what-debug-contains">What debug contains</a></li>
+<li><a href="#a-karvi-killed-outright">A karvi killed outright</a></li>
+<li><a href="#master-refused-session-request-permission-denied">Master refused session request: Permission denied</a></li>
+<li><a href="#promptcommand-missing-from-a-device-error">Prompt/command missing from a device error</a></li>
+<li><a href="#prompt-timeout">Prompt timeout</a></li>
+<li><a href="#platform-appears-as-generic">Platform appears as generic</a></li>
+<li><a href="#output-truncation-or-timeout">Output truncation or timeout</a></li>
+</ul></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="command-mode-troubleshooting">Command-mode troubleshooting <a class="anchor" href="#command-mode-troubleshooting" aria-label="Link to this section">#</a></h1>
+<h2 id="recommended-first-capture">Recommended first capture <a class="anchor" href="#recommended-first-capture" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi command --debug --host DEVICE --cmd 'show clock' \
+  &gt;command.out 2&gt;command.debug
+</code></pre>
+<p>Keep stdout and stderr separate. Stdout contains generated human display and
+device results; stderr contains safe karvi diagnostics and mandatory warnings.
+A session that never reaches the prompt, a login's above all, has its own guide:
+<a href="SSH-TROUBLE.html"><code>docs/SSH-TROUBLE.md</code></a>.</p>
+<h2 id="what-debug-contains">What debug contains <a class="anchor" href="#what-debug-contains" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>configuration digest and loaded source list;</li>
+<li>target, canonical name, scope position, and dispatch context;</li>
+<li>transport selector, resolved implementation, and implementation kind;</li>
+<li>selected management address, source, candidate count, and resolution time;</li>
+<li>device-facing username, credential backend, policy, and match provenance;</li>
+<li>capacity admission and wait time;</li>
+<li>SSH binary, address, port, host-key policy, and session lifecycle;</li>
+<li>observed prompt, command index, command byte count, command SHA-256 prefix,
+output byte count, elapsed time, and stable error code.</li>
+</ul>
+<p>It does not contain password values, enable-password values, or device output;
+each command appears once, on the executor's start line, as the plan holds it.
+Before sharing a diagnostic capture, still review it for organization-sensitive
+hostnames, addresses, usernames, paths, and policy names.</p>
+<h2 id="a-karvi-killed-outright">A karvi killed outright <a class="anchor" href="#a-karvi-killed-outright" aria-label="Link to this section">#</a></h2>
+<p>A <code>command</code>, <code>run</code>, <code>crun</code>, or <code>login</code>, or the daemon, ended by <code>SIGKILL</code>
+takes its device sessions with it: every OpenSSH and <code>script(1)</code> process karvi
+starts for a session has <code>SIGTERM</code> as its parent-death signal, so the
+connection closes and the device ends the session as at any disconnect. On the
+exec channel a command already sent may still run on the device
+(<code>remote_command_not_stopped</code>). The files the session kept in the scratch, the
+<code>ssh</code> configuration, the askpass socket, and a recorded login's timing log,
+stay until the next admission, daemon start, or login removes them, logged
+<code>scratch_abandoned_removed</code> (in <code>daemon.log</code>, or under <code>--debug</code>); a recorded
+login's transcript keeps the bytes <code>script(1)</code> wrote. An <code>ssh</code> still holding
+a device's session under init after an earlier release was killed is that
+release's; end it by its pid.</p>
+<h2 id="master-refused-session-request-permission-denied"><code>Master refused session request: Permission denied</code> <a class="anchor" href="#master-refused-session-request-permission-denied" aria-label="Link to this section">#</a></h2>
+<p>This diagnostic indicates that an already authenticated OpenSSH master could
+not open an additional session channel. It is not evidence that the password
+was rejected. A shell device's session avoids that topology by opening one
+fresh interactive shell with ControlMaster and ControlPath disabled. An exec
+device (built-in <code>linux</code>) has a ControlMaster of karvi's own, one per device
+session and never kept across jobs; a device that refuses its exec requests
+records <code>ssh_session_channel_refused</code> and is run as <code>linux_shell</code>.</p>
+<p>When this text appears from another path, karvi classifies it as
+<code>ssh_session_channel_refused</code> in the connection category. Do not rotate
+credentials solely on this message.</p>
+<h2 id="promptcommand-missing-from-a-device-error">Prompt/command missing from a device error <a class="anchor" href="#promptcommand-missing-from-a-device-error" aria-label="Link to this section">#</a></h2>
+<p>Version 0.9.0 renders the effective prompt and exact sent command when <code>--echo</code>
+is enabled, even for a device-reported command error. Recognized karvi options
+may follow positional command words. Use <code>--</code> when a literal device command
+contains a token such as <code>--echo</code>, <code>--border</code>, or another karvi option name.</p>
+<h2 id="prompt-timeout">Prompt timeout <a class="anchor" href="#prompt-timeout" aria-label="Link to this section">#</a></h2>
+<p>A <code>command_session_prompt_timeout</code> means OpenSSH started but karvi did not
+observe a final prompt ending in <code>#</code>, <code>&gt;</code>, or <code>$</code> before the bounded timeout.
+Collect debug output and verify:</p>
+<ol>
+<li>the device is actually presenting an interactive shell;</li>
+<li>no legal/banner workflow is waiting for additional input;</li>
+<li>the prompt fits the supported engineering-candidate pattern;</li>
+<li><code>execution.prompt-timeout</code> is reasonable for the device; and</li>
+<li>inventory platform metadata is correct.</li>
+</ol>
+<h2 id="platform-appears-as-generic">Platform appears as <code>generic</code> <a class="anchor" href="#platform-appears-as-generic" aria-label="Link to this section">#</a></h2>
+<p>Generic mode can run simple commands, but platform-specific paging suppression,
+privilege acquisition, and error patterns require a qualified platform mapping.
+For Cisco IOS XE inventory, set the canonical platform to <code>cisco_iosxe</code> before
+relying on those behaviors.</p>
+<h2 id="output-truncation-or-timeout">Output truncation or timeout <a class="anchor" href="#output-truncation-or-timeout" aria-label="Link to this section">#</a></h2>
+<p>Large commands should be tested separately before wide fan-out. Use a command
+timeout appropriate for the device, inspect the retained command record, and
+avoid enabling paging. The production large-output spooling gate remains open
+in this engineering candidate.</p>
+
+<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

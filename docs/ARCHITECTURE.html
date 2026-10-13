@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture of the karvi implementation — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html" aria-current="page">Architecture of the karvi implementation</a>
+<ul class="sections">
+<li><a href="#planning-boundary">Planning boundary</a></li>
+<li><a href="#configuration-and-address-family-override">Configuration and address-family override</a></li>
+<li><a href="#daemon-upgrade-boundary">Daemon upgrade boundary</a></li>
+<li><a href="#execution">Execution</a></li>
+<li><a href="#display-pipeline">Display pipeline</a></li>
+<li><a href="#transport-composition">Transport composition</a></li>
+<li><a href="#daemon-and-storage">Daemon and storage</a></li>
+<li><a href="#credential-delivery">Credential delivery</a></li>
+<li><a href="#inspection-exercise-and-follow">Inspection, exercise, and follow</a></li>
+<li><a href="#the-icmp-gate">The ICMP gate</a></li>
+</ul></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html" aria-current="page">Architecture of the karvi implementation</a>
+<ul class="sections">
+<li><a href="#planning-boundary">Planning boundary</a></li>
+<li><a href="#configuration-and-address-family-override">Configuration and address-family override</a></li>
+<li><a href="#daemon-upgrade-boundary">Daemon upgrade boundary</a></li>
+<li><a href="#execution">Execution</a></li>
+<li><a href="#display-pipeline">Display pipeline</a></li>
+<li><a href="#transport-composition">Transport composition</a></li>
+<li><a href="#daemon-and-storage">Daemon and storage</a></li>
+<li><a href="#credential-delivery">Credential delivery</a></li>
+<li><a href="#inspection-exercise-and-follow">Inspection, exercise, and follow</a></li>
+<li><a href="#the-icmp-gate">The ICMP gate</a></li>
+</ul></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="architecture-of-the-karvi-implementation">Architecture of the karvi implementation <a class="anchor" href="#architecture-of-the-karvi-implementation" aria-label="Link to this section">#</a></h1>
+<p>The executable is a thin process boundary over reusable application services.
+Core packages depend on karvi-owned contracts; operating-system and third-party
+implementations remain under <code>internal/</code>.</p>
+<pre><code class="language-text">cmd/karvi
+  -&gt; internal/cli
+  -&gt; internal/app            configuration, target assembly, direct modes,
+     -&gt; internal/planner     orchestration of the planners and the daemon client
+        -&gt; configload / inventoryload / resolver / transportselect
+        -&gt; credentialbackend -&gt; executionplan / credentialpackage
+     -&gt; internal/daemon (client primitives)
+     -&gt; internal/jobexec     the runner of an accepted job
+        -&gt; executor -&gt; dispatch -&gt; transportselect -&gt; platform.Driver
+           -&gt; systemssh / native registry / telnet
+        -&gt; output / audit / scoreboard / metrics / capacity
+        -&gt; display / safe debug projection
+internal/daemon (server)   -&gt; jobexec / ipc / credentialframe / resolver
+</code></pre>
+<p>The sections below describe the implementation: address and credential
+resolution happen in the submitting client, and the daemon validates and
+runs an immutable plan.</p>
+<h2 id="planning-boundary">Planning boundary <a class="anchor" href="#planning-boundary" aria-label="Link to this section">#</a></h2>
+<p>Every source-reading and secret-resolving activity is in the submitting
+client. The daemon is a validator and executor of an immutable plan and
+receives secrets only through a separate job-scoped channel. The <code>sealed</code>
+protection, the daemon-process canary row, inspection, exercise, and the
+ICMP gate rest on this boundary.</p>
+<pre><code class="language-text">client (karvi run)                                   per-UID daemon
+  config + lock evaluation
+  inventory load, selector expansion                 (no inventory interface)
+  target validation, dedup, ordering
+  client DNS: selected address + alternates
+  ExecutionPlan (non-secret)       --prepare_job--&gt;  validate identity, schemas, limits,
+                                                     routing, policy, transports;
+                                                     DNS only for address_authority=daemon
+                                   &lt;--evidence----   preparation digest + DNS evidence
+  final credential policy selection
+  CredentialGrant / TargetCredentialBinding
+  plan digest                      --commit_job---&gt;  accept only if digests match
+  CredentialPackage                ==local-peer==&gt;   SO_PEERCRED-checked, one-use,
+                                                     memory-only, job-scoped frames
+                                                     dispatch -&gt; executor -&gt; driver
+</code></pre>
+<p>Boundary rules: ordinary job requests contain no plaintext credentials; the
+daemon never inherits device secrets from its startup environment; named,
+durable, queue, or network handoffs require authenticated envelope encryption.
+<code>run --dry-run</code> stops at client planning plus an observational daemon probe;
+<code>run --exercise</code> stops immediately before target network contact. The reasoning
+is <a href="DESIGN.html"><code>docs/DESIGN.md</code></a> (the plan, the daemon, and the credential
+channel).</p>
+<p><strong>Where a platform is resolved.</strong> A device's platform has two values with one
+boundary between them. The <em>set</em> platform is what the inventory row, the
+source's <code>defaults.platform</code>, or <code>--platform</code> gave, normalised (trimmed,
+lowercase) by the loader, <code>inventory.Direct</code>, and the <code>--platform</code> override
+(<code>app.withPlatform</code>: the first device in <code>login</code> and <code>command</code>, every device of
+the assembled set in <code>run</code>, <code>app.overridePlatform</code>); a device without one stays
+blank, and the loader never reads the resolution keys. What a device is <em>matched
+on</em> is <code>planner.SetPlatformFunc</code> over the set platform: blank for a blank field
+and, under <code>platform-resolution.on-unknown = &quot;warn&quot;</code>, for an unknown name; the
+target-set assembly's <code>--select-platform</code> selector and the credential planner's
+device view (which the credential-policy and session-init maps read) are its two
+readers, so a not-set or fallen-back device is matched by no <code>--select-platform</code>
+selector and no map <code>platform</code> rule. The two readers stand on either side of the
+override: the selector matches while the set is assembled, on what the inventory
+gave, and <code>--platform</code> acts on the assembled set, so the maps, the plan, and
+every record see the platform the device runs as (<code>--select-platform generic --platform cisco_iosxe</code> runs the inventory's generic rows as IOS XE). The
+<em>platform used</em> is produced once, over the whole set, by
+<code>planner.ResolvePlatforms</code>, first in the plan draft before the daemon gate, the
+transport preflight, and the address plan: a known set platform as named; an
+unknown one refused with <code>platform_unknown</code> under <code>fail</code>, every unknown value in
+one message, or run as <code>platform-resolution.unknown-fallback</code> under <code>warn</code>; a
+blank one, and a direct target without <code>--platform</code>, as
+<code>platform-resolution.default</code> (<code>cisco_iosxe</code> as shipped), <code>generic</code> when the key
+is empty. Each resolution carries at most one notice (<code>platform_not_set</code> for an
+inventory row, none for a direct target; <code>platform_unknown_fallback</code>), which the
+draft puts on the plan target's <code>notices</code> (present only when nonempty) and
+prints as a grouped warning line through the draft's <code>Warn</code> hook on every client
+path. The plan's <code>device.platform</code> and effective port carry the platform used to
+the daemon, the executor, the SSH algorithms map, and every record; the executor
+writes the target's notices on the device's first record whatever its kind or
+status, and the dry-run and exercise reports show them as warning findings,
+stage <code>platform</code>. The credential resolver's enable rule reads the platform used
+through the device view's <code>PlatformUsed</code>, not the set platform. <code>login</code> resolves
+at the same point of its own sequence, before the definition is fetched, and the
+<code>login --record</code> wrapper for its metadata. The executor, <code>login</code>, and the
+exercise refuse a platform their configuration does not know (<code>platform.Lookup</code>,
+<code>platform_unknown</code>), the backstop behind the planner's resolution for a plan
+whose own configuration does not know its platform. Two checks run before the
+inventory is read: <code>--platform</code> in <code>login</code>, <code>command</code>, and <code>run</code> must name a
+known platform (<code>app.CheckPlatformOption</code>; the shortcuts <code>--pi</code>, <code>--pn</code>, <code>--pr</code>,
+<code>--pj</code>, <code>--pa</code>, and <code>--pg</code> are that option with its value, made so by the parser
+table's <code>standsFor</code>, which also makes <code>--dp</code>, <code>--dw</code>, and <code>--ds</code> <code>--dispatch</code>
+with a value; <code>--tl LIST</code> is each of its names as a <code>--target</code> at the list's
+position, <code>parser.addTarget</code>), and each <code>--select-platform</code> selector must reach
+one (<code>checkPlatformSelectors</code>), the known set being <code>platform.KnownNames</code> over
+the configured tables; the three <code>platform-resolution</code> keys and a source's
+<code>defaults.platform</code> are validated against the same set at load, whatever
+<code>on-unknown</code> says.</p>
+<p>Stream mode (<code>karvi stream</code>, <code>karvi -</code>; <code>internal/cli/stream.go</code>) is a
+front to <code>run</code>: the lines of standard input build a <code>run</code> argument list,
+each option line checked by <code>Parse</code> as it arrives and dropped with its
+number when refused, and <code>--go</code> hands the list to <code>run</code>'s handler, so the
+job, its records, and its display are a run's and no rule lives twice.</p>
+<h2 id="configuration-and-address-family-override">Configuration and address-family override <a class="anchor" href="#configuration-and-address-family-override" aria-label="Link to this section">#</a></h2>
+<p><code>configschema</code> generates <code>schema/config-schema.json</code> and
+<code>configs/reference.toml</code>. Each source file is parsed independently, includes
+are deterministic, every write crosses the config-lock gate, macros expand
+after merge, and semantic validation completes before network access.</p>
+<p>A key the registry once held and has since dropped is refused at load from
+every layer: <code>configload/removed.go</code> is the one table of removed keys
+(path, environment name, release, code, hint), consulted by the file and
+<code>--set</code> path through <code>removedKeyByPath</code> and by the environment path through
+<code>removedKeyByEnvironment</code>, before the registry index would call the name
+unknown. The removed content itself, with diff blocks and the commit that
+still holds it, is logged in the archived <code>REMOVED-LOG.md</code>; nothing else in the
+tree names a removed key.</p>
+<p>A registry row's range is data on the row: <code>Min</code> and <code>Max</code> literals in
+the row's syntax (a leading <code>&gt;</code> or <code>&lt;</code> for an exclusive bound) and
+<code>ZeroDisables</code> where 0 means off. <code>configload.validateRanges</code>
+(<code>ranges.go</code>) is the one rule that applies them, refusing as
+<code>config_value_out_of_range</code>; the rules that relate two keys stay
+hand-written after it. The artifact and the reference carry the bounds,
+so a document that states a range copies the row.</p>
+<p>Configuration schema 6 retains <code>name.address-family-preference</code> as the one
+resolver mechanism. CLI family flags are represented as high-precedence
+configuration writes, so locks and provenance apply identically:</p>
+<pre><code class="language-text">--ipv4 / --4 -&gt; name.address-family-preference=ipv4
+--ipv6 / --6 -&gt; name.address-family-preference=ipv6
+</code></pre>
+<p>The resolver applies inventory literal-address precedence, then preferred DNS
+family, fallback family, and numeric-lowest selection.</p>
+<h2 id="daemon-upgrade-boundary">Daemon upgrade boundary <a class="anchor" href="#daemon-upgrade-boundary" aria-label="Link to this section">#</a></h2>
+<p><code>ipc.Call</code> returns a structured schema-mismatch error. <code>daemon.Probe</code> may use
+the stable, credential-free lifecycle envelope of every released schema from
+<code>MinLifecycleSchema</code> to the current one to read status, and it judges
+compatibility by the pair: the daemon's version and its IPC schema both equal
+this executable's, either difference incompatible.
+<code>daemon.StopCompatible</code> is reachable only through explicit
+operator lifecycle commands. Submit paths always use the current schema and
+never translate or omit request fields. <code>ensureDaemon</code> recognizes a live
+incompatible daemon and returns <code>daemon_incompatible</code> before opening the
+daemon log or starting a child process.</p>
+<h2 id="execution">Execution <a class="anchor" href="#execution" aria-label="Link to this section">#</a></h2>
+<p>The client drafts the plan (<code>internal/planner.Draft</code>): one execution target
+per device of the assembled set with the selection kind and effective port,
+the address plan of every target (a literal wins, then the inventory
+management address, then the alternates; DNS only without a literal), and
+every dispatch and output value as the effective one. Credentials bind after
+the authoritative address is known and become grants in a package. The
+runner (<code>internal/jobexec.Run</code>) executes the final plan: the dispatcher sends
+one target to the executor, which resolves only the transport implementation
+from the executing process's configuration, takes the address from the plan
+and the credential from the grant provider, acquires the capacity lease,
+opens one driver, executes commands in order, persists one terminal record
+per command, then closes the driver. There is no automatic retry and no
+retry against an alternate address. Halt/gate paths create explicit terminal
+records for untouched work. <code>command</code> and <code>run --no-daemon</code> take the same
+path with the local process as the execution endpoint.</p>
+<p>Direct system <code>command</code> mode uses one fresh <code>ssh -tt</code> process with
+<code>ControlMaster=no</code>, <code>ControlPath=none</code>, and <code>ControlPersist=no</code> for a shell
+device; all commands use that one authenticated interactive shell. An exec
+device (<code>linux</code>) has one OpenSSH ControlMaster for its session, the client's
+(<code>command</code>) or the daemon's (<code>run</code>) child, and an <code>ssh -S</code> client per command
+(<a href="TRANSPORT-DRIVER-ARCHITECTURE.html"><code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code></a>).
+Login remains operator-attached system OpenSSH, optionally behind the transcript
+PTY; a recorded session's transcript is rendered at its end as the terminal
+showed it (<code>internal/termtext</code>), at the widths <code>script(1)</code>'s timing log records.</p>
+<h2 id="display-pipeline">Display pipeline <a class="anchor" href="#display-pipeline" aria-label="Link to this section">#</a></h2>
+<p><code>internal/display</code> owns templates, human timestamps, themes, colors, visible
+width, and border expansion. Machine records bypass this path.</p>
+<p>The text renderer defers each border until another record arrives. This makes a
+border a true separator and permits <code>last-border=false</code> without buffering
+command output:</p>
+<pre><code class="language-text">record 1 -&gt; remember separator
+record 2 arrives -&gt; emit separator -&gt; emit record 2 -&gt; remember separator
+end -&gt; discard pending separator, or emit it when last-border=true
+</code></pre>
+<p>Command and run share this mechanism. <code>--border</code> selects a dynamic dash line;
+<code>--noborder</code> disables both static and dynamic forms. Device output and echoed
+prompt/command text are never cropped.</p>
+<h2 id="transport-composition">Transport composition <a class="anchor" href="#transport-composition" aria-label="Link to this section">#</a></h2>
+<p><code>internal/transportselect</code> resolves CLI/inventory override, mode setting, mode
+default, named slot, and concrete adapter. The executor sees only a
+<code>platform.Driver</code>. <code>internal/transport/native</code> is keyed by stable implementation
+IDs; build-tagged providers register adapters. <code>internal/buildinfo</code> separately
+reports the exact transport composition of the executable.</p>
+<p>Only <code>internal/adapters/scrapligov1</code> imports ScrapliGo. The source admission
+gate currently allows canonical <code>cisco_iosxe</code>; compilation does not constitute
+platform qualification.</p>
+<h3 id="one-shape-of-the-source">One shape of the source <a class="anchor" href="#one-shape-of-the-source" aria-label="Link to this section">#</a></h3>
+<p>Every build carries the scrapligo-v1 adapter: the provider file in
+<code>internal/transport/native</code> registers it at init, <code>internal/buildinfo</code>
+reports it, and <code>command</code> and <code>run</code> resolve their <code>native</code> default to it.
+Earlier a build tag, <code>scrapligo_v1</code>, selected between this shape and a
+dependency-free one (<code>build/go.preview.mod</code>) whose executable reported only
+<code>system</code>; releases through v0.11.0 shipped that preview, v0.12.0 shipped
+the native executable with the tag still in place, and the tag and the
+module were then removed.</p>
+<p>What the second shape had been kept for was the adapter boundary: if the
+rest of the source compiled with no dependency present, nothing outside the
+adapter had come to depend on ScrapliGo. That proof now rests on
+<code>scripts/verify-release.sh</code> alone, which fails on any import of
+<code>github.com/scrapli/scrapligo</code> outside <code>internal/adapters/scrapligov1</code>. The
+registry keyed by implementation ID stays, as the place a later adapter
+registers, and with it the fail-closed path: a native slot naming an
+implementation without a registered provider is
+<code>native_transport_unavailable</code> and never falls back to OpenSSH
+(<code>TestUnregisteredNativeImplementationFailsClosed</code>).</p>
+<h2 id="daemon-and-storage">Daemon and storage <a class="anchor" href="#daemon-and-storage" aria-label="Link to this section">#</a></h2>
+<p>The daemon is per effective UID, uses two owner-only Unix sockets in the
+<code>socket</code> subtree, and checks peer credentials on both. Protocol schema 9 carries
+<code>prepare_job</code>, <code>commit_job</code>, <code>follow_job</code>, and <code>cancel_job</code> on <code>daemon.sock</code>
+beside the lifecycle operations of schemas 3 and 4, and the credential package
+crosses <code>credentials.sock</code> as one length-prefixed frame per connection under a
+one-use token; <code>submit_job</code> is gone. The daemon holds at most 128 preparations
+for ten minutes each, retains 1,024 commit receipts for idempotent replay, logs
+one <code>slog</code> line per request outcome to <code>logs/daemon.log</code> with the token
+redacted, and runs every job under its own configuration and operator, but for
+what the plan carries from the invocation (the job's files, the ICMP gate, the
+timeouts and the command byte limit, each command's own among them, and the
+halt rule). It stops
+itself after <code>daemon.shutdown-idle-timer</code> (default one hour;
+<code>Server.IdleTimeout</code>) with no active job, no live preparation, and no request
+but <code>ping</code> and <code>status</code>: the check <code>stopIfIdle</code> runs on the minute ticker that
+sweeps preparations, takes <code>beginStop(if_idle)</code> under the admission lock as
+<code>daemon stop</code> does, and cancels the serve, so the drain and the accounting are
+the ordinary ones and the exit is 0. The idle clock (<code>lastActive</code>) is restarted
+by every request that is not <code>ping</code> or <code>status</code> and by a job's end. On the
+client's side <code>RunViaDaemon</code> takes an <code>ensure</code> step and calls it just before
+<code>prepare_job</code>, after planning, and once more with the same plan if that request
+finds the socket gone or the daemon draining (<code>daemonGone</code>), so the timer has
+the least room to end a daemon between the probe and the request. Every error
+returned to a client carries a registered code (<code>internal/errorcodes</code>).
+<code>commit_job</code> answers at acceptance and the job runs on its own goroutine; the
+client follows it through <code>follow_job</code>. The <code>socket</code> and <code>state</code> subtrees are
+mode 0700; a state root and <code>logs</code> are 0750; job and transcript folders take
+<code>output.directory-mode</code> (default 0750) and their files are 0640. <code>cancel_job</code>
+cancels one accepted job through its own context; crash reconstruction is a
+roadmap capability: a job whose daemon died is <code>job_orphaned</code> to <code>job follow</code>,
+as is a finished job whose invocation had <code>output.files.summary-json</code> false.</p>
+<p><strong>A command's output is bounded in memory from the device's first byte to the
+record's write.</strong> The device session (<code>internal/devsession/settle.go</code>) cleans
+the response as it arrives into settled bytes, the recorded bytes: carriage
+returns dropped per chunk, the echoed first line dropped at its newline, the
+returned prompt and the trailing blanks given up at the end. What settles goes
+to memory up to <code>output.spool-threshold-bytes</code> (1 MiB by default) and from the
+byte that would cross it to the command's spool, one file
+<code>&lt;activity&gt;.&lt;device&gt;.&lt;index&gt;.&lt;pid&gt;.spool</code> under <code>spooldir</code> (never the scratch
+directory: <code>tempdir</code>'s chain prefers a tmpfs by design), the settled head
+written first so the file holds the response whole. The session holds per
+command the settled bytes up to the threshold, the unsettled tail of at most 4
+KiB where a prompt or a declaration is matched, the failure-pattern and UTF-8
+carries, the running SHA-256, and its read chunks; the limit
+<code>output.max-command-bytes</code> counts settled bytes, and every ending, a prompt's
+return or a cut, hands the executor what settled and where it is. The record's
+output has one source (<code>output.Source</code>): the record's string, or the spool file
+with its count, digest, and encoding. The store streams every file from it (the
+<code>commands.jsonl</code> and <code>errors.jsonl</code> lines escaped 32 KiB at a time, the text
+block, the collection block), verifying the spool's bytes against the reader's
+digest on the measuring pass before any byte of the line reaches a file
+(<code>output_spool_mismatch</code>); the follower's queue carries the line's offset and
+length and is fed from the file; the in-process renderer streams every format
+from the source; the daemon formats nothing; and the executor removes the spool
+once the record is durable and handed on, on every return of the command's path.
+Abandoned spools (a process that died mid-command) are swept at the daemon's
+start and at every admission by the name's pid and owner. At admission the
+volumes behind the job's folder, a <code>crun</code>'s collection directory, and <code>spooldir</code>
+(and, for a recorded login, the transcripts root) are read once each and judged
+by <code>freecheck</code> (<code>auto</code>, the default: the sum of the places' finished sizes plus
+the 2 GiB floor, the spool's width narrowed to what fits with
+<code>spool_width_narrowed</code> on the receipt; <code>always</code>: the floor alone; <code>never</code>), one
+<code>statfs</code> per volume (<code>internal/output/preflight.go</code>). The scoreboard's target
+row carries the running byte count and the snapshot is rewritten every
+<code>watch.refresh</code> while an activity runs, so the watch screen shows a response
+growing. Measured (<code>scripts/output-scale-run.sh</code>): the daemon's peak at 128
+responses of 5 MiB in flight is 287 MiB on the native transport and 130 MiB on
+the system transport (1.39 and 1.43 GiB before the spool), one 65.7 MB response
+28 and 23 MiB (284 and 302 MiB before), and the responses are on disk under
+<code>spooldir</code> while they arrive, at most the bytes in flight. So the daemon's
+memory for output is the width in flight times the threshold plus the windows, a
+figure of two keys; there is no memory key and no memory check. The width in
+flight is <code>dispatch.server-max-inflight</code>, by default <code>min(256, max(32, 8×CPU))</code>.</p>
+<p><strong>Which files a job writes is one value, <code>output.FileSet</code>,</strong> one field per file,
+the zero value writing them all. The invocation decides it on every path: the
+plan's <code>output</code> carries <code>persist</code> (<code>output.persist-command</code>), <code>files</code> (the eight
+<code>output.files.*</code> switches), and <code>root</code> (<code>output.root</code>, resolved by the planner
+against the site's shared root, <code>sharedroot</code>, and the client's basedir and
+home), and <code>output.SkippedFiles</code> is the one function from the job's
+configuration to the set, read by the planner and by <code>jobexec.Run</code>, the one
+place it is decided: <code>--nof</code> and all eight keys false are the same value,
+<code>output.AllFiles</code>, for which the store makes no folder, and a <code>crun</code> skips every
+<code>output.NAME.txt</code>, on <code>cmd</code>, <code>run --no-daemon</code>, and a run through the daemon
+alike. The daemon reads no <code>output.*</code> key of its own for a job. The command line
+reaches these as flag-origin configuration values, in one function,
+<code>cli.outputOptions</code>: <code>--nof</code> and <code>--of</code> are <code>output.persist-command</code>, and
+<code>--of=PATH</code> is <code>output.root</code> for that invocation, on <code>cmd</code> and <code>run</code>; <code>run</code>
+refuses <code>--nof</code> with <code>--detach</code> (nothing persisted and nobody following) and
+with <code>--exercise</code> (the report is a file). A job that keeps no folder has an
+empty <code>artifact_dir</code> in its receipt and its follow start, and its footer says
+<code>artifacts=none</code>. The store writes every file from memory and none from another,
+so no key depends on another; <code>Store.Paths</code> names only the files written, and
+the summary's <code>paths</code> is made from it (<code>jobexec.summaryFiles</code>, shared by the job
+and the exercise). A record is handed to the daemon's followers by the store
+itself, under its lock, once the <code>commands.jsonl</code> line is written and before the
+text block (<code>output.Options.OnDurable</code>, the record with its notice): the
+followers refuse a frame that does not follow the last, and only the lock gives
+that order at width. <code>output.max-job-bytes</code> is held by the store over the
+<code>commands.jsonl</code> lines and the text blocks together; a record that cannot be
+appended is kept as <code>Store.Err</code>, which <code>jobexec.Run</code> reads after the devices are
+done and ends as an output failure, since a device's dispatch result carries its
+code to no operator.</p>
+<p><strong>Every <code>.json</code> file is indented and every <code>.jsonl</code> file is compact.</strong>
+<code>osutil.AtomicJSON</code> is the one
+writer of whole <code>.json</code> files (temporary file, <code>fsync</code>, rename, directory
+<code>fsync</code>) and indents with <code>osutil.JSONIndent</code>; the capacity ledger, which
+writes under its own lock, uses the same constant. The layout is for the
+operator who opens the file; no reader may depend on it, which is why the
+scripts parse (<code>scripts/lib/json.sh</code>) and nothing digests a <code>.json</code>
+file's bytes.</p>
+<p><strong>Permissions are set only on what karvi creates.</strong> karvi gives a mode to
+the files, directories, and
+sockets it makes and never changes the mode of anything that already
+exists; where an existing file's mode is unacceptable it refuses with a
+registered code and changes nothing. A survey of every <code>Chmod</code> on that
+date found two exceptions, both since removed: the trust store under
+<code>accept-new</code> with an explicit path (<code>internal/hostkey/policy.go</code>,
+<code>ensureTrustFile</code>, which now creates with <code>O_EXCL</code> and sets the mode
+through the new file's handle, and otherwise only validates), and the
+password helper's directory (<code>internal/askpass/askpass.go</code>), which is the
+scratch directory and so, with <code>tempdir</code> set, the operator's own. The
+pattern for a directory is <code>osutil.MakeDirectories</code>: <code>Mkdir</code>, then <code>Chmod</code>
+on what that <code>Mkdir</code> made, existing components untouched. A new <code>Chmod</code>
+on a path, as opposed to a handle karvi has just created, is a review
+question.</p>
+<p>Retention is outside the daemon: <code>karvi-prune</code> (<code>cmd/karvi-prune</code>,
+<code>internal/prune</code>) is one executable behind the per-operator timer, the site's
+root timer, the cron script, and the hand run, and it reads no configuration. It
+walks the <code>jobs</code> and <code>transcripts</code> trees under the operator's basedir and under
+the site's shared root (the <code>sharedroot</code> resolution of
+<code>osutil.ResolveSharedTree</code>, the same the writers use), never the collection
+directory, and the scoreboard directory; a root run walks the private roots the
+site provisioned under the system roots (<code>osutil.SiteUserRoots</code>) in place of its
+own. It shares with the readers the one list of final statuses
+(<code>records.FinalStatuses</code>) and the one day-folder matcher (<code>osutil.IsDayFolder</code>),
+so what the watch screen calls finished and what the tree calls a day are what
+the prune removes: finished jobs, ended transcripts, and terminal scoreboard
+files older than the retention age (or the oldest of them under free-space
+pressure, judged per filesystem), orphans and stale snapshots by age alone, and
+then the day folders left empty. Ownership decides what a run may remove, and a
+failure is a line, never the end of the run. <a href="PRUNE.html"><code>docs/PRUNE.md</code></a> is the
+guide; <a href="DESIGN.html"><code>docs/DESIGN.md</code></a> the record.</p>
+<h2 id="credential-delivery">Credential delivery <a class="anchor" href="#credential-delivery" aria-label="Link to this section">#</a></h2>
+<p>The package crosses to the daemon through a <code>credentialpackage.Protector</code>:
+the client's <code>Protect</code> derives the envelope and the canonical bytes from one
+package, and the daemon's <code>Unprotect</code> requires the <code>local-peer</code> protection,
+a valid envelope naming the daemon's audience, and a body whose decoded
+projection matches the envelope. <code>ProtectorFor(sealed)</code> answers
+<code>protection_unsupported</code>; the <code>Sealer</code> contract fixes what a reviewed
+provider would bind (<code>AssociatedData</code>). The frame handler then runs the
+provided stage of the package validator against the preparation's header
+and the draft's target scopes: every package rule except the two that need
+the final plan, <code>plan_digest</code> and <code>binding_mismatch</code>, which commit checks
+with the full <code>Validate</code>. A faulty package is refused at the frame with its
+rule and stored nowhere; the token is spent, so a retry needs a new
+preparation.</p>
+<p>The launcher hands <code>daemon serve</code> an allow-listed environment through
+<code>osutil.ChildEnvironment</code>, the same filter the system transport applies to
+ssh, plus karvi's own <code>KARVI__*</code> configuration variables,
+<code>KARVI_ASKPASS_PATH</code>, <code>TZ</code>, and <code>TMPDIR</code>; the operator's shell secrets never
+reach the daemon process, and canary row r2 scans that process. A daemon
+started outside the launcher logs a notice per inherited built-in credential
+variable, name only. Two jobs of one operator hold two packages: each commit
+hands <code>jobexec.Run</code> its own package as the grant provider, nothing in the
+daemon, the job executor, the executor, or the transports holds a secret at
+package level, and the concurrent-job test proves each session authenticates
+with its own job's password.</p>
+<p>Credential files: a <code>cloginrc</code> backend declares <code>scope</code> (<code>user</code> | <code>shared</code>)
+and <code>required</code>; the scope selects the owner, mode, and group checks, a
+relative include resolves beside the including file and inherits the scope,
+and an unavailable optional user file is a silent not-found while a
+required or shared one fails the run before a job exists.</p>
+<p>The tabular reader (<code>tabular.CSVReader</code>) is shared by inventory and the
+credential CSV backend. The caller chooses trimming
+(<code>Spec.Trim</code>): inventory trims every cell; a credential file does not, and
+trims its selector, username, and key cells itself, so a secret keeps its
+leading and trailing spaces. A byte-order mark at the start of the stream
+is stripped before the CSV parser, in header and numeric mode alike. The
+short-row policy is also the caller's: inventory warns and skips, the
+credential CSV refuses (<code>ShortRowPolicy = &quot;error&quot;</code>), since in a first-match
+file a skipped row changes which row wins.</p>
+<p>The credential CSV's selectors are evaluated by <code>internal/matching</code>
+(<code>row.go</code>), beside the maps' <code>EvaluateRule</code> and on the same compiled
+selectors and prefixes, so the grammar lives in one package. <code>CompileRow</code>
+checks a row once, at load; <code>Row.Match</code> evaluates it against the device
+view (<code>RowFields</code>: the maps' five fields and the inventory's <code>credkeyref</code>);
+<code>FirstRow</code> is file order and nothing else. The maps' selection (<code>Select</code>:
+the longest prefix wins over an earlier rule) is not used for rows.</p>
+<p>The file rules are one package, <code>internal/credentialbackend/credfile</code>,
+shared by every file backend: <code>Rules</code> (the backend's
+name, scope, <code>required</code>, the operator's home and uid, and the three
+<code>security.*</code> settings, built by the resolver's <code>fileRules</code>), <code>Rules.Open</code>
+(open without following a symlink and without blocking, <code>fstat</code> the
+descriptor, run the scope's check set, return the descriptor and the
+canonical path), <code>Rules.Classify</code> (the availability classes, with the
+backend's own parse-failure code for an uncoded error), and the generic
+<code>Cache[T]</code> (one read per resolver, a failure cached, a cancelled context
+not). A backend keeps its parser: <code>cloginrc</code> calls <code>Open</code> for its root
+file and for every include, so an included file is checked as its own
+file under the inherited scope. The checks run on the descriptor so that
+the file inspected is the file read.</p>
+<p>A <code>csv</code> backend's configuration is admitted at two
+layers. <code>configschema.backendField</code> is the key allow-list for every
+<code>[credential-backend.NAME]</code> table; the csv reader keys join it through
+<code>configschema.CredentialCSVKey</code>, and <code>configschema.CredentialCSVFields</code> is
+the one list of the nine logical fields that the allow-list, validation,
+and the backend share, so a <code>mappings.</code> key for anything else is
+<code>config_unknown_key</code>. The keys are fields of a dynamic table, not
+builtin-layer keys, so the registry version does not move.
+<code>configload.validateDynamic</code> ties keys to types: <code>scope</code> and <code>required</code> to
+the file backends, the reader keys to <code>csv</code>
+(<code>config_credential_backend_key_unsupported</code>), an explicit <code>scope</code> and a
+<code>path</code> for <code>csv</code>, and <code>validateCredentialCSV</code> types the reader keys for the
+declared mode. Nothing at validation touches the file.</p>
+<p>The credential CSV backend is <code>internal/credentialbackend/credcsv</code> (the
+operator's guide is <a href="CREDENTIAL-CSV.html"><code>docs/CREDENTIAL-CSV.md</code></a>, whose
+<a href="CREDENTIAL-CSV.html#11-where-it-lives-in-the-code">section 11</a> maps each rule to
+its package), and it owns little: <code>credfile.Rules.Open</code> and <code>Classify</code> for the
+file, <code>credfile.Cache[*table]</code> for the one read, <code>tabular.CSVReader</code> with <code>Trim: false</code> and <code>ShortRowPolicy: &quot;error&quot;</code> for the parse, <code>matching.CompileRow</code> and
+<code>FirstRow</code> for the selectors. <code>New</code> builds the backend from the validated table.
+The load checks every row (the selectors, a result of some kind, a unique folded
+<code>credkey</code>) and moves the secret cells into <code>secrets.Value</code> before anything else
+can see them; a reader failure is reported under <code>credential_csv_malformed</code> with
+the reader's reason and without its <code>tabular_*</code> code, since those codes are
+inventory's (category and exit). <code>Resolve</code> builds the device view the policy map
+is matched against, takes the first matching row, and answers with a copy of its
+secrets, so destroying the material after sealing leaves the cache whole.
+Completeness is the resolver's <code>finalize</code>, as for every backend. No message
+quotes a cell, which is why <code>matching.RowError</code> reasons are value-free and the
+reader's duplicate-header reason is restated. Environment indirection for a new
+backend is <code>internal/credentialbackend/envindirect</code>; the env, Redis, and Vault
+backends still hold their private copies (a roadmap line).</p>
+<p>The inventory's <code>credkeyref</code> column is a
+logical field of <code>internal/inventoryload</code> like any other
+(<code>mappings.credkeyref</code> in <code>configschema.inventoryField</code>, a field of the
+dynamic table, so no registry number moves). <code>rowDevice</code> checks a filled
+cell with <code>matching.CheckKey</code>, the one legality rule the credential CSV's
+<code>credkey</code> column obeys, and fails the load with
+<code>inventory_credkeyref_invalid</code>; <code>sameDevice</code> compares pins folded
+(<code>matching.FoldKey</code>), so duplicate rows that pin different keys are an
+<code>inventory_conflict</code>. The device carries it as <code>inventory.Device.CredKeyRef</code>
+(<code>credkeyref</code>, omitted when blank). It is deliberately absent from two
+places: the target's <code>source_digest</code>, which is the source file's own,
+and the plan's <code>DeviceProjection</code> (<code>excludedDeviceFields</code> in
+<code>executionplan/projection_test.go</code>), because credentials are resolved on
+the client and the daemon has no use for the pin; the key a pinned device
+took is the grant's <code>matched_on.credkey</code>. (An inventory digest over every
+loaded device was recorded and never read until plan schema 4 removed it;
+the archived <code>REMOVED-LOG.md</code>.) The planner's device view
+(<code>CredentialPlanner.deviceView</code>) starts from the inventory device, so the
+pin reaches the resolver without passing through the plan.</p>
+<p>The pin itself is two small things. <code>credentials.Keyed</code>
+(<code>HonoursCredKey() bool</code>) is an optional interface beside
+<code>credentials.Backend</code>: the capability of answering for a key, which a
+backend declares and a type does not imply. <code>credcsv.Backend</code> declares it
+and passes <code>Device.CredKeyRef</code> into the row view, where <code>matching.Row.Match</code>
+already implements the pin. <code>Resolver.Resolve</code> walks a pinned device's
+sequence asking only keyed entries (<code>Resolver.keyed</code>; a formula is never
+keyed, whatever its source, because its username is the template's and not
+the row's), continues on <code>NotFound</code>, returns a keyed backend's failure as it
+would for any device, judges the key's row with <code>finalize</code>, and at the end
+of the sequence returns <code>credkeyref_unresolved</code> before the built-in
+environment fallback and the prompt are reached. An unpinned device's walk
+is unchanged. A later keyed store joins by implementing the one method and
+honouring its contract: for a pinned request, the key's credential or
+<code>NotFound</code>, never a general one.</p>
+<p>The inventory secret-column refusal is one rule in one place,
+<code>inventory.SecretColumnWord</code> (the six
+words, matched at the end of a normalised name), asked from two. The shared
+reader gained <code>tabular.Spec.CheckHeader</code>, a hook that sees every header of
+a header-mode file, mapped or not, before the columns are mapped, and whose
+error is returned unchanged; the reader itself knows nothing of secrets and
+the credential CSV, whose headers are <em>meant</em> to say <code>password</code>, does not
+set it. <code>inventoryload</code> sets it (<code>secretColumn</code>,
+<code>inventory_secret_column</code>). <code>configload</code>'s inventory-source validation asks
+the same function of every <code>mappings.attributes.NAME</code>
+(<code>config_inventory_source_secret_mapping</code>), in both modes, since an
+attribute is copied into the plan and the records. Neither message prints
+the header's text or a cell.</p>
+<p>Match evidence is <code>credentials.Match</code>, a comparable struct the planner compares
+whole when it merges grants; it gained <code>CredKey</code> (<code>credkey</code>, omitted when
+blank), which travels in the plan report, the grant, and the package's wire form
+(<code>schema/credential-package-envelope.schema.json</code>, an optional property). The
+command record's <code>matched_on</code> is a map the executor writes by hand: its five
+keys are always present, and <code>credkey</code> is added only when set.</p>
+<h2 id="inspection-exercise-and-follow">Inspection, exercise, and follow <a class="anchor" href="#inspection-exercise-and-follow" aria-label="Link to this section">#</a></h2>
+<p>Every daemon-backed <code>run</code> begins with one client half, <code>draftClient</code>:
+configuration, the target set, the draft plan with client-authority DNS,
+and the credential planner run on the draft, which binds exactly the targets
+whose address the client selected. <code>run --dry-run</code> stops there: it probes
+the daemon's control plane for 500 ms without launching one, builds the
+inspection <code>PlanReport</code> (client targets <code>planned</code> and bound,
+daemon-authority targets <code>deferred_to_exercise_or_live_prepare</code>), prints it
+to stdout in the run's format, and writes nothing under the jobs tree. A
+failure before the draft exists aborts as a live run would, the stage named
+after the code.</p>
+<p>A live or exercise run continues: prepare, the frame, and <code>commit_job</code>. The
+commit answers with the receipt the moment the job is accepted (<code>jobexec.Run</code>'s
+<code>OnAccepted</code>, after the manifest is durable and the started audit record
+written), and the job runs on its own goroutine. The daemon keeps a bounded job
+table (<code>internal/daemon/jobs.go</code>): the receipt, the path of the canonical
+<code>commands.jsonl</code>, the durable edge, the outcome when done, and the live
+subscribers. It holds no record history. <strong>Since daemon IPC schema 8 the records
+themselves travel in the follow stream</strong>: <code>follow_job</code> validates the cursor, a
+sequence, sends <code>FollowStart</code> (the job's folder, the edge, and the first
+sequence the stream carries), subscribes the follower, catches it up from the
+daemon's own file to the edge at subscription by reading each line and sending
+it as a <code>record</code> frame, feeds it the live records <code>OnDurable</code> hands over (the
+record with the store's notice, after the durability barrier), and ends with
+<code>stream_terminal</code> carrying the outcome and the summary. A record frame is
+written in pieces through the one record-line writer (<code>output.WriteRecordJSON</code>
+inside <code>ipc.WriteRecordFrame</code>), never marshalled whole, and its <code>record</code> is the
+<code>commands.jsonl</code> line without its LF, so a follower's <code>jsonl</code> output equals the
+file. The frame is bounded by <code>daemon.max-ipc-frame-bytes</code>
+(<code>ipc.RecordFrameSize</code>, exact): a record whose frame would pass the bound is
+sent with its output left out and the notice <code>follow_output_omitted</code> in its
+place, <code>output_bytes</code> and <code>output_sha256</code> intact (<code>omitOutput</code>, on the live path
+and the catch-up path alike); the text renderer prints the notice's message
+where the output would stand, <code>jsonl</code> carries the record as sent, and
+<code>commands.jsonl</code> holds the whole line. The subscriber's queue holds the records,
+bounded by 1,024 of them and by the 30 second write timeout; a follower dropped
+for either resumes from its last delivered sequence, the daemon reading the
+records after it from the file; a finished job is served the same way. A job
+that writes no <code>commands.jsonl</code> (<code>job.open</code> keeps no path) has no catch-up: the
+start's <code>first_sequence</code> is the edge plus one, the follower that started with
+the job had every record live, and a later or resumed follower prints one line
+naming the records that were before it and are not kept (<code>app.NotKeptLine</code>). The
+client (<code>internal/app/follow.go</code>) opens no file: it checks each frame's
+continuity and renders its record through <code>jobexec.RunRenderer</code>. <code>--detach</code>
+returns at acceptance with the receipt; <code>--follow=false</code> follows for the
+terminal only. <code>karvi job follow JOB-ID</code> runs the same follow loop from the zero
+cursor for a job named by its ID, so the daemon catches it up from the file and
+feeds it live; a job the daemon no longer holds is read from its directory,
+located by the unique ID under the output root (<code>internal/app/jobdir.go</code>, with
+the checked open of the file), and <code>job_orphaned</code> names a directory without a
+summary. <code>karvi job cancel JOB-ID</code> sends <code>cancel_job</code>: each job runs under its
+own child of the daemon's job context, the request cancels that child with a
+cause carrying the reason, time, and requester, every unfinished unit is
+recorded <code>cancelled</code> (a command already sent is never recorded succeeded or
+errored), the devices are counted <code>cancelled</code>, the summary carries a
+<code>cancellation</code> block, the audit trail a <code>run.cancel_requested</code> record, and the
+follow stream's terminal delivers the outcome to any following client. The block
+records an accepted request, not its effect: the exercise branch reads its
+context once, for the block, and never observes it, so an exercise never ends
+<code>cancelled</code>, and a live job whose work had finished keeps its result. Clients
+therefore print the cancelled line from <code>records.Summary.CancelledBy</code>, which
+answers the block only under the final status <code>cancelled</code>.</p>
+<p>In exercise mode <code>jobexec.Run</code> branches after acceptance
+(<code>internal/jobexec/exercise.go</code>) and builds no executor: per target it
+checks the binding (through <code>ForTarget</code> and the safe projection only), the
+transport selection with the executor's own call plus the located askpass
+helper for the system kind, and the host-key policy and enrollment; per job
+the dispatch arithmetic (<code>dispatch.Plan.Check</code>) and a read-only capacity
+assessment (<code>capacity.Manager.Assess</code>). It writes <code>exercise.json</code>, leaves
+<code>commands.jsonl</code> empty, finalizes the summary and scoreboard as <code>exercised</code>
+with the first error finding's exit when a target is <code>not_ready</code>, and
+writes the <code>run.exercised</code> audit record with <code>device_contacted=false</code>. The
+client reads the report under the canonical-file discipline and renders
+it. An interrupt before the frame aborts <code>cancelled</code> with its stage named;
+the frame and the commit run without cancellation; an interrupt during the
+follow leaves the job running and exits <code>cancelled</code>; a closed stdout ends
+the follow with exit 111 (SIGPIPE is ignored on the daemon-backed run).</p>
+<h2 id="the-icmp-gate">The ICMP gate <a class="anchor" href="#the-icmp-gate" aria-label="Link to this section">#</a></h2>
+<p><code>internal/icmpgate</code> is the two-probe reachability gate: one interface,
+<code>Pinger</code>, and two implementations. The ping-socket
+pinger opens a Linux datagram ICMP socket per family (the kind the kernel
+grants to the groups in <code>net.ipv4.ping_group_range</code>), sends sequence 1,
+waits up to <code>network.ping-timeout</code>, then sequence 2, and matches replies on
+sequence and a nonce-plus-digest payload while the kernel matches the
+identifier. The system adapter runs the <code>ping</code> executable with the interval
+and the wait set to the timeout and parses its reply and error lines. <code>Detect</code>
+chooses the method once per job among those <code>network.ping-socket</code> and
+<code>network.ping-system</code> allow: socket, then system, then unavailable with a
+reason naming every cause. <code>karvi version</code> reports the host's method.</p>
+<p>The gate's keys are the job's configuration (<code>--ping</code> and <code>--noping</code> write
+<code>network.ping-targets</code> through the cli layer), the invocation's on every path,
+the method switches among them. <code>jobexec.Run</code> detects before any directory or
+record exists and refuses an enabled job with no method as
+<code>icmp_capability_unavailable</code>. In <code>executor.Execute</code> the gate runs after the
+credential grant's safe projection and before the capacity lease: two replies
+proceed, one proceeds with the <code>icmp_packet_loss</code> notice on the device's first
+record, none emits the failure set with <code>icmp_unreachable</code> on command 1 and the
+rest not attempted, before the open request and its password callbacks exist.
+Every record of a gated device carries the same <code>ping</code> object and <code>ping_ns</code>; the
+summary carries the block; the <code>ping</code> stage feeds the metrics histogram. <code>login</code>
+runs the same gate after credential resolution and before the open. The two
+rehearsals detect the capability without probing and report it as
+<code>intended_ping.capability</code> and <code>method</code>. Text output prints one line per gated
+device from the <code>display.ping.header</code> template, with details and the notice
+under <code>--debug</code>.</p>
+
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

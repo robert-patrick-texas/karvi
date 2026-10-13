@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scaling karvi up — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html" aria-current="page">Scaling karvi up</a>
+<ul class="sections">
+<li><a href="#what-grows">What grows</a></li>
+<li><a href="#the-width">The width</a></li>
+<li><a href="#the-free-space-check">The free-space check</a></li>
+<li><a href="#the-memory-budget">The memory budget</a></li>
+<li><a href="#storage-layout">Storage layout</a></li>
+<li><a href="#related">Related</a></li>
+</ul></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html" aria-current="page">Scaling karvi up</a>
+<ul class="sections">
+<li><a href="#what-grows">What grows</a></li>
+<li><a href="#the-width">The width</a></li>
+<li><a href="#the-free-space-check">The free-space check</a></li>
+<li><a href="#the-memory-budget">The memory budget</a></li>
+<li><a href="#storage-layout">Storage layout</a></li>
+<li><a href="#related">Related</a></li>
+</ul></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="scaling-karvi-up">Scaling karvi up <a class="anchor" href="#scaling-karvi-up" aria-label="Link to this section">#</a></h1>
+<p>This guide is for a site that runs karvi against a large network from a
+host with many cores: what grows, which settings bound it, and what the
+free-space and memory arithmetic asks of the host. The settings are the
+configuration reference's (<code>configs/reference.toml</code>); the
+figures below are from the shipped defaults, executed on the tree's build.</p>
+<h2 id="what-grows">What grows <a class="anchor" href="#what-grows" aria-label="Link to this section">#</a></h2>
+<p>Three things grow with a site, and karvi bounds each with its own keys:</p>
+<ul>
+<li><strong>The width</strong>, how many device sessions are in flight at once on the
+host. It costs SSH sessions, AAA transactions per second on the site's
+authentication servers, and the daemon's memory for output in flight.</li>
+<li><strong>The job's size</strong>, how many devices a job names and how much each
+answers. It costs disk under the job's folder (and the collection
+directory for a <code>crun</code>) when the job has finished.</li>
+<li><strong>One response's size</strong>, the bytes one command returns. It costs
+memory up to a threshold and disk under the spool directory above it,
+while the command is in flight.</li>
+</ul>
+<p>karvi makes no attempt to size itself to the network: the site sets the
+width it can carry, and karvi's checks refuse or narrow a job the host
+cannot hold, before any device is contacted.</p>
+<h2 id="the-width">The width <a class="anchor" href="#the-width" aria-label="Link to this section">#</a></h2>
+<p>Two figures bound how many devices a job speaks to at once, and they are
+not the same thing:</p>
+<ul>
+<li><strong>The job's workers</strong>, set by its dispatch mode: one for <code>serial</code> (and
+for every <code>command</code>), a fixed pool for <code>parallel</code>, and for <code>wave</code> a
+width that starts at one figure and moves between waves within a
+ceiling. A worker takes one device at a time and holds it to its end.</li>
+<li><strong>The host's cap</strong>, <code>dispatch.server-max-inflight</code>: the device sessions
+in flight at once on the host, across every job, every operator's
+daemon, and in-process runs. It is enforced per session, not by
+trimming a job's workers: each worker takes a lease in the capacity
+ledger before it connects, and while the ledger is full it waits there,
+polling every 50 to 250 ms (<code>dispatch.admission-poll-min</code>, <code>-max</code>), its
+device counted in the record's <code>server_capacity_wait_ns</code>. A device also
+takes a lease of its own, against the inventory row's <code>session_cap</code> or
+else its platform's <code>session-cap</code> (3 by default), so jobs together never
+hold more sessions on one device than that.</li>
+</ul>
+<p>So the sessions a job holds at once are at most the smallest of its
+workers, its device count, and what the cap leaves after every other job's
+leases. The keys:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Range</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dispatch.default</code></td>
+<td><code>serial</code></td>
+<td><code>serial</code>, <code>parallel</code>, <code>wave</code></td>
+<td>The mode a <code>run</code> takes without <code>--dispatch</code> (<code>--dp</code>, <code>--dw</code>, <code>--ds</code>); <code>serial</code> is one worker whatever the host has; <code>command</code> is always serial.</td>
+</tr>
+<tr>
+<td><code>dispatch.parallel-workers</code></td>
+<td><code>0</code></td>
+<td>0 to 4096</td>
+<td>The parallel pool (<code>--workers N</code>); <code>0</code> is the logical CPU count.</td>
+</tr>
+<tr>
+<td><code>dispatch.wave-start-width</code></td>
+<td><code>0</code></td>
+<td><code>0</code> auto, else 1 to the ceiling</td>
+<td>The wave's first width and its floor (<code>--start-width N</code>); <code>0</code> is <code>min(64, max(16, 4 × CPU))</code>.</td>
+</tr>
+<tr>
+<td><code>dispatch.wave-max-width</code></td>
+<td><code>0</code></td>
+<td><code>0</code> auto, else start to <code>absolute-max-width</code></td>
+<td>The wave's ceiling (<code>--max-width N</code>); <code>0</code> is <code>min(256, max(32, 8 × CPU))</code>, the cap's own default, so one wave job may fill the host.</td>
+</tr>
+<tr>
+<td><code>dispatch.server-max-inflight</code></td>
+<td><code>0</code></td>
+<td>0 to 4096</td>
+<td>The host's cap on device sessions in flight across every job, every operator's daemon, and in-process runs, held as leases in the capacity ledger under <code>sessions.shared-capacity-root</code>, across operators where the site made the scratch root (<code>sudo karvi setup shared</code>) and per operator where it did not; <code>0</code> is <code>min(256, max(32, 8 × CPU))</code>.</td>
+</tr>
+<tr>
+<td><code>dispatch.absolute-max-width</code></td>
+<td><code>512</code></td>
+<td>1 to 4096</td>
+<td>The hard ceiling on any job's workers: a parallel pool above it is cut to it, a wave ceiling above it is refused at load.</td>
+</tr>
+</tbody>
+</table>
+<p>The defaults by host:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Logical CPUs</th>
+<th style="text-align:right"><code>parallel</code> workers</th>
+<th style="text-align:right"><code>wave</code> start → ceiling</th>
+<th style="text-align:right"><code>server-max-inflight</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">4</td>
+<td style="text-align:right">4</td>
+<td style="text-align:right">16 → 32</td>
+<td style="text-align:right">32</td>
+</tr>
+<tr>
+<td style="text-align:right">8</td>
+<td style="text-align:right">8</td>
+<td style="text-align:right">32 → 64</td>
+<td style="text-align:right">64</td>
+</tr>
+<tr>
+<td style="text-align:right">16</td>
+<td style="text-align:right">16</td>
+<td style="text-align:right">64 → 128</td>
+<td style="text-align:right">128</td>
+</tr>
+<tr>
+<td style="text-align:right">32</td>
+<td style="text-align:right">32</td>
+<td style="text-align:right">64 → 256</td>
+<td style="text-align:right">256</td>
+</tr>
+<tr>
+<td style="text-align:right">64</td>
+<td style="text-align:right">64</td>
+<td style="text-align:right">64 → 256</td>
+<td style="text-align:right">256</td>
+</tr>
+<tr>
+<td style="text-align:right">128</td>
+<td style="text-align:right">128</td>
+<td style="text-align:right">64 → 256</td>
+<td style="text-align:right">256</td>
+</tr>
+<tr>
+<td style="text-align:right">512</td>
+<td style="text-align:right">512</td>
+<td style="text-align:right">64 → 256</td>
+<td style="text-align:right">256</td>
+</tr>
+</tbody>
+</table>
+<h3 id="parallel-a-fixed-pool"><code>parallel</code>: a fixed pool <a class="anchor" href="#parallel-a-fixed-pool" aria-label="Link to this section">#</a></h3>
+<p>The job starts its workers once and feeds them one queue, the devices in
+the dispatch order (<code>dispatch.order</code>). A worker that finishes a device
+takes the next at once, so there are no batches and no pauses: a slow
+device holds its own worker and nobody else, and the job ends when the
+last device does. The pool's size never changes during the job, whatever
+the host's load; only the cap's leases can hold a worker back. A halt
+(<code>--halt-on-error-count</code>, <code>--halt-on-error-percent</code>) stops the queue: no
+further device starts, and the devices in flight finish.</p>
+<h3 id="wave-cohorts-and-a-width-that-follows-the-hosts-cpu"><code>wave</code>: cohorts, and a width that follows the host's CPU <a class="anchor" href="#wave-cohorts-and-a-width-that-follows-the-hosts-cpu" aria-label="Link to this section">#</a></h3>
+<p>The job runs its devices in waves. A wave takes the next <em>depth</em> devices
+in the dispatch order, depth being the wave's width times
+<code>dispatch.wave-depth-multiplier</code> (4), or the devices left if fewer, and
+runs them with <em>width</em> workers as the parallel pool does. The wave ends
+when its last device ends, so a slow device holds the next wave back;
+then, before the next wave:</p>
+<ol>
+<li><strong>The error gate.</strong> When the wave's failures reach
+<code>dispatch.wave-gate-error-count</code> or <code>dispatch.wave-gate-error-percent</code>
+(both off by default), the job stops, the devices not started
+recorded <code>not_started_wave_gate</code>. A halt stops a wave job as it stops
+a parallel one, at once.</li>
+<li><strong>The timed delay</strong>, <code>dispatch.wave-gate-timed-delay</code> (<code>--wave-delay</code>,
+none by default), a pause between waves for a change window.</li>
+<li><strong>The width for the next wave</strong>, from the host's CPU: the busy share of
+every CPU on the host from <code>/proc/stat</code> (all processes, not karvi's
+alone), sampled every <code>metrics.process-sample-interval</code> (1 s),
+averaged over its first <code>dispatch.wave-cpu-warmup-samples</code> (5) and
+then smoothed with a half-life of <code>dispatch.wave-cpu-half-life</code> (15 s).
+Around <code>dispatch.wave-cpu-threshold-percent</code> (75) a band of
+<code>dispatch.wave-cpu-target-zone-percent</code> (10) either side, 65 to 85 by
+default:
+<table>
+<thead>
+<tr>
+<th>The CPU signal</th>
+<th>The next width</th>
+<th>Then</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>below the band (under 65 %)</td>
+<td>up by <code>wave-step-up-percent</code> (50 %) of the width, rounded up, at most the ceiling</td>
+<td></td>
+</tr>
+<tr>
+<td>in the band (65 % to 85 %)</td>
+<td>unchanged</td>
+<td></td>
+</tr>
+<tr>
+<td>above the band (over 85 %)</td>
+<td>down by <code>wave-step-down-percent</code> (10 %), rounded up, at least the start width</td>
+<td>the next <code>wave-cooldown-waves</code> (2) decisions keep the width</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ol>
+<p>The start width is also the floor: a wave job never runs narrower than it
+began. Each decision is in <code>metrics.json</code> (<code>wave_decisions</code>: the wave, the
+signal, the width before and after, and the reason: <code>cpu_below_zone</code>,
+<code>cpu_below_zone_at_ceiling</code>, <code>cpu_in_zone</code>, <code>cpu_above_zone</code>,
+<code>cpu_above_zone_at_floor</code>, or <code>cooldown</code>), a dry run's <code>dispatch:</code> line
+names the wave's start, ceiling, and depth multiplier, and every record
+names its wave,
+width, depth, and worker (<code>dispatch.wave_number</code>, <code>wave_width</code>,
+<code>wave_depth</code>, <code>worker_id</code>). The right-sizing reads the host's CPU only:
+not the cap's ledger, not other jobs' widths, not the devices' or the
+network's latency; a host whose CPU stays low runs a wave job at its
+ceiling, and the cap's leases then decide how many of those workers
+connect.</p>
+<p>Against <code>parallel</code> at the same width, a wave job pays the waits at its
+wave boundaries (each wave waits for its slowest device); it buys the
+ramp from a cautious start, the error gate between waves, and the timed
+delay.</p>
+<h3 id="100-devices-worked">100 devices, worked <a class="anchor" href="#100-devices-worked" aria-label="Link to this section">#</a></h3>
+<p>On the reference host of these figures (4 logical CPUs; the fake device
+answering <code>show clock</code>, a session of 0.61 s on average), 100 devices with
+every setting at its default but the mode:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>--dispatch parallel</code></th>
+<th><code>--dispatch wave</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Workers</td>
+<td>4, for the whole job</td>
+<td>16 in wave 1, 24 in wave 2</td>
+</tr>
+<tr>
+<td>The queue</td>
+<td>one: 100 devices, a free worker takes the next</td>
+<td>wave 1: devices 1 to 64 (16 × 4); wave 2: devices 65 to 100 (36 left, under 24 × 4 = 96)</td>
+</tr>
+<tr>
+<td>Waves</td>
+<td>none</td>
+<td>2; CPU 12.9 % after wave 1 (under 65 %), so 16 + 8 = 24</td>
+</tr>
+<tr>
+<td>Sessions in flight, most</td>
+<td>4</td>
+<td>16, then 24</td>
+</tr>
+<tr>
+<td>The host's cap</td>
+<td>32, not reached</td>
+<td>32, not reached</td>
+</tr>
+<tr>
+<td>Device-times in turn</td>
+<td>25 (100 ÷ 4)</td>
+<td>4 in wave 1 (64 ÷ 16), 2 in wave 2 (36 ÷ 24)</td>
+</tr>
+<tr>
+<td>Executed</td>
+<td>17.2 s</td>
+<td>4.7 s (wave 1 +0.0 to +3.1 s, wave 2 +3.2 to +4.7 s)</td>
+</tr>
+</tbody>
+</table>
+<p>The same 100 devices on larger hosts, by the defaults' arithmetic:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Logical CPUs</th>
+<th><code>parallel</code>: workers, device-times</th>
+<th><code>wave</code>: waves (width × devices)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">8</td>
+<td>8, 13 (12 full turns and 4)</td>
+<td>1 (32 × 100: depth 128 holds every device), 4 device-times</td>
+</tr>
+<tr>
+<td style="text-align:right">16</td>
+<td>16, 7 (6 full turns and 4)</td>
+<td>1 (64 × 100), 2 device-times</td>
+</tr>
+<tr>
+<td style="text-align:right">32 and up</td>
+<td>the CPU count, 4 or fewer</td>
+<td>1 (64 × 100), 2 device-times</td>
+</tr>
+</tbody>
+</table>
+<p>On 8 logical CPUs and up a 100-device wave job is one wave, so it never
+changes width: the ramp needs more devices than the first wave's depth.
+A larger job on the reference host, 1,000 devices under <code>--dispatch wave</code>, executed: widths 16, 24, then 32 (the ceiling) for seven waves, the
+CPU between 13 % and 20 % throughout, 9 waves in 33 s:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:right">Wave</th>
+<th style="text-align:right">Width</th>
+<th style="text-align:right">Depth (devices)</th>
+<th>Window</th>
+<th style="text-align:right">CPU after</th>
+<th style="text-align:right">Next width</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right">1</td>
+<td style="text-align:right">16</td>
+<td style="text-align:right">64</td>
+<td>+0.0 to +3.7 s</td>
+<td style="text-align:right">13.3 %</td>
+<td style="text-align:right">24</td>
+</tr>
+<tr>
+<td style="text-align:right">2</td>
+<td style="text-align:right">24</td>
+<td style="text-align:right">96</td>
+<td>+3.7 to +7.5 s</td>
+<td style="text-align:right">14.7 %</td>
+<td style="text-align:right">32</td>
+</tr>
+<tr>
+<td style="text-align:right">3 to 8</td>
+<td style="text-align:right">32</td>
+<td style="text-align:right">128 each</td>
+<td>+7.6 to +30.3 s</td>
+<td style="text-align:right">15.9 % to 19.5 %</td>
+<td style="text-align:right">32 (<code>cpu_below_zone_at_ceiling</code>)</td>
+</tr>
+<tr>
+<td style="text-align:right">9</td>
+<td style="text-align:right">32</td>
+<td style="text-align:right">72</td>
+<td>+30.4 to +32.7 s</td>
+<td style="text-align:right">19.7 %</td>
+<td style="text-align:right">—</td>
+</tr>
+</tbody>
+</table>
+<p>Had the CPU risen above 85 % after a wave at 32, the next would have run
+at 28 (32 less 10 %, rounded up to 4), and the two decisions after it kept
+28; it would never have gone under 16.</p>
+<p><strong>The cap in action.</strong> The same 100 devices under <code>--dispatch parallel --workers 64</code> on the reference host, whose cap is 32: 64 workers, never
+more than 32 sessions in flight; 68 devices waited for a lease, the
+longest 1.9 s; 3.1 s in all. A second job beside a wave job at its
+ceiling meets the same: the default ceiling is the default cap, so the
+two share the host's 32 and each waits on the other's leases.</p>
+<p>A site whose devices and AAA carry more than 256 sessions at once sets
+<code>dispatch.server-max-inflight</code> to the figure it wants (512, 1024, up to
+4096), together with the mode's width and, above 512,
+<code>dispatch.absolute-max-width</code>. A job opens one session per device
+(<code>command</code> and <code>run</code> share one device session), so the width is also the
+number of devices spoken to at once. AAA throughput is the site's to
+judge; karvi's cap is about the host.</p>
+<h2 id="the-free-space-check">The free-space check <a class="anchor" href="#the-free-space-check" aria-label="Link to this section">#</a></h2>
+<p>At admission, before any device is contacted, karvi reads the free space
+of every volume an activity writes, once per volume, and judges it by
+<code>freecheck</code> (the operations guide, &quot;The spool directory&quot;). The places: the
+job's folder, a <code>crun</code>'s collection
+directory, the spool directory, and a recorded login's transcripts root.
+The paths are grouped by the device behind each (<code>stat</code>), and one
+<code>statfs</code> is read per group, about a microsecond each, so a host whose
+places share one volume reads it once.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>freecheck</code></td>
+<td><code>auto</code></td>
+<td><code>auto</code>: each volume must hold the sum of its places' finished sizes plus the floor once; <code>always</code>: the floor alone; <code>never</code>: no read.</td>
+</tr>
+<tr>
+<td><code>output.min-free-bytes-after-job</code></td>
+<td>2 GiB</td>
+<td>The floor, asked once of every volume.</td>
+</tr>
+<tr>
+<td><code>output.expected-bytes-per-device</code></td>
+<td>256 KiB</td>
+<td>The estimate of one device's output, per file the job's folder writes (<code>commands.jsonl</code> and the text file, two by default; one for the collection directory).</td>
+</tr>
+<tr>
+<td><code>output.reserve-multiplier</code></td>
+<td>1.25</td>
+<td>The margin on the estimate.</td>
+</tr>
+<tr>
+<td><code>output.max-command-bytes</code></td>
+<td>64 MiB</td>
+<td>One command's limit, and the spool's per-command term.</td>
+</tr>
+<tr>
+<td><code>output.spool-threshold-bytes</code></td>
+<td>1 MiB</td>
+<td>Above it a response continues into the spool; below it stays in memory.</td>
+</tr>
+<tr>
+<td><code>spooldir</code></td>
+<td><code>auto</code></td>
+<td><code>/tmp/karvi-&lt;uid&gt;</code>, then <code>/var/tmp/karvi-&lt;uid&gt;</code>; a disk, never a tmpfs.</td>
+</tr>
+</tbody>
+</table>
+<p>Under <code>auto</code> the ask of one volume that holds the job's folder and the
+spool is the floor, plus 640 KiB per device for the folder (256 KiB × two
+files × 1.25), plus 64 MiB per command in flight for the spool. The
+width is the one above; the device count enters twice, in the folder's
+term and as a bound on the width:</p>
+<table>
+<thead>
+<tr>
+<th>Host and mode</th>
+<th style="text-align:right">1 device</th>
+<th style="text-align:right">10 devices</th>
+<th style="text-align:right">1,000 devices</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Any host, <code>serial</code> (the shipped default)</td>
+<td style="text-align:right">2.06 GiB</td>
+<td style="text-align:right">2.07 GiB</td>
+<td style="text-align:right">2.67 GiB</td>
+</tr>
+<tr>
+<td>4 CPUs, <code>parallel</code></td>
+<td style="text-align:right">2.06 GiB</td>
+<td style="text-align:right">2.26 GiB</td>
+<td style="text-align:right">2.86 GiB</td>
+</tr>
+<tr>
+<td>16 CPUs, <code>parallel</code></td>
+<td style="text-align:right">2.06 GiB</td>
+<td style="text-align:right">2.63 GiB</td>
+<td style="text-align:right">3.61 GiB</td>
+</tr>
+<tr>
+<td>64 CPUs, <code>parallel</code></td>
+<td style="text-align:right">2.06 GiB</td>
+<td style="text-align:right">2.63 GiB</td>
+<td style="text-align:right">6.61 GiB</td>
+</tr>
+<tr>
+<td>128 CPUs, <code>parallel</code></td>
+<td style="text-align:right">2.06 GiB</td>
+<td style="text-align:right">2.63 GiB</td>
+<td style="text-align:right">10.61 GiB</td>
+</tr>
+<tr>
+<td>512 CPUs, <code>parallel</code>, cap 256</td>
+<td style="text-align:right">2.06 GiB</td>
+<td style="text-align:right">2.63 GiB</td>
+<td style="text-align:right">18.61 GiB</td>
+</tr>
+</tbody>
+</table>
+<p>The spool's term is the worst case, every command in flight answering
+with the full limit at once; the measured 128-wide run of 5 MiB responses
+spooled 632 MiB at its peak. When the spool's term alone is short but at
+least one command fits above the folder's term and the floor, the job
+runs narrower with the warning <code>spool_width_narrowed</code> (on standard error
+in process, on the receipt and the follow start under the daemon); when
+the folder's term or the floor is short, or not one command fits, the job
+is refused with <code>output_preflight_space</code> naming the volume's paths and
+both figures. A <code>crun</code> adds one copy of the device estimate for its
+collection directory, on that directory's volume. A recorded login asks
+its transcripts root's volume for the floor alone: a session's length is
+nobody's estimate. A <code>--nof</code> command has no folder and asks the spool's
+volume alone.</p>
+<p>A wide host with a small volume has three plain knobs: <code>always</code> for the
+flat floor, a lower <code>output.max-command-bytes</code>, or <code>auto</code>'s narrowing,
+which runs the job narrower rather than refusing it. The audit file, the
+scoreboard directory, and the state root are not checked: their first
+write lands before any device is contacted, they write kilobytes after,
+and the scoreboard directory is a tmpfs by default where a 2 GiB floor
+would refuse a small host.</p>
+<p><strong>Monitoring is the site's.</strong> The check is a guard against writing into a full
+disk at the moment a job starts, not an alert. Watch the volumes behind
+<code>basedir</code>, <code>sharedroot</code>, <code>spooldir</code>, and <code>scoreboards</code> with the site's
+monitoring, and let <code>karvi-prune --minfree</code> (<a href="PRUNE.html"><code>docs/PRUNE.md</code></a>) age
+the job and transcript trees under a free-space floor of its own.</p>
+<h2 id="the-memory-budget">The memory budget <a class="anchor" href="#the-memory-budget" aria-label="Link to this section">#</a></h2>
+<p>The daemon's memory for output is the width in flight times
+<code>output.spool-threshold-bytes</code>, plus a few windows of at most 4 KiB per
+command (<a href="ARCHITECTURE.html"><code>docs/ARCHITECTURE.md</code></a>): there is no memory key. At
+the default threshold, 128 commands in flight hold at most 128 MiB of
+response in memory; the measured peak of the whole daemon at 128 responses
+of 5 MiB in flight was 287 MiB on the native transport and 130 MiB on the
+system transport, against 1.39 and 1.43 GiB before the spool. A site that
+wants less memory lowers the threshold (0 spools every response from its
+first byte); one that wants less disk raises it, up to 1 GiB. The spool
+directory must be a disk: <code>tempdir</code>'s chain prefers <code>/dev/shm</code> by design
+for small scratch files, and a spool on a tmpfs would cost the memory the
+threshold saved.</p>
+<h2 id="storage-layout">Storage layout <a class="anchor" href="#storage-layout" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>Put <code>spooldir</code> on the volume with the room, not under <code>basedir</code> if the
+private root is small; <code>auto</code> chooses <code>/tmp</code> then <code>/var/tmp</code>.</li>
+<li>Put <code>sharedroot</code> (the site's <code>jobs</code>, <code>crun</code>, and <code>transcripts</code> trees)
+on a volume sized for the retention age times the daily output;
+<code>karvi-prune</code> walks it.</li>
+<li>Keep <code>scoreboards</code> on its tmpfs (<code>/dev/shm/karvi/scoreboards</code>): the
+scoreboard files are kilobytes and the watch screen reads them every
+<code>watch.refresh</code>.</li>
+<li>A job's records stream to disk as they arrive; nothing waits for the
+job's end to be written, so a job that is cut short leaves what it had.</li>
+</ul>
+<h2 id="related">Related <a class="anchor" href="#related" aria-label="Link to this section">#</a></h2>
+<p><a href="OPERATIONS.html"><code>docs/OPERATIONS.md</code></a> (<a href="OPERATIONS.html#the-jobs-output-files">&quot;The job's output
+files&quot;</a>, <a href="OPERATIONS.html#the-spool-directory">&quot;The spool
+directory&quot;</a>, <a href="OPERATIONS.html#the-shared-trees">&quot;The shared
+trees&quot;</a>,
+<a href="OPERATIONS.html#retention">&quot;Retention&quot;</a>);
+<a href="ARCHITECTURE.html"><code>docs/ARCHITECTURE.md</code></a> (the output path);
+<a href="DESIGN.html"><code>docs/DESIGN.md</code></a> (the spool and the memory budget, the free-space
+check per volume); <a href="PRUNE.html"><code>docs/PRUNE.md</code></a>. <code>karvi-run(1)</code> (<code>man karvi run</code>), DISPATCH, restates &quot;The width&quot; for the terminal (the modes, the widths at
+0, the cap, the halts, and the gates); a change to one changes both.</p>
+
+<footer>Generated from <code>docs/SCALE.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

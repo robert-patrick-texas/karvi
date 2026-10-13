@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Device qualification runbook — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html" aria-current="page">Device qualification runbook</a>
+<ul class="sections">
+<li><a href="#1-what-the-run-needs">1. What the run needs</a></li>
+<li><a href="#2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake</a></li>
+<li><a href="#3-the-run">3. The run</a></li>
+<li><a href="#4-the-rows">4. The rows</a></li>
+<li><a href="#5-the-evidence">5. The evidence</a></li>
+<li><a href="#6-the-output-scale-run">6. The output-scale run</a></li>
+<li><a href="#7-when-a-row-fails">7. When a row fails</a></li>
+<li><a href="#8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device</a></li>
+<li><a href="#9-a-production-server">9. A production server</a></li>
+</ul></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html" aria-current="page">Device qualification runbook</a>
+<ul class="sections">
+<li><a href="#1-what-the-run-needs">1. What the run needs</a></li>
+<li><a href="#2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake</a></li>
+<li><a href="#3-the-run">3. The run</a></li>
+<li><a href="#4-the-rows">4. The rows</a></li>
+<li><a href="#5-the-evidence">5. The evidence</a></li>
+<li><a href="#6-the-output-scale-run">6. The output-scale run</a></li>
+<li><a href="#7-when-a-row-fails">7. When a row fails</a></li>
+<li><a href="#8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device</a></li>
+<li><a href="#9-a-production-server">9. A production server</a></li>
+</ul></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="device-qualification-runbook">Device qualification runbook <a class="anchor" href="#device-qualification-runbook" aria-label="Link to this section">#</a></h1>
+<p>The laboratory run of
+<a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a>'s rows
+marked <strong>device</strong>, on both transports, with <code>scripts/device-qualification.sh</code>
+collecting the evidence (the production gates listed in
+<a href="../ROADMAP.html"><code>ROADMAP.md</code></a>). The Catalyst 9300 is run first, then the ISR
+4451-X, then the other approved families; one run qualifies one device on one
+software release.</p>
+<p>The script is checked against the fake IOS XE device before every lab run
+(<code>FAKE=1</code>, step 2): every row it sends to a device has first passed there,
+so a failure in the laboratory is the device's answer and not the script's.
+A production Linux server is qualified by hand, by the rows of <a href="#9-a-production-server">section
+9</a>.</p>
+<h2 id="1-what-the-run-needs">1. What the run needs <a class="anchor" href="#1-what-the-run-needs" aria-label="Link to this section">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>For</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A host that reaches the device's management address over SSH, with the released bundle unpacked and <code>scripts/verify-bundle.sh</code> passed</td>
+<td>every row</td>
+<td>The OpenSSH client for <code>system</code>; <code>go</code> only to build <code>tools/paritycheck</code> (without it the comparison is marked skip and is run afterwards over the kept streams)</td>
+</tr>
+<tr>
+<td><code>python3</code></td>
+<td>the script's JSON reads (<code>scripts/lib/json.sh</code>: the executable's transports, the records' statuses and error codes)</td>
+<td>A prerequisite of <a href="../BUILD-HOWTO.html#1-install-operating-system-prerequisites"><code>BUILD-HOWTO.md</code> §1</a>; the script stops at its start without it</td>
+</tr>
+<tr>
+<td><code>bin/secret-scan</code> (<code>make tools-build</code>)</td>
+<td>the final scan</td>
+<td>Without it the scan is marked skip and the evidence must not leave the host unreviewed</td>
+</tr>
+<tr>
+<td>The device's inventory name, management address, and SSH port</td>
+<td>every row</td>
+<td><code>DEVICE</code>, <code>ADDRESS</code>, <code>PORT</code></td>
+</tr>
+<tr>
+<td>A laboratory account that reaches privilege 15 by <code>enable</code>, and its enable secret</td>
+<td>D1–D4, D7–D16</td>
+<td><code>NETUSER</code>, <code>NETPASS</code>, <code>NETENABLE</code> in the environment. If the account lands at privilege 15 at login, leave <code>NETENABLE</code> unset: that is the matrix's &quot;nothing sent&quot; row</td>
+</tr>
+<tr>
+<td>A restricted account refused <code>terminal length 0</code> (for example privilege 1 with no <code>terminal</code> command authorized)</td>
+<td>D5</td>
+<td><code>RESTRICTED_USER</code>, <code>RESTRICTED_PASS</code>; the row is skipped without them</td>
+</tr>
+<tr>
+<td>The number of vty lines free on the device</td>
+<td>D8</td>
+<td><code>CONCURRENCY</code> at or below it; a 9300's default is 16 (<code>line vty 0 15</code>), less the operator's own sessions</td>
+</tr>
+<tr>
+<td>A read-only command with a large output</td>
+<td>D9</td>
+<td><code>BIG_COMMAND=&quot;show tech-support&quot;</code> runs for minutes and produces megabytes; the row's command timeout is 600 s</td>
+</tr>
+<tr>
+<td>A DNS name for the device with both A and AAAA records, and IPv6 reachability from the host</td>
+<td>D12</td>
+<td><code>DUALSTACK_NAME</code></td>
+</tr>
+<tr>
+<td>Agreement that <code>configure terminal</code> followed by <code>end</code> may be sent</td>
+<td>D4</td>
+<td><code>CONFIG_ROW=1</code>; nothing is sent between the two</td>
+</tr>
+<tr>
+<td>A laboratory unit that may be reloaded, and the time for it to return</td>
+<td>D13</td>
+<td><code>RELOAD=&quot;scrapligo-v1&quot;</code> or both transports, one reload each; a save prompt is answered <code>no</code></td>
+</tr>
+<tr>
+<td>The device's model and software release, as the change record names them</td>
+<td>the evidence</td>
+<td>The script records what <code>show version</code> answers; the reviewers compare</td>
+</tr>
+</tbody>
+</table>
+<p>What the run never needs: a changed host key on the device (every
+mismatch row writes a wrong entry into a scratch trust store, the device
+presents its own key, and karvi refuses before authentication), the
+operator's own trust store, configuration, or state (all under the
+evidence directory's <code>work/</code> while the run lasts), or a credential on a
+command line or in a file.</p>
+<h2 id="2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake <a class="anchor" href="#2-before-the-laboratory-the-script-against-the-fake" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">cd karvi-v0.29.0
+sha256sum -c CHECKSUMS.sha256          # the released executables
+make tools-build                       # bin/secret-scan
+FAKE=1 CONFIG_ROW=1 RELOAD=&quot;system scrapligo-v1&quot; scripts/device-qualification.sh
+</code></pre>
+<p>The last line must end <code>device qualification: pass</code>. Executed
+on the released executable: 71 pass, 10 observe, 2 skip (D5
+and D12, which need an account and a name the fake does not have), none
+failed; both blind reloads pass with the
+<code>prompt_not_observed_after_blind_send</code> notice. The log and the evidence
+directory are beside the tree in <code>device-qualification-evidence/</code>.</p>
+<h2 id="3-the-run">3. The run <a class="anchor" href="#3-the-run" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">export NETUSER=labuser
+read -rs NETPASS;   export NETPASS
+read -rs NETENABLE; export NETENABLE
+
+# First pass: read-only rows only.
+DEVICE=c9300-lab ADDRESS=192.0.2.10 scripts/device-qualification.sh
+
+# Second pass, as each need of section 1 is met:
+DEVICE=c9300-lab ADDRESS=192.0.2.10 \
+  CONCURRENCY=12 BIG_COMMAND=&quot;show tech-support&quot; \
+  DUALSTACK_NAME=c9300-lab.lab.example CONFIG_ROW=1 \
+  scripts/device-qualification.sh
+
+# The reload, alone, on the laboratory unit:
+DEVICE=c9300-lab ADDRESS=192.0.2.10 ROWS=D13 RELOAD=&quot;scrapligo-v1 system&quot; \
+  scripts/device-qualification.sh
+</code></pre>
+<p>Each invocation writes a new evidence directory,
+<code>karvi-qualification-DEVICE-UTCSTAMP/</code>, and refuses an existing one.
+<code>ROWS=&quot;D1 D7&quot;</code> runs only the rows named.</p>
+<h2 id="4-the-rows">4. The rows <a class="anchor" href="#4-the-rows" aria-label="Link to this section">#</a></h2>
+<p>Each row runs over <code>system</code> and <code>scrapligo-v1</code>. <code>both</code> means <code>command</code> and
+<code>run --no-daemon</code> on each transport, four streams compared path by path by
+<code>tools/paritycheck</code> (the matrix's &quot;records equal path by path&quot; row on the
+device).</p>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Matrix line</th>
+<th>What is sent</th>
+<th>Pass</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>show commands; device-reported syntax failure</td>
+<td>both: <code>show clock</code>, the invalid command, <code>show version</code>, under <code>--continue-device-on-error</code></td>
+<td>succeeded, <code>device_command_error</code>, succeeded; exit 107 (<code>command</code>), 101 (<code>run</code>); parity</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>multi-command stop</td>
+<td>both: the same list under halt</td>
+<td>the third <code>not_attempted_prior_command_failure</code>; parity</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>first prompt, one <code>enable</code>, paging, <code>--echo</code>, <code>--debug</code></td>
+<td><code>command --debug --echo</code>: <code>show clock</code>, <code>show privilege</code>, in text</td>
+<td>exit 0; the streams observed (banner, prompt, the enable, the paging lines)</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>the <code>(config)#</code> level</td>
+<td>both: <code>configure terminal</code>, <code>end</code>, <code>show clock</code> (opt-in)</td>
+<td>three succeeded; the first record's <code>prompt</code> is the <code>(config)#</code> prompt; parity</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>a rejected paging command; authorization failure</td>
+<td><code>show clock</code>, <code>show running-config</code> as the restricted account (opt-in)</td>
+<td>observed: the expectation is <code>paging_disable_failed</code></td>
+</tr>
+<tr>
+<td>D7 a</td>
+<td><code>accept-new</code>: empty store, first acceptance, repeat</td>
+<td><code>show clock</code> twice</td>
+<td>the store holds the identity (<code>name</code>, or <code>[name]:PORT</code>), the first says <code>! ssh accepted new host-key</code> and the repeat nothing, and leaves the store byte-identical</td>
+</tr>
+<tr>
+<td>D7 b</td>
+<td>one transport's enrollment read by the other</td>
+<td><code>run</code> under <code>secure</code> on the other transport</td>
+<td>exit 0</td>
+</tr>
+<tr>
+<td>D7 c</td>
+<td>hashed entries written by hand</td>
+<td><code>ssh-keygen -H</code> over the store, then <code>secure</code></td>
+<td>exit 0</td>
+</tr>
+<tr>
+<td>D7 d, e</td>
+<td><code>secure</code>: unknown host; changed key</td>
+<td>an empty store; another key under the identity</td>
+<td>109 <code>host_key_not_enrolled</code>; 109 <code>host_key_changed</code></td>
+</tr>
+<tr>
+<td>D7 f</td>
+<td><code>insecure</code>: the mismatch warning, then access</td>
+<td>the same wrong entry</td>
+<td>exit 0, the policy's two lines and <code>! ssh host-key mismatch DEVICE proceeding at risk</code> on stderr</td>
+</tr>
+<tr>
+<td>D7 g</td>
+<td>literal-address targeting</td>
+<td><code>--target ADDRESS</code></td>
+<td>the store holds the address identity</td>
+</tr>
+<tr>
+<td>D7 h</td>
+<td>concurrent first enrollment from two clients</td>
+<td>two <code>command</code> processes at once on an empty store</td>
+<td>both exit 0; no entry twice</td>
+</tr>
+<tr>
+<td>D7 i</td>
+<td>a non-<code>0600</code> store is refused or ignored, never repaired</td>
+<td>mode 0644 under <code>secure</code>, <code>accept-new</code>, then <code>insecure</code></td>
+<td><code>secure</code> and <code>accept-new</code>: 109 <code>host_key_trust_store_permission</code> with the <code>chmod 600</code> remedy; <code>insecure</code>: 0; the mode still 0644 after each</td>
+</tr>
+<tr>
+<td>D7 j</td>
+<td>fleet isolation; the run-wide halt</td>
+<td>two names for the device, the first with a wrong entry, serial</td>
+<td><code>connection_error,succeeded</code>; with <code>ssh.halt-run-on-host-key-mismatch</code> observed (<code>not_started_halt</code>, exit 114 on the fake)</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>concurrent sessions to the cap</td>
+<td><code>CONCURRENCY</code> names for the device through the daemon, parallel: <code>show clock</code>, <code>show users</code></td>
+<td>every record succeeded</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>typical output and output at the limit</td>
+<td><code>BIG_COMMAND</code> under the default 64 MiB, then under <code>BIG_LIMIT</code></td>
+<td>exit 0 and <code>output_bytes</code> observed; then 111 <code>output_limit_exceeded</code></td>
+</tr>
+<tr>
+<td>D12</td>
+<td>IPv4/IPv6 selection</td>
+<td><code>--ipv4</code>, then <code>--ipv6</code>, with <code>--debug</code>, on the dual-stack name</td>
+<td>exit 0 each; the debug stream's <code>device resolved … address=</code> line names an address of the family asked for</td>
+</tr>
+<tr>
+<td>D13</td>
+<td>the reload itself</td>
+<td><code>reload --blind</code> with the save (<code>no</code>) and confirm declarations; then <code>show version</code> every 30 s</td>
+<td>exit 0 with the blind notice; the device answers within <code>RELOAD_WAIT</code></td>
+</tr>
+<tr>
+<td>D14</td>
+<td>the shell's end</td>
+<td><code>show users</code></td>
+<td>observed: no session of the run remains on a vty line</td>
+</tr>
+<tr>
+<td>ALL</td>
+<td>ANSI and line endings; counts; secrets</td>
+<td>every collected record and job directory</td>
+<td>no <code>\r</code> or escape byte in any recorded output; every job directory holds records and summary; <code>secret-scan</code> finds neither secret; the operator's trust store unchanged</td>
+</tr>
+</tbody>
+</table>
+<p>Rows the script does not run, and how they are done:</p>
+<ul>
+<li>
+<p><strong>A device that rotates from RSA to ECDSA</strong>, and <strong>a real SHA-1-only train</strong>:
+they need that device. With one, D7 a's store shows the key types enrolled;
+regenerate the key on the laboratory unit (<code>crypto key generate ec keysize 256</code>, then remove the RSA key), run <code>ROWS=D7</code>, and the expectation is
+<code>host_key_changed</code> before authentication (the enrolled-type filter). For the
+legacy train, add the algorithm profile of
+<a href="SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a> to a copy of a row's
+<code>karvi.toml</code> kept in the evidence and run the row's command by hand.</p>
+</li>
+<li>
+<p><strong>Wrong owner, symlink, non-<code>0700</code> directory</strong>: unit tests hold the
+rules; the operator's message for mode is D7 i. The others need root or
+a second account and are read from the unit tests.</p>
+</li>
+<li>
+<p><strong>The insecure scan failure</strong> (<code>host_key_not_compared</code>): needs an endpoint
+that refuses the scan and accepts the session; not reproducible on a healthy
+device.</p>
+</li>
+<li>
+<p><strong>Cancellation at the device</strong>: during D9's <code>BIG_COMMAND</code> press Ctrl-C
+in a hand-run <code>karvi command</code>, then run <code>ROWS=D14</code>: the vty line must be
+free.</p>
+</li>
+<li>
+<p><strong>An entry left from an earlier release for a non-22 port</strong>: only where
+<code>PORT</code> is not 22; write <code>ADDRESS ssh-ed25519 KEY</code> (the old form) into a
+scratch store and run D7 d's command: <code>host_key_not_enrolled</code>.</p>
+</li>
+<li>
+<p><strong>D15, how a login ends.</strong> Whether the device sends an exit status when
+a session ends with <code>exit</code>, and what <code>karvi login</code> makes of it. <code>login</code> is
+interactive and runs on the system transport alone, and the script drives
+no interactive session, so the row is done by hand, on each laboratory
+device of the run (the ISR 4451-X and the Catalyst 9300), as the
+laboratory account, in the evidence directory:</p>
+<pre><code class="language-bash">mkdir D15 &amp;&amp; cd D15
+# 1. The device, karvi aside: plain OpenSSH, its own log at VERBOSE in a
+#    file (the terminal unchanged), a scratch trust store.
+ssh -tt -E ./ssh-verbose.log -o LogLevel=VERBOSE \
+  -o UserKnownHostsFile=./known_hosts -o StrictHostKeyChecking=accept-new \
+  -p &quot;$PORT&quot; &quot;$NETUSER@$ADDRESS&quot;
+# at the device: show clock, then exit
+echo $? &gt;ssh.exit
+# 2. karvi: the same session, recorded, its debug stream in a file.
+karvi --debug login --record=./transcripts &quot;$DEVICE&quot; 2&gt;karvi.err
+# at the device: show clock, then exit
+echo $? &gt;karvi.exit
+</code></pre>
+<p>Read, and write one line <code>D15  login-end  observe  ssh.exit=N karvi.exit=M</code> into <code>results.tsv</code> by hand:</p>
+<ul>
+<li><code>ssh.exit</code>: 0 is a device that sends an exit status when the session
+ends; 255 is one that closes the session without it.</li>
+<li><code>ssh-verbose.log</code>: the <code>Authenticated to …</code> and <code>Transferred: …</code> lines,
+which the roadmap's rule reads to tell an authenticated session's end
+from a failure before authentication.</li>
+<li><code>karvi.exit</code>, <code>karvi.err</code> (the <code>system SSH interactive session</code> lines,
+and <code>ssh_process_failed: exit status 255</code> when it fails so), and the
+<code>exit_classification</code> in the end line of the transcript's
+<code>.meta.jsonl</code> under <code>transcripts/</code>.</li>
+</ul>
+<p>The fake, for comparison, closes without a status: <code>ssh.exit</code> 255, both log
+lines present, <code>karvi.exit</code> 110, <code>ssh_process_failed</code>,
+<code>ExitConnectionFailure</code>. A device that sends a status should give 0 and 0; the
+fake is then corrected to send one, and karvi is unchanged. A device that
+gives the fake's figures takes the rule on the roadmap's device-qualification
+track (<a href="../ROADMAP.html"><code>ROADMAP.md</code></a>, item 5): an authenticated login the
+device closed is a completed session, exit 0, with the notice
+<code>login_closed_without_status</code>.</p>
+</li>
+<li>
+<p><strong>D16, the line editor in a recorded login.</strong> What a recorded login's
+transcript makes of IOS XE's line editing: the transcript is rendered as
+the terminal showed it (<a href="LOGIN-TRANSCRIPTS.html#content"><code>docs/LOGIN-TRANSCRIPTS.md</code>,
+&quot;Content&quot;</a>), and the fake has no line editor,
+so the row is done by hand, on each laboratory device of the run, at an
+80-column terminal, in the evidence directory:</p>
+<pre><code class="language-bash">mkdir D16 &amp;&amp; cd D16
+stty cols 80
+karvi login --record=./transcripts &quot;$DEVICE&quot;
+# at the device, each line typed as written, then Enter:
+#   1. show clokc, Backspace twice, ck                    (show clock)
+#   2. sh, Tab, cl, Tab                                    (show clock)
+#   3. show lock, Ctrl-A, Ctrl-F five times, c             (show clock)
+#   4. show version, Ctrl-U, show users                    (show users)
+#   5. Up arrow                                            (show users)
+#   6. show running-config | include , then 60 x, Ctrl-A, Ctrl-E
+#   7. show cl, Ctrl-L, ock                                (show clock)
+#   8. show history
+# then exit
+</code></pre>
+<p>Read the transcript under <code>transcripts/</code>: each command line of 1 to 7
+against the list <code>show history</code> printed, which is what the device received;
+and line 6, wider than the terminal, recorded whole or as the scrolled
+window the device drew (its <code>$</code> at an edge). Write one line <code>D16 login-editing  observe  agree=N/7 wide=whole|window</code> into <code>results.tsv</code> by
+hand. A window is the documented limit; a command line that disagrees with
+the device's history is a finding for the renderer, with the transcript and
+the session's raw bytes (<code>script -T timing -m advanced -c 'karvi login DEVICE' raw.log</code>) kept beside it.</p>
+</li>
+</ul>
+<h2 id="5-the-evidence">5. The evidence <a class="anchor" href="#5-the-evidence" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-text">karvi-qualification-c9300-lab-20260921T140000Z/
+  identification.txt    date, host, OpenSSH, the executable's SHA-256, `karvi version`
+  version.json          the same, with the ScrapliGo version
+  device-release.txt    the release line of D1's `show version`
+  results.tsv           row, check, disposition (pass, fail, skip, observe), detail
+  D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml,
+                        and TAG.base/ (audit.jsonl, score/, and the job directory:
+                        commands.jsonl, output.TARGET.txt (the session as text, on a
+                        build that writes it), errors.jsonl, failed-devices.txt,
+                        summary.json, metrics.json, manifest.json with the digests)
+  D7/*.known_hosts      the scratch trust store as each step left it
+  D15/                  by hand: ssh.exit, ssh-verbose.log, known_hosts (the
+                        scratch store), karvi.exit, karvi.err, transcripts/
+                        (the transcript and its .meta.jsonl)
+  SHA256SUMS            every file above
+</code></pre>
+<p>Against &quot;Required evidence&quot;: the karvi version and commit, the Go and
+ScrapliGo versions (<code>identification.txt</code>, <code>version.json</code>); the device
+model and release (<code>device-release.txt</code> and D1's records); the command
+plan digest (each <code>manifest.json</code>); sanitized records and debug output
+(the final scan is the sanitization check: a hit fails the run and the
+directory must not be shared); resource measurements (each record's
+timing; the daemon's memory is the output-scale run's subject, section
+6); the disposition (<code>results.tsv</code>). A row confirmed against the fake
+names the fake and its commit in <code>identification.txt</code>.</p>
+<p>An <code>observe</code> line is a question for the reviewers, not a pass: read the
+file it names. Host names, addresses, the account name, and device output
+are in the evidence in clear; they are laboratory values, and the network
+operations and security owners review the directory before it leaves the
+laboratory.</p>
+<h2 id="6-the-output-scale-run">6. The output-scale run <a class="anchor" href="#6-the-output-scale-run" aria-label="Link to this section">#</a></h2>
+<p>Not a device run: <code>scripts/output-scale-run.sh</code> has N fake devices answer
+a 5 MiB <code>show big</code> at once through one daemon and reads the daemon's
+resident memory from <code>/proc</code>. The measurements and what they show are
+<a href="SCALE.html"><code>docs/SCALE.md</code></a>.</p>
+<pre><code class="language-bash">N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
+</code></pre>
+<h2 id="7-when-a-row-fails">7. When a row fails <a class="anchor" href="#7-when-a-row-fails" aria-label="Link to this section">#</a></h2>
+<ol>
+<li>Read the <code>fail</code> line's detail, then <code>ROW/TAG.err</code> and <code>ROW/TAG.out</code>.</li>
+<li>A parity finding is in <code>ROW/parity.findings</code>, one line per path that
+differs between the transports.</li>
+<li>Run the row alone: <code>ROWS=D7 ...</code>. Every invocation's configuration is
+kept as <code>TAG.karvi.toml</code>; with the scratch store recreated, the same
+command can be repeated by hand with <code>--debug</code>.</li>
+<li><a href="COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a> reads the
+codes. A prompt the platform's patterns miss shows as
+<code>command_session_prompt_timeout</code> with the last line seen: keep that line; it
+is what the device teaches.</li>
+<li>Keep the failed evidence directory. A re-run is a new directory, and
+the pair is the record.</li>
+</ol>
+<h2 id="8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device <a class="anchor" href="#8-what-the-script-will-and-will-not-do-to-the-device" aria-label="Link to this section">#</a></h2>
+<p>The script is a test harness run
+by hand against a laboratory device from the operator's own account; it
+is no part of karvi at run time. These are its limits, and an edit to the
+script that breaks one is a defect:</p>
+<ol>
+<li><strong>The device's host key is never touched.</strong> A mismatch row writes a
+wrong entry into a scratch trust store under the evidence directory;
+the device presents its own key and karvi refuses before
+authentication. No key is regenerated and no second endpoint is used
+(a real rotation stays the hand step of <a href="#4-the-rows">section 4</a>).</li>
+<li><strong>The operator's files and the device's state are never changed.</strong>
+Every karvi call names a configuration, a trust store
+(<code>ssh.known-hosts-file</code>), and a base directory under <code>work/</code>; the
+operator's <code>known_hosts</code> is compared before and after and a difference
+fails the run. No configuration line is sent and nothing is saved.</li>
+<li><strong>Credentials live only in the environment</strong> (<code>NETUSER</code>, <code>NETPASS</code>,
+<code>NETENABLE</code>, and D5's restricted pair). The script writes them nowhere,
+and its last step fails the run if <code>secret-scan</code> finds either secret
+in the evidence, so an evidence directory that passed may leave the
+host.</li>
+<li><strong>Only read-only show commands are sent unless a row is opted in by
+name.</strong> <code>CONFIG_ROW=1</code> sends <code>configure terminal</code> and <code>end</code> with
+nothing between; <code>RELOAD=&quot;&lt;transports&gt;&quot;</code> reloads the unit once per
+named transport and answers <code>no</code> to a save prompt. Unset, both rows
+print <code>skip</code>.</li>
+<li><strong>An <code>observe</code> row asserts nothing.</strong> It records what happened and
+cannot fail. It becomes a pass-or-fail check only after a laboratory
+run has shown what a device does, and the check is written from that
+evidence, not from the fake or from reading the code.</li>
+</ol>
+<h2 id="9-a-production-server">9. A production server <a class="anchor" href="#9-a-production-server" aria-label="Link to this section">#</a></h2>
+<p>The rows for a Linux server: the built-in <code>linux</code> over its exec channel on
+both transports, the collection, and <code>linux_shell</code> for a server that refuses
+exec. The suites run against the fake alone; these rows are a server's
+evidence, run by hand from the operator's own account against one server of
+each kind the fleet runs (a distribution, a release, its <code>sshd</code>
+configuration). Each row writes one line into <code>results.tsv</code> by hand, as D15
+does: <code>ROW  CHECK  pass|fail|observe  DETAIL</code>.</p>
+<h3 id="91-what-the-rows-need">9.1 What the rows need <a class="anchor" href="#91-what-the-rows-need" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The server's inventory name, address, and SSH port</td>
+<td><code>SERVER</code>, <code>ADDRESS</code>; a port other than 22 is <code>ssh-port</code> in a <code>[platform.linux]</code> and a <code>[platform.linux_shell]</code> table added to the configuration</td>
+</tr>
+<tr>
+<td>An account the server takes by the operator's keys</td>
+<td><code>ssh.identities</code>, by default <code>~/.ssh/id_ed25519</code>, <code>~/.ssh/id_ecdsa</code>, <code>~/.ssh/id_rsa</code>; the username is the operator's login name. A server that takes a password instead: <code>NETUSER</code> and <code>NETPASS</code> in the environment and <code>fallback = [&quot;netvars&quot;, &quot;keys&quot;]</code> in the same two tables</td>
+</tr>
+<tr>
+<td>The released executable as <code>karvi</code>, and <code>paritycheck</code></td>
+<td><code>paritycheck</code> built in the unpacked bundle's directory after the set-up: <code>go build -mod=vendor -o &quot;$E/work/paritycheck&quot; ./tools/paritycheck</code></td>
+</tr>
+</tbody>
+</table>
+<p>What the rows do on the server: they run read-only commands, and one <code>sleep 32</code> that L4 starts and ends. Nothing is written there and no configuration is
+sent. The trust store, the private root, and the configuration are under the
+evidence directory's <code>work/</code>; the scratch and the control sockets are in a
+short directory of their own, <code>S</code>, since a socket's path is bounded (the
+control sockets' directory at most 73 bytes), and it is removed at the end; the
+operator's own <code>~/.ssh</code> is never changed.</p>
+<h3 id="92-the-set-up">9.2 The set-up <a class="anchor" href="#92-the-set-up" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-bash">SERVER=srv-lab1 ADDRESS=192.0.2.20
+E=$PWD/karvi-server-$SERVER-$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -m 700 &quot;$E&quot; &amp;&amp; cd &quot;$E&quot; &amp;&amp; mkdir -m 700 work work/base work/kh L
+S=$(mktemp -d /tmp/karvi-L.XXXXXX)
+printf 'name,management_address,platform\n%s,%s,linux\n%s-shell,%s,linux_shell\n' \
+  &quot;$SERVER&quot; &quot;$ADDRESS&quot; &quot;$SERVER&quot; &quot;$ADDRESS&quot; &gt;work/inv.csv
+cat &gt;work/karvi.toml &lt;&lt;EOF
+basedir = &quot;$E/work/base&quot;
+sharedroot = &quot;none&quot;
+spooldir = &quot;$E/work/spool&quot;
+tempdir = &quot;$S/tmp&quot;
+
+[ssh]
+known-hosts-file = &quot;$E/work/kh/known_hosts&quot;
+host-key-policy = &quot;accept-new&quot;
+control-path-root = &quot;$S/sockets&quot;
+
+[execution]
+command-timeout = &quot;2s&quot;
+
+[audit]
+journald-required = false
+file = &quot;$E/work/audit.jsonl&quot;
+
+[[inventory-source]]
+type = &quot;csv&quot;
+path = &quot;$E/work/inv.csv&quot;
+name = &quot;servers&quot;
+EOF
+k() { karvi --config &quot;$E/work/karvi.toml&quot; &quot;$@&quot;; }
+</code></pre>
+<h3 id="93-the-rows">9.3 The rows <a class="anchor" href="#93-the-rows" aria-label="Link to this section">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Row</th>
+<th>Check</th>
+<th>What is sent</th>
+<th>Pass</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1</td>
+<td>the server's SSH</td>
+<td>plain <code>ssh -v</code>; <code>sudo -n sshd -T</code> through karvi</td>
+<td>observed: the server's OpenSSH, the methods it offers, the method that authenticated, <code>MaxSessions</code> where the account may read it</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>exec records, on both transports</td>
+<td><code>command</code> and <code>run --no-daemon</code>, each over <code>system</code> and <code>scrapligo-v1</code>: <code>uname -snrm</code>, <code>echo out; echo err &gt;&amp;2</code>, <code>ls /nonexistent</code>, under <code>--continue-device-on-error</code></td>
+<td><code>succeeded</code>, <code>succeeded</code> with <code>out</code> in <code>output</code> and <code>err</code> in <code>stderr</code>, <code>command_exit_nonzero</code> with <code>ls</code>'s message in <code>stderr</code>; exit 107 (<code>command</code>), 101 (<code>run</code>); <code>credential.auth</code> names the method; <code>paritycheck</code> finds the four streams equal; no socket left in <code>$S/sockets</code></td>
+</tr>
+<tr>
+<td>L3</td>
+<td><code>sudo -n</code></td>
+<td><code>sudo -n id -u</code></td>
+<td>observed: <code>0</code>, or <code>command_exit_nonzero</code> with <code>sudo</code>'s message: whether a site's <code>sudo -n</code> commands run on this server</td>
+</tr>
+<tr>
+<td>L4</td>
+<td>a command given up</td>
+<td>on each transport, <code>sleep 32</code> at the 2 s command timeout, then <code>echo still-usable</code>; then a look for what was left, and its end</td>
+<td><code>command_timeout</code>, then <code>succeeded</code>; <code>remote_command_not_stopped</code> on <code>system</code>'s first record and on no <code>scrapligo-v1</code> record; observed: <code>system</code> leaves <code>sleep 32</code> running (its parent pid 1) and <code>scrapligo-v1</code> leaves nothing</td>
+</tr>
+<tr>
+<td>L5</td>
+<td>the collection</td>
+<td><code>crun</code> with the built-in list twice, a minute apart, then once over <code>system</code></td>
+<td>each exit 0 with five blocks; the files identical but for what changed on the server between them</td>
+</tr>
+<tr>
+<td>L6</td>
+<td>the shell, for a server that refuses exec</td>
+<td>L2's commands to <code>SERVER-shell</code> (<code>linux_shell</code>)</td>
+<td>observed: exit 0, each record <code>succeeded</code> with the server's prompt in <code>prompt</code>, no escape byte in any output; <code>ls</code>'s failure recorded as a success and the login shell's aliases applied (the shell's limits); a server that refuses exec shows in L2 as <code>ssh_session_channel_refused</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># L1: the server, karvi aside; then sshd's own settings, where allowed.
+ssh -F none -v -o BatchMode=yes -o UserKnownHostsFile=&quot;$E/work/kh/ssh&quot; \
+  -o StrictHostKeyChecking=accept-new &quot;$ADDRESS&quot; true 2&gt;L/L1.ssh.err
+grep -E 'remote software version|can continue|Authenticated to' L/L1.ssh.err
+k command &quot;$SERVER&quot; --cmd 'sudo -n sshd -T | grep -E &quot;^(maxsessions|passwordauthentication|kbdinteractiveauthentication) &quot;' \
+  &gt;L/L1.sshd.out 2&gt;&amp;1
+
+# L2: four streams, one command list.
+set -- --format jsonl --continue-device-on-error --cmd 'uname -snrm' \
+  --cmd 'echo out; echo err &gt;&amp;2' --cmd 'ls /nonexistent'
+for t in system native; do
+  k command &quot;$SERVER&quot; --transport &quot;$t&quot; &quot;$@&quot; &gt;L/L2.command.$t.out 2&gt;L/L2.command.$t.err
+  echo $? &gt;L/L2.command.$t.exit
+  k run --no-daemon --target &quot;$SERVER&quot; --transport &quot;$t&quot; &quot;$@&quot; &gt;L/L2.run.$t.out 2&gt;L/L2.run.$t.err
+  echo $? &gt;L/L2.run.$t.exit
+done
+work/paritycheck -expect succeeded,succeeded,device_error:command_exit_nonzero \
+  L/L2.command.system.out L/L2.command.native.out L/L2.run.system.out L/L2.run.native.out
+ls -A &quot;$S/sockets&quot;
+
+# L3
+k command &quot;$SERVER&quot; --format jsonl --cmd 'sudo -n id -u' &gt;L/L3.out 2&gt;L/L3.err; echo $? &gt;L/L3.exit
+
+# L4: given up at 2 s; what was left, and its end.
+for t in system native; do
+  k command &quot;$SERVER&quot; --transport &quot;$t&quot; --format jsonl --continue-device-on-error \
+    --cmd 'sleep 32' --cmd 'echo still-usable' &gt;L/L4.$t.out 2&gt;L/L4.$t.err
+  echo $? &gt;L/L4.$t.exit
+  k command &quot;$SERVER&quot; --cmd &quot;ps -eo pid,ppid,etime,args | grep '[s]leep 32' || echo none&quot; &gt;L/L4.$t.left 2&gt;&amp;1
+  k command &quot;$SERVER&quot; --cmd 'pkill -u &quot;$(id -un)&quot; -fx &quot;sleep 32&quot; || true' &gt;/dev/null 2&gt;&amp;1
+done
+
+# L5: two collections a minute apart, then one over system.
+mkdir -m 770 L/L5.1 L/L5.2 L/L5.3
+k crun --target &quot;$SERVER&quot; --cd=&quot;$E/L/L5.1&quot; &gt;L/L5.1.out 2&gt;&amp;1; echo $? &gt;L/L5.1.exit
+sleep 60
+k crun --target &quot;$SERVER&quot; --cd=&quot;$E/L/L5.2&quot; &gt;L/L5.2.out 2&gt;&amp;1; echo $? &gt;L/L5.2.exit
+k crun --target &quot;$SERVER&quot; --transport system --cd=&quot;$E/L/L5.3&quot; &gt;L/L5.3.out 2&gt;&amp;1; echo $? &gt;L/L5.3.exit
+k daemon stop
+diff L/L5.1/&quot;$SERVER&quot; L/L5.2/&quot;$SERVER&quot; &gt;L/L5.diff12; diff L/L5.2/&quot;$SERVER&quot; L/L5.3/&quot;$SERVER&quot; &gt;L/L5.diff23
+
+# L6
+k command &quot;$SERVER-shell&quot; &quot;$@&quot; &gt;L/L6.out 2&gt;L/L6.err; echo $? &gt;L/L6.exit
+rmdir &quot;$S/sockets&quot; &quot;$S/tmp&quot; &quot;$S&quot;
+</code></pre>
+<p>Read each row's files against the table and write its line, for example <code>L2 exec-records  pass  parity: 3 records equal in 4 streams</code>, <code>L4 given-up  pass  system left 1 (ppid 1), scrapligo-v1 none</code>. A row that fails
+keeps its files, as section 7 says; a server that ends the rows with an
+<code>authentication_failed</code> or a <code>host_key_*</code> code is read in
+<a href="COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a> before
+anything else.</p>
+<h3 id="94-the-evidence">9.4 The evidence <a class="anchor" href="#94-the-evidence" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-text">karvi-server-srv-lab1-20261005T190000Z/
+  results.tsv      by hand: one line per row
+  L/               L1.ssh.err, L1.sshd.out; L2.&lt;activity&gt;.&lt;transport&gt;.out, .err, .exit;
+                   L3.*; L4.&lt;transport&gt;.out, .err, .exit, .left; L5.1/, L5.2/, L5.3/
+                   (the collection files), L5.*.out, .exit, L5.diff12, L5.diff23; L6.*
+  work/            karvi.toml, inv.csv, the trust store, base/ (the job folders,
+                   whose manifest.json holds each plan's digest), audit.jsonl
+</code></pre>
+<p>Host names, addresses, the account name, and the server's output are in the
+evidence in clear, as for a device; the collection holds the server's
+addresses, routes, and enabled units. The network operations and security
+owners review the directory before it leaves the host.</p>
+
+<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

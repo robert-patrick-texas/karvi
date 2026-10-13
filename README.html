@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>karvi — karvi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html" aria-current="page">karvi</a>
+<ul class="sections">
+<li><a href="#development-status">Development status</a></li>
+<li><a href="#release-status">Release status</a></li>
+<li><a href="#address-family-selection">Address-family selection</a></li>
+<li><a href="#command-grammar-and-one-session-execution">Command grammar and one-session execution</a></li>
+<li><a href="#prompt-and-command-echo">Prompt and command echo</a></li>
+<li><a href="#display-borders-and-formats">Display, borders, and formats</a></li>
+<li><a href="#semantic-terminal-layout">Semantic terminal layout</a></li>
+<li><a href="#safe-debug-diagnostics">Safe debug diagnostics</a></li>
+<li><a href="#ssh-transport-configuration">SSH transport configuration</a></li>
+<li><a href="#login-transcripts-and-host-keys">Login, transcripts, and host keys</a></li>
+<li><a href="#fleet-run">Fleet run</a></li>
+<li><a href="#stream-mode">Stream mode</a></li>
+<li><a href="#collection-run">Collection run</a></li>
+<li><a href="#context-help">Context help</a></li>
+<li><a href="#implemented-foundation-and-remaining-boundary">Implemented foundation and remaining boundary</a></li>
+<li><a href="#build-paths">Build paths</a></li>
+<li><a href="#documents">Documents</a></li>
+<li><a href="#repository-map">Repository map</a></li>
+<li><a href="#license">License</a></li>
+</ul></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html" aria-current="page">karvi</a>
+<ul class="sections">
+<li><a href="#development-status">Development status</a></li>
+<li><a href="#release-status">Release status</a></li>
+<li><a href="#address-family-selection">Address-family selection</a></li>
+<li><a href="#command-grammar-and-one-session-execution">Command grammar and one-session execution</a></li>
+<li><a href="#prompt-and-command-echo">Prompt and command echo</a></li>
+<li><a href="#display-borders-and-formats">Display, borders, and formats</a></li>
+<li><a href="#semantic-terminal-layout">Semantic terminal layout</a></li>
+<li><a href="#safe-debug-diagnostics">Safe debug diagnostics</a></li>
+<li><a href="#ssh-transport-configuration">SSH transport configuration</a></li>
+<li><a href="#login-transcripts-and-host-keys">Login, transcripts, and host keys</a></li>
+<li><a href="#fleet-run">Fleet run</a></li>
+<li><a href="#stream-mode">Stream mode</a></li>
+<li><a href="#collection-run">Collection run</a></li>
+<li><a href="#context-help">Context help</a></li>
+<li><a href="#implemented-foundation-and-remaining-boundary">Implemented foundation and remaining boundary</a></li>
+<li><a href="#build-paths">Build paths</a></li>
+<li><a href="#documents">Documents</a></li>
+<li><a href="#repository-map">Repository map</a></li>
+<li><a href="#license">License</a></li>
+</ul></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html">karvi security</a></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<img width="1733" height="907" alt="KARVI-viking-fleet-command" src="images/karvi-viking-fleet-command.png" />
+<h1 id="karvi">karvi <a class="anchor" href="#karvi" aria-label="Link to this section">#</a></h1>
+<p><code>karvi</code> is a Go network-operations tool for interactive login, one-device
+commands, and governed concurrent command execution. The code and its tests are
+the reference for what karvi does; <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a> states the
+settled decisions, the reasons behind them, and the alternatives not taken.</p>
+<h2 id="development-status">Development status <a class="anchor" href="#development-status" aria-label="Link to this section">#</a></h2>
+<p>This tree carries the table-driven parser with unique-prefix abbreviation,
+target files and dispatch order, login recording and output folders,
+registered error codes, the client-owned planning boundary with the
+credential plane, <code>run --dry-run</code>, <code>run --exercise</code>, <code>--detach</code> and
+<code>follow_job</code>, the two-probe ICMP gate, shutdown accounting, <code>cancel_job</code>
+with <code>karvi job cancel</code>, one device session driving both SSH transports
+with scrapligo-v1 as karvi's own connection, and platform names and their
+resolution.
+Items still open are listed in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>. The sections below
+describe the behavior of the code as it exists; <code>VERSION</code> names the release.</p>
+<h2 id="release-status">Release status <a class="anchor" href="#release-status" aria-label="Link to this section">#</a></h2>
+<p><a href="CHANGELOG.html"><code>CHANGELOG.md</code></a> lists every release's changes, the breaking ones
+first in each release's block. A running daemon of another release accepts no
+job from the new client until <code>karvi daemon restart</code>: a daemon is compatible
+only when its version and its daemon IPC schema both equal the client's
+(<a href="docs/OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code>, &quot;Upgrade&quot;</a>); since v0.14.0
+the records of a run travel over the socket, the invocation decides the job's
+files on every path, and the configuration keys nothing read are refused. The
+breaking changes of v0.10.0 from v0.9.2 remain in force:</p>
+<ol>
+<li><code>ssh.host-key-policy</code> accepts <code>accept-new</code> (the default), <code>secure</code>, and
+<code>insecure</code>; <code>auto</code> and <code>default</code> are rejected.</li>
+<li>No OpenSSH connection outlives a device's session: nothing is reused across
+devices or jobs.</li>
+<li><code>karvi daemon stop</code> and <code>karvi daemon restart</code> refuse while jobs are active
+unless <code>--grace</code>, <code>--after=DURATION</code>, or <code>--force</code> is given.</li>
+<li>Every error carries one registered code, listed in
+<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>.</li>
+<li>Configuration schema 6; this tree's other counters: registry schema 28,
+daemon IPC schema 11, execution plan 12, job manifest and summary 3, plan
+report 2, scoreboard 3.</li>
+</ol>
+<p>A newer client still inspects, stops, and restarts a daemon launched by an
+older executable. Job submission remains exact-schema only; <code>karvi run</code> never
+silently downgrades a request or kills an incompatible daemon.</p>
+<p>The official Linux/amd64 executable is the <strong>scrapligo-v1 build</strong> (<code>make build</code>; <code>scripts/verify-release.sh</code>), whose version output lists the
+external <code>system</code> transport and <code>scrapligo: 1.4.2</code> compiled in. The source
+pins ScrapliGo <strong>v1.4.2</strong> behind the karvi-owned adapter boundary, with the
+module files and <code>vendor/</code> committed so a build host needs no network. It
+is the only build: the <code>scrapligo_v1</code> build tag and the dependency-free
+preview module are gone, and a plain <code>go build</code> carries the adapter. A
+native slot that names an implementation the executable does not carry
+fails closed (<code>native_transport_unavailable</code>): missing native support never
+falls back silently to OpenSSH.</p>
+<h2 id="address-family-selection">Address-family selection <a class="anchor" href="#address-family-selection" aria-label="Link to this section">#</a></h2>
+<p>The configuration default remains IPv6-first:</p>
+<pre><code class="language-toml">[name]
+address-family-preference = &quot;ipv6&quot;
+dns-timeout = &quot;2s&quot;
+</code></pre>
+<p>Each network-facing mode accepts a one-invocation override:</p>
+<pre><code class="language-bash">karvi login --ipv4 router1
+karvi command --4 --host router1 --cmd 'show clock'
+karvi run --ipv6 --target router1 --transport system --cmd 'show version'
+</code></pre>
+<p><code>--ipv4</code> and <code>--4</code> are equivalent; <code>--ipv6</code> and <code>--6</code> are equivalent. Supplying
+both preferences is <code>ExitUsageError(4)</code>. A literal
+<code>--address</code>/<code>--management-address</code> continues to bypass DNS and therefore makes
+family preference irrelevant for that target.</p>
+<p>For DNS targets, karvi queries the preferred usable family first, falls back to
+the other usable family if necessary, and selects the numerically lowest
+address within the chosen family. A startup capability probe determines whether
+IPv4 and IPv6 sockets are locally available.</p>
+<h2 id="command-grammar-and-one-session-execution">Command grammar and one-session execution <a class="anchor" href="#command-grammar-and-one-session-execution" aria-label="Link to this section">#</a></h2>
+<p><code>command</code> has alias <code>cmd</code>; <code>--cmd</code> aliases <code>--command</code>. Targets are supplied
+positionally or with <code>--target</code>/<code>--host</code>. <code>--address</code> aliases
+<code>--management-address</code> and supplies a literal connection address; it never
+selects a target.</p>
+<pre><code class="language-bash">karvi command router1 show clock
+karvi cmd router1 --cmd 'show clock'
+karvi command --host router1 --cmd 'show clock'
+karvi command --cmd 'show clock' --target router1 --command 'show version'
+karvi command --address 192.0.2.10 --target router1 --cmd 'show clock'
+</code></pre>
+<p>Recognized karvi options may follow positional command words. This makes the
+following valid and sends one device command, <code>show clock show clock</code>:</p>
+<pre><code class="language-bash">karvi cmd router1 'show clock' 'show clock' --echo --border --transport system
+</code></pre>
+<p>Use <code>--</code> before literal device command text containing a token that matches a
+karvi option:</p>
+<pre><code class="language-bash">karvi command router1 -- show running-config | include --echo
+</code></pre>
+<p>One device session drives <code>command</code> and <code>run</code> on both SSH transports: on
+<code>system</code> one fresh <code>ssh -tt</code> process with ControlMaster off, on <code>scrapligo-v1</code>
+one connection with no subprocess. Every requested command runs sequentially
+through that one authenticated interactive shell, after one privilege escalation
+and the platform's paging commands
+(<a href="docs/COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>). This avoids Cisco IOS XE
+devices that accept login but reject secondary SSH session channels. A Linux
+server on the built-in <code>linux</code> platform takes an exec channel per command
+instead, on one connection per device (on <code>system</code> an OpenSSH ControlMaster of
+karvi's own), each command's exit status its verdict, with stdout and stderr
+apart (<a href="docs/COMMAND-SESSION.html#the-exec-channel"><code>docs/COMMAND-SESSION.md</code>, &quot;The exec
+channel&quot;</a>).</p>
+<h2 id="prompt-and-command-echo">Prompt and command echo <a class="anchor" href="#prompt-and-command-echo" aria-label="Link to this section">#</a></h2>
+<p>Enable echo in configuration or at the command line:</p>
+<pre><code class="language-toml">[display.command]
+echo = false
+
+[display.run]
+echo = false
+</code></pre>
+<pre><code class="language-bash">karvi command --echo --host router1 --cmd 'show clock'
+karvi run --echo --target router1 --transport system --cmd 'show clock'
+</code></pre>
+<p>Human text then includes the effective prompt and sent command:</p>
+<pre><code class="language-text">router1#show clock
+01:20:19.849 EDT Thu Sep 10 2026
+</code></pre>
+<p>The prompt/command line is also displayed when the device reports a command
+error. An observed driver prompt is preferred; if prompt metadata is
+unavailable but the result proves the command reached the device, karvi uses a
+deterministic inferred prompt. Structured command records distinguish
+<code>observed</code> from <code>inferred</code> prompt provenance.</p>
+<h2 id="display-borders-and-formats">Display, borders, and formats <a class="anchor" href="#display-borders-and-formats" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-toml">[display]
+theme = &quot;dark&quot;                 # auto, dark, light, nocolor
+color = &quot;auto&quot;                 # auto, always, never
+timestamp = &quot;hh:mm:ss yyyy-mm-dd&quot;
+
+[display.colors]
+target = &quot;default&quot;
+address = &quot;default&quot;
+label = &quot;default&quot;
+value = &quot;default&quot;
+timestamp = &quot;default&quot;
+border = &quot;default&quot;
+dynamic-border = &quot;default&quot;
+success = &quot;default&quot;
+warning = &quot;default&quot;
+error = &quot;default&quot;
+muted = &quot;default&quot;
+accent = &quot;default&quot;
+
+[display.login]
+header = &quot;! &lt;target&gt; [&lt;address&gt;] platform=&lt;platform&gt; user=&lt;user&gt; backend=&lt;auth-backend&gt; transport=&lt;transport&gt;&quot;
+footer = &quot;&quot;
+
+[display.command]
+header = &quot;! &lt;target&gt; [&lt;address&gt;] platform=&lt;platform&gt; user=&lt;user&gt; backend=&lt;auth-backend&gt; transport=&lt;transport&gt;&quot;
+footer = &quot;! exit=&lt;exit-code&gt; elapsed=&lt;elapsed&gt; artifacts=&lt;artifacts&gt;&quot;
+border = &quot;\n&quot;
+dynamic-border-length = 72
+last-border = false
+echo = false
+
+[display.run]
+header = &quot;! &lt;target&gt; [&lt;address&gt;] platform=&lt;platform&gt; user=&lt;user&gt; backend=&lt;auth-backend&gt; transport=&lt;transport&gt;&quot;
+border = &quot;\n&quot;
+dynamic-border-length = 72
+last-border = false
+echo = false
+
+[display.json]
+indent = 2
+</code></pre>
+<p>With dark-theme defaults, target is bold yellow, resolved address is bold
+magenta (in both themes), labels/brackets are blue, values are white, success is
+green, warnings are bold orange (in both themes), and borders are gray. Each
+role is independently configurable; <code>orange</code> is the 256-colour index 208.</p>
+<p>A border separates adjacent command records. By default one blank line appears
+between records and no border follows the final record. Set the relevant
+<code>last-border = true</code> to emit the final separator as well. Set <code>border = &quot;&quot;</code> to
+disable the configured separator.</p>
+<pre><code class="language-bash"># Dynamic dashes based on the visible header width, or the configured fallback.
+karvi command --border --host router1 --cmd 'show clock' --cmd 'show version'
+
+# Suppress configured and dynamic borders.
+karvi command --noborder --host router1 --cmd 'show clock'
+karvi run --noborder --target router1 --transport system --cmd 'show clock'
+</code></pre>
+<p><code>--border</code> and <code>--noborder</code> are mutually exclusive. Only generated border lines
+may be cropped to terminal width. Device output and echoed prompt/command text
+are never cropped or rewritten.</p>
+<p>Command and run formats are:</p>
+<ul>
+<li><code>text</code> — default human presentation;</li>
+<li><code>jsonl</code> — compact one-record-per-line machine stream; and</li>
+<li><code>json</code> — one pretty-printed JSON array controlled by <code>display.json.indent</code>.</li>
+</ul>
+<h2 id="semantic-terminal-layout">Semantic terminal layout <a class="anchor" href="#semantic-terminal-layout" aria-label="Link to this section">#</a></h2>
+<p>Generated headers and footers measure visible columns without counting ANSI
+escape sequences. When a generated line exceeds terminal width, karvi first
+moves a trailing <code>artifacts=&lt;artifacts&gt;</code> element to a new line; otherwise it
+splits only between complete template elements. A single element value is never
+cut to fit. <code>--quiet</code> suppresses generated headers, footers, and borders but not
+device output, mandatory warnings, errors, or explicitly requested debug
+messages.</p>
+<h2 id="safe-debug-diagnostics">Safe debug diagnostics <a class="anchor" href="#safe-debug-diagnostics" aria-label="Link to this section">#</a></h2>
+<p><code>--debug</code> can appear globally or in login, command/cmd, and run:</p>
+<pre><code class="language-bash">karvi command --debug --host router1 --cmd 'show clock' \
+  &gt;command.out 2&gt;command.debug
+</code></pre>
+<p>Diagnostics include configuration provenance, resolution, credential backend,
+transport selection, session milestones, command index/hash, timing, output
+size, prompt provenance, and stable errors. They do not include passwords,
+enable passwords, raw command text, or device output.</p>
+<h2 id="ssh-transport-configuration">SSH transport configuration <a class="anchor" href="#ssh-transport-configuration" aria-label="Link to this section">#</a></h2>
+<p>Configuration schema <strong>6</strong> and registry schema <strong>13</strong> use per-mode selectors and
+named implementation slots (<a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>):</p>
+<pre><code class="language-toml">[config]
+schema-version = 6
+
+[ssh.login]
+transport = &quot;default&quot;       # default -&gt; system
+
+[ssh.command]
+transport = &quot;default&quot;       # default -&gt; native
+
+[ssh.run]
+transport = &quot;default&quot;       # default -&gt; native
+
+[ssh.transports]
+system = &quot;ssh&quot;
+native = &quot;scrapligo-v1&quot;
+# alternate1 = &quot;scrapligo-v2&quot;
+# alternate2 = &quot;exec:./future-device-handler&quot;
+</code></pre>
+<p>A selector may be <code>default</code>, <code>system</code>, <code>native</code>, <code>preferred</code>, <code>telnet</code>, a named
+slot, or a compiled implementation ID. A bare system executable is found
+through <code>PATH</code>; a slash-containing relative path is resolved from the karvi
+executable directory. Explicit unavailable mappings fail configuration
+validation. The default native mapping is lazy, allowing a system-only preview
+to operate until native is actually selected.</p>
+<p><code>karvi --version</code> reports the exact transport composition of the executable.</p>
+<h2 id="login-transcripts-and-host-keys">Login, transcripts, and host keys <a class="anchor" href="#login-transcripts-and-host-keys" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi login router1
+karvi login --host router1 --record
+karvi login router1 --record=./router1.log
+karvi login --host router1 --address 192.0.2.10
+</code></pre>
+<p>Recording uses a controlling PTY, propagates terminal resize, restores terminal
+state, and writes a <code>0640</code> transcript and metadata pair below
+<code>transcript.root/YYMMDD/</code> (see
+<a href="docs/LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>).</p>
+<p>One host-key policy governs login, command, and run:</p>
+<pre><code class="language-toml">[ssh]
+host-key-policy = &quot;accept-new&quot;
+known-hosts-file = &quot;auto&quot;
+halt-run-on-host-key-mismatch = false
+</code></pre>
+<ul>
+<li><code>accept-new</code> (default): enroll a first-seen key and reject a changed key;</li>
+<li><code>secure</code>: require pre-enrollment; and</li>
+<li><code>insecure</code>: accept unknown or changed keys with prominent warnings.</li>
+</ul>
+<p>The automatic trust store is <code>known_hosts</code> in the operator's private root
+(<code>basedir</code>): <code>/opt/karvi/users/&lt;user&gt;/known_hosts</code> where the site made the
+operators' roots, <code>~/.local/share/karvi/known_hosts</code> otherwise. Both transports
+check the key in the SSH handshake and enrol it under the device's canonical
+name, or <code>[name]:PORT</code> on a port other than 22
+(<a href="docs/SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>).</p>
+<h2 id="fleet-run">Fleet run <a class="anchor" href="#fleet-run" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi run --target router1 --target router2 \
+  --transport system --dispatch parallel --workers 2 \
+  --cmd 'show clock'
+
+karvi run --tf routers.txt --transport system \
+  --format text --echo --border --cmd 'show version'
+</code></pre>
+<p>Every selected target receives a terminal command record. Text mode identifies
+each target and renders explicit diagnostics for outputless failures; JSONL is
+the canonical machine stream.</p>
+<p><code>run</code> defaults to the native transport, which the shipped executable has
+compiled in; configure <code>[ssh.run] transport=&quot;system&quot;</code> or pass <code>--transport system</code> to use OpenSSH instead.</p>
+<p>Two rehearsals precede a live run. <code>--dry-run</code> plans on the client, probes
+the daemon without launching one, and prints the inspection report;
+nothing is submitted and no device is touched. <code>--exercise</code> submits the
+plan and package and has the daemon validate everything but the device,
+writing <code>exercise.json</code> beside an empty <code>commands.jsonl</code>; the summary reads
+<code>exercised</code>. Both take <code>--format json</code>. A live run renders records as they
+become durable; <code>--detach</code> returns at acceptance with the job ID and
+artifact directory, <code>--follow=false</code> waits without rendering, and Ctrl-C
+leaves the job running in the daemon. <code>karvi job follow JOB-ID</code> renders a
+detached or interrupted job again from its beginning, live or finished, and
+<code>karvi job cancel JOB-ID</code> stops one job.</p>
+<p><code>--ping</code> sends two ICMP probes to each target before its transport and skips a
+target that answers neither (<code>icmp_unreachable</code>); <code>--noping</code> sends none. The
+gate is off unless <code>network.ping-targets</code> is true. Widen
+<code>net.ipv4.ping_group_range</code> to your operators' groups so the probes go over a
+ping socket; otherwise the system <code>ping</code> binary is used. Text output shows one
+line per gated device (the <code>display.ping.header</code> template), and every record
+carries the probe outcomes.</p>
+<h2 id="stream-mode">Stream mode <a class="anchor" href="#stream-mode" aria-label="Link to this section">#</a></h2>
+<p><code>karvi stream</code>, or <code>karvi -</code>, reads a run line by line from standard
+input, typed at a terminal or piped from a script: a line beginning with
+a dash is one run option, one dash or two alike (<code>--target router1</code>, <code>-c show clock</code>, <code>--tl r1 r2</code>, <code>--dp</code>), a value wholly wrapped in quotes
+losing them as a shell would remove them (<code>--cmd &quot;show clock&quot;</code>); any
+other line is one command sent as written, quotes and all; blank and <code>!</code>
+or <code>#</code> lines are skipped. <code>--go</code> (or <code>--sendit</code>) executes the draft as
+<code>run</code> would and keeps the targets, the options, and the commands given
+in option form (<code>--cmd</code>, <code>-c</code>, <code>--command</code>, <code>--cf</code>) for the next job,
+while a bare-line command is sent once; <code>--clear</code> drops the bare-line
+commands; <code>--purge-commands</code> and <code>--purge-targets</code> (from <code>--purge-c</code> and
+<code>--purge-t</code>) drop every command or every target input; <code>--reset</code> empties
+the draft; <code>--end</code> (or <code>--quit</code>, <code>--exit</code>), EOF, or Ctrl-C leave without
+executing. Typed at a terminal, a line is edited with the usual keys and
+the up arrow recalls earlier lines. A line the parser refuses is
+reported by its number and dropped. The exit is the last job's.</p>
+<pre><code class="language-sh">karvi - &lt;&lt;'EOF'
+--tl core-nyc-01,core-nyc-02
+--dp
+show clock
+show version\r
+--go
+--end
+EOF
+</code></pre>
+<h2 id="collection-run">Collection run <a class="anchor" href="#collection-run" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi crun --all                                   # each device its platform's list
+karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
+</code></pre>
+<p><code>crun</code> collects one or more commands from a scope into one file per device,
+named by the device, in one flat directory (<code>crun.directory</code>, <code>&lt;basedir&gt;/crun</code>
+unless configured; <code>--cd=PATH</code> for one run): each command's output under a <code>! COMMAND</code> marker line and nothing else, the file replaced only when every command
+of the device came back, so a device not reached keeps its previous file. With
+no command on the line each device is sent its platform's <code>crun-commands</code> list.
+It takes every <code>run</code> option; the job folder is written as for any run, without
+<code>output.NAME.txt</code>; the display ends with a line counting the files replaced and
+kept. <code>run</code> and <code>command</code> given <code>--cd=PATH</code> write the same file, unfiltered,
+beside their usual job folder; <code>--fs=SUFFIX</code> appends a suffix to each file's
+name (<code>--fs=.cfg</code>), and on <code>run</code> and <code>command</code> alone writes into the working
+directory. A platform's <code>crun-filters</code> drop the output lines that change at
+every collection without the device having changed (the byte count, the clock
+period, the uptime, the time of the show) from the collection file alone, the
+last-change stamp kept; a site's array replaces the built-in list. <code>crun.after</code>
+names a hook the client runs when the collection has ended, in the directory
+with the replaced files on stdin; the shipped examples commit them to git and
+mail the diff (<a href="docs/COLLECTION.html"><code>docs/COLLECTION.md</code></a>). A recurring
+collection is the site's systemd timer or cron over the word
+(<code>/usr/share/karvi/systemd/user/karvi-crun.timer</code>,
+<code>/usr/share/karvi/cron/karvi-crun</code>;
+<a href="docs/COLLECTION.html#7-the-schedule"><code>docs/COLLECTION.md</code> section 7</a>). A shared
+directory of mode <code>2770</code> or <code>2775</code> lets every member of its group collect; <code>sudo karvi setup shared</code> makes it once as <code>/opt/karvi/shared/crun</code> with the shared
+job and transcript trees, which every operator's run then uses by default
+(<a href="docs/OPERATIONS.html#the-shared-trees"><code>docs/OPERATIONS.md</code> &quot;The shared
+trees&quot;</a>). <a href="docs/OPERATIONS.html#the-collection-run"><code>docs/OPERATIONS.md</code> &quot;The
+collection run&quot;</a> has the rest.</p>
+<h2 id="context-help">Context help <a class="anchor" href="#context-help" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi login --help
+karvi command --help
+karvi cmd --help
+karvi run --help
+karvi config --help
+karvi daemon --help
+karvi setup --help
+karvi watch --help
+karvi version --help
+</code></pre>
+<p>Tab completes the words, options, values, device names, and job IDs, and
+<code>karvi-prune</code>'s flags and their words, once the site has run <code>sudo karvi setup tab</code> (<a href="docs/OPERATIONS.html#tab-completion"><code>docs/OPERATIONS.md</code> &quot;Tab
+completion&quot;</a>).</p>
+<h2 id="implemented-foundation-and-remaining-boundary">Implemented foundation and remaining boundary <a class="anchor" href="#implemented-foundation-and-remaining-boundary" aria-label="Link to this section">#</a></h2>
+<p>The candidate includes layered TOML configuration with include graphs, locks,
+macros, validation and provenance; CSV inventory and deterministic DNS;
+credential policies and authenticated askpass; one device session over system
+OpenSSH and the compiled scrapligo-v1 connection, gated Telnet; serial,
+parallel, and adaptive-wave dispatch; durable JSONL and summaries; audit,
+scoreboards, metrics, per-user daemon IPC, capacity admission, retention
+(<code>karvi-prune</code>, <a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>), PTY login recording, shared
+display formatting, and the watch screen (<code>karvi watch</code>: the running jobs above
+a rule, the finished ones below, a detail pane per job, the <code>/</code> filter and the
+<code>s</code> sort, <a href="docs/OPERATIONS.html#the-watch-screen"><code>docs/OPERATIONS.md</code> &quot;The watch
+screen&quot;</a>), the site's shared trees, the
+operators' roots under <code>/opt/karvi/users/&lt;username&gt;</code>, and the scratch root
+<code>/dev/shm/karvi</code> with its rule for every boot (<code>sudo karvi setup shared</code>;
+<a href="docs/OPERATIONS.html#the-shared-trees"><code>docs/OPERATIONS.md</code> &quot;The shared trees&quot;</a>).</p>
+<p>Scaling up (a wide parallel host, a large network, the free-space check per
+volume, the daemon's memory budget) is <a href="docs/SCALE.html"><code>docs/SCALE.md</code></a>; the
+settings it names are in the configuration reference.</p>
+<p>Cisco IOS XE laboratory qualification, durable daemon recovery, signed
+packages/SBOM/FIPS evidence, and the 2,500-device performance/accounting
+gate remain incomplete. See <a href="ROADMAP.html"><code>ROADMAP.md</code></a>.</p>
+<h2 id="build-paths">Build paths <a class="anchor" href="#build-paths" aria-label="Link to this section">#</a></h2>
+<p>Verify the shipped executables as bytes in seconds, or the executables and
+their source without rebuilding them (offline, from the vendor tree):</p>
+<pre><code class="language-bash">./scripts/verify-shipped.sh
+./scripts/verify-bundle.sh
+</code></pre>
+<p>Rebuild with the release identity, which reproduces <code>CHECKSUMS.sha256</code> byte
+for byte:</p>
+<pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+sha256sum -c CHECKSUMS.sha256
+</code></pre>
+<p>The full build-and-verify run, with the race detector and the parity suite
+(Go 1.27 or later; no network is needed, the dependencies are in <code>vendor/</code>):</p>
+<pre><code class="language-bash">make deps            # optional on a connected host: download and verify
+./scripts/verify-release.sh
+</code></pre>
+<p>Only <code>internal/adapters/scrapligov1</code> imports ScrapliGo.</p>
+<h2 id="documents">Documents <a class="anchor" href="#documents" aria-label="Link to this section">#</a></h2>
+<p>Operator guides:</p>
+<ul>
+<li>The documentation as HTML: <code>make html</code> writes every document below, an
+index, and the images into <code>../html</code>, beside the tree; open
+<code>html/index.html</code>. Every link in it is relative, so the directory can be
+copied anywhere and read without the network.</li>
+<li><code>packaging/man/</code>: the manual pages the package installs: <code>man karvi</code>
+(the configuration, the values, the environment, the files, the exit
+statuses), <code>man karvi WORD</code> for each command word (<code>man karvi run</code>), <code>man karvi-prune</code>, and <code>man karvi-askpass</code>; each word's SYNOPSIS and DESCRIPTION
+are its <code>--help</code>, generated (<code>make generate</code>).</li>
+<li><a href="docs/QUICKSTART.html"><code>docs/QUICKSTART.md</code></a>: inspect the executable, first
+configuration, first commands.</li>
+<li><a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>: upgrade, the daemon, retention,
+credential files.</li>
+<li><a href="docs/FILES.html"><code>docs/FILES.md</code></a>: every directory and file karvi reads or
+writes, in shared and in individual mode, with its mode, owner, and group,
+and how karvi chooses each place.</li>
+<li><a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>: what <code>karvi-prune</code> removes, where it looks,
+the timers, the hand run.</li>
+<li><a href="docs/COLLECTION.html"><code>docs/COLLECTION.md</code></a>: the collection run <code>crun</code>: what a
+collection is, the command lists RANCID and Oxidized send per platform as
+examples, and sub-platform tables per device model.</li>
+<li><a href="docs/CREDENTIAL-CSV.html"><code>docs/CREDENTIAL-CSV.md</code></a>: the credential CSV
+backend: declaring it, the file's fields, how a row is chosen, keys and pins
+(<code>credkey</code>, <code>credkeyref</code>), variables instead of secrets, a formula over it,
+the file rules, why an inventory file holds no secrets, the errors.</li>
+<li><a href="docs/TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>: every bound on a device session, its
+key, and what its expiry records.</li>
+<li><a href="docs/COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>: the command grammar and
+the device session's lifecycle.</li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a>: what to
+capture and how to read it.</li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html"><code>docs/DISPLAY-CONFIGURATION.md</code></a>: human-facing
+output settings.</li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>: <code>login --record</code>.</li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html"><code>docs/SSH-HOST-KEY-POLICY.md</code></a>: the unified
+host-key policy, the identity a key is enrolled under, controlled enrollment.</li>
+<li><a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>: transport selection,
+slots, build composition.</li>
+<li><a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>: every registered code
+(generated).</li>
+</ul>
+<p>Design:</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html"><code>docs/ARCHITECTURE.md</code></a>: the packages and their
+boundaries.</li>
+<li><a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a>: why karvi does what it does, the settled
+decisions with their reasons and the alternatives not taken.</li>
+<li><a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>: the worked design sessions, one
+chapter each, from the public-repository preparation on.</li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html"><code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code></a>:
+the driver contract, the session layer, the transports, the extension rule.</li>
+<li><code>examples/</code>: one commented example of each file karvi reads (a configuration,
+an inventory, a credential CSV, a <code>.cloginrc</code>, a target file, a commands file)
+and how to try them with a dry run.</li>
+</ul>
+<p>Qualification and release:</p>
+<ul>
+<li><a href="docs/BUILD-QUALIFICATION.html"><code>docs/BUILD-QUALIFICATION.md</code></a>: the build,
+release, and native session gates.</li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a>: what
+the fixture shows and the laboratory matrix.</li>
+<li><a href="ROADMAP.html"><code>ROADMAP.md</code></a>, <a href="CHANGELOG.html"><code>CHANGELOG.md</code></a>: what is not built
+yet, what each release changed.</li>
+<li><a href="BUILD-HOWTO.html"><code>BUILD-HOWTO.md</code></a>, <a href="BUILDING.html"><code>BUILDING.md</code></a>: building
+from source.</li>
+</ul>
+<h2 id="repository-map">Repository map <a class="anchor" href="#repository-map" aria-label="Link to this section">#</a></h2>
+<p>Reusable public packages are <code>inventory</code>, <code>credentials</code>, <code>transform</code>,
+<code>tabular</code>, <code>dispatch</code>, <code>platform</code>, <code>records</code>, and <code>configschema</code>
+(an earlier public <code>transport</code> package was removed). Concrete runtime,
+operating-system, secret, and third-party adapters remain under
+<code>internal/</code>.</p>
+<h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
+<p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
+
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

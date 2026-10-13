@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>karvi security — karvi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html" aria-current="page">karvi security</a>
+<ul class="sections">
+<li><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li>
+<li><a href="#ssh-host-key-policy">SSH host-key policy</a></li>
+<li><a href="#trust-store-ownership-and-permissions">Trust-store ownership and permissions</a></li>
+<li><a href="#secure-enrollment">Secure enrollment</a></li>
+<li><a href="#key-rotation">Key rotation</a></li>
+<li><a href="#run-failure-isolation">Run failure isolation</a></li>
+<li><a href="#credential-boundary">Credential boundary</a></li>
+<li><a href="#legacy-cryptography">Legacy cryptography</a></li>
+<li><a href="#telnet">Telnet</a></li>
+</ul></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="README.html">karvi</a></li>
+<li><a href="docs/QUICKSTART.html">Quick start</a></li>
+<li><a href="examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="docs/OPERATIONS.html">Operations guide</a></li>
+<li><a href="docs/COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="docs/CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="docs/COMMAND-SESSION.html">Command-session behavior</a></li>
+<li><a href="docs/COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="docs/SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="docs/DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="docs/LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="docs/PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="docs/SCALE.html">Scaling karvi up</a></li>
+<li><a href="docs/SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="docs/SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="docs/TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="docs/FILES.html">Files and directories</a></li>
+<li><a href="docs/ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="docs/ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="docs/DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="CHANGELOG.html">Changelog</a></li>
+<li><a href="ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="BUILDING.html">Building karvi</a></li>
+<li><a href="BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="CONTRIBUTING.html">Contributing</a></li>
+<li><a href="SECURITY.html" aria-current="page">karvi security</a>
+<ul class="sections">
+<li><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li>
+<li><a href="#ssh-host-key-policy">SSH host-key policy</a></li>
+<li><a href="#trust-store-ownership-and-permissions">Trust-store ownership and permissions</a></li>
+<li><a href="#secure-enrollment">Secure enrollment</a></li>
+<li><a href="#key-rotation">Key rotation</a></li>
+<li><a href="#run-failure-isolation">Run failure isolation</a></li>
+<li><a href="#credential-boundary">Credential boundary</a></li>
+<li><a href="#legacy-cryptography">Legacy cryptography</a></li>
+<li><a href="#telnet">Telnet</a></li>
+</ul></li>
+<li><a href="LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="karvi-security">karvi security <a class="anchor" href="#karvi-security" aria-label="Link to this section">#</a></h1>
+<h2 id="reporting-a-vulnerability">Reporting a vulnerability <a class="anchor" href="#reporting-a-vulnerability" aria-label="Link to this section">#</a></h2>
+<p>Report a suspected vulnerability privately to <a href="mailto:rob-karvi@rpatrick.com">rob-karvi@rpatrick.com</a>, not in
+a public issue. Say what you observed, the release or commit you ran, and how
+to reproduce it; do not include device credentials or transcripts from a
+production network. Reports are acknowledged and answered by mail, and a fix
+ships as a release whose changelog names the problem once the fix is
+available. The sections below describe the security model the program
+follows.</p>
+<h2 id="ssh-host-key-policy">SSH host-key policy <a class="anchor" href="#ssh-host-key-policy" aria-label="Link to this section">#</a></h2>
+<p><code>ssh.host-key-policy</code> is the single host-identity policy for <code>karvi login</code>,
+<code>karvi command</code>, and <code>karvi run</code>. It applies to both system OpenSSH and the
+native ScrapliGo v1 adapter.</p>
+<h3 id="auto--default--recommended-general-default"><code>auto</code> / <code>default</code> — recommended general default <a class="anchor" href="#auto--default--recommended-general-default" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>A previously unknown key is accepted and persisted on first use.</li>
+<li>A later mismatch fails the connection.</li>
+<li>System OpenSSH is configured with <code>StrictHostKeyChecking accept-new</code>.</li>
+<li>Native SSH performs a public-key preflight, race-safe enrollment, then opens
+ScrapliGo with strict verification against the same file.</li>
+<li>First-use acceptance is vulnerable to an attacker already positioned in the
+path. Organizations requiring authenticated enrollment must use <code>secure</code>.</li>
+</ul>
+<h3 id="secure--pre-enrollment-required"><code>secure</code> — pre-enrollment required <a class="anchor" href="#secure--pre-enrollment-required" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>The trust file must already exist and contain a matching key.</li>
+<li>Unknown and changed keys fail before authentication.</li>
+<li>karvi does not create an empty trust file as a substitute for enrollment.</li>
+<li>Administrators should verify fingerprints through an independent trusted
+channel before adding a key.</li>
+</ul>
+<h3 id="insecure--explicit-risk-acceptance"><code>insecure</code> — explicit risk acceptance <a class="anchor" href="#insecure--explicit-risk-acceptance" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>Unknown and changed keys are accepted.</li>
+<li>A prominent machine-in-the-middle warning is written to stderr for every
+connection.</li>
+<li>When a karvi trust-store entry exists, karvi attempts a public-key comparison;
+a mismatch receives a distinct warning but remains allowed.</li>
+<li>A failed best-effort comparison also warns and remains allowed by policy.</li>
+<li><code>insecure</code> MUST NOT be selected merely to work around an unexplained key
+change. It is intended only for explicitly approved environments whose risk
+model accepts host impersonation.</li>
+</ul>
+<p><code>insecure</code> disables both user and global known-hosts inputs for the actual
+system-OpenSSH connection so a changed key cannot unexpectedly disable password
+authentication while the operator has explicitly selected this mode. The
+karvi-owned file remains available only as a comparison source for warnings.</p>
+<h2 id="trust-store-ownership-and-permissions">Trust-store ownership and permissions <a class="anchor" href="#trust-store-ownership-and-permissions" aria-label="Link to this section">#</a></h2>
+<p>The automatic location is <code>known_hosts</code> in the operator's private root
+(<code>basedir</code>), and nowhere else: <code>/opt/karvi/users/&lt;user&gt;/known_hosts</code> where the
+site made the operators' roots, <code>~/.local/share/karvi/known_hosts</code> otherwise.
+<code>karvi config show --explain ssh.known-hosts-file</code> names it on its <code>resolved:</code>
+line.</p>
+<p>The immediate directory must be a real, operator-owned directory that neither
+group nor others can write. The file must be a real, operator-owned,
+non-symlink regular file with mode <code>0600</code>. An explicit path is subject to the
+same checks. Existing but invalid state is a hard error rather than a fallback
+trigger.</p>
+<h2 id="secure-enrollment">Secure enrollment <a class="anchor" href="#secure-enrollment" aria-label="Link to this section">#</a></h2>
+<p>The recipe is
+<a href="docs/SSH-HOST-KEY-POLICY.html#controlled-enrollment"><code>docs/SSH-HOST-KEY-POLICY.md</code>, &quot;Controlled enrollment&quot;</a>:
+it finds the store by the <code>resolved:</code> line, writes each key under the device's
+identity, and has the fingerprint verified before the line is appended.</p>
+<p><code>ssh-keyscan</code> discovers a key but does not authenticate it.</p>
+<h2 id="key-rotation">Key rotation <a class="anchor" href="#key-rotation" aria-label="Link to this section">#</a></h2>
+<p>A mismatch in <code>auto</code> or <code>secure</code> is a security event, not an automatic rotation.
+Confirm the device change through an independent channel, remove only the old
+entry, and enroll the verified replacement. Do not switch to <code>insecure</code> as a
+silent rotation mechanism.</p>
+<h2 id="run-failure-isolation">Run failure isolation <a class="anchor" href="#run-failure-isolation" aria-label="Link to this section">#</a></h2>
+<p>A host-key failure belongs to one target. A multi-target run writes the failure
+record and proceeds with other devices. Normal run-wide halt thresholds and
+wave gates still apply. This isolation prevents one replaced or compromised
+host from suppressing evidence for the rest of a fleet operation.</p>
+<h2 id="credential-boundary">Credential boundary <a class="anchor" href="#credential-boundary" aria-label="Link to this section">#</a></h2>
+<p>Passwords are resolved per operator and are not put in SSH arguments.
+System OpenSSH receives them through the authenticated, one-use
+<code>karvi-askpass</code> callback. The transport/driver adapter receives short-lived
+copies through karvi-owned secret wrappers. Audit records contain the operator,
+device-facing username, backend, and safe match metadata, never secret values.</p>
+<h2 id="legacy-cryptography">Legacy cryptography <a class="anchor" href="#legacy-cryptography" aria-label="Link to this section">#</a></h2>
+<p>Legacy SSH algorithms are enabled only for explicitly scoped host patterns.
+All-host patterns are rejected. Host-key policy and algorithm compatibility are
+separate controls: accepting a key does not authorize weak algorithms, and
+allowing a legacy algorithm does not bypass host identity verification.</p>
+<h2 id="telnet">Telnet <a class="anchor" href="#telnet" aria-label="Link to this section">#</a></h2>
+<p>Telnet requires both an explicit transport selection and
+<code>security.allow-telnet=true</code>. It is never an SSH fallback and provides no host
+identity or confidentiality.</p>
+
+<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>

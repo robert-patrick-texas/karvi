@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command-session behavior — karvi</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<details class="nav-narrow">
+<summary>Documents</summary>
+<nav aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html" aria-current="page">Command-session behavior</a>
+<ul class="sections">
+<li><a href="#grammar">Grammar</a></li>
+<li><a href="#history-one-shell-since-v070">History: one shell, since v0.7.0</a></li>
+<li><a href="#lifecycle">Lifecycle</a></li>
+<li><a href="#one-session-for-command-and-run">One session for command and run</a></li>
+<li><a href="#the-exec-channel">The exec channel</a></li>
+<li><a href="#blind-sends-and-expectations">Blind sends and expectations</a></li>
+<li><a href="#a-commands-own-bounds">A command&#39;s own bounds</a></li>
+<li><a href="#prompt-detection">Prompt detection</a></li>
+<li><a href="#echo">Echo</a></li>
+<li><a href="#debugging">Debugging</a></li>
+<li><a href="#device-error-behavior">Device-error behavior</a></li>
+</ul></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+</details>
+<nav class="nav-wide" aria-label="Documents">
+<p class="home"><a href="../index.html">karvi</a></p>
+<p class="group">Start here</p>
+<ul>
+<li><a href="../README.html">karvi</a></li>
+<li><a href="QUICKSTART.html">Quick start</a></li>
+<li><a href="../examples/README.html">examples</a></li>
+</ul>
+<p class="group">Operating karvi</p>
+<ul>
+<li><a href="OPERATIONS.html">Operations guide</a></li>
+<li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
+<li><a href="CREDENTIAL-CSV.html">The credential CSV</a></li>
+<li><a href="COMMAND-SESSION.html" aria-current="page">Command-session behavior</a>
+<ul class="sections">
+<li><a href="#grammar">Grammar</a></li>
+<li><a href="#history-one-shell-since-v070">History: one shell, since v0.7.0</a></li>
+<li><a href="#lifecycle">Lifecycle</a></li>
+<li><a href="#one-session-for-command-and-run">One session for command and run</a></li>
+<li><a href="#the-exec-channel">The exec channel</a></li>
+<li><a href="#blind-sends-and-expectations">Blind sends and expectations</a></li>
+<li><a href="#a-commands-own-bounds">A command&#39;s own bounds</a></li>
+<li><a href="#prompt-detection">Prompt detection</a></li>
+<li><a href="#echo">Echo</a></li>
+<li><a href="#debugging">Debugging</a></li>
+<li><a href="#device-error-behavior">Device-error behavior</a></li>
+</ul></li>
+<li><a href="COMMAND-TROUBLESHOOTING.html">Command-mode troubleshooting</a></li>
+<li><a href="SSH-TROUBLE.html">SSH troubleshooting</a></li>
+<li><a href="DISPLAY-CONFIGURATION.html">Display configuration</a></li>
+<li><a href="LOGIN-TRANSCRIPTS.html">Login transcript behavior</a></li>
+<li><a href="PRUNE.html">karvi-prune: retention</a></li>
+<li><a href="SCALE.html">Scaling karvi up</a></li>
+<li><a href="SSH-HOST-KEY-POLICY.html">SSH host-key policy</a></li>
+<li><a href="SSH-TRANSPORTS.html">SSH transports and selection</a></li>
+<li><a href="TIMEOUTS.html">Timeouts and keepalives</a></li>
+</ul>
+<p class="group">Reference</p>
+<ul>
+<li><a href="FILES.html">Files and directories</a></li>
+<li><a href="ERROR-CODES.html">karvi error codes</a></li>
+</ul>
+<p class="group">Design and records</p>
+<ul>
+<li><a href="ARCHITECTURE.html">Architecture of the karvi implementation</a></li>
+<li><a href="DESIGN.html">karvi design: why it does what it does</a></li>
+<li><a href="TRANSPORT-DRIVER-ARCHITECTURE.html">Transport and driver architecture</a></li>
+<li><a href="EXAMPLES.html">karvi worked examples</a></li>
+<li><a href="../CHANGELOG.html">Changelog</a></li>
+<li><a href="../ROADMAP.html">Roadmap</a></li>
+</ul>
+<p class="group">Building, qualification, and release</p>
+<ul>
+<li><a href="../BUILDING.html">Building karvi</a></li>
+<li><a href="../BUILD-HOWTO.html">BUILD-HOWTO</a></li>
+<li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
+<li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
+<li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.29.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.29.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.29.0</a></li>
+</ul>
+<p class="group">The project</p>
+<ul>
+<li><a href="../CONTRIBUTING.html">Contributing</a></li>
+<li><a href="../SECURITY.html">karvi security</a></li>
+<li><a href="../LICENSE.html">MIT License</a></li>
+</ul>
+</nav>
+<main>
+<h1 id="command-session-behavior">Command-session behavior <a class="anchor" href="#command-session-behavior" aria-label="Link to this section">#</a></h1>
+<h2 id="grammar">Grammar <a class="anchor" href="#grammar" aria-label="Link to this section">#</a></h2>
+<p>Command mode supports a positional target and positional command words or one
+or more explicit commands:</p>
+<pre><code class="language-bash">karvi command router1 show clock
+karvi cmd router1 --cmd 'show clock'
+karvi command --host router1 --command 'show clock'
+karvi command --cmd 'show clock' --target router1 --command 'show version'
+</code></pre>
+<p><code>--target</code> and <code>--host</code> are target synonyms. <code>--address</code> aliases
+<code>--management-address</code>; neither address option supplies the required target:</p>
+<pre><code class="language-bash">karvi command --target router1 --address 192.0.2.10 \
+  --cmd 'show clock'
+</code></pre>
+<p>Recognized options and the target may occur before, after, or between command
+material. With positional command words, known karvi options are still parsed;
+remaining words are joined into one command. Use <code>--</code> to protect literal text
+that contains a karvi option name:</p>
+<pre><code class="language-bash">karvi command router1 -- show running-config | include --echo
+</code></pre>
+<h2 id="history-one-shell-since-v070">History: one shell, since v0.7.0 <a class="anchor" href="#history-one-shell-since-v070" aria-label="Link to this section">#</a></h2>
+<p>The v0.6 command path prepared an OpenSSH ControlMaster and requested a new
+session channel per command. Cisco IOS XE accepts the authentication and refuses
+the extra channel (<code>Master refused session request: Permission denied</code>), which
+the text classifier then read as an authentication failure. Since v0.7.0 the
+command path opens one fresh interactive shell per device and sends every
+command through it; that diagnostic, should it appear, is
+<code>ssh_session_channel_refused</code> in the <code>connection</code> category, never
+<code>authentication_failed</code>.
+<a href="TRANSPORT-DRIVER-ARCHITECTURE.html"><code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code></a>
+states the ControlMaster rule. A platform whose <code>channel</code> is <code>exec</code> (built-in
+<code>linux</code>) takes a channel per command again, on a device that accepts it,
+under its own rules (<a href="#the-exec-channel">The exec channel</a>); the shell stays
+the path for every other platform.</p>
+<h2 id="lifecycle">Lifecycle <a class="anchor" href="#lifecycle" aria-label="Link to this section">#</a></h2>
+<p>The session (<code>internal/devsession</code>) is the same on both SSH transports;
+only the connection beneath it differs. Each bound is one configuration
+key, listed with its relations in <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>.</p>
+<pre><code class="language-text">resolve target/address/credential/transport/platform definition
+  -&gt; open the connection, the host-key policy in the handshake
+       system: private OpenSSH config, one-use askpass, one fresh ssh -tt process
+       scrapligo-v1: one x/crypto connection, no subprocess
+  -&gt; wait for the first prompt            (execution.prompt-timeout; system adds ssh.connect-timeout)
+  -&gt; escalate once when below the level    (execution.enable-timeout, the whole step)
+  -&gt; paging commands, each to the prompt   (execution.prompt-timeout each)
+  -&gt; session-init profile, if one matches  (its command-timeout or execution.command-timeout each)
+  -&gt; for each requested command:           (execution.device-timeout over the whole list)
+       write the command + newline (or the blind returns with it)
+       answer declared prompts as they appear (--expect)
+       read until the prompt returns        (its command timeout, or execution.blind-wait when blind)
+       remove the echo and the trailing prompt
+       emit one command record
+       stop or continue according to the device-error policy
+  -&gt; the definition's exit-commands, then close
+       (scrapligo-v1 waits up to 2 s for the shell's end)
+  -&gt; remove temporary config and askpass material (system)
+</code></pre>
+<p>Keepalives prove the peer alive throughout (<code>ssh.server-alive-*</code> on
+<code>system</code>, <code>native-ssh.keepalive-*</code> on <code>scrapligo-v1</code>); a device gone silent
+ends as <code>session_keepalive_timeout</code>. A session that has failed (a timeout,
+a lost read, a write failure, output over the limit before the prompt
+returned) is aborted, not closed: nothing is sent on a desynchronised
+shell, no replacement login is made, and the remaining commands receive
+explicit not-attempted records.</p>
+<h2 id="one-session-for-command-and-run">One session for command and run <a class="anchor" href="#one-session-for-command-and-run" aria-label="Link to this section">#</a></h2>
+<p>The shell above is the device session for
+<code>command</code> and for <code>run</code> over the system transport alike, and the same
+session logic drives scrapligo-v1's connection (<code>internal/devsession</code>). The
+session adds two steps between the first prompt and the first requested
+command, both from the platform definition:</p>
+<ol>
+<li><strong>Privilege.</strong> The first prompt is matched against the platform's
+prompt levels (<code>cisco_iosxe</code>: <code>exec</code> at <code>&gt;</code>, <code>privilege-exec</code> at <code>#</code>,
+<code>configuration</code> at <code>(config)#</code>). A shell that starts below the
+platform's <code>privileged-level</code> gets one <code>enable</code>, the enable secret at
+the password prompt, and must show the privileged prompt within
+<code>execution.enable-timeout</code> (one deadline across the secret's prompt and
+the level's prompt); anything else is <code>privilege_failed</code>, the session ends,
+the first command records <code>privilege_error</code> and the rest
+<code>not_attempted_prior_command_failure</code>. A shell that starts at the level
+or above it is left where it is; nothing ever steps down. A platform
+without levels (<code>generic</code>, <code>linux_shell</code>) has no privilege step.</li>
+<li><strong>Paging.</strong> The definition's <code>paging-commands</code> in order (the platform's start
+statements: <code>generic</code> has none until a <code>[platform.generic]</code> table gives it
+some, <a href="OPERATIONS.html"><code>docs/OPERATIONS.md</code></a> <a href="OPERATIONS.html#start-statements-for-generic-devices">&quot;Start statements for generic
+devices&quot;</a>), each read to
+the prompt; a rejected one is <code>paging_disable_failed</code> and the device's first
+record is <code>device_error</code>.</li>
+<li><strong>Session-init.</strong> A <code>[session-init.NAME]</code> profile (<code>commands</code>,
+<code>on-error</code> = <code>fail-device</code> or <code>continue</code>, <code>command-timeout</code>), selected
+for the device by <code>[[session-init-map]]</code>, runs its commands as the
+platform's own before the requested ones. Under <code>fail-device</code> a failed
+command ends the device: the requested commands are recorded
+<code>not_attempted_session_init_failure</code>. Under <code>continue</code> the device goes
+on and its first requested record carries the notice
+<code>session_init_command_failed</code> naming the profile, the command's index,
+and the code.</li>
+</ol>
+<p>Then the requested commands, then the definition's <code>exit-commands</code> at close.</p>
+<h2 id="the-exec-channel">The exec channel <a class="anchor" href="#the-exec-channel" aria-label="Link to this section">#</a></h2>
+<p>A platform whose <code>channel</code> is <code>exec</code> (built-in <code>linux</code>, or any
+<code>[platform.NAME]</code> table that says so) gets one connection for its command
+list and one exec channel per command on it, in order, with no pty and with
+standard input at its end (<a href="DESIGN.html#5-transports-and-the-device-session"><code>docs/DESIGN.md</code>, section
+5</a>):</p>
+<pre><code class="language-text">resolve target/address/credential/transport/platform definition
+  -&gt; open the connection, the host-key policy in the handshake
+       system: one ssh -M -N master per device, its stderr read at DEBUG1;
+               ready when it answers -O check
+       scrapligo-v1: one x/crypto connection; ready when it has authenticated
+                                           (ssh.connect-timeout and execution.prompt-timeout)
+  -&gt; session-init profile, if one matches  (each command on its own channel)
+  -&gt; for each requested command:           (execution.device-timeout over the whole list)
+       open an exec channel and start the command
+         system: one ssh -S client of the master, LogLevel QUIET, ProxyCommand false
+       read stdout and stderr, each spooled past the threshold on its own
+       wait for the exit status or signal   (its command timeout, from the channel's opening)
+       emit one command record
+       stop or continue according to the device-error policy
+  -&gt; close: system ssh -O exit, the master killed on an abort;
+            scrapligo-v1 closes its connection
+</code></pre>
+<p>There is no first prompt, no privilege step, no paging command, and no exit
+command, and nothing carries from one command to the next (<code>cd</code>, variables,
+<code>umask</code>): the remote shell is not interactive. Blind sends, <code>\r</code> endings,
+<code>--blind-return</code>, and <code>--expect</code> are refused at planning for an exec target
+(<code>channel_exec_declaration_refused</code>, exit 4); <code>--literal</code>, <code>--timeout</code>, and
+<code>--maxbytes</code> are accepted.</p>
+<p>How a command ends is its exit status: 0 is <code>succeeded</code> whatever stderr holds,
+then the platform's failure patterns are searched in both streams; a non-zero
+status is <code>command_exit_nonzero</code>, a signal <code>command_exit_signal</code>, and a channel
+closed without a status on a live connection <code>command_exit_missing</code>, each a
+device error. On <code>system</code> a client's exit of 255 is read from the master's
+lines: the command's own 255, a signal (<code>exit_signal</code> <code>unnamed</code>, since OpenSSH
+names none), a channel closed without a status, or the master gone, the
+session's failure. A device that refuses the channel or the exec request is
+<code>ssh_session_channel_refused</code>; the command did not run and the session ends.</p>
+<p>A command timeout, a cancel, and the output limit (stdout and stderr counted
+together) stop the command and close its channel, and the connection serves
+the next command: <code>scrapligo-v1</code> asks the device for <code>KILL</code> first; <code>system</code>,
+whose client cannot send a signal, kills the client and records the notice
+<code>remote_command_not_stopped</code>, the command possibly still running on the
+device.</p>
+<h2 id="blind-sends-and-expectations">Blind sends and expectations <a class="anchor" href="#blind-sends-and-expectations" aria-label="Link to this section">#</a></h2>
+<p>A command that ends in <code>\r</code> sequences, or is given <code>--blind-return N</code>, is
+sent with that many carriage returns in one write and awaited for
+<code>execution.blind-wait</code> in place of its command timeout; a prompt that does
+not return is a success with the notice <code>prompt_not_observed_after_blind_send</code>
+and all bytes read, the session closed. <code>--literal</code> sends the text as
+written. <code>--expect PATTERN=RESPONSE</code> answers a device prompt the platform's
+pattern does not match, as it appears, consumed once in declared order;
+<code>--blind</code> declares that the prompt may not return. Every declaration
+attaches to the <code>--cmd</code> it follows or to the freeform command. The waits
+are <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>.</p>
+<h2 id="a-commands-own-bounds">A command's own bounds <a class="anchor" href="#a-commands-own-bounds" aria-label="Link to this section">#</a></h2>
+<p><code>--timeout DURATION</code> and <code>--maxbytes BYTES</code> are declarations too, at most one
+of each per command: the command's timeout in place of
+<code>execution.command-timeout</code> (and over telnet of <code>telnet.read-timeout</code>), and
+its output limit in place of <code>output.max-command-bytes</code>, smaller or larger,
+on the shell and on an exec channel alike. The rest of the device's list keeps
+the job's values. A limit reached ends the command as the job's limit does,
+the first BYTES kept: the shell's session is closed, an exec channel's command
+stopped with the connection serving the next. The messages name the source,
+<code>(--timeout)</code> or <code>(--maxbytes)</code> beside the keys' names. A blind command takes
+no <code>--timeout</code> (its wait is <code>execution.blind-wait</code>); a timeout above a set
+<code>execution.device-timeout</code>, or a limit above <code>output.max-job-bytes</code>, is refused
+at planning (<a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>,
+<a href="OPERATIONS.html#long-commands-a-copy-and-a-show-tech"><code>docs/OPERATIONS.md</code></a>).</p>
+<h2 id="prompt-detection">Prompt detection <a class="anchor" href="#prompt-detection" aria-label="Link to this section">#</a></h2>
+<p>The session renders the received bytes as the terminal showed them
+(<code>internal/termtext</code>, at no width: carriage returns, backspaces, and erases
+applied, colours, window titles, and every other sequence dropped) and matches
+the unfinished last line, without its trailing blanks, against the platform's
+prompt patterns: the levels' patterns for a platform that declares them
+(scrapligo-v1's platform definitions, carried in <code>platform.go</code> for the
+built-ins), <code>generic</code>'s prompt pattern otherwise, and a broad line ending
+in <code>#</code>, <code>&gt;</code>, or <code>$</code> for a platform with neither. A candidate prompt must
+remain the final content for a short settle period so a banner line ending
+with a prompt character is not accepted prematurely. The prompt timeout and
+command timeout remain bounded configuration values.</p>
+<p>The collected response is the rendered text: one echoed command line and
+the trailing prompt removed, every line ending in <code>\n</code>, a space the device
+wrote kept on an inner line, and the last line before the prompt without its
+trailing blanks. The prompt the command was typed at holds its columns on the
+first line and is no part of the text. A repeated line matching the
+command later in legitimate device output is not silently discarded. A
+device-reported command error is the platform definition's failure
+patterns (<code>% Invalid input detected</code> and its siblings for <code>cisco_iosxe</code>);
+<code>generic</code> reports none.</p>
+<h2 id="echo">Echo <a class="anchor" href="#echo" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi command router1 --echo --cmd 'show clock'
+</code></pre>
+<p>or:</p>
+<pre><code class="language-toml">[display.command]
+echo = true
+</code></pre>
+<p>prints the effective prompt plus command before each result, including a
+device-reported command error:</p>
+<pre><code class="language-text">router1#show clock
+01:20:19.849 EDT Thu Sep 10 2026
+</code></pre>
+<p>On an exec target the prompt is inferred from the target's name, since the
+device sends none, and stdout comes before stderr, their interleaving lost
+(<code>2&gt;&amp;1</code> in the command keeps it):</p>
+<pre><code class="language-text">srv1$ echo out; echo err &gt;&amp;2
+out
+err
+
+srv1$ ls /nonexistent
+ls: cannot access '/nonexistent': No such file or directory
+karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 2
+</code></pre>
+<p>The command record persists <code>promptbefore</code>, <code>prompt</code>, <code>prompt_source</code>, and
+<code>prompt_observed</code>; an exec record's are empty, <code>none</code>, and false, and it carries
+<code>channel</code>, <code>exit_status</code>, <code>exit_signal</code>, and <code>stderr</code> with its encoding, count,
+and digest instead. <code>promptbefore</code> is the prompt the device showed when the
+statement was sent and <code>prompt</code> the one that came back after it: for <code>configure terminal</code> they are <code>router1#</code> and <code>router1(config)#</code>. Both are the device's own
+bytes, never inferred; <code>promptbefore</code> is empty only on a record whose statement
+was not sent, and <code>prompt</code> is empty when no prompt came back (a timeout, a blind
+send). When an error proves the command was sent but prompt metadata is
+unavailable, human output uses a deterministic inferred prompt and the record
+remains marked inferred. JSONL is never decorated.</p>
+<h2 id="debugging">Debugging <a class="anchor" href="#debugging" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi command --debug --host router1 --cmd 'show clock' \
+  &gt;command.out 2&gt;command.debug
+</code></pre>
+<p>Debug lines come in three families, one prefix each:</p>
+<ul>
+<li><code>device …</code> (the executor): the transport selection, the resolved address
+and its source, the credential backend and device username, the SSH
+algorithm lists with the profile and rule that selected them, the
+capacity admission, the connection opening and ready, each command's
+start (index, hash, size, blind flags, expectation count) and completion
+(status, code, output bytes, elapsed, prompt source), and how the
+session ended.</li>
+<li><code>system SSH command session …</code>, <code>system SSH exec master …</code>, or <code>native SSH connection …</code> (the transport): the binary or implementation, the address
+and port, the host-key policy and identity, the process ID or the shell's
+start, an exec master's socket and the method that authenticated, an open
+failure's code and diagnostic, a keepalive expiry.</li>
+<li><code>device session …</code> (the session): the first prompt and level, an
+escalation, each paging command, each send, each expectation answered,
+each completion, a blind send whose prompt did not return; on an exec
+target, each command's start, completion, and spool, and a command given
+up.</li>
+</ul>
+<p>No line carries a password, an enable secret, or device output. The
+executor's start line shows each command once, as the plan holds it, never
+from the device's echo; every other line names a command by its hash and
+size.</p>
+<h2 id="device-error-behavior">Device-error behavior <a class="anchor" href="#device-error-behavior" aria-label="Link to this section">#</a></h2>
+<p>By default, a device-reported command failure (<code>device_command_error</code>,
+matched by the platform's failure patterns) stops later commands for that
+device and emits explicit <code>not_attempted_prior_command_failure</code> records.
+Use <code>--continue-device-on-error</code> to continue. The policy applies only while
+the session is usable: a device error, and output over the limit after the
+prompt returned, leave it usable. A command timeout, a write failure, a
+lost or failed read, output over the limit before the prompt returned, the
+device timeout, or a keepalive expiry ends the session, and nothing more is
+sent under any setting; the failed command carries the code and the rest
+are not-attempted records. There is no hidden reconnect.</p>
+<p>On an exec target the exit outcomes (<code>command_exit_nonzero</code>,
+<code>command_exit_signal</code>, <code>command_exit_missing</code>) are device errors under the same
+policy, and a command timeout and the output limit leave the session usable,
+the connection serving the next command, so the policy applies to them too. A
+refused channel or exec request, a lost connection, the device timeout, and a
+keepalive expiry end the session.</p>
+
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.29.0</code>.</footer>
+</main>
+</body>
+</html>
