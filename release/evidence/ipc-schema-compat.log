@@ -1,46 +1,76 @@
-# karvi 0.29.0: the released 0.28.0 daemon against the tree's client, before 1/3; executed 2026-10-09T11:35:57Z under /dev/shm/kc29, no device (TEST-NET-1)
-the daemon executable: karvi 0.28.0, the released bytes of the tree's bin/ checked against CHECKSUMS.sha256 before the rebuild
-[1] the daemon's executable starts its daemon
-daemon started socket=/dev/shm/kc29/base/socket/daemon.sock
+# karvi 0.30.0: the released 0.29.0 daemon beside the tree's client, before 1/3; executed 2026-10-13T03:11:52Z under /dev/shm/r30/kc30, no device (TEST-NET-1)
+the daemon executable: karvi 0.29.0, the released bytes of the tree's bin/ checked against CHECKSUMS.sha256 before the rebuild
+[1] the older executable starts its daemon
+daemon started socket=/dev/shm/r30/kc30/base/socket/daemon.sock
 daemon running
 exit=0
 {
-  "ipc_schema_version": 10,
+  "ipc_schema_version": 11,
   "status": "running",
-  "pid": 1348954,
+  "pid": 3213394,
   "uid": 1000,
-  "socket": "/dev/shm/kc29/base/socket/daemon.sock",
-  "started_at": "2026-10-09T07:35:57.707331178-04:00",
+  "socket": "/dev/shm/r30/kc30/base/socket/daemon.sock",
+  "started_at": "2026-10-12T23:11:52.384505999-04:00",
   "active_jobs": 0,
   "accepted_jobs": 0,
-  "version": "0.28.0",
+  "version": "0.29.0",
   "compatible": true,
-  "client_version": "0.28.0",
-  "client_ipc_schema": 10
+  "client_version": "0.29.0",
+  "client_ipc_schema": 11
 }
-[2] the client's executable asks the daemon's status
-status: running
-pid: 1348954
-uid: 1000
-socket: /dev/shm/kc29/base/socket/daemon.sock
-version: 0.28.0
-daemon_ipc_schema: 10
-client_version: 0.29.0
-client_ipc_schema: 11
-compatible: false
-started_at: 2026-10-09T07:35:57.707331178-04:00
-active_jobs: 0
-accepted_jobs: 0
-remediation: karvi daemon restart
+[2] the client's executable asks its daemon's status
+daemon_unreachable: daemon not running or unreadable: dial unix /dev/shm/r30/kc30/base/socket/d.sock: connect: no such file or directory
+exit=110
+[3] the client exercises a run (target 192.0.2.1, TEST-NET-1)
 exit=0
-[3] the client submits a run (target 192.0.2.1, TEST-NET-1)
-exit=112
 -- stdout
+exercise 261012-231152-00
+status: exercised
+job_submitted: true
+device_contacted: false
+daemon local: running pid=3213449 version=0.30.0 build=P7zVqO_tVBEzQMcMrxna ipc_schema=12 socket=/dev/shm/r30/kc30/base/socket/d.sock
+preparation 20261012T231152.535238-0400-q1xs35tvjwjdrrb5kqcf: accepted, 0 daemon DNS answer(s)
+finding: info dispatch_assessment dispatch serial width=1
+finding: info capacity_assessment server ledger 0 of 32 in use
+- name:192.0.2.1: ready
+  address: client 192.0.2.1
+  credential: bound 20261012T231152.480568-0400-y28pf7cg4jjwvj270hqr (policy=default backend=builtin-env-fallback user=compat; value not displayed)
+  transport: native available (scrapligo-v1) host_key=accept-new enrolled=no
+  intended_ping: disabled
+next: submit_new_live_job (no device was contacted; this is not a command result)
 -- stderr
-daemon_incompatible: running daemon version 0.28.0 uses IPC schema 10; karvi 0.29.0 uses schema 11, and both must match; no job was submitted and the daemon was not replaced automatically; run "karvi daemon status" and, when active_jobs is 0, run "karvi daemon restart", then retry (or use "karvi run --no-daemon ..." for an explicit foreground run)
-[4] the jobs tree
-/dev/shm/kc29/base/jobs
-[5] stop by the client, then the pid is gone
-daemon stopped (version=0.28.0 ipc_schema=10; client_schema=11)
+daemon started socket=/dev/shm/r30/kc30/base/socket/d.sock
+[4] the socket directory
+c.sock
+credentials.sock
+d.sock
+daemon.sock
+ssh
+[5] each executable's status
+older: pid 3213394; version: 0.29.0 compatible: true 
+status: running
+pid: 3213449
+uid: 1000
+socket: /dev/shm/r30/kc30/base/socket/d.sock
+daemon_version: 0.30.0
+client_version: 0.30.0
+daemon_commit: source-release-v0.30.0
+client_commit: source-release-v0.30.0
+daemon_ipc_schema: 12
+client_ipc_schema: 12
+daemon_build: P7zVqO_tVBEzQMcMrxna
+client_build: P7zVqO_tVBEzQMcMrxna
+compatible: true
+started_at: 2026-10-12T23:11:52.488637543-04:00
+active_jobs: 0
+accepted_jobs: 1
 exit=0
-pid 1348954 gone
+[6] the client stops its daemon; the older is still there
+daemon stopped
+exit=0
+pid 3213449 gone
+pid 3213394 still present
+[7] the older executable stops its daemon
+daemon stopped
+exit=0
+pid 3213394 gone
