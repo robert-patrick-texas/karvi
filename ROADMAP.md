@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="A karvi longship sailing a fjord toward glowing network islands" src="images/karvi-voyage-across-network-fjords.png" />
+
 # Roadmap
 
 What karvi does not do yet and has decided to do, or to consider, in the order
