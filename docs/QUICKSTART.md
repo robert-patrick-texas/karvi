@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="A Viking steadying a network rack on a longship's deck in a storm" src="../images/stormbound-viking-and-network-rack.png" />
+
 # Quick start
 
 ## Inspect the executable
