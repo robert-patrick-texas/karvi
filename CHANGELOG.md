@@ -2,11 +2,96 @@
 
 ## Unreleased
 
+- **Breaking: a daemon serves its own build; a client drains another's.** A
+  daemon serves a client only when its IPC schema and its build, the last part
+  of the Go build ID its executable carries, equal the client's, where the
+  version and the IPC schema were compared and every release needed `karvi
+  daemon restart`. Every submission (`run`, `crun`, `--exercise`, `--detach`,
+  a stream's job) and `daemon start` drains a daemon of another build at its
+  own schema: holding no job, it exits and the client starts one of its own
+  build in the same invocation (`daemon drained version=… build=…`, then
+  `daemon started`); holding jobs, it finishes them and exits after the last,
+  each submission meanwhile refused `daemon_draining` (exit 112), the daemon's
+  build over the client's. A daemon of a newer schema is refused
+  `daemon_incompatible`, the schemas stacked. The dry run drains nothing: an
+  idle daemon of another build is the info finding `daemon_other_build`, a
+  busy one the error `daemon_draining`. A process that cannot read its own
+  build stops, `build_unreadable`: `daemon serve` refuses to start, and a
+  client to submit through a daemon. An interrupt while the client waits for a
+  drained daemon to go or a launched one to answer is `cancelled` (exit 113),
+  nothing submitted, where it was `daemon_start_failed` (112).
+- **Breaking: `daemon status` stacks the daemon's values over the client's.**
+  `daemon_version:` over `client_version:`, `daemon_commit:` over
+  `client_commit:`, `daemon_ipc_schema:` over `client_ipc_schema:`, and
+  `daemon_build:` over `client_build:`, above `compatible:`, each pair coloured
+  by whether its values agree; `version:` is now `daemon_version:`, and the
+  JSON takes the same keys, where it had `version` and `ipc_schema_version`.
+- **Breaking: IPC schema 12 and execution plan 13.** A request carries no
+  `client_version` or `client_pid`, and the job header's `client` holds the
+  client's pid and hostname alone: the daemon checks nothing of the client's.
+  The prepare answer's `daemon` block names its `build` and `commit`, and a
+  client abandons a preparation of another build's daemon before any
+  credential is sent and runs its sequence once more; a second such answer is
+  refused `daemon_incompatible`.
+- **Breaking: a drained daemon exits after its last job, and every stop names
+  its mode.** A drained daemon admits no job, finishes those it holds with no
+  time limit, and exits after the last, at once with none (`stopping:
+  drained`, exit 0). `daemon stop --grace` drains and waits for the daemon to
+  exit, and `--after=DURATION` drains, waits up to the limit, and forces; both
+  drain any daemon, at its own schema, where `--grace` did not drain a daemon
+  of another version. A wait begins with `daemon draining: N jobs running; …`,
+  which `--quiet` leaves out, and an interrupt ends the wait alone, the daemon
+  finishing its jobs (`daemon_stop_wait_interrupted`). Without an option a stop
+  is `if_idle`, which the daemon, counting its own jobs, refuses while any
+  runs; a stop naming no mode is taken as `if_idle`.
+- **Breaking: `daemon.shutdown-grace-seconds` defaults to 60**, where it was
+  120, under the 90 s in which systemd stops a login session's scope.
+- **Breaking: the service account's daemon under a system template; the user
+  daemon unit removed.** The package installs the template
+  `/usr/lib/systemd/system/karvi-daemon@.service` (`User=%i`, after the
+  network, `KillMode=mixed`, `TimeoutStopSec=infinity`, `Restart=on-failure`,
+  the idle timer off, no file-system sandbox) and `/usr/sbin/karvi-sysutil`
+  with `karvi-sysutil(8)`, reloads systemd at its install, upgrade, and
+  removal, enables nothing, and depends on `adduser`.
+  `/usr/share/karvi/systemd/user/karvi-daemon.service` is removed. `sudo
+  karvi-sysutil daemon install [--group NAME]` makes the system user `karvi`
+  with its home `/opt/karvi/users/karvi`, adds it to the operators' group,
+  writes its configuration with `daemon.launch = "systemd"`, and enables
+  `karvi-daemon@karvi.service`, each part entered in the record
+  `/etc/karvi/service-karvi.installed`; run again it repairs what has drifted.
+  `daemon remove` undoes what the record lists, keeping the account and its
+  home, and `--purge` gives the account's files in the shared trees to root
+  and removes the account. After an upgrade or a rollback the administrator
+  runs `sudo systemctl restart karvi-daemon@karvi.service`.
+- **`daemon.launch`, who starts the account's daemon.** `"client"`, the
+  default, the client launching its own and draining one of another build; or
+  `"systemd"`, the daemon the unit `karvi-daemon@USER.service`'s, which no
+  client drains or starts: a daemon of another build or a newer schema refuses
+  a submission and `daemon start` naming `systemctl restart` of the unit, none
+  refuses them `daemon_unreachable` naming `systemctl start`, and `daemon stop`
+  and `daemon restart` are refused with the new code `daemon_managed` (exit
+  112).
+- **Breaking: a build names its build and its commit, and no build time.**
+  `karvi version` gains `build:` after `commit:`, and with it the manifest's
+  `app.build`; `build_time` is removed from both, text and JSON. `make build`
+  takes its commit from `COMMIT`, else `git describe --always --dirty` in a git
+  checkout's root, else `development`, and `BUILD_TIME` is gone: `make build
+  COMMIT=source-release-v$(cat VERSION)` reproduces a release's bytes, and
+  `make html`'s footers name the same commit. `scripts/verify-shipped.sh` and
+  `scripts/verify-release.sh` check that `karvi version` names a build, and
+  `verify-release.sh` tests the package in an Ubuntu container under Docker
+  (`scripts/sysutil-smoke-test.sh`), which it now needs.
+- **`job follow` and `job cancel` across builds.** They use a daemon of any
+  version or build that speaks the client's IPC schema, so after an upgrade
+  the jobs a draining daemon finishes are followed and cancelled one at a
+  time; a daemon of another schema refuses them, `daemon_incompatible`, naming
+  the karvi that speaks it. A job a running daemon holds is no longer reported
+  `job_orphaned`: the daemon is judged before the job's directory.
 - **A daemon idle ten minutes stops itself.** `daemon.shutdown-idle-timer`
   defaults to `10m`, where it was `1h`: after an upgrade or a downgrade an
   operator's idle daemon of the old build is gone within some ten minutes of
   its last job, and the next run launches the installed karvi (some 80 ms).
-  The range, `0` for never, and the packaged unit's `0` are unchanged.
+  The range, `0` for never, and the template unit's `0` are unchanged.
 - **Breaking: `daemon.socket` replaced by the socket directory
   `daemon.sockets`.** The daemon binds `d.sock` and the credential channel's
   `c.sock`, until now `daemon.sock` and `credentials.sock`, in

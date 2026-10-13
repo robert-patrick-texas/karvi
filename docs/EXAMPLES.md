@@ -11399,3 +11399,30 @@ of a relaunch of some 80 ms after a longer pause. The unit's timer stays off.
 *Not taken:* the signal from `daemon stop`, its options `--grace`, `--after`,
 and `--force` (the operator's tool for the administrator's step); naming
 `kill PID` in the refusal; the default left at an hour.
+
+**Built.** In sections on the operator's word, each with `go test ./...` and
+every suite on a lab build of the tree: S1 `ffb61ba` (issues 1 and 2: the build
+read from the Go build ID, `karvi version`'s `build:`, `daemon status`'s pairs,
+`build_unreadable`); S2 `9386767` (issue 3: IPC schema 12, execution plan 13,
+the prepare answer's `daemon` block checked); S3 `75a1406` (issue 4 with issues
+10 and 11: the drain that exits, every stop naming its mode, the grace 60); S4
+`75e12f0` (issues 5, 6, and 12: `ensureDaemon`'s sequence, the dry run's
+findings, follow and cancel across builds); S5a `7a7967a` and S5b `4989570`
+(issues 7 and 13 to 17: `daemon.launch`, `daemon_managed`, the template unit,
+`karvi-sysutil`, the package's reload, the container test); `ab37589` (issue
+18: the idle timer's default `10m`); S6 `d1da703` (issue 8: no build time,
+`make build`'s one commit default, the verifiers' check of the build, and
+`verify-release.sh` running the container test, which with the whole battery
+passed in a clone of the tree, 451 s; the release tools lost `BUILD_TIME`, and
+their prior was emptied there, the tools running at a release alone); and the
+closing section, the written documents (issue 9, amended by issues 13 to 18):
+DESIGN sections 7, 8, 14, and 16; OPERATIONS' "Upgrade" and its new section "A
+service account's daemon under systemd"; QUICKSTART's "After an upgrade";
+ARCHITECTURE's "Daemon upgrade boundary" and its daemon paragraph; README;
+BUILD-HOWTO sections 4.2, 4.3, 8, and 10; BUILDING; BUILD-QUALIFICATION, its
+daemon upgrade gates the suite's four steps; `karvi-daemon(1)`'s FILES;
+`examples/config.toml`'s commented `[daemon]`; FILES section 4.7; COLLECTION
+section 7; CONTRIBUTING; the CHANGELOG; and the ROADMAP, whose Next item is
+removed, the next the operator's. At the release, not before:
+`BUILD-RESULT.md` and `release-manifest.json` name the build, and
+BUILD-QUALIFICATION's history of priors says there was none for it.

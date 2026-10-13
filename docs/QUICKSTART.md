@@ -13,16 +13,15 @@ The included executable lists `system` and `scrapligo-v1`. `command` and
 `run` use the native transport by default and `login` uses `system`; pass
 `--transport` to choose.
 
-## After upgrading from an older daemon
+## After an upgrade
+
+Nothing to run: the next run drains your daemon of the older build, which
+exits after its last job, and starts one of the new build
+([`docs/OPERATIONS.md` "Upgrade"](OPERATIONS.md#upgrade)). Each side's build:
 
 ```bash
 karvi daemon status
-karvi daemon restart
 ```
-
-A schema mismatch blocks job submission but does not require the older binary:
-karvi can explicitly stop released older lifecycle schemas. Normal runs never
-replace an incompatible daemon automatically.
 
 ## Minimal configuration
 

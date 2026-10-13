@@ -159,25 +159,32 @@ The bundle's `bin/` holds the scrapligo-v1 executables of
 ./scripts/verify-bundle.sh
 ```
 
-It checks the checksums and the executable's version counters and both
-transport IDs, refuses Go source that `gofmt` would change, tests and vets
+It checks the checksums, the executable's version counters, its build, and
+both transport IDs, refuses Go source that `gofmt` would change, tests and vets
 offline from `vendor/`, compares the generated files,
 validates the example configurations, and runs every smoke suite, the
 canary suite, and the parity suite against `bin/` as shipped. To reproduce
 the shipped bytes, rebuild with the release identity:
 
 ```bash
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION)
 sha256sum -c CHECKSUMS.sha256
 ```
 
 ### 4.3 Build the Debian package
 
-The package carries `bin/`'s executables as they are, the manual pages, the
-documents under `/usr/share/doc/karvi`, and the units, cron scripts, hook
+The package carries `bin/`'s executables as they are, `karvi-sysutil` in
+`/usr/sbin`, the manual pages, the documents under `/usr/share/doc/karvi`, the
+service account's template unit `karvi-daemon@.service` where systemd finds a
+package's units, and the per-operator and site units, cron scripts, hook
 examples, tmpfiles rule, reference configuration, and schemas under
 `/usr/share/karvi`, none of them active ([`docs/FILES.md`
-§4.7](docs/FILES.md#47-what-the-package-installs)). It needs the `dpkg-dev`
+§4.7](docs/FILES.md#47-what-the-package-installs)). It reloads systemd when it
+is installed, upgraded, or removed, and enables, starts, and restarts nothing;
+`sudo karvi-sysutil daemon install` sets the service account's daemon up
+([`docs/OPERATIONS.md`, "A service account's daemon under
+systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd)). It
+depends on `openssh-client` and `adduser`. Building it needs the `dpkg-dev`
 and `debhelper` packages, and no Go:
 
 ```bash
@@ -193,9 +200,13 @@ karvi's identity tells apart (`karvi version`'s commit
 `source-release-vVERSION`). The tree is built in a copy, so neither it nor its
 parent gains a file but the package; `DIST=DIR make deb` writes it to `DIR`.
 `scripts/check-deb.sh PACKAGE TREE` checks a package against the tree it was
-built from: the executables, the documents and example configurations under
-their own names, the units' documentation, and `lintian` with the package's
-overrides. The release verifier builds and checks the tree's package.
+built from: the executables, `karvi-sysutil` and the template unit, the
+documents and example configurations under their own names, the units'
+documentation, and `lintian` with the package's overrides. The release
+verifier builds and checks the tree's package, and tests it as root in an
+Ubuntu 26.04 container under Docker (`scripts/sysutil-smoke-test.sh PACKAGE`:
+`karvi-sysutil`, the template unit, the maintainer scripts, and the service
+account's daemon), never on the build host.
 
 ## 5. Direct Go build commands
 
@@ -285,24 +296,25 @@ using `login`, `command`, or `run`, by
 
 ## 8. Confirm the configuration and daemon/display boundary
 
-This release requires configuration schema 6, daemon IPC schema 11, and
-configuration-registry schema 28 (`karvi version`). After replacing the binary,
-inspect and, when needed, explicitly restart a still-running older per-user
-daemon:
+This release requires configuration schema 6, daemon IPC schema 12, execution
+plan 13, and configuration-registry schema 29 (`karvi version`). After an
+upgrade an operator's own daemon needs nothing run: the next submission drains
+a daemon of another build, an idle one replaced in the same invocation, a busy
+one finishing its jobs and exiting while new ones are refused, the builds
+stacked. `karvi daemon status` stacks each of the daemon's values over the
+client's; to end the daemon rather than wait:
 
 ```bash
-karvi daemon status
-# Confirm active_jobs is 0 before restart.
-karvi daemon restart
+karvi daemon stop --grace
 ```
 
 With no option, `daemon stop` and `daemon restart` refuse while the daemon
-reports active jobs. `--grace` drains and waits, `--after=DURATION` drains and
-waits up to the limit before forcing, and `--force` stops immediately; forced
-work still receives terminal records.
-A normal run never kills an incompatible daemon or downgrades a job request.
-The restart command is the explicit operator authorization to stop the older
-same-UID daemon and launch the current executable.
+runs a job. `--grace` drains and waits for it to exit, `--after=DURATION`
+drains and waits up to the limit before forcing, and `--force` stops
+immediately; forced work still receives terminal records. The service
+account's daemon under systemd is restarted by its administrator after an
+upgrade or a rollback, `sudo systemctl restart karvi-daemon@karvi.service`
+([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)).
 
 Validate configuration before a maintenance window:
 
@@ -395,8 +407,8 @@ go mod vendor
 
 The package ([§4.3](#43-build-the-debian-package)), published with each
 release beside the bundle, installs into `/usr/bin`; `apt` installs a package
-file with its dependency, `openssh-client`, where `dpkg -i` refuses on a host
-without it; installing an earlier one rolls back:
+file with its dependencies, `openssh-client` and `adduser`, where `dpkg -i`
+refuses on a host without them; installing an earlier one rolls back:
 
 ```bash
 sha256sum -c karvi_<version>_amd64.deb.sha256
@@ -410,11 +422,21 @@ A minimized image, one whose dpkg excludes `/usr/share/doc/*` and
 executables and `/usr/share/karvi` alone, no document or manual page; the
 documents are in the bundle and the repository.
 
+After an upgrade or a rollback the package has replaced the service account's
+template unit and reloaded systemd; a running instance keeps its program until
+`sudo systemctl restart karvi-daemon@karvi.service`. An operator's own daemon
+is drained by the next run of the installed karvi; after a rollback, an older
+karvi is refused beside a newer daemon until the administrator ends it, the
+host restarts, or it exits idle after `daemon.shutdown-idle-timer`.
+
 Without the package, use versioned destinations and an atomic symlink. A host
 installed so finds the units, cron scripts, hook examples, and documents the
 package puts under `/usr/share/karvi` and `/usr/share/doc/karvi` in the
 bundle's `packaging/`, `configs/`, `schema/`, and `docs/`. Use one way or the
 other on a host: `/usr/local/bin` comes before `/usr/bin` on the usual `PATH`.
+Neither way sets up a service account's daemon: a site that chooses that model
+sets it up as [`docs/OPERATIONS.md`, "A service account's daemon under
+systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd) says.
 
 ```bash
 sudo install -d -m 0755 /usr/local/lib/karvi

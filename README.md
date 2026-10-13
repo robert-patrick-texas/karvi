@@ -23,9 +23,11 @@ describe the behavior of the code as it exists; `VERSION` names the release.
 ## Release status
 
 [`CHANGELOG.md`](CHANGELOG.md) lists every release's changes, the breaking ones
-first in each release's block. A running daemon of another release accepts no
-job from the new client until `karvi daemon restart`: a daemon is compatible
-only when its version and its daemon IPC schema both equal the client's
+first in each release's block. A daemon serves a client only when its IPC
+schema and its build, the Go build ID of its executable, equal the client's:
+after an upgrade the next submission drains an operator's daemon of the older
+build, replacing an idle one in the same invocation and refusing new jobs while
+a busy one finishes its own and exits
 ([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)); since v0.14.0
 the records of a run travel over the socket, the invocation decides the job's
 files on every path, and the configuration keys nothing read are refused. The
@@ -39,13 +41,16 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
-5. Configuration schema 6; this tree's other counters: registry schema 28,
-   daemon IPC schema 11, execution plan 12, job manifest and summary 3, plan
+5. Configuration schema 6; this tree's other counters: registry schema 29,
+   daemon IPC schema 12, execution plan 13, job manifest and summary 3, plan
    report 2, scoreboard 3.
 
-A newer client still inspects, stops, and restarts a daemon launched by an
-older executable. Job submission remains exact-schema only; `karvi run` never
-silently downgrades a request or kills an incompatible daemon.
+A client drains a daemon of another build at that daemon's own IPC schema and
+kills nothing; job submission stays exact-schema, and a daemon of a newer
+schema is refused. A service account's daemon under systemd is never drained
+by a client: its administrator restarts its unit
+([`docs/OPERATIONS.md`, "A service account's daemon under
+systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd)).
 
 The official Linux/amd64 executable is the **scrapligo-v1 build** (`make
 build`; `scripts/verify-release.sh`), whose version output lists the
@@ -489,7 +494,7 @@ Rebuild with the release identity, which reproduces `CHECKSUMS.sha256` byte
 for byte:
 
 ```bash
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION)
 sha256sum -c CHECKSUMS.sha256
 ```
 

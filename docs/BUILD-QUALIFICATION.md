@@ -6,15 +6,16 @@ The release ships the scrapligo-v1 executable. Both
 verifiers run offline from the committed `vendor/` tree:
 
 ```bash
-make build COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z
+make build COMMIT=source-release-v$(cat VERSION)
 make checksums tools-build
 ./scripts/verify-bundle.sh
-COMMIT=source-release-v$(cat VERSION) BUILD_TIME=2026-09-30T00:00:00Z ./scripts/verify-release.sh
+COMMIT=source-release-v$(cat VERSION) ./scripts/verify-release.sh
 ```
 
 `verify-bundle.sh` verifies the executables as they are in `bin/`, without
-rebuilding them: identity and checksums, static Linux binaries, both transport
-IDs in `version` (it refuses an executable without `scrapligo-v1`), stateless
+rebuilding them: identity and checksums, static Linux binaries, the build
+`karvi version` names (20 characters, never `none`), both transport IDs in
+`version` (it refuses an executable without `scrapligo-v1`), stateless
 help/version behavior, script syntax, `gofmt` over the Go source outside
 `vendor/`, the unit tests and vet in vendor mode, deterministic generated files,
 the example configurations, removed-key rejection, and every historical smoke
@@ -25,10 +26,14 @@ suite `scripts/native-smoke-test.sh`.
 
 `verify-release.sh` builds from source: the import boundary and host-key
 assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and the
-race detector in vendor mode, the build, its module metadata and version
-counters, and the same smoke suites. It rebuilds `bin/` and rewrites
-`CHECKSUMS.sha256`; with the release's `COMMIT` and `BUILD_TIME` the bytes do
-not change.
+race detector in vendor mode, the build, its module metadata, version
+counters, and build, and the same smoke suites; then the tree's package, which
+`scripts/check-deb.sh` checks against the tree and
+`scripts/sysutil-smoke-test.sh` tests as root in an Ubuntu 26.04 container
+under Docker (`karvi-sysutil`, the template unit, the maintainer scripts, and
+the service account's daemon), never on the build host. It rebuilds `bin/` and
+rewrites `CHECKSUMS.sha256`; with the release's `COMMIT` the bytes do not
+change. A build is stamped with its version and its commit, and no build time.
 
 A must-not-appear check in a script MUST be able to stop it: a bare
 `! command` line is exempt from `set -e`. The
@@ -130,9 +135,11 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
   held job live under `jsonl` to byte equality with `commands.jsonl`, the
   finished job again, an unknown ID, an interrupted follow, the finished
   job from its directory after a forced restart, and a cancelled job.
-- `scripts/daemon-lifecycle-replay.sh OLD_KARVI` replays `status`, `run`,
-  `stop`, and `restart` against a daemon launched by an older executable;
-  release engineering runs it with the prior bundle's executable and keeps
+- `scripts/daemon-lifecycle-replay.sh OLD_KARVI` replays, against a daemon
+  launched by an older executable, `status` with its stacked pairs, a run's
+  exercise to 192.0.2.1 that drains the idle older daemon and starts its own,
+  `stop`, and `restart`, `--grace` and `--after` draining first; release
+  engineering runs it with the prior bundle's executable and keeps
   the output with the release's evidence; the prior
   is the newest karvi release whose daemon IPC schema differs from the new
   client's, and until one exists the replay is skipped and the evidence
@@ -159,11 +166,21 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
 
 ## Daemon upgrade gates
 
-- A schema-2 fixture MUST be visible through `daemon status` as incompatible.
-- A daemon-backed run MUST fail with exit 112 and actionable restart guidance,
-  without creating a competing daemon log or submitting a job.
-- `daemon stop` and `daemon restart` MUST use the older lifecycle envelope and
-  leave a daemon of the current schema ready.
+`scripts/daemon-upgrade-smoke-test.sh` runs each step beside a lifecycle-only
+fixture daemon, built from `tools/daemon-fixture`, which answers a drain as a
+daemon of this tree does: holding no job it exits, and holding its emulated
+jobs it stays, answering `draining`. Each run is an exercise to 192.0.2.1,
+which reaches no device.
+
+- An idle daemon of an older IPC schema MUST be reported incompatible by
+  `daemon status`, and a run MUST drain it, wait for it to exit, and start a
+  daemon of this build in the same invocation, saying both.
+- An idle daemon at this schema and version but of another build MUST be
+  reported with its pairs stacked, and drained and replaced by a run alike.
+- A daemon of an older schema holding a job MUST be drained, the run refused,
+  `daemon_draining` (exit 112), the builds stacked, with no daemon started
+  beside it; `daemon stop --force` MUST reach it at its schema.
+- `daemon restart` MUST replace an idle daemon of another build.
 - The prior release's executable SHOULD be replayed with
   `scripts/daemon-lifecycle-replay.sh` during release engineering when its
   bundle is available and its daemon IPC schema differs.

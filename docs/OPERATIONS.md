@@ -2,44 +2,63 @@
 
 ## Upgrade
 
-After replacing the executable, inspect the private per-user daemon:
+An operator's own daemon, the one the operator's client launches
+(`daemon.launch = "client"`, the default), needs nothing run after an upgrade.
+A daemon serves a client only when its IPC schema and its build, the Go build ID
+of its executable, equal the client's. The next submission (`run`, `crun`,
+`--exercise`, `--detach`, a stream's job, or `daemon start`) drains a daemon of
+another build. Holding no job, it exits at once, and the client starts one of
+its own build in the same invocation:
 
-```bash
-karvi daemon status
+```
+daemon drained version=0.29.0 build=9Au3WHU839F5xE-67H93
+daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 ```
 
-A daemon is compatible when its version and its IPC schema both equal the
-client's, so every upgrade restarts the daemon. When either differs, karvi
-reports `compatible: false` and the exact remediation. Confirm
-`active_jobs: 0`, then perform an explicit restart:
+Holding jobs, the drained daemon finishes them and exits after the last,
+killing nothing. Until then every submission is refused, the daemon's build
+over the client's:
 
-```bash
-karvi daemon restart
+```
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 9Au3WHU839F5xE-67H93 0.29.0
+  client build XfTtoeK1qq9HkGakcVu7 0.29.0
 ```
 
-With no option, stop and restart refuse while the daemon reports active jobs.
-`--grace` drains and waits for them, `--after=DURATION` drains and waits up to
-the limit before forcing, and `--force` stops immediately for an operator who
-intentionally accepts interruption; forced work still receives terminal
-records. Interrupting a `--grace` or `--after` wait leaves the daemon draining.
+Meanwhile `karvi run --no-daemon` runs in the foreground, and `karvi job
+follow` and `karvi job cancel` reach the draining daemon's jobs, as a client of
+any build does at the same IPC schema. `karvi daemon status` stacks each of the
+daemon's values over the client's, `daemon_version:` over `client_version:`,
+then the commit, the IPC schema, and the build, above `compatible:`; `--format
+json` takes the same keys.
+
+To end the daemon rather than wait for the next submission:
+
+```bash
+karvi daemon stop --grace
+```
+
+`--grace` drains the daemon and waits for it to exit; `--after=DURATION` drains
+and waits up to the limit, then forces; `--force` stops it at once, forced work
+still receiving terminal records. A wait begins with a line naming the jobs
+(`daemon draining: 1 job running; waiting for it to exit`), which `--quiet`
+leaves out; interrupted, the wait ends and the daemon still finishes its jobs
+and exits. With no option, `daemon stop` and `daemon restart` are refused while
+the daemon runs a job, which it alone counts.
+
+An older karvi beside a newer daemon is refused, `daemon_incompatible`, the
+schemas stacked: the older client cannot speak the newer schema, so it neither
+drains nor stops that daemon. A downgrade is the administrator's, who ends the
+operators' running daemons or restarts the host; an idle daemon exits by itself
+after `daemon.shutdown-idle-timer` (below).
+
+A service account's daemon under systemd is never drained by a client; its
+upgrade is the administrator's restart of its unit (see "A service account's
+daemon under systemd", below).
 
 Error messages begin with a registered code;
 [`docs/ERROR-CODES.md`](ERROR-CODES.md) lists each code with its cause and exit
 status.
-
-A daemon left by a v0.10.0 preview before schema 6 (pre4 and earlier) answers
-the same way: `compatible: false`, stop it with its own executable or `karvi
-daemon restart`. The new client uses lifecycle-only compatibility to stop the
-older same-UID daemon and then starts the current executable. Job requests are
-never downgraded, and a normal `karvi run` never kills or silently replaces an
-incompatible daemon. Operators who need a one-shot foreground run before
-restarting may explicitly use `karvi run --no-daemon ...`.
-
-For a planned upgrade, stopping before binary replacement remains valid:
-
-```bash
-karvi daemon stop
-```
 
 ## Rehearsal, detach, and follow
 
@@ -353,19 +372,96 @@ The client probes the daemon just before its first request and repeats
 that request once, with the plan it already made, if the daemon left in
 between; an operator sees at most a `daemon started` line.
 
-Under systemd the packaged unit
-(`/usr/share/karvi/systemd/user/karvi-daemon.service`) starts the daemon with
-`--set daemon.shutdown-idle-timer=0`, because an idle exit is a clean exit that
-`Restart=on-failure` would not restart, and the next client would then launch a
-daemon outside the unit and its limits. A site running its own unit does the
-same. The timer is not what ends a daemon at logout: a host whose logind has
-`KillUserProcesses=yes` ends every process of the session, a running job
-included, with or without the timer; `loginctl enable-linger` or the unit keeps
-a daemon through logout there.
+The service account's unit, `karvi-daemon@.service` (below), starts the daemon
+with `--set daemon.shutdown-idle-timer=0`, because an idle exit is a clean exit
+that `Restart=on-failure` would not restart. The timer is not what ends a daemon
+at logout: a daemon a client launched runs in the login session's scope, and a
+host whose logind has `KillUserProcesses=yes` ends every process of the session
+at logout, a running job included, with or without the timer; a shutdown stops
+the scope at once, the daemon's OpenSSH sessions with it.
 
 `karvi-daemon(1)` (`man karvi daemon`), FILES, restates the daemon's
 places, its filtered environment, and the idle exit for the terminal; a
 change to one changes both.
+
+## A service account's daemon under systemd
+
+A site chooses how karvi runs: each operator's own daemon on the operator's own
+trees; the same with the site's shared trees (`sudo karvi setup shared`); or a
+service account's daemon under systemd. Neither the package nor an install from
+the bundle sets any of them up. On a service platform the daemon is a service
+account's, `karvi`, run by systemd and administered centrally, where on a jump
+box each operator's client launches the operator's own. Only the daemon's own
+account reaches it, its socket's directory 0700 and the daemon checking each
+peer's uid, so the jobs it runs are the account's: its timers and its
+automation, run as `karvi`.
+
+The package installs the template unit
+`/usr/lib/systemd/system/karvi-daemon@.service` and runs nothing. The
+administrator sets the account up once, as root:
+
+```bash
+sudo karvi-sysutil daemon install
+```
+
+It runs `karvi setup shared` (the shared trees, in the operators' group,
+`netops` unless `--group NAME` names another); makes the system user `karvi`,
+its group, and its home `/opt/karvi/users/karvi` (0750), with no login shell;
+adds it to the operators' group; writes its configuration,
+`/opt/karvi/users/karvi/.config/karvi/config.toml` (0600), with `[daemon]
+launch = "systemd"`; and enables and starts `karvi-daemon@karvi.service`,
+checking `karvi daemon status` as the account. Each part is entered in the
+record `/etc/karvi/service-karvi.installed` as it is made or found. Run again,
+it changes nothing over a whole install and repairs what has drifted from what
+it made; `karvi-sysutil(8)` lists every step and refusal. The account is a
+system user, so logind's `RemoveIPC` leaves its files under `/dev/shm` alone,
+and it needs no user manager and no `loginctl enable-linger`.
+
+Under `daemon.launch = "systemd"` the account's client neither drains nor
+starts a daemon:
+
+- a daemon of its own build, not draining, takes the submission;
+- a daemon of another build, or of a newer IPC schema, refuses it,
+  `daemon_incompatible`, naming `systemctl restart karvi-daemon@karvi.service`;
+- with no daemon, a submission and `daemon start` are refused,
+  `daemon_unreachable`, naming `systemctl start` of the unit;
+- a draining daemon, stopping under its unit, refuses it, `daemon_draining`;
+- `daemon stop` and `daemon restart` are refused, `daemon_managed` (exit 112),
+  naming `systemctl stop` or `restart` of the unit;
+- `daemon status`'s `remediation:` names the unit's restart.
+
+The unit starts the daemon after the network, so a shutdown stops it before the
+network goes. A stop, a restart, or a shutdown signals the daemon alone
+(`KillMode=mixed`): it admits no job, lets its jobs finish within
+`daemon.shutdown-grace-seconds` (60 by default), cancels and records what
+remains, and ends its own sessions; systemd kills what is left once it has
+exited. `TimeoutStopSec=infinity` leaves that bound to the daemon's grace keys,
+so a site that raises the grace changes no unit. `Restart=on-failure` restarts
+a daemon that fails, and the idle timer is off (above). A site's own settings
+go in a drop-in under `/etc/systemd/system/karvi-daemon@.service.d/`, which an
+upgrade never touches.
+
+**After an upgrade**, and after a rollback (`apt install --allow-downgrades`,
+[`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back)), the
+package has replaced the template and reloaded systemd, and the daemon still
+runs the program it started with. The administrator's one step:
+
+```bash
+sudo systemctl restart karvi-daemon@karvi.service
+```
+
+The restart drains the old daemon under its grace and starts the installed
+karvi. Until then the account's submissions are refused, `daemon_incompatible`,
+the builds stacked.
+
+**Removal.** `sudo karvi-sysutil daemon remove` disables and stops the
+instance, the stop waiting for its jobs as at a shutdown, and removes the
+configuration file and the group membership it made. The account and its home
+stay, so that their files keep their owner, and a later `daemon install` takes
+the account back. `--purge` also gives every file the account owns in the
+shared trees and the shared scratch to root, their group and mode unchanged,
+and removes the account, its home, its spool directories, and the record. The
+shared trees and the template unit stay.
 
 ## Linux servers
 
@@ -1462,9 +1558,9 @@ every test suite sets it. `basedir` itself is never shared: its `socket` and
 `state` are one operator's daemon. `job cancel` reaches only the caller's own
 daemon, so another operator's job is cancelled by its owner.
 
-The packaged systemd user unit gives the daemon the operator's own view of
-the files, as the client has, so it writes wherever the operator may
-("Retention" says why the user units carry no sandbox).
+The service account's daemon unit sets no sandbox, so its daemon writes in the
+shared trees wherever the account may, as a client-launched daemon does for its
+operator ("Retention" says why).
 
 ## Retention
 
@@ -1528,18 +1624,19 @@ adds that path to the line, with the dash, or every removal there fails as
 `read-only file system` and the run exits 1 daily. The run makes
 nothing: a root that does not exist is not walked.
 
-The user units (`karvi-daemon.service`, `karvi-prune.service`,
-`karvi-crun.service`) carry no file-system sandbox: each runs with the
-operator's own view of the files, as the client does, so a path means the same
-to the daemon and to the client that names it, and the unit writes wherever
-the operator may. A user manager sets up a mount namespace only inside an
-unprivileged user namespace, and a host that restricts those (Ubuntu's
-`kernel.apparmor_restrict_unprivileged_userns = 1`) denies it the capability:
-systemd starts the unit without the sandbox and says nothing. `PrivateTmp`,
-`ProtectSystem`, and `ProtectHome` in a user unit would promise what such a
-host does not give, and where they did apply a `/tmp` path would land in the
-daemon's private `/tmp`, out of the client's sight. The site's unit runs under
-the system manager, where the sandbox applies.
+The user units (`karvi-prune.service`, `karvi-crun.service`) carry no
+file-system sandbox: each runs with the operator's own view of the files, as the
+client does, so a path means the same to the unit and to the operator, and the
+unit writes wherever the operator may. A user manager sets up a mount namespace
+only inside an unprivileged user namespace, and a host that restricts those
+(Ubuntu's `kernel.apparmor_restrict_unprivileged_userns = 1`) denies it the
+capability: systemd starts the unit without the sandbox and says nothing.
+`PrivateTmp`, `ProtectSystem`, and `ProtectHome` in a user unit would promise
+what such a host does not give, and where they did apply a `/tmp` path would
+land in the unit's private `/tmp`, out of the operator's sight. The site's prune
+unit runs under the system manager, where the sandbox applies. The service
+account's daemon unit, a system unit too, sets none: its daemon writes where its
+clients read, the shared trees, the shared scratch, and the spool.
 
 ## Tab completion
 
@@ -1642,9 +1739,9 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   files in, or a sticky one of another owner, with that shape in the message;
   a file at or above the path, or a missing directory that cannot be made,
   with the cause alone, naming that file or the directory.
-- **Under systemd.** The packaged user unit gives the daemon the operator's
-  own view of the files ("Retention"), so a collection directory anywhere the
-  operator may write serves through it as in the client process.
+- **Under systemd.** The service account's daemon unit sets no sandbox
+  ("Retention"), so a collection directory anywhere the account may write
+  serves through its daemon as in the client process.
 - **`--fs=SUFFIX`** appends a literal suffix to each file's name in the
   collection directory (`--fs=.cfg` writes `NAME.cfg`), never to the
   directory's; on `crun` the directory stays `crun.directory`.

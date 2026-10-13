@@ -237,6 +237,14 @@ color = "auto"
 [output]
 directory-mode = "0750"
 
+# Who starts the account's daemon: "client", the default, the client
+# launching its own and draining one of another build, as on a jump box; or
+# "systemd", the daemon the unit karvi-daemon@USER.service runs, which no
+# client drains or starts. sudo karvi-sysutil daemon install sets "systemd" in
+# the service account's own configuration; an operator keeps the default.
+# [daemon]
+# launch = "client"
+
 # The audit: journald is required where the host has it. A container or a
 # workstation without journald writes the audit to a file instead.
 # [audit]

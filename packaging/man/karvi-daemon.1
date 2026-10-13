@@ -95,11 +95,41 @@ After
 exit 0, with a
 .B stopping: idle
 line in its log, and the next run launches another; 0 never stops.
-A service unit runs it with the timer at 0, since
+The service account's unit runs it with the timer at 0, since
 .B Restart=on\-failure
 does not restart a clean exit.
+.PP
+A drained daemon admits no job, finishes those it holds, and exits after the
+last, exit 0, with a
+.B stopping: drained
+line in its log; a run of another build drains an operator's daemon so and,
+when it holds no job, starts one of its own build at once.
+.PP
+The service account's daemon runs under the package's template unit
+.IR /usr/lib/systemd/system/karvi\-daemon@.service ,
+as
+.BR karvi\-daemon@karvi.service ,
+which
+.BR karvi\-sysutil (8)
+sets up with
+.B daemon.launch = \(dqsystemd\(dq
+in the account's configuration: its client neither drains nor starts a
+daemon, and
+.B daemon stop
+and
+.B daemon restart
+are refused, naming
+.BR systemctl .
+The unit signals the daemon alone at a stop
+.RB ( KillMode=mixed )
+and leaves the bound to the daemon's grace
+.RB ( TimeoutStopSec=infinity ).
+After an upgrade the administrator's
+.B systemctl restart karvi\-daemon@karvi.service
+drains the old daemon and starts the installed one.
 .SH SEE ALSO
 .BR karvi (1),
 .BR karvi\-job (1),
 .BR karvi\-watch (1),
+.BR karvi\-sysutil (8),
 .BR systemd.exec (5)

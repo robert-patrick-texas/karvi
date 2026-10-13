@@ -57,7 +57,7 @@ must be repeatable from what it wrote, and no input may size memory.
 
 **Breaking changes accepted.** The program is pre-1.0 and its operator has
 chosen speed over compatibility: renamed options and removed keys are not
-aliased, every release restarts the daemon, and a digest is kept only where a
+aliased, every build replaces the daemon, and a digest is kept only where a
 consumer requires it. *Why:* aliases reintroduce the ambiguities a rename
 removed and a compatibility lane is a maintenance line nobody asked for.
 
@@ -1603,6 +1603,38 @@ the header against the plan, and every record's device against a plan target.
 *Why:* the plan and header are the record; duplicating them invites
 disagreement.
 
+**A build is its Go build ID's last part.** The process reads the Go build ID
+from its own executable (`/proc/self/exe`, the ELF note `.note.go.buildid`),
+the daemon at its start and the client when it reaches a daemon; the build is
+the ID's last part, the content hash of the executable, its 20 characters shown
+as they are. `karvi version` names it (`build:`), and with it the manifest's
+`app.build`; the ping and status answer carries `build` and `commit`; `daemon
+status` stacks each of the daemon's values over the client's,
+`daemon_version:` over `client_version:`, then the commit, the IPC schema, and
+the build, above `compatible:`, its JSON taking the same keys. A process that
+cannot read its own build stops, `build_unreadable`: `daemon serve` refuses to
+start and a client to submit through a daemon; an empty build is never
+compared, and `karvi version` says `build: none`. *Why:* two programs of one
+modified tree share a commit, and the build ID tells them apart in
+microseconds, where a hash of the file takes 33 ms. *Not taken:* the commit
+alone; Go's VCS stamp (the same, and it needs `.git`); the executable's SHA-256;
+the whole build ID (83 characters, four hashes); the build in every record (the
+manifest names it once a job).
+
+**The client judges the daemon; the daemon checks nothing of the client's.**
+Whether a daemon is acceptable is the client's judgment alone: the daemon takes
+a job from a client of any version or build. The client reports neither its
+version nor its build: a request carries no `client_version` or `client_pid`
+(IPC schema 12), and the job header's `client` holds the client's pid and
+hostname alone (execution plan 13). The daemon reports its own, and the prepare
+answer's `daemon` block names its `build` and `commit`, so a client that finds
+the preparing daemon unacceptable, one replaced between the probe and the
+request, abandons the preparation before any credential is sent and runs its
+sequence once more; a second such answer is refused, `daemon_incompatible`.
+*Why:* a later client may accept a daemon of another build without the daemon
+changing, and the moment between the probe and the submission is closed.
+*Not taken:* the daemon checking the client's build; the moment left open.
+
 ## 8. Rehearsal, follow, cancel, and the daemon's lifecycle
 
 **`--dry-run` shares the live run's first half and calls only the probe.** The
@@ -1658,9 +1690,16 @@ follows from the zero cursor; the daemon catches it up and feeds it live; the
 display ends with the footer or the jsonl summary line, and the exit is the
 job's own. A job the daemon does not hold is read from its directory, located
 as the day folder holding a subdirectory named by the ID; a directory without
-`summary.json` and no daemon holding the job is `job_orphaned`. *Why:* the
-operator who detached wants the job; the files are the canonical record and
-the daemon serves the stream from them.
+`summary.json` and no daemon holding the job is `job_orphaned`, the daemon
+judged before the directory. `job follow` and `job cancel` use a daemon of any
+version or build that speaks the client's IPC schema, and neither drains, since
+neither submits; a daemon of another schema refuses a running job's follow and
+cancel, `daemon_incompatible`, naming the karvi that speaks it, and a job that
+has ended renders from its directory. *Why:* the operator who detached wants
+the job; the files are the canonical record and the daemon serves the stream
+from them; after an upgrade the jobs a draining daemon finishes are followed and
+cancelled one at a time. *Not taken:* follow and cancel refused across builds
+(the old daemon's jobs out of reach but by cancelling them all).
 
 **Cancellation is a job-scoped cause with shutdown's accounting.** `cancel_job`
 cancels one job's context with a cause carrying the reason, requester, and
@@ -1687,20 +1726,89 @@ terminal record received none; a forced stop must be distinguishable from a
 device failure and an operator cancel.
 
 **`daemon stop` and `daemon restart` refuse an active daemon without an
-option.** With active jobs and no option they refuse naming `--grace` (drain
-and wait), `--after=X` (drain, then force), and `--force`; Ctrl-C during the
-wait ends only the wait. *Why:* the earlier `stop` stopped without checking.
+option.** Every stop names its mode, and the daemon alone counts its jobs,
+under the lock that admits them. Without an option the mode is `if_idle`,
+refused while any job runs (`daemon_active_jobs`), the refusal naming
+`--grace`, `--after=DURATION`, and `--force`; a stop naming no mode is taken as
+`if_idle`. `--grace` drains the daemon and waits for it to exit; `--after`
+drains, waits up to the limit, and forces; `--force` cancels the jobs and
+stops. Both drains reach any daemon, at its own schema. A wait begins with a
+line naming the jobs (`daemon draining: 1 job running; waiting for it to
+exit`), which `--quiet` leaves out; an interrupt ends the wait alone, the
+daemon finishing its jobs and exiting. A stop or a signal after a drain takes
+over from it, so the log names the stop that ended the daemon. *Why:* the
+earlier `stop` stopped without checking, and a client's count is blind to the
+jobs other clients submit before the stop arrives. *Not taken:* the client's
+count; a stop naming no mode stopping at once (its jobs lost unrecorded); the
+daemon holding `--after`'s limit (the wait and its limit are the client's).
 
-**A client keeps lifecycle access to a daemon of another release, and
-compatibility is the pair.** `ping`, `status`, `stop`, and `restart` reach a
-same-UID daemon launched by another executable; a run is refused before any job
-with `daemon_incompatible` unless the daemon's version and IPC schema both
-equal the client's, and every release restarts the daemon. *Why:* an upgrade
-never requires the old executable and never kills an incompatible daemon
-automatically; the execution plan moved twice under an unchanged IPC schema
-while the status said compatible, so the version catches every release and the
-schema catches a pre-release client beside a released daemon. *Not taken:* the
-version alone; comparing the commit; naming the plan schema on the status line.
+**A daemon serves its own build; a client drains another's.** A daemon serves a
+client only when its IPC schema and its build equal the client's; the version
+and the commit, compiled into the program, differ only with the build. Every
+submission (`run`, `crun`, `--exercise`, `--detach`, a stream's job, `daemon
+start`) passes one sequence, `ensureDaemon`: nothing answering, the client
+starts a daemon of its build; its own build, it uses it; another build, or any
+daemon draining, it drains it at the daemon's own schema and reads its jobs
+from the answer. With none the daemon exits, and the client waits up to
+`daemon.start-timeout` for it to go, starts its own, and runs the job in the
+same invocation, saying `daemon drained version=… build=…` before `daemon
+started`. With jobs, or not gone within the wait, the submission is refused,
+`daemon_draining` (exit 112), the daemon's build over the client's, and every
+client alike until the daemon exits. A daemon of a newer schema, which the
+client cannot drain, is refused `daemon_incompatible`, the schemas stacked. The
+dry run drains nothing: an idle daemon of another build is the info finding
+`daemon_other_build`, a busy one the error `daemon_draining`. `daemon status`
+reads and never drains; `--no-daemon` never reaches the daemon. *Why:* an
+upgrade needs nothing from the operator, and nothing is killed: the drain
+finishes the jobs; two builds of one version are different programs, and a
+daemon of one serving the other ran code the client did not plan with. *Not
+taken:* the signal (it cancels the jobs past the old daemon's grace); a new
+request beside the drain; the client waiting out the drain (a run held for the
+old jobs' length); a second daemon beside the draining one (two daemons for one
+operator, the old jobs out of reach of `job follow`); a notice alone; an older
+client draining a newer daemon (a downgrade is the administrator's).
+
+**A drained daemon exits after its last job.** From a drain the daemon admits
+no job from any client, `prepare_job` and `commit_job` refused
+`daemon_draining`, and finishes every job it holds with no time limit, killing
+nothing; it exits when the last ends, at once with none, logging `stopping:
+drained`, exit 0. Only accepted jobs hold it; a preparation not yet committed
+does not, its commit refused. Until it exits it answers `ping` and `status`
+(`draining`, its jobs), `follow_job`, and `cancel_job`, every follower
+receiving its terminal before the exit. *Why:* a drained daemon refuses every
+job, so one kept after its last job serves nothing. *Not taken:* a time limit
+(the jobs finish); the draining daemon starting its successor (the client
+starts one, or the unit).
+
+**A unit's daemon is its administrator's.** Two shapes: an operator's own
+daemon, launched by the operator's client, as on a jump box; and a service
+account's daemon run by systemd, whose life is the unit's and the
+administrator's. `daemon.launch` names who starts the account's daemon:
+`"client"`, the default, or `"systemd"`, set by `karvi-sysutil daemon install`
+in the service account's configuration, the daemon then the unit
+`karvi-daemon@USER.service`'s, USER the client's own account. Under `"systemd"`
+a client never drains or starts a daemon: a daemon of another build or a newer
+schema refuses a submission and `daemon start`, `daemon_incompatible`, and none
+refuses them `daemon_unreachable`, each naming `systemctl restart` or `start` of
+the unit; `daemon stop` and `daemon restart` are refused `daemon_managed`. The
+package ships the template `/usr/lib/systemd/system/karvi-daemon@.service`
+(`User=%i`), enables nothing, and reloads systemd at an upgrade; the account is
+a system user with no user manager or linger. The unit starts after the
+network, signals the daemon alone at a stop (`KillMode=mixed`), and leaves the
+bound to the daemon's grace (`TimeoutStopSec=infinity`), with
+`Restart=on-failure` and the idle timer off. The daemon itself is unchanged: it
+names no unit. *Why:* a drained daemon exits 0, which `Restart=on-failure` does
+not restart, and the moment a service changes build is the administrator's; a
+user unit is killed 5 s into every shutdown on Ubuntu (`user@.service`'s
+drop-in) and orders nothing against the network; logind's `RemoveIPC` removes
+an ordinary user's files under `/dev/shm` after the last logout, and a system
+user's never; `control-group` cuts the system transport's OpenSSH sessions with
+the daemon's SIGTERM. *Not taken:* socket activation and an exit status for
+systemd to restart (a client's touch choosing the moment); `Restart=always` (a
+stop undone); the user unit with linger or a drop-in for the account's user
+manager; the daemon knowing its unit from `INVOCATION_ID` and its cgroup (the
+client's setting says it); `daemon.launch` a boolean (`false` says what a
+client does not do, not who does).
 
 ## 9. Dispatch and the ICMP gate
 
@@ -2033,8 +2141,8 @@ keys and the `crun_directory_*` codes keep their names and document every
 collection; `--cd` is `crun.directory` as a flag-origin value on every word, so
 a site that locks the key refuses `run --cd` and `command --cd` as it refuses
 `crun --cd`. Through the daemon the path means what it means to the client,
-since the packaged user unit carries no file-system sandbox. *Why:* one rule
-for one kind of directory. *Not taken:* `collection.*` keys and
+since the service account's daemon unit carries no file-system sandbox. *Why:*
+one rule for one kind of directory. *Not taken:* `collection.*` keys and
 `collection_directory_*` codes (every site's configuration broken for a name).
 
 **`--fs=SUFFIX` appends a literal suffix to each collection file's name; on
@@ -2494,21 +2602,23 @@ the line. *Why:* the shipped line failed every unit on a host lacking one of its
 paths; a place the helper walks that is not on the line is a failed line per
 item, daily.
 
-**The user units carry no file-system sandbox.** `karvi-daemon.service`,
-`karvi-prune.service`, and `karvi-crun.service` run with the operator's own view
-of the files, as the client does: no `PrivateTmp`, `ProtectSystem`,
-`ProtectHome`, or `ReadWritePaths`; `NoNewPrivileges`, the umask, and the limits
-stay. Confinement is the system units'. *Why:* a user manager makes a mount
-namespace only inside an unprivileged user namespace, and on a host that
-restricts those (Ubuntu's `kernel.apparmor_restrict_unprivileged_userns = 1`)
-AppArmor denies it `CAP_SYS_ADMIN` and systemd starts the unit unsandboxed
-without a word; where the sandbox did apply, a `/tmp` path the client named
-landed in the daemon's private `/tmp` and a home path was refused, so one path
-meant two places. *Not taken:* keeping the lines and stating the limit (the
-behaviour differing by host); a system unit per operator (`User=`), where the
-divergence stays; an AppArmor profile granting the executor a user namespace
-(the host's restriction weakened for every user manager); `PrivateUsers=`,
-which asks for the very namespace denied.
+**The user units carry no file-system sandbox.** `karvi-prune.service` and
+`karvi-crun.service` run with the operator's own view of the files, as the
+client does: no `PrivateTmp`, `ProtectSystem`, `ProtectHome`, or
+`ReadWritePaths`; `NoNewPrivileges`, the umask, and the limits stay. The service
+account's daemon template, a system unit, sets none either, its daemon writing
+where its clients read; confinement is the site's prune unit's. *Why:* a user
+manager makes a mount namespace only inside an unprivileged user namespace, and
+on a host that restricts those (Ubuntu's
+`kernel.apparmor_restrict_unprivileged_userns = 1`) AppArmor denies it
+`CAP_SYS_ADMIN` and systemd starts the unit unsandboxed without a word; where
+the sandbox did apply, a `/tmp` path the client named landed in the daemon's
+private `/tmp` and a home path was refused, so one path meant two places. *Not
+taken:* keeping the lines and stating the limit (the behaviour differing by
+host); a system unit per operator (`User=`), where the divergence stays; an
+AppArmor profile granting the executor a user namespace (the host's restriction
+weakened for every user manager); `PrivateUsers=`, which asks for the very
+namespace denied.
 
 ## 15. Configuration and errors
 
@@ -2715,6 +2825,23 @@ resolver isolates it, with a scratch root of its own made under `/tmp`, never
 scripts once enrolled into the operator's real trust store, and a verifier run
 left job folders in a site's shared tree; a root under `TMPDIR` failed twenty
 socket tests at the 0.26.0 release.
+
+**A build is stamped with its version and its commit.** `make build` stamps
+the commit `git describe --always --dirty` names in a git checkout's root
+(`.git` there), and `development` elsewhere: the one default, which `COMMIT`
+on the command line or in the environment outranks, and `make html`'s footers
+take the same. A release passes `COMMIT=source-release-vVERSION`, and `make
+build COMMIT=source-release-v$(cat VERSION)` reproduces its bytes. No build
+time is stamped. `verify-shipped.sh` and `verify-release.sh` check that `karvi
+version` names a build of 20 characters, and `verify-release.sh` tests the
+package's `karvi-sysutil`, template unit, and maintainer scripts as root in an
+Ubuntu container under Docker (`scripts/sysutil-smoke-test.sh`). *Why:* the
+build time was the one value a rebuild had to be told from outside the tree;
+nothing compared it; a dev build's said 1970 and made every build another; a
+release without its Go build ID, whose daemon would refuse to start, is found
+in seconds. *Not taken:* the dates derived from the CHANGELOG's heading or the
+commit; the release's commit derived from the heading (a modified tree would
+claim the release); the tag's name (the bundle has no `.git`).
 
 **A man page is roff written by hand, its SYNOPSIS and OPTIONS generated.**
 `packaging/man/karvi-prune.8` is one committed file; between the comment lines

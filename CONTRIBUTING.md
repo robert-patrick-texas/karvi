@@ -75,5 +75,5 @@ Development happens on `dev`; `main` moves only at a release, to the tagged
 commit `karvi-vX.Y.Z`. A release ships a source bundle, its checksum, and an
 aggregate checksum file, and the release tools refuse a tree that holds
 anything git does not track. Breaking changes are accepted before 1.0: a
-renamed option or removed key is not aliased, and every release restarts the
+renamed option or removed key is not aliased, and every build replaces the
 daemon. [`ROADMAP.md`](ROADMAP.md) lists what is open, in order.

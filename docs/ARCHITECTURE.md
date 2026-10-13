@@ -165,17 +165,36 @@ family, fallback family, and numeric-lowest selection.
 
 ## Daemon upgrade boundary
 
-`ipc.Call` returns a structured schema-mismatch error. `daemon.Probe` may use
-the stable, credential-free lifecycle envelope of every released schema from
-`MinLifecycleSchema` to the current one to read status, and it judges
-compatibility by the pair: the daemon's version and its IPC schema both equal
-this executable's, either difference incompatible.
-`daemon.StopCompatible` is reachable only through explicit
-operator lifecycle commands. Submit paths always use the current schema and
-never translate or omit request fields. `ensureDaemon` recognizes a live
-incompatible daemon and returns `daemon_incompatible` before opening the
-daemon log or starting a child process.
+A process's build is the last part of the Go build ID its executable carries,
+read once from the ELF note of `/proc/self/exe` (`buildinfo.Build`); the daemon
+reads its own at its start and refuses to start without one
+(`build_unreadable`). `daemon.Probe` pings at the current IPC schema; a daemon
+of an older released schema answers a structured schema-mismatch error, and the
+probe repeats the ping in that daemon's lifecycle envelope, any schema from
+`MinLifecycleSchema` to the current one. A daemon is compatible when the
+schema matches and then its build equals the client's; one that names no
+build never is. Submit paths always use the current schema and never translate
+or omit request fields.
 
+Every submission and `daemon start` pass `ensureDaemon` (`internal/cli`).
+Under `daemon.launch = "client"` it starts a daemon when none answers, uses one
+of its own build, and drains any other, or a draining one, with `daemon.Drain`
+at the daemon's own schema, the answer naming its jobs: with none it waits up
+to `daemon.start-timeout` for the daemon to go and starts its own; with jobs it
+refuses, `daemon_draining`, the builds stacked; a newer schema it refuses,
+`daemon_incompatible`. Under `"systemd"`, `systemdDaemon` sends no drain and
+starts nothing, refusing what the client would otherwise drain or start with
+the unit's `systemctl` command, and `daemon stop` and `daemon restart` refuse,
+`daemon_managed`. Nothing holds the daemon between the probe and the request,
+so `daemon.PrepareJob` checks the prepare answer's `daemon` block: another
+build's preparation is abandoned before any credential is sent
+(`OtherBuildError`), and `app.RunViaDaemon` runs the sequence once more within
+its one repeat. `job follow` and `job cancel` need the schema alone, and use a
+daemon of any build that speaks it; the daemon is judged before the job's
+directory. `daemon.StopCompatible` is reached only through the operator's
+`daemon stop` and `daemon restart`, at the daemon's own schema, always naming
+the mode. The daemon checks nothing of the client's: a request carries no
+client version.
 
 ## Execution
 
@@ -274,32 +293,33 @@ implementation without a registered provider is
 ## Daemon and storage
 
 The daemon is per effective UID, uses two owner-only Unix sockets in the
-`socket` subtree, and checks peer credentials on both. Protocol schema 9 carries
-`prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `d.sock`
-beside the lifecycle operations of schemas 3 and 4, and the credential package
-crosses `c.sock` as one length-prefixed frame per connection under a
-one-use token; `submit_job` is gone. The daemon holds at most 128 preparations
-for ten minutes each, retains 1,024 commit receipts for idempotent replay, logs
-one `slog` line per request outcome to `logs/daemon.log` with the token
-redacted, and runs every job under its own configuration and operator, but for
-what the plan carries from the invocation (the job's files, the ICMP gate, the
-timeouts and the command byte limit, each command's own among them, and the
-halt rule). It stops
-itself after `daemon.shutdown-idle-timer` (default ten minutes;
-`Server.IdleTimeout`) with no active job, no live preparation, and no request
-but `ping` and `status`: the check `stopIfIdle` runs on the minute ticker that
-sweeps preparations, takes `beginStop(if_idle)` under the admission lock as
-`daemon stop` does, and cancels the serve, so the drain and the accounting are
-the ordinary ones and the exit is 0. The idle clock (`lastActive`) is restarted
-by every request that is not `ping` or `status` and by a job's end. On the
-client's side `RunViaDaemon` takes an `ensure` step and calls it just before
-`prepare_job`, after planning, and once more with the same plan if that request
-finds the socket gone or the daemon draining (`daemonGone`), so the timer has
-the least room to end a daemon between the probe and the request. Every error
-returned to a client carries a registered code (`internal/errorcodes`).
-`commit_job` answers at acceptance and the job runs on its own goroutine; the
-client follows it through `follow_job`. The `socket` and `state` subtrees are
-mode 0700; a state root and `logs` are 0750; job and transcript folders take
+`socket` subtree, and checks peer credentials on both. IPC schema 12 carries
+`prepare_job`, `commit_job`, `follow_job`, and `cancel_job` on `d.sock` beside
+the lifecycle operations `ping`, `status`, `drain`, and `stop`, and the
+credential package crosses `c.sock` as one length-prefixed frame per connection
+under a one-use token; `submit_job` is gone. The daemon holds at most 128
+preparations for ten minutes each, retains 1,024 commit receipts for idempotent
+replay, logs one `slog` line per request outcome to `logs/daemon.log` with the
+token redacted, and runs every job under its own configuration and operator, but
+for what the plan carries from the invocation (the job's files, the ICMP gate,
+the timeouts and the command byte limit, each command's own among them, and the
+halt rule). It stops itself after `daemon.shutdown-idle-timer` (default ten
+minutes; `Server.IdleTimeout`) with no active job, no live preparation, and no
+request but `ping` and `status`: the check `stopIfIdle` runs on the minute
+ticker that sweeps preparations, takes `beginStop(if_idle)` under the admission
+lock as `daemon stop` does, and cancels the serve, so the drain and the
+accounting are the ordinary ones and the exit is 0. A drained daemon admits no
+job, finishes those it holds, and exits after the last, at once with none,
+logging `stopping: drained`. The idle clock (`lastActive`) is restarted by every
+request that is not `ping` or `status` and by a job's end. On the client's side
+`RunViaDaemon` takes an `ensure` step and calls it just before `prepare_job`,
+after planning, and once more with the same plan if that request finds the
+socket gone or the daemon draining (`daemonGone`), so the timer has the least
+room to end a daemon between the probe and the request. Every error returned to
+a client carries a registered code (`internal/errorcodes`). `commit_job` answers
+at acceptance and the job runs on its own goroutine; the client follows it
+through `follow_job`. The `socket` and `state` subtrees are mode 0700; a state
+root and `logs` are 0750; job and transcript folders take
 `output.directory-mode` (default 0750) and their files are 0640. `cancel_job`
 cancels one accepted job through its own context; crash reconstruction is a
 roadmap capability: a job whose daemon died is `job_orphaned` to `job follow`,
