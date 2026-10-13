@@ -1,3 +1,5 @@
+<img width="1536" height="1024" alt="A Viking on a karvi's deck reading a network map, satellites linking the datacenters of an arctic coast" src="../images/viking-karvi-across-arctic-network.png" />
+
 # Architecture of the karvi implementation
 
 The executable is a thin process boundary over reusable application services.
