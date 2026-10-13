@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="A Viking keeping watch over the network racks of a datacenter" src="../images/viking-guardian-of-the-datacenter.png" />
+
 # Operations guide
 
 ## Upgrade
