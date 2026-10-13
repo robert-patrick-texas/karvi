@@ -64,7 +64,7 @@ func TestRemovedKeysRefused(t *testing.T) {
 		for _, key := range sqliteKeys {
 			err := load(t, "[credential-backend.db]\ntype = \"sqlite\"\n"+key+" = \"x\"\n", nil, nil)
 			want(t, err, "config_key_removed", "credential-backend.db."+key)
-			if !strings.Contains(err.Error(), "removed in "+nextRelease+"; the sqlite credential backend type had no driver") {
+			if !strings.Contains(err.Error(), "removed in "+removedV0300+"; the sqlite credential backend type had no driver") {
 				t.Fatalf("message: %v", err)
 			}
 			want(t, load(t, "", nil, []string{`credential-backend.c.type="csv"`, "credential-backend.c." + key + `="x"`}), "config_key_removed", "credential-backend.c."+key)
@@ -80,7 +80,7 @@ func TestRemovedKeysRefused(t *testing.T) {
 				section, leaf, _ := strings.Cut(key, ".")
 				err := load(t, "[credential-backend.b]\ntype = \""+typ+"\"\n\n[credential-backend.b."+section+"]\n"+leaf+" = true\n", nil, nil)
 				want(t, err, "config_key_removed", "credential-backend.b."+key)
-				if !strings.Contains(err.Error(), "removed in "+nextRelease+"; a credential CSV cell or a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable") {
+				if !strings.Contains(err.Error(), "removed in "+removedV0300+"; a credential CSV cell or a Redis or Vault field names a variable as env:NAME; an env backend's template names its variable") {
 					t.Fatalf("message: %v", err)
 				}
 				want(t, load(t, "", nil, []string{`credential-backend.c.type="` + typ + `"`, "credential-backend.c." + key + "=true"}), "config_key_removed", "credential-backend.c."+key)

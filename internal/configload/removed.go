@@ -96,21 +96,21 @@ var removedKeys = []removedKey{
 	{path: "logging.file", environment: "KARVI__LOGGING__FILE", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "logging.file-required", environment: "KARVI__LOGGING__FILE_REQUIRED", removedIn: "v0.28.0", code: "config_key_removed", hint: unreadHint},
 	{path: "security.fips-legacy-system-ssh-exception", environment: "KARVI__SECURITY__FIPS_LEGACY_SYSTEM_SSH_EXCEPTION", removedIn: reviewRelease, code: "config_key_removed", hint: "the compatibility classes it excepted left with ssh.legacy-hosts"},
-	// The release after v0.29.0: the daemon's socket file became its socket
+	// v0.30.0: the daemon's socket file became its socket
 	// directory, the daemon binding d.sock and c.sock in it under names of
 	// its own. The sqlite credential backend type's keys and the backends'
 	// env-indirection flags left in the same release; they are fields of a
 	// dynamic table, matched by removedKeyByPath on any backend (sqliteKeys,
 	// indirectionKeys).
-	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: nextRelease, code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
+	{path: "daemon.socket", environment: "KARVI__DAEMON__SOCKET", removedIn: removedV0300, code: "config_key_removed", hint: "daemon.sockets names the daemon's socket directory, where it binds d.sock and c.sock"},
 	// The same release: read by nothing, every device carrying the name
 	// transform default when its row and source name none.
-	{path: "name.default-transform", environment: "KARVI__NAME__DEFAULT_TRANSFORM", removedIn: nextRelease, code: "config_key_removed", hint: "a device whose row and source name no name transform takes [name-transform.default]; define that table to change the default"},
+	{path: "name.default-transform", environment: "KARVI__NAME__DEFAULT_TRANSFORM", removedIn: removedV0300, code: "config_key_removed", hint: "a device whose row and source name no name transform takes [name-transform.default]; define that table to change the default"},
 }
 
-// nextRelease names the release after v0.29.0, which first refuses the keys
-// marked with it: the number assigned at that release.
-const nextRelease = "v0.30.0"
+// removedV0300 names the release that first refuses the keys marked with it:
+// v0.30.0, set when that number was assigned.
+const removedV0300 = "v0.30.0"
 
 // sqliteKeys are the removed sqlite credential backend type's keys, refused
 // on any [credential-backend.NAME] table: the type had no driver, and nothing
@@ -148,9 +148,9 @@ func removedKeyByPath(key string) (removedKey, bool) {
 	if parts := strings.SplitN(key, ".", 3); len(parts) == 3 && parts[0] == "credential-backend" && parts[1] != "" {
 		switch {
 		case contains(sqliteKeys, parts[2]):
-			return removedKey{path: key, removedIn: nextRelease, code: "config_key_removed", hint: sqliteHint}, true
+			return removedKey{path: key, removedIn: removedV0300, code: "config_key_removed", hint: sqliteHint}, true
 		case contains(indirectionKeys, parts[2]):
-			return removedKey{path: key, removedIn: nextRelease, code: "config_key_removed", hint: indirectionHint}, true
+			return removedKey{path: key, removedIn: removedV0300, code: "config_key_removed", hint: indirectionHint}, true
 		}
 	}
 	return removedKey{}, false

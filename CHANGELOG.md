@@ -1,6 +1,29 @@
 # Changelog
 
-## Unreleased
+## 0.30.0 - 2026-10-13
+
+A minor release on 0.29.0. The configuration registry moves from 28 to 29, the
+execution plan from 12 to 13, and the daemon IPC schema from 11 to 12; every
+other counter is 0.29.0's (configuration schema 6, command record 3, job
+manifest and summary 3, plan report 2, credential package 2, scoreboard 3,
+audit 1, metrics 1, inventory 1). A daemon serves only a client of its own
+build, and a client that launches its own daemon drains one of another build
+and starts its own; a service account's daemon runs under the package's system
+template, set up by `karvi-sysutil`. A site has something to change where its
+configuration names `daemon.socket` (now the directory `daemon.sockets`),
+`name.default-transform`, `env-indirection`, the `sqlite` backend type, a key
+its credential backend's type does not read, or a transform table that does
+not build (each refused at load); where a credential template holds `%s` (now
+text; `%operator%` is the operator's name) or a CSV cell or a Redis or Vault
+field begins with `env:` (now a variable's value); where a Redis or Vault
+`ca-file` was meant to add to the host's trust (it is the whole trust); where a
+script reads `daemon status`'s `version:` or `ipc_schema_version`, `karvi
+version`'s `build_time`, or colour escapes from a file; where it used the
+packaged user unit (removed) or installed the bundle by hand (`sudo
+./scripts/install.sh` now); and where it relied on a daemon's stop grace of 120
+seconds or its idle hour (`daemon.shutdown-grace-seconds` 60 and
+`daemon.shutdown-idle-timer` `10m` now). The module graph is 0.29.0's,
+`golang.org/x/sys` now a direct requirement.
 
 - **Breaking: a daemon serves its own build; a client drains another's.** A
   daemon serves a client only when its IPC schema and its build, the last part
