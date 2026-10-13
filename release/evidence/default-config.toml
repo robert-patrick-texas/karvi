@@ -77,8 +77,6 @@ address-family-preference = "ipv6"
 default-address-authority = "client"
 # Global governance gate; a daemon-authority target fails validation unless enabled.
 allow-daemon-resolution = false
-# Existing name-transform profile.
-default-transform = "default"
 # 1ms–60s; no karvi retry.
 dns-timeout = "2s"
 # V1 only system.
@@ -179,6 +177,12 @@ ciphers = ["aes256-gcm@openssh.com", "chacha20-poly1305@openssh.com", "aes256-ct
 # MACs both SSH transports offer, strongest first. UMAC-128 only in an ssh-algorithms-profile;
 # MD5, truncated, and 64-bit MACs are refused.
 macs = ["hmac-sha2-512-etm@openssh.com", "hmac-sha2-256-etm@openssh.com", "hmac-sha2-512", "hmac-sha2-256", "hmac-sha1"]
+# Where the key exchange, cipher, and MAC lists come from: karvi (alias auto), the
+# ssh-algorithms lists; transport, each transport's own defaults (OpenSSH's compiled ones or
+# an included ~/.ssh/config's, x/crypto's), the names karvi refuses among them. The host-key
+# list is ssh-algorithms.host-key under either. An ssh-algorithms-profile may set its own
+# source.
+source = "karvi"
 
 [native-ssh]
 # 1s–5m.
@@ -348,19 +352,33 @@ unknown-fallback = "generic"
 shared-capacity-root = "auto"
 
 [daemon]
-# The daemon's socket, a safe per-UID path: auto is <basedir>/socket/daemon.sock, so another
-# basedir reaches or starts another daemon; an explicit path reaches the daemon there whatever
-# the client's basedir, that daemon's own state and log staying under the basedir it started
-# with.
-socket = "auto"
+# The daemon's socket directory, private to the operator, where the daemon binds d.sock and
+# the credential channel's c.sock: auto is <basedir>/socket, so another basedir reaches or
+# starts another daemon; an explicit path reaches the daemon there whatever the client's
+# basedir, that daemon's own state and log staying under the basedir it started with. The
+# directory may be at most 100 bytes, so that each socket's path fits 107 (under auto, a
+# basedir of at most 93): a longer one is daemon_socket_too_long wherever the daemon is
+# reached or started.
+sockets = "auto"
+# Who starts the account's daemon. client, the default: the client launches its own daemon
+# when none of its build answers and drains one of another build, as on an operator's jump
+# box. systemd: the daemon is the unit karvi-daemon@USER.service's, USER the client's own
+# account, which no client drains or starts: a daemon of another build, or none, refuses a
+# submission and daemon start, naming systemctl restart or systemctl start of the unit, and
+# daemon stop and daemon restart are refused, daemon_managed. sudo karvi-sysutil daemon
+# install sets it in the service account's own configuration (karvi-sysutil(8)); a site that
+# runs every operator's daemon so sets it in its global file, locked.
+launch = "client"
 # 1s–2m.
 start-timeout = "5s"
-# 0–43,200.
-shutdown-grace-seconds = 120
+# 0–43,200. After a SIGTERM, how long the daemon waits for its jobs before it cancels and
+# records them; the default stays under systemd's 90-second stop limit for a login session, so
+# a host's shutdown records them.
+shutdown-grace-seconds = 60
 # 0 never exits; else 1m–30d. The daemon stops itself, as daemon stop would, once this long
 # has passed with no active job, no preparation in progress, and no request but ping and
 # status; checked once a minute. The packaged systemd unit sets 0.
-shutdown-idle-timer = "1h"
+shutdown-idle-timer = "10m"
 # 0–60; ≤ normal grace unless normal 0.
 forced-grace-seconds = 5
 # 64 KiB–64 MiB.
@@ -423,10 +441,12 @@ after = ""
 after-timeout = "5m"
 
 [display]
-# Shared terminal theme: auto, dark, light, or nocolor.
+# Shared terminal theme: auto, dark, light, or nocolor; --nocolor sets nocolor for one
+# invocation.
 theme = "dark"
 # Terminal color policy: auto, always, or never. auto colours at a terminal unless NO_COLOR is
-# set and not empty; always and never are explicit and NO_COLOR does not override them.
+# set and not empty; always colours a terminal and a pipe; always and never are explicit and
+# NO_COLOR does not override them. A regular file is written plain whatever the policy.
 color = "auto"
 # Human-facing timestamp pattern. Supports yyyy, yy, MM/month-context mm, dd, hh,
 # minute-context mm, ss, and sss. Stored records remain RFC 3339.
@@ -599,6 +619,23 @@ interactive-prompt = true
 prompt-for-username = true
 # Masked prompt.
 prompt-for-password = true
+# The credential helper: an executable karvi runs once per invocation that resolves
+# credentials, before any backend is asked, whose export NAME=value lines set values every
+# credential reader finds in place of the process environment's. A name without / is that file
+# beside the running karvi executable, never searched on PATH; any other value is a place (~/
+# the operator's home, a relative path from the working directory). Not empty:
+# creds.helper-enabled = false turns the helper off. A site restricts it by locking the key.
+helper = "karvi-credh"
+# Whether the credential helper runs; --no-credh sets false for one invocation.
+helper-enabled = true
+# An enabled helper that cannot be run (no file at its path, or one the operator cannot
+# execute): skip passes it by silently, warn says why first, fail refuses the invocation
+# (credential_helper_unavailable). A helper present but unsafe, or one that fails, refuses it
+# under any value.
+helper-unavailable = "skip"
+# 1s–1h. How long the helper may run; then SIGTERM to it and every process it started that
+# is still its descendant, two seconds on SIGKILL, and credential_helper_failed.
+helper-timeout = "60s"
 
 [tabular]
 # 1 KiB–64 MiB; over-limit is hard file error.
@@ -607,7 +644,7 @@ max-physical-line-bytes = 1048576
 # Dynamic sections such as [[inventory-source]], [credential-backend.NAME],
 # [credential-policy.NAME], [[credential-policy-map]], [session-init.NAME],
 # [ssh-algorithms-profile.NAME], [[ssh-algorithms-map]], and [platform.NAME]
-# are shown in configs/example.toml.
+# are shown in examples/config.toml.
 #
 # A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,
 # cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
@@ -647,7 +684,7 @@ max-physical-line-bytes = 1048576
 #   mappings.device_name = ["device", "hostname"]
 # Rows match top to bottom, first match wins; the columns are device_name,
 # address_cidr, platform, site, device_group, credkey, username, password,
-# and enable_password. See configs/example.toml.
+# and enable_password. See examples/config.toml.
 #
 # The ICMP gate (network.ping-targets) sends its probes directly over Linux ping
 # sockets when the kernel grants them to the operator's group; set the sysctl
