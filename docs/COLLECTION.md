@@ -1,3 +1,5 @@
+<img width="1672" height="941" alt="A karvi under sail through fjords, its links reaching enterprise, service-provider, lab, and small-business shores" src="../images/karvi-orchestrating-network-fjords.png" />
+
 # The collection run: `karvi crun`
 
 `karvi crun` collects the output of one or more commands from one or more
