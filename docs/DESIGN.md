@@ -3110,11 +3110,11 @@ meets a dead link, and the tool's own rewriting is checked with the documents.
 
 **The licence is one document, `LICENSE.md`.** The MIT text is the tree's
 `LICENSE.md`, its first line the heading `# MIT License` that titles its page,
-the rest the text unchanged; README's License section links to it and `NOTICE`
-names it. *Why:* the site carries the licence like any document, GitHub reads
-`LICENSE.md` as the repository's licence, and one copy cannot drift from
-another. *Not taken:* a `LICENSE.md` beside `LICENSE`; a converter exception
-for a file without a heading.
+the rest the text unchanged; README's License section links to it and
+[`NOTICE.md`](../NOTICE.md) names it. *Why:* the site carries the licence like
+any document, GitHub reads `LICENSE.md` as the repository's licence, and one
+copy cannot drift from another. *Not taken:* a `LICENSE.md` beside `LICENSE`; a
+converter exception for a file without a heading.
 
 **One document indexes every place karvi uses.** [`docs/FILES.md`](FILES.md)
 lists each directory and file karvi reads or writes, in shared and in

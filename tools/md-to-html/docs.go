@@ -58,4 +58,5 @@ var documents = []document{
 	{"CONTRIBUTING.md", "The project", "The principles a change keeps, building and testing, branches and releases."},
 	{"SECURITY.md", "The project", "Reporting a vulnerability, and the boundaries: host keys, credentials, legacy cryptography, Telnet."},
 	{"LICENSE.md", "The project", "The MIT License karvi is released under."},
+	{"NOTICE.md", "The project", "The copyright, and the licences of the third-party modules the tree vendors."},
 }
