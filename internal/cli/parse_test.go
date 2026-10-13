@@ -617,7 +617,11 @@ func TestParseFreeformBoundary(t *testing.T) {
 	if inv = mustParse(t, "run", "--all", "--pi", "show", "clock"); inv.Flag(optPing) {
 		t.Fatalf("--pi is still --ping")
 	}
-	for short, want := range map[string]string{"--pi": "cisco_iosxe", "--pn": "cisco_nxos", "--pr": "cisco_iosxr", "--pj": "juniper_junos", "-pa": "arista_eos", "--pg": "generic"} {
+	// --pl is the linux shortcut, a whole word; --pla is still --platform.
+	if inv = mustParse(t, "run", "--all", "--pla", "generic", "show", "clock"); inv.String(optPlatform) != "generic" {
+		t.Fatalf("--pla is not --platform: %q", inv.String(optPlatform))
+	}
+	for short, want := range map[string]string{"--pi": "cisco_iosxe", "--pn": "cisco_nxos", "--pr": "cisco_iosxr", "--pj": "juniper_junos", "-pa": "arista_eos", "--pl": "linux", "--pg": "generic"} {
 		if inv = mustParse(t, "run", "--all", short, "show", "clock"); inv.String(optPlatform) != want {
 			t.Fatalf("%s is --platform %q, want %q", short, inv.String(optPlatform), want)
 		}

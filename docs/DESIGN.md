@@ -100,8 +100,8 @@ every candidate. *Why:* the unique-error-code rule of the whole program (see
 [§15](#15-configuration-and-errors)). *Not taken:* a single `cli_usage` code.
 
 **Shortcuts stand for an option with its value.** `--pi`, `--pn`, `--pr`,
-`--pj`, `--pa`, `--pg` stand for `--platform` with a built-in platform name;
-`--dp`, `--dw`, `--ds` stand for `--dispatch parallel|wave|serial`. A
+`--pj`, `--pa`, `--pl`, `--pg` stand for `--platform` with a built-in platform
+name; `--dp`, `--dw`, `--ds` stand for `--dispatch parallel|wave|serial`. A
 shortcut is a whole word of the table that carries the value, so no handler
 knows the shortcuts exist and the last spelling on a line wins. `--tl LIST`
 adds each comma- or whitespace-separated name as a `--target` at the list's
