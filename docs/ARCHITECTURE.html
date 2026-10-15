@@ -11,6 +11,7 @@
 <summary>Documents</summary>
 <nav aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -81,6 +82,7 @@
 </details>
 <nav class="nav-wide" aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -240,14 +242,14 @@ exercise refuse a platform their configuration does not know (<code>platform.Loo
 whose own configuration does not know its platform. Two checks run before the
 inventory is read: <code>--platform</code> in <code>login</code>, <code>command</code>, and <code>run</code> must name a
 known platform (<code>app.CheckPlatformOption</code>; the shortcuts <code>--pi</code>, <code>--pn</code>, <code>--pr</code>,
-<code>--pj</code>, <code>--pa</code>, and <code>--pg</code> are that option with its value, made so by the parser
-table's <code>standsFor</code>, which also makes <code>--dp</code>, <code>--dw</code>, and <code>--ds</code> <code>--dispatch</code>
-with a value; <code>--tl LIST</code> is each of its names as a <code>--target</code> at the list's
-position, <code>parser.addTarget</code>), and each <code>--select-platform</code> selector must reach
-one (<code>checkPlatformSelectors</code>), the known set being <code>platform.KnownNames</code> over
-the configured tables; the three <code>platform-resolution</code> keys and a source's
-<code>defaults.platform</code> are validated against the same set at load, whatever
-<code>on-unknown</code> says.</p>
+<code>--pj</code>, <code>--pa</code>, <code>--pl</code>, <code>--ps</code>, and <code>--pg</code> are that option with its value, made
+so by the parser table's <code>standsFor</code>, which also makes <code>--dp</code>, <code>--dw</code>, and
+<code>--ds</code> <code>--dispatch</code> with a value; <code>--tl LIST</code> is each of its names as a
+<code>--target</code> at the list's position, <code>parser.addTarget</code>), and each
+<code>--select-platform</code> selector must reach one (<code>checkPlatformSelectors</code>), the
+known set being <code>platform.KnownNames</code> over the configured tables; the three
+<code>platform-resolution</code> keys and a source's <code>defaults.platform</code> are validated
+against the same set at load, whatever <code>on-unknown</code> says.</p>
 <p>Stream mode (<code>karvi stream</code>, <code>karvi -</code>; <code>internal/cli/stream.go</code>) is a
 front to <code>run</code>: the lines of standard input build a <code>run</code> argument list,
 each option line checked by <code>Parse</code> as it arrives and dropped with its
@@ -833,7 +835,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.30.1</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
 </main>
 </body>
 </html>

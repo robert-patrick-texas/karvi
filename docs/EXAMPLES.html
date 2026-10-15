@@ -11,6 +11,7 @@
 <summary>Documents</summary>
 <nav aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -104,6 +105,7 @@
 <li><a href="#57-a-build-names-its-tree-2026-10-12">57. A build names its tree (2026-10-12)</a></li>
 <li><a href="#58-the-documents-on-github-pages-2026-10-12">58. The documents on GitHub Pages (2026-10-12)</a></li>
 <li><a href="#59-the-release-0300-2026-10-13">59. The release 0.30.0 (2026-10-13)</a></li>
+<li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -130,6 +132,7 @@
 </details>
 <nav class="nav-wide" aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -223,6 +226,7 @@
 <li><a href="#57-a-build-names-its-tree-2026-10-12">57. A build names its tree (2026-10-12)</a></li>
 <li><a href="#58-the-documents-on-github-pages-2026-10-12">58. The documents on GitHub Pages (2026-10-12)</a></li>
 <li><a href="#59-the-release-0300-2026-10-13">59. The release 0.30.0 (2026-10-13)</a></li>
+<li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -12284,8 +12288,166 @@ as an image, removed after, so Docker was as found. <code>golang.org/x/sys</code
 direct requirement now, and <code>go-version-m.txt</code> is v0.29.0's.</p>
 <p><strong>Roadmap.</strong> Unchanged by the release; Next is empty, the operator's next item
 to be asked.</p>
+<h2 id="60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13) <a class="anchor" href="#60-the-release-0301-2026-10-13" aria-label="Link to this section">#</a></h2>
+<p>The eighth public release and the first patch release since the tree was
+public, on the operator's word and number: no code since 0.30.0, the
+executables rebuilt with Go 1.27.2, which the operator installed on the host
+since 0.30.0 was built with 1.27.1.
+Every counter is 0.30.0's, so there is no lifecycle replay; the compatibility
+example is the drain. The sequence is <a href="#59-the-release-0300-2026-10-13">chapter
+59</a>'s, with one rule found at the baseline.</p>
+<p><strong>What it gains.</strong> A site has Go 1.27.2's security fixes in the packages
+<code>karvi</code> links (<code>crypto/tls</code>, <code>net/http</code>, <code>net/textproto</code>, <code>os</code>; the helpers
+link <code>os</code> alone), from a published, checksummed bundle and package, with
+nothing to change: an operator's 0.30.0 daemon is drained by the first
+submission after the upgrade, and OPERATIONS' upgrade examples are this
+release's own output.</p>
+<p><strong>Before the number.</strong> The release tools were archived first
+(<code>~/karvi/backup/archive-2026-10-13-2</code>: a mirror of the tree at <code>d957857</code> and
+the six tools as they were). <code>common.sh</code>'s comment then said the first replay
+would run against &quot;the release after v0.29.0&quot;; by its own rule, the newest
+release at another schema, that becomes the newest release at 12, and the
+comment says so. The prior stays empty.</p>
+<p><strong>The baseline before the number.</strong> The first baseline, on a clean clone of
+<code>dev</code> at <code>d957857</code>, passed gofmt, <code>make</code>, the tests, vet, the race run, and
+every suite, and stopped at the release verifier's package step:</p>
+<pre><code class="language-text">./scripts/build-deb.sh
+build-deb: bin/ does not hold the executables CHECKSUMS.sha256 lists; the package of 0.30.0 carries the release's qualified build
+make: *** [Makefile:64: deb] Error 1
+verify-release exit=2
+</code></pre>
+<p><code>build-deb.sh</code> reads the changelog's first heading: under <code>## Unreleased</code> it
+packages a dev build, under a release's heading it requires <code>bin/</code> to be that
+release's build. <code>dev</code> held two documents commits since 0.30.0 and no
+<code>## Unreleased</code>, so its heading was still <code>## 0.30.0</code>, and the clone's build,
+<code>karvi-v0.30.0-2-gd957857</code> with Go 1.27.2, could never be the release's; the
+same holds for any release whose <code>dev</code> carries no code change. 0.30.0's
+baseline passed because its <code>dev</code> held <code>## Unreleased</code>. Opened with what it
+gains (a baseline that passes whole, the package and its container test
+included, whatever <code>dev</code> carries) and what it waits on (nothing), the rule,
+the operator's: <em>a release's change is in the changelog's <code>## Unreleased</code>
+before its baseline runs; a release with no code change opens that block for
+what does change.</em> <code>3a15ff7</code> opened it for the toolchain; the second baseline,
+at <code>3a15ff7</code>, passed whole; <code>baseline.sh</code>'s header states the rule. <em>Not
+taken:</em> the refusal accepted and the package left to the remaining evidence's
+verifier (the baseline would never test it); <code>build-deb.sh</code> packaging a dev
+build under a release's heading (the release's check weakened).</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.30.1 - 2026-10-13</code> under a
+lead paragraph (every counter 0.30.0's, the module graph 0.30.0's, nothing for
+a site to change). No registry key or retirement is new since 0.30.0, and
+<code>internal/configload</code> holds no placeholder for a next release.</p>
+<p><strong>The compatibility example.</strong> The released v0.30.0 executables, copied out of
+<code>bin/</code> and checked against <code>CHECKSUMS.sha256</code> before the release-identity
+build replaced them, ran the older daemon beside this client, at its IPC
+schema and of another build. Idle, the client's exercise to 192.0.2.1 drained
+it and started its own in the same invocation; holding a ten-second job on the
+fake device built from the tree, the client's run was refused, the builds
+stacked, and the daemon exited after the job. Those two outputs are what
+OPERATIONS' upgrade section shows, so 2/3 set its examples to them, where they
+had shown builds of chapter 57's lab.</p>
+<p><strong>The sequence, as run</strong>, from the archive at 05:59 to the published check at
+06:55 (UTC; 01:59 to 02:55, EDT), the stop for the baseline's rule and the stop
+for the operator's word before the push included:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Wall (UTC)</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the tools archived</td>
+<td>05:59:37</td>
+<td>a mirror at <code>d957857</code> and the six tools; then <code>common.sh</code>'s comment</td>
+</tr>
+<tr>
+<td>the first baseline, at <code>d957857</code></td>
+<td>05:59:57 to 06:08:04</td>
+<td>everything to the package step passed; <code>make deb</code> refused, exit 2</td>
+</tr>
+<tr>
+<td><code>## Unreleased</code>, the second baseline</td>
+<td>06:25:02; 06:25:10 to 06:32:36</td>
+<td><code>3a15ff7</code>; gofmt, make, the release verifier with its package and container steps, exit 0 each</td>
+</tr>
+<tr>
+<td>the number, the compatibility example, 1/3</td>
+<td>06:33:15, 06:33:40</td>
+<td><code>8d7ce4e</code>; the build <code>N5PmKyJFWom88FQHvi1o</code>; the v0.30.0 daemon drained idle, refusing busy</td>
+</tr>
+<tr>
+<td>the core evidence</td>
+<td>to 06:35:51</td>
+<td>1,020 named tests across 89 packages, vet 0, both socket lengths exit 0</td>
+</tr>
+<tr>
+<td>the documents</td>
+<td>06:37:28</td>
+<td><code>5bbbabf</code> (2/3): <code>release/</code> from the v0.30.0 pattern; OPERATIONS' examples the release's own</td>
+</tr>
+<tr>
+<td>the remaining evidence</td>
+<td>06:37:36 to 06:45:11</td>
+<td>the shipped checks exit 0, the release verifier exit 0 with the package and its container test, the checksums unchanged by its rebuild; the replay skipped</td>
+</tr>
+<tr>
+<td>3/3, the tag, <code>main</code></td>
+<td>06:45:31</td>
+<td><code>7be89d0</code>, <code>karvi-v0.30.1</code>, <code>main</code> fast-forwarded from <code>fdd19fe</code></td>
+</tr>
+<tr>
+<td>the artifacts</td>
+<td>06:45:37 to 06:51:00</td>
+<td>the bundle and the package each reproducible byte for byte; the bundle verified from its own archive, the package checked against its extraction; 37,794,078 and 5,955,928 bytes</td>
+</tr>
+<tr>
+<td>the package installed in a throwaway <code>ubuntu:26.04</code></td>
+<td>06:52</td>
+<td><code>apt install</code> exit 0; the installed executables <code>CHECKSUMS.sha256</code>'s; <code>karvi-sysutil</code> and the template unit in place; 22 files under <code>/usr/share/karvi</code>, as 0.30.0</td>
+</tr>
+<tr>
+<td>the push, the site, the GitHub release</td>
+<td>06:54:20 to 06:54:53</td>
+<td><code>dev</code>, <code>main</code>, and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>f687e26</code>), built, its 51 files 200 and its footer <code>karvi-v0.30.1</code>; release <code>karvi-v0.30.1</code> with the five assets, marked latest; the assets downloaded back match</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.30.0 build=P7zVqO_tVBEzQMcMrxna
+daemon started socket=/dev/shm/r301/compat/base/socket/d.sock
+pid 3561681 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build P7zVqO_tVBEzQMcMrxna 0.30.0
+  client build N5PmKyJFWom88FQHvi1o 0.30.1
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3561783 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '&quot;latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)&quot;'
+latest: karvi-v0.30.1 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.30.1-artifacts.sha256    # the assets downloaded back
+karvi-v0.30.1-source-linux-amd64.tar.gz: OK
+karvi_0.30.1_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong> The toolchain alone moved the bytes: <code>karvi</code> is 12,288
+bytes larger, <code>karvi-askpass</code> 4,096, <code>karvi-prune</code> the same size with other
+bytes; the bundle is 15,844 bytes larger and the package 16,188.
+<code>go-version-m.txt</code> names go1.27.2 and the same modules; the default
+configuration is 0.30.0's. <code>gh release create</code> outside a checkout needs <code>-R OWNER/REPO</code>; the first call, from the tools' parent, created nothing. The
+install check pulled <code>ubuntu:26.04</code>, removed after, so Docker was as found.</p>
+<p><strong>Roadmap.</strong> Unchanged by the release; Next item 1, shorter output strings,
+waits on the operator's review of every message.</p>
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.30.1</code>.</footer>
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
 </main>
 </body>
 </html>

@@ -11,6 +11,7 @@
 <summary>Documents</summary>
 <nav aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -105,6 +106,7 @@
 </details>
 <nav class="nav-wide" aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -1861,6 +1863,19 @@ word matches; the helper answers from its own flag set through its own
 hidden word, <code>karvi-prune __complete</code>, which resolves no root and writes
 nothing. A host that holds the file from before the helper was added runs
 <code>sudo karvi setup tab</code> once more, which reports <code>updated</code>.</p>
+<p>A site that gives karvi a shorter name, a symbolic link on the path, binds
+that name to the same function in a file of its own, as root:</p>
+<pre><code class="language-bash">sudo ln -s &quot;$(command -v karvi)&quot; /usr/local/bin/k
+echo 'complete -F _karvi k' | sudo tee /etc/bash_completion.d/k
+</code></pre>
+<p>From the next login Tab after <code>k</code> offers what it offers after <code>karvi</code>: the
+function runs the command word it was given (<code>k __complete …</code>), and <code>k</code> is
+the karvi executable, which answers under any name. The line stands in its
+own file, never in <code>/etc/bash_completion.d/karvi</code>, which <code>setup tab</code> writes
+again whenever it differs (<code>updated</code>); an operator's <code>~/.bashrc</code> holds it for
+that operator alone. An alias (<code>alias k=karvi</code>) is not completed this way:
+the function runs <code>k</code> as a command, which an alias does not reach, and Tab
+offers nothing.</p>
 <p><code>karvi-setup(1)</code> (<code>man karvi setup</code>), FILES, restates what <code>setup shared</code>
 and <code>setup tab</code> make, with the modes, for the terminal; a change to one
 changes both.</p>
@@ -2081,7 +2096,7 @@ exit. Global options go before the word: <code>karvi --quiet --config FILE strea
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.30.1</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
 </main>
 </body>
 </html>

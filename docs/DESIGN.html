@@ -11,6 +11,7 @@
 <summary>Documents</summary>
 <nav aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -88,6 +89,7 @@
 </details>
 <nav class="nav-wide" aria-label="Documents">
 <p class="home"><a href="../index.html">karvi</a></p>
+<p class="repo"><a href="https://github.com/robert-patrick-texas/karvi">GitHub repository</a></p>
 <p class="group">Start here</p>
 <ul>
 <li><a href="../README.html">karvi</a></li>
@@ -249,12 +251,13 @@ code, all exiting as usage errors before any connection; ambiguity messages name
 every candidate. <em>Why:</em> the unique-error-code rule of the whole program (see
 <a href="#15-configuration-and-errors">§15</a>). <em>Not taken:</em> a single <code>cli_usage</code> code.</p>
 <p><strong>Shortcuts stand for an option with its value.</strong> <code>--pi</code>, <code>--pn</code>, <code>--pr</code>,
-<code>--pj</code>, <code>--pa</code>, <code>--pg</code> stand for <code>--platform</code> with a built-in platform name;
-<code>--dp</code>, <code>--dw</code>, <code>--ds</code> stand for <code>--dispatch parallel|wave|serial</code>. A
-shortcut is a whole word of the table that carries the value, so no handler
-knows the shortcuts exist and the last spelling on a line wins. <code>--tl LIST</code>
-adds each comma- or whitespace-separated name as a <code>--target</code> at the list's
-position, so the plan and manifest record target inputs and never a list.
+<code>--pj</code>, <code>--pa</code>, <code>--pl</code>, <code>--ps</code>, <code>--pg</code> stand for <code>--platform</code> with a built-in
+platform name; <code>--dp</code>, <code>--dw</code>, <code>--ds</code> stand for
+<code>--dispatch parallel|wave|serial</code>. A shortcut is a whole word of the table that
+carries the value, so no handler knows the shortcuts exist and the last
+spelling on a line wins. <code>--tl LIST</code> adds each comma- or whitespace-separated
+name as a <code>--target</code> at the list's position, so the plan and manifest record
+target inputs and never a list.
 <em>Why:</em> the operator's most typed values; nothing after the parser changes.
 <em>Not taken:</em> aliases (an alias still takes a value); a list kind in the plan.</p>
 <p><strong>Declarations attach backwards.</strong> <code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>,
@@ -395,10 +398,15 @@ cursor and prints candidates: command and option words, enum values, known
 platforms, registry keys for <code>--set</code>, device names from the inventory, job
 IDs from the scoreboard directory, and <code>:files</code> where bash should complete
 paths. It creates nothing, contacts no daemon, and prints nothing on any
-failure. One bash function serves <code>karvi</code> and <code>karvi-prune</code>; <code>sudo karvi setup tab</code> installs it. <em>Why:</em> the grammar is data the drift test already
-keeps honest, so a word added to the table is completed by construction.
-<em>Not taken:</em> a generated static script (stale at the next change, blind to
-inventory); listing aliases (the list would double).</p>
+failure. One bash function serves <code>karvi</code> and <code>karvi-prune</code>; <code>sudo karvi setup tab</code> installs it. The function runs the command word it was given, so a
+shorter name a site links to the executable completes once the site binds it
+in a file of its own (<code>complete -F _karvi k</code>). <em>Why:</em> the grammar is data the
+drift test already keeps honest, so a word added to the table is completed by
+construction. <em>Not taken:</em> a generated static script (stale at the next
+change, blind to inventory); listing aliases (the list would double); <code>k</code>
+bound in karvi's file (an operator whose <code>k</code> is an alias, often kubectl's,
+would lose Tab on it); a name given to <code>setup tab</code> (every later run would have
+to name it again or drop it).</p>
 <h2 id="3-targets-inventory-and-platforms">3. Targets, inventory, and platforms <a class="anchor" href="#3-targets-inventory-and-platforms" aria-label="Link to this section">#</a></h2>
 <p><strong>Target names are lowercase identities.</strong> Every name is lowercased on input,
 and the lowercase name is the identity for duplicate removal, <code>--exclude</code>,
@@ -2975,9 +2983,12 @@ root holds an <code>index.html</code> that sends the browser to the parent's <co
 <code>noindex</code>. The parent's page and not the bare directory, so a copy opened from
 the disk reaches a page too. The left column holds the groups and every
 document, the current page's sections under it; a narrow screen folds the same
-links into &quot;Documents&quot; above the page. <em>Why:</em> the directory can be copied
-anywhere and read offline, and a server shows a reader of a directory a page,
-never a listing or an error. <em>Not taken:</em> syntax highlighting (a second module);
+links into &quot;Documents&quot; above the page. Under the name the column links the
+repository on GitHub, the one link out of the site, which a copy read offline
+does without. <em>Why:</em> the directory can be copied anywhere and read offline, a
+server shows a reader of a directory a page, never a listing or an error, and
+a reader of the published site reaches the source, the releases, and the
+issues in one step. <em>Not taken:</em> syntax highlighting (a second module);
 a stylesheet in every page; a search box.</p>
 <p><strong>The site is replaced whole, and only when it is the tool's.</strong> The tool writes
 the site beside <code>html/</code>, checks it there, and renames it into place, the old
@@ -3020,7 +3031,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.30.1</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
 </main>
 </body>
 </html>
