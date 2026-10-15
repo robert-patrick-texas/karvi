@@ -19,6 +19,17 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    message alike; the tests, suites, and documents that quote a message,
    changed with it; and the generated error-code descriptions
    ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
+2. **A list of jobs: `karvi job list`.** `job follow` and `job cancel` take a
+   job ID, and nothing in karvi lists them: once a job has ended, its ID, its
+   result, and its `failed-devices.txt` are found by listing the output root's
+   day folders and reading `summary.json`. The item: a read-only `job list`
+   from the job folders' summaries, needing no daemon or credential; the
+   summary, written at a job's acceptance and again at its end, names the job's
+   devices for a search by device, which moves its schema. The questions: what
+   it lists with no option; the filters; the columns at a terminal's width and
+   the rows' order, since a job ID names its start in the effective timezone
+   and two timezones' IDs do not sort by time; another operator's jobs in
+   shared mode; and a run under `--nof`, which leaves no folder.
 
 ## Later
 
@@ -208,6 +219,25 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   55](docs/EXAMPLES.md#55-an-explicit-envname-cell-2026-10-10)). The question:
   the directory made when the job is submitted, or removed when the client
   abandons it.
+- **The audit trail, and then an audit review tool.** What karvi writes to
+  journald, and so to the syslog a host forwards it to, does not suffice as
+  the record of every job, the one a run under `--nof` or
+  `output.persist-command = false` leaves where it makes no folder
+  ([`docs/EXAMPLES.md`, chapter
+  61](docs/EXAMPLES.md#61-a-list-of-jobs-karvi-job-list-2026-10-15)). One gap
+  found: every `command_completed` event names its device inside
+  `KARVI_AUDIT_JSON` alone, beside the fields `KARVI_EVENT_NAME`,
+  `KARVI_ACTIVITY_ID`, and `KARVI_JOB_ID`, and `journalctl` matches a field
+  only whole, so a device's commands are found only by reading every event's
+  JSON; a `KARVI_DEVICE` field would let `journalctl SYSLOG_IDENTIFIER=karvi
+  KARVI_DEVICE=NAME` answer what was run at a device, by every operator and
+  service account. The item: a review of what each event records and where it
+  is written, journald's fields and the audit file's line, so that the trail
+  answers who ran what, where, and with what result. After it, an audit review
+  tool, perhaps reserved for administrators, answers for every job, where `job
+  list` answers an operator for the jobs they made and, on a shared host, the
+  team's. The questions: the events and their fields; syslog beside journald;
+  and who may run the review tool.
 
 ## The device-qualification track
 

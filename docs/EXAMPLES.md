@@ -11721,3 +11721,252 @@ install check pulled `ubuntu:26.04`, removed after, so Docker was as found.
 
 **Roadmap.** Unchanged by the release; Next item 1, shorter output strings,
 waits on the operator's review of every message.
+
+## 61. A list of jobs: `karvi job list` (2026-10-15)
+
+The ROADMAP's Next item 2, opened on the operator's word for the next minor
+release: a read-only `karvi job list` of the jobs in the output root, from the
+summaries their folders already hold.
+
+**The evidence.** A lab of the released 0.30.1 executable, the fake device
+built from `765164a`, and a configuration with every path under the lab
+(`sharedroot = "none"`): five jobs in process at 15:14 and 15:15 EDT on
+2026-10-15, a `command`, three runs (one with a second device at an
+unreachable address), and a run under `--timezone Pacific/Kiritimati`.
+
+```console
+$ ls -d jobs/*/*
+jobs/261015/261015-151448-00
+jobs/261015/261015-151449-00
+jobs/261015/261015-151449-01
+jobs/261015/261015-151533-00
+jobs/261016/261016-091500-00
+```
+
+Every folder holds `summary.json` (2,603 bytes for the run of two devices),
+which names the job, its start and end, its status, its exit, and its device
+counts. The run with the unreachable device is `errored`,
+`ExitPartialFailure` 101, one of two devices failed, its folder holding
+`failed-devices.txt` with the device's name; the others are `completed`,
+`ExitSuccess` 0. A `command` writes a folder as a run does, and two jobs in one
+second take `-00` and `-01`. The Kiritimati run started at 15:15:00 EDT by its
+summary's `started_at`, and its ID and day folder name that zone's date,
+`261016`, while the host's was the 15th; the run 33 seconds later,
+`261015-151533-00`, sorts before it. The manifest, which names the operator and
+the selection, was 19,288 bytes for the two devices.
+
+**What it gains.** An operator finds a job's ID, its result, and its folder
+without listing day folders and reading JSON: the ID `job follow` and `job
+cancel` take, and the `failed-devices.txt` a rerun takes (`--tf`).
+
+**What it waits on.** Nothing: every finished job writes its summary, and the
+list needs no daemon or credential; issue 2 moves the job summary schema from 3
+to 4.
+
+**Its issues, one at a time:** what it lists with no option; the filters; the
+columns at a terminal's width and the rows' order; another operator's jobs in
+shared mode; and a run under `--nof`, which leaves no folder.
+
+**Issue 1, what it lists with no option, agreed.** On the lab above. The rule.
+With no option, `job list` lists the newest 20 jobs of the operator's output
+root, whatever their day: it reads the day folders newest first and stops once
+it has 20, a running or unfinished job counting among them. Twenty lines and a
+header fit a terminal of 24. *Why:* it always answers, whatever the day or the
+timezone, and its cost does not grow with the retention. *Not taken:* today's
+folder (empty after midnight, or holding only the 02:15 collection of
+`packaging/cron/karvi-crun`; and which folder is today follows the effective
+timezone, as the Kiritimati run's did); the last 24 hours (empty on a quiet
+day, and every summary in the window read for its start); every job kept (31
+days at `karvi-prune`'s default, the daily collection alone 31 lines).
+
+**Issue 2, the filters, agreed.** On the lab above and two measurements. A copy
+of the errored run's summary in 1,240 job folders, 31 days of 40, was read and
+decoded whole in 38 and 61 ms (Python, the page cache warm), so a filter can
+read back through every day kept. The summary names no device, its
+`device_counts` the counts alone. `commands.jsonl` names one in every record
+(`device.canonical_name`, beside `operator`, `activity_type`, and `command`) and
+carries the output: a run of the fake's 65.7 MB `show big` wrote a
+`commands.jsonl` of 66,605,035 bytes, read once for a name in 161 and 177 ms,
+beside a summary of 2,549 bytes. The manifest names the devices the selection
+resolved to (`plan.targets`, beside the inputs as typed in `selection`), 19,288
+bytes for two devices. Where `output.<device>.txt` is kept, its name answers:
+
+```console
+$ ls jobs/*/*/output.dead-iosxe.txt
+jobs/261015/261015-151449-01/output.dead-iosxe.txt
+```
+
+A site may turn off every output file but the summary and `commands.jsonl`, and
+there the operator's question, what was run at a device and by whom, needs the
+list by device. The rule. `job list` takes three filters, each judging the job
+and applied before the count. `--last N` is the count, 20 by default, 0 every
+job kept, as `karvi-prune`'s `--minfree 0` turns its floor off. `--failed` keeps
+the finished jobs whose exit is not 0, a partial failure and a cancellation
+among them; an unfinished job has no exit and is left out. `--target NAME` keeps
+the jobs that reached a device, NAME taken as `run`'s `--target` takes it
+(lowercased, a glob, repeatable, a job matching when any of its devices does);
+the named device's own outcome is issue 3's. The job summary names the job's
+devices, each with its outcome (one of `device_counts`' five), so the search
+reads summaries alone: job summary schema 3 to 4. An unfinished job, without a
+summary, is matched from the records its `commands.jsonl` holds so far. *Why:*
+the searches an operator makes, at the cost of the file every site keeps, which
+holds across the retention. *Not taken:* `--all` (in `run` and `crun` every
+device of the inventory, and a second option for one limit); each job's
+`commands.jsonl` searched (the cost grows with the output kept, not with the
+devices); the manifest (its size grows with the plan, and it is a switch a site
+turns off); the name of `output.<device>.txt` (a switch too); `--failed` judged
+by a named device's outcome (one option with two meanings); dates, `--day` or
+`--since` (the effective timezone's question again, answered by `--last 0`); the
+kind of job, a column; the operator, issue 4. Found: the audit's
+`command_completed` names its device inside `KARVI_AUDIT_JSON` alone, which
+`journalctl` matches only whole, and a run under `--nof` leaves no folder while
+its event still names the device; a `KARVI_DEVICE` field is ROADMAP Later, on
+the operator's word.
+
+**Issue 2, continued: the summary written at acceptance, agreed.** A run of
+`show slow` at 20 seconds, killed (`kill -9`) after 3, left `261015-160057-00`
+with a manifest of 17,368 bytes, a `commands.txt` of 10, and a `commands.jsonl`
+and an `errors.jsonl` of 0, though the fake had been sent the command; its
+manifest's `plan.targets` named `fake-iosxe`, its records nothing. A job's
+summary is written last, and `InspectJobDirectory`, which `job follow` reads,
+takes its presence for the job's end; `karvi-prune` reads its `final_status` and
+keeps a folder whose summary is not final as live. The operator's word: the
+devices go in the summary, since many sites turn the manifest off. The rule. A
+job's `summary.json` is written when the job is accepted, naming its devices
+with no outcome and none of the result fields, and written whole again at its
+end; a job is finished when its summary names a final status.
+`InspectJobDirectory` and `job follow`'s path through the folder read the
+status, not the file's presence; the pruner takes a summary that is not final
+as it takes a folder without one, under the age rule alone; FILES section 4.3's
+"written last" becomes written at the job's acceptance and again at its end. An
+unfinished job is then matched by `--target` from its summary like any other.
+*Why:* a job cut short at any point names its devices in the one file every
+site keeps. *Not taken:* the manifest's `plan.targets` first where it is kept,
+proposed first (a site that turns it off loses the job); the records alone,
+issue 2's first rule (a job killed before its first record matches nothing); a
+file of the devices beside the summary (a switch a site turns off too).
+
+**Issue 3, the columns and the rows' order, agreed with the operator's two
+additions.** On the lab above. `watch --format table`, under a pseudo-terminal
+of 80 columns, printed its header in 89 cells and its rows in 93 to 104, 83 of
+them before TARGET: a table it never narrows. Its TIME is a finished job's end,
+`HH:MM:SS`, without the date; its MODE says `run` or `cmd`; it orders the
+finished jobs newest first by their end, the Kiritimati run among them in its
+place by time. The site's `display.timestamp` (`hh:mm:ss yyyy-mm-dd`) takes 19
+cells. A sketch, laid out by a script from the lab's summaries and not printed
+by karvi, with OPERATOR shown, left TARGET 7 cells at 80 columns, `+12` for a
+job of twelve devices (`wide-001` to `wide-012`); at 120, five names and `+7`;
+at 160, nine and `+3`; to a pipe, all twelve in a line of 180. The rule. The
+text is `watch`'s table, its headings, cells, and status colours from the code
+`watch` uses (`Duration`, `DoneCell`, the heading line), but: no ACTV, a folder
+holding no live count; TIME the job's duration, its start being its ID; MODE the
+kind of job, `cmd`, `run`, or `crun` (an exercise is `run`, its STATUS
+`exercised`), four cells; and OPERATOR always, on the operator's word. The line
+fits the terminal's width, read at each run as `watch` reads it, with no limit
+at 80: TARGET takes what the fixed columns leave, each name whole while it fits
+and the rest counted, `+N`; to a pipe or a file nothing is cut. The rows stand
+in job-ID order, newest first, an unfinished job in its place with STATUS
+`unfinished` and TIME blank. Under `--target`, on the operator's word, a row is
+one matching device: JOB-ID, TIME, OPERATOR, MODE, OUTCOME (the device's own),
+and DEVICE, 59 cells before DEVICE, and `--last` counts rows. `--format json`
+prints one array of the rows, each the job's summary fields and its folder's
+path, under `--target` also the device and its outcome. *Why:* `watch`'s words
+and code, a line that fits its terminal, and no read beyond issues 1 and 2's.
+*Not taken:* `watch`'s table as it is (it wraps at 80); the end with its date
+(19 cells); the order of the start instants (every summary read for an order
+the ID gives but across a changed timezone, where the Kiritimati run stands
+first by its ID and no cell contradicts it, its TIME a duration); `watch`'s
+running rows above a rule (a folder's unfinished job may be days dead); a name
+cut (`fake-iosxe de` in the first sketch); a limit at 80 columns; under
+`--target`, the device's outcome in TARGET (`dead-iosxe=failed`, 17 cells, `+1`
+at 80). Found: `watch --all-retained` is registered as not built, from before
+the public tree, with no specification; `job list --last 0` is that view, and
+the placeholder goes when `job list` is built.
+
+**Issue 4, another operator's jobs in shared mode, agreed.** A lab of two
+operators, `netops` and `netops.test`, both of the group `netops`, each with
+its own configuration, base directory, and trust store and one shared root in
+`/dev/shm` (group `netops`, its `jobs` tree 2770), each running one job:
+
+```console
+$ ls -ld shared/jobs/*/*
+drwxr-s--- 2 netops      netops 200 Oct 15 17:01 261015/261015-170121-00
+drwxr-s--- 2 netops.test netops 200 Oct 15 17:01 261015/261015-170122-00
+```
+
+Both jobs stand in the one tree, every file 0640 in the operators' group;
+`netops` read `netops.test`'s summary, whose manifest names `operator:
+netops.test`. The daemon refuses a client whose UID is not its own, so a job's
+files are its operator's, a service account's job the service account's. `job
+follow` by `netops` of `netops.test`'s finished job exited 111,
+`run_output_records_unreadable: …/commands.jsonl is owned by uid 1001, not
+1000`: the folder's path opens `commands.jsonl` only when it is the caller's
+own, while FILES section 4.3 says any member reads another's job with `karvi
+job follow ID`. The rule. `job list` reads the output root issue 1 names: in
+shared mode every job of the shared tree, every operator's and a service
+account's; in individual mode the operator's own. OPERATOR is the owner of the
+job's summary, named by the system's user database, the UID where it names
+none. `--operator NAME`, repeatable, keeps that operator's jobs, applied before
+the count as the other filters are. A folder the operator cannot read is listed
+with `?` in the flag column, as `watch` marks an unreadable file. `job follow`,
+in the shared tree, takes a file another member owns when its group is the
+tree's and its mode 0640 or stricter, its other checks (a regular file, no link
+followed) as they are, so FILES holds. *Why:* the question that brought
+`--target`, whether any operator, agent, or application ran a job at a device,
+is answered by the shared tree, and the owner is the file system's word, not a
+file's. *Not taken:* the operator's own jobs by default, another's on an option
+(the question is everyone's); OPERATOR from a field of the summary (the same
+value, which a crafted file could name otherwise); FILES changed to the folder's
+path (a listed job that cannot be followed); an unreadable folder left out (a
+list that hides what is there).
+
+**Issue 4, continued: another member's live job followed from its folder,
+agreed.** On the lab of two operators, with both configurations' `scoreboards`
+in one shared directory (3770, group `netops`) as a site's scratch root has
+them, `netops` started a run of `show slow` at 25 seconds through its daemon
+(`--detach`, `261015-170932-00`). While it ran, `netops.test`'s `watch --format
+table` showed it, `running`, `netops`, `0/1`, one device in flight; its `job
+follow` exited 112, `job_orphaned: job 261015-170932-00: … holds no summary and
+no running daemon holds the job … the daemon that ran it is gone`, though the
+job was live; `netops`'s own follow rendered it to its end, exit 0,
+`elapsed=25.62s`. A follow asks the caller's own daemon, which holds its own
+jobs alone and refuses another UID, and then the folder, which it reads for a
+finished job only. The rule. `job follow` of a job no daemon of the caller's
+holds, whose summary is not final, follows its folder: it renders each record
+of `commands.jsonl` as it is written and ends when the summary names a final
+status, the follow's display ending as it does for a job that has ended. It
+answers `job_orphaned` only when the job's scoreboard is stale by `watch`'s
+rule (`watch.stale-after`) or is gone. A site that turns `commands.jsonl` off
+sees such a job at its end alone. *Why:* `job list` shows another member's
+running jobs, and following one is the next thing an operator does; issue 2's
+summary at acceptance says the job is running, and issue 4's rule lets a member
+read its files. *Not taken:* a daemon serving followers of another UID (the
+daemon's one boundary crossed); the false `job_orphaned` recorded as a defect
+and the follow across members left for later.
+
+**Issue 5, a job without a folder and the summary's switch, agreed.** On the
+lab: a run under `--nof` left no folder (seven before and after) while its
+`command_completed` audit event named `fake-iosxe` and the job, and
+`output.persist-command = false` does the same for every job on every path. A
+run with `output.files.summary-json=false` completed, exit 0, and left a folder
+without a summary; `job follow 261015-171544-00` answered `job_orphaned`, exit
+112. The operator's rule. Every job that makes a folder writes its summary:
+`output.files.summary-json` is removed, and the summary is the folder's index,
+which the list, the follow, the live follow, and the pruner read. An operator
+or a site may choose no output, `--nof` or `output.persist-command = false`,
+and the job then makes no folder, no summary, and no other file, and `job list`
+does not list it, with no warning. A folder without a summary is then a job cut
+short before its summary's first write: unfinished, and orphaned by the stale
+scoreboard's rule alone. The configuration registry loses the key and moves;
+the generated reference, schema, and ERROR-CODES follow it; `job_orphaned`
+loses its clause on the switch; FILES section 4.3 names the summary as always
+written. *Why:* the list's one source is wherever a folder is, and no output
+stays the operator's choice. *Not taken:* the switch kept and the functions it
+costs documented (a row that cannot say what the job did, a follow without its
+end, no follow across members), proposed and set aside on the operator's word;
+`--nof` writing the summary alone (the choice of nothing on disk overridden).
+Beyond the list, on the operator's word: what karvi writes to journald, and so
+to the syslog a host forwards it to, does not suffice as the audit trail, a
+later improvement (ROADMAP Later); after it, an audit review tool, perhaps the
+administrators', can answer for every job, while `job list` answers an operator
+for the jobs they made and, on a shared host, the team's.
