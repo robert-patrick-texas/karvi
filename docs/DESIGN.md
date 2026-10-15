@@ -260,10 +260,15 @@ platforms, registry keys for `--set`, device names from the inventory, job
 IDs from the scoreboard directory, and `:files` where bash should complete
 paths. It creates nothing, contacts no daemon, and prints nothing on any
 failure. One bash function serves `karvi` and `karvi-prune`; `sudo karvi
-setup tab` installs it. *Why:* the grammar is data the drift test already
-keeps honest, so a word added to the table is completed by construction.
-*Not taken:* a generated static script (stale at the next change, blind to
-inventory); listing aliases (the list would double).
+setup tab` installs it. The function runs the command word it was given, so a
+shorter name a site links to the executable completes once the site binds it
+in a file of its own (`complete -F _karvi k`). *Why:* the grammar is data the
+drift test already keeps honest, so a word added to the table is completed by
+construction. *Not taken:* a generated static script (stale at the next
+change, blind to inventory); listing aliases (the list would double); `k`
+bound in karvi's file (an operator whose `k` is an alias, often kubectl's,
+would lose Tab on it); a name given to `setup tab` (every later run would have
+to name it again or drop it).
 
 ## 3. Targets, inventory, and platforms
 

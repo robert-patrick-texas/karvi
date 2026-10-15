@@ -8,6 +8,10 @@
   prefix of `--platform`: a script that typed `--pl NAME` for
   `--platform NAME` now gets `linux` and `NAME` as a target or command word
   (`--pla` is still `--platform`).
+- **Tab completion for a shorter name.** `docs/OPERATIONS.md` "Tab
+  completion" and `karvi-setup(1)` FILES say how a site that links a shorter
+  name such as `k` to karvi binds it to the same completion
+  (`complete -F _karvi k`, in a file of its own); nothing in karvi changed.
 
 ## 0.30.1 - 2026-10-13
 

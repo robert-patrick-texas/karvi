@@ -87,7 +87,13 @@ The rule that makes the scratch root again at every boot.
 .I /etc/bash_completion.d/karvi
 The completion file
 .B setup tab
-writes, read by the bash\-completion package at every login.
+writes, read by the bash\-completion package at every login, and written
+again whenever it differs.
+A site that links a shorter name to karvi binds that name in a file of its
+own, such as
+.I /etc/bash_completion.d/k
+holding
+.BR "complete \-F _karvi k" .
 .SH SEE ALSO
 .BR karvi (1),
 .BR karvi\-prune (8),

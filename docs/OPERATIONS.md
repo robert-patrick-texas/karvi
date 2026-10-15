@@ -1676,6 +1676,23 @@ hidden word, `karvi-prune __complete`, which resolves no root and writes
 nothing. A host that holds the file from before the helper was added runs
 `sudo karvi setup tab` once more, which reports `updated`.
 
+A site that gives karvi a shorter name, a symbolic link on the path, binds
+that name to the same function in a file of its own, as root:
+
+```bash
+sudo ln -s "$(command -v karvi)" /usr/local/bin/k
+echo 'complete -F _karvi k' | sudo tee /etc/bash_completion.d/k
+```
+
+From the next login Tab after `k` offers what it offers after `karvi`: the
+function runs the command word it was given (`k __complete …`), and `k` is
+the karvi executable, which answers under any name. The line stands in its
+own file, never in `/etc/bash_completion.d/karvi`, which `setup tab` writes
+again whenever it differs (`updated`); an operator's `~/.bashrc` holds it for
+that operator alone. An alias (`alias k=karvi`) is not completed this way:
+the function runs `k` as a command, which an alias does not reach, and Tab
+offers nothing.
+
 `karvi-setup(1)` (`man karvi setup`), FILES, restates what `setup shared`
 and `setup tab` make, with the modes, for the terminal; a change to one
 changes both.
