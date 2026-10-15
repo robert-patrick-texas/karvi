@@ -189,6 +189,12 @@ func TestTreeConverts(t *testing.T) {
 	if !strings.Contains(index, `src="images/karvi-viking-fleet-command.png"`) {
 		t.Error("the index lacks the README's image")
 	}
+	// Every page, the index too, links the repository in its column.
+	for name, b := range files {
+		if strings.HasSuffix(name, ".html") && !strings.HasSuffix(name, "/index.html") && !strings.Contains(string(b), `<p class="repo"><a href="`+repoURL+`">`) {
+			t.Errorf("%s does not link the repository", name)
+		}
+	}
 	// Every directory below the root sends the browser to its parent's page.
 	for _, d := range []string{"docs", "examples", "release", "images"} {
 		b, err := os.ReadFile(filepath.Join(out, d, "index.html"))

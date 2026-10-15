@@ -3094,9 +3094,12 @@ root holds an `index.html` that sends the browser to the parent's `index.html`
 `noindex`. The parent's page and not the bare directory, so a copy opened from
 the disk reaches a page too. The left column holds the groups and every
 document, the current page's sections under it; a narrow screen folds the same
-links into "Documents" above the page. *Why:* the directory can be copied
-anywhere and read offline, and a server shows a reader of a directory a page,
-never a listing or an error. *Not taken:* syntax highlighting (a second module);
+links into "Documents" above the page. Under the name the column links the
+repository on GitHub, the one link out of the site, which a copy read offline
+does without. *Why:* the directory can be copied anywhere and read offline, a
+server shows a reader of a directory a page, never a listing or an error, and
+a reader of the published site reaches the source, the releases, and the
+issues in one step. *Not taken:* syntax highlighting (a second module);
 a stylesheet in every page; a search box.
 
 **The site is replaced whole, and only when it is the tool's.** The tool writes

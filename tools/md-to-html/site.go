@@ -26,6 +26,10 @@ const marker = ".md-to-html"
 
 const markerText = "Made by tools/md-to-html from the karvi tree. The whole directory is\nreplaced at each run; a file added here by hand is removed with it.\n"
 
+// repoURL is the repository on GitHub, which every page's column links
+// under the name: the site's one link out of itself.
+const repoURL = "https://github.com/robert-patrick-texas/karvi"
+
 // page is one document as the site carries it.
 type page struct {
 	doc      document
@@ -241,6 +245,7 @@ var pageTemplate = template.Must(template.New("page").Funcs(funcs).Parse(`<!doct
 </head>
 <body>
 {{define "nav"}}<p class="home"><a href="{{.Home}}">karvi</a></p>
+<p class="repo"><a href="` + repoURL + `">GitHub repository</a></p>
 {{range .Nav}}<p class="group">{{.Name}}</p>
 <ul>
 {{range .Items}}<li><a href="{{.Href}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{if .Sections}}
