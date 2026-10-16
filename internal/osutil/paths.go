@@ -493,7 +493,15 @@ func sharedTreeClosed(sub, p, key, code, why string) error {
 // when a shared root
 // holds one, else <basedir>/jobs; an explicit path is that path.
 func ResolveOutputRoot(raw, shared, base, home string) (string, error) {
-	return resolveTree(raw, shared, base, home, "jobs", "output.root", "output_directory_not_writable")
+	p, _, err := ResolveOutputTree(raw, shared, base, home)
+	return p, err
+}
+
+// ResolveOutputTree is ResolveOutputRoot that also says whether the root is
+// the shared jobs tree, in whose group every member's job files stand
+// (FILES section 4.3).
+func ResolveOutputTree(raw, shared, base, home string) (path string, isShared bool, err error) {
+	return resolveTreeShared(raw, shared, base, home, "jobs", "output.root", "output_directory_not_writable")
 }
 
 // ResolveTranscriptRoot resolves transcript.root: "auto" is the shared
@@ -513,15 +521,23 @@ func ResolveCrunDirectory(raw, shared, base, home string) (string, error) {
 // ResolvePath and refused when making it would make a place setup shared
 // makes. It makes nothing: the tree is made where it is used.
 func resolveTree(raw, shared, base, home, sub, key, code string) (string, error) {
+	p, _, err := resolveTreeShared(raw, shared, base, home, sub, key, code)
+	return p, err
+}
+
+// resolveTreeShared is resolveTree that also says whether the tree is the
+// shared root's.
+func resolveTreeShared(raw, shared, base, home, sub, key, code string) (string, bool, error) {
 	if raw == "" || raw == "auto" {
 		if p, ok, err := ResolveSharedTree(shared, sub, key, code); err != nil {
-			return "", err
+			return "", false, err
 		} else if ok {
-			return p, nil
+			return p, true, nil
 		}
-		return filepath.Join(base, sub), nil
+		return filepath.Join(base, sub), false, nil
 	}
-	return explicitPath(raw, home, key)
+	p, err := explicitPath(raw, home, key)
+	return p, false, err
 }
 
 // OutputRootPlace, TranscriptRootPlace, and CrunDirectoryPlace are the

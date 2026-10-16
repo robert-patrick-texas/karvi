@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"io"
 	"os"
 	"strings"
 	"time"
@@ -146,19 +145,6 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 		ActivityType: "run", ActivityID: id,
 		Selection: selection,
 	}, streams)
-}
-
-// RenderRunOutput renders a job directory's records under the invocation's
-// configuration, as the follow step of a daemon-backed run.
-func RenderRunOutput(common CommonOptions, artifactDir, format string, echo, dynamicBorder, noBorder bool, summary *records.Summary, out io.Writer) error {
-	if format == "" {
-		format = "text"
-	}
-	if format == "jsonl" {
-		return jobexec.RenderRunOutput(configload.Snapshot{}, common.Quiet, common.Debug, artifactDir, format, echo, dynamicBorder, noBorder, summary, out)
-	}
-	cfg := common.Config
-	return jobexec.RenderRunOutput(cfg, common.Quiet, common.Debug, artifactDir, format, echo || cfg.Bool("display.run.echo"), dynamicBorder, noBorder, summary, out)
 }
 
 // failedResult reports err under the site code that names its cause, unless err

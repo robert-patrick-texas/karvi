@@ -433,7 +433,7 @@ Active failure causes.
 | `ipc_schema_invalid` | internal | 112 | no | An IPC request is built with a schema number below 1. |
 | `job_header_invalid` | usage | 112 | no | A public job header fails the PublicJobHeader contract; the message names the field first. |
 | `job_id_conflict` | usage | 112 | no | commit_job names a job ID the daemon already holds. |
-| `job_orphaned` | dependency | 112 | no | job follow found the job's directory without a final summary and no running daemon holds the job: the daemon that ran it is gone and crash recovery is open. |
+| `job_orphaned` | dependency | 112 | no | job follow found the job without a final summary and its scoreboard gone, stale by `watch.stale-after`, or naming the job's end that long ago: the process that ran it is gone, or ended without its summary, and crash recovery is open. |
 | `job_rejected` | capacity | 112 | yes | The daemon's accepted-job limit is in use. |
 | `job_request_malformed` | internal | 112 | no | A job submission payload is not valid JSON. |
 | `job_unknown` | usage | 112 | no | follow_job or cancel_job names a job the daemon does not hold, or one evicted from its bounded job table. |

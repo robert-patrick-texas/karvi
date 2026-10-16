@@ -1696,10 +1696,12 @@ change the job; the job still produces output the client would lose.
 **`job follow` renders the whole job as the foreground run would have.** It
 follows from the zero cursor; the daemon catches it up and feeds it live; the
 display ends with the footer or the jsonl summary line, and the exit is the
-job's own. A job the daemon does not hold is read from its directory, located
-as the day folder holding a subdirectory named by the ID; a directory without
-`summary.json` and no daemon holding the job is `job_orphaned`, the daemon
-judged before the directory. `job follow` and `job cancel` use a daemon of any
+job's own. A job no daemon of the caller's holds is followed from its
+directory, located as the day folder holding a subdirectory named by the ID,
+record by record until its summary names a final status; one whose summary is
+not final and whose scoreboard is gone, or stale by `watch.stale-after` (one
+naming the job's end included), is `job_orphaned`, the daemon judged before the
+directory. `job follow` and `job cancel` use a daemon of any
 version or build that speaks the client's IPC schema, and neither drains, since
 neither submits; a daemon of another schema refuses a running job's follow and
 cancel, `daemon_incompatible`, naming the karvi that speaks it, and a job that

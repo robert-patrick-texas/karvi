@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -172,7 +173,8 @@ func TestJobFollowInterruptedBeforeTheStart(t *testing.T) {
 }
 
 // finishedDirectory writes a finished job's directory where JobDirectoryFor
-// derives it: an empty canonical file and a summary.
+// derives it: an empty canonical file and a summary naming it, as a job's
+// does.
 func finishedDirectory(t *testing.T, g globalOptions, jobID string, summary records.Summary) string {
 	t.Helper()
 	common, err := testCommon(g)
@@ -188,6 +190,9 @@ func finishedDirectory(t *testing.T, g globalOptions, jobID string, summary reco
 	}
 	if err := os.WriteFile(filepath.Join(dir, "commands.jsonl"), nil, 0o640); err != nil {
 		t.Fatal(err)
+	}
+	if summary.Paths == nil {
+		summary.Paths = map[string]string{"commands_jsonl": filepath.Join(dir, "commands.jsonl")}
 	}
 	raw, _ := json.Marshal(summary)
 	if err := os.WriteFile(filepath.Join(dir, "summary.json"), raw, 0o640); err != nil {
@@ -224,12 +229,15 @@ func TestJobFollowReadsTheDirectoryWithoutADaemon(t *testing.T) {
 }
 
 // TestJobFollowDirectoryStates: a directory without a summary, or whose
-// summary names no final status, is job_orphaned (3.3); no directory is
-// job_unknown naming the derived path
+// summary names no final status, is job_orphaned when no scoreboard names
+// the job or its scoreboard is stale (EXAMPLES chapter 61, issue 4); no
+// directory is job_unknown naming the derived path
 // (3.4); a malformed ID is job_request_malformed (3.1); a daemon that
 // answers job_unknown yields to the directory (3.2).
 func TestJobFollowDirectoryStates(t *testing.T) {
 	_, g, socket := daemonTestRuntime(t)
+	boards := t.TempDir()
+	g.sets = append(g.sets, "scoreboards=\""+boards+"\"", "watch.refresh=\"250ms\"", "watch.stale-after=\"1s\"")
 	var stdout, stderr bytes.Buffer
 	if got := jobFollow(context.Background(), followInvocation(t, g, "not-a-job-id"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_request_malformed: ") {
 		t.Fatalf("malformed: exit=%d stderr=%q", got, stderr.String())
@@ -244,14 +252,22 @@ func TestJobFollowDirectoryStates(t *testing.T) {
 		t.Fatal(err)
 	}
 	stderr.Reset()
-	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: ") || !strings.Contains(stderr.String(), "holds no final summary") {
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || stderr.String() != "job_orphaned: job "+fixtureJobID+" has no final summary and no scoreboard\n" {
 		t.Fatalf("orphaned: exit=%d stderr=%q", got, stderr.String())
 	}
-	// The summary the acceptance wrote, without a final status.
+	// The summary the acceptance wrote, without a final status, and a
+	// scoreboard last written 90 seconds ago.
 	finishedDirectory(t, g, fixtureJobID, records.Summary{AcceptedSummary: records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, Devices: []records.SummaryDevice{{Name: "r1"}}}})
+	writeBoard(t, boards, fixtureJobID, "running", time.Now().Add(-90*time.Second))
 	stderr.Reset()
-	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: ") || !strings.Contains(stderr.String(), "holds no final summary") {
-		t.Fatalf("not final: exit=%d stderr=%q", got, stderr.String())
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: job "+fixtureJobID+" has no final summary and a stale scoreboard\n  last update 1m30") || !strings.HasSuffix(stderr.String(), "s ago\n  stale after 1s\n") || stdout.String() != "" {
+		t.Fatalf("not final: exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
+	}
+	// A scoreboard that names the job's end, the summary never made final.
+	writeBoard(t, boards, fixtureJobID, "errored", time.Now().Add(-90*time.Second))
+	stderr.Reset()
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: job "+fixtureJobID+" has no final summary and its scoreboard ended errored\n  last update 1m30") || !strings.HasSuffix(stderr.String(), "s ago\n  stale after 1s\n") || stdout.String() != "" {
+		t.Fatalf("ended: exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
 	}
 	// The daemon does not hold the job (its fixture answers job_unknown for
 	// the zzzz suffix); the finished directory answers instead.
@@ -267,6 +283,131 @@ func TestJobFollowDirectoryStates(t *testing.T) {
 	}
 	if ops := f.operations(); ops != "follow" {
 		t.Fatalf("operations %q", ops)
+	}
+}
+
+// TestJobFollowFollowsAnUnfinishedFolder: a job no daemon of the caller's
+// holds, its summary not final and its scoreboard fresh, is followed from
+// its folder (EXAMPLES chapter 61, issue 4): each record as it is written, a
+// line in two writes rendered once whole, then the summary line once the
+// summary names a final status, with the job's exit; a scoreboard that goes
+// stale in the meantime ends the follow job_orphaned.
+func TestJobFollowFollowsAnUnfinishedFolder(t *testing.T) {
+	_, g, _ := daemonTestRuntime(t)
+	boards := t.TempDir()
+	g.sets = append(g.sets, "scoreboards=\""+boards+"\"", "watch.refresh=\"250ms\"", "watch.stale-after=\"1s\"")
+	accepted := records.Summary{AcceptedSummary: records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, JobID: fixtureJobID, Devices: []records.SummaryDevice{{Name: "r1"}}, Paths: map[string]string{"commands_jsonl": "commands.jsonl"}}}
+	dir := finishedDirectory(t, g, fixtureJobID, accepted)
+	writeBoard(t, boards, fixtureJobID, "running", time.Now())
+	type result struct {
+		exit           int
+		stdout, stderr string
+	}
+	follow := func() <-chan result {
+		done := make(chan result, 1)
+		go func() {
+			var stdout, stderr bytes.Buffer
+			exit := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID, "--format", "jsonl"), app.IO{Stdout: &stdout, Stderr: &stderr})
+			done <- result{exit, stdout.String(), stderr.String()}
+		}()
+		return done
+	}
+	appendTo := func(text string) {
+		f, err := os.OpenFile(filepath.Join(dir, "commands.jsonl"), os.O_APPEND|os.O_WRONLY, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if _, err := f.WriteString(text); err != nil {
+			t.Fatal(err)
+		}
+	}
+	done := follow()
+	first, second := `{"sequence":1}`+"\n", `{"sequence":2}`+"\n"
+	appendTo(first)
+	time.Sleep(300 * time.Millisecond)
+	appendTo(second[:6])
+	time.Sleep(300 * time.Millisecond)
+	appendTo(second[6:])
+	// The job's end: the scoreboard's final status, then the summary's.
+	writeBoard(t, boards, fixtureJobID, "errored", time.Now())
+	time.Sleep(300 * time.Millisecond)
+	final := accepted
+	final.FinalStatus, final.ExitCode, final.ExitName = "errored", exitcode.ExitPartialFailure, "ExitPartialFailure"
+	raw, _ := json.Marshal(final)
+	if err := os.WriteFile(filepath.Join(dir, "summary.json"), raw, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	r := <-done
+	if r.exit != exitcode.ExitPartialFailure || r.stderr != "" {
+		t.Fatalf("exit=%d stderr=%q stdout=%q", r.exit, r.stderr, r.stdout)
+	}
+	recordsThenSummary(t, []byte(r.stdout), []byte(first+second), fixtureJobID, "errored")
+
+	// The same job's records, its summary not final again, and a scoreboard
+	// that stops being written: job_orphaned once it is stale.
+	raw, _ = json.Marshal(accepted)
+	if err := os.WriteFile(filepath.Join(dir, "summary.json"), raw, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	writeBoard(t, boards, fixtureJobID, "running", time.Now())
+	r = <-follow()
+	if r.exit != exitcode.ExitJobRejected || !strings.HasPrefix(r.stderr, "job_orphaned: job "+fixtureJobID+" has no final summary and a stale scoreboard\n  last update ") || r.stdout != first+second {
+		t.Fatalf("stale: exit=%d stderr=%q stdout=%q", r.exit, r.stderr, r.stdout)
+	}
+}
+
+// TestJobFollowWithoutCommandsJSONL: a job whose summary names no
+// commands.jsonl keeps none (output.files.commands-jsonl false); its follow
+// from the folder says so once and shows the job's end alone, opening no
+// file, live or finished (EXAMPLES chapter 61, issue 4).
+func TestJobFollowWithoutCommandsJSONL(t *testing.T) {
+	_, g, _ := daemonTestRuntime(t)
+	boards := t.TempDir()
+	g.sets = append(g.sets, "scoreboards=\""+boards+"\"", "watch.refresh=\"250ms\"", "watch.stale-after=\"1s\"")
+	accepted := records.Summary{AcceptedSummary: records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, JobID: fixtureJobID, Devices: []records.SummaryDevice{{Name: "r1"}}, Paths: map[string]string{"summary": "summary.json"}}}
+	dir := finishedDirectory(t, g, fixtureJobID, accepted)
+	if err := os.Remove(filepath.Join(dir, "commands.jsonl")); err != nil {
+		t.Fatal(err)
+	}
+	writeBoard(t, boards, fixtureJobID, "running", time.Now())
+	const warning = "warning: the job's records are not kept (output.files.commands-jsonl is false)\n"
+	type result struct {
+		exit           int
+		stdout, stderr string
+	}
+	done := make(chan result, 1)
+	go func() {
+		var stdout, stderr bytes.Buffer
+		exit := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID, "--format", "jsonl"), app.IO{Stdout: &stdout, Stderr: &stderr})
+		done <- result{exit, stdout.String(), stderr.String()}
+	}()
+	time.Sleep(400 * time.Millisecond)
+	final := accepted
+	final.FinalStatus, final.ExitCode, final.ExitName = "completed", 0, "ExitSuccess"
+	raw, _ := json.Marshal(final)
+	if err := os.WriteFile(filepath.Join(dir, "summary.json"), raw, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	r := <-done
+	if r.exit != 0 || r.stderr != warning {
+		t.Fatalf("live: exit=%d stderr=%q stdout=%q", r.exit, r.stderr, r.stdout)
+	}
+	recordsThenSummary(t, []byte(r.stdout), nil, fixtureJobID, "completed")
+	// Finished: the text display is the footer alone.
+	var stdout, stderr bytes.Buffer
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 || stderr.String() != warning || !strings.Contains(stdout.String(), " artifacts="+dir+"\n") || strings.Count(stdout.String(), "\n") != 1 {
+		t.Fatalf("finished: exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
+	}
+}
+
+// writeBoard writes the scoreboard of job id in dir with status, last
+// updated at.
+func writeBoard(t *testing.T, dir, id, status string, at time.Time) {
+	t.Helper()
+	raw, _ := json.Marshal(map[string]any{"status": status, "last_updated_at": at})
+	if err := os.WriteFile(filepath.Join(dir, id+".json"), raw, 0o640); err != nil {
+		t.Fatal(err)
 	}
 }
 

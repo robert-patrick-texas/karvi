@@ -117,15 +117,23 @@ run's ends (the footer from the job's summary in text, the summary document as
 the last line under `jsonl`, a collection's line after the footer in text; no
 result line on standard error), and exits with the job's own exit (0 completed,
 113 cancelled, 106 incomplete). Under `jsonl` the output is the job's
-`commands.jsonl` byte for byte, then its summary. The daemon serves the job
-while it holds it; a finished job the daemon no longer holds (after a restart,
-or evicted from the bounded job table) is read from its directory, found by the
-job ID under `output.root`. A directory whose summary names no final status,
-or without one, whose job no daemon holds is `job_orphaned`: the daemon that
-ran it is gone. A job run with `output.files.commands-jsonl` false is followed
-live by the client that started it; a later `job follow` starts at the edge and
-says which records are not kept. Ctrl-C stops only the follow. Neither `job`
-verb launches a daemon.
+`commands.jsonl` byte for byte, then its summary. The operator's daemon serves
+the job while it holds it. Any other job is followed from its directory, found
+by the job ID under `output.root`: a finished job the daemon no longer holds
+(after a restart, or evicted from the bounded job table), a `run --no-daemon`
+of another terminal, and in the shared tree another member's or the service
+account's job. Each record of `commands.jsonl` is rendered as it is written
+until the summary names a final status, and the display ends from it. While
+the summary is not final, the job's scoreboard says whether it runs: one that
+is gone, or stale by `watch.stale-after`, or that names the job's end that long
+ago, is `job_orphaned`, the process that ran it gone. A site that turns
+`watch.enabled` off has no scoreboard, so another member's live job is
+`job_orphaned` to a follow; each operator still follows their own through their
+daemon. A job run with `output.files.commands-jsonl` false is followed live by
+the client that started it; a later `job follow` through the daemon starts at
+the edge and says which records are not kept, and one from the directory says
+the job's records are not kept and shows its end alone. Ctrl-C stops only the
+follow. Neither `job` verb launches a daemon.
 
 `karvi-run(1)` (`man karvi run`), REHEARSAL, restates the dry run, the
 exercise, `--detach`, and Ctrl-C for the terminal; a change to one changes

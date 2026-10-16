@@ -325,7 +325,7 @@ root and `logs` are 0750; job and transcript folders take
 `output.directory-mode` (default 0750) and their files are 0640. `cancel_job`
 cancels one accepted job through its own context; crash reconstruction is a
 roadmap capability: a job whose daemon died is `job_orphaned` to `job follow`,
-its summary naming no final status.
+its summary naming no final status and its scoreboard stale or gone.
 
 **A command's output is bounded in memory from the device's first byte to the
 record's write.** The device session (`internal/devsession/settle.go`) cleans
@@ -691,10 +691,17 @@ continuity and renders its record through `jobexec.RunRenderer`. `--detach`
 returns at acceptance with the receipt; `--follow=false` follows for the
 terminal only. `karvi job follow JOB-ID` runs the same follow loop from the zero
 cursor for a job named by its ID, so the daemon catches it up from the file and
-feeds it live; a job the daemon no longer holds is read from its directory,
-located by the unique ID under the output root (`internal/app/jobdir.go`, with
-the checked open of the file), and `job_orphaned` names a directory without a
-summary. `karvi job cancel JOB-ID` sends `cancel_job`: each job runs under its
+feeds it live. A job no daemon of the caller's holds is followed from its
+directory, located by the unique ID under the output root
+(`internal/app/jobdir.go`, `FollowJobDirectory`), through the same renderer:
+`commands.jsonl` opened with its checks (a regular file, no link followed, mode
+0640 or stricter, the caller's own or, in the shared jobs tree, in the tree's
+group) and each record rendered as the file grows, until the summary names a
+final status. A summary that names no `commands.jsonl` gives the job's end
+alone. While the summary is not final, the job's scoreboard
+(`scoreboard.Find`) says whether it runs, and `job_orphaned` names a job whose
+scoreboard is gone, stale by `watch.stale-after`, or names its end that long
+ago. `karvi job cancel JOB-ID` sends `cancel_job`: each job runs under its
 own child of the daemon's job context, the request cancels that child with a
 cause carrying the reason, time, and requester, every unfinished unit is
 recorded `cancelled` (a command already sent is never recorded succeeded or

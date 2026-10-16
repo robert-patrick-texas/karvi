@@ -105,9 +105,9 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 - **Crash recovery.** A daemon journal, reconstruction of an unfinished job
   after a daemon crash or restart, and an `incomplete_daemon_recovery`
   terminal status. Today a job whose daemon died leaves its summary without
-  a final status, `job follow` answers `job_orphaned` for it, the pruner
-  retires it by age, and an abandoned spool's name carries what a
-  reconstruction would need.
+  a final status, `job follow` answers `job_orphaned` for it once its
+  scoreboard is stale or gone, the pruner retires it by age, and an
+  abandoned spool's name carries what a reconstruction would need.
 - **A `--from-now` follow** starting at the live edge, with its own header
   saying what it left out.
 - **Field prefixes in the watch screen's filter** (`op:`, `mode:`), if the

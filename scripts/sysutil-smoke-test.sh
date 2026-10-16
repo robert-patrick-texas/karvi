@@ -22,14 +22,19 @@
 #      docker start the job's summary completed, its folder's modes FILES';
 #   7. logind's RemoveIPC: an operator's login and logout leave the account's
 #      files under /dev/shm;
-#   8. the upgrade: the installed template changed and the package installed
+#   8. job follow across members (chapter 61, issue 4): the account's live
+#      job followed by an operator from the shared tree to its end, and again
+#      once it ended; that operator's job followed by a second, with
+#      commands.jsonl and without; a file of the job in a group both share
+#      that is not the tree's, refused;
+#   9. the upgrade: the installed template changed and the package installed
 #      again, the instance needing no reload and its daemon's pid the same;
-#   9. the removal: the account and its home kept, a part gone reported
+#  10. the removal: the account and its home kept, a part gone reported
 #      absent, a second removal, an install taking the account back, --purge
 #      giving the account's shared files to root, their modes the same, and a
 #      removal without a record refused;
-#  10. dpkg -r: the template gone and systemd reloaded;
-#  11. the bundle on the host without the package (chapter 57, issue 19):
+#  11. dpkg -r: the template gone and systemd reloaded;
+#  12. the bundle on the host without the package (chapter 57, issue 19):
 #      scripts/install.sh with the package's executables, the links, the
 #      page, and the template placed and systemd reloaded; the install run by
 #      karvi-sysutil from /usr/local/sbin, the daemon running the bundle's
@@ -238,7 +243,52 @@ x test ! -e /dev/shm/op1-file || fail "logind kept the operator's file: RemoveIP
 [ "$(xsh "find /dev/shm/karvi -uid $KUID | wc -l")" = "$n" ] || fail "the account's files under /dev/shm changed after the operator's logout"
 ok "RemoveIPC: the operator's file gone 13 s after the logout, the account's $n kept"
 
-# 8. The upgrade: the template changed, the package installed again.
+# 8. job follow across members: op1 follows the account's job, op2 op1's,
+# from the shared tree, none of them through a daemon of their own.
+xsh 'adduser --quiet --disabled-password --comment "" op2 >/dev/null 2>&1 && adduser --quiet op2 netops'
+member() { # USER ARGS...: karvi as the operator USER, the test's configuration
+  docker exec -w / "$TAG" runuser -u "$1" -- env NETUSER=netops NETPASS=S3cret NETENABLE=en \
+    karvi --nocolor --config /opt/karvi-test/c.toml --set 'platform-resolution.default=""' "${@:2}"
+}
+receipt=$(job 'show slow' --detach 2>&1) || fail "the account's job: $receipt"
+id=$(sed -n 's/^job_id: //p' <<<"$receipt") && art=$(sed -n 's/^artifact_dir: //p' <<<"$receipt")
+[[ $art == /opt/karvi/shared/jobs/* ]] || fail "the account's job is not in the shared tree: $art"
+out=$(member op1 daemon status 2>&1)
+[ $? -eq 110 ] && [[ $out == daemon_unreachable:* ]] || fail "op1 has a daemon: $out"
+[ "$(xsh "grep -c '\"final_status\"' $art/summary.json")" = 0 ] || fail "the account's job ended before op1's follow"
+out=$(member op1 job follow "$id" 2>&1)
+rc=$?
+[ $rc -eq 0 ] && has "$out" "slow output" && has "$out" "! exit=0 " || fail "op1's follow of the account's live job: exit $rc: $out"
+out=$(member op1 job follow "$id" 2>&1)
+rc=$?
+[ $rc -eq 0 ] && has "$out" "slow output" && has "$out" "! exit=0 " || fail "op1's follow of the account's ended job: exit $rc: $out"
+# op1's job and op2's follow of it; the job's folder from its footer.
+footer_dir() { sed -n 's/^! exit=.* artifacts=//p' <<<"$1"; }
+out=$(member op1 run --no-daemon --transport native --t d1 'show clock' 2>&1) || fail "op1's job: $out"
+dir=$(footer_dir "$out")
+[ "$(x stat -c '%U %G %a' "$dir/commands.jsonl")" = "op1 netops 640" ] || fail "op1's commands.jsonl: $(x stat -c '%U %G %a' "$dir/commands.jsonl")"
+out=$(member op2 job follow "${dir##*/}" 2>&1)
+rc=$?
+[ $rc -eq 0 ] && has "$out" "! exit=0 " && [ "$(grep -c '^! ' <<<"$out")" -ge 2 ] || fail "op2's follow of op1's job: exit $rc: $out"
+out=$(member op1 --set output.files.commands-jsonl=false run --no-daemon --transport native --t d1 'show clock' 2>&1) ||
+  fail "op1's job without commands.jsonl: $out"
+dir2=$(footer_dir "$out")
+x test ! -e "$dir2/commands.jsonl" || fail "op1's job wrote commands.jsonl"
+out=$(member op2 job follow "${dir2##*/}" 2>&1)
+rc=$?
+[ $rc -eq 0 ] && has "$out" "warning: the job's records are not kept (output.files.commands-jsonl is false)" && has "$out" "! exit=0 " ||
+  fail "op2's follow of op1's job without commands.jsonl: exit $rc: $out"
+# A group op2 shares with op1's file, which is not the tree's.
+xsh "adduser --quiet op2 ops2 && chgrp ops2 $dir/commands.jsonl"
+want="run_output_records_unreadable: $dir/commands.jsonl is another operator's, outside the tree's group
+  file gid $(xsh 'getent group ops2 | cut -d: -f3')
+  tree gid $(xsh 'getent group netops | cut -d: -f3')"
+out=$(member op2 job follow "${dir##*/}" 2>&1)
+rc=$?
+[ $rc -eq 111 ] && [ "$out" = "$want" ] || fail "op2's follow of a file outside the tree's group: exit $rc: $out"
+ok "members: op1 followed the account's live job to exit 0 and again once ended, op2 op1's job and one keeping no commands.jsonl; a file in ops2, not netops, refused"
+
+# 9. The upgrade: the template changed, the package installed again.
 pid=$(prop MainPID)
 xsh "echo '# changed by hand' >>$TEMPLATE"
 [ "$(prop NeedDaemonReload)" = yes ] || fail "the changed template needs no reload"
@@ -247,7 +297,7 @@ x dpkg -i /root/karvi.deb >/dev/null || fail "dpkg -i again"
   fail "after the upgrade: NeedDaemonReload=$(prop NeedDaemonReload) MainPID=$(prop MainPID), was $pid"
 ok "upgrade: the package's postinst reloaded systemd, the daemon pid $pid the same"
 
-# 9. The removal.
+# 10. The removal.
 x rm "$CONFIG"
 out=$(sysutil remove 2>&1) || fail "remove: $out"
 for line in "removed  instance $UNIT  stopped, disabled" "absent   config $CONFIG" "removed  membership karvi in netops" "kept     account karvi"; do
@@ -273,14 +323,14 @@ done <"$TMP/owned"
 refused "remove without a record" "no service installed: $RECORD absent" sysutil remove
 ok "remove: the account kept, a gone part absent, taken back by install; --purge gave $(wc -l <"$TMP/owned") files to root, modes the same"
 
-# 10. dpkg -r: the template gone and systemd reloaded.
+# 11. dpkg -r: the template gone and systemd reloaded.
 mark=$(x date +%s)
 x dpkg -r karvi >/dev/null || fail "dpkg -r"
 [ -z "$(x systemctl list-unit-files --no-legend karvi-daemon@.service)" ] || fail "the template is still known"
 [[ $(x journalctl -b _PID=1 --since "@$mark" -o cat) == *Reloading* ]] || fail "systemd did not reload at dpkg -r"
 ok "dpkg -r: the template gone, systemd reloaded"
 
-# 11. The bundle: install.sh with the package's executables, on the host
+# 12. The bundle: install.sh with the package's executables, on the host
 # without the package.
 VERSION=$(cat "$ROOT/VERSION")
 B=$TMP/bundle

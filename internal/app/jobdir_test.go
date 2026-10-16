@@ -31,7 +31,7 @@ func TestJobDirectoryForIDAcrossMidnight(t *testing.T) {
 		t.Fatalf("instant %v", at)
 	}
 	for _, zone := range []string{"America/New_York", "UTC", "Asia/Tokyo"} {
-		dir, err := jobDirectoryFor(load(`timezone="`+zone+`"`), "/base", "/home/x", id)
+		dir, _, _, err := jobDirectoryFor(load(`timezone="`+zone+`"`), "/base", "/home/x", id)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -39,7 +39,7 @@ func TestJobDirectoryForIDAcrossMidnight(t *testing.T) {
 			t.Errorf("%s: %s, want %s", zone, dir, want)
 		}
 	}
-	dir, err := jobDirectoryFor(load(`output.root="/var/karvi/out"`, `timezone="UTC"`), "/base", "/home/x", id)
+	dir, _, _, err := jobDirectoryFor(load(`output.root="/var/karvi/out"`, `timezone="UTC"`), "/base", "/home/x", id)
 	if err != nil || dir != filepath.Join("/var/karvi/out", "260915", id) {
 		t.Fatalf("output.root: %s %v", dir, err)
 	}

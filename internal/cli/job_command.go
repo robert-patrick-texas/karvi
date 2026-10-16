@@ -113,8 +113,8 @@ func cancelResultLine(res ipc.CancelResult) string {
 // the foreground run renders it, ending with the footer and a collection's
 // line; the exit is
 // the job's own. The daemon serves the job when it holds it; otherwise the
-// job's directory, derived from the ID, is read for a finished job. The
-// verb never launches a daemon.
+// job's directory, derived from the ID, is followed to the job's end
+// (app.FollowJobDirectory). The verb never launches a daemon.
 func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	g := inv.Global
 	jobID := inv.Positional[0]
@@ -132,7 +132,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return code
 	}
 	// The directory is located first; found is whether it exists yet.
-	dir, dirFound, err := app.LocateJobDirectory(common, jobID)
+	folder, err := app.LocateJobDirectory(common, jobID)
 	if err != nil {
 		return g.reportError(streams.Stderr, "config_load_failed", err)
 	}
@@ -180,32 +180,31 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	// Then the directory.
 	state := app.JobDirectoryAbsent
-	if dirFound {
-		state, err = app.InspectJobDirectory(dir)
+	if folder.Found {
+		state, err = app.InspectJobDirectory(folder.Path)
 		if err != nil {
 			return g.reportError(streams.Stderr, "run_output_records_unreadable", err)
 		}
 	}
-	switch state {
-	case app.JobDirectoryFinished:
-		signal.Ignore(syscall.SIGPIPE)
-		summary, err := app.RenderJobDirectory(common, dir, render, streams.Stdout)
-		if err != nil {
-			return g.reportError(streams.Stderr, "run_output_records_unreadable", err)
-		}
-		return jobFollowResult(g, streams, jobID, dir, summary, summary.ExitCode)
-	case app.JobDirectoryOrphaned:
-		if errorcodes.Of(daemonErr) != "daemon_incompatible" {
-			return g.reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no final summary and no running daemon holds the job (%v); the daemon that ran it is gone", jobID, dir, daemonErr))
-		}
-	}
-	if errorcodes.Of(daemonErr) == "daemon_incompatible" {
-		// A job not ended, or no directory: the job may be that daemon's,
-		// which is judged before the directory (EXAMPLES chapter 57, issue
-		// 6).
+	// A job not ended, or no directory, may be the job of a daemon at
+	// another IPC schema, which is judged before the directory (EXAMPLES
+	// chapter 57, issue 6).
+	if errorcodes.Of(daemonErr) == "daemon_incompatible" && state != app.JobDirectoryFinished {
 		return g.reportError(streams.Stderr, "daemon_incompatible", daemonErr)
 	}
-	return g.reportError(streams.Stderr, "job_unknown", errorcodes.Errorf("job_unknown", "no job %s: %v, and %s does not exist", jobID, daemonErr, dir))
+	if state == app.JobDirectoryAbsent {
+		return g.reportError(streams.Stderr, "job_unknown", errorcodes.Errorf("job_unknown", "no job %s: %v, and %s does not exist", jobID, daemonErr, folder.Path))
+	}
+	signal.Ignore(syscall.SIGPIPE)
+	summary, err := app.FollowJobDirectory(ctx, common, folder, jobID, render, streams.Stdout, streams.Stderr)
+	if err != nil {
+		if ctx.Err() != nil {
+			fmt.Fprintln(streams.Stderr, app.InterruptedLine(jobID, folder.Path, "continues"))
+			return exitcode.ExitCancelled
+		}
+		return g.reportError(streams.Stderr, "run_output_records_unreadable", err)
+	}
+	return jobFollowResult(g, streams, jobID, folder.Path, summary, summary.ExitCode)
 }
 
 // jobFollowResult prints the cancelled line when the job ended cancelled

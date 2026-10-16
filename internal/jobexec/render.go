@@ -1,13 +1,11 @@
 package jobexec
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -808,64 +806,6 @@ func (r *recordRenderer) OutputBytes() int64 {
 	return r.outputByteSize
 }
 
-// RenderRunOutput renders a completed run's durable command records. The daemon
-// always persists canonical JSONL; the client chooses JSONL passthrough or the
-// human text projection after completion without changing stored evidence.
-// RenderRunOutput renders a job directory's command records to out in the
-// requested format, as the follow step of run does after completion.
-func RenderRunOutput(cfg configload.Snapshot, quiet, debug bool, artifactDir, format string, echo, dynamicBorder, noBorder bool, summary *records.Summary, out io.Writer) error {
-	if format == "" {
-		format = "text"
-	}
-	path := filepath.Join(artifactDir, "commands.jsonl")
-	file, err := os.Open(path)
-	if err != nil {
-		return errorcodes.Errorf("run_output_records_unreadable", "open %s: %w", path, err)
-	}
-	defer file.Close()
-	if format == "jsonl" {
-		// The records byte for byte, then the summary as the last line (28.4).
-		if _, err = io.Copy(out, file); err != nil {
-			return errorcodes.Ensure(err, "terminal_write_failed")
-		}
-		if summary == nil {
-			return nil
-		}
-		line, err := SummaryLine(summary)
-		if err != nil {
-			return err
-		}
-		_, err = out.Write(line)
-		return errorcodes.Ensure(err, "terminal_write_failed")
-	}
-	if format != "text" && format != "json" {
-		return errorcodes.Errorf("run_output_format_unsupported", "unsupported run output format %q", format)
-	}
-	renderer, err := newRunReplayRenderer(out, format, cfg, quiet, debug, artifactDir, echo, dynamicBorder, noBorder)
-	if err != nil {
-		return err
-	}
-	scanner := bufio.NewScanner(file)
-	scanner.Buffer(make([]byte, 64*1024), 256<<20)
-	for scanner.Scan() {
-		var record records.CommandRecord
-		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
-			return errorcodes.Errorf("run_output_record_decode_failed", "decode %s: %w", path, err)
-		}
-		renderer.OnRecord(record)
-		if err := renderer.Error(); err != nil {
-			return err
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return errorcodes.Errorf("run_output_records_unreadable", "read %s: %w", path, err)
-	}
-	if err := renderer.finish(summary); err != nil {
-		return err
-	}
-	return renderer.Error()
-}
-
 // newRunReplayRenderer is the renderer of a run's records read back from
 // commands.jsonl: a job's directory shown later, or a daemon's job followed
 // by the client. Its display ends as the in-process run's does, with the
@@ -917,9 +857,8 @@ func SummaryLine(summary *records.Summary) ([]byte, error) {
 }
 
 // RunRenderer renders a daemon-backed run's records as the client verifies
-// them from the canonical file: the record renderer
-// for text and json, the verified line bytes for jsonl. It replaces the
-// post-hoc RenderRunOutput on the daemon path.
+// them from the canonical file, or reads them from a job's folder: the
+// record renderer for text and json, the verified line bytes for jsonl.
 type RunRenderer struct {
 	out       io.Writer
 	format    string

@@ -725,7 +725,7 @@ var entries = []Entry{
 	failure("credential_channel_required", "usage", exitJob, false, "A JSON envelope names provide_credentials; the credential package crosses only the credential frame."),
 	failure("credential_package_missing", "credential", exitJob, false, "commit_job arrives before a validated credential frame for the preparation."),
 	failure("job_id_conflict", "usage", exitJob, false, "commit_job names a job ID the daemon already holds."),
-	failure("job_orphaned", "dependency", exitJob, false, "job follow found the job's directory without a final summary and no running daemon holds the job: the daemon that ran it is gone and crash recovery is open."),
+	failure("job_orphaned", "dependency", exitJob, false, "job follow found the job without a final summary and its scoreboard gone, stale by `watch.stale-after`, or naming the job's end that long ago: the process that ran it is gone, or ended without its summary, and crash recovery is open."),
 	failure("job_unknown", "usage", exitJob, false, "follow_job or cancel_job names a job the daemon does not hold, or one evicted from its bounded job table."),
 	failure("follow_cursor_stale", "dependency", exitJob, true, "A follow_job resume cursor names a sequence past the durable edge, or the daemon's commands.jsonl no longer holds the records after it; the client restarts from the zero cursor."),
 	failure("follow_lagged", "dependency", exitJob, true, "A follower fell more than the queue bound behind the durable edge; the daemon ended the stream and the client resumes from its last verified cursor."),

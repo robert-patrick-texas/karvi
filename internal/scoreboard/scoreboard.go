@@ -298,8 +298,37 @@ func Read(directory string, max int, staleAfter time.Duration) ([]Row, error) {
 			rows = append(rows, Row{Path: path, Error: err.Error()})
 			continue
 		}
-		rows = append(rows, Row{Snapshot: snap, Path: path, Stale: staleAfter > 0 && now.Sub(snap.LastUpdatedAt) > staleAfter && !records.TerminalStatus(snap.Status)})
+		rows = append(rows, Row{Snapshot: snap, Path: path, Stale: Stale(snap, staleAfter, now)})
 	}
 	sort.Slice(rows, func(i, j int) bool { return rows[i].Snapshot.LastUpdatedAt.After(rows[j].Snapshot.LastUpdatedAt) })
 	return rows, nil
+}
+
+// Stale is watch's rule (watch.stale-after): a snapshot whose status is not
+// terminal and whose last update is older than staleAfter at now; a zero
+// staleAfter judges none stale.
+func Stale(s records.ScoreboardSnapshot, staleAfter time.Duration, now time.Time) bool {
+	return staleAfter > 0 && now.Sub(s.LastUpdatedAt) > staleAfter && !records.TerminalStatus(s.Status)
+}
+
+// Find is the snapshot of activity id in dirs, the newer where two hold it,
+// as ReadAll takes it; false when no folder holds one it can read and
+// decode. It reads the one file, not the folder.
+func Find(dirs []string, id string) (records.ScoreboardSnapshot, bool) {
+	var found records.ScoreboardSnapshot
+	ok := false
+	for _, dir := range dirs {
+		data, err := os.ReadFile(filepath.Join(dir, id+".json"))
+		if err != nil || len(data) == 0 {
+			continue
+		}
+		var s records.ScoreboardSnapshot
+		if json.Unmarshal(data, &s) != nil {
+			continue
+		}
+		if !ok || s.LastUpdatedAt.After(found.LastUpdatedAt) {
+			found, ok = s, true
+		}
+	}
+	return found, ok
 }

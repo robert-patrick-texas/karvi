@@ -128,3 +128,56 @@ func TestUseNamesTheFileOfAReservedID(t *testing.T) {
 		t.Errorf("rows %+v err %v", rows, err)
 	}
 }
+
+// TestFindAndStale: Find reads the one activity's file across the folders,
+// the newer where two hold it, and passes by an absent, empty, or
+// undecodable file; Stale is watch's rule, a terminal status never stale
+// and a zero stale-after judging none.
+func TestFindAndStale(t *testing.T) {
+	a, b := t.TempDir(), t.TempDir()
+	const id = "260926-235612-00"
+	if _, ok := Find([]string{a, b}, id); ok {
+		t.Fatal("found in empty folders")
+	}
+	older, newer := snapshot(id), snapshot(id)
+	newer.LastUpdatedAt = older.LastUpdatedAt.Add(time.Minute)
+	w := &Writer{Enabled: true, Directory: a, Mode: 0640}
+	w.Use(id)
+	if err := w.Write(older); err != nil {
+		t.Fatal(err)
+	}
+	w = &Writer{Enabled: true, Directory: b, Mode: 0640}
+	w.Use(id)
+	if err := w.Write(newer); err != nil {
+		t.Fatal(err)
+	}
+	if s, ok := Find([]string{a, b}, id); !ok || !s.LastUpdatedAt.Equal(newer.LastUpdatedAt) {
+		t.Fatalf("found %v %v", s.LastUpdatedAt, ok)
+	}
+	if err := os.WriteFile(filepath.Join(b, id+".json"), nil, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(a, id+".json"), []byte("{"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := Find([]string{a, b}, id); ok {
+		t.Fatal("found an empty or undecodable file")
+	}
+	now := reserveTestNow.Add(11 * time.Second)
+	done := snapshot(id)
+	done.Status = "completed"
+	for _, tc := range []struct {
+		s     records.ScoreboardSnapshot
+		after time.Duration
+		want  bool
+	}{
+		{snapshot(id), 10 * time.Second, true},
+		{snapshot(id), 12 * time.Second, false},
+		{snapshot(id), 0, false},
+		{done, 10 * time.Second, false},
+	} {
+		if got := Stale(tc.s, tc.after, now); got != tc.want {
+			t.Errorf("%s after %s: %v, want %v", tc.s.Status, tc.after, got, tc.want)
+		}
+	}
+}

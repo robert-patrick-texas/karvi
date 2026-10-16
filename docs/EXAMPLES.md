@@ -11970,3 +11970,71 @@ to the syslog a host forwards it to, does not suffice as the audit trail, a
 later improvement (ROADMAP Later); after it, an audit review tool, perhaps the
 administrators', can answer for every job, while `job list` answers an operator
 for the jobs they made and, on a shared host, the team's.
+
+**Issue 4, continued while building: a job without a scoreboard, agreed.** On a
+lab of the two operators, one shared tree and one scoreboard folder, with the
+follow from the folder built: `netops` ran `show slow` under `--set
+watch.enabled=false` (`--detach`, `261015-215025-00`), no scoreboard was
+written for it, and `netops.test`'s `job follow` answered at once, exit 112,
+`job_orphaned: job 261015-215025-00 has no final summary and no scoreboard`. A
+run killed with SIGKILL 2 seconds in (`261015-215338-01`) was followed by
+`netops.test` until its scoreboard went stale, 8 seconds later, exit 112, the
+refusal stacking the scoreboard's last update over `watch.stale-after`. The
+rule, as issue 4's continuation had it. With no scoreboard nothing shows the
+job running, and the follow from its folder answers `job_orphaned` at once, its
+words naming the fact; a site that turns `watch.enabled` off cannot follow
+another member's live job, while each operator follows their own through their
+daemon. *Why:* the scoreboard is the one sign of a live job that a member can
+read. *Not taken:* following on without a scoreboard (a dead job's follow never
+ends, and every long-dead job has none, scoreboards being pruned); the summary
+naming whether the job keeps a scoreboard (a field, and a dead job's follow on
+such a site still never ends).
+
+**Issue 4, continued while building: a job without `commands.jsonl`, agreed.**
+On the same lab, a run of `show slow` under `--set
+output.files.commands-jsonl=false` (`261015-222039-00`) left a folder without
+`commands.jsonl`, its summary's `paths` naming none, as the summary is built "so
+no reader is sent to a file that will not exist". `netops`'s follow through its
+daemon rendered the job live, exit 0, and after its end showed the footer and
+`warning: records 1 to 1 were before this follow and are not kept
+(output.files.commands-jsonl is false)`; `netops.test`'s follow from the
+folder, and `netops`'s once its daemon was stopped, exited 111,
+`run_output_records_unreadable: open …/commands.jsonl: no such file or
+directory`, as a finished job's follow from its folder did before. The rule.
+When the job's summary names no `commands_jsonl` in its `paths`, the follow
+from its folder opens no file and renders no record: it writes one warning,
+`the job's records are not kept (output.files.commands-jsonl is false)`, waits
+until the summary is final under the rule above, and ends with the display's
+end from `summary.json` (the footer, the summary line under `--format jsonl`,
+`[]` under `json`) and the job's exit, at once for a finished job. Whether the
+summary names the file counts, never the path it names; a summary naming
+`commands_jsonl` whose file is missing stays `run_output_records_unreadable`. A
+job that keeps `commands.jsonl` is rendered record by record as it is written.
+Built, `netops.test`'s follow of such a job (`261015-225241-00`) printed the
+warning and the footer, exit 0, as `netops`'s from the folder did after its
+end. *Why:* the follow from the folder ends as the daemon's follow of the same
+job ends. *Not taken:* no warning, the setting being deliberate (the follower
+may not be the one who chose it, and the daemon's follow warns); the file's
+absence alone (a lost file and one never written alike).
+
+**Issue 4, continued while building: a job ended without its final summary,
+agreed.** On the same lab, a run of `show slow` (`--detach`,
+`261015-225412-00`) whose folder the lab's script made unwritable 2 seconds in
+ended as a full output disk would end it: `netops`'s follow through its daemon
+showed `! exit=111`, the scoreboard and `watch` said `errored`, and the summary
+was still the one written at acceptance. A job writes its final scoreboard
+before its final summary, and a scoreboard naming a final status is never stale
+by `watch`'s rule, so `netops.test`'s follow from the folder rendered the record
+and waited until the script stopped it after 60 seconds, saying the job
+continued. The rule. While the summary is not final, a scoreboard that names
+the job's end is stale once its last update is older than `watch.stale-after`,
+as any other is; the follow then answers `job_orphaned`, its words saying the
+scoreboard ended and stacking its last update over `watch.stale-after`.
+`watch` keeps its own rule. Built, the same run (`261015-230251-00`) was
+followed by `netops.test` to `job_orphaned: job 261015-230251-00 has no final
+summary and its scoreboard ended errored`, exit 112, 29 seconds after the job's
+start. *Why:* the follow ends with a true answer where the job's own end left no
+summary. *Not taken:* ending as soon as the scoreboard names an end (the
+summary's last write follows the scoreboard's, and one read could fall between
+them); ending with the scoreboard's status as the result (it holds no exit); a
+new code (`job_orphaned` already names a job without a final summary).
