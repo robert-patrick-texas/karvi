@@ -549,7 +549,7 @@ func acceptedSummary(req Request, paths output.Paths, id, jobID string, start ti
 	}
 	files, _ := summaryFiles(paths, 0)
 	return records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, JobID: jobID, ActivityID: id, StartedAt: start, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
-		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(mode), AddressAuthorityCounts: authorities, Devices: devices, Paths: files}
+		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(mode), Kind: jobKind(req), AddressAuthorityCounts: authorities, Devices: devices, Paths: files}
 }
 
 // buildSummary is the end's summary: accepted, its devices with their

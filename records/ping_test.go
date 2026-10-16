@@ -111,7 +111,7 @@ func TestSummaryPingBlockMatchesTheSchema(t *testing.T) {
 	base := func() Summary {
 		return Summary{
 			SchemaVersion: JobSchemaVersion, JobID: "job", ActivityID: "job", StartedAt: now, EndedAt: now, DurationNS: 0, FinalStatus: "completed", ExitCode: 0, ExitName: "success",
-			TerminalCauses: []string{}, DispatchOrder: "default", PlanID: "plan", PlanDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", Mode: "live",
+			TerminalCauses: []string{}, DispatchOrder: "default", PlanID: "plan", PlanDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", Mode: "live", Kind: "run",
 			AddressAuthorityCounts: map[string]int{"client": 2}, Devices: []SummaryDevice{{Name: "a", Outcome: "succeeded"}, {Name: "b", Outcome: "failed"}}, DeviceCounts: map[string]int{"total": 2}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{},
 			Halt: nil, Output: map[string]any{}, AuditSinkStatus: map[string]any{}, Bottleneck: map[string]any{}, Recovery: map[string]any{}, Paths: map[string]string{},
 		}

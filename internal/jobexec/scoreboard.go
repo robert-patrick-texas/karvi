@@ -32,13 +32,21 @@ type scoreboardState struct {
 	inFlight *output.InFlight
 }
 
-// scoreboardMode is the MODE the screen shows: what the
-// operator ran, not the activity type alone; a crun is told by its
-// collection's word, since a run or command with --cd collects too.
+// scoreboardMode is the MODE the screen shows: an exercise, or the job's
+// kind.
 func scoreboardMode(req Request) string {
-	switch {
-	case req.Mode == executionplan.ModeExercise:
+	if req.Mode == executionplan.ModeExercise {
 		return "exercise"
+	}
+	return jobKind(req)
+}
+
+// jobKind is what the operator ran, the summary's kind and job list's MODE
+// (EXAMPLES chapter 61): cmd, crun, or run, a stream's job among the runs.
+// A crun is told by its collection's word, since a run or command with --cd
+// collects too.
+func jobKind(req Request) string {
+	switch {
 	case req.Plan.Output.Crun():
 		return "crun"
 	case req.ActivityType == "command":

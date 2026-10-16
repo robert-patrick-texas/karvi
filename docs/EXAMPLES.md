@@ -12038,3 +12038,214 @@ summary. *Not taken:* ending as soon as the scoreboard names an end (the
 summary's last write follows the scoreboard's, and one read could fall between
 them); ending with the scoreboard's status as the result (it holds no exit); a
 new code (`job_orphaned` already names a job without a final summary).
+
+**Issue 3, continued while building: the kind of job in the summary,
+agreed.** On a lab of the S2 tree (`47105b9`), one operator: a `command`, a
+`run`, a `crun`, a `run --exercise`, and a `crun --exercise`, each finished,
+and a detached `run` and `crun` of `show slow` read 2 seconds after their
+acceptance. Every summary's `mode` was `live`, or `exercise` for the two
+exercises, the plan's mode; nothing in it told a `command` from a `run`, and
+`collection` was present for the finished `crun` alone, absent from both
+exercises and from the live `crun`'s summary, written at acceptance. Their
+scoreboards' `mode` said `cmd`, `run`, `crun`, `exercise`, and `exercise`. A
+job of `stream`, with or without `--cd=PATH`, and a `run --cd=PATH` were `run`
+by their scoreboards, the last two with `collection` present: a collection is
+not a `crun`. The rule. The summary names the job's kind, `kind`, at its
+acceptance and at its end: `cmd` for a `command`, `crun` for a `crun`, and
+`run` for a `run` and a job of `stream`; `job list`'s MODE shows it. An
+exercise keeps its kind, its STATUS `exercised`, so an exercised `crun` is
+`crun`. `mode` stays `live` or `exercise`. Job summary schema 4, not yet
+released, takes the field. *Why:* MODE from the one file the list reads, for
+every job, an unfinished one among them. *Not taken:* `activity_type`
+(`command` or `run`, as the records name it; a `crun` is not told at its
+acceptance); the scoreboard's words in the summary's `mode` (an existing
+field's meaning changed, an exercise's kind lost); the scoreboard or the
+manifest (pruned sooner, or a switch a site turns off); `collection` (absent
+at acceptance, and present for a `run --cd`).
+
+**Issue 2, continued while building: a `--target` beginning with `!`,
+agreed.** On the same lab: `run --dry-run --target '*-iosxe' --target
+'!dead*'` planned one target, and `run --dry-run --target '!dead*'` exited 5,
+`inventory_positive_selector_missing: … a value beginning with "!" only removes
+devices`. A run of `fake-iosxe` and `dead-iosxe` (`261016-002853-00`, exit 101)
+left a summary naming `fake-iosxe` succeeded and `dead-iosxe` failed. The rule.
+`job list`'s `--target` values are applied to each job's devices, its summary's
+`devices`, as `run` applies them to the inventory: a value that selects keeps
+the devices it matches, and one beginning with `!` removes the devices it
+matches, wherever it stands. A job is listed when one of its devices remains,
+and under `--target` each remaining device is a row. A line whose every
+`--target` value begins with `!` is refused before any folder is read, as `run`
+refuses it, `inventory_positive_selector_missing`, exit 5, its words naming
+`job list`. On that job, `--target '*-iosxe' --target '!dead*'` gives one row,
+`fake-iosxe` succeeded; `--target 'dead*'` one row, `dead-iosxe` failed;
+`--target '!dead*'` alone the refusal. *Why:* `--target` means in `job list`
+what it means in `run`, the removal among it, and no line lists nothing
+without saying why. *Not taken:* `!` refused in `job list` (the option no
+longer `run`'s); `!` alone meaning every device but those (`run`'s rule broken,
+one option with two meanings); `!` alone listing nothing (an empty list without
+its reason).
+
+**Issue 4, continued while building: an unreadable folder's row, agreed.** On
+the same lab, three finished jobs made unreadable by the lab's script:
+`261016-003305-00`'s summary given mode 000, `261016-003307-00`'s cut to 100
+bytes, and `261016-003309-00`'s folder given mode 000. Each one's `job follow`
+exited 111, the first and the third `run_output_records_unreadable: … permission
+denied`, the second `run_output_record_decode_failed: … unexpected end of JSON
+input`. The summary's owner was found for the first two, `netops`, and for the
+third only the folder's; `watch --format table`, with a scoreboard file of
+mode 000, showed it `? 261016-003305-00  -  invalid  -  -  -  -  -` and the
+file's path in TARGET. The rule. A job folder whose summary cannot be read or
+decoded is a `?` row; a folder without one is unfinished. Its cells are
+`watch`'s invalid row's: `?` in the flag column, JOB-ID the folder's name,
+STATUS `invalid`, `-` in TIME, MODE, DONE, and FAIL, TARGET the summary's path;
+OPERATOR is the summary's owner, or the folder's where the summary cannot be
+reached, which the file system names when the file cannot be read.
+`--operator` judges the row by that owner; `--failed` and `--target` cannot
+judge it and keep it, and `--last` counts it. Under `--target` the row's
+OUTCOME is `invalid` and its DEVICE the path. `--format json` gives it as
+`{"path", "operator", "error"}`, as `watch`'s JSON gives `{"path", "error"}`.
+The exit stays 0, with no warning, as `watch`'s. *Why:* the list shows every
+folder under every filter, and `--operator` still judges each. *Not taken:*
+the row left out under `--failed` or `--target` (a job that may match hidden);
+OPERATOR `-` (the owner is known, and `--operator` could not judge the row); a
+warning or another exit (the list answered).
+
+**Issue 3, continued while building: an unfinished job's counts, agreed with
+the operator's refinement.** On the same lab, a detached run of `fake-iosxe`
+and `dead-iosxe` (`261016-003707-00`) while it ran, and a run under
+`--no-daemon` killed with SIGKILL 2 seconds in (`261016-003708-00`): each
+summary, the one written at acceptance, named its devices without an outcome
+and held no `final_status` and no `device_counts`. `watch --format table
+--stale-after 4s` showed the first `running`, DONE `0/2`, FAIL `0`, ACTV `1`,
+and the second the same with `!`, the killed job's last counts. The rule. An
+unfinished job's DONE shows `u`, unknown, over the number of its summary's
+devices, the slash under DONE's O as in every row (`u/2`), and its FAIL shows
+`u`; the two `u` and STATUS `unfinished` take the warning colour, never written
+into a file. TIME stays blank, and TARGET names the devices as for any job.
+Under `--target` the row's OUTCOME is `unfinished`, in the warning colour, and
+its TIME blank. `--format json` gives the summary's fields as written at
+acceptance, with `path` and `operator`, and under `--target` `device` without
+`outcome`, the summary's device having none. A sketch, laid out by a script and
+not printed by karvi:
+
+```text
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261016-003708-00            unfinished  netops    run     u/1       u  fake-iosxe
+  261016-003707-00            unfinished  netops    run     u/2       u  fake-iosxe dead-iosxe
+  261016-002853-00  0m04s     errored     netops    run     2/2       1  fake-iosxe dead-iosxe
+```
+
+*Why:* every cell from the summary alone, and none naming a count not known;
+`u`, not `?`, which reads as a digit's place and is the flag column's mark of
+an unreadable folder; the warning colour, since the job may run or be dead,
+and the error colour is FAIL's for failed devices. *Not taken:* the
+scoreboard's live counts (a second read for some rows, gone under
+`watch.enabled = false` or once pruned, and a dead job's last counts not its
+end); `0/2` and `0` (counts not known shown as none done and none failed); a
+blank FAIL, proposed first; `-` (`watch`'s mark of a file not read); the error
+colour.
+
+**Issue 3, continued while building: OPERATOR in the JSON, agreed.** On the
+same lab, the finished job `261016-003707-00`: its scoreboard and its manifest
+named `operator` as `{"username":"netops","uid":1000,"primary_gid":1000,
+"groups":[…]}`, its summary named none, and `stat` named the summary's owner
+`netops`, UID 1000. The summary names no operator by issue 4's rule, so the
+rows issue 3 gave as the summary's fields and the folder's path held no
+OPERATOR. The rule. Each row of `job list --format json` is one object: the
+summary's fields as the file holds them, then `path`, the job's folder, and
+`operator`, `{"username", "uid"}`, the shape the scoreboard and the manifest
+use, from the summary's owner as the list finds it, the folder's for a `?`
+row; `username` is `""` where the user database names none, and the table then
+shows the UID. Under `--target` the row adds `device` and `outcome`, `outcome`
+left out for an unfinished job; a `?` row is `{"path", "operator", "error"}`.
+`summary.json` is unchanged. *Why:* a script reads what the table shows, and
+`--operator`'s judgement can be checked on every row. *Not taken:* `operator`
+as the cell's text (a name not told from a UID); the whole operator with its
+groups (a second lookup for values nothing reads); no `operator` (the one
+column the summary cannot give missing). Found: `watch` shows the
+scoreboard's `operator.username`, which the job's process writes, and never
+reads the file's owner, so a scoreboard in the shared folder (3770) naming
+another operator is shown under that name, where `job list` names the owner;
+`watch`'s OPERATOR from the owner is ROADMAP Later, on the operator's word.
+
+**Issue 1, continued while building: an empty list, agreed.** On a lab of the
+working tree, `job list --operator nobody` exited 0 and printed `(no jobs)`.
+The rule. A list with no rows prints the one line `(no jobs)` on stdout, exit
+0, as `watch --format table` prints `(no retained activities)`: for an empty
+output root, one not yet made, and filters that leave nothing alike. `job list`
+makes no folder, taking the base folder's path as `watch` takes it.
+`--format json` prints `[]`. *Why:* a list without rows says so. *Not taken:*
+the heading alone (a list that reads as cut short); nothing (an empty answer
+not told from a failure); a warning on stderr (an empty list is no fault).
+
+**Issue 4, continued while building: an unreadable folder's row at a
+terminal, agreed.** On the same lab, under `script(1)` at 80 columns, `job
+list --last 4` printed its heading in 79 cells and its rows in 75, and each `?`
+row in 144, its TARGET the summary's path, 72 cells where 7 were left; a site's
+path, `/opt/karvi/shared/jobs/261016/261016-010107-00/summary.json`, is 59 cells
+and fits whole from 132 columns. The rule. At a terminal a `?` row's TARGET, or
+its DEVICE under `--target`, is the summary's path when it fits whole and `…`
+when it does not, the mark of text left out as `watch`'s cut uses it; to a pipe
+or a file the path is whole. The row still names the job, its owner, and
+`invalid`, and `--format json` (`path`, `error`) or `job follow ID`, whose
+refusal names both, gives the path and the reason. *Why:* every row fits the
+terminal, as the table's rule has it. *Not taken:* the path whole, as built
+first (the one row that wraps); the path cut at its start or its end (7 cells
+at 80 say nothing, and a name cut is issue 3's not taken); `-` (`watch`'s mark
+of no value, where one was left out); the error's words (as wide at 80, and new
+words in a cell).
+
+**Issue 4, continued while building: a day folder that cannot be read,
+agreed.** On a lab of the working tree, two runs on the 16th and one under
+`--timezone Pacific/Honolulu`, whose day folder was the 15th's, and then
+`261016` given mode 000 by the lab's script: `job list` exited 0 and listed
+`? 261016  -  invalid  netops`, the folder's path in TARGET, and then the
+Honolulu run, `261015-193306-00`, `completed`; `--format json` gave the
+folder's row as its path, its owner, and `run_output_records_unreadable: read
+…/jobs/261016: open …: permission denied`. The rule. A day folder the operator
+cannot read is one `?` row in its day's place: JOB-ID the folder's name, STATUS
+`invalid`, `-` in the other cells, OPERATOR the folder's owner, TARGET (DEVICE
+under `--target`) the folder's path or `…` at a terminal where it does not fit.
+The filters take it as a `?` job folder: `--operator` judges it, `--failed` and
+`--target` keep it, and `--last` counts it as one row. `--format json` gives
+`{"path", "operator", "error"}`, and the exit is 0. *Why:* the list goes on
+past the folder and shows it is there. *Not taken:* the list refused, exit 111
+(every other day hidden by one folder); a warning and the day passed over (the
+table silent where it is, the JSON without it); a row per job (their IDs
+cannot be read).
+
+**Issue 4, continued while building: a job whose day folder cannot be read,
+followed, agreed.** On a lab of `47105b9`, `job follow` of a job whose folder
+the lab's script gave mode 000 exited 111, `run_output_records_unreadable: read
+…/summary.json: … permission denied`, and of a job whose day folder it gave
+mode 000 exited 112, `job_unknown: no job 261016-015352-00: … does not exist`:
+`LocateJobDirectory` took every `lstat` failure for an absent folder. The rule.
+`job follow` takes a job folder that `lstat` cannot reach, for any reason but
+its absence, as found, and its check names why, `run_output_records_unreadable`,
+exit 111, as for a job folder it cannot read; the daemon is asked first, as
+before. Built, the same follow exited 111, `run_output_records_unreadable:
+…/261016/261016-015356-00: lstat …: permission denied`. *Why:* the follow's
+answer is true, and the operator looks at the folder's mode or group. *Not
+taken:* the answer left (a false one); a new code (the one that names an
+unreadable folder, at the same exit as a job folder's); the other day folders
+searched first (the derived folder is where the job was written, and a glob
+sees no more through an unreadable folder).
+
+**Issue 5, continued while building: a folder without a summary, agreed.** On
+a lab of the working tree, a run through the daemon without `NETPASS` exited 6,
+`credential_prompt_unavailable: client planning: …`, and left
+`261016-020953-00` empty, the folder the daemon had made for it (ROADMAP Later);
+`job list` showed it `unfinished`, MODE blank, DONE `u/0`, FAIL `u`, TARGET
+blank. A job writes its summary at its acceptance before any device is
+contacted, so a folder without one reached no device. The rule. A job folder
+without a summary is unfinished, STATUS `unfinished` and TIME blank; MODE `u`,
+DONE `u/u`, and FAIL `u`, every `u` in the warning colour, its kind and its
+count of devices not known; TARGET blank, no device reached. `--target` leaves
+it out, as a job that reached no device, `--failed` as an unfinished job, and
+`--operator` judges it by the folder's owner. `--format json` gives `{"path",
+"operator"}`, there being no summary's fields. *Why:* the row claims nothing
+not known, and `--target` answers truly for it. *Not taken:* `u/0` and a blank
+MODE, as built first (a count of none claimed, a blank read as a missing
+column); a `?` row (nothing failed to be read: the folder holds no summary);
+the row kept under `--target`, as a `?` row is (a `?` row may hide a match,
+and this folder cannot).

@@ -106,9 +106,10 @@ func completionLab(t *testing.T) string {
 // TestCompleteCases covers each kind of candidate and the boundaries: the
 // command position with a prefix, an ambiguous and an unknown command, a
 // subcommand, an option prefix, an enum value, --platform's names with the
-// site's table, --set's keys with =, a device name for --target and for
-// command's device, login's device, job follow's and job cancel's IDs, a
-// path option's directive, the inline --opt=prefix form, the options still
+// site's table, --set's keys with =, a device name for --target, for
+// command's device, and for job list's --target, login's device, job
+// follow's and job cancel's IDs, job list's options and formats, a path
+// option's directive, the inline --opt=prefix form, the options still
 // offered after command's device (the parser reads them until text begins),
 // and nothing once device text has begun or a positional is taken.
 func TestCompleteCases(t *testing.T) {
@@ -148,6 +149,10 @@ func TestCompleteCases(t *testing.T) {
 		{name: "after --", line: append(g, "run", "--"), current: "", exact: nil},
 		{name: "command's device after --", line: append(g, "cmd", "--"), current: "", exact: []string{"core-nyc-01", "edge-sfo-02"}},
 		{name: "login device", line: append(g, "login"), current: "core", exact: []string{"core-nyc-01"}},
+		{name: "job words", line: []string{"job"}, current: "", exact: []string{"--help", "cancel", "follow", "list"}},
+		{name: "job list options", line: []string{"job", "list"}, current: "", exact: []string{"--failed", "--format", "--help", "--last", "--operator", "--target"}},
+		{name: "job list target device", line: append(g, "job", "list", "--target"), current: "", exact: []string{"core-nyc-01", "edge-sfo-02"}},
+		{name: "job list format", line: []string{"job", "list", "--format"}, current: "", exact: []string{"json", "text"}},
 		{name: "job follow ids", line: append(g, "job", "follow"), current: "", want: []string{"260925-101010-00", "260925-090909-00", "--format"}},
 		{name: "job cancel ids", line: append(g, "job", "cancel"), current: "2609", exact: []string{"260925-090909-00", "260925-101010-00"}},
 		{name: "job follow id taken", line: append(g, "job", "follow", "260925-101010-00"), current: "", absent: []string{"260925-090909-00"}, want: []string{"--echo"}},

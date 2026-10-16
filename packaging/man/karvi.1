@@ -31,7 +31,7 @@ records, unless
 .B \-\-no\-daemon
 runs it in the client;
 .B job
-follows or cancels it, and
+lists the jobs kept, and follows or cancels one, and
 .B watch
 shows every job on the host.
 .PP
@@ -61,8 +61,8 @@ Read a run line by line from standard input
 \fBdaemon\fR \fBstart|stop|restart|status|serve\fR
 Manage the private per\-user daemon
 .TP
-\fBjob\fR \fBfollow|cancel\fR
-Follow or cancel one accepted job by its ID
+\fBjob\fR \fBlist|follow|cancel\fR
+List the jobs, or follow or cancel one by its ID
 .TP
 \fBconfig\fR \fBgenerate|validate|show|colors\fR
 Configuration tools

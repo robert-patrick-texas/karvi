@@ -252,6 +252,13 @@ var (
 	optExercise    = flagOpt("exercise")
 )
 
+// job list options; its --target is run's (EXAMPLES chapter 61).
+var (
+	optLast     = intOpt("last")
+	optFailed   = flagOpt("failed")
+	optOperator = valueOpt("operator", "NAME").repeatable()
+)
+
 // daemon options.
 var (
 	optForeground   = flagOpt("foreground")
@@ -278,7 +285,6 @@ var (
 	optRefresh     = durationOpt("refresh")
 	optStaleAfter  = durationOpt("stale-after")
 	optFormatWatch = enumOpt("format", "tui", "table", "json")
-	optAllRetained = flagOpt("all-retained").notBuilt()
 	optOnce        = flagOpt("once")
 	// The / filter and s sort's script forms.
 	optWatchFilter = valueOpt("filter", "TEXT")
@@ -342,10 +348,11 @@ var commandTable = []*command{
 			{path: "daemon serve", word: "serve", shape: shapePlain, options: []*option{optHelp}, help: func() string { return daemonHelp }},
 			{path: "daemon help", word: "help", shape: shapePlain, hidden: true, options: []*option{optHelp}, help: func() string { return daemonHelp }},
 		}},
-	// job: operations on one accepted job, named by its receipt's ID.
-	// cancel moved here from daemon.
+	// job: the list of jobs, and operations on one accepted job, named by
+	// its receipt's ID. cancel moved here from daemon.
 	{path: "job", word: "job", shape: shapePlain, options: []*option{optHelp}, help: func() string { return jobHelp },
 		subs: []*command{
+			{path: "job list", word: "list", shape: shapePlain, options: []*option{optLast, optFailed, optTarget, optOperator, optFormatTJ, optHelp}, help: func() string { return jobHelp }},
 			{path: "job cancel", word: "cancel", shape: shapePlain, minPos: 1, maxPos: 1, options: []*option{optReason, optFollow, optFormatTJ, optHelp}, help: func() string { return jobHelp }},
 			{path: "job follow", word: "follow", shape: shapePlain, minPos: 1, maxPos: 1, options: []*option{optFormat, optEcho, optBorder, optNoBorder, optHelp}, help: func() string { return jobHelp }},
 			{path: "job help", word: "help", shape: shapePlain, hidden: true, options: []*option{optHelp}, help: func() string { return jobHelp }},
@@ -368,7 +375,7 @@ var commandTable = []*command{
 			{path: "setup help", word: "help", shape: shapePlain, hidden: true, options: []*option{optHelp}, help: func() string { return setupHelp }},
 		}},
 	{path: "watch", word: "watch", shape: shapePlain, help: func() string { return watchHelp },
-		options: []*option{optTheme, optColor, optRefresh, optStaleAfter, optFormatWatch, optWatchFilter, optWatchSort, optAllRetained, optOnce, optHelp}},
+		options: []*option{optTheme, optColor, optRefresh, optStaleAfter, optFormatWatch, optWatchFilter, optWatchSort, optOnce, optHelp}},
 	{path: "version", word: "version", shape: shapePlain, options: []*option{optFormatTJ, optHelp}, help: func() string { return versionHelp }},
 	// v0.9.1 accepted "karvi help"; kept as a hidden word.
 	{path: "help", word: "help", shape: shapePlain, maxPos: -1, hidden: true, options: []*option{optHelp}, help: func() string { return topHelp }},

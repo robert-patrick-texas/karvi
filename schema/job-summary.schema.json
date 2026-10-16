@@ -14,6 +14,7 @@
     "plan_id",
     "plan_digest",
     "mode",
+    "kind",
     "address_authority_counts",
     "devices",
     "paths"
@@ -63,6 +64,14 @@
       "enum": [
         "live",
         "exercise"
+      ]
+    },
+    "kind": {
+      "description": "What the operator ran: cmd for a command, crun for a crun, run for a run and a stream's job; an exercise keeps its kind.",
+      "enum": [
+        "cmd",
+        "run",
+        "crun"
       ]
     },
     "address_authority_counts": {

@@ -195,14 +195,15 @@ func (m *Model) row(r scoreboard.Row, w widths) []piece {
 }
 
 // statusRole is the role a status takes: success, warning, error,
-// accent for a running job.
+// accent for a running job; job list's unfinished takes warning and its
+// invalid error.
 func statusRole(status string) string {
 	switch status {
 	case "completed", "exercised":
 		return "success"
-	case "halted", "incomplete", "cancelled":
+	case "halted", "incomplete", "cancelled", "unfinished":
 		return "warning"
-	case "errored":
+	case "errored", "invalid":
 		return "error"
 	}
 	return "accent"

@@ -238,6 +238,17 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   list` answers an operator for the jobs they made and, on a shared host, the
   team's. The questions: the events and their fields; syslog beside journald;
   and who may run the review tool.
+- **`watch`'s OPERATOR from the file's owner.** `watch` shows a scoreboard's
+  `operator.username`, which the job's own process writes at its start, and
+  never reads who owns the file, so a scoreboard in the shared folder (3770,
+  every member writing into it) naming another operator is shown under that
+  name; `job list` names a job's operator from its summary's owner, the file
+  system's word ([`docs/EXAMPLES.md`, chapter
+  61](docs/EXAMPLES.md#61-a-list-of-jobs-karvi-job-list-2026-10-15)). The
+  item: `watch`'s OPERATOR, its `/` filter, and its operator sort from the
+  file's owner, as `job list`'s. The questions: a file whose field and owner
+  differ, shown as the owner or marked; and the JSON form, which prints each
+  snapshot as written.
 
 ## The device-qualification track
 

@@ -11,14 +11,106 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
+	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
+	"github.com/robert-patrick-texas/karvi/internal/jobexec"
+	"github.com/robert-patrick-texas/karvi/internal/watchui"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
-// The job command word: operations on one accepted job, named by the job
-// ID of its receipt. cancel moved verbatim from daemon.
+// The job command word: the list of jobs, and operations on one accepted
+// job, named by the job ID of its receipt. cancel moved verbatim from
+// daemon.
+
+// jobListLast is job list's count without --last: twenty rows and the
+// heading fit a terminal of 24 lines (EXAMPLES chapter 61, issue 1).
+const jobListLast = 20
+
+// jobList is karvi job list [--last N] [--failed] [--target NAME]...
+// [--operator NAME]... [--format text|json]: the jobs of the output root
+// from their folders' summaries, newest first, every filter judging a job
+// before the count (app.ListJobs). The text is watch's table fitted to the
+// terminal (watchui.ListTable), the JSON an array of the rows. It needs no
+// daemon and no credential.
+func jobList(inv *Invocation, streams app.IO) int {
+	g := inv.Global
+	last := jobListLast
+	if inv.Set(optLast) {
+		last = inv.Int(optLast)
+	}
+	if last < 0 {
+		return g.usageError(streams.Stderr, "cli_option_value_invalid", "--last takes 0 or more, not %d", last)
+	}
+	var targets []string
+	for _, t := range inv.Targets {
+		targets = append(targets, t.Value)
+	}
+	if err := app.CheckJobListTargets(targets); err != nil {
+		return g.reportError(streams.Stderr, "inventory_positive_selector_missing", err)
+	}
+	common, code, ok := g.read(g.flags(), streams.Stderr)
+	if !ok {
+		return code
+	}
+	entries, err := app.ListJobs(common, app.JobListOptions{Last: last, Failed: inv.Flag(optFailed), Targets: targets, Operators: inv.Strings(optOperator)})
+	if err != nil {
+		return g.reportError(streams.Stderr, "output_root_unavailable", err)
+	}
+	if inv.String(optFormatTJ) == "json" {
+		b, _ := json.MarshalIndent(entries, "", "  ")
+		fmt.Fprintf(streams.Stdout, "%s\n", b)
+		return 0
+	}
+	if len(entries) == 0 {
+		fmt.Fprintln(streams.Stdout, "(no jobs)")
+		return 0
+	}
+	cfg := common.Config
+	table := watchui.ListTable{Rows: listRows(entries), ByDevice: len(targets) > 0, Width: jobexec.DisplayTerminalWidth(streams.Stdout),
+		Colour: display.ColorEnabled(cfg.String("display.color"), cfg.String("display.theme"), jobexec.DisplayDestination(streams.Stdout)),
+		Theme:  display.EffectiveTheme(cfg.String("display.theme")), Colors: displayColors(cfg)}
+	for _, line := range table.Lines() {
+		fmt.Fprintln(streams.Stdout, line)
+	}
+	return 0
+}
+
+// listRows are the table's rows from the list's: an unfinished job's
+// status unfinished and its counts but the total not known (a folder
+// without a summary's total and kind not known either), a finished
+// job's from its summary's device_counts (an exercise's devices all
+// done), and under --target the row's device with its outcome.
+func listRows(entries []app.JobListEntry) []watchui.ListRow {
+	rows := make([]watchui.ListRow, len(entries))
+	for i, e := range entries {
+		s := e.Summary
+		r := watchui.ListRow{JobID: e.JobID, Invalid: e.Err != nil, NoSummary: e.NoSummary, Path: e.SummaryPath, Operator: e.Name(), Kind: s.Kind, Status: "unfinished", Total: len(s.Devices)}
+		if e.Finished {
+			r.Status, r.Finished, r.Duration = s.FinalStatus, true, time.Duration(s.DurationNS)
+			if n, ok := s.DeviceCounts["total"]; ok {
+				r.Total = n
+			}
+			r.Completed = r.Total
+			if n, ok := s.DeviceCounts["completed"]; ok {
+				r.Completed = n
+			}
+			r.Fails = s.DeviceCounts["failed"]
+		}
+		for _, d := range s.Devices {
+			r.Devices = append(r.Devices, d.Name)
+		}
+		if e.Device != nil {
+			r.Device, r.Outcome = e.Device.Name, e.Device.Outcome
+			if !e.Finished {
+				r.Outcome = "unfinished"
+			}
+		}
+		rows[i] = r
+	}
+	return rows
+}
 
 // jobCancel is karvi job cancel JOB-ID [--reason TEXT] [--follow]
 // [--format text|json]: one cancel_job to the same-UID daemon, never

@@ -1,10 +1,14 @@
 package app
 
 import (
+	"errors"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
@@ -47,5 +51,41 @@ func TestJobDirectoryForIDAcrossMidnight(t *testing.T) {
 		if _, err := JobIDTime(bad, time.UTC); err == nil || errorcodes.Of(err) != "job_request_malformed" {
 			t.Errorf("%q: %v", bad, err)
 		}
+	}
+}
+
+// TestLocateJobDirectoryUnreachable: a job folder whose day folder cannot
+// be read is found, and InspectJobDirectory names why,
+// run_output_records_unreadable, never a job that does not exist (EXAMPLES
+// chapter 61, issue 4); an absent one is not found.
+func TestLocateJobDirectoryUnreachable(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root reads every folder")
+	}
+	dir := t.TempDir()
+	root := filepath.Join(dir, "jobs")
+	cfg, err := configload.Load(configload.Options{HomeDir: dir, SkipAuto: true, Environment: []string{}, Sets: []string{`basedir="` + dir + `"`, `sharedroot="none"`, `output.root="` + root + `"`, `timezone="UTC"`}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	common := CommonOptions{Config: cfg, Operator: credentials.Operator{Home: dir}}
+	id := "261016-015356-00"
+	day := filepath.Join(root, "261016")
+	if err := os.MkdirAll(filepath.Join(day, id), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if f, err := LocateJobDirectory(common, "261016-015357-00"); err != nil || f.Found {
+		t.Fatalf("absent: %+v %v", f, err)
+	}
+	if err := os.Chmod(day, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(day, 0o700) })
+	f, err := LocateJobDirectory(common, id)
+	if err != nil || !f.Found || f.Path != filepath.Join(day, id) {
+		t.Fatalf("unreachable: %+v %v", f, err)
+	}
+	if state, err := InspectJobDirectory(f.Path); state != JobDirectoryAbsent || errorcodes.Of(err) != "run_output_records_unreadable" || !errors.Is(err, fs.ErrPermission) {
+		t.Fatalf("inspect: %v %v", state, err)
 	}
 }

@@ -660,6 +660,7 @@ type AcceptedSummary struct {
 	PlanID                 string            `json:"plan_id"`
 	PlanDigest             string            `json:"plan_digest"`
 	Mode                   string            `json:"mode"`
+	Kind                   string            `json:"kind"` // cmd, run (a stream's job too), crun; job list's MODE
 	AddressAuthorityCounts map[string]int    `json:"address_authority_counts"`
 	Devices                []SummaryDevice   `json:"devices"`
 	Paths                  map[string]string `json:"paths"`

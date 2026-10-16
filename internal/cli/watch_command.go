@@ -68,13 +68,18 @@ func commandWatch(ctx context.Context, inv *Invocation, streams app.IO) int {
 		color = cfg.String("display.color")
 	}
 	once := inv.Flag(optOnce) || format != "tui"
-	// The twelve display.colors.* overrides by role.
+	if err := watchui.Run(ctx, watchui.Options{Directories: dirs, Directory: label, Format: format, Theme: theme, Color: color, TimestampPattern: cfg.String("display.timestamp"), Timezone: cfg.String("timezone"), Colors: displayColors(cfg), Refresh: refresh, StaleAfter: stale, MaxFiles: cfg.Int("watch.max-files"), Once: once, Filter: inv.String(optWatchFilter), Sort: inv.String(optWatchSort)}, streams.Stdin, streams.Stdout); err != nil {
+		return g.reportError(streams.Stderr, "watch_render_failed", err)
+	}
+	return 0
+}
+
+// displayColors are the twelve display.colors.* overrides by role, as the
+// watch screen and job list's table take them.
+func displayColors(cfg configload.Snapshot) map[string]string {
 	colors := map[string]string{}
 	for _, role := range []string{"success", "warning", "error", "muted", "accent", "timestamp", "target", "address", "label", "value", "border", "dynamic-border"} {
 		colors[role] = cfg.String("display.colors." + role)
 	}
-	if err := watchui.Run(ctx, watchui.Options{Directories: dirs, Directory: label, Format: format, Theme: theme, Color: color, TimestampPattern: cfg.String("display.timestamp"), Timezone: cfg.String("timezone"), Colors: colors, Refresh: refresh, StaleAfter: stale, MaxFiles: cfg.Int("watch.max-files"), Once: once, Filter: inv.String(optWatchFilter), Sort: inv.String(optWatchSort)}, streams.Stdin, streams.Stdout); err != nil {
-		return g.reportError(streams.Stderr, "watch_render_failed", err)
-	}
-	return 0
+	return colors
 }

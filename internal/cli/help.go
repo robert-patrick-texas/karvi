@@ -135,7 +135,7 @@ Commands:
   stream, -                      Read a run line by line from standard input
   daemon start|stop|restart|status|serve
                                  Manage the private per-user daemon
-  job follow|cancel              Follow or cancel one accepted job by its ID
+  job list|follow|cancel         List the jobs, or follow or cancel one by its ID
   config generate|validate|show|colors
                                  Configuration tools
   setup shared|tab               Site preparations as root: the shared trees, tab completion
@@ -624,11 +624,31 @@ none, refuses a submission and daemon start, naming systemctl restart or start
 of the unit, and stop and restart are refused (daemon_managed).
 `
 const jobHelp = `Usage:
+  karvi job list [--last N] [--failed] [--target NAME]... [--operator NAME]...
+                 [--format text|json]
   karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border | --noborder]
   karvi job cancel JOB-ID [--reason TEXT] [--follow] [--format text|json]
 
-job operates on one accepted job, named by the job ID of its receipt (the
-ID a detached run prints and karvi watch shows). No job verb launches a daemon.
+job lists the jobs of the output root, or operates on one accepted job, named
+by the job ID of its receipt (the ID a detached run prints, and job list and
+karvi watch show). No job verb launches a daemon.
+
+list reads each job's folder and needs no daemon or credential: in shared
+mode every job of the shared tree, every operator's, in individual mode the
+operator's own. It shows the newest 20 jobs, newest first by job ID, whatever
+their day: JOB-ID, TIME (the job's duration), STATUS, OPERATOR (the owner of
+the job's summary), MODE (cmd, run, or crun), DONE as done/total, FAIL, and
+TARGET, the devices, as many whole as the terminal's width leaves and the rest
+counted as +N; to a pipe or a file nothing is cut. An unfinished job shows
+STATUS unfinished, TIME blank, and u, unknown, in DONE and FAIL; ? flags a
+folder whose summary cannot be read. --last N lists N rows, 0 every job kept.
+--failed keeps the finished jobs whose exit is not 0. --target NAME keeps the
+jobs that reached a matching device, NAME taken as run's --target takes it (a
+glob, repeatable, a leading ! removing the devices it matches), and lists one
+row per such device: JOB-ID, TIME, OPERATOR, MODE, OUTCOME (the device's own),
+and DEVICE. --operator NAME, repeatable, keeps that operator's jobs. Each
+filter judges a job before --last counts it. --format json prints an array of
+the rows: each job's summary fields, its folder's path, and its operator.
 
 follow renders the job's records from its beginning as the foreground run
 would have, live until the job ends or at once for a job that has ended,
@@ -711,6 +731,6 @@ section and S reverses it; t toggles dark and light for this screen; ?
 lists the keys. --filter TEXT and --sort KEY start the screen with them and apply to
 --format table, which prints the columns once; --format json prints every
 snapshot and refuses both; the TUI needs a terminal on stdout. Human
-timestamps, themes, and role colors are configured under [display].
-Specified, not yet available: --all-retained.
+timestamps, themes, and role colors are configured under [display]. karvi
+job list lists the jobs the output root keeps.
 `

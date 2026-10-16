@@ -116,7 +116,9 @@ func LocateJobDirectory(common CommonOptions, jobID string) (JobFolder, error) {
 		}
 	}
 	folder.Path = derived
-	if _, statErr := os.Lstat(derived); statErr == nil {
+	// A folder that cannot be reached, its day folder unreadable, is found:
+	// InspectJobDirectory names why, never a job that does not exist.
+	if _, statErr := os.Lstat(derived); !errors.Is(statErr, fs.ErrNotExist) {
 		folder.Found = true
 		return folder, nil
 	}

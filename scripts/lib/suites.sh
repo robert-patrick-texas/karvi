@@ -5,7 +5,7 @@
 # The JSON reader's own test goes first: the suites assert through it.
 #
 # The suites run in three lanes at once: the parity suite alone, the v0100
-# suite alone, and the fifteen others in order. Each suite keeps its
+# suite alone, and the sixteen others in order. Each suite keeps its
 # own work directory, socket, scoreboard directory, capacity root, and
 # ephemeral ports, so the lanes share nothing but the CPU; the parity suite
 # and the smoke suite mostly wait on timeouts. A lane's output goes to a file
@@ -19,7 +19,7 @@
 # POSIX sh: no local; the functions' variables carry the rs_ prefix.
 RS_LANE1='native-smoke-test'
 RS_LANE2='v0100-smoke-test'
-RS_LANE3='smoke-test halt-smoke-test hostkey-smoke-test transcript-smoke-test display-smoke-test v060-smoke-test v061-smoke-test v070-smoke-test v080-smoke-test v090-smoke-test k03-smoke-test completion-smoke-test daemon-upgrade-smoke-test canary-smoke-test spool-smoke-test'
+RS_LANE3='smoke-test halt-smoke-test hostkey-smoke-test transcript-smoke-test display-smoke-test v060-smoke-test v061-smoke-test v070-smoke-test v080-smoke-test v090-smoke-test k03-smoke-test completion-smoke-test daemon-upgrade-smoke-test canary-smoke-test spool-smoke-test job-list-smoke-test'
 
 # rs_run SUITE...: the suites in order, stopping at the first failure.
 rs_run() {

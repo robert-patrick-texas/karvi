@@ -7,9 +7,12 @@
 .ds AD l
 .ad l
 .SH NAME
-karvi\-job \- follow or cancel one accepted job by its ID
+karvi\-job \- list the jobs, or follow or cancel one by its ID
 .SH SYNOPSIS
 .\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there
+\fBkarvi\fR \fBjob list\fR [\-\-last N] [\-\-failed] [\-\-target NAME]... [\-\-operator NAME]...
+[\-\-format text|json]
+.br
 \fBkarvi\fR \fBjob follow\fR JOB\-ID [\-\-format text|jsonl|json] [\-\-echo] [\-\-border | \-\-noborder]
 .br
 \fBkarvi\fR \fBjob cancel\fR JOB\-ID [\-\-reason TEXT] [\-\-follow] [\-\-format text|json]
@@ -17,8 +20,26 @@ karvi\-job \- follow or cancel one accepted job by its ID
 .SH DESCRIPTION
 .\" BEGIN GENERATED DESCRIPTION: tools/mangen from internal/cli; edit there
 .PP
-job operates on one accepted job, named by the job ID of its receipt (the
-ID a detached run prints and karvi watch shows). No job verb launches a daemon.
+job lists the jobs of the output root, or operates on one accepted job, named
+by the job ID of its receipt (the ID a detached run prints, and job list and
+karvi watch show). No job verb launches a daemon.
+.PP
+list reads each job's folder and needs no daemon or credential: in shared
+mode every job of the shared tree, every operator's, in individual mode the
+operator's own. It shows the newest 20 jobs, newest first by job ID, whatever
+their day: JOB\-ID, TIME (the job's duration), STATUS, OPERATOR (the owner of
+the job's summary), MODE (cmd, run, or crun), DONE as done/total, FAIL, and
+TARGET, the devices, as many whole as the terminal's width leaves and the rest
+counted as +N; to a pipe or a file nothing is cut. An unfinished job shows
+STATUS unfinished, TIME blank, and u, unknown, in DONE and FAIL; ? flags a
+folder whose summary cannot be read. \-\-last N lists N rows, 0 every job kept.
+\-\-failed keeps the finished jobs whose exit is not 0. \-\-target NAME keeps the
+jobs that reached a matching device, NAME taken as run's \-\-target takes it (a
+glob, repeatable, a leading ! removing the devices it matches), and lists one
+row per such device: JOB\-ID, TIME, OPERATOR, MODE, OUTCOME (the device's own),
+and DEVICE. \-\-operator NAME, repeatable, keeps that operator's jobs. Each
+filter judges a job before \-\-last counts it. \-\-format json prints an array of
+the rows: each job's summary fields, its folder's path, and its operator.
 .PP
 follow renders the job's records from its beginning as the foreground run
 would have, live until the job ends or at once for a job that has ended,
@@ -34,6 +55,16 @@ and exits with the job's own exit. A job that already ended is reported with
 its outcome; an unknown job ID is job_unknown. \-\-help shows this text.
 .\" END GENERATED DESCRIPTION
 .SH EXAMPLES
+.TP
+.B karvi job list
+The newest 20 jobs, every member's in shared mode, fitted to the terminal.
+.TP
+.B karvi job list \-\-failed \-\-last 0
+Every job kept that ended with an exit other than 0.
+.TP
+.B karvi job list \-\-target "core\-*" \-\-target "!core\-lab*"
+The jobs that reached a device named core\-*, one row per such device,
+leaving out the core\-lab devices.
 .TP
 .B karvi job follow 261003\-143005\-00
 Render a detached job from its beginning; it exits with the job's exit.

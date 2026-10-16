@@ -7,6 +7,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -63,7 +64,8 @@ func TestCollectionFooterFollowsTheFooter(t *testing.T) {
 
 // TestScoreboardModeByWord: the screen's MODE is the operator's word; a
 // run or command with --cd stays run or cmd, a crun is crun, an exercise
-// is exercise whatever collects.
+// is exercise whatever collects. The summary's kind, written at acceptance,
+// is the word alone, an exercise keeping its kind (EXAMPLES chapter 61).
 func TestScoreboardModeByWord(t *testing.T) {
 	plan := func(word string) executionplan.ExecutionPlan {
 		var p executionplan.ExecutionPlan
@@ -75,17 +77,22 @@ func TestScoreboardModeByWord(t *testing.T) {
 	for _, c := range []struct {
 		activity, word string
 		mode           executionplan.Mode
-		want           string
+		want, kind     string
 	}{
-		{"run", "crun", executionplan.ModeLive, "crun"},
-		{"run", "run", executionplan.ModeLive, "run"},
-		{"run", "", executionplan.ModeLive, "run"},
-		{"command", "command", executionplan.ModeLive, "cmd"},
-		{"command", "", executionplan.ModeLive, "cmd"},
-		{"run", "crun", executionplan.ModeExercise, "exercise"},
+		{"run", "crun", executionplan.ModeLive, "crun", "crun"},
+		{"run", "run", executionplan.ModeLive, "run", "run"},
+		{"run", "", executionplan.ModeLive, "run", "run"},
+		{"command", "command", executionplan.ModeLive, "cmd", "cmd"},
+		{"command", "", executionplan.ModeLive, "cmd", "cmd"},
+		{"run", "crun", executionplan.ModeExercise, "exercise", "crun"},
+		{"run", "", executionplan.ModeExercise, "exercise", "run"},
 	} {
-		if got := scoreboardMode(Request{ActivityType: c.activity, Mode: c.mode, Plan: plan(c.word)}); got != c.want {
+		req := Request{ActivityType: c.activity, Mode: c.mode, Plan: plan(c.word)}
+		if got := scoreboardMode(req); got != c.want {
 			t.Errorf("%s word %q mode %s: %s, want %s", c.activity, c.word, c.mode, got, c.want)
+		}
+		if got := acceptedSummary(req, output.Paths{}, "id", "id", time.Time{}).Kind; got != c.kind {
+			t.Errorf("%s word %q mode %s: kind %s, want %s", c.activity, c.word, c.mode, got, c.kind)
 		}
 	}
 }

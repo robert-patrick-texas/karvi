@@ -265,7 +265,7 @@ had; each but the summary has its switch, `output.files.*`, and `--nof` or
 | `failed-devices.txt` | `failed-devices-txt` | the devices that failed, as a target file for a rerun (`--tf`) |
 | `output.<target>.txt` | `output-txt` | each device's session as text |
 | `metrics.json` | `metrics-json` | the job's timings, widths, and wave decisions |
-| `summary.json` | none | the job's devices; written at the job's acceptance, and again whole at its end with the result, the counts, the exit, and each device's outcome |
+| `summary.json` | none | the job's kind (`cmd`, `run`, or `crun`) and devices; written at the job's acceptance, and again whole at its end with the result, the counts, the exit, and each device's outcome |
 
 ### 4.4 Transcripts and collection files
 

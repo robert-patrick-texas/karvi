@@ -213,6 +213,8 @@ func Main(args []string, stdin io.Reader, stdout, stderr io.Writer) (code int) {
 		return daemonStop(ctx, inv, streams)
 	case "daemon restart":
 		return daemonRestart(ctx, inv, streams)
+	case "job list":
+		return jobList(inv, streams)
 	case "job cancel":
 		return jobCancel(ctx, inv, streams)
 	case "job follow":
