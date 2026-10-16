@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -2258,6 +2258,19 @@ diff mail). <em>Why:</em> the client has the operator's shell environment (git
 identity, mail transport) while the daemon has the user manager's; git and mail
 are a site's choices. <em>Not taken:</em> a built-in <code>crun.git</code>; the daemon running the
 hook; mail sent by karvi.</p>
+<p><strong>A hook's process group is gone when the client returns.</strong> The hook leads a
+process group of its own. At <code>crun.after-timeout</code>, or at the invocation's
+interrupt, the client sends the group SIGTERM, SIGKILL to what is left of it
+five seconds later, and returns once the group is gone, giving up five seconds
+after the SIGKILL on a process in uninterruptible sleep; a hook that exits by
+itself is not followed, what it leaves in its group being its own. <em>Why:</em> the
+documents said the group was killed, but the kill reached the hook's shell
+alone, and a child that ignored SIGTERM outlived <code>crun</code> (<a href="EXAMPLES.html#62-the-releases-0310-and-0311-2026-10-16"><code>docs/EXAMPLES.md</code>,
+chapter 62</a>). <em>Not
+taken:</em> SIGKILL at once, which leaves a hook no time to clean up (git's lock);
+a wait without a cap, which a process in uninterruptible sleep would hang;
+ending the group of a hook that exits by itself, which may start what is meant
+to outlive it.</p>
 <p><strong>The schedule is the scheduler's.</strong> A packaged systemd timer and a cron line
 under <code>flock</code> run <code>crun --all --no-daemon</code>; karvi holds no directory lock and
 has no schedule key. <em>Why:</em> systemd never starts a service while the previous
@@ -2825,10 +2838,14 @@ base directory, spool directory, scoreboard directory, and <code>sharedroot none
 under its own work directory; every test binary that reaches the shared-tree
 resolver isolates it, with a scratch root of its own made under <code>/tmp</code>, never
 <code>TMPDIR</code>, so a socket in it stays within the path limit at the release's
-145-byte <code>TMPDIR</code>; a must-not-appear check stops the script. <em>Why:</em> fifteen
-scripts once enrolled into the operator's real trust store, and a verifier run
-left job folders in a site's shared tree; a root under <code>TMPDIR</code> failed twenty
-socket tests at the 0.26.0 release.</p>
+145-byte <code>TMPDIR</code>; a must-not-appear check stops the script. A suite looks
+for, and ends, only processes it started: by a PID or process group it
+recorded, or by a pattern holding its own work directory, never by a pattern
+another process on the host can match. <em>Why:</em> fifteen scripts once enrolled
+into the operator's real trust store, and a verifier run left job folders in a
+site's shared tree; a root under <code>TMPDIR</code> failed twenty socket tests at the
+0.26.0 release; a check matching <code>sleep 20</code> across the host failed the 0.31.0
+bundle's verifier, and its <code>pkill</code> ended every match.</p>
 <p><strong>A build is stamped with its version and its commit.</strong> <code>make build</code> stamps
 the commit <code>git describe --always --dirty</code> names in a git checkout's root
 (<code>.git</code> there), and <code>development</code> elsewhere: the one default, which <code>COMMIT</code>
@@ -3106,7 +3123,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.31.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.31.1</code>.</footer>
 </main>
 </body>
 </html>

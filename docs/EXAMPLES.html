@@ -107,6 +107,7 @@
 <li><a href="#59-the-release-0300-2026-10-13">59. The release 0.30.0 (2026-10-13)</a></li>
 <li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
 <li><a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: karvi job list (2026-10-15)</a></li>
+<li><a href="#62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -118,9 +119,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -229,6 +230,7 @@
 <li><a href="#59-the-release-0300-2026-10-13">59. The release 0.30.0 (2026-10-13)</a></li>
 <li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
 <li><a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: karvi job list (2026-10-15)</a></li>
+<li><a href="#62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -240,9 +242,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -12997,8 +12999,220 @@ and the HTML built with every link resolved. The evidence is kept beside the
 tree (<code>release-design-evidence/job-list-2026-10-15</code>, the design's labs and
 sketches; <code>job-list-s1-2026-10-15</code>, <code>job-follow-s2-2026-10-15</code>,
 <code>job-list-s3-2026-10-15</code>, and <code>job-list-s4-2026-10-16</code>).</p>
+<h2 id="62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16) <a class="anchor" href="#62-the-releases-0310-and-0311-2026-10-16" aria-label="Link to this section">#</a></h2>
+<p>The ninth public release, 0.31.0, on the operator's word and number, carrying
+<a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">chapter 61</a> (<code>karvi job list</code>,
+the summary at acceptance, <code>job follow</code> across the shared tree's members),
+<code>--pl</code> and <code>--ps</code>, the HTML's repository link, and OPERATIONS' tab completion
+for a shorter name. The configuration registry moves from 29 to 30 and the job
+manifest and summary from 3 to 4; the daemon IPC schema stays 12, so there is no
+lifecycle replay and the compatibility example is the drain. The sequence is
+<a href="#60-the-release-0301-2026-10-13">chapter 60</a>'s, the baseline's rule already
+met: <code>dev</code> held its <code>## Unreleased</code> block since S4.</p>
+<p><strong>What it gains.</strong> A site has <code>karvi job list</code> and the rest of chapter 61, from
+a published, checksummed bundle and package, with the documents on GitHub Pages
+at the release: an operator's 0.30.1 daemon is drained by the first submission
+after the upgrade, and OPERATIONS' upgrade examples are this release's own
+output.</p>
+<p><strong>Before the number.</strong> The release tools were archived first
+(<code>~/karvi/backup/archive-2026-10-16-2</code>: a mirror of the tree at <code>52093ce</code> and
+the six tools as they were). Nothing in them changed: <code>common.sh</code>'s prior was
+empty, its comment already naming the release that next moves the schema. The
+verifiers already pinned job 4 and registry 30, since S1. No registry key has a
+new <code>Since</code>, no error code is new or retired, and <code>internal/configload</code> holds no
+placeholder for a next release: <code>output.files.summary-json</code> is refused as an
+unknown key, not by <code>removed.go</code>.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.31.0 - 2026-10-16</code> under a
+lead paragraph: the two counters that moved, the rest 0.30.1's, the module
+graph 0.30.1's, and what a site changes (a configuration naming
+<code>output.files.summary-json</code>, a script that took <code>summary.json</code> for a job's end,
+a script that typed <code>--pl NAME</code> for <code>--platform NAME</code>).</p>
+<p><strong>The compatibility example.</strong> The released v0.30.1 executables, copied out of
+<code>bin/</code> and checked against <code>CHECKSUMS.sha256</code> before the release-identity build
+replaced them, ran the older daemon beside this client, at its IPC schema and of
+another build (<code>v0310-ipc-schema-compat.sh</code>, 0.30.1's script with its header
+changed). Idle, the client's exercise to 192.0.2.1 drained it and started its
+own in the same invocation; holding a ten-second job on the fake device built
+from the tree, the client's run was refused, the builds stacked, and the daemon
+exited after the job. 2/3 set OPERATIONS' upgrade examples to those two outputs.</p>
+<p><strong>The sequence, as run</strong>, from the archive at 07:23 to the published check at
+08:13 (UTC; 03:23 to 04:13, EDT), the artifacts' first run and the stop for the
+operator's word before the push included:</p>
+<ul>
+<li>07:23:35, the tools archived: a mirror at <code>52093ce</code> and the six tools; no
+tool changed.</li>
+<li>07:23:51 to 07:31:50, the baseline on a clean clone of <code>dev</code> at <code>52093ce</code>:
+gofmt, make, the release verifier with its package and container steps, exit
+0 each.</li>
+<li>07:32:50 and 07:33:20, the compatibility example and 1/3: <code>4ba9085</code>; the
+build <code>89IPVx9eRsYXSHKjpog8</code>; the v0.30.1 daemon drained idle, refusing busy.</li>
+<li>07:33:24 to 07:35:18, the core evidence: 1,035 named tests across 89
+packages, vet 0, both socket lengths exit 0.</li>
+<li>07:37:12, the documents: <code>65b0871</code> (2/3), <code>release/</code> from the v0.30.1
+pattern, the suites now eighteen, OPERATIONS' examples the release's own.</li>
+<li>07:37:24 to 07:45:20, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the package and its container test, the
+checksums unchanged by its rebuild; the replay skipped.</li>
+<li>07:45:42, 3/3, the tag, <code>main</code>: <code>a59ac0a</code>, <code>karvi-v0.31.0</code>, <code>main</code>
+fast-forwarded from <code>7be89d0</code>.</li>
+<li>07:45:54, the artifacts' first run: the bundle reproducible byte for byte;
+its verifier, in the bundle's extraction, exit 1 at the native suite's S33
+(issue 1).</li>
+<li>08:00:29 to 08:05:28, the artifacts' second run: the same bundle bytes,
+verified from its own archive; the package reproducible and checked against
+the extraction; 37,870,857 and 5,987,200 bytes.</li>
+<li>08:05:40 to 08:05:51, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-sysutil</code> and the template unit in place; 22 files under
+<code>/usr/share/karvi</code>, as 0.30.1.</li>
+<li>08:12:02 to 08:12:42, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>e965f4b</code>), built,
+its 51 files 200 and its footer <code>karvi-v0.31.0</code>; release <code>karvi-v0.31.0</code> with
+the five assets, marked latest; the assets downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.30.1 build=N5PmKyJFWom88FQHvi1o
+daemon started socket=/dev/shm/r310/compat/base/socket/d.sock
+pid 2900483 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build N5PmKyJFWom88FQHvi1o 0.30.1
+  client build 89IPVx9eRsYXSHKjpog8 0.31.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2900583 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '&quot;latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)&quot;'
+latest: karvi-v0.31.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.31.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.31.0-source-linux-amd64.tar.gz: OK
+karvi_0.31.0_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong> The code moved the bytes: <code>karvi</code> is 69,632 bytes larger,
+<code>karvi-prune</code> 4,096, <code>karvi-askpass</code> the same size with other bytes; the bundle
+is 76,779 bytes larger and the package 31,272. <code>go-version-m.txt</code> is 0.30.1's;
+the default configuration has no <code>output.files.summary-json</code>. The install check
+found <code>ubuntu:26.04</code> already on the host, pulled after 0.30.1's check by later
+work, and left it there.</p>
+<p><strong>Issue 1, the native suite's S33 check, agreed.</strong> The artifacts' first run
+stopped in the bundle's own verifier at <code>S33 hook timeout: the hook's child outlived it</code>. The check (<code>scripts/native-smoke-test.sh</code>, line 870) runs <code>pgrep -f &quot;sleep 20&quot;</code> across the whole host just after <code>crun</code> returns from a
+<code>crun.after</code> hook it ended at a one-second bound, and on a match <code>pkill -f 'sleep 20'</code>. The same check had passed in both release verifier runs; alone from
+the same extraction S33 passed five times in five, and the bound's signalling in
+a plain shell left the hook's sleep behind in none of 300 runs on the host as it
+was. Whether the hook's sleep was not yet gone under the verifier's three lanes,
+or another process matched, is not settled: other work's containers were being
+started and stopped on the host at the time. The second run passed whole, the
+same bundle bytes. <em>What it gains:</em> S33 fails only for the suite's own
+processes and ends no other: any <code>sleep 20…</code> on the host, another project's,
+another operator's, or another lane's, failed it, and its <code>pkill</code> then ended
+that process and every shell whose command line held the pattern. <em>What it
+waits on:</em> nothing. The rule, the operator's: <em>a suite looks for, and ends,
+only processes it started: by a PID or process group it recorded, or by a
+pattern holding its own work directory; never by a pattern another process on
+the host can match.</em> Line 870 is the only breach: line 757 names <code>$TMP</code>, and the
+v0100 suite's <code>serving()</code> keeps the daemons whose command line holds its base
+directory. The check: the hook writes <code>$$</code>, the process group it leads, and
+after <code>crun</code> returns <code>pgrep -g</code> that group, given two seconds to empty, and on
+failure <code>kill -KILL -PGID</code> that group alone (dash, which runs the suite, refuses
+<code>kill -KILL -- -PGID</code>). In a copy of the bundle's extraction, beside an
+unrelated <code>sleep 200</code> (the bystander), the check as released and the check
+drafted (<code>[script]</code> lines are the lab script's; <code>[suite]</code> lines the suite's exit
+and its last line):</p>
+<pre><code class="language-text">the check as released:
+[suite] run 1 exit=1: native smoke: FAIL: S33 hook timeout: the hook's child outlived it
+[script] bystander pid 3205501 gone: the suite's pkill ended it
+the check drafted, four runs alike:
+[suite] run 1 exit=0: native smoke: S33 the collection run: the file, the kept device, the folder, the summary,
+[script] bystander pid 3217776 still running
+the check drafted, the copy's hook child ignoring SIGTERM:
+[suite] run 1 exit=1: native smoke: FAIL: S33 hook timeout: the hook's group 3235694 outlived it
+[script] bystander pid 3234497 still running
+</code></pre>
+<p><em>Not taken:</em> a narrower <code>pkill</code> pattern, which can still match another's
+process; a <code>sleep</code> copied under <code>$TMP</code> so that the pattern holds the work
+directory, more machinery for the same scope. The control above found karvi's
+own bound short of what its documents say, issue 2; with issue 2 in, the check
+has no wait, looking at the group when <code>crun</code> returns, and the suite's hook
+child ignores SIGTERM, so that the suite proves the kill.</p>
+<p><strong>Issue 2, the <code>crun.after</code> bound, agreed.</strong> <code>collectionHook.run</code>
+(<code>internal/app/crun_after.go</code>) sent SIGTERM to the hook's process group at the
+bound, and <code>os/exec</code>'s kill five seconds on (<code>WaitDelay</code>) reached the hook's
+shell alone, and only when the shell was still there: a child ignoring SIGTERM
+outlived <code>crun</code>, where COLLECTION, <code>crun.after-timeout</code>'s documentation, and the
+code's comment said the group was killed. <em>What it gains:</em> a hook past its
+bound, or interrupted, leaves nothing running, as the documents say, and issue
+1's check needs no wait. <em>What it waits on:</em> nothing. The rule, the operator's:
+<em>when karvi signals a hook's process group, at its bound or at the invocation's
+interrupt, it returns only once the group is gone: SIGTERM to the group;
+SIGKILL to whatever is left of it five seconds later; then up to five seconds
+more for the killed processes to go, a process that will not die even then (in
+uninterruptible sleep) left. A hook that exits on its own is not followed:
+whatever it leaves in its group is its own. The duration the warning and the
+audit report is the hook's own, up to the end of its shell.</em> The change: the
+<code>Cancel</code> function notes when it signalled; after <code>Run</code>, <code>endGroup</code> looks at the
+group every 20 ms (<code>kill(-pgid, 0)</code> until <code>ESRCH</code>), sends SIGKILL at the signal
+plus five seconds, and gives up five seconds after that. A Go test
+(<code>TestCollectionHookEndsItsGroup</code>) runs a hook whose child ignores SIGTERM past
+a 300 ms bound: the group is gone when <code>run</code> returns, 5.33 s on; against the
+released code it fails, the group still there. Executed by
+<code>hookbound.sh KARVI FAKE WORKDIR</code>, a <code>crun --no-daemon</code> against the fake device
+with <code>crun.after-timeout</code> 1s (a minute for the interrupt), the hook leading its
+group and waiting on a background <code>sleep 30</code>; the released build and a lab build
+of the tree (<code>[script]</code> lines are the script's; the <code>warning:</code> lines karvi's):</p>
+<pre><code class="language-text">the released 0.31.0, the hook's child ignoring SIGTERM:
+[2] karvi crun --no-daemon --transport native --target d1, the hook past its 1s bound
+exit=0 after 1.7s
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh ran past crun.after-timeout (1s) and was ended
+[script] the hook's group 3420094, its child 3420095
+[script] the group when crun returned:
+3420095 3420094 S    sleep 30
+[script] the group six seconds later:
+3420095 3420094 S    sleep 30
+the tree, the same hook:
+[2] karvi crun --no-daemon --transport native --target d1, the hook past its 1s bound
+exit=0 after 6.8s
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh ran past crun.after-timeout (1s) and was ended
+[script] the hook's group 3627474, its child 3627475
+[script] the group when crun returned:
+  (none)
+the released 0.31.0, SIGINT to karvi while the hook runs:
+[2] karvi crun --no-daemon --transport native --target d1, interrupted in the hook
+[script] SIGINT to karvi pid 3425620
+exit=0 0.0s after the SIGINT
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh was interrupted after 254ms
+[script] the hook's group 3425661, its child 3425662
+[script] the group when crun returned:
+3425662 3425661 S    sleep 30
+[script] the group six seconds later:
+3425662 3425661 S    sleep 30
+the tree, the same:
+[2] karvi crun --no-daemon --transport native --target d1, interrupted in the hook
+[script] SIGINT to karvi pid 3628043
+exit=0 5.0s after the SIGINT
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh was interrupted after 251ms
+[script] the hook's group 3628109, its child 3628110
+[script] the group when crun returned:
+  (none)
+</code></pre>
+<p>A child that does not ignore SIGTERM goes at the signal in both, the group gone
+when <code>crun</code> returns: 1.7 s released, 1.8 s the tree. <em>Cost:</em> a group member
+that ignores SIGTERM delays <code>crun</code>'s return by up to the five seconds the
+documents name. <em>Not taken:</em> SIGKILL at once, which leaves a hook no time to
+clean up (git's lock); a wait without a cap, which a process in uninterruptible
+sleep would hang; ending the group when the hook exits on its own, since a hook
+may start what is meant to outlive it.</p>
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.31.0</code>.</footer>
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.31.1</code>.</footer>
 </main>
 </body>
 </html>

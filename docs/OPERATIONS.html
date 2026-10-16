@@ -92,9 +92,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -188,9 +188,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -211,15 +211,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.30.1 build=N5PmKyJFWom88FQHvi1o
+<pre><code>daemon drained version=0.31.0 build=89IPVx9eRsYXSHKjpog8
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build N5PmKyJFWom88FQHvi1o 0.30.1
-  client build 89IPVx9eRsYXSHKjpog8 0.31.0
+  daemon build 89IPVx9eRsYXSHKjpog8 0.31.0
+  client build 1m0vuMSWJ08PWlb3CIEZ 0.31.1
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -2168,7 +2168,7 @@ exit. Global options go before the word: <code>karvi --quiet --config FILE strea
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.31.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.31.1</code>.</footer>
 </main>
 </body>
 </html>
