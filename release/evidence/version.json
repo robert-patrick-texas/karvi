@@ -1,8 +1,8 @@
 {
   "application": "karvi",
-  "version": "0.31.0",
-  "commit": "source-release-v0.31.0",
-  "build": "89IPVx9eRsYXSHKjpog8",
+  "version": "0.31.1",
+  "commit": "source-release-v0.31.1",
+  "build": "1m0vuMSWJ08PWlb3CIEZ",
   "go_version": "go1.27.2",
   "config_schema_version": 6,
   "command_record_schema_version": 3,

@@ -1,5 +1,5 @@
-karvi v0.31.0 shipped-executable verification (the shipped bytes, not rebuilt; the tests and the suites are release-qualification.log's, on a rebuild to the same checksums)
-2026-10-16T07:37:25Z
+karvi v0.31.1 shipped-executable verification (the shipped bytes, not rebuilt; the tests and the suites are release-qualification.log's, on a rebuild to the same checksums)
+2026-10-16T12:42:33Z
 bin/karvi-linux-amd64: OK
 bin/karvi-askpass-linux-amd64: OK
 bin/karvi-prune-linux-amd64: OK
