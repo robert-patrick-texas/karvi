@@ -12342,3 +12342,160 @@ and the HTML built with every link resolved. The evidence is kept beside the
 tree (`release-design-evidence/job-list-2026-10-15`, the design's labs and
 sketches; `job-list-s1-2026-10-15`, `job-follow-s2-2026-10-15`,
 `job-list-s3-2026-10-15`, and `job-list-s4-2026-10-16`).
+
+## 62. The release 0.31.0 (2026-10-16)
+
+The ninth public release, on the operator's word and number, carrying [chapter
+61](#61-a-list-of-jobs-karvi-job-list-2026-10-15) (`karvi job list`, the
+summary at acceptance, `job follow` across the shared tree's members), `--pl`
+and `--ps`, the HTML's repository link, and OPERATIONS' tab completion for a
+shorter name. The configuration registry moves from 29 to 30 and the job
+manifest and summary from 3 to 4; the daemon IPC schema stays 12, so there is
+no lifecycle replay and the compatibility example is the drain. The sequence is
+[chapter 60](#60-the-release-0301-2026-10-13)'s, the baseline's rule already
+met: `dev` held its `## Unreleased` block since S4.
+
+**What it gains.** A site has `karvi job list` and the rest of chapter 61, from
+a published, checksummed bundle and package, with the documents on GitHub Pages
+at the release: an operator's 0.30.1 daemon is drained by the first submission
+after the upgrade, and OPERATIONS' upgrade examples are this release's own
+output.
+
+**Before the number.** The release tools were archived first
+(`~/karvi/backup/archive-2026-10-16-2`: a mirror of the tree at `52093ce` and
+the six tools as they were). Nothing in them changed: `common.sh`'s prior was
+empty, its comment already naming the release that next moves the schema. The
+verifiers already pinned job 4 and registry 30, since S1. No registry key has a
+new `Since`, no error code is new or retired, and `internal/configload` holds no
+placeholder for a next release: `output.files.summary-json` is refused as an
+unknown key, not by `removed.go`.
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.31.0 - 2026-10-16` under a
+lead paragraph: the two counters that moved, the rest 0.30.1's, the module
+graph 0.30.1's, and what a site changes (a configuration naming
+`output.files.summary-json`, a script that took `summary.json` for a job's end,
+a script that typed `--pl NAME` for `--platform NAME`).
+
+**The compatibility example.** The released v0.30.1 executables, copied out of
+`bin/` and checked against `CHECKSUMS.sha256` before the release-identity build
+replaced them, ran the older daemon beside this client, at its IPC schema and of
+another build (`v0310-ipc-schema-compat.sh`, 0.30.1's script with its header
+changed). Idle, the client's exercise to 192.0.2.1 drained it and started its
+own in the same invocation; holding a ten-second job on the fake device built
+from the tree, the client's run was refused, the builds stacked, and the daemon
+exited after the job. 2/3 set OPERATIONS' upgrade examples to those two outputs.
+
+**The sequence, as run**, from the archive at 07:23 to the published check at
+08:13 (UTC; 03:23 to 04:13, EDT), the artifacts' first run and the stop for the
+operator's word before the push included:
+
+- 07:23:35, the tools archived: a mirror at `52093ce` and the six tools; no
+  tool changed.
+- 07:23:51 to 07:31:50, the baseline on a clean clone of `dev` at `52093ce`:
+  gofmt, make, the release verifier with its package and container steps, exit
+  0 each.
+- 07:32:50 and 07:33:20, the compatibility example and 1/3: `4ba9085`; the
+  build `89IPVx9eRsYXSHKjpog8`; the v0.30.1 daemon drained idle, refusing busy.
+- 07:33:24 to 07:35:18, the core evidence: 1,035 named tests across 89
+  packages, vet 0, both socket lengths exit 0.
+- 07:37:12, the documents: `65b0871` (2/3), `release/` from the v0.30.1
+  pattern, the suites now eighteen, OPERATIONS' examples the release's own.
+- 07:37:24 to 07:45:20, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the package and its container test, the
+  checksums unchanged by its rebuild; the replay skipped.
+- 07:45:42, 3/3, the tag, `main`: `a59ac0a`, `karvi-v0.31.0`, `main`
+  fast-forwarded from `7be89d0`.
+- 07:45:54, the artifacts' first run: the bundle reproducible byte for byte;
+  its verifier, in the bundle's extraction, exit 1 at the native suite's S33
+  (issue 1).
+- 08:00:29 to 08:05:28, the artifacts' second run: the same bundle bytes,
+  verified from its own archive; the package reproducible and checked against
+  the extraction; 37,870,857 and 5,987,200 bytes.
+- 08:05:40 to 08:05:51, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the installed executables `CHECKSUMS.sha256`'s;
+  `karvi-sysutil` and the template unit in place; 22 files under
+  `/usr/share/karvi`, as 0.30.1.
+- 08:12:02 to 08:12:42, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`e965f4b`), built,
+  its 51 files 200 and its footer `karvi-v0.31.0`; release `karvi-v0.31.0` with
+  the five assets, marked latest; the assets downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.30.1 build=N5PmKyJFWom88FQHvi1o
+daemon started socket=/dev/shm/r310/compat/base/socket/d.sock
+pid 2900483 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build N5PmKyJFWom88FQHvi1o 0.30.1
+  client build 89IPVx9eRsYXSHKjpog8 0.31.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2900583 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)"'
+latest: karvi-v0.31.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.31.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.31.0-source-linux-amd64.tar.gz: OK
+karvi_0.31.0_amd64.deb: OK
+```
+
+**Found on the way.** The code moved the bytes: `karvi` is 69,632 bytes larger,
+`karvi-prune` 4,096, `karvi-askpass` the same size with other bytes; the bundle
+is 76,779 bytes larger and the package 31,272. `go-version-m.txt` is 0.30.1's;
+the default configuration has no `output.files.summary-json`. The install check
+found `ubuntu:26.04` already on the host, pulled after 0.30.1's check by later
+work, and left it there.
+
+**Issue 1, the native suite's S33 check, agreed.** The artifacts' first run
+stopped in the bundle's own verifier at `S33 hook timeout: the hook's child
+outlived it`. The check (`scripts/native-smoke-test.sh`, line 870) runs `pgrep
+-f "sleep 20"` across the whole host just after `crun` returns from a
+`crun.after` hook it ended at a one-second bound, and on a match `pkill -f
+'sleep 20'`. The same check had passed in both release verifier runs; alone from
+the same extraction S33 passed five times in five, and the bound's signalling in
+a plain shell left the hook's sleep behind in none of 300 runs on the host as it
+was. Whether the hook's sleep was not yet gone under the verifier's three lanes,
+or another process matched, is not settled: other work's containers were being
+started and stopped on the host at the time. The second run passed whole, the
+same bundle bytes. *What it gains:* S33 fails only for the suite's own
+processes and ends no other: any `sleep 20…` on the host, another project's,
+another operator's, or another lane's, failed it, and its `pkill` then ended
+that process and every shell whose command line held the pattern. *What it
+waits on:* nothing. The rule, the operator's: *a suite looks for, and ends,
+only processes it started: by a PID or process group it recorded, or by a
+pattern holding its own work directory; never by a pattern another process on
+the host can match.* Line 870 is the only breach: line 757 names `$TMP`, and the
+v0100 suite's `serving()` keeps the daemons whose command line holds its base
+directory. The check: the hook writes `$$`, the process group it leads, and
+after `crun` returns `pgrep -g` that group, given two seconds to empty, and on
+failure `kill -KILL -PGID` that group alone (dash, which runs the suite, refuses
+`kill -KILL -- -PGID`). In a copy of the bundle's extraction, beside an
+unrelated `sleep 200` (the bystander), the check as released and the check
+drafted (`[script]` lines are the lab script's; `[suite]` lines the suite's exit
+and its last line):
+
+```text
+the check as released:
+[suite] run 1 exit=1: native smoke: FAIL: S33 hook timeout: the hook's child outlived it
+[script] bystander pid 3205501 gone: the suite's pkill ended it
+the check drafted, four runs alike:
+[suite] run 1 exit=0: native smoke: S33 the collection run: the file, the kept device, the folder, the summary,
+[script] bystander pid 3217776 still running
+the check drafted, the copy's hook child ignoring SIGTERM:
+[suite] run 1 exit=1: native smoke: FAIL: S33 hook timeout: the hook's group 3235694 outlived it
+[script] bystander pid 3234497 still running
+```
+
+*Not taken:* a narrower `pkill` pattern, which can still match another's
+process; a `sleep` copied under `$TMP` so that the pattern holds the work
+directory, more machinery for the same scope. The two-second wait is issue 2's
+to settle: the control above found karvi's own bound short of what its
+documents say.
