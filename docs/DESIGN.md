@@ -143,12 +143,12 @@ refusal, never a meaning, so the entry above stands: a line still means one
 thing. *Not taken:* refusing every word after a bare switch (`command --of r1
 …` would break); the spaced value on a stream line.
 
-**The `job` word.** Every operation on one accepted job lives under `job`:
-`job follow JOB-ID` and `job cancel JOB-ID`, each taking one ID and never
-launching a daemon. *Why:* a verb on one job belongs to a `job` word, and
-the `daemon` word keeps the daemon's lifecycle. *Not taken:* `run --follow
-JOB-ID` (`--follow` is a boolean); `watch JOB-ID` (the watch screen shows
-counts, never records); `daemon cancel`.
+**The `job` word.** Every operation on accepted jobs lives under `job`: `job
+list`, the jobs of the output root, and `job follow JOB-ID` and `job cancel
+JOB-ID`, each taking one ID; none launches a daemon. *Why:* a verb on jobs
+belongs to a `job` word, and the `daemon` word keeps the daemon's lifecycle.
+*Not taken:* `run --follow JOB-ID` (`--follow` is a boolean); `watch JOB-ID`
+(the watch screen shows counts, never records); `daemon cancel`.
 
 **`crun` is a command word sharing `run`'s grammar.** It takes `run`'s option
 slice, `--cd=PATH` and `--fs=SUFFIX` among them, may name no command, and
@@ -1711,6 +1711,45 @@ from them; after an upgrade the jobs a draining daemon finishes are followed and
 cancelled one at a time. *Not taken:* follow and cancel refused across builds
 (the old daemon's jobs out of reach but by cancelling them all).
 
+**A member follows another member's job from the shared tree.** The follow from
+a folder takes a file another member owns when the output root is the shared
+jobs tree and the file stands in its group, mode 0640 or stricter, a regular
+file opened without following a link; outside that tree, or in another group, it
+is refused `run_output_records_unreadable`, the file's group stacked over the
+tree's. A job's scoreboard is the one sign that it runs: with none
+(`watch.enabled = false`) the follow of a summary not final answers
+`job_orphaned` at once. A summary naming no `commands_jsonl` is followed with
+one warning that the job's records are not kept, then the job's end, live or
+finished. *Why:* `job list` shows another member's running jobs, and following
+one is the next thing an operator does; the summary at acceptance says the job
+runs, and every member reads the tree's files through the group. *Not taken:* a
+daemon serving followers of another UID (the daemon's one boundary crossed);
+following on without a scoreboard (a dead job's follow never ends); no warning
+where the records are not kept (the follower may not be the one who chose it,
+and the daemon's follow warns); the file's absence alone for that (a lost file
+and one never written alike).
+
+**`job list` lists the output root's jobs from their summaries.** It reads the
+day folders newest first and each one's job folders newest first by job ID, and
+stops at `--last` (20 by default, 0 every job kept), every filter judging a job
+before the count: `--failed` the finished jobs whose exit is not 0; `--target`
+`run`'s rule over the summary's `devices`, a row per device left, a line of `!`
+values alone refused as `run` refuses it; `--operator` the summary's owner, by
+name or UID. In shared mode it reads the shared tree, every member's jobs and a
+service account's; in individual mode the operator's own. OPERATOR is the
+summary's owner, the file system's word. It makes nothing and needs no daemon or
+credential. *Why:* it always answers, whatever the day or the timezone, at a
+cost that does not grow with the retention; the searches an operator makes, at
+the cost of the one file every site keeps; whether anyone ran a job at a device
+is the team's question. *Not taken:* today's folder or the last 24 hours (empty
+on a quiet day, and which day is today follows the effective timezone); every
+job kept by default; `commands.jsonl` or the manifest searched for a device (the
+cost grows with the output or the plan, and the manifest is a switch a site
+turns off); dates, `--day` or `--since`; the operator's own jobs by default in
+shared mode; OPERATOR from a field of the summary (a crafted file could name
+another); `--failed` judged by a named device's outcome (one option with two
+meanings).
+
 **Cancellation is a job-scoped cause with shutdown's accounting.** `cancel_job`
 cancels one job's context with a cause carrying the reason, requester, and
 time; the daemon answers `cancelling` or `terminal` at once and never waits. A
@@ -1956,6 +1995,26 @@ the key refuses the option by the lock alone. *Why:* a site chooses which files
 it keeps; the daemon's store stays the one writer while the client's root
 travels in the plan. *Not taken:* the daemon's configuration as the authority
 for the files (two roots could disagree).
+
+**A job's summary is its folder's index, written at acceptance and at the end.**
+`summary.json` is written when the job is accepted, after the manifest, naming
+the job, its kind, the files it writes, and its devices in the plan's order
+without their outcomes, and written whole again at the job's end with the result
+and each device's outcome, the `device_counts` category it is counted in. A job
+has ended when its summary names a final status; `job list`, `job follow`, and
+`karvi-prune` read the status, never the file's presence. Every job that makes a
+folder writes it, no switch turning it off; no output at all is `--nof` or
+`output.persist-command = false`, which make no folder. `kind` is `cmd`, `run`,
+or `crun`, a job of `stream` being `run` and an exercise keeping its kind;
+`mode` stays `live` or `exercise`. *Why:* a job cut short at any point names its
+devices in the one file every site keeps, and the list, the follow, and the
+pruner have one source wherever a folder is. *Not taken:* the manifest's
+`plan.targets` (a site turns it off); the records alone (a job killed before its
+first record matches nothing); a file of the devices beside the summary (a
+switch too); the summary's switch kept and the functions it costs documented;
+`--nof` writing the summary alone (the choice of nothing on disk overridden);
+`activity_type` or `collection` for the kind (a `crun` not told at acceptance, a
+`run --cd` taken for one).
 
 **A job runs under its client's configuration.** The client sends its resolved
 values, the key and value set its digest covers, as the plan's `configuration`
@@ -2420,6 +2479,26 @@ row; the cycle should follow the displayed field order and `S` names the
 direction. *Not taken:* field prefixes; a regular expression; a persistent
 filter key.
 
+**`job list`'s table is the screen's cells without ACTV, fitted to the
+terminal.** The headings, cells, and status colours are `watch`'s, from the same
+code; TIME is the job's duration, its start being its ID; MODE the kind;
+OPERATOR always. TARGET takes what the other columns leave at the terminal's
+width, each name whole while it fits and the rest counted as `+N`; to a pipe or
+a file nothing is cut. The rows stand in job-ID order, newest first. An
+unfinished job shows `u` in DONE and FAIL (`u/2`) in the warning colour, TIME
+blank, and a folder without a summary `u` in MODE and `u/u`; a folder or a day
+folder that cannot be read is the screen's invalid row, `?`, its path, or `…`
+where the path does not fit. An empty list prints `(no jobs)`; `--format json`
+prints an array of the summaries' fields with `path` and `operator` (`{username,
+uid}`). *Why:* the screen's words and code, a line that fits its terminal, and
+every cell from the summary alone, none naming a count not known. *Not taken:*
+the screen's table as it is (it wraps at 80); the end with its date (19 cells);
+the order of the start instants (every summary read for an order the ID gives);
+a name cut; the running rows above a rule (a folder's unfinished job may be days
+dead); the scoreboard's live counts (a second read, gone once pruned); `0/2`,
+`?`, or `-` for counts not known (none done claimed, the flag column's mark, a
+file not read); the heading alone or nothing for an empty list.
+
 ## 14. Storage: roots, shared trees, transcripts, and retention
 
 **The private root is the operator's, by username, where the site provisioned
@@ -2444,9 +2523,9 @@ never asks. `sudo karvi setup shared` creates the layout in the site's group
 with the setgid bit and repairs what it made. The plan carries the resolved
 root so the daemon writes where the client decided. *Why:* a team keeps one job
 tree so an operator reads another's job with the same `job follow` and a lead
-finds the shift's work in one place; an operator outside the group is told, not
-diverted to a private tree. *Not taken:* a silent fall back; a `[shared]`
-table; moving a site's old trees.
+finds the shift's work in one place, `job list`; an operator outside the group
+is told, not diverted to a private tree. *Not taken:* a silent fall back; a
+`[shared]` table; moving a site's old trees.
 
 **The scratch root is the site's; an operator makes only its own folder
 in it.** `sudo karvi setup shared` makes `/dev/shm/karvi` and its

@@ -2,6 +2,73 @@
 
 ## Unreleased
 
+- **Breaking: a job's summary is written at its acceptance and at its end;
+  job manifest and summary schema 4.** `summary.json` is written when the job
+  is accepted, after its manifest, naming the job, its plan, its kind, the
+  files it writes, and its devices, with none of the result fields, and
+  written whole again at the job's end. Its presence no longer says the job
+  has ended: a job has ended when its summary names a `final_status`, which
+  `job follow` and `karvi-prune` read. Two fields are new: `devices`, a list
+  of `{name, outcome}` in the plan's order, as the scoreboard's `targets`, the
+  outcome the `device_counts` category the device is counted in (an
+  exercise's `ready` or `not_ready`) and absent at acceptance; and `kind`,
+  `cmd`, `run`, or `crun`, a job of `stream` being `run` and an exercise
+  keeping its kind, beside `mode` (`live` or `exercise`). The manifest moves
+  to 4 with the summary, its content unchanged. `karvi-prune` takes a folder
+  whose summary names no final status as it took a folder without one, an
+  orphan retired by age alone. The daemon IPC schema stays 12.
+- **Breaking: `output.files.summary-json` is removed; every job folder holds
+  its summary.** A configuration naming the key is refused at load,
+  `config_unknown_key` (exit 2), and the configuration registry moves from 29
+  to 30. The seven other `output.files.*` switches false leave a folder
+  holding its summary alone; a job writes no folder only under `--nof` or
+  `output.persist-command = false`.
+- **`karvi job list`.** The jobs of the output root from their summaries,
+  needing no daemon or credential and making nothing: in shared mode every
+  job of the shared tree, every operator's and a service account's; in
+  individual mode the operator's own. With no option it lists the newest 20
+  jobs by job ID, whatever their day. `--last N` (0 every job kept),
+  `--failed` (the finished jobs whose exit is not 0), `--target NAME` (`run`'s
+  rule over each job's devices: a glob, repeatable, a leading `!` removing;
+  `!` values alone are refused, `inventory_positive_selector_missing`, exit
+  5), and `--operator NAME` (repeatable) each judge a job before the count.
+  The table is `watch`'s without ACTV: JOB-ID, TIME (the job's duration),
+  STATUS, OPERATOR (the summary's owner), MODE (the kind), DONE, FAIL, and
+  TARGET, the line fitted to the terminal, each device named whole while it
+  fits and the rest counted as `+N`, nothing cut to a pipe or a file; under
+  `--target` one row per matching device, OUTCOME the device's own. An
+  unfinished job shows `unfinished`, TIME blank, and `u` in DONE and FAIL, in
+  the warning colour; a folder or a day folder that cannot be read is a `?`
+  row, `invalid`; a list with no row prints `(no jobs)`, exit 0. `--format
+  json` prints an array of the rows, each the summary's fields with `path` and
+  `operator` (`{username, uid}`) ([`docs/OPERATIONS.md`, "The list of
+  jobs"](docs/OPERATIONS.md#the-list-of-jobs)).
+- **`job follow` follows any job from its folder, across the shared tree's
+  members.** A job no daemon of the caller's holds, finished or live (a `run
+  --no-daemon` of another terminal, another member's, a service account's),
+  is followed from its folder: each `commands.jsonl` record as it is written,
+  then the display's end once its summary names a final status, where only a
+  finished job was read from its folder. In the shared jobs tree a file
+  another member owns is read when its group is the tree's and its mode 0640
+  or stricter; one of another group is refused `run_output_records_unreadable`
+  (exit 111), its group over the tree's. While the summary is not final, the
+  job's scoreboard decides: one that is gone, stale by `watch.stale-after`, or
+  naming the job's end that long ago is `job_orphaned` (exit 112), where every
+  job without a summary that no daemon held was; under `watch.enabled = false`
+  another member's live job is `job_orphaned` at once. A job that keeps no
+  `commands.jsonl` is followed to its end with one warning, `the job's records
+  are not kept (output.files.commands-jsonl is false)`. A finished job
+  followed from its folder prints the `! ssh accepted new host-key …` line, as
+  the daemon's follow does. A job whose day folder cannot be read is
+  `run_output_records_unreadable` (exit 111), where it was `job_unknown`
+  (112).
+- **`watch --all-retained` is gone.** The option, specified and refused as
+  not available (`cli_option_unavailable`), is now unknown
+  (`cli_option_unknown`); `job list --last 0` lists every job kept.
+- **The job list suite.** `scripts/job-list-smoke-test.sh` runs `job list` on
+  the jobs of a lab output root made against the fake device (a command, a
+  run with an unreachable device, a `crun`, an exercise, a killed run, an
+  empty folder, and folders that cannot be read), in the suites' third lane.
 - **`--pl` is `--platform linux`, `--ps` is `--platform linux_shell`.**
   `login`, `command`, and `run` take them beside `--pi`, `--pn`, `--pr`,
   `--pj`, `--pa`, and `--pg`. `--pl` is a whole word, so it is no longer a

@@ -19,17 +19,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    message alike; the tests, suites, and documents that quote a message,
    changed with it; and the generated error-code descriptions
    ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
-2. **A list of jobs: `karvi job list`.** `job follow` and `job cancel` take a
-   job ID, and nothing in karvi lists them: once a job has ended, its ID, its
-   result, and its `failed-devices.txt` are found by listing the output root's
-   day folders and reading `summary.json`. The item: a read-only `job list`
-   from the job folders' summaries, needing no daemon or credential; the
-   summary, written at a job's acceptance and again at its end, names the job's
-   devices for a search by device, which moves its schema. The questions: what
-   it lists with no option; the filters; the columns at a terminal's width and
-   the rows' order, since a job ID names its start in the effective timezone
-   and two timezones' IDs do not sort by time; another operator's jobs in
-   shared mode; and a run under `--nof`, which leaves no folder.
 
 ## Later
 

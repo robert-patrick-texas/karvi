@@ -14,9 +14,9 @@ target files and dispatch order, login recording and output folders,
 registered error codes, the client-owned planning boundary with the
 credential plane, `run --dry-run`, `run --exercise`, `--detach` and
 `follow_job`, the two-probe ICMP gate, shutdown accounting, `cancel_job`
-with `karvi job cancel`, one device session driving both SSH transports
-with scrapligo-v1 as karvi's own connection, and platform names and their
-resolution.
+with `karvi job cancel`, `karvi job list` over the jobs' summaries, one
+device session driving both SSH transports with scrapligo-v1 as karvi's own
+connection, and platform names and their resolution.
 Items still open are listed in [`ROADMAP.md`](ROADMAP.md). The sections below
 describe the behavior of the code as it exists; `VERSION` names the release.
 
@@ -358,7 +358,11 @@ become durable; `--detach` returns at acceptance with the job ID and
 artifact directory, `--follow=false` waits without rendering, and Ctrl-C
 leaves the job running in the daemon. `karvi job follow JOB-ID` renders a
 detached or interrupted job again from its beginning, live or finished, and
-`karvi job cancel JOB-ID` stops one job.
+`karvi job cancel JOB-ID` stops one job. `karvi job list` lists the jobs of
+the output root from their summaries, newest first, with no daemon: the
+failures with `--failed`, and the jobs that reached a device with `--target
+NAME` ([`docs/OPERATIONS.md`, "The list of
+jobs"](docs/OPERATIONS.md#the-list-of-jobs)).
 
 `--ping` sends two ICMP probes to each target before its transport and skips a
 target that answers neither (`icmp_unreachable`); `--noping` sends none. The
@@ -445,6 +449,7 @@ karvi cmd --help
 karvi run --help
 karvi config --help
 karvi daemon --help
+karvi job --help
 karvi setup --help
 karvi watch --help
 karvi version --help

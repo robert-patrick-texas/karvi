@@ -77,8 +77,8 @@ other, neither combines with `--detach`, and `--exercise` needs the daemon.
 A live run renders records as the daemon makes them durable. `--detach`
 prints the job ID and artifact directory and returns at acceptance (exit 0
 means accepted; follow the job with `karvi job follow`, watch it with
-`karvi watch`, or read its `summary.json` when it ends). `--follow=false`
-waits for the result without rendering.
+`karvi watch`, or find it with `karvi job list` and read its `summary.json`
+when it ends). `--follow=false` waits for the result without rendering.
 Ctrl-C during a run stops the client's follow only: it names the job that
 continues and its artifact directory and exits 113; the daemon finishes the
 job and writes its records. A closed stdout does the same with exit 111.
@@ -89,15 +89,14 @@ To stop one accepted job without stopping the daemon:
 karvi job cancel JOB-ID --reason 'wrong change window'
 ```
 
-The job ID is the one `run --detach` printed or `karvi watch` shows. The
-daemon answers at once; the job's unfinished work is recorded `cancelled`
-and its summary ends `cancelled` at exit 113 with the request's time,
-reason, and requester in a `cancellation` block. `--follow` waits for the
-job's end and exits with the job's exit. A job that already ended is
-reported with its outcome, an unknown job ID is `job_unknown`, and the
-command never launches a daemon. Other jobs are untouched; a foreground
-`run` whose job is cancelled from elsewhere prints the cancelled line and
-exits 113.
+The job ID is the one `run --detach` printed, or `karvi job list` or `karvi
+watch` shows. The daemon answers at once; the job's unfinished work is recorded
+`cancelled` and its summary ends `cancelled` at exit 113 with the request's
+time, reason, and requester in a `cancellation` block. `--follow` waits for the
+job's end and exits with the job's exit. A job that already ended is reported
+with its outcome, an unknown job ID is `job_unknown`, and the command never
+launches a daemon. Other jobs are untouched; a foreground `run` whose job is
+cancelled from elsewhere prints the cancelled line and exits 113.
 A cancel that arrives too late changes nothing: a job whose work had
 finished keeps its result and its exit, and an exercise (`run --exercise`)
 never ends `cancelled`, since its checks are local and take milliseconds.
@@ -138,6 +137,73 @@ follow. Neither `job` verb launches a daemon.
 `karvi-run(1)` (`man karvi run`), REHEARSAL, restates the dry run, the
 exercise, `--detach`, and Ctrl-C for the terminal; a change to one changes
 both.
+
+## The list of jobs
+
+`karvi job list` lists the jobs of the output root from the summaries their
+folders hold; it needs no daemon or credential and makes nothing. In shared
+mode it reads the shared jobs tree, every operator's job and a service
+account's; in individual mode the operator's own. With no option it lists the
+newest 20 jobs by job ID, whatever their day, a running or unfinished job
+among them:
+
+```text
+$ karvi job list
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261016-023522-00            unfinished  netops    run     u/1       u  fake-iosxe
+  261016-023521-00  0m00s     exercised   netops    run     1/1       0  fake-iosxe
+  261016-023519-00  0m01s     completed   netops    crun    1/1       0  fake-iosxe
+  261016-023518-00  0m01s     errored     netops    run     2/2       1  fake-iosxe dead-iosxe
+  261016-023516-00  0m01s     completed   netops    cmd     1/1       0  fake-iosxe
+$ karvi job list --target 'dead*'
+  JOB-ID            TIME      OPERATOR  MODE  OUTCOME      DEVICE
+  261016-023518-00  0m01s     netops    run   failed       dead-iosxe
+```
+
+The columns are the watch screen's without ACTV. TIME is the job's duration,
+its start being its ID; OPERATOR is the owner of the job's summary, the UID
+where the user database names none; MODE is the kind of job, `cmd`, `run`, or
+`crun`, a job of `stream` being `run` and an exercise keeping its kind, its
+STATUS `exercised`. At a terminal the line fits the width: TARGET takes what
+the other columns leave, each device named whole while it fits and the rest
+counted as `+N`, so at 80 columns the rows above end `+1` and `+2`; to a pipe
+or a file nothing is cut. The rows stand in job-ID order, newest first. A job
+ID names its start in the effective timezone, so a job run under another
+`--timezone` stands by its ID.
+
+An unfinished job, running or cut short, shows STATUS `unfinished`, TIME
+blank, and `u`, unknown, in FAIL and in DONE over its devices (`u/1`), in the
+warning colour. A folder that holds no summary reached no device: it shows `u`
+in MODE and `u/u` in DONE, TARGET blank. A folder whose summary cannot be read
+or decoded, and a day folder that cannot be read, is a `?` row, STATUS
+`invalid`, its path in TARGET, or `…` at a terminal where the path does not
+fit; `--format json` and `karvi job follow ID` name the path and the reason. A
+list with no row prints `(no jobs)`, exit 0.
+
+The filters, each judging a job before `--last` counts it:
+
+- `--last N` lists N rows, `0` every job kept.
+- `--failed` keeps the finished jobs whose exit is not 0, a partial failure
+  and a cancellation among them.
+- `--target NAME` keeps the jobs that reached a matching device and lists one
+  row per such device, OUTCOME the device's own (`unfinished` while the job
+  has not ended). NAME is taken as `run`'s `--target` takes it: a glob,
+  repeatable, a value beginning with `!` removing the devices it matches. A
+  line of `!` values alone is refused, `inventory_positive_selector_missing`
+  (exit 5).
+- `--operator NAME`, repeatable, keeps that operator's jobs, by name or UID.
+
+`--operator` judges a `?` row by the owner of what could not be read;
+`--failed` and `--target` keep it, since it may hide a match. `--format json`
+prints one array of the rows, each the job's summary fields as the file holds
+them, then `path`, the job's folder, and `operator`, `{"username", "uid"}`;
+under `--target` the row adds `device` and its `outcome`, and a `?` row is
+`{"path", "operator", "error"}`.
+
+The job ID is the one `job follow` and `job cancel` take, and an errored job's
+folder holds the `failed-devices.txt` a rerun takes ("The job's output files").
+A job run under `--nof` or `output.persist-command = false` makes no folder,
+and the list does not show it.
 
 ## Dispatch: serial, parallel, and wave
 
@@ -1354,7 +1420,8 @@ Relationships worth knowing:
   when the job is accepted, naming the job's devices, and again whole at
   the job's end with the result, the counts, the causes, and each
   device's outcome; a job has ended when its summary names a final
-  status. `karvi job follow` and `karvi-prune` read it.
+  status. `karvi job list`, `karvi job follow`, and `karvi-prune` read
+  it.
 - **The summary names only the files that were written** (`paths`, and
   `output.commands_jsonl`). The devices' text files are not listed; the
   name is `output.` + the device's name (or its address) + `.txt`.
@@ -1367,8 +1434,10 @@ Relationships worth knowing:
   configuration says and writes them under the client's root; the daemon
   reads its own `output.files.*` for no job. A job that keeps no
   `commands.jsonl` is followed from the live edge (records before the
-  follow are not kept, and the client says so once); a folder without
-  `summary.json` is an orphan to `job follow` and to the pruner.
+  follow are not kept, and the client says so once). A folder without
+  `summary.json`, a job cut short before its summary's first write, is
+  unfinished to `job list`, an orphan to `job follow` once its scoreboard
+  is stale or gone, and an orphan to the pruner.
 - **The invocation's timeouts and command byte limit travel too.**
   `execution.command-timeout`, `execution.device-timeout`,
   `execution.prompt-timeout`, `execution.enable-timeout`,
@@ -1569,7 +1638,8 @@ Once a tree exists, every operator's `output.root`, `crun.directory`, and
 not the jobs. Jobs land in `/opt/karvi/shared/jobs/YYMMDD/ID`, the day folder
 with the tree's own mode so any member can add a job folder to it, the job
 folder at `output.directory-mode` and its files 0640 in the group, so `karvi job
-follow ID` reads another operator's job from any member's shell. A tree the
+list` shows every member's jobs and `karvi job follow ID` reads another
+operator's job, live or finished, from any member's shell. A tree the
 operator cannot create files in is refused, not passed by
 (`output_directory_not_writable` and its siblings, the message naming the group
 and the setting); `sharedroot = "none"` keeps every tree under `basedir`, as

@@ -12249,3 +12249,96 @@ MODE, as built first (a count of none claimed, a blank read as a missing
 column); a `?` row (nothing failed to be read: the folder holds no summary);
 the row kept under `--target`, as a `?` row is (a `?` row may hide a match,
 and this folder cannot).
+
+**Built.** In four sections, each committed on the operator's word. S1 `d2e5b56`
+(issue 2's summary at acceptance and issue 5): `records.AcceptedSummary` at the
+head of `records.Summary`, written by `jobexec.Run` after the manifest and whole
+at the end; `devices` and job manifest and summary schema 4, the summary schema
+requiring the result fields once `final_status` is present;
+`app.InspectJobDirectory` and the pruner reading the status;
+`output.files.summary-json` removed, registry 30; the native suite's S29 and the
+v0100 suite's wait through `json_wait` in `scripts/lib/json.sh`. S2 `47105b9`
+(issue 4's follow across members and its three continuations): `openChecked`
+taking a member's file in the tree's group; `app.FollowJobDirectory` following
+any job no own daemon holds through the daemon follow's renderer,
+`jobexec.RunRenderer`, the scoreboard deciding while the summary is not final
+(`scoreboard.Find`, `scoreboard.Stale`); the container test's step 8, the
+service account's live job followed by one member and a member's by another. S3
+`0d701e1` (the list of issues 1 to 4, and the ten rules agreed while building
+it): `app.ListJobs`; `watchui.ListTable`; the summary's `kind` from
+`jobexec.jobKind`, which the scoreboard's mode takes too; `LocateJobDirectory`'s
+`lstat` rule; `watch`'s `--all-retained` removed; the help, `karvi-job(1)`, and
+the completion tests; `scripts/job-list-smoke-test.sh` in the suites' third
+lane. S4, the documents: the CHANGELOG; OPERATIONS' new section "The list of
+jobs", its example from a lab build of `0d701e1`; DESIGN sections 2, 8, 10, 13,
+and 14; README; and the ROADMAP, whose Next item 2 is removed. The tests:
+`TestDeviceOutcomesAgreeWithTheCounts`, the acceptance summary on a held daemon
+job (`assertAcceptedSummary`), the devices against `device_counts`
+(`assertAccounted`), the pruner's summaries not final, and `job follow` on one
+(S1); `TestJobFollowFollowsAnUnfinishedFolder`,
+`TestJobFollowWithoutCommandsJSONL`, and `TestFindAndStale` (S2);
+`TestListJobsOrderAndCount`, `TestListJobsFilters`, `TestListJobsUnreadable`,
+`TestJobListEntryJSON`, `TestJobListParses`, `TestJobListText`,
+`TestListTableLayout`, `TestListTableTargetAtWidth`, `TestListTableByDevice`,
+`TestListTableColours`, and `TestLocateJobDirectoryUnreachable` (S3).
+
+**Settled while building S1, agreed.** Four points the issues left open, on the
+operator's word. `devices` is a list of `{name, outcome}` in the plan's order,
+as the scoreboard's `targets`: the canonical name, and the outcome left out at
+acceptance and at the end the `device_counts` category the device is counted in,
+an exercise's `ready` or `not_ready`, from the rule that counts it
+(`deviceOutcomes` beside `terminalCounts`). The seven other switches false leave
+a folder holding the summary alone; no folder is `--nof` or
+`output.persist-command = false` alone. The manifest moves to 4 with the
+summary, one counter (`records.JobSchemaVersion`, `buildinfo.JobSchema`), its
+content unchanged. The daemon IPC schema stays 12, though the follow's terminal
+frame carries the summary and so its new fields: a daemon serves a client of its
+own build alone, so client and daemon are one build.
+
+**Found while building S2.** A finished job followed from its folder now prints
+the `! ssh accepted new host-key …` line, as the daemon's follow did, the two
+going through one renderer; the after-the-fact renderer (`RenderJobDirectory`,
+`app.RenderRunOutput`, `jobexec.RenderRunOutput`) was removed, nothing calling
+it.
+
+**Executed.** S1 to S3 each passed gofmt, vet, `make generated-clean`, and `go
+test ./...`. S1 passed all 17 suites (run_suites, `KARVI` the lab build) and
+`verify-shipped.sh` in a throwaway copy holding the lab build; S2 the 17 suites
+and the container test twice, on a deb of its final tree built in a copy; S3 all
+18 suites, the job list suite among them, and the container test on a deb of its
+final tree, its step 8 following the members' jobs; and each section's lab
+scripts ran on its final build, leaving no `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, or `/dev/shm/karvi`. On a lab build of `0d701e1`, for
+the documents, a command, a run of `fake-iosxe` and `dead-iosxe`, a `crun`, an
+exercise, and a detached run of `show slow` gave OPERATIONS' example; the
+removed switch was refused, exit 2, and under `script(1)` at 80 columns every
+TARGET was counted, the fixed columns leaving 7 cells:
+
+```text
+$ karvi --set output.files.summary-json=false job list
+config_unknown_key: unknown configuration key for output.files.summary-json at --set[1]
+$ karvi job list
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261016-023522-00            unfinished  netops    run     u/1       u  +1
+  261016-023521-00  0m00s     exercised   netops    run     1/1       0  +1
+  261016-023519-00  0m01s     completed   netops    crun    1/1       0  +1
+  261016-023518-00  0m01s     errored     netops    run     2/2       1  +2
+  261016-023516-00  0m01s     completed   netops    cmd     1/1       0  +1
+```
+
+**Found while writing the documents.** OPERATIONS' section on the output files
+still said a folder without `summary.json` is an orphan to `job follow`, true
+before S2; it now says such a folder, a job cut short before its summary's first
+write, is unfinished to `job list`, an orphan to `job follow` once its
+scoreboard is stale or gone, and an orphan to the pruner. `watch
+--all-retained`, refused `cli_option_unavailable` before S3, is now
+`cli_option_unknown`, exit 4 both, which the CHANGELOG names.
+
+**Closed.** The ROADMAP's Next item 2 is gone; Next is item 1, shorter output
+strings, which waits on the operator's review of every message. Job manifest and
+summary schema 4 and registry 30 are the next release's, the verifiers pinning
+both since S1. S4 changes the documents alone: `make generated-clean` passed,
+and the HTML built with every link resolved. The evidence is kept beside the
+tree (`release-design-evidence/job-list-2026-10-15`, the design's labs and
+sketches; `job-list-s1-2026-10-15`, `job-follow-s2-2026-10-15`,
+`job-list-s3-2026-10-15`, and `job-list-s4-2026-10-16`).
