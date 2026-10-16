@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.31.1 - 2026-10-16
+
+A patch release on 0.31.0 for the `crun.after` hook's bound, which changes no
+record, file, key, or schema; every counter is 0.31.0's (configuration schema
+6, registry 30, execution plan 13, daemon IPC 12, command record 3, job
+manifest and summary 4, plan report 2, credential package 2, scoreboard 3,
+audit 1, metrics 1, inventory 1), the module graph is 0.31.0's, and a site has
+nothing to change. An operator's 0.31.0 daemon, of another build, is drained by
+the first submission after the upgrade.
 
 - **A `crun.after` hook's process group is gone when `crun` returns.** At
   `crun.after-timeout`, or when the run is interrupted, the hook's process
