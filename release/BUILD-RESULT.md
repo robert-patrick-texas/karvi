@@ -1,30 +1,25 @@
-# karvi v0.31.0 build and qualification result
+# karvi v0.31.1 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.31.0 (2026-10-16) is a minor release on 0.30.1. The configuration registry
-moves from 29 to 30 and the job manifest and summary from 3 to 4; every other
-counter is 0.30.1's, and the first submission after the upgrade drains a 0.30.1
-daemon. Among the changes: a job's summary is written at its acceptance and at
-its end, naming the job's kind and its devices, and a job has ended when its
-summary names a `final_status`; `output.files.summary-json` is removed, every
-job folder holding its summary; `karvi job list` lists the jobs of the output
-root from their summaries, every member's in shared mode; `job follow` follows
-any job from its folder, across the shared tree's members; `--pl` and `--ps`
-name the `linux` and `linux_shell` platforms; and every HTML page links the
-repository. The changes are in [`CHANGELOG.md`](../CHANGELOG.md). It is not a
-production claim and not a real-device qualification: the native transport is
-proven against the fake device built from the tree, its IOS XE and Linux
-personas.
+v0.31.1 (2026-10-16) is a patch release on 0.31.0 for the `crun.after` hook's
+bound: at `crun.after-timeout`, or when the run is interrupted, the hook's
+process group is sent SIGTERM, SIGKILL to what is left of it five seconds later,
+and `crun` returns once the group is gone; the parity suite's hook check looks
+for the hook's own process group. Every counter is 0.31.0's, and the first
+submission after the upgrade drains a 0.31.0 daemon. The changes are in
+[`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
+real-device qualification: the native transport is proven against the fake
+device built from the tree, its IOS XE and Linux personas.
 
 ## Build identity
 
 ```text
-version:                  0.31.0
-commit:                   source-release-v0.31.0
-build:                    89IPVx9eRsYXSHKjpog8
+version:                  0.31.1
+commit:                   source-release-v0.31.1
+build:                    1m0vuMSWJ08PWlb3CIEZ
 Go toolchain:             go1.27.2
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
@@ -50,7 +45,7 @@ transports.
 
 The release source passed, with Go 1.27.2:
 
-- 1,035 top-level named Go tests across 89 packages in vendor mode, no
+- 1,036 top-level named Go tests across 89 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -87,7 +82,7 @@ The release source passed, with Go 1.27.2:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.30.1 daemon, started from the released executable of
+  beside the released v0.31.0 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -118,7 +113,7 @@ The release source passed, with Go 1.27.2:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`52093ce` before the number was assigned (the maintainer's release tools
+`71a9184` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -129,9 +124,9 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,718,240 | `a3999778693a60fe8a62c24fc1078447f93e74c397f8a1081fe91e0e52ad483a` |
-| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `10906dcc2e33c3e5b2f04600f38f8eea3e0cbe980bffeac333b79c9b8c937e37` |
-| `bin/karvi-prune-linux-amd64` | 3,793,056 | `b5526a4b61b2f23ceed474701c1a67e39f038a8792a1327f9cc1f67608b8ab8a` |
+| `bin/karvi-linux-amd64` | 12,718,240 | `4cbee215042522f17f237ea6a2bc2365743144d4a793e2e1863eea10b5c6dce9` |
+| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `b071e66078b88deede3ad933e6095aa789b42ef189d6d82a9eb50c5477f9ec69` |
+| `bin/karvi-prune-linux-amd64` | 3,793,056 | `eedd22f13d34007a31d04797b6b8350e976296721a0b1ee71a5b076b49f7c1b3` |
 
 ## Operational upgrade sequence
 
