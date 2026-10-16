@@ -12575,3 +12575,74 @@ documents name. *Not taken:* SIGKILL at once, which leaves a hook no time to
 clean up (git's lock); a wait without a cap, which a process in uninterruptible
 sleep would hang; ending the group when the hook exits on its own, since a hook
 may start what is meant to outlive it.
+
+**The release 0.31.1**, the tenth public release, on the operator's word and
+number: issues 1 and 2 (`71a9184`), a patch release that moves no counter. The
+daemon IPC schema stays 12, so there is no lifecycle replay and the
+compatibility example is the drain, beside the released 0.31.0 daemon. *What it
+gains:* a site has the hook's bound as its documents name it, from a published,
+checksummed bundle and package, and the bundle's own verifier no longer fails
+on another process matching `sleep 20`. The release tools were archived first
+(`~/karvi/backup/archive-2026-10-16-5`: a mirror at `71a9184` and the six
+tools) and none changed; the `## Unreleased` block came with the fix, before
+the baseline, by the rule. The sequence, as run, from the archive at 12:29 to
+the published check at 12:57 (UTC; 08:29 to 08:57, EDT), the artifacts passing
+at their first run:
+
+- 12:29:50 to 12:38:03, the baseline on a clean clone of `dev` at `71a9184`:
+  gofmt, make, the release verifier with its package and container steps, exit
+  0 each.
+- 12:38:45 and 12:39:05, the compatibility example and 1/3: `3e5255b`; the
+  build `1m0vuMSWJ08PWlb3CIEZ`; the v0.31.0 daemon drained idle, refusing busy.
+- 12:39:25 to 12:41:18, the core evidence: 1,036 named tests across 89
+  packages, vet 0, both socket lengths exit 0.
+- 12:42:27, the documents: `b7aba7a` (2/3), `release/` from the v0.31.0
+  pattern, OPERATIONS' examples the release's own.
+- 12:42:32 to 12:50:05, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the package and its container test, the
+  checksums unchanged by its rebuild; the replay skipped.
+- 12:50:20, 3/3, the tag, `main`: `1d33706`, `karvi-v0.31.1`, `main`
+  fast-forwarded from `a59ac0a`.
+- 12:50:24 to 12:55:40, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive, S33 among its suites; the package
+  reproducible and checked against the extraction; 37,877,722 and 5,990,718
+  bytes.
+- 12:55:57 to 12:56:08, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the installed executables `CHECKSUMS.sha256`'s;
+  `karvi-sysutil` and the template unit in place; 22 files under
+  `/usr/share/karvi`, as 0.31.0.
+- 12:56:17 to 12:57:18, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`f276cca`), built,
+  its 52 files 200 (`.nojekyll` among them) and its footer `karvi-v0.31.1`;
+  release `karvi-v0.31.1` with the five assets, marked latest; the assets
+  downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.31.0 build=89IPVx9eRsYXSHKjpog8
+daemon started socket=/dev/shm/r311/compat/base/socket/d.sock
+pid 3763731 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 89IPVx9eRsYXSHKjpog8 0.31.0
+  client build 1m0vuMSWJ08PWlb3CIEZ 0.31.1
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3763833 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '"latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)"'
+latest: karvi-v0.31.1 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.31.1-artifacts.sha256    # the assets downloaded back
+karvi-v0.31.1-source-linux-amd64.tar.gz: OK
+karvi_0.31.1_amd64.deb: OK
+```
+
+**Found on the way.** The three executables keep 0.31.0's sizes, with other
+bytes; the bundle is 6,865 bytes larger and the package 3,518. The default
+configuration and `go-version-m.txt` are 0.31.0's.
