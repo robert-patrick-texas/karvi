@@ -1,5 +1,5 @@
-karvi v0.30.1 executable smoke qualification (from scripts/verify-release.sh)
-native smoke: S29 output.files: all false, the daemon, two false, the limit: ok
+karvi v0.31.0 executable smoke qualification (from scripts/verify-release.sh)
+native smoke: S29 output.files: no output, the daemon, seven false, two false, the limit: ok
 native smoke: S32 the invocation decides the files through the daemon: --nof, --of=PATH, two keys false, the refusals: ok
 native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok
 native smoke: pass
@@ -21,5 +21,6 @@ completion-smoke: ok
 daemon upgrade smoke test: pass
 canary-smoke: pass (13 rows, 144 files scanned, 0 hits)
 spool smoke: pass
+job list smoke: ok
 sysutil-smoke: pass
 karvi native release verification passed
