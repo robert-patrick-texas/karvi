@@ -120,13 +120,12 @@ result line on standard error), and exits with the job's own exit (0 completed,
 `commands.jsonl` byte for byte, then its summary. The daemon serves the job
 while it holds it; a finished job the daemon no longer holds (after a restart,
 or evicted from the bounded job table) is read from its directory, found by the
-job ID under `output.root`. A directory without a summary whose job no daemon
-holds is `job_orphaned`: the daemon that ran it is gone, or the job was run
-with `output.files.summary-json` false and has no terminal fact on disk. A job
-run with `output.files.commands-jsonl` false is followed live by the client
-that started it; a later `job follow` starts at the edge and says which records
-are not kept. Ctrl-C stops only the follow. Neither `job` verb launches a
-daemon.
+job ID under `output.root`. A directory whose summary names no final status,
+or without one, whose job no daemon holds is `job_orphaned`: the daemon that
+ran it is gone. A job run with `output.files.commands-jsonl` false is followed
+live by the client that started it; a later `job follow` starts at the edge and
+says which records are not kept. Ctrl-C stops only the follow. Neither `job`
+verb launches a daemon.
 
 `karvi-run(1)` (`man karvi run`), REHEARSAL, restates the dry run, the
 exercise, `--detach`, and Ctrl-C for the terminal; a change to one changes
@@ -1318,11 +1317,12 @@ as `--expect` does
 
 ## The job's output files
 
-A job folder (`<basedir>/jobs/YYMMDD/<job id>/`) holds eight kinds of
-file, each with a true/false key under `[output.files]`, all true by
-default. A file set false is not created. Every file is written from the
-job's memory and none from another file, so switching one off never
-breaks the writing of another; what you lose is what reads it.
+A job folder (`<basedir>/jobs/YYMMDD/<job id>/`) holds `summary.json`
+and seven other kinds of file, each with a true/false key under
+`[output.files]`, all true by default. A file set false is not created.
+Every file is written from the job's memory and none from another file,
+so switching one off never breaks the writing of another; what you lose
+is what reads it.
 
 | Key | File | What it is | What is lost when false |
 |---|---|---|---|
@@ -1333,7 +1333,6 @@ breaks the writing of another; what you lose is what reads it.
 | `commands-txt` | `commands.txt` | the commands as requested | the rerun's `--cf` file |
 | `manifest-json` | `manifest.json` | the job as it was accepted | the record of what was asked, by whom, under which configuration |
 | `metrics-json` | `metrics.json` | process and dispatch measurements | the measurements |
-| `summary-json` | `summary.json` | the job's result, counts, causes, and the paths of the files written | `karvi job follow` reports the job as orphaned once no daemon holds it; `karvi-prune` knows a finished job by its summary and treats a folder without one as an orphan, removed by age alone once its day, everything in it, and its scoreboard file are older than the retention age, never under free-space pressure |
 
 Relationships worth knowing:
 
@@ -1343,13 +1342,19 @@ Relationships worth knowing:
   the notice of a text file that could not be written says so.
 - **A rerun needs `failed-devices.txt` and `commands.txt` together**
   (`karvi run --tf …/failed-devices.txt --cf …/commands.txt`).
+- **`summary.json` has no key: every folder holds it.** It is written
+  when the job is accepted, naming the job's devices, and again whole at
+  the job's end with the result, the counts, the causes, and each
+  device's outcome; a job has ended when its summary names a final
+  status. `karvi job follow` and `karvi-prune` read it.
 - **The summary names only the files that were written** (`paths`, and
   `output.commands_jsonl`). The devices' text files are not listed; the
   name is `output.` + the device's name (or its address) + `.txt`.
-- **All eight false is no job folder at all,** the same as `cmd --nof`:
+- **All seven false leaves the folder with its summary alone.** No folder
+  at all is `output.persist-command = false`, the same as `cmd --nof`:
   the footer ends `artifacts=none`.
 - **The invocation decides a job's files on every path.** The plan carries
-  the eight switches, `output.persist-command`, and the resolved
+  the seven switches, `output.persist-command`, and the resolved
   `output.root`, so a run through the daemon keeps the files the client's
   configuration says and writes them under the client's root; the daemon
   reads its own `output.files.*` for no job. A job that keeps no
@@ -1375,8 +1380,8 @@ Relationships worth knowing:
   would pass it ends the job as an output failure, exit 111, with
   `output_job_limit_exceeded` and the device on standard error, the
   device listed in `failed-devices.txt`.
-- `output.persist-command = false` (`--nof`) is all eight false, on
-  `cmd`, `run --no-daemon`, and a run through the daemon alike: the
+- `output.persist-command = false` (`--nof`) writes no folder and no
+  file, on `cmd`, `run --no-daemon`, and a run through the daemon alike: the
   invocation's keys travel in the plan and the daemon's store honours
   them. `run --nof` with `--detach` or
   `--exercise` is refused; `run --nof --follow=false` is a run for its
@@ -1572,8 +1577,9 @@ operator ("Retention" says why).
 
 `karvi-prune` removes finished work older than the retention age (thirty-one
 days by default) from the trees karvi writes: finished jobs, ended transcripts,
-and terminal scoreboard files by their end time; job folders without a summary
-and scoreboard files a crashed daemon left at `running`, by age alone; then the
+and terminal scoreboard files by their end time; job folders whose summary
+names no final status and scoreboard files a crashed daemon left at `running`,
+by age alone; then the
 day folders left empty. It never touches a running job, the collection
 directory, the audit log, or journald, and long-term audit retention is the
 central forwarder's, not the helper's. [`docs/PRUNE.md`](PRUNE.md) holds the

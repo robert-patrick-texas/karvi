@@ -21,9 +21,10 @@ import (
 // path-valued keys and their words (Place, Words, a table's Places) and
 // gives the daemon's own keys the reload class daemon-start; 29 takes the
 // socket directory daemon.sockets in place of daemon.socket, and
-// ssh-algorithms.source with a profile's source.
+// ssh-algorithms.source with a profile's source; 30 removes
+// output.files.summary-json, every job folder holding its summary.
 const (
-	RegistrySchemaVersion = 29
+	RegistrySchemaVersion = 30
 	ConfigSchemaVersion   = 6
 )
 

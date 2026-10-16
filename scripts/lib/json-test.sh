@@ -35,6 +35,14 @@ for f in compact indented; do
   check "$f is not" 1 "$(code json_is "$F" final_status halted)"
   check "$f a value is not a key" 1 "$(code json_has "$F" completed)"
 done
+# json_wait: a value present at once, one written while it waits, and one
+# that never comes.
+check "wait present" 0 "$(code json_wait "$TMP/compact.json" final_status 1)"
+printf '{"schema_version":4}' >"$TMP/accepted.json"
+(sleep 0.3; printf '{"schema_version":4,"final_status":"completed"}' >"$TMP/accepted.json.new"; mv "$TMP/accepted.json.new" "$TMP/accepted.json") &
+check "wait written later" 0 "$(code json_wait "$TMP/accepted.json" final_status 50)"
+wait
+check "wait never" 1 "$(code json_wait "$TMP/compact.json" shuffle_key 2)"
 check "a line on standard input" 7 "$(printf '{"a":{"b":7}}\n' | json_get - a.b)"
 printf '{"final_status":' >"$TMP/broken.json"
 check "not JSON exit" 2 "$(code json_get "$TMP/broken.json" final_status)"

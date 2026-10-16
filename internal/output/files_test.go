@@ -8,9 +8,10 @@ import (
 )
 
 // TestSkippedFilesFromTheKeys: each output.files switch off skips its own file and no
-// other; all eight off are AllFiles (no job folder); output.persist-command
-// false is AllFiles whatever the switches say; a crun skips every device's
-// output.TARGET.txt and nothing else.
+// other; all seven off skip every file but the summary, so the folder is
+// made; output.persist-command false is AllFiles (no job folder) whatever
+// the switches say; a crun skips every device's output.TARGET.txt and
+// nothing else.
 func TestSkippedFilesFromTheKeys(t *testing.T) {
 	load := func(sets ...string) configload.Snapshot {
 		t.Helper()
@@ -20,7 +21,7 @@ func TestSkippedFilesFromTheKeys(t *testing.T) {
 		}
 		return cfg
 	}
-	keys := []string{"commands-jsonl", "commands-txt", "errors-jsonl", "failed-devices-txt", "manifest-json", "metrics-json", "summary-json", "output-txt"}
+	keys := []string{"commands-jsonl", "commands-txt", "errors-jsonl", "failed-devices-txt", "manifest-json", "metrics-json", "output-txt"}
 	if got := SkippedFiles(load(), false); got != (FileSet{}) {
 		t.Fatalf("the defaults skip %+v", got)
 	}
@@ -34,8 +35,11 @@ func TestSkippedFilesFromTheKeys(t *testing.T) {
 			}
 		}
 	}
-	if got := SkippedFiles(load(all...), false); got != AllFiles {
-		t.Fatalf("all eight off skip %+v, not AllFiles", got)
+	if got, want := SkippedFiles(load(all...), false), (FileSet{true, true, true, true, true, true, true, false}); got != want {
+		t.Fatalf("all seven off skip %+v, not every file but the summary", got)
+	}
+	if _, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"output.files.summary-json=false"}}); err == nil {
+		t.Fatal("output.files.summary-json is still a key")
 	}
 	if got := SkippedFiles(load("output.persist-command=false"), false); got != AllFiles {
 		t.Fatalf("persist false skips %+v, not AllFiles", got)

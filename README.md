@@ -41,8 +41,8 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
-5. Configuration schema 6; this tree's other counters: registry schema 29,
-   daemon IPC schema 12, execution plan 13, job manifest and summary 3, plan
+5. Configuration schema 6; this tree's other counters: registry schema 30,
+   daemon IPC schema 12, execution plan 13, job manifest and summary 4, plan
    report 2, scoreboard 3.
 
 A client drains a daemon of another build at that daemon's own IPC schema and

@@ -15,7 +15,10 @@ import (
 // recurse. It resolves "$ref" to "#/$defs/..." in the same file and to
 // "<file>.json#/$defs/..." relative to the schema's directory. It is a
 // producer-drift test, not a validator: additionalProperties is ignored on
-// purpose, so an emitted key the schema does not name always fails.
+// purpose, so an emitted key the schema does not name always fails. An
+// "if" of required keys alone applies its "then"'s required keys when
+// every one of them is present (the job summary's finished shape); any
+// other "if" is not judged.
 func SchemaParity(t testing.TB, schemaPath string, value any) {
 	t.Helper()
 	data, err := json.Marshal(value)
@@ -121,11 +124,13 @@ func (l *schemaLoader) check(t testing.TB, file string, doc, schema map[string]a
 			}
 			l.check(t, file, doc, ps, sub, path+"."+key)
 		}
-		if req, ok := schema["required"].([]any); ok {
-			for _, r := range req {
-				if _, present := v[r.(string)]; !present {
-					t.Errorf("%s: required key %q is absent", path, r)
-				}
+		for _, r := range absent(schema, v) {
+			t.Errorf("%s: required key %q is absent", path, r)
+		}
+		if cond, ok := schema["if"].(map[string]any); ok && len(cond) == 1 && cond["required"] != nil && len(absent(cond, v)) == 0 {
+			then, _ := schema["then"].(map[string]any)
+			for _, r := range absent(then, v) {
+				t.Errorf("%s: required key %q is absent", path, r)
 			}
 		}
 	case []any:
@@ -138,6 +143,18 @@ func (l *schemaLoader) check(t testing.TB, file string, doc, schema map[string]a
 			l.check(t, file, doc, items, e, fmt.Sprintf("%s[%d]", path, i))
 		}
 	}
+}
+
+// absent is the keys schema's "required" lists that v does not hold.
+func absent(schema, v map[string]any) []string {
+	var keys []string
+	req, _ := schema["required"].([]any)
+	for _, r := range req {
+		if _, present := v[r.(string)]; !present {
+			keys = append(keys, r.(string))
+		}
+	}
+	return keys
 }
 
 // SchemaParityAt is SchemaParity against the definition at ref (for example

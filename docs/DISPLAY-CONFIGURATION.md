@@ -47,7 +47,7 @@ follow`, and a finished job's replay, with the job's exit, elapsed time, and job
 folder from its summary; nothing ends a run on standard error. Under `--format
 jsonl` the summary document is the stream's last line instead, and `--format
 json` stays the records' array. An empty template disables either footer. With
-`cmd --nof`, or with all eight `output.files` keys false
+`cmd --nof`, or with `output.persist-command = false`
 ([`docs/OPERATIONS.md`](OPERATIONS.md) ["The job's output
 files"](OPERATIONS.md#the-jobs-output-files)), `<artifacts>` is `none`.
 

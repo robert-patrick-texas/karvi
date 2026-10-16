@@ -335,12 +335,11 @@ func owner(fi os.FileInfo) int {
 }
 
 // activityCandidates finds the job folders of a job tree that may go: a
-// finished job by its summary, and an orphan, a folder without
-// a summary (a job the daemon's death cut short, or one run with
-// output.files.summary-json false), when its day is older than the
-// retention age, nothing in it is newer than the cutoff, and its snapshot,
-// if any, is not live. An orphan goes under the age
-// rule only.
+// finished job by its summary, and an orphan, a folder whose summary names
+// no final status or that has none (a job the daemon's death cut short),
+// when its day is older than the retention age, nothing in it is newer
+// than the cutoff, and its snapshot, if any, is not live. An orphan goes
+// under the age rule only.
 func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	found := []candidate{}
 	examined, skipped := 0, 0
@@ -365,7 +364,8 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 			return filepath.SkipDir
 		}
 		summary := filepath.Join(path, "summary.json")
-		var terminal bool
+		jobFolder := filepath.Dir(filepath.Dir(path)) == root
+		var terminal, unfinished bool
 		var when time.Time
 		b, e := os.ReadFile(summary)
 		switch {
@@ -374,17 +374,22 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 			var s records.Summary
 			if json.Unmarshal(b, &s) != nil {
 				keep(opts, out, "activity", path, "unreadable")
-			} else if !records.TerminalStatus(s.FinalStatus) {
-				keep(opts, out, "activity", path, "live")
-			} else {
+			} else if records.TerminalStatus(s.FinalStatus) {
 				terminal = true
 				when = s.EndedAt
+			} else if jobFolder {
+				unfinished = true
+			} else {
+				keep(opts, out, "activity", path, "live")
 			}
-		case os.IsNotExist(e) && filepath.Dir(filepath.Dir(path)) == root:
-			// An orphan: a job folder directly under a day folder with no
-			// summary. Its day is the folder's name; its time the newest
-			// thing in it.
+		case os.IsNotExist(e) && jobFolder:
 			examined++
+			unfinished = true
+		}
+		if unfinished {
+			// An orphan: a job folder directly under a day folder whose
+			// summary names no final status, or with none. Its day is the
+			// folder's name; its time the newest thing in it.
 			day, _ := osutil.DayFolderDate(filepath.Base(filepath.Dir(path)))
 			newest := newestTime(path)
 			switch {

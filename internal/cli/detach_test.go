@@ -11,6 +11,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
+	"github.com/robert-patrick-texas/karvi/records"
 )
 
 // liveArgs is a live run over the dry-run test's fake device, which fails
@@ -35,18 +36,22 @@ func compactJSON(t *testing.T, raw []byte) string {
 	return b.String()
 }
 
-// waitSummary returns the job's summary.json, compacted, once it exists.
+// waitSummary returns the job's summary.json, compacted, once it names a
+// final status: the acceptance writes it without one.
 func waitSummary(t *testing.T, base, jobID string) string {
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		if m, _ := filepath.Glob(filepath.Join(base, "jobs", "*", jobID, "summary.json")); len(m) == 1 {
 			b, _ := os.ReadFile(m[0])
-			return compactJSON(t, b)
+			var s records.Summary
+			if json.Unmarshal(b, &s) == nil && records.TerminalStatus(s.FinalStatus) {
+				return compactJSON(t, b)
+			}
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	t.Fatalf("no summary for job %s", jobID)
+	t.Fatalf("no final summary for job %s", jobID)
 	return ""
 }
 

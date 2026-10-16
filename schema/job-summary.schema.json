@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-summary-v3.json",
-  "title": "karvi job summary schema 3",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-summary-v4.json",
+  "title": "karvi job summary schema 4",
+  "description": "Written at the job's acceptance with the fields required here, and written whole again at its end with the result; a summary with a final_status is a finished job's, and then names every field the then clause requires.",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -9,31 +10,41 @@
     "job_id",
     "activity_id",
     "started_at",
-    "ended_at",
-    "duration_ns",
-    "final_status",
-    "primary_exit_code",
-    "primary_exit_name",
-    "terminal_causes",
-    "device_counts",
-    "requested_command_counts",
-    "session_init_counts",
-    "halt",
-    "output",
-    "audit_sink_status",
-    "bottleneck",
-    "recovery",
-    "paths",
+    "dispatch_order",
     "plan_id",
     "plan_digest",
     "mode",
     "address_authority_counts",
-    "ping",
-    "dispatch_order"
+    "devices",
+    "paths"
   ],
+  "if": {
+    "required": [
+      "final_status"
+    ]
+  },
+  "then": {
+    "required": [
+      "ended_at",
+      "duration_ns",
+      "final_status",
+      "primary_exit_code",
+      "primary_exit_name",
+      "terminal_causes",
+      "ping",
+      "device_counts",
+      "requested_command_counts",
+      "session_init_counts",
+      "halt",
+      "output",
+      "audit_sink_status",
+      "bottleneck",
+      "recovery"
+    ]
+  },
   "properties": {
     "schema_version": {
-      "const": 3
+      "const": 4
     },
     "primary_exit_code": {
       "type": "integer"
@@ -93,6 +104,32 @@
         "string",
         "null"
       ]
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "not_started",
+              "incomplete",
+              "cancelled",
+              "ready",
+              "not_ready"
+            ]
+          }
+        }
+      }
     },
     "device_counts": {
       "type": "object",

@@ -223,8 +223,9 @@ func TestJobFollowReadsTheDirectoryWithoutADaemon(t *testing.T) {
 	}
 }
 
-// TestJobFollowDirectoryStates: a directory without a summary is
-// job_orphaned (3.3); no directory is job_unknown naming the derived path
+// TestJobFollowDirectoryStates: a directory without a summary, or whose
+// summary names no final status, is job_orphaned (3.3); no directory is
+// job_unknown naming the derived path
 // (3.4); a malformed ID is job_request_malformed (3.1); a daemon that
 // answers job_unknown yields to the directory (3.2).
 func TestJobFollowDirectoryStates(t *testing.T) {
@@ -243,8 +244,14 @@ func TestJobFollowDirectoryStates(t *testing.T) {
 		t.Fatal(err)
 	}
 	stderr.Reset()
-	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: ") || !strings.Contains(stderr.String(), "holds no summary") {
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: ") || !strings.Contains(stderr.String(), "holds no final summary") {
 		t.Fatalf("orphaned: exit=%d stderr=%q", got, stderr.String())
+	}
+	// The summary the acceptance wrote, without a final status.
+	finishedDirectory(t, g, fixtureJobID, records.Summary{AcceptedSummary: records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, Devices: []records.SummaryDevice{{Name: "r1"}}}})
+	stderr.Reset()
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: ") || !strings.Contains(stderr.String(), "holds no final summary") {
+		t.Fatalf("not final: exit=%d stderr=%q", got, stderr.String())
 	}
 	// The daemon does not hold the job (its fixture answers job_unknown for
 	// the zzzz suffix); the finished directory answers instead.

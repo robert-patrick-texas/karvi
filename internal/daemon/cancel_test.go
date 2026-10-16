@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,19 +32,51 @@ func (h *heldJob) waitTerminal(t *testing.T, within time.Duration) followed {
 	}
 }
 
-// waitSummary waits for the job's summary, which the runner writes last.
+// waitSummary waits for the job's summary to name a final status: the
+// runner writes it at acceptance and again, whole, at the end.
 func (h *heldJob) waitSummary(t *testing.T, within time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(within)
 	for {
-		if _, err := os.Stat(filepath.Join(h.dir, "summary.json")); err == nil {
+		var s records.Summary
+		if data, err := os.ReadFile(filepath.Join(h.dir, "summary.json")); err == nil && json.Unmarshal(data, &s) == nil && records.TerminalStatus(s.FinalStatus) {
 			return
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("no summary.json within %s", within)
+			t.Fatalf("no final summary.json within %s", within)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
+}
+
+// assertAcceptedSummary: while the job runs, its summary is the one its
+// acceptance wrote: the devices in the plan's order without outcomes, and
+// none of the result fields (EXAMPLES chapter 61, issue 2).
+func (h *heldJob) assertAcceptedSummary(t *testing.T) {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(h.dir, "summary.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"final_status", "ended_at", "primary_exit_code", "device_counts"} {
+		if _, ok := fields[key]; ok {
+			t.Errorf("the running job's summary names %s: %s", key, raw)
+		}
+	}
+	s := readSummary(t, h.dir)
+	if s.SchemaVersion != records.JobSchemaVersion || s.JobID != h.jobID || len(s.Devices) != len(h.devices) {
+		t.Fatalf("the running job's summary: %s", raw)
+	}
+	for i, d := range s.Devices {
+		if d.Name != h.devices[i].Name || d.Outcome != "" {
+			t.Errorf("device %d: %+v, want %s without an outcome", i, d, h.devices[i].Name)
+		}
+	}
+	canarytest.SchemaParity(t, "../../schema/job-summary.schema.json", json.RawMessage(raw))
 }
 
 // TestCancelJobInFlightAccountsEveryUnitCancelled: a cancel_job while the
@@ -56,6 +89,7 @@ func (h *heldJob) waitSummary(t *testing.T, within time.Duration) {
 // request's time; and the daemon keeps serving.
 func TestCancelJobInFlightAccountsEveryUnitCancelled(t *testing.T) {
 	h := startHeldJob(t, "20s", nil)
+	h.assertAcceptedSummary(t)
 	start := time.Now()
 	res, err := CancelJob(h.f.ctx(), h.f.socket, 1<<20, ipc.CancelRequest{JobID: h.jobID, Reason: "wrong change window"})
 	if err != nil {

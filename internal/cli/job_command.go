@@ -196,7 +196,7 @@ func jobFollow(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return jobFollowResult(g, streams, jobID, dir, summary, summary.ExitCode)
 	case app.JobDirectoryOrphaned:
 		if errorcodes.Of(daemonErr) != "daemon_incompatible" {
-			return g.reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no summary and no running daemon holds the job (%v); the daemon that ran it is gone, or output.files.summary-json was false for the job", jobID, dir, daemonErr))
+			return g.reportError(streams.Stderr, "job_orphaned", errorcodes.Errorf("job_orphaned", "job %s: %s holds no final summary and no running daemon holds the job (%v); the daemon that ran it is gone", jobID, dir, daemonErr))
 		}
 	}
 	if errorcodes.Of(daemonErr) == "daemon_incompatible" {

@@ -149,7 +149,10 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned when daemon.shutdown-idle-timer's default became 10m (EXAMPLES
 // chapter 57, issue 18): the configuration block's value and its digest;
 // nothing else moved.
-const goldenK03Draft = "92ee66296fa3edd0044afd339f1e3822008d808d6d6ca30a2f70d26a5e289216"
+// Re-pinned when output.files.summary-json was removed (EXAMPLES chapter 61,
+// issue 5): the configuration block's key and its digest; nothing else
+// moved.
+const goldenK03Draft = "4b735a32fd03039e5d4e225942bfe1b95aadedb40605a7b9f20fcf5454dfa244"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

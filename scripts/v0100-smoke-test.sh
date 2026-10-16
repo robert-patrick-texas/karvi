@@ -69,8 +69,16 @@ row() {
   [ "$rc" -eq "$want" ] || fail "$name: exit $rc, want $want; stderr: $(head -1 "$TMP/streams/$name.err")"
   printf '%-4s exit %d\n' "$name" "$rc"
 }
-summaries() { find "$BASE/jobs" -name summary.json -type f 2>/dev/null | wc -l | tr -d ' '; }
-wait_summaries() {  # wait_summaries N: until N summaries exist or 20 s pass
+# summaries: the jobs that have ended, their summaries naming a final status
+# (the acceptance writes one without).
+summaries() {
+  local n=0 f
+  while IFS= read -r f; do
+    if json_has "$f" final_status; then n=$((n + 1)); fi
+  done < <(find "$BASE/jobs" -name summary.json -type f 2>/dev/null)
+  echo "$n"
+}
+wait_summaries() {  # wait_summaries N: until N jobs have ended or 20 s pass
   local n=$1 i=0
   while [ "$(summaries)" -lt "$n" ] && [ $i -lt 200 ]; do sleep 0.1; i=$((i + 1)); done
   [ "$(summaries)" -ge "$n" ]
@@ -117,7 +125,7 @@ row f1 0 -- run --follow=false --target 127.0.0.1 --transport system --format js
 ! grep -q 'exit=' "$TMP/streams/f1.err" || fail "f1: a result line was printed"
 grep -q '^SENT:show clock$' "$FAKE.log" || fail "f1: the device did not run the command"
 
-# --detach: returns before the summary exists; the summary appears later.
+# --detach: returns before the job ends; its final summary appears later.
 printf 1 >"$TMP/slow"
 before=$(summaries)
 row t1 0 -- run --detach --target 127.0.0.1 --transport system 'show clock'
@@ -332,7 +340,7 @@ row s8 0 -- daemon restart --force
 grep -q '^daemon restarted$' "$TMP/streams/s8.out" || fail "s8: no restarted line"
 [ -n "$(daemon_pid)" ] && [ "$(daemon_pid)" != "$s8_pid" ] || fail "s8: the daemon was not replaced (pid $s8_pid then $(daemon_pid))"
 [ "$(daemon_state)" = running ] || fail "s8: the new daemon is not running"
-i=0; while [ ! -f "$s8_dir/summary.json" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+json_wait "$s8_dir/summary.json" final_status || fail "s8: the job did not end"
 accounted s8 "$s8_dir" incomplete_shutdown incomplete 106 shutdown:shutdown_forced shutdown_forced
 s9_pid=$(daemon_pid)
 s9_dir=$(held_job s9)
@@ -353,7 +361,7 @@ c1_job=$(sed -n 's/^job_id: //p' "$TMP/streams/c1.out")
 sleep 0.5
 row c1c 0 -- job cancel "$c1_job" --reason 'wrong change window'
 grep -q "^cancel requested: job $c1_job; artifacts $c1_dir\$" "$TMP/streams/c1c.out" || fail "c1: no cancel requested line"
-i=0; while [ ! -f "$c1_dir/summary.json" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+json_wait "$c1_dir/summary.json" final_status || fail "c1: the job did not end"
 accounted c1 "$c1_dir" cancelled cancelled 113 halt:cancelled cancelled
 json_is "$c1_dir/summary.json" device_counts.cancelled 2 || fail "c1: device_counts do not count two cancelled devices"
 json_has "$c1_dir/summary.json" cancellation.requested_at && json_is "$c1_dir/summary.json" cancellation.reason 'wrong change window' || fail "c1: no cancellation block with the reason"
@@ -411,7 +419,7 @@ rows=$((rows + 1))
 printf '%-4s exit %d\n' w4f "$wrc"
 [ "$wrc" -eq 113 ] || fail "w4: exit $wrc, want 113"
 grep -q "^interrupted: job $w4_job continues in the daemon; artifacts $w4_dir; run \"karvi job follow $w4_job\" again" "$TMP/streams/w4f.err" || fail "w4: no interrupted line naming job follow"
-i=0; while [ ! -f "$w4_dir/summary.json" ] && [ $i -lt 200 ]; do sleep 0.1; i=$((i + 1)); done
+json_wait "$w4_dir/summary.json" final_status 200 || fail "w4: the job did not end"
 json_is "$w4_dir/summary.json" final_status completed || fail "w4: the job did not complete after the interrupt"
 "$KARVI" $(common_args) daemon restart --force >/dev/null 2>&1 || fail "w5: restart --force failed"
 row w5 0 -- job follow "$w1_job" --format jsonl

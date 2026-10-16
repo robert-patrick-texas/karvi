@@ -197,13 +197,8 @@ func SortedStatusKeys(m map[string]int) []string {
 // Neither kind is a device error;
 // a device that failed on its own before the cancel keeps its failure.
 func terminalCounts(summary *dispatch.Summary, shutdown error, cancelled bool) (incomplete, cancelledN int) {
-	var code string
-	switch {
-	case shutdown != nil:
-		code = "shutdown_incomplete"
-	case cancelled || summary.HaltReason == "cancelled":
-		code = "cancelled"
-	default:
+	code, _ := cutShort(*summary, shutdown, cancelled)
+	if code == "" {
 		return 0, 0
 	}
 	n := 0
@@ -220,6 +215,48 @@ func terminalCounts(summary *dispatch.Summary, shutdown error, cancelled bool) (
 		return 0, n
 	}
 	return n, 0
+}
+
+// cutShort is the error code a shutdown or a cancel gave the devices it
+// left unfinished, and the device_counts category they are counted in;
+// both empty when neither ended the job.
+func cutShort(summary dispatch.Summary, shutdown error, cancelled bool) (code, category string) {
+	switch {
+	case shutdown != nil:
+		return "shutdown_incomplete", "incomplete"
+	case cancelled || summary.HaltReason == "cancelled":
+		return "cancelled", "cancelled"
+	}
+	return "", ""
+}
+
+// deviceOutcomes is the summary's devices at the job's end: each device of
+// devices, in the plan's order, with the device_counts category
+// terminalCounts counts it in. A device's result says succeeded or failed,
+// one the shutdown or the cancel left unfinished takes that one's category,
+// and a device with no result is not_started unless one of them ended the
+// job.
+func deviceOutcomes(devices []records.SummaryDevice, targets []executionplan.ExecutionTarget, summary dispatch.Summary, shutdown error, cancelled bool) []records.SummaryDevice {
+	code, category := cutShort(summary, shutdown, cancelled)
+	results := make(map[string]dispatch.Result, len(summary.Results))
+	for _, r := range summary.Results {
+		results[r.Task.Key] = r
+	}
+	out := make([]records.SummaryDevice, len(devices))
+	for i, t := range targets {
+		outcome := "not_started"
+		r, ran := results[t.TargetID]
+		switch {
+		case ran && r.Success:
+			outcome = "succeeded"
+		case ran && (code == "" || r.ErrorCode != code):
+			outcome = "failed"
+		case category != "":
+			outcome = category
+		}
+		out[i] = records.SummaryDevice{Name: devices[i].Name, Outcome: outcome}
+	}
+	return out
 }
 
 // cancellationOf is the summary's cancellation block for a context the

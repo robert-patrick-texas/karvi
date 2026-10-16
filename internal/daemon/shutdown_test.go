@@ -118,6 +118,24 @@ func (h *heldJob) assertAccounted(t *testing.T, status, code, finalStatus string
 	if s.FinalStatus != finalStatus || s.ExitCode != exit {
 		t.Errorf("summary final_status=%s exit=%d, want %s at %d", s.FinalStatus, s.ExitCode, finalStatus, exit)
 	}
+	// The summary's devices, in the plan's order, each counted where
+	// device_counts counts it.
+	outcomes := map[string]int{}
+	for i, d := range s.Devices {
+		outcomes[d.Outcome]++
+		if i >= len(h.devices) || d.Name != h.devices[i].Name {
+			t.Errorf("summary device %d is %s", i, d.Name)
+		}
+	}
+	for _, category := range []string{"succeeded", "failed", "not_started", "incomplete", "cancelled"} {
+		if outcomes[category] != c[category] {
+			t.Errorf("summary devices %+v against device_counts %v", s.Devices, c)
+			break
+		}
+	}
+	if len(s.Devices) != c["total"] {
+		t.Errorf("summary names %d devices of %d", len(s.Devices), c["total"])
+	}
 	if cause != "" && (len(s.TerminalCauses) != 1 || s.TerminalCauses[0] != cause || s.Halt.(map[string]any)["run_wide"] != reason) {
 		t.Errorf("summary causes=%v halt=%v, want %s", s.TerminalCauses, s.Halt, cause)
 	}

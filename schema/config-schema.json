@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 29,
+  "registry_schema_version": 30,
   "config_schema_version": 6,
   "keys": [
     {
@@ -1514,19 +1514,6 @@
       "environment": "KARVI__OUTPUT__FILES__METRICS_JSON",
       "cli_flags": null,
       "documentation": "Write `metrics.json`; false does not create it.",
-      "since": "0.13.0"
-    },
-    {
-      "path": "output.files.summary-json",
-      "kind": "boolean",
-      "default_literal": "true",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__OUTPUT__FILES__SUMMARY_JSON",
-      "cli_flags": null,
-      "documentation": "Write `summary.json`; false does not create it, on every path. A finished job without one is `job_orphaned` to a later `job follow` once the daemon has let it go. `karvi-prune` knows a finished job by it; a folder without one is an orphan, removed by age alone once its day, everything in it, and its scoreboard file are older than the retention age. With all eight keys false no job folder is created.",
       "since": "0.13.0"
     },
     {

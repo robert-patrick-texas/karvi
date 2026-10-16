@@ -126,11 +126,10 @@ Goes when its
 is before the cutoff; pressure takes it.
 .TP
 .B orphan
-A job folder without
-.IR summary.json :
-a job the daemon's death cut short, or one run with
-.B output.files.summary\-json
-false.
+A job folder whose
+.I summary.json
+names no final status, or without one:
+a running job, or one the daemon's death cut short.
 Goes when its day folder's date is before the cutoff, nothing in it is
 newer, and its scoreboard file, if any, is final or older than the age;
 pressure never takes it.

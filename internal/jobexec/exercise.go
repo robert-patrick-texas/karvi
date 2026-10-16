@@ -43,6 +43,8 @@ type exerciseState struct {
 	initial             records.ScoreboardSnapshot
 	capManager          *capacity.Manager
 	sampler             *metrics.Sampler
+	// accepted is the summary the acceptance wrote, the end's first part.
+	accepted records.AcceptedSummary
 	// base is the operator's private root, the trust store's under "auto".
 	base string
 }
@@ -261,7 +263,13 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 		exit = exitcode.ExitOutputFailure
 		errText = errorcodes.Message(errorcodes.Ensure(err, "output_metrics_write_failed"))
 	}
-	summary := buildExerciseSummary(req, st, reportPath, st.started, ended, exit, outcome, byReadiness, cancellationOf(ctx), st.auditSink.Status(), metric.Bottleneck, ping)
+	// Each device's outcome is its readiness, as device_counts counts it.
+	accepted := st.accepted
+	accepted.Devices = make([]records.SummaryDevice, len(targets))
+	for i, tr := range targets {
+		accepted.Devices[i] = records.SummaryDevice{Name: st.accepted.Devices[i].Name, Outcome: tr.Readiness}
+	}
+	summary := buildExerciseSummary(req, accepted, st.store.Paths(), reportPath, ended, exit, outcome, byReadiness, cancellationOf(ctx), st.auditSink.Status(), metric.Bottleneck, ping)
 	if err := st.store.WriteSummary(summary); err != nil {
 		exit = exitcode.ExitOutputFailure
 		errText = errorcodes.Message(errorcodes.Ensure(err, "output_summary_write_failed"))
@@ -455,18 +463,14 @@ func exercisePingSummary(cfg configload.Snapshot, ping *icmpgate.Capability) *re
 // nil otherwise; it is a record of the request only, and the final status
 // stays exercised. A cancel accepted after this point is in the
 // run.cancel_requested audit record alone.
-func buildExerciseSummary(req Request, st exerciseState, reportPath string, start, end time.Time, code int, outcome string, byReadiness map[string]int, cancellation *records.Cancellation, auditStatus audit.Status, bottleneck map[string]any, ping *icmpgate.Capability) records.Summary {
+func buildExerciseSummary(req Request, accepted records.AcceptedSummary, paths output.Paths, reportPath string, end time.Time, code int, outcome string, byReadiness map[string]int, cancellation *records.Cancellation, auditStatus audit.Status, bottleneck map[string]any, ping *icmpgate.Capability) records.Summary {
 	causes := []string{}
 	if outcome == records.OutcomeNotReady {
 		causes = append(causes, "exercise_not_ready")
 	}
-	authorities := map[string]int{}
-	for _, t := range req.Plan.Targets {
-		authorities[string(t.AddressPlan.Authority)]++
-	}
-	files, out := summaryFiles(st.store.Paths(), 0)
+	files, out := summaryFiles(paths, 0)
 	files["exercise"] = reportPath
-	return records.Summary{SchemaVersion: records.JobSchemaVersion, JobID: st.jobID, ActivityID: st.id, StartedAt: start, EndedAt: end, DurationNS: end.Sub(start).Nanoseconds(), FinalStatus: "exercised", ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
-		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(executionplan.ModeExercise), AddressAuthorityCounts: authorities, Ping: exercisePingSummary(req.Config, ping), Cancellation: cancellation,
-		DeviceCounts: map[string]int{"total": len(req.Plan.Targets), "ready": byReadiness[records.ReadinessReady], "not_ready": byReadiness[records.ReadinessNotReady]}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{}, Halt: map[string]any{"run_wide": "", "wave_gate": ""}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}, Paths: files}
+	accepted.Paths = files
+	return records.Summary{AcceptedSummary: accepted, EndedAt: end, DurationNS: end.Sub(accepted.StartedAt).Nanoseconds(), FinalStatus: "exercised", ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, Ping: exercisePingSummary(req.Config, ping), Cancellation: cancellation,
+		DeviceCounts: map[string]int{"total": len(req.Plan.Targets), "ready": byReadiness[records.ReadinessReady], "not_ready": byReadiness[records.ReadinessNotReady]}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{}, Halt: map[string]any{"run_wide": "", "wave_gate": ""}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}}
 }

@@ -47,12 +47,12 @@ default), the cutoff being now less that many days.
 | `activity` | a job folder whose `summary.json` has a final status: `completed`, `halted`, `errored`, `cancelled`, `incomplete`, or `exercised` | `ended_at` is before the cutoff | yes, oldest first |
 | `transcript` | a recorded login: the metadata file with its end record and the transcript that shares its name | `ended_at` is before the cutoff | yes |
 | `scoreboard` | a scoreboard file at a final status | `last_updated_at` is before the cutoff | yes |
-| `orphan` | a job folder without `summary.json`: a job the daemon's death cut short, or one run with `output.files.summary-json` false | its day folder's date is before the cutoff, nothing in it is newer, and its scoreboard file, if any, is final or older than the age | never |
+| `orphan` | a job folder whose `summary.json` names no final status, or without one: a running job, or one the daemon's death cut short | its day folder's date is before the cutoff, nothing in it is newer, and its scoreboard file, if any, is final or older than the age | never |
 | `stale-scoreboard` | a scoreboard file at a running status that nothing has touched for the age (the file a crashed daemon's job leaves) | `last_updated_at` is before the cutoff | never |
 | `day` | a `YYMMDD` day folder that holds nothing | its date is before the cutoff; removed after the run's other removals, with a plain `rmdir`, so a folder that gained a job in the meantime stays | never |
 
-What never goes: a running job (its summary is not final, or its
-scoreboard file is live), a transcript still being recorded (no end
+What never goes: a running job (its folder is younger than the age, or
+its scoreboard file is live), a transcript still being recorded (no end
 record), a folder under a name that is not a `YYMMDD` day folder, a
 symbolic link, a file the helper cannot read, the collection directory
 (`crun`; the latest file per device is not retention), the audit log,
@@ -155,8 +155,8 @@ days, hours under a day, minutes under an hour; a job's age counts from
 its end, an orphan's from the newest thing in it, a day folder's from
 its date. Under `--verbose` every examined item that stays has a `kept`
 line with one reason: `young` (within the age), `live` (a running job's
-summary or snapshot, a transcript without its end record, an orphan whose
-snapshot is live), `not-owned`, `not-a-day-folder`, `symlink`,
+snapshot, a transcript without its end record, an orphan whose snapshot is
+live), `not-owned`, `not-a-day-folder`, `symlink`,
 `unreadable`; and every place looked at has a `walk` line.
 
 The summary: `examined` records read, `removed` items removed (or that

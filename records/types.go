@@ -14,7 +14,7 @@ const (
 	CommandSchemaVersion    = 3 // 3: channel, and an exec command's exit and stderr
 	ScoreboardSchemaVersion = 3 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes
 	AuditSchemaVersion      = 1
-	JobSchemaVersion        = 3 // 3: the policy block removed, the plan's configuration block the job's
+	JobSchemaVersion        = 4 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices
 	MetricsSchemaVersion    = 1
 )
 
@@ -645,34 +645,53 @@ func TerminalStatus(status string) bool {
 	return false
 }
 
-type Summary struct {
+// AcceptedSummary is summary.json as a job's acceptance writes it: the job,
+// its plan, the files it writes, and its devices without their outcomes,
+// none of the result fields. Summary is these fields and the result after
+// them, written whole over the file at the job's end, so a job is finished
+// when its summary names a final status (EXAMPLES chapter 61, issue 2).
+type AcceptedSummary struct {
 	SchemaVersion          int               `json:"schema_version"`
 	JobID                  string            `json:"job_id"`
 	ActivityID             string            `json:"activity_id"`
 	StartedAt              time.Time         `json:"started_at"`
-	EndedAt                time.Time         `json:"ended_at"`
-	DurationNS             int64             `json:"duration_ns"`
-	FinalStatus            string            `json:"final_status"`
-	ExitCode               int               `json:"primary_exit_code"`
-	ExitName               string            `json:"primary_exit_name"`
-	TerminalCauses         []string          `json:"terminal_causes"`
 	DispatchOrder          string            `json:"dispatch_order"`        // default, sorted, shuffle, random
 	ShuffleKey             *string           `json:"shuffle_key,omitempty"` // shuffle and random only; may be empty
-	PlanID                 string            `json:"plan_id"`               // additive fields under counter 2
+	PlanID                 string            `json:"plan_id"`
 	PlanDigest             string            `json:"plan_digest"`
 	Mode                   string            `json:"mode"`
 	AddressAuthorityCounts map[string]int    `json:"address_authority_counts"`
-	Ping                   *PingSummary      `json:"ping"`         // null when the gate is disabled
-	Cancellation           *Cancellation     `json:"cancellation"` // null unless cancelled through cancel_job
-	DeviceCounts           map[string]int    `json:"device_counts"`
-	RequestedCommandCounts map[string]int    `json:"requested_command_counts"`
-	SessionInitCounts      map[string]int    `json:"session_init_counts"`
-	Halt                   any               `json:"halt"`
-	Output                 map[string]any    `json:"output"`
-	AuditSinkStatus        map[string]any    `json:"audit_sink_status"`
-	Bottleneck             map[string]any    `json:"bottleneck"`
-	Recovery               map[string]any    `json:"recovery"`
+	Devices                []SummaryDevice   `json:"devices"`
 	Paths                  map[string]string `json:"paths"`
+}
+
+// SummaryDevice is one device of the job, in the plan's order: its name,
+// and from the job's end its outcome, the device_counts category it is
+// counted in (succeeded, failed, not_started, incomplete, or cancelled; an
+// exercise's ready or not_ready).
+type SummaryDevice struct {
+	Name    string `json:"name"`
+	Outcome string `json:"outcome,omitempty"`
+}
+
+type Summary struct {
+	AcceptedSummary
+	EndedAt                time.Time      `json:"ended_at"`
+	DurationNS             int64          `json:"duration_ns"`
+	FinalStatus            string         `json:"final_status"`
+	ExitCode               int            `json:"primary_exit_code"`
+	ExitName               string         `json:"primary_exit_name"`
+	TerminalCauses         []string       `json:"terminal_causes"`
+	Ping                   *PingSummary   `json:"ping"`         // null when the gate is disabled
+	Cancellation           *Cancellation  `json:"cancellation"` // null unless cancelled through cancel_job
+	DeviceCounts           map[string]int `json:"device_counts"`
+	RequestedCommandCounts map[string]int `json:"requested_command_counts"`
+	SessionInitCounts      map[string]int `json:"session_init_counts"`
+	Halt                   any            `json:"halt"`
+	Output                 map[string]any `json:"output"`
+	AuditSinkStatus        map[string]any `json:"audit_sink_status"`
+	Bottleneck             map[string]any `json:"bottleneck"`
+	Recovery               map[string]any `json:"recovery"`
 	// Collection is present for a crun:
 	// the directory and, per device, its file and whether the file was
 	// replaced or kept. Additive under job schema 2 (optional).

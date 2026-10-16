@@ -152,8 +152,8 @@ func TestDayFolderLayout(t *testing.T) {
 
 // TestEveryFinalStatus covers the final statuses: an old job of each of
 // the six final statuses and an old scoreboard file of each are candidates,
-// exercised among them; a running job's folder (its summary not yet written)
-// and a running scoreboard file are not, whatever their age.
+// exercised among them; a running scoreboard file is not, whatever its
+// age. A running job's folder is an orphan's (TestOrphansAndStaleSnapshots).
 func TestEveryFinalStatus(t *testing.T) {
 	base := t.TempDir()
 	score := filepath.Join(base, "score")
@@ -365,7 +365,8 @@ func TestEmptyDayFolders(t *testing.T) {
 }
 
 // TestOrphansAndStaleSnapshots covers orphans and stale snapshots: a job folder
-// without a summary is an orphan and goes under the age rule alone when its
+// without a summary, or whose summary names no final status (the one the
+// job's acceptance wrote), is an orphan and goes under the age rule alone when its
 // day folder is older than the retention age, nothing in it is newer than
 // the cutoff, and its snapshot, if any, is terminal or older than the age;
 // a non-terminal snapshot older than the age is a candidate itself; neither
@@ -375,13 +376,18 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 	score := filepath.Join(base, "score")
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
 	jobs := filepath.Join(base, "jobs")
-	orphan := func(day, id string, at time.Time) string {
+	accepted, _ := json.Marshal(records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, Devices: []records.SummaryDevice{{Name: "r1"}}})
+	orphan := func(day, id string, at time.Time, files ...string) string {
 		dir := filepath.Join(jobs, day, id)
 		if err := os.MkdirAll(dir, 0o750); err != nil {
 			t.Fatal(err)
 		}
-		for _, name := range []string{"commands.jsonl", "manifest.json"} {
-			if err := os.WriteFile(filepath.Join(dir, name), []byte("{}\n"), 0o640); err != nil {
+		for _, name := range append([]string{"commands.jsonl", "manifest.json"}, files...) {
+			content := []byte("{}\n")
+			if name == "summary.json" {
+				content = accepted
+			}
+			if err := os.WriteFile(filepath.Join(dir, name), content, 0o640); err != nil {
 				t.Fatal(err)
 			}
 			if err := os.Chtimes(filepath.Join(dir, name), at, at); err != nil {
@@ -393,8 +399,9 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 		}
 		return dir
 	}
-	aged := orphan("260810", "260810-090000-00", old)     // no snapshot: goes
-	byChoice := orphan("260817", "260817-153859-00", old) // a completed snapshot: goes
+	aged := orphan("260810", "260810-090000-00", old)                     // no snapshot: goes
+	notFinal := orphan("260810", "260810-090001-00", old, "summary.json") // a summary without a final status: goes
+	byChoice := orphan("260817", "260817-153859-00", old)                 // a completed snapshot: goes
 	writeScoreboard(t, score, "260817-153859-00", "completed", old)
 	cutShort := orphan("260817", "260817-153900-00", old) // a running snapshot older than the age: goes, and so does the snapshot
 	staleSnap := writeScoreboard(t, score, "260817-153900-00", "running", old)
@@ -404,15 +411,16 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 	if err := os.Chtimes(filepath.Join(touched, "manifest.json"), now, now); err != nil {
 		t.Fatal(err)
 	}
-	today := orphan("260926", "260926-153859-00", now.Add(-time.Hour)) // the day's own folder: stays
+	today := orphan("260926", "260926-153859-00", now.Add(-time.Hour))                   // the day's own folder: stays
+	running := orphan("260926", "260926-153900-00", now.Add(-time.Hour), "summary.json") // a running job: stays
 
 	lines, res := run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score})
-	for _, p := range []string{aged, byChoice, cutShort, staleSnap} {
+	for _, p := range []string{aged, notFinal, byChoice, cutShort, staleSnap} {
 		if !has(lines, p) {
 			t.Fatalf("%s is not a candidate:\n%s", p, strings.Join(lines, "\n"))
 		}
 	}
-	for _, p := range []string{held, liveSnap, touched, today} {
+	for _, p := range []string{held, liveSnap, touched, today, running} {
 		if has(lines, p) {
 			t.Fatalf("%s is a candidate:\n%s", p, strings.Join(lines, "\n"))
 		}
@@ -423,10 +431,10 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 			kinds[f[1]]++
 		}
 	}
-	if kinds["kind=orphan"] != 3 || kinds["kind=stale-scoreboard"] != 1 || kinds["kind=scoreboard"] != 1 {
+	if kinds["kind=orphan"] != 4 || kinds["kind=stale-scoreboard"] != 1 || kinds["kind=scoreboard"] != 1 {
 		t.Fatalf("kinds %v\n%s", kinds, strings.Join(lines, "\n"))
 	}
-	if res.Removed != 5 {
+	if res.Removed != 6 {
 		t.Fatalf("result %+v", res)
 	}
 
@@ -437,7 +445,7 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 	if !has(lines, young) {
 		t.Fatalf("pressure did not take the young finished job:\n%s", strings.Join(lines, "\n"))
 	}
-	for _, p := range []string{today, liveSnap, held, touched} {
+	for _, p := range []string{today, running, liveSnap, held, touched} {
 		if has(lines, p) {
 			t.Fatalf("pressure took %s:\n%s", p, strings.Join(lines, "\n"))
 		}

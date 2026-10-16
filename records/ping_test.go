@@ -112,7 +112,7 @@ func TestSummaryPingBlockMatchesTheSchema(t *testing.T) {
 		return Summary{
 			SchemaVersion: JobSchemaVersion, JobID: "job", ActivityID: "job", StartedAt: now, EndedAt: now, DurationNS: 0, FinalStatus: "completed", ExitCode: 0, ExitName: "success",
 			TerminalCauses: []string{}, DispatchOrder: "default", PlanID: "plan", PlanDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", Mode: "live",
-			AddressAuthorityCounts: map[string]int{"client": 2}, DeviceCounts: map[string]int{"total": 2}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{},
+			AddressAuthorityCounts: map[string]int{"client": 2}, Devices: []SummaryDevice{{Name: "a", Outcome: "succeeded"}, {Name: "b", Outcome: "failed"}}, DeviceCounts: map[string]int{"total": 2}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{},
 			Halt: nil, Output: map[string]any{}, AuditSinkStatus: map[string]any{}, Bottleneck: map[string]any{}, Recovery: map[string]any{}, Paths: map[string]string{},
 		}
 	}
@@ -121,6 +121,7 @@ func TestSummaryPingBlockMatchesTheSchema(t *testing.T) {
 	canarytest.SchemaParity(t, summarySchema, live)
 	exercise := base()
 	exercise.Mode, exercise.FinalStatus = "exercise", "exercised"
+	exercise.Devices = []SummaryDevice{{Name: "a", Outcome: ReadinessReady}, {Name: "b", Outcome: ReadinessNotReady}}
 	exercise.Ping = &PingSummary{Enabled: true, Method: "system", Capability: "available", Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond), Devices: map[string]int{PingDevicesGated: 0, PingDevicesProceeded: 0, PingDevicesDegraded: 0, PingDevicesSkipped: 0, PingDevicesCapabilityFailed: 0}}
 	canarytest.SchemaParity(t, summarySchema, exercise)
 	disabled := base()

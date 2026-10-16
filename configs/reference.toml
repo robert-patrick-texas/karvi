@@ -405,12 +405,6 @@ failed-devices-txt = true
 manifest-json = true
 # Write metrics.json; false does not create it.
 metrics-json = true
-# Write summary.json; false does not create it, on every path. A finished job without one is
-# job_orphaned to a later job follow once the daemon has let it go. karvi-prune knows a
-# finished job by it; a folder without one is an orphan, removed by age alone once its day,
-# everything in it, and its scoreboard file are older than the retention age. With all eight
-# keys false no job folder is created.
-summary-json = true
 
 [crun]
 # The collection directory, one file per device named by the device, of crun and of run or

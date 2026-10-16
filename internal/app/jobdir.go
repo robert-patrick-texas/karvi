@@ -112,14 +112,16 @@ type JobDirectoryState int
 const (
 	// JobDirectoryAbsent: no directory; the job is unknown here.
 	JobDirectoryAbsent JobDirectoryState = iota
-	// JobDirectoryFinished: the directory holds summary.json.
+	// JobDirectoryFinished: the directory's summary names a final status.
 	JobDirectoryFinished
-	// JobDirectoryOrphaned: the directory exists without a summary; the job
+	// JobDirectoryOrphaned: the directory's summary names no final status,
+	// or there is none (a job cut short before its first write); the job
 	// is unfinished and, when no daemon holds it, its daemon is gone.
 	JobDirectoryOrphaned
 )
 
-// InspectJobDirectory reports the directory's state without reading it.
+// InspectJobDirectory reports the directory's state from its summary's
+// final status (EXAMPLES chapter 61, issue 2).
 func InspectJobDirectory(dir string) (JobDirectoryState, error) {
 	if _, err := os.Lstat(dir); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -127,13 +129,31 @@ func InspectJobDirectory(dir string) (JobDirectoryState, error) {
 		}
 		return JobDirectoryAbsent, errorcodes.Errorf("run_output_records_unreadable", "%s: %w", dir, err)
 	}
-	if _, err := os.Lstat(filepath.Join(dir, "summary.json")); err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return JobDirectoryOrphaned, nil
-		}
-		return JobDirectoryAbsent, errorcodes.Errorf("run_output_records_unreadable", "%s: %w", filepath.Join(dir, "summary.json"), err)
+	summary, err := readSummary(dir)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return JobDirectoryOrphaned, nil
+	case err != nil:
+		return JobDirectoryAbsent, err
+	case !records.TerminalStatus(summary.FinalStatus):
+		return JobDirectoryOrphaned, nil
 	}
 	return JobDirectoryFinished, nil
+}
+
+// readSummary reads and decodes the directory's summary.json; a missing
+// file is an error that wraps fs.ErrNotExist.
+func readSummary(dir string) (records.Summary, error) {
+	var summary records.Summary
+	path := filepath.Join(dir, "summary.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return summary, errorcodes.Errorf("run_output_records_unreadable", "read %s: %w", path, err)
+	}
+	if err := json.Unmarshal(raw, &summary); err != nil {
+		return summary, errorcodes.Errorf("run_output_record_decode_failed", "decode %s: %w", path, err)
+	}
+	return summary, nil
 }
 
 // openChecked opens a job's commands.jsonl without following links and
@@ -174,13 +194,9 @@ func openChecked(path string) (*os.File, error) {
 // stricter, no link following) and rendered through the post-hoc renderer;
 // the summary is returned for the result line and the exit.
 func RenderJobDirectory(common CommonOptions, dir string, o FollowRenderOptions, out io.Writer) (records.Summary, error) {
-	var summary records.Summary
-	raw, err := os.ReadFile(filepath.Join(dir, "summary.json"))
+	summary, err := readSummary(dir)
 	if err != nil {
-		return summary, errorcodes.Errorf("run_output_records_unreadable", "read %s: %w", filepath.Join(dir, "summary.json"), err)
-	}
-	if err := json.Unmarshal(raw, &summary); err != nil {
-		return summary, errorcodes.Errorf("run_output_record_decode_failed", "decode %s: %w", filepath.Join(dir, "summary.json"), err)
+		return summary, err
 	}
 	f, err := openChecked(filepath.Join(dir, "commands.jsonl"))
 	if err != nil {

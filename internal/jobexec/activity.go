@@ -296,6 +296,12 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if err := store.WriteManifest(buildManifest(req, id, now)); err != nil {
 		return FailedResult("output_manifest_write_failed", err)
 	}
+	// The summary at acceptance names the job's devices; the end writes it
+	// whole again with the result.
+	accepted := acceptedSummary(req, store.Paths(), id, jobID, now)
+	if err := store.WriteSummary(accepted); err != nil {
+		return FailedResult("output_summary_write_failed", err)
+	}
 	if err := writeActivityAudit(auditSink, req, id, jobID, "started", "started", 0, ""); err != nil {
 		return FailedResult("audit_write_failed", err)
 	}
@@ -305,7 +311,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if req.Mode == executionplan.ModeExercise {
 		// The exercise branch: everything above is
 		// the accepted job; nothing below it is built.
-		return runExercise(ctx, req, exerciseState{id: id, jobID: jobID, artifact: artifact, started: now, store: store, auditSink: auditSink, scoreboardWriter: scoreboardWriter, initial: initial, capManager: capManager, sampler: sampler, base: base})
+		return runExercise(ctx, req, exerciseState{id: id, jobID: jobID, artifact: artifact, started: now, accepted: accepted, store: store, auditSink: auditSink, scoreboardWriter: scoreboardWriter, initial: initial, capManager: capManager, sampler: sampler, base: base})
 	}
 	renderer, err := newRecordRenderer(streams.Stdout, plan.Output.Format, cfg, req.Quiet, req.Debug, id, shownArtifact, req.ActivityType, plan.Output.Echo, plan.Output.DynamicBorder, plan.Output.NoBorder)
 	if err != nil {
@@ -419,7 +425,8 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		exit = exitcode.ExitOutputFailure
 		renderer.SetError("output_metrics_write_failed", err)
 	}
-	recordSummary := buildSummary(req, store.Paths(), id, jobID, now, ended, exit, summary, incomplete, cancelled, cancellationOf(ctx), shutdown, renderer, auditSink.Status(), metric.Bottleneck, pingSummary)
+	accepted.Devices = deviceOutcomes(accepted.Devices, plan.Targets, summary, shutdown, ctx.Err() != nil)
+	recordSummary := buildSummary(accepted, store.Paths(), ended, exit, summary, incomplete, cancelled, cancellationOf(ctx), shutdown, renderer, auditSink.Status(), metric.Bottleneck, pingSummary)
 	recordSummary.Collection = store.CollectionSummary()
 	if err := store.WriteSummary(recordSummary); err != nil {
 		exit = exitcode.ExitOutputFailure
@@ -526,7 +533,28 @@ func summaryFiles(paths output.Paths, outputBytes int64) (files map[string]strin
 	return files, out
 }
 
-func buildSummary(req Request, paths output.Paths, id, jobID string, start, end time.Time, code int, d dispatch.Summary, incomplete, cancelled int, cancellation *records.Cancellation, shutdown error, rr *recordRenderer, auditStatus audit.Status, bottleneck map[string]any, ping *records.PingSummary) records.Summary {
+// acceptedSummary is the summary a job's acceptance writes: the job, its
+// plan, the files it writes, and its devices in the plan's order without
+// their outcomes. The end's summary is this with the result after it.
+func acceptedSummary(req Request, paths output.Paths, id, jobID string, start time.Time) records.AcceptedSummary {
+	authorities := map[string]int{}
+	devices := make([]records.SummaryDevice, len(req.Plan.Targets))
+	for i, t := range req.Plan.Targets {
+		authorities[string(t.AddressPlan.Authority)]++
+		devices[i] = records.SummaryDevice{Name: t.Device.CanonicalName}
+	}
+	mode := req.Mode
+	if mode == "" {
+		mode = executionplan.ModeLive
+	}
+	files, _ := summaryFiles(paths, 0)
+	return records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, JobID: jobID, ActivityID: id, StartedAt: start, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
+		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(mode), AddressAuthorityCounts: authorities, Devices: devices, Paths: files}
+}
+
+// buildSummary is the end's summary: accepted, its devices with their
+// outcomes, and the job's result.
+func buildSummary(accepted records.AcceptedSummary, paths output.Paths, end time.Time, code int, d dispatch.Summary, incomplete, cancelled int, cancellation *records.Cancellation, shutdown error, rr *recordRenderer, auditStatus audit.Status, bottleneck map[string]any, ping *records.PingSummary) records.Summary {
 	causes := []string{}
 	switch {
 	case shutdown != nil:
@@ -543,18 +571,9 @@ func buildSummary(req Request, paths output.Paths, id, jobID string, start, end 
 	if len(causes) == 0 && d.Counts.Failed > 0 {
 		causes = append(causes, "device_failures")
 	}
-	authorities := map[string]int{}
-	for _, t := range req.Plan.Targets {
-		authorities[string(t.AddressPlan.Authority)]++
-	}
-	mode := req.Mode
-	if mode == "" {
-		mode = executionplan.ModeLive
-	}
-	files, out := summaryFiles(paths, rr.OutputBytes())
-	return records.Summary{SchemaVersion: records.JobSchemaVersion, JobID: jobID, ActivityID: id, StartedAt: start, EndedAt: end, DurationNS: end.Sub(start).Nanoseconds(), FinalStatus: finalScoreboardStatus(code, d), ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
-		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(mode), AddressAuthorityCounts: authorities, Ping: ping, Cancellation: cancellation,
-		DeviceCounts: map[string]int{"total": d.Counts.Total, "completed": d.Counts.Terminal, "succeeded": d.Counts.Succeeded, "failed": d.Counts.Failed, "not_started": d.Counts.NotStarted, "incomplete": incomplete, "cancelled": cancelled}, RequestedCommandCounts: rr.RequestedCounts(), SessionInitCounts: rr.SessionInitCounts(), Halt: map[string]any{"run_wide": d.HaltReason, "wave_gate": d.GateReason}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}, Paths: files}
+	_, out := summaryFiles(paths, rr.OutputBytes())
+	return records.Summary{AcceptedSummary: accepted, EndedAt: end, DurationNS: end.Sub(accepted.StartedAt).Nanoseconds(), FinalStatus: finalScoreboardStatus(code, d), ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, Ping: ping, Cancellation: cancellation,
+		DeviceCounts: map[string]int{"total": d.Counts.Total, "completed": d.Counts.Terminal, "succeeded": d.Counts.Succeeded, "failed": d.Counts.Failed, "not_started": d.Counts.NotStarted, "incomplete": incomplete, "cancelled": cancelled}, RequestedCommandCounts: rr.RequestedCounts(), SessionInitCounts: rr.SessionInitCounts(), Halt: map[string]any{"run_wide": d.HaltReason, "wave_gate": d.GateReason}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}}
 }
 
 func writeActivityAudit(s *audit.Sink, req Request, id, jobID, event, outcome string, code int, reason string, extra ...map[string]any) error {

@@ -251,7 +251,8 @@ in a shared place and the operator's primary group in a private one.
 In the job folder `jobs/YYMMDD/<job-id>`, every file `0640`: in shared mode
 in the operators' group, so any member reads another's job (`karvi job
 follow ID`). Each is written as the job runs, so a job cut short leaves what it
-had; each has its switch, `output.files.*`, and `--nof` writes no folder
+had; each but the summary has its switch, `output.files.*`, and `--nof` or
+`output.persist-command = false` writes no folder
 ([`docs/OPERATIONS.md`, "The job's output files"](OPERATIONS.md#the-jobs-output-files)).
 
 | File | Switch | Purpose |
@@ -264,7 +265,7 @@ had; each has its switch, `output.files.*`, and `--nof` writes no folder
 | `failed-devices.txt` | `failed-devices-txt` | the devices that failed, as a target file for a rerun (`--tf`) |
 | `output.<target>.txt` | `output-txt` | each device's session as text |
 | `metrics.json` | `metrics-json` | the job's timings, widths, and wave decisions |
-| `summary.json` | `summary-json` | the job's result: the counts, the exit, the paths; written last |
+| `summary.json` | none | the job's devices; written at the job's acceptance, and again whole at its end with the result, the counts, the exit, and each device's outcome |
 
 ### 4.4 Transcripts and collection files
 

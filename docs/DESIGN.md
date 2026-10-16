@@ -1944,8 +1944,8 @@ hold without matching the secret's bytes against output; a device that echoes
 the secret has put it in exactly those bytes.
 
 **One boolean key per output file; the invocation decides on every path.**
-`output.files.*` has a key per file, all true by default; each skips its own
-file and no other; all eight false is `--nof`, which writes no folder. The keys
+`output.files.*` has a key per file but the summary, all true by default; each
+skips its own file and no other; `--nof` writes no folder. The keys
 reach the job in its configuration and the plan's output block carries the
 resolved root, so the daemon writes what and where the invocation said, and `job
 follow` looks under the same root. `cmd --nof` and `cmd --of[=PATH]` are
@@ -2602,8 +2602,8 @@ ownership decides (a run removes what the invoking user owns and passes the
 rest by; root removes everything eligible); a removal that fails is one line
 and the run goes on; the free-space floor is judged per filesystem. Empty day
 folders older than the age are removed by their name's date; an orphan folder
-without a summary and a stale non-terminal scoreboard retire by age alone,
-never under pressure. The six final statuses are one list. *Why:* the helper
+whose summary is not final and a stale non-terminal scoreboard retire by age
+alone, never under pressure. The six final statuses are one list. *Why:* the helper
 had matched a day-folder layout no writer used, so nothing it walked was ever
 pruned; a colleague's folder in a shared tree would otherwise stop a daily run
 at the first failure; three shapes stood forever. *Not taken:* a `karvi prune`

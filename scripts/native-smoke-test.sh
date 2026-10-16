@@ -594,11 +594,15 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S28 ]; then
   [ "$(sed -n '2,3p' "$s28_text" | tr '\n' '|')" = 'Router>enable|Password:|' ] || fail "S28: the text file's set-up lines are $(sed -n '2,3p' "$s28_text" | tr '\n' '|')"
 fi
 
-# S29: output.files. Each key switches its own file; all eight false is no
-# job folder on `command`, `run --no-daemon`, and a run through the daemon
-# alike (the invocation decides the files on every path); the summary names
-# only the files that are written; output.max-job-bytes counts the text, and
-# a record past it is an output failure with the code on standard error.
+# S29: output.files. Each key switches its own file; all seven false leave
+# the folder with its summary alone, which every folder holds;
+# output.persist-command false is no job folder on `command`, `run
+# --no-daemon`, and a run through the daemon alike (the invocation decides
+# the files on every path); the summary names only the files that are
+# written; output.max-job-bytes counts the text, and a record past it is an
+# output failure with the code on standard error.
+S29_NONE='[output]
+persist-command = false'
 S29_ALL='[output.files]
 output-txt = false
 commands-jsonl = false
@@ -606,8 +610,7 @@ commands-txt = false
 errors-jsonl = false
 failed-devices-txt = false
 manifest-json = false
-metrics-json = false
-summary-json = false'
+metrics-json = false'
 # job_run TAG ACTIVITY TABLES FAKEFLAGS karvi args...: one fake, one run
 # through run_karvi under the tag; sets CODE, and JOB_DIR to the run's job
 # folder (empty if there is none). S29 and S31 use it.
@@ -626,25 +629,31 @@ $job_tables"
 job_files() { ls "$JOB_DIR" | tr '\n' ' '; }
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S29 ]; then
   for s29_activity in command run; do
-    job_run s29 "$s29_activity" "$S29_ALL" '' --cmd 'show clock'
-    [ "$CODE" -eq 0 ] || fail "S29 all false, $s29_activity: exit $CODE"
-    [ -z "$JOB_DIR" ] || fail "S29 all false, $s29_activity: a job folder was made: $JOB_DIR"
+    job_run s29 "$s29_activity" "$S29_NONE" '' --cmd 'show clock'
+    [ "$CODE" -eq 0 ] || fail "S29 no output, $s29_activity: exit $CODE"
+    [ -z "$JOB_DIR" ] || fail "S29 no output, $s29_activity: a job folder was made: $JOB_DIR"
     # A run's jsonl ends with the summary line; a command's does not.
     s29_lines=1; [ "$s29_activity" = command ] || s29_lines=2
-    [ "$(wc -l <"$TMP/out.s29")" -eq "$s29_lines" ] || fail "S29 all false, $s29_activity: $(wc -l <"$TMP/out.s29") lines displayed, expected $s29_lines"
+    [ "$(wc -l <"$TMP/out.s29")" -eq "$s29_lines" ] || fail "S29 no output, $s29_activity: $(wc -l <"$TMP/out.s29") lines displayed, expected $s29_lines"
   done
   tail -1 "$TMP/out.s29" >"$TMP/s29.last"
-  json_is "$TMP/s29.last" final_status completed || fail "S29 all false, run: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
-  ! grep -q ' artifacts=' "$TMP/err.s29" || fail "S29 all false, run: a result line was printed: $(tail -1 "$TMP/err.s29")"
+  json_is "$TMP/s29.last" final_status completed || fail "S29 no output, run: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
+  ! grep -q ' artifacts=' "$TMP/err.s29" || fail "S29 no output, run: a result line was printed: $(tail -1 "$TMP/err.s29")"
 
-  job_run s29 daemon "$S29_ALL" '' --cmd 'show clock'
-  [ "$CODE" -eq 0 ] || fail "S29 all false, daemon: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s29" | head -1)"
-  [ -z "$JOB_DIR" ] || fail "S29 all false, daemon: a job folder was made: $JOB_DIR"
-  [ "$(wc -l <"$TMP/out.s29")" -eq 2 ] || fail "S29 all false, daemon: $(wc -l <"$TMP/out.s29") lines displayed, expected the record and the summary"
+  job_run s29 daemon "$S29_NONE" '' --cmd 'show clock'
+  [ "$CODE" -eq 0 ] || fail "S29 no output, daemon: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s29" | head -1)"
+  [ -z "$JOB_DIR" ] || fail "S29 no output, daemon: a job folder was made: $JOB_DIR"
+  [ "$(wc -l <"$TMP/out.s29")" -eq 2 ] || fail "S29 no output, daemon: $(wc -l <"$TMP/out.s29") lines displayed, expected the record and the summary"
   tail -1 "$TMP/out.s29" >"$TMP/s29.last"
-  json_is "$TMP/s29.last" final_status completed || fail "S29 all false, daemon: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
-  ! grep -q ' artifacts=' "$TMP/err.s29" || fail "S29 all false, daemon: a result line was printed: $(tail -1 "$TMP/err.s29")"
-  ! grep -q '^warning:' "$TMP/err.s29" || fail "S29 all false, daemon: a warning: $(grep '^warning:' "$TMP/err.s29" | head -1)"
+  json_is "$TMP/s29.last" final_status completed || fail "S29 no output, daemon: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
+  ! grep -q ' artifacts=' "$TMP/err.s29" || fail "S29 no output, daemon: a result line was printed: $(tail -1 "$TMP/err.s29")"
+  ! grep -q '^warning:' "$TMP/err.s29" || fail "S29 no output, daemon: a warning: $(grep '^warning:' "$TMP/err.s29" | head -1)"
+
+  job_run s29 run "$S29_ALL" '' --cmd 'show clock'
+  [ "$CODE" -eq 0 ] || fail "S29 seven false: exit $CODE"
+  [ "$(job_files)" = 'summary.json ' ] || fail "S29 seven false: the folder holds $(job_files)"
+  json_is "$JOB_DIR/summary.json" final_status completed || fail "S29 seven false: the summary is $(json_get "$JOB_DIR/summary.json" final_status)"
+  json_is "$JOB_DIR/summary.json" devices '[{"name":"fake-iosxe","outcome":"succeeded"}]' || fail "S29 seven false: the summary's devices are $(json_get "$JOB_DIR/summary.json" devices)"
 
   job_run s29 run '[output.files]
 commands-jsonl = false
@@ -673,7 +682,7 @@ max-job-bytes = 8388608' '-big-lines 72000' --cmd 'show big' --cmd 'show big'
   esac
   [ "$(wc -l <"$JOB_DIR/commands.jsonl")" -eq 1 ] || fail "S29 limit: commands.jsonl holds $(wc -l <"$JOB_DIR/commands.jsonl") records, expected 1"
   [ ! -e "$JOB_DIR/output.fake-iosxe.txt" ] || fail "S29 limit: a text block past the limit was written"
-  echo 'native smoke: S29 output.files: all false, the daemon, two false, the limit: ok'
+  echo 'native smoke: S29 output.files: no output, the daemon, seven false, two false, the limit: ok'
 fi
 
 # S32: the invocation decides the files through the daemon: `run --nof` is

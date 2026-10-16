@@ -75,6 +75,20 @@ json_is() {
   [ "$(json_get "$1" "$2" 2>/dev/null)" = "$3" ]
 }
 
+# json_wait FILE PATH [TENTHS]: wait until FILE holds a value at PATH,
+# checking every tenth of a second up to TENTHS tenths (100 by default);
+# false if it never does. A job's summary.json names final_status once
+# the job has ended, its acceptance writing it without one:
+# `json_wait "$dir/summary.json" final_status || fail "the job did not end"`.
+json_wait() {
+  json_wait_n=0
+  until json_has "$1" "$2"; do
+    [ "$json_wait_n" -lt "${3:-100}" ] || return 1
+    sleep 0.1
+    json_wait_n=$((json_wait_n + 1))
+  done
+}
+
 # jsonl_records FILE PATH...: one line per command record of a .jsonl
 # stream (a line holding record_id; the job summary and any other line are
 # skipped), the values at the PATHs tab-separated in the order given. An

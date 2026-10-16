@@ -33,9 +33,12 @@ type Paths struct{ Root, Manifest, CommandsJSONL, CommandsText, ErrorsJSONL, Fai
 
 // FileSet names the job's output files, one field per file, shaped like
 // the file names. OutputTxt is every
-// device's output.TARGET.txt.
+// device's output.TARGET.txt. The first seven are the output.files
+// switches; SummaryJSON has none, and is skipped only with every other
+// file (AllFiles): every folder holds its summary (EXAMPLES chapter 61,
+// issue 5).
 type FileSet struct {
-	CommandsJSONL, CommandsTxt, ErrorsJSONL, FailedDevicesTxt, ManifestJSON, MetricsJSON, SummaryJSON, OutputTxt bool
+	CommandsJSONL, CommandsTxt, ErrorsJSONL, FailedDevicesTxt, ManifestJSON, MetricsJSON, OutputTxt, SummaryJSON bool
 }
 
 // AllFiles is every output file: as Options.Skip, a store that writes

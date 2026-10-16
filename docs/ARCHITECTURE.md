@@ -325,7 +325,7 @@ root and `logs` are 0750; job and transcript folders take
 `output.directory-mode` (default 0750) and their files are 0640. `cancel_job`
 cancels one accepted job through its own context; crash reconstruction is a
 roadmap capability: a job whose daemon died is `job_orphaned` to `job follow`,
-as is a finished job whose invocation had `output.files.summary-json` false.
+its summary naming no final status.
 
 **A command's output is bounded in memory from the device's first byte to the
 record's write.** The device session (`internal/devsession/settle.go`) cleans
@@ -372,16 +372,17 @@ flight is `dispatch.server-max-inflight`, by default `min(256, max(32, 8×CPU))`
 
 **Which files a job writes is one value, `output.FileSet`,** one field per file,
 the zero value writing them all. The invocation decides it on every path: the
-plan's `output` carries `persist` (`output.persist-command`), `files` (the eight
+plan's `output` carries `persist` (`output.persist-command`), `files` (the seven
 `output.files.*` switches), and `root` (`output.root`, resolved by the planner
 against the site's shared root, `sharedroot`, and the client's basedir and
 home), and `output.SkippedFiles` is the one function from the job's
 configuration to the set, read by the planner and by `jobexec.Run`, the one
-place it is decided: `--nof` and all eight keys false are the same value,
-`output.AllFiles`, for which the store makes no folder, and a `crun` skips every
-`output.NAME.txt`, on `cmd`, `run --no-daemon`, and a run through the daemon
-alike. The daemon reads no `output.*` key of its own for a job. The command line
-reaches these as flag-origin configuration values, in one function,
+place it is decided: `--nof` and `output.persist-command = false` are the same
+value, `output.AllFiles`, for which the store makes no folder; the summary has
+no switch, so the seven false leave a folder holding it alone; and a `crun`
+skips every `output.NAME.txt`, on `cmd`, `run --no-daemon`, and a run through
+the daemon alike. The daemon reads no `output.*` key of its own for a job. The
+command line reaches these as flag-origin configuration values, in one function,
 `cli.outputOptions`: `--nof` and `--of` are `output.persist-command`, and
 `--of=PATH` is `output.root` for that invocation, on `cmd` and `run`; `run`
 refuses `--nof` with `--detach` (nothing persisted and nobody following) and
