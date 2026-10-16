@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.31.0 - 2026-10-16
+
+A minor release on 0.30.1. The configuration registry moves from 29 to 30 and
+the job manifest and summary from 3 to 4; every other counter is 0.30.1's
+(configuration schema 6, execution plan 13, daemon IPC 12, command record 3,
+plan report 2, credential package 2, scoreboard 3, audit 1, metrics 1,
+inventory 1), and an operator's 0.30.1 daemon, of another build, is drained by
+the first submission after the upgrade. A site has something to change where
+its configuration names `output.files.summary-json` (refused at load), where a
+script took a job folder's `summary.json` for the job's end (a job has ended
+when its summary names a `final_status`), and where a script typed `--pl NAME`
+for `--platform NAME` (`--pl` is `--platform linux`). The module graph is
+0.30.1's.
 
 - **Breaking: a job's summary is written at its acceptance and at its end;
   job manifest and summary schema 4.** `summary.json` is written when the job
