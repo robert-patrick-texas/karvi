@@ -67,9 +67,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -138,9 +138,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -435,7 +435,7 @@ root and <code>logs</code> are 0750; job and transcript folders take
 <code>output.directory-mode</code> (default 0750) and their files are 0640. <code>cancel_job</code>
 cancels one accepted job through its own context; crash reconstruction is a
 roadmap capability: a job whose daemon died is <code>job_orphaned</code> to <code>job follow</code>,
-as is a finished job whose invocation had <code>output.files.summary-json</code> false.</p>
+its summary naming no final status and its scoreboard stale or gone.</p>
 <p><strong>A command's output is bounded in memory from the device's first byte to the
 record's write.</strong> The device session (<code>internal/devsession/settle.go</code>) cleans
 the response as it arrives into settled bytes, the recorded bytes: carriage
@@ -480,16 +480,17 @@ figure of two keys; there is no memory key and no memory check. The width in
 flight is <code>dispatch.server-max-inflight</code>, by default <code>min(256, max(32, 8×CPU))</code>.</p>
 <p><strong>Which files a job writes is one value, <code>output.FileSet</code>,</strong> one field per file,
 the zero value writing them all. The invocation decides it on every path: the
-plan's <code>output</code> carries <code>persist</code> (<code>output.persist-command</code>), <code>files</code> (the eight
+plan's <code>output</code> carries <code>persist</code> (<code>output.persist-command</code>), <code>files</code> (the seven
 <code>output.files.*</code> switches), and <code>root</code> (<code>output.root</code>, resolved by the planner
 against the site's shared root, <code>sharedroot</code>, and the client's basedir and
 home), and <code>output.SkippedFiles</code> is the one function from the job's
 configuration to the set, read by the planner and by <code>jobexec.Run</code>, the one
-place it is decided: <code>--nof</code> and all eight keys false are the same value,
-<code>output.AllFiles</code>, for which the store makes no folder, and a <code>crun</code> skips every
-<code>output.NAME.txt</code>, on <code>cmd</code>, <code>run --no-daemon</code>, and a run through the daemon
-alike. The daemon reads no <code>output.*</code> key of its own for a job. The command line
-reaches these as flag-origin configuration values, in one function,
+place it is decided: <code>--nof</code> and <code>output.persist-command = false</code> are the same
+value, <code>output.AllFiles</code>, for which the store makes no folder; the summary has
+no switch, so the seven false leave a folder holding it alone; and a <code>crun</code>
+skips every <code>output.NAME.txt</code>, on <code>cmd</code>, <code>run --no-daemon</code>, and a run through
+the daemon alike. The daemon reads no <code>output.*</code> key of its own for a job. The
+command line reaches these as flag-origin configuration values, in one function,
 <code>cli.outputOptions</code>: <code>--nof</code> and <code>--of</code> are <code>output.persist-command</code>, and
 <code>--of=PATH</code> is <code>output.root</code> for that invocation, on <code>cmd</code> and <code>run</code>; <code>run</code>
 refuses <code>--nof</code> with <code>--detach</code> (nothing persisted and nobody following) and
@@ -776,10 +777,17 @@ continuity and renders its record through <code>jobexec.RunRenderer</code>. <cod
 returns at acceptance with the receipt; <code>--follow=false</code> follows for the
 terminal only. <code>karvi job follow JOB-ID</code> runs the same follow loop from the zero
 cursor for a job named by its ID, so the daemon catches it up from the file and
-feeds it live; a job the daemon no longer holds is read from its directory,
-located by the unique ID under the output root (<code>internal/app/jobdir.go</code>, with
-the checked open of the file), and <code>job_orphaned</code> names a directory without a
-summary. <code>karvi job cancel JOB-ID</code> sends <code>cancel_job</code>: each job runs under its
+feeds it live. A job no daemon of the caller's holds is followed from its
+directory, located by the unique ID under the output root
+(<code>internal/app/jobdir.go</code>, <code>FollowJobDirectory</code>), through the same renderer:
+<code>commands.jsonl</code> opened with its checks (a regular file, no link followed, mode
+0640 or stricter, the caller's own or, in the shared jobs tree, in the tree's
+group) and each record rendered as the file grows, until the summary names a
+final status. A summary that names no <code>commands.jsonl</code> gives the job's end
+alone. While the summary is not final, the job's scoreboard
+(<code>scoreboard.Find</code>) says whether it runs, and <code>job_orphaned</code> names a job whose
+scoreboard is gone, stale by <code>watch.stale-after</code>, or names its end that long
+ago. <code>karvi job cancel JOB-ID</code> sends <code>cancel_job</code>: each job runs under its
 own child of the daemon's job context, the request cancels that child with a
 cause carrying the reason, time, and requester, every unfinished unit is
 recorded <code>cancelled</code> (a command already sent is never recorded succeeded or
@@ -835,7 +843,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

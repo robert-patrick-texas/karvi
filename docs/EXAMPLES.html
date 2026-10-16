@@ -106,6 +106,7 @@
 <li><a href="#58-the-documents-on-github-pages-2026-10-12">58. The documents on GitHub Pages (2026-10-12)</a></li>
 <li><a href="#59-the-release-0300-2026-10-13">59. The release 0.30.0 (2026-10-13)</a></li>
 <li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
+<li><a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: karvi job list (2026-10-15)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -117,9 +118,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -227,6 +228,7 @@
 <li><a href="#58-the-documents-on-github-pages-2026-10-12">58. The documents on GitHub Pages (2026-10-12)</a></li>
 <li><a href="#59-the-release-0300-2026-10-13">59. The release 0.30.0 (2026-10-13)</a></li>
 <li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
+<li><a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: karvi job list (2026-10-15)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -238,9 +240,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -12446,8 +12448,557 @@ configuration is 0.30.0's. <code>gh release create</code> outside a checkout nee
 install check pulled <code>ubuntu:26.04</code>, removed after, so Docker was as found.</p>
 <p><strong>Roadmap.</strong> Unchanged by the release; Next item 1, shorter output strings,
 waits on the operator's review of every message.</p>
+<h2 id="61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: <code>karvi job list</code> (2026-10-15) <a class="anchor" href="#61-a-list-of-jobs-karvi-job-list-2026-10-15" aria-label="Link to this section">#</a></h2>
+<p>The ROADMAP's Next item 2, opened on the operator's word for the next minor
+release: a read-only <code>karvi job list</code> of the jobs in the output root, from the
+summaries their folders already hold.</p>
+<p><strong>The evidence.</strong> A lab of the released 0.30.1 executable, the fake device
+built from <code>765164a</code>, and a configuration with every path under the lab
+(<code>sharedroot = &quot;none&quot;</code>): five jobs in process at 15:14 and 15:15 EDT on
+2026-10-15, a <code>command</code>, three runs (one with a second device at an
+unreachable address), and a run under <code>--timezone Pacific/Kiritimati</code>.</p>
+<pre><code class="language-console">$ ls -d jobs/*/*
+jobs/261015/261015-151448-00
+jobs/261015/261015-151449-00
+jobs/261015/261015-151449-01
+jobs/261015/261015-151533-00
+jobs/261016/261016-091500-00
+</code></pre>
+<p>Every folder holds <code>summary.json</code> (2,603 bytes for the run of two devices),
+which names the job, its start and end, its status, its exit, and its device
+counts. The run with the unreachable device is <code>errored</code>,
+<code>ExitPartialFailure</code> 101, one of two devices failed, its folder holding
+<code>failed-devices.txt</code> with the device's name; the others are <code>completed</code>,
+<code>ExitSuccess</code> 0. A <code>command</code> writes a folder as a run does, and two jobs in one
+second take <code>-00</code> and <code>-01</code>. The Kiritimati run started at 15:15:00 EDT by its
+summary's <code>started_at</code>, and its ID and day folder name that zone's date,
+<code>261016</code>, while the host's was the 15th; the run 33 seconds later,
+<code>261015-151533-00</code>, sorts before it. The manifest, which names the operator and
+the selection, was 19,288 bytes for the two devices.</p>
+<p><strong>What it gains.</strong> An operator finds a job's ID, its result, and its folder
+without listing day folders and reading JSON: the ID <code>job follow</code> and <code>job cancel</code> take, and the <code>failed-devices.txt</code> a rerun takes (<code>--tf</code>).</p>
+<p><strong>What it waits on.</strong> Nothing: every finished job writes its summary, and the
+list needs no daemon or credential; issue 2 moves the job summary schema from 3
+to 4.</p>
+<p><strong>Its issues, one at a time:</strong> what it lists with no option; the filters; the
+columns at a terminal's width and the rows' order; another operator's jobs in
+shared mode; and a run under <code>--nof</code>, which leaves no folder.</p>
+<p><strong>Issue 1, what it lists with no option, agreed.</strong> On the lab above. The rule.
+With no option, <code>job list</code> lists the newest 20 jobs of the operator's output
+root, whatever their day: it reads the day folders newest first and stops once
+it has 20, a running or unfinished job counting among them. Twenty lines and a
+header fit a terminal of 24. <em>Why:</em> it always answers, whatever the day or the
+timezone, and its cost does not grow with the retention. <em>Not taken:</em> today's
+folder (empty after midnight, or holding only the 02:15 collection of
+<code>packaging/cron/karvi-crun</code>; and which folder is today follows the effective
+timezone, as the Kiritimati run's did); the last 24 hours (empty on a quiet
+day, and every summary in the window read for its start); every job kept (31
+days at <code>karvi-prune</code>'s default, the daily collection alone 31 lines).</p>
+<p><strong>Issue 2, the filters, agreed.</strong> On the lab above and two measurements. A copy
+of the errored run's summary in 1,240 job folders, 31 days of 40, was read and
+decoded whole in 38 and 61 ms (Python, the page cache warm), so a filter can
+read back through every day kept. The summary names no device, its
+<code>device_counts</code> the counts alone. <code>commands.jsonl</code> names one in every record
+(<code>device.canonical_name</code>, beside <code>operator</code>, <code>activity_type</code>, and <code>command</code>) and
+carries the output: a run of the fake's 65.7 MB <code>show big</code> wrote a
+<code>commands.jsonl</code> of 66,605,035 bytes, read once for a name in 161 and 177 ms,
+beside a summary of 2,549 bytes. The manifest names the devices the selection
+resolved to (<code>plan.targets</code>, beside the inputs as typed in <code>selection</code>), 19,288
+bytes for two devices. Where <code>output.&lt;device&gt;.txt</code> is kept, its name answers:</p>
+<pre><code class="language-console">$ ls jobs/*/*/output.dead-iosxe.txt
+jobs/261015/261015-151449-01/output.dead-iosxe.txt
+</code></pre>
+<p>A site may turn off every output file but the summary and <code>commands.jsonl</code>, and
+there the operator's question, what was run at a device and by whom, needs the
+list by device. The rule. <code>job list</code> takes three filters, each judging the job
+and applied before the count. <code>--last N</code> is the count, 20 by default, 0 every
+job kept, as <code>karvi-prune</code>'s <code>--minfree 0</code> turns its floor off. <code>--failed</code> keeps
+the finished jobs whose exit is not 0, a partial failure and a cancellation
+among them; an unfinished job has no exit and is left out. <code>--target NAME</code> keeps
+the jobs that reached a device, NAME taken as <code>run</code>'s <code>--target</code> takes it
+(lowercased, a glob, repeatable, a job matching when any of its devices does);
+the named device's own outcome is issue 3's. The job summary names the job's
+devices, each with its outcome (one of <code>device_counts</code>' five), so the search
+reads summaries alone: job summary schema 3 to 4. An unfinished job, without a
+summary, is matched from the records its <code>commands.jsonl</code> holds so far. <em>Why:</em>
+the searches an operator makes, at the cost of the file every site keeps, which
+holds across the retention. <em>Not taken:</em> <code>--all</code> (in <code>run</code> and <code>crun</code> every
+device of the inventory, and a second option for one limit); each job's
+<code>commands.jsonl</code> searched (the cost grows with the output kept, not with the
+devices); the manifest (its size grows with the plan, and it is a switch a site
+turns off); the name of <code>output.&lt;device&gt;.txt</code> (a switch too); <code>--failed</code> judged
+by a named device's outcome (one option with two meanings); dates, <code>--day</code> or
+<code>--since</code> (the effective timezone's question again, answered by <code>--last 0</code>); the
+kind of job, a column; the operator, issue 4. Found: the audit's
+<code>command_completed</code> names its device inside <code>KARVI_AUDIT_JSON</code> alone, which
+<code>journalctl</code> matches only whole, and a run under <code>--nof</code> leaves no folder while
+its event still names the device; a <code>KARVI_DEVICE</code> field is ROADMAP Later, on
+the operator's word.</p>
+<p><strong>Issue 2, continued: the summary written at acceptance, agreed.</strong> A run of
+<code>show slow</code> at 20 seconds, killed (<code>kill -9</code>) after 3, left <code>261015-160057-00</code>
+with a manifest of 17,368 bytes, a <code>commands.txt</code> of 10, and a <code>commands.jsonl</code>
+and an <code>errors.jsonl</code> of 0, though the fake had been sent the command; its
+manifest's <code>plan.targets</code> named <code>fake-iosxe</code>, its records nothing. A job's
+summary is written last, and <code>InspectJobDirectory</code>, which <code>job follow</code> reads,
+takes its presence for the job's end; <code>karvi-prune</code> reads its <code>final_status</code> and
+keeps a folder whose summary is not final as live. The operator's word: the
+devices go in the summary, since many sites turn the manifest off. The rule. A
+job's <code>summary.json</code> is written when the job is accepted, naming its devices
+with no outcome and none of the result fields, and written whole again at its
+end; a job is finished when its summary names a final status.
+<code>InspectJobDirectory</code> and <code>job follow</code>'s path through the folder read the
+status, not the file's presence; the pruner takes a summary that is not final
+as it takes a folder without one, under the age rule alone; FILES section 4.3's
+&quot;written last&quot; becomes written at the job's acceptance and again at its end. An
+unfinished job is then matched by <code>--target</code> from its summary like any other.
+<em>Why:</em> a job cut short at any point names its devices in the one file every
+site keeps. <em>Not taken:</em> the manifest's <code>plan.targets</code> first where it is kept,
+proposed first (a site that turns it off loses the job); the records alone,
+issue 2's first rule (a job killed before its first record matches nothing); a
+file of the devices beside the summary (a switch a site turns off too).</p>
+<p><strong>Issue 3, the columns and the rows' order, agreed with the operator's two
+additions.</strong> On the lab above. <code>watch --format table</code>, under a pseudo-terminal
+of 80 columns, printed its header in 89 cells and its rows in 93 to 104, 83 of
+them before TARGET: a table it never narrows. Its TIME is a finished job's end,
+<code>HH:MM:SS</code>, without the date; its MODE says <code>run</code> or <code>cmd</code>; it orders the
+finished jobs newest first by their end, the Kiritimati run among them in its
+place by time. The site's <code>display.timestamp</code> (<code>hh:mm:ss yyyy-mm-dd</code>) takes 19
+cells. A sketch, laid out by a script from the lab's summaries and not printed
+by karvi, with OPERATOR shown, left TARGET 7 cells at 80 columns, <code>+12</code> for a
+job of twelve devices (<code>wide-001</code> to <code>wide-012</code>); at 120, five names and <code>+7</code>;
+at 160, nine and <code>+3</code>; to a pipe, all twelve in a line of 180. The rule. The
+text is <code>watch</code>'s table, its headings, cells, and status colours from the code
+<code>watch</code> uses (<code>Duration</code>, <code>DoneCell</code>, the heading line), but: no ACTV, a folder
+holding no live count; TIME the job's duration, its start being its ID; MODE the
+kind of job, <code>cmd</code>, <code>run</code>, or <code>crun</code> (an exercise is <code>run</code>, its STATUS
+<code>exercised</code>), four cells; and OPERATOR always, on the operator's word. The line
+fits the terminal's width, read at each run as <code>watch</code> reads it, with no limit
+at 80: TARGET takes what the fixed columns leave, each name whole while it fits
+and the rest counted, <code>+N</code>; to a pipe or a file nothing is cut. The rows stand
+in job-ID order, newest first, an unfinished job in its place with STATUS
+<code>unfinished</code> and TIME blank. Under <code>--target</code>, on the operator's word, a row is
+one matching device: JOB-ID, TIME, OPERATOR, MODE, OUTCOME (the device's own),
+and DEVICE, 59 cells before DEVICE, and <code>--last</code> counts rows. <code>--format json</code>
+prints one array of the rows, each the job's summary fields and its folder's
+path, under <code>--target</code> also the device and its outcome. <em>Why:</em> <code>watch</code>'s words
+and code, a line that fits its terminal, and no read beyond issues 1 and 2's.
+<em>Not taken:</em> <code>watch</code>'s table as it is (it wraps at 80); the end with its date
+(19 cells); the order of the start instants (every summary read for an order
+the ID gives but across a changed timezone, where the Kiritimati run stands
+first by its ID and no cell contradicts it, its TIME a duration); <code>watch</code>'s
+running rows above a rule (a folder's unfinished job may be days dead); a name
+cut (<code>fake-iosxe de</code> in the first sketch); a limit at 80 columns; under
+<code>--target</code>, the device's outcome in TARGET (<code>dead-iosxe=failed</code>, 17 cells, <code>+1</code>
+at 80). Found: <code>watch --all-retained</code> is registered as not built, from before
+the public tree, with no specification; <code>job list --last 0</code> is that view, and
+the placeholder goes when <code>job list</code> is built.</p>
+<p><strong>Issue 4, another operator's jobs in shared mode, agreed.</strong> A lab of two
+operators, <code>netops</code> and <code>netops.test</code>, both of the group <code>netops</code>, each with
+its own configuration, base directory, and trust store and one shared root in
+<code>/dev/shm</code> (group <code>netops</code>, its <code>jobs</code> tree 2770), each running one job:</p>
+<pre><code class="language-console">$ ls -ld shared/jobs/*/*
+drwxr-s--- 2 netops      netops 200 Oct 15 17:01 261015/261015-170121-00
+drwxr-s--- 2 netops.test netops 200 Oct 15 17:01 261015/261015-170122-00
+</code></pre>
+<p>Both jobs stand in the one tree, every file 0640 in the operators' group;
+<code>netops</code> read <code>netops.test</code>'s summary, whose manifest names <code>operator: netops.test</code>. The daemon refuses a client whose UID is not its own, so a job's
+files are its operator's, a service account's job the service account's. <code>job follow</code> by <code>netops</code> of <code>netops.test</code>'s finished job exited 111,
+<code>run_output_records_unreadable: …/commands.jsonl is owned by uid 1001, not 1000</code>: the folder's path opens <code>commands.jsonl</code> only when it is the caller's
+own, while FILES section 4.3 says any member reads another's job with <code>karvi job follow ID</code>. The rule. <code>job list</code> reads the output root issue 1 names: in
+shared mode every job of the shared tree, every operator's and a service
+account's; in individual mode the operator's own. OPERATOR is the owner of the
+job's summary, named by the system's user database, the UID where it names
+none. <code>--operator NAME</code>, repeatable, keeps that operator's jobs, applied before
+the count as the other filters are. A folder the operator cannot read is listed
+with <code>?</code> in the flag column, as <code>watch</code> marks an unreadable file. <code>job follow</code>,
+in the shared tree, takes a file another member owns when its group is the
+tree's and its mode 0640 or stricter, its other checks (a regular file, no link
+followed) as they are, so FILES holds. <em>Why:</em> the question that brought
+<code>--target</code>, whether any operator, agent, or application ran a job at a device,
+is answered by the shared tree, and the owner is the file system's word, not a
+file's. <em>Not taken:</em> the operator's own jobs by default, another's on an option
+(the question is everyone's); OPERATOR from a field of the summary (the same
+value, which a crafted file could name otherwise); FILES changed to the folder's
+path (a listed job that cannot be followed); an unreadable folder left out (a
+list that hides what is there).</p>
+<p><strong>Issue 4, continued: another member's live job followed from its folder,
+agreed.</strong> On the lab of two operators, with both configurations' <code>scoreboards</code>
+in one shared directory (3770, group <code>netops</code>) as a site's scratch root has
+them, <code>netops</code> started a run of <code>show slow</code> at 25 seconds through its daemon
+(<code>--detach</code>, <code>261015-170932-00</code>). While it ran, <code>netops.test</code>'s <code>watch --format table</code> showed it, <code>running</code>, <code>netops</code>, <code>0/1</code>, one device in flight; its <code>job follow</code> exited 112, <code>job_orphaned: job 261015-170932-00: … holds no summary and no running daemon holds the job … the daemon that ran it is gone</code>, though the
+job was live; <code>netops</code>'s own follow rendered it to its end, exit 0,
+<code>elapsed=25.62s</code>. A follow asks the caller's own daemon, which holds its own
+jobs alone and refuses another UID, and then the folder, which it reads for a
+finished job only. The rule. <code>job follow</code> of a job no daemon of the caller's
+holds, whose summary is not final, follows its folder: it renders each record
+of <code>commands.jsonl</code> as it is written and ends when the summary names a final
+status, the follow's display ending as it does for a job that has ended. It
+answers <code>job_orphaned</code> only when the job's scoreboard is stale by <code>watch</code>'s
+rule (<code>watch.stale-after</code>) or is gone. A site that turns <code>commands.jsonl</code> off
+sees such a job at its end alone. <em>Why:</em> <code>job list</code> shows another member's
+running jobs, and following one is the next thing an operator does; issue 2's
+summary at acceptance says the job is running, and issue 4's rule lets a member
+read its files. <em>Not taken:</em> a daemon serving followers of another UID (the
+daemon's one boundary crossed); the false <code>job_orphaned</code> recorded as a defect
+and the follow across members left for later.</p>
+<p><strong>Issue 5, a job without a folder and the summary's switch, agreed.</strong> On the
+lab: a run under <code>--nof</code> left no folder (seven before and after) while its
+<code>command_completed</code> audit event named <code>fake-iosxe</code> and the job, and
+<code>output.persist-command = false</code> does the same for every job on every path. A
+run with <code>output.files.summary-json=false</code> completed, exit 0, and left a folder
+without a summary; <code>job follow 261015-171544-00</code> answered <code>job_orphaned</code>, exit
+112. The operator's rule. Every job that makes a folder writes its summary:
+<code>output.files.summary-json</code> is removed, and the summary is the folder's index,
+which the list, the follow, the live follow, and the pruner read. An operator
+or a site may choose no output, <code>--nof</code> or <code>output.persist-command = false</code>,
+and the job then makes no folder, no summary, and no other file, and <code>job list</code>
+does not list it, with no warning. A folder without a summary is then a job cut
+short before its summary's first write: unfinished, and orphaned by the stale
+scoreboard's rule alone. The configuration registry loses the key and moves;
+the generated reference, schema, and ERROR-CODES follow it; <code>job_orphaned</code>
+loses its clause on the switch; FILES section 4.3 names the summary as always
+written. <em>Why:</em> the list's one source is wherever a folder is, and no output
+stays the operator's choice. <em>Not taken:</em> the switch kept and the functions it
+costs documented (a row that cannot say what the job did, a follow without its
+end, no follow across members), proposed and set aside on the operator's word;
+<code>--nof</code> writing the summary alone (the choice of nothing on disk overridden).
+Beyond the list, on the operator's word: what karvi writes to journald, and so
+to the syslog a host forwards it to, does not suffice as the audit trail, a
+later improvement (ROADMAP Later); after it, an audit review tool, perhaps the
+administrators', can answer for every job, while <code>job list</code> answers an operator
+for the jobs they made and, on a shared host, the team's.</p>
+<p><strong>Issue 4, continued while building: a job without a scoreboard, agreed.</strong> On a
+lab of the two operators, one shared tree and one scoreboard folder, with the
+follow from the folder built: <code>netops</code> ran <code>show slow</code> under <code>--set watch.enabled=false</code> (<code>--detach</code>, <code>261015-215025-00</code>), no scoreboard was
+written for it, and <code>netops.test</code>'s <code>job follow</code> answered at once, exit 112,
+<code>job_orphaned: job 261015-215025-00 has no final summary and no scoreboard</code>. A
+run killed with SIGKILL 2 seconds in (<code>261015-215338-01</code>) was followed by
+<code>netops.test</code> until its scoreboard went stale, 8 seconds later, exit 112, the
+refusal stacking the scoreboard's last update over <code>watch.stale-after</code>. The
+rule, as issue 4's continuation had it. With no scoreboard nothing shows the
+job running, and the follow from its folder answers <code>job_orphaned</code> at once, its
+words naming the fact; a site that turns <code>watch.enabled</code> off cannot follow
+another member's live job, while each operator follows their own through their
+daemon. <em>Why:</em> the scoreboard is the one sign of a live job that a member can
+read. <em>Not taken:</em> following on without a scoreboard (a dead job's follow never
+ends, and every long-dead job has none, scoreboards being pruned); the summary
+naming whether the job keeps a scoreboard (a field, and a dead job's follow on
+such a site still never ends).</p>
+<p><strong>Issue 4, continued while building: a job without <code>commands.jsonl</code>, agreed.</strong>
+On the same lab, a run of <code>show slow</code> under <code>--set output.files.commands-jsonl=false</code> (<code>261015-222039-00</code>) left a folder without
+<code>commands.jsonl</code>, its summary's <code>paths</code> naming none, as the summary is built &quot;so
+no reader is sent to a file that will not exist&quot;. <code>netops</code>'s follow through its
+daemon rendered the job live, exit 0, and after its end showed the footer and
+<code>warning: records 1 to 1 were before this follow and are not kept (output.files.commands-jsonl is false)</code>; <code>netops.test</code>'s follow from the
+folder, and <code>netops</code>'s once its daemon was stopped, exited 111,
+<code>run_output_records_unreadable: open …/commands.jsonl: no such file or directory</code>, as a finished job's follow from its folder did before. The rule.
+When the job's summary names no <code>commands_jsonl</code> in its <code>paths</code>, the follow
+from its folder opens no file and renders no record: it writes one warning,
+<code>the job's records are not kept (output.files.commands-jsonl is false)</code>, waits
+until the summary is final under the rule above, and ends with the display's
+end from <code>summary.json</code> (the footer, the summary line under <code>--format jsonl</code>,
+<code>[]</code> under <code>json</code>) and the job's exit, at once for a finished job. Whether the
+summary names the file counts, never the path it names; a summary naming
+<code>commands_jsonl</code> whose file is missing stays <code>run_output_records_unreadable</code>. A
+job that keeps <code>commands.jsonl</code> is rendered record by record as it is written.
+Built, <code>netops.test</code>'s follow of such a job (<code>261015-225241-00</code>) printed the
+warning and the footer, exit 0, as <code>netops</code>'s from the folder did after its
+end. <em>Why:</em> the follow from the folder ends as the daemon's follow of the same
+job ends. <em>Not taken:</em> no warning, the setting being deliberate (the follower
+may not be the one who chose it, and the daemon's follow warns); the file's
+absence alone (a lost file and one never written alike).</p>
+<p><strong>Issue 4, continued while building: a job ended without its final summary,
+agreed.</strong> On the same lab, a run of <code>show slow</code> (<code>--detach</code>,
+<code>261015-225412-00</code>) whose folder the lab's script made unwritable 2 seconds in
+ended as a full output disk would end it: <code>netops</code>'s follow through its daemon
+showed <code>! exit=111</code>, the scoreboard and <code>watch</code> said <code>errored</code>, and the summary
+was still the one written at acceptance. A job writes its final scoreboard
+before its final summary, and a scoreboard naming a final status is never stale
+by <code>watch</code>'s rule, so <code>netops.test</code>'s follow from the folder rendered the record
+and waited until the script stopped it after 60 seconds, saying the job
+continued. The rule. While the summary is not final, a scoreboard that names
+the job's end is stale once its last update is older than <code>watch.stale-after</code>,
+as any other is; the follow then answers <code>job_orphaned</code>, its words saying the
+scoreboard ended and stacking its last update over <code>watch.stale-after</code>.
+<code>watch</code> keeps its own rule. Built, the same run (<code>261015-230251-00</code>) was
+followed by <code>netops.test</code> to <code>job_orphaned: job 261015-230251-00 has no final summary and its scoreboard ended errored</code>, exit 112, 29 seconds after the job's
+start. <em>Why:</em> the follow ends with a true answer where the job's own end left no
+summary. <em>Not taken:</em> ending as soon as the scoreboard names an end (the
+summary's last write follows the scoreboard's, and one read could fall between
+them); ending with the scoreboard's status as the result (it holds no exit); a
+new code (<code>job_orphaned</code> already names a job without a final summary).</p>
+<p><strong>Issue 3, continued while building: the kind of job in the summary,
+agreed.</strong> On a lab of the S2 tree (<code>47105b9</code>), one operator: a <code>command</code>, a
+<code>run</code>, a <code>crun</code>, a <code>run --exercise</code>, and a <code>crun --exercise</code>, each finished,
+and a detached <code>run</code> and <code>crun</code> of <code>show slow</code> read 2 seconds after their
+acceptance. Every summary's <code>mode</code> was <code>live</code>, or <code>exercise</code> for the two
+exercises, the plan's mode; nothing in it told a <code>command</code> from a <code>run</code>, and
+<code>collection</code> was present for the finished <code>crun</code> alone, absent from both
+exercises and from the live <code>crun</code>'s summary, written at acceptance. Their
+scoreboards' <code>mode</code> said <code>cmd</code>, <code>run</code>, <code>crun</code>, <code>exercise</code>, and <code>exercise</code>. A
+job of <code>stream</code>, with or without <code>--cd=PATH</code>, and a <code>run --cd=PATH</code> were <code>run</code>
+by their scoreboards, the last two with <code>collection</code> present: a collection is
+not a <code>crun</code>. The rule. The summary names the job's kind, <code>kind</code>, at its
+acceptance and at its end: <code>cmd</code> for a <code>command</code>, <code>crun</code> for a <code>crun</code>, and
+<code>run</code> for a <code>run</code> and a job of <code>stream</code>; <code>job list</code>'s MODE shows it. An
+exercise keeps its kind, its STATUS <code>exercised</code>, so an exercised <code>crun</code> is
+<code>crun</code>. <code>mode</code> stays <code>live</code> or <code>exercise</code>. Job summary schema 4, not yet
+released, takes the field. <em>Why:</em> MODE from the one file the list reads, for
+every job, an unfinished one among them. <em>Not taken:</em> <code>activity_type</code>
+(<code>command</code> or <code>run</code>, as the records name it; a <code>crun</code> is not told at its
+acceptance); the scoreboard's words in the summary's <code>mode</code> (an existing
+field's meaning changed, an exercise's kind lost); the scoreboard or the
+manifest (pruned sooner, or a switch a site turns off); <code>collection</code> (absent
+at acceptance, and present for a <code>run --cd</code>).</p>
+<p><strong>Issue 2, continued while building: a <code>--target</code> beginning with <code>!</code>,
+agreed.</strong> On the same lab: <code>run --dry-run --target '*-iosxe' --target '!dead*'</code> planned one target, and <code>run --dry-run --target '!dead*'</code> exited 5,
+<code>inventory_positive_selector_missing: … a value beginning with &quot;!&quot; only removes devices</code>. A run of <code>fake-iosxe</code> and <code>dead-iosxe</code> (<code>261016-002853-00</code>, exit 101)
+left a summary naming <code>fake-iosxe</code> succeeded and <code>dead-iosxe</code> failed. The rule.
+<code>job list</code>'s <code>--target</code> values are applied to each job's devices, its summary's
+<code>devices</code>, as <code>run</code> applies them to the inventory: a value that selects keeps
+the devices it matches, and one beginning with <code>!</code> removes the devices it
+matches, wherever it stands. A job is listed when one of its devices remains,
+and under <code>--target</code> each remaining device is a row. A line whose every
+<code>--target</code> value begins with <code>!</code> is refused before any folder is read, as <code>run</code>
+refuses it, <code>inventory_positive_selector_missing</code>, exit 5, its words naming
+<code>job list</code>. On that job, <code>--target '*-iosxe' --target '!dead*'</code> gives one row,
+<code>fake-iosxe</code> succeeded; <code>--target 'dead*'</code> one row, <code>dead-iosxe</code> failed;
+<code>--target '!dead*'</code> alone the refusal. <em>Why:</em> <code>--target</code> means in <code>job list</code>
+what it means in <code>run</code>, the removal among it, and no line lists nothing
+without saying why. <em>Not taken:</em> <code>!</code> refused in <code>job list</code> (the option no
+longer <code>run</code>'s); <code>!</code> alone meaning every device but those (<code>run</code>'s rule broken,
+one option with two meanings); <code>!</code> alone listing nothing (an empty list without
+its reason).</p>
+<p><strong>Issue 4, continued while building: an unreadable folder's row, agreed.</strong> On
+the same lab, three finished jobs made unreadable by the lab's script:
+<code>261016-003305-00</code>'s summary given mode 000, <code>261016-003307-00</code>'s cut to 100
+bytes, and <code>261016-003309-00</code>'s folder given mode 000. Each one's <code>job follow</code>
+exited 111, the first and the third <code>run_output_records_unreadable: … permission denied</code>, the second <code>run_output_record_decode_failed: … unexpected end of JSON input</code>. The summary's owner was found for the first two, <code>netops</code>, and for the
+third only the folder's; <code>watch --format table</code>, with a scoreboard file of
+mode 000, showed it <code>? 261016-003305-00  -  invalid  -  -  -  -  -</code> and the
+file's path in TARGET. The rule. A job folder whose summary cannot be read or
+decoded is a <code>?</code> row; a folder without one is unfinished. Its cells are
+<code>watch</code>'s invalid row's: <code>?</code> in the flag column, JOB-ID the folder's name,
+STATUS <code>invalid</code>, <code>-</code> in TIME, MODE, DONE, and FAIL, TARGET the summary's path;
+OPERATOR is the summary's owner, or the folder's where the summary cannot be
+reached, which the file system names when the file cannot be read.
+<code>--operator</code> judges the row by that owner; <code>--failed</code> and <code>--target</code> cannot
+judge it and keep it, and <code>--last</code> counts it. Under <code>--target</code> the row's
+OUTCOME is <code>invalid</code> and its DEVICE the path. <code>--format json</code> gives it as
+<code>{&quot;path&quot;, &quot;operator&quot;, &quot;error&quot;}</code>, as <code>watch</code>'s JSON gives <code>{&quot;path&quot;, &quot;error&quot;}</code>.
+The exit stays 0, with no warning, as <code>watch</code>'s. <em>Why:</em> the list shows every
+folder under every filter, and <code>--operator</code> still judges each. <em>Not taken:</em>
+the row left out under <code>--failed</code> or <code>--target</code> (a job that may match hidden);
+OPERATOR <code>-</code> (the owner is known, and <code>--operator</code> could not judge the row); a
+warning or another exit (the list answered).</p>
+<p><strong>Issue 3, continued while building: an unfinished job's counts, agreed with
+the operator's refinement.</strong> On the same lab, a detached run of <code>fake-iosxe</code>
+and <code>dead-iosxe</code> (<code>261016-003707-00</code>) while it ran, and a run under
+<code>--no-daemon</code> killed with SIGKILL 2 seconds in (<code>261016-003708-00</code>): each
+summary, the one written at acceptance, named its devices without an outcome
+and held no <code>final_status</code> and no <code>device_counts</code>. <code>watch --format table --stale-after 4s</code> showed the first <code>running</code>, DONE <code>0/2</code>, FAIL <code>0</code>, ACTV <code>1</code>,
+and the second the same with <code>!</code>, the killed job's last counts. The rule. An
+unfinished job's DONE shows <code>u</code>, unknown, over the number of its summary's
+devices, the slash under DONE's O as in every row (<code>u/2</code>), and its FAIL shows
+<code>u</code>; the two <code>u</code> and STATUS <code>unfinished</code> take the warning colour, never written
+into a file. TIME stays blank, and TARGET names the devices as for any job.
+Under <code>--target</code> the row's OUTCOME is <code>unfinished</code>, in the warning colour, and
+its TIME blank. <code>--format json</code> gives the summary's fields as written at
+acceptance, with <code>path</code> and <code>operator</code>, and under <code>--target</code> <code>device</code> without
+<code>outcome</code>, the summary's device having none. A sketch, laid out by a script and
+not printed by karvi:</p>
+<pre><code class="language-text">  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261016-003708-00            unfinished  netops    run     u/1       u  fake-iosxe
+  261016-003707-00            unfinished  netops    run     u/2       u  fake-iosxe dead-iosxe
+  261016-002853-00  0m04s     errored     netops    run     2/2       1  fake-iosxe dead-iosxe
+</code></pre>
+<p><em>Why:</em> every cell from the summary alone, and none naming a count not known;
+<code>u</code>, not <code>?</code>, which reads as a digit's place and is the flag column's mark of
+an unreadable folder; the warning colour, since the job may run or be dead,
+and the error colour is FAIL's for failed devices. <em>Not taken:</em> the
+scoreboard's live counts (a second read for some rows, gone under
+<code>watch.enabled = false</code> or once pruned, and a dead job's last counts not its
+end); <code>0/2</code> and <code>0</code> (counts not known shown as none done and none failed); a
+blank FAIL, proposed first; <code>-</code> (<code>watch</code>'s mark of a file not read); the error
+colour.</p>
+<p><strong>Issue 3, continued while building: OPERATOR in the JSON, agreed.</strong> On the
+same lab, the finished job <code>261016-003707-00</code>: its scoreboard and its manifest
+named <code>operator</code> as <code>{&quot;username&quot;:&quot;netops&quot;,&quot;uid&quot;:1000,&quot;primary_gid&quot;:1000, &quot;groups&quot;:[…]}</code>, its summary named none, and <code>stat</code> named the summary's owner
+<code>netops</code>, UID 1000. The summary names no operator by issue 4's rule, so the
+rows issue 3 gave as the summary's fields and the folder's path held no
+OPERATOR. The rule. Each row of <code>job list --format json</code> is one object: the
+summary's fields as the file holds them, then <code>path</code>, the job's folder, and
+<code>operator</code>, <code>{&quot;username&quot;, &quot;uid&quot;}</code>, the shape the scoreboard and the manifest
+use, from the summary's owner as the list finds it, the folder's for a <code>?</code>
+row; <code>username</code> is <code>&quot;&quot;</code> where the user database names none, and the table then
+shows the UID. Under <code>--target</code> the row adds <code>device</code> and <code>outcome</code>, <code>outcome</code>
+left out for an unfinished job; a <code>?</code> row is <code>{&quot;path&quot;, &quot;operator&quot;, &quot;error&quot;}</code>.
+<code>summary.json</code> is unchanged. <em>Why:</em> a script reads what the table shows, and
+<code>--operator</code>'s judgement can be checked on every row. <em>Not taken:</em> <code>operator</code>
+as the cell's text (a name not told from a UID); the whole operator with its
+groups (a second lookup for values nothing reads); no <code>operator</code> (the one
+column the summary cannot give missing). Found: <code>watch</code> shows the
+scoreboard's <code>operator.username</code>, which the job's process writes, and never
+reads the file's owner, so a scoreboard in the shared folder (3770) naming
+another operator is shown under that name, where <code>job list</code> names the owner;
+<code>watch</code>'s OPERATOR from the owner is ROADMAP Later, on the operator's word.</p>
+<p><strong>Issue 1, continued while building: an empty list, agreed.</strong> On a lab of the
+working tree, <code>job list --operator nobody</code> exited 0 and printed <code>(no jobs)</code>.
+The rule. A list with no rows prints the one line <code>(no jobs)</code> on stdout, exit
+0, as <code>watch --format table</code> prints <code>(no retained activities)</code>: for an empty
+output root, one not yet made, and filters that leave nothing alike. <code>job list</code>
+makes no folder, taking the base folder's path as <code>watch</code> takes it.
+<code>--format json</code> prints <code>[]</code>. <em>Why:</em> a list without rows says so. <em>Not taken:</em>
+the heading alone (a list that reads as cut short); nothing (an empty answer
+not told from a failure); a warning on stderr (an empty list is no fault).</p>
+<p><strong>Issue 4, continued while building: an unreadable folder's row at a
+terminal, agreed.</strong> On the same lab, under <code>script(1)</code> at 80 columns, <code>job list --last 4</code> printed its heading in 79 cells and its rows in 75, and each <code>?</code>
+row in 144, its TARGET the summary's path, 72 cells where 7 were left; a site's
+path, <code>/opt/karvi/shared/jobs/261016/261016-010107-00/summary.json</code>, is 59 cells
+and fits whole from 132 columns. The rule. At a terminal a <code>?</code> row's TARGET, or
+its DEVICE under <code>--target</code>, is the summary's path when it fits whole and <code>…</code>
+when it does not, the mark of text left out as <code>watch</code>'s cut uses it; to a pipe
+or a file the path is whole. The row still names the job, its owner, and
+<code>invalid</code>, and <code>--format json</code> (<code>path</code>, <code>error</code>) or <code>job follow ID</code>, whose
+refusal names both, gives the path and the reason. <em>Why:</em> every row fits the
+terminal, as the table's rule has it. <em>Not taken:</em> the path whole, as built
+first (the one row that wraps); the path cut at its start or its end (7 cells
+at 80 say nothing, and a name cut is issue 3's not taken); <code>-</code> (<code>watch</code>'s mark
+of no value, where one was left out); the error's words (as wide at 80, and new
+words in a cell).</p>
+<p><strong>Issue 4, continued while building: a day folder that cannot be read,
+agreed.</strong> On a lab of the working tree, two runs on the 16th and one under
+<code>--timezone Pacific/Honolulu</code>, whose day folder was the 15th's, and then
+<code>261016</code> given mode 000 by the lab's script: <code>job list</code> exited 0 and listed
+<code>? 261016  -  invalid  netops</code>, the folder's path in TARGET, and then the
+Honolulu run, <code>261015-193306-00</code>, <code>completed</code>; <code>--format json</code> gave the
+folder's row as its path, its owner, and <code>run_output_records_unreadable: read …/jobs/261016: open …: permission denied</code>. The rule. A day folder the operator
+cannot read is one <code>?</code> row in its day's place: JOB-ID the folder's name, STATUS
+<code>invalid</code>, <code>-</code> in the other cells, OPERATOR the folder's owner, TARGET (DEVICE
+under <code>--target</code>) the folder's path or <code>…</code> at a terminal where it does not fit.
+The filters take it as a <code>?</code> job folder: <code>--operator</code> judges it, <code>--failed</code> and
+<code>--target</code> keep it, and <code>--last</code> counts it as one row. <code>--format json</code> gives
+<code>{&quot;path&quot;, &quot;operator&quot;, &quot;error&quot;}</code>, and the exit is 0. <em>Why:</em> the list goes on
+past the folder and shows it is there. <em>Not taken:</em> the list refused, exit 111
+(every other day hidden by one folder); a warning and the day passed over (the
+table silent where it is, the JSON without it); a row per job (their IDs
+cannot be read).</p>
+<p><strong>Issue 4, continued while building: a job whose day folder cannot be read,
+followed, agreed.</strong> On a lab of <code>47105b9</code>, <code>job follow</code> of a job whose folder
+the lab's script gave mode 000 exited 111, <code>run_output_records_unreadable: read …/summary.json: … permission denied</code>, and of a job whose day folder it gave
+mode 000 exited 112, <code>job_unknown: no job 261016-015352-00: … does not exist</code>:
+<code>LocateJobDirectory</code> took every <code>lstat</code> failure for an absent folder. The rule.
+<code>job follow</code> takes a job folder that <code>lstat</code> cannot reach, for any reason but
+its absence, as found, and its check names why, <code>run_output_records_unreadable</code>,
+exit 111, as for a job folder it cannot read; the daemon is asked first, as
+before. Built, the same follow exited 111, <code>run_output_records_unreadable: …/261016/261016-015356-00: lstat …: permission denied</code>. <em>Why:</em> the follow's
+answer is true, and the operator looks at the folder's mode or group. <em>Not
+taken:</em> the answer left (a false one); a new code (the one that names an
+unreadable folder, at the same exit as a job folder's); the other day folders
+searched first (the derived folder is where the job was written, and a glob
+sees no more through an unreadable folder).</p>
+<p><strong>Issue 5, continued while building: a folder without a summary, agreed.</strong> On
+a lab of the working tree, a run through the daemon without <code>NETPASS</code> exited 6,
+<code>credential_prompt_unavailable: client planning: …</code>, and left
+<code>261016-020953-00</code> empty, the folder the daemon had made for it (ROADMAP Later);
+<code>job list</code> showed it <code>unfinished</code>, MODE blank, DONE <code>u/0</code>, FAIL <code>u</code>, TARGET
+blank. A job writes its summary at its acceptance before any device is
+contacted, so a folder without one reached no device. The rule. A job folder
+without a summary is unfinished, STATUS <code>unfinished</code> and TIME blank; MODE <code>u</code>,
+DONE <code>u/u</code>, and FAIL <code>u</code>, every <code>u</code> in the warning colour, its kind and its
+count of devices not known; TARGET blank, no device reached. <code>--target</code> leaves
+it out, as a job that reached no device, <code>--failed</code> as an unfinished job, and
+<code>--operator</code> judges it by the folder's owner. <code>--format json</code> gives <code>{&quot;path&quot;, &quot;operator&quot;}</code>, there being no summary's fields. <em>Why:</em> the row claims nothing
+not known, and <code>--target</code> answers truly for it. <em>Not taken:</em> <code>u/0</code> and a blank
+MODE, as built first (a count of none claimed, a blank read as a missing
+column); a <code>?</code> row (nothing failed to be read: the folder holds no summary);
+the row kept under <code>--target</code>, as a <code>?</code> row is (a <code>?</code> row may hide a match,
+and this folder cannot).</p>
+<p><strong>Built.</strong> In four sections, each committed on the operator's word. S1 <code>d2e5b56</code>
+(issue 2's summary at acceptance and issue 5): <code>records.AcceptedSummary</code> at the
+head of <code>records.Summary</code>, written by <code>jobexec.Run</code> after the manifest and whole
+at the end; <code>devices</code> and job manifest and summary schema 4, the summary schema
+requiring the result fields once <code>final_status</code> is present;
+<code>app.InspectJobDirectory</code> and the pruner reading the status;
+<code>output.files.summary-json</code> removed, registry 30; the native suite's S29 and the
+v0100 suite's wait through <code>json_wait</code> in <code>scripts/lib/json.sh</code>. S2 <code>47105b9</code>
+(issue 4's follow across members and its three continuations): <code>openChecked</code>
+taking a member's file in the tree's group; <code>app.FollowJobDirectory</code> following
+any job no own daemon holds through the daemon follow's renderer,
+<code>jobexec.RunRenderer</code>, the scoreboard deciding while the summary is not final
+(<code>scoreboard.Find</code>, <code>scoreboard.Stale</code>); the container test's step 8, the
+service account's live job followed by one member and a member's by another. S3
+<code>0d701e1</code> (the list of issues 1 to 4, and the ten rules agreed while building
+it): <code>app.ListJobs</code>; <code>watchui.ListTable</code>; the summary's <code>kind</code> from
+<code>jobexec.jobKind</code>, which the scoreboard's mode takes too; <code>LocateJobDirectory</code>'s
+<code>lstat</code> rule; <code>watch</code>'s <code>--all-retained</code> removed; the help, <code>karvi-job(1)</code>, and
+the completion tests; <code>scripts/job-list-smoke-test.sh</code> in the suites' third
+lane. S4, the documents: the CHANGELOG; OPERATIONS' new section &quot;The list of
+jobs&quot;, its example from a lab build of <code>0d701e1</code>; DESIGN sections 2, 8, 10, 13,
+and 14; README; and the ROADMAP, whose Next item 2 is removed. The tests:
+<code>TestDeviceOutcomesAgreeWithTheCounts</code>, the acceptance summary on a held daemon
+job (<code>assertAcceptedSummary</code>), the devices against <code>device_counts</code>
+(<code>assertAccounted</code>), the pruner's summaries not final, and <code>job follow</code> on one
+(S1); <code>TestJobFollowFollowsAnUnfinishedFolder</code>,
+<code>TestJobFollowWithoutCommandsJSONL</code>, and <code>TestFindAndStale</code> (S2);
+<code>TestListJobsOrderAndCount</code>, <code>TestListJobsFilters</code>, <code>TestListJobsUnreadable</code>,
+<code>TestJobListEntryJSON</code>, <code>TestJobListParses</code>, <code>TestJobListText</code>,
+<code>TestListTableLayout</code>, <code>TestListTableTargetAtWidth</code>, <code>TestListTableByDevice</code>,
+<code>TestListTableColours</code>, and <code>TestLocateJobDirectoryUnreachable</code> (S3).</p>
+<p><strong>Settled while building S1, agreed.</strong> Four points the issues left open, on the
+operator's word. <code>devices</code> is a list of <code>{name, outcome}</code> in the plan's order,
+as the scoreboard's <code>targets</code>: the canonical name, and the outcome left out at
+acceptance and at the end the <code>device_counts</code> category the device is counted in,
+an exercise's <code>ready</code> or <code>not_ready</code>, from the rule that counts it
+(<code>deviceOutcomes</code> beside <code>terminalCounts</code>). The seven other switches false leave
+a folder holding the summary alone; no folder is <code>--nof</code> or
+<code>output.persist-command = false</code> alone. The manifest moves to 4 with the
+summary, one counter (<code>records.JobSchemaVersion</code>, <code>buildinfo.JobSchema</code>), its
+content unchanged. The daemon IPC schema stays 12, though the follow's terminal
+frame carries the summary and so its new fields: a daemon serves a client of its
+own build alone, so client and daemon are one build.</p>
+<p><strong>Found while building S2.</strong> A finished job followed from its folder now prints
+the <code>! ssh accepted new host-key …</code> line, as the daemon's follow did, the two
+going through one renderer; the after-the-fact renderer (<code>RenderJobDirectory</code>,
+<code>app.RenderRunOutput</code>, <code>jobexec.RenderRunOutput</code>) was removed, nothing calling
+it.</p>
+<p><strong>Executed.</strong> S1 to S3 each passed gofmt, vet, <code>make generated-clean</code>, and <code>go test ./...</code>. S1 passed all 17 suites (run_suites, <code>KARVI</code> the lab build) and
+<code>verify-shipped.sh</code> in a throwaway copy holding the lab build; S2 the 17 suites
+and the container test twice, on a deb of its final tree built in a copy; S3 all
+18 suites, the job list suite among them, and the container test on a deb of its
+final tree, its step 8 following the members' jobs; and each section's lab
+scripts ran on its final build, leaving no <code>/tmp/karvi-&lt;uid&gt;</code>,
+<code>/var/tmp/karvi-&lt;uid&gt;</code>, or <code>/dev/shm/karvi</code>. On a lab build of <code>0d701e1</code>, for
+the documents, a command, a run of <code>fake-iosxe</code> and <code>dead-iosxe</code>, a <code>crun</code>, an
+exercise, and a detached run of <code>show slow</code> gave OPERATIONS' example; the
+removed switch was refused, exit 2, and under <code>script(1)</code> at 80 columns every
+TARGET was counted, the fixed columns leaving 7 cells:</p>
+<pre><code class="language-text">$ karvi --set output.files.summary-json=false job list
+config_unknown_key: unknown configuration key for output.files.summary-json at --set[1]
+$ karvi job list
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261016-023522-00            unfinished  netops    run     u/1       u  +1
+  261016-023521-00  0m00s     exercised   netops    run     1/1       0  +1
+  261016-023519-00  0m01s     completed   netops    crun    1/1       0  +1
+  261016-023518-00  0m01s     errored     netops    run     2/2       1  +2
+  261016-023516-00  0m01s     completed   netops    cmd     1/1       0  +1
+</code></pre>
+<p><strong>Found while writing the documents.</strong> OPERATIONS' section on the output files
+still said a folder without <code>summary.json</code> is an orphan to <code>job follow</code>, true
+before S2; it now says such a folder, a job cut short before its summary's first
+write, is unfinished to <code>job list</code>, an orphan to <code>job follow</code> once its
+scoreboard is stale or gone, and an orphan to the pruner. <code>watch --all-retained</code>, refused <code>cli_option_unavailable</code> before S3, is now
+<code>cli_option_unknown</code>, exit 4 both, which the CHANGELOG names.</p>
+<p><strong>Closed.</strong> The ROADMAP's Next item 2 is gone; Next is item 1, shorter output
+strings, which waits on the operator's review of every message. Job manifest and
+summary schema 4 and registry 30 are the next release's, the verifiers pinning
+both since S1. S4 changes the documents alone: <code>make generated-clean</code> passed,
+and the HTML built with every link resolved. The evidence is kept beside the
+tree (<code>release-design-evidence/job-list-2026-10-15</code>, the design's labs and
+sketches; <code>job-list-s1-2026-10-15</code>, <code>job-follow-s2-2026-10-15</code>,
+<code>job-list-s3-2026-10-15</code>, and <code>job-list-s4-2026-10-16</code>).</p>
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

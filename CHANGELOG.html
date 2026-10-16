@@ -47,7 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
-<li><a href="#unreleased">Unreleased</a></li>
+<li><a href="#0310---2026-10-16">0.31.0 - 2026-10-16</a></li>
 <li><a href="#0301---2026-10-13">0.30.1 - 2026-10-13</a></li>
 <li><a href="#0300---2026-10-13">0.30.0 - 2026-10-13</a></li>
 <li><a href="#0290---2026-10-09">0.29.0 - 2026-10-09</a></li>
@@ -68,9 +68,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -119,7 +119,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
-<li><a href="#unreleased">Unreleased</a></li>
+<li><a href="#0310---2026-10-16">0.31.0 - 2026-10-16</a></li>
 <li><a href="#0301---2026-10-13">0.30.1 - 2026-10-13</a></li>
 <li><a href="#0300---2026-10-13">0.30.0 - 2026-10-13</a></li>
 <li><a href="#0290---2026-10-09">0.29.0 - 2026-10-09</a></li>
@@ -140,9 +140,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -154,8 +154,83 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
-<h2 id="unreleased">Unreleased <a class="anchor" href="#unreleased" aria-label="Link to this section">#</a></h2>
+<h2 id="0310---2026-10-16">0.31.0 - 2026-10-16 <a class="anchor" href="#0310---2026-10-16" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.30.1. The configuration registry moves from 29 to 30 and
+the job manifest and summary from 3 to 4; every other counter is 0.30.1's
+(configuration schema 6, execution plan 13, daemon IPC 12, command record 3,
+plan report 2, credential package 2, scoreboard 3, audit 1, metrics 1,
+inventory 1), and an operator's 0.30.1 daemon, of another build, is drained by
+the first submission after the upgrade. A site has something to change where
+its configuration names <code>output.files.summary-json</code> (refused at load), where a
+script took a job folder's <code>summary.json</code> for the job's end (a job has ended
+when its summary names a <code>final_status</code>), and where a script typed <code>--pl NAME</code>
+for <code>--platform NAME</code> (<code>--pl</code> is <code>--platform linux</code>). The module graph is
+0.30.1's.</p>
 <ul>
+<li><strong>Breaking: a job's summary is written at its acceptance and at its end;
+job manifest and summary schema 4.</strong> <code>summary.json</code> is written when the job
+is accepted, after its manifest, naming the job, its plan, its kind, the
+files it writes, and its devices, with none of the result fields, and
+written whole again at the job's end. Its presence no longer says the job
+has ended: a job has ended when its summary names a <code>final_status</code>, which
+<code>job follow</code> and <code>karvi-prune</code> read. Two fields are new: <code>devices</code>, a list
+of <code>{name, outcome}</code> in the plan's order, as the scoreboard's <code>targets</code>, the
+outcome the <code>device_counts</code> category the device is counted in (an
+exercise's <code>ready</code> or <code>not_ready</code>) and absent at acceptance; and <code>kind</code>,
+<code>cmd</code>, <code>run</code>, or <code>crun</code>, a job of <code>stream</code> being <code>run</code> and an exercise
+keeping its kind, beside <code>mode</code> (<code>live</code> or <code>exercise</code>). The manifest moves
+to 4 with the summary, its content unchanged. <code>karvi-prune</code> takes a folder
+whose summary names no final status as it took a folder without one, an
+orphan retired by age alone. The daemon IPC schema stays 12.</li>
+<li><strong>Breaking: <code>output.files.summary-json</code> is removed; every job folder holds
+its summary.</strong> A configuration naming the key is refused at load,
+<code>config_unknown_key</code> (exit 2), and the configuration registry moves from 29
+to 30. The seven other <code>output.files.*</code> switches false leave a folder
+holding its summary alone; a job writes no folder only under <code>--nof</code> or
+<code>output.persist-command = false</code>.</li>
+<li><strong><code>karvi job list</code>.</strong> The jobs of the output root from their summaries,
+needing no daemon or credential and making nothing: in shared mode every
+job of the shared tree, every operator's and a service account's; in
+individual mode the operator's own. With no option it lists the newest 20
+jobs by job ID, whatever their day. <code>--last N</code> (0 every job kept),
+<code>--failed</code> (the finished jobs whose exit is not 0), <code>--target NAME</code> (<code>run</code>'s
+rule over each job's devices: a glob, repeatable, a leading <code>!</code> removing;
+<code>!</code> values alone are refused, <code>inventory_positive_selector_missing</code>, exit
+5), and <code>--operator NAME</code> (repeatable) each judge a job before the count.
+The table is <code>watch</code>'s without ACTV: JOB-ID, TIME (the job's duration),
+STATUS, OPERATOR (the summary's owner), MODE (the kind), DONE, FAIL, and
+TARGET, the line fitted to the terminal, each device named whole while it
+fits and the rest counted as <code>+N</code>, nothing cut to a pipe or a file; under
+<code>--target</code> one row per matching device, OUTCOME the device's own. An
+unfinished job shows <code>unfinished</code>, TIME blank, and <code>u</code> in DONE and FAIL, in
+the warning colour; a folder or a day folder that cannot be read is a <code>?</code>
+row, <code>invalid</code>; a list with no row prints <code>(no jobs)</code>, exit 0. <code>--format json</code> prints an array of the rows, each the summary's fields with <code>path</code> and
+<code>operator</code> (<code>{username, uid}</code>) (<a href="docs/OPERATIONS.html#the-list-of-jobs"><code>docs/OPERATIONS.md</code>, &quot;The list of
+jobs&quot;</a>).</li>
+<li><strong><code>job follow</code> follows any job from its folder, across the shared tree's
+members.</strong> A job no daemon of the caller's holds, finished or live (a <code>run --no-daemon</code> of another terminal, another member's, a service account's),
+is followed from its folder: each <code>commands.jsonl</code> record as it is written,
+then the display's end once its summary names a final status, where only a
+finished job was read from its folder. In the shared jobs tree a file
+another member owns is read when its group is the tree's and its mode 0640
+or stricter; one of another group is refused <code>run_output_records_unreadable</code>
+(exit 111), its group over the tree's. While the summary is not final, the
+job's scoreboard decides: one that is gone, stale by <code>watch.stale-after</code>, or
+naming the job's end that long ago is <code>job_orphaned</code> (exit 112), where every
+job without a summary that no daemon held was; under <code>watch.enabled = false</code>
+another member's live job is <code>job_orphaned</code> at once. A job that keeps no
+<code>commands.jsonl</code> is followed to its end with one warning, <code>the job's records are not kept (output.files.commands-jsonl is false)</code>. A finished job
+followed from its folder prints the <code>! ssh accepted new host-key …</code> line, as
+the daemon's follow does. A job whose day folder cannot be read is
+<code>run_output_records_unreadable</code> (exit 111), where it was <code>job_unknown</code>
+(112).</li>
+<li><strong><code>watch --all-retained</code> is gone.</strong> The option, specified and refused as
+not available (<code>cli_option_unavailable</code>), is now unknown
+(<code>cli_option_unknown</code>); <code>job list --last 0</code> lists every job kept.</li>
+<li><strong>The job list suite.</strong> <code>scripts/job-list-smoke-test.sh</code> runs <code>job list</code> on
+the jobs of a lab output root made against the fake device (a command, a
+run with an unreachable device, a <code>crun</code>, an exercise, a killed run, an
+empty folder, and folders that cannot be read), in the suites' third lane.</li>
 <li><strong><code>--pl</code> is <code>--platform linux</code>, <code>--ps</code> is <code>--platform linux_shell</code>.</strong>
 <code>login</code>, <code>command</code>, and <code>run</code> take them beside <code>--pi</code>, <code>--pn</code>, <code>--pr</code>,
 <code>--pj</code>, <code>--pa</code>, and <code>--pg</code>. <code>--pl</code> is a whole word, so it is no longer a
@@ -1435,7 +1510,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -63,9 +63,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,9 +130,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -2962,7 +2962,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>dependency</td>
 <td style="text-align:right">112</td>
 <td style="text-align:center">no</td>
-<td>job follow found the job's directory without a summary and no running daemon holds the job: the daemon that ran it is gone and crash recovery is open, or <code>output.files.summary-json</code> was false for the job, which chose a folder without a terminal fact.</td>
+<td>job follow found the job without a final summary and its scoreboard gone, stale by <code>watch.stale-after</code>, or naming the job's end that long ago: the process that ran it is gone, or ended without its summary, and crash recovery is open.</td>
 </tr>
 <tr>
 <td><code>job_rejected</code></td>
@@ -5310,7 +5310,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

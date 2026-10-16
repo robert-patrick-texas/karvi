@@ -62,9 +62,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -128,9 +128,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -815,7 +815,8 @@ in a shared place and the operator's primary group in a private one.</p>
 <h3 id="43-a-jobs-files">4.3 A job's files <a class="anchor" href="#43-a-jobs-files" aria-label="Link to this section">#</a></h3>
 <p>In the job folder <code>jobs/YYMMDD/&lt;job-id&gt;</code>, every file <code>0640</code>: in shared mode
 in the operators' group, so any member reads another's job (<code>karvi job follow ID</code>). Each is written as the job runs, so a job cut short leaves what it
-had; each has its switch, <code>output.files.*</code>, and <code>--nof</code> writes no folder
+had; each but the summary has its switch, <code>output.files.*</code>, and <code>--nof</code> or
+<code>output.persist-command = false</code> writes no folder
 (<a href="OPERATIONS.html#the-jobs-output-files"><code>docs/OPERATIONS.md</code>, &quot;The job's output files&quot;</a>).</p>
 <table>
 <thead>
@@ -868,8 +869,8 @@ had; each has its switch, <code>output.files.*</code>, and <code>--nof</code> wr
 </tr>
 <tr>
 <td><code>summary.json</code></td>
-<td><code>summary-json</code></td>
-<td>the job's result: the counts, the exit, the paths; written last</td>
+<td>none</td>
+<td>the job's kind (<code>cmd</code>, <code>run</code>, or <code>crun</code>) and devices; written at the job's acceptance, and again whole at its end with the result, the counts, the exit, and each device's outcome</td>
 </tr>
 </tbody>
 </table>
@@ -1140,7 +1141,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

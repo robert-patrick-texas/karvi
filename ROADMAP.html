@@ -60,9 +60,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +124,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -228,10 +228,10 @@ recorded for that stage: under authenticated encryption a successful open
 is the validity check.</li>
 <li><strong>Crash recovery.</strong> A daemon journal, reconstruction of an unfinished job
 after a daemon crash or restart, and an <code>incomplete_daemon_recovery</code>
-terminal status. Today a job whose daemon died leaves its directory
-without a summary, <code>job follow</code> answers <code>job_orphaned</code> for it, the pruner
-retires it by age, and an abandoned spool's name carries what a
-reconstruction would need.</li>
+terminal status. Today a job whose daemon died leaves its summary without
+a final status, <code>job follow</code> answers <code>job_orphaned</code> for it once its
+scoreboard is stale or gone, the pruner retires it by age, and an
+abandoned spool's name carries what a reconstruction would need.</li>
 <li><strong>A <code>--from-now</code> follow</strong> starting at the live edge, with its own header
 saying what it left out.</li>
 <li><strong>Field prefixes in the watch screen's filter</strong> (<code>op:</code>, <code>mode:</code>), if the
@@ -342,6 +342,34 @@ resolution failed; the same run without the daemon makes none
 55</a>). The question:
 the directory made when the job is submitted, or removed when the client
 abandons it.</li>
+<li><strong>The audit trail, and then an audit review tool.</strong> What karvi writes to
+journald, and so to the syslog a host forwards it to, does not suffice as
+the record of every job, the one a run under <code>--nof</code> or
+<code>output.persist-command = false</code> leaves where it makes no folder
+(<a href="docs/EXAMPLES.html#61-a-list-of-jobs-karvi-job-list-2026-10-15"><code>docs/EXAMPLES.md</code>, chapter
+61</a>). One gap
+found: every <code>command_completed</code> event names its device inside
+<code>KARVI_AUDIT_JSON</code> alone, beside the fields <code>KARVI_EVENT_NAME</code>,
+<code>KARVI_ACTIVITY_ID</code>, and <code>KARVI_JOB_ID</code>, and <code>journalctl</code> matches a field
+only whole, so a device's commands are found only by reading every event's
+JSON; a <code>KARVI_DEVICE</code> field would let <code>journalctl SYSLOG_IDENTIFIER=karvi KARVI_DEVICE=NAME</code> answer what was run at a device, by every operator and
+service account. The item: a review of what each event records and where it
+is written, journald's fields and the audit file's line, so that the trail
+answers who ran what, where, and with what result. After it, an audit review
+tool, perhaps reserved for administrators, answers for every job, where <code>job list</code> answers an operator for the jobs they made and, on a shared host, the
+team's. The questions: the events and their fields; syslog beside journald;
+and who may run the review tool.</li>
+<li><strong><code>watch</code>'s OPERATOR from the file's owner.</strong> <code>watch</code> shows a scoreboard's
+<code>operator.username</code>, which the job's own process writes at its start, and
+never reads who owns the file, so a scoreboard in the shared folder (3770,
+every member writing into it) naming another operator is shown under that
+name; <code>job list</code> names a job's operator from its summary's owner, the file
+system's word (<a href="docs/EXAMPLES.html#61-a-list-of-jobs-karvi-job-list-2026-10-15"><code>docs/EXAMPLES.md</code>, chapter
+61</a>). The
+item: <code>watch</code>'s OPERATOR, its <code>/</code> filter, and its operator sort from the
+file's owner, as <code>job list</code>'s. The questions: a file whose field and owner
+differ, shown as the owner or marked; and the JSON form, which prints each
+snapshot as written.</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -376,7 +404,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

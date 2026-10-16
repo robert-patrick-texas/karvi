@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -288,11 +288,10 @@ the path for the device (the latter naming a transcript after it), and a
 stream's <code>--of PATH</code> line did the first at every job. The path form decides a
 refusal, never a meaning, so the entry above stands: a line still means one
 thing. <em>Not taken:</em> refusing every word after a bare switch (<code>command --of r1 …</code> would break); the spaced value on a stream line.</p>
-<p><strong>The <code>job</code> word.</strong> Every operation on one accepted job lives under <code>job</code>:
-<code>job follow JOB-ID</code> and <code>job cancel JOB-ID</code>, each taking one ID and never
-launching a daemon. <em>Why:</em> a verb on one job belongs to a <code>job</code> word, and
-the <code>daemon</code> word keeps the daemon's lifecycle. <em>Not taken:</em> <code>run --follow JOB-ID</code> (<code>--follow</code> is a boolean); <code>watch JOB-ID</code> (the watch screen shows
-counts, never records); <code>daemon cancel</code>.</p>
+<p><strong>The <code>job</code> word.</strong> Every operation on accepted jobs lives under <code>job</code>: <code>job list</code>, the jobs of the output root, and <code>job follow JOB-ID</code> and <code>job cancel JOB-ID</code>, each taking one ID; none launches a daemon. <em>Why:</em> a verb on jobs
+belongs to a <code>job</code> word, and the <code>daemon</code> word keeps the daemon's lifecycle.
+<em>Not taken:</em> <code>run --follow JOB-ID</code> (<code>--follow</code> is a boolean); <code>watch JOB-ID</code>
+(the watch screen shows counts, never records); <code>daemon cancel</code>.</p>
 <p><strong><code>crun</code> is a command word sharing <code>run</code>'s grammar.</strong> It takes <code>run</code>'s option
 slice, <code>--cd=PATH</code> and <code>--fs=SUFFIX</code> among them, may name no command, and
 dispatches to <code>run</code>'s handler with the collection set. The record's activity
@@ -1717,10 +1716,12 @@ change the job; the job still produces output the client would lose.</p>
 <p><strong><code>job follow</code> renders the whole job as the foreground run would have.</strong> It
 follows from the zero cursor; the daemon catches it up and feeds it live; the
 display ends with the footer or the jsonl summary line, and the exit is the
-job's own. A job the daemon does not hold is read from its directory, located
-as the day folder holding a subdirectory named by the ID; a directory without
-<code>summary.json</code> and no daemon holding the job is <code>job_orphaned</code>, the daemon
-judged before the directory. <code>job follow</code> and <code>job cancel</code> use a daemon of any
+job's own. A job no daemon of the caller's holds is followed from its
+directory, located as the day folder holding a subdirectory named by the ID,
+record by record until its summary names a final status; one whose summary is
+not final and whose scoreboard is gone, or stale by <code>watch.stale-after</code> (one
+naming the job's end included), is <code>job_orphaned</code>, the daemon judged before the
+directory. <code>job follow</code> and <code>job cancel</code> use a daemon of any
 version or build that speaks the client's IPC schema, and neither drains, since
 neither submits; a daemon of another schema refuses a running job's follow and
 cancel, <code>daemon_incompatible</code>, naming the karvi that speaks it, and a job that
@@ -1729,6 +1730,43 @@ the job; the files are the canonical record and the daemon serves the stream
 from them; after an upgrade the jobs a draining daemon finishes are followed and
 cancelled one at a time. <em>Not taken:</em> follow and cancel refused across builds
 (the old daemon's jobs out of reach but by cancelling them all).</p>
+<p><strong>A member follows another member's job from the shared tree.</strong> The follow from
+a folder takes a file another member owns when the output root is the shared
+jobs tree and the file stands in its group, mode 0640 or stricter, a regular
+file opened without following a link; outside that tree, or in another group, it
+is refused <code>run_output_records_unreadable</code>, the file's group stacked over the
+tree's. A job's scoreboard is the one sign that it runs: with none
+(<code>watch.enabled = false</code>) the follow of a summary not final answers
+<code>job_orphaned</code> at once. A summary naming no <code>commands_jsonl</code> is followed with
+one warning that the job's records are not kept, then the job's end, live or
+finished. <em>Why:</em> <code>job list</code> shows another member's running jobs, and following
+one is the next thing an operator does; the summary at acceptance says the job
+runs, and every member reads the tree's files through the group. <em>Not taken:</em> a
+daemon serving followers of another UID (the daemon's one boundary crossed);
+following on without a scoreboard (a dead job's follow never ends); no warning
+where the records are not kept (the follower may not be the one who chose it,
+and the daemon's follow warns); the file's absence alone for that (a lost file
+and one never written alike).</p>
+<p><strong><code>job list</code> lists the output root's jobs from their summaries.</strong> It reads the
+day folders newest first and each one's job folders newest first by job ID, and
+stops at <code>--last</code> (20 by default, 0 every job kept), every filter judging a job
+before the count: <code>--failed</code> the finished jobs whose exit is not 0; <code>--target</code>
+<code>run</code>'s rule over the summary's <code>devices</code>, a row per device left, a line of <code>!</code>
+values alone refused as <code>run</code> refuses it; <code>--operator</code> the summary's owner, by
+name or UID. In shared mode it reads the shared tree, every member's jobs and a
+service account's; in individual mode the operator's own. OPERATOR is the
+summary's owner, the file system's word. It makes nothing and needs no daemon or
+credential. <em>Why:</em> it always answers, whatever the day or the timezone, at a
+cost that does not grow with the retention; the searches an operator makes, at
+the cost of the one file every site keeps; whether anyone ran a job at a device
+is the team's question. <em>Not taken:</em> today's folder or the last 24 hours (empty
+on a quiet day, and which day is today follows the effective timezone); every
+job kept by default; <code>commands.jsonl</code> or the manifest searched for a device (the
+cost grows with the output or the plan, and the manifest is a switch a site
+turns off); dates, <code>--day</code> or <code>--since</code>; the operator's own jobs by default in
+shared mode; OPERATOR from a field of the summary (a crafted file could name
+another); <code>--failed</code> judged by a named device's outcome (one option with two
+meanings).</p>
 <p><strong>Cancellation is a job-scoped cause with shutdown's accounting.</strong> <code>cancel_job</code>
 cancels one job's context with a cause carrying the reason, requester, and
 time; the daemon answers <code>cancelling</code> or <code>terminal</code> at once and never waits. A
@@ -1941,8 +1979,8 @@ prompt is kept anywhere. <em>Why:</em> the plainest rule that makes &quot;never 
 hold without matching the secret's bytes against output; a device that echoes
 the secret has put it in exactly those bytes.</p>
 <p><strong>One boolean key per output file; the invocation decides on every path.</strong>
-<code>output.files.*</code> has a key per file, all true by default; each skips its own
-file and no other; all eight false is <code>--nof</code>, which writes no folder. The keys
+<code>output.files.*</code> has a key per file but the summary, all true by default; each
+skips its own file and no other; <code>--nof</code> writes no folder. The keys
 reach the job in its configuration and the plan's output block carries the
 resolved root, so the daemon writes what and where the invocation said, and <code>job follow</code> looks under the same root. <code>cmd --nof</code> and <code>cmd --of[=PATH]</code> are
 flag-origin values of <code>output.persist-command</code> and <code>output.root</code>, so a lock on
@@ -1950,6 +1988,25 @@ the key refuses the option by the lock alone. <em>Why:</em> a site chooses which
 it keeps; the daemon's store stays the one writer while the client's root
 travels in the plan. <em>Not taken:</em> the daemon's configuration as the authority
 for the files (two roots could disagree).</p>
+<p><strong>A job's summary is its folder's index, written at acceptance and at the end.</strong>
+<code>summary.json</code> is written when the job is accepted, after the manifest, naming
+the job, its kind, the files it writes, and its devices in the plan's order
+without their outcomes, and written whole again at the job's end with the result
+and each device's outcome, the <code>device_counts</code> category it is counted in. A job
+has ended when its summary names a final status; <code>job list</code>, <code>job follow</code>, and
+<code>karvi-prune</code> read the status, never the file's presence. Every job that makes a
+folder writes it, no switch turning it off; no output at all is <code>--nof</code> or
+<code>output.persist-command = false</code>, which make no folder. <code>kind</code> is <code>cmd</code>, <code>run</code>,
+or <code>crun</code>, a job of <code>stream</code> being <code>run</code> and an exercise keeping its kind;
+<code>mode</code> stays <code>live</code> or <code>exercise</code>. <em>Why:</em> a job cut short at any point names its
+devices in the one file every site keeps, and the list, the follow, and the
+pruner have one source wherever a folder is. <em>Not taken:</em> the manifest's
+<code>plan.targets</code> (a site turns it off); the records alone (a job killed before its
+first record matches nothing); a file of the devices beside the summary (a
+switch too); the summary's switch kept and the functions it costs documented;
+<code>--nof</code> writing the summary alone (the choice of nothing on disk overridden);
+<code>activity_type</code> or <code>collection</code> for the kind (a <code>crun</code> not told at acceptance, a
+<code>run --cd</code> taken for one).</p>
 <p><strong>A job runs under its client's configuration.</strong> The client sends its resolved
 values, the key and value set its digest covers, as the plan's <code>configuration</code>
 block under <code>plan_digest</code>; the daemon builds the job's configuration from it at
@@ -2369,6 +2426,24 @@ changes nothing. <code>--filter</code> and <code>--sort</code> are the script fo
 row; the cycle should follow the displayed field order and <code>S</code> names the
 direction. <em>Not taken:</em> field prefixes; a regular expression; a persistent
 filter key.</p>
+<p><strong><code>job list</code>'s table is the screen's cells without ACTV, fitted to the
+terminal.</strong> The headings, cells, and status colours are <code>watch</code>'s, from the same
+code; TIME is the job's duration, its start being its ID; MODE the kind;
+OPERATOR always. TARGET takes what the other columns leave at the terminal's
+width, each name whole while it fits and the rest counted as <code>+N</code>; to a pipe or
+a file nothing is cut. The rows stand in job-ID order, newest first. An
+unfinished job shows <code>u</code> in DONE and FAIL (<code>u/2</code>) in the warning colour, TIME
+blank, and a folder without a summary <code>u</code> in MODE and <code>u/u</code>; a folder or a day
+folder that cannot be read is the screen's invalid row, <code>?</code>, its path, or <code>…</code>
+where the path does not fit. An empty list prints <code>(no jobs)</code>; <code>--format json</code>
+prints an array of the summaries' fields with <code>path</code> and <code>operator</code> (<code>{username, uid}</code>). <em>Why:</em> the screen's words and code, a line that fits its terminal, and
+every cell from the summary alone, none naming a count not known. <em>Not taken:</em>
+the screen's table as it is (it wraps at 80); the end with its date (19 cells);
+the order of the start instants (every summary read for an order the ID gives);
+a name cut; the running rows above a rule (a folder's unfinished job may be days
+dead); the scoreboard's live counts (a second read, gone once pruned); <code>0/2</code>,
+<code>?</code>, or <code>-</code> for counts not known (none done claimed, the flag column's mark, a
+file not read); the heading alone or nothing for an empty list.</p>
 <h2 id="14-storage-roots-shared-trees-transcripts-and-retention">14. Storage: roots, shared trees, transcripts, and retention <a class="anchor" href="#14-storage-roots-shared-trees-transcripts-and-retention" aria-label="Link to this section">#</a></h2>
 <p><strong>The private root is the operator's, by username, where the site provisioned
 it.</strong> <code>basedir = &quot;auto&quot;</code> resolves <code>/opt/karvi/users/&lt;username&gt;</code>, then
@@ -2391,9 +2466,9 @@ never asks. <code>sudo karvi setup shared</code> creates the layout in the site'
 with the setgid bit and repairs what it made. The plan carries the resolved
 root so the daemon writes where the client decided. <em>Why:</em> a team keeps one job
 tree so an operator reads another's job with the same <code>job follow</code> and a lead
-finds the shift's work in one place; an operator outside the group is told, not
-diverted to a private tree. <em>Not taken:</em> a silent fall back; a <code>[shared]</code>
-table; moving a site's old trees.</p>
+finds the shift's work in one place, <code>job list</code>; an operator outside the group
+is told, not diverted to a private tree. <em>Not taken:</em> a silent fall back; a
+<code>[shared]</code> table; moving a site's old trees.</p>
 <p><strong>The scratch root is the site's; an operator makes only its own folder
 in it.</strong> <code>sudo karvi setup shared</code> makes <code>/dev/shm/karvi</code> and its
 <code>scoreboards</code> at 3770 and its <code>capacity</code> and <code>capacity/devices</code> at 2770 in
@@ -2539,8 +2614,8 @@ ownership decides (a run removes what the invoking user owns and passes the
 rest by; root removes everything eligible); a removal that fails is one line
 and the run goes on; the free-space floor is judged per filesystem. Empty day
 folders older than the age are removed by their name's date; an orphan folder
-without a summary and a stale non-terminal scoreboard retire by age alone,
-never under pressure. The six final statuses are one list. <em>Why:</em> the helper
+whose summary is not final and a stale non-terminal scoreboard retire by age
+alone, never under pressure. The six final statuses are one list. <em>Why:</em> the helper
 had matched a day-folder layout no writer used, so nothing it walked was ever
 pruned; a colleague's folder in a shared tree would otherwise stop a daily run
 at the first failure; three shapes stood forever. <em>Not taken:</em> a <code>karvi prune</code>
@@ -3031,7 +3106,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

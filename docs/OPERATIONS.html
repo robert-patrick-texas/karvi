@@ -24,6 +24,7 @@
 <ul class="sections">
 <li><a href="#upgrade">Upgrade</a></li>
 <li><a href="#rehearsal-detach-and-follow">Rehearsal, detach, and follow</a></li>
+<li><a href="#the-list-of-jobs">The list of jobs</a></li>
 <li><a href="#dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave</a></li>
 <li><a href="#the-watch-screen">The watch screen</a></li>
 <li><a href="#the-icmp-gate">The ICMP gate</a></li>
@@ -91,9 +92,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -119,6 +120,7 @@
 <ul class="sections">
 <li><a href="#upgrade">Upgrade</a></li>
 <li><a href="#rehearsal-detach-and-follow">Rehearsal, detach, and follow</a></li>
+<li><a href="#the-list-of-jobs">The list of jobs</a></li>
 <li><a href="#dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave</a></li>
 <li><a href="#the-watch-screen">The watch screen</a></li>
 <li><a href="#the-icmp-gate">The ICMP gate</a></li>
@@ -186,9 +188,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -209,15 +211,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.30.0 build=P7zVqO_tVBEzQMcMrxna
+<pre><code>daemon drained version=0.30.1 build=N5PmKyJFWom88FQHvi1o
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build P7zVqO_tVBEzQMcMrxna 0.30.0
-  client build N5PmKyJFWom88FQHvi1o 0.30.1
+  daemon build N5PmKyJFWom88FQHvi1o 0.30.1
+  client build 89IPVx9eRsYXSHKjpog8 0.31.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -257,23 +259,21 @@ other, neither combines with <code>--detach</code>, and <code>--exercise</code> 
 <p>A live run renders records as the daemon makes them durable. <code>--detach</code>
 prints the job ID and artifact directory and returns at acceptance (exit 0
 means accepted; follow the job with <code>karvi job follow</code>, watch it with
-<code>karvi watch</code>, or read its <code>summary.json</code> when it ends). <code>--follow=false</code>
-waits for the result without rendering.
+<code>karvi watch</code>, or find it with <code>karvi job list</code> and read its <code>summary.json</code>
+when it ends). <code>--follow=false</code> waits for the result without rendering.
 Ctrl-C during a run stops the client's follow only: it names the job that
 continues and its artifact directory and exits 113; the daemon finishes the
 job and writes its records. A closed stdout does the same with exit 111.</p>
 <p>To stop one accepted job without stopping the daemon:</p>
 <pre><code class="language-bash">karvi job cancel JOB-ID --reason 'wrong change window'
 </code></pre>
-<p>The job ID is the one <code>run --detach</code> printed or <code>karvi watch</code> shows. The
-daemon answers at once; the job's unfinished work is recorded <code>cancelled</code>
-and its summary ends <code>cancelled</code> at exit 113 with the request's time,
-reason, and requester in a <code>cancellation</code> block. <code>--follow</code> waits for the
-job's end and exits with the job's exit. A job that already ended is
-reported with its outcome, an unknown job ID is <code>job_unknown</code>, and the
-command never launches a daemon. Other jobs are untouched; a foreground
-<code>run</code> whose job is cancelled from elsewhere prints the cancelled line and
-exits 113.
+<p>The job ID is the one <code>run --detach</code> printed, or <code>karvi job list</code> or <code>karvi watch</code> shows. The daemon answers at once; the job's unfinished work is recorded
+<code>cancelled</code> and its summary ends <code>cancelled</code> at exit 113 with the request's
+time, reason, and requester in a <code>cancellation</code> block. <code>--follow</code> waits for the
+job's end and exits with the job's exit. A job that already ended is reported
+with its outcome, an unknown job ID is <code>job_unknown</code>, and the command never
+launches a daemon. Other jobs are untouched; a foreground <code>run</code> whose job is
+cancelled from elsewhere prints the cancelled line and exits 113.
 A cancel that arrives too late changes nothing: a job whose work had
 finished keeps its result and its exit, and an exercise (<code>run --exercise</code>)
 never ends <code>cancelled</code>, since its checks are local and take milliseconds.
@@ -290,19 +290,85 @@ run's ends (the footer from the job's summary in text, the summary document as
 the last line under <code>jsonl</code>, a collection's line after the footer in text; no
 result line on standard error), and exits with the job's own exit (0 completed,
 113 cancelled, 106 incomplete). Under <code>jsonl</code> the output is the job's
-<code>commands.jsonl</code> byte for byte, then its summary. The daemon serves the job
-while it holds it; a finished job the daemon no longer holds (after a restart,
-or evicted from the bounded job table) is read from its directory, found by the
-job ID under <code>output.root</code>. A directory without a summary whose job no daemon
-holds is <code>job_orphaned</code>: the daemon that ran it is gone, or the job was run
-with <code>output.files.summary-json</code> false and has no terminal fact on disk. A job
-run with <code>output.files.commands-jsonl</code> false is followed live by the client
-that started it; a later <code>job follow</code> starts at the edge and says which records
-are not kept. Ctrl-C stops only the follow. Neither <code>job</code> verb launches a
-daemon.</p>
+<code>commands.jsonl</code> byte for byte, then its summary. The operator's daemon serves
+the job while it holds it. Any other job is followed from its directory, found
+by the job ID under <code>output.root</code>: a finished job the daemon no longer holds
+(after a restart, or evicted from the bounded job table), a <code>run --no-daemon</code>
+of another terminal, and in the shared tree another member's or the service
+account's job. Each record of <code>commands.jsonl</code> is rendered as it is written
+until the summary names a final status, and the display ends from it. While
+the summary is not final, the job's scoreboard says whether it runs: one that
+is gone, or stale by <code>watch.stale-after</code>, or that names the job's end that long
+ago, is <code>job_orphaned</code>, the process that ran it gone. A site that turns
+<code>watch.enabled</code> off has no scoreboard, so another member's live job is
+<code>job_orphaned</code> to a follow; each operator still follows their own through their
+daemon. A job run with <code>output.files.commands-jsonl</code> false is followed live by
+the client that started it; a later <code>job follow</code> through the daemon starts at
+the edge and says which records are not kept, and one from the directory says
+the job's records are not kept and shows its end alone. Ctrl-C stops only the
+follow. Neither <code>job</code> verb launches a daemon.</p>
 <p><code>karvi-run(1)</code> (<code>man karvi run</code>), REHEARSAL, restates the dry run, the
 exercise, <code>--detach</code>, and Ctrl-C for the terminal; a change to one changes
 both.</p>
+<h2 id="the-list-of-jobs">The list of jobs <a class="anchor" href="#the-list-of-jobs" aria-label="Link to this section">#</a></h2>
+<p><code>karvi job list</code> lists the jobs of the output root from the summaries their
+folders hold; it needs no daemon or credential and makes nothing. In shared
+mode it reads the shared jobs tree, every operator's job and a service
+account's; in individual mode the operator's own. With no option it lists the
+newest 20 jobs by job ID, whatever their day, a running or unfinished job
+among them:</p>
+<pre><code class="language-text">$ karvi job list
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261016-023522-00            unfinished  netops    run     u/1       u  fake-iosxe
+  261016-023521-00  0m00s     exercised   netops    run     1/1       0  fake-iosxe
+  261016-023519-00  0m01s     completed   netops    crun    1/1       0  fake-iosxe
+  261016-023518-00  0m01s     errored     netops    run     2/2       1  fake-iosxe dead-iosxe
+  261016-023516-00  0m01s     completed   netops    cmd     1/1       0  fake-iosxe
+$ karvi job list --target 'dead*'
+  JOB-ID            TIME      OPERATOR  MODE  OUTCOME      DEVICE
+  261016-023518-00  0m01s     netops    run   failed       dead-iosxe
+</code></pre>
+<p>The columns are the watch screen's without ACTV. TIME is the job's duration,
+its start being its ID; OPERATOR is the owner of the job's summary, the UID
+where the user database names none; MODE is the kind of job, <code>cmd</code>, <code>run</code>, or
+<code>crun</code>, a job of <code>stream</code> being <code>run</code> and an exercise keeping its kind, its
+STATUS <code>exercised</code>. At a terminal the line fits the width: TARGET takes what
+the other columns leave, each device named whole while it fits and the rest
+counted as <code>+N</code>, so at 80 columns the rows above end <code>+1</code> and <code>+2</code>; to a pipe
+or a file nothing is cut. The rows stand in job-ID order, newest first. A job
+ID names its start in the effective timezone, so a job run under another
+<code>--timezone</code> stands by its ID.</p>
+<p>An unfinished job, running or cut short, shows STATUS <code>unfinished</code>, TIME
+blank, and <code>u</code>, unknown, in FAIL and in DONE over its devices (<code>u/1</code>), in the
+warning colour. A folder that holds no summary reached no device: it shows <code>u</code>
+in MODE and <code>u/u</code> in DONE, TARGET blank. A folder whose summary cannot be read
+or decoded, and a day folder that cannot be read, is a <code>?</code> row, STATUS
+<code>invalid</code>, its path in TARGET, or <code>…</code> at a terminal where the path does not
+fit; <code>--format json</code> and <code>karvi job follow ID</code> name the path and the reason. A
+list with no row prints <code>(no jobs)</code>, exit 0.</p>
+<p>The filters, each judging a job before <code>--last</code> counts it:</p>
+<ul>
+<li><code>--last N</code> lists N rows, <code>0</code> every job kept.</li>
+<li><code>--failed</code> keeps the finished jobs whose exit is not 0, a partial failure
+and a cancellation among them.</li>
+<li><code>--target NAME</code> keeps the jobs that reached a matching device and lists one
+row per such device, OUTCOME the device's own (<code>unfinished</code> while the job
+has not ended). NAME is taken as <code>run</code>'s <code>--target</code> takes it: a glob,
+repeatable, a value beginning with <code>!</code> removing the devices it matches. A
+line of <code>!</code> values alone is refused, <code>inventory_positive_selector_missing</code>
+(exit 5).</li>
+<li><code>--operator NAME</code>, repeatable, keeps that operator's jobs, by name or UID.</li>
+</ul>
+<p><code>--operator</code> judges a <code>?</code> row by the owner of what could not be read;
+<code>--failed</code> and <code>--target</code> keep it, since it may hide a match. <code>--format json</code>
+prints one array of the rows, each the job's summary fields as the file holds
+them, then <code>path</code>, the job's folder, and <code>operator</code>, <code>{&quot;username&quot;, &quot;uid&quot;}</code>;
+under <code>--target</code> the row adds <code>device</code> and its <code>outcome</code>, and a <code>?</code> row is
+<code>{&quot;path&quot;, &quot;operator&quot;, &quot;error&quot;}</code>.</p>
+<p>The job ID is the one <code>job follow</code> and <code>job cancel</code> take, and an errored job's
+folder holds the <code>failed-devices.txt</code> a rerun takes (&quot;The job's output files&quot;).
+A job run under <code>--nof</code> or <code>output.persist-command = false</code> makes no folder,
+and the list does not show it.</p>
 <h2 id="dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave <a class="anchor" href="#dispatch-serial-parallel-and-wave" aria-label="Link to this section">#</a></h2>
 <p>A <code>run</code> speaks to its devices one at a time unless told otherwise
 (<code>dispatch.default = &quot;serial&quot;</code>); <code>command</code> is always one device at a
@@ -1497,11 +1563,12 @@ with that command from one job to the next; after a bare line it goes with
 that job alone.</li>
 </ul>
 <h2 id="the-jobs-output-files">The job's output files <a class="anchor" href="#the-jobs-output-files" aria-label="Link to this section">#</a></h2>
-<p>A job folder (<code>&lt;basedir&gt;/jobs/YYMMDD/&lt;job id&gt;/</code>) holds eight kinds of
-file, each with a true/false key under <code>[output.files]</code>, all true by
-default. A file set false is not created. Every file is written from the
-job's memory and none from another file, so switching one off never
-breaks the writing of another; what you lose is what reads it.</p>
+<p>A job folder (<code>&lt;basedir&gt;/jobs/YYMMDD/&lt;job id&gt;/</code>) holds <code>summary.json</code>
+and seven other kinds of file, each with a true/false key under
+<code>[output.files]</code>, all true by default. A file set false is not created.
+Every file is written from the job's memory and none from another file,
+so switching one off never breaks the writing of another; what you lose
+is what reads it.</p>
 <table>
 <thead>
 <tr>
@@ -1554,12 +1621,6 @@ breaks the writing of another; what you lose is what reads it.</p>
 <td>process and dispatch measurements</td>
 <td>the measurements</td>
 </tr>
-<tr>
-<td><code>summary-json</code></td>
-<td><code>summary.json</code></td>
-<td>the job's result, counts, causes, and the paths of the files written</td>
-<td><code>karvi job follow</code> reports the job as orphaned once no daemon holds it; <code>karvi-prune</code> knows a finished job by its summary and treats a folder without one as an orphan, removed by age alone once its day, everything in it, and its scoreboard file are older than the retention age, never under free-space pressure</td>
-</tr>
 </tbody>
 </table>
 <p>Relationships worth knowing:</p>
@@ -1570,19 +1631,28 @@ the records there is nothing to derive a device's text from again, and
 the notice of a text file that could not be written says so.</li>
 <li><strong>A rerun needs <code>failed-devices.txt</code> and <code>commands.txt</code> together</strong>
 (<code>karvi run --tf …/failed-devices.txt --cf …/commands.txt</code>).</li>
+<li><strong><code>summary.json</code> has no key: every folder holds it.</strong> It is written
+when the job is accepted, naming the job's devices, and again whole at
+the job's end with the result, the counts, the causes, and each
+device's outcome; a job has ended when its summary names a final
+status. <code>karvi job list</code>, <code>karvi job follow</code>, and <code>karvi-prune</code> read
+it.</li>
 <li><strong>The summary names only the files that were written</strong> (<code>paths</code>, and
 <code>output.commands_jsonl</code>). The devices' text files are not listed; the
 name is <code>output.</code> + the device's name (or its address) + <code>.txt</code>.</li>
-<li><strong>All eight false is no job folder at all,</strong> the same as <code>cmd --nof</code>:
+<li><strong>All seven false leaves the folder with its summary alone.</strong> No folder
+at all is <code>output.persist-command = false</code>, the same as <code>cmd --nof</code>:
 the footer ends <code>artifacts=none</code>.</li>
 <li><strong>The invocation decides a job's files on every path.</strong> The plan carries
-the eight switches, <code>output.persist-command</code>, and the resolved
+the seven switches, <code>output.persist-command</code>, and the resolved
 <code>output.root</code>, so a run through the daemon keeps the files the client's
 configuration says and writes them under the client's root; the daemon
 reads its own <code>output.files.*</code> for no job. A job that keeps no
 <code>commands.jsonl</code> is followed from the live edge (records before the
-follow are not kept, and the client says so once); a folder without
-<code>summary.json</code> is an orphan to <code>job follow</code> and to the pruner.</li>
+follow are not kept, and the client says so once). A folder without
+<code>summary.json</code>, a job cut short before its summary's first write, is
+unfinished to <code>job list</code>, an orphan to <code>job follow</code> once its scoreboard
+is stale or gone, and an orphan to the pruner.</li>
 <li><strong>The invocation's timeouts and command byte limit travel too.</strong>
 <code>execution.command-timeout</code>, <code>execution.device-timeout</code>,
 <code>execution.prompt-timeout</code>, <code>execution.enable-timeout</code>,
@@ -1602,8 +1672,8 @@ out (<code>output_text_write_failed</code>, the job continues); a record that
 would pass it ends the job as an output failure, exit 111, with
 <code>output_job_limit_exceeded</code> and the device on standard error, the
 device listed in <code>failed-devices.txt</code>.</li>
-<li><code>output.persist-command = false</code> (<code>--nof</code>) is all eight false, on
-<code>cmd</code>, <code>run --no-daemon</code>, and a run through the daemon alike: the
+<li><code>output.persist-command = false</code> (<code>--nof</code>) writes no folder and no
+file, on <code>cmd</code>, <code>run --no-daemon</code>, and a run through the daemon alike: the
 invocation's keys travel in the plan and the daemon's store honours
 them. <code>run --nof</code> with <code>--detach</code> or
 <code>--exercise</code> is refused; <code>run --nof --follow=false</code> is a run for its
@@ -1761,7 +1831,8 @@ by hand for an operator is taken as it is, whatever its mode.</p>
 <code>/var/lib/karvi/shared</code>, tree by tree, so a site may share the collections and
 not the jobs. Jobs land in <code>/opt/karvi/shared/jobs/YYMMDD/ID</code>, the day folder
 with the tree's own mode so any member can add a job folder to it, the job
-folder at <code>output.directory-mode</code> and its files 0640 in the group, so <code>karvi job follow ID</code> reads another operator's job from any member's shell. A tree the
+folder at <code>output.directory-mode</code> and its files 0640 in the group, so <code>karvi job list</code> shows every member's jobs and <code>karvi job follow ID</code> reads another
+operator's job, live or finished, from any member's shell. A tree the
 operator cannot create files in is refused, not passed by
 (<code>output_directory_not_writable</code> and its siblings, the message naming the group
 and the setting); <code>sharedroot = &quot;none&quot;</code> keeps every tree under <code>basedir</code>, as
@@ -1774,8 +1845,9 @@ operator (&quot;Retention&quot; says why).</p>
 <h2 id="retention">Retention <a class="anchor" href="#retention" aria-label="Link to this section">#</a></h2>
 <p><code>karvi-prune</code> removes finished work older than the retention age (thirty-one
 days by default) from the trees karvi writes: finished jobs, ended transcripts,
-and terminal scoreboard files by their end time; job folders without a summary
-and scoreboard files a crashed daemon left at <code>running</code>, by age alone; then the
+and terminal scoreboard files by their end time; job folders whose summary
+names no final status and scoreboard files a crashed daemon left at <code>running</code>,
+by age alone; then the
 day folders left empty. It never touches a running job, the collection
 directory, the audit log, or journald, and long-term audit retention is the
 central forwarder's, not the helper's. <a href="PRUNE.html"><code>docs/PRUNE.md</code></a> holds the
@@ -2096,7 +2168,7 @@ exit. Global options go before the word: <code>karvi --quiet --config FILE strea
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>

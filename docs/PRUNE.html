@@ -66,9 +66,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -136,9 +136,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.30.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.30.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.30.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.31.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.31.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -213,7 +213,7 @@ default), the cutoff being now less that many days.</p>
 </tr>
 <tr>
 <td><code>orphan</code></td>
-<td>a job folder without <code>summary.json</code>: a job the daemon's death cut short, or one run with <code>output.files.summary-json</code> false</td>
+<td>a job folder whose <code>summary.json</code> names no final status, or without one: a running job, or one the daemon's death cut short</td>
 <td>its day folder's date is before the cutoff, nothing in it is newer, and its scoreboard file, if any, is final or older than the age</td>
 <td>never</td>
 </tr>
@@ -231,8 +231,8 @@ default), the cutoff being now less that many days.</p>
 </tr>
 </tbody>
 </table>
-<p>What never goes: a running job (its summary is not final, or its
-scoreboard file is live), a transcript still being recorded (no end
+<p>What never goes: a running job (its folder is younger than the age, or
+its scoreboard file is live), a transcript still being recorded (no end
 record), a folder under a name that is not a <code>YYMMDD</code> day folder, a
 symbolic link, a file the helper cannot read, the collection directory
 (<code>crun</code>; the latest file per device is not retention), the audit log,
@@ -337,8 +337,8 @@ days, hours under a day, minutes under an hour; a job's age counts from
 its end, an orphan's from the newest thing in it, a day folder's from
 its date. Under <code>--verbose</code> every examined item that stays has a <code>kept</code>
 line with one reason: <code>young</code> (within the age), <code>live</code> (a running job's
-summary or snapshot, a transcript without its end record, an orphan whose
-snapshot is live), <code>not-owned</code>, <code>not-a-day-folder</code>, <code>symlink</code>,
+snapshot, a transcript without its end record, an orphan whose snapshot is
+live), <code>not-owned</code>, <code>not-a-day-folder</code>, <code>symlink</code>,
 <code>unreadable</code>; and every place looked at has a <code>walk</code> line.</p>
 <p>The summary: <code>examined</code> records read, <code>removed</code> items removed (or that
 would be), <code>skipped</code> entries passed by (a name that is not a day folder,
@@ -480,7 +480,7 @@ storage&quot;</a>: the helper's place beside the
 daemon.</li>
 </ul>
 
-<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.30.1-5-g765164a</code>.</footer>
+<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.31.0</code>.</footer>
 </main>
 </body>
 </html>
