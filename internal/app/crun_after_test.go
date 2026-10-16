@@ -3,9 +3,12 @@ package app
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -73,5 +76,40 @@ func TestCollectionHook(t *testing.T) {
 	}
 	if wall := time.Since(start); wall > 3*time.Second {
 		t.Fatalf("the shell and its sleep were not ended together: %s", wall)
+	}
+}
+
+// TestCollectionHookEndsItsGroup covers the bound on a hook whose child
+// ignores SIGTERM: the shell goes at the signal, the child is killed killGrace
+// later, and run returns once the hook's process group is gone.
+func TestCollectionHookEndsItsGroup(t *testing.T) {
+	dir := t.TempDir()
+	pgid := filepath.Join(dir, "hook.pgid")
+	script := filepath.Join(dir, "hook.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\necho \"$$\" >\""+pgid+"\"\n(trap '' TERM; sleep 30)\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	h := collectionHook{Path: script, Timeout: 300 * time.Millisecond, Summary: &records.CollectionSummary{Directory: dir}}
+	var stderr bytes.Buffer
+	start := time.Now()
+	o := h.run(context.Background(), &stderr)
+	wall := time.Since(start)
+	if !o.timedOut {
+		t.Fatalf("a hook past its bound: %+v", o)
+	}
+	b, err := os.ReadFile(pgid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	group, err := strconv.Atoi(strings.TrimSpace(string(b)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Kill(-group, 0); !errors.Is(err, syscall.ESRCH) {
+		_ = syscall.Kill(-group, syscall.SIGKILL)
+		t.Fatalf("the hook's group %d outlived run: %v", group, err)
+	}
+	if wall < killGrace || wall > killGrace+3*time.Second {
+		t.Fatalf("run returned after %s, want the bound and killGrace", wall)
 	}
 }

@@ -2292,6 +2292,20 @@ identity, mail transport) while the daemon has the user manager's; git and mail
 are a site's choices. *Not taken:* a built-in `crun.git`; the daemon running the
 hook; mail sent by karvi.
 
+**A hook's process group is gone when the client returns.** The hook leads a
+process group of its own. At `crun.after-timeout`, or at the invocation's
+interrupt, the client sends the group SIGTERM, SIGKILL to what is left of it
+five seconds later, and returns once the group is gone, giving up five seconds
+after the SIGKILL on a process in uninterruptible sleep; a hook that exits by
+itself is not followed, what it leaves in its group being its own. *Why:* the
+documents said the group was killed, but the kill reached the hook's shell
+alone, and a child that ignored SIGTERM outlived `crun` ([`docs/EXAMPLES.md`,
+chapter 62](EXAMPLES.md#62-the-releases-0310-and-0311-2026-10-16)). *Not
+taken:* SIGKILL at once, which leaves a hook no time to clean up (git's lock);
+a wait without a cap, which a process in uninterruptible sleep would hang;
+ending the group of a hook that exits by itself, which may start what is meant
+to outlive it.
+
 **The schedule is the scheduler's.** A packaged systemd timer and a cron line
 under `flock` run `crun --all --no-daemon`; karvi holds no directory lock and
 has no schedule key. *Why:* systemd never starts a service while the previous
@@ -2917,10 +2931,14 @@ base directory, spool directory, scoreboard directory, and `sharedroot none`
 under its own work directory; every test binary that reaches the shared-tree
 resolver isolates it, with a scratch root of its own made under `/tmp`, never
 `TMPDIR`, so a socket in it stays within the path limit at the release's
-145-byte `TMPDIR`; a must-not-appear check stops the script. *Why:* fifteen
-scripts once enrolled into the operator's real trust store, and a verifier run
-left job folders in a site's shared tree; a root under `TMPDIR` failed twenty
-socket tests at the 0.26.0 release.
+145-byte `TMPDIR`; a must-not-appear check stops the script. A suite looks
+for, and ends, only processes it started: by a PID or process group it
+recorded, or by a pattern holding its own work directory, never by a pattern
+another process on the host can match. *Why:* fifteen scripts once enrolled
+into the operator's real trust store, and a verifier run left job folders in a
+site's shared tree; a root under `TMPDIR` failed twenty socket tests at the
+0.26.0 release; a check matching `sleep 20` across the host failed the 0.31.0
+bundle's verifier, and its `pkill` ended every match.
 
 **A build is stamped with its version and its commit.** `make build` stamps
 the commit `git describe --always --dirty` names in a git checkout's root

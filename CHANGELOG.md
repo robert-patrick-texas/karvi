@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **A `crun.after` hook's process group is gone when `crun` returns.** At
+  `crun.after-timeout`, or when the run is interrupted, the hook's process
+  group is sent SIGTERM and, five seconds later, SIGKILL to what is left of
+  it, and `crun` returns once the group is gone, giving up five seconds after
+  the SIGKILL on a process in uninterruptible sleep. The SIGKILL reached the
+  hook's shell alone, so a child that ignored SIGTERM outlived `crun`, where
+  [`docs/COLLECTION.md`](docs/COLLECTION.md) and `crun.after-timeout`'s
+  documentation said the group was killed. A hook that exits by itself is not
+  followed: what it leaves in its group is its own.
+- **The parity suite's hook check looks for the hook's own process group.**
+  `scripts/native-smoke-test.sh`'s S33 matched `sleep 20` across the host after
+  the hook's bound and ended every match, so another's process failed it, and
+  was ended; it failed the 0.31.0 bundle's verifier once. The hook records its
+  process group, the check looks for that group alone, and the hook's child
+  ignores SIGTERM, so the suite proves the kill.
+
 ## 0.31.0 - 2026-10-16
 
 A minor release on 0.30.1. The configuration registry moves from 29 to 30 and

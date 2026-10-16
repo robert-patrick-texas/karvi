@@ -12343,15 +12343,15 @@ tree (`release-design-evidence/job-list-2026-10-15`, the design's labs and
 sketches; `job-list-s1-2026-10-15`, `job-follow-s2-2026-10-15`,
 `job-list-s3-2026-10-15`, and `job-list-s4-2026-10-16`).
 
-## 62. The release 0.31.0 (2026-10-16)
+## 62. The releases 0.31.0 and 0.31.1 (2026-10-16)
 
-The ninth public release, on the operator's word and number, carrying [chapter
-61](#61-a-list-of-jobs-karvi-job-list-2026-10-15) (`karvi job list`, the
-summary at acceptance, `job follow` across the shared tree's members), `--pl`
-and `--ps`, the HTML's repository link, and OPERATIONS' tab completion for a
-shorter name. The configuration registry moves from 29 to 30 and the job
-manifest and summary from 3 to 4; the daemon IPC schema stays 12, so there is
-no lifecycle replay and the compatibility example is the drain. The sequence is
+The ninth public release, 0.31.0, on the operator's word and number, carrying
+[chapter 61](#61-a-list-of-jobs-karvi-job-list-2026-10-15) (`karvi job list`,
+the summary at acceptance, `job follow` across the shared tree's members),
+`--pl` and `--ps`, the HTML's repository link, and OPERATIONS' tab completion
+for a shorter name. The configuration registry moves from 29 to 30 and the job
+manifest and summary from 3 to 4; the daemon IPC schema stays 12, so there is no
+lifecycle replay and the compatibility example is the drain. The sequence is
 [chapter 60](#60-the-release-0301-2026-10-13)'s, the baseline's rule already
 met: `dev` held its `## Unreleased` block since S4.
 
@@ -12496,6 +12496,82 @@ the check drafted, the copy's hook child ignoring SIGTERM:
 
 *Not taken:* a narrower `pkill` pattern, which can still match another's
 process; a `sleep` copied under `$TMP` so that the pattern holds the work
-directory, more machinery for the same scope. The two-second wait is issue 2's
-to settle: the control above found karvi's own bound short of what its
-documents say.
+directory, more machinery for the same scope. The control above found karvi's
+own bound short of what its documents say, issue 2; with issue 2 in, the check
+has no wait, looking at the group when `crun` returns, and the suite's hook
+child ignores SIGTERM, so that the suite proves the kill.
+
+**Issue 2, the `crun.after` bound, agreed.** `collectionHook.run`
+(`internal/app/crun_after.go`) sent SIGTERM to the hook's process group at the
+bound, and `os/exec`'s kill five seconds on (`WaitDelay`) reached the hook's
+shell alone, and only when the shell was still there: a child ignoring SIGTERM
+outlived `crun`, where COLLECTION, `crun.after-timeout`'s documentation, and the
+code's comment said the group was killed. *What it gains:* a hook past its
+bound, or interrupted, leaves nothing running, as the documents say, and issue
+1's check needs no wait. *What it waits on:* nothing. The rule, the operator's:
+*when karvi signals a hook's process group, at its bound or at the invocation's
+interrupt, it returns only once the group is gone: SIGTERM to the group;
+SIGKILL to whatever is left of it five seconds later; then up to five seconds
+more for the killed processes to go, a process that will not die even then (in
+uninterruptible sleep) left. A hook that exits on its own is not followed:
+whatever it leaves in its group is its own. The duration the warning and the
+audit report is the hook's own, up to the end of its shell.* The change: the
+`Cancel` function notes when it signalled; after `Run`, `endGroup` looks at the
+group every 20 ms (`kill(-pgid, 0)` until `ESRCH`), sends SIGKILL at the signal
+plus five seconds, and gives up five seconds after that. A Go test
+(`TestCollectionHookEndsItsGroup`) runs a hook whose child ignores SIGTERM past
+a 300 ms bound: the group is gone when `run` returns, 5.33 s on; against the
+released code it fails, the group still there. Executed by
+`hookbound.sh KARVI FAKE WORKDIR`, a `crun --no-daemon` against the fake device
+with `crun.after-timeout` 1s (a minute for the interrupt), the hook leading its
+group and waiting on a background `sleep 30`; the released build and a lab build
+of the tree (`[script]` lines are the script's; the `warning:` lines karvi's):
+
+```text
+the released 0.31.0, the hook's child ignoring SIGTERM:
+[2] karvi crun --no-daemon --transport native --target d1, the hook past its 1s bound
+exit=0 after 1.7s
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh ran past crun.after-timeout (1s) and was ended
+[script] the hook's group 3420094, its child 3420095
+[script] the group when crun returned:
+3420095 3420094 S    sleep 30
+[script] the group six seconds later:
+3420095 3420094 S    sleep 30
+the tree, the same hook:
+[2] karvi crun --no-daemon --transport native --target d1, the hook past its 1s bound
+exit=0 after 6.8s
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh ran past crun.after-timeout (1s) and was ended
+[script] the hook's group 3627474, its child 3627475
+[script] the group when crun returned:
+  (none)
+the released 0.31.0, SIGINT to karvi while the hook runs:
+[2] karvi crun --no-daemon --transport native --target d1, interrupted in the hook
+[script] SIGINT to karvi pid 3425620
+exit=0 0.0s after the SIGINT
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh was interrupted after 254ms
+[script] the hook's group 3425661, its child 3425662
+[script] the group when crun returned:
+3425662 3425661 S    sleep 30
+[script] the group six seconds later:
+3425662 3425661 S    sleep 30
+the tree, the same:
+[2] karvi crun --no-daemon --transport native --target d1, interrupted in the hook
+[script] SIGINT to karvi pid 3628043
+exit=0 5.0s after the SIGINT
+-- stderr
+warning: crun_after_failed: /dev/shm/r310/hb/hook.sh was interrupted after 251ms
+[script] the hook's group 3628109, its child 3628110
+[script] the group when crun returned:
+  (none)
+```
+
+A child that does not ignore SIGTERM goes at the signal in both, the group gone
+when `crun` returns: 1.7 s released, 1.8 s the tree. *Cost:* a group member
+that ignores SIGTERM delays `crun`'s return by up to the five seconds the
+documents name. *Not taken:* SIGKILL at once, which leaves a hook no time to
+clean up (git's lock); a wait without a cap, which a process in uninterruptible
+sleep would hang; ending the group when the hook exits on its own, since a hook
+may start what is meant to outlive it.

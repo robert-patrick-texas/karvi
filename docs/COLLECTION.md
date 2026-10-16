@@ -509,11 +509,14 @@ reads the replaced files' names on standard input, one per line, sorted
 
 Its output, both streams, goes to karvi's stderr after the display, so a
 `--format jsonl` stdout stays records. A hook that cannot start, exits
-non-zero, or runs past `crun.after-timeout` (`5m` by default, `1s` to
-`1h`; the hook's process group is sent SIGTERM, then killed) is the warning
-`crun_after_failed`; the collection stands and the run's exit code is
-unchanged, and the audit holds a `crun.after.succeeded` or
-`crun.after.failed` event with the path, the exit code, and the duration.
+non-zero, or runs past `crun.after-timeout` (`5m` by default, `1s` to `1h`)
+is the warning `crun_after_failed`; the collection stands and the run's exit
+code is unchanged, and the audit holds a `crun.after.succeeded` or
+`crun.after.failed` event with the path, the exit code, and the duration. At
+the timeout, or when the run is interrupted, the hook's process group is sent
+SIGTERM, what is left of it is killed five seconds later, and karvi returns
+once the group is gone; whatever a hook that exits by itself leaves running is
+its own.
 
 Two hooks ship as examples in `/usr/share/karvi/crun/`, for a git repository
 the site made once over the collection directory (`git init` there, the

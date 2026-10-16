@@ -828,11 +828,13 @@ directory = \"$TMP/crun\""
   # directory after the result line with the replaced files on stdin and
   # the job in the environment, on the in-process path and through the
   # daemon; its exit code is a warning and the run's stands; a hook past
-  # crun.after-timeout is ended with its child.
+  # crun.after-timeout is ended with its child, one ignoring SIGTERM, before
+  # crun returns.
   cat >"$TMP/after.sh" <<'EOF_HOOK'
 #!/bin/sh
+[ -z "${AFTER_PGID:-}" ] || echo "$$" >"$AFTER_PGID"
 { echo "pwd=$PWD"; echo "job=$KARVI_JOB_ID dir=$KARVI_JOB_DIR crun=$KARVI_CRUN_DIRECTORY replaced=$KARVI_CRUN_REPLACED kept=$KARVI_CRUN_KEPT exit=$KARVI_EXIT"; echo stdin:; cat; } >"$AFTER_OUT"
-[ -z "${AFTER_SLEEP:-}" ] || sleep "$AFTER_SLEEP"
+[ -z "${AFTER_SLEEP:-}" ] || (trap '' TERM; sleep "$AFTER_SLEEP")
 echo 'hook ran'
 exit "${AFTER_EXIT:-0}"
 EOF_HOOK
@@ -861,14 +863,17 @@ after-timeout = \"1s\""
   s33_run s33g run --target fake-iosxe
   [ "$CODE" -eq 0 ] && grep -q "^warning: crun_after_failed: $TMP/after.sh exited 3\$" "$TMP/err.s33g" || fail "S33 hook exit 3: exit $CODE, stderr $(tail -2 "$TMP/err.s33g")"
   grep -q '"event_name":"crun.after.failed"' "$TMP/base/audit.jsonl" || fail "S33 hook exit 3: no crun.after.failed audit event"
-  export AFTER_EXIT=0 AFTER_SLEEP=20
+  export AFTER_EXIT=0 AFTER_SLEEP=20 AFTER_PGID="$TMP/after.pgid"
   s33_started=$(date +%s)
   s33_run s33h run --target fake-iosxe
   s33_wall=$(( $(date +%s) - s33_started ))
   [ "$CODE" -eq 0 ] && grep -q '^warning: crun_after_failed: .* ran past crun.after-timeout (1s) and was ended$' "$TMP/err.s33h" || fail "S33 hook timeout: exit $CODE, stderr $(tail -2 "$TMP/err.s33h")"
   [ "$s33_wall" -lt 15 ] || fail "S33 hook timeout: the run took ${s33_wall}s, the hook's sleep was not ended"
-  ! pgrep -f "sleep 20" >/dev/null || { pkill -f 'sleep 20'; fail 'S33 hook timeout: the hook'"'"'s child outlived it'; }
-  unset AFTER_OUT AFTER_EXIT AFTER_SLEEP
+  # The hook leads its process group, gone when crun returns: the sleep
+  # ignores SIGTERM, so the SIGKILL to the group five seconds on ends it.
+  s33_pgid=$(cat "$TMP/after.pgid")
+  ! pgrep -g "$s33_pgid" >/dev/null || { kill -KILL "-$s33_pgid" || :; fail "S33 hook timeout: the hook's group $s33_pgid outlived it"; }
+  unset AFTER_OUT AFTER_EXIT AFTER_SLEEP AFTER_PGID
   # The drop list: crun-filters = [] on the base table writes the
   # raw file; a site's list replaces the built-in whole; a pattern that does
   # not compile refuses the configuration before any device is contacted.

@@ -57,8 +57,11 @@ type hookOutcome struct {
 }
 
 // killGrace is how long the hook's process group has after SIGTERM before it
-// is killed.
+// is killed, and how long a killed group then has to be gone.
 const killGrace = 5 * time.Second
+
+// groupPoll is how often a signalled group is looked at.
+const groupPoll = 20 * time.Millisecond
 
 // RunCollectionHook runs crun.after for a crun that ended with a collection
 // summary; without one, or with the key empty, it does nothing. Every failure
@@ -101,8 +104,9 @@ func (h collectionHook) replacedFiles() string {
 }
 
 // run executes the hook under its bound and returns what it did. The hook
-// leads its own process group, so the bound ends a shell and its children
-// together: SIGTERM to the group, then SIGKILL after killGrace.
+// leads its own process group, so the bound, or the invocation's interrupt,
+// ends a shell and its children together: SIGTERM to the group, then SIGKILL
+// to what is left of it after killGrace; run returns once the group is gone.
 func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 	tctx, cancel := context.WithTimeout(ctx, h.Timeout)
 	defer cancel()
@@ -118,11 +122,18 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 	cmd.Stdin = strings.NewReader(h.replacedFiles())
 	cmd.Stdout, cmd.Stderr = stderr, stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM) }
+	var signalled time.Time // set by Cancel, read after Run, which waits for it
+	cmd.Cancel = func() error {
+		signalled = time.Now()
+		return syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
+	}
 	cmd.WaitDelay = killGrace
 	start := time.Now()
 	err := cmd.Run()
 	o := hookOutcome{duration: time.Since(start)}
+	if !signalled.IsZero() {
+		endGroup(cmd.Process.Pid, signalled.Add(killGrace))
+	}
 	if cmd.ProcessState != nil {
 		o.exit = cmd.ProcessState.ExitCode()
 	}
@@ -140,6 +151,25 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 		o.err = errorcodes.Errorf("crun_after_failed", "%s could not be started: %v", h.Path, err)
 	}
 	return o
+}
+
+// endGroup waits for the signalled process group pgid to be gone, sending
+// SIGKILL to what is left of it at deadline and waiting killGrace more: a
+// process that does not die then (one in uninterruptible sleep) is left.
+func endGroup(pgid int, deadline time.Time) {
+	for killed := false; ; time.Sleep(groupPoll) {
+		if err := syscall.Kill(-pgid, 0); errors.Is(err, syscall.ESRCH) {
+			return
+		}
+		now := time.Now()
+		switch {
+		case !killed && !now.Before(deadline):
+			_ = syscall.Kill(-pgid, syscall.SIGKILL)
+			killed, deadline = true, now.Add(killGrace)
+		case killed && !now.Before(deadline):
+			return
+		}
+	}
 }
 
 // writeCollectionHookAudit records the hook in the audit as crun.after.succeeded
