@@ -132,6 +132,7 @@ type Store struct {
 	// its records arrive, and each ended device's outcome.
 	collection  *CollectionOptions
 	filters     map[string][]*regexp.Regexp // the plan's crun-filters per platform, compiled (12.19)
+	masks       map[string][]*regexp.Regexp // the plan's masks per platform under crun.mask, compiled
 	collections map[string]*collectionFile
 	outcomes    map[string]records.CollectionDevice
 }
@@ -144,6 +145,10 @@ type CollectionOptions struct {
 	// Filters is the plan's crun-filters per platform (12.19), compiled by
 	// Create; a platform absent from the map has none.
 	Filters map[string][]string
+	// Masks is the plan's masks per platform under crun.mask, compiled by
+	// Create, nil otherwise: each line of a device's file is masked by its
+	// own platform's list (docs/EXAMPLES.md, chapter 63, issue 8).
+	Masks map[string][]string
 	// Suffix is --fs, appended as written to each device's file name and
 	// its temporary's (r1 and .cfg give r1.cfg and .r1.cfg.JOBID).
 	Suffix string
@@ -192,10 +197,13 @@ func (f FileSet) OutputCopies() int {
 }
 
 func Create(opts Options) (*Store, error) {
-	var filters map[string][]*regexp.Regexp
+	var filters, masks map[string][]*regexp.Regexp
 	if opts.Collection != nil {
 		var err error
 		if filters, err = compileCollectionFilters(opts.Collection.Filters); err != nil {
+			return nil, err
+		}
+		if masks, err = compileCollectionMasks(opts.Collection.Masks); err != nil {
 			return nil, err
 		}
 	}
@@ -208,7 +216,7 @@ func Create(opts Options) (*Store, error) {
 		if opts.ID == "" {
 			return nil, errorcodes.Errorf("output_store_options_invalid", "output id is required")
 		}
-		return &Store{skip: opts.Skip, crop: opts.CropNames, collection: opts.Collection, filters: filters, collections: map[string]*collectionFile{}, outcomes: map[string]records.CollectionDevice{}, failed: map[string]bool{}, texts: map[string]textState{}, setups: map[string][]platform.SetupLine{}, warn: opts.Warn, onDurable: opts.OnDurable, stamp: opts.Timestamp}, nil
+		return &Store{skip: opts.Skip, crop: opts.CropNames, collection: opts.Collection, filters: filters, masks: masks, collections: map[string]*collectionFile{}, outcomes: map[string]records.CollectionDevice{}, failed: map[string]bool{}, texts: map[string]textState{}, setups: map[string][]platform.SetupLine{}, warn: opts.Warn, onDurable: opts.OnDurable, stamp: opts.Timestamp}, nil
 	}
 	if opts.Root == "" || opts.ID == "" {
 		return nil, errorcodes.Errorf("output_store_options_invalid", "output root and id are required")
@@ -222,7 +230,7 @@ func Create(opts Options) (*Store, error) {
 	}
 	skip := opts.Skip
 	p := Paths{Root: opts.Root, Manifest: file(skip.ManifestJSON, "manifest.json"), CommandsJSONL: file(skip.CommandsJSONL, "commands.jsonl"), CommandsText: file(skip.CommandsTxt, "commands.txt"), ErrorsJSONL: file(skip.ErrorsJSONL, "errors.jsonl"), FailedDevices: file(skip.FailedDevicesTxt, "failed-devices.txt"), Metrics: file(skip.MetricsJSON, "metrics.json"), Summary: file(skip.SummaryJSON, "summary.json")}
-	s := &Store{skip: opts.Skip, crop: opts.CropNames, collection: opts.Collection, filters: filters, collections: map[string]*collectionFile{}, outcomes: map[string]records.CollectionDevice{}, id: opts.ID, paths: p, fsync: opts.Fsync, maxBytes: opts.MaxJobBytes, failed: map[string]bool{}, texts: map[string]textState{}, setups: map[string][]platform.SetupLine{}, warn: opts.Warn, onDurable: opts.OnDurable, stamp: opts.Timestamp}
+	s := &Store{skip: opts.Skip, crop: opts.CropNames, collection: opts.Collection, filters: filters, masks: masks, collections: map[string]*collectionFile{}, outcomes: map[string]records.CollectionDevice{}, id: opts.ID, paths: p, fsync: opts.Fsync, maxBytes: opts.MaxJobBytes, failed: map[string]bool{}, texts: map[string]textState{}, setups: map[string][]platform.SetupLine{}, warn: opts.Warn, onDurable: opts.OnDurable, stamp: opts.Timestamp}
 	mode := opts.DirectoryMode
 	if mode == 0 {
 		mode = osutil.DefaultDirectoryMode
@@ -761,15 +769,19 @@ func (s *Store) writeCollectionBlock(cf *collectionFile, name string, r *records
 			return err
 		}
 	}
-	if _, err := cf.w.WriteString("! " + r.Command + "\n"); err != nil {
+	// Under crun.mask the marker's statement is masked by the device's
+	// platform's list, as the audit masks it.
+	masks := s.masks[r.Platform]
+	if _, err := cf.w.WriteString("! " + platform.Mask(masks, r.Command) + "\n"); err != nil {
 		return err
 	}
 	// The platform's drop list, between the answer and the file (12.19
-	// rule 2): the marker above is never matched.
+	// rule 2): the marker above is never matched. Under crun.mask each
+	// kept line is masked after it.
 	w := io.Writer(cf.w)
 	var lf *lineFilter
-	if res := s.filters[r.Platform]; len(res) > 0 {
-		lf = &lineFilter{w: cf.w, res: res}
+	if res := s.filters[r.Platform]; len(res) > 0 || len(masks) > 0 {
+		lf = &lineFilter{w: cf.w, res: res, masks: masks}
 		w = lf
 	}
 	if err := writeTextAnswer(w, src); err != nil {

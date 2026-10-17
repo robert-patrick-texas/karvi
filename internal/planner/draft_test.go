@@ -155,7 +155,11 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned when display.collection.footer's default took replace and keep
 // (EXAMPLES chapter 63, issue 7): the configuration block's value and its
 // digest; nothing else moved.
-const goldenK03Draft = "b985acac6b998653b7d39a120280f3a78d8fa7bb31c007eac48db99361367be8"
+// Re-pinned at the mask (EXAMPLES chapter 63, issue 8): the schema 14, and
+// the configuration block's new key crun.mask and its digest; the k03
+// set's platform has no masks, so the plan carries none; nothing else
+// moved.
+const goldenK03Draft = "fb4309d6c9eb45f185ceed00452f02370a81239d0c17620780478d8009315d30"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

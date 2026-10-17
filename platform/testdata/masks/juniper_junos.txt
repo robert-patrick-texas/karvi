@@ -1,0 +1,130 @@
+# juniper_junos: statements as sent (sent) and a configuration as the device prints
+# it (line), each with the secrets it holds, tab-separated; from the
+# scratch check s4-junos-masks.go (docs/EXAMPLES.md, chapter 63, issue 8).
+sent	set snmp community Publ1c authorization read-only	Publ1c
+sent	set snmp community "Publ1c" clients 192.0.2.0/24	"Publ1c"
+sent	delete snmp community Publ1c	Publ1c
+sent	set snmp v3 snmp-community IDX community-name Publ1c	Publ1c
+sent	set snmp v3 usm local-engine user mon authentication-sha authentication-password AuthPw1	AuthPw1
+sent	set snmp v3 usm local-engine user mon privacy-aes128 privacy-password PrivPw1	PrivPw1
+sent	set system root-authentication encrypted-password "$6$rootHash$abc"	"$6$rootHash$abc"
+sent	set system login user ops authentication encrypted-password "$6$opsHash$def"	"$6$opsHash$def"
+sent	set system login user ops authentication plain-text-password-value Cl3arPw	Cl3arPw
+sent	set system radius-server 192.0.2.11 secret R4dius	R4dius
+sent	set system tacplus-server 192.0.2.10 secret "T4cacs Key"	"T4cacs Key"
+sent	set protocols bgp group G authentication-key BgpPw	BgpPw
+sent	set protocols bgp group G neighbor 192.0.2.2 authentication-key "BgpPw"	"BgpPw"
+sent	set protocols ospf area 0 interface ge-0/0/0.0 authentication md5 1 key OspfK	OspfK
+sent	set protocols ospf area 0 interface ge-0/0/0.0 authentication simple-password OspfS	OspfS
+sent	set protocols isis level 2 authentication-key IsisK	IsisK
+sent	set security ike policy P pre-shared-key ascii-text Psk1	Psk1
+sent	set security ike policy P pre-shared-key hexadecimal 50736b32	50736b32
+sent	set security authentication-key-chains key-chain KC key 1 secret ChainK	ChainK
+sent	set interfaces ge-0/0/1 unit 0 family inet address 192.0.2.1/24 vrrp-group 1 authentication-key Vrrp1	Vrrp1
+sent	set system ntp authentication-key 1 type md5 value NtpKey	NtpKey
+sent	set system archival configuration archive-sites "scp://ops:ArchPw@192.0.2.20/backups" password ArchPw2	ArchPw	ArchPw2
+sent	set system login password minimum-length 8
+sent	set system login password format sha512
+sent	set system root-authentication plain-text-password
+sent	set policy-options community CUST members 65000:100
+sent	set policy-options policy-statement P then community add CUST
+sent	set protocols bgp group G authentication-key-chain KC
+sent	set system services ssh root-login deny-password
+sent	set system login user ops authentication ssh-rsa "ssh-rsa AAAAB3NzaC1yc2E ops@host"
+sent	set security authentication-key-chains key-chain KC key 1 start-time "2026-1-1.00:00:00 +0000"
+sent	show configuration snmp
+sent	show configuration | display set | match secret
+line	## Last commit: 2026-10-16 10:00:00 UTC by ops
+line	version 23.4R1.9;
+line	system {
+line	    root-authentication {
+line	        encrypted-password "$6$rootHash$abc"; ## SECRET-DATA	"$6$rootHash$abc"
+line	    }
+line	    login {
+line	        password {
+line	            minimum-length 8;
+line	            format sha512;
+line	        }
+line	        user ops {
+line	            uid 2000;
+line	            class super-user;
+line	            authentication {
+line	                encrypted-password "$6$opsHash$def"; ## SECRET-DATA	"$6$opsHash$def"
+line	                ssh-rsa "ssh-rsa AAAAB3NzaC1yc2E ops@host"; ## SECRET-DATA	"ssh-rsa AAAAB3NzaC1yc2E ops@host"
+line	            }
+line	        }
+line	    }
+line	    radius-server {
+line	        192.0.2.11 secret "$9$radHash"; ## SECRET-DATA	"$9$radHash"
+line	    }
+line	    tacplus-server {
+line	        192.0.2.10 secret "$9$tacHash"; ## SECRET-DATA	"$9$tacHash"
+line	    }
+line	    ntp {
+line	        authentication-key 1 type md5 value "$9$ntpHash"; ## SECRET-DATA	"$9$ntpHash"
+line	    }
+line	    archival {
+line	        configuration {
+line	            archive-sites {
+line	                "scp://ops:ArchPw@192.0.2.20/backups" password "$9$archHash"; ## SECRET-DATA	ArchPw	"$9$archHash"
+line	            }
+line	        }
+line	    }
+line	}
+line	snmp {
+line	    community Publ1c {	Publ1c
+line	        authorization read-only;
+line	    }
+line	    v3 {
+line	        usm {
+line	            local-engine {
+line	                user mon {
+line	                    authentication-sha {
+line	                        authentication-key "$9$authHash"; ## SECRET-DATA	"$9$authHash"
+line	                    }
+line	                    privacy-aes128 {
+line	                        privacy-key "$9$privHash"; ## SECRET-DATA	"$9$privHash"
+line	                    }
+line	                }
+line	            }
+line	        }
+line	    }
+line	}
+line	policy-options {
+line	    community CUST members 65000:100;
+line	}
+line	protocols {
+line	    bgp {
+line	        group G {
+line	            authentication-key "$9$bgpHash"; ## SECRET-DATA	"$9$bgpHash"
+line	            neighbor 192.0.2.2;
+line	        }
+line	    }
+line	    ospf {
+line	        area 0.0.0.0 {
+line	            interface ge-0/0/0.0 {
+line	                authentication {
+line	                    md5 1 key "$9$ospfHash"; ## SECRET-DATA	"$9$ospfHash"
+line	                }
+line	            }
+line	        }
+line	    }
+line	    isis {
+line	        level 2 authentication-key "$9$isisHash"; ## SECRET-DATA	"$9$isisHash"
+line	    }
+line	}
+line	security {
+line	    ike {
+line	        policy P {
+line	            pre-shared-key ascii-text "$9$ikeHash"; ## SECRET-DATA	"$9$ikeHash"
+line	        }
+line	    }
+line	    authentication-key-chains {
+line	        key-chain KC {
+line	            key 1 {
+line	                secret "$9$chainHash"; ## SECRET-DATA	"$9$chainHash"
+line	                start-time "2026-1-1.00:00:00 +0000";
+line	            }
+line	        }
+line	    }
+line	}

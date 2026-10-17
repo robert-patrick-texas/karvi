@@ -420,6 +420,12 @@ directory-mode = "0770"
 # 0640, 0644, or 0660: the mode of each collection file, applied to the temporary before the
 # rename, so the file appears at that mode and takes the directory's group under setgid.
 file-mode = "0660"
+# true masks each collection file, its ! COMMAND markers and the device's output, line by line
+# by the device's platform's masks, every capturing group of a match written <removed>, after
+# crun-filters has dropped its lines; false, the default, keeps the file as the device sent
+# it, secrets and all, for a restore. It applies to every collection, a crun's and a run or
+# command given --cd; the audit is masked whatever it says.
+mask = false
 # An executable the client runs once a crun has ended and its display is printed (never after
 # a run or command given --cd), empty for none: in the collection directory, with the replaced
 # files' names on standard input one per line and the job in KARVI_JOB_ID, KARVI_JOB_DIR
@@ -649,7 +655,10 @@ max-physical-line-bytes = 1048576
 # level of the base), requires-enable, session-cap, channel (shell or exec), paging-commands,
 # crun-commands (the collection list a crun sends when its command line names no
 # command), crun-filters (regular expressions whose matching output lines are
-# dropped from the collection file; an empty array turns the built-in list off).
+# dropped from the collection file; an empty array turns the built-in list off),
+# masks (regular expressions, each with a capturing group whose text becomes
+# <removed> in every statement the audit records, and in the collection file
+# under crun.mask; an empty array turns the built-in list off).
 # A device whose platform is not set runs as platform-resolution.default, else
 # generic, with the notice platform_not_set, and is matched by no --select-platform
 # selector or map platform rule; an inventory row naming an unknown platform

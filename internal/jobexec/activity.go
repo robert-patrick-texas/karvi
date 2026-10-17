@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,6 +29,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/internal/transportselect"
+	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -169,6 +173,9 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 			return FailedResult("crun_directory_not_writable", err)
 		}
 		collection = &output.CollectionOptions{Directory: c.Directory, FileMode: osutil.FileMode(cfg.String("crun.file-mode")), Filters: plan.PlatformFilters, Suffix: c.Suffix}
+		if cfg.Bool("crun.mask") {
+			collection.Masks = plan.PlatformMasks
+		}
 	}
 	debug := DebugLogger(req.Debug, cfg, streams.Stderr)
 	serverLimit := cfg.Int("dispatch.server-max-inflight")
@@ -267,6 +274,11 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		return FailedResult("audit_sink_open_failed", err)
 	}
 	defer auditSink.Close()
+	masks, err := jobMasks(plan.PlatformMasks)
+	if err != nil {
+		return FailedResult("execution_plan_invalid", err)
+	}
+	auditSink.SetMasks(masks)
 	debug(fmt.Sprintf("activity=%s activity_id=%s plan_id=%s plan_digest=%s config_digest=%s config_sources=%q", req.ActivityType, id, plan.PlanID, plan.PlanDigest, cfg.Digest, strings.Join(cfg.Sources, ",")))
 	capManager, err := capacity.New(cfg.String("sessions.shared-capacity-root"), req.Operator.Home, base, id, serverLimit, warn)
 	if err != nil {
@@ -598,6 +610,29 @@ func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, c
 		}
 		return "warning"
 	}(), Operator: osutil.RecordOperator(req.Operator), LoginUser: req.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, JobID: id, Action: action, Policy: map[string]any{"telnet": telnet, "fips_required": req.Config.Bool("security.require-fips"), "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
+}
+
+// jobMasks is the job's one mask list, the plan's masks of every target
+// platform together, each pattern compiled once: every audit event of the
+// job, its start and each device's command events, is masked by it
+// (docs/EXAMPLES.md, chapter 63, issue 8). The plan validated the lists
+// already; a pattern that does not compile here is the plan's fault.
+func jobMasks(lists map[string][]string) ([]*regexp.Regexp, error) {
+	var res []*regexp.Regexp
+	seen := map[string]bool{}
+	for _, name := range slices.Sorted(maps.Keys(lists)) {
+		compiled, i, err := platform.CompileMasks(lists[name])
+		if err != nil {
+			return nil, errorcodes.Errorf("execution_plan_invalid", "platform_masks: platform %s pattern %d %v", name, i+1, err)
+		}
+		for j, re := range compiled {
+			if p := lists[name][j]; !seen[p] {
+				seen[p] = true
+				res = append(res, re)
+			}
+		}
+	}
+	return res, nil
 }
 
 func auditDetails(devices int, extra ...map[string]any) map[string]any {

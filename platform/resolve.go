@@ -156,6 +156,12 @@ func Resolve(name string, tables map[string]map[string]any) Definition {
 		list, _ := stringList(table["crun-filters"])
 		def.CrunFilters = list
 	}
+	// A table's masks replaces the built-in list whole; an empty array
+	// turns the mask off.
+	if _, present := table["masks"]; present {
+		list, _ := stringList(table["masks"])
+		def.Masks = list
+	}
 	return def
 }
 

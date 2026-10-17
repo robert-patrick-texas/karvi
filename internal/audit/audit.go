@@ -5,9 +5,11 @@ package audit
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -28,6 +31,9 @@ type Sink struct {
 	file                          *os.File
 	journalRequired, fileRequired bool
 	warnings                      []string
+	// masks hide the secrets of every statement an event carries
+	// (SetMasks).
+	masks []*regexp.Regexp
 }
 type Status struct {
 	Journald bool     `json:"journald"`
@@ -79,12 +85,25 @@ func New(cfg configload.Snapshot, home string) (*Sink, error) {
 func (s *Sink) Status() Status {
 	return Status{Journald: s.journal != nil, File: s.file != nil, Warnings: append([]string(nil), s.warnings...)}
 }
+
+// SetMasks makes the sink mask every statement an event carries,
+// action.command and action.commands, by res (platform.Mask), in journald
+// and audit.file alike: a job's sink takes the plan's masks of every target
+// platform together (docs/EXAMPLES.md, chapter 63, issue 8). Called before
+// the first event.
+func (s *Sink) SetMasks(res []*regexp.Regexp) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.masks = res
+}
+
 func (s *Sink) WriteAudit(r records.AuditRecord) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// The sink writes every audit line, so it stamps the version the line
 	// is written in.
 	r.SchemaVersion = records.AuditSchemaVersion
+	r.Action = maskAction(r.Action, s.masks)
 	if err := screen(r); err != nil {
 		return err
 	}
@@ -207,6 +226,27 @@ func priority(severity string) int {
 	}
 }
 func clean(s string) string { return strings.NewReplacer("\n", " ", "\r", " ", "\x00", "").Replace(s) }
+
+// maskAction is an event's action with its statements masked: a copy, so
+// that the caller's map and the plan's command list stay as sent.
+func maskAction(action map[string]any, res []*regexp.Regexp) map[string]any {
+	if len(res) == 0 || action == nil {
+		return action
+	}
+	out := maps.Clone(action)
+	if c, ok := out["command"].(string); ok {
+		out["command"] = platform.Mask(res, c)
+	}
+	if list, ok := out["commands"].([]string); ok {
+		masked := make([]string, len(list))
+		for i, c := range list {
+			masked[i] = platform.Mask(res, c)
+		}
+		out["commands"] = masked
+	}
+	return out
+}
+
 func screen(v any) error {
 	data, err := json.Marshal(v)
 	if err != nil {

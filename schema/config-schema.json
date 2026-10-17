@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 30,
+  "registry_schema_version": 31,
   "config_schema_version": 6,
   "keys": [
     {
@@ -1583,6 +1583,19 @@
       "since": "0.15.0"
     },
     {
+      "path": "crun.mask",
+      "kind": "boolean",
+      "default_literal": "false",
+      "required": false,
+      "lock_eligible": true,
+      "sensitive": false,
+      "reload_class": "next-job",
+      "environment": "KARVI__CRUN__MASK",
+      "cli_flags": null,
+      "documentation": "`true` masks each collection file, its `! COMMAND` markers and the device's output, line by line by the device's platform's `masks`, every capturing group of a match written `\u003cremoved\u003e`, after `crun-filters` has dropped its lines; `false`, the default, keeps the file as the device sent it, secrets and all, for a restore. It applies to every collection, a `crun`'s and a `run` or `command` given `--cd`; the audit is masked whatever it says.",
+      "since": "0.32.0"
+    },
+    {
       "path": "crun.after",
       "kind": "string",
       "default_literal": "\"\"",
@@ -2818,6 +2831,7 @@
         "driver": "string",
         "fallback": "string_array",
         "legacy-class": "enum",
+        "masks": "string_array",
         "paging-commands": "string_array",
         "privileged-level": "string",
         "requires-enable": "boolean",
@@ -3229,6 +3243,7 @@
     "config_platform_crun_filter_invalid",
     "config_platform_driver_unknown",
     "config_platform_fallback_invalid",
+    "config_platform_mask_invalid",
     "config_platform_name_invalid",
     "config_platform_resolution_unknown",
     "config_platform_session_cap_out_of_range",

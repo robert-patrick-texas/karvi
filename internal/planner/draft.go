@@ -214,11 +214,12 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if opts.Collection == "crun" {
 		filters = platformFilterLists(targets, cfg.NamedTables("platform"))
 	}
+	masks := platformMaskLists(targets, cfg.NamedTables("platform"))
 	plan := executionplan.ExecutionPlan{
 		SchemaVersion: executionplan.SchemaVersion, PlanID: planID,
 		Operator: executionplan.Operator{Username: operator.Username, UID: operator.UID, PrimaryGID: operator.PrimaryGID, Groups: append([]string(nil), operator.Groups...)},
 		Targets:  targets,
-		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, CommandPlanDigest: executionplan.SumCommandPlan(opts.Commands, lists),
+		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, PlatformMasks: masks, CommandPlanDigest: executionplan.SumCommandPlan(opts.Commands, lists),
 		BlindReturns: append([]int{}, opts.BlindReturns...),
 		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),
@@ -429,6 +430,27 @@ func platformFilterLists(targets []executionplan.ExecutionTarget, tables map[str
 			continue
 		}
 		if list := platform.Resolve(name, tables).CrunFilters; len(list) > 0 {
+			lists[name] = append([]string{}, list...)
+		}
+	}
+	if len(lists) == 0 {
+		return nil
+	}
+	return lists
+}
+
+// platformMaskLists is the plan's mask list per platform for every job:
+// each distinct target platform's masks from its definition (the
+// built-in's, or a table's replacing it), the platforms without one left
+// out; nil when none has one.
+func platformMaskLists(targets []executionplan.ExecutionTarget, tables map[string]map[string]any) map[string][]string {
+	lists := map[string][]string{}
+	for _, t := range targets {
+		name := t.Device.Platform
+		if _, done := lists[name]; done {
+			continue
+		}
+		if list := platform.Resolve(name, tables).Masks; len(list) > 0 {
 			lists[name] = append([]string{}, list...)
 		}
 	}

@@ -13346,6 +13346,104 @@ all five built-in lists (words removed in every job).
 
 Issue 8 is settled; S4 builds it.
 
+**Issue 8, continued while building S4: `crun.mask` in the plan, agreed.** The
+names' rule had the plan carry `crun.mask` in its collection block, as it
+carries `crun.directory`. The plan's configuration block already carries every
+key, and since chapter 47 (`1feebad`) a job reads from it each key the plan
+only copied, `crun.file-mode` among them; `crun.directory` stays in the
+collection block because the client resolves it. A crun through the daemon
+under `--set crun.mask=true`, the lab script's report of the job's manifest and
+the collection file, not karvi's output:
+
+```text
+plan.output.collection  {"directory":"/dev/shm/karvi-s4/lab/cd","word":"crun"}
+cd/fake-iosxe           ! snmp-server community <removed> RO
+```
+
+The rule, amending the names'. The plan carries `platform_masks`, each target
+platform's list, and no field for `crun.mask`: the job reads the key from the
+plan's configuration block, as it reads `crun.file-mode`, so that a job run by
+the daemon masks its collection as one run without it. *Why:* one source for
+the key, and no plan field that copies one. *Not taken:* a `mask` boolean in
+the collection block (a copy of a key, of the kind chapter 47 removed).
+
+**Issue 8, continued while building S4: the collections `crun.mask` covers,
+agreed.** A `run` or `command` given `--cd` writes one file per device into a
+collection directory as a `crun` does; `crun-filters` are a `crun`'s alone,
+since they quiet a nightly diff and a run's file says what the device said. A
+`run --cd` under each value, then a site's file holding `crun.mask = true` and
+a one-off `--set crun.mask=false`; the lab scripts' report of the file's marker
+line, not karvi's output:
+
+```text
+run --cd, crun.mask=false              ! snmp-server community Publ1c RO
+run --cd, crun.mask=true               ! snmp-server community <removed> RO
+crun, the site's crun.mask = true      ! snmp-server community <removed> RO
+crun, --set crun.mask=false            ! snmp-server community Publ1c RO
+```
+
+The rule. `crun.mask = true` masks every collection file: a `crun`'s, and a
+`run`'s or `command`'s given `--cd`. An operator who needs one job's file whole
+writes `--set crun.mask=false` for that invocation, unless the site has locked
+the key: `crun.mask` is lock-eligible, and a lock declared in the global file
+(`[config-lock] "crun.mask" = true`) refuses the `--set` with
+`config_lock_violation`, as chapter 47's issue 6 shows for another key (the
+lock was not run here: only the auto-discovered global file may declare one).
+*Why:* the mask is about what the directory holds, and a `run --cd` into it
+under the site's choice would put secrets back; the one-off is the key's own
+precedence, and the lock the site's way to forbid it. *Not taken:* the mask a
+`crun`'s alone, as the filters are.
+
+**Issue 8, continued while building S4: the marker line, agreed.** Each block
+of a collection file begins with `! COMMAND`, the statement as sent, which
+`crun-filters` never match. A `crun` of `snmp-server community Publ1c RO`; the
+lab script's report of the marker line, not karvi's output:
+
+```text
+crun.mask=false   ! snmp-server community Publ1c RO
+crun.mask=true    ! snmp-server community <removed> RO
+```
+
+The rule. Under `crun.mask = true` the marker's statement is masked by the
+device's own platform's list, as the device's output lines are; under `false`
+it stays as sent. The list is matched against the statement, not the whole
+line, so that a pattern anchored at the start (`^\s*…snmp-s…`) finds it after
+the `! `. *Why:* the marker is a line of the file, and a statement there holds a
+secret as the audit's does. *Not taken:* the marker whole under the mask (the
+file would keep a secret the audit hides).
+
+**Issue 8, continued while building S4: the code and the plan's name, agreed.**
+A configuration whose mask list holds a bad pattern, karvi's messages:
+
+```text
+config_platform_mask_invalid: pattern 2 "(" does not compile: error parsing regexp: missing closing ): `(` for platform.lab_iosxe.masks at --set[1]
+config_platform_mask_invalid: pattern 1 "^hostname \\S+" holds no capturing group for platform.lab_iosxe.masks at --set[1]
+```
+
+The rule. A pattern that does not compile or holds no group is refused
+`config_platform_mask_invalid` (exit 2, before any device is contacted), beside
+`config_platform_crun_filter_invalid` and in its form; the plan carries the
+lists as `platform_masks`, beside `platform_commands` and `platform_filters`
+(a job across `cisco_iosxe`, `juniper_junos`, and `linux` carried the first two,
+`linux` having none). The plan's check refuses the same two faults under
+`execution_plan_invalid`, naming `platform_masks`. *Why:* each name beside its
+precedent's.
+
+**Issue 8, continued while building S4: a group that matched no text,
+agreed.** A site's pattern may hold a group that can match nothing, `(\S*)`;
+none of the five built-in lists does. The mask's unit test, `opt(\d*)`, its
+cases, not karvi's output:
+
+```text
+"opt"     stays    "opt"
+"opt12"   becomes  "opt<removed>"
+```
+
+The rule. A group that matched no text is left alone: only text a group covers
+is replaced by `<removed>`. *Why:* the stand-in says text was removed, and
+where there was none it would say what is not so. *Not taken:* the stand-in
+written at an empty group's place.
+
 **Found, for later.** Three, each after this chapter's build, in this order:
 
 - The tests write into the host's journal: `internal/audit/audit_test.go`'s

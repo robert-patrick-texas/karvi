@@ -41,8 +41,9 @@ import (
 // dispatch's halt and gate values with continue_device_on_error, which the
 // job reads from that configuration; 13 the header's client its pid and host
 // alone, its app name, version, and commit, which nothing read, removed
-// (EXAMPLES chapter 57, issue 3).
-const SchemaVersion = 13
+// (EXAMPLES chapter 57, issue 3); 14 platform_masks, each target
+// platform's mask list (EXAMPLES chapter 63, issue 8).
+const SchemaVersion = 14
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -133,7 +134,13 @@ type ExecutionPlan struct {
 	// applies to each output line of a record of that platform; a platform
 	// absent from the map has none. Present only with a collection; the
 	// plan digest covers it.
-	PlatformFilters   map[string][]string           `json:"platform_filters,omitempty"`
+	PlatformFilters map[string][]string `json:"platform_filters,omitempty"`
+	// PlatformMasks is a mask list per platform (schema 14): each target
+	// platform's masks, which every audit event of the job is masked by
+	// together and a collection file under crun.mask by its device's
+	// platform's alone; a platform absent from the map has none. Present
+	// for every job; the plan digest covers it.
+	PlatformMasks     map[string][]string           `json:"platform_masks,omitempty"`
 	CommandPlanDigest Digest                        `json:"command_plan_digest"`
 	BlindReturns      []int                         `json:"blind_returns"`
 	Blind             []bool                        `json:"blind"`
@@ -530,6 +537,19 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 		for i, pattern := range list {
 			if _, err := regexp.Compile(pattern); err != nil {
 				return planInvalid("platform_filters", "platform %s pattern %d does not compile: %v", name, i+1, err)
+			}
+		}
+	}
+	// The masks' compiler is platform.CompileMasks; its two checks are
+	// made here with the standard library alone.
+	for name, list := range p.PlatformMasks {
+		for i, pattern := range list {
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				return planInvalid("platform_masks", "platform %s pattern %d does not compile: %v", name, i+1, err)
+			}
+			if re.NumSubexp() == 0 {
+				return planInvalid("platform_masks", "platform %s pattern %d holds no capturing group", name, i+1)
 			}
 		}
 	}

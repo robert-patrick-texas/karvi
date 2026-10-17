@@ -767,8 +767,9 @@ func (l *loader) validatePlatformTables() error {
 			}
 		}
 		// The string-array fields (crun-commands since registry 14,
-		// crun-filters since registry 19, fallback since registry 25).
-		for _, field := range []string{"fallback", "paging-commands", "crun-commands", "crun-filters"} {
+		// crun-filters since registry 19, fallback since registry 25, masks
+		// since registry 31).
+		for _, field := range []string{"fallback", "paging-commands", "crun-commands", "crun-filters", "masks"} {
 			v, ok := p[field]
 			if !ok {
 				continue
@@ -803,6 +804,18 @@ func (l *loader) validatePlatformTables() error {
 			}
 			if _, i, err := platform.CompileFilters(list); err != nil {
 				return l.dynamicErr("config_platform_crun_filter_invalid", key+".crun-filters", fmt.Sprintf("pattern %d %q does not compile: %v", i+1, list[i], err))
+			}
+		}
+		// Every masks pattern compiles and holds a capturing group, refused
+		// here before any device is contacted.
+		if v, ok := p["masks"]; ok {
+			patterns, _ := v.([]any)
+			list := make([]string, 0, len(patterns))
+			for _, item := range patterns {
+				list = append(list, item.(string))
+			}
+			if _, i, err := platform.CompileMasks(list); err != nil {
+				return l.dynamicErr("config_platform_mask_invalid", key+".masks", fmt.Sprintf("pattern %d %q %v", i+1, list[i], err))
 			}
 		}
 		def := platform.Resolve(norm, tables)

@@ -17,9 +17,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "4d9c0f474c1f41775e18afb6313dbb8b71d2fc4f843945d848dc67014c13b6ee"
-	goldenPrepared = "82791b617945ba4f4678bc748412a0f517bd2674833608489f610cf69d176603"
-	goldenFinal    = "46c741f1dd91d75d37da1a67d3af99cd70329d663c4c946ef22dd141b30a9f1c"
+	goldenDraft    = "7ed8b0fd36bf42107fd32b1438757bd3df69d21baf994427cfddb47d620c1d36"
+	goldenPrepared = "6512e96bdbe3bf12b61da1bc42d47cc15f1240e86a2ac9ba6f968bf82b22c148"
+	goldenFinal    = "0ad5e85c67db7ed7276f9bfd8e8620a77e19dcb4c359fa8a4e25a17435608ba4"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}

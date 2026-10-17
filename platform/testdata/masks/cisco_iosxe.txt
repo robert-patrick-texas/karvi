@@ -1,0 +1,112 @@
+# cisco_iosxe: statements as sent (sent) and a configuration as the device prints
+# it (line), each with the secrets it holds, tab-separated; from the
+# scratch check s4-iosxe-masks-amended.go (docs/EXAMPLES.md, chapter 63, issue 8).
+sent	snmp-server community Publ1c RO 10	Publ1c
+sent	snmp-server comm Publ1c RO	Publ1c
+sent	no snmp-server community Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 version 2c Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 informs version 2c Publ1c udp-port 162	Publ1c
+sent	snmp-server user mon grp v3 auth sha AuthPw1 priv aes 128 PrivPw1	AuthPw1	PrivPw1
+sent	snmp-server user mon grp v3 auth md5 AuthPw1 priv des PrivPw1	AuthPw1	PrivPw1
+sent	username ops privilege 15 secret 0 Cl3arPw	Cl3arPw
+sent	username ops secret Cl3arPw	Cl3arPw
+sent	username ops pass 0 Cl3arPw	Cl3arPw
+sent	username ops algorithm-type scrypt secret Cl3arPw	Cl3arPw
+sent	enable secret 0 En4ble	En4ble
+sent	enable secret level 15 0 En4ble	En4ble
+sent	enable password En4ble	En4ble
+sent	key 0 T4cacsKey	T4cacsKey
+sent	key T4cacsKey	T4cacsKey
+sent	 key 0 T4cacsKey	T4cacsKey
+sent	tacacs-server host 192.0.2.10 key 0 T4cacsKey	T4cacsKey
+sent	radius-server key R4dius	R4dius
+sent	pac key 0 P4cKey	P4cKey
+sent	client 192.0.2.12 server-key 0 SrvKey	SrvKey
+sent	key-string 0 ChainKey	ChainKey
+sent	password Vty1	Vty1
+sent	password 0 Vty1	Vty1
+sent	ip ospf authentication-key 0 OspfK	OspfK
+sent	ip ospf authentication-key OspfK	OspfK
+sent	ip ospf message-digest-key 1 md5 0 OspfMd5	OspfMd5
+sent	ip ospf message-digest-key 1 md5 OspfMd5	OspfMd5
+sent	neighbor 192.0.2.2 password 0 BgpPw	BgpPw
+sent	neighbor 192.0.2.2 password BgpPw	BgpPw
+sent	crypto isakmp key Psk123 address 192.0.2.1	Psk123
+sent	pre-shared-key local Psk1	Psk1
+sent	pre-shared-key 0 Psk2	Psk2
+sent	authentication local pre-share key Psk3	Psk3
+sent	standby 1 authentication md5 key-string HsrpK timeout 30	HsrpK
+sent	standby 1 authentication text HsrpT	HsrpT
+sent	standby 1 authentication HsrpT	HsrpT
+sent	vrrp 2 authentication text Vrrp1	Vrrp1
+sent	ppp chap password 0 ChapPw	ChapPw
+sent	ppp pap sent-username u1 password 0 PapPw	PapPw
+sent	ntp authentication-key 1 md5 NtpKey	NtpKey
+sent	area-password AreaPw	AreaPw
+sent	domain-password DomPw	DomPw
+sent	isis password IsisPw	IsisPw
+sent	ip nhrp authentication NhrpK	NhrpK
+sent	security wpa psk set-key ascii 0 WlanPsk	WlanPsk
+sent	key config-key password-encrypt M4sterKey	M4sterKey
+sent	copy running-config scp://ops:ScpPw@192.0.2.20/r1.cfg	ScpPw
+sent	mgmtuser username admin password 0 MgmtPw secret 0 MgmtSec	MgmtPw	MgmtSec
+sent	password encryption aes
+sent	no password encryption aes
+sent	show running-config | include snmp-server community
+sent	show running-config | include password
+sent	show snmp community
+sent	service password-encryption
+sent	no service password-recovery
+sent	security passwords min-length 8
+sent	key chain OSPF-KEYS
+sent	crypto key generate rsa modulus 2048
+sent	username nopw nopassword
+sent	ip ospf authentication message-digest
+sent	set community 65000:100
+sent	description uplink to core, password reset by noc
+line	! Last configuration change at 10:00:00 UTC Fri Oct 16 2026 by ops
+line	service password-encryption
+line	security passwords min-length 8
+line	enable secret 9 $9$7EAmyeFJ.b$5yrS1	$9$7EAmyeFJ.b$5yrS1
+line	username ops privilege 15 secret 9 $9$nhEmQVczB7dqsO$X.eDp	$9$nhEmQVczB7dqsO$X.eDp
+line	username old privilege 1 password 7 0822455D0A16	0822455D0A16
+line	username nopw nopassword
+line	aaa authentication login default group tacacs+ local
+line	key chain OSPF-KEYS
+line	 key 1
+line	  key-string 7 06070D22484A	06070D22484A
+line	crypto isakmp key 6 Psk6Type address 192.0.2.1	Psk6Type
+line	crypto ikev2 keyring KR
+line	 peer P
+line	  address 192.0.2.1
+line	  pre-shared-key local 6 Psk6Local	Psk6Local
+line	password encryption aes
+line	interface GigabitEthernet1
+line	 description uplink to core
+line	 ip ospf authentication message-digest
+line	 ip ospf authentication-key 7 1511021F0725	1511021F0725
+line	 ip ospf message-digest-key 1 md5 7 045802150C2E	045802150C2E
+line	 standby 1 authentication md5 key-string 7 110A1016141D	110A1016141D
+line	 vrrp 2 authentication text Vrrp1	Vrrp1
+line	 ip nhrp authentication NhrpK	NhrpK
+line	router isis
+line	 area-password AreaPw	AreaPw
+line	 domain-password DomPw	DomPw
+line	router bgp 65000
+line	 neighbor 192.0.2.2 password 7 13061E010803	13061E010803
+line	route-map RM permit 10
+line	 set community 65000:100
+line	snmp-server community Publ1c RO 10	Publ1c
+line	snmp-server host 192.0.2.5 version 2c Publ1c	Publ1c
+line	tacacs server ISE1
+line	 address ipv4 192.0.2.10
+line	 key 7 0822455D0A16Tac	0822455D0A16Tac
+line	radius server RAD1
+line	 address ipv4 192.0.2.11 auth-port 1812 acct-port 1813
+line	 key 7 1511021F0725Rad	1511021F0725Rad
+line	 pac key 7 104D000A0618	104D000A0618
+line	aaa server radius dynamic-author
+line	 client 192.0.2.12 server-key 7 06070D22484ASrv	06070D22484ASrv
+line	ntp authentication-key 1 md5 121A0C041104 7	121A0C041104
+line	line vty 0 4
+line	 password 7 0822455D0A16Vty	0822455D0A16Vty

@@ -22,9 +22,10 @@ import (
 // gives the daemon's own keys the reload class daemon-start; 29 takes the
 // socket directory daemon.sockets in place of daemon.socket, and
 // ssh-algorithms.source with a profile's source; 30 removes
-// output.files.summary-json, every job folder holding its summary.
+// output.files.summary-json, every job folder holding its summary; 31
+// takes crun.mask and a platform table's masks.
 const (
-	RegistrySchemaVersion = 30
+	RegistrySchemaVersion = 31
 	ConfigSchemaVersion   = 6
 )
 
@@ -159,8 +160,9 @@ var dynamicTables = []DynamicTable{
 	// dynamic-table field, not a builtin-layer key. crun-commands joined at
 	// registry 14: the
 	// platform's collection list, sent by a crun that names no command;
-	// registry 25: channel in place of control-master, and fallback.
-	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "default-transport": Enum, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "legacy-class": Enum, "session-cap": Integer, "channel": Enum, "fallback": StringArray, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray}, LockEligible: true},
+	// registry 25: channel in place of control-master, and fallback;
+	// registry 31: masks.
+	{Pattern: "platform.<name>", Fields: map[string]Kind{"driver": String, "default-transport": Enum, "ssh-port": Integer, "telnet-port": Integer, "privileged-level": String, "requires-enable": Boolean, "legacy-class": Enum, "session-cap": Integer, "channel": Enum, "fallback": StringArray, "paging-commands": StringArray, "crun-commands": StringArray, "crun-filters": StringArray, "masks": StringArray}, LockEligible: true},
 	{Pattern: "inventory-source.<index>", Fields: map[string]Kind{}, LockEligible: true, Places: []string{"path"}},
 	{Pattern: "credential-policy-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
 	{Pattern: "session-init-map.<index>", Fields: map[string]Kind{}, LockEligible: true},
@@ -267,7 +269,7 @@ func IsKnownLeaf(path string) bool {
 	case "session-init":
 		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "commands", "on-error", "command-timeout")
 	case "platform":
-		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "driver", "default-transport", "ssh-port", "telnet-port", "privileged-level", "requires-enable", "legacy-class", "session-cap", "channel", "fallback", "paging-commands", "crun-commands", "crun-filters")
+		return len(parts) == 3 && parts[1] != "" && oneOf(parts[2], "driver", "default-transport", "ssh-port", "telnet-port", "privileged-level", "requires-enable", "legacy-class", "session-cap", "channel", "fallback", "paging-commands", "crun-commands", "crun-filters", "masks")
 	case "inventory-source":
 		return len(parts) >= 3 && isIndex(parts[1]) && inventoryField(strings.Join(parts[2:], "."))
 	case "credential-policy-map":

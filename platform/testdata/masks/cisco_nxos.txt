@@ -1,0 +1,80 @@
+# cisco_nxos: statements as sent (sent) and a configuration as the device prints
+# it (line), each with the secrets it holds, tab-separated; from the
+# scratch check s4-nxos-masks.go (docs/EXAMPLES.md, chapter 63, issue 8).
+sent	snmp-server community Publ1c group network-operator	Publ1c
+sent	snmp-server community Publ1c ro	Publ1c
+sent	snmp-server comm Publ1c ro	Publ1c
+sent	no snmp-server community Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 traps version 2c Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 informs version 2c Publ1c udp-port 162	Publ1c
+sent	snmp-server mib community-map Publ1c context ctx1	Publ1c
+sent	snmp-server user mon network-operator auth sha AuthPw1 priv aes-128 PrivPw1	AuthPw1	PrivPw1
+sent	snmp-server user mon network-operator auth md5 AuthPw1 priv PrivPw1	AuthPw1	PrivPw1
+sent	username ops password Cl3arPw role network-operator	Cl3arPw
+sent	username ops password 0 Cl3arPw role network-admin	Cl3arPw
+sent	username ops pass Cl3arPw role network-admin	Cl3arPw
+sent	enable secret 0 En4ble priv-lvl 15	En4ble
+sent	tacacs-server key 7 "0822455D0A16"	"0822455D0A16"
+sent	tacacs-server key 0 T4cacsKey	T4cacsKey
+sent	tacacs-server host 192.0.2.10 key 0 "T4cacs Key"	"T4cacs Key"
+sent	radius-server host 192.0.2.11 key 0 R4dius authentication accounting	R4dius
+sent	ip ospf authentication-key 0 OspfK	OspfK
+sent	ip ospf message-digest-key 1 md5 0 OspfMd5	OspfMd5
+sent	password 0 BgpPw	BgpPw
+sent	password BgpPw	BgpPw
+sent	key-string 0 ChainKey	ChainKey
+sent	authentication text HsrpT	HsrpT
+sent	authentication md5 key-string HsrpK	HsrpK
+sent	ntp authentication-key 1 md5 NtpKey 0	NtpKey
+sent	ip pim hello-authentication ah-md5 0 PimKey	PimKey
+sent	ldap-server host 192.0.2.30 rootDN "cn=admin,dc=example,dc=com" password 0 LdapPw port 389	LdapPw
+sent	copy running-config scp://ops:ScpPw@192.0.2.20/n9k.cfg vrf management	ScpPw
+sent	no password strength-check
+sent	password strength-check
+sent	password secure-mode
+sent	feature password encryption aes
+sent	show running-config | include password
+sent	snmp-server host 192.0.2.5 use-vrf management
+sent	snmp-server host 192.0.2.5 source-interface mgmt0
+sent	key chain KC
+sent	key 1
+sent	username ops sshkey ssh-rsa AAAAB3NzaC1yc2E
+sent	authentication md5 key-chain KC
+sent	ip ospf authentication message-digest
+sent	set community 65000:100
+line	!Command: show running-config
+line	!Running configuration last done at: Fri Oct 16 10:00:00 2026
+line	!Time: Fri Oct 16 10:05:00 2026
+line	version 10.3(4a) Bios:version 05.47
+line	feature tacacs+
+line	feature password encryption aes
+line	no password strength-check
+line	username admin password 5 $5$KLMNOP$Hashed.Value  role network-admin	$5$KLMNOP$Hashed.Value
+line	username ops password 5 $5$ABCDEF$Another.Hash  role network-operator	$5$ABCDEF$Another.Hash
+line	username ops sshkey ssh-rsa AAAAB3NzaC1yc2E
+line	tacacs-server key 7 "0822455D0A16Tac"	"0822455D0A16Tac"
+line	tacacs-server host 192.0.2.10 key 7 "1511021F0725Tach"	"1511021F0725Tach"
+line	radius-server host 192.0.2.11 key 7 "06070D22484ARad" authentication accounting	"06070D22484ARad"
+line	snmp-server user admin network-admin auth md5 0x9a3c5e7f11Auth priv 0x9a3c5e7f11Priv localizedkey	0x9a3c5e7f11Auth	0x9a3c5e7f11Priv
+line	snmp-server user mon network-operator auth sha 0x1b2c3d4eAuth2 priv aes-128 0x1b2c3d4ePriv2 localizedkey	0x1b2c3d4eAuth2	0x1b2c3d4ePriv2
+line	snmp-server host 192.0.2.5 traps version 2c Publ1cHost	Publ1cHost
+line	snmp-server host 192.0.2.5 use-vrf management
+line	snmp-server community Publ1c group network-operator	Publ1c
+line	snmp-server mib community-map Publ1cMap context ctx1	Publ1cMap
+line	ntp authentication-key 1 md5 121A0C041104Ntp 7	121A0C041104Ntp
+line	key chain KC
+line	  key 1
+line	    key-string 7 06070D22484AKey	06070D22484AKey
+line	interface Ethernet1/1
+line	  ip ospf authentication message-digest
+line	  ip ospf authentication-key 3 1511021F0725Ak	1511021F0725Ak
+line	  ip ospf message-digest-key 1 md5 3 045802150C2EOspf	045802150C2EOspf
+line	  ip pim hello-authentication ah-md5 3 13061E010803Pim	13061E010803Pim
+line	  hsrp 1
+line	    authentication text HsrpT	HsrpT
+line	  vrrp 2
+line	    authentication text Vrrp1	Vrrp1
+line	router bgp 65000
+line	  neighbor 192.0.2.2
+line	    password 3 13061E010803Bgp	13061E010803Bgp
+line	ldap-server host 192.0.2.30 rootDN "cn=admin,dc=example,dc=com" password 7 "104D000A0618Ldap" port 389	"104D000A0618Ldap"

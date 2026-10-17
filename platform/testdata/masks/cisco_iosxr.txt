@@ -1,0 +1,104 @@
+# cisco_iosxr: statements as sent (sent) and a configuration as the device prints
+# it (line), each with the secrets it holds, tab-separated; from the
+# scratch check s4-iosxr-masks.go (docs/EXAMPLES.md, chapter 63, issue 8).
+sent	snmp-server community Publ1c RO	Publ1c
+sent	snmp-server community Publ1c RO SystemOwner	Publ1c
+sent	snmp-server comm Publ1c RO	Publ1c
+sent	snmp-server community clear Publ1c RO	Publ1c
+sent	no snmp-server community Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 traps version 2c Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 traps version 2c clear Publ1c udp-port 162	Publ1c
+sent	snmp-server user mon grp v3 auth sha clear AuthPw1 priv aes 128 clear PrivPw1	AuthPw1	PrivPw1
+sent	snmp-server user mon grp v3 auth sha AuthPw1 priv aes 128 PrivPw1	AuthPw1	PrivPw1
+sent	username ops secret 0 Cl3arPw	Cl3arPw
+sent	username ops secret Cl3arPw	Cl3arPw
+sent	secret 0 Cl3arPw	Cl3arPw
+sent	secret 10 $6$h1L4X/VQnKPgX/..$abcDEF	$6$h1L4X/VQnKPgX/..$abcDEF
+sent	password 0 Cl3arPw	Cl3arPw
+sent	username ops pass 0 Cl3arPw	Cl3arPw
+sent	tacacs-server host 192.0.2.10 port 49 key 0 T4cacsKey	T4cacsKey
+sent	tacacs-server key 7 0822455D0A16	0822455D0A16
+sent	key 0 T4cacsKey	T4cacsKey
+sent	key T4cacsKey	T4cacsKey
+sent	radius-server host 192.0.2.11 auth-port 1812 acct-port 1813 key 0 R4dius	R4dius
+sent	client 192.0.2.12 vrf default server-key 0 SrvKey	SrvKey
+sent	authentication-key clear OspfK	OspfK
+sent	authentication-key OspfK	OspfK
+sent	message-digest-key 1 md5 clear OspfMd5	OspfMd5
+sent	message-digest-key 1 md5 OspfMd5	OspfMd5
+sent	password clear BgpPw	BgpPw
+sent	neighbor 192.0.2.2 password clear BgpPw	BgpPw
+sent	neighbor 192.0.2.3:0 password clear LdpPw	LdpPw
+sent	lsp-password hmac-md5 clear IsisLsp	IsisLsp
+sent	lsp-password text clear IsisLsp	IsisLsp
+sent	hello-password hmac-md5 clear IsisHello	IsisHello
+sent	key-string clear ChainKey	ChainKey
+sent	key-string ChainKey	ChainKey
+sent	pre-shared-key clear Psk1	Psk1
+sent	pre-shared-key local clear Psk2	Psk2
+sent	ntp authentication-key 1 md5 clear NtpKey	NtpKey
+sent	authentication Hsrp1	Hsrp1
+sent	text-authentication Vrrp1	Vrrp1
+sent	copy running-config sftp://ops:SftpPw@192.0.2.20/xr1.cfg	SftpPw
+sent	show running-config | include snmp-server community
+sent	show running-config | include password
+sent	key chain KC
+sent	authentication message-digest
+sent	authentication keychain KC
+sent	password-disable
+sent	crypto key generate rsa general-keys
+sent	cryptographic-algorithm HMAC-MD5
+sent	set community (65000:100)
+line	!! Last configuration change at Fri Oct 16 10:00:00 2026 by ops
+line	hostname xr1
+line	username ops
+line	 group root-lr
+line	 secret 10 $6$h1L4X/VQnKPgX/..$abcDEF	$6$h1L4X/VQnKPgX/..$abcDEF
+line	username old
+line	 password 7 0822455D0A16Old	0822455D0A16Old
+line	tacacs-server host 192.0.2.10 port 49
+line	 key 7 0822455D0A16Tac	0822455D0A16Tac
+line	radius-server host 192.0.2.11 auth-port 1812 acct-port 1813
+line	 key 7 1511021F0725Rad	1511021F0725Rad
+line	aaa server radius dynamic-author
+line	 client 192.0.2.12 vrf default server-key 7 06070D22484ASrv	06070D22484ASrv
+line	snmp-server community encrypted 1511021F0725Snmp RO SystemOwner	1511021F0725Snmp
+line	snmp-server host 192.0.2.5 traps version 2c encrypted 00071A150754Host	00071A150754Host
+line	snmp-server user mon grp v3 auth sha encrypted 0822455D0A16Auth priv aes 128 encrypted 1511021F0725Priv	0822455D0A16Auth	1511021F0725Priv
+line	ntp
+line	 authentication-key 1 md5 encrypted 121A0C041104Ntp	121A0C041104Ntp
+line	key chain KC
+line	 key 1
+line	  key-string password 06070D22484AKey	06070D22484AKey
+line	  cryptographic-algorithm HMAC-MD5
+line	router ospf 1
+line	 area 0
+line	  interface GigabitEthernet0/0/0/0
+line	   authentication message-digest
+line	   message-digest-key 1 md5 encrypted 045802150C2EOspf	045802150C2EOspf
+line	   authentication-key encrypted 1511021F0725Ak	1511021F0725Ak
+line	router isis core
+line	 lsp-password hmac-md5 encrypted 13061E010803Lsp	13061E010803Lsp
+line	 interface GigabitEthernet0/0/0/1
+line	  hello-password hmac-md5 encrypted 0822455D0A16Hel	0822455D0A16Hel
+line	router bgp 65000
+line	 neighbor 192.0.2.2
+line	  password encrypted 13061E010803Bgp	13061E010803Bgp
+line	mpls ldp
+line	 neighbor 192.0.2.3:0 password encrypted 104D000A0618Ldp	104D000A0618Ldp
+line	router hsrp
+line	 interface GigabitEthernet0/0/0/2
+line	  hsrp 1
+line	   authentication Hsrp1	Hsrp1
+line	router vrrp
+line	 interface GigabitEthernet0/0/0/3
+line	  address-family ipv4
+line	   vrrp 2
+line	    text-authentication Vrrp1	Vrrp1
+line	crypto ikev2 keyring KR
+line	 peer P
+line	  address 192.0.2.1
+line	  pre-shared-key password 06070D22484APsk	06070D22484APsk
+line	route-policy RP
+line	  set community (65000:100)
+line	end-policy

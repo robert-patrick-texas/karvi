@@ -1,0 +1,92 @@
+# arista_eos: statements as sent (sent) and a configuration as the device prints
+# it (line), each with the secrets it holds, tab-separated; from the
+# scratch check s4-eos-masks.go (docs/EXAMPLES.md, chapter 63, issue 8).
+sent	snmp-server community Publ1c ro	Publ1c
+sent	snmp-server community Publ1c view all ro SNMP-ACL	Publ1c
+sent	snmp-server comm Publ1c ro	Publ1c
+sent	no snmp-server community Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 vrf MGMT version 2c Publ1c	Publ1c
+sent	snmp-server host 192.0.2.5 informs version 2c Publ1c udp-port 162	Publ1c
+sent	snmp-server user mon grp v3 auth sha AuthPw1 priv aes PrivPw1	AuthPw1	PrivPw1
+sent	snmp-server user mon grp v3 auth sha512 AuthPw1 priv aes256 PrivPw1	AuthPw1	PrivPw1
+sent	username ops secret Cl3arPw	Cl3arPw
+sent	username ops privilege 15 role network-admin secret 0 Cl3arPw	Cl3arPw
+sent	username ops secret sha512 $6$abc$def	$6$abc$def
+sent	username ops sec 0 Cl3arPw	Cl3arPw
+sent	enable password 0 En4ble	En4ble
+sent	enable password En4ble	En4ble
+sent	aaa root secret 0 R00tPw	R00tPw
+sent	tacacs-server key 0 T4cacsKey	T4cacsKey
+sent	tacacs-server host 192.0.2.10 vrf MGMT key 0 T4cacsKey	T4cacsKey
+sent	radius-server host 192.0.2.11 key 0 R4dius	R4dius
+sent	ip ospf authentication-key 0 OspfK	OspfK
+sent	ip ospf message-digest-key 1 md5 0 OspfMd5	OspfMd5
+sent	neighbor 192.0.2.2 password 0 BgpPw	BgpPw
+sent	neighbor PG password BgpPw	BgpPw
+sent	isis authentication key 0 IsisK	IsisK
+sent	authentication key 0 IsisK level-1	IsisK
+sent	vrrp 1 peer authentication text VrrpT	VrrpT
+sent	vrrp 1 peer authentication ietf-md5 key-string 0 VrrpM	VrrpM
+sent	ntp authentication-key 1 md5 0 NtpKey	NtpKey
+sent	secret 1 0 Sh4red receive-lifetime infinite transmit-lifetime infinite	Sh4red
+sent	key 0123abcd 0 C4kKey	C4kKey
+sent	service unsupported-transceiver Licensee 1a2b3c4d	1a2b3c4d
+sent	copy running-config https://ops:HttpPw@192.0.2.20/sw1.cfg	HttpPw
+sent	copy running-config scp:ops:ScpPw@192.0.2.20/sw1.cfg	ScpPw
+sent	show running-config | include secret
+sent	password minimum length 8
+sent	password encryption-key common
+sent	session shared-secret profile PROF
+sent	username ops nopassword
+sent	username ops ssh-key ssh-rsa AAAAB3NzaC1yc2E
+sent	ip ospf authentication message-digest
+sent	isis authentication mode md5
+sent	set community 65000:100
+sent	snmp-server engineID local 8000758803001c7300000001
+sent	copy running-config scp:ops@192.0.2.20/sw1.cfg
+line	! Command: show running-config
+line	! device: sw1 (DCS-7050SX3-48YC12, EOS-4.31.2F)
+line	!
+line	service unsupported-transceiver Licensee 1a2b3c4dLic	1a2b3c4dLic
+line	!
+line	aaa root secret sha512 $6$rootHash$abc	$6$rootHash$abc
+line	!
+line	username admin privilege 15 role network-admin secret sha512 $6$adminHash$def	$6$adminHash$def
+line	username ops nopassword
+line	username ops ssh-key ssh-rsa AAAAB3NzaC1yc2E
+line	!
+line	enable password sha512 $6$enableHash$ghi	$6$enableHash$ghi
+line	!
+line	tacacs-server key 7 0822455D0A16Tac	0822455D0A16Tac
+line	tacacs-server host 192.0.2.10 vrf MGMT key 7 1511021F0725Tach	1511021F0725Tach
+line	radius-server host 192.0.2.11 key 7 06070D22484ARad	06070D22484ARad
+line	!
+line	snmp-server engineID local 8000758803001c7300000001
+line	snmp-server community Publ1c ro SNMP-ACL	Publ1c
+line	snmp-server user mon grp v3 localized 8000758803001c7300000001 auth sha 0x1b2c3dAuth priv aes 0x1b2c3dPriv	0x1b2c3dAuth	0x1b2c3dPriv
+line	snmp-server host 192.0.2.5 vrf MGMT version 2c Publ1cHost	Publ1cHost
+line	!
+line	ntp authentication-key 1 md5 7 121A0C041104Ntp	121A0C041104Ntp
+line	!
+line	management security
+line	   password minimum length 8
+line	   password encryption-key common
+line	   session shared-secret profile PROF
+line	      secret 1 7 13061E010803Shr receive-lifetime infinite transmit-lifetime infinite	13061E010803Shr
+line	!
+line	mac security
+line	   profile MACSEC1
+line	      key 0123abcd 7 045802150C2ECak	045802150C2ECak
+line	!
+line	interface Ethernet1
+line	   ip ospf authentication message-digest
+line	   ip ospf authentication-key 7 1511021F0725Ak	1511021F0725Ak
+line	   ip ospf message-digest-key 1 md5 7 045802150C2EOspf	045802150C2EOspf
+line	   isis authentication mode md5
+line	   isis authentication key 7 0822455D0A16Isis	0822455D0A16Isis
+line	   vrrp 1 peer authentication text VrrpT	VrrpT
+line	!
+line	router bgp 65000
+line	   neighbor 192.0.2.2 password 7 13061E010803Bgp	13061E010803Bgp
+line	!
+line	end

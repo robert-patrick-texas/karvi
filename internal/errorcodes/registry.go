@@ -150,6 +150,7 @@ var entries = []Entry{
 	failure("config_platform_resolution_unknown", "config", exitConfig, false, "`platform-resolution.default` (when set) or `platform-resolution.unknown-fallback` is not a known platform (a built-in or a configured `[platform.NAME]` table); refused at `config validate` and at load, whatever `platform-resolution.on-unknown` says."),
 	failure("config_platform_session_cap_out_of_range", "config", exitConfig, false, "`platform.<name>.session-cap` is outside 1..32."),
 	failure("config_platform_crun_filter_invalid", "config", exitConfig, false, "A `platform.<name>.crun-filters` entry is not a regular expression Go compiles; the message names the table, the entry, and the compiler's reason. The configuration is refused before any device is contacted."),
+	failure("config_platform_mask_invalid", "config", exitConfig, false, "A `platform.<name>.masks` entry is not a regular expression Go compiles, or holds no capturing group, so it would hide nothing; the message names the table, the entry, and the reason. The configuration is refused before any device is contacted."),
 	failure("config_platform_ssh_port_out_of_range", "config", exitConfig, false, "`platform.<name>.ssh-port` is outside 1..65535."),
 	failure("config_policy_cycle", "config", exitConfig, false, "Credential policy inheritance forms a cycle."),
 	failure("config_session_init_map_catch_all_missing", "config", exitConfig, false, "The final `session-init-map` rule is not the catch-all `name = \"*\"` rule."),

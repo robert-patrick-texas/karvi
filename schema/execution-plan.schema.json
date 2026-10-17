@@ -156,7 +156,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "plan_id", "operator", "targets", "commands", "command_plan_digest", "blind_returns", "blind", "expectations", "timeouts_ns", "max_bytes", "session_init", "dispatch", "output", "sources", "configuration", "planning", "preparation"],
       "properties": {
-        "schema_version": {"const": 13},
+        "schema_version": {"const": 14},
         "plan_id": {"$ref": "#/$defs/identifier"},
         "plan_digest": {"$ref": "#/$defs/digest"},
         "operator": {"$ref": "#/$defs/operator"},
@@ -165,6 +165,7 @@
         "commands_file": {"type": "string"},
         "platform_commands": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
         "platform_filters": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
+        "platform_masks": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
         "command_plan_digest": {"$ref": "#/$defs/digest"},
         "blind_returns": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 20}},
         "blind": {"type": "array", "items": {"type": "boolean"}},
@@ -200,7 +201,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["schema_version", "idempotency_key", "job_id", "operator", "client", "mode", "execution_domain", "priority", "command_plan_digest", "plan_digest"],
       "properties": {
-        "schema_version": {"const": 13},
+        "schema_version": {"const": 14},
         "idempotency_key": {"type": "string"},
         "job_id": {"$ref": "#/$defs/identifier"},
         "operator": {"$ref": "#/$defs/operator"},
