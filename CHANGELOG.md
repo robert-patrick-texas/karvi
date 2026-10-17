@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.32.0 - 2026-10-17
+
+A minor release on 0.31.1. The configuration registry moves from 30 to 31, the
+execution plan from 13 to 14, the command record from 3 to 4, the job manifest
+and summary from 4 to 5, the plan report from 2 to 3, the scoreboard from 3 to
+4, and the audit from 1 to 2; every other counter is 0.31.1's (configuration
+schema 6, daemon IPC 12, credential package 2, metrics 1, inventory 1), and an
+operator's 0.31.1 daemon, of another build, is drained by the first submission
+after the upgrade. `karvi-audit` is a fourth executable. A site has something
+to change where a parser reads the audit file, the journal, or the syslog it
+forwards (the events' names, fields, and line, and the statements, masked, in
+place of their digests); where a script reads an outcome, a status, or a count
+by its past-tense word, or the collection's `replaced` and `kept`; where a
+display template names `<replaced>` or `<kept>` (refused at load); where a
+`crun.after` hook reads `KARVI_CRUN_REPLACED` or `KARVI_CRUN_KEPT`; and where a
+host holds the tab completion file from before (`sudo karvi setup tab` once
+more). The module graph is 0.31.1's.
 
 - **Breaking: the audit trail's names, links, and line; audit schema 2.**
   Every audit event is named `<kind>.<event>`, the kind `cmd`, `run`, or
