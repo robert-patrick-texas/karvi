@@ -1,0 +1,305 @@
+.\" karvi-audit(1): the audit trail reader's manual page. Written by hand
+.\" except the two generated regions, which tools/mangen rewrites from the
+.\" reader's flag definition (make generate); docs/OPERATIONS.md "The audit
+.\" trail" is the guide to the trail itself, so a change to the reader or to
+.\" the trail changes both.
+.TH KARVI-AUDIT 1 "" "karvi"
+.\" Paths and options are not hyphenated, and lines are not stretched.
+.nh
+.ds AD l
+.ad l
+.SH NAME
+karvi\-audit \- show karvi's audit trail from journald, one event per row
+.SH SYNOPSIS
+.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/auditview; edit there
+.B karvi\-audit
+.RB [ \-f ]
+.RB [ \-r ]
+.RB [ "\-g \fIPATTERN\fP" ]
+.RB [ "\-o \fINAME\fP" ]...
+.RB [ "\-d \fINAME\fP" ]...
+.RB [ "\-n \fIN\fP" ]
+.RB [ "\-S \fITIME\fP" ]
+.RB [ "\-U \fITIME\fP" ]
+.RB [ \-\-nocolor ]
+.\" END GENERATED SYNOPSIS
+.SH DESCRIPTION
+.B karvi\-audit
+reads the audit trail, the events every job and every login writes to
+journald, and shows each event as one row of a table: what was run, by
+whom, at which device, in which job, and how it ended.
+It runs
+.BR journalctl (1)
+with the trail's matches, the identifier
+.B karvi
+and the audit's
+.BR MESSAGE_ID ,
+which tell an audit event from the daemon's log under the same
+identifier.
+.PP
+It reads no configuration.
+The window
+.RB ( \-S ,
+.BR \-U ,
+.BR \-n ),
+the pattern
+.RB ( \-g ),
+the order
+.RB ( \-r ),
+and the follow
+.RB ( \-f )
+are passed to
+.B journalctl
+as given; the operator
+.RB ( \-o )
+and the device
+.RB ( \-d )
+are matched as the event's fields, a field given more than once matching
+any of its names, and the operator and the device together matching
+both.
+Who reads whose events is journald's: an operator reads their own, and
+the members of
+.B adm
+and
+.B systemd\-journal
+everyone's.
+.PP
+An event it cannot read, one with no
+.BR KARVI_AUDIT_JSON ,
+JSON that does not decode, or an audit schema other than 2, has no row;
+one line on standard error at the end counts them, a follow ended by
+Ctrl\-C included:
+.PP
+.nf
+.RS
+karvi\-audit: 12 events not shown: not audit schema 2
+.RE
+.fi
+.SH OPTIONS
+.\" BEGIN GENERATED OPTIONS: tools/mangen from internal/auditview; edit there
+.TP
+.BR \-f ", " \-\-follow
+Show the newest events, then each new one as it comes, until Ctrl\-C (journalctl's \-\-follow).
+.TP
+.BR \-r ", " \-\-reverse
+The newest event first (journalctl's \-\-reverse).
+.TP
+.BR \-g ", " \-\-grep " \fIPATTERN\fP"
+The events whose line matches PATTERN, a job's ID or a statement's words among them (journalctl's \-\-grep: a regular expression, its case ignored when it is all lowercase).
+.TP
+.BR \-o ", " \-\-operator " \fINAME\fP"
+The events of NAME, as the operator or as the login user behind sudo, matched whole; repeatable.
+.TP
+.BR \-d ", " \-\-device " \fINAME\fP"
+The events at the device NAME, lowercased and matched whole; repeatable.
+.TP
+.BR \-n ", " \-\-lines " \fIN\fP"
+The newest N events (journalctl's \-\-lines); every event when not given, ten under \-\-follow.
+.TP
+.BR \-S ", " \-\-since " \fITIME\fP"
+The events at or after TIME (journalctl's \-\-since: 2026\-10\-17 14:00, yesterday, \-1h).
+.TP
+.BR \-U ", " \-\-until " \fITIME\fP"
+The events at or before TIME (journalctl's \-\-until).
+.TP
+.B \-\-nocolor
+No colour, at a terminal or through a pipe.
+.\" END GENERATED OPTIONS
+.SH OUTPUT
+The heading and one row per event on standard output, in the journal's
+order:
+.PP
+.nf
+.RS
+JOB\-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017\-171016\-00       netops       run   start
+261017\-171016\-00       netops       run   command success               fake\-iosxe      show clock
+261017\-171016\-00       netops       run   command connection_error      dead\-iosxe      show clock
+261017\-171016\-00       netops       run   end     error
+.RE
+.fi
+.PP
+The columns, at fixed widths with one space between them:
+.TP
+.B JOB\-ID
+16 cells: the job's ID, or the login's.
+.TP
+.B OPERATOR
+18 cells: the account the job or the login ran as, a job through the
+daemon its client's; or
+.IB OPERATOR / LOGINUSER
+when the event names a login user, the person behind
+.BR sudo ,
+the operator's part cut first.
+.TP
+.B MODE
+5 cells: the kind,
+.BR cmd ,
+.BR run ,
+.BR crun ,
+or
+.BR login .
+.TP
+.B EVENT
+7 cells:
+.BR start ,
+.B command
+(once per device per statement),
+.BR cancel ,
+.B after
+(a collection's hook), or
+.BR end .
+.TP
+.B OUTCOME
+16 cells: a
+.B command
+event's status, an
+.BR end 's
+final status, a login's
+.B complete
+or
+.BR error ,
+or the hook's
+.B success
+or
+.BR fail ;
+none for a
+.B start
+or a
+.BR cancel .
+.TP
+.B DEVICE
+20 cells: the device's canonical name.
+.TP
+.B COMMAND
+The statement as sent, masked as the audit masks it; a tab, a newline, or
+another control character is written as
+.BR \e t ,
+.BR \e n ,
+or
+.BR \e x1b .
+.PP
+A cell longer than its column is cut with \[u2026].
+At a terminal the line is cut with \[u2026] so that its last cell stays free,
+COMMAND cut or not shown at all; to a pipe or a file nothing cuts the line.
+OPERATOR and DEVICE are centred in their columns while the width holds
+the column whole, and at the column's left when it cuts into it.
+.PP
+The heading is blue, OPERATOR cyan, DEVICE bold yellow, and OUTCOME by
+its word: green for
+.BR success ,
+.BR complete ,
+and
+.BR exercise ;
+orange for work not done or cut short,
+.BR cancel ,
+.BR halt ,
+.BR incomplete ,
+and a command's
+.BR not_attempted_* ,
+.BR not_started_* ,
+and
+.BR incomplete_* ;
+red for every other word.
+The colour goes to a terminal and through a pipe, so a pager keeps it
+.RB ( "karvi\-audit | less \-R" ),
+never into a file;
+.B \-\-nocolor
+and
+.B NO_COLOR
+turn it off.
+.PP
+Not following, the heading comes with the first row, and when
+.B journalctl
+returned no entry,
+.B "karvi\-audit: no matches"
+goes to standard error, with no heading.
+Following, the heading comes with the first row, or once
+.B journalctl
+has run half a second without ending.
+A reader that quits, such as
+.B less
+or
+.BR head ,
+ends it quietly.
+.SH EXIT STATUS
+.TP
+.B 0
+.B journalctl
+ended 0, nothing matched included, or a follow was ended by Ctrl\-C or by
+its reader's closing.
+.TP
+.B 1
+.B journalctl
+is missing
+.RB ( "karvi\-audit: journalctl not found" ),
+or it ended otherwise; a value it refused, a time, a pattern, or
+.B \-r
+with
+.BR \-f ,
+is its message on standard error as it wrote it.
+Or the table could not be written, other than to a reader that quit.
+.TP
+.B 2
+A usage error: an unknown flag, a positional argument, or an
+.B \-n
+that is not a number.
+The message and the help go to standard error.
+.SH ENVIRONMENT
+.TP
+.B NO_COLOR
+Set and not empty, no colour, as
+.BR \-\-nocolor .
+.TP
+.B PATH
+Where
+.B journalctl
+is found.
+.SH EXAMPLES
+A job's events, by its ID:
+.PP
+.nf
+.RS
+karvi\-audit \-g 261017\-171016\-00
+.RE
+.fi
+.PP
+Today's events at one device, newest first:
+.PP
+.nf
+.RS
+karvi\-audit \-d core\-nyc\-01 \-S today \-r
+.RE
+.fi
+.PP
+The last hour's events of one person, as the operator or behind
+.BR sudo :
+.PP
+.nf
+.RS
+karvi\-audit \-o jsmith \-S \-1h
+.RE
+.fi
+.PP
+The trail as it is written, through a shift, until Ctrl\-C:
+.PP
+.nf
+.RS
+karvi\-audit \-f
+.RE
+.fi
+.PP
+Yesterday's trail, paged with its colours:
+.PP
+.nf
+.RS
+karvi\-audit \-S yesterday \-U today | less \-R
+.RE
+.fi
+.SH SEE ALSO
+.BR journalctl (1),
+.BR karvi (1),
+.BR karvi\-job (1),
+.BR karvi\-prune (8);
+.I docs/OPERATIONS.md
+"The audit trail" in the karvi source.

@@ -16,10 +16,12 @@ sha256sum -c CHECKSUMS.sha256
 file bin/karvi-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-askpass-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 file bin/karvi-prune-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
-[ -x bin/karvi-linux-amd64 ] && [ -x bin/karvi-askpass-linux-amd64 ] && [ -x bin/karvi-prune-linux-amd64 ]
+file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
+[ -x bin/karvi-linux-amd64 ] && [ -x bin/karvi-askpass-linux-amd64 ] && [ -x bin/karvi-prune-linux-amd64 ] && [ -x bin/karvi-audit-linux-amd64 ]
 [ "$(readlink bin/karvi)" = karvi-linux-amd64 ]
 [ "$(readlink bin/karvi-askpass)" = karvi-askpass-linux-amd64 ]
 [ "$(readlink bin/karvi-prune)" = karvi-prune-linux-amd64 ]
+[ "$(readlink bin/karvi-audit)" = karvi-audit-linux-amd64 ]
 ./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.31.1"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"config_schema_version": 6'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 4'

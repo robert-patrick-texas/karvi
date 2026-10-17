@@ -1,11 +1,14 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/flagspec"
 )
 
 const src = "../../packaging/man"
@@ -30,16 +33,22 @@ func TestCommittedPagesAreCurrent(t *testing.T) {
 	}
 }
 
-// TestPageTable: prune's page, the top page, and one page per command word
-// with its two regions, the top page with the exit statuses as well; a
-// word without its page is refused by name.
+// TestPageTable: prune's page and the reader's, each with its SYNOPSIS and
+// OPTIONS; the top page, and one page per command word with its two
+// regions, the top page with the exit statuses as well; a word without its
+// page is refused by name.
 func TestPageTable(t *testing.T) {
 	ps := pages()
-	if ps[0].file != "karvi-prune.8" || ps[1].file != "karvi.1" || len(ps[1].regions) != 3 || ps[1].regions[2].name != "EXIT STATUS" {
-		t.Fatalf("table head: %+v", ps[:2])
+	for i, file := range []string{"karvi-prune.8", "karvi-audit.1"} {
+		if ps[i].file != file || len(ps[i].regions) != 2 || ps[i].regions[0].name != "SYNOPSIS" || ps[i].regions[1].name != "OPTIONS" {
+			t.Fatalf("table head: %+v", ps[i])
+		}
+	}
+	if ps[2].file != "karvi.1" || len(ps[2].regions) != 3 || ps[2].regions[2].name != "EXIT STATUS" {
+		t.Fatalf("table head: %+v", ps[2])
 	}
 	words := map[string]bool{}
-	for _, p := range ps[2:] {
+	for _, p := range ps[3:] {
 		words[p.file] = true
 		if len(p.regions) != 2 {
 			t.Errorf("%s: %d regions", p.file, len(p.regions))
@@ -64,6 +73,36 @@ func TestPageTable(t *testing.T) {
 	}
 	if _, err := render(dir); err == nil || !strings.Contains(err.Error(), "karvi-watch.1 does not exist") {
 		t.Errorf("a missing page: %v", err)
+	}
+}
+
+// TestSpecRegions: a flag is spelled in the synopsis as the help spells
+// it, by its one letter where it has one and with ... after a repeatable
+// one, and OPTIONS gives both spellings; a flag with neither is as
+// karvi-prune's.
+func TestSpecRegions(t *testing.T) {
+	spec := flagspec.Spec{
+		Program: "x-y",
+		Order:   []string{"follow", "operator", "dry-run", "days"},
+		Values:  map[string]flagspec.Value{"operator": {Name: "NAME", Repeat: true}, "days": {Name: "N"}},
+		Short:   map[string]string{"follow": "f", "operator": "o"},
+		Define: func(fs *flag.FlagSet) {
+			fs.Bool("follow", false, "Follow")
+			fs.Bool("f", false, "Follow")
+			fs.String("operator", "", "An operator")
+			fs.String("o", "", "An operator")
+			fs.Bool("dry-run", false, "Remove nothing")
+			fs.Int("days", 31, "The age")
+		},
+	}
+	r := specRegions(spec, "internal/x")
+	wantSyn := ".B x\\-y\n.RB [ \\-f ]\n.RB [ \"\\-o \\fINAME\\fP\" ]...\n.RB [ \\-\\-dry\\-run ]\n.RB [ \"\\-\\-days \\fIN\\fP\" ]\n"
+	wantOpt := ".TP\n.BR \\-f \", \" \\-\\-follow\nFollow.\n" +
+		".TP\n.BR \\-o \", \" \\-\\-operator \" \\fINAME\\fP\"\nAn operator.\n" +
+		".TP\n.B \\-\\-dry\\-run\nRemove nothing.\n" +
+		".TP\n.BI \\-\\-days \" N\"\nThe age.\nDefault: \\fB31\\fP.\n"
+	if len(r) != 2 || r[0].body != wantSyn || r[1].body != wantOpt {
+		t.Fatalf("got\n%s\n%s\nwant\n%s\n%s", r[0].body, r[1].body, wantSyn, wantOpt)
 	}
 }
 

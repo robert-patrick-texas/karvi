@@ -14,12 +14,12 @@ import (
 // `sudo karvi setup tab` places the bash
 // completion function under the completions directory the bash-completion
 // package reads, so every operator's shell completes karvi's words, and
-// karvi-prune's (17.1), from the next login. The function is the one
+// karvi-prune's (17.1) and karvi-audit's, from the next login. The function is the one
 // constant below, which the tests and the suite drive as well, so the
 // installed script and the tested one are the same bytes.
 
-// completionScript is the bash function, one for both commands (karvi and
-// karvi-prune). It rejoins words the shell split at
+// completionScript is the bash function, one for the three commands (karvi,
+// karvi-prune, and karvi-audit). It rejoins words the shell split at
 // = (so --set=KEY stays one word), hands the line to the hidden word of the
 // command being completed ($1, the command as bash names it, so the
 // executable the operator is completing answers), and reads the answer:
@@ -27,9 +27,9 @@ import (
 // file names. A single candidate ending in = takes no space, so a --set KEY=
 // waits for its value.
 const completionScript = `# karvi bash completion, written by: sudo karvi setup tab
-# The candidates come from the executable being completed ($1: karvi, or
-# karvi-prune, each through its hidden word __complete), never from this
-# file, so it needs no change when their words change.
+# The candidates come from the executable being completed ($1: karvi,
+# karvi-prune, or karvi-audit, each through its hidden word __complete),
+# never from this file, so it needs no change when their words change.
 _karvi() {
   local cur words cword
   _init_completion -n = || return
@@ -48,6 +48,7 @@ _karvi() {
 }
 complete -F _karvi karvi
 complete -F _karvi karvi-prune
+complete -F _karvi karvi-audit
 `
 
 // completionMarker is the first line of every script karvi wrote: a file at

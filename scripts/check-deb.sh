@@ -4,7 +4,7 @@
 # (docs/EXAMPLES.md chapter 43). The release verifier runs it on the package
 # of the tree it verifies, and the release's artifact step on the package of
 # the bundle:
-#   - the three executables are TREE's bin/ bytes;
+#   - the four executables are TREE's bin/ bytes;
 #   - every document and example configuration packaging/debian/rules
 #     installs is in the package under its own name, the same bytes, so none
 #     was gzipped or left out;
@@ -33,7 +33,7 @@ R=$cd_work/root
 dpkg-deb -x "$PKG" "$R"
 DOC=$R/usr/share/doc/karvi
 
-for cd_exe in karvi karvi-askpass karvi-prune; do
+for cd_exe in karvi karvi-askpass karvi-prune karvi-audit; do
   cmp -s "$TREE/bin/$cd_exe-linux-amd64" "$R/usr/bin/$cd_exe" ||
     fail "usr/bin/$cd_exe is not $TREE/bin/$cd_exe-linux-amd64"
 done

@@ -74,9 +74,11 @@ build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -buildvcs=false -trimpath -ldflags '$(LDFLAGS)' -o bin/karvi-$(GOOS)-$(GOARCH) ./cmd/karvi
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -buildvcs=false -trimpath -ldflags '$(LDFLAGS)' -o bin/karvi-askpass-$(GOOS)-$(GOARCH) ./cmd/karvi-askpass
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -buildvcs=false -trimpath -ldflags '$(LDFLAGS)' -o bin/karvi-prune-$(GOOS)-$(GOARCH) ./cmd/karvi-prune
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -buildvcs=false -trimpath -ldflags '$(LDFLAGS)' -o bin/karvi-audit-$(GOOS)-$(GOARCH) ./cmd/karvi-audit
 	ln -sfn karvi-$(GOOS)-$(GOARCH) bin/karvi
 	ln -sfn karvi-askpass-$(GOOS)-$(GOARCH) bin/karvi-askpass
 	ln -sfn karvi-prune-$(GOOS)-$(GOARCH) bin/karvi-prune
+	ln -sfn karvi-audit-$(GOOS)-$(GOARCH) bin/karvi-audit
 
 native-build: deps generate test vet build
 
@@ -84,9 +86,11 @@ checksums:
 	@test -x bin/karvi-$(GOOS)-$(GOARCH)
 	@test -x bin/karvi-askpass-$(GOOS)-$(GOARCH)
 	@test -x bin/karvi-prune-$(GOOS)-$(GOARCH)
+	@test -x bin/karvi-audit-$(GOOS)-$(GOARCH)
 	sha256sum bin/karvi-$(GOOS)-$(GOARCH) \
 		bin/karvi-askpass-$(GOOS)-$(GOARCH) \
-		bin/karvi-prune-$(GOOS)-$(GOARCH) > CHECKSUMS.sha256
+		bin/karvi-prune-$(GOOS)-$(GOARCH) \
+		bin/karvi-audit-$(GOOS)-$(GOARCH) > CHECKSUMS.sha256
 
 # The smoke suites run against the executable make build produces, which
 # carries both transports (the scrapligo_v1 build tag and the dependency-free
@@ -116,5 +120,5 @@ canary-smoke: build tools-build
 	./scripts/canary-smoke-test.sh
 
 clean:
-	rm -f bin/karvi bin/karvi-askpass bin/karvi-prune
-	rm -f bin/karvi-$(GOOS)-$(GOARCH) bin/karvi-askpass-$(GOOS)-$(GOARCH) bin/karvi-prune-$(GOOS)-$(GOARCH)
+	rm -f bin/karvi bin/karvi-askpass bin/karvi-prune bin/karvi-audit
+	rm -f bin/karvi-$(GOOS)-$(GOARCH) bin/karvi-askpass-$(GOOS)-$(GOARCH) bin/karvi-prune-$(GOOS)-$(GOARCH) bin/karvi-audit-$(GOOS)-$(GOARCH)

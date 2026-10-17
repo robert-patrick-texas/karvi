@@ -6,9 +6,9 @@
 #
 #   sudo ./scripts/install.sh
 #
-# The four executables go under versioned names in /usr/local/lib/karvi:
-# karvi, karvi-askpass, and karvi-prune linked from /usr/local/bin, and
-# karvi-sysutil from /usr/local/sbin, as the package has it in /usr/sbin;
+# The five executables go under versioned names in /usr/local/lib/karvi:
+# karvi, karvi-askpass, karvi-prune, and karvi-audit linked from
+# /usr/local/bin, and karvi-sysutil from /usr/local/sbin, as the package has it in /usr/sbin;
 # karvi-sysutil's manual page in /usr/local/share/man/man8; the service
 # account's template unit in /usr/local/lib/systemd/system; and systemd
 # reloaded. It enables, starts, and restarts nothing: neither the package nor
@@ -45,7 +45,7 @@ done
 
 [ "$(id -u)" -eq 0 ] || die "run as root: sudo ./scripts/install.sh"
 VERSION=$(cat "$ROOT/VERSION")
-for f in bin/karvi-linux-amd64 bin/karvi-askpass-linux-amd64 bin/karvi-prune-linux-amd64 \
+for f in bin/karvi-linux-amd64 bin/karvi-askpass-linux-amd64 bin/karvi-prune-linux-amd64 bin/karvi-audit-linux-amd64 \
   packaging/sbin/karvi-sysutil packaging/man/karvi-sysutil.8 packaging/systemd/system/karvi-daemon@.service; do
   [ -f "$ROOT/$f" ] || die "$ROOT/$f missing; run this from the extracted bundle"
 done
@@ -59,7 +59,7 @@ link() {
 }
 
 install -d -m 0755 "$LIB" /usr/local/bin /usr/local/sbin /usr/local/share/man/man8 /usr/local/lib/systemd/system
-for name in karvi karvi-askpass karvi-prune; do
+for name in karvi karvi-askpass karvi-prune karvi-audit; do
   install -m 0755 "$ROOT/bin/$name-linux-amd64" "$LIB/$name-v$VERSION"
   link "$LIB/$name-v$VERSION" "/usr/local/bin/$name"
 done

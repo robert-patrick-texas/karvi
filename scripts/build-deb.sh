@@ -34,7 +34,7 @@ case $bd_heading in
   *) die "CHANGELOG.md's first heading is \"$bd_heading\"; a package needs \"## $bd_version - YYYY-MM-DD\" or \"## Unreleased\"" ;;
 esac
 
-for bd_exe in karvi karvi-askpass karvi-prune; do
+for bd_exe in karvi karvi-askpass karvi-prune karvi-audit; do
   [ -f "$ROOT/bin/$bd_exe-linux-amd64" ] || die "bin/$bd_exe-linux-amd64 is missing; build the executables first: make build"
 done
 if [ "$bd_release" = yes ]; then

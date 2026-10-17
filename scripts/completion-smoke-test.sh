@@ -1,21 +1,23 @@
 #!/bin/bash
-# Tab completion (the command's and the helper's)
-# against the prebuilt karvi binary and the helper beside it: the bash
+# Tab completion (the command's and the helpers')
+# against the prebuilt karvi binary and the helpers beside it: the bash
 # function karvi installs, sourced from the executable's own constant and
 # driven under bash's completion machinery on a lab inventory and scoreboard
-# for karvi and on the flag set for karvi-prune, and the two hidden words
-# behind it. Runs without a network and writes nothing outside its own
+# for karvi and on the flag sets for karvi-prune and karvi-audit, and the
+# three hidden words behind it. Runs without a network and writes nothing outside its own
 # directory.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 PRUNE=${KARVI_PRUNE:-$(dirname "$KARVI")/karvi-prune}
+AUDIT=${KARVI_AUDIT:-$(dirname "$KARVI")/karvi-audit}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-completion-smoke-XXXXXX")
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 trap 'rm -rf "$TMP"' EXIT
 install -d -m 700 "$TMP/home" "$TMP/state" "$TMP/sb" "$TMP/bin"
 ln -s "$KARVI" "$TMP/bin/karvi"
 ln -s "$PRUNE" "$TMP/bin/karvi-prune"
+ln -s "$AUDIT" "$TMP/bin/karvi-audit"
 export PATH=$TMP/bin:$PATH HOME=$TMP/home
 
 printf 'name,management_address,platform\ncore-nyc-01,192.0.2.1,cisco_iosxe\nedge-sfo-02,192.0.2.2,generic\n' >"$TMP/inv.csv"
@@ -49,7 +51,7 @@ fail() { echo "FAIL: $*" >&2; failures=$((failures + 1)); }
 # The hidden word, as the function calls it: hidden EXE NAME CURSOR WORD...,
 # CURSOR the index of the word under the cursor (the last word, or one past
 # it for a Tab after a space); the candidates in $TMP/out. word is karvi's,
-# pword the helper's.
+# pword karvi-prune's, aword karvi-audit's.
 hidden() {
   local exe=$1 name=$2; shift 2
   "$exe" __complete "$@" >"$TMP/out" 2>"$TMP/err" </dev/null || fail "$name: exit $?"
@@ -57,6 +59,7 @@ hidden() {
 }
 word() { hidden "$KARVI" "$@"; }
 pword() { hidden "$PRUNE" "$@"; }
+aword() { hidden "$AUDIT" "$@"; }
 lines() { # lines NAME LINE...  the output is exactly these lines
   local name=$1; shift
   printf '%s\n' "$@" >"$TMP/want"
@@ -94,6 +97,19 @@ pword p9 2 karvi-prune --;                         empty p9
 pword p10 2 karvi-prune extra;                     empty p10
 [ -z "$(ls -A "$TMP/home")" ] || fail "the helper's hidden word wrote under the home: $(ls -A "$TMP/home")"
 
+# karvi-audit's hidden word: its long flags alone, a one-letter spelling
+# completing to nothing; nothing for a value Tab cannot know (a name, a
+# time), after a positional, or after --.
+AFLAGS=(--device --follow --grep --lines --nocolor --operator --reverse --since --until)
+aword a1 1 karvi-audit;                            lines a1 "${AFLAGS[@]}"
+aword a2 1 karvi-audit --f;                        lines a2 --follow
+aword a3 1 karvi-audit -f;                         empty a3
+aword a4 2 karvi-audit -o;                         empty a4
+aword a5 2 karvi-audit --since;                    empty a5
+aword a6 3 karvi-audit -n 5;                       lines a6 "${AFLAGS[@]}"
+aword a7 2 karvi-audit extra;                      empty a7
+aword a8 2 karvi-audit --;                         empty a8
+
 # setup tab as the operator: refused before anything is looked at.
 set +e
 "$KARVI" setup tab >"$TMP/out" 2>"$TMP/err" </dev/null; rc=$?
@@ -113,7 +129,8 @@ if [ -r "$LIB" ]; then
   SCRIPT=$TMP/karvi.bash
   awk '/^const completionScript = `/{f=1; next} f && /^`$/{exit} f' "$ROOT/internal/cli/setup_tab.go" >"$SCRIPT"
   grep -q '^complete -F _karvi karvi$' "$SCRIPT" || fail "b0: the script was not extracted"
-  grep -q '^complete -F _karvi karvi-prune$' "$SCRIPT" || fail "b0: the helper is not registered"
+  grep -q '^complete -F _karvi karvi-prune$' "$SCRIPT" || fail "b0: karvi-prune is not registered"
+  grep -q '^complete -F _karvi karvi-audit$' "$SCRIPT" || fail "b0: karvi-audit is not registered"
   # tab NAME CWORD WORD... : COMPREPLY after the function, one per line; a
   # Tab after a space is an empty last word, as bash passes it. The function
   # is called as bash calls it, with the command word, the current word, and
@@ -141,7 +158,7 @@ if [ -r "$LIB" ]; then
   tab b7 2 karvi --set output.r;                     lines b7 output.reserve-multiplier= output.root=
   tab b8 1 karvi --set=display.col;                  has b8 --set=display.color=
   tab b9 2 karvi setup "";                           lines b9 --help shared tab
-  # The helper through the same function. No row asks for file names:
+  # The helpers through the same function. No row asks for file names:
   # compopt runs only inside an interactive completion.
   tab pb1 1 karvi-prune --d;                         lines pb1 --days --dry-run
   tab pb2 2 karvi-prune --format "";                 lines pb2 jsonl text
@@ -149,6 +166,9 @@ if [ -r "$LIB" ]; then
   tab pb4 1 karvi-prune --format=js;                 lines pb4 --format=jsonl
   tab pb5 3 karvi-prune --days 7 "";                 lines pb5 "${FLAGS[@]}"
   tab pb6 2 karvi-prune extra "";                    lines pb6 ""
+  tab ab1 1 karvi-audit --f;                         lines ab1 --follow
+  tab ab2 3 karvi-audit -o netops "";                lines ab2 "${AFLAGS[@]}"
+  tab ab3 2 karvi-audit -d "";                       lines ab3 ""
   echo "completion-smoke: the function driven under bash $BASH_VERSION with $LIB"
 else
   echo "completion-smoke: $LIB absent; the function was not driven (the hidden word was)"

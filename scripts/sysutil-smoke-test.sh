@@ -336,7 +336,7 @@ VERSION=$(cat "$ROOT/VERSION")
 B=$TMP/bundle
 mkdir -p "$B/bin" "$B/scripts" "$B/packaging/sbin" "$B/packaging/man" "$B/packaging/systemd/system" "$TMP/pkg"
 dpkg-deb -x "$PKG" "$TMP/pkg" || fail "dpkg-deb -x ${PKG##*/}"
-for name in karvi karvi-askpass karvi-prune; do cp "$TMP/pkg/usr/bin/$name" "$B/bin/$name-linux-amd64"; done
+for name in karvi karvi-askpass karvi-prune karvi-audit; do cp "$TMP/pkg/usr/bin/$name" "$B/bin/$name-linux-amd64"; done
 cp "$ROOT/VERSION" "$B/" && cp "$ROOT/scripts/install.sh" "$B/scripts/" && cp "$ROOT/packaging/sbin/karvi-sysutil" "$B/packaging/sbin/" &&
   cp "$ROOT/packaging/man/karvi-sysutil.8" "$B/packaging/man/" && cp "$ROOT/packaging/systemd/system/karvi-daemon@.service" "$B/packaging/systemd/system/" ||
   fail "the bundle's files"
@@ -345,7 +345,8 @@ mark=$(x date +%s)
 out=$(x /root/bundle/scripts/install.sh --nocolor 2>&1) || fail "install.sh: $out"
 LIB=/usr/local/lib/karvi
 for line in "/usr/local/bin/karvi -> $LIB/karvi-v$VERSION" "/usr/local/bin/karvi-askpass -> $LIB/karvi-askpass-v$VERSION" \
-  "/usr/local/bin/karvi-prune -> $LIB/karvi-prune-v$VERSION" "/usr/local/sbin/karvi-sysutil -> $LIB/karvi-sysutil-v$VERSION" \
+  "/usr/local/bin/karvi-prune -> $LIB/karvi-prune-v$VERSION" "/usr/local/bin/karvi-audit -> $LIB/karvi-audit-v$VERSION" \
+  "/usr/local/sbin/karvi-sysutil -> $LIB/karvi-sysutil-v$VERSION" \
   "/usr/local/share/man/man8/karvi-sysutil.8" "/usr/local/lib/systemd/system/karvi-daemon@.service" "systemd reloaded" \
   "karvi $VERSION installed; nothing enabled or started"; do
   has "$out" "$line" || fail "install.sh: no \"$line\" in: $out"
@@ -370,5 +371,5 @@ x /root/bundle/scripts/install.sh --nocolor >/dev/null 2>&1 || fail "install.sh 
   fail "after install.sh again: NeedDaemonReload=$(prop NeedDaemonReload) MainPID=$(prop MainPID), was $pid"
 out=$(sysutil remove --purge 2>&1) || fail "remove --purge from the bundle: $out"
 has "$out" "removed  account karvi" || fail "remove --purge from the bundle: $out"
-ok "bundle: install.sh placed the four executables, the page, and the template, systemd reloaded; the daemon set up ran $LIB/karvi-v$VERSION; install.sh again reloaded, the pid $pid the same; removed"
+ok "bundle: install.sh placed the five executables, the page, and the template, systemd reloaded; the daemon set up ran $LIB/karvi-v$VERSION; install.sh again reloaded, the pid $pid the same; removed"
 ok "pass"

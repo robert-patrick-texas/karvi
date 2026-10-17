@@ -20,17 +20,18 @@ override_dh_compress:
 
 override_dh_auto_install:
 	install -D -m 0755 bin/karvi-linux-amd64 debian/karvi/usr/bin/karvi
-	# The two helpers beside karvi: karvi finds
-	# karvi-askpass beside its own executable, and an operator runs
-	# karvi-prune by hand.
+	# The three helpers beside karvi: karvi finds karvi-askpass beside its
+	# own executable, and an operator runs karvi-prune and karvi-audit by
+	# hand.
 	install -D -m 0755 bin/karvi-askpass-linux-amd64 debian/karvi/usr/bin/karvi-askpass
 	install -D -m 0755 bin/karvi-prune-linux-amd64 debian/karvi/usr/bin/karvi-prune
+	install -D -m 0755 bin/karvi-audit-linux-amd64 debian/karvi/usr/bin/karvi-audit
 	# The administrator's tool for the service account's daemon, run as
 	# root (karvi-sysutil(8)).
 	install -D -m 0755 packaging/sbin/karvi-sysutil debian/karvi/usr/sbin/karvi-sysutil
-	# The manual pages: karvi's and its words' and karvi-askpass's in
-	# section 1, karvi-prune's and karvi-sysutil's in 8; dh_compress gzips
-	# them.
+	# The manual pages: karvi's and its words', karvi-askpass's, and
+	# karvi-audit's in section 1, karvi-prune's and karvi-sysutil's in 8;
+	# dh_compress gzips them.
 	install -D -m 0644 -t debian/karvi/usr/share/man/man1 packaging/man/*.1
 	install -D -m 0644 -t debian/karvi/usr/share/man/man8 packaging/man/*.8
 	# The documents in the tree's layout, so their relative links hold:

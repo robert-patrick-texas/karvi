@@ -13863,3 +13863,61 @@ replaced by a space (the statement as sent no longer shown).
 - `-o` matches a name whole, with its case, as journald matches a field:
   `-o NETOPS.TEST` matched none of the lab's events; `-d` alone is lowercased,
   as a device's canonical name is.
+
+**Agreed while building S3: the suite on a host without journald.** The rule.
+The audit suite reads the jobs' events back from the host's journal, the first
+suite to read journald. With journald, its socket
+`/run/systemd/journal/socket` and `journalctl`, every row runs: the jobs run
+under `audit.journald-required = true`, so a journal that takes no event fails
+karvi itself, and an event not read back within ten seconds fails the suite.
+Without journald, the reader's own refusals, its help, and `journalctl not
+found` still run, then one line says that the journal's rows are skipped and
+why, and the suite passes, as the canary and v0100 suites skip their ICMP rows
+on a host without an ICMP method. A copy of the suite whose socket path names
+none (`skip.sh`), then the suite itself, on a lab build of the tree with S3's
+changes: a `$ ` line the command run, a `(script)` line this report's own, the
+rest the suite's output:
+
+```text
+$ sh skip.sh
+audit smoke: j1-j9 SKIP: no journald on this host (/run/systemd/journal/socket, journalctl)
+audit smoke: ok
+(script) exit 0
+$ KARVI=/dev/shm/ka3/bin/karvi ./scripts/audit-smoke-test.sh
+audit smoke: ok
+(script) exit 0
+```
+
+*Why:* the suites run wherever the bundle is verified, a container without
+systemd among them, and a row skipped with its reason is the list's rule for a
+host that cannot hold it; the rows that need no journal still hold the reader's
+own run. *Not taken:* the suite failing on a host without journald (the bundle
+verifier failing there for the host, not for karvi); a fake `journalctl`
+replaying recorded events (the reader's own tests do that; the suite is the
+round trip through journald); the jobs under `journald-required = false` (a
+journal that took no event would read as the reader's fault).
+
+**Found while building S3.**
+
+- A job ID names a job in its own output root alone: another suite running
+  beside this one may start a job in the same second under the same ID, so the
+  read by job ID looks for the run's six rows in order among what the pattern
+  matched, not for those rows alone; unique job IDs (the ROADMAP's Next item 2)
+  would make it exact. The run's read, `karvi-audit`'s output kept from the
+  suite's work directory:
+
+  ```text
+  JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+  261017-170821-00       netops       run   start
+  261017-170821-00       netops       run   command success              up-6015c889      show clock
+  261017-170821-00       netops       run   command success              up-6015c889      show version
+  261017-170821-00       netops       run   command connection_error    dead-6015c889     show clock
+  261017-170821-00       netops       run   command not_attempted_p…    dead-6015c889     show version
+  261017-170821-00       netops       run   end     error
+  ```
+
+- The man page's SYNOPSIS spells a flag as the help does, by its one letter and
+  with `...` after a repeatable one, and its OPTIONS gives both spellings (`-f,
+  --follow`); `karvi-prune.8` comes out the same, byte for byte.
+- The release tools' evidence step (`evidence-rest.sh`, outside the tree) names
+  three executables to `go version -m`; the release step adds `karvi-audit`.

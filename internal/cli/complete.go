@@ -36,7 +36,7 @@ import (
 
 // completeMain answers `karvi __complete CURSOR WORD...` (the line's shape,
 // the filter, and the printer are the completion package's, shared with
-// karvi-prune's hidden word, 17.1).
+// karvi-prune's and karvi-audit's hidden words, 17.1).
 func completeMain(args []string, stdout io.Writer) int {
 	defer func() { _ = recover() }()
 	line, current, ok := completion.Line(args)

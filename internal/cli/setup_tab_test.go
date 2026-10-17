@@ -51,8 +51,8 @@ func TestSetupTab(t *testing.T) {
 		t.Errorf("mode %o", fi.Mode().Perm())
 	}
 	// The shape: the marker first, the hidden word called on the command
-	// bash names ($1), and the one function registered for both commands.
-	if !strings.HasPrefix(completionScript, "# karvi bash completion") || !strings.Contains(completionScript, `"$1" `+completion.Word) || !strings.HasSuffix(completionScript, "complete -F _karvi karvi\ncomplete -F _karvi karvi-prune\n") {
+	// bash names ($1), and the one function registered for the three commands.
+	if !strings.HasPrefix(completionScript, "# karvi bash completion") || !strings.Contains(completionScript, `"$1" `+completion.Word) || !strings.HasSuffix(completionScript, "complete -F _karvi karvi\ncomplete -F _karvi karvi-prune\ncomplete -F _karvi karvi-audit\n") {
 		t.Error("the script's shape")
 	}
 	if code, out, _ = run("setup", "tab"); code != 0 || out != "exists   "+path+"  mode 0644\n" {
