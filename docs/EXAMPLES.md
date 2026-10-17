@@ -13614,3 +13614,203 @@ beside the tree (`release-design-evidence/audit-names-2026-10-17`: the trail's
 reading, oxidized's rules at `2cac3f7`, each list's design checks, each
 section's lab scripts and their output, patches, and suite logs, and S5's lab,
 its suites' log, and the verifiers' logs).
+
+## 64. `karvi-audit`, the audit trail as a table (2026-10-17)
+
+The ROADMAP's Next item 1, opened on the operator's word: a fourth executable,
+like `karvi-prune`, that reads the audit trail by running `journalctl -o json`
+and shows it as a table, its shape and its options agreed in chapter 63's
+"Found, for later".
+
+**The evidence.** A lab build of the tree at `7ffa2ec` made 26 events in one
+window (`c0-lab.sh`): a `cmd`; a run of two devices, a masked statement and a
+long one among its three, `dead-iosxe` unreachable; a crun with its hook; an
+exercise; a cancelled run; a login; and a `cmd` by `netops.test` under `sudo -n
+-u` from the `netops` login. The daemon's log reaches journald under the same
+identifier: 23 of the 30 days' entries under `SYSLOG_IDENTIFIER=karvi` carry no
+`MESSAGE_ID`, each a line like `time=… level=INFO msg=request …`, so the
+reading matches the audit's `MESSAGE_ID`, `9cb838d10f074d8a928e9f7c2f98450a`,
+too. The host's trail is large: 359,728 events in 30 days, the tests' and the
+suites' among them, which `journalctl -o json --output-fields=KARVI_AUDIT_JSON`
+read in 16 seconds, 552 MB through its pipe, and which a Go reader holding each
+event's eight cells kept in 157 MB after 18 seconds (`c0-rows.go`). The lab, the
+events, and the layouts are kept beside the tree
+(`release-design-evidence/karvi-audit-2026-10-17`).
+
+**What it gains.** An operator, or whoever reviews the operators, reads the
+trail as a table: what was run, by whom, at which device, in which job, and how
+it ended, without journalctl's field names, and follows it on a NOC shift.
+
+**What it waits on.** Nothing: every event is written today. On a host where
+the tests run, the table shows the tests' events as work done (the ROADMAP's
+Later item).
+
+**Its issues, one at a time:** the widths; a terminal narrower than the
+columns; the operator under `sudo`; the colours; the run, journalctl missing or
+refused, nothing matched, an event it cannot read, and the exit statuses.
+
+**Issues 1 and 2, the layout, agreed.** The rule. No TIME column. The columns, at fixed
+widths with one space between them: JOB-ID 16 (a job's or a login's ID),
+OPERATOR 18, MODE 5 (the event's kind: `cmd`, `run`, `crun`, or `login`), EVENT
+7, OUTCOME 16, DEVICE 20, then COMMAND. A cell longer than its column is cut
+with `…`. At a terminal the line is cut with `…` so that at least one cell stays
+free at its right edge: COMMAND may be cut, or not shown at all; to a pipe or a
+file nothing cuts the line, and COMMAND is whole. OPERATOR and DEVICE, heading
+and cells, are centred in their columns, an odd cell to the right, while the
+width holds the column whole, and at the column's left when the width cuts into
+it. The cell after DEVICE is kept for the line's `…`, so DEVICE is whole from 89
+columns. The `c3-mockup.py` script's layout of four of the lab's events at 100
+columns, not karvi's output:
+
+```text
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-143817-00       netops       cmd   command success               fake-iosxe      show versi…
+261017-143818-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-143825-00       netops       login start                         fake-iosxe
+261017-143828-00 netops.test(netop… cmd   command device_error          fake-iosxe      show ip in…
+```
+
+The same four at 80 columns, DEVICE at its left:
+
+```text
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME          DEVICE     …
+261017-143817-00       netops       cmd   command success          fake-iosxe …
+261017-143818-00       netops       run   command connection_error dead-iosxe …
+261017-143825-00       netops       login start                    fake-iosxe
+261017-143828-00 netops.test(netop… cmd   command device_error     fake-iosxe …
+```
+
+*Why:* the job ID holds the job's start to the second (`261017-143817-00`), and
+a login's its own; one rule for every mode, a table read whole or followed
+under `-f`, its first line at once and its memory flat, which widths measured
+over the rows cannot give (the 30 days' 359,728 rows held before the first
+line, and under `-f` rows not yet read); OUTCOME at 16 holds 9 of a command's
+17 words, `device_error` and `connection_error` among them, and tells
+`not_attempted_prior_command_failure` from `not_attempted_session_init_failure`
+(`not_attempted_p…`, `not_attempted_s…`); centred cells read as a column, and a
+column the width cuts keeps its names whole at its left (`fake-iosxe` at 80
+columns, which centred would be cut). *Not taken:* TIME (`2026-10-17
+14:38:17`, 19 cells, watch's form); widths measured over every row read, as
+`job list`'s (`c0-mockup.out`); fixed widths with a longer cell whole, pushing
+the rest of its row (`c0-mockup-fixed.out`, three of the 26 rows out of line);
+the heading KIND; two cells between columns, as `job list`'s; OUTCOME at 10 (3
+of the 17 words, both `not_attempted` words `not_attem…`).
+
+**Issue 3, the operator under `sudo`, agreed.** The rule. OPERATOR shows the
+event's operator, the account the job or the login ran as, or
+`OPERATOR/LOGINUSER` when the event names a login user, the person behind
+`sudo` (chapter 63, issue 5). A pair longer than its 18 cells keeps
+`/LOGINUSER` whole and cuts the operator's part with `…`; a login user too long
+for that is cut at the pair's end; the layouts of issues 1 and 2 show the pair
+as it stood before this issue. `-o NAME` matches either name, as agreed.
+The `c5-operator.py` script's layout of the cell, centred, for the lab's two
+operators and three illustrative pairs, not karvi's output:
+
+```text
+operator, loginuser          |     OPERATOR     |
+netops, -                    |      netops      |
+netops.test, netops          |netops.test/netops|
+noc, jsmith                  |    noc/jsmith    |
+svc-karvi, jsmith            | svc-karvi/jsmith |
+svc-karvi-collector, jsmith  |svc-karvi-…/jsmith|
+```
+
+*Why:* on a jump box where operators `sudo` to a shared or role account, the
+shared name alone hides the person, whom a review looks for, so the person's
+name is the part kept whole; one cell, one character between the names, so that
+the lab's `netops.test/netops` fits its 18. *Not taken:* `OPERATOR(LOGINUSER)`
+(a cell more, the lab's pair cut at 19); the pair cut at its end (the person cut
+first, `netops.test(netop…`); the operator alone (the person hidden); a column
+of its own (the width issue 1 spends).
+
+**Issue 4, the colours, agreed.** The rule. The headings in the label role
+(blue in the dark theme), OPERATOR's cells in the accent role (cyan), DEVICE's
+in the target role (yellow, bold), and OUTCOME's by the word: the success role
+(green) for `success`, `complete`, and `exercise`; the warning role (orange,
+bold) for work not done or cut short, `cancel`, `halt`, `incomplete`, and a
+command's `not_attempted_*`, `not_started_*`, and `incomplete_*`; the error role
+(red) for every other word, `error`, `fail`, and a command's failures
+(`device_error`, `connection_error`, `authentication_error`, `timeout`, …). The
+rest plain. `karvi-audit` reads no configuration, as `karvi-prune`: the dark
+theme's roles, the colour written to a terminal and to a pipe, never into a
+file; `-nocolor` and `NO_COLOR` turn it off. The `c7-colour.py` script wrote the
+lab's 26 events at 132 columns in karvi's codes (`c7-colour.ansi`); two of its
+rows, the codes shown by `cat -v`, not karvi's output:
+
+```text
+261017-143828-00 ^[[36mnetops.test/netops^[[0m cmd   start
+261017-143828-00 ^[[36mnetops.test/netops^[[0m cmd   command ^[[31mdevice_error^[[0m          ^[[1;33mfake-iosxe^[[0m      show ip interface brief
+```
+
+*Why:* the roles and the words' colours are `watch`'s and `job list`'s
+(`complete` and `exercise` green, `cancel` and `halt` orange, `error` red); a
+statement not sent is not the failure, which a row before it in the same job
+carries in red; the operator in the accent reads apart from the device; a
+reader of the trail pages it (`karvi-audit | less -R`), so a pipe keeps the
+colour, and a file never holds it (chapter 56, issue 19). *Not taken:* the
+colour at a terminal alone (`display.color = auto`'s rule, the pager plain);
+`not_attempted_*` red (one failure shown as many); OPERATOR plain; the
+configuration's `display.*` read (the fourth executable reads none, as
+`karvi-prune`).
+
+**Issue 5, the run, agreed.** The rule. `karvi-audit` runs `journalctl
+--no-pager -o json --output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi
+MESSAGE_ID=9cb838d10f074d8a928e9f7c2f98450a` with the matches, `-S`, `-U`, and
+`-g` passed as given and `-n` a Go integer. It refuses its own options alone:
+an unknown option, a positional argument, or an `-n` that is not a number, in
+few words with the help, exit 2, as `karvi-prune`. A value journalctl refuses, a
+time, a pattern, or `-r` with `-f`, is journalctl's: its message on standard
+error as it wrote it, exit 1. journalctl missing is `karvi-audit: journalctl
+not found` in red, exit 1. Not following, the heading is printed with the first
+row, and when journalctl returned no entry, `karvi-audit: no matches` goes to
+standard error in orange, with no heading, exit 0; following, the heading
+first, then each row as it comes. An entry with no `KARVI_AUDIT_JSON`, JSON
+that does not decode, or an audit schema other than 2 has no row: at the end,
+one line on standard error in orange counts them (`karvi-audit: N events not
+shown: not audit schema 2`), a follow ended by Ctrl-C included, and when every
+entry was such, that line alone. The exit is 0 when journalctl ended 0, a follow
+ended by Ctrl-C or by its reader's closing included; 1 when journalctl is
+missing or ends otherwise; 2 for a usage error. A reader that quits (`less`,
+`head`) ends it quietly, under `-f` without waiting for the next event, as
+journalctl's own follow ends. The `c8-run.sh` script's report of journalctl in
+four of the cases, not karvi's output:
+
+```text
+$ journalctl SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb8… -o json --since=yesterdayx
+(script) exit 1, stdout 0 lines
+    Failed to parse timestamp: yesterdayx
+$ journalctl SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb8… -o json --reverse --follow -n 1
+(script) exit 1, stdout 0 lines
+    Please specify either --reverse or --follow, not both.
+$ journalctl SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb8… -o json -f -n 1, SIGINT after a second
+(script) exit 0
+(script) the trail's events by audit schema, and those with no KARVI_AUDIT_JSON
+    schema_version: {1: 344592, 2: 15123, 7: 1}
+    no KARVI_AUDIT_JSON, by executable: {'?': 12}
+```
+
+Nothing matched, journalctl ended 0 and wrote nothing under `-o json`; a job's
+trail by its ID as the pattern (`-g 261017-143818-00`) gave its 8 events; and
+`netops.test`, a member of neither `adm` nor `systemd-journal`, read its own
+events with no hint. *Why:* journalctl already judges its values and says why in
+one line, so whose refusal is whose has one rule; a heading with no row reads as
+a table whose rows were lost, and a message on standard output would be a row to
+a script reading the pipe; the program's name before the message, as the count
+line's and `karvi-prune`'s, says which program spoke on a shared standard error;
+on a host upgraded from v0.31.1 the journal keeps schema 1's events (this
+host's 344,592), which a window can match alone, so "no matches" would be false
+there. *Not taken:* `karvi-audit` refusing `-r` with `-f` itself; the heading
+alone for nothing matched; `(no matches)`; the message on standard output; a row
+for an event it cannot read (the old schema's rows in the new table); a warning
+per such event (this host's 344,605 lines); exit 1 for nothing matched (grep's;
+journalctl's 0 kept).
+
+**The build, in sections, each committed on the operator's word.** S1 the
+command line that `karvi-prune` and `karvi-audit` share, out of
+`internal/prune`: the synopsis, the help, the tab completion, and the man page's
+regions from one definition of each executable's flags, `karvi-prune`'s text
+byte for byte; S2 `karvi-audit` itself, its options, journalctl's invocation and
+matches, the rows, the layout, the colours, and the run (issues 1 to 5), with
+its tests; S3 the fourth executable beside the other three, in the build, the
+package, the install script, the verifiers, the man pages, the tab completion,
+and a suite; S4 the closing documents and the full battery.
