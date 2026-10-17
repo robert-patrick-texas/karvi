@@ -17,6 +17,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/completion"
 	"github.com/robert-patrick-texas/karvi/internal/display"
+	"github.com/robert-patrick-texas/karvi/internal/flagspec"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/prune"
@@ -109,13 +110,7 @@ func run(args []string, stdout, stderr *os.File) int {
 
 // helpStyle is the help's colour, decided without configuration, which the
 // helper never reads: display.color's default, auto (colour when w is a
-// terminal), and display.theme's default, dark, for the roles.
+// terminal), and the dark theme's roles.
 func helpStyle(w *os.File) helplayout.Style {
-	const theme = "dark"
-	return helplayout.Style{
-		Enabled: display.ColorEnabled("auto", theme, display.DestinationOf(osutil.IsTerminal(w), osutil.IsRegularFile(w))),
-		Accent:  display.RoleColor(theme, "accent", "default"),
-		Action:  display.RoleColor(theme, "success", "default"),
-		Label:   display.RoleColor(theme, "label", "default"),
-	}
+	return flagspec.HelpStyle(display.ColorEnabled("auto", "dark", display.DestinationOf(osutil.IsTerminal(w), osutil.IsRegularFile(w))))
 }

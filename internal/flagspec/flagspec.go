@@ -1,5 +1,5 @@
 // Package flagspec holds the command line of an executable that parses with
-// Go's flag package, karvi-prune's, once: its main defines its flag set
+// Go's flag package, karvi-prune's and karvi-audit's, once: its main defines its flag set
 // through the Spec's Define and prints Help, the completer (complete.go)
 // walks the same set, and the man page's SYNOPSIS and OPTIONS are generated
 // from it (tools/mangen), so Tab cannot offer a flag the executable does not
@@ -9,6 +9,9 @@ package flagspec
 import (
 	"flag"
 	"strings"
+
+	"github.com/robert-patrick-texas/karvi/internal/display"
+	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 )
 
 // Spec is one executable's command line.
@@ -25,6 +28,10 @@ type Spec struct {
 	Order []string
 	// Values says what a flag's value may be. A switch has no row.
 	Values map[string]Value
+	// Short is a flag's one-letter spelling, defined on the same value
+	// (karvi-audit's -f beside --follow): the synopsis prints it, the help
+	// prints both, and Tab offers the long one alone.
+	Short map[string]string
 	// Define defines the flags on a flag set with their defaults and usage
 	// texts.
 	Define func(*flag.FlagSet)
@@ -38,6 +45,9 @@ type Value struct {
 	Words []string
 	Path  bool
 	Name  string
+	// Repeat marks a flag given more than once, each value kept: the
+	// synopsis prints ... after it.
+	Repeat bool
 }
 
 // FlagSet is a new flag set of the spec's flags, for the completer and the
@@ -74,13 +84,32 @@ func (s Spec) Usage() string {
 	return b.String()
 }
 
-// group is one flag's bracketed synopsis word.
+// group is one flag's bracketed synopsis word: its one-letter spelling
+// where it has one, and ... after a flag that repeats.
 func (s Spec) group(name string) string {
 	g := "[--" + name
+	if short := s.Short[name]; short != "" {
+		g = "[-" + short
+	}
 	if p := s.Placeholder(name); p != "" {
 		g += " " + p
 	}
-	return g + "]"
+	g += "]"
+	if s.Values[name].Repeat {
+		g += "..."
+	}
+	return g
+}
+
+// Long is the long name of a flag spelled name: a one-letter spelling's
+// flag, or name itself.
+func (s Spec) Long(name string) string {
+	for long, short := range s.Short {
+		if short == name {
+			return long
+		}
+	}
+	return name
 }
 
 // The help's columns, karvi's: an option's words after two spaces, its
@@ -119,6 +148,9 @@ func (s Spec) Help(fs *flag.FlagSet) string {
 			continue
 		}
 		words := "  --" + name
+		if short := s.Short[name]; short != "" {
+			words = "  -" + short + ", --" + name
+		}
 		if p := s.Placeholder(name); p != "" {
 			words += " " + p
 		}
@@ -173,4 +205,17 @@ func Default(f *flag.Flag) string {
 func IsBool(f *flag.Flag) bool {
 	b, ok := f.Value.(interface{ IsBoolFlag() bool })
 	return ok && b.IsBoolFlag()
+}
+
+// HelpStyle is the help's colour for an executable that reads no
+// configuration: enabled as its caller decides, and display.theme's
+// default, dark, for the roles.
+func HelpStyle(enabled bool) helplayout.Style {
+	const theme = "dark"
+	return helplayout.Style{
+		Enabled: enabled,
+		Accent:  display.RoleColor(theme, "accent", "default"),
+		Action:  display.RoleColor(theme, "success", "default"),
+		Label:   display.RoleColor(theme, "label", "default"),
+	}
 }

@@ -40,6 +40,12 @@ func IsRegularFile(f *os.File) bool {
 	return err == nil && info.Mode().IsRegular()
 }
 
+// IsPipe reports whether f is a pipe, as a stream into a pager is.
+func IsPipe(f *os.File) bool {
+	info, err := f.Stat()
+	return err == nil && info.Mode()&os.ModeNamedPipe != 0
+}
+
 // TerminalWidth returns the current terminal column count. It returns zero
 // when the descriptor is not a terminal or when the kernel does not report a
 // usable width. Callers treat zero as "do not alter layout" rather than

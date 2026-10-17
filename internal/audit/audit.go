@@ -148,6 +148,18 @@ func (s *Sink) Close() error {
 	return err
 }
 
+// The journald entry's identifier, its message ID, which tells an audit
+// event from the daemon's log under the same identifier, and the fields a
+// reader matches or reads (karvi-audit, internal/auditview).
+const (
+	Identifier     = "karvi"
+	MessageID      = "9cb838d10f074d8a928e9f7c2f98450a"
+	FieldOperator  = "KARVI_OPERATOR"
+	FieldLoginUser = "KARVI_LOGINUSER"
+	FieldDevice    = "KARVI_DEVICE"
+	FieldJSON      = "KARVI_AUDIT_JSON"
+)
+
 // journalEntry is the event's journald entry: the line as its MESSAGE, and
 // the fields a match names whole (journalctl KARVI_DEVICE=NAME), each only
 // where the event has a value.
@@ -160,17 +172,17 @@ func journalEntry(r records.AuditRecord, data []byte) []byte {
 	}
 	field("MESSAGE", Line(r))
 	field("PRIORITY", strconv.Itoa(priority(r.Severity)))
-	field("SYSLOG_IDENTIFIER", "karvi")
-	field("MESSAGE_ID", "9cb838d10f074d8a928e9f7c2f98450a")
+	field("SYSLOG_IDENTIFIER", Identifier)
+	field("MESSAGE_ID", MessageID)
 	field("KARVI_EVENT_NAME", r.EventName)
-	field("KARVI_OPERATOR", r.Operator.Username)
-	field("KARVI_LOGINUSER", r.LoginUser)
+	field(FieldOperator, r.Operator.Username)
+	field(FieldLoginUser, r.LoginUser)
 	field("KARVI_JOB_ID", r.JobID)
 	field("KARVI_LOGIN_ID", r.LoginID)
 	if r.Device != nil {
-		field("KARVI_DEVICE", r.Device.CanonicalName)
+		field(FieldDevice, r.Device.CanonicalName)
 	}
-	field("KARVI_AUDIT_JSON", string(data))
+	field(FieldJSON, string(data))
 	return []byte(b.String())
 }
 

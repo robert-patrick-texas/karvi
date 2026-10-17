@@ -17,12 +17,12 @@ import (
 // nothing and exits 0 whatever fails.
 //
 // What is offered follows the flag package's own grammar: the flags, in
-// their double-dash spelling, when the word under the cursor is empty or
-// begins with a dash; a flag's words after a flag that takes a value and,
-// for a flag that names a path, the directive on which the shell offers file
-// names once no word matches; a value typed inline (`--format=js`) completed
-// with the flag spelled before it; nothing after `--` or after a positional
-// word, which the executable refuses.
+// their double-dash spelling and never their one-letter one, when the word
+// under the cursor is empty or begins with a dash; a flag's words after a
+// flag that takes a value and, for a flag that names a path, the directive on
+// which the shell offers file names once no word matches; a value typed
+// inline (`--format=js`) completed with the flag spelled before it; nothing
+// after `--` or after a positional word, which the executable refuses.
 
 // Complete answers the hidden word; args are its arguments, CURSOR WORD....
 func (s Spec) Complete(args []string, stdout io.Writer) int {
@@ -78,14 +78,18 @@ func (s Spec) complete(line []string, current string) (cands []string, files boo
 		return nil, false
 	}
 	var names []string
-	fs.VisitAll(func(f *flag.Flag) { names = append(names, "--"+f.Name) })
+	fs.VisitAll(func(f *flag.Flag) {
+		if s.Long(f.Name) == f.Name {
+			names = append(names, "--"+f.Name)
+		}
+	})
 	return completion.Filter(names, current), false
 }
 
 // values are the candidates for the value of f, filtered to current, and
 // whether the shell may complete a path.
 func (s Spec) values(f *flag.Flag, current string) ([]string, bool) {
-	v := s.Values[f.Name]
+	v := s.Values[s.Long(f.Name)]
 	return completion.Filter(v.Words, current), v.Path
 }
 

@@ -13814,3 +13814,52 @@ matches, the rows, the layout, the colours, and the run (issues 1 to 5), with
 its tests; S3 the fourth executable beside the other three, in the build, the
 package, the install script, the verifiers, the man pages, the tab completion,
 and a suite; S4 the closing documents and the full battery.
+
+**Agreed while building S2: a follow's heading, and a statement's control
+characters.** The rule. Under `-f` the heading comes with the first row, or once
+journalctl has run half a second without ending, so that journalctl's refusal
+of a value, which it says at its start, stands alone, as it does without `-f`;
+issue 5's "following, the heading first" so amended. A statement's control
+characters, a tab, a newline, an escape, are written in COMMAND as Go writes
+them in a quoted string (`\t`, `\n`, `\x1b`), so that a row stays one line and
+its width is its cells. Before the change, `-r -f` wrote the heading to
+standard output and then journalctl's refusal. The S2 lab after it
+(`s2-lab.sh`, `s2-follow-empty.out`): a `$ ` line the command run, a
+`(script)` line the script's own report, and an indented line `karvi-audit`'s
+output:
+
+```text
+$ karvi-audit -r -f
+(script) exit 1, 0 lines out, 1 err
+    Please specify either --reverse or --follow, not both.
+$ karvi-audit -f -S yesterdayx
+(script) exit 1, 0 lines out, 1 err
+    Failed to parse timestamp: yesterdayx
+$ karvi-audit --nocolor -f -d nosuch, Ctrl-C after 1 s
+(script) after 0.3 s: 0 lines
+(script) after 1 s: 1 lines
+(script) exit 0, standard error 0 bytes
+```
+
+*Why:* a heading over a refusal reads as a table cut short; journalctl refuses
+at its start, well inside the half second; an empty follow still shows that it
+waits. A newline in a statement would start a row with no columns, and a tab or
+an escape moves the cells after it. *Not taken:* the heading with the first row
+under `-f` too (an empty follow blank until an event); `karvi-audit` refusing
+`-r` with `-f` itself (issue 5's not taken, and journalctl's other refusals
+under `-f` would still follow the heading); the control characters removed, or
+replaced by a space (the statement as sent no longer shown).
+
+**Found while building S2.**
+
+- Ctrl-C reaches journalctl twice, from the terminal and passed on by the
+  reader, and the second can end it by the signal before its own handler ends
+  it 0: the S2 lab's first follow ended by Ctrl-C exited 1. The reader takes a
+  journalctl ended by a signal it got too as the run's end, exit 0.
+- The tree's check on uncoded errors (`TestUncodedErrorsAreDetails`) refused
+  `--lines`'s own refusal of a word; it says the flag package's words, as
+  `karvi-prune --days x` does (`invalid value "x" for flag -n: parse error`),
+  and is listed among the details the check allows.
+- `-o` matches a name whole, with its case, as journald matches a field:
+  `-o NETOPS.TEST` matched none of the lab's events; `-d` alone is lowercased,
+  as a device's canonical name is.
