@@ -2408,8 +2408,8 @@ colour, headings in bold, option words in the accent colour, a Usage line's
 action word in the success colour), which karvi and `karvi-prune` both use;
 karvi decides its colour from `display.*` as before. `karvi-prune -h` and
 `--help` print to standard output, exit 0: a title line, `Usage:` with the
-synopsis wrapped at 79, and `Options:` with each flag in `FlagOrder`, its
-placeholder in a 31-column field and its usage string beside it, the default
+synopsis wrapped at 79, and `Options:` with each flag in the synopsis's order,
+its placeholder in a 31-column field and its usage string beside it, the default
 after; a usage error prints its message and the text on standard error, exit
 2. The helper reads no configuration, so its colour is the defaults' (on when
 the stream is a terminal, the dark theme's roles) and a site's `display.*` does
@@ -3016,8 +3016,8 @@ claim the release); the tag's name (the bundle has no `.git`).
 `packaging/man/karvi-prune.8` is one committed file; between the comment lines
 `.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there`
 and `.\" END GENERATED SYNOPSIS`, and the same pair for OPTIONS, `tools/mangen`
-writes the synopsis from `prune.Usage()`'s parts and one entry per flag from
-the helper's flag set (the placeholder, the usage string, and the default, roff
+writes the synopsis from the helper's `flagspec.Spec` and one entry per flag
+from its flag set (the placeholder, the usage string, and the default, roff
 escaped: `-` as `\-`, `\` as `\e`, a leading `.` or `'` behind `\&`) and leaves
 every other byte as it was, refusing a page with a pair missing, doubled, or
 out of order. `make
@@ -3030,15 +3030,15 @@ registry's reference cannot; the prose is not in any definition. *Not taken:*
 a `.8.in` template beside a generated `.8`; a Markdown-to-roff converter (a
 vendored dependency, left to the HTML documents); generating the whole page.
 
-**The helper's value names and flag order are defined once.** `internal/prune`
-holds each flag's completion words, whether it takes a path, and, for a value
-that is neither, its name (`days` `N`, `minfree` `PERCENT`); the placeholder is
-the words joined with `|` and `|PATH`, or the name, none for a switch; and
-`FlagOrder` is the synopsis's order. The synopsis (`prune.Usage()`, pinned to
-the former constant), `-h` (`prune.PrintUsage`, double dash, the placeholder,
-the usage string, an unquoted default; replacing Go's `PrintDefaults`), the man
-page's OPTIONS, and Tab all read them; tests hold the order and the table to
-the defined flags. *Why:* the synopsis said `auto|PATH`, `N`, and `PERCENT`
+**The helper's value names and flag order are defined once.** `internal/prune`'s
+`flagspec.Spec` holds each flag's completion words, whether it takes a path,
+and, for a value that is neither, its name (`days` `N`, `minfree` `PERCENT`);
+the placeholder is the words joined with `|` and `|PATH`, or the name, none for
+a switch; and its `Order` is the synopsis's order. The synopsis (`Usage`, pinned
+to the former constant), `-h` (`Help`, double dash, the placeholder, the usage
+string, an unquoted default; replacing Go's `PrintDefaults`), the man page's
+OPTIONS, and Tab all read them, through `internal/flagspec`; tests hold the
+order and the table to the defined flags. *Why:* the synopsis said `auto|PATH`, `N`, and `PERCENT`
 where `-h` said `string`, `int`, and `float` with one dash, and a page
 generated from the flag set alone would have said the latter. *Not taken:* Go's
 backquoted value names in the usage strings; parsing the hand-written

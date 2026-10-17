@@ -31,7 +31,7 @@ func run(args []string, stdout, stderr *os.File) int {
 	// is taken before parsing, since the words it carries are the line being
 	// completed, not this invocation's.
 	if len(args) > 0 && args[0] == completion.Word {
-		return prune.Complete(args[1:], stdout)
+		return prune.Spec.Complete(args[1:], stdout)
 	}
 	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -40,7 +40,7 @@ func run(args []string, stdout, stderr *os.File) int {
 	// standard output, a usage error's text after its message on standard
 	// error, laid out as karvi's help is.
 	fs.Usage = func() {}
-	help := func(w *os.File) { fmt.Fprint(w, helplayout.Layout(prune.Help(fs), helpStyle(w))) }
+	help := func(w *os.File) { fmt.Fprint(w, helplayout.Layout(prune.Spec.Help(fs), helpStyle(w))) }
 	usageError := func(format string, a ...any) int {
 		if format != "" {
 			fmt.Fprintf(stderr, "karvi-prune: "+format+"\n", a...)

@@ -3,8 +3,8 @@
 // function hands over (`__complete CURSOR WORD...`), the directive that asks
 // the shell for file names, the filter that keeps the candidates beginning
 // with the word under the cursor, and the printer. karvi's completer walks its
-// parser table over these, karvi-prune's walks its flag set, and the one bash
-// function serves both, so the protocol lives here once.
+// parser table over these, internal/flagspec walks karvi-prune's flag set, and
+// the one bash function serves both, so the protocol lives here once.
 package completion
 
 import (

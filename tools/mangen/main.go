@@ -1,8 +1,8 @@
 // Command mangen writes the generated regions of the manual pages in
 // packaging/man. Each page of its table has its regions: karvi-prune.8 its
 // SYNOPSIS and OPTIONS from the helper's one flag definition
-// (internal/prune: FlagOrder, the placeholders, the usage strings, the
-// defaults); karvi.1 and each karvi-WORD.1 their SYNOPSIS and DESCRIPTION
+// (internal/prune's flagspec.Spec: the order, the placeholders, the usage
+// strings, the defaults); karvi.1 and each karvi-WORD.1 their SYNOPSIS and DESCRIPTION
 // from the word's help text (internal/cli.HelpPages, laid out by
 // internal/helplayout.Roff), and karvi.1 its EXIT STATUS from
 // internal/exitcode. Everything outside the regions is written by hand and
@@ -21,6 +21,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/cli"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
+	"github.com/robert-patrick-texas/karvi/internal/flagspec"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
 	"github.com/robert-patrick-texas/karvi/internal/prune"
 )
@@ -65,7 +66,7 @@ type region struct {
 }
 
 func pages() []page {
-	ps := []page{{"karvi-prune.8", pruneRegions()}}
+	ps := []page{{"karvi-prune.8", specRegions(prune.Spec, "internal/prune")}}
 	for _, h := range cli.HelpPages() {
 		file := "karvi.1"
 		if h.Word != "" {
@@ -156,35 +157,36 @@ func find(lines []string, marker string) int {
 	return -1
 }
 
-// pruneRegions are karvi-prune's SYNOPSIS and OPTIONS from its flag set.
-func pruneRegions() []region {
-	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
-	prune.DefineFlags(fs)
+// specRegions are the SYNOPSIS and OPTIONS of an executable of a
+// flagspec.Spec, karvi-prune's, from its flag set; source names the package
+// that defines it.
+func specRegions(spec flagspec.Spec, source string) []region {
+	fs := spec.FlagSet()
 	esc := helplayout.RoffEscape
 	var syn strings.Builder
-	syn.WriteString(".B karvi\\-prune\n")
-	for _, name := range prune.FlagOrder {
-		if p := prune.Placeholder(name); p != "" {
+	syn.WriteString(".B " + esc(spec.Program) + "\n")
+	for _, name := range spec.Order {
+		if p := spec.Placeholder(name); p != "" {
 			fmt.Fprintf(&syn, ".RB [ \"\\-\\-%s \\fI%s\\fP\" ]\n", esc(name), esc(p))
 		} else {
 			fmt.Fprintf(&syn, ".RB [ \\-\\-%s ]\n", esc(name))
 		}
 	}
 	var opt strings.Builder
-	for _, name := range prune.FlagOrder {
+	for _, name := range spec.Order {
 		f := fs.Lookup(name)
 		opt.WriteString(".TP\n")
-		if p := prune.Placeholder(name); p != "" {
+		if p := spec.Placeholder(name); p != "" {
 			fmt.Fprintf(&opt, ".BI \\-\\-%s \" %s\"\n", esc(name), esc(p))
 		} else {
 			fmt.Fprintf(&opt, ".B \\-\\-%s\n", esc(name))
 		}
 		opt.WriteString(helplayout.RoffLine(esc(f.Usage) + "."))
-		if d := prune.Default(f); d != "" {
+		if d := flagspec.Default(f); d != "" {
 			opt.WriteString(helplayout.RoffLine("Default: \\fB" + esc(d) + "\\fP."))
 		}
 	}
-	return []region{{"SYNOPSIS", "internal/prune", syn.String()}, {"OPTIONS", "internal/prune", opt.String()}}
+	return []region{{"SYNOPSIS", source, syn.String()}, {"OPTIONS", source, opt.String()}}
 }
 
 // exitRegion is karvi.1's EXIT STATUS entries, one per status of

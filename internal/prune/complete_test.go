@@ -5,12 +5,15 @@ import (
 	"flag"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/completion"
 )
 
 // TestDefineFlags pins the flag set to Usage and the completion rows: every
-// flag is named on the usage line, every flagValues row names a flag, and
+// flag is named on the usage line, every value row names a flag, and
 // the flag set's defaults are the documented ones (docs/PRUNE.md).
 func TestDefineFlags(t *testing.T) {
 	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
@@ -18,16 +21,16 @@ func TestDefineFlags(t *testing.T) {
 	var names []string
 	fs.VisitAll(func(fl *flag.Flag) {
 		names = append(names, fl.Name)
-		if !strings.Contains(Usage(), "--"+fl.Name) {
+		if !strings.Contains(Spec.Usage(), "--"+fl.Name) {
 			t.Errorf("--%s is not on the usage line", fl.Name)
 		}
 	})
 	if len(names) != 8 {
 		t.Errorf("flags: %q", names)
 	}
-	for name := range flagValues {
+	for name := range Spec.Values {
 		if fs.Lookup(name) == nil {
-			t.Errorf("flagValues names %q, no such flag", name)
+			t.Errorf("Spec.Values names %q, no such flag", name)
 		}
 	}
 	if *f.Basedir != "auto" || *f.Sharedroot != "auto" || *f.Scoreboards != "/dev/shm/karvi/scoreboards" || *f.Days != 31 || *f.MinFree != 5 || *f.DryRun || *f.Verbose || *f.Format != FormatText {
@@ -73,7 +76,7 @@ func TestComplete(t *testing.T) {
 		{[]string{"--days", "7", "--"}, "--v", nil, false},
 	}
 	for _, c := range cases {
-		got, files := complete(c.line, c.current)
+		got, files := complete(t, c.line, c.current)
 		if !reflect.DeepEqual(got, c.want) || files != c.files {
 			t.Errorf("%q %q: got %q %v, want %q %v", c.line, c.current, got, files, c.want, c.files)
 		}
@@ -86,7 +89,7 @@ func TestComplete(t *testing.T) {
 func TestCompleteWord(t *testing.T) {
 	run := func(args ...string) (int, string) {
 		var out bytes.Buffer
-		return Complete(args, &out), out.String()
+		return Spec.Complete(args, &out), out.String()
 	}
 	if code, out := run("2", "karvi-prune", "--sharedroot", ""); code != 0 || out != "auto\nnone\n:files\n" {
 		t.Errorf("--sharedroot: %d %q", code, out)
@@ -99,9 +102,31 @@ func TestCompleteWord(t *testing.T) {
 			t.Errorf("%q: %d %q", bad, code, out)
 		}
 	}
-	if code := Complete([]string{"1", "karvi-prune"}, failingWriter{}); code != 0 {
+	if code := Spec.Complete([]string{"1", "karvi-prune"}, failingWriter{}); code != 0 {
 		t.Errorf("a writer that fails: %d", code)
 	}
+}
+
+// complete asks the hidden word for current after line, as the bash
+// function does, and reads its answer back: the candidates and the files
+// directive.
+func complete(t *testing.T, line []string, current string) (cands []string, files bool) {
+	t.Helper()
+	args := append([]string{strconv.Itoa(len(line) + 1), "karvi-prune"}, line...)
+	var out bytes.Buffer
+	if code := Spec.Complete(append(args, current), &out); code != 0 {
+		t.Fatalf("%q %q: exit %d", line, current, code)
+	}
+	for _, l := range strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n") {
+		switch l {
+		case "":
+		case completion.Files:
+			files = true
+		default:
+			cands = append(cands, l)
+		}
+	}
+	return cands, files
 }
 
 // failingWriter stands in for a closed standard output.

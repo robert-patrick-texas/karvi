@@ -4,28 +4,30 @@ import (
 	"flag"
 	"strings"
 	"testing"
+
+	"github.com/robert-patrick-texas/karvi/internal/flagspec"
 )
 
-// TestFlagOrder holds FlagOrder to the defined flags (every one, once, no
+// TestFlagOrder holds the spec's Order to the defined flags (every one, once, no
 // other) and the value names to the kinds: every flag that takes a value
 // has a placeholder, and a switch has none.
 func TestFlagOrder(t *testing.T) {
 	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
 	DefineFlags(fs)
 	seen := map[string]bool{}
-	for _, name := range FlagOrder {
+	for _, name := range Spec.Order {
 		f := fs.Lookup(name)
 		if f == nil || seen[name] {
-			t.Fatalf("FlagOrder names %q: undefined or twice", name)
+			t.Fatalf("Spec.Order names %q: undefined or twice", name)
 		}
 		seen[name] = true
-		if switched := isBoolFlag(f); switched == (Placeholder(name) != "") {
-			t.Errorf("--%s: switch %v, placeholder %q", name, switched, Placeholder(name))
+		if switched := flagspec.IsBool(f); switched == (Spec.Placeholder(name) != "") {
+			t.Errorf("--%s: switch %v, placeholder %q", name, switched, Spec.Placeholder(name))
 		}
 	}
 	fs.VisitAll(func(f *flag.Flag) {
 		if !seen[f.Name] {
-			t.Errorf("--%s is not in FlagOrder", f.Name)
+			t.Errorf("--%s is not in Spec.Order", f.Name)
 		}
 	})
 }
@@ -34,7 +36,7 @@ func TestFlagOrder(t *testing.T) {
 // to the line the helper printed when it was a constant.
 func TestUsage(t *testing.T) {
 	const want = "usage: karvi-prune [--basedir auto|PATH] [--sharedroot auto|none|PATH] [--scoreboards PATH] [--days N] [--minfree PERCENT] [--dry-run] [--verbose] [--format text|jsonl]"
-	if got := Usage(); got != want {
+	if got := Spec.Usage(); got != want {
 		t.Fatalf("Usage()\n got %q\nwant %q", got, want)
 	}
 }
@@ -42,11 +44,11 @@ func TestUsage(t *testing.T) {
 // TestHelp: the help in karvi's shape, as helplayout reads it: the title,
 // the Usage section's synopsis wrapped under its first bracket at 79, the
 // Options section with each flag's words in the field and its description
-// from column 34, wrapped at 79, the default after, in FlagOrder.
+// from column 34, wrapped at 79, the default after, in the spec's Order.
 func TestHelp(t *testing.T) {
 	fs := flag.NewFlagSet("karvi-prune", flag.ContinueOnError)
 	DefineFlags(fs)
-	got := Help(fs)
+	got := Spec.Help(fs)
 	want := `karvi-prune - remove finished karvi work older than the retention age
 
 Usage:
