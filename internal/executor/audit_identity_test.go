@@ -51,7 +51,7 @@ func TestCommandEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink, Kind: "cmd", Operator: credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}}}
-	e.afterRecord(records.CommandRecord{RecordID: "r1", ActivityID: "261017-101500-00", Command: "show clock", Status: "succeeded", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
+	e.afterRecord(records.CommandRecord{RecordID: "r1", ActivityID: "261017-101500-00", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
 	sink.Close()
 	data, err := os.ReadFile(file)
 	if err != nil {

@@ -99,7 +99,7 @@ set -e
 }
 [ "$(wc -l < "$TMP/auto.jsonl" | tr -d ' ')" -eq 3 ] # two records and the summary line
 [ "$(jsonl_records "$TMP/auto.jsonl" error.code | grep -cx host_key_changed)" -eq 1 ]
-[ "$(jsonl_records "$TMP/auto.jsonl" status | grep -cx succeeded)" -eq 1 ]
+[ "$(jsonl_records "$TMP/auto.jsonl" status | grep -cx success)" -eq 1 ]
 grep -q 'StrictHostKeyChecking accept-new' "$CAPTURE"
 AUTO_KNOWN=$BASE/known_hosts
 grep -q "UserKnownHostsFile \"$AUTO_KNOWN\"" "$CAPTURE"

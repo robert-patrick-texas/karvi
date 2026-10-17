@@ -149,10 +149,10 @@ mask() { awk '{ t = substr($0, 21, 8); if (t ~ /^[0-9]+m[0-9][0-9]s +$|^[0-9]+h[
   fi
   job_row "$J8" '' unfinished u u u u ''
   job_row "$J5" '' unfinished run u 1 u fake-iosxe
-  job_row "$J4" DUR exercised run 1 1 0 fake-iosxe
-  job_row "$J3" DUR completed crun 1 1 0 fake-iosxe
-  job_row "$J2" DUR errored run 2 2 1 'fake-iosxe dead-iosxe'
-  job_row "$J1" DUR completed cmd 1 1 0 fake-iosxe
+  job_row "$J4" DUR exercise run 1 1 0 fake-iosxe
+  job_row "$J3" DUR complete crun 1 1 0 fake-iosxe
+  job_row "$J2" DUR error run 2 2 1 'fake-iosxe dead-iosxe'
+  job_row "$J1" DUR complete cmd 1 1 0 fake-iosxe
 } >"$TMP/want.all"
 karvi all job list; expect all 0
 mask "$TMP/out.all" >"$TMP/got.all"
@@ -180,7 +180,7 @@ karvi nobody job list --operator nobody-at-all; expect nobody 0
 dev_row() { printf '  %-16s  %-8s  %-*s  %-4s  %-11s  %s\n' "$1" "$2" "$W" "$OP" "$3" "$4" "$5" | sed 's/ *$//'; }
 dev_head() { printf '  %-16s  %-8s  %-*s  %-4s  %-11s  %s\n' JOB-ID TIME "$W" OPERATOR MODE OUTCOME DEVICE; }
 karvi dead job list --target 'DEAD*'; expect dead 0
-{ dev_head; dev_row "$J2" DUR run failed dead-iosxe; } >"$TMP/want.dead"
+{ dev_head; dev_row "$J2" DUR run fail dead-iosxe; } >"$TMP/want.dead"
 { if [ -n "$UNREADABLE" ]; then sed -n '1p;4,$p' "$TMP/out.dead"; else cat "$TMP/out.dead"; fi; } >"$TMP/raw.dead"
 mask "$TMP/raw.dead" >"$TMP/got.dead"
 cmp -s "$TMP/want.dead" "$TMP/got.dead" || { diff "$TMP/want.dead" "$TMP/got.dead" >&2 || true; fail "--target DEAD*"; }
@@ -234,7 +234,7 @@ if [ -n "$UNREADABLE" ]; then
   [ "$(json_get "$TMP/out.json" 0.operator.username)" = "$OP" ] || fail "json: the ? row's operator"
 fi
 karvi jdev job list --format json --target 'dead*' --last 3 --failed; expect jdev 0
-[ "$(json_get "$TMP/out.jdev" '*.device' | tr '\n' ' ')" = "dead-iosxe " ] && [ "$(json_get "$TMP/out.jdev" '*.outcome' | tr '\n' ' ')" = "failed " ] || fail "json --target: $(head -c 200 "$TMP/out.jdev")"
+[ "$(json_get "$TMP/out.jdev" '*.device' | tr '\n' ' ')" = "dead-iosxe " ] && [ "$(json_get "$TMP/out.jdev" '*.outcome' | tr '\n' ' ')" = "fail " ] || fail "json --target: $(head -c 200 "$TMP/out.jdev")"
 karvi jnone job list --format json --operator nobody-at-all; expect jnone 0
 [ "$(cat "$TMP/out.jnone")" = "[]" ] || fail "json, no rows: $(cat "$TMP/out.jnone")"
 

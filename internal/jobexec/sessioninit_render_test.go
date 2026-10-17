@@ -21,7 +21,7 @@ func kindRecord(device, kind string, index, count int, command, status, output s
 	if kind == "session_init" {
 		r.SessionInitProfile = "iosxe-init"
 	}
-	if status == "succeeded" || status == "device_error" { // sent: the prompt was observed
+	if status == "success" || status == "device_error" { // sent: the prompt was observed
 		r.Prompt, r.PromptSource = device+"#", "observed"
 	}
 	return r
@@ -62,23 +62,23 @@ func renderKinds(t *testing.T, activity string, quiet, echo bool, sets []string,
 // border is added), the ping line precedes the device's first record though
 // that record is hidden, and the counts are split by kind.
 func TestSucceededSessionInitIsHiddenAndCountedApart(t *testing.T) {
-	first := kindRecord("sw1", "session_init", 1, 2, "terminal width 511", "succeeded", "", nil)
+	first := kindRecord("sw1", "session_init", 1, 2, "terminal width 511", "success", "", nil)
 	first.Ping = &records.PingReport{Address: "192.0.2.1", Family: "ipv4", Method: "socket", ExecutionEndpoint: "local", Probes: 2, Outcomes: []records.PingOutcome{replyOut, fastOut}, Replies: 2, Decision: records.PingDecisionProceed}
-	second := kindRecord("sw1", "session_init", 2, 2, "show clock", "succeeded", "*10:00\n", nil)
+	second := kindRecord("sw1", "session_init", 2, 2, "show clock", "success", "*10:00\n", nil)
 	second.Ping = first.Ping
-	requested := kindRecord("sw1", "requested", 1, 2, "show version", "succeeded", "IOS XE\n", nil)
+	requested := kindRecord("sw1", "requested", 1, 2, "show version", "success", "IOS XE\n", nil)
 	requested.Ping = first.Ping
-	requested2 := kindRecord("sw1", "requested", 2, 2, "show users", "succeeded", "users\n", nil)
+	requested2 := kindRecord("sw1", "requested", 2, 2, "show users", "success", "users\n", nil)
 	requested2.Ping = first.Ping
 	got, r := renderKinds(t, "run", false, false, nil, first, second, requested, requested2)
-	want := "! sw1 [192.0.2.1] ping(1) 2.1ms, ping(2) <0.1ms, proceeding\nsw1 header\nIOS XE\n----\nusers\n"
+	want := "! sw1 [192.0.2.1] ping(1) 2.1ms, ping(2) <0.1ms, proceed\nsw1 header\nIOS XE\n----\nusers\n"
 	if got != want {
 		t.Fatalf("output:\n%q\nwant:\n%q", got, want)
 	}
-	if c := r.RequestedCounts(); len(c) != 1 || c["succeeded"] != 2 {
+	if c := r.RequestedCounts(); len(c) != 1 || c["success"] != 2 {
 		t.Errorf("requested counts %v", c)
 	}
-	if c := r.SessionInitCounts(); len(c) != 1 || c["succeeded"] != 2 {
+	if c := r.SessionInitCounts(); len(c) != 1 || c["success"] != 2 {
 		t.Errorf("session-init counts %v", c)
 	}
 	if _, empty := renderKinds(t, "run", false, false, nil, requested); len(empty.SessionInitCounts()) != 0 {
@@ -97,7 +97,7 @@ func TestFailedSessionInitIsShownWithItsKind(t *testing.T) {
 		kindRecord("sw1", "session_init", 2, 2, "show clock", "not_attempted_prior_command_failure", "", nil),
 		kindRecord("sw1", "requested", 1, 2, "show version", "not_attempted_session_init_failure", "", nil),
 		kindRecord("sw1", "requested", 2, 2, "show users", "not_attempted_session_init_failure", "", nil),
-		kindRecord("sw2", "requested", 1, 1, "show version", "succeeded", "IOS XE\n", nil),
+		kindRecord("sw2", "requested", 1, 1, "show version", "success", "IOS XE\n", nil),
 	}
 	failure := "karvi: target=sw1 session_init=iosxe-init command=1/2 status=device_error error=device_command_error: device reported a command error\n"
 	stopped := "karvi: target=sw1 status=not_attempted_session_init_failure command=1/2\nkarvi: target=sw1 status=not_attempted_session_init_failure command=2/2\n"
@@ -149,12 +149,12 @@ func TestPingLineOncePerDeviceWhenDevicesInterleave(t *testing.T) {
 		device string
 		index  int
 	}{{"sw1", 1}, {"sw2", 1}, {"sw1", 2}, {"sw2", 2}} {
-		rec := kindRecord(spec.device, "requested", spec.index, 2, "show clock", "succeeded", "ok\n", nil)
+		rec := kindRecord(spec.device, "requested", spec.index, 2, "show clock", "success", "ok\n", nil)
 		rec.Ping = ping
 		recs = append(recs, rec)
 	}
 	got, _ := renderKinds(t, "run", false, false, nil, recs...)
-	want := "! sw1 [192.0.2.1] ping(1) 2.1ms, ping(2) <0.1ms, proceeding\nsw1 header\nok\n----\n! sw2 [192.0.2.1] ping(1) 2.1ms, ping(2) <0.1ms, proceeding\nsw2 header\nok\n----\nsw1 header\nok\n----\nsw2 header\nok\n"
+	want := "! sw1 [192.0.2.1] ping(1) 2.1ms, ping(2) <0.1ms, proceed\nsw1 header\nok\n----\n! sw2 [192.0.2.1] ping(1) 2.1ms, ping(2) <0.1ms, proceed\nsw2 header\nok\n----\nsw1 header\nok\n----\nsw2 header\nok\n"
 	if got != want {
 		t.Fatalf("output:\n%q\nwant:\n%q", got, want)
 	}
@@ -171,7 +171,7 @@ func TestStoppedSessionInitRecordsAreHidden(t *testing.T) {
 	}{
 		{"not_started_halt", &records.StructuredError{Code: "halt_error_count", Category: "shutdown", Message: "halt_error_count", Operation: "dispatch"}},
 		{"not_started_wave_gate", &records.StructuredError{Code: "wave_gate_error_count", Category: "shutdown", Message: "wave_gate_error_count", Operation: "dispatch"}},
-		{"cancelled", &records.StructuredError{Code: "cancelled", Category: "shutdown", Message: "the job was cancelled by the operator", Operation: "session_init"}},
+		{"cancel", &records.StructuredError{Code: "cancelled", Category: "shutdown", Message: "the job was cancelled by the operator", Operation: "session_init"}},
 		{"incomplete_shutdown", &records.StructuredError{Code: "shutdown_incomplete", Category: "shutdown", Message: "the daemon was stopped", Operation: "session_init"}},
 	} {
 		requestedErr := *tc.err
@@ -183,7 +183,7 @@ func TestStoppedSessionInitRecordsAreHidden(t *testing.T) {
 			kindRecord("sw1", "session_init", 1, 2, "terminal width 511", tc.status, "", tc.err),
 			kindRecord("sw1", "session_init", 2, 2, "show clock", tc.status, "", tc.err),
 			kindRecord("sw1", "requested", 1, 1, "show version", tc.status, "", &requestedErr),
-			kindRecord("sw2", "requested", 1, 1, "show version", "succeeded", "IOS XE\n", nil),
+			kindRecord("sw2", "requested", 1, 1, "show version", "success", "IOS XE\n", nil),
 		}
 		line := "karvi: target=sw1 status=" + tc.status + " error=" + tc.err.Code + ": " + tc.err.Message + "\n"
 		got, r := renderKinds(t, "run", false, false, nil, recs...)

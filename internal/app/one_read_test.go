@@ -71,7 +71,7 @@ func TestCollectionHookUnderTheRead(t *testing.T) {
 		Outcome   string `json:"outcome"`
 	}
 	lines := bufio.NewScanner(f)
-	if !lines.Scan() || json.Unmarshal(lines.Bytes(), &event) != nil || event.EventName != "crun.after" || event.Outcome != "succeeded" {
+	if !lines.Scan() || json.Unmarshal(lines.Bytes(), &event) != nil || event.EventName != "crun.after" || event.Outcome != "success" {
 		t.Fatalf("audit event %+v, want crun.after succeeded", event)
 	}
 }

@@ -262,7 +262,7 @@ NOT_ATTEMPTED=not_attempted_prior_command_failure
 # of the model and the release.
 if wanted D1; then
   fresh_store; write_config accept-new
-  both D1 "succeeded,$REJECTED,succeeded" 107 -- --continue-device-on-error --cmd 'show clock' --cmd "$INVALID_COMMAND" --cmd 'show version'
+  both D1 "success,$REJECTED,success" 107 -- --continue-device-on-error --cmd 'show clock' --cmd "$INVALID_COMMAND" --cmd 'show version'
   grep -h -o 'Cisco IOS[^"\\]*Version [^",\\ ]*' "$EVIDENCE"/D1/*.out 2>/dev/null | sort -u | head -3 >"$EVIDENCE/device-release.txt" || true
   result D1 'device release' observe "$(head -1 "$EVIDENCE/device-release.txt")"
 fi
@@ -270,7 +270,7 @@ fi
 # D2: the same list under halt.
 if wanted D2; then
   fresh_store; write_config accept-new
-  both D2 "succeeded,$REJECTED,$NOT_ATTEMPTED" 107 -- --cmd 'show clock' --cmd "$INVALID_COMMAND" --cmd 'show version'
+  both D2 "success,$REJECTED,$NOT_ATTEMPTED" 107 -- --cmd 'show clock' --cmd "$INVALID_COMMAND" --cmd 'show version'
 fi
 
 # D3: the banner, the first prompt, the one enable, and the paging
@@ -290,7 +290,7 @@ fi
 if wanted D4; then
   if [ -n "${CONFIG_ROW:-}" ]; then
     fresh_store; write_config accept-new
-    both D4 'succeeded,succeeded,succeeded' 0 -- --cmd 'configure terminal' --cmd 'end' --cmd 'show clock'
+    both D4 'success,success,success' 0 -- --cmd 'configure terminal' --cmd 'end' --cmd 'show clock'
     for f in "$EVIDENCE"/D4/*.out; do
       head -1 "$f" | grep -q '"prompt":"[^"]*(config[^"]*)#"' && result D4 "$(basename "$f" .out) prompt level" pass "$(head -1 "$f" | grep -o '"prompt":"[^"]*"')" \
         || result D4 "$(basename "$f" .out) prompt level" fail "the first record's prompt is $(head -1 "$f" | grep -o '"prompt":"[^"]*"')"
@@ -390,7 +390,7 @@ if wanted D7; then
   for tr in $TRANSPORTS; do
     fresh_store; printf '%s %s\n' "$bad" "$OTHER" >"$KH"; write_config accept-new
     qrun D7 "j1.$tr" run "$tr" -- --target "$DEVICE-mismatch" --target "$DEVICE" --dispatch serial --cmd 'show clock'
-    [ "$(statuses "$OUT")" = connection_error,succeeded ] && result D7 "j1.$tr one mismatch, the next target runs" pass "exit $CODE" || result D7 "j1.$tr one mismatch, the next target runs" fail "exit $CODE, $(statuses "$OUT")"
+    [ "$(statuses "$OUT")" = connection_error,success ] && result D7 "j1.$tr one mismatch, the next target runs" pass "exit $CODE" || result D7 "j1.$tr one mismatch, the next target runs" fail "exit $CODE, $(statuses "$OUT")"
     fresh_store; printf '%s %s\n' "$bad" "$OTHER" >"$KH"
     SSH='halt-run-on-host-key-mismatch = true' write_config accept-new
     qrun D7 "j2.$tr" run "$tr" -- --target "$DEVICE-mismatch" --target "$DEVICE" --dispatch serial --cmd 'show clock'
@@ -409,7 +409,7 @@ if wanted D8; then
       DISPATCH="default = \"parallel\"
 parallel-workers = $CONCURRENCY" write_config accept-new
       qrun D8 "daemon.$tr" daemon "$tr" -- --all --cmd 'show clock' --cmd 'show users'
-      n=$(jsonl_records "$OUT" status | grep -cx succeeded || true)
+      n=$(jsonl_records "$OUT" status | grep -cx success || true)
       [ "$CODE" -eq 0 ] && [ "$n" -eq $((CONCURRENCY * 2)) ] && result D8 "daemon.$tr $CONCURRENCY sessions" pass "$n records succeeded" || result D8 "daemon.$tr $CONCURRENCY sessions" fail "exit $CODE, $n of $((CONCURRENCY * 2)) records succeeded"
     done
     unset NAMES

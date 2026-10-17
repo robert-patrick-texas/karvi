@@ -152,7 +152,10 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned when output.files.summary-json was removed (EXAMPLES chapter 61,
 // issue 5): the configuration block's key and its digest; nothing else
 // moved.
-const goldenK03Draft = "4b735a32fd03039e5d4e225942bfe1b95aadedb40605a7b9f20fcf5454dfa244"
+// Re-pinned when display.collection.footer's default took replace and keep
+// (EXAMPLES chapter 63, issue 7): the configuration block's value and its
+// digest; nothing else moved.
+const goldenK03Draft = "b985acac6b998653b7d39a120280f3a78d8fa7bb31c007eac48db99361367be8"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

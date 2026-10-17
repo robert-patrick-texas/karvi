@@ -198,7 +198,7 @@ done
 contact() {
   rm -f "${KARVI__SSH__KNOWN_HOSTS_FILE:?}"
   eval "$COMMON --set 'ssh.transports.system=\"$TMP/fake-ssh-contact-$1\"' login --address 127.0.0.1 transcript-device" >"$TMP/contact-$1.out" 2>&1
-  audit_events "$BASE/audit.jsonl" event_name outcome details.host_key_enrolled | grep "^login\.end${TAB}completed${TAB}" | tail -1 >"$TMP/contact-$1.audit"
+  audit_events "$BASE/audit.jsonl" event_name outcome details.host_key_enrolled | grep "^login\.end${TAB}complete${TAB}" | tail -1 >"$TMP/contact-$1.audit"
 }
 # line_of TEXT FILE: the number of FILE's first line holding TEXT, empty if none.
 line_of() { grep -n -F -- "$1" "$2" | head -n 1 | cut -d: -f1; }
@@ -213,7 +213,7 @@ contact no
 [ "$(cut -f3 "$TMP/contact-no.audit")" = ED25519 ]
 eval "$COMMON --set 'ssh.transports.system=\"$TMP/fake-ssh-contact-yes\"' login --address 127.0.0.1 transcript-device" >"$TMP/contact-known.out" 2>&1
 absent 'accepted new host-key' "$TMP/contact-known.out"
-audit_events "$BASE/audit.jsonl" event_name outcome details.host_key_enrolled | grep "^login\.end${TAB}completed${TAB}" | tail -1 >"$TMP/contact-known.audit"
+audit_events "$BASE/audit.jsonl" event_name outcome details.host_key_enrolled | grep "^login\.end${TAB}complete${TAB}" | tail -1 >"$TMP/contact-known.audit"
 [ -s "$TMP/contact-known.audit" ]
 if [ -n "$(cut -f3 "$TMP/contact-known.audit")" ]; then echo "$0: a known key named in the audit" >&2; exit 1; fi
 

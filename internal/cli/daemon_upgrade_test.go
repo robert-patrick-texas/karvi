@@ -238,7 +238,7 @@ func TestFollowAndCancelAcrossBuilds(t *testing.T) {
 			if got, _, stderr := verb(g, "job", "follow", fixtureJobID); got != exitcode.ExitJobRejected || stderr != refusal("follow") {
 				t.Fatalf("follow, not ended: exit=%d stderr=%q", got, stderr)
 			}
-			finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "completed", ExitCode: 0, ExitName: "ExitSuccess"})
+			finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "complete", ExitCode: 0, ExitName: "ExitSuccess"})
 			if got, _, stderr := verb(g, "job", "follow", fixtureJobID); got != 0 || stderr != "" {
 				t.Fatalf("follow, ended: exit=%d stderr=%q", got, stderr)
 			}

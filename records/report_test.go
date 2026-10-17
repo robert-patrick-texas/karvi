@@ -79,7 +79,7 @@ func fixtureInspection() PlanReport {
 		},
 		Counts:   ReportCounts{Targets: 3, ByReadiness: map[string]int{ReadinessPlanned: 2, ReadinessDeferred: 1}, ByAuthority: map[string]int{"client": 2, "daemon": 1}, Commands: 4},
 		Timing:   ReportTiming{ClientConfigNS: i64(2_000_000), ClientInventoryNS: i64(1_500_000), ClientDNSNS: i64(0), ClientCredentialNS: i64(800_000), DaemonProbeNS: i64(3_000_000), TotalNS: 7_300_000},
-		Findings: []executionplan.Finding{}, Outcome: OutcomePlanned, NextOperation: NextCommitLiveJob,
+		Findings: []executionplan.Finding{}, Outcome: OutcomePlan, NextOperation: NextCommitLiveJob,
 	}
 }
 
@@ -148,7 +148,7 @@ func TestReportsValidateAndMatchTheSchema(t *testing.T) {
 			}
 		}
 		s := string(data)
-		for _, forbidden := range []string{`"password"`, `"q"`, `"en"`, `"succeeded"`} {
+		for _, forbidden := range []string{`"password"`, `"q"`, `"en"`, `"success"`} {
 			if strings.Contains(s, forbidden) {
 				t.Errorf("%s report contains %s", r.Kind, forbidden)
 			}
@@ -191,7 +191,7 @@ func TestReportValidationVectors(t *testing.T) {
 		{"exercise package job", fixtureExercise, func(r *PlanReport) { r.CredentialPackage.JobID = plantest.PlanID }, "credential_package"},
 		{"exercise no preparation", fixtureExercise, func(r *PlanReport) { r.Preparations = []executionplan.PreparationReport{} }, "preparations"},
 		{"exercise contacted", fixtureExercise, func(r *PlanReport) { r.DeviceContacted = true }, "job_submitted"},
-		{"exercise outcome", fixtureExercise, func(r *PlanReport) { r.Outcome = OutcomeExercised }, "outcome"},
+		{"exercise outcome", fixtureExercise, func(r *PlanReport) { r.Outcome = OutcomeExercise }, "outcome"},
 		{"inspection profile missing", fixtureInspection, func(r *PlanReport) { r.Targets[2].IntendedTransport.SessionInitProfile = "" }, "targets[2].intended_transport.session_init_profile"},
 		{"exercise profile missing", fixtureExercise, func(r *PlanReport) { r.Targets[0].IntendedTransport.SessionInitProfile = "" }, "targets[0].intended_transport.session_init_profile"},
 		{"exercise profile differs from plan", fixtureExercise, func(r *PlanReport) { r.Targets[2].IntendedTransport.SessionInitProfile = executionplan.SessionInitNone }, "targets[2].intended_transport.session_init_profile"},
@@ -249,7 +249,7 @@ func TestTerminalStatus(t *testing.T) {
 	if len(FinalStatuses) != 6 {
 		t.Fatalf("FinalStatuses = %v", FinalStatuses)
 	}
-	for _, s := range []string{"completed", "halted", "errored", "cancelled", "incomplete", "exercised"} {
+	for _, s := range []string{"complete", "halt", "error", "cancel", "incomplete", "exercise"} {
 		if !TerminalStatus(s) {
 			t.Fatalf("%s must be terminal", s)
 		}

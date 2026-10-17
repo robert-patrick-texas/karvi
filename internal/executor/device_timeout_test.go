@@ -22,7 +22,7 @@ func TestDeviceTimeoutCutsTheCommandInFlight(t *testing.T) {
 	if elapsed := time.Since(start); elapsed > 2500*time.Millisecond {
 		t.Fatalf("the device took %s under a 1s device timeout", elapsed)
 	}
-	if len(recs) != 3 || recs[0].Status != "succeeded" || recs[1].Status != "timeout" || recs[2].Status != "not_attempted_prior_command_failure" || recs[2].Error != nil {
+	if len(recs) != 3 || recs[0].Status != "success" || recs[1].Status != "timeout" || recs[2].Status != "not_attempted_prior_command_failure" || recs[2].Error != nil {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	e := recs[1].Error

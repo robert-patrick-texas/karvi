@@ -373,7 +373,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	case summary.GateReason != "":
 		unstartedStatus = "not_started_wave_gate"
 	case summary.HaltReason == "cancelled" || ctx.Err() != nil:
-		unstartedStatus, unstartedReason, unstartedCause = "cancelled", "cancelled", CancelCause(ctx)
+		unstartedStatus, unstartedReason, unstartedCause = "cancel", "cancelled", CancelCause(ctx)
 	case summary.HaltReason == "host_key_mismatch":
 		unstartedReason = "halt_host_key_mismatch"
 	case summary.HaltReason == "error_count":
@@ -573,7 +573,7 @@ func buildSummary(accepted records.AcceptedSummary, paths output.Paths, end time
 	}
 	_, out := summaryFiles(paths, rr.OutputBytes())
 	return records.Summary{AcceptedSummary: accepted, EndedAt: end, DurationNS: end.Sub(accepted.StartedAt).Nanoseconds(), FinalStatus: finalScoreboardStatus(code, d), ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, Ping: ping, Cancellation: cancellation,
-		DeviceCounts: map[string]int{"total": d.Counts.Total, "completed": d.Counts.Terminal, "succeeded": d.Counts.Succeeded, "failed": d.Counts.Failed, "not_started": d.Counts.NotStarted, "incomplete": incomplete, "cancelled": cancelled}, RequestedCommandCounts: rr.RequestedCounts(), SessionInitCounts: rr.SessionInitCounts(), Halt: map[string]any{"run_wide": d.HaltReason, "wave_gate": d.GateReason}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}}
+		DeviceCounts: map[string]int{"total": d.Counts.Total, "done": d.Counts.Terminal, "success": d.Counts.Succeeded, "fail": d.Counts.Failed, "not_started": d.Counts.NotStarted, "incomplete": incomplete, "cancel": cancelled}, RequestedCommandCounts: rr.RequestedCounts(), SessionInitCounts: rr.SessionInitCounts(), Halt: map[string]any{"run_wide": d.HaltReason, "wave_gate": d.GateReason}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}}
 }
 
 // writeActivityAudit writes a job's own event, <kind>.<event> (start, cancel,

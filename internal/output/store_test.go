@@ -18,7 +18,7 @@ func TestAppend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", ActivityType: "command", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "d", Name: "d", CanonicalName: "d", Groups: []string{}}, InputTarget: "d", TransformedName: "d", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "generic", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "x", CommandSHA256: "x", Status: "succeeded", Output: "ok", OutputEncoding: "utf-8", OutputSHA256: "x", Prompt: "", PromptSource: "", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}, Error: nil}
+	r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", ActivityType: "command", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "d", Name: "d", CanonicalName: "d", Groups: []string{}}, InputTarget: "d", TransformedName: "d", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "generic", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "x", CommandSHA256: "x", Status: "success", Output: "ok", OutputEncoding: "utf-8", OutputSHA256: "x", Prompt: "", PromptSource: "", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}, Error: nil}
 	n, err := appendRecord(s, &r)
 	if err != nil {
 		t.Fatal(err)
@@ -45,13 +45,13 @@ func TestFailedDevicesFollowRequestedRecords(t *testing.T) {
 	}
 	record := func(device, kind, status string) records.CommandRecord {
 		r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: kind, SessionInitProfile: "p", Command: "x", CommandSHA256: "x", Status: status, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
-		if status != "succeeded" {
+		if status != "success" {
 			r.Error = &records.StructuredError{Code: "device_command_error", Category: "device", Message: "m", Operation: "execute_command"}
 		}
 		return r
 	}
 	for _, r := range []records.CommandRecord{
-		record("continued", "session_init", "device_error"), record("continued", "requested", "succeeded"),
+		record("continued", "session_init", "device_error"), record("continued", "requested", "success"),
 		record("stopped", "session_init", "device_error"), record("stopped", "requested", "device_error"),
 	} {
 		if _, err := appendRecord(s, &r); err != nil {
@@ -90,7 +90,7 @@ func TestTextFilePerDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	record := func(device, before, command, output string) records.CommandRecord {
-		return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "run", Device: records.DeviceProjection{CanonicalName: device}, CommandKind: "requested", PromptBefore: before, Command: command, Status: "succeeded", Output: output, OutputEncoding: "utf-8"}
+		return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "run", Device: records.DeviceProjection{CanonicalName: device}, CommandKind: "requested", PromptBefore: before, Command: command, Status: "success", Output: output, OutputEncoding: "utf-8"}
 	}
 	s.SetTextSetup("r1", []platform.SetupLine{{PromptBefore: "r1>", Statement: "enable", Output: "Password:\n"}, {PromptBefore: "r1#", Statement: "terminal length 0"}})
 	s.SetTextSetup("r7", nil) // a driver with no set-up holds nothing
@@ -173,7 +173,7 @@ func TestSkippedFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		for i, status := range []string{"succeeded", "device_error"} {
+		for i, status := range []string{"success", "device_error"} {
 			r := record(status)
 			n, err := appendRecord(s, &r)
 			if err != nil || n.Sequence != int64(i+1) || r.Sequence != int64(i+1) {
@@ -203,7 +203,7 @@ func TestSkippedFiles(t *testing.T) {
 	if got := names(parent); got != "" || s.Paths() != (Paths{}) || s.Bytes() != 0 {
 		t.Fatalf("every file skipped: created %q, paths %+v, bytes %d", got, s.Paths(), s.Bytes())
 	}
-	bad := record("succeeded")
+	bad := record("success")
 	bad.CommandKind = "other"
 	if s2, _ := Create(Options{Skip: AllFiles, ID: "id"}); s2 != nil {
 		if _, err := appendRecord(s2, &bad); err == nil {
@@ -243,7 +243,7 @@ func TestSkippedFiles(t *testing.T) {
 // the device, since the device's result reaches no operator by itself.
 func TestJobLimitCountsTheText(t *testing.T) {
 	record := func() records.CommandRecord {
-		return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "command", Device: records.DeviceProjection{CanonicalName: "r1"}, CommandKind: "requested", PromptBefore: "r1#", Command: "show big", Status: "succeeded", Output: strings.Repeat("x", 1000) + "\n", OutputEncoding: "utf-8"}
+		return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "command", Device: records.DeviceProjection{CanonicalName: "r1"}, CommandKind: "requested", PromptBefore: "r1#", Command: "show big", Status: "success", Output: strings.Repeat("x", 1000) + "\n", OutputEncoding: "utf-8"}
 	}
 	appendOne := func(s *Store) error { r := record(); _, err := appendRecord(s, &r); return err }
 	create := func(skip FileSet, limit int64, warn func(string)) (*Store, string) {
@@ -353,7 +353,7 @@ func TestNoticesLeaveInSequence(t *testing.T) {
 				size = 4 << 20
 			}
 			name := fmt.Sprintf("r%02d", i)
-			r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: name, ActivityID: "a", JobID: "a", ActivityType: "run", Device: records.DeviceProjection{CanonicalName: name}, CommandKind: "requested", PromptBefore: name + "#", Command: "show big", Status: "succeeded", Output: strings.Repeat("x", size) + "\n", OutputEncoding: "utf-8"}
+			r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: name, ActivityID: "a", JobID: "a", ActivityType: "run", Device: records.DeviceProjection{CanonicalName: name}, CommandKind: "requested", PromptBefore: name + "#", Command: "show big", Status: "success", Output: strings.Repeat("x", size) + "\n", OutputEncoding: "utf-8"}
 			if _, err := appendRecord(s, &r); err != nil {
 				t.Error(err)
 			}
@@ -437,13 +437,13 @@ func TestCollectionFiles(t *testing.T) {
 	}
 	rec := func(device, command, status, code, out string, index int) *records.CommandRecord {
 		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: index, CommandCount: 2, CommandKind: "requested", Command: command, CommandSHA256: "x", Status: status, Output: out, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
-		if status != "succeeded" {
+		if status != "success" {
 			r.Error = &records.StructuredError{Code: code, Category: "device", Message: "m", Operation: "command"}
 		}
 		return r
 	}
 	// r1.example.net: a rejected statement, then a success: replaced.
-	for _, r := range []*records.CommandRecord{rec("r1.example.net", "show running-config", "device_error", "device_command_error", "     ^\n% Invalid input detected at '^' marker.\n", 1), rec("r1.example.net", "show clock", "succeeded", "", "*10:00:00.000 UTC Tue Sep 15 2026\n", 2)} {
+	for _, r := range []*records.CommandRecord{rec("r1.example.net", "show running-config", "device_error", "device_command_error", "     ^\n% Invalid input detected at '^' marker.\n", 1), rec("r1.example.net", "show clock", "success", "", "*10:00:00.000 UTC Tue Sep 15 2026\n", 2)} {
 		if _, err := appendRecord(s, r); err != nil {
 			t.Fatal(err)
 		}
@@ -470,7 +470,7 @@ func TestCollectionFiles(t *testing.T) {
 		t.Fatalf("r2 was touched: %q", got)
 	}
 	// r3: one success and no end before the close: kept.
-	if _, err := appendRecord(s, rec("r3", "show clock", "succeeded", "", "x\n", 1)); err != nil {
+	if _, err := appendRecord(s, rec("r3", "show clock", "success", "", "x\n", 1)); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Close(); err != nil {
@@ -488,7 +488,7 @@ func TestCollectionFiles(t *testing.T) {
 		t.Fatalf("directory holds %v", names)
 	}
 	c := s.CollectionSummary()
-	if c == nil || c.Directory != coll || c.Replaced != 1 || c.Kept != 2 || c.Devices["r1.example.net"] != (records.CollectionDevice{File: "r1", Outcome: "replaced"}) || c.Devices["r2"].Outcome != "kept" || c.Devices["r3"].Outcome != "kept" {
+	if c == nil || c.Directory != coll || c.Replaced != 1 || c.Kept != 2 || c.Devices["r1.example.net"] != (records.CollectionDevice{File: "r1", Outcome: "replace"}) || c.Devices["r2"].Outcome != "keep" || c.Devices["r3"].Outcome != "keep" {
 		t.Fatalf("summary %+v", c)
 	}
 	if len(warnings) != 0 {
@@ -518,7 +518,7 @@ func TestCollectionExecBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec := func(device, command, code, out, stderr string, index int, status *int, signal *string) *records.CommandRecord {
-		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "linux", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: index, CommandCount: 3, CommandKind: "requested", Command: command, CommandSHA256: "x", Status: "succeeded", Output: out, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()},
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "linux", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: index, CommandCount: 3, CommandKind: "requested", Command: command, CommandSHA256: "x", Status: "success", Output: out, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()},
 			Channel: records.ChannelExec, ExitStatus: status, ExitSignal: signal, PromptSource: "none"}
 		encoding, size, sum := "utf-8", int64(len(stderr)), "x"
 		r.Stderr, r.StderrEncoding, r.StderrBytes, r.StderrSHA256 = &stderr, &encoding, &size, &sum
@@ -586,7 +586,7 @@ func TestCollectionSuffixAndSweep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "x", Status: "succeeded", Output: "*10:00\n", OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "x", Status: "success", Output: "*10:00\n", OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
 		if _, err := appendRecord(s, r); err != nil {
 			t.Fatal(err)
 		}
@@ -610,7 +610,7 @@ func TestCollectionSuffixAndSweep(t *testing.T) {
 				t.Fatalf("%q: %s was swept", suffix, k)
 			}
 		}
-		if d := s.CollectionSummary().Devices["r1"]; d.File != "r1"+suffix || d.Outcome != "replaced" {
+		if d := s.CollectionSummary().Devices["r1"]; d.File != "r1"+suffix || d.Outcome != "replace" {
 			t.Fatalf("%q: summary %+v", suffix, d)
 		}
 	}

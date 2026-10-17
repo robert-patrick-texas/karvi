@@ -102,7 +102,7 @@ func TestLoadWarningsSaidOncePerInvocation(t *testing.T) {
 	// Two jobs, one reading at the stream's start: each warning once.
 	in := "--no-daemon\n--dry-run\n--target 127.0.0.1\n--transport system\nshow clock\n--go\nshow version\n--go\n--end\n"
 	code, stdout, stderr = main(in, "stream")
-	if code != 0 || strings.Count(stdout, "outcome: planned") != 2 {
+	if code != 0 || strings.Count(stdout, "outcome: plan") != 2 {
 		t.Fatalf("stream: exit %d stdout=%q stderr=%q", code, stdout, stderr)
 	}
 	saidOnce(t, "stream", stderr, want)
@@ -110,7 +110,7 @@ func TestLoadWarningsSaidOncePerInvocation(t *testing.T) {
 	// A finished job's folder, no daemon: the follow's one read.
 	g := globalsFor(sets)
 	g.configs = []string{cfg}
-	finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "completed", ExitCode: 0, ExitName: "ExitSuccess"})
+	finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "complete", ExitCode: 0, ExitName: "ExitSuccess"})
 	if code, stdout, stderr = main("", "job", "follow", fixtureJobID, "--format", "jsonl"); code != 0 {
 		t.Fatalf("job follow: exit %d stdout=%q stderr=%q", code, stdout, stderr)
 	}

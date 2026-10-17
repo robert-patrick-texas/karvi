@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-manifest-v4.json",
-  "title": "karvi job manifest schema 4",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-manifest-v5.json",
+  "title": "karvi job manifest schema 5",
   "type": "object", "additionalProperties": false,
   "required": ["schema_version", "job_id", "activity_id", "accepted_at", "operator", "app", "mode", "header", "plan", "credential_package", "selection", "initial_states"],
   "properties": {
-    "schema_version": {"const": 4},
+    "schema_version": {"const": 5},
     "job_id": {"type": "string"},
     "activity_id": {"type": "string", "minLength": 1},
     "accepted_at": {"type": "string", "format": "date-time"},

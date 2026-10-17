@@ -138,7 +138,7 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 			at := time.Date(2026, 9, 15, 17, 0, 0, 0, time.UTC)
 			res.State, res.RequestedAt = ipc.CancelStateCancelling, &at
 		} else {
-			res.State, res.Outcome = ipc.CancelStateTerminal, &ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: cr.JobID, JobID: cr.JobID, Summary: records.Summary{FinalStatus: "completed"}}
+			res.State, res.Outcome = ipc.CancelStateTerminal, &ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: cr.JobID, JobID: cr.JobID, Summary: records.Summary{FinalStatus: "complete"}}
 		}
 		reply(res)
 	case ipc.OpFollowJob:
@@ -152,7 +152,7 @@ func (f *stopFixture) serve(conn net.Conn, socket string) bool {
 			return false
 		}
 		reply(ipc.FollowStart{JobID: fr.JobID, ArtifactDir: "/tmp/jobs/" + fr.JobID, HighestDurableSequence: fr.Cursor, ResumeCursor: fr.Cursor, FirstSequence: fr.Cursor + 1})
-		summary := records.Summary{FinalStatus: "cancelled", Cancellation: &records.Cancellation{Reason: "fixture reason", RequestID: "r1"}}
+		summary := records.Summary{FinalStatus: "cancel", Cancellation: &records.Cancellation{Reason: "fixture reason", RequestID: "r1"}}
 		outcome := ipc.ActivityOutcome{ExitCode: exitcode.ExitCancelled, ExitName: "ExitCancelled", ActivityID: fr.JobID, JobID: fr.JobID, ArtifactDir: "/tmp/jobs/" + fr.JobID, Summary: summary}
 		if f.terminal != nil {
 			outcome = *f.terminal

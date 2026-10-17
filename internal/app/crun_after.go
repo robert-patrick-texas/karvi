@@ -92,7 +92,7 @@ func RunCollectionHook(ctx context.Context, common CommonOptions, result Activit
 func (h collectionHook) replacedFiles() string {
 	files := make([]string, 0, len(h.Summary.Devices))
 	for _, d := range h.Summary.Devices {
-		if d.Outcome == records.CollectionReplaced {
+		if d.Outcome == records.CollectionReplace {
 			files = append(files, d.File)
 		}
 	}
@@ -116,8 +116,8 @@ func (h collectionHook) run(ctx context.Context, stderr io.Writer) hookOutcome {
 		"KARVI_JOB_ID="+h.JobID,
 		"KARVI_JOB_DIR="+h.JobDir,
 		"KARVI_CRUN_DIRECTORY="+h.Summary.Directory,
-		fmt.Sprintf("KARVI_CRUN_REPLACED=%d", h.Summary.Replaced),
-		fmt.Sprintf("KARVI_CRUN_KEPT=%d", h.Summary.Kept),
+		fmt.Sprintf("KARVI_CRUN_REPLACE=%d", h.Summary.Replaced),
+		fmt.Sprintf("KARVI_CRUN_KEEP=%d", h.Summary.Kept),
 		fmt.Sprintf("KARVI_EXIT=%d", h.Exit))
 	cmd.Stdin = strings.NewReader(h.replacedFiles())
 	cmd.Stdout, cmd.Stderr = stderr, stderr
@@ -173,7 +173,7 @@ func endGroup(pgid int, deadline time.Time) {
 }
 
 // writeCollectionHookAudit records the hook in the audit as crun.after, its
-// outcome succeeded or failed, under the job's ID: the path, the directory
+// outcome success or fail, under the job's ID: the path, the directory
 // and counts, the exit code, the duration, whether the bound ended it, and
 // the diagnostic.
 func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Operator, result ActivityResult, h collectionHook, o hookOutcome) error {
@@ -182,9 +182,9 @@ func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Oper
 		return err
 	}
 	defer sink.Close()
-	outcome, severity, diagnostic := "succeeded", "info", ""
+	outcome, severity, diagnostic := "success", "info", ""
 	if o.err != nil {
-		outcome, severity, diagnostic = "failed", "warning", errorcodes.Message(o.err)
+		outcome, severity, diagnostic = "fail", "warning", errorcodes.Message(o.err)
 	}
 	// A cmd's result carries no job ID; its activity's is the job's.
 	jobID := result.JobID
@@ -201,5 +201,5 @@ func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Oper
 		Policy:    map[string]any{},
 		Result:    map[string]any{"exit_code": o.exit},
 		Source:    map[string]any{"client": "karvi"},
-		Details:   map[string]any{"path": h.Path, "directory": h.Summary.Directory, "replaced": h.Summary.Replaced, "kept": h.Summary.Kept, "duration_ms": o.duration.Milliseconds(), "timed_out": o.timedOut, "diagnostic": diagnostic}})
+		Details:   map[string]any{"path": h.Path, "directory": h.Summary.Directory, "replace": h.Summary.Replaced, "keep": h.Summary.Kept, "duration_ms": o.duration.Milliseconds(), "timed_out": o.timedOut, "diagnostic": diagnostic}})
 }

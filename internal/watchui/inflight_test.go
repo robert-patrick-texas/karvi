@@ -24,11 +24,11 @@ func TestPaneShowsTheBytesInFlight(t *testing.T) {
 	m := model(120, 24)
 	s := &m.Rows[1].Snapshot
 	s.Metrics = &records.ScoreboardMetrics{OutputBytes: 15012, InFlightBytes: 5260096}
-	s.Targets = []records.ScoreboardTarget{{Name: "gtn-a", State: "succeeded"}, {Name: "gtn-wan-9500-1", State: "running", Bytes: 5256000}, {Name: "gtn-c", State: "running", Bytes: 4096}}
+	s.Targets = []records.ScoreboardTarget{{Name: "gtn-a", State: "success"}, {Name: "gtn-wan-9500-1", State: "running", Bytes: 5256000}, {Name: "gtn-c", State: "running", Bytes: 4096}}
 	m.Frame()
 	m.Key(kind(KeyEnter))
 	frame := strings.Join(m.Frame(), "\n")
-	for _, want := range []string{"output 15012 bytes  in flight 5260096 bytes", "gtn-wan-9500-1 running 5256000", "gtn-c running 4096", "gtn-a succeeded"} {
+	for _, want := range []string{"output 15012 bytes  in flight 5260096 bytes", "gtn-wan-9500-1 running 5256000", "gtn-c running 4096", "gtn-a success"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("the pane lacks %q:\n%s", want, frame)
 		}

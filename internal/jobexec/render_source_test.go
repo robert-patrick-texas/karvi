@@ -20,7 +20,7 @@ func spooledRecord(t *testing.T, raw []byte) (fromString records.CommandRecord, 
 	t.Helper()
 	text, enc, digest := output.EncodeOutput(raw)
 	observed := true
-	fromString = records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r1", ActivityType: "command", Command: "show big", Status: "succeeded", Output: text, OutputEncoding: enc, OutputBytes: int64(len(raw)), OutputSHA256: digest, Prompt: "r1#", PromptBefore: "r1#", PromptSource: "observed", PromptObserved: &observed, Device: records.DeviceProjection{CanonicalName: "r1"}, SelectedAddress: "192.0.2.1", Timing: records.Timing{EndedAt: time.Date(2026, 9, 27, 10, 0, 0, 0, time.UTC)}, Notices: []records.Notice{}}
+	fromString = records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r1", ActivityType: "command", Command: "show big", Status: "success", Output: text, OutputEncoding: enc, OutputBytes: int64(len(raw)), OutputSHA256: digest, Prompt: "r1#", PromptBefore: "r1#", PromptSource: "observed", PromptObserved: &observed, Device: records.DeviceProjection{CanonicalName: "r1"}, SelectedAddress: "192.0.2.1", Timing: records.Timing{EndedAt: time.Date(2026, 9, 27, 10, 0, 0, 0, time.UTC)}, Notices: []records.Notice{}}
 	fromSpool = fromString
 	fromSpool.Output = ""
 	path := filepath.Join(t.TempDir(), "a.r1.1.1.spool")
@@ -147,7 +147,7 @@ func TestDaemonRendererCountsAndWritesNothing(t *testing.T) {
 		if out.Len() != 0 || r.OutputBytes() != 0 {
 			t.Fatalf("%s: the daemon's renderer wrote %d bytes", format, out.Len())
 		}
-		if r.RequestedCounts()["succeeded"] != 1 || r.RequestedCounts()["timeout"] != 1 || r.ErrorCounts()["command_timeout"] != 1 {
+		if r.RequestedCounts()["success"] != 1 || r.RequestedCounts()["timeout"] != 1 || r.ErrorCounts()["command_timeout"] != 1 {
 			t.Fatalf("%s: counts %v %v", format, r.RequestedCounts(), r.ErrorCounts())
 		}
 	}

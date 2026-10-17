@@ -109,9 +109,9 @@ func TestCancelJobInFlightAccountsEveryUnitCancelled(t *testing.T) {
 	if n := h.sent(); n != 1 {
 		t.Errorf("the fake device received %d commands, want the one in flight", n)
 	}
-	h.assertAccounted(t, "cancelled", "cancelled", "cancelled", exitcode.ExitCancelled, "halt:cancelled", "cancelled")
+	h.assertAccounted(t, "cancel", "cancelled", "cancel", exitcode.ExitCancelled, "halt:cancelled", "cancelled")
 	s := readSummary(t, h.dir)
-	if c := s.DeviceCounts; c["cancelled"] != len(h.devices) || c["completed"] != 0 || c["failed"] != 0 || c["not_started"] != 0 {
+	if c := s.DeviceCounts; c["cancel"] != len(h.devices) || c["done"] != 0 || c["fail"] != 0 || c["not_started"] != 0 {
 		t.Errorf("device_counts %+v", c)
 	}
 	for _, r := range readRecords(t, h.dir) {
@@ -126,9 +126,12 @@ func TestCancelJobInFlightAccountsEveryUnitCancelled(t *testing.T) {
 	}
 	canarytest.SchemaParity(t, "../../schema/job-summary.schema.json", s)
 	// The scoreboard schema declares its top-level keys by name only, so
-	// the parity tool can check the counts block alone.
+	// the parity tool checks its blocks: the counts, the targets, and the
+	// metrics.
 	sb := readScoreboard(t, h.f.cfg.String("scoreboards"))
 	canarytest.SchemaParityAt(t, "../../schema/scoreboard.schema.json", "#/properties/counts", sb.Counts)
+	canarytest.SchemaParityAt(t, "../../schema/scoreboard.schema.json", "#/properties/targets", sb.Targets)
+	canarytest.SchemaParityAt(t, "../../schema/scoreboard.schema.json", "#/properties/metrics", sb.Metrics)
 	if sb.Counts.Cancelled != len(h.devices) {
 		t.Errorf("scoreboard counts %+v", sb.Counts)
 	}
@@ -139,7 +142,7 @@ func TestCancelJobInFlightAccountsEveryUnitCancelled(t *testing.T) {
 		t.Errorf("scoreboard schema=%d daemon=%v mode=%s targets=%d inputs=%v metrics=%v commands=%v", sb.SchemaVersion, sb.Daemon, sb.Mode, len(sb.Targets), sb.Inputs, sb.Metrics, sb.Commands)
 	}
 	for _, tg := range sb.Targets {
-		if tg.State != records.TargetCancelled {
+		if tg.State != records.TargetCancel {
 			t.Errorf("target %s state %s, want cancelled", tg.Name, tg.State)
 		}
 	}
@@ -193,7 +196,7 @@ func TestCancelJobOnAFinishedJobAnswersTerminal(t *testing.T) {
 		t.Errorf("result %+v", res)
 	}
 	s := readSummary(t, h.dir)
-	if s.FinalStatus != "completed" || s.DeviceCounts["cancelled"] != 0 || s.DeviceCounts["succeeded"] != len(h.devices) || s.Cancellation != nil {
+	if s.FinalStatus != "complete" || s.DeviceCounts["cancel"] != 0 || s.DeviceCounts["success"] != len(h.devices) || s.Cancellation != nil {
 		t.Errorf("summary %s %+v cancellation=%+v", s.FinalStatus, s.DeviceCounts, s.Cancellation)
 	}
 	if audit, _ := os.ReadFile(h.f.cfg.String("audit.file")); strings.Contains(string(audit), `"event_name":"run.cancel"`) {
@@ -232,7 +235,7 @@ func TestCancelThenForcedStopKeepsTheCancelledOutcome(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.waitStopped(t, 20*time.Second)
-	h.assertAccounted(t, "cancelled", "cancelled", "cancelled", exitcode.ExitCancelled, "halt:cancelled", "cancelled")
+	h.assertAccounted(t, "cancel", "cancelled", "cancel", exitcode.ExitCancelled, "halt:cancelled", "cancelled")
 }
 
 // TestCancelJobLeavesOtherJobsRunning: the cancel reaches
@@ -252,10 +255,10 @@ func TestCancelJobLeavesOtherJobsRunning(t *testing.T) {
 	}
 	h.waitSummary(t, 15*time.Second)
 	terminal := h.f.followToEnd(otherResult.Receipt.JobID)
-	if terminal.Outcome.ExitCode != exitcode.ExitSuccess || terminal.Outcome.Summary.FinalStatus != "completed" {
+	if terminal.Outcome.ExitCode != exitcode.ExitSuccess || terminal.Outcome.Summary.FinalStatus != "complete" {
 		t.Errorf("the other job: exit=%d status=%s", terminal.Outcome.ExitCode, terminal.Outcome.Summary.FinalStatus)
 	}
-	if s := readSummary(t, h.dir); s.FinalStatus != "cancelled" {
+	if s := readSummary(t, h.dir); s.FinalStatus != "cancel" {
 		t.Errorf("the cancelled job: %s", s.FinalStatus)
 	}
 }

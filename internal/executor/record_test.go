@@ -20,7 +20,7 @@ func TestRecordFromTargetCarriesTheAddressPlan(t *testing.T) {
 	var core, edge records.CommandRecord
 	for _, x := range final.Targets {
 		cred := &records.CredentialProjection{Policy: "default", DeviceUsername: "u", Backend: "env", MatchedOn: map[string]any{}, CredentialID: x.CredentialBindingID, Protection: "local-peer"}
-		r := e.record(Work{Target: x, QueuedAt: time.Now()}, dispatch.Context{Mode: "serial", ScopePosition: 1}, cred, nil, step{kind: kindRequested, profile: "none", count: len(plantest.Commands), command: plantest.Commands[0]}, "succeeded", []byte("ok"), nil, nil, "", "", nil, 0, 0, time.Time{}, time.Now())
+		r := e.record(Work{Target: x, QueuedAt: time.Now()}, dispatch.Context{Mode: "serial", ScopePosition: 1}, cred, nil, step{kind: kindRequested, profile: "none", count: len(plantest.Commands), command: plantest.Commands[0]}, "success", []byte("ok"), nil, nil, "", "", nil, 0, 0, time.Time{}, time.Now())
 		if err := r.Validate(); err == nil || r.Sequence != 0 {
 			// Validate requires a sequence the store assigns; the fields are what this test checks.
 		}

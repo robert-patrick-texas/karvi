@@ -113,7 +113,7 @@ func TestPlatformNoticesInTheDryRunReport(t *testing.T) {
 	if got := strings.Join(findings, " "); got != "name:sw-typo:platform_unknown_fallback/warning/platform/cisco_iosx/lab line 3/generic name:sw-empty:platform_not_set/warning/platform//lab line 4/cisco_iosxe" {
 		t.Fatalf("findings %q", got)
 	}
-	if report.Outcome != records.OutcomePlanned || report.Counts.Warnings != 2 {
+	if report.Outcome != records.OutcomePlan || report.Counts.Warnings != 2 {
 		t.Fatalf("outcome %s warnings %d", report.Outcome, report.Counts.Warnings)
 	}
 }
@@ -148,7 +148,7 @@ func TestPlatformNoticesInTheExerciseReport(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParity(t, planReportSchema, report)
-	if len(report.Targets) != 1 || report.Targets[0].Readiness != records.ReadinessReady || report.Outcome != records.OutcomeExercised {
+	if len(report.Targets) != 1 || report.Targets[0].Readiness != records.ReadinessReady || report.Outcome != records.OutcomeExercise {
 		t.Fatalf("report: outcome=%s targets=%+v", report.Outcome, report.Targets)
 	}
 	found := false
@@ -232,7 +232,7 @@ func TestExerciseTakesTheClientsPlatformTable(t *testing.T) {
 			t.Errorf("a platform finding: %+v", f)
 		}
 	}
-	if report.Targets[0].Readiness != records.ReadinessReady || report.Outcome != records.OutcomeExercised {
+	if report.Targets[0].Readiness != records.ReadinessReady || report.Outcome != records.OutcomeExercise {
 		t.Fatalf("exit=%d outcome=%s target=%+v", got, report.Outcome, report.Targets[0])
 	}
 }

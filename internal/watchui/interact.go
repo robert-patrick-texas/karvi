@@ -335,7 +335,7 @@ func (m *Model) targetColumns(targets []records.ScoreboardTarget, rows, width in
 		switch state {
 		case records.TargetRunning:
 			return 0
-		case records.TargetFailed:
+		case records.TargetFail:
 			return 1
 		}
 		return 2
@@ -380,11 +380,11 @@ func (m *Model) targetColumns(targets []records.ScoreboardTarget, rows, width in
 			cell := pad(targetCell(t), cellWidth, false)
 			role := "target"
 			switch t.State {
-			case records.TargetFailed:
+			case records.TargetFail:
 				role = "error"
 			case records.TargetRunning:
 				role = "accent"
-			case records.TargetSucceeded:
+			case records.TargetSuccess:
 				role = "success"
 			case records.TargetQueued:
 				role = "muted"

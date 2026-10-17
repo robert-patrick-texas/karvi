@@ -19,7 +19,7 @@ func pingRecord(decision string, outcomes []records.PingOutcome, notices []recor
 	}
 	return records.CommandRecord{
 		Device: records.DeviceProjection{CanonicalName: "core-nyc-01"}, InputTarget: "core-nyc-01", SelectedAddress: "2001:db8:10::1",
-		Platform: "generic", Transport: "system", Status: "succeeded", OutputEncoding: "utf-8", Output: "ok\n", CommandIndex: index, CommandCount: 2,
+		Platform: "generic", Transport: "system", Status: "success", OutputEncoding: "utf-8", Output: "ok\n", CommandIndex: index, CommandCount: 2,
 		Ping:    &records.PingReport{Address: "2001:db8:10::1", Family: "ipv6", Method: "socket", ExecutionEndpoint: "local", Probes: 2, TimeoutNS: 500000000, Outcomes: outcomes, Replies: replies, Losses: 2 - replies, Decision: decision},
 		Notices: notices, Timing: records.Timing{EndedAt: time.Now()},
 	}
@@ -65,9 +65,9 @@ func TestPingLineShapes(t *testing.T) {
 		rec  records.CommandRecord
 		want string
 	}{
-		{"two replies", pingRecord(records.PingDecisionProceed, []records.PingOutcome{replyOut, fastOut}, nil, 1), "! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) <0.1ms, proceeding"},
-		{"one reply", pingRecord(records.PingDecisionProceedDegraded, []records.PingOutcome{replyOut, timeoutOut}, []records.Notice{lossNotice}, 1), "! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) timeout, proceeding"},
-		{"skipped with an error", pingRecord(records.PingDecisionSkip, []records.PingOutcome{{Sequence: 1, Status: records.PingTimeout}, errorOut}, nil, 1), "! core-nyc-01 [2001:db8:10::1] ping(1) timeout, ping(2) error, skipped"},
+		{"two replies", pingRecord(records.PingDecisionProceed, []records.PingOutcome{replyOut, fastOut}, nil, 1), "! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) <0.1ms, proceed"},
+		{"one reply", pingRecord(records.PingDecisionProceedDegraded, []records.PingOutcome{replyOut, timeoutOut}, []records.Notice{lossNotice}, 1), "! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) timeout, proceed"},
+		{"skipped with an error", pingRecord(records.PingDecisionSkip, []records.PingOutcome{{Sequence: 1, Status: records.PingTimeout}, errorOut}, nil, 1), "! core-nyc-01 [2001:db8:10::1] ping(1) timeout, ping(2) error, skip"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := renderWith(t, nil, false, false, tc.rec)
@@ -89,7 +89,7 @@ func TestPingLineDebugAddsDetailsAndNotice(t *testing.T) {
 	got := renderWith(t, nil, false, true, pingRecord(records.PingDecisionProceedDegraded, []records.PingOutcome{replyOut, errorOut}, []records.Notice{lossNotice}, 1))
 	lines := strings.Split(got, "\n")
 	want := []string{
-		"! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) error, proceeding",
+		"! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) error, proceed",
 		"karvi: ping(2) error: Destination unreachable: No route, from 2001:668::7c1",
 		"karvi: ICMP packet loss 50%; proceeding because one validated reply was received",
 	}

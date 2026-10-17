@@ -74,9 +74,9 @@ func TestDeviceOutcomesAgreeWithTheCounts(t *testing.T) {
 		cancelled bool
 		want      string
 	}{
-		{"a cancel", "cancelled", nil, true, "a=succeeded b=failed c=cancelled d=cancelled"},
-		{"a shutdown", "shutdown_incomplete", ErrShutdownForced, true, "a=succeeded b=failed c=incomplete d=incomplete"},
-		{"a halt", "host_key_mismatch", nil, false, "a=succeeded b=failed c=failed d=not_started"},
+		{"a cancel", "cancelled", nil, true, "a=success b=fail c=cancel d=cancel"},
+		{"a shutdown", "shutdown_incomplete", ErrShutdownForced, true, "a=success b=fail c=incomplete d=incomplete"},
+		{"a halt", "host_key_mismatch", nil, false, "a=success b=fail c=fail d=not_started"},
 	} {
 		s := dispatch.Summary{Counts: dispatch.Counts{Total: 4, Terminal: 3, Succeeded: 1, Failed: 2, NotStarted: 1}, Results: results(c.cut)}
 		got := deviceOutcomes(devices, targets, s, c.shutdown, c.cancelled)
@@ -90,7 +90,7 @@ func TestDeviceOutcomesAgreeWithTheCounts(t *testing.T) {
 			t.Errorf("%s: %s, want %s", c.name, strings.Join(words, " "), c.want)
 		}
 		incomplete, cancelled := terminalCounts(&s, c.shutdown, c.cancelled)
-		if counted["succeeded"] != s.Counts.Succeeded || counted["failed"] != s.Counts.Failed || counted["not_started"] != s.Counts.NotStarted || counted["incomplete"] != incomplete || counted["cancelled"] != cancelled {
+		if counted["success"] != s.Counts.Succeeded || counted["fail"] != s.Counts.Failed || counted["not_started"] != s.Counts.NotStarted || counted["incomplete"] != incomplete || counted["cancel"] != cancelled {
 			t.Errorf("%s: outcomes %v against counts %+v, incomplete %d, cancelled %d", c.name, counted, s.Counts, incomplete, cancelled)
 		}
 		if devices[0].Outcome != "" {

@@ -159,7 +159,7 @@ func TestContinueStopsAfterASessionEndingFailure(t *testing.T) {
 func TestContinueSendsAfterADeviceErrorAndKeepsTheFirstFailure(t *testing.T) {
 	h := newSessionHarness(t, []string{"show bogus", "show version", "show slow", "show clock"}, false)
 	res, recs := h.run(context.Background())
-	want := []string{"device_error", "succeeded", "timeout", "not_attempted_prior_command_failure"}
+	want := []string{"device_error", "success", "timeout", "not_attempted_prior_command_failure"}
 	for i, r := range recs {
 		if i >= len(want) || r.Status != want[i] {
 			t.Fatalf("records: %s", describe(recs))
@@ -208,7 +208,7 @@ func TestCancelAfterAFailureKeepsTheFailure(t *testing.T) {
 	defer cancel()
 	cancelWhenSent(t, h.marker, cancel)
 	res, recs := h.run(ctx)
-	if len(recs) != 3 || recs[0].Status != "device_error" || recs[1].Status != "cancelled" || recs[2].Status != "cancelled" {
+	if len(recs) != 3 || recs[0].Status != "device_error" || recs[1].Status != "cancel" || recs[2].Status != "cancel" {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	if res.ErrorCode != "device_command_error" {
@@ -235,7 +235,7 @@ func describe(recs []records.CommandRecord) string {
 func TestUnansweredKeepalivesEndTheDevice(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version", "show mute", "show clock"}, false, `ssh.server-alive-interval="2s"`, `ssh.server-alive-count-max=4`)
 	res, recs := h.run(context.Background())
-	if len(recs) != 3 || recs[0].Status != "succeeded" || recs[1].Status != "connection_error" || recs[2].Status != "not_attempted_prior_command_failure" {
+	if len(recs) != 3 || recs[0].Status != "success" || recs[1].Status != "connection_error" || recs[2].Status != "not_attempted_prior_command_failure" {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	e := recs[1].Error
@@ -255,7 +255,7 @@ func TestBlindSendConfirmsAndGoesOn(t *testing.T) {
 	h := newSessionHarness(t, []string{"clear counters", "show clock"}, true, `execution.blind-wait="2s"`)
 	h.exec.opts.BlindReturns = []int{1, 0}
 	res, recs := h.run(context.Background())
-	if !res.Success || len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "succeeded" {
+	if !res.Success || len(recs) != 2 || recs[0].Status != "success" || recs[1].Status != "success" {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	if recs[0].Output != "Clear counters on all interfaces [confirm]\n" || len(recs[0].Notices) != 0 || recs[0].PromptObserved == nil || !*recs[0].PromptObserved {
@@ -280,7 +280,7 @@ func TestBlindSendWithoutAPromptEndsTheDevice(t *testing.T) {
 	if elapsed := time.Since(started); elapsed > 5*time.Second {
 		t.Fatalf("took %s; the blind wait must bound it", elapsed)
 	}
-	if res.Success || res.ErrorCode != "command_session_lost" || len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "not_attempted_prior_command_failure" {
+	if res.Success || res.ErrorCode != "command_session_lost" || len(recs) != 2 || recs[0].Status != "success" || recs[1].Status != "not_attempted_prior_command_failure" {
 		t.Fatalf("result %+v records: %s", res, describe(recs))
 	}
 	if recs[0].Error != nil || recs[0].PromptObserved == nil || *recs[0].PromptObserved || recs[0].Prompt != "" || !strings.Contains(recs[0].Output, "Proceed with reload? [confirm]") {
@@ -304,7 +304,7 @@ func TestBlindSendWithoutAPromptEndsTheDevice(t *testing.T) {
 	h = newSessionHarness(t, []string{"show clock", "reload"}, false, `execution.blind-wait="500ms"`)
 	h.exec.opts.BlindReturns = []int{0, 1}
 	res, recs = h.run(context.Background())
-	if !res.Success || len(recs) != 2 || recs[1].Status != "succeeded" || len(recs[1].Notices) != 1 {
+	if !res.Success || len(recs) != 2 || recs[1].Status != "success" || len(recs[1].Notices) != 1 {
 		t.Fatalf("last-command result %+v records: %s", res, describe(recs))
 	}
 }
@@ -317,7 +317,7 @@ func TestExpectationAnswersTheCopyPrompt(t *testing.T) {
 	h := newSessionHarness(t, []string{"copy running-config startup-config", "show clock"}, true)
 	h.exec.opts.Expectations = [][]executionplan.Expectation{{{Pattern: `filename \[startup-config\]\?`, Response: "backup"}}, nil}
 	res, recs := h.run(context.Background())
-	if !res.Success || len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "succeeded" {
+	if !res.Success || len(recs) != 2 || recs[0].Status != "success" || recs[1].Status != "success" {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	if recs[0].Output != "Destination filename [startup-config]? backup\nBuilding configuration...\n[OK]\n" || len(recs[0].Notices) != 0 || recs[0].PromptObserved == nil || !*recs[0].PromptObserved {
@@ -356,7 +356,7 @@ func TestBlindFlagWithExpectations(t *testing.T) {
 	if elapsed := time.Since(started); elapsed > 5*time.Second {
 		t.Fatalf("took %s; the blind wait must bound it", elapsed)
 	}
-	if res.Success || res.ErrorCode != "command_session_lost" || len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "not_attempted_prior_command_failure" {
+	if res.Success || res.ErrorCode != "command_session_lost" || len(recs) != 2 || recs[0].Status != "success" || recs[1].Status != "not_attempted_prior_command_failure" {
 		t.Fatalf("result %+v records: %s", res, describe(recs))
 	}
 	if recs[0].Error != nil || recs[0].PromptObserved == nil || *recs[0].PromptObserved || !strings.Contains(recs[0].Output, "Proceed with reload? [confirm]") {
@@ -403,7 +403,7 @@ func TestInvalidExpectationPatternContactsNothing(t *testing.T) {
 func TestSpooledRecordIsWrittenFromItsFileAndTheSpoolRemoved(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version", "show slow"}, false, "output.spool-threshold-bytes=0")
 	res, recs := h.run(context.Background())
-	if len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "timeout" {
+	if len(recs) != 2 || recs[0].Status != "success" || recs[1].Status != "timeout" {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	if res.Success || res.ErrorCode != "command_timeout" {

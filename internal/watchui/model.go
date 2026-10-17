@@ -199,11 +199,11 @@ func (m *Model) row(r scoreboard.Row, w widths) []piece {
 // invalid error.
 func statusRole(status string) string {
 	switch status {
-	case "completed", "exercised":
+	case "complete", "exercise":
 		return "success"
-	case "halted", "incomplete", "cancelled", "unfinished":
+	case "halt", "incomplete", "cancel", "unfinished":
 		return "warning"
-	case "errored", "invalid":
+	case "error", "invalid":
 		return "error"
 	}
 	return "accent"

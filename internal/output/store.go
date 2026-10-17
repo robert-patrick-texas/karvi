@@ -512,7 +512,7 @@ func (s *Store) appendLine(r *records.CommandRecord, src Source) (notice Notice,
 		return Notice{}, textAbsent, err
 	}
 	notice = Notice{Sequence: r.Sequence, LineLength: length, LineOffset: -1, RecordID: r.RecordID}
-	failed := r.Status != "succeeded"
+	failed := r.Status != "success"
 	if s.commands != nil {
 		notice.LineOffset = s.bytes
 		if err := s.appendCommandsLine(line, length); err != nil {
@@ -696,7 +696,7 @@ func atomicBytes(path string, data []byte, mode os.FileMode) error {
 // another code and is a session error, and an exec command ended by a
 // signal or closed without a status is a failure.
 func collectionOK(r *records.CommandRecord) bool {
-	if r.Status == "succeeded" {
+	if r.Status == "success" {
 		return true
 	}
 	return r.Status == "device_error" && r.Error != nil && (r.Error.Code == "device_command_error" || r.Error.Code == "command_exit_nonzero")
@@ -829,7 +829,7 @@ func (s *Store) EndDevice(name string) {
 func (s *Store) endCollection(name string, cf *collectionFile, ok bool) {
 	delete(s.collections, name)
 	file := s.collection.file(name, s.crop)
-	outcome := records.CollectionKept
+	outcome := records.CollectionKeep
 	if cf.f != nil {
 		err := cf.w.Flush()
 		if err == nil && ok && s.fsync {
@@ -842,7 +842,7 @@ func (s *Store) endCollection(name string, cf *collectionFile, ok bool) {
 			err = os.Rename(cf.tmp, filepath.Join(s.collection.Directory, file))
 		}
 		if err == nil && ok {
-			outcome = records.CollectionReplaced
+			outcome = records.CollectionReplace
 		} else {
 			os.Remove(cf.tmp)
 			if ok && s.warn != nil {
@@ -864,7 +864,7 @@ func (s *Store) CollectionSummary() *records.CollectionSummary {
 	out := &records.CollectionSummary{Directory: s.collection.Directory, Devices: map[string]records.CollectionDevice{}}
 	for name, d := range s.outcomes {
 		out.Devices[name] = d
-		if d.Outcome == records.CollectionReplaced {
+		if d.Outcome == records.CollectionReplace {
 			out.Replaced++
 		} else {
 			out.Kept++

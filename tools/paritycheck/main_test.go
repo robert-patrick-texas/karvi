@@ -17,18 +17,18 @@ func stream(t *testing.T, text string) []map[string]any {
 
 const systemCommand = `{"kind":"activity_started"}
 not json
-{"record_id":"a1","activity_id":"a","activity_type":"command","candidate_count":1,"transport":"system","command_index":0,"command":"show clock","status":"succeeded","prompt":"Router#","connection_reused":false,"notices":[],"credential":{"credential_id":"c1","backend":"env"},"timing":{"total_ns":5},"error":null}
+{"record_id":"a1","activity_id":"a","activity_type":"command","candidate_count":1,"transport":"system","command_index":0,"command":"show clock","status":"success","prompt":"Router#","connection_reused":false,"notices":[],"credential":{"credential_id":"c1","backend":"env"},"timing":{"total_ns":5},"error":null}
 {"record_id":"a2","activity_id":"a","activity_type":"command","candidate_count":1,"transport":"system","command_index":1,"command":"show bogus","status":"device_error","prompt":"Router#","connection_reused":true,"notices":[],"credential":{"credential_id":"c1","backend":"env"},"timing":{"total_ns":6},"error":{"code":"device_command_error","message":"rejected","retryable":false}}
 `
 
-const nativeRun = `{"record_id":"b1","job_id":"j","activity_id":"j","activity_type":"run","transport":"native","command_index":0,"command":"show clock","status":"succeeded","prompt":"Router#","connection_reused":false,"notices":[],"credential":{"credential_id":"c2","backend":"env"},"timing":{"total_ns":9},"error":null}
+const nativeRun = `{"record_id":"b1","job_id":"j","activity_id":"j","activity_type":"run","transport":"native","command_index":0,"command":"show clock","status":"success","prompt":"Router#","connection_reused":false,"notices":[],"credential":{"credential_id":"c2","backend":"env"},"timing":{"total_ns":9},"error":null}
 {"record_id":"b2","job_id":"j","activity_id":"j","activity_type":"run","transport":"native","command_index":1,"command":"show bogus","status":"device_error","prompt":"Router#","connection_reused":true,"notices":[],"credential":{"credential_id":"c2","backend":"env"},"timing":{"total_ns":7},"error":{"code":"device_command_error","message":"rejected","retryable":false}}
 `
 
 func TestCompareAcceptsTheDocumentedDifferences(t *testing.T) {
 	findings := compare([]string{"command.system", "run.native"},
 		[][]map[string]any{stream(t, systemCommand), stream(t, nativeRun)},
-		[]string{"succeeded", "device_error:device_command_error"})
+		[]string{"success", "device_error:device_command_error"})
 	if len(findings) != 0 {
 		t.Fatalf("findings=%v", findings)
 	}
@@ -54,9 +54,9 @@ func TestCompareReportsEachDifference(t *testing.T) {
 func TestCompareReportsCountsAndExpectations(t *testing.T) {
 	one := stream(t, strings.SplitAfter(nativeRun, "\n")[0])
 	findings := compare([]string{"command.system", "run.native"},
-		[][]map[string]any{stream(t, systemCommand), one}, []string{"succeeded", "succeeded"})
+		[][]map[string]any{stream(t, systemCommand), one}, []string{"success", "success"})
 	want := []string{
-		"command.system: records are succeeded,device_error:device_command_error, expected succeeded,succeeded",
+		"command.system: records are success,device_error:device_command_error, expected success,success",
 		"run.native: 1 records, command.system has 2",
 	}
 	if !reflect.DeepEqual(findings, want) {

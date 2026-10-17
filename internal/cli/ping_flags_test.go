@@ -136,7 +136,7 @@ func TestLoginGateSkipsAnUnreachableTarget(t *testing.T) {
 	if got != exitcode.ExitConnectionFailure || !strings.Contains(stderr.String(), "\nicmp_unreachable: ") {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
-	if !strings.HasPrefix(stderr.String(), "! router1 [192.0.2.1] ping(1) timeout, ping(2) timeout, skipped\n") {
+	if !strings.HasPrefix(stderr.String(), "! router1 [192.0.2.1] ping(1) timeout, ping(2) timeout, skip\n") {
 		t.Errorf("the ping line does not precede the failure: %q", stderr.String())
 	}
 	if !strings.Contains(stderr.String(), "192.0.2.1") || !strings.Contains(stderr.String(), "1: timeout; 2: timeout") || !strings.Contains(stderr.String(), "skipped because ping gating is enabled") {
@@ -207,7 +207,7 @@ func TestLoginPrintsThePingLine(t *testing.T) {
 		Main(args, strings.NewReader(""), &stdout, &stderr) // the fake transport then fails the open
 		return stderr.String()
 	}
-	if got := run(); !strings.Contains(got, "! router1 [127.0.0.1] ping(1) 2.1ms, ping(2) timeout, proceeding\n") || strings.Contains(got, "packet loss") {
+	if got := run(); !strings.Contains(got, "! router1 [127.0.0.1] ping(1) 2.1ms, ping(2) timeout, proceed\n") || strings.Contains(got, "packet loss") {
 		t.Errorf("stderr without --debug:\n%s", got)
 	}
 	if got := run("--debug"); !strings.Contains(got, "karvi: ICMP packet loss 50%; proceeding because one validated reply was received\n") {
@@ -241,7 +241,7 @@ func TestDryRunReportsTheICMPCapabilityWithoutProbing(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 		t.Fatal(err)
 	}
-	if *detects != 1 || p.calls != 0 || report.Outcome != records.OutcomePlanned || report.Counts.Warnings != 0 {
+	if *detects != 1 || p.calls != 0 || report.Outcome != records.OutcomePlan || report.Counts.Warnings != 0 {
 		t.Errorf("detect=%d probes=%d outcome=%s warnings=%d", *detects, p.calls, report.Outcome, report.Counts.Warnings)
 	}
 	for _, tr := range report.Targets {
@@ -264,7 +264,7 @@ func TestDryRunReportsTheICMPCapabilityWithoutProbing(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Outcome != records.OutcomePlanned || report.Counts.Warnings != len(report.Targets) || report.Counts.Errors != 0 {
+	if report.Outcome != records.OutcomePlan || report.Counts.Warnings != len(report.Targets) || report.Counts.Errors != 0 {
 		t.Errorf("unavailable: outcome=%s counts=%+v", report.Outcome, report.Counts)
 	}
 	for _, tr := range report.Targets {

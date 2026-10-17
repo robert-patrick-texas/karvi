@@ -69,7 +69,7 @@ func TestExerciseValidatesWithoutDeviceContact(t *testing.T) {
 	jobID := mustID(t)
 	sub, result, terminal, report := f.exercise(jobID, []string{"show clock", "show version"}, []inventory.Device{direct("127.0.0.1"), direct("core-a.example")}, seed)
 	dir := result.Receipt.ArtifactDir
-	if report.Kind != records.ReportExercise || report.Outcome != records.OutcomeExercised || !report.JobSubmitted || !report.TargetDataSubmitted || report.DeviceContacted || report.JobID != jobID {
+	if report.Kind != records.ReportExercise || report.Outcome != records.OutcomeExercise || !report.JobSubmitted || !report.TargetDataSubmitted || report.DeviceContacted || report.JobID != jobID {
 		t.Fatalf("report: kind=%s outcome=%s job=%s", report.Kind, report.Outcome, report.JobID)
 	}
 	for _, tr := range report.Targets {
@@ -97,7 +97,7 @@ func TestExerciseValidatesWithoutDeviceContact(t *testing.T) {
 	if !jobLevel["dispatch_assessment"] || !jobLevel["capacity_assessment"] {
 		t.Fatalf("job-level findings: %+v", report.Findings)
 	}
-	if terminal.Outcome.ExitCode != 0 || terminal.Outcome.Summary.FinalStatus != "exercised" || terminal.Outcome.Summary.Mode != "exercise" || terminal.Outcome.Summary.Paths["exercise"] != result.Receipt.ReportPath {
+	if terminal.Outcome.ExitCode != 0 || terminal.Outcome.Summary.FinalStatus != "exercise" || terminal.Outcome.Summary.Mode != "exercise" || terminal.Outcome.Summary.Paths["exercise"] != result.Receipt.ReportPath {
 		t.Fatalf("terminal outcome: %+v", terminal.Outcome)
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, "commands.jsonl")); len(b) != 0 {
@@ -108,7 +108,7 @@ func TestExerciseValidatesWithoutDeviceContact(t *testing.T) {
 	}
 	audit, err := os.ReadFile(f.cfg.String("audit.file"))
 	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", audit)
-	if err != nil || !strings.Contains(string(audit), `"event_name":"run.end"`) || !strings.Contains(string(audit), `"outcome":"exercised"`) || !strings.Contains(string(audit), `"device_contacted":false`) || strings.Contains(string(audit), `"event_name":"run.command"`) {
+	if err != nil || !strings.Contains(string(audit), `"event_name":"run.end"`) || !strings.Contains(string(audit), `"outcome":"exercise"`) || !strings.Contains(string(audit), `"device_contacted":false`) || strings.Contains(string(audit), `"event_name":"run.command"`) {
 		t.Fatalf("audit: err=%v\n%s", err, audit)
 	}
 	if _, err := os.Stat(filepath.Join(fakeDir, "log")); err == nil {
@@ -120,7 +120,7 @@ func TestExerciseValidatesWithoutDeviceContact(t *testing.T) {
 		b, _ := os.ReadFile(e)
 		_ = json.Unmarshal(b, &sb)
 	}
-	if sb.Status != "exercised" {
+	if sb.Status != "exercise" {
 		t.Fatalf("scoreboard status %q", sb.Status)
 	}
 	// Replay of the same commit returns the identical receipt, report path
@@ -170,7 +170,7 @@ func TestExerciseSecureWithoutEnrollmentIsNotReady(t *testing.T) {
 		t.Fatalf("findings: %+v", report.Targets[0].Findings)
 	}
 	o := terminal.Outcome
-	if o.ExitCode != exitcode.ExitHostKeyFailure || o.Summary.FinalStatus != "exercised" || len(o.Summary.TerminalCauses) != 1 || o.Summary.TerminalCauses[0] != "exercise_not_ready" || !strings.HasPrefix(o.Error, "exercise_not_ready: 1 of 1 targets not ready") {
+	if o.ExitCode != exitcode.ExitHostKeyFailure || o.Summary.FinalStatus != "exercise" || len(o.Summary.TerminalCauses) != 1 || o.Summary.TerminalCauses[0] != "exercise_not_ready" || !strings.HasPrefix(o.Error, "exercise_not_ready: 1 of 1 targets not ready") {
 		t.Fatalf("outcome: exit=%d status=%s causes=%v error=%q", o.ExitCode, o.Summary.FinalStatus, o.Summary.TerminalCauses, o.Error)
 	}
 	if _, err := os.Stat(result.Receipt.ReportPath); err != nil {
@@ -229,7 +229,7 @@ func TestCancelOfAnExerciseChangesNothing(t *testing.T) {
 	if err := report.Validate(); err != nil {
 		t.Fatalf("exercise.json: %v", err)
 	}
-	if report.Outcome != records.OutcomeExercised || len(report.Targets) != len(devices) {
+	if report.Outcome != records.OutcomeExercise || len(report.Targets) != len(devices) {
 		t.Fatalf("report: outcome=%s targets=%d", report.Outcome, len(report.Targets))
 	}
 	for _, tr := range report.Targets {
@@ -245,7 +245,7 @@ func TestCancelOfAnExerciseChangesNothing(t *testing.T) {
 	if err := json.Unmarshal(raw, &summary); err != nil {
 		t.Fatal(err)
 	}
-	if summary.FinalStatus != "exercised" || summary.ExitCode != exitcode.ExitSuccess || summary.DeviceCounts["cancelled"] != 0 {
+	if summary.FinalStatus != "exercise" || summary.ExitCode != exitcode.ExitSuccess || summary.DeviceCounts["cancel"] != 0 {
 		t.Errorf("summary: final_status=%s exit=%d counts=%v", summary.FinalStatus, summary.ExitCode, summary.DeviceCounts)
 	}
 	audit, _ := os.ReadFile(f.cfg.String("audit.file"))

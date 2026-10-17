@@ -152,7 +152,7 @@ BIG_BYTES=65700000
 # the memory form's, the spool opened and removed.
 karvi s1 --set output.spool-threshold-bytes=0 --debug cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S1: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s1" | head -1)"
-record s1; check_record S1 succeeded
+record s1; check_record S1 success
 json_is "$TMP/rec.json" output_bytes 34 || fail "S1: output_bytes $(json_get "$TMP/rec.json" output_bytes)"
 grep -q 'device command spooled target="fake-iosxe" index=1 .*bytes=34' "$TMP/err.s1" || fail "S1: the debug stream lacks the spool's opening"
 grep -q 'device command spool removed target="fake-iosxe" index=1' "$TMP/err.s1" || fail "S1: the debug stream lacks the spool's removal"
@@ -169,7 +169,7 @@ prev_digest=""; prev_text=""
 for th in 1048576 1073741824 5000; do
   karvi s2 --set output.spool-threshold-bytes=$th cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big'
   [ "$CODE" -eq 0 ] || fail "S2 ($th): exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s2" | head -1)"
-  record s2; check_record "S2 ($th)" succeeded
+  record s2; check_record "S2 ($th)" success
   json_is "$TMP/rec.json" output_bytes $BIG_BYTES || fail "S2 ($th): output_bytes $(json_get "$TMP/rec.json" output_bytes)"
   digest=$(json_get "$TMP/rec.json" output_sha256)
   [ -z "$prev_digest" ] || [ "$digest" = "$prev_digest" ] || fail "S2 ($th): digest $digest differs from $prev_digest"
@@ -220,7 +220,7 @@ CLIENT=$!
 sleep 0.7; kill -INT "$CLIENT"
 CODE=0; wait "$CLIENT" || CODE=$?
 [ "$CODE" -ne 0 ] || fail "S4 cancel: the client exited 0"
-record s4c; check_record "S4 cancel" cancelled
+record s4c; check_record "S4 cancel" cancel
 spool_empty "S4 cancel"
 # The lost session: the fake killed 0.7 s in, then the same device again.
 HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big' >"$TMP/out.s4x" 2>"$TMP/err.s4x" &
@@ -264,7 +264,7 @@ karvi s6a run --target fake-iosxe --format jsonl 'show running-config'
 job=$(ls -d "$TMP"/base/jobs/*/* | tail -1)
 # The records byte for byte, then the summary line.
 head -n "$(wc -l <"$job/commands.jsonl")" "$TMP/out.s6a" | cmp -s - "$job/commands.jsonl" || fail "S6 file: the follower's jsonl differs from commands.jsonl"
-record s6a; check_record "S6 file" succeeded
+record s6a; check_record "S6 file" success
 karvi s6b run --target fake-iosxe --format jsonl 'show big'
 [ "$CODE" -eq 0 ] || fail "S6 bound: exit $CODE"
 record s6b
@@ -315,10 +315,10 @@ CODE=0; wait "$CLIENT" || CODE=$?
 [ "$CODE" -eq 0 ] || fail "S8: exit $CODE"
 [ "$seen" -gt 0 ] && [ "$inflight" -gt 0 ] || fail "S8: no beat carried the running count (bytes $seen, in flight $inflight)"
 snap=$(ls "$SCORE"/*.json | head -1)
-json_is "$snap" schema_version 3 || fail "S8: schema $(json_get "$snap" schema_version)"
+json_is "$snap" schema_version 4 || fail "S8: schema $(json_get "$snap" schema_version)"
 json_is "$snap" targets.0.bytes 0 || fail "S8: the ended target still counts $(json_get "$snap" targets.0.bytes)"
 json_is "$snap" metrics.in_flight_bytes 0 || fail "S8: in_flight_bytes $(json_get "$snap" metrics.in_flight_bytes) at the end"
-json_is "$snap" status completed || fail "S8: status $(json_get "$snap" status)"
+json_is "$snap" status complete || fail "S8: status $(json_get "$snap" status)"
 echo "spool smoke: S8 the scoreboard carried $seen bytes in flight during the response and 0 at the end"
 
 # S9: the free-space check's three words as this host allows (the one

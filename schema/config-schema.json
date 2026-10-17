@@ -1592,7 +1592,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__CRUN__AFTER",
       "cli_flags": null,
-      "documentation": "An executable the client runs once a `crun` has ended and its display is printed (never after a `run` or `command` given `--cd`), empty for none: in the collection directory, with the replaced files' names on standard input one per line and the job in `KARVI_JOB_ID`, `KARVI_JOB_DIR` (empty under `--nof`), `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT`, and `KARVI_EXIT`; its output goes to karvi's standard error after the display. It runs on the in-process and the daemon path alike, not under `--detach`; a hook that cannot start, exits non-zero, or runs past `crun.after-timeout` is the warning `crun_after_failed`, and the run's exit code stands (docs/COLLECTION.md).",
+      "documentation": "An executable the client runs once a `crun` has ended and its display is printed (never after a `run` or `command` given `--cd`), empty for none: in the collection directory, with the replaced files' names on standard input one per line and the job in `KARVI_JOB_ID`, `KARVI_JOB_DIR` (empty under `--nof`), `KARVI_CRUN_DIRECTORY`, `KARVI_CRUN_REPLACE`, `KARVI_CRUN_KEEP`, and `KARVI_EXIT`; its output goes to karvi's standard error after the display. It runs on the in-process and the daemon path alike, not under `--detach`; a hook that cannot start, exits non-zero, or runs past `crun.after-timeout` is the warning `crun_after_failed`, and the run's exit code stands (docs/COLLECTION.md).",
       "since": "0.19.0"
     },
     {
@@ -1791,7 +1791,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__PING__HEADER",
       "cli_flags": null,
-      "documentation": "One-line template for the ICMP gate's result of each gated device in text output, before the device's header, styled as the headers are; empty disables it. `\u003crtt1\u003e` and `\u003crtt2\u003e` are the two probes' round-trip times, `timeout`, or `error`; `\u003cresult\u003e` is `proceeding` or `skipped`. Suppressed by `--quiet`; ICMP error details and the packet-loss notice line appear only under `--debug`.",
+      "documentation": "One-line template for the ICMP gate's result of each gated device in text output, before the device's header, styled as the headers are; empty disables it. `\u003crtt1\u003e` and `\u003crtt2\u003e` are the two probes' round-trip times, `timeout`, or `error`; `\u003cresult\u003e` is `proceed` or `skip`. Suppressed by `--quiet`; ICMP error details and the packet-loss notice line appear only under `--debug`.",
       "since": "0.23.0"
     },
     {
@@ -2267,14 +2267,14 @@
     {
       "path": "display.collection.footer",
       "kind": "string",
-      "default_literal": "\"! collection=\u003ccollection\u003e replaced=\u003creplaced\u003e kept=\u003ckept\u003e\"",
+      "default_literal": "\"! collection=\u003ccollection\u003e replace=\u003creplace\u003e keep=\u003ckeep\u003e\"",
       "required": false,
       "lock_eligible": true,
       "sensitive": false,
       "reload_class": "next-job",
       "environment": "KARVI__DISPLAY__COLLECTION__FOOTER",
       "cli_flags": null,
-      "documentation": "One-line template after the footer of a job with a collection (`crun`, or `run` or `command` with `--cd`), on standard output under `--format text` on every path: `\u003ccollection\u003e` the absolute collection directory, `\u003creplaced\u003e` and `\u003ckept\u003e` the devices whose files were replaced and kept. Under json and jsonl nothing is printed (the summary carries the collection block). Empty disables it.",
+      "documentation": "One-line template after the footer of a job with a collection (`crun`, or `run` or `command` with `--cd`), on standard output under `--format text` on every path: `\u003ccollection\u003e` the absolute collection directory, `\u003creplace\u003e` and `\u003ckeep\u003e` the devices whose files were replaced and kept. Under json and jsonl nothing is printed (the summary carries the collection block). Empty disables it.",
       "since": "0.26.0"
     },
     {

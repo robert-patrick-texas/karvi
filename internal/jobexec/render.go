@@ -242,7 +242,7 @@ func WriteAdmissionWarnings(w io.Writer, cfg configload.Snapshot, warnings []str
 // stoppedStatuses are the statuses a device's requested records repeat when
 // dispatch, a cancel, or a shutdown stopped it: a session-init record with
 // one is hidden.
-var stoppedStatuses = map[string]bool{"not_started_halt": true, "not_started_wave_gate": true, "cancelled": true, "incomplete_shutdown": true}
+var stoppedStatuses = map[string]bool{"not_started_halt": true, "not_started_wave_gate": true, "cancel": true, "incomplete_shutdown": true}
 
 // OnRecord renders a record whose output is in the record: a line read
 // back from commands.jsonl (a replay, a followed job).
@@ -346,7 +346,7 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	// border, echo, or output. A requested one leaves one line, shown under
 	// --quiet as a failure line is, so a device's not-attempted commands
 	// stack under its failure.
-	if (rec.Error == nil && (sessionInit || rec.Status != "succeeded")) || (sessionInit && stoppedStatuses[rec.Status]) {
+	if (rec.Error == nil && (sessionInit || rec.Status != "success")) || (sessionInit && stoppedStatuses[rec.Status]) {
 		if !sessionInit {
 			line := fmt.Sprintf("karvi: target=%s status=%s command=%d/%d", target, rec.Status, rec.CommandIndex, rec.CommandCount)
 			data = appendLine(data, display.ANSIStyle(line, r.lineStyle.Error, r.colorEnabled, true))
@@ -944,9 +944,9 @@ func (rr *RunRenderer) Finish(summary *records.Summary) error {
 // and the
 // address as the headers carry them, <rtt1> and <rtt2> each probe's
 // round-trip time, "timeout", or "error" when an ICMP error answer
-// arrived, and <result> "proceeding" on one or two replies and "skipped"
+// arrived, and <result> "proceed" on one or two replies and "skip"
 // otherwise. The default template renders "! core-nyc-01 [2001:db8:10::1]
-// ping(1) 2.1ms, ping(2) timeout, proceeding". login renders the same
+// ping(1) 2.1ms, ping(2) timeout, proceed". login renders the same
 // template to stderr.
 func PingValues(target, address string, p *records.PingReport) display.Values {
 	if target == "" {
@@ -955,9 +955,9 @@ func PingValues(target, address string, p *records.PingReport) display.Values {
 	if address == "" {
 		address = p.Address
 	}
-	v := display.Values{Target: target, Address: address, Result: "skipped"}
+	v := display.Values{Target: target, Address: address, Result: "skip"}
 	if p.Replies > 0 {
-		v.Result = "proceeding"
+		v.Result = "proceed"
 	}
 	for _, o := range p.Outcomes {
 		switch o.Sequence {

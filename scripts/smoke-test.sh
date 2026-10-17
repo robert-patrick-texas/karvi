@@ -81,7 +81,7 @@ NETUSER=smoke NETPASS=$SECRET "$KARVI" $(common_args) \
   >"$TMP/run.jsonl" 2>"$TMP/run.err"
 [ "$(wc -l < "$TMP/run.jsonl" | tr -d ' ')" -eq 3 ] # two records and the summary line
 
-[ "$(jsonl_records "$TMP/run.jsonl" status | paste -sd, -)" = succeeded,succeeded ]
+[ "$(jsonl_records "$TMP/run.jsonl" status | paste -sd, -)" = success,success ]
 find "$BASE/jobs" -name summary.json -type f | grep -q .
 
 # The idle timer (daemon.shutdown-idle-timer):

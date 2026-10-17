@@ -127,7 +127,7 @@ func (h *heldJob) assertAccounted(t *testing.T, status, code, finalStatus string
 			t.Errorf("summary device %d is %s", i, d.Name)
 		}
 	}
-	for _, category := range []string{"succeeded", "failed", "not_started", "incomplete", "cancelled"} {
+	for _, category := range []string{"success", "fail", "not_started", "incomplete", "cancel"} {
 		if outcomes[category] != c[category] {
 			t.Errorf("summary devices %+v against device_counts %v", s.Devices, c)
 			break
@@ -140,7 +140,7 @@ func (h *heldJob) assertAccounted(t *testing.T, status, code, finalStatus string
 		t.Errorf("summary causes=%v halt=%v, want %s", s.TerminalCauses, s.Halt, cause)
 	}
 	sb := readScoreboard(t, h.f.cfg.String("scoreboards"))
-	if sb.Status != finalStatus || sb.Counts.Total != len(h.devices) || sb.Counts.Completed+sb.Counts.NotStarted+sb.Counts.Incomplete+sb.Counts.Cancelled != sb.Counts.Total || sb.Counts.Incomplete != c["incomplete"] || sb.Counts.Cancelled != c["cancelled"] {
+	if sb.Status != finalStatus || sb.Counts.Total != len(h.devices) || sb.Counts.Completed+sb.Counts.NotStarted+sb.Counts.Incomplete+sb.Counts.Cancelled != sb.Counts.Total || sb.Counts.Incomplete != c["incomplete"] || sb.Counts.Cancelled != c["cancel"] {
 		t.Errorf("scoreboard status=%s counts=%+v", sb.Status, sb.Counts)
 	}
 	// The targets' states agree with the counts: a device the shutdown
@@ -150,7 +150,7 @@ func (h *heldJob) assertAccounted(t *testing.T, status, code, finalStatus string
 	for _, tg := range sb.Targets {
 		states[tg.State]++
 	}
-	if len(sb.Targets) != len(h.devices) || states[records.TargetIncomplete] != sb.Counts.Incomplete || states[records.TargetCancelled] != sb.Counts.Cancelled || states[records.TargetRunning] != 0 || states[records.TargetQueued] != sb.Counts.NotStarted {
+	if len(sb.Targets) != len(h.devices) || states[records.TargetIncomplete] != sb.Counts.Incomplete || states[records.TargetCancel] != sb.Counts.Cancelled || states[records.TargetRunning] != 0 || states[records.TargetQueued] != sb.Counts.NotStarted {
 		t.Errorf("scoreboard target states %v against counts %+v", states, sb.Counts)
 	}
 	audit, _ := os.ReadFile(h.f.cfg.String("audit.file"))
@@ -246,7 +246,7 @@ func TestSignalDrainsAndStopsWhenTheJobsFinish(t *testing.T) {
 	if n := h.sent(); n != len(h.devices)*len(h.commands) {
 		t.Errorf("the fake device received %d commands, want all %d", n, len(h.devices)*len(h.commands))
 	}
-	h.assertAccounted(t, "succeeded", "", "completed", exitcode.ExitSuccess, "", "")
+	h.assertAccounted(t, "success", "", "complete", exitcode.ExitSuccess, "", "")
 }
 
 // TestDrainExitsAfterTheLastJob: a drain during a job (EXAMPLES chapter 57,
@@ -283,7 +283,7 @@ func TestDrainExitsAfterTheLastJob(t *testing.T) {
 	if n := h.sent(); n != len(h.devices)*len(h.commands) {
 		t.Errorf("the fake device received %d commands, want all %d", n, len(h.devices)*len(h.commands))
 	}
-	h.assertAccounted(t, "succeeded", "", "completed", exitcode.ExitSuccess, "", "")
+	h.assertAccounted(t, "success", "", "complete", exitcode.ExitSuccess, "", "")
 }
 
 // TestSignalGraceExpiryAccountsIncomplete: the grace expires under a

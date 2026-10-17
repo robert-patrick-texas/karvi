@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	CommandSchemaVersion    = 3 // 3: channel, and an exec command's exit and stderr
-	ScoreboardSchemaVersion = 3 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes
+	CommandSchemaVersion    = 4 // 3: channel, and an exec command's exit and stderr; 4: the status words in the present tense
+	ScoreboardSchemaVersion = 4 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes; 4: the status, state, and count words in the present tense
 	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed, statements in place of digests
-	JobSchemaVersion        = 4 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices
+	JobSchemaVersion        = 5 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices; 5: the status, outcome, and count words in the present tense
 	MetricsSchemaVersion    = 1
 )
 
@@ -294,7 +294,7 @@ type CommandRecord struct {
 	RetryEligible  bool             `json:"retry_eligible"`
 }
 
-var terminalStatuses = map[string]bool{"succeeded": true, "device_error": true, "connection_error": true, "authentication_error": true, "privilege_error": true, "timeout": true, "output_limit_exceeded": true, "output_error": true, "not_attempted_prior_command_failure": true, "not_attempted_session_init_failure": true, "not_started_halt": true, "not_started_wave_gate": true, "cancelled": true, "incomplete_shutdown": true, "incomplete_daemon_recovery": true, StatusICMPUnreachable: true, StatusICMPCapabilityUnavailable: true}
+var terminalStatuses = map[string]bool{"success": true, "device_error": true, "connection_error": true, "authentication_error": true, "privilege_error": true, "timeout": true, "output_limit_exceeded": true, "output_error": true, "not_attempted_prior_command_failure": true, "not_attempted_session_init_failure": true, "not_started_halt": true, "not_started_wave_gate": true, "cancel": true, "incomplete_shutdown": true, "incomplete_daemon_recovery": true, StatusICMPUnreachable: true, StatusICMPCapabilityUnavailable: true}
 
 func (r *CommandRecord) Validate() error {
 	if r.SchemaVersion == 0 {
@@ -364,13 +364,13 @@ func (r *CommandRecord) Validate() error {
 
 type Counts struct {
 	Total      int `json:"total"`
-	Completed  int `json:"completed"`
-	Succeeded  int `json:"succeeded"`
-	Failed     int `json:"failed"`
+	Completed  int `json:"done"`
+	Succeeded  int `json:"success"`
+	Failed     int `json:"fail"`
 	NotStarted int `json:"not_started"`
 	InFlight   int `json:"in_flight"`
 	Incomplete int `json:"incomplete"`
-	Cancelled  int `json:"cancelled"` // devices a cancel interrupted or prevented
+	Cancelled  int `json:"cancel"` // devices a cancel interrupted or prevented
 }
 type Producer struct {
 	Hostname             string `json:"hostname"`
@@ -382,15 +382,15 @@ type Producer struct {
 
 // The scoreboard's target states: a device
 // is queued until the dispatcher starts it, running until its result, then
-// succeeded or failed; a device the job never reached is cancelled or
-// incomplete when the job ended that way, and stays queued when a halt or
-// a wave gate left it.
+// success or fail; a device the job never reached is cancel or incomplete
+// when the job ended that way, and stays queued when a halt or a wave gate
+// left it.
 const (
 	TargetQueued     = "queued"
 	TargetRunning    = "running"
-	TargetSucceeded  = "succeeded"
-	TargetFailed     = "failed"
-	TargetCancelled  = "cancelled"
+	TargetSuccess    = "success"
+	TargetFail       = "fail"
+	TargetCancel     = "cancel"
 	TargetIncomplete = "incomplete"
 )
 
@@ -416,8 +416,8 @@ type ScoreboardCommands struct {
 // base name and the files replaced and kept.
 type ScoreboardCollection struct {
 	Directory string `json:"directory"`
-	Replaced  int    `json:"replaced"`
-	Kept      int    `json:"kept"`
+	Replaced  int    `json:"replace"`
+	Kept      int    `json:"keep"`
 }
 
 // ScoreboardMetrics: the output bytes the job holds and the durations of
@@ -641,13 +641,13 @@ func (m *Manifest) IsPlanTarget(id string) bool {
 }
 
 // FinalStatuses are the six statuses a job ends in, the last value of a
-// scoreboard file's status and a summary's final_status: completed, halted,
-// errored, cancelled, incomplete (the exit code decides which), and
-// exercised (an exercise, which contacts no device). The one
+// scoreboard file's status and a summary's final_status: complete, halt,
+// error, cancel, incomplete (the exit code decides which), and exercise (an
+// exercise, which contacts no device). The one
 // list for every reader that tells a finished activity from a running one:
 // the scoreboard reader's staleness, the watch screen's rule, and
 // karvi-prune's eligibility.
-var FinalStatuses = []string{"completed", "halted", "errored", "cancelled", "incomplete", "exercised"}
+var FinalStatuses = []string{"complete", "halt", "error", "cancel", "incomplete", "exercise"}
 
 // TerminalStatus says whether status is one of FinalStatuses.
 func TerminalStatus(status string) bool {
@@ -728,13 +728,13 @@ type Cancellation struct {
 }
 
 // CancelledBy is the request that cancelled the job: the block when the
-// final status is cancelled, nil otherwise. A summary can carry the block
+// final status is cancel, nil otherwise. A summary can carry the block
 // under another final status, an exercise (which never ends cancelled) or a
 // live job whose work had finished, when cancel_job was accepted too late
 // to change anything; a reader that prints the cancelled line asks this
 // and not the block.
 func (s Summary) CancelledBy() *Cancellation {
-	if s.FinalStatus != "cancelled" {
+	if s.FinalStatus != "cancel" {
 		return nil
 	}
 	return s.Cancellation
@@ -773,11 +773,11 @@ type PingSummary struct {
 
 // PingSummary device counter keys.
 const (
-	PingDevicesGated            = "gated"
-	PingDevicesProceeded        = "proceeded"
-	PingDevicesDegraded         = "degraded"
-	PingDevicesSkipped          = "skipped"
-	PingDevicesCapabilityFailed = "capability_failed"
+	PingDevicesGated                 = "gated"
+	PingDevicesProceed               = "proceed"
+	PingDevicesProceedDegraded       = "proceed_degraded"
+	PingDevicesSkip                  = "skip"
+	PingDevicesCapabilityUnavailable = "capability_unavailable"
 )
 
 type Metrics struct {
@@ -811,13 +811,13 @@ type AuditSink interface {
 // place, Kept those whose previous file was left untouched.
 type CollectionSummary struct {
 	Directory string                      `json:"directory"`
-	Replaced  int                         `json:"replaced"`
-	Kept      int                         `json:"kept"`
+	Replaced  int                         `json:"replace"`
+	Kept      int                         `json:"keep"`
 	Devices   map[string]CollectionDevice `json:"devices"`
 }
 
 // CollectionDevice is one device's line in the collection summary: its
-// file name in the directory and "replaced" or "kept".
+// file name in the directory and "replace" or "keep".
 type CollectionDevice struct {
 	File    string `json:"file"`
 	Outcome string `json:"outcome"`
@@ -825,6 +825,6 @@ type CollectionDevice struct {
 
 // The two collection outcomes.
 const (
-	CollectionReplaced = "replaced"
-	CollectionKept     = "kept"
+	CollectionReplace = "replace"
+	CollectionKeep    = "keep"
 )

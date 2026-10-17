@@ -13,7 +13,7 @@ import (
 // by internal/output's line tests.
 func TestAtomicJSONWritesAnIndentedFile(t *testing.T) {
 	dir := t.TempDir()
-	value := map[string]any{"final_status": "completed", "device_counts": map[string]int{"total": 2}, "text": "a<b>&c"}
+	value := map[string]any{"final_status": "complete", "device_counts": map[string]int{"total": 2}, "text": "a<b>&c"}
 
 	path := filepath.Join(dir, "summary.json")
 	if err := AtomicJSON(path, value, 0o600); err != nil {
@@ -23,12 +23,12 @@ func TestAtomicJSONWritesAnIndentedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "{\n  \"device_counts\": {\n    \"total\": 2\n  },\n  \"final_status\": \"completed\",\n  \"text\": \"a<b>&c\"\n}\n"
+	want := "{\n  \"device_counts\": {\n    \"total\": 2\n  },\n  \"final_status\": \"complete\",\n  \"text\": \"a<b>&c\"\n}\n"
 	if string(raw) != want {
 		t.Fatalf(".json layout:\n got %q\nwant %q", raw, want)
 	}
 	var back map[string]any
-	if err := json.Unmarshal(raw, &back); err != nil || back["final_status"] != "completed" {
+	if err := json.Unmarshal(raw, &back); err != nil || back["final_status"] != "complete" {
 		t.Fatalf("decode: %v %v", err, back)
 	}
 	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o600 {

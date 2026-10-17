@@ -26,11 +26,11 @@ func TestCollectionHook(t *testing.T) {
 	out := filepath.Join(dir, "hook.out")
 	t.Setenv("HOOK_OUT", out)
 	script := filepath.Join(dir, "hook.sh")
-	if err := os.WriteFile(script, []byte("#!/bin/sh\n{ echo \"pwd=$PWD\"; echo \"$KARVI_JOB_ID $KARVI_JOB_DIR $KARVI_CRUN_DIRECTORY $KARVI_CRUN_REPLACED $KARVI_CRUN_KEPT $KARVI_EXIT\"; cat; } >\"$HOOK_OUT\"\necho hook ran\nexit \"${HOOK_EXIT:-0}\"\n"), 0o755); err != nil {
+	if err := os.WriteFile(script, []byte("#!/bin/sh\n{ echo \"pwd=$PWD\"; echo \"$KARVI_JOB_ID $KARVI_JOB_DIR $KARVI_CRUN_DIRECTORY $KARVI_CRUN_REPLACE $KARVI_CRUN_KEEP $KARVI_EXIT\"; cat; } >\"$HOOK_OUT\"\necho hook ran\nexit \"${HOOK_EXIT:-0}\"\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	summary := &records.CollectionSummary{Directory: dir, Replaced: 2, Kept: 1, Devices: map[string]records.CollectionDevice{
-		"r2": {File: "r2", Outcome: records.CollectionReplaced}, "r1": {File: "r1", Outcome: records.CollectionReplaced}, "dead": {File: "dead", Outcome: records.CollectionKept}}}
+		"r2": {File: "r2", Outcome: records.CollectionReplace}, "r1": {File: "r1", Outcome: records.CollectionReplace}, "dead": {File: "dead", Outcome: records.CollectionKeep}}}
 	h := collectionHook{Path: script, Timeout: 5 * time.Second, JobID: "260926-101515-00", JobDir: "/j/260926-101515-00", Exit: 101, Summary: summary}
 	var stderr bytes.Buffer
 	if o := h.run(context.Background(), &stderr); o.err != nil || o.exit != 0 || o.timedOut {
@@ -51,7 +51,7 @@ func TestCollectionHook(t *testing.T) {
 	}
 	t.Setenv("HOOK_EXIT", "0")
 
-	none := collectionHook{Path: script, Timeout: 5 * time.Second, Summary: &records.CollectionSummary{Directory: dir, Kept: 1, Devices: map[string]records.CollectionDevice{"dead": {File: "dead", Outcome: records.CollectionKept}}}}
+	none := collectionHook{Path: script, Timeout: 5 * time.Second, Summary: &records.CollectionSummary{Directory: dir, Kept: 1, Devices: map[string]records.CollectionDevice{"dead": {File: "dead", Outcome: records.CollectionKeep}}}}
 	if o := none.run(context.Background(), &stderr); o.err != nil {
 		t.Fatalf("nothing replaced still runs the hook: %+v", o)
 	}

@@ -36,9 +36,9 @@ func TestExerciseSummaryNamesAnAcceptedCancelAndStaysExercised(t *testing.T) {
 	for _, c := range []struct {
 		outcome string
 		code    int
-	}{{records.OutcomeExercised, exitcode.ExitSuccess}, {records.OutcomeNotReady, exitcode.ExitHostKeyFailure}} {
+	}{{records.OutcomeExercise, exitcode.ExitSuccess}, {records.OutcomeNotReady, exitcode.ExitHostKeyFailure}} {
 		s := build(cancelled, c.outcome, c.code)
-		if s.FinalStatus != "exercised" || s.ExitCode != c.code {
+		if s.FinalStatus != "exercise" || s.ExitCode != c.code {
 			t.Errorf("%s under a cancel: final_status=%s exit=%d, want exercised and %d", c.outcome, s.FinalStatus, s.ExitCode, c.code)
 		}
 		k := s.Cancellation
@@ -49,10 +49,10 @@ func TestExerciseSummaryNamesAnAcceptedCancelAndStaysExercised(t *testing.T) {
 
 	shutdown, stop := context.WithCancelCause(context.Background())
 	stop(ErrShutdownForced)
-	if s := build(shutdown, records.OutcomeExercised, exitcode.ExitSuccess); s.Cancellation != nil || s.FinalStatus != "exercised" {
+	if s := build(shutdown, records.OutcomeExercise, exitcode.ExitSuccess); s.Cancellation != nil || s.FinalStatus != "exercise" {
 		t.Errorf("under a shutdown cause: cancellation=%+v final_status=%s", s.Cancellation, s.FinalStatus)
 	}
-	if s := build(context.Background(), records.OutcomeExercised, exitcode.ExitSuccess); s.Cancellation != nil {
+	if s := build(context.Background(), records.OutcomeExercise, exitcode.ExitSuccess); s.Cancellation != nil {
 		t.Errorf("without a cancel: cancellation=%+v", s.Cancellation)
 	}
 }

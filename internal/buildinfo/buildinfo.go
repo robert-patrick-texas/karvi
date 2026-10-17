@@ -12,10 +12,10 @@ const (
 	AppName              = "karvi"
 	Version              = "0.31.1"
 	ConfigSchemaVersion  = 6
-	CommandRecordSchema  = 3
-	ScoreboardSchema     = 3
+	CommandRecordSchema  = 4
+	ScoreboardSchema     = 4
 	AuditSchema          = 2
-	JobSchema            = 4
+	JobSchema            = 5
 	DaemonIPCSchema      = 12
 	ConfigRegistrySchema = 30
 )

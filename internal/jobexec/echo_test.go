@@ -29,7 +29,7 @@ func TestRecordRendererEchoesObservedPromptAndCommand(t *testing.T) {
 		SchemaVersion:  records.CommandSchemaVersion,
 		ActivityType:   "command",
 		Command:        "show clock",
-		Status:         "succeeded",
+		Status:         "success",
 		Output:         "01:20:19.849 EDT Thu Sep 10 2026\n",
 		OutputEncoding: "utf-8",
 		Prompt:         "router1#",
@@ -57,7 +57,7 @@ func TestRecordRendererDoesNotEchoByDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 	observed := true
-	renderer.OnRecord(records.CommandRecord{Command: "show clock", Status: "succeeded", Output: "clock-output\n", OutputEncoding: "utf-8", Prompt: "router1#", PromptSource: "observed", PromptObserved: &observed, Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Command: "show clock", Status: "success", Output: "clock-output\n", OutputEncoding: "utf-8", Prompt: "router1#", PromptSource: "observed", PromptObserved: &observed, Timing: records.Timing{EndedAt: time.Now()}})
 	if strings.Contains(out.String(), "router1#show clock") {
 		t.Fatalf("prompt unexpectedly echoed: %q", out.String())
 	}
@@ -87,7 +87,7 @@ func TestRecordRendererColorsHeaderFooterAndBorderBySemanticRole(t *testing.T) {
 		Platform:        "cisco_iosxe",
 		Credential:      &records.CredentialProjection{DeviceUsername: "svc.operator", Backend: "builtin-env-fallback"},
 		Transport:       "system",
-		Command:         "show clock", Status: "succeeded", Output: "clock-output\n", OutputEncoding: "utf-8",
+		Command:         "show clock", Status: "success", Output: "clock-output\n", OutputEncoding: "utf-8",
 		Timing: records.Timing{EndedAt: now},
 	})
 	if err := renderer.WriteFooter(now, 0, time.Second, nil); err != nil {
@@ -118,7 +118,7 @@ func TestJSONLRendererNeverAddsDisplayANSI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	renderer.OnRecord(records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, Command: "show clock", Status: "succeeded", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, Command: "show clock", Status: "success", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	if strings.Contains(out.String(), "\x1b[") {
 		t.Fatalf("JSONL contains ANSI escapes: %q", out.String())
 	}
@@ -140,11 +140,11 @@ func TestDynamicBorderUsesHeaderWidthAndOverridesConfiguredBorder(t *testing.T) 
 	}
 	renderer.OnRecord(records.CommandRecord{
 		Device: records.DeviceProjection{CanonicalName: "r1"}, InputTarget: "r1",
-		Status: "succeeded", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()},
+		Status: "success", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()},
 	})
 	renderer.OnRecord(records.CommandRecord{
 		Device: records.DeviceProjection{CanonicalName: "r1"}, InputTarget: "r1",
-		Status: "succeeded", Output: "ok2\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()},
+		Status: "success", Output: "ok2\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()},
 	})
 	got := out.String()
 	if !strings.Contains(got, "target=r1\nok\n! -------\nok2\n") {
@@ -168,8 +168,8 @@ func TestDynamicBorderUsesConfiguredFallbackWithoutHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "ok2\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "ok2\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	if got := out.String(); !strings.Contains(got, "ok\n! -----\nok2\n") {
 		t.Fatalf("fallback dynamic border missing: %q", got)
 	}
@@ -186,7 +186,7 @@ func TestPrettyJSONRendererProducesIndentedArray(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 1; i <= 2; i++ {
-		renderer.OnRecord(records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: fmt.Sprintf("r%d", i), ActivityID: "activity-1", ActivityType: "command", Sequence: int64(i), Device: records.DeviceProjection{Groups: []string{}}, AddressCandidates: []string{}, Dispatch: records.DispatchContext{}, CommandIndex: i, CommandCount: 2, CommandKind: "requested", Command: "show clock", Status: "succeeded", Output: "ok\n", OutputEncoding: "utf-8", Notices: []records.Notice{}, Timing: records.Timing{EndedAt: time.Now()}})
+		renderer.OnRecord(records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: fmt.Sprintf("r%d", i), ActivityID: "activity-1", ActivityType: "command", Sequence: int64(i), Device: records.DeviceProjection{Groups: []string{}}, AddressCandidates: []string{}, Dispatch: records.DispatchContext{}, CommandIndex: i, CommandCount: 2, CommandKind: "requested", Command: "show clock", Status: "success", Output: "ok\n", OutputEncoding: "utf-8", Notices: []records.Notice{}, Timing: records.Timing{EndedAt: time.Now()}})
 	}
 	if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
@@ -247,7 +247,7 @@ func TestRunTextRendererPrintsOmittedOutputNotice(t *testing.T) {
 	}
 	renderer.OnRecord(records.CommandRecord{
 		Device: records.DeviceProjection{CanonicalName: "r1"}, InputTarget: "r1", SelectedAddress: "10.0.2.10",
-		Platform: "cisco_iosxe", Transport: "system", Status: "succeeded", OutputEncoding: "utf-8", OutputBytes: 73000, OutputSHA256: "abc",
+		Platform: "cisco_iosxe", Transport: "system", Status: "success", OutputEncoding: "utf-8", OutputBytes: 73000, OutputSHA256: "abc",
 		Command: "show big", PromptBefore: "r1#", Prompt: "r1#", PromptSource: "observed",
 		Notices: []records.Notice{{Code: "follow_output_omitted", Message: "output of 73000 bytes left out of the follow stream: the record's 74107-byte line is more than daemon.max-ipc-frame-bytes (65536) allows in a frame; the output is in commands.jsonl"}},
 		Timing:  records.Timing{EndedAt: time.Now()},
@@ -275,8 +275,8 @@ func TestStaticBorderIsCroppedToTerminalWidth(t *testing.T) {
 		t.Fatal(err)
 	}
 	renderer.terminalWidth = 6
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "ok2\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "ok\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "ok2\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	if got := out.String(); !strings.Contains(got, "ok\n------\nok2\n") {
 		t.Fatalf("border not cropped: %q", got)
 	}
@@ -295,8 +295,8 @@ func TestDefaultBlankBorderSeparatesRecordsButDoesNotTrail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "two\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "two\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +329,7 @@ func TestLastBorderOptInAndNoBorderOverride(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+			renderer.OnRecord(records.CommandRecord{Status: "success", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 			if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 				t.Fatal(err)
 			}
@@ -382,8 +382,8 @@ func TestRunBorderDefaultsMatchCommandSemantics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
-	renderer.OnRecord(records.CommandRecord{Status: "succeeded", Output: "two\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "one\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
+	renderer.OnRecord(records.CommandRecord{Status: "success", Output: "two\n", OutputEncoding: "utf-8", Timing: records.Timing{EndedAt: time.Now()}})
 	if err := renderer.WriteFooter(time.Now(), 0, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -409,7 +409,7 @@ func TestReplayedRunHasNoFooter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := rr.Line([]byte(`{"status":"succeeded","output":"one\n","output_encoding":"utf-8"}` + "\n")); err != nil {
+	if err := rr.Line([]byte(`{"status":"success","output":"one\n","output_encoding":"utf-8"}` + "\n")); err != nil {
 		t.Fatal(err)
 	}
 	if err := rr.Finish(nil); err != nil {
@@ -437,7 +437,7 @@ func TestEchoOfAnExecRecord(t *testing.T) {
 	renderer.OnRecord(records.CommandRecord{
 		SchemaVersion: records.CommandSchemaVersion, ActivityType: "command", Channel: records.ChannelExec,
 		Device: records.DeviceProjection{CanonicalName: "srv1"}, InputTarget: "srv1",
-		Command: "both", Status: "succeeded", Output: "data", OutputEncoding: "utf-8",
+		Command: "both", Status: "success", Output: "data", OutputEncoding: "utf-8",
 		ExitStatus: &status, Stderr: &stderr, StderrEncoding: &enc, PromptSource: records.PromptSourceNone,
 		Timing: records.Timing{EndedAt: time.Now()},
 	})

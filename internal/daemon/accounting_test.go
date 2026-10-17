@@ -24,7 +24,7 @@ func assertAccounting(t *testing.T, dir string, targets, commands int) {
 	nonSucceeded := map[string]bool{}
 	for _, r := range recs {
 		perDevice[r.Device.CanonicalName]++
-		if r.Status != "succeeded" {
+		if r.Status != "success" {
 			nonSucceeded[r.Device.CanonicalName] = true
 		}
 	}
@@ -41,7 +41,7 @@ func assertAccounting(t *testing.T, dir string, targets, commands int) {
 	}
 	s := readSummary(t, dir)
 	c := s.DeviceCounts
-	if c["total"] != targets || c["completed"]+c["not_started"]+c["incomplete"]+c["cancelled"] != c["total"] || c["succeeded"]+c["failed"] != c["completed"] {
+	if c["total"] != targets || c["done"]+c["not_started"]+c["incomplete"]+c["cancel"] != c["total"] || c["success"]+c["fail"] != c["done"] {
 		t.Errorf("accounting: device counts %+v do not partition %d targets", c, targets)
 	}
 	total := 0

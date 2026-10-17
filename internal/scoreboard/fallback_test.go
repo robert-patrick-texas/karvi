@@ -112,7 +112,7 @@ func TestDirectoriesAndReadAll(t *testing.T) {
 	now := time.Now()
 	write := func(d, id string, at time.Time) {
 		t.Helper()
-		s := records.ScoreboardSnapshot{SchemaVersion: records.ScoreboardSchemaVersion, ActivityID: id, JobID: id, Status: "completed", Mode: "cmd", StartedAt: at, LastUpdatedAt: at}
+		s := records.ScoreboardSnapshot{SchemaVersion: records.ScoreboardSchemaVersion, ActivityID: id, JobID: id, Status: "complete", Mode: "cmd", StartedAt: at, LastUpdatedAt: at}
 		if err := osutil.AtomicJSON(filepath.Join(d, id+".json"), s, 0o600); err != nil {
 			t.Fatal(err)
 		}

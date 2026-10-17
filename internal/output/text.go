@@ -132,7 +132,7 @@ func WriteTextBlock(w io.Writer, r *records.CommandRecord, src Source) error {
 			return err
 		}
 	}
-	if r.Status == "succeeded" {
+	if r.Status == "success" {
 		return nil
 	}
 	why := r.Status

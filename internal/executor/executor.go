@@ -166,7 +166,7 @@ func (e *DeviceExecutor) PingSummary() *records.PingSummary {
 		out.Method = icmpgate.MethodUnavailable
 	}
 	out.Devices = map[string]int{}
-	for _, k := range []string{records.PingDevicesGated, records.PingDevicesProceeded, records.PingDevicesDegraded, records.PingDevicesSkipped, records.PingDevicesCapabilityFailed} {
+	for _, k := range []string{records.PingDevicesGated, records.PingDevicesProceed, records.PingDevicesProceedDegraded, records.PingDevicesSkip, records.PingDevicesCapabilityUnavailable} {
 		out.Devices[k] = e.ping.summary.Devices[k]
 	}
 	return &out
@@ -276,9 +276,9 @@ func cancelStatus(ctx context.Context) (status, code string, cause error) {
 		return "incomplete_shutdown", "shutdown_incomplete", errorcodes.Errorf("shutdown_incomplete", "%s", errorcodes.Message(cause))
 	}
 	if cause := CancelCause(ctx); cause != nil {
-		return "cancelled", "cancelled", cause
+		return "cancel", "cancelled", cause
 	}
-	return "cancelled", "cancelled", ctx.Err()
+	return "cancel", "cancelled", ctx.Err()
 }
 
 func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dispatch.Context) dispatch.Result {
@@ -670,7 +670,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 			errorCode = record.Error.Code
 		}
 		e.debugf("device command complete target=%q%s index=%d status=%s error_code=%q output_bytes=%d elapsed=%s prompt_source=%q", d.CanonicalName, st.debugKind(), st.index+1, status, errorCode, outputBytes, responseDur, record.PromptSource)
-		if status == "succeeded" {
+		if status == "success" {
 			if driver.Usable() || i == len(seq.steps)-1 {
 				continue
 			}
@@ -854,7 +854,7 @@ func (e *DeviceExecutor) emitNotAttempted(work Work, dc dispatch.Context, cred *
 func (e *DeviceExecutor) notAttemptedRecord(work Work, dc dispatch.Context, cred *records.CredentialProjection, g *gate, st step, status string, cause error) records.CommandRecord {
 	r := e.record(work, dc, cred, g, st, status, nil, nil, nil, "", "", nil, 0, 0, time.Time{}, time.Now())
 	switch status {
-	case "cancelled":
+	case "cancel":
 		r.Error = &records.StructuredError{Code: "cancelled", Category: "shutdown", Message: bareMessage(cause), Operation: st.operation()}
 	case "incomplete_shutdown":
 		r.Error = &records.StructuredError{Code: "shutdown_incomplete", Category: "shutdown", Message: errorcodes.Message(cause), Operation: st.operation()}
@@ -1181,13 +1181,13 @@ func (e *DeviceExecutor) runGate(ctx context.Context, t executionplan.ExecutionT
 	st.Devices[records.PingDevicesGated]++
 	switch report.Decision {
 	case records.PingDecisionProceed:
-		st.Devices[records.PingDevicesProceeded]++
+		st.Devices[records.PingDevicesProceed]++
 	case records.PingDecisionProceedDegraded:
-		st.Devices[records.PingDevicesDegraded]++
+		st.Devices[records.PingDevicesProceedDegraded]++
 	case records.PingDecisionSkip:
-		st.Devices[records.PingDevicesSkipped]++
+		st.Devices[records.PingDevicesSkip]++
 	default:
-		st.Devices[records.PingDevicesCapabilityFailed]++
+		st.Devices[records.PingDevicesCapabilityUnavailable]++
 	}
 	if err == nil {
 		st.ProbesSent += len(report.Outcomes)
@@ -1402,7 +1402,7 @@ func familyOf(a netip.Addr) string {
 
 func statusFor(r platform.Result) string {
 	if r.Err == nil && !r.DeviceError {
-		return "succeeded"
+		return "success"
 	}
 	switch r.ErrorCategory {
 	case "authentication":
@@ -1485,7 +1485,7 @@ func errorString(e error) string {
 	return e.Error()
 }
 func severity(status string) string {
-	if status == "succeeded" {
+	if status == "success" {
 		return "info"
 	}
 	if strings.HasPrefix(status, "not_started") || strings.HasPrefix(status, "not_attempted") {

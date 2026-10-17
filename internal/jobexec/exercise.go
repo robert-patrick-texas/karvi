@@ -158,7 +158,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	for _, t := range targets {
 		tally(t.Findings)
 	}
-	outcome := records.OutcomeExercised
+	outcome := records.OutcomeExercise
 	if errorsN > 0 || byReadiness[records.ReadinessNotReady] > 0 {
 		outcome = records.OutcomeNotReady
 	}
@@ -250,7 +250,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	}
 	ended := time.Now()
 	finalSnap := st.initial
-	finalSnap.Status = "exercised"
+	finalSnap.Status = "exercise"
 	finalSnap.LastUpdatedAt, finalSnap.EndedAt, finalSnap.ElapsedNS = ended, &ended, ended.Sub(st.started).Nanoseconds()
 	finalSnap.Counts = records.Counts{Total: len(plan.Targets), Completed: len(plan.Targets)}
 	stopHeartbeat()
@@ -455,7 +455,7 @@ func exercisePingSummary(cfg configload.Snapshot, ping *icmpgate.Capability) *re
 		capability = records.CheckAvailable
 	}
 	return &records.PingSummary{Enabled: true, Method: ping.Method, Capability: capability, Probes: executionplan.PingProbes, TimeoutNS: cfg.Duration("network.ping-timeout").Nanoseconds(),
-		Devices: map[string]int{records.PingDevicesGated: 0, records.PingDevicesProceeded: 0, records.PingDevicesDegraded: 0, records.PingDevicesSkipped: 0, records.PingDevicesCapabilityFailed: 0}}
+		Devices: map[string]int{records.PingDevicesGated: 0, records.PingDevicesProceed: 0, records.PingDevicesProceedDegraded: 0, records.PingDevicesSkip: 0, records.PingDevicesCapabilityUnavailable: 0}}
 }
 
 // buildExerciseSummary is the exercise's summary. cancellation is the block
@@ -471,6 +471,6 @@ func buildExerciseSummary(req Request, accepted records.AcceptedSummary, paths o
 	files, out := summaryFiles(paths, 0)
 	files["exercise"] = reportPath
 	accepted.Paths = files
-	return records.Summary{AcceptedSummary: accepted, EndedAt: end, DurationNS: end.Sub(accepted.StartedAt).Nanoseconds(), FinalStatus: "exercised", ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, Ping: exercisePingSummary(req.Config, ping), Cancellation: cancellation,
+	return records.Summary{AcceptedSummary: accepted, EndedAt: end, DurationNS: end.Sub(accepted.StartedAt).Nanoseconds(), FinalStatus: "exercise", ExitCode: code, ExitName: exitcode.ExitName(code), TerminalCauses: causes, Ping: exercisePingSummary(req.Config, ping), Cancellation: cancellation,
 		DeviceCounts: map[string]int{"total": len(req.Plan.Targets), "ready": byReadiness[records.ReadinessReady], "not_ready": byReadiness[records.ReadinessNotReady]}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{}, Halt: map[string]any{"run_wide": "", "wave_gate": ""}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}}
 }

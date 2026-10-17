@@ -40,7 +40,7 @@ type Values struct {
 	Status      string
 	Elapsed     time.Duration
 	// The ICMP gate's line (display.ping.header):
-	// the two probes' results and the verdict, proceeding or skipped.
+	// the two probes' results and the verdict, proceed or skip.
 	RTT1   string
 	RTT2   string
 	Result string
@@ -61,7 +61,7 @@ var allowedPlaceholders = map[string]bool{
 	"status": true, "elapsed": true,
 	"rtt1": true, "rtt2": true, "result": true,
 	"transcript": true,
-	"collection": true, "replaced": true, "kept": true,
+	"collection": true, "replace": true, "keep": true,
 }
 
 var repeatRE = regexp.MustCompile(`<repeat:([^:>]*)\:([0-9]+)>`)
@@ -398,8 +398,8 @@ func (f Formatter) placeholderValues(values Values) map[string]string {
 		"result":       values.Result,
 		"transcript":   values.Transcript,
 		"collection":   values.Collection,
-		"replaced":     strconv.Itoa(values.Replaced),
-		"kept":         strconv.Itoa(values.Kept),
+		"replace":      strconv.Itoa(values.Replaced),
+		"keep":         strconv.Itoa(values.Kept),
 	}
 }
 
@@ -420,16 +420,16 @@ func placeholderStyle(name, value string, style LineStyle) (string, bool) {
 	case "reference-id":
 		return style.Accent, false
 	case "result":
-		// The gate's verdict (28.3): proceeding in the success role, skipped
-		// in the error role, bold as a status is.
-		if value == "proceeding" {
+		// The gate's verdict (28.3): proceed in the success role, skip in
+		// the error role, bold as a status is.
+		if value == "proceed" {
 			return style.Success, true
 		}
 		return style.Error, true
 	case "exit-status", "status":
 		lower := strings.ToLower(value)
 		switch {
-		case strings.Contains(lower, "success"), strings.Contains(lower, "completed"):
+		case strings.Contains(lower, "success"), lower == "complete":
 			return style.Success, true
 		case strings.Contains(lower, "halt"), strings.Contains(lower, "warning"), strings.Contains(lower, "partial"):
 			return style.Warning, true

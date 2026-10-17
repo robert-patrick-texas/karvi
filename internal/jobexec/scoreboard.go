@@ -110,12 +110,12 @@ func (st *scoreboardState) apply(e dispatch.Event, started time.Time) {
 		// ends with the code cancelled, one the shutdown interrupted with
 		// shutdown_incomplete; both are the counts' cancelled and
 		// incomplete, not failures.
-		state := records.TargetFailed
+		state := records.TargetFail
 		switch {
 		case e.Result != nil && e.Result.Success:
-			state = records.TargetSucceeded
+			state = records.TargetSuccess
 		case e.Result != nil && e.Result.ErrorCode == "cancelled":
-			state = records.TargetCancelled
+			state = records.TargetCancel
 		case e.Result != nil && e.Result.ErrorCode == "shutdown_incomplete":
 			state = records.TargetIncomplete
 		}
@@ -142,8 +142,8 @@ func (st *scoreboardState) finishQueued(unstartedStatus string) {
 	defer st.mu.Unlock()
 	state := ""
 	switch unstartedStatus {
-	case "cancelled":
-		state = records.TargetCancelled
+	case "cancel":
+		state = records.TargetCancel
 	case "incomplete_shutdown":
 		state = records.TargetIncomplete
 	default:

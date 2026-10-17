@@ -15,7 +15,7 @@ func TestACommandsOwnTimeout(t *testing.T) {
 	h := newSessionHarness(t, []string{"show slow", "show slow"}, true)
 	h.exec.opts.TimeoutsNS = []int64{int64(10 * time.Second), 0}
 	_, recs := h.run(context.Background())
-	if len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Status != "timeout" || recs[1].Error == nil || !strings.HasPrefix(recs[1].Error.Message, "command timed out after 1s (execution.command-timeout) while waiting") {
+	if len(recs) != 2 || recs[0].Status != "success" || recs[1].Status != "timeout" || recs[1].Error == nil || !strings.HasPrefix(recs[1].Error.Message, "command timed out after 1s (execution.command-timeout) while waiting") {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	if !h.debugHas("device command start target=") || !debugLine(h, "index=1 ", "timeout=10s maxbytes=67108864 blind=false") || !debugLine(h, "index=2 ", "timeout=1s maxbytes=67108864 blind=false") {
@@ -40,7 +40,7 @@ func TestACommandsOwnByteLimit(t *testing.T) {
 		t.Fatalf("records: %s", describe(recs))
 	}
 	h = newSessionHarness(t, []string{"show big"}, true)
-	if _, recs = h.run(context.Background()); len(recs) != 1 || recs[0].Status != "succeeded" || recs[0].OutputBytes < 2900 {
+	if _, recs = h.run(context.Background()); len(recs) != 1 || recs[0].Status != "success" || recs[0].OutputBytes < 2900 {
 		t.Fatalf("records: %s", describe(recs))
 	}
 }

@@ -72,7 +72,7 @@ func TestRunExerciseAgainstADaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParity(t, planReportSchema, report)
-	if report.Kind != records.ReportExercise || report.Outcome != records.OutcomeExercised || !report.JobSubmitted || report.DeviceContacted || report.NextOperation != records.NextSubmitNewLiveJob || len(report.Targets) != 2 {
+	if report.Kind != records.ReportExercise || report.Outcome != records.OutcomeExercise || !report.JobSubmitted || report.DeviceContacted || report.NextOperation != records.NextSubmitNewLiveJob || len(report.Targets) != 2 {
 		t.Fatalf("report: kind=%s outcome=%s targets=%d", report.Kind, report.Outcome, len(report.Targets))
 	}
 	for _, tr := range report.Targets {
@@ -89,7 +89,7 @@ func TestRunExerciseAgainstADaemon(t *testing.T) {
 		t.Fatalf("job directories: %v", jobs)
 	}
 	summary, err := os.ReadFile(filepath.Join(jobs[0], "summary.json"))
-	if err != nil || !strings.Contains(compactJSON(t, summary), `"final_status":"exercised"`) || !strings.Contains(compactJSON(t, summary), `"mode":"exercise"`) {
+	if err != nil || !strings.Contains(compactJSON(t, summary), `"final_status":"exercise"`) || !strings.Contains(compactJSON(t, summary), `"mode":"exercise"`) {
 		t.Fatalf("summary: err=%v %s", err, summary)
 	}
 	if b, _ := os.ReadFile(filepath.Join(jobs[0], "commands.jsonl")); len(b) != 0 {
@@ -125,7 +125,7 @@ func TestRunExerciseAgainstADaemon(t *testing.T) {
 	if got := Main(exerciseArgs(sets), strings.NewReader(""), &stdout, &stderr); got != 0 {
 		t.Fatalf("text exit=%d stderr=%q", got, stderr.String())
 	}
-	for _, want := range []string{"exercise ", "status: exercised", "job_submitted: true", "device_contacted: false", "daemon local: running", "preparation ", "- name:127.0.0.1: ready", "  address: client 127.0.0.1", "- name:localhost: ready", "  address: daemon 127.0.0.1 (resolver_context=", "  credential: bound ", "  transport: system available (system ", "host_key=accept-new enrolled=no", "  intended_ping: disabled", "next: submit_new_live_job (no device was contacted; this is not a command result)"} {
+	for _, want := range []string{"exercise ", "status: exercise", "job_submitted: true", "device_contacted: false", "daemon local: running", "preparation ", "- name:127.0.0.1: ready", "  address: client 127.0.0.1", "- name:localhost: ready", "  address: daemon 127.0.0.1 (resolver_context=", "  credential: bound ", "  transport: system available (system ", "host_key=accept-new enrolled=no", "  intended_ping: disabled", "next: submit_new_live_job (no device was contacted; this is not a command result)"} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Errorf("text report lacks %q:\n%s", want, stdout.String())
 		}

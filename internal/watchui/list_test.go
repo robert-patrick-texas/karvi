@@ -17,9 +17,9 @@ func listRows() []ListRow {
 		{JobID: "261016-020953-00", Operator: "netops", Status: "unfinished", NoSummary: true},
 		{JobID: "261016-003707-00", Operator: "netops", Kind: "run", Status: "unfinished", Total: 2, Devices: []string{"fake-iosxe", "dead-iosxe"}},
 		{JobID: "261016-003305-00", Invalid: true, Path: "/jobs/261016/261016-003305-00/summary.json", Operator: "netops"},
-		{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "errored", Finished: true, Duration: 4 * time.Second, Completed: 2, Total: 2, Fails: 1, Devices: []string{"fake-iosxe", "dead-iosxe"}},
-		{JobID: "261015-235308-00", Operator: "netops.test", Kind: "crun", Status: "exercised", Finished: true, Completed: 1, Total: 1, Devices: []string{"fake-iosxe"}},
-		{JobID: "261015-235303-00", Operator: "1001", Kind: "cmd", Status: "completed", Finished: true, Duration: 75 * time.Minute, Completed: 1, Total: 1, Devices: []string{"fake-iosxe"}},
+		{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "error", Finished: true, Duration: 4 * time.Second, Completed: 2, Total: 2, Fails: 1, Devices: []string{"fake-iosxe", "dead-iosxe"}},
+		{JobID: "261015-235308-00", Operator: "netops.test", Kind: "crun", Status: "exercise", Finished: true, Completed: 1, Total: 1, Devices: []string{"fake-iosxe"}},
+		{JobID: "261015-235303-00", Operator: "1001", Kind: "cmd", Status: "complete", Finished: true, Duration: 75 * time.Minute, Completed: 1, Total: 1, Devices: []string{"fake-iosxe"}},
 	}
 }
 
@@ -36,9 +36,9 @@ func TestListTableLayout(t *testing.T) {
 		"  261016-020953-00            unfinished  netops       u       u/u       u",
 		"  261016-003707-00            unfinished  netops       run     u/2       u  fake-iosxe dead-iosxe",
 		"? 261016-003305-00  -         invalid     netops       -        -        -  /jobs/261016/261016-003305-00/summary.json",
-		"  261016-002853-00  0m04s     errored     netops       run     2/2       1  fake-iosxe dead-iosxe",
-		"  261015-235308-00  0m00s     exercised   netops.test  crun    1/1       0  fake-iosxe",
-		"  261015-235303-00  1h15m     completed   1001         cmd     1/1       0  fake-iosxe",
+		"  261016-002853-00  0m04s     error       netops       run     2/2       1  fake-iosxe dead-iosxe",
+		"  261015-235308-00  0m00s     exercise    netops.test  crun    1/1       0  fake-iosxe",
+		"  261015-235303-00  1h15m     complete    1001         cmd     1/1       0  fake-iosxe",
 	}
 	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("got\n%s\nwant\n%s", strings.Join(lines, "\n"), strings.Join(want, "\n"))
@@ -67,7 +67,7 @@ func TestListTableTargetAtWidth(t *testing.T) {
 	for i := 1; i <= 12; i++ {
 		names = append(names, fmt.Sprintf("wide-%03d", i))
 	}
-	row := ListRow{JobID: "261015-151448-00", Operator: "netops", Kind: "run", Status: "completed", Finished: true, Duration: 3 * time.Second, Completed: 12, Total: 12, Devices: names}
+	row := ListRow{JobID: "261015-151448-00", Operator: "netops", Kind: "run", Status: "complete", Finished: true, Duration: 3 * time.Second, Completed: 12, Total: 12, Devices: names}
 	for _, c := range []struct {
 		width int
 		want  string
@@ -100,7 +100,7 @@ func TestListTableTargetAtWidth(t *testing.T) {
 		}
 	}
 	// Two names of ten cells: neither fits the 7 cells at 80, both at 100.
-	two := ListRow{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "errored", Finished: true, Completed: 2, Total: 2, Fails: 1, Devices: []string{"fake-iosxe", "dead-iosxe"}}
+	two := ListRow{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "error", Finished: true, Completed: 2, Total: 2, Fails: 1, Devices: []string{"fake-iosxe", "dead-iosxe"}}
 	for width, want := range map[int]string{80: "+2", 85: "+2", 86: "fake-iosxe +1", 100: "fake-iosxe dead-iosxe"} {
 		if got := (ListTable{Rows: []ListRow{two}, Width: width}).Lines()[1][73:]; got != want {
 			t.Errorf("width %d: TARGET %q, want %q", width, got, want)
@@ -116,15 +116,15 @@ func TestListTableByDevice(t *testing.T) {
 	rows := []ListRow{
 		{JobID: "261016-003707-00", Operator: "netops", Kind: "run", Status: "unfinished", Device: "dead-iosxe", Outcome: "unfinished"},
 		{JobID: "261016-003305-00", Invalid: true, Path: "/jobs/261016/261016-003305-00/summary.json", Operator: "netops"},
-		{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "errored", Finished: true, Duration: 4 * time.Second, Device: "dead-iosxe", Outcome: "failed"},
-		{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "errored", Finished: true, Duration: 4 * time.Second, Device: "fake-iosxe", Outcome: "not_started"},
+		{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "error", Finished: true, Duration: 4 * time.Second, Device: "dead-iosxe", Outcome: "fail"},
+		{JobID: "261016-002853-00", Operator: "netops", Kind: "run", Status: "error", Finished: true, Duration: 4 * time.Second, Device: "fake-iosxe", Outcome: "not_started"},
 	}
 	lines := ListTable{Rows: rows, ByDevice: true, Width: 80}.Lines()
 	want := []string{
 		"  JOB-ID            TIME      OPERATOR  MODE  OUTCOME      DEVICE",
 		"  261016-003707-00            netops    run   unfinished   dead-iosxe",
 		"? 261016-003305-00  -         netops    -     invalid      …",
-		"  261016-002853-00  0m04s     netops    run   failed       dead-iosxe",
+		"  261016-002853-00  0m04s     netops    run   fail         dead-iosxe",
 		"  261016-002853-00  0m04s     netops    run   not_started  fake-iosxe",
 	}
 	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
@@ -156,8 +156,8 @@ func TestListTableColours(t *testing.T) {
 		1: {style("u   ", "warning", false), style("  u", "warning", false) + style("/", "value", false) + style("u  ", "warning", false), style("   u", "warning", false)},
 		2: {style("unfinished", "warning", false), style("  u", "warning", false) + style("/", "value", false) + style("2  ", "value", false), style("   u", "warning", false), style("fake-iosxe dead-iosxe", "target", false)},
 		3: {style("? ", "error", false), style("invalid   ", "error", false), style("/jobs/261016/261016-003305-00/summary.json", "muted", false)},
-		4: {style("errored   ", "error", false), style("  2", "accent", false) + style("/", "value", false), style("   1", "error", false)},
-		5: {style("exercised ", "success", false), style("   0", "muted", false)},
+		4: {style("error     ", "error", false), style("  2", "accent", false) + style("/", "value", false), style("   1", "error", false)},
+		5: {style("exercise  ", "success", false), style("   0", "muted", false)},
 	} {
 		for _, want := range wants {
 			if !strings.Contains(lines[i], want) {
@@ -165,8 +165,8 @@ func TestListTableColours(t *testing.T) {
 			}
 		}
 	}
-	device := ListTable{Rows: []ListRow{{JobID: "261016-003707-00", Operator: "netops", Kind: "run", Status: "unfinished", Device: "dead-iosxe", Outcome: "unfinished"}, {JobID: "261016-002853-00", Operator: "netops", Kind: "run", Finished: true, Device: "dead-iosxe", Outcome: "failed"}, {JobID: "261016-002853-00", Operator: "netops", Kind: "run", Finished: true, Device: "fake-iosxe", Outcome: "succeeded"}}, ByDevice: true, Colour: true, Theme: "dark"}.Lines()
-	for i, want := range map[int]string{1: style("unfinished ", "warning", false), 2: style("failed     ", "error", false), 3: style("succeeded  ", "success", false)} {
+	device := ListTable{Rows: []ListRow{{JobID: "261016-003707-00", Operator: "netops", Kind: "run", Status: "unfinished", Device: "dead-iosxe", Outcome: "unfinished"}, {JobID: "261016-002853-00", Operator: "netops", Kind: "run", Finished: true, Device: "dead-iosxe", Outcome: "fail"}, {JobID: "261016-002853-00", Operator: "netops", Kind: "run", Finished: true, Device: "fake-iosxe", Outcome: "success"}}, ByDevice: true, Colour: true, Theme: "dark"}.Lines()
+	for i, want := range map[int]string{1: style("unfinished ", "warning", false), 2: style("fail       ", "error", false), 3: style("success    ", "success", false)} {
 		if !strings.Contains(device[i], want) {
 			t.Errorf("device line %d lacks %q: %q", i, want, device[i])
 		}

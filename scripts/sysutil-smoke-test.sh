@@ -221,7 +221,7 @@ took=$(awk -v a="$t0" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }')
 docker start "$TAG" >/dev/null || fail "docker start"
 running
 docker cp "$TAG:$art/summary.json" "$TMP/summary.json" >/dev/null 2>&1 || fail "the job has no summary after the shutdown ($art)"
-[ "$(json_get "$TMP/summary.json" final_status)" = completed ] && [ "$(json_get "$TMP/summary.json" primary_exit_code)" = 0 ] ||
+[ "$(json_get "$TMP/summary.json" final_status)" = complete ] && [ "$(json_get "$TMP/summary.json" primary_exit_code)" = 0 ] ||
   fail "the job after the shutdown: $(json_get "$TMP/summary.json" final_status) exit $(json_get "$TMP/summary.json" primary_exit_code)"
 [ "$(x stat -c '%a %U %G' "$art")" = "2750 karvi netops" ] && [ "$(x stat -c '%a %U %G' "$art/summary.json")" = "640 karvi netops" ] ||
   fail "the job folder's modes: $(x stat -c '%n %a %U %G' "$art" "$art/summary.json")"

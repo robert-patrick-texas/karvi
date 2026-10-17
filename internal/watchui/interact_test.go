@@ -71,7 +71,7 @@ func TestSelection(t *testing.T) {
 	// than the row above it, so it moves up a row; the selection follows.
 	ended := time.Date(2026, 9, 24, 13, 50, 0, 0, time.Local)
 	m.Rows[5].Stale = false
-	m.Rows[5].Snapshot.Status = "completed"
+	m.Rows[5].Snapshot.Status = "complete"
 	m.Rows[5].Snapshot.EndedAt = &ended
 	m.Rows[5].Snapshot.StartedAt = time.Date(2026, 9, 24, 13, 30, 0, 0, time.Local)
 	m.Frame()
@@ -114,7 +114,7 @@ func TestPane(t *testing.T) {
 	s.Daemon = true
 	s.Commands = &records.ScoreboardCommands{Count: 3, File: "show-set.txt"}
 	s.Metrics = &records.ScoreboardMetrics{OutputBytes: 15012, Finished: 57, MinMS: 725, AvgMS: 739, MaxMS: 749}
-	s.Targets = []records.ScoreboardTarget{{Name: "gtn-a", State: "succeeded"}, {Name: "gtn-b", State: "failed"}, {Name: "gtn-wan-9500-1", State: "running"}, {Name: "gtn-c", State: "queued"}}
+	s.Targets = []records.ScoreboardTarget{{Name: "gtn-a", State: "success"}, {Name: "gtn-b", State: "fail"}, {Name: "gtn-wan-9500-1", State: "running"}, {Name: "gtn-c", State: "queued"}}
 	m.Frame()
 	m.Key(kind(KeyEnter))
 	frame := m.Frame()
@@ -134,8 +134,8 @@ func TestPane(t *testing.T) {
 		"   started 2026-09-24 13:44:03  elapsed 4m12s",
 		"   output 15012 bytes  min 725ms  avg 739ms  max 749ms",
 		"   gtn-wan-9500-1 running  gtn-c queued",
-		"   gtn-b failed",
-		"   gtn-a succeeded",
+		"   gtn-b fail",
+		"   gtn-a success",
 	}
 	for i, w := range want {
 		if got := strings.TrimRight(pane[i], " "); got != w {
@@ -190,9 +190,9 @@ func TestTargetColumns(t *testing.T) {
 		case i%100 == 0:
 			state = "running"
 		case i%50 == 0:
-			state = "failed"
+			state = "fail"
 		case i < 250:
-			state = "succeeded"
+			state = "success"
 		}
 		s.Targets = append(s.Targets, records.ScoreboardTarget{Name: "r" + strconv.Itoa(i), State: state})
 	}

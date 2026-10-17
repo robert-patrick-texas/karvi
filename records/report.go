@@ -12,8 +12,9 @@ import (
 )
 
 // PlanReportSchemaVersion is the plan-inspection/exercise report counter:
-// 2 removes the daemon row's execution_policy_digest.
-const PlanReportSchemaVersion = 2
+// 2 removes the daemon row's execution_policy_digest; 3 the outcomes plan
+// and exercise.
+const PlanReportSchemaVersion = 3
 
 // SensitivePropertyPattern is executionplan.SensitivePropertyPattern, the
 // one definition the audit screen and finding validation share.
@@ -37,14 +38,14 @@ const (
 	ReadinessPlanned  = "planned"
 	ReadinessDeferred = "deferred"
 	ReadinessInvalid  = "invalid"
-	OutcomePlanned    = "planned"
+	OutcomePlan       = "plan"
 	OutcomeInvalid    = "invalid"
 
 	// Exercise readiness and outcomes.
 	ReadinessReady            = "ready"
 	ReadinessNotReady         = "not_ready"
 	ReadinessResolutionFailed = "resolution_failed"
-	OutcomeExercised          = "exercised"
+	OutcomeExercise           = "exercise"
 	OutcomeNotReady           = "not_ready"
 
 	// Field-level label of a deferred check.
@@ -327,7 +328,7 @@ func (r *PlanReport) Validate() error {
 		if r.NextOperation != NextCommitLiveJob {
 			return reportInvalid("next_operation", "%q is not %q", string(r.NextOperation), NextCommitLiveJob)
 		}
-		if want := outcomeFor(notReady, OutcomeInvalid, OutcomePlanned); r.Outcome != want {
+		if want := outcomeFor(notReady, OutcomeInvalid, OutcomePlan); r.Outcome != want {
 			return reportInvalid("outcome", "%q; the findings and readiness give %q", r.Outcome, want)
 		}
 	case ReportExercise:
@@ -361,7 +362,7 @@ func (r *PlanReport) Validate() error {
 		if r.NextOperation != NextSubmitNewLiveJob {
 			return reportInvalid("next_operation", "%q is not %q", string(r.NextOperation), NextSubmitNewLiveJob)
 		}
-		if want := outcomeFor(notReady, OutcomeNotReady, OutcomeExercised); r.Outcome != want {
+		if want := outcomeFor(notReady, OutcomeNotReady, OutcomeExercise); r.Outcome != want {
 			return reportInvalid("outcome", "%q; the findings and readiness give %q", r.Outcome, want)
 		}
 	}

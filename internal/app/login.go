@@ -318,9 +318,9 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	ended := time.Now()
 	debug(fmt.Sprintf("login interactive session ended target=%q elapsed=%s error=%t", d.CanonicalName, ended.Sub(started), err != nil))
 	exit := exitcode.ExitSuccess
-	status := "completed"
+	status := "complete"
 	if err != nil {
-		status = "errored"
+		status = "error"
 		exit = classifyLoginExit(err)
 		result.Error = codedText("ssh_process_failed", err)
 	}
@@ -328,10 +328,10 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	snap.Counts = records.Counts{Total: 1, Completed: 1}
 	if exit == 0 {
 		snap.Counts.Succeeded = 1
-		snap.Targets[0].State = records.TargetSucceeded
+		snap.Targets[0].State = records.TargetSuccess
 	} else {
 		snap.Counts.Failed = 1
-		snap.Targets[0].State = records.TargetFailed
+		snap.Targets[0].State = records.TargetFail
 		summaryCode := errorcodes.Of(errorcodes.Ensure(err, "ssh_process_failed"))
 		entry, _ := errorcodes.Lookup(summaryCode)
 		snap.ErrorSummary = map[string]any{"code": summaryCode, "category": entry.Category, "count": 1}
@@ -426,9 +426,9 @@ func finalLoginStatus(exit int, interactiveStatus string) string {
 		return interactiveStatus
 	}
 	if exit == exitcode.ExitCancelled {
-		return "cancelled"
+		return "cancel"
 	}
-	return "errored"
+	return "error"
 }
 
 // platformFor is the definition for the platform used, refused when the

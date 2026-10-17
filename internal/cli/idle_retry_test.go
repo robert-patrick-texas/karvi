@@ -53,7 +53,7 @@ func TestRunRetriesOnceWhenTheDaemonLeftAfterTheProbe(t *testing.T) {
 	if !strings.Contains(launch.String(), "daemon started socket="+socket) {
 		t.Fatalf("the second ensure did not launch: %q", launch.String())
 	}
-	if !strings.Contains(stdout.String(), `"outcome":"exercised"`) && !strings.Contains(stdout.String(), `"outcome": "exercised"`) {
+	if !strings.Contains(stdout.String(), `"outcome":"exercise"`) && !strings.Contains(stdout.String(), `"outcome": "exercise"`) {
 		t.Fatalf("stdout: %s", stdout.String())
 	}
 }

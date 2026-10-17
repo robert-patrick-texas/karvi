@@ -100,7 +100,7 @@ func TestProfileRunsBeforeTheRequestedCommands(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version"}, true)
 	h.withProfile(executionplan.SessionInitFailDevice, 0, "terminal width 511", "show clock")
 	res, recs := h.run(context.Background())
-	expectKinds(t, recs, "session_init:1/2:succeeded:", "session_init:2/2:succeeded:", "requested:1/1:succeeded:")
+	expectKinds(t, recs, "session_init:1/2:success:", "session_init:2/2:success:", "requested:1/1:success:")
 	expectProfileTiming(t, recs, "init", true)
 	if !res.Success || res.ErrorCode != "" {
 		t.Fatalf("result %+v", res)
@@ -118,7 +118,7 @@ func TestProfileRunsBeforeTheRequestedCommands(t *testing.T) {
 	if ns := *recs[2].Timing.SessionInitNS; ns <= 0 || ns > recs[2].Timing.TotalNS {
 		t.Fatalf("session_init_ns %d", ns)
 	}
-	if !h.debugHas(`device command start target="127.0.0.1" kind=session_init index=1 total=2 `) || !h.debugHas(`device command complete target="127.0.0.1" kind=session_init index=2 status=succeeded`) || !h.debugHas(`device command start target="127.0.0.1" index=1 total=1 `) {
+	if !h.debugHas(`device command start target="127.0.0.1" kind=session_init index=1 total=2 `) || !h.debugHas(`device command complete target="127.0.0.1" kind=session_init index=2 status=success`) || !h.debugHas(`device command start target="127.0.0.1" index=1 total=1 `) {
 		t.Fatal("debug lines do not mark the profile's commands")
 	}
 }
@@ -154,7 +154,7 @@ func TestProfileContinueSendsTheRestWithANotice(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version", "show users"}, true)
 	h.withProfile(executionplan.SessionInitContinue, 0, "show bogus", "show clock")
 	res, recs := h.run(context.Background())
-	expectKinds(t, recs, "session_init:1/2:device_error:device_command_error@session_init", "session_init:2/2:succeeded:", "requested:1/2:succeeded:", "requested:2/2:succeeded:")
+	expectKinds(t, recs, "session_init:1/2:device_error:device_command_error@session_init", "session_init:2/2:success:", "requested:1/2:success:", "requested:2/2:success:")
 	expectProfileTiming(t, recs, "init", true)
 	if !res.Success || res.ErrorCode != "" {
 		t.Fatalf("result %+v", res)
@@ -217,7 +217,7 @@ func TestProfileCommandTimeoutOverridesTheDefault(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version"}, true)
 	h.withProfile(executionplan.SessionInitFailDevice, 5*time.Second, "show slow")
 	res, recs := h.run(context.Background())
-	expectKinds(t, recs, "session_init:1/1:succeeded:", "requested:1/1:succeeded:")
+	expectKinds(t, recs, "session_init:1/1:success:", "requested:1/1:success:")
 	if !res.Success {
 		t.Fatalf("result %+v", res)
 	}
@@ -236,7 +236,7 @@ func TestProfileCancelDuringTheProfile(t *testing.T) {
 	defer cancel()
 	cancelWhenSent(t, h.marker, cancel)
 	res, recs := h.run(ctx)
-	expectKinds(t, recs, "session_init:1/2:succeeded:", "session_init:2/2:cancelled:cancelled@session_init", "requested:1/1:cancelled:cancelled@execute_command")
+	expectKinds(t, recs, "session_init:1/2:success:", "session_init:2/2:cancel:cancelled@session_init", "requested:1/1:cancel:cancelled@execute_command")
 	expectProfileTiming(t, recs, "init", true)
 	if res.Success || res.ErrorCode != "cancelled" {
 		t.Fatalf("result %+v", res)
@@ -272,13 +272,13 @@ func TestProfileOpenFailure(t *testing.T) {
 func TestNoProfileAndAnEmptyProfile(t *testing.T) {
 	h := newSessionHarness(t, []string{"show version"}, true)
 	_, recs := h.run(context.Background())
-	expectKinds(t, recs, "requested:1/1:succeeded:")
+	expectKinds(t, recs, "requested:1/1:success:")
 	expectProfileTiming(t, recs, executionplan.SessionInitNone, false)
 
 	h = newSessionHarness(t, []string{"show version"}, true)
 	h.withProfile(executionplan.SessionInitFailDevice, 0)
 	_, recs = h.run(context.Background())
-	expectKinds(t, recs, "requested:1/1:succeeded:")
+	expectKinds(t, recs, "requested:1/1:success:")
 	expectProfileTiming(t, recs, "init", false)
 	if *recs[0].ConnectionReused {
 		t.Fatal("connection_reused true on the first command sent")
@@ -311,7 +311,7 @@ func TestProfileGateDegradedNoticeOnTheFirstRecord(t *testing.T) {
 	h := newGateHarness(t, enabled, p)
 	h.withProfile(executionplan.SessionInitFailDevice, 0, "show clock")
 	_, recs := h.run(context.Background())
-	expectKinds(t, recs, "session_init:1/1:succeeded:", "requested:1/2:succeeded:", "requested:2/2:succeeded:")
+	expectKinds(t, recs, "session_init:1/1:success:", "requested:1/2:success:", "requested:2/2:success:")
 	if noticeCodes(recs[0]) != "icmp_packet_loss" || noticeCodes(recs[1]) != "" || noticeCodes(recs[2]) != "" {
 		t.Fatalf("notices %q %q %q", noticeCodes(recs[0]), noticeCodes(recs[1]), noticeCodes(recs[2]))
 	}

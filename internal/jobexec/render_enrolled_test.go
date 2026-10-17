@@ -22,11 +22,11 @@ func TestEnrolledLineOnStandardError(t *testing.T) {
 		t.Fatal(err)
 	}
 	notice := records.Notice{Code: "host_key_enrolled", Message: "ssh accepted new host-key r1 (ED25519)", Details: map[string]any{"key_type": "ED25519"}}
-	first, err := json.Marshal(records.CommandRecord{Device: records.DeviceProjection{CanonicalName: "r1"}, Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Notices: []records.Notice{notice}})
+	first, err := json.Marshal(records.CommandRecord{Device: records.DeviceProjection{CanonicalName: "r1"}, Status: "success", Output: "one\n", OutputEncoding: "utf-8", Notices: []records.Notice{notice}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second := []byte(`{"status":"succeeded","output":"two\n","output_encoding":"utf-8"}`)
+	second := []byte(`{"status":"success","output":"two\n","output_encoding":"utf-8"}`)
 	for _, format := range []string{"text", "json", "jsonl"} {
 		for _, quiet := range []bool{false, true} {
 			var out, errOut bytes.Buffer
@@ -62,7 +62,7 @@ func TestEnrolledLineNotFromAPastJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.OnRecord(records.CommandRecord{Status: "succeeded", Output: "one\n", OutputEncoding: "utf-8", Notices: []records.Notice{{Code: "host_key_enrolled", Message: "ssh accepted new host-key r1 (ED25519)", Details: map[string]any{"key_type": "ED25519"}}}})
+	r.OnRecord(records.CommandRecord{Status: "success", Output: "one\n", OutputEncoding: "utf-8", Notices: []records.Notice{{Code: "host_key_enrolled", Message: "ssh accepted new host-key r1 (ED25519)", Details: map[string]any{"key_type": "ED25519"}}}})
 	if strings.Contains(out.String(), "ssh accepted") {
 		t.Fatalf("a past job's display %q", out.String())
 	}
@@ -109,7 +109,7 @@ func TestHostKeyLinesOfEachCode(t *testing.T) {
 	if got := strings.Join(HostKeyLines("r1", notices, DisplayLineStyle(cfg, display.Elsewhere)), "\n"); got != want {
 		t.Fatalf("lines %q", got)
 	}
-	line, err := json.Marshal(records.CommandRecord{Device: records.DeviceProjection{CanonicalName: "r1"}, Status: "succeeded", Notices: notices})
+	line, err := json.Marshal(records.CommandRecord{Device: records.DeviceProjection{CanonicalName: "r1"}, Status: "success", Notices: notices})
 	if err != nil {
 		t.Fatal(err)
 	}

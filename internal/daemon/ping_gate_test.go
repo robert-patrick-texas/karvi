@@ -136,7 +136,7 @@ func TestLiveJobGatesEachTargetAndSkipsOnlyTheUnreachableOne(t *testing.T) {
 		}
 		switch r.SelectedAddress {
 		case "127.0.0.1":
-			if r.Status != "succeeded" || r.Ping.Decision != records.PingDecisionProceed || r.Ping.Replies != 2 || len(r.Notices) != 0 {
+			if r.Status != "success" || r.Ping.Decision != records.PingDecisionProceed || r.Ping.Replies != 2 || len(r.Notices) != 0 {
 				t.Errorf("reachable target: status=%s ping=%+v notices=%+v", r.Status, r.Ping, r.Notices)
 			}
 		case "127.0.0.2":
@@ -159,10 +159,10 @@ func TestLiveJobGatesEachTargetAndSkipsOnlyTheUnreachableOne(t *testing.T) {
 	}
 	assertAccounting(t, result.Receipt.ArtifactDir, 2, 1)
 	s := readSummary(t, result.Receipt.ArtifactDir)
-	if s.Ping == nil || !s.Ping.Enabled || s.Ping.Method != icmpgate.MethodSocket || s.Ping.Devices[records.PingDevicesGated] != 2 || s.Ping.Devices[records.PingDevicesProceeded] != 1 || s.Ping.Devices[records.PingDevicesSkipped] != 1 || s.Ping.ProbesSent != 4 || s.Ping.Replies != 2 || s.Ping.Timeouts != 2 {
+	if s.Ping == nil || !s.Ping.Enabled || s.Ping.Method != icmpgate.MethodSocket || s.Ping.Devices[records.PingDevicesGated] != 2 || s.Ping.Devices[records.PingDevicesProceed] != 1 || s.Ping.Devices[records.PingDevicesSkip] != 1 || s.Ping.ProbesSent != 4 || s.Ping.Replies != 2 || s.Ping.Timeouts != 2 {
 		t.Errorf("summary ping block %+v", s.Ping)
 	}
-	if s.DeviceCounts["failed"] != 1 || s.DeviceCounts["succeeded"] != 1 {
+	if s.DeviceCounts["fail"] != 1 || s.DeviceCounts["success"] != 1 {
 		t.Errorf("device counts %+v", s.DeviceCounts)
 	}
 	// The follow stream carried both records, ping objects included.
@@ -234,7 +234,7 @@ func TestExerciseReportsTheICMPCapabilityWithoutProbing(t *testing.T) {
 	hookDetect(t, icmpgate.WithPinger(pinger))
 	f := newV5FixtureWith(t, v5Options{GoFakeDevice: true, Sets: []string{"network.ping-targets=true", `network.ping-timeout="250ms"`}})
 	_, result, terminal, report := f.exercise(mustID(t), []string{"show clock"}, []inventory.Device{direct("127.0.0.1"), direct("127.0.0.2")}, canarytest.Seed(t))
-	if terminal.Outcome.ExitCode != 0 || report.Outcome != records.OutcomeExercised || pinger.calls != 0 {
+	if terminal.Outcome.ExitCode != 0 || report.Outcome != records.OutcomeExercise || pinger.calls != 0 {
 		t.Fatalf("outcome=%+v report outcome=%s probe calls=%d", terminal.Outcome, report.Outcome, pinger.calls)
 	}
 	for _, tr := range report.Targets {
@@ -252,7 +252,7 @@ func TestExerciseReportsTheICMPCapabilityWithoutProbing(t *testing.T) {
 		}
 	}
 	s := readSummary(t, result.Receipt.ArtifactDir)
-	if s.Ping == nil || !s.Ping.Enabled || s.Ping.Method != icmpgate.MethodSocket || s.Ping.Capability != records.CheckAvailable || s.Ping.Devices[records.PingDevicesGated] != 0 || s.Ping.ProbesSent != 0 || s.FinalStatus != "exercised" {
+	if s.Ping == nil || !s.Ping.Enabled || s.Ping.Method != icmpgate.MethodSocket || s.Ping.Capability != records.CheckAvailable || s.Ping.Devices[records.PingDevicesGated] != 0 || s.Ping.ProbesSent != 0 || s.FinalStatus != "exercise" {
 		t.Errorf("exercise summary ping %+v final=%s", s.Ping, s.FinalStatus)
 	}
 

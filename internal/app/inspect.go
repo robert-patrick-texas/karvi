@@ -263,7 +263,7 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 			warningsN++
 		}
 	}
-	outcome := records.OutcomePlanned
+	outcome := records.OutcomePlan
 	if errorsN > 0 {
 		outcome = records.OutcomeInvalid
 	}

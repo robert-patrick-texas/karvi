@@ -13,13 +13,13 @@
 # the devices kept (not reached) are in failed-devices.txt of KARVI_JOB_DIR.
 set -eu
 TO=${KARVI_CRUN_MAIL_TO:-netops@localhost}
-[ "${KARVI_CRUN_REPLACED:-0}" -gt 0 ] || exit 0
+[ "${KARVI_CRUN_REPLACE:-0}" -gt 0 ] || exit 0
 xargs -r -d '\n' git add --
 git diff --cached --quiet && exit 0          # the replaced files are the same bytes
-git commit -q -m "crun $KARVI_JOB_ID: $KARVI_CRUN_REPLACED replaced, $KARVI_CRUN_KEPT kept, exit $KARVI_EXIT"
+git commit -q -m "crun $KARVI_JOB_ID: $KARVI_CRUN_REPLACE replaced, $KARVI_CRUN_KEEP kept, exit $KARVI_EXIT"
 {
   printf 'To: %s\nSubject: %s config diffs (crun %s: %s replaced, %s kept, exit %s)\n\n' \
-    "$TO" "$(hostname)" "$KARVI_JOB_ID" "$KARVI_CRUN_REPLACED" "$KARVI_CRUN_KEPT" "$KARVI_EXIT"
+    "$TO" "$(hostname)" "$KARVI_JOB_ID" "$KARVI_CRUN_REPLACE" "$KARVI_CRUN_KEEP" "$KARVI_EXIT"
   [ -z "${KARVI_JOB_DIR:-}" ] || [ ! -s "$KARVI_JOB_DIR/failed-devices.txt" ] || { echo 'Devices kept (not collected):'; cat "$KARVI_JOB_DIR/failed-devices.txt"; echo; }
   git show --stat -p --format='%s' HEAD
 } | sendmail -t

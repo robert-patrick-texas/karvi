@@ -35,7 +35,7 @@ func TestCollectionFooterFollowsTheFooter(t *testing.T) {
 		return out.String()
 	}
 	for _, activity := range []string{"run", "command"} {
-		if got, want := render(activity, "text", false, collection), "! exit=0\n! collection=/srv/c replaced=2 kept=1\n"; got != want {
+		if got, want := render(activity, "text", false, collection), "! exit=0\n! collection=/srv/c replace=2 keep=1\n"; got != want {
 			t.Errorf("%s: %q, want %q", activity, got, want)
 		}
 		if got, want := render(activity, "text", false, nil), "! exit=0\n"; got != want {
@@ -51,10 +51,10 @@ func TestCollectionFooterFollowsTheFooter(t *testing.T) {
 			t.Errorf("%s: %q, want nothing", name, got)
 		}
 	}
-	if got, want := render("run", "text", false, collection, "display.run.footer="), "! collection=/srv/c replaced=2 kept=1\n"; got != want {
+	if got, want := render("run", "text", false, collection, "display.run.footer="), "! collection=/srv/c replace=2 keep=1\n"; got != want {
 		t.Errorf("the footer empty, the line kept: %q, want %q", got, want)
 	}
-	if got, want := render("run", "text", false, collection, `display.collection.footer="<kept> kept of <replaced>+<kept> in <collection>"`), "! exit=0\n1 kept of 2+1 in /srv/c\n"; got != want {
+	if got, want := render("run", "text", false, collection, `display.collection.footer="<keep> kept of <replace>+<keep> in <collection>"`), "! exit=0\n1 kept of 2+1 in /srv/c\n"; got != want {
 		t.Errorf("a site's template: %q, want %q", got, want)
 	}
 	if got := render("run", "json", false, collection); got != "[]\n" {

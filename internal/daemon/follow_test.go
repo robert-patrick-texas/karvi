@@ -115,7 +115,7 @@ func TestFollowLiveJobDeliversEveryRecord(t *testing.T) {
 	}
 	path := filepath.Join(result.Receipt.ArtifactDir, "commands.jsonl")
 	verifyRecords(t, path, 1, early.records)
-	if early.terminal.Outcome.ExitCode != 0 || early.terminal.Outcome.Summary.FinalStatus != "completed" || early.terminal.Cursor != 4 {
+	if early.terminal.Outcome.ExitCode != 0 || early.terminal.Outcome.Summary.FinalStatus != "complete" || early.terminal.Cursor != 4 {
 		t.Fatalf("terminal=%+v", early.terminal)
 	}
 	summary, _ := os.ReadFile(filepath.Join(result.Receipt.ArtifactDir, "summary.json"))
@@ -297,10 +297,10 @@ func TestFollowJobWithoutFileStartsAtTheEdge(t *testing.T) {
 	}
 	const total = 3
 	for i := 1; i <= total; i++ {
-		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r" + itoa(i), ActivityID: jobID, JobID: jobID, ActivityType: "run", Sequence: int64(i), CommandKind: "requested", Status: "succeeded", OutputEncoding: "utf-8", Output: "out " + itoa(i)}
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r" + itoa(i), ActivityID: jobID, JobID: jobID, ActivityType: "run", Sequence: int64(i), CommandKind: "requested", Status: "success", OutputEncoding: "utf-8", Output: "out " + itoa(i)}
 		j.durable(r, output.Notice{Sequence: int64(i), LineLength: 100, RecordID: r.RecordID})
 	}
-	outcome := ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: jobID, JobID: jobID, Summary: records.Summary{FinalStatus: "completed"}}
+	outcome := ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: jobID, JobID: jobID, Summary: records.Summary{FinalStatus: "complete"}}
 	j.finish(outcome)
 	wg.Wait()
 	if live.err != nil || live.start.FirstSequence != 1 || len(live.records) != total || live.terminal.Cursor != total {
@@ -453,11 +453,11 @@ func TestFollowNotKeptSpooledRecord(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	small := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r1", ActivityID: jobID, JobID: jobID, ActivityType: "run", Sequence: 1, CommandKind: "requested", Status: "succeeded", OutputEncoding: "utf-8", Output: "ok\n", OutputBytes: 3, OutputSHA256: "a"}
-	spooled := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r2", ActivityID: jobID, JobID: jobID, ActivityType: "run", Sequence: 2, CommandKind: "requested", Status: "succeeded", OutputEncoding: "utf-8", OutputBytes: 5256000, OutputSHA256: "b", Notices: []records.Notice{}}
+	small := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r1", ActivityID: jobID, JobID: jobID, ActivityType: "run", Sequence: 1, CommandKind: "requested", Status: "success", OutputEncoding: "utf-8", Output: "ok\n", OutputBytes: 3, OutputSHA256: "a"}
+	spooled := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r2", ActivityID: jobID, JobID: jobID, ActivityType: "run", Sequence: 2, CommandKind: "requested", Status: "success", OutputEncoding: "utf-8", OutputBytes: 5256000, OutputSHA256: "b", Notices: []records.Notice{}}
 	j.durable(small, output.Notice{Sequence: 1, LineLength: 300, LineOffset: -1, RecordID: "r1"})
 	j.durable(spooled, output.Notice{Sequence: 2, LineLength: 5256300, LineOffset: -1, RecordID: "r2"})
-	j.finish(ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: jobID, JobID: jobID, Summary: records.Summary{FinalStatus: "completed"}})
+	j.finish(ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: jobID, JobID: jobID, Summary: records.Summary{FinalStatus: "complete"}})
 	wg.Wait()
 	if live.err != nil || len(live.records) != 2 {
 		t.Fatalf("live follow: err=%v records=%d", live.err, len(live.records))

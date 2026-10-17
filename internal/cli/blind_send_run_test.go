@@ -91,7 +91,7 @@ func promptingDeviceRun(t *testing.T, commandArgs ...string) (string, records.Ma
 // asks [confirm] and takes the typed-ahead return.
 func TestRunNoDaemonCarriesTheBlindSendToThePlan(t *testing.T) {
 	got, m, raw := promptingDeviceRun(t, "--cmd", `clear counters\r`, "--cmd", "show clock")
-	if want := "1/2:succeeded 2/2:succeeded"; got != want {
+	if want := "1/2:success 2/2:success"; got != want {
 		t.Fatalf("records:\n got %s\nwant %s", got, want)
 	}
 	if fmt.Sprint(m.Plan.Commands, m.Plan.BlindReturns, m.Plan.Blind, m.Plan.Expectations) != "[clear counters show clock] [1 0] [true false] []" {
@@ -113,7 +113,7 @@ func TestRunNoDaemonCarriesTheBlindSendToThePlan(t *testing.T) {
 // connection, and the record is a success with the notice.
 func TestRunNoDaemonCarriesTheDeclarationsToThePlan(t *testing.T) {
 	got, m, raw := promptingDeviceRun(t, "--cmd", "copy running-config startup-config", "--expect", `filename \[startup-config\]\?=`, "--cmd", "reload", "--blind", "--expect", `confirm\]=`)
-	if want := "1/2:succeeded 2/2:succeeded+prompt_not_observed_after_blind_send"; got != want {
+	if want := "1/2:success 2/2:success+prompt_not_observed_after_blind_send"; got != want {
 		t.Fatalf("records:\n got %s\nwant %s", got, want)
 	}
 	if fmt.Sprint(m.Plan.Commands, m.Plan.BlindReturns, m.Plan.Blind, m.Plan.Expectations) != `[copy running-config startup-config reload] [0 0] [false true] [[{filename \[startup-config\]\? }] [{confirm\] }]]` {
@@ -130,7 +130,7 @@ func TestRunNoDaemonCarriesTheDeclarationsToThePlan(t *testing.T) {
 // written; a run without them carries both lists empty.
 func TestRunNoDaemonCarriesTheCommandBoundsToThePlan(t *testing.T) {
 	got, m, raw := promptingDeviceRun(t, "--cmd", "show clock", "--timeout", "45m", "--cmd", "show version", "--maxbytes", "2048")
-	if want := "1/2:succeeded 2/2:succeeded"; got != want {
+	if want := "1/2:success 2/2:success"; got != want {
 		t.Fatalf("records:\n got %s\nwant %s", got, want)
 	}
 	if fmt.Sprint(m.Plan.TimeoutsNS, m.Plan.MaxBytes) != "[2700000000000 0] [0 2048]" {

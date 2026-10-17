@@ -29,7 +29,7 @@ func TestNativeRunsTheDeviceSession(t *testing.T) {
 	if res.Success || res.ErrorCode != "device_command_error" || h.transportAttempted() {
 		t.Fatalf("result %+v system transport run=%t", res, h.transportAttempted())
 	}
-	if len(recs) != 2 || recs[0].Status != "succeeded" || recs[1].Error == nil || recs[1].Error.Code != "device_command_error" {
+	if len(recs) != 2 || recs[0].Status != "success" || recs[1].Error == nil || recs[1].Error.Code != "device_command_error" {
 		t.Fatalf("records %+v", recs)
 	}
 	if recs[0].ConnectionReused == nil || *recs[0].ConnectionReused || recs[1].ConnectionReused == nil || !*recs[1].ConnectionReused {

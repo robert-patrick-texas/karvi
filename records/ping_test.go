@@ -30,7 +30,7 @@ func fixtureRecord() CommandRecord {
 		Ping:          fixturePing(),
 		Dispatch:      DispatchContext{Mode: "serial", ServerID: "local", WorkerID: "w1", ScopePosition: 1, DesiredWidth: 1, EffectiveInflight: 1},
 		DispatchOrder: "default", CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-		Status: "succeeded", Output: "", OutputEncoding: "utf-8", OutputBytes: 0, OutputSHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		Status: "success", Output: "", OutputEncoding: "utf-8", OutputBytes: 0, OutputSHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 		Prompt: "", PromptSource: "", PromptObserved: nil, Notices: []Notice{{Code: "icmp_packet_loss", Message: "ICMP packet loss 50%; proceeding because one validated reply was received", Details: map[string]any{"replies": 1}}},
 		Timing: Timing{QueuedAt: now, DeviceStartedAt: &now, CommandStartedAt: &now, EndedAt: now, TotalNS: 0, SchedulerWaitNS: &zero, ServerCapacityWaitNS: &zero, PingNS: ns(502 * time.Millisecond), ConnectNS: &zero, DeviceResponseNS: &zero},
 		Error:  nil, RetryEligible: false,
@@ -110,19 +110,19 @@ func TestSummaryPingBlockMatchesTheSchema(t *testing.T) {
 	now := time.Date(2026, 9, 14, 12, 0, 0, 0, time.UTC)
 	base := func() Summary {
 		return Summary{
-			SchemaVersion: JobSchemaVersion, JobID: "job", ActivityID: "job", StartedAt: now, EndedAt: now, DurationNS: 0, FinalStatus: "completed", ExitCode: 0, ExitName: "success",
+			SchemaVersion: JobSchemaVersion, JobID: "job", ActivityID: "job", StartedAt: now, EndedAt: now, DurationNS: 0, FinalStatus: "complete", ExitCode: 0, ExitName: "success",
 			TerminalCauses: []string{}, DispatchOrder: "default", PlanID: "plan", PlanDigest: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", Mode: "live", Kind: "run",
-			AddressAuthorityCounts: map[string]int{"client": 2}, Devices: []SummaryDevice{{Name: "a", Outcome: "succeeded"}, {Name: "b", Outcome: "failed"}}, DeviceCounts: map[string]int{"total": 2}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{},
+			AddressAuthorityCounts: map[string]int{"client": 2}, Devices: []SummaryDevice{{Name: "a", Outcome: "success"}, {Name: "b", Outcome: "fail"}}, DeviceCounts: map[string]int{"total": 2}, RequestedCommandCounts: map[string]int{}, SessionInitCounts: map[string]int{},
 			Halt: nil, Output: map[string]any{}, AuditSinkStatus: map[string]any{}, Bottleneck: map[string]any{}, Recovery: map[string]any{}, Paths: map[string]string{},
 		}
 	}
 	live := base()
-	live.Ping = &PingSummary{Enabled: true, Method: "socket", Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond), Devices: map[string]int{PingDevicesGated: 2, PingDevicesProceeded: 1, PingDevicesDegraded: 0, PingDevicesSkipped: 1, PingDevicesCapabilityFailed: 0}, ProbesSent: 4, Replies: 2, Timeouts: 2, Errors: 0, TotalNS: int64(1002 * time.Millisecond)}
+	live.Ping = &PingSummary{Enabled: true, Method: "socket", Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond), Devices: map[string]int{PingDevicesGated: 2, PingDevicesProceed: 1, PingDevicesProceedDegraded: 0, PingDevicesSkip: 1, PingDevicesCapabilityUnavailable: 0}, ProbesSent: 4, Replies: 2, Timeouts: 2, Errors: 0, TotalNS: int64(1002 * time.Millisecond)}
 	canarytest.SchemaParity(t, summarySchema, live)
 	exercise := base()
-	exercise.Mode, exercise.FinalStatus = "exercise", "exercised"
+	exercise.Mode, exercise.FinalStatus = "exercise", "exercise"
 	exercise.Devices = []SummaryDevice{{Name: "a", Outcome: ReadinessReady}, {Name: "b", Outcome: ReadinessNotReady}}
-	exercise.Ping = &PingSummary{Enabled: true, Method: "system", Capability: "available", Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond), Devices: map[string]int{PingDevicesGated: 0, PingDevicesProceeded: 0, PingDevicesDegraded: 0, PingDevicesSkipped: 0, PingDevicesCapabilityFailed: 0}}
+	exercise.Ping = &PingSummary{Enabled: true, Method: "system", Capability: "available", Probes: PingProbes, TimeoutNS: int64(500 * time.Millisecond), Devices: map[string]int{PingDevicesGated: 0, PingDevicesProceed: 0, PingDevicesProceedDegraded: 0, PingDevicesSkip: 0, PingDevicesCapabilityUnavailable: 0}}
 	canarytest.SchemaParity(t, summarySchema, exercise)
 	disabled := base()
 	canarytest.SchemaParity(t, summarySchema, disabled)

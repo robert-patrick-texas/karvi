@@ -37,7 +37,7 @@ func TestSchema8FollowPayloadsMatchTheSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/record_frame", frame)
-	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/follow_terminal", FollowTerminal{Cursor: 5, Outcome: ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: plantest.JobID, JobID: plantest.JobID, ArtifactDir: start.ArtifactDir, Summary: records.Summary{SchemaVersion: records.JobSchemaVersion, FinalStatus: "completed", Mode: "live", Kind: "run"}}})
+	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/follow_terminal", FollowTerminal{Cursor: 5, Outcome: ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: plantest.JobID, JobID: plantest.JobID, ArtifactDir: start.ArtifactDir, Summary: records.Summary{SchemaVersion: records.JobSchemaVersion, FinalStatus: "complete", Mode: "live", Kind: "run"}}})
 	req, err := NewRequest("r1", OpFollowJob, fr)
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +117,7 @@ func TestWriteRecordFrame(t *testing.T) {
 // sampleRecord is one valid command record for the schema checks.
 func sampleRecord() *records.CommandRecord {
 	now := time.Date(2026, 9, 22, 21, 0, 0, 0, time.UTC)
-	return &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: plantest.JobID, JobID: plantest.JobID, ActivityID: plantest.JobID, ActivityType: "run", Sequence: 4, Operator: records.Operator{Username: "u", UID: 1000}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "native", Port: 22, Channel: records.ChannelShell, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: strings.Repeat("a", 64), Status: "succeeded", Output: "*10:00:00.000 UTC\n", OutputBytes: 18, OutputEncoding: "utf-8", OutputSHA256: strings.Repeat("b", 64), Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: now, EndedAt: now}}
+	return &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: plantest.JobID, JobID: plantest.JobID, ActivityID: plantest.JobID, ActivityType: "run", Sequence: 4, Operator: records.Operator{Username: "u", UID: 1000}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "native", Port: 22, Channel: records.ChannelShell, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: strings.Repeat("a", 64), Status: "success", Output: "*10:00:00.000 UTC\n", OutputBytes: 18, OutputEncoding: "utf-8", OutputSHA256: strings.Repeat("b", 64), Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: now, EndedAt: now}}
 }
 
 // TestSchema10ReceiptCarriesWarnings: the receipt's

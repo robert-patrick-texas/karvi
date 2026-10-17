@@ -23,7 +23,7 @@ func TestScanFindsPlantedCanariesAndReportsClean(t *testing.T) {
 		"b64.txt":    []byte(base64.StdEncoding.EncodeToString([]byte("shift" + v.Raw + "tail"))),
 		"bytes.txt":  []byte("[110 100 " + strings.Trim(strings.TrimPrefix(bytesForm(v.Raw), "110 100 "), " ") + "]"),
 		"masked.txt": []byte(strings.Repeat("*", len(v.Raw)-4) + v.Raw[len(v.Raw)-4:]),
-		"clean.json": []byte(`{"device_username":"u","status":"succeeded"}`),
+		"clean.json": []byte(`{"device_username":"u","status":"success"}`),
 	}
 	for name, data := range plant {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {

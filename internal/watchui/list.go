@@ -213,9 +213,9 @@ func (t ListTable) target(r ListRow, width int) string {
 // outcomeRole is the role a device's outcome takes.
 func outcomeRole(outcome string) string {
 	switch outcome {
-	case "succeeded", "ready":
+	case "success", "ready":
 		return "success"
-	case "failed", "not_ready", "invalid":
+	case "fail", "not_ready", "invalid":
 		return "error"
 	}
 	return "warning"

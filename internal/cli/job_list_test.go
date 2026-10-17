@@ -67,17 +67,17 @@ func TestJobListText(t *testing.T) {
 	if err := os.MkdirAll(job, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	summary := `{"schema_version":4,"job_id":"261016-002853-00","kind":"run","devices":[{"name":"fake-iosxe","outcome":"succeeded"},{"name":"dead-iosxe","outcome":"failed"}],"final_status":"errored","primary_exit_code":101,"duration_ns":4000000000,"device_counts":{"total":2,"completed":2,"failed":1}}`
+	summary := `{"schema_version":5,"job_id":"261016-002853-00","kind":"run","devices":[{"name":"fake-iosxe","outcome":"success"},{"name":"dead-iosxe","outcome":"fail"}],"final_status":"error","primary_exit_code":101,"duration_ns":4000000000,"device_counts":{"total":2,"done":2,"fail":1}}`
 	if err := os.WriteFile(filepath.Join(job, "summary.json"), []byte(summary), 0o640); err != nil {
 		t.Fatal(err)
 	}
 	code, out, errs := runList(t, g)
 	lines := strings.Split(strings.TrimSuffix(display.StripANSI(out), "\n"), "\n")
-	if code != 0 || errs != "" || len(lines) != 2 || !strings.HasPrefix(lines[1], "  261016-002853-00  0m04s     errored     ") || !strings.HasSuffix(lines[1], "  run     2/2       1  fake-iosxe dead-iosxe") || !strings.Contains(out, "\x1b[") {
+	if code != 0 || errs != "" || len(lines) != 2 || !strings.HasPrefix(lines[1], "  261016-002853-00  0m04s     error       ") || !strings.HasSuffix(lines[1], "  run     2/2       1  fake-iosxe dead-iosxe") || !strings.Contains(out, "\x1b[") {
 		t.Fatalf("text: %d %q %q", code, out, errs)
 	}
 	code, out, _ = runList(t, g, "--target", "dead*")
-	if lines := strings.Split(display.StripANSI(out), "\n"); code != 0 || !strings.HasPrefix(lines[0], "  JOB-ID            TIME      OPERATOR  ") || !strings.HasSuffix(lines[1], "run   failed       dead-iosxe") {
+	if lines := strings.Split(display.StripANSI(out), "\n"); code != 0 || !strings.HasPrefix(lines[0], "  JOB-ID            TIME      OPERATOR  ") || !strings.HasSuffix(lines[1], "run   fail         dead-iosxe") {
 		t.Fatalf("--target: %d %q", code, out)
 	}
 	code, out, _ = runList(t, g, "--format", "json")

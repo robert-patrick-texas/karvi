@@ -104,7 +104,7 @@ func TestSpoolMismatchRefusesTheRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", ActivityType: "command", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "d", Name: "d", CanonicalName: "d", Groups: []string{}}, InputTarget: "d", TransformedName: "d", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "generic", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "x", CommandSHA256: "x", Status: "succeeded", OutputEncoding: enc, OutputBytes: int64(len(raw)), OutputSHA256: src.digest, Notices: []records.Notice{}}
+	r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", ActivityType: "command", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "d", Name: "d", CanonicalName: "d", Groups: []string{}}, InputTarget: "d", TransformedName: "d", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "generic", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "x", CommandSHA256: "x", Status: "success", OutputEncoding: enc, OutputBytes: int64(len(raw)), OutputSHA256: src.digest, Notices: []records.Notice{}}
 	_, err = s.AppendRecord(&r, src)
 	if errorcodes.Of(err) != "output_spool_mismatch" || !strings.Contains(err.Error(), src.path) {
 		t.Fatalf("append = %v", err)
@@ -166,7 +166,7 @@ func TestSpooledRecordFilesEqualTheStringForm(t *testing.T) {
 		// timeout's device is a failure, so a second device's success gives
 		// the collection block.
 		ok := base()
-		ok.RecordID, ok.Status, ok.Error, ok.OutputSHA256 = "r2", "succeeded", nil, r.OutputSHA256
+		ok.RecordID, ok.Status, ok.Error, ok.OutputSHA256 = "r2", "success", nil, r.OutputSHA256
 		ok.Device = records.DeviceProjection{ID: "e", Name: "e", CanonicalName: "e", Groups: []string{}}
 		ok.InputTarget, ok.TransformedName = "e", "e"
 		var second Notice

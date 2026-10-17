@@ -57,7 +57,7 @@ func TestHostKeyEnrolledOnTheFirstRecord(t *testing.T) {
 	}
 	h := native()
 	_, recs := h.run(context.Background())
-	if len(recs) != 2 || recs[0].Status != "succeeded" {
+	if len(recs) != 2 || recs[0].Status != "success" {
 		t.Fatalf("records %+v, first error %+v", recs, recs[0].Error)
 	}
 	want := []records.Notice{{Code: "host_key_enrolled", Message: "ssh accepted new host-key " + recs[0].Device.CanonicalName + " (ED25519)", Details: map[string]any{"key_type": "ED25519"}}}
@@ -145,7 +145,7 @@ func TestHostKeyMismatchAcceptedOnTheFirstRecord(t *testing.T) {
 	h.target.Device.Port = uint16(srv.Port())
 	h.exec.opts.Commands = []string{"show clock", "show version"}
 	_, recs := h.run(context.Background())
-	if len(recs) != 2 || recs[0].Status != "succeeded" {
+	if len(recs) != 2 || recs[0].Status != "success" {
 		t.Fatalf("records %+v", recs)
 	}
 	var found []records.Notice

@@ -57,14 +57,14 @@ func TestHeartbeatRewritesTheSnapshot(t *testing.T) {
 	beatsAtStop := beats
 	final := state
 	ended := time.Now()
-	final.Status, final.EndedAt, final.LastUpdatedAt = "completed", &ended, ended
+	final.Status, final.EndedAt, final.LastUpdatedAt = "complete", &ended, ended
 	final.Counts = records.Counts{Total: 1, Completed: 1, Succeeded: 1}
-	final.Targets[0].State = records.TargetSucceeded
+	final.Targets[0].State = records.TargetSuccess
 	if err := w.Write(final); err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(60 * time.Millisecond)
-	if got := read(); got.Status != "completed" || beats != beatsAtStop {
+	if got := read(); got.Status != "complete" || beats != beatsAtStop {
 		t.Fatalf("after stop: status %s, beats %d then %d", got.Status, beatsAtStop, beats)
 	}
 	// A disabled writer beats nothing and stop is a no-op.

@@ -134,16 +134,16 @@ func determineExit(activityType string, d dispatch.Summary, outputErr, contextEr
 func finalScoreboardStatus(code int, d dispatch.Summary) string {
 	switch code {
 	case exitcode.ExitSuccess:
-		return "completed"
+		return "complete"
 	case exitcode.ExitHaltErrorCount, exitcode.ExitHaltErrorPercent, exitcode.ExitWaveGateErrorCount, exitcode.ExitWaveGateErrorPercent, exitcode.ExitHaltHostKeyMismatch:
-		return "halted"
+		return "halt"
 	case exitcode.ExitCancelled:
-		return "cancelled"
+		return "cancel"
 	case exitcode.ExitShutdownIncomplete:
 		return "incomplete"
 	default:
 		_ = d
-		return "errored"
+		return "error"
 	}
 }
 
@@ -207,7 +207,7 @@ func cutShort(summary dispatch.Summary, shutdown error, cancelled bool) (code, c
 	case shutdown != nil:
 		return "shutdown_incomplete", "incomplete"
 	case cancelled || summary.HaltReason == "cancelled":
-		return "cancelled", "cancelled"
+		return "cancelled", "cancel"
 	}
 	return "", ""
 }
@@ -230,9 +230,9 @@ func deviceOutcomes(devices []records.SummaryDevice, targets []executionplan.Exe
 		r, ran := results[t.TargetID]
 		switch {
 		case ran && r.Success:
-			outcome = "succeeded"
+			outcome = "success"
 		case ran && (code == "" || r.ErrorCode != code):
-			outcome = "failed"
+			outcome = "fail"
 		case category != "":
 			outcome = category
 		}

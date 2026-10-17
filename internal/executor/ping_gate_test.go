@@ -197,7 +197,7 @@ func TestGateSkipsAnUnreachableTargetWithoutATransport(t *testing.T) {
 				}
 			}
 			s := h.exec.PingSummary()
-			if s == nil || !s.Enabled || s.Devices[records.PingDevicesGated] != 1 || s.Devices[records.PingDevicesSkipped] != 1 || s.ProbesSent != 2 || s.Replies != 0 || s.Timeouts+s.Errors != 2 {
+			if s == nil || !s.Enabled || s.Devices[records.PingDevicesGated] != 1 || s.Devices[records.PingDevicesSkip] != 1 || s.ProbesSent != 2 || s.Replies != 0 || s.Timeouts+s.Errors != 2 {
 				t.Errorf("summary %+v", s)
 			}
 		})
@@ -249,7 +249,7 @@ func TestGateProceedsOnOneOrTwoReplies(t *testing.T) {
 			if tc.notices == 1 {
 				degraded = 1
 			}
-			if s.Devices[records.PingDevicesGated] != 1 || s.Devices[records.PingDevicesDegraded] != degraded || s.Devices[records.PingDevicesProceeded] != 1-degraded || s.Replies != 2-degraded {
+			if s.Devices[records.PingDevicesGated] != 1 || s.Devices[records.PingDevicesProceedDegraded] != degraded || s.Devices[records.PingDevicesProceed] != 1-degraded || s.Replies != 2-degraded {
 				t.Errorf("summary %+v", s)
 			}
 		})
@@ -271,7 +271,7 @@ func TestGateCapabilityFailureMidJobFailsTheDeviceAlone(t *testing.T) {
 	if first.Ping == nil || first.Ping.Decision != records.PingDecisionCapabilityUnavailable || len(first.Ping.Outcomes) != 2 || first.Ping.Outcomes[0].Status != icmpgate.StatusError {
 		t.Errorf("ping %+v", first.Ping)
 	}
-	if s := h.exec.PingSummary(); s.Devices[records.PingDevicesCapabilityFailed] != 1 || s.ProbesSent != 0 {
+	if s := h.exec.PingSummary(); s.Devices[records.PingDevicesCapabilityUnavailable] != 1 || s.ProbesSent != 0 {
 		t.Errorf("summary %+v", s)
 	}
 }
@@ -308,7 +308,7 @@ func TestGateCancelledDuringProbesTakesTheCancelledPath(t *testing.T) {
 		t.Errorf("result %+v transport attempted=%v", res, h.transportAttempted())
 	}
 	for i, r := range recs {
-		if r.Status != "cancelled" {
+		if r.Status != "cancel" {
 			t.Errorf("record %d status %s", i+1, r.Status)
 		}
 	}

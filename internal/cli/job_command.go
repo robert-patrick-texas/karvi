@@ -93,10 +93,10 @@ func listRows(entries []app.JobListEntry) []watchui.ListRow {
 				r.Total = n
 			}
 			r.Completed = r.Total
-			if n, ok := s.DeviceCounts["completed"]; ok {
+			if n, ok := s.DeviceCounts["done"]; ok {
 				r.Completed = n
 			}
-			r.Fails = s.DeviceCounts["failed"]
+			r.Fails = s.DeviceCounts["fail"]
 		}
 		for _, d := range s.Devices {
 			r.Devices = append(r.Devices, d.Name)

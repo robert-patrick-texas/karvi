@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record-v3.json",
-  "title": "karvi per-command record schema 3",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/command-record-v4.json",
+  "title": "karvi per-command record schema 4",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -50,7 +50,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": 3
+      "const": 4
     },
     "record_id": {
       "type": "string",
@@ -261,7 +261,7 @@
     },
     "status": {
       "enum": [
-        "succeeded",
+        "success",
         "device_error",
         "connection_error",
         "authentication_error",
@@ -273,7 +273,7 @@
         "not_attempted_session_init_failure",
         "not_started_halt",
         "not_started_wave_gate",
-        "cancelled",
+        "cancel",
         "incomplete_shutdown",
         "incomplete_daemon_recovery",
         "icmp_unreachable",

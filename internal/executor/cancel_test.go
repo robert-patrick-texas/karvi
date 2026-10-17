@@ -104,7 +104,7 @@ func TestInterruptMidCommandRecordsTheCommandInFlightCancelled(t *testing.T) {
 		t.Fatalf("%d records, want %d", len(recs), len(plantest.Commands))
 	}
 	for i, r := range recs {
-		if r.Status != "cancelled" || r.Error == nil || r.Error.Code != "cancelled" || r.Error.Category != "shutdown" {
+		if r.Status != "cancel" || r.Error == nil || r.Error.Code != "cancelled" || r.Error.Category != "shutdown" {
 			t.Errorf("record %d: status=%s error=%+v, want cancelled with code cancelled", i+1, r.Status, r.Error)
 		}
 	}
@@ -127,7 +127,7 @@ func TestCancelJobCauseCarriesTheReasonIntoEveryRecord(t *testing.T) {
 	}
 	want := "the job was cancelled by the operator: wrong change window"
 	for i, r := range recs {
-		if r.Status != "cancelled" || r.Error == nil || r.Error.Code != "cancelled" || r.Error.Message != want {
+		if r.Status != "cancel" || r.Error == nil || r.Error.Code != "cancelled" || r.Error.Message != want {
 			t.Errorf("record %d: status=%s error=%+v, want cancelled with message %q", i+1, r.Status, r.Error, want)
 		}
 	}
@@ -151,7 +151,7 @@ func TestCancelCauseDistinguishesTheThreeCancellations(t *testing.T) {
 		t.Error("a shutdown cause reads as a job cancel")
 	}
 	status, code, cause := cancelStatus(job)
-	if status != "cancelled" || code != "cancelled" || errorcodes.Of(cause) != "cancelled" || bareMessage(cause) != "the job was cancelled by the operator: x" {
+	if status != "cancel" || code != "cancelled" || errorcodes.Of(cause) != "cancelled" || bareMessage(cause) != "the job was cancelled by the operator: x" {
 		t.Errorf("cancelStatus(job) = %s %s %v", status, code, cause)
 	}
 	if status, code, _ := cancelStatus(down); status != "incomplete_shutdown" || code != "shutdown_incomplete" {

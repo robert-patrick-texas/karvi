@@ -85,7 +85,7 @@ func TestCrunDryRunListsPerPlatform(t *testing.T) {
 	}
 	out := stdout.String()
 	wd, _ := os.Getwd()
-	for _, want := range []string{"outcome: planned", "commands: 2 (", "collection: " + filepath.Join(wd, "configs") + " (file mode 0660)", "- name:127.0.0.1: planned", "  commands: show version; show clock"} {
+	for _, want := range []string{"outcome: plan", "commands: 2 (", "collection: " + filepath.Join(wd, "configs") + " (file mode 0660)", "- name:127.0.0.1: planned", "  commands: show version; show clock"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("report lacks %q:\n%s", want, out)
 		}

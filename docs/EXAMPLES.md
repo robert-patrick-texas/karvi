@@ -12904,6 +12904,58 @@ said `informational`. *Not taken:* the audit translating its words alone
 compound causes shortened now (forms like `not_attempt_…`; item 20 shortens
 them whole).
 
+**Issue 7's list, agreed.** S3 listed every past-tense word karvi writes as an
+outcome, a status, or a count named after one, and the operator agreed it
+whole. The rule's eight words change wherever they stand: `succeeded` (the
+command record's `status`, the summary's `devices[].outcome`, the scoreboard's
+`targets[].state`, `job list --target`'s OUTCOME, the audit's `<kind>.command`
+and `crun.after`), `completed` and `errored` (the summary's `final_status`, the
+scoreboard's `status`, `job list`'s and `watch`'s STATUS, the audit's
+`<kind>.end`, a login's status and `login.end`), `failed` (where `succeeded`
+stands but in the command record and its event), `cancelled` (in every one of
+them), `halted` (where `completed` stands but a login's), `exercised` (where
+`halted` stands, and the plan report's `outcome`); `started` stood nowhere once
+S1 left a start without an outcome. Beyond the eight:
+
+- The counts named after outcomes, the summary's `device_counts` and the
+  scoreboard's `counts`, take their outcomes' words: `success`, `fail`,
+  `cancel`. Their `completed` counts the devices at an end, whatever the
+  outcome, and is `job list`'s DONE: it becomes `done`, since `complete` would
+  read as the job's success. `total`, `not_started`, `incomplete`, and
+  `in_flight` stay.
+- The collection's `replaced` and `kept` (the summary's `collection`, its
+  counts and each device's `outcome`, the scoreboard's `collection`, the
+  display's `<replaced>` and `<kept>`, `crun.after`'s details) become
+  `replace` and `keep`, the counts named alike; the hook's environment, found
+  while building, follows on the operator's word: `KARVI_CRUN_REPLACE` and
+  `KARVI_CRUN_KEEP`.
+- The ping gate's counts in the summary's `ping.devices`, `proceeded`,
+  `degraded`, `skipped`, and `capability_failed`, count the record's
+  `ping.decision` and take its words: `proceed`, `proceed_degraded`, `skip`,
+  `capability_unavailable`; `gated`, every device the gate saw, names no
+  outcome and stays. The display's ping line says `proceed` or `skip`, where it
+  said `proceeding` or `skipped`.
+- The plan report's `outcome` takes `plan` for `planned`, so that one field
+  holds one tense (`plan`, `invalid`, `exercise`, `not_ready`); its readiness
+  and binding states (`planned`, `deferred`, `bound`, `unresolved`,
+  `resolution_failed`, `deferred_to_exercise_or_live_prepare`) are planning
+  states, no outcome, and wait for item 20.
+
+What stays: `unfinished`, `job list`'s word for a job not yet at its end, a
+state as `incomplete` is; the scoreboard's `metrics.finished`, a count of the
+devices timed; the error registry's codes and the halt reasons drawn from them
+(a record's `error.code` `cancelled`, the summary's `halt.run_wide` and
+`terminal_causes` `halt:cancelled`, the audit's `result.reason`), item 20's
+with every `*_failed` code, so that a cancelled record reads `status: cancel`
+beside `error.code: cancelled`; `job list --failed`, an option; the daemon's
+log and `karvi-prune`'s report, outside the records the rule names; and the
+compound causes, as the rule has them. The command record's schema moves to 4,
+the job summary's to 5, the scoreboard's to 4 (its schema file, which said 2
+and left out `metrics.in_flight_bytes`, corrected with it), and the plan
+report's to 3. Found on the way: the display gives a `<status>` value the
+success role only when it holds `success` or `completed`, so a record's
+`succeeded` showed in the error role; `success` and `complete` take it now.
+
 **Issue 8, the mask.** Issue 4's mask: the platform definition's key for the
 list, `cisco_iosxe`'s built-in words, and what stands for a masked value;
 settled with examples before the section that builds it.

@@ -117,7 +117,7 @@ func TestRunDryRunAgainstADaemon(t *testing.T) {
 		t.Fatal(err)
 	}
 	canarytest.SchemaParity(t, planReportSchema, report)
-	if report.Kind != records.ReportInspection || report.Outcome != records.OutcomePlanned || report.JobSubmitted || report.TargetDataSubmitted || report.DeviceContacted || report.NextOperation != records.NextCommitLiveJob {
+	if report.Kind != records.ReportInspection || report.Outcome != records.OutcomePlan || report.JobSubmitted || report.TargetDataSubmitted || report.DeviceContacted || report.NextOperation != records.NextCommitLiveJob {
 		t.Fatalf("report shape: kind=%s outcome=%s submitted=%t/%t contacted=%t next=%s", report.Kind, report.Outcome, report.JobSubmitted, report.TargetDataSubmitted, report.DeviceContacted, report.NextOperation)
 	}
 	if len(report.Daemons) != 1 || report.Daemons[0].Status != executionplan.DaemonRunning || !report.Daemons[0].Reachable || report.Daemons[0].AutoLaunched || report.Daemons[0].IPCSchemaVersion != ipc.SchemaVersion {
@@ -167,7 +167,7 @@ func TestRunDryRunWithoutADaemon(t *testing.T) {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
 	out := stdout.String()
-	for _, want := range []string{"outcome: planned", "daemon local: absent", "finding: info daemon_absent", "- name:127.0.0.1: planned", "- name:core-a.example: deferred", "credential: <deferred_to_exercise_or_live_prepare>", "next: commit_live_job"} {
+	for _, want := range []string{"outcome: plan", "daemon local: absent", "finding: info daemon_absent", "- name:127.0.0.1: planned", "- name:core-a.example: deferred", "credential: <deferred_to_exercise_or_live_prepare>", "next: commit_live_job"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("text report lacks %q:\n%s", want, out)
 		}
@@ -299,7 +299,7 @@ func TestRunDryRunBesideAnotherBuild(t *testing.T) {
 			if err := report.Validate(); err != nil {
 				t.Fatal(err)
 			}
-			wantOutcome := records.OutcomePlanned
+			wantOutcome := records.OutcomePlan
 			if wantExit != 0 {
 				wantOutcome = records.OutcomeInvalid
 			}

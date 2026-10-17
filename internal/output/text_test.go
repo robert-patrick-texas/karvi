@@ -56,9 +56,9 @@ func TestTextFileOfASession(t *testing.T) {
 		return r
 	}
 	session := []*records.CommandRecord{
-		rec("r1#", "show clock", "succeeded", "*10:00:00.000 UTC Tue Sep 15 2026\n", nil),
-		rec("r1#", "configure terminal", "succeeded", "Enter configuration commands, one per line.  End with CNTL/Z.\n", nil),
-		rec("r1(config)#", "end", "succeeded", "", nil),
+		rec("r1#", "show clock", "success", "*10:00:00.000 UTC Tue Sep 15 2026\n", nil),
+		rec("r1#", "configure terminal", "success", "Enter configuration commands, one per line.  End with CNTL/Z.\n", nil),
+		rec("r1(config)#", "end", "success", "", nil),
 		rec("r1#", "show bogus", "device_error", "     ^\n% Invalid input detected at '^' marker.\n", &records.StructuredError{Code: "device_command_error", Message: "device reported a command error"}),
 		rec("r1#", "show slow", "timeout", "partial", &records.StructuredError{Code: "command_timeout", Message: "command timed out after 2s\nwhile waiting"}),
 		rec("", "show version", "not_attempted_prior_command_failure", "", nil),
@@ -144,7 +144,7 @@ func TestTextBlockDecodesABase64Output(t *testing.T) {
 		t.Fatalf("encoding %q", encoding)
 	}
 	var b bytes.Buffer
-	if err := WriteTextBlock(&b, &records.CommandRecord{PromptBefore: "r1#", Command: "show odd", Status: "succeeded", Output: text, OutputEncoding: encoding}, Source{text: text, encoding: encoding}); err != nil {
+	if err := WriteTextBlock(&b, &records.CommandRecord{PromptBefore: "r1#", Command: "show odd", Status: "success", Output: text, OutputEncoding: encoding}, Source{text: text, encoding: encoding}); err != nil {
 		t.Fatal(err)
 	}
 	if want := "r1#show odd\n" + string(raw) + "\n"; b.String() != want {
@@ -162,7 +162,7 @@ func (s *stringWriter) WriteString(v string) (int, error) { s.asString += len(v)
 // string: the text file makes no copy of a response.
 func TestTextBlockWritesALargeOutputWithoutACopy(t *testing.T) {
 	big := strings.Repeat("x", 5<<20) + "\n"
-	r := &records.CommandRecord{PromptBefore: "r1#", Command: "show big", Status: "succeeded", Output: big, OutputEncoding: "utf-8"}
+	r := &records.CommandRecord{PromptBefore: "r1#", Command: "show big", Status: "success", Output: big, OutputEncoding: "utf-8"}
 	var w stringWriter
 	allocs := testing.AllocsPerRun(5, func() {
 		if err := WriteTextBlock(&w, r, FromRecord(r)); err != nil {

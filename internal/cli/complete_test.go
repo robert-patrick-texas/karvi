@@ -88,7 +88,7 @@ func completionLab(t *testing.T) string {
 		t.Fatal(err)
 	}
 	now := time.Now()
-	for id, status := range map[string]string{"260925-101010-00": "running", "260925-090909-00": "completed"} {
+	for id, status := range map[string]string{"260925-101010-00": "running", "260925-090909-00": "complete"} {
 		snap := records.ScoreboardSnapshot{SchemaVersion: 2, ActivityID: id, JobID: id, Mode: "run", Status: status, StartedAt: now, LastUpdatedAt: now}
 		data, _ := json.Marshal(snap)
 		if err := os.WriteFile(filepath.Join(score, id+".json"), data, 0o600); err != nil {

@@ -69,7 +69,7 @@ func finished(id, kind, status string, exit int, devices ...string) string {
 		name, outcome, _ := strings.Cut(d, ":")
 		list = append(list, `{"name":"`+name+`","outcome":"`+outcome+`"}`)
 	}
-	return `{"schema_version":4,"job_id":"` + id + `","kind":"` + kind + `","devices":[` + strings.Join(list, ",") + `],"final_status":"` + status + `","primary_exit_code":` + strconv.Itoa(exit) + `,"device_counts":{"total":` + strconv.Itoa(len(devices)) + `}}`
+	return `{"schema_version":5,"job_id":"` + id + `","kind":"` + kind + `","devices":[` + strings.Join(list, ",") + `],"final_status":"` + status + `","primary_exit_code":` + strconv.Itoa(exit) + `,"device_counts":{"total":` + strconv.Itoa(len(devices)) + `}}`
 }
 
 // unfinished is an accepted summary: devices without their outcomes.
@@ -78,7 +78,7 @@ func unfinished(id string, devices ...string) string {
 	for _, d := range devices {
 		list = append(list, `{"name":"`+d+`"}`)
 	}
-	return `{"schema_version":4,"job_id":"` + id + `","kind":"run","devices":[` + strings.Join(list, ",") + `]}`
+	return `{"schema_version":5,"job_id":"` + id + `","kind":"run","devices":[` + strings.Join(list, ",") + `]}`
 }
 
 func ids(entries []JobListEntry) string {
@@ -106,10 +106,10 @@ func TestListJobsOrderAndCount(t *testing.T) {
 	if got := l.list(JobListOptions{Last: 20}); got == nil || len(got) != 0 {
 		t.Fatalf("a root not yet made: %v", got)
 	}
-	l.job("261016-091500-00", finished("261016-091500-00", "run", "completed", 0, "a:succeeded"))
-	l.job("261015-151448-00", finished("261015-151448-00", "cmd", "completed", 0, "a:succeeded"))
-	l.job("261015-151533-00", finished("261015-151533-00", "crun", "completed", 0, "a:succeeded"))
-	l.job("261015-151449-01", finished("261015-151449-01", "run", "errored", 101, "a:succeeded", "b:failed"))
+	l.job("261016-091500-00", finished("261016-091500-00", "run", "complete", 0, "a:success"))
+	l.job("261015-151448-00", finished("261015-151448-00", "cmd", "complete", 0, "a:success"))
+	l.job("261015-151533-00", finished("261015-151533-00", "crun", "complete", 0, "a:success"))
+	l.job("261015-151449-01", finished("261015-151449-01", "run", "error", 101, "a:success", "b:fail"))
 	l.job("261015-151449-00", "")
 	os.MkdirAll(filepath.Join(l.root, "notaday", "261015-151449-02"), 0o700)
 	os.MkdirAll(filepath.Join(l.root, "261015", "scratch"), 0o700)
@@ -143,9 +143,9 @@ func TestListJobsOrderAndCount(t *testing.T) {
 func TestListJobsFilters(t *testing.T) {
 	l := newListTree(t)
 	l.job("261016-003707-00", unfinished("261016-003707-00", "fake-iosxe", "dead-iosxe"))
-	l.job("261016-002853-00", finished("261016-002853-00", "run", "errored", 101, "fake-iosxe:succeeded", "dead-iosxe:failed"))
-	l.job("261016-002800-00", finished("261016-002800-00", "run", "cancelled", 113, "core-1:cancelled"))
-	l.job("261016-002700-00", finished("261016-002700-00", "cmd", "completed", 0, "dead-iosxe:succeeded"))
+	l.job("261016-002853-00", finished("261016-002853-00", "run", "error", 101, "fake-iosxe:success", "dead-iosxe:fail"))
+	l.job("261016-002800-00", finished("261016-002800-00", "run", "cancel", 113, "core-1:cancel"))
+	l.job("261016-002700-00", finished("261016-002700-00", "cmd", "complete", 0, "dead-iosxe:success"))
 	if got := ids(l.list(JobListOptions{Failed: true})); got != "261016-002853-00 261016-002800-00" {
 		t.Errorf("--failed: %s", got)
 	}
@@ -159,7 +159,7 @@ func TestListJobsFilters(t *testing.T) {
 	if got := ids(rows); got != "261016-003707-00/fake-iosxe 261016-002853-00/fake-iosxe" {
 		t.Errorf("--target *-iosxe --target !dead*: %s", got)
 	}
-	if rows[0].Device.Outcome != "" || rows[1].Device.Outcome != "succeeded" {
+	if rows[0].Device.Outcome != "" || rows[1].Device.Outcome != "success" {
 		t.Errorf("outcomes: %+v %+v", rows[0].Device, rows[1].Device)
 	}
 	if got := ids(l.list(JobListOptions{Targets: []string{"*"}, Last: 3})); got != "261016-003707-00/fake-iosxe 261016-003707-00/dead-iosxe 261016-002853-00/fake-iosxe" {
@@ -192,10 +192,10 @@ func TestListJobsUnreadable(t *testing.T) {
 		t.Skip("root reads every file")
 	}
 	l := newListTree(t)
-	a := l.job("261016-003305-00", finished("261016-003305-00", "run", "completed", 0, "a:succeeded"))
-	b := l.job("261016-003307-00", `{"schema_version":4,"job_id":`)
-	c := l.job("261016-003309-00", finished("261016-003309-00", "run", "completed", 0, "a:succeeded"))
-	l.job("261016-003000-00", finished("261016-003000-00", "run", "completed", 0, "a:succeeded"))
+	a := l.job("261016-003305-00", finished("261016-003305-00", "run", "complete", 0, "a:success"))
+	b := l.job("261016-003307-00", `{"schema_version":5,"job_id":`)
+	c := l.job("261016-003309-00", finished("261016-003309-00", "run", "complete", 0, "a:success"))
+	l.job("261016-003000-00", finished("261016-003000-00", "run", "complete", 0, "a:success"))
 	os.Chmod(filepath.Join(a, "summary.json"), 0)
 	os.Chmod(c, 0)
 	t.Cleanup(func() { os.Chmod(c, 0o700) })
@@ -228,7 +228,7 @@ func TestListJobsUnreadable(t *testing.T) {
 func TestJobListEntryJSON(t *testing.T) {
 	l := newListTree(t)
 	l.job("261016-003707-00", unfinished("261016-003707-00", "fake-iosxe"))
-	l.job("261016-002853-00", "{\n  \"schema_version\": 4,\n  \"job_id\": \"261016-002853-00\",\n  \"kind\": \"run\",\n  \"devices\": [{\"name\": \"fake-iosxe\", \"outcome\": \"failed\"}],\n  \"final_status\": \"errored\",\n  \"primary_exit_code\": 101\n}\n")
+	l.job("261016-002853-00", "{\n  \"schema_version\": 5,\n  \"job_id\": \"261016-002853-00\",\n  \"kind\": \"run\",\n  \"devices\": [{\"name\": \"fake-iosxe\", \"outcome\": \"fail\"}],\n  \"final_status\": \"error\",\n  \"primary_exit_code\": 101\n}\n")
 	l.job("261016-002800-00", "")
 	me := `"operator":{"username":"` + l.me.Username + `","uid":` + l.me.Uid + `}`
 	b, err := json.Marshal(l.list(JobListOptions{}))
@@ -236,14 +236,14 @@ func TestJobListEntryJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := func(id string) string { return filepath.Join(l.root, "261016", id) }
-	want := `[{"schema_version":4,"job_id":"261016-003707-00","kind":"run","devices":[{"name":"fake-iosxe"}],"path":"` + dir("261016-003707-00") + `",` + me + `},` +
-		`{"schema_version":4,"job_id":"261016-002853-00","kind":"run","devices":[{"name":"fake-iosxe","outcome":"failed"}],"final_status":"errored","primary_exit_code":101,"path":"` + dir("261016-002853-00") + `",` + me + `},` +
+	want := `[{"schema_version":5,"job_id":"261016-003707-00","kind":"run","devices":[{"name":"fake-iosxe"}],"path":"` + dir("261016-003707-00") + `",` + me + `},` +
+		`{"schema_version":5,"job_id":"261016-002853-00","kind":"run","devices":[{"name":"fake-iosxe","outcome":"fail"}],"final_status":"error","primary_exit_code":101,"path":"` + dir("261016-002853-00") + `",` + me + `},` +
 		`{"path":"` + dir("261016-002800-00") + `",` + me + `}]`
 	if string(b) != want {
 		t.Errorf("rows:\n%s\nwant\n%s", b, want)
 	}
 	b, _ = json.Marshal(l.list(JobListOptions{Targets: []string{"fake*"}, Last: 2}))
-	if s := string(b); !strings.Contains(s, me+`,"device":"fake-iosxe"}`) || !strings.Contains(s, me+`,"device":"fake-iosxe","outcome":"failed"}`) {
+	if s := string(b); !strings.Contains(s, me+`,"device":"fake-iosxe"}`) || !strings.Contains(s, me+`,"device":"fake-iosxe","outcome":"fail"}`) {
 		t.Errorf("device rows: %s", s)
 	}
 	e := JobListEntry{Path: "/jobs/x", Operator: l.list(JobListOptions{Last: 1})[0].Operator, Err: errorcodes.Errorf("run_output_records_unreadable", "read /jobs/x/summary.json: permission denied")}

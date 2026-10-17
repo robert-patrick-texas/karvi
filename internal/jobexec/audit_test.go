@@ -31,7 +31,7 @@ func TestJobEventStatements(t *testing.T) {
 	}
 	commands := []string{"show clock", `banner motd "a=b"`}
 	req := Request{Plan: executionplan.ExecutionPlan{PlanID: "p1", Commands: commands}, Config: cfg, Operator: credentials.Operator{Username: "tester", UID: 1001}, ActivityType: "run"}
-	for _, e := range [][2]string{{"start", ""}, {"cancel", ""}, {"end", "completed"}} {
+	for _, e := range [][2]string{{"start", ""}, {"cancel", ""}, {"end", "complete"}} {
 		if err := writeActivityAudit(sink, req, "261017-101500-00", e[0], e[1], 0, ""); err != nil {
 			t.Fatal(err)
 		}

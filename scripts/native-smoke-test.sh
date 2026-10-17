@@ -209,14 +209,14 @@ REJECTED=device_error:device_command_error
 COMBOS='command:system command:native run:system run:native daemon:system daemon:native'
 AUTH=keyboard-interactive
 parity_case 'S1 success, a rejected command, success under continue (the daemon path too)' accept-new cisco_iosxe "$BUILTIN" en '' \
-  "succeeded,$REJECTED,succeeded" 107 "$OPEN"'"show clock"|"show bogus"|"show version"|"exit"|' \
+  "success,$REJECTED,success" 107 "$OPEN"'"show clock"|"show bogus"|"show version"|"exit"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show bogus' --cmd 'show version'
 unset COMBOS AUTH
 parity_case 'S2 a rejected command under halt' accept-new cisco_iosxe "$BUILTIN" en '' \
-  "succeeded,$REJECTED,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
+  "success,$REJECTED,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show bogus' --cmd 'show version'
 parity_case 'S3 a timeout under continue' accept-new cisco_iosxe "$BUILTIN" en '-slow 10s' \
-  "succeeded,timeout:command_timeout,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show slow"|' \
+  "success,timeout:command_timeout,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show slow"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show slow' --cmd 'show version'
 parity_case 'S4 a session-init profile, fail-device' accept-new cisco_iosxe "$BUILTIN
 $PROFILE_FAIL" en '' \
@@ -224,13 +224,13 @@ $PROFILE_FAIL" en '' \
   -- --cmd 'show version' --cmd 'show clock'
 parity_case 'S5 a session-init profile, continue' accept-new cisco_iosxe "$BUILTIN
 $PROFILE_CONTINUE" en '' \
-  "$REJECTED,succeeded,succeeded,succeeded" 0 "$OPEN"'"show bogus"|"show clock"|"show version"|"show clock"|"exit"|' \
+  "$REJECTED,success,success,success" 0 "$OPEN"'"show bogus"|"show clock"|"show version"|"show clock"|"exit"|' \
   -- --cmd 'show version' --cmd 'show clock'
 parity_case 'S6 an alias of cisco_iosxe' accept-new c9300 "$ALIAS" en '' \
-  "succeeded,$REJECTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
+  "success,$REJECTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show bogus'
 parity_case 'S7 privilege 15 at login, no enable secret' accept-new cisco_iosxe "$BUILTIN" '' '-start-privileged' \
-  'succeeded,succeeded' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"show version"|"exit"|' \
+  'success,success' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"show version"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show version'
 parity_case 'S8 the device asks for an enable secret, none resolved' accept-new cisco_iosxe "$BUILTIN" '' '' \
   "privilege_error:privilege_failed,$NOT_ATTEMPTED" 107 '"enable"|' \
@@ -240,7 +240,7 @@ parity_case 'S9 a wrong enable secret' accept-new cisco_iosxe "$BUILTIN" wrong '
   -- --cmd 'show clock'
 parity_case 'S10 generic records a rejected command as it comes' accept-new generic '[platform.generic]
 ssh-port = PORT' '' '' \
-  'succeeded,succeeded' 0 '"show clock"|"show bogus"|"exit"|' \
+  'success,success' 0 '"show clock"|"show bogus"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show bogus'
 parity_case 'S11 the output limit' accept-new cisco_iosxe "$BUILTIN
 [output]
@@ -252,7 +252,7 @@ parity_case 'S12a the legacy device under the defaults' accept-new cisco_iosxe "
   -- --cmd 'show clock'
 parity_case 'S12b the legacy device through an algorithm profile' accept-new cisco_iosxe "$BUILTIN
 $ALGORITHM_PROFILE" en "$LEGACY" \
-  'succeeded,succeeded' 0 "$OPEN"'"show clock"|"show version"|"exit"|' \
+  'success,success' 0 "$OPEN"'"show clock"|"show version"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show version'
 PASS=bad
 parity_case 'S13 a rejected password' accept-new cisco_iosxe "$BUILTIN" en '' \
@@ -274,7 +274,7 @@ OPERATOR=$(id -un)
 SSH="identities = [\"$TMP/stranger\", \"$TMP/opkey\"]"
 KEYLOGIN=$OPKEY AUTH=publickey
 parity_case 'S13b a login by the operator'"'"'s key, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
-  'succeeded' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
+  'success' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
   -- --cmd 'show clock'
 SSH="identities = [\"$TMP/stranger\"]"
 KEYLOGIN= AUTH=
@@ -287,7 +287,7 @@ unset SSH KEYLOGIN AUTH
 # takes the password method.
 AUTH=password
 parity_case 'S13d a server without keyboard-interactive takes the password method' accept-new cisco_iosxe "$BUILTIN" en '-no-keyboard-interactive' \
-  'succeeded' 0 "$OPEN"'"show clock"|"exit"|' \
+  'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 unset AUTH
 
@@ -310,7 +310,7 @@ PIN='3.exit_signal=system:"unnamed";native:"TERM"
 3.error.message=system:"ended by signal unnamed";native:"ended by signal TERM"
 5.notices=system:'"$NOT_STOPPED"';native:[]'
 parity_case 'S35a exec: each way a command ends, under continue' accept-new linux "$LINUX" '' "$LINUXFLAGS" \
-  'succeeded,succeeded,device_error:command_exit_nonzero,device_error:command_exit_signal,device_error:command_exit_missing,timeout:command_timeout,device_error:command_exit_nonzero,succeeded' 107 \
+  'success,success,device_error:command_exit_nonzero,device_error:command_exit_signal,device_error:command_exit_missing,timeout:command_timeout,device_error:command_exit_nonzero,success' 107 \
   '"exec: uname -snrm"|"exec: both"|"exec: fail 3"|"exec: signal TERM"|"exec: nostatus"|"exec: slow"|"exec: ls /nonexistent"|"exec: sudo -n id -u"|' \
   -- --continue-device-on-error --cmd 'uname -snrm' --cmd both --cmd 'fail 3' --cmd 'signal TERM' --cmd nostatus \
   --cmd slow --cmd 'ls /nonexistent' --cmd 'sudo -n id -u'
@@ -323,14 +323,14 @@ PIN='0.notices=system:'"${NOT_STOPPED%]},$ENROLLED]"';native:['"$ENROLLED"']
 parity_case 'S35b exec: the output limit across both streams, the connection serving the next' accept-new linux "$LINUX
 [output]
 max-command-bytes = 2000" '' "$LINUXFLAGS" \
-  'output_limit_exceeded:output_limit_exceeded,output_limit_exceeded:output_limit_exceeded,succeeded' 111 \
+  'output_limit_exceeded:output_limit_exceeded,output_limit_exceeded:output_limit_exceeded,success' 111 \
   '"exec: big"|"exec: bigerr"|"exec: uname -snrm"|' \
   -- --continue-device-on-error --cmd big --cmd bigerr --cmd 'uname -snrm'
 PIN=
 parity_case 'S35c exec: each stream spooled past the threshold' accept-new linux "$LINUX
 [output]
 spool-threshold-bytes = 4096" '' "$LINUXFLAGS -big-lines 3000" \
-  'succeeded,succeeded,succeeded' 0 '"exec: big"|"exec: bigerr"|"exec: both"|' \
+  'success,success,success' 0 '"exec: big"|"exec: bigerr"|"exec: both"|' \
   -- --cmd big --cmd bigerr --cmd both
 CHANNELS=1
 parity_case 'S35d exec: sudo refused, under halt' accept-new linux "$LINUX" '' "$LINUXFLAGS -sudo-asks" \
@@ -339,7 +339,7 @@ parity_case 'S35d exec: sudo refused, under halt' accept-new linux "$LINUX" '' "
 CHANNELS=
 parity_case 'S35e linux_shell over the Linux persona'"'"'s shell, with bash'"'"'s decorations' accept-new linux_shell '[platform.linux_shell]
 ssh-port = PORT' '' "$LINUXFLAGS -decorations" \
-  'succeeded,succeeded,succeeded,succeeded' 0 '"uname -snrm"|"both"|"fail 3"|"ls /nonexistent"|"exit"|' \
+  'success,success,success,success' 0 '"uname -snrm"|"both"|"fail 3"|"ls /nonexistent"|"exit"|' \
   -- --continue-device-on-error --cmd 'uname -snrm' --cmd both --cmd 'fail 3' --cmd 'ls /nonexistent'
 unset SSH KEYLOGIN AUTH
 # The IOS XE persona refuses every exec request: an alias asking for exec
@@ -366,7 +366,7 @@ parity_case 'S14b secure, another key enrolled under the identity' secure cisco_
 KEYSCAN=1
 WARNING='! ssh host-key mismatch fake-iosxe proceeding at risk'
 parity_case 'S14c insecure, another key enrolled (the mismatch warning)' insecure cisco_iosxe "$BUILTIN" en '' \
-  'succeeded' 0 "$OPEN"'"show clock"|"exit"|' \
+  'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 unset OTHERKEY KEYSCAN WARNING
 
@@ -393,7 +393,7 @@ cross_pair() {  # label, enrolling activity:transport, reading activity:transpor
   stop_fake
   grep -q '^connections=2 sessions=2$' "$TMP/fake.err" || fail "$label: $(grep '^connections=' "$TMP/fake.err"), expected two connections and two shells"
   # shellcheck disable=SC2086
-  result=$("$TMP/bin/paritycheck" -expect succeeded -pin "$4" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
+  result=$("$TMP/bin/paritycheck" -expect success -pin "$4" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
   echo "native smoke: $label: $result"
 }
 cross_pair 'S14d system enrolls, scrapligo-v1 reads under secure' command:system run:native "0.notices=system:[$ENROLLED];native:[]"
@@ -416,7 +416,7 @@ parity_case 'S16 no privileged prompt within the enable timeout' accept-new cisc
 COMMAND_TIMEOUT=5s
 EXECUTION='device-timeout = "2s"'
 parity_case 'S17 the device timeout cuts the second command under continue' accept-new cisco_iosxe "$BUILTIN" en '-slow 1s' \
-  "succeeded,timeout:device_timeout,$NOT_ATTEMPTED" 107 "$OPEN"'"show slow"|"show slow"|' \
+  "success,timeout:device_timeout,$NOT_ATTEMPTED" 107 "$OPEN"'"show slow"|"show slow"|' \
   -- --continue-device-on-error --cmd 'show slow' --cmd 'show slow' --cmd 'show clock'
 unset COMMAND_TIMEOUT EXECUTION
 
@@ -431,7 +431,7 @@ parity_case 'S18 a device gone silent is ended by the keepalives' accept-new cis
 [native-ssh]
 keepalive-interval = \"1s\"
 keepalive-count-max = 1" en '' \
-  "succeeded,connection_error:session_keepalive_timeout,$NOT_ATTEMPTED" 110 "$OPEN"'"show clock"|"show mute"|' \
+  "success,connection_error:session_keepalive_timeout,$NOT_ATTEMPTED" 110 "$OPEN"'"show clock"|"show mute"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show mute' --cmd 'show version'
 unset COMMAND_TIMEOUT SSH
 
@@ -443,11 +443,11 @@ unset COMMAND_TIMEOUT SSH
 # lines), and never after `reload`, so the blind wait passes and the record
 # is a success with the notice, the session ended without exit.
 parity_case 'S19 a [confirm] answered by the escape, the prompt returns' accept-new cisco_iosxe "$BUILTIN" en '' \
-  'succeeded,succeeded' 0 "$OPEN"'"clear counters"|"<confirm>"|"show clock"|"exit"|' \
+  'success,success' 0 "$OPEN"'"clear counters"|"<confirm>"|"show clock"|"exit"|' \
   -- --cmd 'clear counters\r' --cmd 'show clock'
 EXECUTION='blind-wait = "1s"'
 parity_case 'S20 a [confirm] answered by the escape, the prompt never returns' accept-new cisco_iosxe "$BUILTIN" en '' \
-  'succeeded' 0 "$OPEN"'"reload"|"<confirm>"|' \
+  'success' 0 "$OPEN"'"reload"|"<confirm>"|' \
   -- --cmd 'reload\r'
 unset EXECUTION
 
@@ -466,17 +466,17 @@ unset EXECUTION
 # [confirm] alone is answered; either way the device goes quiet, the blind
 # wait passes, and the record is a success with the notice.
 parity_case 'S21 a value prompt answered by --expect, the prompt returns' accept-new cisco_iosxe "$BUILTIN" en '' \
-  'succeeded,succeeded' 0 "$OPEN"'"copy running-config startup-config"|"<value:>"|"show clock"|"exit"|' \
+  'success,success' 0 "$OPEN"'"copy running-config startup-config"|"<value:>"|"show clock"|"exit"|' \
   -- --cmd 'copy running-config startup-config' --expect 'filename \[startup-config\]\?=' --cmd 'show clock'
 parity_case 'S22 a mistyped pattern waits out the command timeout' accept-new cisco_iosxe "$BUILTIN" en '' \
   'timeout:command_timeout' 107 "$OPEN"'"copy running-config startup-config"|' \
   -- --cmd 'copy running-config startup-config' --expect 'Destinaton=x'
 EXECUTION='blind-wait = "1s"'
 parity_case 'S23 a blind reload with the save and confirm declarations, unsaved' accept-new cisco_iosxe "$BUILTIN" en '-unsaved' \
-  'succeeded' 0 "$OPEN"'"reload"|"<value:y>"|"<confirm>"|' \
+  'success' 0 "$OPEN"'"reload"|"<value:y>"|"<confirm>"|' \
   -- --cmd reload --blind --expect 'Save\? \[yes/no\]:=y' --expect 'confirm\]='
 parity_case 'S24 a blind reload with the save and confirm declarations, saved' accept-new cisco_iosxe "$BUILTIN" en '' \
-  'succeeded' 0 "$OPEN"'"reload"|"<confirm>"|' \
+  'success' 0 "$OPEN"'"reload"|"<confirm>"|' \
   -- --cmd reload --blind --expect 'Save\? \[yes/no\]:=y' --expect 'confirm\]='
 unset EXECUTION
 
@@ -491,7 +491,7 @@ driver = "cisco_iosxe"
 ssh-port = PORT
 paging-commands = ["terminal length 0"]'
 parity_case 'S25 an alias with its own paging-commands sends one paging line' accept-new c9300 "$ALIAS_PAGING" en '' \
-  'succeeded' 0 '"enable"|"<secret>"|"terminal length 0"|"show clock"|"exit"|' \
+  'success' 0 '"enable"|"<secret>"|"terminal length 0"|"show clock"|"exit"|' \
   -- --cmd 'show clock'
 
 # S30: start statements for generic devices.
@@ -510,7 +510,7 @@ ssh-port = PORT
 paging-commands = ["terminal length 0", "terminal width 512"]'
 WARNING='warning: platform_not_set: ' \
 parity_case 'S30 a platform-less row receives the generic table start statements' accept-new '' "$GENERIC_START" '' '' \
-  'succeeded' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
+  'success' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
   -- --cmd 'show clock'
 
 # S26: an unknown row platform under on-unknown = "warn". The row names
@@ -526,7 +526,7 @@ on-unknown = "warn"
 unknown-fallback = "cisco_iosxe"'
 WARNING='warning: platform_unknown_fallback: inventory source parity line 2: platform "cisco_iosx" is not a known platform; 1 device proceeds as cisco_iosxe (platform-resolution.unknown-fallback): fake-iosxe' \
 parity_case 'S26 an unknown row platform falls back under warn with the notice' accept-new cisco_iosx "$WARN_FALLBACK" en '' \
-  'succeeded' 0 "$OPEN"'"show clock"|"exit"|' \
+  'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S26 ]; then
   last=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
@@ -541,7 +541,7 @@ fi
 # last run's records.
 unset WARNING
 parity_case 'S27 promptbefore across a mode change, and a statement with no answer' accept-new cisco_iosxe "$BUILTIN" en '' \
-  'succeeded,succeeded,succeeded,succeeded' 0 "$OPEN"'"configure terminal"|"interface Loopback0"|"end"|"show clock"|"exit"|' \
+  'success,success,success,success' 0 "$OPEN"'"configure terminal"|"interface Loopback0"|"end"|"show clock"|"exit"|' \
   -- --cmd 'configure terminal' --cmd 'interface Loopback0' --cmd 'end' --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S27 ]; then
   last=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
@@ -637,7 +637,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S29 ]; then
     [ "$(wc -l <"$TMP/out.s29")" -eq "$s29_lines" ] || fail "S29 no output, $s29_activity: $(wc -l <"$TMP/out.s29") lines displayed, expected $s29_lines"
   done
   tail -1 "$TMP/out.s29" >"$TMP/s29.last"
-  json_is "$TMP/s29.last" final_status completed || fail "S29 no output, run: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
+  json_is "$TMP/s29.last" final_status complete || fail "S29 no output, run: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
   ! grep -q ' artifacts=' "$TMP/err.s29" || fail "S29 no output, run: a result line was printed: $(tail -1 "$TMP/err.s29")"
 
   job_run s29 daemon "$S29_NONE" '' --cmd 'show clock'
@@ -645,15 +645,15 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S29 ]; then
   [ -z "$JOB_DIR" ] || fail "S29 no output, daemon: a job folder was made: $JOB_DIR"
   [ "$(wc -l <"$TMP/out.s29")" -eq 2 ] || fail "S29 no output, daemon: $(wc -l <"$TMP/out.s29") lines displayed, expected the record and the summary"
   tail -1 "$TMP/out.s29" >"$TMP/s29.last"
-  json_is "$TMP/s29.last" final_status completed || fail "S29 no output, daemon: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
+  json_is "$TMP/s29.last" final_status complete || fail "S29 no output, daemon: the last line is not the summary: $(tail -1 "$TMP/out.s29")"
   ! grep -q ' artifacts=' "$TMP/err.s29" || fail "S29 no output, daemon: a result line was printed: $(tail -1 "$TMP/err.s29")"
   ! grep -q '^warning:' "$TMP/err.s29" || fail "S29 no output, daemon: a warning: $(grep '^warning:' "$TMP/err.s29" | head -1)"
 
   job_run s29 run "$S29_ALL" '' --cmd 'show clock'
   [ "$CODE" -eq 0 ] || fail "S29 seven false: exit $CODE"
   [ "$(job_files)" = 'summary.json ' ] || fail "S29 seven false: the folder holds $(job_files)"
-  json_is "$JOB_DIR/summary.json" final_status completed || fail "S29 seven false: the summary is $(json_get "$JOB_DIR/summary.json" final_status)"
-  json_is "$JOB_DIR/summary.json" devices '[{"name":"fake-iosxe","outcome":"succeeded"}]' || fail "S29 seven false: the summary's devices are $(json_get "$JOB_DIR/summary.json" devices)"
+  json_is "$JOB_DIR/summary.json" final_status complete || fail "S29 seven false: the summary is $(json_get "$JOB_DIR/summary.json" final_status)"
+  json_is "$JOB_DIR/summary.json" devices '[{"name":"fake-iosxe","outcome":"success"}]' || fail "S29 seven false: the summary's devices are $(json_get "$JOB_DIR/summary.json" devices)"
 
   job_run s29 run '[output.files]
 commands-jsonl = false
@@ -695,9 +695,9 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S32 ]; then
   [ -z "$JOB_DIR" ] || fail "S32 --nof: a job folder was made: $JOB_DIR"
   [ "$(wc -l <"$TMP/out.s32")" -eq 3 ] || fail "S32 --nof: $(wc -l <"$TMP/out.s32") lines displayed, expected two records and the summary"
   sed -n 1p "$TMP/out.s32" >"$TMP/s32.first"
-  json_is "$TMP/s32.first" status succeeded || fail "S32 --nof: the first record is $(json_get "$TMP/s32.first" status)"
+  json_is "$TMP/s32.first" status success || fail "S32 --nof: the first record is $(json_get "$TMP/s32.first" status)"
   tail -1 "$TMP/out.s32" >"$TMP/s32.last"
-  json_is "$TMP/s32.last" final_status completed || fail "S32 --nof: the last line is not the summary: $(tail -1 "$TMP/out.s32")"
+  json_is "$TMP/s32.last" final_status complete || fail "S32 --nof: the last line is not the summary: $(tail -1 "$TMP/out.s32")"
   ! grep -q ' artifacts=' "$TMP/err.s32" || fail "S32 --nof: a result line was printed: $(tail -1 "$TMP/err.s32")"
   job_run s32 daemon '' '' "--of=$TMP/of" --cmd 'show clock'
   [ "$CODE" -eq 0 ] || fail "S32 --of: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s32" | head -1)"
@@ -744,7 +744,7 @@ max-ipc-frame-bytes = 65536' '' --cmd 'show big' --cmd 'show clock'
     "output of 73000 bytes left out of the follow stream: the record's "*"-byte line is more than daemon.max-ipc-frame-bytes (65536) allows in a frame; the output is in commands.jsonl") ;;
     *) fail "S31: the notice's message is $(json_get "$TMP/s31.big" notices.1.message)" ;;
   esac
-  [ "$(json_get "$TMP/s31.clock" status)" = succeeded ] && [ "$(json_get "$TMP/s31.clock" notices.0.code 2>/dev/null)" = "" ] || fail "S31: the clock record is not whole: $(json_get "$TMP/s31.clock" notices)"
+  [ "$(json_get "$TMP/s31.clock" status)" = success ] && [ "$(json_get "$TMP/s31.clock" notices.0.code 2>/dev/null)" = "" ] || fail "S31: the clock record is not whole: $(json_get "$TMP/s31.clock" notices)"
   [ "$(wc -c <"$TMP/s31.big")" -lt 65536 ] || fail "S31: the omitted record is $(wc -c <"$TMP/s31.big") bytes"
   [ "$(sed -n 1p "$JOB_DIR/commands.jsonl" | wc -c)" -gt 65536 ] || fail "S31: commands.jsonl line 1 is $(sed -n 1p "$JOB_DIR/commands.jsonl" | wc -c) bytes; the file must hold the whole output"
   sed -n 1p "$JOB_DIR/commands.jsonl" >"$TMP/s31.file"
@@ -804,12 +804,12 @@ directory = \"$TMP/crun\""
   [ "$(cat "$TMP/crun/dead")" = 'old dead' ] || fail "S33: dead's previous file was touched"
   [ "$(ls -A "$TMP/crun" | tr '\n' ' ')" = 'dead fake-iosxe ' ] || fail "S33: the directory holds $(ls -A "$TMP/crun" | tr '\n' ' ')"
   [ "$(job_files)" = 'commands.cisco_iosxe.txt commands.dead.txt commands.jsonl errors.jsonl failed-devices.txt manifest.json metrics.json summary.json ' ] || fail "S33: the job folder holds $(job_files)"
-  [ "$(json_get "$JOB_DIR/summary.json" collection.replaced)" = 1 ] && [ "$(json_get "$JOB_DIR/summary.json" collection.kept)" = 1 ] || fail "S33: the summary's collection block: $(json_get "$JOB_DIR/summary.json" collection.replaced) replaced, $(json_get "$JOB_DIR/summary.json" collection.kept) kept"
-  [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = kept ] || fail "S33: dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.replace)" = 1 ] && [ "$(json_get "$JOB_DIR/summary.json" collection.keep)" = 1 ] || fail "S33: the summary's collection block: $(json_get "$JOB_DIR/summary.json" collection.replace) replaced, $(json_get "$JOB_DIR/summary.json" collection.keep) kept"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = keep ] || fail "S33: dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
   # Under jsonl the stream's last line is the summary, which carries the
   # counts; no line follows on stderr (display.collection.footer is text's).
   tail -1 "$TMP/out.s33" >"$TMP/s33.last"
-  [ "$(json_get "$TMP/s33.last" collection.replaced)" = 1 ] && [ "$(json_get "$TMP/s33.last" collection.kept)" = 1 ] || fail "S33: the stream's summary: $(cat "$TMP/s33.last" | head -c 300)"
+  [ "$(json_get "$TMP/s33.last" collection.replace)" = 1 ] && [ "$(json_get "$TMP/s33.last" collection.keep)" = 1 ] || fail "S33: the stream's summary: $(cat "$TMP/s33.last" | head -c 300)"
   ! grep -q 'collection=' "$TMP/err.s33" || fail "S33: a collection line on stderr: $(grep 'collection=' "$TMP/err.s33")"
   s33_run s33b run --target fake-iosxe --cmd 'show bogus' --cmd 'show clock'
   [ "$CODE" -eq 101 ] || fail "S33 rejected: exit $CODE"
@@ -820,7 +820,7 @@ directory = \"$TMP/crun\""
   [ "$CODE" -eq 0 ] || fail "S33 daemon --cd: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s33c" | head -1)"
   cmp -s "$TMP/crun2/fake-iosxe" "$TMP/s33.want" || fail "S33 daemon --cd: the file differs"
   [ "$(stat -c %a "$TMP/crun2")" = 770 ] || fail "S33 daemon --cd: the directory was made at $(stat -c %a "$TMP/crun2"), expected 770"
-  [ "$(json_get "$JOB_DIR/summary.json" collection.directory)" = "$TMP/crun2" ] && [ "$(json_get "$JOB_DIR/summary.json" collection.replaced)" = 1 ] || fail "S33 daemon --cd: the summary's collection: $(json_get "$JOB_DIR/summary.json" collection.directory)"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.directory)" = "$TMP/crun2" ] && [ "$(json_get "$JOB_DIR/summary.json" collection.replace)" = 1 ] || fail "S33 daemon --cd: the summary's collection: $(json_get "$JOB_DIR/summary.json" collection.directory)"
   rm -f "$TMP/crun2/fake-iosxe"
   s33_run s33d run --target fake-iosxe --nof --cd="$TMP/crun2"
   [ "$CODE" -eq 0 ] && [ -z "$JOB_DIR" ] && cmp -s "$TMP/crun2/fake-iosxe" "$TMP/s33.want" || fail "S33 --nof: exit $CODE, folder '$JOB_DIR'"
@@ -833,7 +833,7 @@ directory = \"$TMP/crun\""
   cat >"$TMP/after.sh" <<'EOF_HOOK'
 #!/bin/sh
 [ -z "${AFTER_PGID:-}" ] || echo "$$" >"$AFTER_PGID"
-{ echo "pwd=$PWD"; echo "job=$KARVI_JOB_ID dir=$KARVI_JOB_DIR crun=$KARVI_CRUN_DIRECTORY replaced=$KARVI_CRUN_REPLACED kept=$KARVI_CRUN_KEPT exit=$KARVI_EXIT"; echo stdin:; cat; } >"$AFTER_OUT"
+{ echo "pwd=$PWD"; echo "job=$KARVI_JOB_ID dir=$KARVI_JOB_DIR crun=$KARVI_CRUN_DIRECTORY replaced=$KARVI_CRUN_REPLACE kept=$KARVI_CRUN_KEEP exit=$KARVI_EXIT"; echo stdin:; cat; } >"$AFTER_OUT"
 [ -z "${AFTER_SLEEP:-}" ] || (trap '' TERM; sleep "$AFTER_SLEEP")
 echo 'hook ran'
 exit "${AFTER_EXIT:-0}"
@@ -854,7 +854,7 @@ after-timeout = \"1s\""
   grep -q '^hook ran$' "$TMP/err.s33e" && ! grep -q 'crun_after_failed' "$TMP/err.s33e" || fail "S33 hook: stderr is $(tail -3 "$TMP/err.s33e")"
   [ "$(tail -1 "$TMP/err.s33e")" = 'hook ran' ] || fail "S33 hook: the hook's output follows the result line: $(tail -2 "$TMP/err.s33e")"
   ! grep -q 'hook ran' "$TMP/out.s33e" || fail "S33 hook: the hook wrote to stdout"
-  [ "$(audit_events "$TMP/base/audit.jsonl" event_name outcome | grep -cx "crun\.after${TAB}succeeded")" -ge 1 ] || fail "S33 hook: no crun.after audit event that succeeded"
+  [ "$(audit_events "$TMP/base/audit.jsonl" event_name outcome | grep -cx "crun\.after${TAB}success")" -ge 1 ] || fail "S33 hook: no crun.after audit event that succeeded"
   rm -f "$TMP/after.out"
   s33_run s33f daemon --target fake-iosxe
   [ "$CODE" -eq 0 ] || fail "S33 hook daemon: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s33f" | head -1)"
@@ -862,7 +862,7 @@ after-timeout = \"1s\""
   export AFTER_EXIT=3
   s33_run s33g run --target fake-iosxe
   [ "$CODE" -eq 0 ] && grep -q "^warning: crun_after_failed: $TMP/after.sh exited 3\$" "$TMP/err.s33g" || fail "S33 hook exit 3: exit $CODE, stderr $(tail -2 "$TMP/err.s33g")"
-  [ "$(audit_events "$TMP/base/audit.jsonl" event_name outcome | grep -cx "crun\.after${TAB}failed")" -ge 1 ] || fail "S33 hook exit 3: no crun.after audit event that failed"
+  [ "$(audit_events "$TMP/base/audit.jsonl" event_name outcome | grep -cx "crun\.after${TAB}fail")" -ge 1 ] || fail "S33 hook exit 3: no crun.after audit event that failed"
   export AFTER_EXIT=0 AFTER_SLEEP=20 AFTER_PGID="$TMP/after.pgid"
   s33_started=$(date +%s)
   s33_run s33h run --target fake-iosxe
@@ -933,7 +933,7 @@ directory = \"$TMP/crun\""
   grep -q '^! show slow$' "$TMP/crun/fake-iosxe" || fail "S33 schedule: the tick's file lacks its block"
   CODE=0; KARVI="$TMP/bin/nd" KARVI_CRUN_LOCK="$TMP/crun.lock" sh "$ROOT/packaging/cron/karvi-crun" --transport native </dev/null >"$TMP/out.s33lc" 2>"$TMP/err.s33lc" || CODE=$?
   tail -1 "$TMP/out.s33lc" >"$TMP/s33lc.last"
-  [ "$CODE" -eq 0 ] && [ "$(json_get "$TMP/s33lc.last" collection.replaced)" = 1 ] && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(head -c 300 "$TMP/s33lc.last")"
+  [ "$CODE" -eq 0 ] && [ "$(json_get "$TMP/s33lc.last" collection.replace)" = 1 ] && cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33.want" || fail "S33 schedule: the tick alone: exit $CODE: $(head -c 300 "$TMP/s33lc.last")"
   stop_fake
   echo 'native smoke: S33 the collection run: the file, the kept device, the folder, the summary, a rejected statement, --cd through the daemon, --nof, the crun.after hook on both paths, its exit and its bound, the crun-filters drop list off, a site'"'"'s, and a bad pattern refused, the packaged cron script'"'"'s guard: ok'
 fi
@@ -974,26 +974,26 @@ after = \"$TMP/after34.sh\""
   cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34.want" || fail "S34: the file differs: $(diff "$TMP/s34.want" "$TMP/cd/fake-iosxe" | head -3)"
   [ "$(cat "$TMP/cd/dead")" = 'old dead' ] || fail "S34: dead's previous file was touched"
   [ -f "$JOB_DIR/output.fake-iosxe.txt" ] && [ -f "$JOB_DIR/output.dead.txt" ] || fail "S34: the folder holds $(ls "$JOB_DIR" | tr '\n' ' ')"
-  [ "$(tail -2 "$TMP/out.s34" | head -1 | cut -c1-8)" = '! exit=1' ] && [ "$(tail -1 "$TMP/out.s34")" = "! collection=$TMP/cd replaced=1 kept=1" ] || fail "S34: the display ends $(tail -2 "$TMP/out.s34")"
+  [ "$(tail -2 "$TMP/out.s34" | head -1 | cut -c1-8)" = '! exit=1' ] && [ "$(tail -1 "$TMP/out.s34")" = "! collection=$TMP/cd replace=1 keep=1" ] || fail "S34: the display ends $(tail -2 "$TMP/out.s34")"
   ! grep -q 'collection=\|hook ran' "$TMP/err.s34" && [ ! -e "$AFTER_OUT" ] || fail "S34: stderr $(tail -2 "$TMP/err.s34"), or the hook ran"
-  [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = kept ] || fail "S34: the summary's dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
+  [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = keep ] || fail "S34: the summary's dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
   [ "$(json_get "$JOB_DIR/manifest.json" plan.output.collection.word)" = run ] || fail "S34: the plan's word is $(json_get "$JOB_DIR/manifest.json" plan.output.collection.word)"
   # A rejected statement: kept without --continue, replaced with it.
   s34_run s34b run --no-daemon --transport native --target fake-iosxe --cmd 'show bogus' --cmd 'show clock' --cd="$TMP/cd"
-  [ "$CODE" -ne 0 ] && cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34.want" && [ "$(tail -1 "$TMP/out.s34b")" = "! collection=$TMP/cd replaced=0 kept=1" ] || fail "S34 rejected: exit $CODE, $(tail -1 "$TMP/out.s34b")"
+  [ "$CODE" -ne 0 ] && cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34.want" && [ "$(tail -1 "$TMP/out.s34b")" = "! collection=$TMP/cd replace=0 keep=1" ] || fail "S34 rejected: exit $CODE, $(tail -1 "$TMP/out.s34b")"
   s34_run s34c run --no-daemon --continue --transport native --target fake-iosxe --cmd 'show bogus' --cmd 'show clock' --cd="$TMP/cd"
   printf '! show bogus\n     ^\n%% Invalid input detected at '"'"'^'"'"' marker.\n\n! show clock\n*10:00:00.000 UTC Tue Sep 15 2026\n' >"$TMP/s34c.want"
   cmp -s "$TMP/cd/fake-iosxe" "$TMP/s34c.want" || fail "S34 --continue: the file differs: $(diff "$TMP/s34c.want" "$TMP/cd/fake-iosxe" | head -3)"
   # Through the daemon: the line follows the footer on stdout.
   s34_run s34d run --transport native --target fake-iosxe --cmd 'show clock' --cd="$TMP/cd"
   stop_daemon
-  [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34d")" = "! collection=$TMP/cd replaced=1 kept=0" ] || fail "S34 daemon: exit $CODE, $(tail -1 "$TMP/out.s34d")"
+  [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34d")" = "! collection=$TMP/cd replace=1 keep=0" ] || fail "S34 daemon: exit $CODE, $(tail -1 "$TMP/out.s34d")"
   # command --cd with --nof: no folder, the file and the line.
   s34_run s34e command --nof --transport native --cd="$TMP/cd2" fake-iosxe show clock
-  [ "$CODE" -eq 0 ] && [ -z "$JOB_DIR" ] && [ "$(cat "$TMP/cd2/fake-iosxe")" = "$(printf '! show clock\n*10:00:00.000 UTC Tue Sep 15 2026')" ] && [ "$(tail -1 "$TMP/out.s34e")" = "! collection=$TMP/cd2 replaced=1 kept=0" ] || fail "S34 command: exit $CODE, folder '$JOB_DIR', $(tail -1 "$TMP/out.s34e")"
+  [ "$CODE" -eq 0 ] && [ -z "$JOB_DIR" ] && [ "$(cat "$TMP/cd2/fake-iosxe")" = "$(printf '! show clock\n*10:00:00.000 UTC Tue Sep 15 2026')" ] && [ "$(tail -1 "$TMP/out.s34e")" = "! collection=$TMP/cd2 replace=1 keep=0" ] || fail "S34 command: exit $CODE, folder '$JOB_DIR', $(tail -1 "$TMP/out.s34e")"
   # A crun's text display ends the same way, and its hook runs after it.
   s34_run s34f crun --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --cd="$TMP/cd"
-  [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34f")" = "! collection=$TMP/cd replaced=1 kept=0" ] && grep -q '^hook ran$' "$TMP/err.s34f" || fail "S34 crun: exit $CODE, $(tail -1 "$TMP/out.s34f"), $(tail -1 "$TMP/err.s34f")"
+  [ "$CODE" -eq 0 ] && [ "$(tail -1 "$TMP/out.s34f")" = "! collection=$TMP/cd replace=1 keep=0" ] && grep -q '^hook ran$' "$TMP/err.s34f" || fail "S34 crun: exit $CODE, $(tail -1 "$TMP/out.s34f"), $(tail -1 "$TMP/err.s34f")"
   rm -f "$AFTER_OUT"; unset AFTER_OUT
   # --fs: on run without --cd the working directory, the suffix on the file
   # alone, another suffix's temporary left by the sweep; on crun alone
@@ -1003,7 +1003,7 @@ after = \"$TMP/after34.sh\""
   cd "$TMP/fsw"
   s34_run s34g run --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --fs=.cfg
   cd "$ROOT"
-  [ "$CODE" -eq 0 ] && [ "$(ls -A "$TMP/fsw" | tr '\n' ' ')" = '.fake-iosxe.260924-000000-00 fake-iosxe.cfg ' ] && [ "$(tail -1 "$TMP/out.s34g")" = "! collection=$TMP/fsw replaced=1 kept=0" ] || fail "S34 --fs: exit $CODE, the directory holds $(ls -A "$TMP/fsw" | tr '\n' ' '), $(tail -1 "$TMP/out.s34g")"
+  [ "$CODE" -eq 0 ] && [ "$(ls -A "$TMP/fsw" | tr '\n' ' ')" = '.fake-iosxe.260924-000000-00 fake-iosxe.cfg ' ] && [ "$(tail -1 "$TMP/out.s34g")" = "! collection=$TMP/fsw replace=1 keep=0" ] || fail "S34 --fs: exit $CODE, the directory holds $(ls -A "$TMP/fsw" | tr '\n' ' '), $(tail -1 "$TMP/out.s34g")"
   [ "$(json_get "$JOB_DIR/summary.json" collection.devices.fake-iosxe.file)" = fake-iosxe.cfg ] && [ "$(json_get "$JOB_DIR/manifest.json" plan.output.collection.suffix)" = .cfg ] || fail "S34 --fs: the summary's file $(json_get "$JOB_DIR/summary.json" collection.devices.fake-iosxe.file)"
   write_config accept-new "$BUILTIN
 [crun]

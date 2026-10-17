@@ -32,13 +32,13 @@ func snap(mode, status string, counts records.Counts, targets []records.Scoreboa
 // an ellipsis.
 func TestCells(t *testing.T) {
 	running := snap("run", "running", records.Counts{Total: 120, Completed: 57, Failed: 1, InFlight: 8},
-		[]records.ScoreboardTarget{{Name: "a", State: "succeeded"}, {Name: "gtn-wan-9500-1", State: "running"}, {Name: "b", State: "queued"}},
+		[]records.ScoreboardTarget{{Name: "a", State: "success"}, {Name: "gtn-wan-9500-1", State: "running"}, {Name: "b", State: "queued"}},
 		[]executionplan.ScopeInput{{Kind: "tf", Value: "site-x.txt"}, {Kind: "target", Value: "b"}})
 	now := running.StartedAt.Add(4*time.Minute + 12*time.Second)
 	if got := TimeCell(running, now, time.Local); got != "4m12s" {
 		t.Errorf("running TIME %q", got)
 	}
-	done := snap("cmd", "errored", records.Counts{Total: 2, Completed: 2, Failed: 2}, nil, nil)
+	done := snap("cmd", "error", records.Counts{Total: 2, Completed: 2, Failed: 2}, nil, nil)
 	if got := TimeCell(done, now, time.Local); got != "13:48:15" {
 		t.Errorf("ended TIME %q", got)
 	}
@@ -98,7 +98,7 @@ func TestTableColumns(t *testing.T) {
 // written. The directory holds one snapshot.
 func TestRunScreen(t *testing.T) {
 	dir := t.TempDir()
-	s := snap("run", "completed", records.Counts{Total: 2, Completed: 2}, []records.ScoreboardTarget{{Name: "vzn-ftc", State: "succeeded"}, {Name: "vzn-ohio", State: "succeeded"}}, []executionplan.ScopeInput{{Kind: "target", Value: "vzn-ftc"}, {Kind: "target", Value: "vzn-ohio"}})
+	s := snap("run", "complete", records.Counts{Total: 2, Completed: 2}, []records.ScoreboardTarget{{Name: "vzn-ftc", State: "success"}, {Name: "vzn-ohio", State: "success"}}, []executionplan.ScopeInput{{Kind: "target", Value: "vzn-ftc"}, {Kind: "target", Value: "vzn-ohio"}})
 	s.Producer = records.Producer{Hostname: "dev", PID: 1, AppVersion: "0.15.0"}
 	body, err := json.Marshal(s)
 	if err != nil {
@@ -121,7 +121,7 @@ func TestRunScreen(t *testing.T) {
 	}
 	// Eight rows: the clock, the header, its line, the rule, the row, a
 	// blank, the footer, a blank.
-	if !strings.Contains(got, "\x1b[3;1H ──") || !strings.Contains(got, "\x1b[4;1H ──") || !strings.Contains(got, "\x1b[5;1H>  134403-00  13:48:15  completed") || strings.Contains(got, "\n") {
+	if !strings.Contains(got, "\x1b[3;1H ──") || !strings.Contains(got, "\x1b[4;1H ──") || !strings.Contains(got, "\x1b[5;1H>  134403-00  13:48:15  complete") || strings.Contains(got, "\n") {
 		t.Errorf("row: %q", got)
 	}
 	if !strings.Contains(got, "\x1b[8;1H\x1b[K") || strings.Contains(got, "\x1b[9;1H") {

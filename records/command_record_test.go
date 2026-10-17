@@ -19,7 +19,7 @@ func TestSessionInitRecordRequiresItsProfile(t *testing.T) {
 		{"requested", "none", ""},
 		{"requested", "iosxe-init", ""},
 	} {
-		r := CommandRecord{RecordID: "r", ActivityID: "a", ActivityType: "command", Sequence: 1, CommandKind: tc.kind, SessionInitProfile: tc.profile, Status: "succeeded", OutputEncoding: "utf-8"}
+		r := CommandRecord{RecordID: "r", ActivityID: "a", ActivityType: "command", Sequence: 1, CommandKind: tc.kind, SessionInitProfile: tc.profile, Status: "success", OutputEncoding: "utf-8"}
 		if got := errorcodes.Of(r.Validate()); got != tc.code {
 			t.Errorf("%s profile %q: code %q, want %q", tc.kind, tc.profile, got, tc.code)
 		}
@@ -46,7 +46,7 @@ func TestRecordChannel(t *testing.T) {
 		{"exec stderr without encoding", func(r *CommandRecord) { r.Channel, r.Stderr = ChannelExec, &empty }, "record_stderr_encoding_invalid"},
 		{"exec stderr bad encoding", func(r *CommandRecord) { r.Channel, r.Stderr, r.StderrEncoding = ChannelExec, &empty, &bad }, "record_stderr_encoding_invalid"},
 	} {
-		r := CommandRecord{RecordID: "r", ActivityID: "a", ActivityType: "command", Sequence: 1, CommandKind: "requested", Status: "succeeded", OutputEncoding: "utf-8"}
+		r := CommandRecord{RecordID: "r", ActivityID: "a", ActivityType: "command", Sequence: 1, CommandKind: "requested", Status: "success", OutputEncoding: "utf-8"}
 		tc.edit(&r)
 		if got := errorcodes.Of(r.Validate()); got != tc.code {
 			t.Errorf("%s: code %q, want %q", tc.name, got, tc.code)

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-summary-v4.json",
-  "title": "karvi job summary schema 4",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/job-summary-v5.json",
+  "title": "karvi job summary schema 5",
   "description": "Written at the job's acceptance with the fields required here, and written whole again at its end with the result; a summary with a final_status is a finished job's, and then names every field the then clause requires.",
   "type": "object",
   "additionalProperties": true,
@@ -45,7 +45,7 @@
   },
   "properties": {
     "schema_version": {
-      "const": 4
+      "const": 5
     },
     "primary_exit_code": {
       "type": "integer"
@@ -128,11 +128,11 @@
           },
           "outcome": {
             "enum": [
-              "succeeded",
-              "failed",
+              "success",
+              "fail",
               "not_started",
               "incomplete",
-              "cancelled",
+              "cancel",
               "ready",
               "not_ready"
             ]
@@ -167,12 +167,12 @@
       "additionalProperties": {}
     },
     "collection": {
-      "type": "object", "additionalProperties": false, "required": ["directory", "replaced", "kept", "devices"],
+      "type": "object", "additionalProperties": false, "required": ["directory", "replace", "keep", "devices"],
       "properties": {
-        "directory": {"type": "string"}, "replaced": {"type": "integer", "minimum": 0}, "kept": {"type": "integer", "minimum": 0},
+        "directory": {"type": "string"}, "replace": {"type": "integer", "minimum": 0}, "keep": {"type": "integer", "minimum": 0},
         "devices": {"type": "object", "additionalProperties": {
           "type": "object", "additionalProperties": false, "required": ["file", "outcome"],
-          "properties": {"file": {"type": "string"}, "outcome": {"enum": ["replaced", "kept"]}}
+          "properties": {"file": {"type": "string"}, "outcome": {"enum": ["replace", "keep"]}}
         }}
       }
     },
@@ -274,25 +274,25 @@
           "additionalProperties": false,
           "required": [
             "gated",
-            "proceeded",
-            "degraded",
-            "skipped",
-            "capability_failed"
+            "proceed",
+            "proceed_degraded",
+            "skip",
+            "capability_unavailable"
           ],
           "properties": {
             "gated": {
               "type": "integer"
             },
-            "proceeded": {
+            "proceed": {
               "type": "integer"
             },
-            "degraded": {
+            "proceed_degraded": {
               "type": "integer"
             },
-            "skipped": {
+            "skip": {
               "type": "integer"
             },
-            "capability_failed": {
+            "capability_unavailable": {
               "type": "integer"
             }
           }

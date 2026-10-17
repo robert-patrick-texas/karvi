@@ -63,14 +63,14 @@ func TestJobFollowPrintsTheCancelledLineAndExitsWithTheJob(t *testing.T) {
 	if !strings.HasPrefix(stdout.String(), "! exit=") || strings.Count(stdout.String(), "\n") != 1 {
 		t.Fatalf("stdout=%q for a job with no record", stdout.String())
 	}
-	f.terminal = &ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: fixtureJobID, JobID: fixtureJobID, ArtifactDir: "/tmp/jobs/" + fixtureJobID, Summary: records.Summary{FinalStatus: "completed"}}
+	f.terminal = &ipc.ActivityOutcome{ExitCode: 0, ExitName: "ExitSuccess", ActivityID: fixtureJobID, JobID: fixtureJobID, ArtifactDir: "/tmp/jobs/" + fixtureJobID, Summary: records.Summary{FinalStatus: "complete"}}
 	stdout.Reset()
 	stderr.Reset()
 	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID, "--format", "jsonl"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
 		t.Fatalf("completed: exit=%d stderr=%q", got, stderr.String())
 	}
 	// jsonl: the summary line on stdout, nothing on stderr (28.4).
-	if stderr.String() != "" || !strings.Contains(stdout.String(), `"final_status":"completed"`) {
+	if stderr.String() != "" || !strings.Contains(stdout.String(), `"final_status":"complete"`) {
 		t.Fatalf("completed stderr=%q stdout=%q", stderr.String(), stdout.String())
 	}
 	f.terminal = &ipc.ActivityOutcome{ExitCode: exitcode.ExitShutdownIncomplete, ExitName: "ExitShutdownIncomplete", ActivityID: fixtureJobID, JobID: fixtureJobID, ArtifactDir: "/tmp/jobs/" + fixtureJobID, Summary: records.Summary{FinalStatus: "incomplete"}}
@@ -144,7 +144,7 @@ func TestJobFollowRendersTheDetachedJob(t *testing.T) {
 	if got != exitcode.ExitPartialFailure {
 		t.Fatalf("follow exit=%d stderr=%q", got, stderr.String())
 	}
-	recordsThenSummary(t, stdout.Bytes(), file, jobID, "errored")
+	recordsThenSummary(t, stdout.Bytes(), file, jobID, "error")
 	if stderr.String() != "" {
 		t.Fatalf("stderr=%q want nothing", stderr.String())
 	}
@@ -206,19 +206,19 @@ func finishedDirectory(t *testing.T, g globalOptions, jobID string, summary reco
 // summary's recorded exit; a cancellation block gives the cancelled line.
 func TestJobFollowReadsTheDirectoryWithoutADaemon(t *testing.T) {
 	_, g, _ := daemonTestRuntime(t)
-	dir := finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "completed", ExitCode: 0, ExitName: "ExitSuccess"})
+	dir := finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "complete", ExitCode: 0, ExitName: "ExitSuccess"})
 	var stdout, stderr bytes.Buffer
 	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID, "--format", "jsonl"), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
 		t.Fatalf("exit=%d stderr=%q", got, stderr.String())
 	}
 	// The directory's records (none in the fixture) then its summary as
 	// the stream's last line; nothing on stderr (28.4).
-	recordsThenSummary(t, stdout.Bytes(), nil, "", "completed")
+	recordsThenSummary(t, stdout.Bytes(), nil, "", "complete")
 	if stderr.String() != "" {
 		t.Fatalf("stderr=%q stdout=%q", stderr.String(), stdout.String())
 	}
 	_ = dir
-	finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "cancelled", ExitCode: exitcode.ExitCancelled, ExitName: "ExitCancelled", Cancellation: &records.Cancellation{Reason: "wrong window"}})
+	finishedDirectory(t, g, fixtureJobID, records.Summary{FinalStatus: "cancel", ExitCode: exitcode.ExitCancelled, ExitName: "ExitCancelled", Cancellation: &records.Cancellation{Reason: "wrong window"}})
 	stderr.Reset()
 	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitCancelled {
 		t.Fatalf("cancelled: exit=%d stderr=%q", got, stderr.String())
@@ -264,16 +264,16 @@ func TestJobFollowDirectoryStates(t *testing.T) {
 		t.Fatalf("not final: exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
 	}
 	// A scoreboard that names the job's end, the summary never made final.
-	writeBoard(t, boards, fixtureJobID, "errored", time.Now().Add(-90*time.Second))
+	writeBoard(t, boards, fixtureJobID, "error", time.Now().Add(-90*time.Second))
 	stderr.Reset()
-	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: job "+fixtureJobID+" has no final summary and its scoreboard ended errored\n  last update 1m30") || !strings.HasSuffix(stderr.String(), "s ago\n  stale after 1s\n") || stdout.String() != "" {
+	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != exitcode.ExitJobRejected || !strings.HasPrefix(stderr.String(), "job_orphaned: job "+fixtureJobID+" has no final summary and its scoreboard ended error\n  last update 1m30") || !strings.HasSuffix(stderr.String(), "s ago\n  stale after 1s\n") || stdout.String() != "" {
 		t.Fatalf("ended: exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
 	}
 	// The daemon does not hold the job (its fixture answers job_unknown for
 	// the zzzz suffix); the finished directory answers instead.
 	unknown := strings.TrimSuffix(fixtureJobID, "00") + unknownJobSuffix
 	f := startStopFixture(t, socket, 0, nil)
-	udir := finishedDirectory(t, g, unknown, records.Summary{FinalStatus: "completed", ExitCode: 0, ExitName: "ExitSuccess"})
+	udir := finishedDirectory(t, g, unknown, records.Summary{FinalStatus: "complete", ExitCode: 0, ExitName: "ExitSuccess"})
 	stderr.Reset()
 	// Text mode: the directory's display ends with the footer naming its
 	// folder, and nothing on stderr (28.4).
@@ -330,10 +330,10 @@ func TestJobFollowFollowsAnUnfinishedFolder(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	appendTo(second[6:])
 	// The job's end: the scoreboard's final status, then the summary's.
-	writeBoard(t, boards, fixtureJobID, "errored", time.Now())
+	writeBoard(t, boards, fixtureJobID, "error", time.Now())
 	time.Sleep(300 * time.Millisecond)
 	final := accepted
-	final.FinalStatus, final.ExitCode, final.ExitName = "errored", exitcode.ExitPartialFailure, "ExitPartialFailure"
+	final.FinalStatus, final.ExitCode, final.ExitName = "error", exitcode.ExitPartialFailure, "ExitPartialFailure"
 	raw, _ := json.Marshal(final)
 	if err := os.WriteFile(filepath.Join(dir, "summary.json"), raw, 0o640); err != nil {
 		t.Fatal(err)
@@ -342,7 +342,7 @@ func TestJobFollowFollowsAnUnfinishedFolder(t *testing.T) {
 	if r.exit != exitcode.ExitPartialFailure || r.stderr != "" {
 		t.Fatalf("exit=%d stderr=%q stdout=%q", r.exit, r.stderr, r.stdout)
 	}
-	recordsThenSummary(t, []byte(r.stdout), []byte(first+second), fixtureJobID, "errored")
+	recordsThenSummary(t, []byte(r.stdout), []byte(first+second), fixtureJobID, "error")
 
 	// The same job's records, its summary not final again, and a scoreboard
 	// that stops being written: job_orphaned once it is stale.
@@ -384,7 +384,7 @@ func TestJobFollowWithoutCommandsJSONL(t *testing.T) {
 	}()
 	time.Sleep(400 * time.Millisecond)
 	final := accepted
-	final.FinalStatus, final.ExitCode, final.ExitName = "completed", 0, "ExitSuccess"
+	final.FinalStatus, final.ExitCode, final.ExitName = "complete", 0, "ExitSuccess"
 	raw, _ := json.Marshal(final)
 	if err := os.WriteFile(filepath.Join(dir, "summary.json"), raw, 0o640); err != nil {
 		t.Fatal(err)
@@ -393,7 +393,7 @@ func TestJobFollowWithoutCommandsJSONL(t *testing.T) {
 	if r.exit != 0 || r.stderr != warning {
 		t.Fatalf("live: exit=%d stderr=%q stdout=%q", r.exit, r.stderr, r.stdout)
 	}
-	recordsThenSummary(t, []byte(r.stdout), nil, fixtureJobID, "completed")
+	recordsThenSummary(t, []byte(r.stdout), nil, fixtureJobID, "complete")
 	// Finished: the text display is the footer alone.
 	var stdout, stderr bytes.Buffer
 	if got := jobFollow(context.Background(), followInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 || stderr.String() != warning || !strings.Contains(stdout.String(), " artifacts="+dir+"\n") || strings.Count(stdout.String(), "\n") != 1 {
@@ -440,7 +440,7 @@ func TestJobFollowAfterTheDaemonStopped(t *testing.T) {
 	if got != exitcode.ExitPartialFailure || stderr.String() != "" {
 		t.Fatalf("exit=%d stderr=%q stdout=%q", got, stderr.String(), stdout.String())
 	}
-	recordsThenSummary(t, stdout.Bytes(), file, jobID, "errored")
+	recordsThenSummary(t, stdout.Bytes(), file, jobID, "error")
 }
 
 // recordLines are a run's jsonl stdout lines without the summary line

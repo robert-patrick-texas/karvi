@@ -67,7 +67,7 @@ func TestJobCancelPrintsTheTwoAnswers(t *testing.T) {
 	if got := jobCancel(context.Background(), cancelInvocation(t, g, fixtureJobID), app.IO{Stdout: &stdout, Stderr: &stderr}); got != 0 {
 		t.Fatalf("terminal: exit=%d stderr=%q", got, stderr.String())
 	}
-	if want := "job " + fixtureJobID + " already ended: completed (exit 0); artifacts /tmp/jobs/" + fixtureJobID + "\n"; stdout.String() != want {
+	if want := "job " + fixtureJobID + " already ended: complete (exit 0); artifacts /tmp/jobs/" + fixtureJobID + "\n"; stdout.String() != want {
 		t.Errorf("stdout=%q want %q", stdout.String(), want)
 	}
 }
@@ -130,10 +130,10 @@ func TestCancelledLineOnlyForAJobThatEndedCancelled(t *testing.T) {
 		exit     int
 		wantLine bool
 	}{
-		{"cancelled", block, exitcode.ExitCancelled, true},
-		{"exercised", block, exitcode.ExitSuccess, false},
-		{"succeeded", block, exitcode.ExitSuccess, false},
-		{"succeeded", nil, exitcode.ExitSuccess, false},
+		{"cancel", block, exitcode.ExitCancelled, true},
+		{"exercise", block, exitcode.ExitSuccess, false},
+		{"complete", block, exitcode.ExitSuccess, false},
+		{"complete", nil, exitcode.ExitSuccess, false},
 	} {
 		summary := records.Summary{FinalStatus: c.status, Cancellation: c.block}
 		if got := summary.CancelledBy() != nil; got != c.wantLine {
@@ -150,7 +150,7 @@ func TestCancelledLineOnlyForAJobThatEndedCancelled(t *testing.T) {
 	// A crun's follow prints nothing after the display either: the
 	// collection's line is the display's (display.collection.footer).
 	var stderr bytes.Buffer
-	crun := records.Summary{FinalStatus: "completed", Collection: &records.CollectionSummary{Directory: "/c", Replaced: 2, Kept: 1}}
+	crun := records.Summary{FinalStatus: "complete", Collection: &records.CollectionSummary{Directory: "/c", Replaced: 2, Kept: 1}}
 	jobFollowResult(globalOptions{}, app.IO{Stdout: &bytes.Buffer{}, Stderr: &stderr}, "j", "/a", crun, 0)
 	if stderr.Len() != 0 {
 		t.Errorf("crun: stderr=%q", stderr.String())

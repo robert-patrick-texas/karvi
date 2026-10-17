@@ -54,9 +54,9 @@ metadata=$(GOTOOLCHAIN=local go version -m bin/karvi-linux-amd64)
 grep -Eq 'dep[[:space:]]+github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2' <<<"$metadata"
 ./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.31.1"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"config_schema_version": 6'
-./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 3'
+./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 4'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"daemon_ipc_schema_version": 12'
-./bin/karvi-linux-amd64 version --format json | grep -q '"job_schema_version": 4'
+./bin/karvi-linux-amd64 version --format json | grep -q '"job_schema_version": 5'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 30'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "scrapligo-v1"'

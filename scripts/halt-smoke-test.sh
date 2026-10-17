@@ -55,7 +55,7 @@ set -e
   exit 1
 }
 [ "$(wc -l < "$TMP/run.jsonl" | tr -d ' ')" -eq 4 ] # three records and the summary line
-[ "$(jsonl_records "$TMP/run.jsonl" status | paste -sd, -)" = succeeded,authentication_error,not_started_halt ]
+[ "$(jsonl_records "$TMP/run.jsonl" status | paste -sd, -)" = success,authentication_error,not_started_halt ]
 [ ! -e "$THIRD_MARKER" ] || {
   echo 'halted target was unexpectedly opened' >&2
   exit 1
@@ -64,7 +64,7 @@ set -e
 summary=$(find "$BASE/jobs" -name summary.json -type f | head -n 1)
 [ -n "$summary" ]
 json_is "$summary" primary_exit_code 102
-json_is "$summary" final_status halted
+json_is "$summary" final_status halt
 
 if grep -R -F -l -- "$SECRET" "$BASE" "$SCORE" "$CAP" >/dev/null 2>&1; then
   echo "secret sentinel found in a halt artifact" >&2

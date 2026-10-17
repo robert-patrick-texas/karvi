@@ -119,10 +119,10 @@ func TestDayFolderLayout(t *testing.T) {
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
 	young := time.Date(2026, 9, 26, 15, 38, 59, 0, time.UTC)
 	jobs := filepath.Join(base, "jobs")
-	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "completed", old)
-	youngJob := writeJob(t, jobs, "260926", "260926-153859-00", "completed", young)
-	legacy := writeJob(t, jobs, "2026-08-17", "260817-100000-00", "completed", old)
-	other := writeJob(t, jobs, "archive", "260817-110000-00", "completed", old)
+	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
+	youngJob := writeJob(t, jobs, "260926", "260926-153859-00", "complete", young)
+	legacy := writeJob(t, jobs, "2026-08-17", "260817-100000-00", "complete", old)
+	other := writeJob(t, jobs, "archive", "260817-110000-00", "complete", old)
 	transcripts := filepath.Join(base, "transcripts")
 	oldMeta := writeTranscript(t, transcripts, "260817", "fake-iosxe-153900", old)
 	youngMeta := writeTranscript(t, transcripts, "260926", "fake-iosxe-153900", young)
@@ -187,8 +187,8 @@ func TestSharedTrees(t *testing.T) {
 	base := t.TempDir()
 	shared := t.TempDir()
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
-	private := writeJob(t, filepath.Join(base, "jobs"), "260817", "260817-153901-00", "completed", old)
-	sharedJob := writeJob(t, filepath.Join(shared, "jobs"), "260817", "260817-153859-00", "completed", old)
+	private := writeJob(t, filepath.Join(base, "jobs"), "260817", "260817-153901-00", "complete", old)
+	sharedJob := writeJob(t, filepath.Join(shared, "jobs"), "260817", "260817-153859-00", "complete", old)
 	sharedMeta := writeTranscript(t, filepath.Join(shared, "transcripts"), "260817", "fake-iosxe-153900", old)
 	crun := filepath.Join(shared, "crun")
 	if err := os.MkdirAll(filepath.Join(crun, "260817"), 0o750); err != nil {
@@ -239,9 +239,9 @@ func TestOwnershipAndFailure(t *testing.T) {
 	base := t.TempDir()
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
 	jobs := filepath.Join(base, "jobs")
-	a := writeJob(t, jobs, "260817", "260817-153859-00", "completed", old)
-	b := writeJob(t, jobs, "260817", "260817-153859-01", "errored", old)
-	c := writeJob(t, jobs, "260817", "260817-153859-02", "halted", old)
+	a := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
+	b := writeJob(t, jobs, "260817", "260817-153859-01", "error", old)
+	c := writeJob(t, jobs, "260817", "260817-153859-02", "halt", old)
 
 	// Another user's run: every folder is somebody else's.
 	lines, res := runAs(t, Options{PrivateRoots: []string{base}}, os.Getuid()+1, true)
@@ -313,7 +313,7 @@ func TestEmptyDayFolders(t *testing.T) {
 	}
 	notDay := mk(filepath.Join(base, "jobs", "archive"))
 	// An old job whose removal empties its day folder in the same pass.
-	emptied := writeJob(t, filepath.Join(base, "jobs"), "260817", "260817-153859-00", "completed", old)
+	emptied := writeJob(t, filepath.Join(base, "jobs"), "260817", "260817-153859-00", "complete", old)
 
 	lines, res := run(t, Options{PrivateRoots: []string{base}, SharedRoot: shared})
 	for _, p := range []string{oldEmpty, oldEmptyT, sharedEmpty, sharedEmptyT} {
@@ -402,7 +402,7 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 	aged := orphan("260810", "260810-090000-00", old)                     // no snapshot: goes
 	notFinal := orphan("260810", "260810-090001-00", old, "summary.json") // a summary without a final status: goes
 	byChoice := orphan("260817", "260817-153859-00", old)                 // a completed snapshot: goes
-	writeScoreboard(t, score, "260817-153859-00", "completed", old)
+	writeScoreboard(t, score, "260817-153859-00", "complete", old)
 	cutShort := orphan("260817", "260817-153900-00", old) // a running snapshot older than the age: goes, and so does the snapshot
 	staleSnap := writeScoreboard(t, score, "260817-153900-00", "running", old)
 	held := orphan("260817", "260817-153901-00", old) // a running snapshot updated lately: stays
@@ -440,7 +440,7 @@ func TestOrphansAndStaleSnapshots(t *testing.T) {
 
 	// Under pressure (a floor no filesystem meets) a young finished job goes
 	// and a young orphan or a young non-terminal snapshot does not.
-	young := writeJob(t, jobs, "260926", "260926-160000-00", "completed", now.Add(-time.Hour))
+	young := writeJob(t, jobs, "260926", "260926-160000-00", "complete", now.Add(-time.Hour))
 	lines, _ = run(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score, MinFreePercent: 100})
 	if !has(lines, young) {
 		t.Fatalf("pressure did not take the young finished job:\n%s", strings.Join(lines, "\n"))
@@ -467,9 +467,9 @@ func TestReportForm(t *testing.T) {
 	score := filepath.Join(base, "score")
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
 	jobs := filepath.Join(base, "jobs")
-	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "completed", old)
-	young := writeJob(t, jobs, "260926", "260926-153859-00", "completed", now.Add(-time.Hour))
-	legacy := writeJob(t, jobs, "2026-08-17", "260817-100000-00", "completed", old)
+	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
+	young := writeJob(t, jobs, "260926", "260926-153859-00", "complete", now.Add(-time.Hour))
+	legacy := writeJob(t, jobs, "2026-08-17", "260817-100000-00", "complete", old)
 	meta := writeTranscript(t, filepath.Join(base, "transcripts"), "260817", "fake-iosxe-153900", old)
 	liveOrphan := filepath.Join(jobs, "260817", "260817-153900-00")
 	if err := os.MkdirAll(liveOrphan, 0o750); err != nil {
@@ -518,8 +518,8 @@ func TestReportJSONL(t *testing.T) {
 	score := filepath.Join(base, "score")
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
 	jobs := filepath.Join(base, "jobs")
-	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "completed", old)
-	young := writeJob(t, jobs, "260926", "260926-153859-00", "completed", now.Add(-time.Hour))
+	oldJob := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
+	young := writeJob(t, jobs, "260926", "260926-153859-00", "complete", now.Add(-time.Hour))
 	meta := writeTranscript(t, filepath.Join(base, "transcripts"), "260817", "fake-iosxe-153900", old)
 	opts := Options{PrivateRoots: []string{base}, ScoreboardRoot: score, Verbose: true, Format: FormatJSONL, DryRun: true}
 	lines, result := runAs(t, opts, os.Getuid(), true)
@@ -583,13 +583,13 @@ func TestSiteRoots(t *testing.T) {
 	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
 	u1 := filepath.Join(site, "users", "1000")
 	u2 := filepath.Join(site, "users", "1001")
-	j1 := writeJob(t, filepath.Join(u1, "jobs"), "260817", "260817-153859-00", "completed", old)
+	j1 := writeJob(t, filepath.Join(u1, "jobs"), "260817", "260817-153859-00", "complete", old)
 	m2 := writeTranscript(t, filepath.Join(u2, "transcripts"), "260817", "fake-iosxe-153900", old)
-	js := writeJob(t, filepath.Join(shared, "jobs"), "260817", "260817-153859-01", "completed", old)
+	js := writeJob(t, filepath.Join(shared, "jobs"), "260817", "260817-153859-01", "complete", old)
 	if err := os.MkdirAll(filepath.Join(shared, "transcripts"), 0o770); err != nil {
 		t.Fatal(err)
 	}
-	b2 := writeScoreboard(t, filepath.Join(u2, "state", "scoreboards"), "260817-153900-00", "completed", old)
+	b2 := writeScoreboard(t, filepath.Join(u2, "state", "scoreboards"), "260817-153900-00", "complete", old)
 
 	lines, res := runAs(t, Options{PrivateRoots: []string{u1, u2}, SharedRoot: shared, Verbose: true}, 0, true)
 	for _, p := range []string{j1, m2, js, b2} {

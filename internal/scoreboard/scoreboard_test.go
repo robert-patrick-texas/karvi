@@ -165,7 +165,7 @@ func TestFindAndStale(t *testing.T) {
 	}
 	now := reserveTestNow.Add(11 * time.Second)
 	done := snapshot(id)
-	done.Status = "completed"
+	done.Status = "complete"
 	for _, tc := range []struct {
 		s     records.ScoreboardSnapshot
 		after time.Duration

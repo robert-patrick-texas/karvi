@@ -19,7 +19,7 @@ func TestAliasRunsAsItsBuiltIn(t *testing.T) {
 	if res.Success || res.ErrorCode != "device_command_error" {
 		t.Fatalf("result %+v", res)
 	}
-	if recs[0].Platform != "c9300" || recs[0].Status != "succeeded" || recs[1].Error == nil || recs[1].Error.Code != "device_command_error" {
+	if recs[0].Platform != "c9300" || recs[0].Status != "success" || recs[1].Error == nil || recs[1].Error.Code != "device_command_error" {
 		t.Fatalf("records %+v / %+v", recs[0], recs[1].Error)
 	}
 	data, _ := os.ReadFile(h.log)

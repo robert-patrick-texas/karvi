@@ -22,10 +22,10 @@ func screenRows() []scoreboard.Row {
 	end1, end2, end3 := at(24, 13, 28, 37), at(23, 13, 44, 6), at(22, 8, 9, 59)
 	rows := []scoreboard.Row{
 		mk("260924-134500-00", "crun", "running", "sanchez", at(24, 13, 45, 0), records.Counts{Total: 12, Completed: 3, InFlight: 2, NotStarted: 7}, []records.ScoreboardTarget{{Name: "vzn-ohio", State: "running"}, {Name: "vzn-ftc", State: "queued"}}, []executionplan.ScopeInput{{Kind: "target", Value: "vzn-ohio"}, {Kind: "target", Value: "vzn-ftc"}}, nil),
-		mk("260924-134403-00", "run", "running", "quinlan", at(24, 13, 44, 3), records.Counts{Total: 120, Completed: 57, Failed: 1, InFlight: 8, NotStarted: 55}, []records.ScoreboardTarget{{Name: "gtn-wan-9500-1", State: "running"}, {Name: "gtn-gtn-7nx1", State: "running"}, {Name: "gtn-a", State: "succeeded"}}, []executionplan.ScopeInput{{Kind: "tf", Value: "site-x.txt"}}, nil),
-		mk("260922-080947-00", "cmd", "cancelled", "quinlan", at(22, 8, 9, 47), records.Counts{Total: 1, Cancelled: 1}, []records.ScoreboardTarget{{Name: "gtn-wan-9500-1", State: "cancelled"}}, []executionplan.ScopeInput{{Kind: "target", Value: "gtn-wan-9500-1"}}, &end3),
-		mk("260924-132832-00", "run", "completed", "quinlan", at(24, 13, 28, 32), records.Counts{Total: 2, Completed: 2}, []records.ScoreboardTarget{{Name: "vzn-ftc", State: "succeeded"}, {Name: "vzn-ohio", State: "succeeded"}}, nil, &end1),
-		mk("260923-134403-00", "cmd", "errored", "quinlan", at(23, 13, 44, 3), records.Counts{Total: 2, Completed: 2, Failed: 2}, []records.ScoreboardTarget{{Name: "vzn-ohio", State: "failed"}, {Name: "vzn-ftc", State: "failed"}}, nil, &end2),
+		mk("260924-134403-00", "run", "running", "quinlan", at(24, 13, 44, 3), records.Counts{Total: 120, Completed: 57, Failed: 1, InFlight: 8, NotStarted: 55}, []records.ScoreboardTarget{{Name: "gtn-wan-9500-1", State: "running"}, {Name: "gtn-gtn-7nx1", State: "running"}, {Name: "gtn-a", State: "success"}}, []executionplan.ScopeInput{{Kind: "tf", Value: "site-x.txt"}}, nil),
+		mk("260922-080947-00", "cmd", "cancel", "quinlan", at(22, 8, 9, 47), records.Counts{Total: 1, Cancelled: 1}, []records.ScoreboardTarget{{Name: "gtn-wan-9500-1", State: "cancel"}}, []executionplan.ScopeInput{{Kind: "target", Value: "gtn-wan-9500-1"}}, &end3),
+		mk("260924-132832-00", "run", "complete", "quinlan", at(24, 13, 28, 32), records.Counts{Total: 2, Completed: 2}, []records.ScoreboardTarget{{Name: "vzn-ftc", State: "success"}, {Name: "vzn-ohio", State: "success"}}, nil, &end1),
+		mk("260923-134403-00", "cmd", "error", "quinlan", at(23, 13, 44, 3), records.Counts{Total: 2, Completed: 2, Failed: 2}, []records.ScoreboardTarget{{Name: "vzn-ohio", State: "fail"}, {Name: "vzn-ftc", State: "fail"}}, nil, &end2),
 		mk("260924-131100-00", "run", "running", "lee", at(24, 13, 11, 0), records.Counts{Total: 80, Completed: 40, InFlight: 4, NotStarted: 36}, nil, []executionplan.ScopeInput{{Kind: "tf", Value: "ny-core.txt"}}, nil),
 		{Path: "/dev/shm/karvi/scoreboards/bad.json", Error: "unexpected end of JSON input"},
 	}
@@ -73,10 +73,10 @@ func TestFrameLayout(t *testing.T) {
 		">  260924-134403-00  4m12s     running     quinlan   run        57/120     1     8  site-x.txt gtn-wan-9500-1 gtn-gtn-…",
 		"   260924-134500-00  3m15s     running     sanchez   crun        3/12      0     2  vzn-ohio vzn-ftc",
 		" " + strings.Repeat("─", 118),
-		"   260924-132832-00  13:28:37  completed   quinlan   run         2/2       0     0  vzn-ftc vzn-ohio",
+		"   260924-132832-00  13:28:37  complete    quinlan   run         2/2       0     0  vzn-ftc vzn-ohio",
 		" ! 260924-131100-00  37m15s    running     lee       run        40/80      0     4  ny-core.txt",
-		"   260923-134403-00  13:44:06  errored     quinlan   cmd         2/2       2     0  vzn-ohio vzn-ftc",
-		"   260922-080947-00  08:09:59  cancelled   quinlan   cmd         0/1       0     0  gtn-wan-9500-1",
+		"   260923-134403-00  13:44:06  error       quinlan   cmd         2/2       2     0  vzn-ohio vzn-ftc",
+		"   260922-080947-00  08:09:59  cancel      quinlan   cmd         0/1       0     0  gtn-wan-9500-1",
 		" ? bad.json          -         invalid     -         -            -        -     -  /dev/shm/karvi/scoreboards/bad.json",
 	}
 	for i, w := range want {
@@ -146,7 +146,7 @@ func TestPinnedLines(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		started := time.Date(2026, 9, 26, 12, 20, 56, 0, time.Local).Add(-time.Duration(9*i) * time.Minute)
 		ended := started.Add(2 * time.Minute)
-		s := records.ScoreboardSnapshot{SchemaVersion: 2, ActivityID: started.Format("060102-150405-00"), Operator: records.Operator{Username: ops[i%4]}, Mode: "run", Status: "completed", Counts: records.Counts{Total: 8, Completed: 8}, StartedAt: started, LastUpdatedAt: ended, EndedAt: &ended}
+		s := records.ScoreboardSnapshot{SchemaVersion: 2, ActivityID: started.Format("060102-150405-00"), Operator: records.Operator{Username: ops[i%4]}, Mode: "run", Status: "complete", Counts: records.Counts{Total: 8, Completed: 8}, StartedAt: started, LastUpdatedAt: ended, EndedAt: &ended}
 		quiet.Rows = append(quiet.Rows, scoreboard.Row{Snapshot: s, Path: "/tmp/nd/score/" + s.ActivityID + ".json"})
 	}
 	lines := func(m *Model) (under, rule bool, marked string) {
@@ -306,7 +306,7 @@ func TestFrameColours(t *testing.T) {
 	if strings.Contains(stale, accent) || strings.Contains(stale, address) || !strings.Contains(stale, muted+"! ") {
 		t.Errorf("stale row not muted: %q", stale)
 	}
-	if !strings.Contains(frame[6], display.ANSIPrefix("green", false)+"completed") || !strings.Contains(frame[8], errorC+"errored") || !strings.Contains(frame[9], display.ANSIPrefix("orange", false)+"cancelled") {
+	if !strings.Contains(frame[6], display.ANSIPrefix("green", false)+"complete") || !strings.Contains(frame[8], errorC+"error") || !strings.Contains(frame[9], display.ANSIPrefix("orange", false)+"cancel") {
 		t.Errorf("status roles: %q %q %q", frame[6], frame[8], frame[9])
 	}
 	m.Theme = "light"

@@ -43,7 +43,7 @@ func TestMatches(t *testing.T) {
 		"site-x":               {"260924-134403-00"},
 		"crun":                 {"260924-134500-00"},
 		"cmd":                  {"260922-080947-00", "260923-134403-00"},
-		"errored":              {"260923-134403-00"},
+		"error":                {"260923-134403-00"},
 		"run":                  {"260924-134500-00", "260924-134403-00", "260924-132832-00", "260924-131100-00"},
 		"bad":                  {"bad.json"},
 		"invalid":              {"bad.json"},
@@ -51,7 +51,7 @@ func TestMatches(t *testing.T) {
 		"cmd ":                 {"260922-080947-00", "260923-134403-00"},
 		"   ":                  {"260924-134500-00", "260924-134403-00", "260922-080947-00", "260924-132832-00", "260923-134403-00", "260924-131100-00", "bad.json"},
 		"cmd quinlan":          {"260922-080947-00", "260923-134403-00"},
-		"quinlan\terrored":     {"260923-134403-00"},
+		"quinlan\terror":       {"260923-134403-00"},
 		" run  LEE ":           {"260924-131100-00"},
 		"cmd lee":              nil,
 		"vzn-ohio run sanchez": {"260924-134500-00"},
@@ -211,10 +211,10 @@ func TestSortKeys(t *testing.T) {
 		t.Errorf("after s: key %q reverse %v note %q", m.SortKey, m.Reverse, note())
 	}
 	// By status: the running rows tie and keep their time order; the
-	// finished rows read cancelled, completed, errored, then the stale
+	// finished rows read cancel, complete, error, then the stale
 	// running one.
 	frame := m.Frame()
-	if !strings.Contains(frame[3], "quinlan") || !strings.Contains(frame[4], "sanchez") || !strings.HasPrefix(frame[5], " ──") || !strings.Contains(frame[6], "cancelled") || !strings.Contains(frame[7], "completed") || !strings.Contains(frame[8], "errored") {
+	if !strings.Contains(frame[3], "quinlan") || !strings.Contains(frame[4], "sanchez") || !strings.HasPrefix(frame[5], " ──") || !strings.Contains(frame[6], "cancel") || !strings.Contains(frame[7], "complete") || !strings.Contains(frame[8], "error") {
 		t.Errorf("by status: %q", frame[3:9])
 	}
 	for _, want := range []string{"operator", "mode", "fail", "target", "time", "status"} {
@@ -238,7 +238,7 @@ func TestSortKeys(t *testing.T) {
 	// two cmd rows newest first, then the run.
 	m.Filter = "quinlan"
 	lines := m.TableLines()
-	if len(lines) != 5 || !strings.Contains(lines[1], "260924-134403-00") || !strings.Contains(lines[2], "errored") || !strings.Contains(lines[3], "cancelled") || !strings.Contains(lines[4], "completed") {
+	if len(lines) != 5 || !strings.Contains(lines[1], "260924-134403-00") || !strings.Contains(lines[2], "error") || !strings.Contains(lines[3], "cancel") || !strings.Contains(lines[4], "complete") {
 		t.Errorf("table under the filter and mode: %q", lines)
 	}
 }
@@ -247,7 +247,7 @@ func TestSortKeys(t *testing.T) {
 // json refuses them, and an unknown sort key is refused.
 func TestRunOptions(t *testing.T) {
 	dir := t.TempDir()
-	for i, s := range []struct{ id, mode, status, op string }{{"260924-134500-00", "crun", "running", "sanchez"}, {"260924-134403-00", "run", "completed", "quinlan"}} {
+	for i, s := range []struct{ id, mode, status, op string }{{"260924-134500-00", "crun", "running", "sanchez"}, {"260924-134403-00", "run", "complete", "quinlan"}} {
 		snap := snap(s.mode, s.status, screenRows()[i].Snapshot.Counts, nil, nil)
 		snap.ActivityID, snap.Operator.Username = s.id, s.op
 		snap.LastUpdatedAt = time.Now()

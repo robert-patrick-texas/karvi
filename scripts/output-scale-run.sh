@@ -168,7 +168,7 @@ AFTER=$(status_kb VmRSS "$DPID")
 JOB=$(ls -d "$TMP"/base/jobs/*/* | tail -1)
 WANT_BYTES=$((BIG_LINES * 73))
 records=$(wc -l <"$JOB/commands.jsonl")
-ok=$(jsonl_records "$JOB/commands.jsonl" status output_bytes | grep -cx "$(printf 'succeeded\t%s' "$WANT_BYTES")" || true)
+ok=$(jsonl_records "$JOB/commands.jsonl" status output_bytes | grep -cx "$(printf 'success\t%s' "$WANT_BYTES")" || true)
 [ "$records" -eq "$N" ] || fail "$records records, expected $N"
 [ "$ok" -eq "$N" ] || fail "$ok records succeeded with $WANT_BYTES output bytes, expected $N"
 karvi --quiet daemon stop --force >/dev/null 2>&1 || true
