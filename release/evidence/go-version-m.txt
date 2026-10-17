@@ -34,3 +34,14 @@ bin/karvi-prune-linux-amd64: go1.27.2
 	build	GOARCH=amd64
 	build	GOOS=linux
 	build	GOAMD64=v1
+bin/karvi-audit-linux-amd64: go1.27.2
+	path	github.com/robert-patrick-texas/karvi/cmd/karvi-audit
+	mod	github.com/robert-patrick-texas/karvi	(devel)	
+	dep	golang.org/x/sys	v0.23.0	
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	-trimpath=true
+	build	CGO_ENABLED=0
+	build	GOARCH=amd64
+	build	GOOS=linux
+	build	GOAMD64=v1
