@@ -197,8 +197,8 @@ func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Oper
 		LoginUser: operator.LoginUser,
 		Process:   map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()},
 		JobID:     jobID,
-		Action:    map[string]any{"mode": "crun", "operation": "after", "command_count": 0, "command_sha256_array": []string{}},
-		Policy:    map[string]any{"config_digest": cfg.Digest},
+		Action:    map[string]any{"mode": "crun", "operation": "after"},
+		Policy:    map[string]any{},
 		Result:    map[string]any{"exit_code": o.exit},
 		Source:    map[string]any{"client": "karvi"},
 		Details:   map[string]any{"path": h.Path, "directory": h.Summary.Directory, "replaced": h.Summary.Replaced, "kept": h.Summary.Kept, "duration_ms": o.duration.Milliseconds(), "timed_out": o.timedOut, "diagnostic": diagnostic}})

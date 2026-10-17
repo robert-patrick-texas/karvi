@@ -2,9 +2,6 @@ package jobexec
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"github.com/robert-patrick-texas/karvi/internal/audit"
 	"os"
 	"sort"
@@ -85,21 +82,6 @@ func cloneIntMap(m map[string]int) map[string]int {
 	out := make(map[string]int, len(m))
 	for k, v := range m {
 		out[k] = v
-	}
-	return out
-}
-
-func digestJSON(v any) string {
-	b, _ := json.Marshal(v)
-	sum := sha256.Sum256(b)
-	return hex.EncodeToString(sum[:])
-}
-
-func commandHashes(commands []string) []string {
-	out := make([]string, len(commands))
-	for i, c := range commands {
-		sum := sha256.Sum256([]byte(c))
-		out[i] = hex.EncodeToString(sum[:])
 	}
 	return out
 }

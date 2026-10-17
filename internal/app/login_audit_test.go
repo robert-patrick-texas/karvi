@@ -17,8 +17,8 @@ import (
 
 // TestLoginEvents: a login's events are login.start, with no outcome, and
 // login.end with its outcome, under the login's ID, naming the device by its
-// canonical name and the operator's login user; the lines keep to the
-// published schema.
+// canonical name and the operator's login user, with no command list; the
+// lines keep to the published schema.
 func TestLoginEvents(t *testing.T) {
 	home := t.TempDir()
 	file := filepath.Join(home, "audit.jsonl")
@@ -52,7 +52,7 @@ func TestLoginEvents(t *testing.T) {
 		if err := json.Unmarshal([]byte(lines[i]), &r); err != nil {
 			t.Fatal(err)
 		}
-		if r.EventName != want.name || r.Outcome != want.outcome || r.LoginID != "261017-101500-00" || r.JobID != "" || r.LoginUser != "tester.login" || r.Device == nil || r.Device.CanonicalName != "fake-iosxe" || r.Action["mode"] != "login" {
+		if r.EventName != want.name || r.Outcome != want.outcome || r.LoginID != "261017-101500-00" || r.JobID != "" || r.LoginUser != "tester.login" || r.Device == nil || r.Device.CanonicalName != "fake-iosxe" || r.Action["mode"] != "login" || len(r.Action) != 2 {
 			t.Errorf("line %d: %s", i, lines[i])
 		}
 	}

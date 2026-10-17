@@ -462,7 +462,7 @@ func exercisePingSummary(cfg configload.Snapshot, ping *icmpgate.Capability) *re
 // of the request for a cancel_job accepted before this point,
 // nil otherwise; it is a record of the request only, and the final status
 // stays exercised. A cancel accepted after this point is in the
-// run.cancel_requested audit record alone.
+// run.cancel audit event alone.
 func buildExerciseSummary(req Request, accepted records.AcceptedSummary, paths output.Paths, reportPath string, end time.Time, code int, outcome string, byReadiness map[string]int, cancellation *records.Cancellation, auditStatus audit.Status, bottleneck map[string]any, ping *icmpgate.Capability) records.Summary {
 	causes := []string{}
 	if outcome == records.OutcomeNotReady {

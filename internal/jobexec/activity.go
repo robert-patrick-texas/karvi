@@ -578,7 +578,8 @@ func buildSummary(accepted records.AcceptedSummary, paths output.Paths, end time
 
 // writeActivityAudit writes a job's own event, <kind>.<event> (start, cancel,
 // or end; docs/EXAMPLES.md, chapter 63), under the job's ID, which is its
-// activity's in every kind; a start and a cancel pass no outcome.
+// activity's in every kind; a start and a cancel pass no outcome, and the
+// start alone carries the job's statements.
 func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, code int, reason string, extra ...map[string]any) error {
 	eventID, _ := osutil.NewID(time.Now())
 	telnet := false
@@ -587,12 +588,16 @@ func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, c
 			telnet = true
 		}
 	}
+	action := map[string]any{"mode": jobKind(req), "operation": "command_sequence", "command_count": len(req.Plan.Commands), "plan_id": req.Plan.PlanID}
+	if event == "start" {
+		action["commands"] = req.Plan.Commands
+	}
 	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: jobKind(req) + "." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
 		if code == 0 {
 			return "info"
 		}
 		return "warning"
-	}(), Operator: osutil.RecordOperator(req.Operator), LoginUser: req.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, JobID: id, Action: map[string]any{"mode": jobKind(req), "operation": "command_sequence", "command_count": len(req.Plan.Commands), "command_sha256_array": commandHashes(req.Plan.Commands), "selector_digest": digestJSON(req.Selection), "plan_id": req.Plan.PlanID, "plan_digest": req.Plan.PlanDigest.String()}, Policy: map[string]any{"config_digest": req.Config.Digest, "telnet": telnet, "fips_required": req.Config.Bool("security.require-fips"), "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
+	}(), Operator: osutil.RecordOperator(req.Operator), LoginUser: req.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, JobID: id, Action: action, Policy: map[string]any{"telnet": telnet, "fips_required": req.Config.Bool("security.require-fips"), "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
 }
 
 func auditDetails(devices int, extra ...map[string]any) map[string]any {

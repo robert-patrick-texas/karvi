@@ -451,7 +451,7 @@ func writeLoginAudit(s *audit.Sink, operator credentials.Operator, cfg configloa
 			return "info"
 		}
 		return "warning"
-	}(), Operator: osutil.RecordOperator(operator), LoginUser: operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()}, LoginID: id, Device: &records.AuditDevice{ID: d.ID, CanonicalName: d.CanonicalName, Platform: d.Platform}, DeviceIdentity: map[string]any{"device_username": username, "backend": backend}, Action: map[string]any{"mode": "login", "operation": "interactive", "command_count": 0, "command_sha256_array": []string{}}, Policy: map[string]any{"config_digest": cfg.Digest, "telnet": false, "fips_required": cfg.Bool("security.require-fips"), "ssh_host_key_policy": cfg.String("ssh.host-key-policy")}, Result: map[string]any{"exit_code": code, "code": exitcode.ExitName(code)}, Source: map[string]any{"client": "karvi"}, Details: details})
+	}(), Operator: osutil.RecordOperator(operator), LoginUser: operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()}, LoginID: id, Device: &records.AuditDevice{ID: d.ID, CanonicalName: d.CanonicalName, Platform: d.Platform}, DeviceIdentity: map[string]any{"device_username": username, "backend": backend}, Action: map[string]any{"mode": "login", "operation": "interactive"}, Policy: map[string]any{"telnet": false, "fips_required": cfg.Bool("security.require-fips"), "ssh_host_key_policy": cfg.String("ssh.host-key-policy")}, Result: map[string]any{"exit_code": code, "code": exitcode.ExitName(code)}, Source: map[string]any{"client": "karvi"}, Details: details})
 }
 
 func writeGeneratedLine(w io.Writer, line string) error {

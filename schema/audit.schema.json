@@ -71,18 +71,15 @@
         "command_count": {"type": "integer"},
         "command_index": {"type": "integer"},
         "command_kind": {"type": "string"},
-        "command_sha256": {"type": "string"},
-        "command_sha256_array": {"type": "array", "items": {"type": "string"}},
-        "selector_digest": {"type": "string"},
-        "plan_id": {"type": "string"},
-        "plan_digest": {"type": "string"}
+        "command": {"type": "string", "description": "A device command event's statement as sent."},
+        "commands": {"type": "array", "items": {"type": "string"}, "description": "A job's statements in order, on its start alone."},
+        "plan_id": {"type": "string"}
       }
     },
     "policy": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "config_digest": {"type": "string"},
         "telnet": {"type": "boolean"},
         "fips_required": {"type": "boolean"},
         "ssh_host_key_policy": {"type": "string"},

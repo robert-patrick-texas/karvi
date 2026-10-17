@@ -504,7 +504,7 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 			return jobexec.WriteCancelRequested(sink, auditReq, rq)
 		}()
 		if err != nil && s.Logger != nil {
-			s.Logger.Warn("cancel_requested audit record not written", slog.String("job_id", jobID), slog.String("error", err.Error()))
+			s.Logger.Warn("cancel audit event not written", slog.String("job_id", jobID), slog.String("error", err.Error()))
 		}
 	}
 	go func() {

@@ -19,8 +19,10 @@ func TestSecretNamedPropertyIsRejected(t *testing.T) {
 	}
 }
 
-func TestDigestMetadataIsAllowed(t *testing.T) {
-	r := records.AuditRecord{EventID: "x", EventName: "test", Outcome: "success", Severity: "info", Operator: records.Operator{Username: "tester", UID: 1000}, Process: map[string]any{}, Action: map[string]any{"command_count": 1, "command_sha256_array": []string{"abc"}}, Policy: map[string]any{}, Result: map[string]any{}, Source: map[string]any{}, Details: map[string]any{}}
+// TestStatementKeysPass: the screen judges keys alone, and the statements'
+// keys are none it rejects.
+func TestStatementKeysPass(t *testing.T) {
+	r := records.AuditRecord{EventID: "x", EventName: "test", Outcome: "success", Severity: "info", Operator: records.Operator{Username: "tester", UID: 1000}, Process: map[string]any{}, Action: map[string]any{"command": "show clock", "commands": []string{"show clock"}, "command_index": 1, "command_count": 1, "command_kind": "requested"}, Policy: map[string]any{}, Result: map[string]any{}, Source: map[string]any{}, Details: map[string]any{}}
 	if err := screen(r); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +89,7 @@ func TestSinkStampsTheSchemaVersion(t *testing.T) {
 
 // TestLine: the message is key=value pairs in one order, karvi.audit first,
 // a pair left out where the event has no value; a value that would end its
-// pair early is quoted.
+// pair early is quoted, and a statement always, last.
 func TestLine(t *testing.T) {
 	op := records.Operator{Username: "netops", UID: 1000}
 	dev := &records.AuditDevice{ID: "name:core-rtr-1", CanonicalName: "core-rtr-1", Platform: "cisco_iosxe"}
@@ -103,6 +105,14 @@ func TestLine(t *testing.T) {
 			"karvi.audit=login.end operator=noc loginuser=jsmith outcome=errored login=261017-101500-00 device=core-rtr-1"},
 		{records.AuditRecord{EventName: "cmd.command", Operator: op, Outcome: "succeeded", JobID: "x", Device: &records.AuditDevice{CanonicalName: `a b="c"`}},
 			`karvi.audit=cmd.command operator=netops outcome=succeeded job=x device="a b=\"c\""`},
+		{records.AuditRecord{EventName: "run.command", Operator: op, Outcome: "succeeded", JobID: "261016-085318-00", Device: dev, Action: map[string]any{"mode": "run", "command": "show clock", "command_index": 1}},
+			`karvi.audit=run.command operator=netops outcome=succeeded job=261016-085318-00 device=core-rtr-1 command="show clock"`},
+		{records.AuditRecord{EventName: "cmd.command", Operator: op, Outcome: "succeeded", JobID: "x", Device: dev, Action: map[string]any{"command": "terse"}},
+			`karvi.audit=cmd.command operator=netops outcome=succeeded job=x device=core-rtr-1 command="terse"`},
+		{records.AuditRecord{EventName: "cmd.command", Operator: op, Outcome: "succeeded", JobID: "x", Device: dev, Action: map[string]any{"command": "banner motd \"a=b\\c\"\nend"}},
+			`karvi.audit=cmd.command operator=netops outcome=succeeded job=x device=core-rtr-1 command="banner motd \"a=b\\c\"\nend"`},
+		{records.AuditRecord{EventName: "run.start", Operator: op, JobID: "x", Action: map[string]any{"commands": []string{"show clock"}}},
+			"karvi.audit=run.start operator=netops job=x"},
 	} {
 		if got := Line(tc.r); got != tc.want {
 			t.Errorf("Line:\n got %s\nwant %s", got, tc.want)

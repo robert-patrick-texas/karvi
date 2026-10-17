@@ -13,7 +13,7 @@ import (
 const (
 	CommandSchemaVersion    = 3 // 3: channel, and an exec command's exit and stderr
 	ScoreboardSchemaVersion = 3 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes
-	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed
+	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed, statements in place of digests
 	JobSchemaVersion        = 4 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices
 	MetricsSchemaVersion    = 1
 )

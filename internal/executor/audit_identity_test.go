@@ -36,9 +36,9 @@ func TestAuditIdentity(t *testing.T) {
 
 // TestCommandEvent: a device command's event is <kind>.command under the
 // job's ID, the activity's, with the device, the operator's login user, the
-// kind as its mode, and the process that wrote it, as the job's other events
-// name it; the sink stamps the audit's schema version, and the line keeps to
-// the published schema.
+// kind as its mode, the statement as sent, and the process that wrote it, as
+// the job's other events name it; the sink stamps the audit's schema
+// version, and the line keeps to the published schema.
 func TestCommandEvent(t *testing.T) {
 	home := t.TempDir()
 	file := filepath.Join(home, "audit.jsonl")
@@ -51,7 +51,7 @@ func TestCommandEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink, Kind: "cmd", Operator: credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}}}
-	e.afterRecord(records.CommandRecord{RecordID: "r1", ActivityID: "261017-101500-00", Status: "succeeded", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
+	e.afterRecord(records.CommandRecord{RecordID: "r1", ActivityID: "261017-101500-00", Command: "show clock", Status: "succeeded", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
 	sink.Close()
 	data, err := os.ReadFile(file)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestCommandEvent(t *testing.T) {
 	if line.SchemaVersion != records.AuditSchemaVersion || line.Process["pid"] != float64(os.Getpid()) {
 		t.Fatalf("schema_version %d, process %v", line.SchemaVersion, line.Process)
 	}
-	if line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_iosxe"}) {
+	if line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Action["command"] != "show clock" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_iosxe"}) {
 		t.Fatalf("event %s", data)
 	}
 	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", data)

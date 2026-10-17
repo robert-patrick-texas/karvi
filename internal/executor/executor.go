@@ -1238,7 +1238,7 @@ func rttString(ns *int64) string {
 	return fmt.Sprintf("%.1fms", ms)
 }
 
-// auditIdentity is a command_completed event's device identity: the
+// auditIdentity is a <kind>.command event's device identity: the
 // address and, from the record's credential projection, the device
 // username, the credential backend, and the method that authenticated the
 // session (absent where it never authenticated), on every command.
@@ -1263,7 +1263,7 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 	if e.opts.Audit != nil {
 		// The event's job is the activity: a cmd's record carries no job_id,
 		// and its folder's name, the ID job list shows, is the activity's.
-		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.ActivityID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"mode": e.opts.Kind, "command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
+		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.ActivityID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"mode": e.opts.Kind, "command": r.Command, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
 			if r.Credential != nil {
 				return r.Credential.Policy
 			}
@@ -1278,7 +1278,7 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 }
 
 // AuditDetails is an audit event's details from a device's host-key
-// notices (a command_completed event's from its record's, a login's end
+// notices (a <kind>.command event's from its record's, a login's end
 // event's from its session's): host_key_enrolled, the key type;
 // host_key_mismatch_accepted, the stored and presented fingerprints;
 // host_key_not_compared, the reason.

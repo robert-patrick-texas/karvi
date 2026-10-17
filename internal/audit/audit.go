@@ -157,7 +157,8 @@ func journalEntry(r records.AuditRecord, data []byte) []byte {
 
 // Line is the event's message, the line syslog carries: key=value pairs in
 // one order, `karvi.audit=<kind>.<event>` first, a pair left out where the
-// event has no value (docs/EXAMPLES.md, chapter 63, issue 6).
+// event has no value, and a device command's statement last, quoted always
+// (docs/EXAMPLES.md, chapter 63, issue 6).
 func Line(r records.AuditRecord) string {
 	var b strings.Builder
 	pair := func(k, v string) {
@@ -177,6 +178,9 @@ func Line(r records.AuditRecord) string {
 	pair("login", r.LoginID)
 	if r.Device != nil {
 		pair("device", r.Device.CanonicalName)
+	}
+	if c, ok := r.Action["command"].(string); ok {
+		b.WriteString(" command=" + strconv.Quote(c))
 	}
 	return b.String()
 }
@@ -222,7 +226,7 @@ func walk(v any, path string) error {
 			if path != "" {
 				p = path + "." + k
 			}
-			if forbidden.MatchString(k) && !allowedKey(p) {
+			if forbidden.MatchString(k) {
 				return errorcodes.Errorf("audit_sensitive_property_rejected", "audit schema rejected sensitive property %s", p)
 			}
 			if err := walk(v, p); err != nil {
@@ -237,7 +241,4 @@ func walk(v any, path string) error {
 		}
 	}
 	return nil
-}
-func allowedKey(path string) bool {
-	return strings.HasSuffix(path, "command_sha256") || strings.HasSuffix(path, "command_sha256_array") || strings.HasSuffix(path, "command_count") || strings.HasSuffix(path, "transcript_recording")
 }
