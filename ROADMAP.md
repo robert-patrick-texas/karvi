@@ -9,24 +9,15 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **`karvi-audit`.** A fourth executable, like `karvi-prune`, that reads the
-   trail by running `journalctl -o json SYSLOG_IDENTIFIER=karvi` with the
-   matches, so that following, reversing, grepping, and who reads whose
-   events are journalctl's (an operator their own, `adm` and
-   `systemd-journal` everyone's), and shows a table: TIME, KIND, EVENT,
-   OPERATOR, OUTCOME, JOB-ID (a job's or a login's), DEVICE, and COMMAND,
-   coloured as karvi's other output. Its shape and options are agreed
-   (chapter 63's "Found, for later"); its design opens with a mock-up of the
-   table from real events, laid out by a script.
-2. **Unique job IDs.** A job ID is unique only in the folder that reserved
+1. **Unique job IDs.** A job ID is unique only in the folder that reserved
    it: the output root, a collection's `--cd` folder, or none under `--nof`,
    whose ID is always `-00`. Of the 43,173 job IDs of thirty days'
    `run.started` events, 6,712 were started by more than one process, so
    `journalctl KARVI_JOB_ID=ID` can match two jobs. The direction: one
    sequence per operator on a host for every job and login. A `cmd` job's
    empty `job_id` in its summary, its records, and `job list --format json`
-   goes with it.
-3. **Shorter output strings.** A review of every error and warning message
+   goes with it, and the audit suite's read by job ID becomes exact.
+2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
    credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
@@ -250,7 +241,10 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   63](docs/EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)). An
   audit review would show them as work done. The item: no test or suite
   writes to the host's journal. The questions: how a test's sink is kept
-  from journald, and how a suite's is.
+  from journald, how a suite's is, and the audit suite's, whose subject is
+  the round trip through journald, its jobs at devices named for its run
+  alone ([`docs/EXAMPLES.md`, chapter
+  64](docs/EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)).
 
 ## The device-qualification track
 

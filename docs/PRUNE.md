@@ -57,7 +57,8 @@ record), a folder under a name that is not a `YYMMDD` day folder, a
 symbolic link, a file the helper cannot read, the collection directory
 (`crun`; the latest file per device is not retention), the audit log,
 and anything in journald. Long-term audit retention is journald's and the
-central forwarder's, never this helper's.
+central forwarder's, never this helper's; `karvi-audit` reads it
+([`docs/OPERATIONS.md` "The audit trail"](OPERATIONS.md#the-audit-trail)).
 
 **Pressure.** `--minfree` (5 by default) is a free-space floor in
 percent. A tree whose filesystem is under the floor gives up its oldest

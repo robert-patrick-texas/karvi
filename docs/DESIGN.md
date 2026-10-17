@@ -253,22 +253,22 @@ and under `--nocolor` or `--ansi strip`.
 carry no escapes. *Not taken:* escapes in the constants; a `--color` option
 for help alone.
 
-**Tab completion answers from the parser table.** A hidden word,
-`karvi __complete CURSOR WORD...`, walks the table to the word under the
-cursor and prints candidates: command and option words, enum values, known
-platforms, registry keys for `--set`, device names from the inventory, job
-IDs from the scoreboard directory, and `:files` where bash should complete
-paths. It creates nothing, contacts no daemon, and prints nothing on any
-failure. One bash function serves `karvi` and `karvi-prune`; `sudo karvi
-setup tab` installs it. The function runs the command word it was given, so a
-shorter name a site links to the executable completes once the site binds it
-in a file of its own (`complete -F _karvi k`). *Why:* the grammar is data the
-drift test already keeps honest, so a word added to the table is completed by
-construction. *Not taken:* a generated static script (stale at the next
-change, blind to inventory); listing aliases (the list would double); `k`
-bound in karvi's file (an operator whose `k` is an alias, often kubectl's,
-would lose Tab on it); a name given to `setup tab` (every later run would have
-to name it again or drop it).
+**Tab completion answers from the parser table.** A hidden word, `karvi
+__complete CURSOR WORD...`, walks the table to the word under the cursor and
+prints candidates: command and option words, enum values, known platforms,
+registry keys for `--set`, device names from the inventory, job IDs from the
+scoreboard directory, and `:files` where bash should complete paths. It creates
+nothing, contacts no daemon, and prints nothing on any failure. One bash
+function serves `karvi`, `karvi-prune`, and `karvi-audit`; `sudo karvi setup
+tab` installs it. The function runs the command word it was given, so a shorter
+name a site links to the executable completes once the site binds it in a file
+of its own (`complete -F _karvi k`). *Why:* the grammar is data the drift test
+already keeps honest, so a word added to the table is completed by construction.
+*Not taken:* a generated static script (stale at the next change, blind to
+inventory); listing aliases (the list would double); `k` bound in karvi's file
+(an operator whose `k` is an alias, often kubectl's, would lose Tab on it); a
+name given to `setup tab` (every later run would have to name it again or drop
+it).
 
 ## 3. Targets, inventory, and platforms
 
@@ -2169,6 +2169,48 @@ journald's `_UID` alone (a host's number); the digests beside the statements;
 each device's events masked by its own list ([`docs/EXAMPLES.md`, chapter
 63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)).
 
+**`karvi-audit` reads the trail through `journalctl`, and reads no
+configuration.** A fourth executable beside karvi, `karvi-prune`, and
+`karvi-askpass` runs `journalctl --no-pager -o json
+--output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi MESSAGE_ID=…`, the
+audit's message ID, with its matches, and lays out each entry's JSON, decoded as
+the writer's `records.AuditRecord`, as one row. `-S`, `-U`, `-g`, `-r`, `-f`,
+and `-n` are journalctl's, passed as given; `-o NAME` matches `KARVI_OPERATOR`
+or `KARVI_LOGINUSER`, `-d NAME` matches `KARVI_DEVICE` lowercased, each
+repeatable, a flag's names ORed and the two flags ANDed. An entry with no
+`KARVI_AUDIT_JSON`, JSON that does not decode, or an audit schema other than
+the writer's has no row, and one line at the end counts them. *Why:*
+following, reversing, the pattern, the window, and who reads whose events are
+journald's already, on every host; the message ID tells the audit from the
+daemon's log under the same identifier; a name is matched as journald matches
+a field, whole. *Not taken:* a row for an event it cannot read (the old
+schema's rows in the new table); a warning per such event (a host upgraded from
+schema 1 holds hundreds of thousands); the configuration's `display.*` read (as
+`karvi-prune`, it reads none) ([`docs/EXAMPLES.md`, chapter
+64](EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)).
+
+**`karvi-audit`'s run: journalctl's refusals are its own, and the exits are
+0, 1, and 2.** The reader refuses its own options alone, an unknown option, a
+positional argument, or an `-n` that is not a number, in few words with the
+help, exit 2. A value journalctl refuses, a time, a pattern, or `-r` with `-f`,
+is journalctl's message on standard error as it wrote it, exit 1, and
+journalctl missing is `karvi-audit: journalctl not found`, exit 1. Not
+following, the heading comes with the first row, and when journalctl returned no
+entry `karvi-audit: no matches` goes to standard error, no heading, exit 0;
+following, the heading comes with the first row or once journalctl has run half
+a second without ending. The exit is 0 when journalctl ended 0, a follow ended
+by Ctrl-C or by its reader's closing included, and journalctl ended by the
+Ctrl-C it got too counts as that; a reader that quits (`less`, `head`) ends it
+quietly, under `-f` without waiting for the next event. *Why:* journalctl
+already judges its values and says why in one line, so whose refusal is whose
+has one rule; a heading over a refusal, or with no row, reads as a table cut
+short; a message on standard output would be a row to a script reading the
+pipe; on a host upgraded from schema 1 a window can hold the old events alone,
+so "no matches" would be false there. *Not taken:* the reader refusing `-r`
+with `-f` itself; the heading alone, or `(no matches)`, for nothing matched;
+the message on standard output; exit 1 for nothing matched (grep's;
+journalctl's 0 kept).
+
 ## 11. The collection run
 
 **A collection is one flat directory of device files, replaced only on
@@ -2405,8 +2447,9 @@ placeholder in the run footer (empty for every run without one).
 **The helper's help is karvi's layout, coloured without configuration.**
 `internal/helplayout` holds the one help layout (the title tag in the label
 colour, headings in bold, option words in the accent colour, a Usage line's
-action word in the success colour), which karvi and `karvi-prune` both use;
-karvi decides its colour from `display.*` as before. `karvi-prune -h` and
+action word in the success colour), which karvi, `karvi-prune`, and
+`karvi-audit` use; karvi decides its colour from `display.*` as before, and
+`karvi-audit` colours its help as its table (below). `karvi-prune -h` and
 `--help` print to standard output, exit 0: a title line, `Usage:` with the
 synopsis wrapped at 79, and `Options:` with each flag in the synopsis's order,
 its placeholder in a 31-column field and its usage string beside it, the default
@@ -2445,20 +2488,21 @@ their keys' registry entries give ranges alone, and [SCALE.md](SCALE.md), which
 explains them, is not installed. *Not taken:* the compact lines with a pointer
 to [SCALE.md](SCALE.md); changing the percent rule in a help change.
 
-**`NO_COLOR` turns colour off under `auto`, on every path.** `display.color`
-is `auto` (the default), `always`, or `never`; under `auto`, colour is on at a
+**`NO_COLOR` turns colour off under `auto`, on every path.** `display.color` is
+`auto` (the default), `always`, or `never`; under `auto`, colour is on at a
 terminal unless `NO_COLOR` is set and not empty. The rule is
-`display.ColorEnabled`'s, so the help, a run's display on both paths,
-`config colors`, the watch screen, and `karvi-prune -h` (whose mode is `auto`
-alone) follow it; `always` and `never` are explicit choices `NO_COLOR` does
-not override, watch's `--color` among them, and a regular file is plain under
-every mode (below). *Why:* the convention (no-color.org)
-asks a program that colours by default to honour a non-empty `NO_COLOR` and
-lets a configuration or a per-invocation option override it; the watch screen
-alone read it, beating even its own `--color always`, and every other path
-ignored it. *Not taken:* `NO_COLOR` over `always`; `NO_COLOR` as a
-configuration layer setting `display.color = "never"` (locks, and an order
-above the files); a karvi variable of its own.
+`display.ColorEnabled`'s, so the help, a run's display on both paths, `config
+colors`, the watch screen, `karvi-prune -h` (whose mode is `auto` alone), and
+`karvi-audit` (whose colour, a terminal's and a pipe's, is no one's explicit
+choice, so that `NO_COLOR` turns it off as `--nocolor` does) follow it; `always`
+and `never` are explicit choices `NO_COLOR` does not override, watch's `--color`
+among them, and a regular file is plain under every mode (below). *Why:* the
+convention (no-color.org) asks a program that colours by default to honour a
+non-empty `NO_COLOR` and lets a configuration or a per-invocation option
+override it; the watch screen alone read it, beating even its own `--color
+always`, and every other path ignored it. *Not taken:* `NO_COLOR` over `always`;
+`NO_COLOR` as a configuration layer setting `display.color = "never"` (locks,
+and an order above the files); a karvi variable of its own.
 
 **Every warning line in the warning colour.** A `warning: …` line on standard
 error, a load's warnings and every other, is written by one function
@@ -2567,6 +2611,43 @@ a name cut; the running rows above a rule (a folder's unfinished job may be days
 dead); the scoreboard's live counts (a second read, gone once pruned); `0/2`,
 `?`, or `-` for counts not known (none done claimed, the flag column's mark, a
 file not read); the heading alone or nothing for an empty list.
+
+**`karvi-audit`'s table: fixed widths, no TIME.** The columns stand at fixed
+widths, one space between them: JOB-ID 16 (a job's or a login's ID), OPERATOR
+18, MODE 5 (the kind, `login` among them), EVENT 7, OUTCOME 16, DEVICE 20, then
+COMMAND. A cell longer than its column is cut with `…`. At a terminal the line
+is cut with `…` so that its last cell stays free, COMMAND cut or not shown at
+all; to a pipe or a file nothing cuts it. OPERATOR and DEVICE, heading and
+cells, are centred while the width holds the column whole, an odd cell to the
+right, and at the column's left when the width cuts into it, so DEVICE is whole
+from 89 columns. OPERATOR is `OPERATOR/LOGINUSER` when the event names a login
+user, `/LOGINUSER` kept whole and the operator's part cut first. A statement's
+control characters are written as Go writes them in a quoted string (`\t`,
+`\n`, `\x1b`). *Why:* the job ID holds the job's start to the second; one rule
+for every mode, a table read whole or followed, its first line at once and its
+memory flat, which widths measured over the rows cannot give (thirty days'
+359,728 rows held before the first line); OUTCOME at 16 tells the two
+`not_attempted_*` words apart; on a jump box where operators `sudo` to a shared
+account the person is the part a review looks for; a newline in a statement
+would start a row with no columns. *Not taken:* TIME (19 cells); widths
+measured over every row, as `job list`'s; a longer cell whole, pushing the rest
+of its row; two cells between columns; OUTCOME at 10;
+`OPERATOR(LOGINUSER)`; the pair cut at its end; the control characters removed.
+
+**`karvi-audit`'s colours go to a terminal and through a pipe, never into a
+file.** The headings in the label role, OPERATOR in the accent role, DEVICE in
+the target role (bold), and OUTCOME by its word: the success role for
+`success`, `complete`, and `exercise`; the warning role for work not done or
+cut short, `cancel`, `halt`, `incomplete`, and a command's `not_attempted_*`,
+`not_started_*`, and `incomplete_*`; the error role for every other word. The
+roles are the dark theme's, as the reader reads no configuration; `--nocolor`
+and `NO_COLOR` turn the colour off. *Why:* the roles and the words' colours are
+`watch`'s and `job list`'s; a statement not sent is not the failure, which a row
+before it in the same job carries in red; a reader of the trail pages it
+(`karvi-audit | less -R`), so a pipe keeps the colour, and a file never holds
+it. *Not taken:* the colour at a terminal alone (`display.color = auto`'s rule,
+the pager plain); `not_attempted_*` red (one failure shown as many); OPERATOR
+plain.
 
 ## 14. Storage: roots, shared trees, transcripts, and retention
 
@@ -3013,18 +3094,22 @@ commit; the release's commit derived from the heading (a modified tree would
 claim the release); the tag's name (the bundle has no `.git`).
 
 **A man page is roff written by hand, its SYNOPSIS and OPTIONS generated.**
-`packaging/man/karvi-prune.8` is one committed file; between the comment lines
-`.\" BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there`
-and `.\" END GENERATED SYNOPSIS`, and the same pair for OPTIONS, `tools/mangen`
-writes the synopsis from the helper's `flagspec.Spec` and one entry per flag
-from its flag set (the placeholder, the usage string, and the default, roff
-escaped: `-` as `\-`, `\` as `\e`, a leading `.` or `'` behind `\&`) and leaves
-every other byte as it was, refusing a page with a pair missing, doubled, or
-out of order. `make
+`packaging/man/karvi-prune.8` and `packaging/man/karvi-audit.1` are each one
+committed file; between the comment lines `.\" BEGIN GENERATED SYNOPSIS:
+tools/mangen from internal/prune; edit there` (`internal/auditview` for the
+reader) and `.\" END GENERATED SYNOPSIS`, and the same pair for OPTIONS,
+`tools/mangen` writes the synopsis from the executable's `flagspec.Spec`, a
+flag spelled as the help spells it (by its one letter where it has one, `...`
+after a repeatable one), and one entry per flag from its flag set (both
+spellings, the placeholder, the usage string, and the default, roff escaped:
+`-` as `\-`, `\` as `\e`, a leading `.` or `'` behind `\&`) and leaves every
+other byte as it was, refusing a page with a pair missing, doubled, or out of
+order. `make
 generate` rewrites it in place; `make generated-clean` and the bundle verifier
 regenerate into a temporary file and compare. A Go test runs `groff -man -ww
 -z` on the page and fails on a warning, skipping without groff; the debian
-rules install it to `/usr/share/man/man8/`, gzipped by `dh_compress`. *Why:*
+rules install `karvi-prune.8` to `/usr/share/man/man8/` and `karvi-audit.1` to
+`/usr/share/man/man1/`, gzipped by `dh_compress`. *Why:*
 the flags are defined once and the page cannot drift from them, as the
 registry's reference cannot; the prose is not in any definition. *Not taken:*
 a `.8.in` template beside a generated `.8`; a Markdown-to-roff converter (a
@@ -3112,7 +3197,8 @@ a help text to roff (`Roff`: the SYNOPSIS and DESCRIPTION bodies) with the
 classifier its terminal layout uses, and holds the one roff escape (`\` as `\e`,
 `-` as `\-`, a leading `.` or `'` behind `\&`), which the prune regions use too.
 `tools/mangen` works from a page table, each page with its path, its marker
-source, and its regions: `karvi-prune.8` from `internal/prune` as before, and
+source, and its regions: `karvi-prune.8` from `internal/prune` as before,
+`karvi-audit.1` from `internal/auditview`, and
 `karvi.1` and `karvi-WORD.1` from `HelpPages()` with the markers `.\" BEGIN
 GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there` and
 `DESCRIPTION`; a word without its page file is refused, naming the file; `-dir

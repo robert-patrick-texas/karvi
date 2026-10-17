@@ -456,8 +456,8 @@ karvi version --help
 ```
 
 Tab completes the words, options, values, device names, and job IDs, and
-`karvi-prune`'s flags and their words, once the site has run `sudo karvi setup
-tab` ([`docs/OPERATIONS.md` "Tab
+`karvi-prune`'s and `karvi-audit`'s flags, once the site has run `sudo karvi
+setup tab` ([`docs/OPERATIONS.md` "Tab
 completion"](docs/OPERATIONS.md#tab-completion)).
 
 ## Implemented foundation and remaining boundary
@@ -468,7 +468,9 @@ credential policies and authenticated askpass; one device session over system
 OpenSSH and the compiled scrapligo-v1 connection, gated Telnet; serial,
 parallel, and adaptive-wave dispatch; durable JSONL and summaries; audit,
 scoreboards, metrics, per-user daemon IPC, capacity admission, retention
-(`karvi-prune`, [`docs/PRUNE.md`](docs/PRUNE.md)), PTY login recording, shared
+(`karvi-prune`, [`docs/PRUNE.md`](docs/PRUNE.md)), the audit trail read as a
+table (`karvi-audit`, [`docs/OPERATIONS.md` "The audit
+trail"](docs/OPERATIONS.md#the-audit-trail)), PTY login recording, shared
 display formatting, and the watch screen (`karvi watch`: the running jobs above
 a rule, the finished ones below, a detail pane per job, the `/` filter and the
 `s` sort, [`docs/OPERATIONS.md` "The watch
@@ -525,13 +527,13 @@ Operator guides:
 - `packaging/man/`: the manual pages the package installs: `man karvi`
   (the configuration, the values, the environment, the files, the exit
   statuses), `man karvi WORD` for each command word (`man karvi run`), `man
-  karvi-prune`, and `man karvi-askpass`; each word's SYNOPSIS and DESCRIPTION
-  are its `--help`, generated (`make generate`).
+  karvi-prune`, `man karvi-audit`, and `man karvi-askpass`; each word's
+  SYNOPSIS and DESCRIPTION are its `--help`, generated (`make generate`).
 - [`docs/QUICKSTART.md`](docs/QUICKSTART.md): inspect the executable, first
   configuration, first commands.
 - [`docs/OPERATIONS.md`](docs/OPERATIONS.md): upgrade, the daemon, retention,
   configuration macros, the credential backends and files, the credential
-  helper.
+  helper, the audit trail and `karvi-audit`.
 - [`docs/FILES.md`](docs/FILES.md): every directory and file karvi reads or
   writes, in shared and in individual mode, with its mode, owner, and group,
   and how karvi chooses each place.

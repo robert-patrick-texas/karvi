@@ -13921,3 +13921,69 @@ journal that took no event would read as the reader's fault).
   --follow`); `karvi-prune.8` comes out the same, byte for byte.
 - The release tools' evidence step (`evidence-rest.sh`, outside the tree) names
   three executables to `go version -m`; the release step adds `karvi-audit`.
+
+**Built.** In four sections, each committed on the operator's word. S1
+`90a2e96`: `internal/flagspec`, the command line of an executable that parses
+with Go's `flag` package, `karvi-prune`'s moved out of `internal/prune` into one
+`flagspec.Spec` from which its synopsis, help, tab completion, and man page
+regions come, byte for byte as before. S2 `4e54862` (issues 1 to 5):
+`cmd/karvi-audit` and `internal/auditview`, its flags, journalctl's invocation
+and matches, the rows, the layout, the colours, and the run;
+`audit.Identifier`, `audit.MessageID`, and the `audit.Field*` names the writer
+and the reader share; `osutil.IsPipe`; `flagspec`'s one-letter spellings,
+repeatable flags, and `HelpStyle`. S3 `c0b1bfb`: the fourth executable beside
+the other three in the Makefile, the Debian package (its install, man page in
+section 1, and `lintian` override), `install.sh`, `build-deb.sh`,
+`check-deb.sh`, `verify-shipped.sh`, and the container test; `tools/mangen`
+writing a flag's one letter and `...` after a repeatable one, and
+`packaging/man/karvi-audit.1`; the bash function registered for
+`karvi-audit`; and `scripts/audit-smoke-test.sh` in the suites' third lane. S4,
+the documents: the CHANGELOG's `Unreleased` block; OPERATIONS' "The audit
+trail" read with `karvi-audit`, and its tab completion; DESIGN's four entries,
+the reader, its run, its table, and its colours, and its entries on tab
+completion, the help, `NO_COLOR`, and the man pages; ARCHITECTURE, README,
+FILES, BUILD-HOWTO, BUILD-QUALIFICATION (the audit suite's gate),
+DISPLAY-CONFIGURATION, and PRUNE; and the ROADMAP, its Next item 1 gone and
+its Later item on the tests' journal events naming the audit suite. The tests:
+`TestPlaceholder`, `TestHelpShapes`, and `TestWrap` (S1); `TestUsage`,
+`TestSpec`, `TestArgs`, `TestDecode`, `TestLayout`, `TestColours`,
+`TestOperatorCell`, `TestOutcomeRole`, `TestVisible`, `TestRun`, and
+`TestShortSpellings` (S2); `TestSpecRegions`, and `TestSetupTab` and
+`TestPageTable` widened (S3).
+
+**Executed.** S1 passed gofmt, vet, `go test ./...`, and `make
+generated-clean`, `karvi-prune`'s help, synopsis, and man page the same bytes,
+and the completion suite on a lab build. S2 passed the same, `-race` on
+`internal/auditview` and the command, and its lab scripts on a lab build
+against this host's journal (`s2-lab.sh`, `s2-follow-empty.sh`): the lab's 26
+events read by operator, device, pattern, newest first, and count; the colours
+through a pipe, none into a file or under `NO_COLOR`; `netops.test`'s own
+reading under `sudo -n -u`; issue 5's cases; and a follow ended by Ctrl-C and by
+its reader's closing, leaving no `journalctl`. S3 passed gofmt, vet, `go test
+./...`, and `make generated-clean`; the audit and completion suites on a lab
+build, the audit suite failing when its expected layout was changed and passing
+its skip with the socket path naming none; `s3-lab.sh`, whose output the man
+page and OPERATIONS quote; and a package built in a copy of the tree, checked
+by `check-deb.sh` with `lintian`, the copy's `verify-shipped.sh`, and the
+container test (`sysutil-smoke-test.sh`, `install.sh` placing the five
+executables). S4, at the work's end, on the final tree: gofmt, vet, `go test
+./...` (72 packages), and `make generated-clean`; all 19 suites on a lab build
+(`run_suites`, `KARVI` the lab build, 202 seconds), the host's shared places
+unchanged; `scripts/verify-release.sh` whole in a copy of the tree without
+`.git` (483 seconds), its tests under `-race`, its suites, its package with
+`check-deb.sh`, and the container test among them, then `verify-shipped.sh` on
+the copy's build, the copy the final tree but for these two paragraphs. None
+left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, karvi
+process, or container.
+
+**Closed.** The ROADMAP's Next item 1 is gone, built here: unique job IDs is
+item 1, the audit suite's read by job ID exact once it is built, and shorter
+output strings item 2; the tests' events out of the host's journal stays a Later
+item, the audit suite, whose subject is the journal, among its questions. The
+next release, its number the operator's, carries `karvi-audit` beside the
+schemas chapter 63 moved; its step adds the fourth executable where the release
+lists the executables, the manifest, `CHECKSUMS.sha256`, and the release tools'
+`go version -m` line. The evidence is kept beside the tree
+(`release-design-evidence/karvi-audit-2026-10-17`: the mock-ups and their
+events, issue 5's runs, each section's patch and lab scripts with their
+output, and S4's test, suite, and verifier logs).

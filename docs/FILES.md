@@ -319,6 +319,7 @@ owner's next run sets it right, or the site resets it.
 | `/usr/bin/karvi` | `0755` | the program |
 | `/usr/bin/karvi-askpass` | `0755` | the helper `ssh` runs for a secret; never run by an operator |
 | `/usr/bin/karvi-prune` | `0755` | retention: removes old job and transcript folders ([`docs/PRUNE.md`](PRUNE.md)) |
+| `/usr/bin/karvi-audit` | `0755` | the audit trail read from journald as a table; writes nothing ([`docs/OPERATIONS.md`, "The audit trail"](OPERATIONS.md#the-audit-trail)) |
 | `/usr/sbin/karvi-sysutil` | `0755` | the administrator's tool for the service account's daemon, run as root (`karvi-sysutil(8)`) |
 | `/usr/lib/systemd/system/karvi-daemon@.service` | `0644` | the service account's template unit, where systemd finds a package's units: nothing runs until `sudo karvi-sysutil daemon install` enables its instance, and an upgrade replaces it ([`docs/OPERATIONS.md`, "A service account's daemon under systemd"](OPERATIONS.md#a-service-accounts-daemon-under-systemd)) |
 | `/usr/share/man/man1/karvi*.1`, `/usr/share/man/man8/karvi-prune.8`, `/usr/share/man/man8/karvi-sysutil.8` | `0644` | the manual pages |

@@ -55,6 +55,29 @@
   unless the site locks the key. The plan carries each target platform's list
   as `platform_masks` ([`docs/COLLECTION.md` section
   6.1](docs/COLLECTION.md#61-the-secrets-the-mask)).
+- **`karvi-audit`, the audit trail as a table.** A fourth executable beside
+  `karvi`, `karvi-prune`, and `karvi-askpass`, in the package
+  (`/usr/bin/karvi-audit`, `man karvi-audit`) and the bundle (`install.sh`
+  links it from `/usr/local/bin`). It runs `journalctl` with the trail's
+  identifier and message ID and shows each event as one row: JOB-ID,
+  OPERATOR (`OPERATOR/LOGINUSER` under `sudo`), MODE, EVENT, OUTCOME, DEVICE,
+  and COMMAND at fixed widths, the line cut with `…` at a terminal, nothing
+  cut to a pipe or a file. `-S`, `-U`, `-n`, `-g`, `-r`, and `-f` are
+  journalctl's, passed as given; `-o NAME` is the operator or the login user,
+  `-d NAME` the device, each repeatable. OUTCOME is green, orange, or red by
+  its word; the colour goes to a terminal and through a pipe, never into a
+  file (`--nocolor`, `NO_COLOR`). Nothing matched is `karvi-audit: no
+  matches` on standard error, exit 0; a value journalctl refuses is its own
+  message, exit 1; a usage error exits 2; an event of another audit schema has
+  no row, and one line counts them. It reads no configuration. Tab completes
+  its flags from the same file as karvi's; a host that holds the file from
+  before runs `sudo karvi setup tab` once more ([`docs/OPERATIONS.md`, "The
+  audit trail"](docs/OPERATIONS.md#the-audit-trail)).
+- **The audit suite.** `scripts/audit-smoke-test.sh` reads the jobs it makes
+  against the fake device back from the host's journal with `karvi-audit`,
+  each row checked against the event `audit.file` holds, in the suites' third
+  lane; on a host without journald its journal rows are skipped with the
+  reason.
 - **Breaking: an outcome or a status is one present-tense word in every
   record; command record 4, job manifest and summary 5, scoreboard 4, plan
   report 3.** `succeeded` is `success`, `completed` `complete`, `errored`

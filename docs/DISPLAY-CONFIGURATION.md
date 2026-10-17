@@ -147,10 +147,12 @@ wrapper's terminal too), every refusal (the code and its message, in the
 `error` role's colour and bold, as a device's failure line), a line a
 stream drops and goes on from (`stream line 3 dropped: …`, in the `warning`
 role's colour and bold), `config colors`, the watch screen (whose `--color`
-sets it for the screen), and `karvi-prune -h`, which reads no configuration
-and colours under `auto` alone. A refusal before the configuration is read,
-a mistake on the command line or a configuration that does not load, takes
-the built-in settings under the command line's own `--nocolor`.
+sets it for the screen), `karvi-prune -h`, which reads no configuration
+and colours under `auto` alone, and `karvi-audit`, which reads none either
+and colours a terminal and a pipe, never a file, until `--nocolor` or
+`NO_COLOR`. A refusal before the configuration is read, a mistake on the
+command line or a configuration that does not load, takes the built-in
+settings under the command line's own `--nocolor`.
 
 `karvi config colors` prints the colour test:
 every `display.colors.*` role under the configured theme first and then

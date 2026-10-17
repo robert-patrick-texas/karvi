@@ -226,6 +226,8 @@ go build -buildvcs=false -mod=vendor -trimpath -ldflags='-s -w' \
   -o bin/karvi-askpass-linux-amd64 ./cmd/karvi-askpass
 go build -buildvcs=false -mod=vendor -trimpath -ldflags='-s -w' \
   -o bin/karvi-prune-linux-amd64 ./cmd/karvi-prune
+go build -buildvcs=false -mod=vendor -trimpath -ldflags='-s -w' \
+  -o bin/karvi-audit-linux-amd64 ./cmd/karvi-audit
 ```
 
 ## 6. Verify generated files and behavior
@@ -433,10 +435,10 @@ karvi version --format json
 sudo ./scripts/install.sh            # from the earlier bundle: roll back
 ```
 
-`scripts/install.sh` places the four executables under versioned names in
+`scripts/install.sh` places the five executables under versioned names in
 `/usr/local/lib/karvi` (`karvi-vVERSION` and the like), `karvi`,
-`karvi-askpass`, and `karvi-prune` linked from `/usr/local/bin` and
-`karvi-sysutil` from `/usr/local/sbin`, each link replaced in one rename;
+`karvi-askpass`, `karvi-prune`, and `karvi-audit` linked from `/usr/local/bin`
+and `karvi-sysutil` from `/usr/local/sbin`, each link replaced in one rename;
 `karvi-sysutil`'s manual page in `/usr/local/share/man/man8`; the service
 account's template unit in `/usr/local/lib/systemd/system`; and reloads
 systemd. A host installed so finds the other units, cron scripts, hook

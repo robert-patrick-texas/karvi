@@ -234,6 +234,18 @@ make deps            # optional on a connected host: download and verify
   status, that the operator's trust store is unchanged, and that no fake and
   no daemon is left running. `make native-smoke` runs it alone after `make
   build`; `ONLY=S21` selects one case.
+- **The audit suite** (`scripts/audit-smoke-test.sh`) MUST pass: jobs against
+  the fake device, at two devices named for the run alone, read back from the
+  host's journal by `karvi-audit` beside the executable, each row equal to the
+  event `audit.file` holds as chapter 64 of
+  [`docs/EXAMPLES.md`](EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)
+  lays it out; by device, job ID, and operator, newest first, a count, the
+  colours, a terminal of 80 columns, a follow ended by Ctrl-C, nothing
+  matched, and journalctl's refusal and the reader's own. On a host without
+  journald (no `/run/systemd/journal/socket` or no `journalctl`) it runs the
+  reader's own refusals alone and skips the journal's rows, j1–j9, with the
+  reason, so `verify-bundle.sh` passes on such a host; the reader is claimed
+  from a host with journald.
 
 A passing verifier qualifies the executable, not native production use:
 [`docs/CISCO-IOSXE-QUALIFICATION.md`](CISCO-IOSXE-QUALIFICATION.md) holds the

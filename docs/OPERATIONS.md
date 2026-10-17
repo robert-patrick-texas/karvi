@@ -1757,7 +1757,9 @@ flags, a flag's words (`--format` text or jsonl, `--sharedroot` auto or
 none, `--basedir` auto), and file names for the three path flags once no
 word matches; the helper answers from its own flag set through its own
 hidden word, `karvi-prune __complete`, which resolves no root and writes
-nothing. A host that holds the file from before the helper was added runs
+nothing. It completes `karvi-audit`'s long flags alike, through
+`karvi-audit __complete`; a name, a time, and a pattern are the operator's
+to type. A host that holds the file from before a helper was added runs
 `sudo karvi setup tab` once more, which reports `updated`.
 
 A site that gives karvi a shorter name, a symbolic link on the path, binds
@@ -2051,6 +2053,36 @@ karvi.audit=run.command operator=netops outcome=connection_error job=261017-1318
 karvi.audit=run.command operator=netops outcome=connection_error job=261017-131831-00 device=dead-iosxe command="show clock"
 karvi.audit=run.command operator=netops outcome=not_attempted_prior_command_failure job=261017-131831-00 device=dead-iosxe command="snmp-server community <removed> RO"
 ```
+
+**Reading it: `karvi-audit`.** `karvi-audit` shows the trail as a table, one
+event per row: it runs `journalctl` with the trail's identifier and message ID,
+so the daemon's log under the same identifier stays out, and lays out each
+event's JSON. Its flags are journalctl's, passed as given: `-S` and `-U` the
+window, `-n` the newest N, `-g` a pattern over the line (a job's ID, a
+statement's words), `-r` newest first, and `-f` to follow until Ctrl-C; and the
+trail's own, `-o NAME` the operator or the login user behind `sudo`, `-d NAME`
+the device, each repeatable. It reads no configuration. A run of two devices,
+`dead-iosxe` unreachable, read back by its job ID:
+
+```text
+$ karvi-audit --nocolor -S 17:10 -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-171016-00       netops       run   start
+261017-171016-00       netops       run   command success               fake-iosxe      show clock
+261017-171016-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-171016-00       netops       run   end     error
+```
+
+The columns stand at fixed widths, so a followed trail stays in line: JOB-ID,
+OPERATOR (`OPERATOR/LOGINUSER` under `sudo`), MODE, EVENT, OUTCOME, DEVICE, and
+the statement. At a terminal the line is cut with `…` to its width; to a pipe
+or a file nothing is cut. OUTCOME is green for work done, orange for work not
+done or cut short, red for a failure; the colour goes to a terminal and through
+a pipe (`karvi-audit | less -R`), never into a file, and `--nocolor` or
+`NO_COLOR` turns it off. Nothing matched is `karvi-audit: no matches` on
+standard error, exit 0; a value journalctl refuses is its own message, exit 1;
+an event of another audit schema has no row, and one line at the end counts
+them. `man karvi-audit` holds the columns, the colours, and the exits in full.
 
 **The mask.** Every statement the audit records, in the line and the JSON,
 journald and `audit.file` alike, is masked: the text of every capturing group

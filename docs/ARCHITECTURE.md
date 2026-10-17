@@ -444,6 +444,19 @@ then the day folders left empty. Ownership decides what a run may remove, and a
 failure is a line, never the end of the run. [`docs/PRUNE.md`](PRUNE.md) is the
 guide; [`docs/DESIGN.md`](DESIGN.md) the record.
 
+Reading the audit trail is outside the daemon too: `karvi-audit`
+(`cmd/karvi-audit`, `internal/auditview`) runs `journalctl -o json` with the
+trail's identifier and message ID (`audit.Identifier`, `audit.MessageID`, the
+writer's own constants) and its matches, the `KARVI_*` field names the writer
+uses (`audit.Field*`), and lays out each entry's `KARVI_AUDIT_JSON` decoded
+into `records.AuditRecord` as one row of fixed widths. It reads no
+configuration: the window, the pattern, the order, and the follow are
+journalctl's, and who reads whose events journald's. Its colour is
+`display.ColorEnabled("always", …)` for a terminal and a pipe, never a file,
+the dark theme's roles. Its command line, as `karvi-prune`'s, is one
+`flagspec.Spec` that the parser, the help, the hidden word for Tab, and the man
+page's generated regions (`tools/mangen`) all read.
+
 ## Credential delivery
 
 The package crosses to the daemon through a `credentialpackage.Protector`:
