@@ -302,7 +302,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if err := store.WriteSummary(accepted); err != nil {
 		return FailedResult("output_summary_write_failed", err)
 	}
-	if err := writeActivityAudit(auditSink, req, id, jobID, "started", "started", 0, ""); err != nil {
+	if err := writeActivityAudit(auditSink, req, id, "start", "", 0, ""); err != nil {
 		return FailedResult("audit_write_failed", err)
 	}
 	if req.OnAccepted != nil {
@@ -324,7 +324,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		renderer.sayTo(streams.Stderr, cfg)
 	}
 	devExec := executor.New(executor.Options{
-		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType,
+		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType, Kind: jobKind(req),
 		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
 		SessionInit: plan.SessionInit, CandidateCount: req.CandidateCount, DispatchOrder: plan.Dispatch.DispatchOrder, ShuffleKey: plan.Dispatch.ShuffleKey,
 		Grants: req.Grants, Protection: req.Protection, Pinger: pinger,
@@ -437,7 +437,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if c := cancellationOf(ctx); c != nil {
 		completedExtra = append(completedExtra, map[string]any{"cancellation": c.AuditDetails()})
 	}
-	if err := writeActivityAudit(auditSink, req, id, jobID, "completed", finalStatus, exit, summary.HaltReason+summary.GateReason, completedExtra...); err != nil && exit == exitcode.ExitSuccess {
+	if err := writeActivityAudit(auditSink, req, id, "end", finalStatus, exit, summary.HaltReason+summary.GateReason, completedExtra...); err != nil && exit == exitcode.ExitSuccess {
 		exit = exitcode.ExitOutputFailure
 		recordSummary.ExitCode, recordSummary.ExitName = exit, exitcode.ExitName(exit)
 		_ = store.WriteSummary(recordSummary)
@@ -576,7 +576,10 @@ func buildSummary(accepted records.AcceptedSummary, paths output.Paths, end time
 		DeviceCounts: map[string]int{"total": d.Counts.Total, "completed": d.Counts.Terminal, "succeeded": d.Counts.Succeeded, "failed": d.Counts.Failed, "not_started": d.Counts.NotStarted, "incomplete": incomplete, "cancelled": cancelled}, RequestedCommandCounts: rr.RequestedCounts(), SessionInitCounts: rr.SessionInitCounts(), Halt: map[string]any{"run_wide": d.HaltReason, "wave_gate": d.GateReason}, Output: out, AuditSinkStatus: map[string]any{"journald": auditStatus.Journald, "file": auditStatus.File, "warnings": auditStatus.Warnings}, Bottleneck: bottleneck, Recovery: map[string]any{"status": "not_required"}}
 }
 
-func writeActivityAudit(s *audit.Sink, req Request, id, jobID, event, outcome string, code int, reason string, extra ...map[string]any) error {
+// writeActivityAudit writes a job's own event, <kind>.<event> (start, cancel,
+// or end; docs/EXAMPLES.md, chapter 63), under the job's ID, which is its
+// activity's in every kind; a start and a cancel pass no outcome.
+func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, code int, reason string, extra ...map[string]any) error {
 	eventID, _ := osutil.NewID(time.Now())
 	telnet := false
 	for _, t := range req.Plan.Targets {
@@ -584,12 +587,12 @@ func writeActivityAudit(s *audit.Sink, req Request, id, jobID, event, outcome st
 			telnet = true
 		}
 	}
-	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: req.ActivityType + "." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
+	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: jobKind(req) + "." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
 		if code == 0 {
 			return "info"
 		}
 		return "warning"
-	}(), Operator: osutil.RecordOperator(req.Operator), Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, ActivityID: id, JobID: jobID, Action: map[string]any{"mode": req.ActivityType, "operation": "command_sequence", "command_count": len(req.Plan.Commands), "command_sha256_array": commandHashes(req.Plan.Commands), "selector_digest": digestJSON(req.Selection), "plan_id": req.Plan.PlanID, "plan_digest": req.Plan.PlanDigest.String()}, Policy: map[string]any{"config_digest": req.Config.Digest, "telnet": telnet, "fips_required": req.Config.Bool("security.require-fips"), "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
+	}(), Operator: osutil.RecordOperator(req.Operator), LoginUser: req.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "executable": buildinfo.AppName, "version": buildinfo.Version, "host": hostname()}, JobID: id, Action: map[string]any{"mode": jobKind(req), "operation": "command_sequence", "command_count": len(req.Plan.Commands), "command_sha256_array": commandHashes(req.Plan.Commands), "selector_digest": digestJSON(req.Selection), "plan_id": req.Plan.PlanID, "plan_digest": req.Plan.PlanDigest.String()}, Policy: map[string]any{"config_digest": req.Config.Digest, "telnet": telnet, "fips_required": req.Config.Bool("security.require-fips"), "ssh_host_key_policy": req.Config.String("ssh.host-key-policy"), "ssh_halt_run_on_host_key_mismatch": req.Config.Bool("ssh.halt-run-on-host-key-mismatch")}, Result: map[string]any{"code": exitcode.ExitName(code), "exit_code": code, "reason": reason}, Source: map[string]any{"client": "karvi"}, Details: auditDetails(len(req.Plan.Targets), extra...)})
 }
 
 func auditDetails(devices int, extra ...map[string]any) map[string]any {

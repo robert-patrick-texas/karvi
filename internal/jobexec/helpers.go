@@ -269,10 +269,15 @@ func cancellationOf(ctx context.Context) *records.Cancellation {
 	return &records.Cancellation{RequestedAt: rq.RequestedAt, Reason: rq.Reason, Requester: records.CancelRequester{PID: rq.RequesterPID, UID: rq.RequesterUID}, RequestID: rq.RequestID}
 }
 
-// WriteCancelRequested writes the run.cancel_requested audit record for an
+// WriteCancelRequested writes the job's <kind>.cancel audit event for an
 // accepted cancel_job request, through the sink the caller holds; the
-// request's details are the cancellation block.
-func WriteCancelRequested(s *audit.Sink, req Request, jobID string, rq JobCancelRequest) error {
+// request's details are the cancellation block, and its login user the
+// requester's, read from the requesting process while it waits.
+func WriteCancelRequested(s *audit.Sink, req Request, rq JobCancelRequest) error {
 	c := &records.Cancellation{RequestedAt: rq.RequestedAt, Reason: rq.Reason, Requester: records.CancelRequester{PID: rq.RequesterPID, UID: rq.RequesterUID}, RequestID: rq.RequestID}
-	return writeActivityAudit(s, req, req.ActivityID, jobID, "cancel_requested", "informational", 0, "cancelled", c.AuditDetails())
+	req.Operator.LoginUser = ""
+	if rq.RequesterPID > 0 {
+		req.Operator.LoginUser = osutil.LoginUser(rq.RequesterPID, req.Operator.UID)
+	}
+	return writeActivityAudit(s, req, req.ActivityID, "cancel", "", 0, "cancelled", c.AuditDetails())
 }

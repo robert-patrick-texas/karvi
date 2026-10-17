@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -52,6 +53,11 @@ func TestCollectionHookUnderTheRead(t *testing.T) {
 	if got, _ := os.ReadFile(out); string(got) != "A\n" {
 		t.Fatalf("the hook that ran wrote %q, stderr=%q", got, stderr.String())
 	}
+	data, err := os.ReadFile(audit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", data)
 	f, err := os.Open(audit)
 	if err != nil {
 		t.Fatal(err)
@@ -59,12 +65,13 @@ func TestCollectionHookUnderTheRead(t *testing.T) {
 	defer f.Close()
 	var event struct {
 		EventName string `json:"event_name"`
+		Outcome   string `json:"outcome"`
 		Policy    struct {
 			ConfigDigest string `json:"config_digest"`
 		} `json:"policy"`
 	}
 	lines := bufio.NewScanner(f)
-	if !lines.Scan() || json.Unmarshal(lines.Bytes(), &event) != nil || event.EventName != "crun.after.succeeded" || event.Policy.ConfigDigest != cfg.Digest {
-		t.Fatalf("audit event %+v, want crun.after.succeeded under %s", event, cfg.Digest)
+	if !lines.Scan() || json.Unmarshal(lines.Bytes(), &event) != nil || event.EventName != "crun.after" || event.Outcome != "succeeded" || event.Policy.ConfigDigest != cfg.Digest {
+		t.Fatalf("audit event %+v, want crun.after succeeded under %s", event, cfg.Digest)
 	}
 }

@@ -84,3 +84,59 @@ func TestSinkStampsTheSchemaVersion(t *testing.T) {
 		}
 	}
 }
+
+// TestLine: the message is key=value pairs in one order, karvi.audit first,
+// a pair left out where the event has no value; a value that would end its
+// pair early is quoted.
+func TestLine(t *testing.T) {
+	op := records.Operator{Username: "netops", UID: 1000}
+	dev := &records.AuditDevice{ID: "name:core-rtr-1", CanonicalName: "core-rtr-1", Platform: "cisco_iosxe"}
+	for _, tc := range []struct {
+		r    records.AuditRecord
+		want string
+	}{
+		{records.AuditRecord{EventName: "run.start", Operator: op, JobID: "261016-085318-00"},
+			"karvi.audit=run.start operator=netops job=261016-085318-00"},
+		{records.AuditRecord{EventName: "run.command", Operator: op, Outcome: "succeeded", JobID: "261016-085318-00", Device: dev},
+			"karvi.audit=run.command operator=netops outcome=succeeded job=261016-085318-00 device=core-rtr-1"},
+		{records.AuditRecord{EventName: "login.end", Operator: records.Operator{Username: "noc"}, LoginUser: "jsmith", Outcome: "errored", LoginID: "261017-101500-00", Device: dev},
+			"karvi.audit=login.end operator=noc loginuser=jsmith outcome=errored login=261017-101500-00 device=core-rtr-1"},
+		{records.AuditRecord{EventName: "cmd.command", Operator: op, Outcome: "succeeded", JobID: "x", Device: &records.AuditDevice{CanonicalName: `a b="c"`}},
+			`karvi.audit=cmd.command operator=netops outcome=succeeded job=x device="a b=\"c\""`},
+	} {
+		if got := Line(tc.r); got != tc.want {
+			t.Errorf("Line:\n got %s\nwant %s", got, tc.want)
+		}
+	}
+}
+
+// TestJournalEntry: the entry carries a field a match names whole only where
+// the event has its value; no activity ID.
+func TestJournalEntry(t *testing.T) {
+	fields := func(r records.AuditRecord) map[string]string {
+		m := map[string]string{}
+		for _, l := range strings.Split(strings.TrimSuffix(string(journalEntry(r, []byte(`{}`))), "\n"), "\n") {
+			k, v, _ := strings.Cut(l, "=")
+			m[k] = v
+		}
+		return m
+	}
+	cmd := fields(records.AuditRecord{EventName: "run.command", Severity: "info", Operator: records.Operator{Username: "netops"}, JobID: "j", Device: &records.AuditDevice{CanonicalName: "core-rtr-1"}})
+	if cmd["KARVI_EVENT_NAME"] != "run.command" || cmd["KARVI_OPERATOR"] != "netops" || cmd["KARVI_JOB_ID"] != "j" || cmd["KARVI_DEVICE"] != "core-rtr-1" || cmd["PRIORITY"] != "6" || cmd["SYSLOG_IDENTIFIER"] != "karvi" || cmd["KARVI_AUDIT_JSON"] != "{}" {
+		t.Errorf("command event: %v", cmd)
+	}
+	for _, absent := range []string{"KARVI_LOGINUSER", "KARVI_LOGIN_ID", "KARVI_ACTIVITY_ID"} {
+		if _, ok := cmd[absent]; ok {
+			t.Errorf("command event carries %s: %v", absent, cmd)
+		}
+	}
+	login := fields(records.AuditRecord{EventName: "login.start", Severity: "info", Operator: records.Operator{Username: "noc"}, LoginUser: "jsmith", LoginID: "l"})
+	if login["KARVI_LOGINUSER"] != "jsmith" || login["KARVI_LOGIN_ID"] != "l" || login["MESSAGE"] != "karvi.audit=login.start operator=noc loginuser=jsmith login=l" {
+		t.Errorf("login event: %v", login)
+	}
+	for _, absent := range []string{"KARVI_JOB_ID", "KARVI_DEVICE"} {
+		if _, ok := login[absent]; ok {
+			t.Errorf("login event carries %s: %v", absent, login)
+		}
+	}
+}

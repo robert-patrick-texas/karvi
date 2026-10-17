@@ -275,7 +275,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 		errText = errorcodes.Message(errorcodes.Ensure(err, "output_summary_write_failed"))
 		summary.ExitCode, summary.ExitName = exit, exitcode.ExitName(exit)
 	}
-	if err := writeActivityAudit(st.auditSink, req, st.id, st.jobID, "exercised", outcome, exit, "no_device_contact", map[string]any{"device_contacted": false, "ready": byReadiness[records.ReadinessReady], "not_ready": byReadiness[records.ReadinessNotReady], "report": reportPath}); err != nil && exit == exitcode.ExitSuccess {
+	if err := writeActivityAudit(st.auditSink, req, st.id, "end", outcome, exit, "no_device_contact", map[string]any{"device_contacted": false, "ready": byReadiness[records.ReadinessReady], "not_ready": byReadiness[records.ReadinessNotReady], "report": reportPath}); err != nil && exit == exitcode.ExitSuccess {
 		exit = exitcode.ExitOutputFailure
 		errText = errorcodes.Message(errorcodes.Ensure(err, "audit_write_failed"))
 		summary.ExitCode, summary.ExitName = exit, exitcode.ExitName(exit)

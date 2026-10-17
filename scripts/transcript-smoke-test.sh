@@ -106,7 +106,7 @@ tail -1 "$meta" | grep -q '"recording_failed":false'
 sum=$(sha256sum "$transcript" | cut -d' ' -f1)
 tail -1 "$meta" | grep -q "\"transcript_sha256\":\"$sum\""
 session=$(head -1 "$meta" | sed 's/.*"session_id":"\([^"]*\)".*/\1/')
-grep -q "\"activity_id\":\"$session\"" "$BASE/audit.jsonl"   # the child used the wrapper's session ID
+[ "$(audit_events "$BASE/audit.jsonl" login_id | grep -cx "$session")" -ge 1 ]   # the child used the wrapper's session ID
 # The session ID is the job form, reserved by the scoreboard file the child
 # wrote: every job ID on the watch screen has
 # one form.
@@ -198,7 +198,7 @@ done
 contact() {
   rm -f "${KARVI__SSH__KNOWN_HOSTS_FILE:?}"
   eval "$COMMON --set 'ssh.transports.system=\"$TMP/fake-ssh-contact-$1\"' login --address 127.0.0.1 transcript-device" >"$TMP/contact-$1.out" 2>&1
-  grep '"login.completed"' "$BASE/audit.jsonl" | tail -1 >"$TMP/contact-$1.audit"
+  audit_events "$BASE/audit.jsonl" event_name outcome details.host_key_enrolled | grep "^login\.end${TAB}completed${TAB}" | tail -1 >"$TMP/contact-$1.audit"
 }
 # line_of TEXT FILE: the number of FILE's first line holding TEXT, empty if none.
 line_of() { grep -n -F -- "$1" "$2" | head -n 1 | cut -d: -f1; }
@@ -206,15 +206,16 @@ said='! ssh accepted new host-key transcript-device (ED25519)'
 contact yes
 [ "$(grep -c -F -- "$said" "$TMP/contact-yes.out")" = 1 ]
 [ "$(line_of "$said" "$TMP/contact-yes.out")" -lt "$(line_of "$MARKER" "$TMP/contact-yes.out")" ]
-json_is "$TMP/contact-yes.audit" details.host_key_enrolled ED25519
+[ "$(cut -f3 "$TMP/contact-yes.audit")" = ED25519 ]
 contact no
 [ "$(grep -c -F -- "$said" "$TMP/contact-no.out")" = 1 ]
 [ "$(line_of "$said" "$TMP/contact-no.out")" -gt "$(line_of "$MARKER" "$TMP/contact-no.out")" ]
-json_is "$TMP/contact-no.audit" details.host_key_enrolled ED25519
+[ "$(cut -f3 "$TMP/contact-no.audit")" = ED25519 ]
 eval "$COMMON --set 'ssh.transports.system=\"$TMP/fake-ssh-contact-yes\"' login --address 127.0.0.1 transcript-device" >"$TMP/contact-known.out" 2>&1
 absent 'accepted new host-key' "$TMP/contact-known.out"
-grep '"login.completed"' "$BASE/audit.jsonl" | tail -1 >"$TMP/contact-known.audit"
-if json_has "$TMP/contact-known.audit" details.host_key_enrolled; then echo "$0: a known key named in the audit" >&2; exit 1; fi
+audit_events "$BASE/audit.jsonl" event_name outcome details.host_key_enrolled | grep "^login\.end${TAB}completed${TAB}" | tail -1 >"$TMP/contact-known.audit"
+[ -s "$TMP/contact-known.audit" ]
+if [ -n "$(cut -f3 "$TMP/contact-known.audit")" ]; then echo "$0: a known key named in the audit" >&2; exit 1; fi
 
 # Refusals happen before any file or child process exists.
 set +e

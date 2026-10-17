@@ -156,12 +156,12 @@ func (h *heldJob) assertAccounted(t *testing.T, status, code, finalStatus string
 	audit, _ := os.ReadFile(h.f.cfg.String("audit.file"))
 	completed := ""
 	for _, line := range strings.Split(string(audit), "\n") {
-		if strings.Contains(line, `"event_name":"run.completed"`) {
+		if strings.Contains(line, `"event_name":"run.end"`) {
 			completed = line
 		}
 	}
 	if completed == "" || !strings.Contains(completed, `"outcome":"`+finalStatus+`"`) || !strings.Contains(completed, `"reason":"`+reason+`"`) {
-		t.Errorf("run.completed audit record: %s", completed)
+		t.Errorf("run.end audit record: %s", completed)
 	}
 	select {
 	case fw := <-h.followed:

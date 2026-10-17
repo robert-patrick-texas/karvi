@@ -14,7 +14,7 @@ const (
 	ConfigSchemaVersion  = 6
 	CommandRecordSchema  = 3
 	ScoreboardSchema     = 3
-	AuditSchema          = 1
+	AuditSchema          = 2
 	JobSchema            = 4
 	DaemonIPCSchema      = 12
 	ConfigRegistrySchema = 30

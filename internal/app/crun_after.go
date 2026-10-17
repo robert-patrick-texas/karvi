@@ -172,9 +172,10 @@ func endGroup(pgid int, deadline time.Time) {
 	}
 }
 
-// writeCollectionHookAudit records the hook in the audit as crun.after.succeeded
-// or crun.after.failed: the path, the directory and counts, the
-// exit code, the duration, whether the bound ended it, and the diagnostic.
+// writeCollectionHookAudit records the hook in the audit as crun.after, its
+// outcome succeeded or failed, under the job's ID: the path, the directory
+// and counts, the exit code, the duration, whether the bound ended it, and
+// the diagnostic.
 func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Operator, result ActivityResult, h collectionHook, o hookOutcome) error {
 	sink, err := audit.New(cfg, operator.Home)
 	if err != nil {
@@ -185,14 +186,20 @@ func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Oper
 	if o.err != nil {
 		outcome, severity, diagnostic = "failed", "warning", errorcodes.Message(o.err)
 	}
+	// A cmd's result carries no job ID; its activity's is the job's.
+	jobID := result.JobID
+	if jobID == "" {
+		jobID = result.ActivityID
+	}
 	eventID, _ := osutil.NewID(time.Now())
-	return sink.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "crun.after." + outcome, Timestamp: time.Now(), Outcome: outcome, Severity: severity,
-		Operator:   osutil.RecordOperator(operator),
-		Process:    map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()},
-		ActivityID: result.ActivityID, JobID: result.JobID,
-		Action:  map[string]any{"mode": "crun", "operation": "after", "command_count": 0, "command_sha256_array": []string{}},
-		Policy:  map[string]any{"config_digest": cfg.Digest},
-		Result:  map[string]any{"exit_code": o.exit},
-		Source:  map[string]any{"client": "karvi"},
-		Details: map[string]any{"path": h.Path, "directory": h.Summary.Directory, "replaced": h.Summary.Replaced, "kept": h.Summary.Kept, "duration_ms": o.duration.Milliseconds(), "timed_out": o.timedOut, "diagnostic": diagnostic}})
+	return sink.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "crun.after", Timestamp: time.Now(), Outcome: outcome, Severity: severity,
+		Operator:  osutil.RecordOperator(operator),
+		LoginUser: operator.LoginUser,
+		Process:   map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()},
+		JobID:     jobID,
+		Action:    map[string]any{"mode": "crun", "operation": "after", "command_count": 0, "command_sha256_array": []string{}},
+		Policy:    map[string]any{"config_digest": cfg.Digest},
+		Result:    map[string]any{"exit_code": o.exit},
+		Source:    map[string]any{"client": "karvi"},
+		Details:   map[string]any{"path": h.Path, "directory": h.Summary.Directory, "replaced": h.Summary.Replaced, "kept": h.Summary.Kept, "duration_ms": o.duration.Milliseconds(), "timed_out": o.timedOut, "diagnostic": diagnostic}})
 }

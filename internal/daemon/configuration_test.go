@@ -72,7 +72,7 @@ func TestPrepareRefusesAConfigurationNotItsDigest(t *testing.T) {
 }
 
 // TestCancelRecordGoesToTheJobsSink: a job whose client names another
-// audit.file than the daemon's has its run.cancel_requested record in that
+// audit.file than the daemon's has its run.cancel record in that
 // file, beside the job's own records, and none in the daemon's file; the
 // daemon opens no sink of its own.
 func TestCancelRecordGoesToTheJobsSink(t *testing.T) {
@@ -104,7 +104,7 @@ func TestCancelRecordGoesToTheJobsSink(t *testing.T) {
 			}
 		}
 	}
-	if !slices.Contains(events, "run.cancel_requested") || !slices.Contains(events, "run.started") {
+	if !slices.Contains(events, "run.cancel") || !slices.Contains(events, "run.start") {
 		t.Fatalf("the client's audit file: %v", events)
 	}
 	if theirs, _ := os.ReadFile(daemonAudit); bytes.Contains(theirs, []byte(h.jobID)) {

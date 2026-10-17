@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -93,8 +94,7 @@ func (s *Sink) WriteAudit(r records.AuditRecord) error {
 	}
 	var errs []string
 	if s.journal != nil {
-		payload := fmt.Sprintf("MESSAGE=karvi audit %s outcome=%s\nPRIORITY=%d\nSYSLOG_IDENTIFIER=karvi\nMESSAGE_ID=9cb838d10f074d8a928e9f7c2f98450a\nKARVI_EVENT_NAME=%s\nKARVI_ACTIVITY_ID=%s\nKARVI_JOB_ID=%s\nKARVI_AUDIT_JSON=%s\n", clean(r.EventName), clean(r.Outcome), priority(r.Severity), clean(r.EventName), clean(r.ActivityID), clean(r.JobID), clean(string(data)))
-		if _, err := s.journal.Write([]byte(payload)); err != nil {
+		if _, err := s.journal.Write(journalEntry(r, data)); err != nil {
 			errs = append(errs, "journald: "+err.Error())
 		}
 	} else if s.journalRequired {
@@ -128,6 +128,68 @@ func (s *Sink) Close() error {
 	}
 	return err
 }
+
+// journalEntry is the event's journald entry: the line as its MESSAGE, and
+// the fields a match names whole (journalctl KARVI_DEVICE=NAME), each only
+// where the event has a value.
+func journalEntry(r records.AuditRecord, data []byte) []byte {
+	var b strings.Builder
+	field := func(k, v string) {
+		if v != "" {
+			b.WriteString(k + "=" + clean(v) + "\n")
+		}
+	}
+	field("MESSAGE", Line(r))
+	field("PRIORITY", strconv.Itoa(priority(r.Severity)))
+	field("SYSLOG_IDENTIFIER", "karvi")
+	field("MESSAGE_ID", "9cb838d10f074d8a928e9f7c2f98450a")
+	field("KARVI_EVENT_NAME", r.EventName)
+	field("KARVI_OPERATOR", r.Operator.Username)
+	field("KARVI_LOGINUSER", r.LoginUser)
+	field("KARVI_JOB_ID", r.JobID)
+	field("KARVI_LOGIN_ID", r.LoginID)
+	if r.Device != nil {
+		field("KARVI_DEVICE", r.Device.CanonicalName)
+	}
+	field("KARVI_AUDIT_JSON", string(data))
+	return []byte(b.String())
+}
+
+// Line is the event's message, the line syslog carries: key=value pairs in
+// one order, `karvi.audit=<kind>.<event>` first, a pair left out where the
+// event has no value (docs/EXAMPLES.md, chapter 63, issue 6).
+func Line(r records.AuditRecord) string {
+	var b strings.Builder
+	pair := func(k, v string) {
+		if v == "" {
+			return
+		}
+		if b.Len() > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteString(k + "=" + value(v))
+	}
+	pair("karvi.audit", r.EventName)
+	pair("operator", r.Operator.Username)
+	pair("loginuser", r.LoginUser)
+	pair("outcome", r.Outcome)
+	pair("job", r.JobID)
+	pair("login", r.LoginID)
+	if r.Device != nil {
+		pair("device", r.Device.CanonicalName)
+	}
+	return b.String()
+}
+
+// value is v bare, or quoted with Go's escapes where a space, a quote, an
+// equals sign, a backslash, or a control character would end the pair early.
+func value(v string) string {
+	if strings.ContainsFunc(v, func(c rune) bool { return c <= ' ' || c == '"' || c == '=' || c == '\\' || c == 0x7f }) {
+		return strconv.Quote(v)
+	}
+	return v
+}
+
 func priority(severity string) int {
 	switch severity {
 	case "critical":

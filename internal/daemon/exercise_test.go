@@ -57,7 +57,7 @@ func (f *v5Fixture) exercise(jobID string, commands []string, devices []inventor
 // TestExerciseValidatesWithoutDeviceContact: the exercise sequence on the
 // Go fake device finalizes with
 // exercise.json valid against the schema, both targets ready, an empty
-// commands.jsonl, the summary exercised with exit 0, the run.exercised
+// commands.jsonl, the summary exercised with exit 0, the run.end
 // audit record, no fake-device session, the exercise stream empty (decision
 // 4.9(i)), an identical receipt on replay, and the seeded password absent
 // from every file of the job directory.
@@ -107,7 +107,8 @@ func TestExerciseValidatesWithoutDeviceContact(t *testing.T) {
 		t.Fatalf("failed-devices.txt is not empty: %s", b)
 	}
 	audit, err := os.ReadFile(f.cfg.String("audit.file"))
-	if err != nil || !strings.Contains(string(audit), `"event_name":"run.exercised"`) || !strings.Contains(string(audit), `"device_contacted":false`) || strings.Contains(string(audit), `"event_name":"run.completed"`) {
+	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", audit)
+	if err != nil || !strings.Contains(string(audit), `"event_name":"run.end"`) || !strings.Contains(string(audit), `"outcome":"exercised"`) || !strings.Contains(string(audit), `"device_contacted":false`) || strings.Contains(string(audit), `"event_name":"run.command"`) {
 		t.Fatalf("audit: err=%v\n%s", err, audit)
 	}
 	if _, err := os.Stat(filepath.Join(fakeDir, "log")); err == nil {
@@ -185,7 +186,7 @@ func TestExerciseSecureWithoutEnrollmentIsNotReady(t *testing.T) {
 // exercise takes 45 to 170 ms here and the cancel 3) or terminal once it has
 // finished, and either way the job ends exercised at exit 0 with its report
 // valid and every target ready. An accepted cancel wrote one
-// run.cancel_requested audit record, and a summary that carries the
+// run.cancel audit record, and a summary that carries the
 // cancellation block carries that request; a terminal answer wrote no
 // record and leaves the block null. The block can be null after an accepted
 // cancel only when the cancel landed after the summary was built, which the
@@ -248,11 +249,11 @@ func TestCancelOfAnExerciseChangesNothing(t *testing.T) {
 		t.Errorf("summary: final_status=%s exit=%d counts=%v", summary.FinalStatus, summary.ExitCode, summary.DeviceCounts)
 	}
 	audit, _ := os.ReadFile(f.cfg.String("audit.file"))
-	requested := strings.Count(string(audit), `"event_name":"run.cancel_requested"`)
+	requested := strings.Count(string(audit), `"event_name":"run.cancel"`)
 	switch res.State {
 	case ipc.CancelStateCancelling:
 		if requested != 1 {
-			t.Errorf("an accepted cancel wrote %d run.cancel_requested records, want 1", requested)
+			t.Errorf("an accepted cancel wrote %d run.cancel records, want 1", requested)
 		}
 		if k := summary.Cancellation; k == nil {
 			t.Logf("the cancel was accepted after the summary was built; the audit record alone names it")

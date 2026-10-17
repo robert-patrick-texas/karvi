@@ -470,9 +470,19 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 	finished := make(chan jobexec.ActivityResult, 1)
 	handed = true
 	s.jobWait.Add(1)
+	// The job's login user is its client's, read from the client's process
+	// while it waits for this answer; the daemon's own is the login of
+	// whoever launched it.
+	operator := s.Operator
+	operator.LoginUser = ""
+	if uc, ok := conn.(*net.UnixConn); ok {
+		if pid, err := ipc.PeerPID(uc); err == nil {
+			operator.LoginUser = osutil.LoginUser(int(pid), operator.UID)
+		}
+	}
 	request := jobexec.Request{
 		Plan: cr.Plan, Header: cr.Header, Package: projection, Grants: pkg, Protection: string(projection.Protection), Mode: cr.Mode,
-		Config: cfg, Operator: s.Operator, Quiet: true, Daemon: true, Logger: s.Logger,
+		Config: cfg, Operator: operator, Quiet: true, Daemon: true, Logger: s.Logger,
 		ActivityType: "run", ActivityID: jobID,
 		OnAccepted: func(dir string, warnings []string) { accepted <- acceptance{dir, warnings} }, OnDurable: j.durable,
 		Preparations: []executionplan.PreparationReport{prepReport},
@@ -491,7 +501,7 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 				return err
 			}
 			defer sink.Close()
-			return jobexec.WriteCancelRequested(sink, auditReq, jobID, rq)
+			return jobexec.WriteCancelRequested(sink, auditReq, rq)
 		}()
 		if err != nil && s.Logger != nil {
 			s.Logger.Warn("cancel_requested audit record not written", slog.String("job_id", jobID), slog.String("error", err.Error()))

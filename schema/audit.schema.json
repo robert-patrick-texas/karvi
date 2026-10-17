@@ -1,16 +1,113 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://robert-patrick-texas.github.io/karvi/schema/audit-v1.json",
-  "title": "karvi audit record schema 1",
+  "$id": "https://robert-patrick-texas.github.io/karvi/schema/audit-v2.json",
+  "title": "karvi audit record schema 2",
+  "description": "One audit event, as journald's KARVI_AUDIT_JSON and a line of audit.file hold it. event_name is <kind>.<event>; a job's events carry job_id, a login's login_id; a start and a cancel carry no outcome.",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "required": ["schema_version", "event_id", "event_name", "timestamp",
-    "outcome", "severity", "operator", "process", "action", "policy",
-    "result", "source", "details"],
+    "severity", "operator", "process", "action", "policy", "result", "source",
+    "details"],
   "properties": {
-    "schema_version": {"const": 1},
-    "outcome": {"enum": ["success", "failure", "denied", "started",
-      "completed", "incomplete", "informational"]},
-    "severity": {"enum": ["info", "warning", "error", "critical"]}
-  }
+    "schema_version": {"const": 2},
+    "event_id": {"type": "string"},
+    "event_name": {"type": "string",
+      "pattern": "^((cmd|run|crun)\\.(start|command|cancel|end)|crun\\.after|login\\.(start|end))$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "outcome": {"type": "string"},
+    "severity": {"enum": ["info", "warning", "error", "critical"]},
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["username", "uid"],
+      "properties": {
+        "username": {"type": "string"},
+        "uid": {"type": "integer"},
+        "primary_gid": {"type": "integer"},
+        "groups": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "loginuser": {"type": "string",
+      "description": "The account the kernel's login UID names, when it is not the operator's."},
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pid": {"type": "integer"},
+        "executable": {"type": "string"},
+        "version": {"type": "string"},
+        "host": {"type": "string"}
+      }
+    },
+    "job_id": {"type": "string"},
+    "login_id": {"type": "string"},
+    "device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "canonical_name", "platform"],
+      "properties": {
+        "id": {"type": "string"},
+        "canonical_name": {"type": "string"},
+        "platform": {"type": "string"}
+      }
+    },
+    "device_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "selected_address": {"type": "string"},
+        "device_username": {"type": "string"},
+        "backend": {"type": "string"},
+        "auth": {"type": "string"}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["cmd", "run", "crun", "login"]},
+        "operation": {"type": "string"},
+        "command_count": {"type": "integer"},
+        "command_index": {"type": "integer"},
+        "command_kind": {"type": "string"},
+        "command_sha256": {"type": "string"},
+        "command_sha256_array": {"type": "array", "items": {"type": "string"}},
+        "selector_digest": {"type": "string"},
+        "plan_id": {"type": "string"},
+        "plan_digest": {"type": "string"}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "config_digest": {"type": "string"},
+        "telnet": {"type": "boolean"},
+        "fips_required": {"type": "boolean"},
+        "ssh_host_key_policy": {"type": "string"},
+        "ssh_halt_run_on_host_key_mismatch": {"type": "boolean"},
+        "credential_policy": {"type": "string"},
+        "transport": {"type": "string"}
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {"type": "string"},
+        "exit_code": {"type": "integer"},
+        "reason": {"type": "string"},
+        "status": {"type": "string"},
+        "error_code": {"type": "string"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {"client": {"const": "karvi"}}
+    },
+    "details": {"type": "object", "additionalProperties": {}}
+  },
+  "oneOf": [{"required": ["job_id"]}, {"required": ["login_id"]}]
 }

@@ -110,7 +110,7 @@ grep -q "UserKnownHostsFile \"$AUTO_KNOWN\"" "$CAPTURE"
 # A first contact over system: OpenSSH's "Permanently added" line becomes
 # the client's "! ssh accepted new host key" line on standard error, under
 # --quiet too, the notice host_key_enrolled on the device's first record
-# alone, and details.host_key_enrolled on its command_completed audit event.
+# alone, and details.host_key_enrolled on its run.command audit event.
 # shellcheck disable=SC2046
 env -u KARVI__SSH__KNOWN_HOSTS_FILE HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a-real-secret "$KARVI" $(common_args) \
   run --no-daemon --target 127.0.0.3 \
@@ -118,10 +118,9 @@ env -u KARVI__SSH__KNOWN_HOSTS_FILE HOME="$HOME_DIR" NETUSER=smoke NETPASS=not-a
   >"$TMP/enroll.jsonl" 2>"$TMP/enroll.err"
 [ "$(cat "$TMP/enroll.err")" = '! ssh accepted new host-key 127.0.0.3 (ED25519)' ]
 [ "$(jsonl_records "$TMP/enroll.jsonl" 'notices.*.code' 'notices.*.details.key_type' | paste -sd'|' -)" = "$(printf 'host_key_enrolled\tED25519|\t')" ]
-grep '"command_completed"' "$BASE/audit.jsonl" | tail -2 >"$TMP/enroll.audit"
-sed -n 1p "$TMP/enroll.audit" >"$TMP/enroll.audit1"; sed -n 2p "$TMP/enroll.audit" >"$TMP/enroll.audit2"
-json_is "$TMP/enroll.audit1" details.host_key_enrolled ED25519
-[ "$(json_get "$TMP/enroll.audit2" details)" = '{}' ]
+audit_events "$BASE/audit.jsonl" event_name details.host_key_enrolled details | grep "^run\.command${TAB}" | tail -2 >"$TMP/enroll.audit"
+[ "$(sed -n 1p "$TMP/enroll.audit" | cut -f2)" = ED25519 ]
+[ "$(sed -n 2p "$TMP/enroll.audit" | cut -f3)" = '{}' ]
 
 # Opt-in mismatch halt: the first changed key stops scheduling the second
 # target and returns the dedicated run outcome.
@@ -191,8 +190,8 @@ grep -q '^host-key smoke succeeded$' "$TMP/insecure.out"
   '! ssh host-key policy insecure: unknown and changed keys accepted;' \
   '!  connecting to devices with wrong keys and MITM attacks allowed' \
   '! ssh host-key mismatch mismatch-device proceeding at risk')" ]
-grep '"command_completed"' "$BASE/audit.jsonl" | tail -1 >"$TMP/insecure.audit"
-[ "$(json_get "$TMP/insecure.audit" 'details.host_key_mismatch_accepted.*.*' | wc -l)" -eq 2 ]
+audit_events "$BASE/audit.jsonl" event_name 'details.host_key_mismatch_accepted.*.*' | grep "^cmd\.command${TAB}" | tail -1 | cut -f2 >"$TMP/insecure.audit"
+[ "$(tr ',' '\n' <"$TMP/insecure.audit" | grep -c .)" -eq 2 ]
 grep -q 'StrictHostKeyChecking no' "$CAPTURE"
 [ "$(grep -c 'KnownHostsFile "/dev/null"' "$CAPTURE")" -eq 2 ]
 

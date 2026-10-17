@@ -143,24 +143,25 @@ func TestCancelJobInFlightAccountsEveryUnitCancelled(t *testing.T) {
 			t.Errorf("target %s state %s, want cancelled", tg.Name, tg.State)
 		}
 	}
-	// The audit trail: one run.cancel_requested for the
+	// The audit trail: one run.cancel, with no outcome, for the
 	// request that cancelled, none for the repeated one, and the
-	// run.completed record repeating the block.
+	// run.end record repeating the block.
 	audit, _ := os.ReadFile(h.f.cfg.String("audit.file"))
+	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", audit)
 	requested, completed := []string{}, ""
 	for _, line := range strings.Split(string(audit), "\n") {
 		switch {
-		case strings.Contains(line, `"event_name":"run.cancel_requested"`):
+		case strings.Contains(line, `"event_name":"run.cancel"`):
 			requested = append(requested, line)
-		case strings.Contains(line, `"event_name":"run.completed"`):
+		case strings.Contains(line, `"event_name":"run.end"`):
 			completed = line
 		}
 	}
-	if len(requested) != 1 || !strings.Contains(requested[0], `"outcome":"informational"`) || !strings.Contains(requested[0], `"reason":"wrong change window"`) || !strings.Contains(requested[0], `"requester_pid":`+strconv.Itoa(os.Getpid())) || !strings.Contains(requested[0], `"job_id":"`+h.jobID+`"`) {
-		t.Errorf("run.cancel_requested records: %d %v", len(requested), requested)
+	if len(requested) != 1 || strings.Contains(requested[0], `"outcome"`) || !strings.Contains(requested[0], `"reason":"wrong change window"`) || !strings.Contains(requested[0], `"requester_pid":`+strconv.Itoa(os.Getpid())) || !strings.Contains(requested[0], `"job_id":"`+h.jobID+`"`) {
+		t.Errorf("run.cancel records: %d %v", len(requested), requested)
 	}
 	if !strings.Contains(completed, `"cancellation":{`) || !strings.Contains(completed, `"reason":"wrong change window"`) {
-		t.Errorf("run.completed record lacks the cancellation block: %s", completed)
+		t.Errorf("run.end record lacks the cancellation block: %s", completed)
 	}
 	after, err := CancelJob(h.f.ctx(), h.f.socket, 1<<20, ipc.CancelRequest{JobID: h.jobID})
 	if err != nil || after.State != ipc.CancelStateTerminal || after.Outcome == nil || after.Outcome.ExitCode != exitcode.ExitCancelled || after.RequestedAt != nil {
@@ -195,8 +196,8 @@ func TestCancelJobOnAFinishedJobAnswersTerminal(t *testing.T) {
 	if s.FinalStatus != "completed" || s.DeviceCounts["cancelled"] != 0 || s.DeviceCounts["succeeded"] != len(h.devices) || s.Cancellation != nil {
 		t.Errorf("summary %s %+v cancellation=%+v", s.FinalStatus, s.DeviceCounts, s.Cancellation)
 	}
-	if audit, _ := os.ReadFile(h.f.cfg.String("audit.file")); strings.Contains(string(audit), "run.cancel_requested") {
-		t.Error("a terminal answer wrote a run.cancel_requested record")
+	if audit, _ := os.ReadFile(h.f.cfg.String("audit.file")); strings.Contains(string(audit), `"event_name":"run.cancel"`) {
+		t.Error("a terminal answer wrote a run.cancel record")
 	}
 }
 

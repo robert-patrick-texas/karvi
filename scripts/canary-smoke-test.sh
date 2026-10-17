@@ -247,7 +247,7 @@ e1_dir=$(find "$BASE/jobs" -name exercise.json -type f -newer "$TMP/streams/d1.o
 [ -n "$e1_dir" ] || fail "e1: no exercise.json was written"
 [ ! -s "$(dirname "$e1_dir")/commands.jsonl" ] || fail "e1: commands.jsonl is not empty"
 json_is "$(dirname "$e1_dir")/summary.json" final_status exercised || fail "e1: the summary is not exercised"
-grep -q '"event_name":"run.exercised"' "$BASE/audit.jsonl" || fail "e1: no run.exercised audit record"
+[ "$(audit_events "$BASE/audit.jsonl" event_name outcome | grep -cx "run\.end${TAB}exercised")" -ge 1 ] || fail "e1: no run.end audit event with the outcome exercised"
 # p1–p3: the two-probe ICMP gate with the
 # real pinger against one loopback target and one TEST-NET-1 target
 # (192.0.2.1, RFC 5737, never answered). The rows need an ICMP method on

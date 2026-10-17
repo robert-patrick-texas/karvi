@@ -854,7 +854,7 @@ after-timeout = \"1s\""
   grep -q '^hook ran$' "$TMP/err.s33e" && ! grep -q 'crun_after_failed' "$TMP/err.s33e" || fail "S33 hook: stderr is $(tail -3 "$TMP/err.s33e")"
   [ "$(tail -1 "$TMP/err.s33e")" = 'hook ran' ] || fail "S33 hook: the hook's output follows the result line: $(tail -2 "$TMP/err.s33e")"
   ! grep -q 'hook ran' "$TMP/out.s33e" || fail "S33 hook: the hook wrote to stdout"
-  grep -q '"event_name":"crun.after.succeeded"' "$TMP/base/audit.jsonl" || fail "S33 hook: no crun.after.succeeded audit event"
+  [ "$(audit_events "$TMP/base/audit.jsonl" event_name outcome | grep -cx "crun\.after${TAB}succeeded")" -ge 1 ] || fail "S33 hook: no crun.after audit event that succeeded"
   rm -f "$TMP/after.out"
   s33_run s33f daemon --target fake-iosxe
   [ "$CODE" -eq 0 ] || fail "S33 hook daemon: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s33f" | head -1)"
@@ -862,7 +862,7 @@ after-timeout = \"1s\""
   export AFTER_EXIT=3
   s33_run s33g run --target fake-iosxe
   [ "$CODE" -eq 0 ] && grep -q "^warning: crun_after_failed: $TMP/after.sh exited 3\$" "$TMP/err.s33g" || fail "S33 hook exit 3: exit $CODE, stderr $(tail -2 "$TMP/err.s33g")"
-  grep -q '"event_name":"crun.after.failed"' "$TMP/base/audit.jsonl" || fail "S33 hook exit 3: no crun.after.failed audit event"
+  [ "$(audit_events "$TMP/base/audit.jsonl" event_name outcome | grep -cx "crun\.after${TAB}failed")" -ge 1 ] || fail "S33 hook exit 3: no crun.after audit event that failed"
   export AFTER_EXIT=0 AFTER_SLEEP=20 AFTER_PGID="$TMP/after.pgid"
   s33_started=$(date +%s)
   s33_run s33h run --target fake-iosxe

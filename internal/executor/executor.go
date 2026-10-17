@@ -57,7 +57,10 @@ type Options struct {
 	Config                          configload.Snapshot
 	Operator                        credentials.Operator
 	ActivityID, JobID, ActivityType string
-	Commands                        []string
+	// Kind is the job's kind, cmd, run, or crun, which names its audit
+	// events (<kind>.command).
+	Kind     string
+	Commands []string
 	// PlatformCommands is the plan's list per platform; a device whose
 	// platform has one runs it in place of Commands.
 	PlatformCommands map[string][]string
@@ -1258,7 +1261,9 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 		e.opts.OnRecord(r, src)
 	}
 	if e.opts.Audit != nil {
-		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: "command_completed", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, Process: map[string]any{"pid": os.Getpid()}, ActivityID: r.ActivityID, JobID: r.JobID, Device: map[string]any{"id": r.Device.ID, "canonical_name": r.Device.CanonicalName, "platform": r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
+		// The event's job is the activity: a cmd's record carries no job_id,
+		// and its folder's name, the ID job list shows, is the activity's.
+		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.ActivityID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"mode": e.opts.Kind, "command_sha256": r.CommandSHA256, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
 			if r.Credential != nil {
 				return r.Credential.Policy
 			}

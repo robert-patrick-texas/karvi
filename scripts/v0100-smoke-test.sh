@@ -191,7 +191,7 @@ accounted() {  # accounted NAME DIR STATUS FINAL EXIT CAUSE REASON: the job dire
   [ "$(jsonl_records "$dir/commands.jsonl" status | grep -cx "$status")" -eq 4 ] || fail "$name: not every record is $status"
   json_is "$dir/summary.json" final_status "$final" && json_is "$dir/summary.json" primary_exit_code "$exit" || fail "$name: summary is not $final at $exit"
   [ -z "$cause" ] || json_is "$dir/summary.json" terminal_causes "[\"$cause\"]" || fail "$name: summary cause is not $cause"
-  grep -q "\"event_name\":\"run.completed\".*\"outcome\":\"$final\".*\"reason\":\"$reason\"" "$BASE/audit.jsonl" || fail "$name: no run.completed audit record with outcome $final and reason $reason"
+  [ "$(audit_events "$BASE/audit.jsonl" event_name outcome result.reason | grep -cx "run\.end${TAB}${final}${TAB}${reason}")" -ge 1 ] || fail "$name: no run.end audit event with outcome $final and reason $reason"
 }
 # s1: a forced stop with a job in flight. Every unit is incomplete_shutdown,
 # the summary incomplete at 106 under shutdown_forced, both devices in
@@ -365,7 +365,7 @@ json_wait "$c1_dir/summary.json" final_status || fail "c1: the job did not end"
 accounted c1 "$c1_dir" cancelled cancelled 113 halt:cancelled cancelled
 json_is "$c1_dir/summary.json" device_counts.cancelled 2 || fail "c1: device_counts do not count two cancelled devices"
 json_has "$c1_dir/summary.json" cancellation.requested_at && json_is "$c1_dir/summary.json" cancellation.reason 'wrong change window' || fail "c1: no cancellation block with the reason"
-grep -q '"event_name":"run.cancel_requested".*"reason":"wrong change window"' "$BASE/audit.jsonl" || fail "c1: no run.cancel_requested audit record"
+[ "$(audit_events "$BASE/audit.jsonl" event_name details.reason | grep -cx "run\.cancel${TAB}wrong change window")" -eq 1 ] || fail "c1: no run.cancel audit event"
 [ "$(wc -l <"$c1_dir/failed-devices.txt" | tr -d ' ')" -eq 2 ] || fail "c1: failed-devices.txt does not list both devices"
 row c2 112 -- job cancel 260915-170000-zz
 grep -q '^job_unknown: ' "$TMP/streams/c2.err" || fail "c2: no job_unknown"

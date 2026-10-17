@@ -13,7 +13,7 @@ import (
 const (
 	CommandSchemaVersion    = 3 // 3: channel, and an exec command's exit and stderr
 	ScoreboardSchemaVersion = 3 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes
-	AuditSchemaVersion      = 1
+	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed
 	JobSchemaVersion        = 4 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices
 	MetricsSchemaVersion    = 1
 )
@@ -485,24 +485,38 @@ func (s *ScoreboardSnapshot) Validate() error {
 	return nil
 }
 
+// AuditRecord is one audit event (docs/EXAMPLES.md, chapter 63). EventName
+// is <kind>.<event>: the kind cmd, run, crun, or login, the event start,
+// command, cancel, end, or after. A start and a cancel carry no Outcome. A
+// job's events carry JobID, a login's LoginID. LoginUser is the account the
+// kernel's login UID names, when it is not the operator's.
 type AuditRecord struct {
 	SchemaVersion  int            `json:"schema_version"`
 	EventID        string         `json:"event_id"`
 	EventName      string         `json:"event_name"`
 	Timestamp      time.Time      `json:"timestamp"`
-	Outcome        string         `json:"outcome"`
+	Outcome        string         `json:"outcome,omitempty"`
 	Severity       string         `json:"severity"`
 	Operator       Operator       `json:"operator"`
+	LoginUser      string         `json:"loginuser,omitempty"`
 	Process        map[string]any `json:"process"`
-	ActivityID     string         `json:"activity_id,omitempty"`
 	JobID          string         `json:"job_id,omitempty"`
-	Device         map[string]any `json:"device,omitempty"`
+	LoginID        string         `json:"login_id,omitempty"`
+	Device         *AuditDevice   `json:"device,omitempty"`
 	DeviceIdentity map[string]any `json:"device_identity,omitempty"`
 	Action         map[string]any `json:"action"`
 	Policy         map[string]any `json:"policy"`
 	Result         map[string]any `json:"result"`
 	Source         map[string]any `json:"source"`
 	Details        map[string]any `json:"details"`
+}
+
+// AuditDevice is the device an audit event names: a device command's or a
+// login's.
+type AuditDevice struct {
+	ID            string `json:"id"`
+	CanonicalName string `json:"canonical_name"`
+	Platform      string `json:"platform"`
 }
 
 // TargetInput is one target input at its command-line position. login,

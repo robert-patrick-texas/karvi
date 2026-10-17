@@ -37,6 +37,10 @@ type Operator struct {
 	PrimaryGID int      `json:"primary_gid,omitempty"`
 	Groups     []string `json:"groups,omitempty"`
 	Home       string   `json:"-"`
+	// LoginUser is the account the kernel's login UID names when it is not
+	// this one, as under sudo: the audit's loginuser. A daemon's job takes
+	// its client's, never the daemon's own.
+	LoginUser string `json:"-"`
 }
 
 // Match is the safe evidence of what a credential matched on. It describes

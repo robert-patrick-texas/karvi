@@ -48,7 +48,6 @@ printf '{"final_status":' >"$TMP/broken.json"
 check "not JSON exit" 2 "$(code json_get "$TMP/broken.json" final_status)"
 check "missing file exit" 2 "$(code json_get "$TMP/none.json" final_status)"
 # jsonl_records: the command records of a stream, the summary skipped.
-TAB=$(printf '\t')
 {
   printf '%s\n' '{"record_id":"r1","status":"succeeded","error":null,"output":"a\tb\r\nc","notices":[{"code":"n1"},{"code":"n2"}],"selected_address":"127.0.0.1"}'
   printf '\n'
@@ -69,5 +68,16 @@ check "records on standard input" r2 "$(sed -n 3p "$TMP/stream.jsonl" | jsonl_re
 printf '%s\n' '{"record_id":"r1"}' '{"record_id":' >"$TMP/broken.jsonl"
 check "records a line not JSON exit" 2 "$(code jsonl_records "$TMP/broken.jsonl" record_id)"
 check "records missing file exit" 2 "$(code jsonl_records "$TMP/none.jsonl" status)"
+# audit_events: the events of an audit file, a line without event_name
+# skipped.
+{
+  printf '%s\n' '{"schema_version":2,"event_name":"run.start","job_id":"j1","action":{"mode":"run"}}'
+  printf '%s\n' '{"schema_version":2,"event_name":"run.command","outcome":"succeeded","job_id":"j1","device":{"canonical_name":"fake-iosxe"}}'
+  printf '%s\n' '{"record_id":"r1","status":"succeeded"}'
+} >"$TMP/audit.jsonl"
+check "events count" 2 "$(audit_events "$TMP/audit.jsonl" event_name | wc -l | tr -d ' ')"
+check "events no outcome empty" "run.start${TAB}" "$(audit_events "$TMP/audit.jsonl" event_name outcome | head -1)"
+check "events nested" "run.command${TAB}fake-iosxe" "$(audit_events "$TMP/audit.jsonl" event_name device.canonical_name | sed -n 2p)"
+check "events not records" r1 "$(jsonl_records "$TMP/audit.jsonl" record_id)"
 [ "$failures" -eq 0 ] || { echo "json lib: $failures failed" >&2; exit 1; }
 echo "json lib: pass"

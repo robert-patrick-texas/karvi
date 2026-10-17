@@ -7,13 +7,15 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/audit"
+	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
-// TestAuditIdentity: every command_completed names the address and, from
+// TestAuditIdentity: every run.command names the address and, from
 // the record's credential, the device username, the backend, and the method
 // that authenticated; a session that never authenticated names no method,
 // and a record without a credential the address alone.
@@ -32,10 +34,12 @@ func TestAuditIdentity(t *testing.T) {
 	}
 }
 
-// TestCommandCompletedProcess: a command_completed line names the process
-// that wrote it, as the job's other events do, and the sink stamps the
-// audit's schema version.
-func TestCommandCompletedProcess(t *testing.T) {
+// TestCommandEvent: a device command's event is <kind>.command under the
+// job's ID, the activity's, with the device, the operator's login user, the
+// kind as its mode, and the process that wrote it, as the job's other events
+// name it; the sink stamps the audit's schema version, and the line keeps to
+// the published schema.
+func TestCommandEvent(t *testing.T) {
 	home := t.TempDir()
 	file := filepath.Join(home, "audit.jsonl")
 	cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: []string{`audit.file="` + file + `"`, `audit.journald-required=false`}})
@@ -46,16 +50,21 @@ func TestCommandCompletedProcess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink}}
-	e.afterRecord(records.CommandRecord{RecordID: "r1", Status: "succeeded"}, output.Source{})
+	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink, Kind: "cmd", Operator: credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}}}
+	e.afterRecord(records.CommandRecord{RecordID: "r1", ActivityID: "261017-101500-00", Status: "succeeded", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
 	sink.Close()
 	data, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var line struct {
-		SchemaVersion int            `json:"schema_version"`
-		Process       map[string]any `json:"process"`
+		SchemaVersion int                  `json:"schema_version"`
+		EventName     string               `json:"event_name"`
+		JobID         string               `json:"job_id"`
+		LoginUser     string               `json:"loginuser"`
+		Device        *records.AuditDevice `json:"device"`
+		Action        map[string]any       `json:"action"`
+		Process       map[string]any       `json:"process"`
 	}
 	if err := json.Unmarshal(data, &line); err != nil {
 		t.Fatal(err)
@@ -63,4 +72,8 @@ func TestCommandCompletedProcess(t *testing.T) {
 	if line.SchemaVersion != records.AuditSchemaVersion || line.Process["pid"] != float64(os.Getpid()) {
 		t.Fatalf("schema_version %d, process %v", line.SchemaVersion, line.Process)
 	}
+	if line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_iosxe"}) {
+		t.Fatalf("event %s", data)
+	}
+	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", data)
 }

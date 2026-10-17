@@ -89,17 +89,21 @@ json_wait() {
   done
 }
 
-# jsonl_records FILE PATH...: one line per command record of a .jsonl
-# stream (a line holding record_id; the job summary and any other line are
-# skipped), the values at the PATHs tab-separated in the order given. An
-# absent value is empty; the values `*` matches are joined by commas; a
-# string holding a tab or a newline prints as JSON writes it, quoted, so a
-# record stays one line and its fields stay apart. The assertion is the
-# script's, on this output: `| grep -cx succeeded`, `| head -1`,
-# `| paste -sd, -`. Exit 2 if FILE cannot be read or a line is not JSON.
-jsonl_records() {
+# TAB is the separator jsonl_lines prints between the values, for a script's
+# pattern: `grep -cx "run\.end${TAB}completed"`.
+TAB=$(printf '\t')
+
+# jsonl_lines KEY FILE PATH...: one line per line of a .jsonl file that
+# holds KEY at its top (any other line skipped), the values at the PATHs
+# tab-separated in the order given. An absent value is empty; the values `*`
+# matches are joined by commas; a string holding a tab or a newline prints
+# as JSON writes it, quoted, so a line stays one line and its fields stay
+# apart. The assertion is the script's, on this output: `| grep -cx
+# succeeded`, `| head -1`, `| paste -sd, -`. Exit 2 if FILE cannot be read or
+# a line is not JSON. The scripts call it by the two names below.
+jsonl_lines() {
   python3 -c "$JSON_PY_WALK"'
-source, paths = sys.argv[1], sys.argv[2:]
+key, source, paths = sys.argv[1], sys.argv[2], sys.argv[3:]
 
 def field(node, path):
     out = []
@@ -116,10 +120,23 @@ try:
             try:
                 record = json.loads(line)
             except ValueError as e:
-                sys.stderr.write("jsonl_records: %s:%d: %s\n" % (source, number, e)); sys.exit(2)
-            if isinstance(record, dict) and "record_id" in record:
+                sys.stderr.write("jsonl_lines: %s:%d: %s\n" % (source, number, e)); sys.exit(2)
+            if isinstance(record, dict) and key in record:
                 print("\t".join(field(record, p) for p in paths))
 except OSError as e:
-    sys.stderr.write("jsonl_records: %s: %s\n" % (source, e)); sys.exit(2)
+    sys.stderr.write("jsonl_lines: %s: %s\n" % (source, e)); sys.exit(2)
 ' "$@"
+}
+
+# jsonl_records FILE PATH...: the command records of a .jsonl stream (a line
+# holding record_id; the job summary is skipped).
+jsonl_records() {
+  jsonl_lines record_id "$@"
+}
+
+# audit_events FILE PATH...: the events of an audit file (audit.file), one
+# per line holding event_name: `audit_events "$BASE/audit.jsonl" event_name
+# outcome | grep -cx "run.end${TAB}completed"`.
+audit_events() {
+  jsonl_lines event_name "$@"
 }

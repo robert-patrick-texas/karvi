@@ -282,7 +282,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	// every watch.refresh while the session runs, so a login longer than
 	// watch.stale-after is not shown stale.
 	stopHeartbeat := sb.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return snap })
-	if err := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, "started", 0, map[string]any{"diagnostic": ""}); err != nil {
+	if err := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, "start", "", 0, map[string]any{"diagnostic": ""}); err != nil {
 		stopHeartbeat()
 		return failedResult("audit_write_failed", err)
 	}
@@ -343,7 +343,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	details := executor.AuditDetails(keyNotices.list)
 	keyNotices.Unlock()
 	details["diagnostic"] = safeError(err)
-	if aerr := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, status, exit, details); aerr != nil && exit == 0 {
+	if aerr := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, "end", status, exit, details); aerr != nil && exit == 0 {
 		exit, result.Error = siteFailure("audit_write_failed", aerr)
 	}
 	// The footer is the final operator-facing line. Render it after scoreboard
@@ -442,14 +442,16 @@ func platformFor(cfg configload.Snapshot, name string) (platform.Definition, err
 	return d, d.Validate()
 }
 
-func writeLoginAudit(s *audit.Sink, operator credentials.Operator, cfg configload.Snapshot, id string, d inventory.Device, username, backend, outcome string, code int, details map[string]any) error {
+// writeLoginAudit writes the login's login.start or login.end under its ID,
+// LoginID; a start passes no outcome.
+func writeLoginAudit(s *audit.Sink, operator credentials.Operator, cfg configload.Snapshot, id string, d inventory.Device, username, backend, event, outcome string, code int, details map[string]any) error {
 	eventID, _ := osutil.NewID(time.Now())
-	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "login." + outcome, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
+	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "login." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {
 		if code == 0 {
 			return "info"
 		}
 		return "warning"
-	}(), Operator: osutil.RecordOperator(operator), Process: map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()}, ActivityID: id, Device: map[string]any{"id": d.ID, "name": d.CanonicalName, "platform": d.Platform}, DeviceIdentity: map[string]any{"device_username": username, "backend": backend}, Action: map[string]any{"mode": "login", "operation": "interactive", "command_count": 0, "command_sha256_array": []string{}}, Policy: map[string]any{"config_digest": cfg.Digest, "telnet": false, "fips_required": cfg.Bool("security.require-fips"), "ssh_host_key_policy": cfg.String("ssh.host-key-policy")}, Result: map[string]any{"exit_code": code, "code": exitcode.ExitName(code)}, Source: map[string]any{"client": "karvi"}, Details: details})
+	}(), Operator: osutil.RecordOperator(operator), LoginUser: operator.LoginUser, Process: map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()}, LoginID: id, Device: &records.AuditDevice{ID: d.ID, CanonicalName: d.CanonicalName, Platform: d.Platform}, DeviceIdentity: map[string]any{"device_username": username, "backend": backend}, Action: map[string]any{"mode": "login", "operation": "interactive", "command_count": 0, "command_sha256_array": []string{}}, Policy: map[string]any{"config_digest": cfg.Digest, "telnet": false, "fips_required": cfg.Bool("security.require-fips"), "ssh_host_key_policy": cfg.String("ssh.host-key-policy")}, Result: map[string]any{"exit_code": code, "code": exitcode.ExitName(code)}, Source: map[string]any{"client": "karvi"}, Details: details})
 }
 
 func writeGeneratedLine(w io.Writer, line string) error {

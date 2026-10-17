@@ -91,7 +91,7 @@ func TestHostKeyEnrolledOnTheFirstRecord(t *testing.T) {
 	}
 }
 
-// TestAuditDetailsNameTheEnrolledKey: a command_completed event's details
+// TestAuditDetailsNameTheEnrolledKey: a <kind>.command event's details
 // carry host_key_enrolled from the record's notice, and are empty without
 // one.
 func TestAuditDetailsNameTheEnrolledKey(t *testing.T) {

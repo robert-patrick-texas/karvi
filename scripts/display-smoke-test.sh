@@ -16,6 +16,7 @@ absent() {
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/karvi-display-smoke-XXXXXX")
+. "$ROOT/scripts/lib/json.sh"
 . "$ROOT/scripts/lib/host.sh"; host_trust_store "$TMP"   # the trust store under the work directory, never the operator's
 HOME_DIR=$TMP/home
 BASE=$TMP/state
@@ -88,7 +89,7 @@ HOME="$HOME_DIR" NETUSER=smoke NETPASS=test "$KARVI" $(common_args) \
 grep -Eq '^! exit=0 elapsed=[^ ]+ artifacts=none$' "$TMP/nof.out"
 [ "$(grep -c '^OUTPUT:show clock$' "$TMP/nof.out")" -eq 1 ]
 [ "$(nof_folders)" -eq "$nof_before" ]
-[ "$(grep -c '"event_name":"command_completed"' "$BASE/audit.jsonl")" -eq 2 ]
+[ "$(audit_events "$BASE/audit.jsonl" event_name | grep -c '\.command$')" -eq 2 ]
 nof_code=0
 # shellcheck disable=SC2046
 HOME="$HOME_DIR" NETUSER=smoke NETPASS=test "$KARVI" $(common_args) \

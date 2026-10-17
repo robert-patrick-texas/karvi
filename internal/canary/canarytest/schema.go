@@ -34,6 +34,15 @@ func SchemaParity(t testing.TB, schemaPath string, value any) {
 	loader.check(t, schemaPath, root, root, decoded, "$")
 }
 
+// SchemaParityLines is SchemaParity for every line of a JSON Lines file's
+// content, as an audit file or commands.jsonl holds it.
+func SchemaParityLines(t testing.TB, schemaPath string, data []byte) {
+	t.Helper()
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		SchemaParity(t, schemaPath, json.RawMessage(line))
+	}
+}
+
 type schemaLoader struct{ files map[string]map[string]any }
 
 func (l *schemaLoader) load(t testing.TB, path string) map[string]any {
