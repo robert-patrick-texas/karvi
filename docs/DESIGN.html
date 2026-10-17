@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -181,10 +181,10 @@ decision was amended, the entry states the rule as it stands.</p>
 <p><strong>Truthful accounting.</strong> Every device and every command ends in exactly one
 recorded state, and the counts partition the total. A command whose outcome is
 unknown (sent, then the job was cancelled or the daemon stopped) is recorded
-<code>cancelled</code> or <code>incomplete_shutdown</code>, never <code>succeeded</code> or <code>errored</code>, and is
+<code>cancel</code> or <code>incomplete_shutdown</code>, never <code>success</code> or an error, and is
 excluded from the error count. <em>Why:</em> an operator reading a summary must be
-able to trust that &quot;failed&quot; means the device said no and &quot;completed&quot; means
-every command was answered. <em>Not taken:</em> letting the driver's error stand for
+able to trust that <code>fail</code> means the device said no and <code>complete</code> means every
+command was answered. <em>Not taken:</em> letting the driver's error stand for
 a command the cancel interrupted; counting an unfinished device as failed.</p>
 <p><strong>No silent policy bypass.</strong> A configuration value the reader cannot honour
 is refused at load, never ignored. A removed key is refused from every layer
@@ -391,21 +391,20 @@ and under <code>--nocolor</code> or <code>--ansi strip</code>.
 <em>Why:</em> readable on a terminal while the constants, the drift test, and pipes
 carry no escapes. <em>Not taken:</em> escapes in the constants; a <code>--color</code> option
 for help alone.</p>
-<p><strong>Tab completion answers from the parser table.</strong> A hidden word,
-<code>karvi __complete CURSOR WORD...</code>, walks the table to the word under the
-cursor and prints candidates: command and option words, enum values, known
-platforms, registry keys for <code>--set</code>, device names from the inventory, job
-IDs from the scoreboard directory, and <code>:files</code> where bash should complete
-paths. It creates nothing, contacts no daemon, and prints nothing on any
-failure. One bash function serves <code>karvi</code> and <code>karvi-prune</code>; <code>sudo karvi setup tab</code> installs it. The function runs the command word it was given, so a
-shorter name a site links to the executable completes once the site binds it
-in a file of its own (<code>complete -F _karvi k</code>). <em>Why:</em> the grammar is data the
-drift test already keeps honest, so a word added to the table is completed by
-construction. <em>Not taken:</em> a generated static script (stale at the next
-change, blind to inventory); listing aliases (the list would double); <code>k</code>
-bound in karvi's file (an operator whose <code>k</code> is an alias, often kubectl's,
-would lose Tab on it); a name given to <code>setup tab</code> (every later run would have
-to name it again or drop it).</p>
+<p><strong>Tab completion answers from the parser table.</strong> A hidden word, <code>karvi __complete CURSOR WORD...</code>, walks the table to the word under the cursor and
+prints candidates: command and option words, enum values, known platforms,
+registry keys for <code>--set</code>, device names from the inventory, job IDs from the
+scoreboard directory, and <code>:files</code> where bash should complete paths. It creates
+nothing, contacts no daemon, and prints nothing on any failure. One bash
+function serves <code>karvi</code>, <code>karvi-prune</code>, and <code>karvi-audit</code>; <code>sudo karvi setup tab</code> installs it. The function runs the command word it was given, so a shorter
+name a site links to the executable completes once the site binds it in a file
+of its own (<code>complete -F _karvi k</code>). <em>Why:</em> the grammar is data the drift test
+already keeps honest, so a word added to the table is completed by construction.
+<em>Not taken:</em> a generated static script (stale at the next change, blind to
+inventory); listing aliases (the list would double); <code>k</code> bound in karvi's file
+(an operator whose <code>k</code> is an alias, often kubectl's, would lose Tab on it); a
+name given to <code>setup tab</code> (every later run would have to name it again or drop
+it).</p>
 <h2 id="3-targets-inventory-and-platforms">3. Targets, inventory, and platforms <a class="anchor" href="#3-targets-inventory-and-platforms" aria-label="Link to this section">#</a></h2>
 <p><strong>Target names are lowercase identities.</strong> Every name is lowercased on input,
 and the lowercase name is the identity for duplicate removal, <code>--exclude</code>,
@@ -954,7 +953,7 @@ password, since some servers allow keyboard-interactive and refuse password
 (<code>PreferredAuthentications</code> in the managed configuration). The record's
 credential projection names the method that authenticated, <code>auth</code> (<code>publickey</code>,
 <code>keyboard-interactive</code>, or <code>password</code>, absent where the session never
-authenticated), and every <code>command_completed</code> audit event names it beside the
+authenticated), and every <code>&lt;kind&gt;.command</code> audit event names it beside the
 device username and the credential backend: the system transport runs its
 command sessions at <code>LogLevel VERBOSE</code> and takes OpenSSH's <code>Authenticated to … using &quot;M&quot;.</code> line from the stderr it already reads, keeping it from the
 diagnostics, and the native adapter notes the last of its callbacks x/crypto
@@ -1548,7 +1547,7 @@ plan's exec rules (the channel per target, no blind sends or <code>--expect</cod
 targets, no exec over telnet) as it checks the rest and evaluates no platform;
 the execution plan's schema moves to 11 and the record's to 3, and a daemon
 refuses a plan of another version as before. <code>watch</code> gains no column, a row's
-bytes counting both streams. Every <code>command_completed</code> audit event names the
+bytes counting both streams. Every <code>&lt;kind&gt;.command</code> audit event names the
 device username, the credential backend, and the method that authenticated the
 session. <code>metrics.json</code> is unchanged. <em>Why:</em> a connection runs one channel at a
 time, so <code>MaxSessions</code> is never reached and a lease per channel would count
@@ -1684,11 +1683,11 @@ read-only check the executor would (binding, transport, askpass, host key
 enrollment, ICMP capability, output preflight, dispatch arithmetic, capacity)
 and writes <code>exercise.json</code> in the job folder; no session, probe, or command
 path exists in exercise mode, and the report has no command status field, so
-it cannot claim success by construction. Status <code>exercised</code>, exit 0 or the
+it cannot claim success by construction. Status <code>exercise</code>, exit 0 or the
 first error finding's exit. <em>Why:</em> the proof of &quot;no device contact&quot; is
 structural; the exercise predicts the live refusal exactly.</p>
 <p><strong><code>commit_job</code> answers at acceptance; the job runs on its own goroutine.</strong>
-Acceptance is the moment the manifest is durable and the start audit record is
+Acceptance is the moment the manifest is durable and the <code>start</code> audit event is
 written; the job slot is released when the run returns, so <code>drain</code> and <code>stop</code>
 still see the job. <em>Why:</em> one client path and one daemon path for a followed
 run, a detached run, and an exercise.</p>
@@ -1770,15 +1769,15 @@ meanings).</p>
 <p><strong>Cancellation is a job-scoped cause with shutdown's accounting.</strong> <code>cancel_job</code>
 cancels one job's context with a cause carrying the reason, requester, and
 time; the daemon answers <code>cancelling</code> or <code>terminal</code> at once and never waits. A
-command in flight is recorded <code>cancelled</code>, a device any of whose units the
-cancel interrupted counts <code>cancelled</code> (neither completed nor failed), the run
-ends <code>cancelled</code> at exit 113. An exercise is never <code>cancelled</code>: the request is
+command in flight is recorded <code>cancel</code>, a device any of whose units the
+cancel interrupted counts <code>cancel</code> (neither <code>success</code> nor <code>fail</code>), the run ends
+<code>cancel</code> at exit 113. An exercise is never <code>cancel</code>: the request is
 accepted, changes nothing, and is recorded in the audit. The cancelled line is
-printed only for a job whose final status is <code>cancelled</code>. <em>Why:</em> a command
+printed only for a job whose final status is <code>cancel</code>. <em>Why:</em> a command
 already sent must never be recorded as succeeded or errored; a cancelled
 exercise would save a fraction of a second and lose the report the operator
 asked for; a reader would otherwise see &quot;cancelled&quot; over a job that ended
-<code>exercised</code> at exit 0.</p>
+<code>exercise</code> at exit 0.</p>
 <p><strong>Shutdown is a cause, not a cancel, and forcing never skips accounting.</strong> A
 forced stop or grace expiry cancels every job's context with a shutdown cause;
 in-flight and unstarted units are <code>incomplete_shutdown</code>, the run exits 106
@@ -1950,15 +1949,15 @@ opened, or the device refused its exec request: a not-attempted record, a
 connection that failed first, <code>ssh_session_channel_refused</code> on either
 transport), an empty one that it ran and wrote nothing there; the text file and
 the echo show <code>! not sent:</code> by it. Exec output is recorded as the program wrote
-it, with no terminal between to render. Exit 0 is <code>succeeded</code> whatever stderr holds; a non-zero exit
-is <code>device_error</code> with <code>command_exit_nonzero</code>, a signal <code>command_exit_signal</code>,
-and a channel closed without a status on a live connection
-<code>command_exit_missing</code>, each in the <code>device</code> category, exit 107, external and
-not retryable, so <code>errors.jsonl</code>, <code>failed-devices.txt</code>, the summary, and the
-run's exit treat them as any device error; a lost connection keeps its session
-codes. The platform's failure patterns apply to both streams after the exit
-status, so status 0 with a match is <code>device_command_error</code>. The device-error
-policy is unchanged: later commands are not attempted unless
+it, with no terminal between to render. Exit 0 is <code>success</code> whatever stderr
+holds; a non-zero exit is <code>device_error</code> with <code>command_exit_nonzero</code>, a signal
+<code>command_exit_signal</code>, and a channel closed without a status on a live
+connection <code>command_exit_missing</code>, each in the <code>device</code> category, exit 107,
+external and not retryable, so <code>errors.jsonl</code>, <code>failed-devices.txt</code>, the
+summary, and the run's exit treat them as any device error; a lost connection
+keeps its session codes. The platform's failure patterns apply to both streams
+after the exit status, so status 0 with a match is <code>device_command_error</code>. The
+device-error policy is unchanged: later commands are not attempted unless
 <code>--continue-device-on-error</code>, and the connection stays usable. <code>promptbefore</code>
 and <code>prompt</code> are empty, <code>prompt_source</code> is <code>none</code>, and <code>prompt_observed</code> is
 false; <code>--echo</code> and <code>output.TARGET.txt</code> show the inferred prompt (<code>srv1$ uname -s</code>), then stdout, then stderr, then a <code>!</code> line on failure, both streams on
@@ -2027,7 +2026,7 @@ host; a relative path from an unreadable working directory is
 its process alone: the <code>daemon.*</code> keys (<code>daemon-start</code> their reload class where
 a running daemon keeps the value), its <code>basedir</code> for its socket, state, and
 log, and the sweeps at its start. The client's load enforces the locks; the
-daemon re-checks nothing. A job's audit records, its <code>cancel_requested</code> among
+daemon re-checks nothing. A job's audit events, its <code>cancel</code> among
 them, go to the sinks its configuration names, and the client says its load's
 warnings as every invocation does (<a href="#15-configuration-and-errors">section 15</a>).
 <em>Why:</em> a daemon started by one invocation ran every later
@@ -2111,6 +2110,83 @@ summed on the metrics line, and a heartbeat rewrites the snapshot every
 <code>watch.refresh</code>. <em>Why:</em> reassurance that a long command is moving, at no cost
 per byte; a follow event would move the IPC schema and message every
 subscriber per interval.</p>
+<p><strong>An outcome or a status is one present-tense word in every record.</strong>
+<code>success</code>, <code>complete</code>, <code>error</code>, <code>fail</code>, <code>cancel</code>, <code>halt</code>, and <code>exercise</code>, alike
+in the command record, the summary, the scoreboard, <code>job list</code>, <code>watch</code>, and
+the audit; the counts named after outcomes take their words (<code>done</code>, the
+devices at an end, beside <code>success</code>, <code>fail</code>, and <code>cancel</code>), the collection's
+are <code>replace</code> and <code>keep</code>, the ping gate's <code>proceed</code> and <code>skip</code>, and the plan
+report's outcome <code>plan</code>. The error codes and the halt reasons drawn from them,
+<code>unfinished</code>, and the compound causes (<code>not_attempted_prior_command_failure</code>)
+stay for the review of the output strings. <em>Why:</em> one word for one outcome
+wherever an operator reads it, the audit beside <code>job list</code>. <em>Not taken:</em> the
+audit translating its words alone; the compound causes shortened now.</p>
+<p><strong>The audit names every event alike in every mode, and records each statement,
+masked.</strong> Every event is <code>&lt;kind&gt;.&lt;event&gt;</code>: <code>cmd</code>, <code>run</code>, or <code>crun</code>, the
+summary's <code>kind</code>, with <code>start</code>, <code>command</code> (one per device per command, a
+command never sent included), <code>cancel</code>, and <code>end</code>; <code>login.start</code> and
+<code>login.end</code>; <code>crun.after</code>. Each names the job (<code>KARVI_JOB_ID</code>, a <code>cmd</code> job's
+included) or the login (<code>KARVI_LOGIN_ID</code>) and the operator (<code>KARVI_OPERATOR</code>,
+the account it ran as, a daemon's job its client's; <code>KARVI_LOGINUSER</code> when the
+kernel's login UID names another account); a <code>command</code> event and a login's
+name the device (<code>KARVI_DEVICE</code>, its canonical name). The message is one line
+of <code>key=value</code> pairs, <code>karvi.audit=&lt;kind&gt;.&lt;event&gt;</code> first and the statement
+last, quoted always; the outcome is the record's word, and a <code>start</code> and a
+<code>cancel</code> carry none. A <code>command</code> event carries its statement as sent and a
+<code>start</code> the job's statements in order; the audit records no digest. Every
+statement is masked, in journald and <code>audit.file</code> alike, by the <code>masks</code> of all
+the job's platforms together (the plan's <code>platform_masks</code>), the text of each
+capturing group replaced by <code>&lt;removed&gt;</code>; the job's folder keeps the statements
+as sent. <em>Why:</em> journald itself answers what was run at a device, in which
+job, and by whom, by name on every host, and a forwarder that sends the
+message alone still links each line; a digest answers only someone who guesses
+it; the audit is read more widely than a job's folder (the journal's readers,
+syslog, and whatever it forwards to), and a statement can carry a secret in
+clear; a device's events masked by its own platform's list alone would leave
+in clear what another platform's list hides. <em>Not taken:</em> <code>command_completed</code>
+with no mode, and the past-tense names; <code>KARVI_ACTIVITY_ID</code> as the link;
+journald's <code>_UID</code> alone (a host's number); the digests beside the statements;
+each device's events masked by its own list (<a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+63</a>).</p>
+<p><strong><code>karvi-audit</code> reads the trail through <code>journalctl</code>, and reads no
+configuration.</strong> A fourth executable beside karvi, <code>karvi-prune</code>, and
+<code>karvi-askpass</code> runs <code>journalctl --no-pager -o json --output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi MESSAGE_ID=…</code>, the
+audit's message ID, with its matches, and lays out each entry's JSON, decoded as
+the writer's <code>records.AuditRecord</code>, as one row. <code>-S</code>, <code>-U</code>, <code>-g</code>, <code>-r</code>, <code>-f</code>,
+and <code>-n</code> are journalctl's, passed as given; <code>-o NAME</code> matches <code>KARVI_OPERATOR</code>
+or <code>KARVI_LOGINUSER</code>, <code>-d NAME</code> matches <code>KARVI_DEVICE</code> lowercased, each
+repeatable, a flag's names ORed and the two flags ANDed. An entry with no
+<code>KARVI_AUDIT_JSON</code>, JSON that does not decode, or an audit schema other than
+the writer's has no row, and one line at the end counts them. <em>Why:</em>
+following, reversing, the pattern, the window, and who reads whose events are
+journald's already, on every host; the message ID tells the audit from the
+daemon's log under the same identifier; a name is matched as journald matches
+a field, whole. <em>Not taken:</em> a row for an event it cannot read (the old
+schema's rows in the new table); a warning per such event (a host upgraded from
+schema 1 holds hundreds of thousands); the configuration's <code>display.*</code> read (as
+<code>karvi-prune</code>, it reads none) (<a href="EXAMPLES.html#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+64</a>).</p>
+<p><strong><code>karvi-audit</code>'s run: journalctl's refusals are its own, and the exits are
+0, 1, and 2.</strong> The reader refuses its own options alone, an unknown option, a
+positional argument, or an <code>-n</code> that is not a number, in few words with the
+help, exit 2. A value journalctl refuses, a time, a pattern, or <code>-r</code> with <code>-f</code>,
+is journalctl's message on standard error as it wrote it, exit 1, and
+journalctl missing is <code>karvi-audit: journalctl not found</code>, exit 1. Not
+following, the heading comes with the first row, and when journalctl returned no
+entry <code>karvi-audit: no matches</code> goes to standard error, no heading, exit 0;
+following, the heading comes with the first row or once journalctl has run half
+a second without ending. The exit is 0 when journalctl ended 0, a follow ended
+by Ctrl-C or by its reader's closing included, and journalctl ended by the
+Ctrl-C it got too counts as that; a reader that quits (<code>less</code>, <code>head</code>) ends it
+quietly, under <code>-f</code> without waiting for the next event. <em>Why:</em> journalctl
+already judges its values and says why in one line, so whose refusal is whose
+has one rule; a heading over a refusal, or with no row, reads as a table cut
+short; a message on standard output would be a row to a script reading the
+pipe; on a host upgraded from schema 1 a window can hold the old events alone,
+so &quot;no matches&quot; would be false there. <em>Not taken:</em> the reader refusing <code>-r</code>
+with <code>-f</code> itself; the heading alone, or <code>(no matches)</code>, for nothing matched;
+the message on standard output; exit 1 for nothing matched (grep's;
+journalctl's 0 kept).</p>
 <h2 id="11-the-collection-run">11. The collection run <a class="anchor" href="#11-the-collection-run" aria-label="Link to this section">#</a></h2>
 <p><strong>A collection is one flat directory of device files, replaced only on
 success.</strong> <code>crun</code> writes each device's output to <code>crun.directory</code> (default the
@@ -2132,8 +2208,20 @@ built-in lists dropping byte counts, uptimes, and NTP clock periods) are
 dropped from the collection file alone. <em>Why:</em> a collection differs at every
 run before anything changed, and with the hook that noise is a commit and a
 mail a day; a change stamp says when and by whom, and is kept. <em>Not taken:</em>
-masking in place of dropping; secret masking (the site's <code>.gitattributes</code>
-filter at the commit).</p>
+masking in place of dropping.</p>
+<p><strong>Under <code>crun.mask</code> a collection file's secrets are masked; off by default.</strong>
+<code>crun.mask = true</code> masks every collection file, a <code>crun</code>'s and a <code>--cd</code> run's:
+the text of every capturing group of the device's own platform's <code>masks</code>, the
+audit's lists, is replaced by <code>&lt;removed&gt;</code> in each line kept after the drop and
+in each marker's statement; the record and the job's files keep the text as
+sent. The job reads the key from the plan's configuration block, as it reads
+<code>crun.file-mode</code>, and the plan carries each target platform's list. <code>--set crun.mask=false</code> keeps one run's files whole unless the site locks the key.
+<em>Why:</em> a collection is the device's backup, whose restore needs its secrets, and
+it sits in the operator's or the team's folder, so the site decides; a <code>run --cd</code> into the directory under the site's choice would put secrets back; the
+marker is a line of the file. <em>Not taken:</em> the mask on by default (a backup
+without its secrets); the mask a <code>crun</code>'s alone, as the filters are; the marker
+whole under the mask (the file would keep a secret the audit hides); a <code>mask</code>
+field in the plan's collection block (a copy of a key).</p>
 <p><strong>A <code>run</code> or <code>command</code> with <code>--cd=PATH</code> writes the collection file, unfiltered,
 replaced only when the device succeeds.</strong> The file is the collection's: one per
 device, named as a <code>crun</code> names it (a collision ends the draft with
@@ -2159,7 +2247,7 @@ device said; one success rule for every collection. <em>Not taken:</em> applying
 <code>command</code> with <code>--cd</code> writes the folder it writes without one, <code>output.NAME.txt</code>
 included under <code>output.files.output-txt</code> (a <code>crun</code> writes none); <code>summary.json</code>
 and the jsonl summary document carry the <code>collection</code> block (the directory,
-<code>replaced</code>, <code>kept</code>, each device's file and outcome) for every collection; under
+<code>replace</code>, <code>keep</code>, each device's file and outcome) for every collection; under
 <code>--nof</code> the collection is written and no folder (<code>artifacts=none</code>); <code>--nof --detach</code> stays refused. <em>Why:</em> a kept collection file is the previous one, so
 the folder's text file, with its header and error line, is the one place that
 says what happened this time. <em>Not taken:</em> turning <code>output.NAME.txt</code> off as a
@@ -2294,7 +2382,7 @@ summary, with no result line on standard error; <code>--format jsonl</code> ends
 summary document as the stream's last line, so a script reads one stream, the
 records then the summary. A run with a collection (<code>crun</code>, or <code>run</code> or
 <code>command</code> with <code>--cd</code>) adds one line after the footer, the template
-<code>display.collection.footer</code> (default <code>! collection=&lt;collection&gt; replaced=&lt;replaced&gt; kept=&lt;kept&gt;</code>, <code>&lt;collection&gt;</code> the absolute collection
+<code>display.collection.footer</code> (default <code>! collection=&lt;collection&gt; replace=&lt;replace&gt; keep=&lt;keep&gt;</code>, <code>&lt;collection&gt;</code> the absolute collection
 directory), in the footer's roles, written by the footer's renderer to standard
 output directly after it on every text path (<code>--no-daemon</code>, the daemon follow,
 <code>job follow</code>, a finished job's replay), and under json and jsonl never, as the
@@ -2310,11 +2398,12 @@ placeholder in the run footer (empty for every run without one).</p>
 <p><strong>The helper's help is karvi's layout, coloured without configuration.</strong>
 <code>internal/helplayout</code> holds the one help layout (the title tag in the label
 colour, headings in bold, option words in the accent colour, a Usage line's
-action word in the success colour), which karvi and <code>karvi-prune</code> both use;
-karvi decides its colour from <code>display.*</code> as before. <code>karvi-prune -h</code> and
+action word in the success colour), which karvi, <code>karvi-prune</code>, and
+<code>karvi-audit</code> use; karvi decides its colour from <code>display.*</code> as before, and
+<code>karvi-audit</code> colours its help as its table (below). <code>karvi-prune -h</code> and
 <code>--help</code> print to standard output, exit 0: a title line, <code>Usage:</code> with the
-synopsis wrapped at 79, and <code>Options:</code> with each flag in <code>FlagOrder</code>, its
-placeholder in a 31-column field and its usage string beside it, the default
+synopsis wrapped at 79, and <code>Options:</code> with each flag in the synopsis's order,
+its placeholder in a 31-column field and its usage string beside it, the default
 after; a usage error prints its message and the text on standard error, exit
 2. The helper reads no configuration, so its colour is the defaults' (on when
 the stream is a terminal, the dark theme's roles) and a site's <code>display.*</code> does
@@ -2347,20 +2436,19 @@ sections. <em>Why:</em> the block listed eight options with no word of what they
 their keys' registry entries give ranges alone, and <a href="SCALE.html">SCALE.md</a>, which
 explains them, is not installed. <em>Not taken:</em> the compact lines with a pointer
 to <a href="SCALE.html">SCALE.md</a>; changing the percent rule in a help change.</p>
-<p><strong><code>NO_COLOR</code> turns colour off under <code>auto</code>, on every path.</strong> <code>display.color</code>
-is <code>auto</code> (the default), <code>always</code>, or <code>never</code>; under <code>auto</code>, colour is on at a
+<p><strong><code>NO_COLOR</code> turns colour off under <code>auto</code>, on every path.</strong> <code>display.color</code> is
+<code>auto</code> (the default), <code>always</code>, or <code>never</code>; under <code>auto</code>, colour is on at a
 terminal unless <code>NO_COLOR</code> is set and not empty. The rule is
-<code>display.ColorEnabled</code>'s, so the help, a run's display on both paths,
-<code>config colors</code>, the watch screen, and <code>karvi-prune -h</code> (whose mode is <code>auto</code>
-alone) follow it; <code>always</code> and <code>never</code> are explicit choices <code>NO_COLOR</code> does
-not override, watch's <code>--color</code> among them, and a regular file is plain under
-every mode (below). <em>Why:</em> the convention (no-color.org)
-asks a program that colours by default to honour a non-empty <code>NO_COLOR</code> and
-lets a configuration or a per-invocation option override it; the watch screen
-alone read it, beating even its own <code>--color always</code>, and every other path
-ignored it. <em>Not taken:</em> <code>NO_COLOR</code> over <code>always</code>; <code>NO_COLOR</code> as a
-configuration layer setting <code>display.color = &quot;never&quot;</code> (locks, and an order
-above the files); a karvi variable of its own.</p>
+<code>display.ColorEnabled</code>'s, so the help, a run's display on both paths, <code>config colors</code>, the watch screen, <code>karvi-prune -h</code> (whose mode is <code>auto</code> alone), and
+<code>karvi-audit</code> (whose colour, a terminal's and a pipe's, is no one's explicit
+choice, so that <code>NO_COLOR</code> turns it off as <code>--nocolor</code> does) follow it; <code>always</code>
+and <code>never</code> are explicit choices <code>NO_COLOR</code> does not override, watch's <code>--color</code>
+among them, and a regular file is plain under every mode (below). <em>Why:</em> the
+convention (no-color.org) asks a program that colours by default to honour a
+non-empty <code>NO_COLOR</code> and lets a configuration or a per-invocation option
+override it; the watch screen alone read it, beating even its own <code>--color always</code>, and every other path ignored it. <em>Not taken:</em> <code>NO_COLOR</code> over <code>always</code>;
+<code>NO_COLOR</code> as a configuration layer setting <code>display.color = &quot;never&quot;</code> (locks,
+and an order above the files); a karvi variable of its own.</p>
 <p><strong>Every warning line in the warning colour.</strong> A <code>warning: …</code> line on standard
 error, a load's warnings and every other, is written by one function
 (<code>jobexec.WriteWarning</code>) in the invocation's read's style for the stream it goes
@@ -2457,6 +2545,41 @@ a name cut; the running rows above a rule (a folder's unfinished job may be days
 dead); the scoreboard's live counts (a second read, gone once pruned); <code>0/2</code>,
 <code>?</code>, or <code>-</code> for counts not known (none done claimed, the flag column's mark, a
 file not read); the heading alone or nothing for an empty list.</p>
+<p><strong><code>karvi-audit</code>'s table: fixed widths, no TIME.</strong> The columns stand at fixed
+widths, one space between them: JOB-ID 16 (a job's or a login's ID), OPERATOR
+18, MODE 5 (the kind, <code>login</code> among them), EVENT 7, OUTCOME 16, DEVICE 20, then
+COMMAND. A cell longer than its column is cut with <code>…</code>. At a terminal the line
+is cut with <code>…</code> so that its last cell stays free, COMMAND cut or not shown at
+all; to a pipe or a file nothing cuts it. OPERATOR and DEVICE, heading and
+cells, are centred while the width holds the column whole, an odd cell to the
+right, and at the column's left when the width cuts into it, so DEVICE is whole
+from 89 columns. OPERATOR is <code>OPERATOR/LOGINUSER</code> when the event names a login
+user, <code>/LOGINUSER</code> kept whole and the operator's part cut first. A statement's
+control characters are written as Go writes them in a quoted string (<code>\t</code>,
+<code>\n</code>, <code>\x1b</code>). <em>Why:</em> the job ID holds the job's start to the second; one rule
+for every mode, a table read whole or followed, its first line at once and its
+memory flat, which widths measured over the rows cannot give (thirty days'
+359,728 rows held before the first line); OUTCOME at 16 tells the two
+<code>not_attempted_*</code> words apart; on a jump box where operators <code>sudo</code> to a shared
+account the person is the part a review looks for; a newline in a statement
+would start a row with no columns. <em>Not taken:</em> TIME (19 cells); widths
+measured over every row, as <code>job list</code>'s; a longer cell whole, pushing the rest
+of its row; two cells between columns; OUTCOME at 10;
+<code>OPERATOR(LOGINUSER)</code>; the pair cut at its end; the control characters removed.</p>
+<p><strong><code>karvi-audit</code>'s colours go to a terminal and through a pipe, never into a
+file.</strong> The headings in the label role, OPERATOR in the accent role, DEVICE in
+the target role (bold), and OUTCOME by its word: the success role for
+<code>success</code>, <code>complete</code>, and <code>exercise</code>; the warning role for work not done or
+cut short, <code>cancel</code>, <code>halt</code>, <code>incomplete</code>, and a command's <code>not_attempted_*</code>,
+<code>not_started_*</code>, and <code>incomplete_*</code>; the error role for every other word. The
+roles are the dark theme's, as the reader reads no configuration; <code>--nocolor</code>
+and <code>NO_COLOR</code> turn the colour off. <em>Why:</em> the roles and the words' colours are
+<code>watch</code>'s and <code>job list</code>'s; a statement not sent is not the failure, which a row
+before it in the same job carries in red; a reader of the trail pages it
+(<code>karvi-audit | less -R</code>), so a pipe keeps the colour, and a file never holds
+it. <em>Not taken:</em> the colour at a terminal alone (<code>display.color = auto</code>'s rule,
+the pager plain); <code>not_attempted_*</code> red (one failure shown as many); OPERATOR
+plain.</p>
 <h2 id="14-storage-roots-shared-trees-transcripts-and-retention">14. Storage: roots, shared trees, transcripts, and retention <a class="anchor" href="#14-storage-roots-shared-trees-transcripts-and-retention" aria-label="Link to this section">#</a></h2>
 <p><strong>The private root is the operator's, by username, where the site provisioned
 it.</strong> <code>basedir = &quot;auto&quot;</code> resolves <code>/opt/karvi/users/&lt;username&gt;</code>, then
@@ -2861,29 +2984,32 @@ in seconds. <em>Not taken:</em> the dates derived from the CHANGELOG's heading o
 commit; the release's commit derived from the heading (a modified tree would
 claim the release); the tag's name (the bundle has no <code>.git</code>).</p>
 <p><strong>A man page is roff written by hand, its SYNOPSIS and OPTIONS generated.</strong>
-<code>packaging/man/karvi-prune.8</code> is one committed file; between the comment lines
-<code>.\&quot; BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there</code>
-and <code>.\&quot; END GENERATED SYNOPSIS</code>, and the same pair for OPTIONS, <code>tools/mangen</code>
-writes the synopsis from <code>prune.Usage()</code>'s parts and one entry per flag from
-the helper's flag set (the placeholder, the usage string, and the default, roff
-escaped: <code>-</code> as <code>\-</code>, <code>\</code> as <code>\e</code>, a leading <code>.</code> or <code>'</code> behind <code>\&amp;</code>) and leaves
-every other byte as it was, refusing a page with a pair missing, doubled, or
-out of order. <code>make generate</code> rewrites it in place; <code>make generated-clean</code> and the bundle verifier
+<code>packaging/man/karvi-prune.8</code> and <code>packaging/man/karvi-audit.1</code> are each one
+committed file; between the comment lines <code>.\&quot; BEGIN GENERATED SYNOPSIS: tools/mangen from internal/prune; edit there</code> (<code>internal/auditview</code> for the
+reader) and <code>.\&quot; END GENERATED SYNOPSIS</code>, and the same pair for OPTIONS,
+<code>tools/mangen</code> writes the synopsis from the executable's <code>flagspec.Spec</code>, a
+flag spelled as the help spells it (by its one letter where it has one, <code>...</code>
+after a repeatable one), and one entry per flag from its flag set (both
+spellings, the placeholder, the usage string, and the default, roff escaped:
+<code>-</code> as <code>\-</code>, <code>\</code> as <code>\e</code>, a leading <code>.</code> or <code>'</code> behind <code>\&amp;</code>) and leaves every
+other byte as it was, refusing a page with a pair missing, doubled, or out of
+order. <code>make generate</code> rewrites it in place; <code>make generated-clean</code> and the bundle verifier
 regenerate into a temporary file and compare. A Go test runs <code>groff -man -ww -z</code> on the page and fails on a warning, skipping without groff; the debian
-rules install it to <code>/usr/share/man/man8/</code>, gzipped by <code>dh_compress</code>. <em>Why:</em>
+rules install <code>karvi-prune.8</code> to <code>/usr/share/man/man8/</code> and <code>karvi-audit.1</code> to
+<code>/usr/share/man/man1/</code>, gzipped by <code>dh_compress</code>. <em>Why:</em>
 the flags are defined once and the page cannot drift from them, as the
 registry's reference cannot; the prose is not in any definition. <em>Not taken:</em>
 a <code>.8.in</code> template beside a generated <code>.8</code>; a Markdown-to-roff converter (a
 vendored dependency, left to the HTML documents); generating the whole page.</p>
-<p><strong>The helper's value names and flag order are defined once.</strong> <code>internal/prune</code>
-holds each flag's completion words, whether it takes a path, and, for a value
-that is neither, its name (<code>days</code> <code>N</code>, <code>minfree</code> <code>PERCENT</code>); the placeholder is
-the words joined with <code>|</code> and <code>|PATH</code>, or the name, none for a switch; and
-<code>FlagOrder</code> is the synopsis's order. The synopsis (<code>prune.Usage()</code>, pinned to
-the former constant), <code>-h</code> (<code>prune.PrintUsage</code>, double dash, the placeholder,
-the usage string, an unquoted default; replacing Go's <code>PrintDefaults</code>), the man
-page's OPTIONS, and Tab all read them; tests hold the order and the table to
-the defined flags. <em>Why:</em> the synopsis said <code>auto|PATH</code>, <code>N</code>, and <code>PERCENT</code>
+<p><strong>The helper's value names and flag order are defined once.</strong> <code>internal/prune</code>'s
+<code>flagspec.Spec</code> holds each flag's completion words, whether it takes a path,
+and, for a value that is neither, its name (<code>days</code> <code>N</code>, <code>minfree</code> <code>PERCENT</code>);
+the placeholder is the words joined with <code>|</code> and <code>|PATH</code>, or the name, none for
+a switch; and its <code>Order</code> is the synopsis's order. The synopsis (<code>Usage</code>, pinned
+to the former constant), <code>-h</code> (<code>Help</code>, double dash, the placeholder, the usage
+string, an unquoted default; replacing Go's <code>PrintDefaults</code>), the man page's
+OPTIONS, and Tab all read them, through <code>internal/flagspec</code>; tests hold the
+order and the table to the defined flags. <em>Why:</em> the synopsis said <code>auto|PATH</code>, <code>N</code>, and <code>PERCENT</code>
 where <code>-h</code> said <code>string</code>, <code>int</code>, and <code>float</code> with one dash, and a page
 generated from the flag set alone would have said the latter. <em>Not taken:</em> Go's
 backquoted value names in the usage strings; parsing the hand-written
@@ -2951,7 +3077,8 @@ a help text to roff (<code>Roff</code>: the SYNOPSIS and DESCRIPTION bodies) wit
 classifier its terminal layout uses, and holds the one roff escape (<code>\</code> as <code>\e</code>,
 <code>-</code> as <code>\-</code>, a leading <code>.</code> or <code>'</code> behind <code>\&amp;</code>), which the prune regions use too.
 <code>tools/mangen</code> works from a page table, each page with its path, its marker
-source, and its regions: <code>karvi-prune.8</code> from <code>internal/prune</code> as before, and
+source, and its regions: <code>karvi-prune.8</code> from <code>internal/prune</code> as before,
+<code>karvi-audit.1</code> from <code>internal/auditview</code>, and
 <code>karvi.1</code> and <code>karvi-WORD.1</code> from <code>HelpPages()</code> with the markers <code>.\&quot; BEGIN GENERATED SYNOPSIS: tools/mangen from internal/cli; edit there</code> and
 <code>DESCRIPTION</code>; a word without its page file is refused, naming the file; <code>-dir DIR</code> writes every generated page into DIR for <code>make generated-clean</code> and the
 bundle verifier to compare, and without it the pages are rewritten in place.
@@ -3123,7 +3250,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

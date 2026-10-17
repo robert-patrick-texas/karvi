@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
 <li><a href="#0311---2026-10-16">0.31.1 - 2026-10-16</a></li>
 <li><a href="#0310---2026-10-16">0.31.0 - 2026-10-16</a></li>
 <li><a href="#0301---2026-10-13">0.30.1 - 2026-10-13</a></li>
@@ -69,9 +70,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -120,6 +121,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
 <li><a href="#0311---2026-10-16">0.31.1 - 2026-10-16</a></li>
 <li><a href="#0310---2026-10-16">0.31.0 - 2026-10-16</a></li>
 <li><a href="#0301---2026-10-13">0.30.1 - 2026-10-13</a></li>
@@ -142,9 +144,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,6 +158,129 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0320---2026-10-17">0.32.0 - 2026-10-17 <a class="anchor" href="#0320---2026-10-17" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.31.1. The configuration registry moves from 30 to 31, the
+execution plan from 13 to 14, the command record from 3 to 4, the job manifest
+and summary from 4 to 5, the plan report from 2 to 3, the scoreboard from 3 to
+4, and the audit from 1 to 2; every other counter is 0.31.1's (configuration
+schema 6, daemon IPC 12, credential package 2, metrics 1, inventory 1), and an
+operator's 0.31.1 daemon, of another build, is drained by the first submission
+after the upgrade. <code>karvi-audit</code> is a fourth executable. A site has something
+to change where a parser reads the audit file, the journal, or the syslog it
+forwards (the events' names, fields, and line, and the statements, masked, in
+place of their digests); where a script reads an outcome, a status, or a count
+by its past-tense word, or the collection's <code>replaced</code> and <code>kept</code>; where a
+display template names <code>&lt;replaced&gt;</code> or <code>&lt;kept&gt;</code> (refused at load); where a
+<code>crun.after</code> hook reads <code>KARVI_CRUN_REPLACED</code> or <code>KARVI_CRUN_KEPT</code>; and where a
+host holds the tab completion file from before (<code>sudo karvi setup tab</code> once
+more). The module graph is 0.31.1's.</p>
+<ul>
+<li><strong>Breaking: the audit trail's names, links, and line; audit schema 2.</strong>
+Every audit event is named <code>&lt;kind&gt;.&lt;event&gt;</code>, the kind <code>cmd</code>, <code>run</code>, or
+<code>crun</code> as <code>job list</code> shows it (<code>action.mode</code> the same word): <code>start</code> and
+<code>end</code>, once each per job; <code>command</code>, once per device per command, a command
+never sent included, in place of <code>command_completed</code>; <code>cancel</code> when a cancel
+is asked, in place of <code>run.cancel_requested</code>; <code>login.start</code> and <code>login.end</code>;
+and the collection hook's <code>crun.after</code>. An exercise ends in <code>&lt;kind&gt;.end</code>
+with the outcome <code>exercise</code>, in place of <code>run.exercised</code>. The outcome is in
+its own field alone, never in the name (<code>login.errored</code> and
+<code>crun.after.failed</code> are gone), and a <code>start</code> and a <code>cancel</code> carry none.
+journald's fields: <code>KARVI_JOB_ID</code> on every event of a job, a <code>cmd</code> job's
+included; <code>KARVI_LOGIN_ID</code> on a login's; <code>KARVI_DEVICE</code>, the device's
+canonical name, on each <code>command</code> event and a login's; <code>KARVI_OPERATOR</code>, the
+account the job or the login ran as, on every event; and <code>KARVI_LOGINUSER</code>
+when the kernel's login UID names another account, the person behind
+<code>sudo</code>, a job through the daemon taking its client's from the client's
+process. <code>KARVI_ACTIVITY_ID</code> is gone, and the JSON follows: <code>job_id</code> or
+<code>login_id</code> in place of <code>activity_id</code>, <code>device.canonical_name</code> in every
+event (a login's <code>device.name</code> renamed), and <code>loginuser</code>. The message is
+one line of <code>key=value</code> pairs, <code>karvi.audit=&lt;kind&gt;.&lt;event&gt;</code>, <code>operator</code>,
+<code>loginuser</code> when it differs, <code>outcome</code>, <code>job</code> or <code>login</code>, <code>device</code>, and
+<code>command=&quot;…&quot;</code>, quoted always, in place of <code>karvi audit EVENT outcome=OUTCOME</code> (<a href="docs/OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code>, &quot;The audit
+trail&quot;</a>). A site's parser of the audit
+file, the journal, or the syslog it forwards changes with it.</li>
+<li><strong>Breaking: the audit records the statements, not their digests.</strong> A
+<code>command</code> event carries its statement as sent, <code>action.command</code> and the
+line's <code>command=&quot;…&quot;</code>; a job's <code>start</code> carries its statements in order,
+<code>action.commands</code>, which its <code>cancel</code> and <code>end</code> do not repeat. A
+session-init statement has its own <code>command</code> event, <code>action.command_kind</code>
+<code>session_init</code>, and stays off the <code>start</code>'s list. <code>action.command_sha256</code>,
+<code>action.command_sha256_array</code>, <code>action.selector_digest</code>,
+<code>action.plan_digest</code>, <code>policy.config_digest</code>, and the empty command lists
+of a login's and <code>crun.after</code>'s events are gone. An <code>--expect</code> response is
+never in the audit.</li>
+<li><strong>The mask: <code>masks</code> and <code>crun.mask</code>; execution plan 14, registry 31.</strong>
+<code>[platform.NAME] masks</code> is a platform's mask list, regular expressions in
+Go's syntax: in a statement or a line, the text of every capturing group of
+every match is replaced by <code>&lt;removed&gt;</code>, text two groups cover once, a group
+that matched nothing left alone. <code>cisco_iosxe</code> (19 patterns), <code>cisco_iosxr</code>
+(15), <code>cisco_nxos</code> (13), <code>arista_eos</code> (13), and <code>juniper_junos</code> (10) have
+built-in lists, in force by default; a site's array replaces a list whole,
+<code>[]</code> turns it off, and a pattern that does not compile or holds no group
+refuses the configuration, <code>config_platform_mask_invalid</code> (exit 2). Every
+statement the audit records is masked, in journald and <code>audit.file</code> alike,
+by the lists of all the job's platforms together; the job's folder keeps
+the statements as sent. <code>crun.mask</code> (<code>false</code> by default) masks every
+collection file by its device's own platform's list, a <code>crun</code>'s and a
+<code>run</code>'s or <code>command</code>'s given <code>--cd</code>, in each line kept and each <code>! COMMAND</code>
+marker's statement; <code>--set crun.mask=false</code> keeps one run's files whole
+unless the site locks the key. The plan carries each target platform's list
+as <code>platform_masks</code> (<a href="docs/COLLECTION.html#61-the-secrets-the-mask"><code>docs/COLLECTION.md</code> section
+6.1</a>).</li>
+<li><strong><code>karvi-audit</code>, the audit trail as a table.</strong> A fourth executable beside
+<code>karvi</code>, <code>karvi-prune</code>, and <code>karvi-askpass</code>, in the package
+(<code>/usr/bin/karvi-audit</code>, <code>man karvi-audit</code>) and the bundle (<code>install.sh</code>
+links it from <code>/usr/local/bin</code>). It runs <code>journalctl</code> with the trail's
+identifier and message ID and shows each event as one row: JOB-ID,
+OPERATOR (<code>OPERATOR/LOGINUSER</code> under <code>sudo</code>), MODE, EVENT, OUTCOME, DEVICE,
+and COMMAND at fixed widths, the line cut with <code>…</code> at a terminal, nothing
+cut to a pipe or a file. <code>-S</code>, <code>-U</code>, <code>-n</code>, <code>-g</code>, <code>-r</code>, and <code>-f</code> are
+journalctl's, passed as given; <code>-o NAME</code> is the operator or the login user,
+<code>-d NAME</code> the device, each repeatable. OUTCOME is green, orange, or red by
+its word; the colour goes to a terminal and through a pipe, never into a
+file (<code>--nocolor</code>, <code>NO_COLOR</code>). Nothing matched is <code>karvi-audit: no matches</code> on standard error, exit 0; a value journalctl refuses is its own
+message, exit 1; a usage error exits 2; an event of another audit schema has
+no row, and one line counts them. It reads no configuration. Tab completes
+its flags from the same file as karvi's; a host that holds the file from
+before runs <code>sudo karvi setup tab</code> once more (<a href="docs/OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code>, &quot;The
+audit trail&quot;</a>).</li>
+<li><strong>The audit suite.</strong> <code>scripts/audit-smoke-test.sh</code> reads the jobs it makes
+against the fake device back from the host's journal with <code>karvi-audit</code>,
+each row checked against the event <code>audit.file</code> holds, in the suites' third
+lane; on a host without journald its journal rows are skipped with the
+reason.</li>
+<li><strong>Breaking: an outcome or a status is one present-tense word in every
+record; command record 4, job manifest and summary 5, scoreboard 4, plan
+report 3.</strong> <code>succeeded</code> is <code>success</code>, <code>completed</code> <code>complete</code>, <code>errored</code>
+<code>error</code>, <code>failed</code> <code>fail</code>, <code>cancelled</code> <code>cancel</code>, <code>halted</code> <code>halt</code>, and
+<code>exercised</code> <code>exercise</code>, in the command record's <code>status</code>, the summary's
+<code>final_status</code> and <code>devices</code>, the scoreboard's <code>status</code> and target states,
+<code>job list</code> and <code>watch</code>, a login's status, and the audit's outcomes. The
+counts named after outcomes take their words, <code>device_counts</code> and the
+scoreboard's <code>counts</code>: <code>done</code> (the devices at an end, <code>job list</code>'s DONE,
+was <code>completed</code>), <code>success</code>, <code>fail</code>, and <code>cancel</code>; <code>total</code>, <code>not_started</code>,
+<code>incomplete</code>, and <code>in_flight</code> stay. The ping gate's counts in the summary's
+<code>ping.devices</code> are <code>proceed</code>, <code>proceed_degraded</code>, <code>skip</code>, and
+<code>capability_unavailable</code> (<code>gated</code> stays), and its display line ends
+<code>proceed</code> or <code>skip</code>; the plan report's <code>outcome</code> is <code>plan</code> or <code>exercise</code>.
+The error codes (<code>cancelled</code>, every <code>*_failed</code>), the halt reasons drawn
+from them, <code>unfinished</code>, and the compound causes
+(<code>not_attempted_prior_command_failure</code>) stay, so a cancelled record reads
+<code>status: cancel</code> beside <code>error.code: cancelled</code>. The scoreboard's schema
+file names its version 4 and declares the targets' <code>bytes</code> and the
+metrics' <code>in_flight_bytes</code>, which it left out. A record's <code>&lt;status&gt;</code> in the
+display takes the success role for <code>success</code> and <code>complete</code>, where a
+<code>succeeded</code> record showed in the error role.</li>
+<li><strong>Breaking: the collection's <code>replace</code> and <code>keep</code>.</strong> The summary's and the
+scoreboard's <code>collection</code> counts and each device's outcome, and
+<code>crun.after</code>'s details, say <code>replace</code> and <code>keep</code>; the display placeholders
+are <code>&lt;replace&gt;</code> and <code>&lt;keep&gt;</code>, <code>display.collection.footer</code>'s default <code>! collection=&lt;collection&gt; replace=&lt;replace&gt; keep=&lt;keep&gt;</code>, and a template
+naming <code>&lt;replaced&gt;</code> or <code>&lt;kept&gt;</code> is refused,
+<code>display_placeholder_unsupported</code> (exit 2). The hook's environment is
+<code>KARVI_CRUN_REPLACE</code> and <code>KARVI_CRUN_KEEP</code>, in place of
+<code>KARVI_CRUN_REPLACED</code> and <code>KARVI_CRUN_KEPT</code>; the shipped examples in
+<code>/usr/share/karvi/crun/</code> follow, and a site's copy of one changes with it.</li>
+</ul>
 <h2 id="0311---2026-10-16">0.31.1 - 2026-10-16 <a class="anchor" href="#0311---2026-10-16" aria-label="Link to this section">#</a></h2>
 <p>A patch release on 0.31.0 for the <code>crun.after</code> hook's bound, which changes no
 record, file, key, or schema; every counter is 0.31.0's (configuration schema
@@ -1537,7 +1662,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

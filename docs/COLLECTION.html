@@ -65,9 +65,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -134,9 +134,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -184,7 +184,7 @@ line. A rejected statement's block is the device's own error text.</li>
 temporary and renamed into place when every command of the device came
 back; a device not reached, timed out, halted, or cancelled keeps its
 previous file and leaves nothing behind. The display ends, after the
-footer, with <code>! collection=DIR replaced=N kept=M</code>
+footer, with <code>! collection=DIR replace=N keep=M</code>
 (<code>display.collection.footer</code>; under jsonl the summary document carries
 the counts); <code>failed-devices.txt</code> in the job folder is the rerun.</li>
 <li><strong>The directory</strong> is <code>crun.directory</code>: <code>auto</code> is the site's shared
@@ -336,7 +336,7 @@ as a lost session does. A collection with a missing file in a site's list:</p>
 cat: /etc/missing: No such file or directory
 karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 1
 ! exit=101 …
-! collection=/opt/karvi/shared/crun replaced=1 kept=0
+! collection=/opt/karvi/shared/crun replace=1 keep=0
 </code></pre>
 <p>leaves the file</p>
 <pre><code class="language-text">! uname -r
@@ -650,7 +650,7 @@ reads the replaced files' names on standard input, one per line, sorted
 <td>the collection directory, the working directory too</td>
 </tr>
 <tr>
-<td><code>KARVI_CRUN_REPLACED</code>, <code>KARVI_CRUN_KEPT</code></td>
+<td><code>KARVI_CRUN_REPLACE</code>, <code>KARVI_CRUN_KEEP</code></td>
 <td>the counts of the collection line</td>
 </tr>
 <tr>
@@ -663,8 +663,8 @@ reads the replaced files' names on standard input, one per line, sorted
 <code>--format jsonl</code> stdout stays records. A hook that cannot start, exits
 non-zero, or runs past <code>crun.after-timeout</code> (<code>5m</code> by default, <code>1s</code> to <code>1h</code>)
 is the warning <code>crun_after_failed</code>; the collection stands and the run's exit
-code is unchanged, and the audit holds a <code>crun.after.succeeded</code> or
-<code>crun.after.failed</code> event with the path, the exit code, and the duration. At
+code is unchanged, and the audit holds a <code>crun.after</code> event, its outcome
+<code>success</code> or <code>fail</code>, with the path, the exit code, and the duration. At
 the timeout, or when the run is interrupted, the hook's process group is sent
 SIGTERM, what is left of it is killed five seconds later, and karvi returns
 once the group is gone; whatever a hook that exits by itself leaves running is
@@ -690,7 +690,7 @@ after-timeout = &quot;5m&quot;
 <pre><code class="language-text">$ karvi crun --all
 …
 ! exit=101 elapsed=4m12s artifacts=/opt/karvi/shared/jobs/260926/260926-103409-00
-! collection=/opt/karvi/shared/crun replaced=212 kept=3
+! collection=/opt/karvi/shared/crun replace=212 keep=3
 $ git -C /opt/karvi/shared/crun log --oneline -1
 10738a1 crun 260926-103409-00: 212 replaced, 3 kept, exit 101
 </code></pre>
@@ -777,6 +777,51 @@ model's table, as the command lists do. The reference for what other
 tools drop is RANCID's per-type filters and Oxidized's model clean-ups;
 karvi drops less by design, since the stamps
 are the history a diff wants.</p>
+<h3 id="61-the-secrets-the-mask">6.1 The secrets: the mask <a class="anchor" href="#61-the-secrets-the-mask" aria-label="Link to this section">#</a></h3>
+<p>A configuration holds secrets in its own form: an SNMP community, a type 0 or
+type 7 <code>password</code>, a TACACS+ <code>key</code>. A collection file is the device's backup,
+whose restore needs them, so they stay unless the site turns the mask on:</p>
+<pre><code class="language-toml">[crun]
+mask = true
+</code></pre>
+<p>Under <code>crun.mask = true</code> (<code>false</code> by default) every collection file, a
+<code>crun</code>'s and a <code>run</code>'s or <code>command</code>'s given <code>--cd</code>, has its secrets replaced by
+<code>&lt;removed&gt;</code>, in each line kept after the drop list and in the statement of
+each <code>! COMMAND</code> marker. The record, <code>commands.jsonl</code>, and <code>output.NAME.txt</code>
+keep every line and statement as sent. A <code>crun</code> of a statement holding a
+community, which the device rejected (its block written as for any rejected
+statement), the file's marker lines (<code>grep '^!'</code>):</p>
+<pre><code class="language-text">! show clock
+! snmp-server community &lt;removed&gt; RO
+</code></pre>
+<p>The list is a platform's <code>masks</code>: regular expressions in Go's syntax, each
+matched against a line without its terminator, or a marker's statement
+without its <code>! </code>; the text of every capturing group of every match is replaced
+by <code>&lt;removed&gt;</code>, text two groups cover once, and a group that matched nothing
+is left alone. A collection file is masked by its device's own platform's
+list. <code>cisco_iosxe</code> (19 patterns), <code>cisco_iosxr</code> (15), <code>cisco_nxos</code> (13),
+<code>arista_eos</code> (13), and <code>juniper_junos</code> (10, Junos's own <code>## SECRET-DATA</code> tag
+among them) each have a built-in list, written for a statement as sent and a
+line as the device prints it alike; <code>linux</code>, <code>linux_shell</code>, and <code>generic</code> have
+none. Each built-in list, with the reason for each pattern and the checks it
+passed, is in <a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+63</a>, in TOML ready
+to copy. A site's array replaces the list whole, and an alias inherits its
+driver's list unless it sets its own, as with <code>crun-filters</code>; a site adding a
+pattern copies the built-in list and adds to it. The same lists mask every
+statement the audit records, always, whatever <code>crun.mask</code> says
+(<a href="OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code>, &quot;The audit trail&quot;</a>), so
+<code>masks = []</code> leaves that platform's statements in clear in the audit too.</p>
+<p>A pattern that does not compile, or holds no group, refuses the
+configuration before any device is contacted (<code>config_platform_mask_invalid</code>,
+exit 2, naming the table and the pattern):</p>
+<pre><code class="language-text">$ karvi --set &quot;platform.cisco_iosxe.masks=['(']&quot; config validate
+config_platform_mask_invalid: pattern 1 &quot;(&quot; does not compile: error parsing regexp: missing closing ): `(` for platform.cisco_iosxe.masks at --set[1]
+</code></pre>
+<p>An operator who needs one run's files whole writes <code>karvi --set crun.mask=false crun …</code>, unless the site has locked the key in its global
+file (<code>[config-lock] &quot;crun.mask&quot; = true</code>), which refuses the <code>--set</code>
+(<code>config_lock_violation</code>). A secret with no word before it passes, as does a
+keyword abbreviated otherwise than the patterns allow.</p>
 <h2 id="7-the-schedule">7. The schedule <a class="anchor" href="#7-the-schedule" aria-label="Link to this section">#</a></h2>
 <p>A recurring collection is the site's systemd timer or cron over <code>karvi crun --all</code>, with the hook doing the rest. It is not a configuration key
 and not a schedule the daemon keeps: a resident
@@ -842,7 +887,7 @@ change to one changes both.</li>
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

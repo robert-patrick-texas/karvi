@@ -108,6 +108,8 @@
 <li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
 <li><a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: karvi job list (2026-10-15)</a></li>
 <li><a href="#62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16)</a></li>
+<li><a href="#63-the-audit-trails-names-and-fields-2026-10-17">63. The audit trail&#39;s names and fields (2026-10-17)</a></li>
+<li><a href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">64. karvi-audit, the audit trail as a table (2026-10-17)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -119,9 +121,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -231,6 +233,8 @@
 <li><a href="#60-the-release-0301-2026-10-13">60. The release 0.30.1 (2026-10-13)</a></li>
 <li><a href="#61-a-list-of-jobs-karvi-job-list-2026-10-15">61. A list of jobs: karvi job list (2026-10-15)</a></li>
 <li><a href="#62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16)</a></li>
+<li><a href="#63-the-audit-trails-names-and-fields-2026-10-17">63. The audit trail&#39;s names and fields (2026-10-17)</a></li>
+<li><a href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">64. karvi-audit, the audit trail as a table (2026-10-17)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -242,9 +246,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -13211,8 +13215,1281 @@ documents name. <em>Not taken:</em> SIGKILL at once, which leaves a hook no time
 clean up (git's lock); a wait without a cap, which a process in uninterruptible
 sleep would hang; ending the group when the hook exits on its own, since a hook
 may start what is meant to outlive it.</p>
+<p><strong>The release 0.31.1</strong>, the tenth public release, on the operator's word and
+number: issues 1 and 2 (<code>71a9184</code>), a patch release that moves no counter. The
+daemon IPC schema stays 12, so there is no lifecycle replay and the
+compatibility example is the drain, beside the released 0.31.0 daemon. <em>What it
+gains:</em> a site has the hook's bound as its documents name it, from a published,
+checksummed bundle and package, and the bundle's own verifier no longer fails
+on another process matching <code>sleep 20</code>. The release tools were archived first
+(<code>~/karvi/backup/archive-2026-10-16-5</code>: a mirror at <code>71a9184</code> and the six
+tools) and none changed; the <code>## Unreleased</code> block came with the fix, before
+the baseline, by the rule. The sequence, as run, from the archive at 12:29 to
+the published check at 12:57 (UTC; 08:29 to 08:57, EDT), the artifacts passing
+at their first run:</p>
+<ul>
+<li>12:29:50 to 12:38:03, the baseline on a clean clone of <code>dev</code> at <code>71a9184</code>:
+gofmt, make, the release verifier with its package and container steps, exit
+0 each.</li>
+<li>12:38:45 and 12:39:05, the compatibility example and 1/3: <code>3e5255b</code>; the
+build <code>1m0vuMSWJ08PWlb3CIEZ</code>; the v0.31.0 daemon drained idle, refusing busy.</li>
+<li>12:39:25 to 12:41:18, the core evidence: 1,036 named tests across 89
+packages, vet 0, both socket lengths exit 0.</li>
+<li>12:42:27, the documents: <code>b7aba7a</code> (2/3), <code>release/</code> from the v0.31.0
+pattern, OPERATIONS' examples the release's own.</li>
+<li>12:42:32 to 12:50:05, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the package and its container test, the
+checksums unchanged by its rebuild; the replay skipped.</li>
+<li>12:50:20, 3/3, the tag, <code>main</code>: <code>1d33706</code>, <code>karvi-v0.31.1</code>, <code>main</code>
+fast-forwarded from <code>a59ac0a</code>.</li>
+<li>12:50:24 to 12:55:40, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive, S33 among its suites; the package
+reproducible and checked against the extraction; 37,877,722 and 5,990,718
+bytes.</li>
+<li>12:55:57 to 12:56:08, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-sysutil</code> and the template unit in place; 22 files under
+<code>/usr/share/karvi</code>, as 0.31.0.</li>
+<li>12:56:17 to 12:57:18, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>f276cca</code>), built,
+its 52 files 200 (<code>.nojekyll</code> among them) and its footer <code>karvi-v0.31.1</code>;
+release <code>karvi-v0.31.1</code> with the five assets, marked latest; the assets
+downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.31.0 build=89IPVx9eRsYXSHKjpog8
+daemon started socket=/dev/shm/r311/compat/base/socket/d.sock
+pid 3763731 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 89IPVx9eRsYXSHKjpog8 0.31.0
+  client build 1m0vuMSWJ08PWlb3CIEZ 0.31.1
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3763833 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '&quot;latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)&quot;'
+latest: karvi-v0.31.1 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.31.1-artifacts.sha256    # the assets downloaded back
+karvi-v0.31.1-source-linux-amd64.tar.gz: OK
+karvi_0.31.1_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong> The three executables keep 0.31.0's sizes, with other
+bytes; the bundle is 6,865 bytes larger and the package 3,518. The default
+configuration and <code>go-version-m.txt</code> are 0.31.0's.</p>
+<h2 id="63-the-audit-trails-names-and-fields-2026-10-17">63. The audit trail's names and fields (2026-10-17) <a class="anchor" href="#63-the-audit-trails-names-and-fields-2026-10-17" aria-label="Link to this section">#</a></h2>
+<p>The ROADMAP's Later item &quot;The audit trail, and then an audit review tool&quot;, its
+first part opened on the operator's word: every audit event named and linked
+alike in every mode, so that journald itself answers what was run at a device,
+in which job, and by whom.</p>
+<p><strong>The evidence.</strong> This host's journal, which the suites and the labs of the
+last 30 days filled with audit events, and <code>/var/log/syslog</code>, which rsyslog
+fills from the journal; read on 2026-10-17, the writer the released tree's
+<code>internal/audit/audit.go</code>. An event is one journald entry: <code>MESSAGE</code> (<code>karvi audit EVENT outcome=OUTCOME</code>), <code>PRIORITY</code>, <code>MESSAGE_ID</code>,
+<code>SYSLOG_IDENTIFIER=karvi</code>, three fields of karvi's own (<code>KARVI_EVENT_NAME</code>,
+<code>KARVI_ACTIVITY_ID</code>, and <code>KARVI_JOB_ID</code>), and the whole record as JSON in
+<code>KARVI_AUDIT_JSON</code>; the same JSON line goes to <code>audit.file</code> when one is set.
+The 30 days held thirteen names: <code>run.started</code> 51,411, <code>run.completed</code> 46,035,
+<code>run.exercised</code> 5,340, <code>run.cancel_requested</code> 1,988, <code>command.started</code> 29,404,
+<code>command.completed</code> 29,391, <code>command_completed</code> 170,844, <code>crun.after.succeeded</code>
+578, <code>crun.after.failed</code> 373, <code>login.started</code> 4,505, <code>login.completed</code> 2,527,
+<code>login.errored</code> 1,969, and <code>test</code> 228. A run of two devices, a <code>command</code>, and a
+cancelled run, each by its ID:</p>
+<pre><code class="language-console">$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_ACTIVITY_ID=261016-085318-00 -o cat
+karvi audit run.started outcome=started
+karvi audit command_completed outcome=succeeded
+karvi audit command_completed outcome=succeeded
+karvi audit run.completed outcome=completed
+$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_ACTIVITY_ID=261016-085457-00 -o cat
+karvi audit command.started outcome=started
+karvi audit command_completed outcome=succeeded
+karvi audit command.completed outcome=completed
+$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_ACTIVITY_ID=261016-085239-00 -o cat
+karvi audit run.started outcome=started
+karvi audit run.cancel_requested outcome=informational
+karvi audit command_completed outcome=cancelled
+karvi audit command_completed outcome=cancelled
+karvi audit command_completed outcome=cancelled
+karvi audit command_completed outcome=cancelled
+karvi audit run.completed outcome=cancelled
+</code></pre>
+<p>What the entries hold:</p>
+<ul>
+<li>
+<p><code>command_completed</code> is one event per command per device, in every mode, and
+not the <code>command</code>'s end; its JSON names no mode. The run's two are its two
+devices, <code>127.0.0.1</code> and <code>127.0.0.2</code>, named in the JSON alone; the cancelled
+run's four are its two devices' two commands, never sent.</p>
+</li>
+<li>
+<p>A collection's job is <code>run.*</code> (<code>261016-085458-00</code>: <code>run.started</code>,
+<code>command_completed</code>, <code>run.completed</code>, <code>crun.after.succeeded</code>), where <code>job list</code> calls it <code>crun</code>. An <code>--exercise</code> job ends in <code>run.exercised</code>, with no
+<code>run.completed</code>.</p>
+</li>
+<li>
+<p>A <code>command</code>'s events carry <code>KARVI_JOB_ID</code> empty, all 29,404 starts and 52,822
+of the <code>command_completed</code> events; their ID, the one <code>job list</code> shows, is in
+<code>KARVI_ACTIVITY_ID</code> alone. A <code>command</code>'s summary and records carry <code>job_id</code>
+empty too, its folder's name its only job ID. A login has no job, its ID in
+<code>KARVI_ACTIVITY_ID</code>.</p>
+</li>
+<li>
+<p>The device is in the JSON alone, as <code>device.canonical_name</code>, and a login's
+as <code>device.name</code>. No field matches it; reading every event's JSON found
+21,399 of the 95,946 events of seven days naming <code>fake-iosxe</code>, in 4.8
+seconds:</p>
+<pre><code class="language-console">$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_DEVICE=fake-iosxe -o cat | wc -l
+0
+</code></pre>
+</li>
+<li>
+<p>A <code>run.started</code> names no device: <code>details.device_count</code> and
+<code>action.selector_digest</code>.</p>
+</li>
+<li>
+<p>A command is <code>action.command_sha256</code>, which only a guess names; a
+<code>command_completed</code> of <code>261016-085459-00</code> held <code>cb75924d…</code>:</p>
+<pre><code class="language-console">$ printf 'show clock' | sha256sum
+cb75924da5e7bb871e288717e54dc1eb5065c55e8ab1a974be3319cc7f4cd590  -
+</code></pre>
+</li>
+<li>
+<p>Syslog receives the message alone:</p>
+<pre><code class="language-console">$ grep -c 'karvi audit' /var/log/syslog
+71566
+$ grep -m1 'karvi audit command_completed' /var/log/syslog
+2026-10-11T06:51:09.848576-04:00 dev karvi[1867301]: karvi audit command_completed outcome=authentication_error
+</code></pre>
+</li>
+</ul>
+<p><strong>What it gains.</strong> An operator on a NOC shift asks journald, or the syslog a
+host forwards it to, what was run at a device in the last hours, by every
+operator and service account, a run under <code>--nof</code> included, and reads the
+operator, the statement, the job, and the device on each line, by name on every
+host; the events of one mode compare with another's word for word.</p>
+<p><strong>What it waits on.</strong> Nothing: every event is written today. The audit schema
+moves from 1 to 2; issue 7 moves the command record's, the job summary's, and
+the scoreboard's.</p>
+<p><strong>Its issues, one at a time:</strong> the names; the link to the job; the device's
+field; the statements in place of the digests; the operator's name; the line's
+form; the outcome's words; the mask.</p>
+<p><strong>Issue 1, the names, agreed.</strong> The rule. Every audit event is named
+<code>&lt;kind&gt;.&lt;event&gt;</code>. The kind is the job's kind as <code>job list</code> shows it, <code>cmd</code>,
+<code>run</code>, or <code>crun</code> (the summary's <code>kind</code>), or <code>login</code>; <code>action.mode</code> holds the
+same word in every event. The events: <code>start</code> and <code>end</code>, once each per job or
+login; <code>command</code>, once per device per command, in place of <code>command_completed</code>;
+<code>cancel</code>, when a cancel is asked; <code>after</code>, a collection's <code>crun.after</code> hook. An
+<code>--exercise</code> job ends in <code>&lt;kind&gt;.end</code> with the outcome <code>exercise</code>; a login ends
+in <code>login.end</code> with the outcome <code>complete</code> or <code>error</code>; the hook is <code>crun.after</code>
+with the outcome <code>success</code> or <code>fail</code> (the words issue 7's). The outcome is in
+its own field alone, never in the name. <em>Why:</em> one word per mode across the
+summary, <code>job list</code>, and the audit, and the same event words in every mode, so
+that <code>run.end</code> and <code>cmd.end</code> compare as <code>run.command</code> and <code>cmd.command</code> do; each
+job and each login has one start and one end. <em>Not taken:</em> <code>cmd.completed</code> for
+the per-command event (one name for a <code>cmd</code> job's end and for every device
+command of every job, the 29,391 and the 170,844 events of the 30 days under one
+match); <code>command.completed</code> for it (free once the mode is <code>cmd</code>, but a journal
+kept across the change would hold both meanings); <code>command_completed</code> kept (the
+one name with an underscore, and no mode); the past-tense words (<code>started</code>,
+<code>completed</code>, <code>exercised</code>, <code>cancel_requested</code>); a collection's job named <code>run</code>;
+the outcome in the name (<code>login.errored</code>, <code>crun.after.failed</code>).</p>
+<p><strong>Issue 2, the link to the job, agreed.</strong> The rule. Every event of a job, its
+<code>start</code>, each <code>command</code>, a <code>cancel</code>, its <code>end</code>, and <code>crun.after</code>, carries
+<code>KARVI_JOB_ID</code>, the ID <code>job list</code> shows, a <code>cmd</code> job's included; a login's
+events carry <code>KARVI_LOGIN_ID</code>, the ID of its row in <code>watch</code>. <code>KARVI_ACTIVITY_ID</code>
+leaves journald, and the JSON follows: <code>job_id</code> on a job's events, <code>login_id</code> on
+a login's, no <code>activity_id</code>. The message names the job (<code>job=ID</code>) or the login
+(<code>login=ID</code>), and the device where the event has one (<code>device=NAME</code>), in the
+line issue 6 sets. <em>Why:</em> <code>journalctl SYSLOG_IDENTIFIER=karvi KARVI_JOB_ID=ID</code>
+gives a job's whole trail in order; a login takes its ID from another sequence
+(the scoreboard folder's) than a job (the output root's), so one field for both
+would match a login by a job's ID; on every job event the activity ID repeated
+the job ID, and nothing read it; a forwarder that sends the message alone still
+links each line. <em>Not taken:</em> <code>KARVI_ACTIVITY_ID</code> kept as the one link (the ID
+the operator sees is the job's); a login's ID in <code>KARVI_JOB_ID</code>.</p>
+<p><strong>Issue 3, the device's field, agreed.</strong> The rule. Every <code>&lt;kind&gt;.command</code> event,
+and a login's <code>login.start</code> and <code>login.end</code>, carries <code>KARVI_DEVICE</code>, the
+device's canonical name: its inventory name, lowercase, or a direct target as
+given. The JSON names the device <code>device.canonical_name</code> in every event, a
+login's <code>device.name</code> renamed. A job's <code>start</code>, <code>cancel</code>, and <code>end</code>, and
+<code>crun.after</code>, carry none. <em>Why:</em> <code>journalctl SYSLOG_IDENTIFIER=karvi KARVI_DEVICE=NAME</code> answers what was run at a device, by every operator and
+service account, a run under <code>--nof</code> included; every selected device has at
+least one <code>command</code> event, a cancelled or never attempted one included (the
+cancelled run above), so a job's <code>command</code> events name its every device; and
+journald matches a field whole, with its case, so the name is the one <code>job list</code> shows. <em>Not taken:</em> <code>KARVI_DEVICE</code> on a job's <code>start</code>, one value per
+device (2,500 values in one entry for the fleet); a <code>KARVI_ADDRESS</code> field for
+the address karvi connected to (on the operator's word; the address stays in
+the JSON, <code>device_identity.selected_address</code>).</p>
+<p><strong>Issue 4, the statements in place of the digests, agreed.</strong> The rule. The audit
+records no digest. A <code>&lt;kind&gt;.command</code> event carries its statement as sent:
+<code>action.command</code> in the JSON, and <code>command=&quot;…&quot;</code> in the message. A job's <code>start</code>
+carries its statements in order, <code>action.commands</code>; no other job event repeats
+them. <code>action.command_sha256</code>, <code>action.command_sha256_array</code>,
+<code>action.selector_digest</code>, <code>action.plan_digest</code>, <code>policy.config_digest</code>, and the
+empty command lists of a login's and <code>crun.after</code>'s events are removed. Host-key
+fingerprints and <code>plan_id</code> stay: they name a key and a plan, and are no digest
+of karvi's output. In the audit alone, the value after a platform's secret word
+is masked, by a list the platform definition holds, built in for <code>cisco_iosxe</code>;
+the job's folder keeps the statements as written. <em>Why:</em> a digest answers what
+was run only to someone who guesses it, and the message is what rsyslog
+forwards. The audit is read more widely than a job's folder: on this host the
+journal's files are <code>root:systemd-journal</code> 0640 with an access list and
+<code>/var/log/syslog</code> is <code>syslog:adm</code> 0640, besides whatever the host forwards to,
+where the folder is its operator's or the team's (the reason the scoreboard
+names no statement, <a href="DESIGN.html#13-the-watch-screen"><code>docs/DESIGN.md</code>, section
+13</a>); a configuration statement can carry a
+secret in clear (<code>snmp-server community</code>, a type 0 <code>password</code>, <code>key 0</code>), which
+IOS XE's own configuration logger masks too (<code>archive log config</code> with
+<code>hidekeys</code>). <em>Not taken:</em> the digests kept beside the statements (nothing reads
+them); the statements in clear under the operator's rule alone, as <code>--expect</code>'s
+responses are in the plan (the audit reaches syslog and whatever it forwards
+to); the statements repeated on <code>end</code> and <code>cancel</code> (the <code>start</code> holds them). The
+list's key, its built-in words, and the mask are issue 8's.</p>
+<p><strong>Issue 5, the operator's name, agreed.</strong> The JSON names the operator
+(<code>operator.username</code>, beside the UID and the groups), journald's own <code>_UID</code> the
+process's account by number; a UID is a host's, the same operator's differing
+from host to host, so a central log searched by name finds nothing in <code>_UID</code>.
+The name is the password database's for the process's UID (<code>user.Current()</code>),
+a daemon's job taking the daemon's own, and the daemon refuses a client of
+another UID. 344,156 events of the 30 days named <code>netops</code> beside <code>_UID</code> 1000;
+the only events with no name were the tests'. Under <code>sudo</code>, 72 events ran as
+<code>netops.test</code> from a <code>netops</code> login: their name was <code>netops.test</code>, and the
+person who logged in was journald's <code>_AUDIT_LOGINUID=1000</code> alone, the kernel's
+login UID, which <code>sudo</code> keeps. The rule. Every event names its operator:
+<code>KARVI_OPERATOR=NAME</code> in journald and <code>operator=NAME</code> in the line, NAME the
+account the job or the login ran as. When the kernel's login UID names another
+account, <code>KARVI_LOGINUSER=NAME</code> and <code>loginuser=NAME</code> name it too; with no login
+UID, as for the service account's daemon under systemd, they are absent. A job
+through the daemon takes its client's login UID, which the daemon reads from the
+client's process (<code>/proc/PID/loginuid</code>, the PID the socket's peer credentials
+give), never its own, which is the login of whoever launched it. <em>Why:</em> a SIEM
+matches an operator by name across hosts; on a jump box where operators <code>sudo</code>
+to a shared or role account, the shared name alone hides the person. <em>Not
+taken:</em> <code>_UID</code> alone (a host's number); the login user on every event (it
+repeats the operator's); the login UID the client reports (the kernel's word
+over the client's).</p>
+<p><strong>Issue 6, the line's form, agreed.</strong> The rule. The message is one line of
+<code>key=value</code> pairs, in this order: <code>karvi.audit=&lt;kind&gt;.&lt;event&gt;</code>; <code>operator=NAME</code>;
+<code>loginuser=NAME</code> when it differs; <code>outcome=WORD</code>, which a <code>start</code> and a
+<code>cancel</code> leave out; <code>job=ID</code> or <code>login=ID</code>; <code>device=NAME</code> on <code>&lt;kind&gt;.command</code>,
+<code>login.start</code>, and <code>login.end</code>; and <code>command=&quot;…&quot;</code> on <code>&lt;kind&gt;.command</code> alone,
+quoted always with <code>&quot;</code> and <code>\</code> escaped, so that a statement holding spaces, <code>=</code>,
+or quotes stays one value, and masked as issue 8 masks it. The first key keeps
+its dot. The form, its values illustrative:</p>
+<pre><code class="language-text">karvi.audit=run.start operator=netops job=261016-085318-00
+karvi.audit=run.command operator=netops outcome=success job=261016-085318-00 device=core-rtr-1 command=&quot;show clock&quot;
+karvi.audit=run.end operator=netops outcome=complete job=261016-085318-00
+karvi.audit=login.end operator=noc loginuser=jsmith outcome=error login=261017-101500-00 device=core-rtr-1
+</code></pre>
+<p><em>Why:</em> one <code>key=value</code> rule reads the whole line, and Splunk extracts the pairs
+without one; the first key tells an audit line from the daemon's log, which
+reaches journald under the same identifier and is <code>key=value</code> too (<code>time=… level=INFO msg=request …</code>); and it carries karvi's name, so a line stands alone
+where another source's <code>audit</code> field would meet it, or where the syslog tag is
+dropped (<code>journalctl -o cat</code>). <em>Not taken:</em> <code>karvi audit &lt;kind&gt;.&lt;event&gt;</code> (bare
+words, a parser rule per source); the name bare after it (<code>karvi audit netops run.command …</code>); <code>audit=</code> (another source's field); <code>karvi_audit=</code> (some read
+the dot as nesting, Elasticsearch an <code>audit</code> under <code>karvi</code>; kept on the
+operator's word).</p>
+<p><strong>Issue 7, the outcome's words, agreed.</strong> An event's outcome is a word karvi's
+records already hold: a <code>command</code> event's is the device record's <code>status</code>
+(<code>commands.jsonl</code>, the summary's devices, <code>job list --target</code>'s OUTCOME), a
+job's <code>end</code> the summary's <code>final_status</code> (<code>job list</code>'s and <code>watch</code>'s STATUS).
+The 30 days held <code>started</code>, <code>completed</code>, <code>errored</code>, <code>cancelled</code>, <code>halted</code>,
+<code>incomplete</code>, <code>exercised</code>, <code>not_ready</code>, <code>informational</code>, <code>succeeded</code>, <code>failed</code>,
+and the device statuses from <code>device_error</code> to
+<code>not_attempted_prior_command_failure</code>. The rule. An outcome or a status that is
+a past tense becomes one present-tense word, alike in every record karvi
+writes, the command record, the summary, the scoreboard, <code>job list</code>, <code>watch</code>,
+and the audit: <code>succeeded</code> <code>success</code>, <code>completed</code> <code>complete</code>, <code>errored</code> <code>error</code>,
+<code>failed</code> <code>fail</code>, <code>cancelled</code> <code>cancel</code>, <code>halted</code> <code>halt</code>, <code>exercised</code> <code>exercise</code>,
+and <code>started</code> <code>start</code>; <code>incomplete</code>, <code>timeout</code>, <code>not_ready</code>, and the <code>*_error</code>
+words stay. The compound causes with a past tense inside
+(<code>not_attempted_prior_command_failure</code>, <code>not_started_halt</code>,
+<code>output_limit_exceeded</code>, <code>incomplete_shutdown</code>, and their like) wait for item
+20's review of the output strings. A <code>start</code> and a <code>cancel</code> carry no outcome.
+The command record's schema moves from 3 to 4, the job summary's from 4 to 5,
+and the scoreboard's from 3 to 4. The section that builds it lists every such
+word first for the operator's review, the counts named after outcomes
+(<code>device_counts</code>, the scoreboard's) and the collection's <code>replaced</code> and <code>kept</code>
+among them. <em>Why:</em> one word for one outcome wherever an operator reads it, the
+audit beside <code>job list</code>; a <code>start</code>'s outcome repeated its name, and a cancel's
+said <code>informational</code>. <em>Not taken:</em> the audit translating its words alone
+(<code>complete</code> in the audit and <code>completed</code> in <code>job list</code> for one job); the
+compound causes shortened now (forms like <code>not_attempt_…</code>; item 20 shortens
+them whole).</p>
+<p><strong>Issue 7's list, agreed.</strong> S3 listed every past-tense word karvi writes as an
+outcome, a status, or a count named after one, and the operator agreed it
+whole. The rule's eight words change wherever they stand: <code>succeeded</code> (the
+command record's <code>status</code>, the summary's <code>devices[].outcome</code>, the scoreboard's
+<code>targets[].state</code>, <code>job list --target</code>'s OUTCOME, the audit's <code>&lt;kind&gt;.command</code>
+and <code>crun.after</code>), <code>completed</code> and <code>errored</code> (the summary's <code>final_status</code>, the
+scoreboard's <code>status</code>, <code>job list</code>'s and <code>watch</code>'s STATUS, the audit's
+<code>&lt;kind&gt;.end</code>, a login's status and <code>login.end</code>), <code>failed</code> (where <code>succeeded</code>
+stands but in the command record and its event), <code>cancelled</code> (in every one of
+them), <code>halted</code> (where <code>completed</code> stands but a login's), <code>exercised</code> (where
+<code>halted</code> stands, and the plan report's <code>outcome</code>); <code>started</code> stood nowhere once
+S1 left a start without an outcome. Beyond the eight:</p>
+<ul>
+<li>The counts named after outcomes, the summary's <code>device_counts</code> and the
+scoreboard's <code>counts</code>, take their outcomes' words: <code>success</code>, <code>fail</code>,
+<code>cancel</code>. Their <code>completed</code> counts the devices at an end, whatever the
+outcome, and is <code>job list</code>'s DONE: it becomes <code>done</code>, since <code>complete</code> would
+read as the job's success. <code>total</code>, <code>not_started</code>, <code>incomplete</code>, and
+<code>in_flight</code> stay.</li>
+<li>The collection's <code>replaced</code> and <code>kept</code> (the summary's <code>collection</code>, its
+counts and each device's <code>outcome</code>, the scoreboard's <code>collection</code>, the
+display's <code>&lt;replaced&gt;</code> and <code>&lt;kept&gt;</code>, <code>crun.after</code>'s details) become
+<code>replace</code> and <code>keep</code>, the counts named alike; the hook's environment, found
+while building, follows on the operator's word: <code>KARVI_CRUN_REPLACE</code> and
+<code>KARVI_CRUN_KEEP</code>.</li>
+<li>The ping gate's counts in the summary's <code>ping.devices</code>, <code>proceeded</code>,
+<code>degraded</code>, <code>skipped</code>, and <code>capability_failed</code>, count the record's
+<code>ping.decision</code> and take its words: <code>proceed</code>, <code>proceed_degraded</code>, <code>skip</code>,
+<code>capability_unavailable</code>; <code>gated</code>, every device the gate saw, names no
+outcome and stays. The display's ping line says <code>proceed</code> or <code>skip</code>, where it
+said <code>proceeding</code> or <code>skipped</code>.</li>
+<li>The plan report's <code>outcome</code> takes <code>plan</code> for <code>planned</code>, so that one field
+holds one tense (<code>plan</code>, <code>invalid</code>, <code>exercise</code>, <code>not_ready</code>); its readiness
+and binding states (<code>planned</code>, <code>deferred</code>, <code>bound</code>, <code>unresolved</code>,
+<code>resolution_failed</code>, <code>deferred_to_exercise_or_live_prepare</code>) are planning
+states, no outcome, and wait for item 20.</li>
+</ul>
+<p>What stays: <code>unfinished</code>, <code>job list</code>'s word for a job not yet at its end, a
+state as <code>incomplete</code> is; the scoreboard's <code>metrics.finished</code>, a count of the
+devices timed; the error registry's codes and the halt reasons drawn from them
+(a record's <code>error.code</code> <code>cancelled</code>, the summary's <code>halt.run_wide</code> and
+<code>terminal_causes</code> <code>halt:cancelled</code>, the audit's <code>result.reason</code>), item 20's
+with every <code>*_failed</code> code, so that a cancelled record reads <code>status: cancel</code>
+beside <code>error.code: cancelled</code>; <code>job list --failed</code>, an option; the daemon's
+log and <code>karvi-prune</code>'s report, outside the records the rule names; and the
+compound causes, as the rule has them. The command record's schema moves to 4,
+the job summary's to 5, the scoreboard's to 4 (its schema file, which said 2
+and left out <code>metrics.in_flight_bytes</code>, corrected with it), and the plan
+report's to 3. Found on the way: the display gives a <code>&lt;status&gt;</code> value the
+success role only when it holds <code>success</code> or <code>completed</code>, so a record's
+<code>succeeded</code> showed in the error role; <code>success</code> and <code>complete</code> take it now.</p>
+<p><strong>Issue 8, the mask; first, its form, its stand-in, and where it applies,
+agreed.</strong> The evidence: oxidized (github.com/ytti/oxidized, <code>master</code> at
+<code>2cac3f7</code>, 2026-10-09), which backs up network devices' configurations, hides
+their secrets by a <code>cmd :secret</code> block per model, Ruby substitutions over a
+command's whole output, each keeping the words before a secret as <code>\1</code> and
+writing <code>&lt;secret hidden&gt;</code> after them, or <code>&lt;configuration removed&gt;</code> over the rest
+of the line. IOS XE takes the IOS model (<code>IOSXE = IOS</code>), 25 rules; NX-OS has 7,
+EOS 10, IOS XR 2, and Junos 4, three of them on Junos's own <code>## SECRET-DATA</code> tag
+in <code>show configuration</code>. They run only when a site sets <code>remove_secret: true</code>,
+its documents saying &quot;Removing secrets reduces the usefulness as a full
+configuration backup&quot;. Dropping a line is another mechanism (<code>reject_lines</code>):
+IOS's are <code>ntp clock-period</code> and <code>Current configuration</code>, lines <code>cisco_iosxe</code>'s
+<code>crun-filters</code> drop too; Junos's are none. IOS XE's own configuration logger
+hides secrets as well (<code>archive log config</code> with <code>hidekeys</code>), its guide naming
+neither the words nor what it prints in their place. The 25 IOS rules, ported to
+Go (each with <code>(?m)</code>, <code>${1}</code> for <code>\1</code>; every one compiles), hid every secret of
+a configuration excerpt as the device prints it, and in 3 of 13 statements sent
+alone; the port's output, not karvi's:</p>
+<pre><code class="language-text">  sent       &quot;snmp-server comm Publ1c RO&quot;
+  unchanged  &quot;snmp-server comm Publ1c RO&quot;
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.31.1</code>.</footer>
+  sent       &quot;key 0 T4cacsKey&quot;
+  unchanged  &quot;key 0 T4cacsKey&quot;
+
+  sent       &quot;username ops secret Cl3arPw&quot;
+  unchanged  &quot;username ops secret Cl3arPw&quot;
+
+  sent       &quot;snmp-server user mon grp v3 auth sha AuthPw1 priv aes 128 PrivPw1&quot;
+  unchanged  &quot;snmp-server user mon grp v3 auth sha AuthPw1 priv aes 128 PrivPw1&quot;
+</code></pre>
+<p>The rules are written for the form the device prints: a submode's line indented
+(<code>^( +key-string)</code>), a <code>tacacs server</code>'s key below its parent line, every word
+whole and a type digit always, and no rule for a secret the device never prints
+(IOS's SNMPv3 user's passwords). A statement comes alone and unindented, perhaps
+abbreviated, and a type 0 value perhaps with no digit, the value in clear.</p>
+<p>The rule, amending issue 4's. A platform's mask list holds Go regular
+expressions; in a statement, every capturing group of every match is replaced by
+<code>&lt;removed&gt;</code>. A pattern that does not compile, or holds no group, refuses the
+configuration before any device is contacted. The mask applies to every
+statement the audit records, in journald and <code>audit.file</code> alike, and never to
+the job's folder (<code>commands.jsonl</code> and the output); a collection's file takes it
+only when the site turns it on, off by default. The list is its own key, beside
+<code>crun-filters</code>, which still drops lines from the collection file alone.
+<code>cisco_iosxe</code>, <code>cisco_iosxr</code>, <code>cisco_nxos</code>, <code>juniper_junos</code>, and <code>arista_eos</code>
+each have a built-in list, in force by default, oxidized's rules its start and
+each written for a statement: <code>^\s*</code> where oxidized has <code>^ +</code>, the type digit
+optional, no parent line, the common abbreviations (<code>comm</code>, <code>pass</code>), and the
+secrets a device never prints; such a rule matches the printed line too, so one
+list serves the audit and the collection. A site's <code>[platform.NAME]</code> replaces
+the list whole, and an empty array turns it off. <code>juniper_junos</code>'s
+<code>crun-filters</code> stays empty: oxidized drops no Junos line, and <code>## Last commit:</code>
+is the stamp of the configuration's last change, which <code>cisco_iosxe</code>'s
+<code>crun-filters</code> leave in place too. A secret with no word before it, an answer to
+a <code>Password:</code> prompt sent as its own statement, passes in clear. <em>Why:</em> the
+precedent <code>crun-filters</code> and oxidized are both regular expressions, so a site
+writes its own as it would for either; the value in the group, oxidized's rule
+turned inside out, keeps the list a string array with one compiler and one
+stand-in, which a reader searches as one word; the audit is read more widely
+than the job's folder (issue 4), and a collection is the device's backup, whose
+restore needs its secrets and which sits in the operator's or the team's folder;
+a pattern that misses puts a secret into syslog, where one too wide hides a word
+of the record. <em>Not taken:</em> a list of words, karvi matching each by its
+abbreviations of three letters or more and masking the word after it (run beside
+the regular expressions on 13 statements, it caught <code>username ops pass 0 Cl3arPw</code>, which a pattern catches only by spelling the prefix, but hid words of
+no secret, <code>chain</code> in <code>key chain OSPF-KEYS</code> and <code>generate</code> in <code>crypto key generate rsa</code>, and took seven phrases for one SNMPv3 rule); oxidized's rules as
+they stand (3 of 13 statements); oxidized's form, a pattern and a replacement
+per rule (a list of pairs, a stand-in per rule); the mask in <code>crun-filters</code> (a
+statement a drop pattern matched would leave the audit whole); <code>&lt;secret hidden&gt;</code>
+and <code>&lt;configuration removed&gt;</code> (two stand-ins, the second hiding an SNMP
+community's <code>RO</code> and its ACL too); the collection masked by default (a backup
+without its secrets).</p>
+<p><strong>Issue 8, continued: the names, agreed.</strong> The rule. A platform's mask list is
+<code>masks</code>, a string array in <code>[platform.NAME]</code>; a collection applies it when
+<code>crun.mask</code>, a boolean in <code>[crun]</code>, is <code>true</code>, <code>false</code> by default. The plan
+carries both: <code>crun.mask</code> in its collection block, as it carries
+<code>crun.directory</code>, and each target platform's <code>masks</code>, which the audit reads as
+the collection does. The execution plan's schema moves from 13 to 14, and the
+registry from 30 to 31. A site writes the list in TOML's single-quoted strings,
+in which a backslash needs no escape:</p>
+<pre><code class="language-toml">[crun]
+mask = true
+
+[platform.cisco_iosxe]
+masks = ['(?i)^\s*snmp-server comm\S* (\S+)']
+</code></pre>
+<p><em>Why:</em> one short word with no hyphen, beside the table's hyphenated
+<code>crun-filters</code>, <code>crun-commands</code>, and <code>paging-commands</code>, that names what the list
+does in the audit and in the collection alike; <code>crun.mask</code> beside <code>directory</code>,
+<code>directory-mode</code>, and <code>file-mode</code>; both in the plan, as <code>crun-filters</code> and
+<code>crun.directory</code> are, so that a job run by the daemon masks as one run without
+it. <em>Not taken:</em> <code>audit-masks</code> (the list serves the collection too); <code>secrets</code>
+(the list holds patterns, not secrets, and the property screen of the audit and
+the plan report, <code>executionplan.SensitivePropertyPattern</code>, refuses any name
+holding <code>secret</code>: run on the candidates, it refused <code>secrets</code> and
+<code>secret_masks</code>, and passed <code>masks</code>).</p>
+<p><strong>Issue 8, continued: <code>cisco_iosxe</code>'s list, agreed.</strong> Nineteen patterns,
+oxidized's rules their start, each written for a statement: a command's <code>no</code>
+form, the type digit optional, the abbreviations <code>snmp-s…</code>, <code>comm…</code>, <code>pass…</code>,
+and <code>sec…</code> (other keywords whole), and, beyond oxidized's, an SNMPv3 user's two
+passwords, the <code>password-encrypt</code> master key, NHRP's key, and a URL's password
+(<code>copy … scp://ops:pw@host/…</code>). A scratch check ran them over 63 statements as
+sent, 49 of them holding a secret, and over a configuration of 46 lines as the
+device prints it, each line naming its secrets: no secret was left in place, and
+two words of no secret were removed; the check's output, not karvi's:</p>
+<pre><code class="language-text">over  sent   &quot;description uplink to core, password reset by noc&quot;
+      after  &quot;description uplink to core, password &lt;removed&gt; by noc&quot;
+over  line   &quot; key 1&quot;
+      after  &quot; key &lt;removed&gt;&quot;
+</code></pre>
+<p>The rule. <code>cisco_iosxe</code>'s built-in <code>masks</code> is the list below. Every pattern is
+found on the statement as sent, and text that more than one group covers is
+replaced once. The two words removed stand. The password rule leaves <code>password encryption aes</code>, which IOS XE prints once type 6 is on, whole: <code>encryption</code> is
+an alternative holding no group, which Go's matcher takes first where it matches
+(found while drafting <code>cisco_nxos</code>'s list; the list first agreed removed the
+word). <em>Why:</em> a description says anything; the key chain's key ID <code>key 1</code> falls
+to the bare <code>key</code> rule that catches <code>key T4cacsKey</code> under <code>tacacs server</code>. <em>Not
+taken:</em> that rule narrowed to a type digit or a value beginning with a letter (a
+clear key that begins with a digit would pass); more abbreviations (each widens
+a pattern beyond the keyword's own; a keyword abbreviated otherwise passes, as a
+secret with no word before it does).</p>
+<pre><code class="language-toml">masks = [
+  # SNMP: community, a host's v1/v2c community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(\S+)',
+  # password or secret anywhere: username, enable (with level), line, BGP
+  # neighbor, PPP, IS-IS, dot1x; abbreviations pass… and sec…; encryption
+  # holds no secret
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:encryption\s|(?:level\s+\d+\s+)?(?:\d\s+)?(\S+))',
+  '(?i)\bpassword-encrypt\s+(\S+)',
+  # keys: tacacs/radius server's bare key, legacy -server key, server-key and
+  # pac key, ISAKMP, IKEv2 pre-shared and pre-share, OSPF and NTP, key chains
+  # and HSRP key-string
+  '(?i)^\s*(?:no\s+)?key\s+(?:\d\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?(\S+)',
+  '(?i)\b(?:server-key|pac\s+key)\s+(?:\d\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?crypto\s+isakmp\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:(?:local|remote)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bpre-share\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|cmac\S*|hmac\S*)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(\S+)',
+  # HSRP and VRRP plain text, wireless PSK, NHRP, a URL's password
+  '(?i)^\s*(?:no\s+)?(?:standby|vrrp)\s+\d+\s+authentication\s+(?:text\s+)?(\S+)\s*$',
+  '(?i)\b(?:wpa-psk|set-key)\s+(?:ascii|hex)\s+(?:\d\s+)?(\S+)',
+  '(?i)\bnhrp\s+authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+</code></pre>
+<p><strong>Issue 8, continued: <code>cisco_iosxr</code>'s list, agreed.</strong> Fifteen patterns. IOS XR
+writes <code>encrypted</code> or <code>clear</code> where IOS XE writes a type digit, and a type of
+two digits (<code>secret 10 $6$…</code>); its IS-IS <code>lsp-password</code> and <code>hello-password</code>
+name <code>hmac-md5</code> or <code>text</code> before the type; HSRP's plain-text key is a bare
+<code>authentication VALUE</code> line and VRRP's is <code>text-authentication</code>; <code>key-string</code>
+and <code>pre-shared-key</code> take <code>password</code> before the value. IOS XE's
+<code>password-encrypt</code>, ISAKMP, <code>pre-share key</code>, <code>pac key</code>, wireless, NHRP,
+<code>standby</code> or <code>vrrp … authentication</code>, and <code>enable … level</code> have no such form on
+IOS XR and are left out. The same check ran over 48 statements as sent, 39 of
+them holding a secret, and over a configuration of 53 lines in IOS XR's printed
+form, written from its documented syntax and not read from a device: no secret
+was left in place, and one word of no secret was removed, the key chain's key
+ID, as on IOS XE:</p>
+<pre><code class="language-text">over  line   &quot; key 1&quot;
+      after  &quot; key &lt;removed&gt;&quot;
+</code></pre>
+<p>The rule. <code>cisco_iosxr</code>'s built-in <code>masks</code> is the list below. The key ID removed
+stands, as on IOS XE. A bare <code>authentication</code> line's value is removed when it
+holds 8 characters or fewer, HSRP's limit, so that OSPF's <code>authentication message-digest</code> stays and <code>authentication null</code> loses its word.</p>
+<pre><code class="language-toml">masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?(?:\s+(?:encrypted|clear))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  # password or secret anywhere: username, BGP and LDP neighbor, IS-IS
+  # lsp- and hello-password; abbreviations pass… and sec…
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:(?:hmac-md5|text)\s+)?(?:(?:encrypted|clear|\d{1,2})\s+)?(\S+)',
+  # keys: a tacacs/radius host's bare key, -server key, server-key, IKEv2,
+  # OSPF and NTP, key chains
+  '(?i)^\s*(?:no\s+)?key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bserver-key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:(?:local|remote)\s+)?(?:(?:clear|password|\d)\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|hmac\S*)\s+)?(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:(?:clear|password|\d)\s+)?(\S+)',
+  # HSRP plain text (8 characters at most), VRRP text, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+(\S{1,8})\s*$',
+  '(?i)\btext-authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+</code></pre>
+<p><strong>Issue 8, continued: <code>cisco_nxos</code>'s list, agreed.</strong> Thirteen patterns. NX-OS
+quotes some values (<code>tacacs-server key 7 &quot;…&quot;</code>, an LDAP server's password), so a
+value is a quoted string, taken whole with its spaces, or one word. It prints an
+SNMPv3 user's keys (<code>auth md5 0x… priv 0x… localizedkey</code>), <code>priv</code> taking
+<code>aes-128</code> before the value; a host's community is the word after <code>traps</code> or
+<code>informs</code>, so that <code>snmp-server host … use-vrf management</code> stays; and
+<code>snmp-server mib community-map</code> names a community too. Its <code>password</code> lines that
+hold no secret, <code>no password strength-check</code>, <code>password secure-mode</code>, and
+<code>feature password encryption aes</code>, stay whole by alternatives holding no group,
+which Go's matcher takes first. It has no <code>tacacs server</code> submode, so the bare
+<code>key</code> rule is left out, and with it the key ID removed; ISAKMP, IKEv2, NHRP, and
+wireless are left out too; PIM's <code>hello-authentication ah-md5</code> and HSRP's and
+VRRP's <code>authentication text</code> are added. The same check ran over 41 statements as
+sent, 28 of them holding a secret, and over a configuration of 36 lines in
+NX-OS's printed form, written from its documented syntax and not read from a
+device: no secret was left in place, and no word of no secret was removed. The
+rule. <code>cisco_nxos</code>'s built-in <code>masks</code> is the list below.</p>
+<pre><code class="language-toml">masks = [
+  # SNMP: community, a host's community after traps or informs, the MIB
+  # community map, a v3 user's auth and priv (printed as localized keys too)
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+\s+(?:informs|traps)(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+mib\s+community-map\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:aes-128\s+)?(\S+)',
+  # password or secret anywhere: username, enable, BGP neighbor, LDAP;
+  # strength-check, secure-mode, and encryption hold no secret
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:strength-check|secure-mode|encryption\s|(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+))',
+  # keys: tacacs/radius, OSPF and NTP, key chains and HSRP key-string
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  # HSRP and VRRP text, PIM hello, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+text\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\bhello-authentication\s+ah-md5\s+(?:\d\s+)?(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+</code></pre>
+<p><strong>Issue 8, continued: <code>arista_eos</code>'s list, agreed.</strong> Thirteen patterns. EOS
+writes <code>sha512</code> as a type word. Its password rule takes <code>password</code> or <code>secret</code>
+as a word alone, so that <code>session shared-secret profile PROF</code> stays (EOS's IS-IS
+has no <code>area-password</code>), and leaves <code>management security</code>'s <code>password minimum …</code>, <code>password policy …</code>, and <code>password encryption-key …</code> whole by alternatives
+holding no group; a shared-secret profile's <code>secret 1 7 KEY receive-lifetime …</code>
+loses <code>KEY</code> alone, by an alternative before the general one. SNMPv3 takes <code>sha</code>
+to <code>sha512</code> and <code>des</code>, <code>3des</code>, and <code>aes</code> to <code>aes256</code>; in the printed form,
+<code>localized ENGINEID auth sha 0x… priv aes 0x…</code>, the engine ID stays, since it
+names the engine and is no secret, where oxidized hides it. IS-IS's
+<code>authentication key</code>, VRRP's <code>peer authentication text</code> and <code>ietf-md5 key-string</code>, and a MACsec profile's <code>key CKN 7 CAK</code> are masked, the CAK alone,
+the CKN an ID; <code>service unsupported-transceiver NAME KEY</code> loses the key alone,
+where oxidized removes the tail; the URL rule takes EOS's <code>scp:</code> with or without
+<code>//</code>. The bare <code>key</code> rule (EOS has no <code>tacacs server</code> submode), HSRP, ISAKMP,
+IKEv2, NHRP, and wireless are left out. The same check ran over 43 statements as
+sent, 32 of them holding a secret, and over a configuration of 46 lines in EOS's
+printed form, written from its documented syntax and not read from a device: no
+secret was left in place, and no word of no secret was removed. The rule.
+<code>arista_eos</code>'s built-in <code>masks</code> is the list below.</p>
+<pre><code class="language-toml">masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\d{0,3})\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des|3des|aes\d{0,3})\s+(\S+)',
+  # password or secret as a word: username, enable, aaa root, BGP neighbor,
+  # a shared-secret profile's key; management security's minimum, policy,
+  # and encryption-key hold no secret
+  '(?i)(?:^|\s)(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:minimum\s|policy\s|encryption\S*\s|\d+\s+\d\S*\s+(\S+)\s+receive-lifetime|(?:(?:\d|sha512)\s+)?(\S+))',
+  # keys: tacacs/radius, OSPF and NTP, IS-IS and VRRP, key-string, MACsec CAK
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication\s+(?:key|text)\s+(?:\d\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(\S+)',
+  '(?i)^\s*key\s+[0-9a-f]+\s+\d\s+(\S+)',
+  # the licence key, a URL's password
+  '(?i)\bunsupported-transceiver\s+\S+\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?):(?://)?[^/\s:@]+:([^@\s]+)@',
+]
+</code></pre>
+<p><strong>Issue 8, continued: <code>juniper_junos</code>'s list, agreed.</strong> Ten patterns. Junos tags
+each secret line of its printed form itself, <code>&quot;…&quot;; ## SECRET-DATA</code>, and one
+rule, oxidized's, removes the value before the tag; a <code>set</code> statement carries no
+tag, so the others name each keyword: <code>encrypted-password</code>,
+<code>plain-text-password-value</code>, <code>authentication-password</code>, <code>privacy-password</code>,
+<code>simple-password</code>, <code>privacy-key</code>, <code>secret</code>, <code>authentication-key</code>, <code>md5 N key</code>,
+and <code>pre-shared-key ascii-text</code> or <code>hexadecimal</code>, each serving both forms. A
+value is quoted, taken whole with its spaces, or one word without the <code>;</code>. The
+community is the secret: after <code>snmp community</code>, as v3's <code>community-name</code>, or a
+printed <code>community NAME {</code> block, so that a policy's <code>community CUST members …</code>
+stays. NTP's <code>authentication-key 1 type md5 value V</code> loses <code>V</code>, not the key's
+number, by an alternative before the general one; <code>system login password minimum-length 8</code>, <code>format sha512</code>, and the printed <code>password {</code> stay whole by
+alternatives holding no group; oxidized's archive-site rule covers a URL's
+password, <code>pasvftp</code> among the schemes. A bare <code>plain-text-password</code> holds no
+value, Junos asking for it at a prompt, and so falls under the recorded limit,
+as Junos's abbreviations do. The same check ran over 33 <code>set</code> statements, 22 of
+them holding a secret, and over a <code>show configuration</code> of 94 lines in Junos's
+hierarchical form, written from its documented syntax and not read from a
+device: no secret was left in place, and no word of no secret was removed. The
+rule. <code>juniper_junos</code>'s built-in <code>masks</code> is the list below. The printed form
+follows Junos's own tag, so that an SSH public key, which Junos tags, is removed
+there, as oxidized removes it, and kept in a statement, since a public key is no
+secret. <em>Not taken:</em> an exception to the tag for SSH keys (a rule beside Junos's
+own word on what is secret).</p>
+<pre><code class="language-toml">masks = [
+  # the printed form: Junos tags each secret line itself
+  '(?i)\s(&quot;[^&quot;]*&quot;|[^\s;]+);\s*## SECRET-DATA',
+  # SNMP: the community in a statement, v3's community-name, a printed block
+  '(?i)\bsnmp\s+community\s+(&quot;[^&quot;]*&quot;|\S+)',
+  '(?i)^\s*community\s+(&quot;[^&quot;]*&quot;|\S+)\s*\{',
+  '(?i)\bcommunity-name\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  # authentication-key (BGP, IS-IS, VRRP, v3), NTP's value first
+  '(?i)\bauthentication-key\s+(?:\d+\s+type\s+\S+\s+value\s+(&quot;[^&quot;]*&quot;|[^\s;]+)|(&quot;[^&quot;]*&quot;|[^\s;]+))',
+  # passwords and secrets: login, v3 users, OSPF simple, RADIUS, TACACS+,
+  # key chains; login password rules and a printed block hold no secret
+  '(?i)\b(?:encrypted-password|plain-text-password-value|authentication-password|privacy-password|simple-password|privacy-key|secret)\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  '(?i)\bpassword\s+(?:(?:minimum|maximum)-\S+\s|format\s|change-type\s|[{;]|(&quot;[^&quot;]*&quot;|[^\s;]+))',
+  # OSPF MD5, IKE, a URL's password
+  '(?i)\bmd5\s+\d+\s+key\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  '(?i)\bpre-shared-key\s+(?:ascii-text|hexadecimal)\s+(&quot;[^&quot;]*&quot;|[^\s;]+)',
+  '(?i)\b(?:ftp|pasvftp|tftp|scp|sftp|https?)://[^/\s:@&quot;]+:([^@\s&quot;]+)@',
+]
+</code></pre>
+<p><strong>Issue 8, continued: a job's events, agreed.</strong> A job sends the same statements
+to every device, so that a device's events masked by its own platform's list
+alone would leave in clear what another platform's list hides. A job across
+<code>cisco_iosxe</code>, <code>juniper_junos</code>, and <code>linux</code>, its statements <code>show clock</code>,
+<code>snmp-server community Publ1c RO</code>, and <code>set snmp community Publ1c authorization read-only</code>, each device's events masked by its own list and by the lists of all
+the job's platforms; a scratch check's output, not karvi's:</p>
+<pre><code class="language-text">  core-rtr-1 cisco_iosxe   own list   &quot;set snmp community Publ1c authorization read-only&quot;   &lt;- in clear
+  core-rtr-1 cisco_iosxe   all lists  &quot;set snmp community &lt;removed&gt; authorization read-only&quot;
+  edge-1     juniper_junos own list   &quot;snmp-server community Publ1c RO&quot;   &lt;- in clear
+  edge-1     juniper_junos all lists  &quot;snmp-server community &lt;removed&gt; RO&quot;
+  srv-1      linux         own list   &quot;snmp-server community Publ1c RO&quot;   &lt;- in clear
+  srv-1      linux         all lists  &quot;snmp-server community &lt;removed&gt; RO&quot;
+</code></pre>
+<p>The rule. Every audit event of a job, its <code>start</code> and each device's <code>command</code>
+events, the session-init statements among them, is masked by the plan's <code>masks</code>
+of every target platform together; a job whose devices share one platform is
+masked by that platform's list alone. A collection's file, under <code>crun.mask = true</code>, is masked by its device's own platform's list. A device on <code>linux</code> in a
+job across platforms takes the network platforms' lists; a job on <code>linux</code> alone
+has none unless the site sets <code>[platform.linux] masks</code>. <em>Why:</em> no list leaves a
+statement in clear in any event of the job, and the cost falls on a job across
+platforms alone: every platform's statements masked by all five lists left no
+secret in place, and removed words the platform's own list keeps on 14 of
+<code>cisco_iosxe</code>'s 63 statements, 20 of <code>cisco_iosxr</code>'s 48, 13 of <code>cisco_nxos</code>'s
+41, 13 of <code>arista_eos</code>'s 43, and 5 of <code>juniper_junos</code>'s 33, most of them type
+words (<code>0</code>, <code>clear</code>, <code>aes</code>, <code>sha512</code>) and some a word one list keeps and another
+removes (NX-OS's <code>strength-check</code>, EOS's <code>minimum</code> and <code>profile</code>, Junos's
+<code>format</code>); a collection's file is its device's own printed form, which another
+platform's rules would read wrongly. <em>Not taken:</em> each device's events by its
+own list and the <code>start</code> alone by all (the lines in clear above); every job by
+all five built-in lists (words removed in every job).</p>
+<p>Issue 8 is settled; S4 builds it.</p>
+<p><strong>Issue 8, continued while building S4: <code>crun.mask</code> in the plan, agreed.</strong> The
+names' rule had the plan carry <code>crun.mask</code> in its collection block, as it
+carries <code>crun.directory</code>. The plan's configuration block already carries every
+key, and since chapter 47 (<code>1feebad</code>) a job reads from it each key the plan
+only copied, <code>crun.file-mode</code> among them; <code>crun.directory</code> stays in the
+collection block because the client resolves it. A crun through the daemon
+under <code>--set crun.mask=true</code>, the lab script's report of the job's manifest and
+the collection file, not karvi's output:</p>
+<pre><code class="language-text">plan.output.collection  {&quot;directory&quot;:&quot;/dev/shm/karvi-s4/lab/cd&quot;,&quot;word&quot;:&quot;crun&quot;}
+cd/fake-iosxe           ! snmp-server community &lt;removed&gt; RO
+</code></pre>
+<p>The rule, amending the names'. The plan carries <code>platform_masks</code>, each target
+platform's list, and no field for <code>crun.mask</code>: the job reads the key from the
+plan's configuration block, as it reads <code>crun.file-mode</code>, so that a job run by
+the daemon masks its collection as one run without it. <em>Why:</em> one source for
+the key, and no plan field that copies one. <em>Not taken:</em> a <code>mask</code> boolean in
+the collection block (a copy of a key, of the kind chapter 47 removed).</p>
+<p><strong>Issue 8, continued while building S4: the collections <code>crun.mask</code> covers,
+agreed.</strong> A <code>run</code> or <code>command</code> given <code>--cd</code> writes one file per device into a
+collection directory as a <code>crun</code> does; <code>crun-filters</code> are a <code>crun</code>'s alone,
+since they quiet a nightly diff and a run's file says what the device said. A
+<code>run --cd</code> under each value, then a site's file holding <code>crun.mask = true</code> and
+a one-off <code>--set crun.mask=false</code>; the lab scripts' report of the file's marker
+line, not karvi's output:</p>
+<pre><code class="language-text">run --cd, crun.mask=false              ! snmp-server community Publ1c RO
+run --cd, crun.mask=true               ! snmp-server community &lt;removed&gt; RO
+crun, the site's crun.mask = true      ! snmp-server community &lt;removed&gt; RO
+crun, --set crun.mask=false            ! snmp-server community Publ1c RO
+</code></pre>
+<p>The rule. <code>crun.mask = true</code> masks every collection file: a <code>crun</code>'s, and a
+<code>run</code>'s or <code>command</code>'s given <code>--cd</code>. An operator who needs one job's file whole
+writes <code>--set crun.mask=false</code> for that invocation, unless the site has locked
+the key: <code>crun.mask</code> is lock-eligible, and a lock declared in the global file
+(<code>[config-lock] &quot;crun.mask&quot; = true</code>) refuses the <code>--set</code> with
+<code>config_lock_violation</code>, as chapter 47's issue 6 shows for another key (the
+lock was not run here: only the auto-discovered global file may declare one).
+<em>Why:</em> the mask is about what the directory holds, and a <code>run --cd</code> into it
+under the site's choice would put secrets back; the one-off is the key's own
+precedence, and the lock the site's way to forbid it. <em>Not taken:</em> the mask a
+<code>crun</code>'s alone, as the filters are.</p>
+<p><strong>Issue 8, continued while building S4: the marker line, agreed.</strong> Each block
+of a collection file begins with <code>! COMMAND</code>, the statement as sent, which
+<code>crun-filters</code> never match. A <code>crun</code> of <code>snmp-server community Publ1c RO</code>; the
+lab script's report of the marker line, not karvi's output:</p>
+<pre><code class="language-text">crun.mask=false   ! snmp-server community Publ1c RO
+crun.mask=true    ! snmp-server community &lt;removed&gt; RO
+</code></pre>
+<p>The rule. Under <code>crun.mask = true</code> the marker's statement is masked by the
+device's own platform's list, as the device's output lines are; under <code>false</code>
+it stays as sent. The list is matched against the statement, not the whole
+line, so that a pattern anchored at the start (<code>^\s*…snmp-s…</code>) finds it after
+the <code>! </code>. <em>Why:</em> the marker is a line of the file, and a statement there holds a
+secret as the audit's does. <em>Not taken:</em> the marker whole under the mask (the
+file would keep a secret the audit hides).</p>
+<p><strong>Issue 8, continued while building S4: the code and the plan's name, agreed.</strong>
+A configuration whose mask list holds a bad pattern, karvi's messages:</p>
+<pre><code class="language-text">config_platform_mask_invalid: pattern 2 &quot;(&quot; does not compile: error parsing regexp: missing closing ): `(` for platform.lab_iosxe.masks at --set[1]
+config_platform_mask_invalid: pattern 1 &quot;^hostname \\S+&quot; holds no capturing group for platform.lab_iosxe.masks at --set[1]
+</code></pre>
+<p>The rule. A pattern that does not compile or holds no group is refused
+<code>config_platform_mask_invalid</code> (exit 2, before any device is contacted), beside
+<code>config_platform_crun_filter_invalid</code> and in its form; the plan carries the
+lists as <code>platform_masks</code>, beside <code>platform_commands</code> and <code>platform_filters</code>
+(a job across <code>cisco_iosxe</code>, <code>juniper_junos</code>, and <code>linux</code> carried the first two,
+<code>linux</code> having none). The plan's check refuses the same two faults under
+<code>execution_plan_invalid</code>, naming <code>platform_masks</code>. <em>Why:</em> each name beside its
+precedent's.</p>
+<p><strong>Issue 8, continued while building S4: a group that matched no text,
+agreed.</strong> A site's pattern may hold a group that can match nothing, <code>(\S*)</code>;
+none of the five built-in lists does. The mask's unit test, <code>opt(\d*)</code>, its
+cases, not karvi's output:</p>
+<pre><code class="language-text">&quot;opt&quot;     stays    &quot;opt&quot;
+&quot;opt12&quot;   becomes  &quot;opt&lt;removed&gt;&quot;
+</code></pre>
+<p>The rule. A group that matched no text is left alone: only text a group covers
+is replaced by <code>&lt;removed&gt;</code>. <em>Why:</em> the stand-in says text was removed, and
+where there was none it would say what is not so. <em>Not taken:</em> the stand-in
+written at an empty group's place.</p>
+<p><strong>Found, for later.</strong> Three, each after this chapter's build, in this order:</p>
+<ul>
+<li>The tests write into the host's journal: <code>internal/audit/audit_test.go</code>'s
+228 <code>test</code> events, <code>internal/app/one_read_test.go</code>'s <code>crun.after.succeeded</code>
+events of a job <code>261010-120000-00</code> with no activity ID (81), 112
+<code>command_completed</code> events with no operator or ID, and every suite's jobs,
+the 170,844 <code>command_completed</code> events among them. An audit review would
+show them as work done.</li>
+<li><code>karvi-audit</code>, its shape agreed on the operator's word, chapter 64's: a
+fourth executable, like <code>karvi-prune</code>, that reads the trail by running
+<code>journalctl -o json SYSLOG_IDENTIFIER=karvi</code> with the matches, so that
+following, reversing, grepping, and who reads whose events are journalctl's
+(an operator their own, <code>adm</code> and <code>systemd-journal</code> everyone's), and shows a
+table: TIME, KIND, EVENT, OPERATOR, OUTCOME, JOB-ID (a job's or a login's),
+DEVICE, and COMMAND, the command cut at the terminal's width with <code>…</code> and
+never to a pipe or a file, coloured as karvi's other output (a success green,
+a warning orange, an error red; never into a file). Its options, by Go's
+<code>flag</code> package, take one or two dashes and <code>=</code> or a space: <code>-f</code>/<code>-follow</code>,
+<code>-r</code>/<code>-reverse</code>, <code>-g</code>/<code>-grep PATTERN</code>, <code>-o</code>/<code>-operator NAME</code> (the operator or
+the login user), <code>-d</code>/<code>-device NAME</code> (lowercased), the last two repeatable
+and matched whole, with journalctl's <code>-n</code>/<code>-lines</code>, <code>-S</code>/<code>-since</code>, and
+<code>-U</code>/<code>-until</code>, and karvi's <code>-nocolor</code>; with none, every event, oldest first.
+Its design opens with a mock-up of the table from real events, laid out by a
+script.</li>
+<li>A job ID is unique only in the folder that reserved it: the output root, a
+collection's <code>--cd</code> folder, or none under <code>--nof</code>, whose ID is always <code>-00</code>.
+Of the 43,173 job IDs of the 30 days' <code>run.started</code> events, 6,712 were
+started by more than one process; <code>261016-085416-00</code> is a <code>command</code> (pid
+3825619) and an exercised run (pid 3825609), the two in the same second, so
+once a <code>cmd</code> job's events carry <code>KARVI_JOB_ID</code> that ID matches both. The
+direction: one sequence per operator on a host for every job and login.</li>
+</ul>
+<p><strong>The build, in sections, each committed on the operator's word.</strong> S1 the
+names, the links, the device, the operator, and the line (issues 1 to 3, 5, and
+6); S2 the statements in place of the digests (issue 4 without the mask); S3
+the outcome's words (issue 7); S4 the mask (issue 8, once agreed); S5 the
+closing documents and the full battery.</p>
+<p><strong>Built.</strong> In five sections, each committed on the operator's word. S1
+<code>d4de68e</code> (issues 1 to 3, 5, and 6): <code>records.AuditRecord</code> with <code>JobID</code>,
+<code>LoginID</code>, <code>LoginUser</code>, and <code>Device</code>, no <code>ActivityID</code>;
+<code>credentials.Operator.LoginUser</code>, filled by <code>osutil.CurrentOperator</code> and
+<code>osutil.LoginUser</code>, a daemon's job taking its client's by the socket's peer PID
+and a cancel its requester's; <code>audit.Line</code> and the journal entry's fields;
+<code>executor.Options.Kind</code>, from <code>jobexec.jobKind</code>; <code>schema/audit.schema.json</code> 2
+naming every key, each writer's lines checked against it
+(<code>canarytest.SchemaParityLines</code>); <code>scripts/lib/json.sh</code>'s <code>jsonl_lines</code> and
+<code>audit_events</code>, six suites moved off grep on JSON. S2 <code>d909c02</code> (issue 4
+without the mask): <code>action.command</code> and the line's <code>command=&quot;…&quot;</code>,
+<code>action.commands</code> on a job's <code>start</code>; the digests and the helpers that made
+them removed, with the screen's exceptions; S1's leftover names in comments,
+the daemon's log, and the <code>host_key_enrolled</code> description. S3 <code>31e76ae</code>
+(issue 7, its list agreed first): the words in every record, the counts, the
+collection's, the ping gate's, and the plan report's; command record 4, job 5,
+scoreboard 4 (its schema file corrected), plan report 3; the K03 draft's pin
+moved with the footer's default; the verifiers' counters. S4 <code>9269734</code> (issue
+8): <code>platform.CompileMasks</code> and <code>platform.Mask</code>, the five built-in lists,
+<code>Definition.Masks</code> and the resolver; <code>crun.mask</code>, registry 31, and
+<code>config_platform_mask_invalid</code>; <code>platform_masks</code>, execution plan 14; the job's
+sink masking every statement (<code>audit.Sink.SetMasks</code>, the lists of all the
+job's platforms compiled once by <code>jobexec.jobMasks</code>); the collection's marker
+and kept lines under <code>crun.mask</code>; the design checks' corpora as
+<code>platform/testdata/masks</code>. S5, the documents: the CHANGELOG's <code>Unreleased</code>
+block; OPERATIONS' new section &quot;The audit trail&quot; and its collection's mask;
+COLLECTION's section 6.1, &quot;The secrets: the mask&quot;; DESIGN's section 10, the
+words and the audit, and section 11, the mask; the <code>crun</code> help,
+<code>karvi-crun(1)</code>, <code>karvi-login(1)</code>, and <code>karvi-run(1)</code>; the <code>crun_after_failed</code>
+description; the old words in ARCHITECTURE, OPERATIONS (the list of jobs'
+example from a lab build), DISPLAY-CONFIGURATION, PRUNE, the device
+qualification runbook, BUILD-QUALIFICATION, COMMAND-SESSION,
+SSH-HOST-KEY-POLICY, SSH-TROUBLE, TIMEOUTS, and README; and the ROADMAP, its
+Later item on the audit trail gone and the three found for later its Next
+items 1 to 3, in their order. The tests: <code>TestLoginUser</code>, <code>TestLine</code>,
+<code>TestJournalEntry</code>, <code>TestCommandEvent</code>, and <code>TestLoginEvents</code> (S1);
+<code>TestStatementKeysPass</code> and <code>TestJobEventStatements</code> (S2); the records', the
+scoreboard's, and the display's tests with the words (S3); <code>TestCompileMasks</code>,
+<code>TestMask</code>, <code>TestResolveMasks</code>, <code>TestBuiltinMasksCompile</code>,
+<code>TestBuiltinMasksCorpus</code>, <code>TestAllMasksCorpus</code>, <code>TestMasksValidation</code>,
+<code>TestPlatformMasksValidate</code>, <code>TestDraftPlatformMasks</code>,
+<code>TestSinkMasksStatements</code>, <code>TestJobMasks</code>, <code>TestCollectionMasks</code>, and
+<code>TestLineFilterMasks</code> (S4).</p>
+<p><strong>Agreed while building S2: a session-init statement.</strong> A session-init
+profile's statements are chosen per device, so a job's <code>start</code>, whose
+<code>action.commands</code> holds the job's statements, names none of them; each has its
+own <code>&lt;kind&gt;.command</code> event, told from the job's statements by
+<code>action.command_kind</code>, <code>session_init</code> or <code>requested</code>, in the JSON alone. A run
+under a profile sending <code>show clock</code>; the S2 lab script's report of
+<code>audit.file</code> (<code>audit_events</code>: the event, the job, the kind, the statement, the
+statements), not karvi's output:</p>
+<pre><code class="language-text">run.start    261017-074223-00                              [&quot;show version&quot;]
+run.command  261017-074223-00  session_init  show clock
+run.command  261017-074223-00  requested     show version
+run.end      261017-074223-00
+</code></pre>
+<p><strong>Found while building S2 and S3.</strong></p>
+<ul>
+<li>
+<p>A blind send's event records its statement as any other's, and an
+<code>--expect</code> response is not in the audit, whose <code>action</code> names no
+expectation: the S2 lab's run of <code>clear counters</code> under <code>--blind-return 1</code>
+and <code>copy running-config startup-config</code> under <code>--expect Destination filename=</code> recorded its two statements alone.</p>
+</li>
+<li>
+<p>The audit's property screen kept exceptions for keys that matched the
+sensitive pattern; the one it named, <code>transcript_recording</code>, was written
+nowhere and is in no schema, and S2 removed the exceptions with the digests.</p>
+</li>
+<li>
+<p>The registry counter moves for a key, a table field, a path mark, or a
+reload class alone: the footer's default changed in S3 and the counter
+stayed 30. The daemon IPC schema stayed 12 though the summary its follow
+frame embeds moved, as in chapter 61.</p>
+</li>
+<li>
+<p>An exercise's scoreboard counts its device <code>done</code> while the target's state
+stays <code>queued</code>, as before S3, which changed the words alone; found, not
+changed. The S3 lab script's report of the exercise's scoreboard (the job,
+its status, its counts, its targets), not karvi's output:</p>
+<pre><code class="language-text">261017-091934-00  exercise  {&quot;total&quot;:1,&quot;done&quot;:1,&quot;success&quot;:0,&quot;fail&quot;:0,&quot;not_started&quot;:0,&quot;in_flight&quot;:0,&quot;incomplete&quot;:0,&quot;cancel&quot;:0}  [{&quot;name&quot;:&quot;fake-iosxe&quot;,&quot;state&quot;:&quot;queued&quot;,&quot;bytes&quot;:0}]
+</code></pre>
+</li>
+<li>
+<p><code>packaging/man/karvi-crun.1</code> and <code>karvi-login.1</code> hold hand-written text
+beside the generated regions, which <code>make generated-clean</code> does not cover:
+S5 searched them with the documents.</p>
+</li>
+</ul>
+<p><strong>Executed.</strong> S1 to S4 each passed gofmt, vet, <code>make generated-clean</code>, and <code>go test ./...</code>, all 18 suites on a lab build of its final tree (run_suites, <code>KARVI</code>
+the lab build), and its lab scripts on that build, leaving no
+<code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>, or <code>/dev/shm/karvi</code>: S1's, a
+command, a run of two devices, a crun, an exercise, and a cancelled run, each
+job's trail read back from journald by its ID, the device's by <code>KARVI_DEVICE</code>,
+and the operator's by <code>KARVI_OPERATOR</code>, and a second operator's command and run
+under <code>sudo -n -u netops.test</code>, each event naming <code>operator=netops.test loginuser=netops</code>; S2's, the statements in the trail, a quoted one, a blind send
+and an <code>--expect</code> command, a session-init profile, and no key naming a digest;
+S3's, every record's words, a crun replacing one file and keeping another, and a
+ping-gated run proceeding and skipping; S4's, the mask in journald and
+<code>audit.file</code> and none in the job's folder, a job across <code>cisco_iosxe</code>,
+<code>juniper_junos</code>, and <code>linux</code>, a crun under <code>crun.mask</code> false and true, in
+process and through the daemon, a run's <code>--cd</code>, an alias's site list, the
+refusals, and a site's <code>crun.mask = true</code> with a one-off <code>--set crun.mask=false</code>. S5, at the work's end, on the final tree: gofmt, vet, <code>go test ./...</code>, and <code>make generated-clean</code>; all 18 suites on a lab build;
+<code>scripts/verify-release.sh</code> whole in a copy of the tree, its tests under
+<code>-race</code>, its suites, its package with <code>check-deb.sh</code>, and the container test
+(<code>sysutil-smoke-test.sh</code>, edited in S3 and not run since) among them, then
+<code>verify-shipped.sh</code> on the copy's build, the copy the final tree but for the
+ROADMAP's order and these two paragraphs; and <code>s5-docs-lab.sh</code>, whose output
+OPERATIONS' list of jobs and audit trail and COLLECTION's mask quote.
+<code>scripts/device-qualification.sh</code>, edited in S3, needs a real device and was not
+run. A display template naming a removed placeholder is refused at load:</p>
+<pre><code class="language-text">$ karvi --set 'display.collection.footer=! &lt;replaced&gt; &lt;kept&gt;' config validate
+display_placeholder_unsupported: unsupported display placeholder &lt;replaced&gt; for display.collection.footer at --set[1]
+</code></pre>
+<p><strong>Closed.</strong> The ROADMAP's Later item on the audit trail is gone, its first part
+built here. On the operator's word, the review tool is Next item 1,
+<code>karvi-audit</code>, its design next, and the release after it; unique job IDs is item
+2, and shorter output strings item 3, holding the messages and the prose chapter
+63's words reach, the list reviewed after the release; the tests' events out of
+the host's journal is a Later item. Audit schema 2, command record 4, job
+manifest and summary 5, scoreboard 4, plan report 3, execution plan 14, and
+registry 31 are the next release's, the verifiers pinning each since its
+section, and the CHANGELOG's <code>Unreleased</code> block names them. The evidence is kept
+beside the tree (<code>release-design-evidence/audit-names-2026-10-17</code>: the trail's
+reading, oxidized's rules at <code>2cac3f7</code>, each list's design checks, each
+section's lab scripts and their output, patches, and suite logs, and S5's lab,
+its suites' log, and the verifiers' logs).</p>
+<h2 id="64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">64. <code>karvi-audit</code>, the audit trail as a table (2026-10-17) <a class="anchor" href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17" aria-label="Link to this section">#</a></h2>
+<p>The ROADMAP's Next item 1, opened on the operator's word: a fourth executable,
+like <code>karvi-prune</code>, that reads the audit trail by running <code>journalctl -o json</code>
+and shows it as a table, its shape and its options agreed in chapter 63's
+&quot;Found, for later&quot;.</p>
+<p><strong>The evidence.</strong> A lab build of the tree at <code>7ffa2ec</code> made 26 events in one
+window (<code>c0-lab.sh</code>): a <code>cmd</code>; a run of two devices, a masked statement and a
+long one among its three, <code>dead-iosxe</code> unreachable; a crun with its hook; an
+exercise; a cancelled run; a login; and a <code>cmd</code> by <code>netops.test</code> under <code>sudo -n -u</code> from the <code>netops</code> login. The daemon's log reaches journald under the same
+identifier: 23 of the 30 days' entries under <code>SYSLOG_IDENTIFIER=karvi</code> carry no
+<code>MESSAGE_ID</code>, each a line like <code>time=… level=INFO msg=request …</code>, so the
+reading matches the audit's <code>MESSAGE_ID</code>, <code>9cb838d10f074d8a928e9f7c2f98450a</code>,
+too. The host's trail is large: 359,728 events in 30 days, the tests' and the
+suites' among them, which <code>journalctl -o json --output-fields=KARVI_AUDIT_JSON</code>
+read in 16 seconds, 552 MB through its pipe, and which a Go reader holding each
+event's eight cells kept in 157 MB after 18 seconds (<code>c0-rows.go</code>). The lab, the
+events, and the layouts are kept beside the tree
+(<code>release-design-evidence/karvi-audit-2026-10-17</code>).</p>
+<p><strong>What it gains.</strong> An operator, or whoever reviews the operators, reads the
+trail as a table: what was run, by whom, at which device, in which job, and how
+it ended, without journalctl's field names, and follows it on a NOC shift.</p>
+<p><strong>What it waits on.</strong> Nothing: every event is written today. On a host where
+the tests run, the table shows the tests' events as work done (the ROADMAP's
+Later item).</p>
+<p><strong>Its issues, one at a time:</strong> the widths; a terminal narrower than the
+columns; the operator under <code>sudo</code>; the colours; the run, journalctl missing or
+refused, nothing matched, an event it cannot read, and the exit statuses.</p>
+<p><strong>Issues 1 and 2, the layout, agreed.</strong> The rule. No TIME column. The columns, at fixed
+widths with one space between them: JOB-ID 16 (a job's or a login's ID),
+OPERATOR 18, MODE 5 (the event's kind: <code>cmd</code>, <code>run</code>, <code>crun</code>, or <code>login</code>), EVENT
+7, OUTCOME 16, DEVICE 20, then COMMAND. A cell longer than its column is cut
+with <code>…</code>. At a terminal the line is cut with <code>…</code> so that at least one cell stays
+free at its right edge: COMMAND may be cut, or not shown at all; to a pipe or a
+file nothing cuts the line, and COMMAND is whole. OPERATOR and DEVICE, heading
+and cells, are centred in their columns, an odd cell to the right, while the
+width holds the column whole, and at the column's left when the width cuts into
+it. The cell after DEVICE is kept for the line's <code>…</code>, so DEVICE is whole from 89
+columns. The <code>c3-mockup.py</code> script's layout of four of the lab's events at 100
+columns, not karvi's output:</p>
+<pre><code class="language-text">JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-143817-00       netops       cmd   command success               fake-iosxe      show versi…
+261017-143818-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-143825-00       netops       login start                         fake-iosxe
+261017-143828-00 netops.test(netop… cmd   command device_error          fake-iosxe      show ip in…
+</code></pre>
+<p>The same four at 80 columns, DEVICE at its left:</p>
+<pre><code class="language-text">JOB-ID                OPERATOR      MODE  EVENT   OUTCOME          DEVICE     …
+261017-143817-00       netops       cmd   command success          fake-iosxe …
+261017-143818-00       netops       run   command connection_error dead-iosxe …
+261017-143825-00       netops       login start                    fake-iosxe
+261017-143828-00 netops.test(netop… cmd   command device_error     fake-iosxe …
+</code></pre>
+<p><em>Why:</em> the job ID holds the job's start to the second (<code>261017-143817-00</code>), and
+a login's its own; one rule for every mode, a table read whole or followed
+under <code>-f</code>, its first line at once and its memory flat, which widths measured
+over the rows cannot give (the 30 days' 359,728 rows held before the first
+line, and under <code>-f</code> rows not yet read); OUTCOME at 16 holds 9 of a command's
+17 words, <code>device_error</code> and <code>connection_error</code> among them, and tells
+<code>not_attempted_prior_command_failure</code> from <code>not_attempted_session_init_failure</code>
+(<code>not_attempted_p…</code>, <code>not_attempted_s…</code>); centred cells read as a column, and a
+column the width cuts keeps its names whole at its left (<code>fake-iosxe</code> at 80
+columns, which centred would be cut). <em>Not taken:</em> TIME (<code>2026-10-17 14:38:17</code>, 19 cells, watch's form); widths measured over every row read, as
+<code>job list</code>'s (<code>c0-mockup.out</code>); fixed widths with a longer cell whole, pushing
+the rest of its row (<code>c0-mockup-fixed.out</code>, three of the 26 rows out of line);
+the heading KIND; two cells between columns, as <code>job list</code>'s; OUTCOME at 10 (3
+of the 17 words, both <code>not_attempted</code> words <code>not_attem…</code>).</p>
+<p><strong>Issue 3, the operator under <code>sudo</code>, agreed.</strong> The rule. OPERATOR shows the
+event's operator, the account the job or the login ran as, or
+<code>OPERATOR/LOGINUSER</code> when the event names a login user, the person behind
+<code>sudo</code> (chapter 63, issue 5). A pair longer than its 18 cells keeps
+<code>/LOGINUSER</code> whole and cuts the operator's part with <code>…</code>; a login user too long
+for that is cut at the pair's end; the layouts of issues 1 and 2 show the pair
+as it stood before this issue. <code>-o NAME</code> matches either name, as agreed.
+The <code>c5-operator.py</code> script's layout of the cell, centred, for the lab's two
+operators and three illustrative pairs, not karvi's output:</p>
+<pre><code class="language-text">operator, loginuser          |     OPERATOR     |
+netops, -                    |      netops      |
+netops.test, netops          |netops.test/netops|
+noc, jsmith                  |    noc/jsmith    |
+svc-karvi, jsmith            | svc-karvi/jsmith |
+svc-karvi-collector, jsmith  |svc-karvi-…/jsmith|
+</code></pre>
+<p><em>Why:</em> on a jump box where operators <code>sudo</code> to a shared or role account, the
+shared name alone hides the person, whom a review looks for, so the person's
+name is the part kept whole; one cell, one character between the names, so that
+the lab's <code>netops.test/netops</code> fits its 18. <em>Not taken:</em> <code>OPERATOR(LOGINUSER)</code>
+(a cell more, the lab's pair cut at 19); the pair cut at its end (the person cut
+first, <code>netops.test(netop…</code>); the operator alone (the person hidden); a column
+of its own (the width issue 1 spends).</p>
+<p><strong>Issue 4, the colours, agreed.</strong> The rule. The headings in the label role
+(blue in the dark theme), OPERATOR's cells in the accent role (cyan), DEVICE's
+in the target role (yellow, bold), and OUTCOME's by the word: the success role
+(green) for <code>success</code>, <code>complete</code>, and <code>exercise</code>; the warning role (orange,
+bold) for work not done or cut short, <code>cancel</code>, <code>halt</code>, <code>incomplete</code>, and a
+command's <code>not_attempted_*</code>, <code>not_started_*</code>, and <code>incomplete_*</code>; the error role
+(red) for every other word, <code>error</code>, <code>fail</code>, and a command's failures
+(<code>device_error</code>, <code>connection_error</code>, <code>authentication_error</code>, <code>timeout</code>, …). The
+rest plain. <code>karvi-audit</code> reads no configuration, as <code>karvi-prune</code>: the dark
+theme's roles, the colour written to a terminal and to a pipe, never into a
+file; <code>-nocolor</code> and <code>NO_COLOR</code> turn it off. The <code>c7-colour.py</code> script wrote the
+lab's 26 events at 132 columns in karvi's codes (<code>c7-colour.ansi</code>); two of its
+rows, the codes shown by <code>cat -v</code>, not karvi's output:</p>
+<pre><code class="language-text">261017-143828-00 ^[[36mnetops.test/netops^[[0m cmd   start
+261017-143828-00 ^[[36mnetops.test/netops^[[0m cmd   command ^[[31mdevice_error^[[0m          ^[[1;33mfake-iosxe^[[0m      show ip interface brief
+</code></pre>
+<p><em>Why:</em> the roles and the words' colours are <code>watch</code>'s and <code>job list</code>'s
+(<code>complete</code> and <code>exercise</code> green, <code>cancel</code> and <code>halt</code> orange, <code>error</code> red); a
+statement not sent is not the failure, which a row before it in the same job
+carries in red; the operator in the accent reads apart from the device; a
+reader of the trail pages it (<code>karvi-audit | less -R</code>), so a pipe keeps the
+colour, and a file never holds it (chapter 56, issue 19). <em>Not taken:</em> the
+colour at a terminal alone (<code>display.color = auto</code>'s rule, the pager plain);
+<code>not_attempted_*</code> red (one failure shown as many); OPERATOR plain; the
+configuration's <code>display.*</code> read (the fourth executable reads none, as
+<code>karvi-prune</code>).</p>
+<p><strong>Issue 5, the run, agreed.</strong> The rule. <code>karvi-audit</code> runs <code>journalctl --no-pager -o json --output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb838d10f074d8a928e9f7c2f98450a</code> with the matches, <code>-S</code>, <code>-U</code>, and
+<code>-g</code> passed as given and <code>-n</code> a Go integer. It refuses its own options alone:
+an unknown option, a positional argument, or an <code>-n</code> that is not a number, in
+few words with the help, exit 2, as <code>karvi-prune</code>. A value journalctl refuses, a
+time, a pattern, or <code>-r</code> with <code>-f</code>, is journalctl's: its message on standard
+error as it wrote it, exit 1. journalctl missing is <code>karvi-audit: journalctl not found</code> in red, exit 1. Not following, the heading is printed with the first
+row, and when journalctl returned no entry, <code>karvi-audit: no matches</code> goes to
+standard error in orange, with no heading, exit 0; following, the heading
+first, then each row as it comes. An entry with no <code>KARVI_AUDIT_JSON</code>, JSON
+that does not decode, or an audit schema other than 2 has no row: at the end,
+one line on standard error in orange counts them (<code>karvi-audit: N events not shown: not audit schema 2</code>), a follow ended by Ctrl-C included, and when every
+entry was such, that line alone. The exit is 0 when journalctl ended 0, a follow
+ended by Ctrl-C or by its reader's closing included; 1 when journalctl is
+missing or ends otherwise; 2 for a usage error. A reader that quits (<code>less</code>,
+<code>head</code>) ends it quietly, under <code>-f</code> without waiting for the next event, as
+journalctl's own follow ends. The <code>c8-run.sh</code> script's report of journalctl in
+four of the cases, not karvi's output:</p>
+<pre><code class="language-text">$ journalctl SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb8… -o json --since=yesterdayx
+(script) exit 1, stdout 0 lines
+    Failed to parse timestamp: yesterdayx
+$ journalctl SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb8… -o json --reverse --follow -n 1
+(script) exit 1, stdout 0 lines
+    Please specify either --reverse or --follow, not both.
+$ journalctl SYSLOG_IDENTIFIER=karvi MESSAGE_ID=9cb8… -o json -f -n 1, SIGINT after a second
+(script) exit 0
+(script) the trail's events by audit schema, and those with no KARVI_AUDIT_JSON
+    schema_version: {1: 344592, 2: 15123, 7: 1}
+    no KARVI_AUDIT_JSON, by executable: {'?': 12}
+</code></pre>
+<p>Nothing matched, journalctl ended 0 and wrote nothing under <code>-o json</code>; a job's
+trail by its ID as the pattern (<code>-g 261017-143818-00</code>) gave its 8 events; and
+<code>netops.test</code>, a member of neither <code>adm</code> nor <code>systemd-journal</code>, read its own
+events with no hint. <em>Why:</em> journalctl already judges its values and says why in
+one line, so whose refusal is whose has one rule; a heading with no row reads as
+a table whose rows were lost, and a message on standard output would be a row to
+a script reading the pipe; the program's name before the message, as the count
+line's and <code>karvi-prune</code>'s, says which program spoke on a shared standard error;
+on a host upgraded from v0.31.1 the journal keeps schema 1's events (this
+host's 344,592), which a window can match alone, so &quot;no matches&quot; would be false
+there. <em>Not taken:</em> <code>karvi-audit</code> refusing <code>-r</code> with <code>-f</code> itself; the heading
+alone for nothing matched; <code>(no matches)</code>; the message on standard output; a row
+for an event it cannot read (the old schema's rows in the new table); a warning
+per such event (this host's 344,605 lines); exit 1 for nothing matched (grep's;
+journalctl's 0 kept).</p>
+<p><strong>The build, in sections, each committed on the operator's word.</strong> S1 the
+command line that <code>karvi-prune</code> and <code>karvi-audit</code> share, out of
+<code>internal/prune</code>: the synopsis, the help, the tab completion, and the man page's
+regions from one definition of each executable's flags, <code>karvi-prune</code>'s text
+byte for byte; S2 <code>karvi-audit</code> itself, its options, journalctl's invocation and
+matches, the rows, the layout, the colours, and the run (issues 1 to 5), with
+its tests; S3 the fourth executable beside the other three, in the build, the
+package, the install script, the verifiers, the man pages, the tab completion,
+and a suite; S4 the closing documents and the full battery.</p>
+<p><strong>Agreed while building S2: a follow's heading, and a statement's control
+characters.</strong> The rule. Under <code>-f</code> the heading comes with the first row, or once
+journalctl has run half a second without ending, so that journalctl's refusal
+of a value, which it says at its start, stands alone, as it does without <code>-f</code>;
+issue 5's &quot;following, the heading first&quot; so amended. A statement's control
+characters, a tab, a newline, an escape, are written in COMMAND as Go writes
+them in a quoted string (<code>\t</code>, <code>\n</code>, <code>\x1b</code>), so that a row stays one line and
+its width is its cells. Before the change, <code>-r -f</code> wrote the heading to
+standard output and then journalctl's refusal. The S2 lab after it
+(<code>s2-lab.sh</code>, <code>s2-follow-empty.out</code>): a <code>$ </code> line the command run, a
+<code>(script)</code> line the script's own report, and an indented line <code>karvi-audit</code>'s
+output:</p>
+<pre><code class="language-text">$ karvi-audit -r -f
+(script) exit 1, 0 lines out, 1 err
+    Please specify either --reverse or --follow, not both.
+$ karvi-audit -f -S yesterdayx
+(script) exit 1, 0 lines out, 1 err
+    Failed to parse timestamp: yesterdayx
+$ karvi-audit --nocolor -f -d nosuch, Ctrl-C after 1 s
+(script) after 0.3 s: 0 lines
+(script) after 1 s: 1 lines
+(script) exit 0, standard error 0 bytes
+</code></pre>
+<p><em>Why:</em> a heading over a refusal reads as a table cut short; journalctl refuses
+at its start, well inside the half second; an empty follow still shows that it
+waits. A newline in a statement would start a row with no columns, and a tab or
+an escape moves the cells after it. <em>Not taken:</em> the heading with the first row
+under <code>-f</code> too (an empty follow blank until an event); <code>karvi-audit</code> refusing
+<code>-r</code> with <code>-f</code> itself (issue 5's not taken, and journalctl's other refusals
+under <code>-f</code> would still follow the heading); the control characters removed, or
+replaced by a space (the statement as sent no longer shown).</p>
+<p><strong>Found while building S2.</strong></p>
+<ul>
+<li>Ctrl-C reaches journalctl twice, from the terminal and passed on by the
+reader, and the second can end it by the signal before its own handler ends
+it 0: the S2 lab's first follow ended by Ctrl-C exited 1. The reader takes a
+journalctl ended by a signal it got too as the run's end, exit 0.</li>
+<li>The tree's check on uncoded errors (<code>TestUncodedErrorsAreDetails</code>) refused
+<code>--lines</code>'s own refusal of a word; it says the flag package's words, as
+<code>karvi-prune --days x</code> does (<code>invalid value &quot;x&quot; for flag -n: parse error</code>),
+and is listed among the details the check allows.</li>
+<li><code>-o</code> matches a name whole, with its case, as journald matches a field:
+<code>-o NETOPS.TEST</code> matched none of the lab's events; <code>-d</code> alone is lowercased,
+as a device's canonical name is.</li>
+</ul>
+<p><strong>Agreed while building S3: the suite on a host without journald.</strong> The rule.
+The audit suite reads the jobs' events back from the host's journal, the first
+suite to read journald. With journald, its socket
+<code>/run/systemd/journal/socket</code> and <code>journalctl</code>, every row runs: the jobs run
+under <code>audit.journald-required = true</code>, so a journal that takes no event fails
+karvi itself, and an event not read back within ten seconds fails the suite.
+Without journald, the reader's own refusals, its help, and <code>journalctl not found</code> still run, then one line says that the journal's rows are skipped and
+why, and the suite passes, as the canary and v0100 suites skip their ICMP rows
+on a host without an ICMP method. A copy of the suite whose socket path names
+none (<code>skip.sh</code>), then the suite itself, on a lab build of the tree with S3's
+changes: a <code>$ </code> line the command run, a <code>(script)</code> line this report's own, the
+rest the suite's output:</p>
+<pre><code class="language-text">$ sh skip.sh
+audit smoke: j1-j9 SKIP: no journald on this host (/run/systemd/journal/socket, journalctl)
+audit smoke: ok
+(script) exit 0
+$ KARVI=/dev/shm/ka3/bin/karvi ./scripts/audit-smoke-test.sh
+audit smoke: ok
+(script) exit 0
+</code></pre>
+<p><em>Why:</em> the suites run wherever the bundle is verified, a container without
+systemd among them, and a row skipped with its reason is the list's rule for a
+host that cannot hold it; the rows that need no journal still hold the reader's
+own run. <em>Not taken:</em> the suite failing on a host without journald (the bundle
+verifier failing there for the host, not for karvi); a fake <code>journalctl</code>
+replaying recorded events (the reader's own tests do that; the suite is the
+round trip through journald); the jobs under <code>journald-required = false</code> (a
+journal that took no event would read as the reader's fault).</p>
+<p><strong>Found while building S3.</strong></p>
+<ul>
+<li>
+<p>A job ID names a job in its own output root alone: another suite running
+beside this one may start a job in the same second under the same ID, so the
+read by job ID looks for the run's six rows in order among what the pattern
+matched, not for those rows alone; unique job IDs (the ROADMAP's Next item 2)
+would make it exact. The run's read, <code>karvi-audit</code>'s output kept from the
+suite's work directory:</p>
+<pre><code class="language-text">JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-170821-00       netops       run   start
+261017-170821-00       netops       run   command success              up-6015c889      show clock
+261017-170821-00       netops       run   command success              up-6015c889      show version
+261017-170821-00       netops       run   command connection_error    dead-6015c889     show clock
+261017-170821-00       netops       run   command not_attempted_p…    dead-6015c889     show version
+261017-170821-00       netops       run   end     error
+</code></pre>
+</li>
+<li>
+<p>The man page's SYNOPSIS spells a flag as the help does, by its one letter and
+with <code>...</code> after a repeatable one, and its OPTIONS gives both spellings (<code>-f, --follow</code>); <code>karvi-prune.8</code> comes out the same, byte for byte.</p>
+</li>
+<li>
+<p>The release tools' evidence step (<code>evidence-rest.sh</code>, outside the tree) names
+three executables to <code>go version -m</code>; the release step adds <code>karvi-audit</code>.</p>
+</li>
+</ul>
+<p><strong>Built.</strong> In four sections, each committed on the operator's word. S1
+<code>90a2e96</code>: <code>internal/flagspec</code>, the command line of an executable that parses
+with Go's <code>flag</code> package, <code>karvi-prune</code>'s moved out of <code>internal/prune</code> into one
+<code>flagspec.Spec</code> from which its synopsis, help, tab completion, and man page
+regions come, byte for byte as before. S2 <code>4e54862</code> (issues 1 to 5):
+<code>cmd/karvi-audit</code> and <code>internal/auditview</code>, its flags, journalctl's invocation
+and matches, the rows, the layout, the colours, and the run;
+<code>audit.Identifier</code>, <code>audit.MessageID</code>, and the <code>audit.Field*</code> names the writer
+and the reader share; <code>osutil.IsPipe</code>; <code>flagspec</code>'s one-letter spellings,
+repeatable flags, and <code>HelpStyle</code>. S3 <code>c0b1bfb</code>: the fourth executable beside
+the other three in the Makefile, the Debian package (its install, man page in
+section 1, and <code>lintian</code> override), <code>install.sh</code>, <code>build-deb.sh</code>,
+<code>check-deb.sh</code>, <code>verify-shipped.sh</code>, and the container test; <code>tools/mangen</code>
+writing a flag's one letter and <code>...</code> after a repeatable one, and
+<code>packaging/man/karvi-audit.1</code>; the bash function registered for
+<code>karvi-audit</code>; and <code>scripts/audit-smoke-test.sh</code> in the suites' third lane. S4,
+the documents: the CHANGELOG's <code>Unreleased</code> block; OPERATIONS' &quot;The audit
+trail&quot; read with <code>karvi-audit</code>, and its tab completion; DESIGN's four entries,
+the reader, its run, its table, and its colours, and its entries on tab
+completion, the help, <code>NO_COLOR</code>, and the man pages; ARCHITECTURE, README,
+FILES, BUILD-HOWTO, BUILD-QUALIFICATION (the audit suite's gate),
+DISPLAY-CONFIGURATION, and PRUNE; and the ROADMAP, its Next item 1 gone and
+its Later item on the tests' journal events naming the audit suite. The tests:
+<code>TestPlaceholder</code>, <code>TestHelpShapes</code>, and <code>TestWrap</code> (S1); <code>TestUsage</code>,
+<code>TestSpec</code>, <code>TestArgs</code>, <code>TestDecode</code>, <code>TestLayout</code>, <code>TestColours</code>,
+<code>TestOperatorCell</code>, <code>TestOutcomeRole</code>, <code>TestVisible</code>, <code>TestRun</code>, and
+<code>TestShortSpellings</code> (S2); <code>TestSpecRegions</code>, and <code>TestSetupTab</code> and
+<code>TestPageTable</code> widened (S3).</p>
+<p><strong>Executed.</strong> S1 passed gofmt, vet, <code>go test ./...</code>, and <code>make generated-clean</code>, <code>karvi-prune</code>'s help, synopsis, and man page the same bytes,
+and the completion suite on a lab build. S2 passed the same, <code>-race</code> on
+<code>internal/auditview</code> and the command, and its lab scripts on a lab build
+against this host's journal (<code>s2-lab.sh</code>, <code>s2-follow-empty.sh</code>): the lab's 26
+events read by operator, device, pattern, newest first, and count; the colours
+through a pipe, none into a file or under <code>NO_COLOR</code>; <code>netops.test</code>'s own
+reading under <code>sudo -n -u</code>; issue 5's cases; and a follow ended by Ctrl-C and by
+its reader's closing, leaving no <code>journalctl</code>. S3 passed gofmt, vet, <code>go test ./...</code>, and <code>make generated-clean</code>; the audit and completion suites on a lab
+build, the audit suite failing when its expected layout was changed and passing
+its skip with the socket path naming none; <code>s3-lab.sh</code>, whose output the man
+page and OPERATIONS quote; and a package built in a copy of the tree, checked
+by <code>check-deb.sh</code> with <code>lintian</code>, the copy's <code>verify-shipped.sh</code>, and the
+container test (<code>sysutil-smoke-test.sh</code>, <code>install.sh</code> placing the five
+executables). S4, at the work's end, on the final tree: gofmt, vet, <code>go test ./...</code> (72 packages), and <code>make generated-clean</code>; all 19 suites on a lab build
+(<code>run_suites</code>, <code>KARVI</code> the lab build, 202 seconds), the host's shared places
+unchanged; <code>scripts/verify-release.sh</code> whole in a copy of the tree without
+<code>.git</code> (483 seconds), its tests under <code>-race</code>, its suites, its package with
+<code>check-deb.sh</code>, and the container test among them, then <code>verify-shipped.sh</code> on
+the copy's build, the copy the final tree but for these two paragraphs. None
+left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>, <code>/dev/shm/karvi</code>, karvi
+process, or container.</p>
+<p><strong>Closed.</strong> The ROADMAP's Next item 1 is gone, built here: unique job IDs is
+item 1, the audit suite's read by job ID exact once it is built, and shorter
+output strings item 2; the tests' events out of the host's journal stays a Later
+item, the audit suite, whose subject is the journal, among its questions. The
+next release, its number the operator's, carries <code>karvi-audit</code> beside the
+schemas chapter 63 moved; its step adds the fourth executable where the release
+lists the executables, the manifest, <code>CHECKSUMS.sha256</code>, and the release tools'
+<code>go version -m</code> line. The evidence is kept beside the tree
+(<code>release-design-evidence/karvi-audit-2026-10-17</code>: the mock-ups and their
+events, issue 5's runs, each section's patch and lab scripts with their
+output, and S4's test, suite, and verifier logs).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

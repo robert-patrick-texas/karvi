@@ -66,9 +66,9 @@
 <li><a href="#8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device</a></li>
 <li><a href="#9-a-production-server">9. A production server</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -136,9 +136,9 @@
 <li><a href="#8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device</a></li>
 <li><a href="#9-a-production-server">9. A production server</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -241,7 +241,7 @@ operator's own trust store, configuration, or state (all under the
 evidence directory's <code>work/</code> while the run lasts), or a credential on a
 command line or in a file.</p>
 <h2 id="2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake <a class="anchor" href="#2-before-the-laboratory-the-script-against-the-fake" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-bash">cd karvi-v0.31.1
+<pre><code class="language-bash">cd karvi-v0.32.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
 FAKE=1 CONFIG_ROW=1 RELOAD=&quot;system scrapligo-v1&quot; scripts/device-qualification.sh
@@ -686,7 +686,7 @@ k() { karvi --config &quot;$E/work/karvi.toml&quot; &quot;$@&quot;; }
 <td>L2</td>
 <td>exec records, on both transports</td>
 <td><code>command</code> and <code>run --no-daemon</code>, each over <code>system</code> and <code>scrapligo-v1</code>: <code>uname -snrm</code>, <code>echo out; echo err &gt;&amp;2</code>, <code>ls /nonexistent</code>, under <code>--continue-device-on-error</code></td>
-<td><code>succeeded</code>, <code>succeeded</code> with <code>out</code> in <code>output</code> and <code>err</code> in <code>stderr</code>, <code>command_exit_nonzero</code> with <code>ls</code>'s message in <code>stderr</code>; exit 107 (<code>command</code>), 101 (<code>run</code>); <code>credential.auth</code> names the method; <code>paritycheck</code> finds the four streams equal; no socket left in <code>$S/sockets</code></td>
+<td><code>success</code>, <code>success</code> with <code>out</code> in <code>output</code> and <code>err</code> in <code>stderr</code>, <code>command_exit_nonzero</code> with <code>ls</code>'s message in <code>stderr</code>; exit 107 (<code>command</code>), 101 (<code>run</code>); <code>credential.auth</code> names the method; <code>paritycheck</code> finds the four streams equal; no socket left in <code>$S/sockets</code></td>
 </tr>
 <tr>
 <td>L3</td>
@@ -698,7 +698,7 @@ k() { karvi --config &quot;$E/work/karvi.toml&quot; &quot;$@&quot;; }
 <td>L4</td>
 <td>a command given up</td>
 <td>on each transport, <code>sleep 32</code> at the 2 s command timeout, then <code>echo still-usable</code>; then a look for what was left, and its end</td>
-<td><code>command_timeout</code>, then <code>succeeded</code>; <code>remote_command_not_stopped</code> on <code>system</code>'s first record and on no <code>scrapligo-v1</code> record; observed: <code>system</code> leaves <code>sleep 32</code> running (its parent pid 1) and <code>scrapligo-v1</code> leaves nothing</td>
+<td><code>command_timeout</code>, then <code>success</code>; <code>remote_command_not_stopped</code> on <code>system</code>'s first record and on no <code>scrapligo-v1</code> record; observed: <code>system</code> leaves <code>sleep 32</code> running (its parent pid 1) and <code>scrapligo-v1</code> leaves nothing</td>
 </tr>
 <tr>
 <td>L5</td>
@@ -710,7 +710,7 @@ k() { karvi --config &quot;$E/work/karvi.toml&quot; &quot;$@&quot;; }
 <td>L6</td>
 <td>the shell, for a server that refuses exec</td>
 <td>L2's commands to <code>SERVER-shell</code> (<code>linux_shell</code>)</td>
-<td>observed: exit 0, each record <code>succeeded</code> with the server's prompt in <code>prompt</code>, no escape byte in any output; <code>ls</code>'s failure recorded as a success and the login shell's aliases applied (the shell's limits); a server that refuses exec shows in L2 as <code>ssh_session_channel_refused</code></td>
+<td>observed: exit 0, each record <code>success</code> with the server's prompt in <code>prompt</code>, no escape byte in any output; <code>ls</code>'s failure recorded as a success and the login shell's aliases applied (the shell's limits); a server that refuses exec shows in L2 as <code>ssh_session_channel_refused</code></td>
 </tr>
 </tbody>
 </table>
@@ -778,7 +778,7 @@ evidence in clear, as for a device; the collection holds the server's
 addresses, routes, and enabled units. The network operations and security
 owners review the directory before it leaves the host.</p>
 
-<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

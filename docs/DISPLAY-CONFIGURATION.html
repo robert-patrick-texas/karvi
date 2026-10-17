@@ -66,9 +66,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -136,9 +136,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -180,7 +180,7 @@ header = &quot;! transcript=&lt;transcript&gt;&quot;
 footer = &quot;! transcript=&lt;transcript&gt;&quot;
 
 [display.collection]
-footer = &quot;! collection=&lt;collection&gt; replaced=&lt;replaced&gt; kept=&lt;kept&gt;&quot;
+footer = &quot;! collection=&lt;collection&gt; replace=&lt;replace&gt; keep=&lt;keep&gt;&quot;
 
 [display.json]
 indent = 2
@@ -197,11 +197,11 @@ files&quot;</a>), <code>&lt;artifacts&gt;</code> is <code>none</code>.</p>
 (<code>crun</code>, or <code>run</code> or <code>command</code> given <code>--cd</code>,
 <a href="COLLECTION.html"><code>docs/COLLECTION.md</code></a>), on standard output directly after it, on
 every text path: <code>--no-daemon</code>, the daemon follow, <code>job follow</code>, and a finished
-job's replay. The default, <code>&quot;! collection=&lt;collection&gt; replaced=&lt;replaced&gt; kept=&lt;kept&gt;&quot;</code>, renders <code>&lt;collection&gt;</code> (the absolute collection directory),
-<code>&lt;replaced&gt;</code>, and <code>&lt;kept&gt;</code> (the devices whose files were replaced and kept) in
+job's replay. The default, <code>&quot;! collection=&lt;collection&gt; replace=&lt;replace&gt; keep=&lt;keep&gt;&quot;</code>, renders <code>&lt;collection&gt;</code> (the absolute collection directory),
+<code>&lt;replace&gt;</code>, and <code>&lt;keep&gt;</code> (the devices whose files were replaced and kept) in
 the <code>value</code> role, the literals in the <code>label</code> role, as the footer is rendered:</p>
 <pre><code class="language-text">! exit=101 elapsed=900ms artifacts=/srv/karvi/jobs/261003/261003-103623-00
-! collection=/srv/configs replaced=1 kept=1
+! collection=/srv/configs replace=1 keep=1
 </code></pre>
 <p>Under <code>--format json</code> and <code>--format jsonl</code> nothing is printed; the jsonl
 summary document and <code>summary.json</code> carry the <code>collection</code> block. An empty
@@ -215,8 +215,8 @@ error.</p>
 text output and rendered as the headers are: the literals in the <code>label</code>
 role, <code>&lt;target&gt;</code> and <code>&lt;address&gt;</code> in theirs, <code>&lt;rtt1&gt;</code> and <code>&lt;rtt2&gt;</code> (each
 probe's round-trip time, <code>timeout</code>, or <code>error</code>) in the <code>value</code> role, and
-<code>&lt;result&gt;</code> bold in the <code>success</code> role for <code>proceeding</code> or the <code>error</code> role
-for <code>skipped</code>. The default is
+<code>&lt;result&gt;</code> bold in the <code>success</code> role for <code>proceed</code> or the <code>error</code> role for
+<code>skip</code>. The default is
 <code>&quot;! &lt;target&gt; [&lt;address&gt;] ping(1) &lt;rtt1&gt;, ping(2) &lt;rtt2&gt;, &lt;result&gt;&quot;</code>. An
 empty template prints no line; <code>--quiet</code> suppresses it; <code>--debug</code> adds the
 error details and the packet-loss notice after it. <code>login</code> prints the same
@@ -270,10 +270,12 @@ wrapper's terminal too), every refusal (the code and its message, in the
 <code>error</code> role's colour and bold, as a device's failure line), a line a
 stream drops and goes on from (<code>stream line 3 dropped: …</code>, in the <code>warning</code>
 role's colour and bold), <code>config colors</code>, the watch screen (whose <code>--color</code>
-sets it for the screen), and <code>karvi-prune -h</code>, which reads no configuration
-and colours under <code>auto</code> alone. A refusal before the configuration is read,
-a mistake on the command line or a configuration that does not load, takes
-the built-in settings under the command line's own <code>--nocolor</code>.</p>
+sets it for the screen), <code>karvi-prune -h</code>, which reads no configuration
+and colours under <code>auto</code> alone, and <code>karvi-audit</code>, which reads none either
+and colours a terminal and a pipe, never a file, until <code>--nocolor</code> or
+<code>NO_COLOR</code>. A refusal before the configuration is read, a mistake on the
+command line or a configuration that does not load, takes the built-in
+settings under the command line's own <code>--nocolor</code>.</p>
 <p><code>karvi config colors</code> prints the colour test:
 every <code>display.colors.*</code> role under the configured theme first and then
 the other, each line the key rendered as a display line renders that role
@@ -308,7 +310,7 @@ command errors. Structured records distinguish observed and inferred prompts.</p
 </ul>
 <p><code>display.json.indent</code> accepts 1 through 8 and affects only <code>json</code>.</p>
 
-<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/DISPLAY-CONFIGURATION.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

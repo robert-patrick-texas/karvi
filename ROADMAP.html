@@ -60,9 +60,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +124,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -145,6 +145,14 @@ the operator has set. A settled decision is an entry in
 of <a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>. Nothing here is a promise of a date.</p>
 <h2 id="next">Next <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
 <ol>
+<li><strong>Unique job IDs.</strong> A job ID is unique only in the folder that reserved
+it: the output root, a collection's <code>--cd</code> folder, or none under <code>--nof</code>,
+whose ID is always <code>-00</code>. Of the 43,173 job IDs of thirty days'
+<code>run.started</code> events, 6,712 were started by more than one process, so
+<code>journalctl KARVI_JOB_ID=ID</code> can match two jobs. The direction: one
+sequence per operator on a host for every job and login. A <code>cmd</code> job's
+empty <code>job_id</code> in its summary, its records, and <code>job list --format json</code>
+goes with it, and the audit suite's read by job ID becomes exact.</li>
 <li><strong>Shorter output strings.</strong> A review of every error and warning message
 karvi writes for the operator, shortening each where a word adds nothing so
 that it still conveys its meaning in fewer words, as chapter 56 left the
@@ -154,7 +162,11 @@ header and footer templates, or the daemon log. The questions: the rule,
 stated once in <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a> and applied to every
 message alike; the tests, suites, and documents that quote a message,
 changed with it; and the generated error-code descriptions
-(<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>) under the same rule.</li>
+(<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>) under the same rule.
+Chapter 63's words reach it too: the messages built from them
+(<code>job_orphaned</code>'s &quot;its scoreboard ended error&quot;) and the help's and the
+registry's prose (&quot;halted terminal status&quot;, &quot;replaced only when the
+device's collection succeeded&quot;).</li>
 </ol>
 <h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
 <ul>
@@ -218,7 +230,8 @@ sensitive (the address, the user name, the host key, never a password).</li>
 declare one as required for its consumption. The review lists each digest
 the program computes or records with who computes it, who reads it, and
 what breaks without it, and removes those nothing consumes in production;
-the development use, comparing two outputs, stays.</li>
+the development use, comparing two outputs, stays. The audit's are gone
+(chapter 63, its statements in their place).</li>
 <li><strong><code>Sealed</code> credential packages.</strong> The envelope schema accepts the
 protection and the <code>Sealer</code> interface is fixed, but no channel carries it
 and no reviewed provider exists; it waits for the stage that brings a
@@ -342,23 +355,6 @@ resolution failed; the same run without the daemon makes none
 55</a>). The question:
 the directory made when the job is submitted, or removed when the client
 abandons it.</li>
-<li><strong>The audit trail, and then an audit review tool.</strong> What karvi writes to
-journald, and so to the syslog a host forwards it to, does not suffice as
-the record of every job, the one a run under <code>--nof</code> or
-<code>output.persist-command = false</code> leaves where it makes no folder
-(<a href="docs/EXAMPLES.html#61-a-list-of-jobs-karvi-job-list-2026-10-15"><code>docs/EXAMPLES.md</code>, chapter
-61</a>). One gap
-found: every <code>command_completed</code> event names its device inside
-<code>KARVI_AUDIT_JSON</code> alone, beside the fields <code>KARVI_EVENT_NAME</code>,
-<code>KARVI_ACTIVITY_ID</code>, and <code>KARVI_JOB_ID</code>, and <code>journalctl</code> matches a field
-only whole, so a device's commands are found only by reading every event's
-JSON; a <code>KARVI_DEVICE</code> field would let <code>journalctl SYSLOG_IDENTIFIER=karvi KARVI_DEVICE=NAME</code> answer what was run at a device, by every operator and
-service account. The item: a review of what each event records and where it
-is written, journald's fields and the audit file's line, so that the trail
-answers who ran what, where, and with what result. After it, an audit review
-tool, perhaps reserved for administrators, answers for every job, where <code>job list</code> answers an operator for the jobs they made and, on a shared host, the
-team's. The questions: the events and their fields; syslog beside journald;
-and who may run the review tool.</li>
 <li><strong><code>watch</code>'s OPERATOR from the file's owner.</strong> <code>watch</code> shows a scoreboard's
 <code>operator.username</code>, which the job's own process writes at its start, and
 never reads who owns the file, so a scoreboard in the shared folder (3770,
@@ -370,6 +366,19 @@ item: <code>watch</code>'s OPERATOR, its <code>/</code> filter, and its operator
 file's owner, as <code>job list</code>'s. The questions: a file whose field and owner
 differ, shown as the owner or marked; and the JSON form, which prints each
 snapshot as written.</li>
+<li><strong>The tests' events out of the host's journal.</strong> The audit's sink writes
+to journald whatever the configuration, so the Go tests and the suites
+write their events into the host's journal: <code>internal/audit</code>'s <code>test</code>
+events, a collection hook's test's <code>crun.after</code> events, and every suite's
+jobs, the 170,844 <code>command_completed</code> events of thirty days among them
+(<a href="docs/EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+63</a>). An
+audit review would show them as work done. The item: no test or suite
+writes to the host's journal. The questions: how a test's sink is kept
+from journald, how a suite's is, and the audit suite's, whose subject is
+the round trip through journald, its jobs at devices named for its run
+alone (<a href="docs/EXAMPLES.html#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
+64</a>).</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -404,7 +413,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

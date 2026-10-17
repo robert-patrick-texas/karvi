@@ -56,6 +56,7 @@
 <li><a href="#tab-completion">Tab completion</a></li>
 <li><a href="#the-collection-run">The collection run</a></li>
 <li><a href="#stream-mode">Stream mode</a></li>
+<li><a href="#the-audit-trail">The audit trail</a></li>
 <li><a href="#structured-evidence">Structured evidence</a></li>
 </ul></li>
 <li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
@@ -92,9 +93,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,6 +153,7 @@
 <li><a href="#tab-completion">Tab completion</a></li>
 <li><a href="#the-collection-run">The collection run</a></li>
 <li><a href="#stream-mode">Stream mode</a></li>
+<li><a href="#the-audit-trail">The audit trail</a></li>
 <li><a href="#structured-evidence">Structured evidence</a></li>
 </ul></li>
 <li><a href="COLLECTION.html">The collection run: karvi crun</a></li>
@@ -188,9 +190,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -211,15 +213,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.31.0 build=89IPVx9eRsYXSHKjpog8
+<pre><code>daemon drained version=0.31.1 build=1m0vuMSWJ08PWlb3CIEZ
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build 89IPVx9eRsYXSHKjpog8 0.31.0
-  client build 1m0vuMSWJ08PWlb3CIEZ 0.31.1
+  daemon build 1m0vuMSWJ08PWlb3CIEZ 0.31.1
+  client build hyA17Kpg085-04k7Q6FO 0.32.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -252,7 +254,7 @@ launching one: it prints the inspection report (text, or <code>--format json</co
 or <code>jsonl</code>) and submits nothing. <code>karvi run --exercise ...</code> submits the
 plan and package and has the daemon validate everything but the device: the
 report lands in the job directory as <code>exercise.json</code> and on stdout, the
-summary reads <code>exercised</code>, and the exit is 0 when every target is <code>ready</code>
+summary reads <code>exercise</code>, and the exit is 0 when every target is <code>ready</code>
 or the first finding's exit otherwise. Neither mode sends ICMP, opens a
 session, invokes askpass, or runs a command. The two flags exclude each
 other, neither combines with <code>--detach</code>, and <code>--exercise</code> needs the daemon.</p>
@@ -268,7 +270,7 @@ job and writes its records. A closed stdout does the same with exit 111.</p>
 <pre><code class="language-bash">karvi job cancel JOB-ID --reason 'wrong change window'
 </code></pre>
 <p>The job ID is the one <code>run --detach</code> printed, or <code>karvi job list</code> or <code>karvi watch</code> shows. The daemon answers at once; the job's unfinished work is recorded
-<code>cancelled</code> and its summary ends <code>cancelled</code> at exit 113 with the request's
+<code>cancel</code> and its summary ends <code>cancel</code> at exit 113 with the request's
 time, reason, and requester in a <code>cancellation</code> block. <code>--follow</code> waits for the
 job's end and exits with the job's exit. A job that already ended is reported
 with its outcome, an unknown job ID is <code>job_unknown</code>, and the command never
@@ -276,11 +278,11 @@ launches a daemon. Other jobs are untouched; a foreground <code>run</code> whose
 cancelled from elsewhere prints the cancelled line and exits 113.
 A cancel that arrives too late changes nothing: a job whose work had
 finished keeps its result and its exit, and an exercise (<code>run --exercise</code>)
-never ends <code>cancelled</code>, since its checks are local and take milliseconds.
+never ends <code>cancel</code>, since its checks are local and take milliseconds.
 <code>job cancel</code> may still answer <code>cancelling</code> for such a job; its summary then
-carries the <code>cancellation</code> block under its own final status (<code>exercised</code>,
-<code>succeeded</code>), the audit trail holds the <code>run.cancel_requested</code> record, and
-no cancelled line is printed.
+carries the <code>cancellation</code> block under its own final status (<code>exercise</code>,
+<code>complete</code>), the audit trail holds the <code>&lt;kind&gt;.cancel</code> event, and no
+cancelled line is printed.
 To see a detached or interrupted job again, from any later invocation:</p>
 <pre><code class="language-bash">karvi job follow JOB-ID [--format text|jsonl|json] [--echo] [--border|--noborder]
 </code></pre>
@@ -288,18 +290,17 @@ To see a detached or interrupted job again, from any later invocation:</p>
 until the job ends or at once for a job that has ended, ends the display as a
 run's ends (the footer from the job's summary in text, the summary document as
 the last line under <code>jsonl</code>, a collection's line after the footer in text; no
-result line on standard error), and exits with the job's own exit (0 completed,
-113 cancelled, 106 incomplete). Under <code>jsonl</code> the output is the job's
-<code>commands.jsonl</code> byte for byte, then its summary. The operator's daemon serves
-the job while it holds it. Any other job is followed from its directory, found
-by the job ID under <code>output.root</code>: a finished job the daemon no longer holds
-(after a restart, or evicted from the bounded job table), a <code>run --no-daemon</code>
-of another terminal, and in the shared tree another member's or the service
-account's job. Each record of <code>commands.jsonl</code> is rendered as it is written
-until the summary names a final status, and the display ends from it. While
-the summary is not final, the job's scoreboard says whether it runs: one that
-is gone, or stale by <code>watch.stale-after</code>, or that names the job's end that long
-ago, is <code>job_orphaned</code>, the process that ran it gone. A site that turns
+result line on standard error), and exits with the job's own exit (0 for
+<code>complete</code>, 113 for <code>cancel</code>, 106 for <code>incomplete</code>). Under <code>jsonl</code> the output is
+the job's <code>commands.jsonl</code> byte for byte, then its summary. The operator's
+daemon serves the job while it holds it. Any other job is followed from its
+directory, found by the job ID under <code>output.root</code>: a finished job the daemon no
+longer holds (after a restart, or evicted from the bounded job table), a <code>run --no-daemon</code> of another terminal, and in the shared tree another member's or the
+service account's job. Each record of <code>commands.jsonl</code> is rendered as it is
+written until the summary names a final status, and the display ends from it.
+While the summary is not final, the job's scoreboard says whether it runs: one
+that is gone, or stale by <code>watch.stale-after</code>, or that names the job's end that
+long ago, is <code>job_orphaned</code>, the process that ran it gone. A site that turns
 <code>watch.enabled</code> off has no scoreboard, so another member's live job is
 <code>job_orphaned</code> to a follow; each operator still follows their own through their
 daemon. A job run with <code>output.files.commands-jsonl</code> false is followed live by
@@ -319,20 +320,20 @@ newest 20 jobs by job ID, whatever their day, a running or unfinished job
 among them:</p>
 <pre><code class="language-text">$ karvi job list
   JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
-  261016-023522-00            unfinished  netops    run     u/1       u  fake-iosxe
-  261016-023521-00  0m00s     exercised   netops    run     1/1       0  fake-iosxe
-  261016-023519-00  0m01s     completed   netops    crun    1/1       0  fake-iosxe
-  261016-023518-00  0m01s     errored     netops    run     2/2       1  fake-iosxe dead-iosxe
-  261016-023516-00  0m01s     completed   netops    cmd     1/1       0  fake-iosxe
+  261017-131827-00            unfinished  netops    run     u/1       u  fake-iosxe
+  261017-131826-00  0m00s     exercise    netops    run     1/1       0  fake-iosxe
+  261017-131825-00  0m01s     complete    netops    crun    1/1       0  fake-iosxe
+  261017-131823-00  0m01s     error       netops    run     2/2       1  fake-iosxe dead-iosxe
+  261017-131821-00  0m01s     complete    netops    cmd     1/1       0  fake-iosxe
 $ karvi job list --target 'dead*'
   JOB-ID            TIME      OPERATOR  MODE  OUTCOME      DEVICE
-  261016-023518-00  0m01s     netops    run   failed       dead-iosxe
+  261017-131823-00  0m01s     netops    run   fail         dead-iosxe
 </code></pre>
 <p>The columns are the watch screen's without ACTV. TIME is the job's duration,
 its start being its ID; OPERATOR is the owner of the job's summary, the UID
 where the user database names none; MODE is the kind of job, <code>cmd</code>, <code>run</code>, or
 <code>crun</code>, a job of <code>stream</code> being <code>run</code> and an exercise keeping its kind, its
-STATUS <code>exercised</code>. At a terminal the line fits the width: TARGET takes what
+STATUS <code>exercise</code>. At a terminal the line fits the width: TARGET takes what
 the other columns leave, each device named whole while it fits and the rest
 counted as <code>+N</code>, so at 80 columns the rows above end <code>+1</code> and <code>+2</code>; to a pipe
 or a file nothing is cut. The rows stand in job-ID order, newest first. A job
@@ -365,10 +366,10 @@ prints one array of the rows, each the job's summary fields as the file holds
 them, then <code>path</code>, the job's folder, and <code>operator</code>, <code>{&quot;username&quot;, &quot;uid&quot;}</code>;
 under <code>--target</code> the row adds <code>device</code> and its <code>outcome</code>, and a <code>?</code> row is
 <code>{&quot;path&quot;, &quot;operator&quot;, &quot;error&quot;}</code>.</p>
-<p>The job ID is the one <code>job follow</code> and <code>job cancel</code> take, and an errored job's
-folder holds the <code>failed-devices.txt</code> a rerun takes (&quot;The job's output files&quot;).
-A job run under <code>--nof</code> or <code>output.persist-command = false</code> makes no folder,
-and the list does not show it.</p>
+<p>The job ID is the one <code>job follow</code> and <code>job cancel</code> take, and the folder of a
+job that ended <code>error</code> holds the <code>failed-devices.txt</code> a rerun takes (&quot;The job's
+output files&quot;). A job run under <code>--nof</code> or <code>output.persist-command = false</code>
+makes no folder, and the list does not show it.</p>
 <h2 id="dispatch-serial-parallel-and-wave">Dispatch: serial, parallel, and wave <a class="anchor" href="#dispatch-serial-parallel-and-wave" aria-label="Link to this section">#</a></h2>
 <p>A <code>run</code> speaks to its devices one at a time unless told otherwise
 (<code>dispatch.default = &quot;serial&quot;</code>); <code>command</code> is always one device at a
@@ -488,8 +489,8 @@ method available an enabled job is refused before it starts,
 warning in the dry-run, <code>not_ready</code> in the exercise) without sending a
 probe.</p>
 <p>Text output prints one line per gated device before its header:</p>
-<pre><code>! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) timeout, proceeding
-! edge-b [192.0.2.1] ping(1) timeout, ping(2) error, skipped
+<pre><code>! core-nyc-01 [2001:db8:10::1] ping(1) 2.1ms, ping(2) timeout, proceed
+! edge-b [192.0.2.1] ping(1) timeout, ping(2) error, skip
 </code></pre>
 <p>The line is the <code>display.ping.header</code> template, rendered and coloured as the
 headers are (<code>&lt;rtt1&gt;</code>, <code>&lt;rtt2&gt;</code>, <code>&lt;result&gt;</code>;
@@ -541,7 +542,7 @@ running daemon keeps from its start (<code>daemon.max-accepted-jobs</code>,
 side of <code>daemon.max-ipc-frame-bytes</code> and <code>daemon.forced-grace-seconds</code>); a new
 value of one reaches the daemon at its next start (<code>karvi daemon restart</code>). A
 site's locks are enforced by each client's load; the daemon checks no lock of
-its own. A job's audit records, the cancel record among them, go where its
+its own. A job's audit events, the <code>cancel</code> among them, go where its
 configuration names.</p>
 <p>Every invocation reads its configuration once, its files, its environment,
 and its options together, and every stage of it, a <code>crun</code>'s hook among them,
@@ -830,7 +831,7 @@ transport may offer such a key once karvi's are refused.</p>
 password, since some servers allow keyboard-interactive and refuse password.
 Each record's <code>credential.auth</code> names the method that authenticated the session
 (<code>publickey</code>, <code>keyboard-interactive</code>, or <code>password</code>; absent where the session
-never authenticated), and every <code>command_completed</code> audit event names it in
+never authenticated), and every <code>&lt;kind&gt;.command</code> audit event names it in
 <code>device_identity</code> beside <code>device_username</code> and <code>backend</code>:</p>
 <pre><code class="language-text">1 {&quot;auth&quot;: &quot;publickey&quot;, &quot;backend&quot;: &quot;builtin-operator-keys&quot;, &quot;device_username&quot;: &quot;netops&quot;, &quot;selected_address&quot;: &quot;127.0.0.1&quot;}
 2 {&quot;auth&quot;: &quot;publickey&quot;, &quot;backend&quot;: &quot;builtin-operator-keys&quot;, &quot;device_username&quot;: &quot;netops&quot;, &quot;selected_address&quot;: &quot;127.0.0.1&quot;}
@@ -1933,7 +1934,9 @@ flags, a flag's words (<code>--format</code> text or jsonl, <code>--sharedroot</
 none, <code>--basedir</code> auto), and file names for the three path flags once no
 word matches; the helper answers from its own flag set through its own
 hidden word, <code>karvi-prune __complete</code>, which resolves no root and writes
-nothing. A host that holds the file from before the helper was added runs
+nothing. It completes <code>karvi-audit</code>'s long flags alike, through
+<code>karvi-audit __complete</code>; a name, a time, and a pattern are the operator's
+to type. A host that holds the file from before a helper was added runs
 <code>sudo karvi setup tab</code> once more, which reports <code>updated</code>.</p>
 <p>A site that gives karvi a shorter name, a symbolic link on the path, binds
 that name to the same function in a file of its own, as root:</p>
@@ -1984,7 +1987,7 @@ hidden temporary and renamed into place when every one of its commands
 came back, a rejected statement included (its error text is the
 block); a device not reached, timed out, halted, or cancelled keeps its
 previous file and leaves nothing behind. The text display ends, after
-the footer, with <code>! collection=DIR replaced=N kept=M</code>
+the footer, with <code>! collection=DIR replace=N keep=M</code>
 (<code>display.collection.footer</code>), the summary's <code>collection</code> block
 names each device's file and outcome, and <code>failed-devices.txt</code> is the
 rerun as for any run. A <code>crun</code> runs a device's whole list past a
@@ -2047,8 +2050,8 @@ section 1.1</a>.</p>
 collection has ended and its display is printed, on the in-process path and
 through the daemon alike, never for <code>--detach</code>: in the collection directory,
 the replaced files' names on stdin one per line, and <code>KARVI_JOB_ID</code>,
-<code>KARVI_JOB_DIR</code>, <code>KARVI_CRUN_DIRECTORY</code>, <code>KARVI_CRUN_REPLACED</code>,
-<code>KARVI_CRUN_KEPT</code>, and <code>KARVI_EXIT</code> in its environment; its output follows the
+<code>KARVI_JOB_DIR</code>, <code>KARVI_CRUN_DIRECTORY</code>, <code>KARVI_CRUN_REPLACE</code>,
+<code>KARVI_CRUN_KEEP</code>, and <code>KARVI_EXIT</code> in its environment; its output follows the
 display on stderr. A hook that fails, cannot start, or runs past
 <code>crun.after-timeout</code> (<code>5m</code>) is the warning <code>crun_after_failed</code>, the run's exit
 code unchanged, and the audit holds a <code>crun.after</code> event either way. The
@@ -2071,6 +2074,16 @@ does not compile refuses the configuration
 (<code>config_platform_crun_filter_invalid</code>). <a href="COLLECTION.html#6-the-volatile-lines-the-drop-list"><code>docs/COLLECTION.md</code> section
 6</a> has the lists per
 platform.</p>
+</li>
+<li>
+<p><strong>The mask.</strong> Under <code>crun.mask = true</code> (<code>false</code> by default) every collection
+file, a <code>crun</code>'s and a <code>--cd</code> run's, has the secrets a platform's <code>masks</code>
+match replaced by <code>&lt;removed&gt;</code>, in the lines kept and the <code>! COMMAND</code>
+markers; the record and the job's files keep them. The lists are the
+audit's (&quot;The audit trail&quot; below), built in for the five network platforms;
+<code>karvi --set crun.mask=false crun …</code> keeps one run's files whole unless the
+site locks the key. <a href="COLLECTION.html#61-the-secrets-the-mask"><code>docs/COLLECTION.md</code> section
+6.1</a>.</p>
 </li>
 <li>
 <p><strong>The schedule.</strong> A recurring collection is the site's systemd timer or cron
@@ -2163,12 +2176,114 @@ or a line over the reader's 1 MiB limit, ends the stream with
 run: its records, its display, its footer or jsonl summary line, its
 exit. Global options go before the word: <code>karvi --quiet --config FILE stream</code>.</li>
 </ul>
+<h2 id="the-audit-trail">The audit trail <a class="anchor" href="#the-audit-trail" aria-label="Link to this section">#</a></h2>
+<p>Every job and every login writes its audit events to journald, always, and to
+<code>audit.file</code>, one JSON line each, when the key names a file. An event is one
+journald entry: its message, one line of <code>key=value</code> pairs; the fields that
+match it; and the whole event as JSON in <code>KARVI_AUDIT_JSON</code>, the line
+<code>audit.file</code> holds (<code>schema/audit.schema.json</code>, audit schema 2). A job's events
+are named <code>&lt;kind&gt;.&lt;event&gt;</code>, the kind <code>cmd</code>, <code>run</code>, or <code>crun</code> as <code>job list</code>
+shows it:</p>
+<ul>
+<li><code>start</code> and <code>end</code>, once each per job; an exercise ends in <code>end</code> with the
+outcome <code>exercise</code>;</li>
+<li><code>command</code>, once per device per command, a command never sent included, so
+a job's <code>command</code> events name its every device;</li>
+<li><code>cancel</code>, when a cancel is asked;</li>
+<li><code>crun.after</code>, a collection's hook.</li>
+</ul>
+<p>A login writes <code>login.start</code> and <code>login.end</code>. A run through the daemon of two
+devices, <code>dead-iosxe</code> unreachable, the second statement an SNMP community,
+read back by its job ID:</p>
+<pre><code class="language-text">$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_JOB_ID=261017-131831-00 -o cat
+karvi.audit=run.start operator=netops job=261017-131831-00
+karvi.audit=run.command operator=netops outcome=success job=261017-131831-00 device=fake-iosxe command=&quot;show clock&quot;
+karvi.audit=run.command operator=netops outcome=device_error job=261017-131831-00 device=fake-iosxe command=&quot;snmp-server community &lt;removed&gt; RO&quot;
+karvi.audit=run.command operator=netops outcome=connection_error job=261017-131831-00 device=dead-iosxe command=&quot;show clock&quot;
+karvi.audit=run.command operator=netops outcome=not_attempted_prior_command_failure job=261017-131831-00 device=dead-iosxe command=&quot;snmp-server community &lt;removed&gt; RO&quot;
+karvi.audit=run.end operator=netops outcome=error job=261017-131831-00
+</code></pre>
+<p>The line's keys, in this order:</p>
+<ul>
+<li><code>karvi.audit</code>, the event's name, which tells an audit line from the
+daemon's log under the same identifier;</li>
+<li><code>operator</code>, the account the job or the login ran as, a job through the
+daemon its client's; and <code>loginuser</code> when the kernel's login UID names
+another account, the person behind <code>sudo</code>;</li>
+<li><code>outcome</code>, which a <code>start</code> and a <code>cancel</code> leave out: a <code>command</code> event's is
+its record's <code>status</code> (<code>job list --target</code>'s OUTCOME), an <code>end</code>'s the
+summary's <code>final_status</code> (<code>job list</code>'s STATUS), a login's <code>complete</code> or
+<code>error</code>, and <code>crun.after</code>'s <code>success</code> or <code>fail</code>;</li>
+<li><code>job</code> or <code>login</code>, the ID;</li>
+<li><code>device</code>, the device's canonical name, on a <code>command</code> event and a login's;</li>
+<li><code>command</code>, the statement as sent, on a <code>command</code> event alone, quoted
+always, so that a statement holding spaces, <code>=</code>, or quotes stays one value.</li>
+</ul>
+<p>A job's <code>start</code> carries its statements in order in the JSON (<code>action.commands</code>);
+the audit records no digest. journald's fields match the line:
+<code>KARVI_EVENT_NAME</code>; <code>KARVI_JOB_ID</code> on every event of a job, <code>KARVI_LOGIN_ID</code> on
+a login's; <code>KARVI_DEVICE</code>, <code>KARVI_OPERATOR</code>, and <code>KARVI_LOGINUSER</code>. journalctl
+matches a field whole, with its case, so a device is found by the name <code>job list</code> shows, by every operator and service account, a run under <code>--nof</code>
+included:</p>
+<pre><code class="language-text">$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_DEVICE=dead-iosxe --since -1min -o cat
+karvi.audit=run.command operator=netops outcome=connection_error job=261017-131823-00 device=dead-iosxe command=&quot;show version&quot;
+karvi.audit=run.command operator=netops outcome=connection_error job=261017-131831-00 device=dead-iosxe command=&quot;show clock&quot;
+karvi.audit=run.command operator=netops outcome=not_attempted_prior_command_failure job=261017-131831-00 device=dead-iosxe command=&quot;snmp-server community &lt;removed&gt; RO&quot;
+</code></pre>
+<p><strong>Reading it: <code>karvi-audit</code>.</strong> <code>karvi-audit</code> shows the trail as a table, one
+event per row: it runs <code>journalctl</code> with the trail's identifier and message ID,
+so the daemon's log under the same identifier stays out, and lays out each
+event's JSON. Its flags are journalctl's, passed as given: <code>-S</code> and <code>-U</code> the
+window, <code>-n</code> the newest N, <code>-g</code> a pattern over the line (a job's ID, a
+statement's words), <code>-r</code> newest first, and <code>-f</code> to follow until Ctrl-C; and the
+trail's own, <code>-o NAME</code> the operator or the login user behind <code>sudo</code>, <code>-d NAME</code>
+the device, each repeatable. It reads no configuration. A run of two devices,
+<code>dead-iosxe</code> unreachable, read back by its job ID:</p>
+<pre><code class="language-text">$ karvi-audit --nocolor -S 17:10 -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-171016-00       netops       run   start
+261017-171016-00       netops       run   command success               fake-iosxe      show clock
+261017-171016-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-171016-00       netops       run   end     error
+</code></pre>
+<p>The columns stand at fixed widths, so a followed trail stays in line: JOB-ID,
+OPERATOR (<code>OPERATOR/LOGINUSER</code> under <code>sudo</code>), MODE, EVENT, OUTCOME, DEVICE, and
+the statement. At a terminal the line is cut with <code>…</code> to its width; to a pipe
+or a file nothing is cut. OUTCOME is green for work done, orange for work not
+done or cut short, red for a failure; the colour goes to a terminal and through
+a pipe (<code>karvi-audit | less -R</code>), never into a file, and <code>--nocolor</code> or
+<code>NO_COLOR</code> turns it off. Nothing matched is <code>karvi-audit: no matches</code> on
+standard error, exit 0; a value journalctl refuses is its own message, exit 1;
+an event of another audit schema has no row, and one line at the end counts
+them. <code>man karvi-audit</code> holds the columns, the colours, and the exits in full.</p>
+<p><strong>The mask.</strong> Every statement the audit records, in the line and the JSON,
+journald and <code>audit.file</code> alike, is masked: the text of every capturing group
+of every match of a platform's <code>masks</code> is replaced by <code>&lt;removed&gt;</code>. A job's
+events are masked by the lists of all its devices' platforms together, so that
+no event leaves in clear what another platform's list hides; the job's folder
+keeps every statement as sent (the run above recorded <code>snmp-server community Publ1c RO</code> in <code>commands.jsonl</code>). <code>cisco_iosxe</code>, <code>cisco_iosxr</code>, <code>cisco_nxos</code>,
+<code>arista_eos</code>, and <code>juniper_junos</code> each have a built-in list, in force by
+default; a site's <code>[platform.NAME] masks</code> replaces a list whole, <code>[]</code> turns it
+off, and a pattern that does not compile or holds no group refuses the
+configuration (<code>config_platform_mask_invalid</code>, exit 2). A secret with no word
+before it, an answer to a <code>Password:</code> prompt sent as its own statement, passes
+in clear; an <code>--expect</code> response is never in the audit. The same lists mask a
+collection file under <code>crun.mask = true</code> (<a href="COLLECTION.html#61-the-secrets-the-mask"><code>docs/COLLECTION.md</code> section
+6.1</a>), and chapter 63 of
+<a href="EXAMPLES.html#63-the-audit-trails-names-and-fields-2026-10-17"><code>docs/EXAMPLES.md</code></a>
+holds each list and the checks it passed.</p>
+<p>Who reads the trail is journald's: its files are <code>root:systemd-journal</code> 0640,
+an operator reads their own events, and the members of <code>adm</code> and
+<code>systemd-journal</code> everyone's. A host whose rsyslog copies the journal into
+<code>/var/log/syslog</code>, or forwards it, sends the message alone, which still names
+the operator, the job, the device, and the statement. The trail's retention is
+journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot;Retention&quot;).</p>
 <h2 id="structured-evidence">Structured evidence <a class="anchor" href="#structured-evidence" aria-label="Link to this section">#</a></h2>
 <p>Treat <code>commands.jsonl</code>, <code>errors.jsonl</code>, <code>summary.json</code>, <code>manifest.json</code>, audit
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

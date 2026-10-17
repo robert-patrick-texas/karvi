@@ -76,9 +76,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,9 +156,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -451,7 +451,7 @@ the daemon without launching one, and prints the inspection report;
 nothing is submitted and no device is touched. <code>--exercise</code> submits the
 plan and package and has the daemon validate everything but the device,
 writing <code>exercise.json</code> beside an empty <code>commands.jsonl</code>; the summary reads
-<code>exercised</code>. Both take <code>--format json</code>. A live run renders records as they
+<code>exercise</code>. Both take <code>--format json</code>. A live run renders records as they
 become durable; <code>--detach</code> returns at acceptance with the job ID and
 artifact directory, <code>--follow=false</code> waits without rendering, and Ctrl-C
 leaves the job running in the daemon. <code>karvi job follow JOB-ID</code> renders a
@@ -537,7 +537,7 @@ karvi watch --help
 karvi version --help
 </code></pre>
 <p>Tab completes the words, options, values, device names, and job IDs, and
-<code>karvi-prune</code>'s flags and their words, once the site has run <code>sudo karvi setup tab</code> (<a href="docs/OPERATIONS.html#tab-completion"><code>docs/OPERATIONS.md</code> &quot;Tab
+<code>karvi-prune</code>'s and <code>karvi-audit</code>'s flags, once the site has run <code>sudo karvi setup tab</code> (<a href="docs/OPERATIONS.html#tab-completion"><code>docs/OPERATIONS.md</code> &quot;Tab
 completion&quot;</a>).</p>
 <h2 id="implemented-foundation-and-remaining-boundary">Implemented foundation and remaining boundary <a class="anchor" href="#implemented-foundation-and-remaining-boundary" aria-label="Link to this section">#</a></h2>
 <p>The candidate includes layered TOML configuration with include graphs, locks,
@@ -546,7 +546,9 @@ credential policies and authenticated askpass; one device session over system
 OpenSSH and the compiled scrapligo-v1 connection, gated Telnet; serial,
 parallel, and adaptive-wave dispatch; durable JSONL and summaries; audit,
 scoreboards, metrics, per-user daemon IPC, capacity admission, retention
-(<code>karvi-prune</code>, <a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>), PTY login recording, shared
+(<code>karvi-prune</code>, <a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>), the audit trail read as a
+table (<code>karvi-audit</code>, <a href="docs/OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code> &quot;The audit
+trail&quot;</a>), PTY login recording, shared
 display formatting, and the watch screen (<code>karvi watch</code>: the running jobs above
 a rule, the finished ones below, a detail pane per job, the <code>/</code> filter and the
 <code>s</code> sort, <a href="docs/OPERATIONS.html#the-watch-screen"><code>docs/OPERATIONS.md</code> &quot;The watch
@@ -587,13 +589,13 @@ copied anywhere and read without the network. The latest release's is
 published at <a href="https://robert-patrick-texas.github.io/karvi/">https://robert-patrick-texas.github.io/karvi/</a>.</li>
 <li><code>packaging/man/</code>: the manual pages the package installs: <code>man karvi</code>
 (the configuration, the values, the environment, the files, the exit
-statuses), <code>man karvi WORD</code> for each command word (<code>man karvi run</code>), <code>man karvi-prune</code>, and <code>man karvi-askpass</code>; each word's SYNOPSIS and DESCRIPTION
-are its <code>--help</code>, generated (<code>make generate</code>).</li>
+statuses), <code>man karvi WORD</code> for each command word (<code>man karvi run</code>), <code>man karvi-prune</code>, <code>man karvi-audit</code>, and <code>man karvi-askpass</code>; each word's
+SYNOPSIS and DESCRIPTION are its <code>--help</code>, generated (<code>make generate</code>).</li>
 <li><a href="docs/QUICKSTART.html"><code>docs/QUICKSTART.md</code></a>: inspect the executable, first
 configuration, first commands.</li>
 <li><a href="docs/OPERATIONS.html"><code>docs/OPERATIONS.md</code></a>: upgrade, the daemon, retention,
 configuration macros, the credential backends and files, the credential
-helper.</li>
+helper, the audit trail and <code>karvi-audit</code>.</li>
 <li><a href="docs/FILES.html"><code>docs/FILES.md</code></a>: every directory and file karvi reads or
 writes, in shared and in individual mode, with its mode, owner, and group,
 and how karvi chooses each place.</li>
@@ -656,7 +658,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

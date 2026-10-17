@@ -67,9 +67,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -138,9 +138,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -548,6 +548,18 @@ pressure, judged per filesystem), orphans and stale snapshots by age alone, and
 then the day folders left empty. Ownership decides what a run may remove, and a
 failure is a line, never the end of the run. <a href="PRUNE.html"><code>docs/PRUNE.md</code></a> is the
 guide; <a href="DESIGN.html"><code>docs/DESIGN.md</code></a> the record.</p>
+<p>Reading the audit trail is outside the daemon too: <code>karvi-audit</code>
+(<code>cmd/karvi-audit</code>, <code>internal/auditview</code>) runs <code>journalctl -o json</code> with the
+trail's identifier and message ID (<code>audit.Identifier</code>, <code>audit.MessageID</code>, the
+writer's own constants) and its matches, the <code>KARVI_*</code> field names the writer
+uses (<code>audit.Field*</code>), and lays out each entry's <code>KARVI_AUDIT_JSON</code> decoded
+into <code>records.AuditRecord</code> as one row of fixed widths. It reads no
+configuration: the window, the pattern, the order, and the follow are
+journalctl's, and who reads whose events journald's. Its colour is
+<code>display.ColorEnabled(&quot;always&quot;, …)</code> for a terminal and a pipe, never a file,
+the dark theme's roles. Its command line, as <code>karvi-prune</code>'s, is one
+<code>flagspec.Spec</code> that the parser, the help, the hidden word for Tab, and the man
+page's generated regions (<code>tools/mangen</code>) all read.</p>
 <h2 id="credential-delivery">Credential delivery <a class="anchor" href="#credential-delivery" aria-label="Link to this section">#</a></h2>
 <p>The package crosses to the daemon through a <code>credentialpackage.Protector</code>:
 the client's <code>Protect</code> derives the envelope and the canonical bytes from one
@@ -743,7 +755,7 @@ failure before the draft exists aborts as a live run would, the stage named
 after the code.</p>
 <p>A live or exercise run continues: prepare, the frame, and <code>commit_job</code>. The
 commit answers with the receipt the moment the job is accepted (<code>jobexec.Run</code>'s
-<code>OnAccepted</code>, after the manifest is durable and the started audit record
+<code>OnAccepted</code>, after the manifest is durable and the <code>start</code> audit event
 written), and the job runs on its own goroutine. The daemon keeps a bounded job
 table (<code>internal/daemon/jobs.go</code>): the receipt, the path of the canonical
 <code>commands.jsonl</code>, the durable edge, the outcome when done, and the live
@@ -790,15 +802,15 @@ scoreboard is gone, stale by <code>watch.stale-after</code>, or names its end th
 ago. <code>karvi job cancel JOB-ID</code> sends <code>cancel_job</code>: each job runs under its
 own child of the daemon's job context, the request cancels that child with a
 cause carrying the reason, time, and requester, every unfinished unit is
-recorded <code>cancelled</code> (a command already sent is never recorded succeeded or
-errored), the devices are counted <code>cancelled</code>, the summary carries a
-<code>cancellation</code> block, the audit trail a <code>run.cancel_requested</code> record, and the
+recorded <code>cancel</code> (a command already sent is never recorded <code>success</code> or an
+error), the devices are counted <code>cancel</code>, the summary carries a
+<code>cancellation</code> block, the audit trail a <code>&lt;kind&gt;.cancel</code> event, and the
 follow stream's terminal delivers the outcome to any following client. The block
 records an accepted request, not its effect: the exercise branch reads its
 context once, for the block, and never observes it, so an exercise never ends
-<code>cancelled</code>, and a live job whose work had finished keeps its result. Clients
+<code>cancel</code>, and a live job whose work had finished keeps its result. Clients
 therefore print the cancelled line from <code>records.Summary.CancelledBy</code>, which
-answers the block only under the final status <code>cancelled</code>.</p>
+answers the block only under the final status <code>cancel</code>.</p>
 <p>In exercise mode <code>jobexec.Run</code> branches after acceptance
 (<code>internal/jobexec/exercise.go</code>) and builds no executor: per target it
 checks the binding (through <code>ForTarget</code> and the safe projection only), the
@@ -806,9 +818,10 @@ transport selection with the executor's own call plus the located askpass
 helper for the system kind, and the host-key policy and enrollment; per job
 the dispatch arithmetic (<code>dispatch.Plan.Check</code>) and a read-only capacity
 assessment (<code>capacity.Manager.Assess</code>). It writes <code>exercise.json</code>, leaves
-<code>commands.jsonl</code> empty, finalizes the summary and scoreboard as <code>exercised</code>
+<code>commands.jsonl</code> empty, finalizes the summary and scoreboard as <code>exercise</code>
 with the first error finding's exit when a target is <code>not_ready</code>, and
-writes the <code>run.exercised</code> audit record with <code>device_contacted=false</code>. The
+writes the <code>&lt;kind&gt;.end</code> audit event, outcome <code>exercise</code>, with
+<code>device_contacted=false</code>. The
 client reads the report under the canonical-file discipline and renders
 it. An interrupt before the frame aborts <code>cancelled</code> with its stage named;
 the frame and the commit run without cancellation; an interrupt during the
@@ -843,7 +856,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

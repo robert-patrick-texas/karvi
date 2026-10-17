@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>karvi v0.31.1 build and qualification result — karvi</title>
+<title>karvi v0.32.0 build and qualification result — karvi</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -55,7 +55,7 @@
 <li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.31.1 build and qualification result</a>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.32.0 build and qualification result</a>
 <ul class="sections">
 <li><a href="#result">Result</a></li>
 <li><a href="#build-identity">Build identity</a></li>
@@ -64,8 +64,8 @@
 <li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
 <li><a href="#remaining-boundary">Remaining boundary</a></li>
 </ul></li>
-<li><a href="DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -122,7 +122,7 @@
 <li><a href="../docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="../docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.31.1 build and qualification result</a>
+<li><a href="BUILD-RESULT.html" aria-current="page">karvi v0.32.0 build and qualification result</a>
 <ul class="sections">
 <li><a href="#result">Result</a></li>
 <li><a href="#build-identity">Build identity</a></li>
@@ -131,8 +131,8 @@
 <li><a href="#operational-upgrade-sequence">Operational upgrade sequence</a></li>
 <li><a href="#remaining-boundary">Remaining boundary</a></li>
 </ul></li>
-<li><a href="DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -143,36 +143,42 @@
 </ul>
 </nav>
 <main>
-<h1 id="karvi-v0311-build-and-qualification-result">karvi v0.31.1 build and qualification result <a class="anchor" href="#karvi-v0311-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
+<h1 id="karvi-v0320-build-and-qualification-result">karvi v0.32.0 build and qualification result <a class="anchor" href="#karvi-v0320-build-and-qualification-result" aria-label="Link to this section">#</a></h1>
 <h2 id="result">Result <a class="anchor" href="#result" aria-label="Link to this section">#</a></h2>
 <p>The build, with the native scrapligo-v1 transport compiled in beside the
 external <code>system</code> transport, is <strong>qualified as an engineering candidate</strong>.
-v0.31.1 (2026-10-16) is a patch release on 0.31.0 for the <code>crun.after</code> hook's
-bound: at <code>crun.after-timeout</code>, or when the run is interrupted, the hook's
-process group is sent SIGTERM, SIGKILL to what is left of it five seconds later,
-and <code>crun</code> returns once the group is gone; the parity suite's hook check looks
-for the hook's own process group. Every counter is 0.31.0's, and the first
-submission after the upgrade drains a 0.31.0 daemon. The changes are in
+v0.32.0 (2026-10-17) is a minor release on 0.31.1. The configuration registry
+moves from 30 to 31, the execution plan from 13 to 14, the command record from 3
+to 4, the job manifest and summary from 4 to 5, the plan report from 2 to 3, the
+scoreboard from 3 to 4, and the audit from 1 to 2; every other counter is
+0.31.1's, and the first submission after the upgrade drains a 0.31.1 daemon.
+Among the changes: every audit event is named <code>&lt;kind&gt;.&lt;event&gt;</code>, carries the
+job, the device, the operator, and the login user in its own fields, and
+records its statements, masked by the platforms' mask lists, in place of their
+digests; <code>karvi-audit</code>, a fourth executable, shows the trail from journald as a
+table; <code>crun.mask</code> masks the collection files; and an outcome, a status, or a
+count is one present-tense word in every record. The changes are in
 <a href="../CHANGELOG.html"><code>CHANGELOG.md</code></a>. It is not a production claim and not a
 real-device qualification: the native transport is proven against the fake
 device built from the tree, its IOS XE and Linux personas.</p>
 <h2 id="build-identity">Build identity <a class="anchor" href="#build-identity" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-text">version:                  0.31.1
-commit:                   source-release-v0.31.1
-build:                    1m0vuMSWJ08PWlb3CIEZ
+<pre><code class="language-text">version:                  0.32.0
+commit:                   source-release-v0.32.0
+build:                    hyA17Kpg085-04k7Q6FO
 Go toolchain:             go1.27.2
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
 configuration schema:    6
-configuration registry:  30
-command record schema:   3
+configuration registry:  31
+command record schema:   4
 daemon IPC schema:       12
-job manifest/summary:    4
-execution plan:          13
-scoreboard:              3
+job manifest/summary:    5
+execution plan:          14
+scoreboard:              4
 credential package:      2
-plan report:             2
+plan report:             3
+audit:                   2
 CGO:                      disabled
 </code></pre>
 <p>The authoritative <code>go.mod</code> names the Go 1.27 floor and pins
@@ -182,7 +188,7 @@ transports.</p>
 <h2 id="qualification-performed">Qualification performed <a class="anchor" href="#qualification-performed" aria-label="Link to this section">#</a></h2>
 <p>The release source passed, with Go 1.27.2:</p>
 <ul>
-<li>1,036 top-level named Go tests across 89 packages in vendor mode, no
+<li>1,069 top-level named Go tests across 92 packages in vendor mode, no
 build tag, 0 failures (<code>evidence/core-qualification.log</code>);</li>
 <li><code>go vet</code> across all packages, and the Go race detector across all
 packages in the release verifier's run
@@ -194,17 +200,19 @@ packages in the release verifier's run
 <code>configs/reference.toml</code>, <a href="../docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>,
 and the manual pages under <code>packaging/man</code>;</li>
 <li>example configuration validation and removed-key rejection;</li>
-<li>all eighteen executable suites against the native executable, in three lanes
+<li>all nineteen executable suites against the native executable, in three lanes
 (<code>scripts/lib/suites.sh</code>): the parity suite (<code>command</code> and <code>run</code> over <code>system</code>
 and <code>scrapligo-v1</code> against the fake device's IOS XE and Linux personas, the
 exec channel included, records compared path by path), the forty-four-row
 v0100 suite (rehearsals, detach, follow, the interrupted client, the ICMP
 gate, shutdown accounting, stop and restart, cancel, <code>job follow</code>), and the
-sixteen others in order, among them the spool suite (a 65.7 MB response
+seventeen others in order, among them the spool suite (a 65.7 MB response
 through the spool and across a mid-line threshold), the k03 parser suite, the
 daemon-upgrade suite, the completion suite, the canary suite with
-<code>secret-scan</code>, and the job list suite (<code>job list</code> on a lab output root made
-against the fake device);</li>
+<code>secret-scan</code>, the job list suite (<code>job list</code> on a lab output root made
+against the fake device), and the audit suite (<code>karvi-audit</code> reading the
+jobs it makes against the fake device back from the host's journal, each row
+checked against the event <code>audit.file</code> holds);</li>
 <li><code>scripts/verify-shipped.sh</code> on the executables as shipped: the version,
 the checksums, the ELF format, the links, every counter the executable
 reports, both transports, the helps, the configuration examples, the
@@ -219,7 +227,7 @@ from this client's (12) is v0.29.0, whose daemon predates the drain that exits
 and listens on <code>daemon.sock</code>, which this client never reaches; the drain is
 the daemon-upgrade suite's, against a fixture daemon of an older schema and of
 another build. The compatibility example ran before the number was committed,
-beside the released v0.31.0 daemon, started from the released executable of
+beside the released v0.31.1 daemon, started from the released executable of
 the tree's <code>bin/</code> before the rebuild, at this client's IPC schema and of
 another build: the client's <code>daemon status</code> stacked the two builds
 (<code>compatible: false</code>); its run's exercise drained the idle daemon and started
@@ -232,7 +240,7 @@ directories <code>/opt/karvi/shared</code> and <code>/var/lib/karvi/shared</code
 were after the Go tests and the suites, in both verifiers
 (<code>scripts/lib/host.sh</code>);</li>
 <li>the tree's Debian package built in the release verifier's run and checked
-by <code>scripts/check-deb.sh</code>: the three executables <code>bin/</code>'s bytes, every
+by <code>scripts/check-deb.sh</code>: the four executables <code>bin/</code>'s bytes, every
 document and example configuration under its own name, uncompressed, each
 unit's documentation target, the reference configuration's link, and
 <code>lintian --fail-on error,warning</code> with the package's overrides, then tested
@@ -250,7 +258,7 @@ same bytes, its executables the bundle's <code>CHECKSUMS.sha256</code>, and chec
 <code>scripts/check-deb.sh</code> against it.</li>
 </ul>
 <p>The release verifier had first passed on a clean clone of <code>dev</code> at
-<code>71a9184</code> before the number was assigned (the maintainer's release tools
+<code>9b9b12f</code> before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.</p>
@@ -267,18 +275,23 @@ suites ran enforced throughout.</p>
 <tbody>
 <tr>
 <td><code>bin/karvi-linux-amd64</code></td>
-<td style="text-align:right">12,718,240</td>
-<td><code>4cbee215042522f17f237ea6a2bc2365743144d4a793e2e1863eea10b5c6dce9</code></td>
+<td style="text-align:right">12,759,200</td>
+<td><code>a8c9e9953882773a2d0d77f03e3610a8cf3383775a150a8d5fc373c1601f4906</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-askpass-linux-amd64</code></td>
 <td style="text-align:right">3,915,936</td>
-<td><code>b071e66078b88deede3ad933e6095aa789b42ef189d6d82a9eb50c5477f9ec69</code></td>
+<td><code>4d9bbce146c7acb911f3a0829bb792502b3c6de15ee087b4c617fdd80a6af4bc</code></td>
 </tr>
 <tr>
 <td><code>bin/karvi-prune-linux-amd64</code></td>
-<td style="text-align:right">3,793,056</td>
-<td><code>eedd22f13d34007a31d04797b6b8350e976296721a0b1ee71a5b076b49f7c1b3</code></td>
+<td style="text-align:right">3,797,152</td>
+<td><code>a93b6b555b0acd570bb8cbf351e7ff24875c151e10f63c71dac7bcd96e2bc05a</code></td>
+</tr>
+<tr>
+<td><code>bin/karvi-audit-linux-amd64</code></td>
+<td style="text-align:right">3,940,512</td>
+<td><code>33c98e23138386abfd467f587c4def67906333da59b81605d5d2fd49cdab5938</code></td>
 </tr>
 </tbody>
 </table>
@@ -309,7 +322,7 @@ release claims. Cisco IOS XE laboratory qualification on real devices was not
 performed and follows on this executable
 (<a href="../docs/DEVICE-QUALIFICATION-RUNBOOK.html"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code></a>).</p>
 
-<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>release/BUILD-RESULT.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

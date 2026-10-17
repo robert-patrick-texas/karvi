@@ -63,9 +63,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,9 +130,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -1360,6 +1360,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
 <td><code>platform.&lt;name&gt;.fallback</code> holds a word other than <code>netvars</code>, <code>keys</code>, and <code>prompt</code>, or one word twice.</td>
+</tr>
+<tr>
+<td><code>config_platform_mask_invalid</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td>A <code>platform.&lt;name&gt;.masks</code> entry is not a regular expression Go compiles, or holds no capturing group, so it would hide nothing; the message names the table, the entry, and the reason. The configuration is refused before any device is contacted.</td>
 </tr>
 <tr>
 <td><code>config_platform_name_invalid</code></td>
@@ -4476,7 +4483,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>notice</td>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
-<td>The <code>crun.after</code> hook could not be started, exited non-zero, or ran past <code>crun.after-timeout</code> and was ended; the message names the path and the cause. The collection stands as written and the run's exit code is unchanged; the audit holds a <code>crun.after.failed</code> event.</td>
+<td>The <code>crun.after</code> hook could not be started, exited non-zero, or ran past <code>crun.after-timeout</code> and was ended; the message names the path and the cause. The collection stands as written and the run's exit code is unchanged; the audit holds a <code>crun.after</code> event, outcome <code>fail</code>.</td>
 </tr>
 <tr>
 <td><code>daemon_absent</code></td>
@@ -4518,7 +4525,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>notice</td>
 <td style="text-align:right">—</td>
 <td style="text-align:center">no</td>
-<td>Under <code>ssh.host-key-policy = &quot;accept-new&quot;</code> this session stored the device's host key, unknown until then, in the trust store, on either transport: the device's first record carries it with the key type, the client shows it as <code>! ssh accepted new host-key DEVICE (TYPE)</code> on standard error, the device's name in the target colour and the rest in the warning colour, <code>--quiet</code> included, and the audit event's <code>details.host_key_enrolled</code> names the type. A login, which writes no record and whose OpenSSH says nothing of it, reads the trust store at its first password prompt, or at its end when it asks none, and says the same line; its <code>login.completed</code> or <code>login.errored</code> event names the type.</td>
+<td>Under <code>ssh.host-key-policy = &quot;accept-new&quot;</code> this session stored the device's host key, unknown until then, in the trust store, on either transport: the device's first record carries it with the key type, the client shows it as <code>! ssh accepted new host-key DEVICE (TYPE)</code> on standard error, the device's name in the target colour and the rest in the warning colour, <code>--quiet</code> included, and the audit event's <code>details.host_key_enrolled</code> names the type. A login, which writes no record and whose OpenSSH says nothing of it, reads the trust store at its first password prompt, or at its end when it asks none, and says the same line; its <code>login.end</code> event names the type.</td>
 </tr>
 <tr>
 <td><code>host_key_enrollment</code></td>
@@ -5310,7 +5317,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

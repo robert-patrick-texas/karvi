@@ -68,9 +68,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -140,9 +140,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -189,17 +189,17 @@ the target colour and the rest in the warning colour:</p>
 <pre><code class="language-text">! ssh accepted new host-key router1 (ED25519)
 </code></pre>
 <p>The device's first record carries the notice <code>host_key_enrolled</code> with the key
-type, and its <code>command_completed</code> audit event <code>details.host_key_enrolled</code>.
+type, and its <code>&lt;kind&gt;.command</code> audit event <code>details.host_key_enrolled</code>.
 <code>scrapligo-v1</code> says it when its own enrollment wrote the line; over <code>system</code>
 karvi takes OpenSSH's <code>Warning: Permanently added …</code> line from the standard
 error of the exec master and the command session. A job that finds the key
-stored meanwhile by another says nothing. A login runs OpenSSH at <code>LogLevel ERROR</code>, where it says nothing of the key (nor shows a device's banner), so
-karvi reads the store before the session and, when it holds nothing for the
-device, again at the session's first password prompt, OpenSSH having stored
-the key during key exchange, or at the session's end when nothing was asked;
-the line comes then, and the login's <code>login.completed</code> or <code>login.errored</code>
-event names the type. A login whose first contact overlaps another's with the
-same device can say it of a key the other stored.</p>
+stored meanwhile by another says nothing. A login runs OpenSSH at <code>LogLevel ERROR</code>, where it says nothing of the key (nor shows a device's banner), so karvi
+reads the store before the session and, when it holds nothing for the device,
+again at the session's first password prompt, OpenSSH having stored the key
+during key exchange, or at the session's end when nothing was asked; the line
+comes then, and the login's <code>login.end</code> event names the type. A login whose
+first contact overlaps another's with the same device can say it of a key the
+other stored.</p>
 <h3 id="secure"><code>secure</code> <a class="anchor" href="#secure" aria-label="Link to this section">#</a></h3>
 <p>A matching key must already exist. Unknown keys fail as
 <code>host_key_not_enrolled</code>; mismatches fail as <code>host_key_changed</code>.</p>
@@ -452,7 +452,7 @@ STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: 
 stat -c '%U %a %n' &quot;$(dirname &quot;$STORE&quot;)&quot; &quot;$STORE&quot;
 </code></pre>
 
-<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>

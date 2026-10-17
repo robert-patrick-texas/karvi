@@ -66,9 +66,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -136,9 +136,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.31.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.31.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.31.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -195,7 +195,7 @@ default), the cutoff being now less that many days.</p>
 <tbody>
 <tr>
 <td><code>activity</code></td>
-<td>a job folder whose <code>summary.json</code> has a final status: <code>completed</code>, <code>halted</code>, <code>errored</code>, <code>cancelled</code>, <code>incomplete</code>, or <code>exercised</code></td>
+<td>a job folder whose <code>summary.json</code> has a final status: <code>complete</code>, <code>halt</code>, <code>error</code>, <code>cancel</code>, <code>incomplete</code>, or <code>exercise</code></td>
 <td><code>ended_at</code> is before the cutoff</td>
 <td>yes, oldest first</td>
 </tr>
@@ -237,7 +237,8 @@ record), a folder under a name that is not a <code>YYMMDD</code> day folder, a
 symbolic link, a file the helper cannot read, the collection directory
 (<code>crun</code>; the latest file per device is not retention), the audit log,
 and anything in journald. Long-term audit retention is journald's and the
-central forwarder's, never this helper's.</p>
+central forwarder's, never this helper's; <code>karvi-audit</code> reads it
+(<a href="OPERATIONS.html#the-audit-trail"><code>docs/OPERATIONS.md</code> &quot;The audit trail&quot;</a>).</p>
 <p><strong>Pressure.</strong> <code>--minfree</code> (5 by default) is a free-space floor in
 percent. A tree whose filesystem is under the floor gives up its oldest
 finished items before their age, one at a time until the floor is met,
@@ -480,7 +481,7 @@ storage&quot;</a>: the helper's place beside the
 daemon.</li>
 </ul>
 
-<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.31.1</code>.</footer>
+<footer>Generated from <code>docs/PRUNE.md</code> at <code>karvi-v0.32.0</code>.</footer>
 </main>
 </body>
 </html>
