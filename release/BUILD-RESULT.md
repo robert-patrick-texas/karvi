@@ -1,15 +1,20 @@
-# karvi v0.31.1 build and qualification result
+# karvi v0.32.0 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.31.1 (2026-10-16) is a patch release on 0.31.0 for the `crun.after` hook's
-bound: at `crun.after-timeout`, or when the run is interrupted, the hook's
-process group is sent SIGTERM, SIGKILL to what is left of it five seconds later,
-and `crun` returns once the group is gone; the parity suite's hook check looks
-for the hook's own process group. Every counter is 0.31.0's, and the first
-submission after the upgrade drains a 0.31.0 daemon. The changes are in
+v0.32.0 (2026-10-17) is a minor release on 0.31.1. The configuration registry
+moves from 30 to 31, the execution plan from 13 to 14, the command record from 3
+to 4, the job manifest and summary from 4 to 5, the plan report from 2 to 3, the
+scoreboard from 3 to 4, and the audit from 1 to 2; every other counter is
+0.31.1's, and the first submission after the upgrade drains a 0.31.1 daemon.
+Among the changes: every audit event is named `<kind>.<event>`, carries the
+job, the device, the operator, and the login user in its own fields, and
+records its statements, masked by the platforms' mask lists, in place of their
+digests; `karvi-audit`, a fourth executable, shows the trail from journald as a
+table; `crun.mask` masks the collection files; and an outcome, a status, or a
+count is one present-tense word in every record. The changes are in
 [`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
 real-device qualification: the native transport is proven against the fake
 device built from the tree, its IOS XE and Linux personas.
@@ -17,22 +22,23 @@ device built from the tree, its IOS XE and Linux personas.
 ## Build identity
 
 ```text
-version:                  0.31.1
-commit:                   source-release-v0.31.1
-build:                    1m0vuMSWJ08PWlb3CIEZ
+version:                  0.32.0
+commit:                   source-release-v0.32.0
+build:                    hyA17Kpg085-04k7Q6FO
 Go toolchain:             go1.27.2
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
 scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
 configuration schema:    6
-configuration registry:  30
-command record schema:   3
+configuration registry:  31
+command record schema:   4
 daemon IPC schema:       12
-job manifest/summary:    4
-execution plan:          13
-scoreboard:              3
+job manifest/summary:    5
+execution plan:          14
+scoreboard:              4
 credential package:      2
-plan report:             2
+plan report:             3
+audit:                   2
 CGO:                      disabled
 ```
 
@@ -45,7 +51,7 @@ transports.
 
 The release source passed, with Go 1.27.2:
 
-- 1,036 top-level named Go tests across 89 packages in vendor mode, no
+- 1,069 top-level named Go tests across 92 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -57,17 +63,19 @@ The release source passed, with Go 1.27.2:
   `configs/reference.toml`, [`docs/ERROR-CODES.md`](../docs/ERROR-CODES.md),
   and the manual pages under `packaging/man`;
 - example configuration validation and removed-key rejection;
-- all eighteen executable suites against the native executable, in three lanes
+- all nineteen executable suites against the native executable, in three lanes
   (`scripts/lib/suites.sh`): the parity suite (`command` and `run` over `system`
   and `scrapligo-v1` against the fake device's IOS XE and Linux personas, the
   exec channel included, records compared path by path), the forty-four-row
   v0100 suite (rehearsals, detach, follow, the interrupted client, the ICMP
   gate, shutdown accounting, stop and restart, cancel, `job follow`), and the
-  sixteen others in order, among them the spool suite (a 65.7 MB response
+  seventeen others in order, among them the spool suite (a 65.7 MB response
   through the spool and across a mid-line threshold), the k03 parser suite, the
   daemon-upgrade suite, the completion suite, the canary suite with
-  `secret-scan`, and the job list suite (`job list` on a lab output root made
-  against the fake device);
+  `secret-scan`, the job list suite (`job list` on a lab output root made
+  against the fake device), and the audit suite (`karvi-audit` reading the
+  jobs it makes against the fake device back from the host's journal, each row
+  checked against the event `audit.file` holds);
 - `scripts/verify-shipped.sh` on the executables as shipped: the version,
   the checksums, the ELF format, the links, every counter the executable
   reports, both transports, the helps, the configuration examples, the
@@ -82,7 +90,7 @@ The release source passed, with Go 1.27.2:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.31.0 daemon, started from the released executable of
+  beside the released v0.31.1 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -95,7 +103,7 @@ The release source passed, with Go 1.27.2:
   were after the Go tests and the suites, in both verifiers
   (`scripts/lib/host.sh`);
 - the tree's Debian package built in the release verifier's run and checked
-  by `scripts/check-deb.sh`: the three executables `bin/`'s bytes, every
+  by `scripts/check-deb.sh`: the four executables `bin/`'s bytes, every
   document and example configuration under its own name, uncompressed, each
   unit's documentation target, the reference configuration's link, and
   `lintian --fail-on error,warning` with the package's overrides, then tested
@@ -113,7 +121,7 @@ The release source passed, with Go 1.27.2:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`71a9184` before the number was assigned (the maintainer's release tools
+`9b9b12f` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -124,9 +132,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,718,240 | `4cbee215042522f17f237ea6a2bc2365743144d4a793e2e1863eea10b5c6dce9` |
-| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `b071e66078b88deede3ad933e6095aa789b42ef189d6d82a9eb50c5477f9ec69` |
-| `bin/karvi-prune-linux-amd64` | 3,793,056 | `eedd22f13d34007a31d04797b6b8350e976296721a0b1ee71a5b076b49f7c1b3` |
+| `bin/karvi-linux-amd64` | 12,759,200 | `a8c9e9953882773a2d0d77f03e3610a8cf3383775a150a8d5fc373c1601f4906` |
+| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `4d9bbce146c7acb911f3a0829bb792502b3c6de15ee087b4c617fdd80a6af4bc` |
+| `bin/karvi-prune-linux-amd64` | 3,797,152 | `a93b6b555b0acd570bb8cbf351e7ff24875c151e10f63c71dac7bcd96e2bc05a` |
+| `bin/karvi-audit-linux-amd64` | 3,940,512 | `33c98e23138386abfd467f587c4def67906333da59b81605d5d2fd49cdab5938` |
 
 ## Operational upgrade sequence
 
