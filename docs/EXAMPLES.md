@@ -12956,9 +12956,395 @@ report's to 3. Found on the way: the display gives a `<status>` value the
 success role only when it holds `success` or `completed`, so a record's
 `succeeded` showed in the error role; `success` and `complete` take it now.
 
-**Issue 8, the mask.** Issue 4's mask: the platform definition's key for the
-list, `cisco_iosxe`'s built-in words, and what stands for a masked value;
-settled with examples before the section that builds it.
+**Issue 8, the mask; first, its form, its stand-in, and where it applies,
+agreed.** The evidence: oxidized (github.com/ytti/oxidized, `master` at
+`2cac3f7`, 2026-10-09), which backs up network devices' configurations, hides
+their secrets by a `cmd :secret` block per model, Ruby substitutions over a
+command's whole output, each keeping the words before a secret as `\1` and
+writing `<secret hidden>` after them, or `<configuration removed>` over the rest
+of the line. IOS XE takes the IOS model (`IOSXE = IOS`), 25 rules; NX-OS has 7,
+EOS 10, IOS XR 2, and Junos 4, three of them on Junos's own `## SECRET-DATA` tag
+in `show configuration`. They run only when a site sets `remove_secret: true`,
+its documents saying "Removing secrets reduces the usefulness as a full
+configuration backup". Dropping a line is another mechanism (`reject_lines`):
+IOS's are `ntp clock-period` and `Current configuration`, lines `cisco_iosxe`'s
+`crun-filters` drop too; Junos's are none. IOS XE's own configuration logger
+hides secrets as well (`archive log config` with `hidekeys`), its guide naming
+neither the words nor what it prints in their place. The 25 IOS rules, ported to
+Go (each with `(?m)`, `${1}` for `\1`; every one compiles), hid every secret of
+a configuration excerpt as the device prints it, and in 3 of 13 statements sent
+alone; the port's output, not karvi's:
+
+```text
+  sent       "snmp-server comm Publ1c RO"
+  unchanged  "snmp-server comm Publ1c RO"
+
+  sent       "key 0 T4cacsKey"
+  unchanged  "key 0 T4cacsKey"
+
+  sent       "username ops secret Cl3arPw"
+  unchanged  "username ops secret Cl3arPw"
+
+  sent       "snmp-server user mon grp v3 auth sha AuthPw1 priv aes 128 PrivPw1"
+  unchanged  "snmp-server user mon grp v3 auth sha AuthPw1 priv aes 128 PrivPw1"
+```
+
+The rules are written for the form the device prints: a submode's line indented
+(`^( +key-string)`), a `tacacs server`'s key below its parent line, every word
+whole and a type digit always, and no rule for a secret the device never prints
+(IOS's SNMPv3 user's passwords). A statement comes alone and unindented, perhaps
+abbreviated, and a type 0 value perhaps with no digit, the value in clear.
+
+The rule, amending issue 4's. A platform's mask list holds Go regular
+expressions; in a statement, every capturing group of every match is replaced by
+`<removed>`. A pattern that does not compile, or holds no group, refuses the
+configuration before any device is contacted. The mask applies to every
+statement the audit records, in journald and `audit.file` alike, and never to
+the job's folder (`commands.jsonl` and the output); a collection's file takes it
+only when the site turns it on, off by default. The list is its own key, beside
+`crun-filters`, which still drops lines from the collection file alone.
+`cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`, `juniper_junos`, and `arista_eos`
+each have a built-in list, in force by default, oxidized's rules its start and
+each written for a statement: `^\s*` where oxidized has `^ +`, the type digit
+optional, no parent line, the common abbreviations (`comm`, `pass`), and the
+secrets a device never prints; such a rule matches the printed line too, so one
+list serves the audit and the collection. A site's `[platform.NAME]` replaces
+the list whole, and an empty array turns it off. `juniper_junos`'s
+`crun-filters` stays empty: oxidized drops no Junos line, and `## Last commit:`
+is the stamp of the configuration's last change, which `cisco_iosxe`'s
+`crun-filters` leave in place too. A secret with no word before it, an answer to
+a `Password:` prompt sent as its own statement, passes in clear. *Why:* the
+precedent `crun-filters` and oxidized are both regular expressions, so a site
+writes its own as it would for either; the value in the group, oxidized's rule
+turned inside out, keeps the list a string array with one compiler and one
+stand-in, which a reader searches as one word; the audit is read more widely
+than the job's folder (issue 4), and a collection is the device's backup, whose
+restore needs its secrets and which sits in the operator's or the team's folder;
+a pattern that misses puts a secret into syslog, where one too wide hides a word
+of the record. *Not taken:* a list of words, karvi matching each by its
+abbreviations of three letters or more and masking the word after it (run beside
+the regular expressions on 13 statements, it caught `username ops pass 0
+Cl3arPw`, which a pattern catches only by spelling the prefix, but hid words of
+no secret, `chain` in `key chain OSPF-KEYS` and `generate` in `crypto key
+generate rsa`, and took seven phrases for one SNMPv3 rule); oxidized's rules as
+they stand (3 of 13 statements); oxidized's form, a pattern and a replacement
+per rule (a list of pairs, a stand-in per rule); the mask in `crun-filters` (a
+statement a drop pattern matched would leave the audit whole); `<secret hidden>`
+and `<configuration removed>` (two stand-ins, the second hiding an SNMP
+community's `RO` and its ACL too); the collection masked by default (a backup
+without its secrets).
+
+**Issue 8, continued: the names, agreed.** The rule. A platform's mask list is
+`masks`, a string array in `[platform.NAME]`; a collection applies it when
+`crun.mask`, a boolean in `[crun]`, is `true`, `false` by default. The plan
+carries both: `crun.mask` in its collection block, as it carries
+`crun.directory`, and each target platform's `masks`, which the audit reads as
+the collection does. The execution plan's schema moves from 13 to 14, and the
+registry from 30 to 31. A site writes the list in TOML's single-quoted strings,
+in which a backslash needs no escape:
+
+```toml
+[crun]
+mask = true
+
+[platform.cisco_iosxe]
+masks = ['(?i)^\s*snmp-server comm\S* (\S+)']
+```
+
+*Why:* one short word with no hyphen, beside the table's hyphenated
+`crun-filters`, `crun-commands`, and `paging-commands`, that names what the list
+does in the audit and in the collection alike; `crun.mask` beside `directory`,
+`directory-mode`, and `file-mode`; both in the plan, as `crun-filters` and
+`crun.directory` are, so that a job run by the daemon masks as one run without
+it. *Not taken:* `audit-masks` (the list serves the collection too); `secrets`
+(the list holds patterns, not secrets, and the property screen of the audit and
+the plan report, `executionplan.SensitivePropertyPattern`, refuses any name
+holding `secret`: run on the candidates, it refused `secrets` and
+`secret_masks`, and passed `masks`).
+
+**Issue 8, continued: `cisco_iosxe`'s list, agreed.** Nineteen patterns,
+oxidized's rules their start, each written for a statement: a command's `no`
+form, the type digit optional, the abbreviations `snmp-s…`, `comm…`, `pass…`,
+and `sec…` (other keywords whole), and, beyond oxidized's, an SNMPv3 user's two
+passwords, the `password-encrypt` master key, NHRP's key, and a URL's password
+(`copy … scp://ops:pw@host/…`). A scratch check ran them over 63 statements as
+sent, 49 of them holding a secret, and over a configuration of 46 lines as the
+device prints it, each line naming its secrets: no secret was left in place, and
+two words of no secret were removed; the check's output, not karvi's:
+
+```text
+over  sent   "description uplink to core, password reset by noc"
+      after  "description uplink to core, password <removed> by noc"
+over  line   " key 1"
+      after  " key <removed>"
+```
+
+The rule. `cisco_iosxe`'s built-in `masks` is the list below. Every pattern is
+found on the statement as sent, and text that more than one group covers is
+replaced once. The two words removed stand. The password rule leaves `password
+encryption aes`, which IOS XE prints once type 6 is on, whole: `encryption` is
+an alternative holding no group, which Go's matcher takes first where it matches
+(found while drafting `cisco_nxos`'s list; the list first agreed removed the
+word). *Why:* a description says anything; the key chain's key ID `key 1` falls
+to the bare `key` rule that catches `key T4cacsKey` under `tacacs server`. *Not
+taken:* that rule narrowed to a type digit or a value beginning with a letter (a
+clear key that begins with a digit would pass); more abbreviations (each widens
+a pattern beyond the keyword's own; a keyword abbreviated otherwise passes, as a
+secret with no word before it does).
+
+```toml
+masks = [
+  # SNMP: community, a host's v1/v2c community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(\S+)',
+  # password or secret anywhere: username, enable (with level), line, BGP
+  # neighbor, PPP, IS-IS, dot1x; abbreviations pass… and sec…; encryption
+  # holds no secret
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:encryption\s|(?:level\s+\d+\s+)?(?:\d\s+)?(\S+))',
+  '(?i)\bpassword-encrypt\s+(\S+)',
+  # keys: tacacs/radius server's bare key, legacy -server key, server-key and
+  # pac key, ISAKMP, IKEv2 pre-shared and pre-share, OSPF and NTP, key chains
+  # and HSRP key-string
+  '(?i)^\s*(?:no\s+)?key\s+(?:\d\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?(\S+)',
+  '(?i)\b(?:server-key|pac\s+key)\s+(?:\d\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?crypto\s+isakmp\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:(?:local|remote)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bpre-share\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|cmac\S*|hmac\S*)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(\S+)',
+  # HSRP and VRRP plain text, wireless PSK, NHRP, a URL's password
+  '(?i)^\s*(?:no\s+)?(?:standby|vrrp)\s+\d+\s+authentication\s+(?:text\s+)?(\S+)\s*$',
+  '(?i)\b(?:wpa-psk|set-key)\s+(?:ascii|hex)\s+(?:\d\s+)?(\S+)',
+  '(?i)\bnhrp\s+authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+```
+
+**Issue 8, continued: `cisco_iosxr`'s list, agreed.** Fifteen patterns. IOS XR
+writes `encrypted` or `clear` where IOS XE writes a type digit, and a type of
+two digits (`secret 10 $6$…`); its IS-IS `lsp-password` and `hello-password`
+name `hmac-md5` or `text` before the type; HSRP's plain-text key is a bare
+`authentication VALUE` line and VRRP's is `text-authentication`; `key-string`
+and `pre-shared-key` take `password` before the value. IOS XE's
+`password-encrypt`, ISAKMP, `pre-share key`, `pac key`, wireless, NHRP,
+`standby` or `vrrp … authentication`, and `enable … level` have no such form on
+IOS XR and are left out. The same check ran over 48 statements as sent, 39 of
+them holding a secret, and over a configuration of 53 lines in IOS XR's printed
+form, written from its documented syntax and not read from a device: no secret
+was left in place, and one word of no secret was removed, the key chain's key
+ID, as on IOS XE:
+
+```text
+over  line   " key 1"
+      after  " key <removed>"
+```
+
+The rule. `cisco_iosxr`'s built-in `masks` is the list below. The key ID removed
+stands, as on IOS XE. A bare `authentication` line's value is removed when it
+holds 8 characters or fewer, HSRP's limit, so that OSPF's `authentication
+message-digest` stays and `authentication null` loses its word.
+
+```toml
+masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?(?:\s+(?:encrypted|clear))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  # password or secret anywhere: username, BGP and LDP neighbor, IS-IS
+  # lsp- and hello-password; abbreviations pass… and sec…
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:(?:hmac-md5|text)\s+)?(?:(?:encrypted|clear|\d{1,2})\s+)?(\S+)',
+  # keys: a tacacs/radius host's bare key, -server key, server-key, IKEv2,
+  # OSPF and NTP, key chains
+  '(?i)^\s*(?:no\s+)?key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bserver-key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:(?:local|remote)\s+)?(?:(?:clear|password|\d)\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|hmac\S*)\s+)?(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:(?:clear|password|\d)\s+)?(\S+)',
+  # HSRP plain text (8 characters at most), VRRP text, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+(\S{1,8})\s*$',
+  '(?i)\btext-authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+```
+
+**Issue 8, continued: `cisco_nxos`'s list, agreed.** Thirteen patterns. NX-OS
+quotes some values (`tacacs-server key 7 "…"`, an LDAP server's password), so a
+value is a quoted string, taken whole with its spaces, or one word. It prints an
+SNMPv3 user's keys (`auth md5 0x… priv 0x… localizedkey`), `priv` taking
+`aes-128` before the value; a host's community is the word after `traps` or
+`informs`, so that `snmp-server host … use-vrf management` stays; and
+`snmp-server mib community-map` names a community too. Its `password` lines that
+hold no secret, `no password strength-check`, `password secure-mode`, and
+`feature password encryption aes`, stay whole by alternatives holding no group,
+which Go's matcher takes first. It has no `tacacs server` submode, so the bare
+`key` rule is left out, and with it the key ID removed; ISAKMP, IKEv2, NHRP, and
+wireless are left out too; PIM's `hello-authentication ah-md5` and HSRP's and
+VRRP's `authentication text` are added. The same check ran over 41 statements as
+sent, 28 of them holding a secret, and over a configuration of 36 lines in
+NX-OS's printed form, written from its documented syntax and not read from a
+device: no secret was left in place, and no word of no secret was removed. The
+rule. `cisco_nxos`'s built-in `masks` is the list below.
+
+```toml
+masks = [
+  # SNMP: community, a host's community after traps or informs, the MIB
+  # community map, a v3 user's auth and priv (printed as localized keys too)
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+("[^"]*"|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+\s+(?:informs|traps)(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+("[^"]*"|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+mib\s+community-map\s+("[^"]*"|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:aes-128\s+)?(\S+)',
+  # password or secret anywhere: username, enable, BGP neighbor, LDAP;
+  # strength-check, secure-mode, and encryption hold no secret
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:strength-check|secure-mode|encryption\s|(?:\d\s+)?("[^"]*"|\S+))',
+  # keys: tacacs/radius, OSPF and NTP, key chains and HSRP key-string
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?("[^"]*"|\S+)',
+  # HSRP and VRRP text, PIM hello, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+text\s+("[^"]*"|\S+)',
+  '(?i)\bhello-authentication\s+ah-md5\s+(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+```
+
+**Issue 8, continued: `arista_eos`'s list, agreed.** Thirteen patterns. EOS
+writes `sha512` as a type word. Its password rule takes `password` or `secret`
+as a word alone, so that `session shared-secret profile PROF` stays (EOS's IS-IS
+has no `area-password`), and leaves `management security`'s `password minimum
+…`, `password policy …`, and `password encryption-key …` whole by alternatives
+holding no group; a shared-secret profile's `secret 1 7 KEY receive-lifetime …`
+loses `KEY` alone, by an alternative before the general one. SNMPv3 takes `sha`
+to `sha512` and `des`, `3des`, and `aes` to `aes256`; in the printed form,
+`localized ENGINEID auth sha 0x… priv aes 0x…`, the engine ID stays, since it
+names the engine and is no secret, where oxidized hides it. IS-IS's
+`authentication key`, VRRP's `peer authentication text` and `ietf-md5
+key-string`, and a MACsec profile's `key CKN 7 CAK` are masked, the CAK alone,
+the CKN an ID; `service unsupported-transceiver NAME KEY` loses the key alone,
+where oxidized removes the tail; the URL rule takes EOS's `scp:` with or without
+`//`. The bare `key` rule (EOS has no `tacacs server` submode), HSRP, ISAKMP,
+IKEv2, NHRP, and wireless are left out. The same check ran over 43 statements as
+sent, 32 of them holding a secret, and over a configuration of 46 lines in EOS's
+printed form, written from its documented syntax and not read from a device: no
+secret was left in place, and no word of no secret was removed. The rule.
+`arista_eos`'s built-in `masks` is the list below.
+
+```toml
+masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\d{0,3})\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des|3des|aes\d{0,3})\s+(\S+)',
+  # password or secret as a word: username, enable, aaa root, BGP neighbor,
+  # a shared-secret profile's key; management security's minimum, policy,
+  # and encryption-key hold no secret
+  '(?i)(?:^|\s)(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:minimum\s|policy\s|encryption\S*\s|\d+\s+\d\S*\s+(\S+)\s+receive-lifetime|(?:(?:\d|sha512)\s+)?(\S+))',
+  # keys: tacacs/radius, OSPF and NTP, IS-IS and VRRP, key-string, MACsec CAK
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication\s+(?:key|text)\s+(?:\d\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(\S+)',
+  '(?i)^\s*key\s+[0-9a-f]+\s+\d\s+(\S+)',
+  # the licence key, a URL's password
+  '(?i)\bunsupported-transceiver\s+\S+\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?):(?://)?[^/\s:@]+:([^@\s]+)@',
+]
+```
+
+**Issue 8, continued: `juniper_junos`'s list, agreed.** Ten patterns. Junos tags
+each secret line of its printed form itself, `"…"; ## SECRET-DATA`, and one
+rule, oxidized's, removes the value before the tag; a `set` statement carries no
+tag, so the others name each keyword: `encrypted-password`,
+`plain-text-password-value`, `authentication-password`, `privacy-password`,
+`simple-password`, `privacy-key`, `secret`, `authentication-key`, `md5 N key`,
+and `pre-shared-key ascii-text` or `hexadecimal`, each serving both forms. A
+value is quoted, taken whole with its spaces, or one word without the `;`. The
+community is the secret: after `snmp community`, as v3's `community-name`, or a
+printed `community NAME {` block, so that a policy's `community CUST members …`
+stays. NTP's `authentication-key 1 type md5 value V` loses `V`, not the key's
+number, by an alternative before the general one; `system login password
+minimum-length 8`, `format sha512`, and the printed `password {` stay whole by
+alternatives holding no group; oxidized's archive-site rule covers a URL's
+password, `pasvftp` among the schemes. A bare `plain-text-password` holds no
+value, Junos asking for it at a prompt, and so falls under the recorded limit,
+as Junos's abbreviations do. The same check ran over 33 `set` statements, 22 of
+them holding a secret, and over a `show configuration` of 94 lines in Junos's
+hierarchical form, written from its documented syntax and not read from a
+device: no secret was left in place, and no word of no secret was removed. The
+rule. `juniper_junos`'s built-in `masks` is the list below. The printed form
+follows Junos's own tag, so that an SSH public key, which Junos tags, is removed
+there, as oxidized removes it, and kept in a statement, since a public key is no
+secret. *Not taken:* an exception to the tag for SSH keys (a rule beside Junos's
+own word on what is secret).
+
+```toml
+masks = [
+  # the printed form: Junos tags each secret line itself
+  '(?i)\s("[^"]*"|[^\s;]+);\s*## SECRET-DATA',
+  # SNMP: the community in a statement, v3's community-name, a printed block
+  '(?i)\bsnmp\s+community\s+("[^"]*"|\S+)',
+  '(?i)^\s*community\s+("[^"]*"|\S+)\s*\{',
+  '(?i)\bcommunity-name\s+("[^"]*"|[^\s;]+)',
+  # authentication-key (BGP, IS-IS, VRRP, v3), NTP's value first
+  '(?i)\bauthentication-key\s+(?:\d+\s+type\s+\S+\s+value\s+("[^"]*"|[^\s;]+)|("[^"]*"|[^\s;]+))',
+  # passwords and secrets: login, v3 users, OSPF simple, RADIUS, TACACS+,
+  # key chains; login password rules and a printed block hold no secret
+  '(?i)\b(?:encrypted-password|plain-text-password-value|authentication-password|privacy-password|simple-password|privacy-key|secret)\s+("[^"]*"|[^\s;]+)',
+  '(?i)\bpassword\s+(?:(?:minimum|maximum)-\S+\s|format\s|change-type\s|[{;]|("[^"]*"|[^\s;]+))',
+  # OSPF MD5, IKE, a URL's password
+  '(?i)\bmd5\s+\d+\s+key\s+("[^"]*"|[^\s;]+)',
+  '(?i)\bpre-shared-key\s+(?:ascii-text|hexadecimal)\s+("[^"]*"|[^\s;]+)',
+  '(?i)\b(?:ftp|pasvftp|tftp|scp|sftp|https?)://[^/\s:@"]+:([^@\s"]+)@',
+]
+```
+
+**Issue 8, continued: a job's events, agreed.** A job sends the same statements
+to every device, so that a device's events masked by its own platform's list
+alone would leave in clear what another platform's list hides. A job across
+`cisco_iosxe`, `juniper_junos`, and `linux`, its statements `show clock`,
+`snmp-server community Publ1c RO`, and `set snmp community Publ1c authorization
+read-only`, each device's events masked by its own list and by the lists of all
+the job's platforms; a scratch check's output, not karvi's:
+
+```text
+  core-rtr-1 cisco_iosxe   own list   "set snmp community Publ1c authorization read-only"   <- in clear
+  core-rtr-1 cisco_iosxe   all lists  "set snmp community <removed> authorization read-only"
+  edge-1     juniper_junos own list   "snmp-server community Publ1c RO"   <- in clear
+  edge-1     juniper_junos all lists  "snmp-server community <removed> RO"
+  srv-1      linux         own list   "snmp-server community Publ1c RO"   <- in clear
+  srv-1      linux         all lists  "snmp-server community <removed> RO"
+```
+
+The rule. Every audit event of a job, its `start` and each device's `command`
+events, the session-init statements among them, is masked by the plan's `masks`
+of every target platform together; a job whose devices share one platform is
+masked by that platform's list alone. A collection's file, under `crun.mask =
+true`, is masked by its device's own platform's list. A device on `linux` in a
+job across platforms takes the network platforms' lists; a job on `linux` alone
+has none unless the site sets `[platform.linux] masks`. *Why:* no list leaves a
+statement in clear in any event of the job, and the cost falls on a job across
+platforms alone: every platform's statements masked by all five lists left no
+secret in place, and removed words the platform's own list keeps on 14 of
+`cisco_iosxe`'s 63 statements, 20 of `cisco_iosxr`'s 48, 13 of `cisco_nxos`'s
+41, 13 of `arista_eos`'s 43, and 5 of `juniper_junos`'s 33, most of them type
+words (`0`, `clear`, `aes`, `sha512`) and some a word one list keeps and another
+removes (NX-OS's `strength-check`, EOS's `minimum` and `profile`, Junos's
+`format`); a collection's file is its device's own printed form, which another
+platform's rules would read wrongly. *Not taken:* each device's events by its
+own list and the `start` alone by all (the lines in clear above); every job by
+all five built-in lists (words removed in every job).
+
+Issue 8 is settled; S4 builds it.
 
 **Found, for later.** Three, each after this chapter's build, in this order:
 
