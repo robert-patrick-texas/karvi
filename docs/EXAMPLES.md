@@ -12646,3 +12646,302 @@ karvi_0.31.1_amd64.deb: OK
 **Found on the way.** The three executables keep 0.31.0's sizes, with other
 bytes; the bundle is 6,865 bytes larger and the package 3,518. The default
 configuration and `go-version-m.txt` are 0.31.0's.
+
+## 63. The audit trail's names and fields (2026-10-17)
+
+The ROADMAP's Later item "The audit trail, and then an audit review tool", its
+first part opened on the operator's word: every audit event named and linked
+alike in every mode, so that journald itself answers what was run at a device,
+in which job, and by whom.
+
+**The evidence.** This host's journal, which the suites and the labs of the
+last 30 days filled with audit events, and `/var/log/syslog`, which rsyslog
+fills from the journal; read on 2026-10-17, the writer the released tree's
+`internal/audit/audit.go`. An event is one journald entry: `MESSAGE` (`karvi
+audit EVENT outcome=OUTCOME`), `PRIORITY`, `MESSAGE_ID`,
+`SYSLOG_IDENTIFIER=karvi`, three fields of karvi's own (`KARVI_EVENT_NAME`,
+`KARVI_ACTIVITY_ID`, and `KARVI_JOB_ID`), and the whole record as JSON in
+`KARVI_AUDIT_JSON`; the same JSON line goes to `audit.file` when one is set.
+The 30 days held thirteen names: `run.started` 51,411, `run.completed` 46,035,
+`run.exercised` 5,340, `run.cancel_requested` 1,988, `command.started` 29,404,
+`command.completed` 29,391, `command_completed` 170,844, `crun.after.succeeded`
+578, `crun.after.failed` 373, `login.started` 4,505, `login.completed` 2,527,
+`login.errored` 1,969, and `test` 228. A run of two devices, a `command`, and a
+cancelled run, each by its ID:
+
+```console
+$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_ACTIVITY_ID=261016-085318-00 -o cat
+karvi audit run.started outcome=started
+karvi audit command_completed outcome=succeeded
+karvi audit command_completed outcome=succeeded
+karvi audit run.completed outcome=completed
+$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_ACTIVITY_ID=261016-085457-00 -o cat
+karvi audit command.started outcome=started
+karvi audit command_completed outcome=succeeded
+karvi audit command.completed outcome=completed
+$ journalctl SYSLOG_IDENTIFIER=karvi KARVI_ACTIVITY_ID=261016-085239-00 -o cat
+karvi audit run.started outcome=started
+karvi audit run.cancel_requested outcome=informational
+karvi audit command_completed outcome=cancelled
+karvi audit command_completed outcome=cancelled
+karvi audit command_completed outcome=cancelled
+karvi audit command_completed outcome=cancelled
+karvi audit run.completed outcome=cancelled
+```
+
+What the entries hold:
+
+- `command_completed` is one event per command per device, in every mode, and
+  not the `command`'s end; its JSON names no mode. The run's two are its two
+  devices, `127.0.0.1` and `127.0.0.2`, named in the JSON alone; the cancelled
+  run's four are its two devices' two commands, never sent.
+- A collection's job is `run.*` (`261016-085458-00`: `run.started`,
+  `command_completed`, `run.completed`, `crun.after.succeeded`), where `job
+  list` calls it `crun`. An `--exercise` job ends in `run.exercised`, with no
+  `run.completed`.
+- A `command`'s events carry `KARVI_JOB_ID` empty, all 29,404 starts and 52,822
+  of the `command_completed` events; their ID, the one `job list` shows, is in
+  `KARVI_ACTIVITY_ID` alone. A `command`'s summary and records carry `job_id`
+  empty too, its folder's name its only job ID. A login has no job, its ID in
+  `KARVI_ACTIVITY_ID`.
+- The device is in the JSON alone, as `device.canonical_name`, and a login's
+  as `device.name`. No field matches it; reading every event's JSON found
+  21,399 of the 95,946 events of seven days naming `fake-iosxe`, in 4.8
+  seconds:
+
+  ```console
+  $ journalctl SYSLOG_IDENTIFIER=karvi KARVI_DEVICE=fake-iosxe -o cat | wc -l
+  0
+  ```
+
+- A `run.started` names no device: `details.device_count` and
+  `action.selector_digest`.
+- A command is `action.command_sha256`, which only a guess names; a
+  `command_completed` of `261016-085459-00` held `cb75924d…`:
+
+  ```console
+  $ printf 'show clock' | sha256sum
+  cb75924da5e7bb871e288717e54dc1eb5065c55e8ab1a974be3319cc7f4cd590  -
+  ```
+
+- Syslog receives the message alone:
+
+  ```console
+  $ grep -c 'karvi audit' /var/log/syslog
+  71566
+  $ grep -m1 'karvi audit command_completed' /var/log/syslog
+  2026-10-11T06:51:09.848576-04:00 dev karvi[1867301]: karvi audit command_completed outcome=authentication_error
+  ```
+
+**What it gains.** An operator on a NOC shift asks journald, or the syslog a
+host forwards it to, what was run at a device in the last hours, by every
+operator and service account, a run under `--nof` included, and reads the
+operator, the statement, the job, and the device on each line, by name on every
+host; the events of one mode compare with another's word for word.
+
+**What it waits on.** Nothing: every event is written today. The audit schema
+moves from 1 to 2; issue 7 moves the command record's, the job summary's, and
+the scoreboard's.
+
+**Its issues, one at a time:** the names; the link to the job; the device's
+field; the statements in place of the digests; the operator's name; the line's
+form; the outcome's words; the mask.
+
+**Issue 1, the names, agreed.** The rule. Every audit event is named
+`<kind>.<event>`. The kind is the job's kind as `job list` shows it, `cmd`,
+`run`, or `crun` (the summary's `kind`), or `login`; `action.mode` holds the
+same word in every event. The events: `start` and `end`, once each per job or
+login; `command`, once per device per command, in place of `command_completed`;
+`cancel`, when a cancel is asked; `after`, a collection's `crun.after` hook. An
+`--exercise` job ends in `<kind>.end` with the outcome `exercise`; a login ends
+in `login.end` with the outcome `complete` or `error`; the hook is `crun.after`
+with the outcome `success` or `fail` (the words issue 7's). The outcome is in
+its own field alone, never in the name. *Why:* one word per mode across the
+summary, `job list`, and the audit, and the same event words in every mode, so
+that `run.end` and `cmd.end` compare as `run.command` and `cmd.command` do; each
+job and each login has one start and one end. *Not taken:* `cmd.completed` for
+the per-command event (one name for a `cmd` job's end and for every device
+command of every job, the 29,391 and the 170,844 events of the 30 days under one
+match); `command.completed` for it (free once the mode is `cmd`, but a journal
+kept across the change would hold both meanings); `command_completed` kept (the
+one name with an underscore, and no mode); the past-tense words (`started`,
+`completed`, `exercised`, `cancel_requested`); a collection's job named `run`;
+the outcome in the name (`login.errored`, `crun.after.failed`).
+
+**Issue 2, the link to the job, agreed.** The rule. Every event of a job, its
+`start`, each `command`, a `cancel`, its `end`, and `crun.after`, carries
+`KARVI_JOB_ID`, the ID `job list` shows, a `cmd` job's included; a login's
+events carry `KARVI_LOGIN_ID`, the ID of its row in `watch`. `KARVI_ACTIVITY_ID`
+leaves journald, and the JSON follows: `job_id` on a job's events, `login_id` on
+a login's, no `activity_id`. The message names the job (`job=ID`) or the login
+(`login=ID`), and the device where the event has one (`device=NAME`), in the
+line issue 6 sets. *Why:* `journalctl SYSLOG_IDENTIFIER=karvi KARVI_JOB_ID=ID`
+gives a job's whole trail in order; a login takes its ID from another sequence
+(the scoreboard folder's) than a job (the output root's), so one field for both
+would match a login by a job's ID; on every job event the activity ID repeated
+the job ID, and nothing read it; a forwarder that sends the message alone still
+links each line. *Not taken:* `KARVI_ACTIVITY_ID` kept as the one link (the ID
+the operator sees is the job's); a login's ID in `KARVI_JOB_ID`.
+
+**Issue 3, the device's field, agreed.** The rule. Every `<kind>.command` event,
+and a login's `login.start` and `login.end`, carries `KARVI_DEVICE`, the
+device's canonical name: its inventory name, lowercase, or a direct target as
+given. The JSON names the device `device.canonical_name` in every event, a
+login's `device.name` renamed. A job's `start`, `cancel`, and `end`, and
+`crun.after`, carry none. *Why:* `journalctl SYSLOG_IDENTIFIER=karvi
+KARVI_DEVICE=NAME` answers what was run at a device, by every operator and
+service account, a run under `--nof` included; every selected device has at
+least one `command` event, a cancelled or never attempted one included (the
+cancelled run above), so a job's `command` events name its every device; and
+journald matches a field whole, with its case, so the name is the one `job
+list` shows. *Not taken:* `KARVI_DEVICE` on a job's `start`, one value per
+device (2,500 values in one entry for the fleet); a `KARVI_ADDRESS` field for
+the address karvi connected to (on the operator's word; the address stays in
+the JSON, `device_identity.selected_address`).
+
+**Issue 4, the statements in place of the digests, agreed.** The rule. The audit
+records no digest. A `<kind>.command` event carries its statement as sent:
+`action.command` in the JSON, and `command="…"` in the message. A job's `start`
+carries its statements in order, `action.commands`; no other job event repeats
+them. `action.command_sha256`, `action.command_sha256_array`,
+`action.selector_digest`, `action.plan_digest`, `policy.config_digest`, and the
+empty command lists of a login's and `crun.after`'s events are removed. Host-key
+fingerprints and `plan_id` stay: they name a key and a plan, and are no digest
+of karvi's output. In the audit alone, the value after a platform's secret word
+is masked, by a list the platform definition holds, built in for `cisco_iosxe`;
+the job's folder keeps the statements as written. *Why:* a digest answers what
+was run only to someone who guesses it, and the message is what rsyslog
+forwards. The audit is read more widely than a job's folder: on this host the
+journal's files are `root:systemd-journal` 0640 with an access list and
+`/var/log/syslog` is `syslog:adm` 0640, besides whatever the host forwards to,
+where the folder is its operator's or the team's (the reason the scoreboard
+names no statement, [`docs/DESIGN.md`, section
+13](DESIGN.md#13-the-watch-screen)); a configuration statement can carry a
+secret in clear (`snmp-server community`, a type 0 `password`, `key 0`), which
+IOS XE's own configuration logger masks too (`archive log config` with
+`hidekeys`). *Not taken:* the digests kept beside the statements (nothing reads
+them); the statements in clear under the operator's rule alone, as `--expect`'s
+responses are in the plan (the audit reaches syslog and whatever it forwards
+to); the statements repeated on `end` and `cancel` (the `start` holds them). The
+list's key, its built-in words, and the mask are issue 8's.
+
+**Issue 5, the operator's name, agreed.** The JSON names the operator
+(`operator.username`, beside the UID and the groups), journald's own `_UID` the
+process's account by number; a UID is a host's, the same operator's differing
+from host to host, so a central log searched by name finds nothing in `_UID`.
+The name is the password database's for the process's UID (`user.Current()`),
+a daemon's job taking the daemon's own, and the daemon refuses a client of
+another UID. 344,156 events of the 30 days named `netops` beside `_UID` 1000;
+the only events with no name were the tests'. Under `sudo`, 72 events ran as
+`netops.test` from a `netops` login: their name was `netops.test`, and the
+person who logged in was journald's `_AUDIT_LOGINUID=1000` alone, the kernel's
+login UID, which `sudo` keeps. The rule. Every event names its operator:
+`KARVI_OPERATOR=NAME` in journald and `operator=NAME` in the line, NAME the
+account the job or the login ran as. When the kernel's login UID names another
+account, `KARVI_LOGINUSER=NAME` and `loginuser=NAME` name it too; with no login
+UID, as for the service account's daemon under systemd, they are absent. A job
+through the daemon takes its client's login UID, which the daemon reads from the
+client's process (`/proc/PID/loginuid`, the PID the socket's peer credentials
+give), never its own, which is the login of whoever launched it. *Why:* a SIEM
+matches an operator by name across hosts; on a jump box where operators `sudo`
+to a shared or role account, the shared name alone hides the person. *Not
+taken:* `_UID` alone (a host's number); the login user on every event (it
+repeats the operator's); the login UID the client reports (the kernel's word
+over the client's).
+
+**Issue 6, the line's form, agreed.** The rule. The message is one line of
+`key=value` pairs, in this order: `karvi.audit=<kind>.<event>`; `operator=NAME`;
+`loginuser=NAME` when it differs; `outcome=WORD`, which a `start` and a
+`cancel` leave out; `job=ID` or `login=ID`; `device=NAME` on `<kind>.command`,
+`login.start`, and `login.end`; and `command="…"` on `<kind>.command` alone,
+quoted always with `"` and `\` escaped, so that a statement holding spaces, `=`,
+or quotes stays one value, and masked as issue 8 masks it. The first key keeps
+its dot. The form, its values illustrative:
+
+```text
+karvi.audit=run.start operator=netops job=261016-085318-00
+karvi.audit=run.command operator=netops outcome=success job=261016-085318-00 device=core-rtr-1 command="show clock"
+karvi.audit=run.end operator=netops outcome=complete job=261016-085318-00
+karvi.audit=login.end operator=noc loginuser=jsmith outcome=error login=261017-101500-00 device=core-rtr-1
+```
+
+*Why:* one `key=value` rule reads the whole line, and Splunk extracts the pairs
+without one; the first key tells an audit line from the daemon's log, which
+reaches journald under the same identifier and is `key=value` too (`time=…
+level=INFO msg=request …`); and it carries karvi's name, so a line stands alone
+where another source's `audit` field would meet it, or where the syslog tag is
+dropped (`journalctl -o cat`). *Not taken:* `karvi audit <kind>.<event>` (bare
+words, a parser rule per source); the name bare after it (`karvi audit netops
+run.command …`); `audit=` (another source's field); `karvi_audit=` (some read
+the dot as nesting, Elasticsearch an `audit` under `karvi`; kept on the
+operator's word).
+
+**Issue 7, the outcome's words, agreed.** An event's outcome is a word karvi's
+records already hold: a `command` event's is the device record's `status`
+(`commands.jsonl`, the summary's devices, `job list --target`'s OUTCOME), a
+job's `end` the summary's `final_status` (`job list`'s and `watch`'s STATUS).
+The 30 days held `started`, `completed`, `errored`, `cancelled`, `halted`,
+`incomplete`, `exercised`, `not_ready`, `informational`, `succeeded`, `failed`,
+and the device statuses from `device_error` to
+`not_attempted_prior_command_failure`. The rule. An outcome or a status that is
+a past tense becomes one present-tense word, alike in every record karvi
+writes, the command record, the summary, the scoreboard, `job list`, `watch`,
+and the audit: `succeeded` `success`, `completed` `complete`, `errored` `error`,
+`failed` `fail`, `cancelled` `cancel`, `halted` `halt`, `exercised` `exercise`,
+and `started` `start`; `incomplete`, `timeout`, `not_ready`, and the `*_error`
+words stay. The compound causes with a past tense inside
+(`not_attempted_prior_command_failure`, `not_started_halt`,
+`output_limit_exceeded`, `incomplete_shutdown`, and their like) wait for item
+20's review of the output strings. A `start` and a `cancel` carry no outcome.
+The command record's schema moves from 3 to 4, the job summary's from 4 to 5,
+and the scoreboard's from 3 to 4. The section that builds it lists every such
+word first for the operator's review, the counts named after outcomes
+(`device_counts`, the scoreboard's) and the collection's `replaced` and `kept`
+among them. *Why:* one word for one outcome wherever an operator reads it, the
+audit beside `job list`; a `start`'s outcome repeated its name, and a cancel's
+said `informational`. *Not taken:* the audit translating its words alone
+(`complete` in the audit and `completed` in `job list` for one job); the
+compound causes shortened now (forms like `not_attempt_…`; item 20 shortens
+them whole).
+
+**Issue 8, the mask.** Issue 4's mask: the platform definition's key for the
+list, `cisco_iosxe`'s built-in words, and what stands for a masked value;
+settled with examples before the section that builds it.
+
+**Found, for later.** Three, each after this chapter's build, in this order:
+
+- The tests write into the host's journal: `internal/audit/audit_test.go`'s
+  228 `test` events, `internal/app/one_read_test.go`'s `crun.after.succeeded`
+  events of a job `261010-120000-00` with no activity ID (81), 112
+  `command_completed` events with no operator or ID, and every suite's jobs,
+  the 170,844 `command_completed` events among them. An audit review would
+  show them as work done.
+- `karvi-audit`, its shape agreed on the operator's word, chapter 64's: a
+  fourth executable, like `karvi-prune`, that reads the trail by running
+  `journalctl -o json SYSLOG_IDENTIFIER=karvi` with the matches, so that
+  following, reversing, grepping, and who reads whose events are journalctl's
+  (an operator their own, `adm` and `systemd-journal` everyone's), and shows a
+  table: TIME, KIND, EVENT, OPERATOR, OUTCOME, JOB-ID (a job's or a login's),
+  DEVICE, and COMMAND, the command cut at the terminal's width with `…` and
+  never to a pipe or a file, coloured as karvi's other output (a success green,
+  a warning orange, an error red; never into a file). Its options, by Go's
+  `flag` package, take one or two dashes and `=` or a space: `-f`/`-follow`,
+  `-r`/`-reverse`, `-g`/`-grep PATTERN`, `-o`/`-operator NAME` (the operator or
+  the login user), `-d`/`-device NAME` (lowercased), the last two repeatable
+  and matched whole, with journalctl's `-n`/`-lines`, `-S`/`-since`, and
+  `-U`/`-until`, and karvi's `-nocolor`; with none, every event, oldest first.
+  Its design opens with a mock-up of the table from real events, laid out by a
+  script.
+- A job ID is unique only in the folder that reserved it: the output root, a
+  collection's `--cd` folder, or none under `--nof`, whose ID is always `-00`.
+  Of the 43,173 job IDs of the 30 days' `run.started` events, 6,712 were
+  started by more than one process; `261016-085416-00` is a `command` (pid
+  3825619) and an exercised run (pid 3825609), the two in the same second, so
+  once a `cmd` job's events carry `KARVI_JOB_ID` that ID matches both. The
+  direction: one sequence per operator on a host for every job and login.
+
+**The build, in sections, each committed on the operator's word.** S1 the
+names, the links, the device, the operator, and the line (issues 1 to 3, 5, and
+6); S2 the statements in place of the digests (issue 4 without the mask); S3
+the outcome's words (issue 7); S4 the mask (issue 8, once agreed); S5 the
+closing documents and the full battery.
