@@ -353,7 +353,7 @@ the daemon without launching one, and prints the inspection report;
 nothing is submitted and no device is touched. `--exercise` submits the
 plan and package and has the daemon validate everything but the device,
 writing `exercise.json` beside an empty `commands.jsonl`; the summary reads
-`exercised`. Both take `--format json`. A live run renders records as they
+`exercise`. Both take `--format json`. A live run renders records as they
 become durable; `--detach` returns at acceptance with the job ID and
 artifact directory, `--follow=false` waits without rendering, and Ctrl-C
 leaves the job running in the daemon. `karvi job follow JOB-ID` renders a

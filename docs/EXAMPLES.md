@@ -13481,3 +13481,136 @@ names, the links, the device, the operator, and the line (issues 1 to 3, 5, and
 6); S2 the statements in place of the digests (issue 4 without the mask); S3
 the outcome's words (issue 7); S4 the mask (issue 8, once agreed); S5 the
 closing documents and the full battery.
+
+**Built.** In five sections, each committed on the operator's word. S1
+`d4de68e` (issues 1 to 3, 5, and 6): `records.AuditRecord` with `JobID`,
+`LoginID`, `LoginUser`, and `Device`, no `ActivityID`;
+`credentials.Operator.LoginUser`, filled by `osutil.CurrentOperator` and
+`osutil.LoginUser`, a daemon's job taking its client's by the socket's peer PID
+and a cancel its requester's; `audit.Line` and the journal entry's fields;
+`executor.Options.Kind`, from `jobexec.jobKind`; `schema/audit.schema.json` 2
+naming every key, each writer's lines checked against it
+(`canarytest.SchemaParityLines`); `scripts/lib/json.sh`'s `jsonl_lines` and
+`audit_events`, six suites moved off grep on JSON. S2 `d909c02` (issue 4
+without the mask): `action.command` and the line's `command="…"`,
+`action.commands` on a job's `start`; the digests and the helpers that made
+them removed, with the screen's exceptions; S1's leftover names in comments,
+the daemon's log, and the `host_key_enrolled` description. S3 `31e76ae`
+(issue 7, its list agreed first): the words in every record, the counts, the
+collection's, the ping gate's, and the plan report's; command record 4, job 5,
+scoreboard 4 (its schema file corrected), plan report 3; the K03 draft's pin
+moved with the footer's default; the verifiers' counters. S4 `9269734` (issue
+8): `platform.CompileMasks` and `platform.Mask`, the five built-in lists,
+`Definition.Masks` and the resolver; `crun.mask`, registry 31, and
+`config_platform_mask_invalid`; `platform_masks`, execution plan 14; the job's
+sink masking every statement (`audit.Sink.SetMasks`, the lists of all the
+job's platforms compiled once by `jobexec.jobMasks`); the collection's marker
+and kept lines under `crun.mask`; the design checks' corpora as
+`platform/testdata/masks`. S5, the documents: the CHANGELOG's `Unreleased`
+block; OPERATIONS' new section "The audit trail" and its collection's mask;
+COLLECTION's section 6.1, "The secrets: the mask"; DESIGN's section 10, the
+words and the audit, and section 11, the mask; the `crun` help,
+`karvi-crun(1)`, `karvi-login(1)`, and `karvi-run(1)`; the `crun_after_failed`
+description; the old words in ARCHITECTURE, OPERATIONS (the list of jobs'
+example from a lab build), DISPLAY-CONFIGURATION, PRUNE, the device
+qualification runbook, BUILD-QUALIFICATION, COMMAND-SESSION,
+SSH-HOST-KEY-POLICY, SSH-TROUBLE, TIMEOUTS, and README; and the ROADMAP, its
+Later item on the audit trail gone and the three found for later its Next
+items 1 to 3, in their order. The tests: `TestLoginUser`, `TestLine`,
+`TestJournalEntry`, `TestCommandEvent`, and `TestLoginEvents` (S1);
+`TestStatementKeysPass` and `TestJobEventStatements` (S2); the records', the
+scoreboard's, and the display's tests with the words (S3); `TestCompileMasks`,
+`TestMask`, `TestResolveMasks`, `TestBuiltinMasksCompile`,
+`TestBuiltinMasksCorpus`, `TestAllMasksCorpus`, `TestMasksValidation`,
+`TestPlatformMasksValidate`, `TestDraftPlatformMasks`,
+`TestSinkMasksStatements`, `TestJobMasks`, `TestCollectionMasks`, and
+`TestLineFilterMasks` (S4).
+
+**Agreed while building S2: a session-init statement.** A session-init
+profile's statements are chosen per device, so a job's `start`, whose
+`action.commands` holds the job's statements, names none of them; each has its
+own `<kind>.command` event, told from the job's statements by
+`action.command_kind`, `session_init` or `requested`, in the JSON alone. A run
+under a profile sending `show clock`; the S2 lab script's report of
+`audit.file` (`audit_events`: the event, the job, the kind, the statement, the
+statements), not karvi's output:
+
+```text
+run.start    261017-074223-00                              ["show version"]
+run.command  261017-074223-00  session_init  show clock
+run.command  261017-074223-00  requested     show version
+run.end      261017-074223-00
+```
+
+**Found while building S2 and S3.**
+
+- A blind send's event records its statement as any other's, and an
+  `--expect` response is not in the audit, whose `action` names no
+  expectation: the S2 lab's run of `clear counters` under `--blind-return 1`
+  and `copy running-config startup-config` under `--expect Destination
+  filename=` recorded its two statements alone.
+- The audit's property screen kept exceptions for keys that matched the
+  sensitive pattern; the one it named, `transcript_recording`, was written
+  nowhere and is in no schema, and S2 removed the exceptions with the digests.
+- The registry counter moves for a key, a table field, a path mark, or a
+  reload class alone: the footer's default changed in S3 and the counter
+  stayed 30. The daemon IPC schema stayed 12 though the summary its follow
+  frame embeds moved, as in chapter 61.
+- An exercise's scoreboard counts its device `done` while the target's state
+  stays `queued`, as before S3, which changed the words alone; found, not
+  changed. The S3 lab script's report of the exercise's scoreboard (the job,
+  its status, its counts, its targets), not karvi's output:
+
+  ```text
+  261017-091934-00  exercise  {"total":1,"done":1,"success":0,"fail":0,"not_started":0,"in_flight":0,"incomplete":0,"cancel":0}  [{"name":"fake-iosxe","state":"queued","bytes":0}]
+  ```
+
+- `packaging/man/karvi-crun.1` and `karvi-login.1` hold hand-written text
+  beside the generated regions, which `make generated-clean` does not cover:
+  S5 searched them with the documents.
+
+**Executed.** S1 to S4 each passed gofmt, vet, `make generated-clean`, and `go
+test ./...`, all 18 suites on a lab build of its final tree (run_suites, `KARVI`
+the lab build), and its lab scripts on that build, leaving no
+`/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`, or `/dev/shm/karvi`: S1's, a
+command, a run of two devices, a crun, an exercise, and a cancelled run, each
+job's trail read back from journald by its ID, the device's by `KARVI_DEVICE`,
+and the operator's by `KARVI_OPERATOR`, and a second operator's command and run
+under `sudo -n -u netops.test`, each event naming `operator=netops.test
+loginuser=netops`; S2's, the statements in the trail, a quoted one, a blind send
+and an `--expect` command, a session-init profile, and no key naming a digest;
+S3's, every record's words, a crun replacing one file and keeping another, and a
+ping-gated run proceeding and skipping; S4's, the mask in journald and
+`audit.file` and none in the job's folder, a job across `cisco_iosxe`,
+`juniper_junos`, and `linux`, a crun under `crun.mask` false and true, in
+process and through the daemon, a run's `--cd`, an alias's site list, the
+refusals, and a site's `crun.mask = true` with a one-off `--set
+crun.mask=false`. S5, at the work's end, on the final tree: gofmt, vet, `go test
+./...`, and `make generated-clean`; all 18 suites on a lab build;
+`scripts/verify-release.sh` whole in a copy of the tree, its tests under
+`-race`, its suites, its package with `check-deb.sh`, and the container test
+(`sysutil-smoke-test.sh`, edited in S3 and not run since) among them, then
+`verify-shipped.sh` on the copy's build, the copy the final tree but for the
+ROADMAP's order and these two paragraphs; and `s5-docs-lab.sh`, whose output
+OPERATIONS' list of jobs and audit trail and COLLECTION's mask quote.
+`scripts/device-qualification.sh`, edited in S3, needs a real device and was not
+run. A display template naming a removed placeholder is refused at load:
+
+```text
+$ karvi --set 'display.collection.footer=! <replaced> <kept>' config validate
+display_placeholder_unsupported: unsupported display placeholder <replaced> for display.collection.footer at --set[1]
+```
+
+**Closed.** The ROADMAP's Later item on the audit trail is gone, its first part
+built here. On the operator's word, the review tool is Next item 1,
+`karvi-audit`, its design next, and the release after it; unique job IDs is item
+2, and shorter output strings item 3, holding the messages and the prose chapter
+63's words reach, the list reviewed after the release; the tests' events out of
+the host's journal is a Later item. Audit schema 2, command record 4, job
+manifest and summary 5, scoreboard 4, plan report 3, execution plan 14, and
+registry 31 are the next release's, the verifiers pinning each since its
+section, and the CHANGELOG's `Unreleased` block names them. The evidence is kept
+beside the tree (`release-design-evidence/audit-names-2026-10-17`: the trail's
+reading, oxidized's rules at `2cac3f7`, each list's design checks, each
+section's lab scripts and their output, patches, and suite logs, and S5's lab,
+its suites' log, and the verifiers' logs).

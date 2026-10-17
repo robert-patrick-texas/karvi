@@ -33,7 +33,7 @@ header = "! transcript=<transcript>"
 footer = "! transcript=<transcript>"
 
 [display.collection]
-footer = "! collection=<collection> replaced=<replaced> kept=<kept>"
+footer = "! collection=<collection> replace=<replace> keep=<keep>"
 
 [display.json]
 indent = 2
@@ -57,14 +57,14 @@ files"](OPERATIONS.md#the-jobs-output-files)), `<artifacts>` is `none`.
 (`crun`, or `run` or `command` given `--cd`,
 [`docs/COLLECTION.md`](COLLECTION.md)), on standard output directly after it, on
 every text path: `--no-daemon`, the daemon follow, `job follow`, and a finished
-job's replay. The default, `"! collection=<collection> replaced=<replaced>
-kept=<kept>"`, renders `<collection>` (the absolute collection directory),
-`<replaced>`, and `<kept>` (the devices whose files were replaced and kept) in
+job's replay. The default, `"! collection=<collection> replace=<replace>
+keep=<keep>"`, renders `<collection>` (the absolute collection directory),
+`<replace>`, and `<keep>` (the devices whose files were replaced and kept) in
 the `value` role, the literals in the `label` role, as the footer is rendered:
 
 ```text
 ! exit=101 elapsed=900ms artifacts=/srv/karvi/jobs/261003/261003-103623-00
-! collection=/srv/configs replaced=1 kept=1
+! collection=/srv/configs replace=1 keep=1
 ```
 
 Under `--format json` and `--format jsonl` nothing is printed; the jsonl
@@ -81,8 +81,8 @@ error.
 text output and rendered as the headers are: the literals in the `label`
 role, `<target>` and `<address>` in theirs, `<rtt1>` and `<rtt2>` (each
 probe's round-trip time, `timeout`, or `error`) in the `value` role, and
-`<result>` bold in the `success` role for `proceeding` or the `error` role
-for `skipped`. The default is
+`<result>` bold in the `success` role for `proceed` or the `error` role for
+`skip`. The default is
 `"! <target> [<address>] ping(1) <rtt1>, ping(2) <rtt2>, <result>"`. An
 empty template prints no line; `--quiet` suppresses it; `--debug` adds the
 error details and the packet-loss notice after it. `login` prints the same

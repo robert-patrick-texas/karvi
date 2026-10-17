@@ -151,7 +151,7 @@ command, and nothing carries from one command to the next (`cd`, variables,
 (`channel_exec_declaration_refused`, exit 4); `--literal`, `--timeout`, and
 `--maxbytes` are accepted.
 
-How a command ends is its exit status: 0 is `succeeded` whatever stderr holds,
+How a command ends is its exit status: 0 is `success` whatever stderr holds,
 then the platform's failure patterns are searched in both streams; a non-zero
 status is `command_exit_nonzero`, a signal `command_exit_signal`, and a channel
 closed without a status on a live connection `command_exit_missing`, each a

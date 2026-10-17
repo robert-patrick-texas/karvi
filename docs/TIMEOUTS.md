@@ -106,7 +106,7 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 | `execution.device-timeout` | `device_timeout` | timeout; `timeout` | yes | 107 | `not_attempted_prior_command_failure`; the requested records are `not_attempted_session_init_failure` when a profile command was cut |
 | Keepalives unanswered | `session_keepalive_timeout` | connection; `connection_error` | yes | 110 | not attempted |
 | scrapligo-v1's dial or handshake | `native_session_open_failed` | connection; `connection_error` | yes | 110 | not attempted |
-| `execution.blind-wait` (the prompt absent after a blind command: `--blind`, a count, or the escape; its declared prompts answered as they appeared) | none; the notice `prompt_not_observed_after_blind_send` (`reason` `blind_wait_expired`, or `session_ended` when the stream ended first) | `succeeded`, all bytes read as the output, `prompt_observed` false | — | 0 | `not_attempted_prior_command_failure` naming the blind send, the device `command_session_lost`; as the last command the device succeeds |
+| `execution.blind-wait` (the prompt absent after a blind command: `--blind`, a count, or the escape; its declared prompts answered as they appeared) | none; the notice `prompt_not_observed_after_blind_send` (`reason` `blind_wait_expired`, or `session_ended` when the stream ended first) | `success`, all bytes read as the output, `prompt_observed` false | — | 0 | `not_attempted_prior_command_failure` naming the blind send, the device `command_session_lost`; as the last command the device succeeds |
 
 - A failed `run` exits 101 whatever the code.
 - The earlier of a command's own deadline and the device's names the code, on

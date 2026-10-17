@@ -19,10 +19,10 @@ decision was amended, the entry states the rule as it stands.
 **Truthful accounting.** Every device and every command ends in exactly one
 recorded state, and the counts partition the total. A command whose outcome is
 unknown (sent, then the job was cancelled or the daemon stopped) is recorded
-`cancelled` or `incomplete_shutdown`, never `succeeded` or `errored`, and is
+`cancel` or `incomplete_shutdown`, never `success` or an error, and is
 excluded from the error count. *Why:* an operator reading a summary must be
-able to trust that "failed" means the device said no and "completed" means
-every command was answered. *Not taken:* letting the driver's error stand for
+able to trust that `fail` means the device said no and `complete` means every
+command was answered. *Not taken:* letting the driver's error stand for
 a command the cancel interrupted; counting an unfinished device as failed.
 
 **No silent policy bypass.** A configuration value the reader cannot honour
@@ -867,7 +867,7 @@ password, since some servers allow keyboard-interactive and refuse password
 (`PreferredAuthentications` in the managed configuration). The record's
 credential projection names the method that authenticated, `auth` (`publickey`,
 `keyboard-interactive`, or `password`, absent where the session never
-authenticated), and every `command_completed` audit event names it beside the
+authenticated), and every `<kind>.command` audit event names it beside the
 device username and the credential backend: the system transport runs its
 command sessions at `LogLevel VERBOSE` and takes OpenSSH's `Authenticated to …
 using "M".` line from the stderr it already reads, keeping it from the
@@ -1510,7 +1510,7 @@ plan's exec rules (the channel per target, no blind sends or `--expect` for exec
 targets, no exec over telnet) as it checks the rest and evaluates no platform;
 the execution plan's schema moves to 11 and the record's to 3, and a daemon
 refuses a plan of another version as before. `watch` gains no column, a row's
-bytes counting both streams. Every `command_completed` audit event names the
+bytes counting both streams. Every `<kind>.command` audit event names the
 device username, the credential backend, and the method that authenticated the
 session. `metrics.json` is unchanged. *Why:* a connection runs one channel at a
 time, so `MaxSessions` is never reached and a lease per channel would count
@@ -1658,12 +1658,12 @@ read-only check the executor would (binding, transport, askpass, host key
 enrollment, ICMP capability, output preflight, dispatch arithmetic, capacity)
 and writes `exercise.json` in the job folder; no session, probe, or command
 path exists in exercise mode, and the report has no command status field, so
-it cannot claim success by construction. Status `exercised`, exit 0 or the
+it cannot claim success by construction. Status `exercise`, exit 0 or the
 first error finding's exit. *Why:* the proof of "no device contact" is
 structural; the exercise predicts the live refusal exactly.
 
 **`commit_job` answers at acceptance; the job runs on its own goroutine.**
-Acceptance is the moment the manifest is durable and the start audit record is
+Acceptance is the moment the manifest is durable and the `start` audit event is
 written; the job slot is released when the run returns, so `drain` and `stop`
 still see the job. *Why:* one client path and one daemon path for a followed
 run, a detached run, and an exercise.
@@ -1753,15 +1753,15 @@ meanings).
 **Cancellation is a job-scoped cause with shutdown's accounting.** `cancel_job`
 cancels one job's context with a cause carrying the reason, requester, and
 time; the daemon answers `cancelling` or `terminal` at once and never waits. A
-command in flight is recorded `cancelled`, a device any of whose units the
-cancel interrupted counts `cancelled` (neither completed nor failed), the run
-ends `cancelled` at exit 113. An exercise is never `cancelled`: the request is
+command in flight is recorded `cancel`, a device any of whose units the
+cancel interrupted counts `cancel` (neither `success` nor `fail`), the run ends
+`cancel` at exit 113. An exercise is never `cancel`: the request is
 accepted, changes nothing, and is recorded in the audit. The cancelled line is
-printed only for a job whose final status is `cancelled`. *Why:* a command
+printed only for a job whose final status is `cancel`. *Why:* a command
 already sent must never be recorded as succeeded or errored; a cancelled
 exercise would save a fraction of a second and lose the report the operator
 asked for; a reader would otherwise see "cancelled" over a job that ended
-`exercised` at exit 0.
+`exercise` at exit 0.
 
 **Shutdown is a cause, not a cancel, and forcing never skips accounting.** A
 forced stop or grace expiry cancels every job's context with a shutdown cause;
@@ -1953,15 +1953,15 @@ opened, or the device refused its exec request: a not-attempted record, a
 connection that failed first, `ssh_session_channel_refused` on either
 transport), an empty one that it ran and wrote nothing there; the text file and
 the echo show `! not sent:` by it. Exec output is recorded as the program wrote
-it, with no terminal between to render. Exit 0 is `succeeded` whatever stderr holds; a non-zero exit
-is `device_error` with `command_exit_nonzero`, a signal `command_exit_signal`,
-and a channel closed without a status on a live connection
-`command_exit_missing`, each in the `device` category, exit 107, external and
-not retryable, so `errors.jsonl`, `failed-devices.txt`, the summary, and the
-run's exit treat them as any device error; a lost connection keeps its session
-codes. The platform's failure patterns apply to both streams after the exit
-status, so status 0 with a match is `device_command_error`. The device-error
-policy is unchanged: later commands are not attempted unless
+it, with no terminal between to render. Exit 0 is `success` whatever stderr
+holds; a non-zero exit is `device_error` with `command_exit_nonzero`, a signal
+`command_exit_signal`, and a channel closed without a status on a live
+connection `command_exit_missing`, each in the `device` category, exit 107,
+external and not retryable, so `errors.jsonl`, `failed-devices.txt`, the
+summary, and the run's exit treat them as any device error; a lost connection
+keeps its session codes. The platform's failure patterns apply to both streams
+after the exit status, so status 0 with a match is `device_command_error`. The
+device-error policy is unchanged: later commands are not attempted unless
 `--continue-device-on-error`, and the connection stays usable. `promptbefore`
 and `prompt` are empty, `prompt_source` is `none`, and `prompt_observed` is
 false; `--echo` and `output.TARGET.txt` show the inferred prompt (`srv1$ uname
@@ -2036,7 +2036,7 @@ host; a relative path from an unreadable working directory is
 its process alone: the `daemon.*` keys (`daemon-start` their reload class where
 a running daemon keeps the value), its `basedir` for its socket, state, and
 log, and the sweeps at its start. The client's load enforces the locks; the
-daemon re-checks nothing. A job's audit records, its `cancel_requested` among
+daemon re-checks nothing. A job's audit events, its `cancel` among
 them, go to the sinks its configuration names, and the client says its load's
 warnings as every invocation does ([section 15](#15-configuration-and-errors)).
 *Why:* a daemon started by one invocation ran every later
@@ -2129,6 +2129,46 @@ summed on the metrics line, and a heartbeat rewrites the snapshot every
 per byte; a follow event would move the IPC schema and message every
 subscriber per interval.
 
+**An outcome or a status is one present-tense word in every record.**
+`success`, `complete`, `error`, `fail`, `cancel`, `halt`, and `exercise`, alike
+in the command record, the summary, the scoreboard, `job list`, `watch`, and
+the audit; the counts named after outcomes take their words (`done`, the
+devices at an end, beside `success`, `fail`, and `cancel`), the collection's
+are `replace` and `keep`, the ping gate's `proceed` and `skip`, and the plan
+report's outcome `plan`. The error codes and the halt reasons drawn from them,
+`unfinished`, and the compound causes (`not_attempted_prior_command_failure`)
+stay for the review of the output strings. *Why:* one word for one outcome
+wherever an operator reads it, the audit beside `job list`. *Not taken:* the
+audit translating its words alone; the compound causes shortened now.
+
+**The audit names every event alike in every mode, and records each statement,
+masked.** Every event is `<kind>.<event>`: `cmd`, `run`, or `crun`, the
+summary's `kind`, with `start`, `command` (one per device per command, a
+command never sent included), `cancel`, and `end`; `login.start` and
+`login.end`; `crun.after`. Each names the job (`KARVI_JOB_ID`, a `cmd` job's
+included) or the login (`KARVI_LOGIN_ID`) and the operator (`KARVI_OPERATOR`,
+the account it ran as, a daemon's job its client's; `KARVI_LOGINUSER` when the
+kernel's login UID names another account); a `command` event and a login's
+name the device (`KARVI_DEVICE`, its canonical name). The message is one line
+of `key=value` pairs, `karvi.audit=<kind>.<event>` first and the statement
+last, quoted always; the outcome is the record's word, and a `start` and a
+`cancel` carry none. A `command` event carries its statement as sent and a
+`start` the job's statements in order; the audit records no digest. Every
+statement is masked, in journald and `audit.file` alike, by the `masks` of all
+the job's platforms together (the plan's `platform_masks`), the text of each
+capturing group replaced by `<removed>`; the job's folder keeps the statements
+as sent. *Why:* journald itself answers what was run at a device, in which
+job, and by whom, by name on every host, and a forwarder that sends the
+message alone still links each line; a digest answers only someone who guesses
+it; the audit is read more widely than a job's folder (the journal's readers,
+syslog, and whatever it forwards to), and a statement can carry a secret in
+clear; a device's events masked by its own platform's list alone would leave
+in clear what another platform's list hides. *Not taken:* `command_completed`
+with no mode, and the past-tense names; `KARVI_ACTIVITY_ID` as the link;
+journald's `_UID` alone (a host's number); the digests beside the statements;
+each device's events masked by its own list ([`docs/EXAMPLES.md`, chapter
+63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)).
+
 ## 11. The collection run
 
 **A collection is one flat directory of device files, replaced only on
@@ -2152,8 +2192,23 @@ built-in lists dropping byte counts, uptimes, and NTP clock periods) are
 dropped from the collection file alone. *Why:* a collection differs at every
 run before anything changed, and with the hook that noise is a commit and a
 mail a day; a change stamp says when and by whom, and is kept. *Not taken:*
-masking in place of dropping; secret masking (the site's `.gitattributes`
-filter at the commit).
+masking in place of dropping.
+
+**Under `crun.mask` a collection file's secrets are masked; off by default.**
+`crun.mask = true` masks every collection file, a `crun`'s and a `--cd` run's:
+the text of every capturing group of the device's own platform's `masks`, the
+audit's lists, is replaced by `<removed>` in each line kept after the drop and
+in each marker's statement; the record and the job's files keep the text as
+sent. The job reads the key from the plan's configuration block, as it reads
+`crun.file-mode`, and the plan carries each target platform's list. `--set
+crun.mask=false` keeps one run's files whole unless the site locks the key.
+*Why:* a collection is the device's backup, whose restore needs its secrets, and
+it sits in the operator's or the team's folder, so the site decides; a `run
+--cd` into the directory under the site's choice would put secrets back; the
+marker is a line of the file. *Not taken:* the mask on by default (a backup
+without its secrets); the mask a `crun`'s alone, as the filters are; the marker
+whole under the mask (the file would keep a secret the audit hides); a `mask`
+field in the plan's collection block (a copy of a key).
 
 **A `run` or `command` with `--cd=PATH` writes the collection file, unfiltered,
 replaced only when the device succeeds.** The file is the collection's: one per
@@ -2181,7 +2236,7 @@ device said; one success rule for every collection. *Not taken:* applying
 `command` with `--cd` writes the folder it writes without one, `output.NAME.txt`
 included under `output.files.output-txt` (a `crun` writes none); `summary.json`
 and the jsonl summary document carry the `collection` block (the directory,
-`replaced`, `kept`, each device's file and outcome) for every collection; under
+`replace`, `keep`, each device's file and outcome) for every collection; under
 `--nof` the collection is written and no folder (`artifacts=none`); `--nof
 --detach` stays refused. *Why:* a kept collection file is the previous one, so
 the folder's text file, with its header and error line, is the one place that
@@ -2333,7 +2388,7 @@ summary document as the stream's last line, so a script reads one stream, the
 records then the summary. A run with a collection (`crun`, or `run` or
 `command` with `--cd`) adds one line after the footer, the template
 `display.collection.footer` (default `! collection=<collection>
-replaced=<replaced> kept=<kept>`, `<collection>` the absolute collection
+replace=<replace> keep=<keep>`, `<collection>` the absolute collection
 directory), in the footer's roles, written by the footer's renderer to standard
 output directly after it on every text path (`--no-daemon`, the daemon follow,
 `job follow`, a finished job's replay), and under json and jsonl never, as the

@@ -88,8 +88,8 @@ kind is for the session being diagnosed, not for production use.
   ([`docs/LOGIN-TRANSCRIPTS.md`](LOGIN-TRANSCRIPTS.md)). Whether anything came
   back at all, a banner or an escape sequence that drew nothing, is there; a
   session ended before its end keeps the raw bytes `script(1)` wrote.
-- **The audit:** every login writes a `started` event and a `completed` or
-  `errored` one with its code.
+- **The audit:** every login writes a `login.start` event and a `login.end`
+  one, its outcome `complete` or `error`, with its code.
 
 ## 3. `command` beside the login
 

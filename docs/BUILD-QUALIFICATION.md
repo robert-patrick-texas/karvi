@@ -100,7 +100,7 @@ smoke suites use `absent PATTERN FILE` or `! … || fail "…"`.
 - The canary suite runs twelve rows (thirteen with shutdown accounting): p1 runs
   `--ping` over `127.0.0.1` and `192.0.2.1` with the real pinger and asserts one
   new session at the fake device, the TEST-NET record `icmp_unreachable` with
-  decision `skip`, the loopback record `succeeded` with decision `proceed`, the
+  decision `skip`, the loopback record `success` with decision `proceed`, the
   summary block, and the skipped gate within two timeouts plus one second; p2
   runs `login --ping` against `192.0.2.1` and asserts exit 110 with no session;
   p3 asserts `ping_flag_conflict`. The final scan covers 106 files.

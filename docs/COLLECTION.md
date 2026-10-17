@@ -40,7 +40,7 @@ karvi crun --all --dry-run                         # each device's list, no devi
   temporary and renamed into place when every command of the device came
   back; a device not reached, timed out, halted, or cancelled keeps its
   previous file and leaves nothing behind. The display ends, after the
-  footer, with `! collection=DIR replaced=N kept=M`
+  footer, with `! collection=DIR replace=N keep=M`
   (`display.collection.footer`; under jsonl the summary document carries
   the counts); `failed-devices.txt` in the job folder is the rerun.
 - **The directory** is `crun.directory`: `auto` is the site's shared
@@ -165,7 +165,7 @@ $ karvi crun --target srv1 --cmd 'uname -r' --cmd 'cat /etc/missing'
 cat: /etc/missing: No such file or directory
 karvi: target=srv1 status=device_error error=command_exit_nonzero: exited 1
 ! exit=101 …
-! collection=/opt/karvi/shared/crun replaced=1 kept=0
+! collection=/opt/karvi/shared/crun replace=1 keep=0
 ```
 
 leaves the file
@@ -504,15 +504,15 @@ reads the replaced files' names on standard input, one per line, sorted
 | `KARVI_JOB_ID` | the job's ID |
 | `KARVI_JOB_DIR` | the job folder (empty under `--nof`) |
 | `KARVI_CRUN_DIRECTORY` | the collection directory, the working directory too |
-| `KARVI_CRUN_REPLACED`, `KARVI_CRUN_KEPT` | the counts of the collection line |
+| `KARVI_CRUN_REPLACE`, `KARVI_CRUN_KEEP` | the counts of the collection line |
 | `KARVI_EXIT` | the run's exit code |
 
 Its output, both streams, goes to karvi's stderr after the display, so a
 `--format jsonl` stdout stays records. A hook that cannot start, exits
 non-zero, or runs past `crun.after-timeout` (`5m` by default, `1s` to `1h`)
 is the warning `crun_after_failed`; the collection stands and the run's exit
-code is unchanged, and the audit holds a `crun.after.succeeded` or
-`crun.after.failed` event with the path, the exit code, and the duration. At
+code is unchanged, and the audit holds a `crun.after` event, its outcome
+`success` or `fail`, with the path, the exit code, and the duration. At
 the timeout, or when the run is interrupted, the hook's process group is sent
 SIGTERM, what is left of it is killed five seconds later, and karvi returns
 once the group is gone; whatever a hook that exits by itself leaves running is
@@ -542,7 +542,7 @@ after-timeout = "5m"
 $ karvi crun --all
 …
 ! exit=101 elapsed=4m12s artifacts=/opt/karvi/shared/jobs/260926/260926-103409-00
-! collection=/opt/karvi/shared/crun replaced=212 kept=3
+! collection=/opt/karvi/shared/crun replace=212 keep=3
 $ git -C /opt/karvi/shared/crun log --oneline -1
 10738a1 crun 260926-103409-00: 212 replaced, 3 kept, exit 101
 ```
@@ -610,6 +610,64 @@ model's table, as the command lists do. The reference for what other
 tools drop is RANCID's per-type filters and Oxidized's model clean-ups;
 karvi drops less by design, since the stamps
 are the history a diff wants.
+
+### 6.1 The secrets: the mask
+
+A configuration holds secrets in its own form: an SNMP community, a type 0 or
+type 7 `password`, a TACACS+ `key`. A collection file is the device's backup,
+whose restore needs them, so they stay unless the site turns the mask on:
+
+```toml
+[crun]
+mask = true
+```
+
+Under `crun.mask = true` (`false` by default) every collection file, a
+`crun`'s and a `run`'s or `command`'s given `--cd`, has its secrets replaced by
+`<removed>`, in each line kept after the drop list and in the statement of
+each `! COMMAND` marker. The record, `commands.jsonl`, and `output.NAME.txt`
+keep every line and statement as sent. A `crun` of a statement holding a
+community, which the device rejected (its block written as for any rejected
+statement), the file's marker lines (`grep '^!'`):
+
+```text
+! show clock
+! snmp-server community <removed> RO
+```
+
+The list is a platform's `masks`: regular expressions in Go's syntax, each
+matched against a line without its terminator, or a marker's statement
+without its `! `; the text of every capturing group of every match is replaced
+by `<removed>`, text two groups cover once, and a group that matched nothing
+is left alone. A collection file is masked by its device's own platform's
+list. `cisco_iosxe` (19 patterns), `cisco_iosxr` (15), `cisco_nxos` (13),
+`arista_eos` (13), and `juniper_junos` (10, Junos's own `## SECRET-DATA` tag
+among them) each have a built-in list, written for a statement as sent and a
+line as the device prints it alike; `linux`, `linux_shell`, and `generic` have
+none. Each built-in list, with the reason for each pattern and the checks it
+passed, is in [`docs/EXAMPLES.md`, chapter
+63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17), in TOML ready
+to copy. A site's array replaces the list whole, and an alias inherits its
+driver's list unless it sets its own, as with `crun-filters`; a site adding a
+pattern copies the built-in list and adds to it. The same lists mask every
+statement the audit records, always, whatever `crun.mask` says
+([`docs/OPERATIONS.md`, "The audit trail"](OPERATIONS.md#the-audit-trail)), so
+`masks = []` leaves that platform's statements in clear in the audit too.
+
+A pattern that does not compile, or holds no group, refuses the
+configuration before any device is contacted (`config_platform_mask_invalid`,
+exit 2, naming the table and the pattern):
+
+```text
+$ karvi --set "platform.cisco_iosxe.masks=['(']" config validate
+config_platform_mask_invalid: pattern 1 "(" does not compile: error parsing regexp: missing closing ): `(` for platform.cisco_iosxe.masks at --set[1]
+```
+
+An operator who needs one run's files whole writes `karvi --set
+crun.mask=false crun …`, unless the site has locked the key in its global
+file (`[config-lock] "crun.mask" = true`), which refuses the `--set`
+(`config_lock_violation`). A secret with no word before it passes, as does a
+keyword abbreviated otherwise than the patterns allow.
 
 ## 7. The schedule
 

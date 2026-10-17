@@ -9,7 +9,24 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **Shorter output strings.** A review of every error and warning message
+1. **`karvi-audit`.** A fourth executable, like `karvi-prune`, that reads the
+   trail by running `journalctl -o json SYSLOG_IDENTIFIER=karvi` with the
+   matches, so that following, reversing, grepping, and who reads whose
+   events are journalctl's (an operator their own, `adm` and
+   `systemd-journal` everyone's), and shows a table: TIME, KIND, EVENT,
+   OPERATOR, OUTCOME, JOB-ID (a job's or a login's), DEVICE, and COMMAND,
+   coloured as karvi's other output. Its shape and options are agreed
+   (chapter 63's "Found, for later"); its design opens with a mock-up of the
+   table from real events, laid out by a script.
+2. **Unique job IDs.** A job ID is unique only in the folder that reserved
+   it: the output root, a collection's `--cd` folder, or none under `--nof`,
+   whose ID is always `-00`. Of the 43,173 job IDs of thirty days'
+   `run.started` events, 6,712 were started by more than one process, so
+   `journalctl KARVI_JOB_ID=ID` can match two jobs. The direction: one
+   sequence per operator on a host for every job and login. A `cmd` job's
+   empty `job_id` in its summary, its records, and `job list --format json`
+   goes with it.
+3. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
    credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
@@ -19,6 +36,10 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    message alike; the tests, suites, and documents that quote a message,
    changed with it; and the generated error-code descriptions
    ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
+   Chapter 63's words reach it too: the messages built from them
+   (`job_orphaned`'s "its scoreboard ended error") and the help's and the
+   registry's prose ("halted terminal status", "replaced only when the
+   device's collection succeeded").
 
 ## Later
 
@@ -83,7 +104,8 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   declare one as required for its consumption. The review lists each digest
   the program computes or records with who computes it, who reads it, and
   what breaks without it, and removes those nothing consumes in production;
-  the development use, comparing two outputs, stays.
+  the development use, comparing two outputs, stays. The audit's are gone
+  (chapter 63, its statements in their place).
 - **`Sealed` credential packages.** The envelope schema accepts the
   protection and the `Sealer` interface is fixed, but no channel carries it
   and no reviewed provider exists; it waits for the stage that brings a
@@ -208,25 +230,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   55](docs/EXAMPLES.md#55-an-explicit-envname-cell-2026-10-10)). The question:
   the directory made when the job is submitted, or removed when the client
   abandons it.
-- **The audit trail, and then an audit review tool.** What karvi writes to
-  journald, and so to the syslog a host forwards it to, does not suffice as
-  the record of every job, the one a run under `--nof` or
-  `output.persist-command = false` leaves where it makes no folder
-  ([`docs/EXAMPLES.md`, chapter
-  61](docs/EXAMPLES.md#61-a-list-of-jobs-karvi-job-list-2026-10-15)). One gap
-  found: every `command_completed` event names its device inside
-  `KARVI_AUDIT_JSON` alone, beside the fields `KARVI_EVENT_NAME`,
-  `KARVI_ACTIVITY_ID`, and `KARVI_JOB_ID`, and `journalctl` matches a field
-  only whole, so a device's commands are found only by reading every event's
-  JSON; a `KARVI_DEVICE` field would let `journalctl SYSLOG_IDENTIFIER=karvi
-  KARVI_DEVICE=NAME` answer what was run at a device, by every operator and
-  service account. The item: a review of what each event records and where it
-  is written, journald's fields and the audit file's line, so that the trail
-  answers who ran what, where, and with what result. After it, an audit review
-  tool, perhaps reserved for administrators, answers for every job, where `job
-  list` answers an operator for the jobs they made and, on a shared host, the
-  team's. The questions: the events and their fields; syslog beside journald;
-  and who may run the review tool.
 - **`watch`'s OPERATOR from the file's owner.** `watch` shows a scoreboard's
   `operator.username`, which the job's own process writes at its start, and
   never reads who owns the file, so a scoreboard in the shared folder (3770,
@@ -238,6 +241,16 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   file's owner, as `job list`'s. The questions: a file whose field and owner
   differ, shown as the owner or marked; and the JSON form, which prints each
   snapshot as written.
+- **The tests' events out of the host's journal.** The audit's sink writes
+  to journald whatever the configuration, so the Go tests and the suites
+  write their events into the host's journal: `internal/audit`'s `test`
+  events, a collection hook's test's `crun.after` events, and every suite's
+  jobs, the 170,844 `command_completed` events of thirty days among them
+  ([`docs/EXAMPLES.md`, chapter
+  63](docs/EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)). An
+  audit review would show them as work done. The item: no test or suite
+  writes to the host's journal. The questions: how a test's sink is kept
+  from journald, and how a suite's is.
 
 ## The device-qualification track
 

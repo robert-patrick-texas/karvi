@@ -1,5 +1,93 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking: the audit trail's names, links, and line; audit schema 2.**
+  Every audit event is named `<kind>.<event>`, the kind `cmd`, `run`, or
+  `crun` as `job list` shows it (`action.mode` the same word): `start` and
+  `end`, once each per job; `command`, once per device per command, a command
+  never sent included, in place of `command_completed`; `cancel` when a cancel
+  is asked, in place of `run.cancel_requested`; `login.start` and `login.end`;
+  and the collection hook's `crun.after`. An exercise ends in `<kind>.end`
+  with the outcome `exercise`, in place of `run.exercised`. The outcome is in
+  its own field alone, never in the name (`login.errored` and
+  `crun.after.failed` are gone), and a `start` and a `cancel` carry none.
+  journald's fields: `KARVI_JOB_ID` on every event of a job, a `cmd` job's
+  included; `KARVI_LOGIN_ID` on a login's; `KARVI_DEVICE`, the device's
+  canonical name, on each `command` event and a login's; `KARVI_OPERATOR`, the
+  account the job or the login ran as, on every event; and `KARVI_LOGINUSER`
+  when the kernel's login UID names another account, the person behind
+  `sudo`, a job through the daemon taking its client's from the client's
+  process. `KARVI_ACTIVITY_ID` is gone, and the JSON follows: `job_id` or
+  `login_id` in place of `activity_id`, `device.canonical_name` in every
+  event (a login's `device.name` renamed), and `loginuser`. The message is
+  one line of `key=value` pairs, `karvi.audit=<kind>.<event>`, `operator`,
+  `loginuser` when it differs, `outcome`, `job` or `login`, `device`, and
+  `command="…"`, quoted always, in place of `karvi audit EVENT
+  outcome=OUTCOME` ([`docs/OPERATIONS.md`, "The audit
+  trail"](docs/OPERATIONS.md#the-audit-trail)). A site's parser of the audit
+  file, the journal, or the syslog it forwards changes with it.
+- **Breaking: the audit records the statements, not their digests.** A
+  `command` event carries its statement as sent, `action.command` and the
+  line's `command="…"`; a job's `start` carries its statements in order,
+  `action.commands`, which its `cancel` and `end` do not repeat. A
+  session-init statement has its own `command` event, `action.command_kind`
+  `session_init`, and stays off the `start`'s list. `action.command_sha256`,
+  `action.command_sha256_array`, `action.selector_digest`,
+  `action.plan_digest`, `policy.config_digest`, and the empty command lists
+  of a login's and `crun.after`'s events are gone. An `--expect` response is
+  never in the audit.
+- **The mask: `masks` and `crun.mask`; execution plan 14, registry 31.**
+  `[platform.NAME] masks` is a platform's mask list, regular expressions in
+  Go's syntax: in a statement or a line, the text of every capturing group of
+  every match is replaced by `<removed>`, text two groups cover once, a group
+  that matched nothing left alone. `cisco_iosxe` (19 patterns), `cisco_iosxr`
+  (15), `cisco_nxos` (13), `arista_eos` (13), and `juniper_junos` (10) have
+  built-in lists, in force by default; a site's array replaces a list whole,
+  `[]` turns it off, and a pattern that does not compile or holds no group
+  refuses the configuration, `config_platform_mask_invalid` (exit 2). Every
+  statement the audit records is masked, in journald and `audit.file` alike,
+  by the lists of all the job's platforms together; the job's folder keeps
+  the statements as sent. `crun.mask` (`false` by default) masks every
+  collection file by its device's own platform's list, a `crun`'s and a
+  `run`'s or `command`'s given `--cd`, in each line kept and each `! COMMAND`
+  marker's statement; `--set crun.mask=false` keeps one run's files whole
+  unless the site locks the key. The plan carries each target platform's list
+  as `platform_masks` ([`docs/COLLECTION.md` section
+  6.1](docs/COLLECTION.md#61-the-secrets-the-mask)).
+- **Breaking: an outcome or a status is one present-tense word in every
+  record; command record 4, job manifest and summary 5, scoreboard 4, plan
+  report 3.** `succeeded` is `success`, `completed` `complete`, `errored`
+  `error`, `failed` `fail`, `cancelled` `cancel`, `halted` `halt`, and
+  `exercised` `exercise`, in the command record's `status`, the summary's
+  `final_status` and `devices`, the scoreboard's `status` and target states,
+  `job list` and `watch`, a login's status, and the audit's outcomes. The
+  counts named after outcomes take their words, `device_counts` and the
+  scoreboard's `counts`: `done` (the devices at an end, `job list`'s DONE,
+  was `completed`), `success`, `fail`, and `cancel`; `total`, `not_started`,
+  `incomplete`, and `in_flight` stay. The ping gate's counts in the summary's
+  `ping.devices` are `proceed`, `proceed_degraded`, `skip`, and
+  `capability_unavailable` (`gated` stays), and its display line ends
+  `proceed` or `skip`; the plan report's `outcome` is `plan` or `exercise`.
+  The error codes (`cancelled`, every `*_failed`), the halt reasons drawn
+  from them, `unfinished`, and the compound causes
+  (`not_attempted_prior_command_failure`) stay, so a cancelled record reads
+  `status: cancel` beside `error.code: cancelled`. The scoreboard's schema
+  file names its version 4 and declares the targets' `bytes` and the
+  metrics' `in_flight_bytes`, which it left out. A record's `<status>` in the
+  display takes the success role for `success` and `complete`, where a
+  `succeeded` record showed in the error role.
+- **Breaking: the collection's `replace` and `keep`.** The summary's and the
+  scoreboard's `collection` counts and each device's outcome, and
+  `crun.after`'s details, say `replace` and `keep`; the display placeholders
+  are `<replace>` and `<keep>`, `display.collection.footer`'s default `!
+  collection=<collection> replace=<replace> keep=<keep>`, and a template
+  naming `<replaced>` or `<kept>` is refused,
+  `display_placeholder_unsupported` (exit 2). The hook's environment is
+  `KARVI_CRUN_REPLACE` and `KARVI_CRUN_KEEP`, in place of
+  `KARVI_CRUN_REPLACED` and `KARVI_CRUN_KEPT`; the shipped examples in
+  `/usr/share/karvi/crun/` follow, and a site's copy of one changes with it.
+
 ## 0.31.1 - 2026-10-16
 
 A patch release on 0.31.0 for the `crun.after` hook's bound, which changes no

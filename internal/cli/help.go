@@ -319,6 +319,11 @@ folder is written as for any run, without output.NAME.txt.
 A platform's crun-filters (regular expressions) drop the output lines that
 match from the collection file alone: the built-in lists drop the byte
 count, the clock period, the uptime, and the time of the show.
+Under crun.mask = true (false by default) a platform's masks (regular
+expressions, built in for the network platforms) replace the secrets in
+every collection file by <removed>, the "! COMMAND" markers included; a
+one-off crun.mask=false keeps one run's files whole unless the site locks
+the key. The audit masks every statement always.
 crun.after names an executable the client runs once the collection has
 ended (not with --detach): in the collection directory, the replaced
 files' names on stdin, the job in KARVI_* variables (docs/COLLECTION.md).

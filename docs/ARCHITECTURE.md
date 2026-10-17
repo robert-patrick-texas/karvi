@@ -657,7 +657,7 @@ after the code.
 
 A live or exercise run continues: prepare, the frame, and `commit_job`. The
 commit answers with the receipt the moment the job is accepted (`jobexec.Run`'s
-`OnAccepted`, after the manifest is durable and the started audit record
+`OnAccepted`, after the manifest is durable and the `start` audit event
 written), and the job runs on its own goroutine. The daemon keeps a bounded job
 table (`internal/daemon/jobs.go`): the receipt, the path of the canonical
 `commands.jsonl`, the durable edge, the outcome when done, and the live
@@ -704,15 +704,15 @@ scoreboard is gone, stale by `watch.stale-after`, or names its end that long
 ago. `karvi job cancel JOB-ID` sends `cancel_job`: each job runs under its
 own child of the daemon's job context, the request cancels that child with a
 cause carrying the reason, time, and requester, every unfinished unit is
-recorded `cancelled` (a command already sent is never recorded succeeded or
-errored), the devices are counted `cancelled`, the summary carries a
-`cancellation` block, the audit trail a `run.cancel_requested` record, and the
+recorded `cancel` (a command already sent is never recorded `success` or an
+error), the devices are counted `cancel`, the summary carries a
+`cancellation` block, the audit trail a `<kind>.cancel` event, and the
 follow stream's terminal delivers the outcome to any following client. The block
 records an accepted request, not its effect: the exercise branch reads its
 context once, for the block, and never observes it, so an exercise never ends
-`cancelled`, and a live job whose work had finished keeps its result. Clients
+`cancel`, and a live job whose work had finished keeps its result. Clients
 therefore print the cancelled line from `records.Summary.CancelledBy`, which
-answers the block only under the final status `cancelled`.
+answers the block only under the final status `cancel`.
 
 In exercise mode `jobexec.Run` branches after acceptance
 (`internal/jobexec/exercise.go`) and builds no executor: per target it
@@ -721,9 +721,10 @@ transport selection with the executor's own call plus the located askpass
 helper for the system kind, and the host-key policy and enrollment; per job
 the dispatch arithmetic (`dispatch.Plan.Check`) and a read-only capacity
 assessment (`capacity.Manager.Assess`). It writes `exercise.json`, leaves
-`commands.jsonl` empty, finalizes the summary and scoreboard as `exercised`
+`commands.jsonl` empty, finalizes the summary and scoreboard as `exercise`
 with the first error finding's exit when a target is `not_ready`, and
-writes the `run.exercised` audit record with `device_contacted=false`. The
+writes the `<kind>.end` audit event, outcome `exercise`, with
+`device_contacted=false`. The
 client reads the report under the canonical-file discipline and renders
 it. An interrupt before the frame aborts `cancelled` with its stage named;
 the frame and the commit run without cancellation; an interrupt during the

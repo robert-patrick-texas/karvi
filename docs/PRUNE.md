@@ -44,7 +44,7 @@ default), the cutoff being now less that many days.
 
 | Kind | What it is | Goes when | Under pressure |
 |---|---|---|---|
-| `activity` | a job folder whose `summary.json` has a final status: `completed`, `halted`, `errored`, `cancelled`, `incomplete`, or `exercised` | `ended_at` is before the cutoff | yes, oldest first |
+| `activity` | a job folder whose `summary.json` has a final status: `complete`, `halt`, `error`, `cancel`, `incomplete`, or `exercise` | `ended_at` is before the cutoff | yes, oldest first |
 | `transcript` | a recorded login: the metadata file with its end record and the transcript that shares its name | `ended_at` is before the cutoff | yes |
 | `scoreboard` | a scoreboard file at a final status | `last_updated_at` is before the cutoff | yes |
 | `orphan` | a job folder whose `summary.json` names no final status, or without one: a running job, or one the daemon's death cut short | its day folder's date is before the cutoff, nothing in it is newer, and its scoreboard file, if any, is final or older than the age | never |
