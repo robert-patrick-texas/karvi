@@ -1,9 +1,9 @@
 {
   "application": "karvi",
-  "version": "0.32.0",
-  "release_date": "2026-10-17",
+  "version": "0.32.1",
+  "release_date": "2026-10-18",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.31.1: every audit event is named <kind>.<event>, carries the job or the login, the device, the operator, and the login user in its own fields and journald's, its message one line of key=value pairs, and records its statements, masked by the platforms' mask lists, in place of their digests; [platform.NAME] masks and crun.mask mask the audit's statements and the collection files; karvi-audit, a fourth executable, shows the audit trail from journald as a table; an outcome, a status, or a count is one present-tense word in every record, and the collection's replaced and kept are replace and keep; the configuration registry moves from 30 to 31, the execution plan from 13 to 14, the command record from 3 to 4, the job manifest and summary from 4 to 5, the plan report from 2 to 3, the scoreboard from 3 to 4, and the audit from 1 to 2, every other counter 0.31.1's (configuration schema 6, daemon IPC 12, credential package 2); the first submission after the upgrade drains a 0.31.1 daemon; see CHANGELOG.md",
+  "behavior_change_from_previous": "a patch release on 0.32.0 for the one-letter command words and karvi-audit's wider DEVICE column: c, r, l, and s are aliases of command, run, login, and stream, matched exactly, and karvi-audit's DEVICE column is 30 cells, from 20, so the extended hostnames of switches, routers, and servers show whole; every counter is 0.32.0's (configuration schema 6, registry 31, execution plan 14, daemon IPC 12, command record 4, job manifest and summary 5, plan report 3, credential package 2, scoreboard 4, audit 2); the first submission after the upgrade drains a 0.32.0 daemon; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
@@ -20,8 +20,8 @@
   "build": {
     "go_version": "go1.27.2",
     "official_go_floor": "1.27.0",
-    "source_identity": "source-release-v0.32.0",
-    "build": "hyA17Kpg085-04k7Q6FO",
+    "source_identity": "source-release-v0.32.1",
+    "build": "AVfLwnLJ5Ay5xcmJOSWS",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
@@ -30,14 +30,14 @@
   },
   "source_statistics": {
     "go_files_outside_vendor": 526,
-    "go_lines_outside_vendor": 109189,
-    "named_top_level_tests": 1069,
+    "go_lines_outside_vendor": 109224,
+    "named_top_level_tests": 1070,
     "packages": 92
   },
   "binaries": {
     "karvi-linux-amd64": {
       "bytes": 12759200,
-      "sha256": "a8c9e9953882773a2d0d77f03e3610a8cf3383775a150a8d5fc373c1601f4906",
+      "sha256": "406f88bd1218842aab30ed95aa2ba29929cb44d1cbd6d6baf07febe080814e31",
       "reported_ssh_transports": [
         {
           "id": "scrapligo-v1",
@@ -55,19 +55,19 @@
     },
     "karvi-askpass-linux-amd64": {
       "bytes": 3915936,
-      "sha256": "4d9bbce146c7acb911f3a0829bb792502b3c6de15ee087b4c617fdd80a6af4bc"
+      "sha256": "fdbd576e5ece5b331d8f91999de8d2e0a77b8ccf791b04f03c6cb9e1f1bd9e39"
     },
     "karvi-prune-linux-amd64": {
       "bytes": 3797152,
-      "sha256": "a93b6b555b0acd570bb8cbf351e7ff24875c151e10f63c71dac7bcd96e2bc05a"
+      "sha256": "b784bcaca49d8bf8af7f3d9da45fe90bf1c0e122997575f9f069f467ad1e8d65"
     },
     "karvi-audit-linux-amd64": {
       "bytes": 3940512,
-      "sha256": "33c98e23138386abfd467f587c4def67906333da59b81605d5d2fd49cdab5938"
+      "sha256": "131ac97f404c06e9508282a73b305cfbfe2c385adfd06145195db27ffb9ebd2d"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.32.0 - 2026-10-17"
+    "changelog": "CHANGELOG.md 0.32.1 - 2026-10-18"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only (the client's IPC schema and build)",
@@ -100,14 +100,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.31.1 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.32.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 31, moved from v0.31.1's 30 by [platform.NAME] masks and crun.mask"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 31, unchanged from v0.32.0"
   },
   "native_dependency": {
     "module": "github.com/scrapli/scrapligo",
@@ -137,9 +137,9 @@
     "debian_package": "passed (the tree's package in the release verifier's run, checked by scripts/check-deb.sh with lintian and tested as root in an Ubuntu 26.04 container under Docker by scripts/sysutil-smoke-test.sh, and the published package built twice from the verified bundle to the same bytes and checked by scripts/check-deb.sh)"
   },
   "previous_release": {
-    "version": "0.31.1",
-    "git_tag": "karvi-v0.31.1",
-    "notes": "a patch release on 0.31.0; every release is installed as new"
+    "version": "0.32.0",
+    "git_tag": "karvi-v0.32.0",
+    "notes": "a minor release on 0.31.1; every release is installed as new"
   },
   "vendored_modules": [
     "github.com/scrapli/scrapligo v1.4.2",

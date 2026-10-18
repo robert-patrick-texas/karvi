@@ -1,4 +1,4 @@
-# ScrapliGo v1.4.2 integration evidence — karvi v0.32.0
+# ScrapliGo v1.4.2 integration evidence — karvi v0.32.1
 
 The authoritative module declares:
 
