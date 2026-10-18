@@ -141,43 +141,43 @@ var rows = []Row{
 }
 
 // TestLayout pins the lines at each width to chapter 64's agreed layouts
-// (c3-mockup.out, the operator as issue 3 set it): at a pipe nothing cut,
-// OPERATOR and DEVICE centred; at 100 COMMAND cut with one cell free; at 89
-// DEVICE still centred, the line's … in the cell after it; at 88 and 80
-// DEVICE at its left.
+// (c3-mockup.out, the operator as issue 3 set it), DEVICE at chapter 66's
+// 30: at a pipe nothing cut, OPERATOR and DEVICE centred; at 110 COMMAND cut
+// with one cell free; at 99 DEVICE still centred, the line's … in the cell
+// after it; at 98 and 80 DEVICE at its left.
 func TestLayout(t *testing.T) {
 	want := map[int][]string{
 		0: {
-			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND",
-			"261017-143817-00       netops       cmd   command success               fake-iosxe      show version",
-			"261017-143818-00       netops       run   command connection_error      dead-iosxe      show clock",
-			"261017-143818-00       netops       run   command not_attempted_p…      fake-iosxe      show running-config | section interface GigabitEthernet0/0/1",
-			"261017-143825-00       netops       login start                         fake-iosxe",
-			"261017-143828-00 netops.test/netops cmd   command device_error          fake-iosxe      show ip interface brief",
+			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND",
+			"261017-143817-00       netops       cmd   command success                    fake-iosxe           show version",
+			"261017-143818-00       netops       run   command connection_error           dead-iosxe           show clock",
+			"261017-143818-00       netops       run   command not_attempted_p…           fake-iosxe           show running-config | section interface GigabitEthernet0/0/1",
+			"261017-143825-00       netops       login start                              fake-iosxe",
+			"261017-143828-00 netops.test/netops cmd   command device_error               fake-iosxe           show ip interface brief",
 		},
-		100: {
-			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND",
-			"261017-143817-00       netops       cmd   command success               fake-iosxe      show versi…",
-			"261017-143818-00       netops       run   command connection_error      dead-iosxe      show clock",
-			"261017-143818-00       netops       run   command not_attempted_p…      fake-iosxe      show runni…",
-			"261017-143825-00       netops       login start                         fake-iosxe",
-			"261017-143828-00 netops.test/netops cmd   command device_error          fake-iosxe      show ip in…",
+		110: {
+			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND",
+			"261017-143817-00       netops       cmd   command success                    fake-iosxe           show versi…",
+			"261017-143818-00       netops       run   command connection_error           dead-iosxe           show clock",
+			"261017-143818-00       netops       run   command not_attempted_p…           fake-iosxe           show runni…",
+			"261017-143825-00       netops       login start                              fake-iosxe",
+			"261017-143828-00 netops.test/netops cmd   command device_error               fake-iosxe           show ip in…",
 		},
-		89: {
-			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE       …",
-			"261017-143817-00       netops       cmd   command success               fake-iosxe     …",
-			"261017-143818-00       netops       run   command connection_error      dead-iosxe     …",
-			"261017-143818-00       netops       run   command not_attempted_p…      fake-iosxe     …",
-			"261017-143825-00       netops       login start                         fake-iosxe",
-			"261017-143828-00 netops.test/netops cmd   command device_error          fake-iosxe     …",
+		99: {
+			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE            …",
+			"261017-143817-00       netops       cmd   command success                    fake-iosxe          …",
+			"261017-143818-00       netops       run   command connection_error           dead-iosxe          …",
+			"261017-143818-00       netops       run   command not_attempted_p…           fake-iosxe          …",
+			"261017-143825-00       netops       login start                              fake-iosxe",
+			"261017-143828-00 netops.test/netops cmd   command device_error               fake-iosxe          …",
 		},
-		88: {
-			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME          DEVICE             …",
-			"261017-143817-00       netops       cmd   command success          fake-iosxe         …",
-			"261017-143818-00       netops       run   command connection_error dead-iosxe         …",
-			"261017-143818-00       netops       run   command not_attempted_p… fake-iosxe         …",
+		98: {
+			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME          DEVICE                       …",
+			"261017-143817-00       netops       cmd   command success          fake-iosxe                   …",
+			"261017-143818-00       netops       run   command connection_error dead-iosxe                   …",
+			"261017-143818-00       netops       run   command not_attempted_p… fake-iosxe                   …",
 			"261017-143825-00       netops       login start                    fake-iosxe",
-			"261017-143828-00 netops.test/netops cmd   command device_error     fake-iosxe         …",
+			"261017-143828-00 netops.test/netops cmd   command device_error     fake-iosxe                   …",
 		},
 		80: {
 			"JOB-ID                OPERATOR      MODE  EVENT   OUTCOME          DEVICE     …",
@@ -205,11 +205,25 @@ func TestLayout(t *testing.T) {
 	}
 }
 
+// TestDeviceWidth: a name of DEVICE's 30 cells is whole, a longer one cut
+// with … in the column's last cell.
+func TestDeviceWidth(t *testing.T) {
+	for device, want := range map[string]string{
+		"core-router-01.nyc.example.net":  " core-router-01.nyc.example.net show clock",
+		"core-router-01.nyc1.example.net": " core-router-01.nyc1.example.n… show clock",
+	} {
+		r := Row{ID: "261017-143817-00", Operator: "netops", Mode: "cmd", Event: "command", Outcome: "success", Device: device, Command: "show clock"}
+		if got := (Table{}).Line(r); !strings.HasSuffix(got, want) {
+			t.Errorf("%s:\n got %q\nwant the end %q", device, got, want)
+		}
+	}
+}
+
 // TestColours pins a row's codes to chapter 64's c7-colour.ansi: OPERATOR
 // in the accent, OUTCOME by its word, DEVICE in the target role, bold.
 func TestColours(t *testing.T) {
 	tb := Table{Width: 132, Colour: true}
-	want := "261017-143828-00 \x1b[36mnetops.test/netops\x1b[0m cmd   command \x1b[31mdevice_error\x1b[0m          \x1b[1;33mfake-iosxe\x1b[0m      show ip interface brief"
+	want := "261017-143828-00 \x1b[36mnetops.test/netops\x1b[0m cmd   command \x1b[31mdevice_error\x1b[0m               \x1b[1;33mfake-iosxe\x1b[0m           show ip interface brief"
 	if got := tb.Line(rows[4]); got != want {
 		t.Errorf("\n got %q\nwant %q", got, want)
 	}

@@ -10,6 +10,12 @@
   `login` as prefixes, stay theirs whatever word is added. `co` stays
   ambiguous, `cr` stays `crun`, and `se` stays `setup`. The help and
   `karvi(1)` list them beside `cmd` and `-`.
+- **`karvi-audit`'s DEVICE column is 30 cells, from 20,** so the extended
+  hostnames of switches, routers, and servers show whole: a canonical name of
+  up to 30 characters whole, a longer one cut with `…`; COMMAND starts
+  ten cells later, and at a terminal DEVICE is whole and centred from 99
+  columns (89 before). The lines to a pipe, which a script may read, move
+  with it.
 
 ## 0.32.0 - 2026-10-17
 

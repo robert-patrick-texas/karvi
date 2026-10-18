@@ -8,15 +8,15 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/display"
 )
 
-// The table (docs/EXAMPLES.md, chapter 64, issues 1 to 4): no TIME; the
-// columns at fixed widths, one space between them, JOB-ID 16, OPERATOR 18,
-// MODE 5, EVENT 7, OUTCOME 16, DEVICE 20, then COMMAND. A cell longer than
-// its column is cut with …; at a terminal the line is cut with … so that at
-// least one cell stays free at its right edge, COMMAND cut or not shown at
-// all; to a pipe or a file nothing cuts the line. OPERATOR and DEVICE,
-// heading and cells, are centred in their columns, an odd cell to the right,
-// while the width holds the column whole and the cell after it, and at the
-// column's left when the width cuts into it.
+// The table (docs/EXAMPLES.md, chapter 64, issues 1 to 4; DEVICE's width
+// chapter 66): no TIME; the columns at fixed widths, one space between them,
+// JOB-ID 16, OPERATOR 18, MODE 5, EVENT 7, OUTCOME 16, DEVICE 30, then
+// COMMAND. A cell longer than its column is cut with …; at a terminal the
+// line is cut with … so that at least one cell stays free at its right edge,
+// COMMAND cut or not shown at all; to a pipe or a file nothing cuts the line.
+// OPERATOR and DEVICE, heading and cells, are centred in their columns, an
+// odd cell to the right, while the width holds the column whole and the cell
+// after it, and at the column's left when the width cuts into it.
 
 // Table lays out the rows: the width to fit (0 for no limit), and whether
 // the colours are on.
@@ -26,7 +26,7 @@ type Table struct {
 }
 
 // widths are the columns' before COMMAND.
-var widths = []int{16, 18, 5, 7, 16, 20}
+var widths = []int{16, 18, 5, 7, 16, 30}
 
 // headings are the columns', COMMAND last.
 var headings = []string{"JOB-ID", "OPERATOR", "MODE", "EVENT", "OUTCOME", "DEVICE", "COMMAND"}

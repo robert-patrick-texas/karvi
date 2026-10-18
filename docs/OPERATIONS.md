@@ -2065,11 +2065,11 @@ the device, each repeatable. It reads no configuration. A run of two devices,
 `dead-iosxe` unreachable, read back by its job ID:
 
 ```text
-$ karvi-audit --nocolor -S 17:10 -g 261017-171016-00
-JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+$ karvi-audit --nocolor -S '2026-10-17 17:10' -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
 261017-171016-00       netops       run   start
-261017-171016-00       netops       run   command success               fake-iosxe      show clock
-261017-171016-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-171016-00       netops       run   command success                    fake-iosxe           show clock
+261017-171016-00       netops       run   command connection_error           dead-iosxe           show clock
 261017-171016-00       netops       run   end     error
 ```
 

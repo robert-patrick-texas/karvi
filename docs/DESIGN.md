@@ -2615,25 +2615,27 @@ file not read); the heading alone or nothing for an empty list.
 
 **`karvi-audit`'s table: fixed widths, no TIME.** The columns stand at fixed
 widths, one space between them: JOB-ID 16 (a job's or a login's ID), OPERATOR
-18, MODE 5 (the kind, `login` among them), EVENT 7, OUTCOME 16, DEVICE 20, then
+18, MODE 5 (the kind, `login` among them), EVENT 7, OUTCOME 16, DEVICE 30, then
 COMMAND. A cell longer than its column is cut with `…`. At a terminal the line
 is cut with `…` so that its last cell stays free, COMMAND cut or not shown at
 all; to a pipe or a file nothing cuts it. OPERATOR and DEVICE, heading and
 cells, are centred while the width holds the column whole, an odd cell to the
 right, and at the column's left when the width cuts into it, so DEVICE is whole
-from 89 columns. OPERATOR is `OPERATOR/LOGINUSER` when the event names a login
+from 99 columns. OPERATOR is `OPERATOR/LOGINUSER` when the event names a login
 user, `/LOGINUSER` kept whole and the operator's part cut first. A statement's
 control characters are written as Go writes them in a quoted string (`\t`,
 `\n`, `\x1b`). *Why:* the job ID holds the job's start to the second; one rule
 for every mode, a table read whole or followed, its first line at once and its
 memory flat, which widths measured over the rows cannot give (thirty days'
 359,728 rows held before the first line); OUTCOME at 16 tells the two
-`not_attempted_*` words apart; on a jump box where operators `sudo` to a shared
-account the person is the part a review looks for; a newline in a statement
-would start a row with no columns. *Not taken:* TIME (19 cells); widths
-measured over every row, as `job list`'s; a longer cell whole, pushing the rest
-of its row; two cells between columns; OUTCOME at 10;
-`OPERATOR(LOGINUSER)`; the pair cut at its end; the control characters removed.
+`not_attempted_*` words apart; DEVICE at 30 shows the extended hostnames of
+switches, routers, and servers whole; on a jump box where operators `sudo` to a
+shared account the person is the part a review looks for; a newline in a
+statement would start a row with no columns. *Not taken:* TIME (19 cells);
+widths measured over every row, as `job list`'s; a longer cell whole, pushing
+the rest of its row; two cells between columns; OUTCOME at 10; DEVICE at 20,
+which cut them; `OPERATOR(LOGINUSER)`; the pair cut at its end; the control
+characters removed.
 
 **`karvi-audit`'s colours go to a terminal and through a pipe, never into a
 file.** The headings in the label role, OPERATOR in the accent role, DEVICE in

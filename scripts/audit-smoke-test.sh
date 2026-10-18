@@ -150,7 +150,7 @@ want() {
       function cell(s, w, centre,   l) { s = cut(s, w); l = centre ? int((w - length(s)) / 2) : 0; return pad(l) s pad(w - length(s) - l) }
       function op(o, u,   t) { if (u == "") return o; t = "/" u; return length(t) >= 17 ? o t : cut(o, 18 - length(t)) t }
       function line(id, o, mode, event, outcome, dev, cmd,   l) {
-        l = cell(id, 16) " " cell(o, 18, 1) " " cell(mode, 5) " " cell(event, 7) " " cell(outcome, 16) " " cell(dev, 20, 1) " " cmd
+        l = cell(id, 16) " " cell(o, 18, 1) " " cell(mode, 5) " " cell(event, 7) " " cell(outcome, 16) " " cell(dev, 30, 1) " " cmd
         sub(/ +$/, "", l); gsub(/\001/, "…", l); print l
       }
       BEGIN { line("JOB-ID", "OPERATOR", "MODE", "EVENT", "OUTCOME", "DEVICE", "COMMAND") }

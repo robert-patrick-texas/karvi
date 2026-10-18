@@ -111,10 +111,10 @@ order:
 .PP
 .nf
 .RS
-JOB\-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+JOB\-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
 261017\-171016\-00       netops       run   start
-261017\-171016\-00       netops       run   command success               fake\-iosxe      show clock
-261017\-171016\-00       netops       run   command connection_error      dead\-iosxe      show clock
+261017\-171016\-00       netops       run   command success                    fake\-iosxe           show clock
+261017\-171016\-00       netops       run   command connection_error           dead\-iosxe           show clock
 261017\-171016\-00       netops       run   end     error
 .RE
 .fi
@@ -169,7 +169,7 @@ or a
 .BR cancel .
 .TP
 .B DEVICE
-20 cells: the device's canonical name.
+30 cells: the device's canonical name.
 .TP
 .B COMMAND
 The statement as sent, masked as the audit masks it; a tab, a newline, or

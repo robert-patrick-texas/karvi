@@ -14110,11 +14110,12 @@ throwaway container `man karvi-audit` has no page: the package holds
 names no man page, the package taking them from `packaging/man` by glob. The
 evidence is kept beside the tree (`release-design-evidence/v0320-*`).
 
-## 66. One-letter command words (2026-10-18)
+## 66. One-letter command words, and `karvi-audit`'s DEVICE at 30 (2026-10-18)
 
-A change on the operator's word after the release 0.32.0
-([chapter 65](#65-the-release-0320-2026-10-17)): the command words `c`, `r`,
-`l`, and `s`.
+Two changes on the operator's word after the release 0.32.0
+([chapter 65](#65-the-release-0320-2026-10-17)), each its own commit: the
+command words `c`, `r`, `l`, and `s`, and `karvi-audit`'s DEVICE column at 30
+cells.
 
 **Issue 1, the one-letter command words.** The operator's word: "add aliases for
 karvi action words, c for command mode, r for run mode, l for login", then "add
@@ -14230,3 +14231,85 @@ reaches every prefix of the four by construction.
 **Not taken.** `r` and `l` left as prefixes: they worked, until a word beginning
 with their letter is added. The letters offered by tab completion: the list
 stays the full words, as it does for `cmd` and `-`.
+
+**Issue 2, `karvi-audit`'s DEVICE at 30.** The operator's word: DEVICE at 30
+characters, so that `karvi-audit` displays the extended hostnames of switches,
+routers, and servers.
+
+**What it gains.** A canonical name of up to 30 characters whole in DEVICE,
+where [chapter 64](#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)'s 20
+cut the extended hostnames. It waits on nothing: the widths are one list, and
+chapter 64's rules (a longer cell cut with `…`, centred while the width holds
+the column whole, at its left when the width cuts into it) take any width.
+
+**The rule, agreed.** DEVICE is 30 cells; every other column and rule is chapter
+64's. COMMAND begins at the 99th cell, from the 89th; at a terminal DEVICE is
+whole and centred from 99 columns (89 before) and at its column's left below
+that; a name longer than 30 is cut to 29 and `…`. To a pipe the lines move with
+it, so a script that reads the table by position follows.
+
+**Executed.** The read of OPERATIONS' example, chapter 64's lab job
+`261017-171016-00` still in the host's journal, by both builds, the window
+written with its date since `-S 17:10` now names today. The released 0.32.0:
+
+```text
+$ karvi-audit --nocolor -S '2026-10-17 17:10' -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-171016-00       netops       run   start
+261017-171016-00       netops       run   command success               fake-iosxe      show clock
+261017-171016-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-171016-00       netops       run   end     error
+```
+
+The change's build:
+
+```text
+$ karvi-audit --nocolor -S '2026-10-17 17:10' -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261017-171016-00       netops       run   start
+261017-171016-00       netops       run   command success                    fake-iosxe           show clock
+261017-171016-00       netops       run   command connection_error           dead-iosxe           show clock
+261017-171016-00       netops       run   end     error
+```
+
+`TestLayout` pins the lines at a pipe and at 110, 99, 98, and 80 columns: at
+110 COMMAND cut with one cell free, at 99 DEVICE still centred with the line's
+`…` in the cell after it, at 98 and 80 DEVICE at its left. Its lines were
+checked against a rendering of the rule written apart from the code
+(`layout-oracle.py`), the same at every width. `TestDeviceWidth` holds a name
+of 30 characters whole and one of 31 cut, and `TestColours` the row's codes at
+the new padding.
+
+**Found on the way.** The audit suite lays out its expected table with its own
+copy of the widths in awk, which moves with the code's. OPERATIONS' example and
+`karvi-audit(1)`'s rows are the change's read above.
+
+**Not taken.** DEVICE at 20, which cut them. Widths measured over the rows,
+chapter 64's not-taken alternative, stands: a followed trail stays in line only
+at fixed widths.
+
+**Built.** In two commits on the operator's word. Issue 1 `0665f13`: the four
+aliases in `internal/cli`'s table, the help's list and stream's usage,
+`karvi(1)` and `karvi-stream(1)` generated from them, README, OPERATIONS,
+ARCHITECTURE, and DESIGN's stream entry, the CHANGELOG's `Unreleased` block
+opened, and the tests above. Issue 2: DEVICE's width in `internal/auditview`,
+the audit suite's awk, `karvi-audit(1)`'s DEVICE line and its rows, OPERATIONS'
+example, DESIGN's table entry with its reason and DEVICE at 20 not taken, the
+CHANGELOG's second entry, and `TestLayout`, `TestColours`, and
+`TestDeviceWidth`.
+
+**Executed.** Issue 1 passed gofmt, vet, `go test ./...`, and `make
+generated-clean` on its own tree, and its lab (`aliases-lab.sh`). Issue 2
+passed the same and the audit suite on a lab build. At the work's end, on the
+final tree but for these paragraphs: gofmt, vet, `go test ./...` (72 packages),
+and `make generated-clean`; all 19 suites on a lab build (`run_suites`, `KARVI`
+the lab build, 200 seconds). None left a `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, or karvi process.
+
+**Closed.** The ROADMAP is unchanged: Next 1 unique job IDs, 2 shorter output
+strings. The next release, its number the operator's, carries both in its
+`Unreleased` block. The evidence is kept beside the tree
+(`release-design-evidence/command-word-aliases-2026-10-17`,
+`audit-device-30-2026-10-18`, and `chapter66-battery-2026-10-18`: the lab
+scripts with their output, the layout oracle, the patches, and the test and
+suite logs).
