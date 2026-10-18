@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.33.0 - 2026-10-18
+
+A minor release on 0.32.1 for one activity ID for every activity, a `cmd`
+job's `job_id`, and the six longest messages shorter; every counter is
+0.32.1's (configuration schema 6, registry 31, execution plan 14, daemon IPC
+12, command record 4, job manifest and summary 5, plan report 3, credential
+package 2, scoreboard 4, audit 2, metrics 1, inventory 1), and the module graph
+is 0.32.1's. A site has something to change where a script lists the
+scoreboards folder, which holds each activity's claim `<ID>.id` whatever
+`watch.enabled` says; takes a `cmd` job's `job_id` for empty or absent; or
+matches the old words of the six messages. An operator's 0.32.1 daemon, of
+another build, is drained by the first submission after the upgrade.
 
 - **One activity ID for every activity, never two alike.** Every `cmd`,
   `run`, `crun`, run of a `stream`, dry run, exercise, and login claims its
