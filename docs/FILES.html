@@ -62,9 +62,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -128,9 +128,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -484,7 +484,7 @@ member from removing or renaming another's entry.</p>
 <td>root</td>
 <td>operators</td>
 <td>the same</td>
-<td>every operator's scoreboards, what <code>karvi watch</code> reads</td>
+<td>every operator's scoreboards, what <code>karvi watch</code> reads, and their ID claims</td>
 </tr>
 <tr>
 <td><code>/dev/shm/karvi/capacity</code></td>
@@ -612,7 +612,7 @@ group is the operator's primary group throughout.</p>
 <td><code>&lt;basedir&gt;/state/scoreboards</code></td>
 <td><code>0700</code></td>
 <td>the first activity</td>
-<td>the operator's scoreboards</td>
+<td>the operator's scoreboards and ID claims</td>
 </tr>
 <tr>
 <td><code>&lt;basedir&gt;/state/capacity</code>, <code>capacity/devices</code></td>
@@ -943,6 +943,14 @@ had; each but the summary has its switch, <code>output.files.*</code>, and <code
 <td>the job's live progress, what <code>karvi watch</code> reads; one per activity</td>
 </tr>
 <tr>
+<td><code>&lt;job-id&gt;.id</code></td>
+<td>the scoreboards</td>
+<td><code>0640</code></td>
+<td><code>0600</code></td>
+<td>the activity's operator</td>
+<td>the activity's claim of its ID, empty; one per activity, removed by the operator's first activity of a later day</td>
+</tr>
+<tr>
 <td><code>server.json</code></td>
 <td>the ledger</td>
 <td><code>0660</code></td>
@@ -1146,7 +1154,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.32.1</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.33.0</code>.</footer>
 </main>
 </body>
 </html>

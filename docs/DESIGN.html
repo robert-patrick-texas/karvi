@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -1911,14 +1911,34 @@ hold both spellings).</p>
 <p><strong>Every activity's artifacts live below <code>&lt;output root&gt;/YYMMDD/&lt;id&gt;/</code>.</strong> The
 job ID is the client's clock to the second in the effective timezone plus a
 two-character sequence (<code>YYMMDD-HHMMSS-xx</code>), so the day folder is the ID's
-prefix by construction; a login's activity ID takes the same form. The client
-reserves the ID by creating the job directory exclusively (a login by its
-scoreboard file), bumps the sequence on collision, and releases the reservation
-if the activity fails before submission, so a refused run leaves no folder;
-the daemon refuses an ID it already holds. <em>Why:</em> the ID is the one identifier
-an operator types and reads; a fan-out from a cron is the same-second case;
-the reservation is what lets the ID be short. <em>Not taken:</em> a random pair;
-microseconds; a separate short directory name beside a long ID.</p>
+prefix by construction; every activity's ID takes the same form, and a job's
+<code>job_id</code> is its ID, a <code>cmd</code>'s as a <code>run</code>'s.</p>
+<p><strong>Every activity claims its ID once, in one folder, before anything else.</strong>
+A <code>cmd</code>, a <code>run</code>, a <code>crun</code>, each run of a <code>stream</code>, a dry run, an exercise,
+and a login create an empty file <code>&lt;ID&gt;.id</code> exclusively in the scoreboards
+folder (<code>/dev/shm/karvi/scoreboards</code> in shared mode, else
+<code>&lt;basedir&gt;/state/scoreboards</code>), whatever <code>watch.enabled</code> says: sequence <code>00</code>
+first, the next when the name is taken. A job that writes files also creates
+its job directory exclusively under the same ID, and a name taken in either
+moves it to the next sequence. An activity never removes its claim; each claim
+removes the operator's own claims of earlier days. The client releases an empty
+job directory if the activity fails before submission, so a refused run leaves
+no folder; the daemon refuses an ID it already holds. A claim that cannot be
+created stops the activity before anything runs
+(<code>activity_id_generation_failed</code>); a shared folder that cannot be used falls
+back to the private one with the scoreboards' one warning, and a site that
+wants no fallback names the shared folder in <code>scoreboards</code> and locks the key.
+<em>Why:</em> the ID is the one identifier an operator types and reads, and the audit
+trail finds a job by it; a fan-out from a cron is the same-second case; one
+folder for every activity makes the ID unique on the host in shared mode and
+per operator otherwise, where the job directory alone left a <code>--nof</code> job, a
+dry run, a login, and a job under <code>--of=PATH</code> each its own sequence, and a
+claim released within its second would reopen the ID
+(<a href="EXAMPLES.html#68-one-activity-id-for-every-activity-2026-10-18">EXAMPLES, chapter 68</a>).
+<em>Not taken:</em> a random pair; microseconds; a separate short directory name
+beside a long ID; one list file of IDs (a lock, a rewrite, and trimming, where
+an exclusive create is atomic); a claim as an empty directory, or claims in a
+folder of their own; a key to turn the claim off.</p>
 <p><strong>Folders and files karvi creates, and never alters.</strong> Folders it creates take
 <code>output.directory-mode</code> (<code>0750</code> default) and keep an inherited setgid bit;
 files are <code>0640</code>, created exclusively without following symlinks; an existing
@@ -2930,6 +2950,21 @@ registered or registered but not emitted; another fails on a new uncoded error.
 Process exits come from the registry. <em>Why:</em> the catalogue and the source had
 drifted, and nothing prevented two causes sharing a code; a table generated from
 one registry cannot drift from behaviour. <em>Not taken:</em> a hand-maintained table.</p>
+<p><strong>A message names its subject, the fault, and the fix, in few words.</strong> An
+error or warning message karvi writes for the operator does not repeat its
+code, which leads the line; names its subject by its value (the key, the path,
+the device); keeps no word that adds nothing; leaves the reason and the
+background to the code's description in
+<a href="ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>; puts a remedy last, after <code>; </code>, as
+the operator would type it; leaves its quoting as it was; and stacks values to
+compare one over the other on lines of their own, two spaces in. The review of
+every message applies it longest first, a list ranked from the source's
+literals (<a href="EXAMPLES.html#69-the-six-longest-messages-shorter-2026-10-18">EXAMPLES, chapter
+69</a>). <em>Why:</em> a
+refusal is read at a terminal in the middle of work, and a message of 250
+characters over three lines hides the value it names; the description says the
+reason once, for every occurrence. <em>Not taken:</em> the causes kept in the message
+beside the description; a remedy written as prose.</p>
 <p><strong>Schema counters are independent and never reused.</strong> Each serialized
 contract (configuration, command record, scoreboard, audit, job, daemon IPC,
 registry, execution plan, credential package, plan report) keeps its own
@@ -3253,7 +3288,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.32.1</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.33.0</code>.</footer>
 </main>
 </body>
 </html>

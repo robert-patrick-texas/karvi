@@ -60,9 +60,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +124,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -145,23 +145,19 @@ the operator has set. A settled decision is an entry in
 of <a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>. Nothing here is a promise of a date.</p>
 <h2 id="next">Next <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
 <ol>
-<li><strong>Unique job IDs.</strong> A job ID is unique only in the folder that reserved
-it: the output root, a collection's <code>--cd</code> folder, or none under <code>--nof</code>,
-whose ID is always <code>-00</code>. Of the 43,173 job IDs of thirty days'
-<code>run.started</code> events, 6,712 were started by more than one process, so
-<code>journalctl KARVI_JOB_ID=ID</code> can match two jobs. The direction: one
-sequence per operator on a host for every job and login. A <code>cmd</code> job's
-empty <code>job_id</code> in its summary, its records, and <code>job list --format json</code>
-goes with it, and the audit suite's read by job ID becomes exact.</li>
 <li><strong>Shorter output strings.</strong> A review of every error and warning message
 karvi writes for the operator, shortening each where a word adds nothing so
 that it still conveys its meaning in fewer words, as chapter 56 left the
 credential sources' <code>NETPASS_NYC not set</code> and <code>NETPASS_NYC empty</code>; and the
 output formatted for alignment and colour as appropriate. Not the help, the
-header and footer templates, or the daemon log. The questions: the rule,
-stated once in <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a> and applied to every
-message alike; the tests, suites, and documents that quote a message,
-changed with it; and the generated error-code descriptions
+header and footer templates, or the daemon log. The rule is stated in
+<a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a>, and the six longest messages follow it
+(<a href="docs/EXAMPLES.html#69-the-six-longest-messages-shorter-2026-10-18"><code>docs/EXAMPLES.md</code>, chapter
+69</a>); the
+rest are reviewed under it, longest first, from a list ranked from the
+source, the tests, suites, and documents that quote a message changed with
+it. The questions still open: the stage prefixes (<code>client planning:</code>) and
+Go's own error text in a chain; the configuration errors' order (<code>MESSAGE for KEY at SOURCE</code>); and the generated error-code descriptions
 (<a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>) under the same rule.
 Chapter 63's words reach it too: the messages built from them
 (<code>job_orphaned</code>'s &quot;its scoreboard ended error&quot;) and the help's and the
@@ -413,7 +409,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.32.1</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.33.0</code>.</footer>
 </main>
 </body>
 </html>

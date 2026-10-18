@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
 <li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
 <li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
 <li><a href="#0311---2026-10-16">0.31.1 - 2026-10-16</a></li>
@@ -71,9 +72,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -122,6 +123,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
 <li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
 <li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
 <li><a href="#0311---2026-10-16">0.31.1 - 2026-10-16</a></li>
@@ -146,9 +148,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -160,6 +162,45 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0330---2026-10-18">0.33.0 - 2026-10-18 <a class="anchor" href="#0330---2026-10-18" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.32.1 for one activity ID for every activity, a <code>cmd</code>
+job's <code>job_id</code>, and the six longest messages shorter; every counter is
+0.32.1's (configuration schema 6, registry 31, execution plan 14, daemon IPC
+12, command record 4, job manifest and summary 5, plan report 3, credential
+package 2, scoreboard 4, audit 2, metrics 1, inventory 1), and the module graph
+is 0.32.1's. A site has something to change where a script lists the
+scoreboards folder, which holds each activity's claim <code>&lt;ID&gt;.id</code> whatever
+<code>watch.enabled</code> says; takes a <code>cmd</code> job's <code>job_id</code> for empty or absent; or
+matches the old words of the six messages. An operator's 0.32.1 daemon, of
+another build, is drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong>One activity ID for every activity, never two alike.</strong> Every <code>cmd</code>,
+<code>run</code>, <code>crun</code>, run of a <code>stream</code>, dry run, exercise, and login claims its
+ID by creating an empty file <code>&lt;ID&gt;.id</code> in the scoreboards folder before
+anything else, a job that writes files making its job directory under the
+same ID; a name taken in either moves to the next sequence, and the claim
+is never handed back. In shared mode the ID is unique on the host, and per
+operator otherwise: two jobs under <code>--nof</code> in one second, a dry run beside a
+job, and a login beside a job no longer share an ID, a job's scoreboard no
+longer replaces a login's, and a second run under <code>--nof</code> through one daemon
+in the same second runs, where it was refused (<code>idempotency_conflict</code>). The
+ID's form is unchanged. A claim that cannot be created stops the activity
+(<code>activity_id_generation_failed</code>); a site that wants no fallback from the
+shared folder names it in <code>scoreboards</code> and locks the key.</li>
+<li><strong>A <code>cmd</code> job's <code>job_id</code> is its ID</strong> in its summary, its records, its
+scoreboard, and <code>job list --format json</code>, as a <code>run</code>'s is; it was empty in
+the summary and absent from the records and the scoreboard.</li>
+<li><strong><code>watch.max-files</code> counts the scoreboard files alone,</strong> not the claims
+beside them; an empty scoreboard file is a row in error.</li>
+<li><strong>The six longest messages are shorter,</strong> under one rule (DESIGN): the
+subject by its value, no word that adds nothing, the reason left to the
+code's description, a remedy last. <code>credkeyref_unresolved</code>,
+<code>control_path_root_too_long</code> (its length over its limit on lines of their
+own), <code>setup_tmpfiles_dir_missing</code>, <code>setup_tmpfiles_mismatch</code>,
+<code>inventory_secret_column</code>, and <code>config_inventory_source_secret_mapping</code>
+keep their codes and exits; a script that matched their old words changes
+with them.</li>
+</ul>
 <h2 id="0321---2026-10-18">0.32.1 - 2026-10-18 <a class="anchor" href="#0321---2026-10-18" aria-label="Link to this section">#</a></h2>
 <p>A patch release on 0.32.0 for the one-letter command words and <code>karvi-audit</code>'s
 wider DEVICE column, which change no record, file, key, or schema; every
@@ -1689,7 +1730,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.32.1</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.33.0</code>.</footer>
 </main>
 </body>
 </html>
