@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.32.1 - 2026-10-18
+
+A patch release on 0.32.0 for the one-letter command words and `karvi-audit`'s
+wider DEVICE column, which change no record, file, key, or schema; every
+counter is 0.32.0's (configuration schema 6, registry 31, execution plan 14,
+daemon IPC 12, command record 4, job manifest and summary 5, plan report 3,
+credential package 2, scoreboard 4, audit 2, metrics 1, inventory 1), and the
+module graph is 0.32.0's. A site has something to change only where a script
+reads `karvi-audit`'s table by position. An operator's 0.32.0 daemon, of
+another build, is drained by the first submission after the upgrade.
 
 - **One-letter command words: `c` for `command`, `r` for `run`, `l` for
   `login`, `s` for `stream`.** Each is an alias, so it matches exactly:
