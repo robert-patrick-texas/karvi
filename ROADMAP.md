@@ -14,10 +14,15 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    that it still conveys its meaning in fewer words, as chapter 56 left the
    credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
    output formatted for alignment and colour as appropriate. Not the help, the
-   header and footer templates, or the daemon log. The questions: the rule,
-   stated once in [`docs/DESIGN.md`](docs/DESIGN.md) and applied to every
-   message alike; the tests, suites, and documents that quote a message,
-   changed with it; and the generated error-code descriptions
+   header and footer templates, or the daemon log. The rule is stated in
+   [`docs/DESIGN.md`](docs/DESIGN.md), and the six longest messages follow it
+   ([`docs/EXAMPLES.md`, chapter
+   69](docs/EXAMPLES.md#69-the-six-longest-messages-shorter-2026-10-18)); the
+   rest are reviewed under it, longest first, from a list ranked from the
+   source, the tests, suites, and documents that quote a message changed with
+   it. The questions still open: the stage prefixes (`client planning:`) and
+   Go's own error text in a chain; the configuration errors' order (`MESSAGE
+   for KEY at SOURCE`); and the generated error-code descriptions
    ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
    Chapter 63's words reach it too: the messages built from them
    (`job_orphaned`'s "its scoreboard ended error") and the help's and the

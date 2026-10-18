@@ -203,7 +203,7 @@ func secretColumn(path string, column int, header string) error {
 	if !secret {
 		return nil
 	}
-	return errorcodes.Errorf("inventory_secret_column", "%s: the header of column %d names a secret (it is or ends with %q); an inventory file holds no secret column: move the secrets to a credential CSV (a credential backend of type \"csv\") and delete the column", path, column, word)
+	return errorcodes.Errorf("inventory_secret_column", "%s: column %d names a secret (ends with %q); move it to a credential CSV", path, column, word)
 }
 
 func rowDevice(v map[string]string, ref inventory.SourceRef, line int, src map[string]any, profiles map[string]transform.Sequence) (inventory.Device, error) {

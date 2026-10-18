@@ -212,9 +212,9 @@ func (r *Resolver) Resolve(ctx context.Context, operator credentials.Operator, d
 	// it is quoted; the backends asked and skipped are listed so the
 	// operator sees where the key was looked for. A keyed backend answers
 	// NotFound both for an absent key and for a key whose row's other cells
-	// exclude the device, so the message names both causes.
+	// exclude the device, which the code's description names.
 	if pinned {
-		return credentials.Resolved{}, &Error{Code: "credkeyref_unresolved", Message: fmt.Sprintf("device %s: credkeyref %q is unresolved: no backend of the policy that can honour a key answered for it (asked: %s; skipped, cannot honour a key: %s); the key is absent, or its row's other selectors exclude the device; a pinned device takes no general credential", device.CanonicalName, device.CredKeyRef, listOrNone(asked), listOrNone(skipped)), Policy: p.Name}
+		return credentials.Resolved{}, &Error{Code: "credkeyref_unresolved", Message: fmt.Sprintf("device %s: credkeyref %q: no keyed backend answered (asked: %s; skipped, unkeyed: %s)", device.CanonicalName, device.CredKeyRef, listOrNone(asked), listOrNone(skipped)), Policy: p.Name}
 	}
 	// What follows the policy's backends is the platform's fallback.
 	return r.fallback(ctx, operator, device, p.Name, requiredEnable)

@@ -241,17 +241,16 @@ its reference, and nothing else.
   lockouts, with nothing naming the cause.
 
 ```
-credkeyref_unresolved: client planning: 1 of 1 targets failed credential resolution:
-name:sw-nyc-09 (device sw-nyc-09: credkeyref "break-glas" is unresolved: no backend of
-the policy that can honour a key answered for it (asked: site-creds; skipped, cannot
-honour a key: none); the key is absent, or its row's other selectors exclude the
-device; a pinned device takes no general credential policy=default)
+credkeyref_unresolved: 1 of 1 targets failed credential resolution: name:sw-nyc-09 (device sw-nyc-09: credkeyref "break-glas": no keyed backend answered (asked: site-creds; skipped, unkeyed: none) policy=default)
 ```
 
 (Run with `NETUSER` and `NETPASS` set and [section 1](#1-a-file-end-to-end)'s
-catch-all row in the file.) The remedies are the message's: correct the
-reference or the key; add the keyed backend to the policy the device selects
-("asked: none" says the policy has none); or clear the cell to unpin the device.
+catch-all row in the file.) "Unkeyed" is a backend that cannot honour a key.
+The causes are the code's ([`ERROR-CODES.md`](ERROR-CODES.md)): the key is
+absent, or its row's other selectors exclude the device. The remedies: correct
+the reference or the key; add the keyed backend to the policy the device
+selects ("asked: none" says the policy has none); or clear the cell to unpin
+the device.
 The key is quoted because it came from inventory, which holds no secret, and a
 typing mistake shows only when the key does.
 
@@ -360,7 +359,7 @@ With the sequence `["shaped"]`, the devices of both sites bind as
   pinned devices (`["shaped", "site-creds"]`: a pinned device takes its
   row from `site-creds`, its unpinned neighbour takes the formula); with
   the formula alone a pinned device is `credkeyref_unresolved`, "asked:
-  none; skipped, cannot honour a key: shaped".
+  none; skipped, unkeyed: shaped".
 - **A formula's evidence names the formula and its source backend only,**
   not the row: two devices that took different rows show equal
   `matched_on`. (Their grants stay apart, since the secrets differ.)
@@ -428,10 +427,7 @@ attributes travel in the plan and the records.
 | `config_inventory_source_secret_mapping` | 2 | `mappings.attributes.NAME` names a secret; reported with the key, the file, and the line |
 
 ```
-inventory_secret_column: client planning: inventory source ex1: inv.csv: the header of
-column 6 names a secret (it is or ends with "password"); an inventory file holds no
-secret column: move the secrets to a credential CSV (a credential backend of type
-"csv") and delete the column
+inventory_secret_column: inventory source ex1: /dev/shm/k69/w/new/secret.csv: column 6 names a secret (ends with "password"); move it to a credential CSV
 ```
 
 To fix it, move the secrets into a credential CSV, select the rows by

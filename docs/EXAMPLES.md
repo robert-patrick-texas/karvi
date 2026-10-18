@@ -14625,3 +14625,121 @@ FILES lists the claim file, and the CHANGELOG opens its `Unreleased` block. The
 evidence is kept beside the tree
 (`release-design-evidence/unique-activity-ids-2026-10-18`: the lab script and
 its output, the patch, the test and suite logs).
+
+## 69. The six longest messages, shorter (2026-10-18)
+
+The first part of the ROADMAP's shorter output strings (item 20), on the
+operator's word: the six longest of karvi's messages, nominated from a list
+made by script, each with a shorter form, kept as proposed and built.
+
+**The list.** The extractor of the 2026-10-13 review (`msgx`, a reader of the
+tree's Go source) over `71b15a7` gave 1,466 sites; `rank.py` takes the whole
+messages among them (coded errors, warnings, the stream's dropped lines, and
+`karvi-sysutil`'s and `install.sh`'s refusals), one entry per code and text,
+771 entries, and ranks them by the literal's characters, fmt verbs counted as
+written. The six longest, from 261 characters to 189: `credkeyref_unresolved`,
+`control_path_root_too_long`, `setup_tmpfiles_dir_missing`,
+`setup_tmpfiles_mismatch`, `inventory_secret_column`, and
+`config_inventory_source_secret_mapping`. `sketch.py` filled each, as it is and
+as proposed, with the same sample values and measured the lines.
+
+**What it gains.** Six refusals an operator reads in one line, each naming its
+subject by its value and its fix last, where each took two or three lines of a
+terminal: 253 to 342 characters with sample values, 130 to 174 after. It waits
+on nothing: each text sits at its own line of the source, and the code's
+description already holds what each drops.
+
+**The rule, agreed.** The 2026-10-13 review's draft, "good thus far" in the
+operator's words and to be reviewed as the work goes on. In simple terms: say
+the subject, the fault, and the fix, in few words.
+
+- The code is not repeated; it leads the line.
+- The subject is named by its value: the key, the path, the device.
+- No word that adds nothing.
+- The reason and the background are the code's description
+  ([`docs/ERROR-CODES.md`](ERROR-CODES.md)), not the message's.
+- A remedy last, after `; `, as the operator would type it.
+- Quoting unchanged; values to compare stacked one over the other, two spaces
+  in, coloured per line.
+
+**Executed.** The released 0.32.1 beside a lab build of `71b15a7` with the
+change (the lab's `msgs-lab.sh`). Four on this host, each refused at planning
+or at validation, nothing contacted, every place under the work directory: a
+mistyped pin over [`CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md)'s section 1 file
+(`NETUSER` and `NETPASS` set), a Linux target over `system` under a
+control-path root of 74 bytes, an inventory file with a `password` column, and
+an attribute mapping named `enable_password`. The two of `setup shared` as root
+in a throwaway `ubuntu:26.04` container (`karvi-ch69`, removed): with no
+`/etc/tmpfiles.d`, and with a `karvi.conf` the site wrote. The released 0.32.1:
+
+```text
+credkeyref_unresolved: 1 of 1 targets failed credential resolution: name:sw-nyc-09 (device sw-nyc-09: credkeyref "break-glas" is unresolved: no backend of the policy that can honour a key answered for it (asked: site-creds; skipped, cannot honour a key: none); the key is absent, or its row's other selectors exclude the device; a pinned device takes no general credential policy=default)
+control_path_root_too_long: the control-path root /dev/shm/k69/w/old/control-sockets/site-nyc-core/a-directory-name-too-long is 74 bytes; a control socket's path must fit OpenSSH's 108-byte limit with its 16-character name and 17-character binding suffix, so the root may be at most 73 bytes; set ssh.control-path-root to a shorter directory
+setup_tmpfiles_dir_missing: the directories are made, but /etc/tmpfiles.d is not present, so no systemd-tmpfiles rule was written: /dev/shm/karvi is a tmpfs emptied at every boot, and the site makes the scratch root again at boot its own way, or runs sudo karvi setup shared after each
+setup_tmpfiles_mismatch: the directories are made, but /etc/tmpfiles.d/karvi.conf exists and is not a rule karvi wrote; nothing was changed there: move the site's file aside to let karvi place its own, or keep the site's if it makes /dev/shm/karvi in the operators' group
+inventory_secret_column: inventory source ex1: /dev/shm/k69/w/old/secret.csv: the header of column 6 names a secret (it is or ends with "password"); an inventory file holds no secret column: move the secrets to a credential CSV (a credential backend of type "csv") and delete the column
+config_inventory_source_secret_mapping: inventory source lab: the attribute "enable_password" names a secret (it is or ends with "password"); an inventory file holds no secret column: keep secrets in a credential CSV (a credential backend of type "csv") for inventory-source.0.mappings.attributes.enable_password at /dev/shm/k69/w/old/c-mapping.toml:15
+```
+
+The change's build, the same six, with the same exits (6, 2, 8, 9, 5, 2):
+
+```text
+credkeyref_unresolved: 1 of 1 targets failed credential resolution: name:sw-nyc-09 (device sw-nyc-09: credkeyref "break-glas": no keyed backend answered (asked: site-creds; skipped, unkeyed: none) policy=default)
+control_path_root_too_long: ssh.control-path-root /dev/shm/k69/w/new/control-sockets/site-nyc-core/a-directory-name-too-long too long; set a shorter directory
+  length 74 bytes
+  limit  73 bytes
+setup_tmpfiles_dir_missing: directories made; no tmpfiles rule, /etc/tmpfiles.d absent; /dev/shm/karvi empties at boot: remake it at boot, or sudo karvi setup shared after each
+setup_tmpfiles_mismatch: directories made; /etc/tmpfiles.d/karvi.conf not karvi's, left as it is; move it aside, or keep it if it makes /dev/shm/karvi in the operators' group
+inventory_secret_column: inventory source ex1: /dev/shm/k69/w/new/secret.csv: column 6 names a secret (ends with "password"); move it to a credential CSV
+config_inventory_source_secret_mapping: inventory source lab: attribute "enable_password" names a secret (ends with "password"); keep secrets in a credential CSV for inventory-source.0.mappings.attributes.enable_password at /dev/shm/k69/w/new/c-mapping.toml:15
+```
+
+`setup shared` made its nine directories before each refusal, in both builds.
+No `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`, `/dev/shm/karvi`,
+`~/.local/share/karvi`, karvi process, or `karvi-ch69` container was left.
+
+**Found on the way.**
+
+- `setup_tmpfiles_dir_missing` names the scratch root, `/dev/shm/karvi`, where
+  the sketch's sample had `/dev/shm`.
+- [`CREDENTIAL-CSV.md`](CREDENTIAL-CSV.md)'s two examples had drifted before
+  this change: both showed a `client planning:` stage the refusal no longer
+  prints, and the secret column's showed the file as `inv.csv` where the
+  refusal names the resolved path. Both are this build's output now, and the
+  `credkeyref` example says what "unkeyed" means and where the causes went.
+- The outer parts of two messages stay as they are, for the questions still
+  open: the planning summary around `credkeyref_unresolved` ("1 of 1 targets
+  failed credential resolution: name:… (…) policy=default") and the
+  configuration error's `for KEY at SOURCE`.
+- `control_path_root_too_long` is also the system transport's guard at a
+  session's start (`internal/transport/systemssh/exec.go`), so a session
+  refused there carries the stacked lines in its record's message; planning
+  refuses first wherever the client and the daemon resolve the same root.
+
+**Not taken.** The causes kept in the message beside the description: said
+once, in the description, they are not read on every occurrence. A remedy
+written as prose ("move the site's file aside to let karvi place its own").
+The longest messages' wording kept for their history: the chapters quote what
+was run, and the source says what runs.
+
+**Built.** The six texts in `internal/credentialbackend`, `internal/osutil`,
+`internal/cli`'s `setup`, `internal/inventoryload`, and `internal/configload`,
+with their comments; `control_path_root_too_long`'s description names the
+limit beside the root and its length, and `docs/ERROR-CODES.md` is regenerated.
+`TestCheckControlPathRoot` holds the whole stacked message,
+`TestControlPathRootCheckedForExecOverSystem` the root and the two lines, and
+`TestCredKeyRefPin`'s refusal "unkeyed". DESIGN states the rule as an
+entry of its own; the ROADMAP's item keeps the rest of the review and its open
+questions; the CHANGELOG's `Unreleased` block says so.
+
+**Executed.** gofmt, vet, `go test ./...` (72 packages), and `make
+generated-clean` on the final tree; all 19 suites on a lab build (`run_suites`,
+`KARVI` the lab build, 201 seconds). None left a `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, `~/.local/share/karvi`, or karvi
+process.
+
+**Closed.** Item 20 goes on under the rule, longest first: `rank.py` names the
+next six on the operator's word. The evidence is kept beside the tree
+(`release-design-evidence/shorter-output-strings-2026-10-18`: the extractor,
+its output, `rank.py` and its ranking, `sketch.py` and its renderings, the lab
+script and its output, the test and suite logs).

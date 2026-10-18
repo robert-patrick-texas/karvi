@@ -562,8 +562,8 @@ func TestTargetChannel(t *testing.T) {
 
 // The first exec target over the system transport checks the control-path
 // root: one too long for a control socket is control_path_root_too_long,
-// naming the root and its length; a root of 73 bytes passes, and a shell
-// platform's target does not check it.
+// naming the root, its length, and the limit; a root of 73 bytes passes,
+// and a shell platform's target does not check it.
 func TestControlPathRootCheckedForExecOverSystem(t *testing.T) {
 	home := t.TempDir()
 	if err := os.Mkdir(filepath.Join(home, "base"), 0o700); err != nil {
@@ -580,7 +580,7 @@ func TestControlPathRootCheckedForExecOverSystem(t *testing.T) {
 	}
 	exec := []string{`platform.srv.driver="linux"`, `platform.srv.channel="exec"`, `basedir="` + filepath.Join(home, "base") + `"`}
 	_, err := Draft(context.Background(), testConfig(t, append(exec, `ssh.control-path-root="`+long+`"`)...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt)
-	if errorcodes.Of(err) != "control_path_root_too_long" || !strings.Contains(err.Error(), long+" is 74 bytes") || !strings.Contains(err.Error(), "at most 73 bytes") {
+	if errorcodes.Of(err) != "control_path_root_too_long" || !strings.Contains(err.Error(), long+" too long") || !strings.Contains(err.Error(), "\n  length 74 bytes\n  limit  73 bytes") {
 		t.Fatalf("a root of 74 bytes: %v", err)
 	}
 	draft, err := Draft(context.Background(), testConfig(t, append(exec, `ssh.control-path-root="`+long[:73]+`"`)...), op, set(), draftOptions(plantest.Commands), plantest.DraftedAt)

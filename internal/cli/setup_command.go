@@ -93,7 +93,7 @@ func setupTmpfiles(inv *Invocation, streams app.IO, group string, mode os.FileMo
 	path := osutil.TmpfilesPath
 	rule := osutil.TmpfilesRule(osutil.ScratchRoot, group, mode)
 	if fi, err := os.Stat(filepath.Dir(path)); err != nil || !fi.IsDir() {
-		return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_dir_missing", errorcodes.Errorf("setup_tmpfiles_dir_missing", "the directories are made, but %s is not present, so no systemd-tmpfiles rule was written: %s is a tmpfs emptied at every boot, and the site makes the scratch root again at boot its own way, or runs sudo karvi setup shared after each", filepath.Dir(path), osutil.ScratchRoot))
+		return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_dir_missing", errorcodes.Errorf("setup_tmpfiles_dir_missing", "directories made; no tmpfiles rule, %s absent; %s empties at boot: remake it at boot, or sudo karvi setup shared after each", filepath.Dir(path), osutil.ScratchRoot))
 	}
 	state := "created"
 	if data, err := os.ReadFile(path); err == nil {
@@ -103,7 +103,7 @@ func setupTmpfiles(inv *Invocation, streams app.IO, group string, mode os.FileMo
 		case strings.HasPrefix(string(data), osutil.TmpfilesMarker+"\n"):
 			state = "updated"
 		default:
-			return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_mismatch", errorcodes.Errorf("setup_tmpfiles_mismatch", "the directories are made, but %s exists and is not a rule karvi wrote; nothing was changed there: move the site's file aside to let karvi place its own, or keep the site's if it makes %s in the operators' group", path, osutil.ScratchRoot))
+			return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_mismatch", errorcodes.Errorf("setup_tmpfiles_mismatch", "directories made; %s not karvi's, left as it is; move it aside, or keep it if it makes %s in the operators' group", path, osutil.ScratchRoot))
 		}
 	} else if !os.IsNotExist(err) {
 		return inv.Global.reportError(streams.Stderr, "setup_tmpfiles_write_failed", errorcodes.Errorf("setup_tmpfiles_write_failed", "%s: %v", path, err))

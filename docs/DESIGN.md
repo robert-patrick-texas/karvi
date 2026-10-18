@@ -3052,6 +3052,22 @@ Process exits come from the registry. *Why:* the catalogue and the source had
 drifted, and nothing prevented two causes sharing a code; a table generated from
 one registry cannot drift from behaviour. *Not taken:* a hand-maintained table.
 
+**A message names its subject, the fault, and the fix, in few words.** An
+error or warning message karvi writes for the operator does not repeat its
+code, which leads the line; names its subject by its value (the key, the path,
+the device); keeps no word that adds nothing; leaves the reason and the
+background to the code's description in
+[`docs/ERROR-CODES.md`](ERROR-CODES.md); puts a remedy last, after `; `, as
+the operator would type it; leaves its quoting as it was; and stacks values to
+compare one over the other on lines of their own, two spaces in. The review of
+every message applies it longest first, a list ranked from the source's
+literals ([EXAMPLES, chapter
+69](EXAMPLES.md#69-the-six-longest-messages-shorter-2026-10-18)). *Why:* a
+refusal is read at a terminal in the middle of work, and a message of 250
+characters over three lines hides the value it names; the description says the
+reason once, for every occurrence. *Not taken:* the causes kept in the message
+beside the description; a remedy written as prose.
+
 **Schema counters are independent and never reused.** Each serialized
 contract (configuration, command record, scoreboard, audit, job, daemon IPC,
 registry, execution plan, credential package, plan report) keeps its own

@@ -76,8 +76,8 @@ func TestControlPathRootPlace(t *testing.T) {
 }
 
 // A root of 73 bytes fits a socket's name and OpenSSH's binding suffix in
-// 107 bytes; one more is control_path_root_too_long, naming the root and
-// its length.
+// 107 bytes; one more is control_path_root_too_long, naming the root,
+// with its length over the limit on lines of their own.
 func TestCheckControlPathRoot(t *testing.T) {
 	root := "/" + strings.Repeat("r", 72)
 	if err := CheckControlPathRoot(root); err != nil {
@@ -87,7 +87,7 @@ func TestCheckControlPathRoot(t *testing.T) {
 		t.Fatalf("the longest path is %d bytes", n)
 	}
 	err := CheckControlPathRoot(root + "r")
-	if errorcodes.Of(err) != "control_path_root_too_long" || !strings.Contains(err.Error(), root+"r is 74 bytes") {
+	if errorcodes.Of(err) != "control_path_root_too_long" || errorcodes.Message(err) != "control_path_root_too_long: ssh.control-path-root "+root+"r too long; set a shorter directory\n  length 74 bytes\n  limit  73 bytes" {
 		t.Fatalf("74 bytes: %v", err)
 	}
 	name, err := NewControlSocketName()

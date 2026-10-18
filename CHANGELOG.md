@@ -20,6 +20,14 @@
   the summary and absent from the records and the scoreboard.
 - **`watch.max-files` counts the scoreboard files alone,** not the claims
   beside them; an empty scoreboard file is a row in error.
+- **The six longest messages are shorter,** under one rule (DESIGN): the
+  subject by its value, no word that adds nothing, the reason left to the
+  code's description, a remedy last. `credkeyref_unresolved`,
+  `control_path_root_too_long` (its length over its limit on lines of their
+  own), `setup_tmpfiles_dir_missing`, `setup_tmpfiles_mismatch`,
+  `inventory_secret_column`, and `config_inventory_source_secret_mapping`
+  keep their codes and exits; a script that matched their old words changes
+  with them.
 
 ## 0.32.1 - 2026-10-18
 

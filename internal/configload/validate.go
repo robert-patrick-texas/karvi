@@ -404,7 +404,7 @@ func (l *loader) validateDynamic() error {
 				continue
 			}
 			if word, secret := inventory.SecretColumnWord(attribute); secret {
-				return l.dynamicErr("config_inventory_source_secret_mapping", fmt.Sprintf("inventory-source.%d.%s", i, k), fmt.Sprintf("inventory source %s: the attribute %q names a secret (it is or ends with %q); an inventory file holds no secret column: keep secrets in a credential CSV (a credential backend of type \"csv\")", name, attribute, word))
+				return l.dynamicErr("config_inventory_source_secret_mapping", fmt.Sprintf("inventory-source.%d.%s", i, k), fmt.Sprintf("inventory source %s: attribute %q names a secret (ends with %q); keep secrets in a credential CSV", name, attribute, word))
 			}
 		}
 	}

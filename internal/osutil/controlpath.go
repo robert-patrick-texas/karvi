@@ -71,10 +71,10 @@ func privatePlaceProblem(p string, uid int) error {
 }
 
 // CheckControlPathRoot refuses a root too long for a control socket's
-// path, naming the root and its length.
+// path, naming the root, its length and the limit stacked below it.
 func CheckControlPathRoot(root string) error {
 	if len(root) > MaxControlPathRoot {
-		return errorcodes.Errorf("control_path_root_too_long", "the control-path root %s is %d bytes; a control socket's path must fit OpenSSH's 108-byte limit with its 16-character name and 17-character binding suffix, so the root may be at most %d bytes; set ssh.control-path-root to a shorter directory", root, len(root), MaxControlPathRoot)
+		return errorcodes.Errorf("control_path_root_too_long", "ssh.control-path-root %s too long; set a shorter directory\n  length %d bytes\n  limit  %d bytes", root, len(root), MaxControlPathRoot)
 	}
 	return nil
 }

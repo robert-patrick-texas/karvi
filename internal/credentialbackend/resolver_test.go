@@ -310,7 +310,7 @@ func TestCredKeyRefPin(t *testing.T) {
 	if errorcodes.Of(err) != "credkeyref_unresolved" {
 		t.Fatalf("a mistyped key: %v", err)
 	}
-	for _, want := range []string{"sw-nyc-01", `"egde-admin"`, "asked: first, second", "cannot honour a key: operator-env, shaped", "policy=default"} {
+	for _, want := range []string{"sw-nyc-01", `"egde-admin"`, "asked: first, second", "unkeyed: operator-env, shaped", "policy=default"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("the message lacks %q: %v", want, err)
 		}
