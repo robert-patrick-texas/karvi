@@ -14313,3 +14313,104 @@ strings. The next release, its number the operator's, carries both in its
 `audit-device-30-2026-10-18`, and `chapter66-battery-2026-10-18`: the lab
 scripts with their output, the layout oracle, the patches, and the test and
 suite logs).
+
+## 67. The release 0.32.1 (2026-10-18)
+
+The twelfth public release, 0.32.1, on the operator's word and number,
+carrying [chapter
+66](#66-one-letter-command-words-and-karvi-audits-device-at-30-2026-10-18): the
+one-letter command words `c`, `r`, `l`, and `s`, and `karvi-audit`'s DEVICE at
+30 cells. No counter moves, so it is a patch release on 0.32.0: the daemon IPC
+schema stays 12, there is no lifecycle replay, and the compatibility example is
+the drain, beside the released 0.32.0 daemon. The sequence is [chapter
+65](#65-the-release-0320-2026-10-17)'s, the baseline's rule already met: `dev`
+held its `## Unreleased` block since chapter 66's first commit.
+
+**What it gains.** A site has the four letters and the wider DEVICE column from
+a published, checksummed bundle and package, with the documents on GitHub Pages
+at the release: an operator's 0.32.0 daemon is drained by the first submission
+after the upgrade, and OPERATIONS' upgrade examples are this release's own
+output.
+
+**Before the number.** The tree and the release tools were archived first
+(`~/karvi/backup/archive-2026-10-18`: a mirror at `a736944` and the six tools
+as they were). No tool changed: `common.sh`'s prior stays empty, and
+`evidence-rest.sh` already names the four executables.
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.32.1 - 2026-10-18` under a
+lead paragraph: a patch release on 0.32.0, every counter 0.32.0's, the module
+graph 0.32.0's, and a site changing only a script that reads `karvi-audit`'s
+table by position. `CHECKSUMS.sha256` has its four lines from the
+release-identity build.
+
+**The sequence, as run**, from the archive at 04:56 to the published check at
+05:23 (UTC; 00:56 to 01:23, EDT), every step passing at its first run:
+
+- 04:56:17, the tree and the tools archived: a mirror at `a736944` and the six
+  tools.
+- 04:56:28 to 05:04:28, the baseline on a clean clone of `dev` at `a736944`:
+  gofmt, make, the release verifier with its package and container steps, exit
+  0 each.
+- 05:04:47 to 05:05:24, the release-identity build, the compatibility example,
+  and 1/3: `fac6af3`; the build `AVfLwnLJ5Ay5xcmJOSWS`; the v0.32.0 daemon
+  drained idle, refusing busy.
+- To 05:07:20, the core evidence: 1,070 named tests across 92 packages, vet 0,
+  both socket lengths exit 0.
+- 05:08:54, the documents: `520dba5` (2/3), `release/` from the v0.32.0
+  pattern, OPERATIONS' examples the release's own.
+- 05:09:01 to 05:16:22, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 05:16:45, 3/3, the tag, `main`: `e0e6d89`, `karvi-v0.32.1`, `main`
+  fast-forwarded from `2737d35`.
+- 05:16:50 to 05:21:59, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 39,606,392 and 6,449,238 bytes.
+- To 05:22:44, the package installed in a throwaway `ubuntu:26.04`: `apt
+  install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; `karvi-sysutil` and the template unit in place;
+  22 files under `/usr/share/karvi`, as 0.32.0.
+- 05:22:44 to 05:23:30, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`13b94a3`), built,
+  its 52 files 200 and its footer `karvi-v0.32.1`; release `karvi-v0.32.1` with
+  the five assets, marked latest; the assets downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.32.0 build=hyA17Kpg085-04k7Q6FO
+daemon started socket=/dev/shm/r321/compat/base/socket/d.sock
+pid 2491319 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build hyA17Kpg085-04k7Q6FO 0.32.0
+  client build AVfLwnLJ5Ay5xcmJOSWS 0.32.1
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2491425 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.32.1 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.32.1-artifacts.sha256    # the assets downloaded back
+karvi-v0.32.1-source-linux-amd64.tar.gz: OK
+karvi_0.32.1_amd64.deb: OK
+```
+
+**Found on the way.** The four executables are 0.32.0's sizes to the byte, with
+other bytes; the bundle is 4,952 bytes larger and the package 4,374. The default
+configuration and the module metadata of the four executables were regenerated
+to 0.32.0's bytes, since no key and no module changed, so 3/3 carries eight
+evidence files where 0.32.0's carried ten. The artifact index's diff range came
+out `karvi-v0.32.1..karvi-v0.32.1` when the range was set before the version
+was replaced across the file, the slip chapter 65 found in 0.31.1's; it was
+caught by the check of the edited files before 2/3 and is
+`karvi-v0.32.0..karvi-v0.32.1` in the release. In the throwaway container `man karvi-audit` has no page, as in
+chapter 65: the package holds the fourteen pages under `/usr/share/man/man1`,
+and the image drops every man page at install. The evidence is kept beside the
+tree (`release-design-evidence/v0321-*`).
