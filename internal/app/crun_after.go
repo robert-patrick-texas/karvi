@@ -186,17 +186,12 @@ func writeCollectionHookAudit(cfg configload.Snapshot, operator credentials.Oper
 	if o.err != nil {
 		outcome, severity, diagnostic = "fail", "warning", errorcodes.Message(o.err)
 	}
-	// A cmd's result carries no job ID; its activity's is the job's.
-	jobID := result.JobID
-	if jobID == "" {
-		jobID = result.ActivityID
-	}
 	eventID, _ := osutil.NewID(time.Now())
 	return sink.WriteAudit(records.AuditRecord{EventID: eventID, EventName: "crun.after", Timestamp: time.Now(), Outcome: outcome, Severity: severity,
 		Operator:  osutil.RecordOperator(operator),
 		LoginUser: operator.LoginUser,
 		Process:   map[string]any{"pid": os.Getpid(), "version": buildinfo.Version, "host": hostname()},
-		JobID:     jobID,
+		JobID:     result.JobID,
 		Action:    map[string]any{"mode": "crun", "operation": "after"},
 		Policy:    map[string]any{},
 		Result:    map[string]any{"exit_code": o.exit},

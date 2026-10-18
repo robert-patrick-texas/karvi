@@ -9,15 +9,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **Unique job IDs.** A job ID is unique only in the folder that reserved
-   it: the output root, a collection's `--cd` folder, or none under `--nof`,
-   whose ID is always `-00`. Of the 43,173 job IDs of thirty days'
-   `run.started` events, 6,712 were started by more than one process, so
-   `journalctl KARVI_JOB_ID=ID` can match two jobs. The direction: one
-   sequence per operator on a host for every job and login. A `cmd` job's
-   empty `job_id` in its summary, its records, and `job list --format json`
-   goes with it, and the audit suite's read by job ID becomes exact.
-2. **Shorter output strings.** A review of every error and warning message
+1. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
    credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the

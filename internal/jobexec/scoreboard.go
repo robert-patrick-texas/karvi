@@ -55,7 +55,7 @@ func jobKind(req Request) string {
 	return "run"
 }
 
-func newScoreboardState(req Request, id, jobID string, now time.Time, producer records.Producer, store *output.Store, startWidth int) *scoreboardState {
+func newScoreboardState(req Request, id string, now time.Time, producer records.Producer, store *output.Store, startWidth int) *scoreboardState {
 	plan := req.Plan
 	mode := plan.Dispatch.Mode
 	targets := make([]records.ScoreboardTarget, len(plan.Targets))
@@ -70,7 +70,7 @@ func newScoreboardState(req Request, id, jobID string, now time.Time, producer r
 	}
 	st := &scoreboardState{index: index, store: store, collect: plan.Output.Collection != nil, inFlight: &output.InFlight{}}
 	st.snap = records.ScoreboardSnapshot{
-		SchemaVersion: records.ScoreboardSchemaVersion, ActivityID: id, JobID: jobID, Operator: osutil.RecordOperator(req.Operator),
+		SchemaVersion: records.ScoreboardSchemaVersion, ActivityID: id, JobID: id, Operator: osutil.RecordOperator(req.Operator),
 		ActivityType: req.ActivityType, Mode: scoreboardMode(req), Status: "initializing", DispatchMode: &mode, Width: maxInt(1, startWidth),
 		Counts:  records.Counts{Total: len(plan.Targets), NotStarted: len(plan.Targets)},
 		Targets: targets, Inputs: inputs,

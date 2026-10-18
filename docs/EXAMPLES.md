@@ -14414,3 +14414,214 @@ caught by the check of the edited files before 2/3 and is
 chapter 65: the package holds the fourteen pages under `/usr/share/man/man1`,
 and the image drops every man page at install. The evidence is kept beside the
 tree (`release-design-evidence/v0321-*`).
+
+## 68. One activity ID for every activity (2026-10-18)
+
+The operator's review of the ROADMAP's first item, unique job IDs, and the
+build on the operator's word: every activity takes its ID by one method, so
+that no two activities share one, the ID's form unchanged; and a `cmd` job's
+`job_id` with it.
+
+**The review.** The operator judged the risk low and acceptable: two
+activities must start in one second, and outside shared mode, under `--nof`,
+or as a login beside a job; a site concerned can enforce shared mode and tell
+its staff to avoid `--nof`. The question was how to take it toward zero with a
+light fix that keeps the date-and-time form, a central list of IDs in a
+scratch or persistent folder the proposal to weigh. The code read first: a job
+that writes files reserved its ID by creating its job directory exclusively
+under its output root; a login by its scoreboard file, created exclusively;
+`--nof`, a dry run, and a login under `watch.enabled = false` took `-00` with
+nothing behind it. Shared mode puts every operator's job directories in one
+folder, but left those, a job under `--of=PATH`, and a login each its own
+sequence.
+
+**What it gains.** One ID names one activity: `karvi-audit -g ID` and
+`journalctl KARVI_JOB_ID=ID` find one job, a login's scoreboard is never
+replaced by a job's, and two runs under `--nof` through one daemon in one
+second both run, where the second was refused, the daemon's idempotency key
+being the job ID. A `cmd` job's summary, records, and scoreboard name its ID
+as `job_id`, which its summary held empty and its records and scoreboard left
+out. It waits on nothing: the sequence loop and the exclusive create are the
+job directory's and the login's scoreboard's already.
+
+**The rule, agreed.** In simple terms: every activity claims its ID once, in
+one shared folder, before anything else, and the claim is never handed back.
+
+- Every activity (`cmd`, `run`, `crun`, each run of a `stream`, a dry run, an
+  exercise, a login) claims its ID first by creating an empty file `<ID>.id`
+  exclusively in the scoreboards folder: `-00` first, the next sequence when
+  the name is taken.
+- A job that writes files also makes its job directory under that ID; both
+  names must be free, or the next sequence is tried.
+- The folder is the scoreboards' chain, whatever `watch.enabled` says:
+  `/dev/shm/karvi/scoreboards` in shared mode, one namespace for the host;
+  else the operator's private `<basedir>/state/scoreboards`.
+- An activity never removes its claim, since a claim released within its
+  second would reopen the ID; each claim removes the operator's own claims of
+  earlier days, the folder being sticky.
+- No setting. A shared folder that cannot be used falls back to the private
+  one with the one orange warning there is today; a claim that cannot be
+  written stops the activity before anything runs,
+  `activity_id_generation_failed` naming the path and the reason; a site that
+  wants no fallback names the shared folder in `scoreboards` and locks the
+  key, an explicit path being used or refused.
+- The form stays `YYMMDD-HHMMSS-xx`; a job's `job_id` is its ID, a `cmd`'s as a
+  `run`'s.
+
+**Executed.** The released 0.32.1 beside a lab build of `ed4daa8` with the
+change, against the fake IOS XE device built from the tree on
+127.0.0.1:2231, each build with a work directory of its own, so neither
+drains the other's daemon. Each pair of activities starts together 20 ms after
+a second boundary (the lab's `ids-lab.sh`); a login runs under `script(1)`,
+which gives it a terminal, and types `exit`, the fake then closing without an
+exit status (exit 110, runbook row D15). Each karvi call carries the lab's
+places, left out below. The released 0.32.1, a dry run beside a `cmd`, and
+two runs under `--nof` through the daemon:
+
+```text
+$ karvi run --dry-run --no-daemon --transport native --t c-ae5454 show clock | sed -n 1p
+dry-run 261018-123724-00
+$ karvi command --transport native c-ae5454 show clock
+! ssh accepted new host-key c-ae5454 (ED25519)
+! c-ae5454 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=616ms artifacts=/dev/shm/k68/w/old/base/jobs/261018/261018-123724-00
+$ karvi run --nof --transport native --t e-ae5454 show clock
+! ssh accepted new host-key e-ae5454 (ED25519)
+! e-ae5454 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=615ms artifacts=none
+$ karvi run --nof --transport native --t e-ae5454 show clock
+idempotency_conflict: daemon validation: key "261018-123728-00" was committed with plan e98548b7ec1ddb0aae6e13008dcda7f3ef8fe47b88b8ff509c8cfcf5a95c32d5, not 8c4eb31649788bbc5bf338ff943b9eba6388001e16b11a9ebf93858e7d77093f
+exit=112
+```
+
+The audit trail of the two `cmd` jobs under `--nof` (device `b-ae5454`) and of
+the login with the `cmd` 0.3 seconds after it (`d-ae5454`), each pair in one
+second:
+
+```text
+$ karvi-audit --nocolor -S '2026-10-18 12:37:22' -d b-ae5454
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261018-123723-00       netops       cmd   command success                     b-ae5454            show clock
+261018-123723-00       netops       cmd   command success                     b-ae5454            show clock
+$ karvi-audit --nocolor -S '2026-10-18 12:37:22' -d d-ae5454
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261018-123725-00       netops       login start                               d-ae5454
+261018-123725-00       netops       cmd   command success                     d-ae5454            show clock
+261018-123725-00       netops       login end     error                       d-ae5454
+```
+
+The scoreboards folder (the lab's `ls`) holds one `261018-123725-00.json`,
+the `cmd` job's, which replaced the login's; and each `cmd` job's
+`summary.json` (the lab's `json_get` of `job_id` and `activity_id`):
+
+```text
+261018-123724-00: job_id="" activity_id="261018-123724-00"
+261018-123725-00: job_id="" activity_id="261018-123725-00"
+```
+
+The change's build, the same calls:
+
+```text
+$ karvi run --dry-run --no-daemon --transport native --t c-ae5454 show clock | sed -n 1p
+dry-run 261018-123732-01
+$ karvi command --transport native c-ae5454 show clock
+! ssh accepted new host-key c-ae5454 (ED25519)
+! c-ae5454 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=619ms artifacts=/dev/shm/k68/w/new/base/jobs/261018/261018-123732-00
+$ karvi-audit --nocolor -S '2026-10-18 12:37:30' -d b-ae5454
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261018-123731-00       netops       cmd   command success                     b-ae5454            show clock
+261018-123731-01       netops       cmd   command success                     b-ae5454            show clock
+$ karvi-audit --nocolor -S '2026-10-18 12:37:30' -d d-ae5454
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261018-123733-00       netops       login start                               d-ae5454
+261018-123733-01       netops       cmd   command success                     d-ae5454            show clock
+261018-123733-00       netops       login end     error                       d-ae5454
+$ karvi-audit --nocolor -S '2026-10-18 12:37:30' -d e-ae5454
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261018-123736-00       netops       run   command success                     e-ae5454            show clock
+261018-123736-01       netops       run   command success                     e-ae5454            show clock
+```
+
+Both runs under `--nof` through the daemon ran, exit 0. The summaries (the
+lab's `json_get`):
+
+```text
+261018-123732-00: job_id="261018-123732-00" activity_id="261018-123732-00"
+261018-123733-01: job_id="261018-123733-01" activity_id="261018-123733-01"
+```
+
+The scoreboards folder (the lab's `ls`) holds a claim for each of the eight
+activities, `261018-123732-01.id` the dry run's with no scoreboard beside it,
+and a scoreboard for each of the others. No `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, `~/.local/share/karvi`, or karvi
+process was left.
+
+**Found on the way.**
+
+- 0.32.1 refused the second run with `idempotency_conflict`, exit 112: the
+  daemon keys a commit by the job ID, and the two plans differ in their draft
+  time. The reading of the code before the lab had named `job_id_conflict`.
+- In 0.32.1 a login and a job shared an ID only when the login reserved first,
+  its empty scoreboard file not stopping the job's directory; when the job's
+  scoreboard was written first, the login took the next sequence (the lab's
+  first run).
+- The dry run first claimed before its `--platform` check, which a test caught
+  by the base folder it made in the operator's home
+  (`TestPlatformOptionRefusedBeforeInventory`): it now claims inside the
+  client's first half, where a run does. `RunOptions.ActivityID`, which only
+  the dry run had set, is gone.
+- `watch.max-files` counted every entry of the folder, claims included; it
+  counts the scoreboard files, and the registry's text says so. With no empty
+  reservation left, an empty scoreboard file is a row in error like any file
+  that does not decode.
+- The job ID parameters beside the activity ID (the executor's, the summary's,
+  the scoreboard's, the exercise's) were one value and are folded into it, and
+  the executor's request without an ID, which took `NewID`'s other form, is
+  refused.
+- The audit suite's read by job ID stays tolerant of another suite's job in
+  the same second: each suite has a scoreboards folder of its own, so suites in
+  parallel lanes are separate namespaces, as two operators without shared mode
+  are.
+
+**Not taken.** One list file of IDs: a lock, a read and a rewrite, and
+trimming, where an exclusive create is atomic. A claim as an empty directory:
+both creates are atomic, and the file is the login's mechanism, holds nothing,
+and is told apart by its suffix. The claims in a folder of their own: the
+first operator would make it with the shared folder's bits. A key to turn the
+claim off. A warning of the claim's own, beside the scoreboards' one. One
+sequence across every operator without shared mode: there is no folder every
+operator can write.
+
+**Built.** S1, the claim: `osutil.ClaimActivityID` (the claim, the job
+directory, the sweep of earlier days) in place of `ReserveJobID` and
+`UnreservedJobID`; `scoreboard.Folder`, the writer's folder whatever
+`watch.enabled` says, with `Writer.Reserve` and `Release` gone; one `claim` in
+`internal/app` behind `reserveActivityID` (a job) and `ClaimActivityID` (a dry
+run, a login, the recording wrapper). S2, the `cmd` job's `job_id`: the
+executor, the summary, the scoreboard, and the exercise take the one ID.
+Tests: `TestClaimActivityIDSequencesWithinOneSecond`,
+`TestClaimActivityIDAcrossActivities`, `TestClaimActivityIDNeedsBothNamesFree`,
+`TestClaimActivityIDRefusal`, `TestSweepClaims`, `TestFolderWhateverWatchSays`,
+`TestReadPassesClaimsBy`, and `TestEveryActivityClaimsItsID` (a `cmd` with
+files, a `cmd` under `--nof`, a dry run, and a `cmd` under `watch.enabled =
+false` through a fake ssh, each its own claim, the `cmd` job's summary,
+records, and scoreboard naming it); `TestCommandEvent` takes a `cmd` record
+with its `job_id`.
+
+**Executed.** On the final code: gofmt, vet, `go test ./...` (72 packages),
+and `make generated-clean`; all 19 suites on a lab build (`run_suites`,
+`KARVI` the lab build, 203 seconds); and, with the documents in place, `go
+test ./...`, `make generated-clean`, and the HTML built into a lab folder. None
+left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`, `/dev/shm/karvi`,
+`~/.local/share/karvi`, or karvi process.
+
+**Closed.** The ROADMAP's Next is now one item, shorter output strings (item
+20, on the operator's reviewed input). DESIGN's job ID entry states the claim,
+FILES lists the claim file, and the CHANGELOG opens its `Unreleased` block. The
+evidence is kept beside the tree
+(`release-design-evidence/unique-activity-ids-2026-10-18`: the lab script and
+its output, the patch, the test and suite logs).

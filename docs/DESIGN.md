@@ -1912,14 +1912,35 @@ hold both spellings).
 **Every activity's artifacts live below `<output root>/YYMMDD/<id>/`.** The
 job ID is the client's clock to the second in the effective timezone plus a
 two-character sequence (`YYMMDD-HHMMSS-xx`), so the day folder is the ID's
-prefix by construction; a login's activity ID takes the same form. The client
-reserves the ID by creating the job directory exclusively (a login by its
-scoreboard file), bumps the sequence on collision, and releases the reservation
-if the activity fails before submission, so a refused run leaves no folder;
-the daemon refuses an ID it already holds. *Why:* the ID is the one identifier
-an operator types and reads; a fan-out from a cron is the same-second case;
-the reservation is what lets the ID be short. *Not taken:* a random pair;
-microseconds; a separate short directory name beside a long ID.
+prefix by construction; every activity's ID takes the same form, and a job's
+`job_id` is its ID, a `cmd`'s as a `run`'s.
+
+**Every activity claims its ID once, in one folder, before anything else.**
+A `cmd`, a `run`, a `crun`, each run of a `stream`, a dry run, an exercise,
+and a login create an empty file `<ID>.id` exclusively in the scoreboards
+folder (`/dev/shm/karvi/scoreboards` in shared mode, else
+`<basedir>/state/scoreboards`), whatever `watch.enabled` says: sequence `00`
+first, the next when the name is taken. A job that writes files also creates
+its job directory exclusively under the same ID, and a name taken in either
+moves it to the next sequence. An activity never removes its claim; each claim
+removes the operator's own claims of earlier days. The client releases an empty
+job directory if the activity fails before submission, so a refused run leaves
+no folder; the daemon refuses an ID it already holds. A claim that cannot be
+created stops the activity before anything runs
+(`activity_id_generation_failed`); a shared folder that cannot be used falls
+back to the private one with the scoreboards' one warning, and a site that
+wants no fallback names the shared folder in `scoreboards` and locks the key.
+*Why:* the ID is the one identifier an operator types and reads, and the audit
+trail finds a job by it; a fan-out from a cron is the same-second case; one
+folder for every activity makes the ID unique on the host in shared mode and
+per operator otherwise, where the job directory alone left a `--nof` job, a
+dry run, a login, and a job under `--of=PATH` each its own sequence, and a
+claim released within its second would reopen the ID
+([EXAMPLES, chapter 68](EXAMPLES.md#68-one-activity-id-for-every-activity-2026-10-18)).
+*Not taken:* a random pair; microseconds; a separate short directory name
+beside a long ID; one list file of IDs (a lock, a rewrite, and trimming, where
+an exclusive create is atomic); a claim as an empty directory, or claims in a
+folder of their own; a key to turn the claim off.
 
 **Folders and files karvi creates, and never alters.** Folders it creates take
 `output.directory-mode` (`0750` default) and keep an inherited setgid bit;

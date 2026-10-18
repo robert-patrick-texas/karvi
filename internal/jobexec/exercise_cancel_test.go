@@ -25,7 +25,7 @@ func TestExerciseSummaryNamesAnAcceptedCancelAndStaysExercised(t *testing.T) {
 	}
 	at := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
 	req := Request{Mode: executionplan.ModeExercise}
-	accepted := acceptedSummary(req, store.Paths(), "activity", "job", at)
+	accepted := acceptedSummary(req, store.Paths(), "job", at)
 	rq := JobCancelRequest{Reason: "wrong change window", RequestedAt: at, RequestID: "request", RequesterPID: 4242, RequesterUID: 1000}
 	build := func(ctx context.Context, outcome string, code int) records.Summary {
 		return buildExerciseSummary(req, accepted, store.Paths(), "exercise.json", at.Add(time.Second), code, outcome, map[string]int{}, cancellationOf(ctx), audit.Status{}, nil, nil)

@@ -35,7 +35,7 @@ func TestAuditIdentity(t *testing.T) {
 }
 
 // TestCommandEvent: a device command's event is <kind>.command under the
-// job's ID, the activity's, with the device, the operator's login user, the
+// record's job ID, a cmd's as a run's, with the device, the operator's login user, the
 // kind as its mode, the statement as sent, and the process that wrote it, as
 // the job's other events name it; the sink stamps the audit's schema
 // version, and the line keeps to the published schema.
@@ -51,7 +51,7 @@ func TestCommandEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink, Kind: "cmd", Operator: credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}}}
-	e.afterRecord(records.CommandRecord{RecordID: "r1", ActivityID: "261017-101500-00", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
+	e.afterRecord(records.CommandRecord{RecordID: "r1", JobID: "261017-101500-00", ActivityID: "261017-101500-00", ActivityType: "command", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
 	sink.Close()
 	data, err := os.ReadFile(file)
 	if err != nil {

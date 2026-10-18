@@ -11,7 +11,6 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/daemon"
-	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/icmpgate"
@@ -40,17 +39,7 @@ type ReadTiming struct {
 // failure before the draft exists aborts as a live run would, with the
 // stage named after the code; a complete draft always yields a report.
 func InspectRun(ctx context.Context, opts RunOptions, probe bool, read ReadTiming, streams IO) ActivityResult {
-	if opts.ActivityID == "" {
-		// A dry run writes no job directory, so it reserves none: its ID is
-		// the unreserved ID of its second, in the job
-		// form every activity ID takes.
-		location, err := display.Location(opts.Config.String("timezone"))
-		if err != nil {
-			return failedResult("config_load_failed", fmt.Errorf("client planning: %w", err))
-		}
-		opts.ActivityID = osutil.UnreservedJobID(read.Start, location)
-	}
-	cd, code, err := draftClient(ctx, opts, streams)
+	cd, code, err := draftClient(ctx, opts, true, streams)
 	if err != nil {
 		return failedResult(code, fmt.Errorf("client planning: %w", err))
 	}
@@ -72,7 +61,7 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, read ReadTimin
 		daemons = append(daemons, row)
 		findings = append(findings, rowFindings...)
 	}
-	report, err := cd.inspectionReport(opts.ActivityID, daemons, findings, probeNS, read)
+	report, err := cd.inspectionReport(cd.id, daemons, findings, probeNS, read)
 	if err != nil {
 		return failedResult("plan_report_invalid", err)
 	}
@@ -83,7 +72,7 @@ func InspectRun(ctx context.Context, opts RunOptions, probe bool, read ReadTimin
 	if err := renderInspection(streams.Stdout, opts.Format, report, socket, dispatchLine, cd.cfg.String("crun.file-mode")); err != nil {
 		return failedResult("terminal_write_failed", err)
 	}
-	result := ActivityResult{ExitCode: exitcode.ExitSuccess, ExitName: exitcode.ExitName(exitcode.ExitSuccess), ActivityID: opts.ActivityID}
+	result := ActivityResult{ExitCode: exitcode.ExitSuccess, ExitName: exitcode.ExitName(exitcode.ExitSuccess), ActivityID: cd.id}
 	if report.Outcome == records.OutcomeInvalid {
 		for _, f := range report.Findings {
 			if f.Severity != executionplan.SeverityError {

@@ -55,19 +55,13 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		WriteWarning(streams.Stderr, req.Config, fmt.Sprintf("adjusted GOMAXPROCS from %d to effective CPU count %d", cpuProfile.PreviousGOMAXPROCS, cpuProfile.GOMAXPROCS))
 	}
 	now := time.Now()
+	// The ID its client claimed; a job's ID is its activity's, a cmd's as a
+	// run's.
 	id := req.ActivityID
 	if id == "" {
-		var err error
-		id, err = osutil.NewID(now)
-		if err != nil {
-			return FailedResult("activity_id_generation_failed", err)
-		}
+		return FailedResult("activity_id_generation_failed", errorcodes.Errorf("activity_id_generation_failed", "the request names no activity ID"))
 	}
-	jobID := ""
-	if req.ActivityType == "run" {
-		jobID = id
-	}
-	result := ActivityResult{ActivityID: id, JobID: jobID}
+	result := ActivityResult{ActivityID: id, JobID: id}
 	cfg := req.Config
 	// The ICMP gate's capability, once per live job and before anything is
 	// written: an enabled gate with no
@@ -292,7 +286,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if err != nil {
 		return FailedResult("scoreboard_directory_unavailable", err)
 	}
-	// The run's or cmd's ID was reserved by its job directory.
+	// The activity's ID was claimed by its client before the draft.
 	scoreboardWriter.Use(id)
 	producer := producerInfo()
 	// The scoreboard's schema 2 state: the
@@ -300,7 +294,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// the metrics and the collection counts from the store at each write.
 	// The scoreboard's first width is the one the job starts at (one for
 	// serial, the pool, the wave's start), after any narrowing above.
-	board := newScoreboardState(req, id, jobID, now, producer, store, buildPlan(cfg, req.ActivityType, dispatchSettings, nil).StartWidth())
+	board := newScoreboardState(req, id, now, producer, store, buildPlan(cfg, req.ActivityType, dispatchSettings, nil).StartWidth())
 	initial := board.snapshot()
 	if err := scoreboardWriter.Write(initial); err != nil {
 		return FailedResult("scoreboard_write_failed", err)
@@ -310,7 +304,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	// The summary at acceptance names the job's devices; the end writes it
 	// whole again with the result.
-	accepted := acceptedSummary(req, store.Paths(), id, jobID, now)
+	accepted := acceptedSummary(req, store.Paths(), id, now)
 	if err := store.WriteSummary(accepted); err != nil {
 		return FailedResult("output_summary_write_failed", err)
 	}
@@ -323,7 +317,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	if req.Mode == executionplan.ModeExercise {
 		// The exercise branch: everything above is
 		// the accepted job; nothing below it is built.
-		return runExercise(ctx, req, exerciseState{id: id, jobID: jobID, artifact: artifact, started: now, accepted: accepted, store: store, auditSink: auditSink, scoreboardWriter: scoreboardWriter, initial: initial, capManager: capManager, sampler: sampler, base: base})
+		return runExercise(ctx, req, exerciseState{id: id, artifact: artifact, started: now, accepted: accepted, store: store, auditSink: auditSink, scoreboardWriter: scoreboardWriter, initial: initial, capManager: capManager, sampler: sampler, base: base})
 	}
 	renderer, err := newRecordRenderer(streams.Stdout, plan.Output.Format, cfg, req.Quiet, req.Debug, id, shownArtifact, req.ActivityType, plan.Output.Echo, plan.Output.DynamicBorder, plan.Output.NoBorder)
 	if err != nil {
@@ -336,7 +330,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		renderer.sayTo(streams.Stderr, cfg)
 	}
 	devExec := executor.New(executor.Options{
-		Config: cfg, Operator: req.Operator, ActivityID: id, JobID: jobID, ActivityType: req.ActivityType, Kind: jobKind(req),
+		Config: cfg, Operator: req.Operator, ActivityID: id, ActivityType: req.ActivityType, Kind: jobKind(req),
 		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
 		SessionInit: plan.SessionInit, CandidateCount: req.CandidateCount, DispatchOrder: plan.Dispatch.DispatchOrder, ShuffleKey: plan.Dispatch.ShuffleKey,
 		Grants: req.Grants, Protection: req.Protection, Pinger: pinger,
@@ -548,7 +542,7 @@ func summaryFiles(paths output.Paths, outputBytes int64) (files map[string]strin
 // acceptedSummary is the summary a job's acceptance writes: the job, its
 // plan, the files it writes, and its devices in the plan's order without
 // their outcomes. The end's summary is this with the result after it.
-func acceptedSummary(req Request, paths output.Paths, id, jobID string, start time.Time) records.AcceptedSummary {
+func acceptedSummary(req Request, paths output.Paths, id string, start time.Time) records.AcceptedSummary {
 	authorities := map[string]int{}
 	devices := make([]records.SummaryDevice, len(req.Plan.Targets))
 	for i, t := range req.Plan.Targets {
@@ -560,7 +554,7 @@ func acceptedSummary(req Request, paths output.Paths, id, jobID string, start ti
 		mode = executionplan.ModeLive
 	}
 	files, _ := summaryFiles(paths, 0)
-	return records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, JobID: jobID, ActivityID: id, StartedAt: start, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
+	return records.AcceptedSummary{SchemaVersion: records.JobSchemaVersion, JobID: id, ActivityID: id, StartedAt: start, DispatchOrder: req.Plan.Dispatch.DispatchOrder, ShuffleKey: req.Plan.Dispatch.ShuffleKey,
 		PlanID: req.Plan.PlanID, PlanDigest: req.Plan.PlanDigest.String(), Mode: string(mode), Kind: jobKind(req), AddressAuthorityCounts: authorities, Devices: devices, Paths: files}
 }
 

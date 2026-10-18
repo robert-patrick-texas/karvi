@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **One activity ID for every activity, never two alike.** Every `cmd`,
+  `run`, `crun`, run of a `stream`, dry run, exercise, and login claims its
+  ID by creating an empty file `<ID>.id` in the scoreboards folder before
+  anything else, a job that writes files making its job directory under the
+  same ID; a name taken in either moves to the next sequence, and the claim
+  is never handed back. In shared mode the ID is unique on the host, and per
+  operator otherwise: two jobs under `--nof` in one second, a dry run beside a
+  job, and a login beside a job no longer share an ID, a job's scoreboard no
+  longer replaces a login's, and a second run under `--nof` through one daemon
+  in the same second runs, where it was refused (`idempotency_conflict`). The
+  ID's form is unchanged. A claim that cannot be created stops the activity
+  (`activity_id_generation_failed`); a site that wants no fallback from the
+  shared folder names it in `scoreboards` and locks the key.
+- **A `cmd` job's `job_id` is its ID** in its summary, its records, its
+  scoreboard, and `job list --format json`, as a `run`'s is; it was empty in
+  the summary and absent from the records and the scoreboard.
+- **`watch.max-files` counts the scoreboard files alone,** not the claims
+  beside them; an empty scoreboard file is a row in error.
+
 ## 0.32.1 - 2026-10-18
 
 A patch release on 0.32.0 for the one-letter command words and `karvi-audit`'s

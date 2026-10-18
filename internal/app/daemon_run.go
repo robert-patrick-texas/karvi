@@ -37,8 +37,8 @@ type clientDraft struct {
 	draft    executionplan.ExecutionPlan
 	planner  *planner.CredentialPlanner
 	timing   draftTiming
-	// id is the activity ID, and release removes its reservation when the
-	// run ends before the daemon accepts the job.
+	// id is the activity ID, and release removes its job directory when
+	// the run ends before the daemon accepts the job; the claim stays.
 	id      string
 	release func()
 }
@@ -49,9 +49,10 @@ type draftTiming struct {
 	inventory, dns, credential time.Duration
 }
 
-// draftClient runs the shared first half. On failure it returns the site
-// code that names the stage and the error; the caller reports both.
-func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft, string, error) {
+// draftClient runs the shared first half of a run and of a dry run
+// (dryRun). On failure it returns the site code that names the stage and
+// the error; the caller reports both.
+func draftClient(ctx context.Context, opts RunOptions, dryRun bool, streams IO) (*clientDraft, string, error) {
 	if opts.Format == "" {
 		opts.Format = "text"
 	}
@@ -77,13 +78,17 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 	}
 	cd.set = set
 	cd.timing.inventory = time.Since(t0)
-	// The run's ID is its job directory, reserved before the draft (chapter
-	// 11); the dry run passes its unreserved ID and reserves nothing.
-	cd.id, cd.release = opts.ActivityID, func() {}
-	if cd.id == "" {
-		if cd.id, cd.release, err = reserveActivityID(cfg, operator, time.Now()); err != nil {
-			return nil, "activity_id_generation_failed", err
-		}
+	// The run's ID is claimed before the draft, with its job directory when
+	// it writes files (reserveActivityID); a dry run writes no job
+	// directory and claims its ID alone.
+	cd.release = func() {}
+	if dryRun {
+		cd.id, err = ClaimActivityID(cfg, operator, time.Now())
+	} else {
+		cd.id, cd.release, err = reserveActivityID(cfg, operator, time.Now())
+	}
+	if err != nil {
+		return nil, "activity_id_generation_failed", err
 	}
 	warn := func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }
 	draftOpts := planner.DraftOptions{
@@ -140,7 +145,7 @@ func draftClient(ctx context.Context, opts RunOptions, streams IO) (*clientDraft
 // request is repeated: the plan, the credentials, and the identifiers are
 // the ones already made.
 func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame int64, ensure func(context.Context) error, streams IO) ActivityResult {
-	cd, code, err := draftClient(ctx, opts, streams)
+	cd, code, err := draftClient(ctx, opts, false, streams)
 	if err != nil {
 		if ctx.Err() != nil {
 			return interrupted(stageClientPlanning, err)

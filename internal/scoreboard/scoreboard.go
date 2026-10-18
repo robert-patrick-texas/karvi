@@ -3,7 +3,6 @@ package scoreboard
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,10 +18,9 @@ import (
 
 // Writer is one activity's scoreboard file: Directory the shared directory
 // or the private fallback, Path the file once the activity's ID is known.
-// An activity that reserves its ID elsewhere (a run or a cmd, by its job
-// directory) names the file with Use; a login reserves its ID here, by the
-// file itself (Reserve), so that every job ID on the watch screen has the
-// one form YYMMDD-HHMMSS-xx.
+// Every activity claims its ID in the same folder before its scoreboard
+// is written (osutil.ClaimActivityID, the folder by Folder) and names the
+// file with Use.
 type Writer struct {
 	Directory, Path string
 	Mode            os.FileMode
@@ -46,9 +44,22 @@ func NewWriter(raw, home, base string, enabled bool, warn func(string)) (*Writer
 	if !enabled {
 		return w, nil
 	}
+	var err error
+	if w.Directory, w.Mode, err = Folder(raw, home, base, warn); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// Folder is NewWriter's folder whatever watch.enabled says, the place every
+// activity claims its ID: the folder, made when missing, and the mode of
+// the files in it (0640 in the shared folder, 0600 in the private one).
+// warn is told when the shared folder is passed by; nil passes it by
+// silently, for a caller whose scoreboard writer says it.
+func Folder(raw, home, base string, warn func(string)) (string, os.FileMode, error) {
 	f, err := Choice(raw, home, base)
 	if err != nil {
-		return nil, err
+		return "", 0, err
 	}
 	if f.Path != "" {
 		err := osutil.MakeSharedDirectory(f.Path, 0770)
@@ -56,24 +67,22 @@ func NewWriter(raw, home, base string, enabled bool, warn func(string)) (*Writer
 			err = osutil.UsableDirectory(f.Path)
 		}
 		if err == nil {
-			w.Directory, w.Mode = f.Path, 0640
-			return w, nil
+			return f.Path, 0640, nil
 		}
 		if f.Fallback == "" {
-			return nil, errorcodes.Errorf("scoreboard_root_invalid", "the scoreboards %s cannot be used (%v); set scoreboards to a folder the operator can write", f.Path, err)
+			return "", 0, errorcodes.Errorf("scoreboard_root_invalid", "the scoreboards %s cannot be used (%v); set scoreboards to a folder the operator can write", f.Path, err)
 		}
 		if warn != nil {
 			warn(fmt.Sprintf("shared scoreboard directory unavailable (%s: %v); using private fallback %s", f.Path, err, f.Fallback))
 		}
 	}
 	if err := osutil.MakeDirectories(f.Fallback, 0700); err != nil {
-		return nil, err
+		return "", 0, err
 	}
 	if err := osutil.UsableDirectory(f.Fallback); err != nil {
-		return nil, errorcodes.Errorf("scoreboard_root_invalid", "the private scoreboards %s cannot be used: %v", f.Fallback, err)
+		return "", 0, errorcodes.Errorf("scoreboard_root_invalid", "the private scoreboards %s cannot be used: %v", f.Fallback, err)
 	}
-	w.Directory, w.Mode = f.Fallback, 0600
-	return w, nil
+	return f.Fallback, 0600, nil
 }
 
 // Choice is the scoreboards' chain (osutil.ScratchFolderChoice): the
@@ -112,50 +121,11 @@ func Directories(raw, home, base string) ([]string, error) {
 	return dirs, nil
 }
 
-// Use names the file of an activity whose ID was reserved elsewhere, or
-// chosen by the recording wrapper (app.RecorderSessionIDEnv).
+// Use names the file of the activity's claimed ID, or of the ID the
+// recording wrapper claimed (app.RecorderSessionIDEnv).
 func (w *Writer) Use(activityID string) {
 	if w.Enabled {
 		w.Path = filepath.Join(w.Directory, activityID+".json")
-	}
-}
-
-// Reserve takes the first free job ID of now for an activity whose only
-// file is its scoreboard, a login: the file is created exclusively, empty,
-// sequence 00 first and the next on "exists", through the one sequence
-// loop the job directory uses (osutil.ReserveSequence). The first Write
-// replaces the empty file by rename. A disabled writer reserves nothing and
-// gives the unreserved ID of the second, as an activity that writes no
-// files does.
-func (w *Writer) Reserve(now time.Time, loc *time.Location) (string, error) {
-	if !w.Enabled {
-		return osutil.UnreservedJobID(now, loc), nil
-	}
-	return osutil.ReserveSequence(now, loc, w.Directory, func(id string) error {
-		path := filepath.Join(w.Directory, id+".json")
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, w.Mode)
-		if err != nil {
-			if errors.Is(err, os.ErrExist) {
-				return err
-			}
-			return errorcodes.Errorf("scoreboard_write_failed", "cannot create %s: %w", path, err)
-		}
-		f.Close()
-		w.Path = path
-		return nil
-	})
-}
-
-// Release removes a reservation that never became a snapshot: the file
-// only while it is still empty, so a written scoreboard is never touched.
-// A login that fails before its first Write, or a recording wrapper whose
-// child never ran, leaves nothing behind.
-func (w *Writer) Release() {
-	if !w.Enabled || w.Path == "" {
-		return
-	}
-	if fi, err := os.Stat(w.Path); err == nil && fi.Size() == 0 {
-		_ = os.Remove(w.Path)
 	}
 }
 
@@ -273,24 +243,24 @@ func Read(directory string, max int, staleAfter time.Duration) ([]Row, error) {
 	if max <= 0 {
 		max = 10000
 	}
-	if len(entries) > max {
-		return nil, errorcodes.Errorf("scoreboard_file_limit_exceeded", "scoreboard file count %d exceeds configured maximum %d", len(entries), max)
+	// The scoreboards alone: the claims beside them (osutil.ClaimExtension)
+	// are neither read nor counted.
+	files := []string{}
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+			files = append(files, e.Name())
+		}
+	}
+	if len(files) > max {
+		return nil, errorcodes.Errorf("scoreboard_file_limit_exceeded", "scoreboard file count %d exceeds configured maximum %d", len(files), max)
 	}
 	rows := []Row{}
 	now := time.Now()
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-			continue
-		}
-		path := filepath.Join(directory, e.Name())
+	for _, name := range files {
+		path := filepath.Join(directory, name)
 		data, err := os.ReadFile(path)
 		if err != nil {
 			rows = append(rows, Row{Path: path, Error: err.Error()})
-			continue
-		}
-		// An empty file is a login's reservation whose first snapshot is
-		// moments away (Writer.Reserve): not a row, and not invalid.
-		if len(data) == 0 {
 			continue
 		}
 		var snap records.ScoreboardSnapshot
@@ -319,7 +289,7 @@ func Find(dirs []string, id string) (records.ScoreboardSnapshot, bool) {
 	ok := false
 	for _, dir := range dirs {
 		data, err := os.ReadFile(filepath.Join(dir, id+".json"))
-		if err != nil || len(data) == 0 {
+		if err != nil {
 			continue
 		}
 		var s records.ScoreboardSnapshot

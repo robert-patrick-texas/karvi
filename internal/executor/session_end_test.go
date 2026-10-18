@@ -93,7 +93,7 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 	grant := credentialpackage.CredentialGrant{CredentialID: plantest.GrantA, Method: credentialpackage.MethodEmbeddedSecret, Username: credentials.NewSecretString("u"), Password: credentials.NewSecretString("p"), Policy: "default", Backend: "test", NotBefore: time.Now().Add(-time.Minute), NotAfter: time.Now().Add(time.Hour)}
 	h := &sessionHarness{log: log}
 	e := New(Options{
-		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run",
+		Config: cfg, Operator: credentials.Operator{Username: "netops", UID: 1000, Home: home}, ActivityID: plantest.JobID, ActivityType: "run",
 		Commands: commands, DispatchOrder: "default", Grants: grants{grant}, Protection: "local-peer",
 		Capacity: capMgr, Store: store, ScratchDir: testsocket.Dir(t), ControlRoot: filepath.Join(dir, "control"), Home: home, AskpassPath: "/bin/true", SpoolDir: spool,
 		Debug: func(s string) { h.mu.Lock(); h.debug = append(h.debug, s); h.mu.Unlock() },

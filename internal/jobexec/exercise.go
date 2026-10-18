@@ -35,14 +35,14 @@ const ExerciseReportName = "exercise.json"
 // exerciseState is what Run built before the branch: the accepted job's
 // store, sinks, and managers, none of which has touched a device.
 type exerciseState struct {
-	id, jobID, artifact string
-	started             time.Time
-	store               *output.Store
-	auditSink           *audit.Sink
-	scoreboardWriter    *scoreboard.Writer
-	initial             records.ScoreboardSnapshot
-	capManager          *capacity.Manager
-	sampler             *metrics.Sampler
+	id, artifact     string
+	started          time.Time
+	store            *output.Store
+	auditSink        *audit.Sink
+	scoreboardWriter *scoreboard.Writer
+	initial          records.ScoreboardSnapshot
+	capManager       *capacity.Manager
+	sampler          *metrics.Sampler
 	// accepted is the summary the acceptance wrote, the end's first part.
 	accepted records.AcceptedSummary
 	// base is the operator's private root, the trust store's under "auto".
@@ -63,7 +63,7 @@ type exerciseState struct {
 func runExercise(ctx context.Context, req Request, st exerciseState) ActivityResult {
 	plan, cfg := req.Plan, req.Config
 	validationStart := time.Now()
-	result := ActivityResult{ActivityID: st.id, JobID: st.jobID, ArtifactDir: st.artifact}
+	result := ActivityResult{ActivityID: st.id, JobID: st.id, ArtifactDir: st.artifact}
 	// The heartbeat for an exercise as for a run:
 	// its snapshot is the initial one until the final write.
 	stopHeartbeat := st.scoreboardWriter.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return st.initial })
@@ -190,7 +190,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	}
 	report := records.PlanReport{
 		SchemaVersion: records.PlanReportSchemaVersion, Kind: records.ReportExercise, ReportID: reportID, GeneratedAt: time.Now(),
-		Producer: producerInfo(), ProducerRole: records.ProducerDaemon, Operator: osutil.RecordOperator(req.Operator), ActivityID: st.id, JobID: st.jobID,
+		Producer: producerInfo(), ProducerRole: records.ProducerDaemon, Operator: osutil.RecordOperator(req.Operator), ActivityID: st.id, JobID: st.id,
 		Plan: plan, PlanDigest: plan.PlanDigest, CommandPlanDigest: plan.CommandPlanDigest,
 		Daemons: daemons, Preparations: preparations, CredentialPackage: &pkg,
 		Targets: targets,

@@ -443,7 +443,7 @@ func TestDayFolderMode(t *testing.T) {
 	}
 	var dir string
 	var err error
-	withUmask(t, func() { _, dir, err = ReserveJobID(shared, jobTestNow, time.UTC, 0o750) })
+	withUmask(t, func() { _, dir, err = ClaimActivityID(t.TempDir(), 0o600, shared, 0o750, jobTestNow, time.UTC) })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -457,7 +457,7 @@ func TestDayFolderMode(t *testing.T) {
 	if m := mode(t, dir); m != 0o750 {
 		t.Fatalf("job folder %s: %o, want 0750", dir, m)
 	}
-	withUmask(t, func() { _, dir, err = ReserveJobID(plain, jobTestNow, time.UTC, 0o750) })
+	withUmask(t, func() { _, dir, err = ClaimActivityID(t.TempDir(), 0o600, plain, 0o750, jobTestNow, time.UTC) })
 	if err != nil || mode(t, filepath.Dir(dir)) != 0o750 {
 		t.Fatalf("plain day folder: %v %o", err, mode(t, filepath.Dir(dir)))
 	}

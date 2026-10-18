@@ -530,7 +530,7 @@ Active failure causes.
 | `run_output_records_unreadable` | output | 111 | no | A completed run's commands.jsonl cannot be opened or read. |
 | `scoreboard_counts_inconsistent` | internal | 1 | no | A scoreboard snapshot's completed, in-flight, not-started, and incomplete counts do not sum to the total. |
 | `scoreboard_directory_unavailable` | permission | 9 | no | Unclassified. Neither the shared nor the private scoreboard directory can be created. |
-| `scoreboard_file_limit_exceeded` | output | 111 | no | The scoreboard directory holds more files than `watch.max-files`. |
+| `scoreboard_file_limit_exceeded` | output | 111 | no | The scoreboard directory holds more scoreboard files than `watch.max-files`. |
 | `scoreboard_root_invalid` | permission | 9 | no | The scoreboard directory path is a symlink or not a directory. |
 | `scoreboard_write_failed` | output | 111 | no | Unclassified. A scoreboard snapshot cannot be written. |
 | `scratch_directory_unavailable` | permission | 9 | no | No candidate scratch directory can be created and written. |

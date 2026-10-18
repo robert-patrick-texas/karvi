@@ -13,15 +13,23 @@ import (
 
 var jobTestNow = time.Date(2026, 9, 23, 21, 51, 6, 830975000, time.FixedZone("EDT", -4*3600))
 
-// TestReserveJobIDSequencesWithinOneSecond: the first job of a second is
-// 00, the next 01, each an exclusively created directory under the day
-// folder of the stamp, at the given mode.
-func TestReserveJobIDSequencesWithinOneSecond(t *testing.T) {
-	root := t.TempDir()
+// claimJob is ClaimActivityID for a job that writes files under root,
+// its claims in a folder of its own.
+func claimJob(t *testing.T, claims, root string, mode os.FileMode, loc *time.Location) (string, string, error) {
+	t.Helper()
+	return ClaimActivityID(claims, 0o600, root, mode, jobTestNow, loc)
+}
+
+// TestClaimActivityIDSequencesWithinOneSecond: the first job of a second is
+// 00, the next 01, each an empty claim created exclusively in the claims
+// folder at the given mode and an exclusively created directory under the
+// day folder of the stamp at the directory mode.
+func TestClaimActivityIDSequencesWithinOneSecond(t *testing.T) {
+	claims, root := t.TempDir(), t.TempDir()
 	loc := jobTestNow.Location()
 	var ids []string
 	for i := 0; i < 3; i++ {
-		id, dir, err := ReserveJobID(root, jobTestNow, loc, 0o700)
+		id, dir, err := claimJob(t, claims, root, 0o700, loc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -32,17 +40,116 @@ func TestReserveJobIDSequencesWithinOneSecond(t *testing.T) {
 		if err != nil || !fi.IsDir() || fi.Mode().Perm() != 0o700 {
 			t.Errorf("%s: %v %v", dir, fi, err)
 		}
+		claim := filepath.Join(claims, id+ClaimExtension)
+		if fi, err := os.Stat(claim); err != nil || fi.Size() != 0 || fi.Mode().Perm() != 0o600 {
+			t.Errorf("%s: %v %v", claim, fi, err)
+		}
 		ids = append(ids, id)
 	}
 	if want := []string{"260923-215106-00", "260923-215106-01", "260923-215106-02"}; ids[0] != want[0] || ids[1] != want[1] || ids[2] != want[2] {
 		t.Errorf("ids %v, want %v", ids, want)
 	}
 	// The stamp is the effective timezone's wall clock.
-	if id, _, err := ReserveJobID(root, jobTestNow, time.UTC, 0o750); err != nil || id != "260924-015106-00" {
+	if id, _, err := claimJob(t, claims, root, 0o750, time.UTC); err != nil || id != "260924-015106-00" {
 		t.Errorf("UTC: %s %v", id, err)
 	}
-	if got := UnreservedJobID(jobTestNow, loc); got != "260923-215106-00" {
-		t.Errorf("unreserved %s", got)
+}
+
+// TestClaimActivityIDAcrossActivities: activities with and without a job
+// directory draw from one sequence in their claims folder: two jobs of
+// `--nof`, a login or a dry run, and a job that writes files, all in one
+// second, take 00 to 03, and only the last has a directory.
+func TestClaimActivityIDAcrossActivities(t *testing.T) {
+	claims, root := t.TempDir(), t.TempDir()
+	loc := jobTestNow.Location()
+	var ids []string
+	for i := 0; i < 3; i++ {
+		id, dir, err := ClaimActivityID(claims, 0o640, "", 0o700, jobTestNow, loc)
+		if err != nil || dir != "" {
+			t.Fatalf("claim alone: %s %q %v", id, dir, err)
+		}
+		ids = append(ids, id)
+	}
+	id, dir, err := claimJob(t, claims, root, 0o700, loc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids = append(ids, id)
+	if want := "260923-215106-00 260923-215106-01 260923-215106-02 260923-215106-03"; strings.Join(ids, " ") != want {
+		t.Errorf("ids %v, want %s", ids, want)
+	}
+	entries, err := os.ReadDir(filepath.Join(root, "260923"))
+	if err != nil || len(entries) != 1 || filepath.Join(root, "260923", entries[0].Name()) != dir {
+		t.Errorf("job folders %v %v, want %s alone", entries, err, dir)
+	}
+}
+
+// TestClaimActivityIDNeedsBothNamesFree: a job directory already present
+// without its claim (another host's job under a shared output root) moves
+// the job to the next sequence, and the claim made on the way stays, so
+// the ID is not drawn again; a claim present without its directory moves
+// it on too.
+func TestClaimActivityIDNeedsBothNamesFree(t *testing.T) {
+	claims, root := t.TempDir(), t.TempDir()
+	loc := jobTestNow.Location()
+	if err := os.MkdirAll(filepath.Join(root, "260923", "260923-215106-00"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(claims, "260923-215106-01"+ClaimExtension), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	id, dir, err := claimJob(t, claims, root, 0o700, loc)
+	if err != nil || id != "260923-215106-02" || dir != filepath.Join(root, "260923", id) {
+		t.Fatalf("id %s dir %s err %v", id, dir, err)
+	}
+	if _, err := os.Stat(filepath.Join(claims, "260923-215106-00"+ClaimExtension)); err != nil {
+		t.Errorf("the claim made on the way is gone: %v", err)
+	}
+	if id, _, err := ClaimActivityID(claims, 0o600, "", 0o700, jobTestNow, loc); err != nil || id != "260923-215106-03" {
+		t.Errorf("next claim: %s %v", id, err)
+	}
+}
+
+// TestClaimActivityIDRefusal: a claim that cannot be created is
+// activity_id_generation_failed naming its path, and nothing is made under
+// the output root.
+func TestClaimActivityIDRefusal(t *testing.T) {
+	claims := filepath.Join(t.TempDir(), "absent")
+	root := t.TempDir()
+	_, _, err := claimJob(t, claims, root, 0o700, jobTestNow.Location())
+	if errorcodes.Of(err) != "activity_id_generation_failed" || !strings.Contains(err.Error(), filepath.Join(claims, "260923-215106-00"+ClaimExtension)) {
+		t.Errorf("refusal: %v", err)
+	}
+	if entries, _ := os.ReadDir(root); len(entries) != 0 {
+		t.Errorf("the output root gained %v", entries)
+	}
+}
+
+// TestSweepClaims: a claim removes the operator's own claims of earlier
+// days and keeps today's, a later day's (a clock stepped back), and every
+// file that is not a claim.
+func TestSweepClaims(t *testing.T) {
+	claims := t.TempDir()
+	kept := []string{"260923-101010-00.id", "260924-000000-00.id", "260922-101010-00.json", "260922-101010-00.idx", "notes.id"}
+	gone := []string{"260922-235959-zz.id", "251231-000000-00.id"}
+	for _, name := range append(append([]string{}, kept...), gone...) {
+		if err := os.WriteFile(filepath.Join(claims, name), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	id, _, err := ClaimActivityID(claims, 0o600, "", 0o700, jobTestNow, jobTestNow.Location())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range append(kept, id+ClaimExtension) {
+		if _, err := os.Stat(filepath.Join(claims, name)); err != nil {
+			t.Errorf("%s removed: %v", name, err)
+		}
+	}
+	for _, name := range gone {
+		if _, err := os.Stat(filepath.Join(claims, name)); !os.IsNotExist(err) {
+			t.Errorf("%s kept: %v", name, err)
+		}
 	}
 }
 
@@ -52,23 +159,23 @@ func TestJobSequenceCoversTheAlphabet(t *testing.T) {
 	if jobSequence(0) != "00" || jobSequence(9) != "09" || jobSequence(10) != "0a" || jobSequence(36) != "10" || jobSequence(JobSequences-1) != "zz" {
 		t.Errorf("sequence %s %s %s %s %s", jobSequence(0), jobSequence(9), jobSequence(10), jobSequence(36), jobSequence(JobSequences-1))
 	}
-	root := t.TempDir()
-	day := filepath.Join(root, "260923")
+	claims := t.TempDir()
 	for n := 0; n < JobSequences; n++ {
-		if err := os.MkdirAll(filepath.Join(day, "260923-215106-"+jobSequence(n)), 0o700); err != nil {
+		if err := os.WriteFile(filepath.Join(claims, "260923-215106-"+jobSequence(n)+ClaimExtension), nil, 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, _, err := ReserveJobID(root, jobTestNow, jobTestNow.Location(), 0o700); errorcodes.Of(err) != "activity_id_generation_failed" {
+	if _, _, err := claimJob(t, claims, t.TempDir(), 0o700, jobTestNow.Location()); errorcodes.Of(err) != "activity_id_generation_failed" {
 		t.Errorf("exhausted: %v", err)
 	}
 }
 
 // TestReleaseJobIDRemovesOnlyAnEmptyDirectory: a reservation that gained
-// files is never touched.
+// files is never touched, and the claim stays whatever the release does.
 func TestReleaseJobIDRemovesOnlyAnEmptyDirectory(t *testing.T) {
-	root := t.TempDir()
-	_, dir, err := ReserveJobID(root, jobTestNow, jobTestNow.Location(), 0o700)
+	claims, root := t.TempDir(), t.TempDir()
+	loc := jobTestNow.Location()
+	id, dir, err := claimJob(t, claims, root, 0o700, loc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,11 +187,15 @@ func TestReleaseJobIDRemovesOnlyAnEmptyDirectory(t *testing.T) {
 	if _, err := os.Stat(filepath.Dir(dir)); !os.IsNotExist(err) {
 		t.Errorf("empty day folder remains: %v", err)
 	}
+	if _, err := os.Stat(filepath.Join(claims, id+ClaimExtension)); err != nil {
+		t.Errorf("the claim went with the release: %v", err)
+	}
 	ReleaseJobID(dir) // absent: nothing to do
 	ReleaseJobID("")
-	_, dir, err = ReserveJobID(root, jobTestNow, jobTestNow.Location(), 0o700)
-	if err != nil {
-		t.Fatal(err)
+	// The released ID is not drawn again.
+	next, dir, err := claimJob(t, claims, root, 0o700, loc)
+	if err != nil || next == id {
+		t.Fatalf("after the release: %s %v", next, err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "commands.jsonl"), []byte("{}\n"), 0o640); err != nil {
 		t.Fatal(err)
@@ -95,7 +206,7 @@ func TestReleaseJobIDRemovesOnlyAnEmptyDirectory(t *testing.T) {
 	}
 	// A second reservation beside a job: its release keeps the day folder,
 	// which holds the job.
-	_, other, err := ReserveJobID(root, jobTestNow, jobTestNow.Location(), 0o700)
+	_, other, err := claimJob(t, claims, root, 0o700, loc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +221,7 @@ func TestReleaseJobIDRemovesOnlyAnEmptyDirectory(t *testing.T) {
 // as output_directory_in_use before anything is written.
 func TestClaimJobDirectory(t *testing.T) {
 	root := t.TempDir()
-	_, dir, err := ReserveJobID(root, jobTestNow, jobTestNow.Location(), 0o700)
+	_, dir, err := claimJob(t, t.TempDir(), root, 0o700, jobTestNow.Location())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,14 +263,14 @@ func TestJobIDTime(t *testing.T) {
 	}
 }
 
-// TestReserveJobIDKeepsSetgid: a reservation inside a setgid day folder
-// keeps the bit as the folder helper does.
-func TestReserveJobIDKeepsSetgid(t *testing.T) {
+// TestClaimActivityIDKeepsSetgid: a job directory inside a setgid day
+// folder keeps the bit as the folder helper does.
+func TestClaimActivityIDKeepsSetgid(t *testing.T) {
 	root := t.TempDir()
 	if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
 		t.Fatal(err)
 	}
-	_, dir, err := ReserveJobID(root, time.Date(2026, 9, 24, 2, 0, 0, 0, time.UTC), time.UTC, 0o750)
+	_, dir, err := ClaimActivityID(t.TempDir(), 0o600, root, 0o750, time.Date(2026, 9, 24, 2, 0, 0, 0, time.UTC), time.UTC)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,15 +287,15 @@ func TestReserveJobIDKeepsSetgid(t *testing.T) {
 	}
 }
 
-// TestReserveSequence: the one loop behind the job directory and a login's
-// scoreboard file: a name reported taken is passed over, a
-// name taken ends the search with it, another error ends the search as it
-// is, and every sequence taken is the coded error.
+// TestReserveSequence: the one loop behind every claim: a name reported
+// taken is passed over, a name taken ends the search with it, another
+// error ends the search as it is, and every sequence taken is the coded
+// error.
 func TestReserveSequence(t *testing.T) {
 	loc := jobTestNow.Location()
 	taken := map[string]bool{"260923-215106-00": true, "260923-215106-01": true}
 	var tried []string
-	id, err := ReserveSequence(jobTestNow, loc, "here", func(id string) error {
+	id, err := reserveSequence(jobTestNow, loc, "here", func(id string) error {
 		tried = append(tried, id)
 		if taken[id] {
 			return os.ErrExist
@@ -195,10 +306,10 @@ func TestReserveSequence(t *testing.T) {
 		t.Errorf("id %s err %v tried %v", id, err, tried)
 	}
 	fault := errors.New("disk gone")
-	if _, err := ReserveSequence(jobTestNow, loc, "here", func(string) error { return fault }); !errors.Is(err, fault) {
+	if _, err := reserveSequence(jobTestNow, loc, "here", func(string) error { return fault }); !errors.Is(err, fault) {
 		t.Errorf("a fault should end the search: %v", err)
 	}
-	_, err = ReserveSequence(jobTestNow, loc, "here", func(string) error { return os.ErrExist })
+	_, err = reserveSequence(jobTestNow, loc, "here", func(string) error { return os.ErrExist })
 	if errorcodes.Of(err) != "activity_id_generation_failed" || !strings.Contains(err.Error(), "under here") {
 		t.Errorf("every sequence taken: %v", err)
 	}

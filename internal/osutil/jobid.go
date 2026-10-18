@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -11,13 +12,15 @@ import (
 )
 
 // The job ID: `YYMMDD-HHMMSS-xx`, the
-// client's clock at the plan draft in the effective timezone, to the
-// second, and a two-character sequence over the digits and lowercase
+// client's clock when the activity takes it, in the effective timezone, to
+// the second, and a two-character sequence over the digits and lowercase
 // letters, 00 first and bumped only when the name is taken. Nothing is
-// random: uniqueness comes from the job directory, created exclusively
-// here before the plan is drafted. A cmd activity and a run take the same
-// form and the same reservation. The other six identifier kinds keep
-// NewID's format.
+// random: uniqueness comes from the claim, an empty file <ID>.id created
+// exclusively in the scoreboards folder before anything is drafted or
+// opened, and for a job that writes files from its job directory too
+// (ClaimActivityID). Every activity takes its ID so: a cmd and a run, a
+// crun and each run of a stream, a dry run and an exercise, and a login.
+// The other six identifier kinds keep NewID's format.
 
 // JobIDLayout is the stamp, a time.Format layout.
 const JobIDLayout = "060102-150405"
@@ -30,6 +33,10 @@ const jobSequenceAlphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 // JobSequences is how many jobs one second holds.
 const JobSequences = len(jobSequenceAlphabet) * len(jobSequenceAlphabet)
+
+// ClaimExtension is a claim's suffix: the scoreboards folder's readers
+// (karvi watch, the pruner) take only its .json files.
+const ClaimExtension = ".id"
 
 // JobIDStamp is now in loc, the ID without its sequence.
 func JobIDStamp(now time.Time, loc *time.Location) string {
@@ -44,15 +51,13 @@ func jobSequence(n int) string {
 	return string([]byte{jobSequenceAlphabet[n/len(jobSequenceAlphabet)], jobSequenceAlphabet[n%len(jobSequenceAlphabet)]})
 }
 
-// ReserveSequence takes the first free sequence of now's stamp. try is
+// reserveSequence takes the first free sequence of now's stamp. try is
 // called with each candidate ID in order, 00 first: it returns nil when it
 // took the name, os.ErrExist when the name is taken (the next is tried),
-// or another error, which ends the search as it is. The one loop serves
-// every reservation that gives an activity the job form: the job directory
-// (ReserveJobID) and a login's scoreboard file (scoreboard.Writer.Reserve).
-// where names the place for the message when
-// every sequence of the second is taken, which no site will see.
-func ReserveSequence(now time.Time, loc *time.Location, where string, try func(id string) error) (string, error) {
+// or another error, which ends the search as it is. where names the place
+// for the message when every sequence of the second is taken, which no
+// site will see.
+func reserveSequence(now time.Time, loc *time.Location, where string, try func(id string) error) (string, error) {
 	stamp := JobIDStamp(now, loc)
 	for n := 0; n < JobSequences; n++ {
 		id := stamp + "-" + jobSequence(n)
@@ -68,65 +73,109 @@ func ReserveSequence(now time.Time, loc *time.Location, where string, try func(i
 	return "", errorcodes.Errorf("activity_id_generation_failed", "every job ID of %s under %s is taken", stamp, where)
 }
 
-// ReserveJobID takes the first free job ID of now under root: the day
-// folder is created if missing (under a setgid root with the root's mode,
-// DayFolderMode), and the job directory is created exclusively with mode,
-// sequence 00 first and the next on "exists". It returns the ID and the
-// directory. Every sequence
-// of the second taken is activity_id_generation_failed, which no site will
-// see; a directory that cannot be created is output_directory_not_writable.
-func ReserveJobID(root string, now time.Time, loc *time.Location, mode os.FileMode) (id, dir string, err error) {
-	day := filepath.Join(root, DayFolder(now, loc))
-	dayMode := DayFolderMode(root, mode)
-	if err := EnsureOutputDirectory(day, dayMode, "output_directory_not_writable"); err != nil {
-		return "", "", err
-	}
-	id, err = ReserveSequence(now, loc, day, func(id string) error {
-		candidate := filepath.Join(day, id)
-		err := os.Mkdir(candidate, mode)
-		if errors.Is(err, os.ErrNotExist) {
-			// Another activity's release removed the day folder between
-			// its creation above and this mkdir (ReleaseJobID leaves no
-			// empty day folder behind); make it again and try the same
-			// name once more.
-			if err = EnsureOutputDirectory(day, dayMode, "output_directory_not_writable"); err != nil {
-				return err
-			}
-			err = os.Mkdir(candidate, mode)
-		}
-		if err == nil {
-			// The mode explicitly, so the umask cannot narrow it; an
-			// inherited setgid bit stays.
-			if err := chmodKeepingSetgid(candidate, mode); err != nil {
-				return errorcodes.Errorf("output_directory_not_writable", "chmod %s: %w", candidate, err)
-			}
-			dir = candidate
-			return nil
-		}
+// ClaimActivityID takes the first free activity ID of now: the claim, an
+// empty file <ID>.id created exclusively in claims with mode, and, when
+// root is not "", the job directory under root's day folder, created
+// exclusively with dirMode. Both names must be free: a name taken in
+// either moves to the next sequence, and a claim made on the way stays,
+// so no ID is handed out twice. It returns the ID and the directory (""
+// with no root). An activity never removes its claim; each call removes
+// the operator's own claims of earlier days. A claim that cannot be
+// created, or every sequence of the second taken, is
+// activity_id_generation_failed; a directory that cannot be created is
+// output_directory_not_writable.
+func ClaimActivityID(claims string, mode os.FileMode, root string, dirMode os.FileMode, now time.Time, loc *time.Location) (id, dir string, err error) {
+	id, err = reserveSequence(now, loc, claims, func(id string) error {
+		claim := filepath.Join(claims, id+ClaimExtension)
+		f, err := os.OpenFile(claim, os.O_CREATE|os.O_EXCL|os.O_WRONLY, mode)
 		if errors.Is(err, os.ErrExist) {
 			return err
 		}
-		return errorcodes.Errorf("output_directory_not_writable", "cannot create %s: %w", candidate, err)
+		if err != nil {
+			return errorcodes.Errorf("activity_id_generation_failed", "cannot create the claim %s: %w", claim, err)
+		}
+		f.Close()
+		if root == "" {
+			return nil
+		}
+		dir, err = reserveJobDirectory(root, id, dirMode, now, loc)
+		return err
 	})
 	if err != nil {
 		return "", "", err
 	}
+	sweepClaims(claims, id)
 	return id, dir, nil
 }
 
-// UnreservedJobID is the ID of a job that writes no files (`--nof`, every
-// output.files key off): sequence 00 with no directory behind it, an
-// accepted gap in the sequence.
-func UnreservedJobID(now time.Time, loc *time.Location) string {
-	return JobIDStamp(now, loc) + "-" + jobSequence(0)
+// reserveJobDirectory creates id's job directory under root exclusively
+// with mode: the day folder is created if missing (under a setgid root
+// with the root's mode, DayFolderMode), and a taken name is os.ErrExist.
+func reserveJobDirectory(root, id string, mode os.FileMode, now time.Time, loc *time.Location) (string, error) {
+	day := filepath.Join(root, DayFolder(now, loc))
+	dayMode := DayFolderMode(root, mode)
+	if err := EnsureOutputDirectory(day, dayMode, "output_directory_not_writable"); err != nil {
+		return "", err
+	}
+	dir := filepath.Join(day, id)
+	err := os.Mkdir(dir, mode)
+	if errors.Is(err, os.ErrNotExist) {
+		// Another activity's release removed the day folder between its
+		// creation above and this mkdir (ReleaseJobID leaves no empty day
+		// folder behind); make it again and try the same name once more.
+		if err = EnsureOutputDirectory(day, dayMode, "output_directory_not_writable"); err != nil {
+			return "", err
+		}
+		err = os.Mkdir(dir, mode)
+	}
+	if errors.Is(err, os.ErrExist) {
+		return "", err
+	}
+	if err != nil {
+		return "", errorcodes.Errorf("output_directory_not_writable", "cannot create %s: %w", dir, err)
+	}
+	// The mode explicitly, so the umask cannot narrow it; an inherited
+	// setgid bit stays.
+	if err := chmodKeepingSetgid(dir, mode); err != nil {
+		return "", errorcodes.Errorf("output_directory_not_writable", "chmod %s: %w", dir, err)
+	}
+	return dir, nil
 }
 
-// ReleaseJobID removes a reservation that never became a job: a
+// sweepClaims removes the claims this process's user owns from the days
+// before id's: a claim matters only while its second can still be drawn,
+// and today's stay against a clock stepped back. Another operator's
+// claims in a shared folder are left to that operator; a claim that
+// cannot be removed stays, harmless.
+func sweepClaims(claims, id string) {
+	entries, err := os.ReadDir(claims)
+	if err != nil {
+		return
+	}
+	today := id[:len(DayFolderLayout)]
+	for _, e := range entries {
+		name := e.Name()
+		if len(name) != JobIDLength+len(ClaimExtension) || !strings.HasSuffix(name, ClaimExtension) || name[:len(today)] >= today {
+			continue
+		}
+		fi, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if st, ok := fi.Sys().(*syscall.Stat_t); !ok || int(st.Uid) != os.Geteuid() {
+			continue
+		}
+		_ = os.Remove(filepath.Join(claims, name))
+	}
+}
+
+// ReleaseJobID removes a job directory that never became a job: a
 // refused plan or a credential error before submission. It removes only an
 // empty directory, so a directory that gained files is never touched, and
 // an absent one is nothing to do; the day folder goes too when the
 // reservation was the only thing in it, so a refused activity leaves no
-// trace in the tree (rmdir refuses a folder holding another job).
+// trace in the tree (rmdir refuses a folder holding another job). The
+// claim stays, so the ID is not taken again.
 func ReleaseJobID(dir string) {
 	if dir == "" {
 		return

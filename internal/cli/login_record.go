@@ -21,7 +21,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/output"
 	"github.com/robert-patrick-texas/karvi/internal/planner"
-	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/internal/transcript"
 	"github.com/robert-patrick-texas/karvi/internal/transportselect"
 )
@@ -164,20 +163,13 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	timing.Close()
 	defer os.Remove(timing.Name())
 	// The session ID is the login's activity ID in the job form,
-	// YYMMDD-HHMMSS-xx, reserved here by the scoreboard file the child will
-	// write: the wrapper needs it for the
-	// metadata's start record before the child runs, and the child takes it
-	// from the environment. The reservation is released if the child never
-	// writes its first snapshot.
-	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { jobexec.WriteWarning(stderr, cfg, s) })
-	if err != nil {
-		return inv.Global.reportError(stderr, "scoreboard_directory_unavailable", err)
-	}
-	sessionID, err := sb.Reserve(started, location)
+	// YYMMDD-HHMMSS-xx, claimed here as every activity's is: the wrapper
+	// needs it for the metadata's start record before the child runs, and
+	// the child takes it from the environment and writes the scoreboard.
+	sessionID, err := app.ClaimActivityID(cfg, operator, started)
 	if err != nil {
 		return inv.Global.reportError(stderr, "activity_id_generation_failed", err)
 	}
-	defer sb.Release()
 	pair, err := transcript.Claim(dest, device.CanonicalName, started, location, transcript.TranscriptExtension(format), transcript.MetadataExtension(metaFormat), directoryMode)
 	if err != nil {
 		return inv.Global.reportError(stderr, "transcript_create_failed", err)

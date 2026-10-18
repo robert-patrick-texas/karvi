@@ -50,9 +50,9 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 		return failedResult("device_invalid", err)
 	}
 	one := planner.TargetSet{Devices: []inventory.Device{d}, Provenance: set.Provenance, Order: set.Order, ShuffleKey: set.ShuffleKey}
-	// The activity's ID is its job directory, reserved before the draft;
-	// the reservation is released when the
-	// plan or the package fails before the job runs.
+	// The activity's ID is claimed before the draft, with its job directory
+	// when it writes files; the directory is released when the plan or the
+	// package fails before the job runs.
 	id, release, err := reserveActivityID(cfg, operator, time.Now())
 	if err != nil {
 		return failedResult("activity_id_generation_failed", err)
@@ -112,18 +112,14 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	if err != nil {
 		return failedResult("address_authority_target_unknown", err)
 	}
-	// The run's ID is its job directory, reserved before the draft (chapter
-	// 11); a caller that already holds an ID passes it and keeps its own
-	// reservation.
-	id, release := opts.ActivityID, func() {}
-	if id == "" {
-		if id, release, err = reserveActivityID(cfg, operator, time.Now()); err != nil {
-			return failedResult("activity_id_generation_failed", err)
-		}
+	// The run's ID is claimed before the draft, with its job directory when
+	// it writes files; the directory is released whatever ends the run: only
+	// an empty directory goes, so a refused admission leaves no folder and a
+	// job that wrote files keeps them.
+	id, release, err := reserveActivityID(cfg, operator, time.Now())
+	if err != nil {
+		return failedResult("activity_id_generation_failed", err)
 	}
-	// Released whatever ends the run: only an empty directory goes, so a
-	// refused admission
-	// leaves no folder and a job that wrote files keeps them.
 	defer release()
 	draft := planner.DraftOptions{
 		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,

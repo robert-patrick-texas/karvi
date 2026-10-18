@@ -91,7 +91,7 @@ func TestScoreboardModeByWord(t *testing.T) {
 		if got := scoreboardMode(req); got != c.want {
 			t.Errorf("%s word %q mode %s: %s, want %s", c.activity, c.word, c.mode, got, c.want)
 		}
-		if got := acceptedSummary(req, output.Paths{}, "id", "id", time.Time{}).Kind; got != c.kind {
+		if got := acceptedSummary(req, output.Paths{}, "id", time.Time{}).Kind; got != c.kind {
 			t.Errorf("%s word %q mode %s: kind %s, want %s", c.activity, c.word, c.mode, got, c.kind)
 		}
 	}

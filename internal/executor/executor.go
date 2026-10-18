@@ -54,9 +54,9 @@ type GrantProvider interface {
 }
 
 type Options struct {
-	Config                          configload.Snapshot
-	Operator                        credentials.Operator
-	ActivityID, JobID, ActivityType string
+	Config                   configload.Snapshot
+	Operator                 credentials.Operator
+	ActivityID, ActivityType string
 	// Kind is the job's kind, cmd, run, or crun, which names its audit
 	// events (<kind>.command).
 	Kind     string
@@ -1081,7 +1081,7 @@ func (e *DeviceExecutor) record(work Work, dc dispatch.Context, cred *records.Cr
 	capNS := capacityWait.Nanoseconds()
 	respNS := end.Sub(commandStart).Nanoseconds()
 	candidates := append(addrStrings(a.ClientCandidates), addrStrings(a.DaemonCandidates)...)
-	r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: id, JobID: e.opts.JobID, ActivityID: e.opts.ActivityID, ActivityType: e.opts.ActivityType, Operator: osutil.RecordOperator(e.opts.Operator),
+	r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: id, JobID: e.opts.ActivityID, ActivityID: e.opts.ActivityID, ActivityType: e.opts.ActivityType, Operator: osutil.RecordOperator(e.opts.Operator),
 		Device:      records.DeviceProjection{ID: d.ID, Name: d.Name, CanonicalName: d.CanonicalName, Site: d.Site, Groups: append([]string{}, d.Groups...), RiskTier: d.RiskTier, DeploymentRing: d.DeploymentRing, TopologyDomain: d.TopologyDomain},
 		InputTarget: t.InputTarget, TransformedName: a.TransformedName, DNSQueryName: a.QueryName, DNSSuffixAction: a.SuffixAction,
 		AddressCandidates: candidates, SelectedAddress: addrString(a.Selected), AddressFamily: familyOf(a.Selected), AddressSource: a.SelectedSource,
@@ -1261,9 +1261,7 @@ func (e *DeviceExecutor) afterRecord(r records.CommandRecord, src output.Source)
 		e.opts.OnRecord(r, src)
 	}
 	if e.opts.Audit != nil {
-		// The event's job is the activity: a cmd's record carries no job_id,
-		// and its folder's name, the ID job list shows, is the activity's.
-		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.ActivityID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"mode": e.opts.Kind, "command": r.Command, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
+		_ = e.opts.Audit.WriteAudit(records.AuditRecord{EventID: r.RecordID, EventName: e.opts.Kind + ".command", Timestamp: r.Timing.EndedAt, Outcome: r.Status, Severity: severity(r.Status), Operator: r.Operator, LoginUser: e.opts.Operator.LoginUser, Process: map[string]any{"pid": os.Getpid()}, JobID: r.JobID, Device: &records.AuditDevice{ID: r.Device.ID, CanonicalName: r.Device.CanonicalName, Platform: r.Platform}, DeviceIdentity: auditIdentity(r), Action: map[string]any{"mode": e.opts.Kind, "command": r.Command, "command_index": r.CommandIndex, "command_count": r.CommandCount, "command_kind": r.CommandKind}, Policy: map[string]any{"credential_policy": func() string {
 			if r.Credential != nil {
 				return r.Credential.Policy
 			}

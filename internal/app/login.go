@@ -88,31 +88,21 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err := osutil.EnsureStateTree(base, operator.UID, osutil.DirectoryMode(cfg.String("output.directory-mode"))); err != nil {
 		return failedResult("state_tree_create_failed", err)
 	}
-	// The login's ID takes the job form, YYMMDD-HHMMSS-xx, reserved by its
-	// scoreboard file, the one file every login writes (a run or cmd
-	// reserves by its job directory).
-	// Under the recording wrapper the ID is the wrapper's, which reserved
-	// it the same way, so the metadata file and the child's audit and
-	// scoreboard records agree; the wrapper releases it if this process
-	// never writes.
+	// The login's ID is claimed as every activity's is, in the job form
+	// YYMMDD-HHMMSS-xx (ClaimActivityID). Under the recording wrapper the ID
+	// is the wrapper's, which claimed it the same way, so the metadata file
+	// and the child's audit and scoreboard records agree.
 	sb, err := scoreboard.NewWriter(cfg.String("scoreboards"), operator.Home, base, cfg.Bool("watch.enabled"), func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) })
 	if err != nil {
 		return failedResult("scoreboard_directory_unavailable", err)
 	}
 	id := strings.TrimSpace(os.Getenv(RecorderSessionIDEnv))
 	if id == "" {
-		location, err := display.Location(cfg.String("timezone"))
-		if err != nil {
+		if id, err = ClaimActivityID(cfg, operator, time.Now()); err != nil {
 			return failedResult("activity_id_generation_failed", err)
 		}
-		if id, err = sb.Reserve(time.Now(), location); err != nil {
-			return failedResult("activity_id_generation_failed", err)
-		}
-		// A refusal before the first snapshot leaves no empty file behind.
-		defer sb.Release()
-	} else {
-		sb.Use(id)
 	}
+	sb.Use(id)
 	result := ActivityResult{ActivityID: id}
 	scratch, err := osutil.ResolveScratch(cfg.String("tempdir"), base, operator.Home, operator.Username, operator.UID)
 	if err != nil {

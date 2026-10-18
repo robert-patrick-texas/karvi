@@ -167,7 +167,7 @@ member from removing or renaming another's entry.
 | `<basedir>/logs` | `0750` | the operator | `<group>` | the same | the daemon's log |
 | `<basedir>/jobs`, `<basedir>/transcripts` | `0750` | the operator | `<group>` | the same | nothing while the shared trees exist |
 | `/dev/shm/karvi` | `3770` | root | operators | `setup shared`; at boot, `systemd-tmpfiles` | the scratch root |
-| `/dev/shm/karvi/scoreboards` | `3770` | root | operators | the same | every operator's scoreboards, what `karvi watch` reads |
+| `/dev/shm/karvi/scoreboards` | `3770` | root | operators | the same | every operator's scoreboards, what `karvi watch` reads, and their ID claims |
 | `/dev/shm/karvi/capacity` | `2770` | root | operators | the same | the host's session ledger |
 | `capacity/devices` | `2770` | root | operators | `setup shared`; at boot, `systemd-tmpfiles` | one ledger per device |
 | `/dev/shm/karvi/<user>` | `2700` (setgid inherited) | the operator | operators | the operator's first activity | the operator's scratch (`tempdir`) |
@@ -200,7 +200,7 @@ group is the operator's primary group throughout.
 | `<basedir>/socket` | `0700` | the first activity | the daemon's two sockets |
 | `<basedir>/socket/ssh` | `0700` | the first activity | the exec devices' control sockets |
 | `<basedir>/state` | `0700` | the first activity | the daemon's state file, the scoreboards, the ledger |
-| `<basedir>/state/scoreboards` | `0700` | the first activity | the operator's scoreboards |
+| `<basedir>/state/scoreboards` | `0700` | the first activity | the operator's scoreboards and ID claims |
 | `<basedir>/state/capacity`, `capacity/devices` | `0700` | the first activity | the operator's session ledger |
 | `<basedir>/logs` | `0750` | the first activity | the daemon's log |
 | `<basedir>/tmp` | `0700` | the first activity | the scratch (`tempdir`) |
@@ -281,6 +281,7 @@ had; each but the summary has its switch, `output.files.*`, and `--nof` or
 | File | Where | Shared | Individual | Owner | Purpose |
 |---|---|---|---|---|---|
 | `<job-id>.json` | the scoreboards | `0640` | `0600` | the job's operator | the job's live progress, what `karvi watch` reads; one per activity |
+| `<job-id>.id` | the scoreboards | `0640` | `0600` | the activity's operator | the activity's claim of its ID, empty; one per activity, removed by the operator's first activity of a later day |
 | `server.json` | the ledger | `0660` | `0600` | **the operator who last changed it** | the host's leases: one entry per device session in flight, across every operator in shared mode |
 | `server.lock` | the ledger | `0660` | `0600` | the operator who first made it, kept | the lock every writer holds (`flock`) while it rewrites `server.json`; its content is never read |
 | `devices/<sha256>.json` | the ledger | `0660` | `0600` | the last writer | one device's leases, against its session cap; named by the SHA-256 of the device's name |

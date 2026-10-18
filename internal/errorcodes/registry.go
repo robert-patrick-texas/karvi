@@ -454,7 +454,7 @@ var entries = []Entry{
 	failure("scoreboard_counts_inconsistent", "internal", exitGen, false, "A scoreboard snapshot's completed, in-flight, not-started, and incomplete counts do not sum to the total."),
 	failure("shared_directory_absent", "permission", exitPerm, false, "A place `sudo karvi setup shared` makes is absent (the scratch root `/dev/shm/karvi`, `/opt/karvi` or `/var/lib/karvi`, their `users` and `shared`, a tree under `shared`), and a path needs it made: no operator's run makes one. An explicit place or file key under it is refused before any device is contacted, naming the place and the key to set elsewhere; under `auto` the chain passes it by (the scoreboards and the ledger take their private fallback without a warning)."),
 	fallback("scoreboard_directory_unavailable", "permission", exitPerm, "Neither the shared nor the private scoreboard directory can be created."),
-	failure("scoreboard_file_limit_exceeded", "output", exitOutput, false, "The scoreboard directory holds more files than `watch.max-files`."),
+	failure("scoreboard_file_limit_exceeded", "output", exitOutput, false, "The scoreboard directory holds more scoreboard files than `watch.max-files`."),
 	fallback("scoreboard_write_failed", "output", exitOutput, "A scoreboard snapshot cannot be written."),
 	fallback("terminal_write_failed", "output", exitOutput, "Rendered output cannot be written to standard output."),
 	failure("transcript_create_failed", "output", exitOutput, false, "The login transcript directory, file, or metadata cannot be created."),

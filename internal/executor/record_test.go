@@ -16,7 +16,7 @@ import (
 // credential timings are null because both happened at planning.
 func TestRecordFromTargetCarriesTheAddressPlan(t *testing.T) {
 	final := plantest.FinalPlan()
-	e := New(Options{ActivityID: plantest.JobID, JobID: plantest.JobID, ActivityType: "run", Commands: plantest.Commands, Operator: credentials.Operator{Username: "netops", UID: 1000}, Protection: "local-peer", DispatchOrder: "default"})
+	e := New(Options{ActivityID: plantest.JobID, ActivityType: "run", Commands: plantest.Commands, Operator: credentials.Operator{Username: "netops", UID: 1000}, Protection: "local-peer", DispatchOrder: "default"})
 	var core, edge records.CommandRecord
 	for _, x := range final.Targets {
 		cred := &records.CredentialProjection{Policy: "default", DeviceUsername: "u", Backend: "env", MatchedOn: map[string]any{}, CredentialID: x.CredentialBindingID, Protection: "local-peer"}

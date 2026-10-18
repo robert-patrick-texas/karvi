@@ -60,7 +60,6 @@ type CommandOptions struct {
 // from it.
 type RunOptions struct {
 	CommonOptions
-	ActivityID         string
 	Targets            []records.TargetInput
 	Excludes           []string
 	ManagementAddress  string
