@@ -13,7 +13,7 @@ import (
 // TestCrunWordParses covers the crun word at the parser: crun is a word
 // sharing run's options, --cd=PATH among them (run and command take it
 // too), abbreviated cr, needing no command text; a bare --cd is refused by
-// the handler; c stays ambiguous.
+// the handler; c is command's alias, never crun.
 func TestCrunWordParses(t *testing.T) {
 	inv, err := Parse([]string{"crun", "--all"})
 	if err != nil || inv.Path != "crun" || len(inv.Commands) != 0 || len(inv.Targets) != 1 {
@@ -32,7 +32,7 @@ func TestCrunWordParses(t *testing.T) {
 	if _, err := Parse([]string{"run", "--all"}); errorcodes.Of(err) != "cli_command_text_missing" {
 		t.Fatalf("run still needs its text: %v", err)
 	}
-	if _, err := Parse([]string{"c", "--all"}); errorcodes.Of(err) != "cli_command_ambiguous" {
+	if inv, err := Parse([]string{"c", "r1", "show", "version"}); err != nil || inv.Path != "command" {
 		t.Fatalf("c: %v", err)
 	}
 	for _, c := range commandTable {

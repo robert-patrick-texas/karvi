@@ -62,6 +62,7 @@ const hostKeyPolicyHelp = `  --ssh-host-key-policy accept-new|secure|insecure
 
 const streamHelp = `Usage:
   karvi stream
+  karvi s
   karvi -
 
 Reads a run line by line from standard input and executes it as run would.
@@ -128,11 +129,11 @@ Usage:
   karvi [global-options] <command> [options] [payload]
 
 Commands:
-  login                          Open one interactive SSH session
-  command, cmd                   Run commands on one device
-  run                            Run commands against an explicit scope
+  login, l                       Open one interactive SSH session
+  command, cmd, c                Run commands on one device
+  run, r                         Run commands against an explicit scope
   crun                           Collect commands from a scope into one file per device
-  stream, -                      Read a run line by line from standard input
+  stream, s, -                   Read a run line by line from standard input
   daemon start|stop|restart|status|serve
                                  Manage the private per-user daemon
   job list|follow|cancel         List the jobs, or follow or cancel one by its ID

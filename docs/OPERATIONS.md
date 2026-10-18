@@ -1915,8 +1915,8 @@ for the terminal; a change to one changes both.
 
 ## Stream mode
 
-`karvi stream`, or `karvi -`, composes a run from standard input, one
-line at a time. Typed at a terminal it is
+`karvi stream`, `karvi s`, or `karvi -`, composes a run from standard input,
+one line at a time. Typed at a terminal it is
 a session: set the targets once, then send batches of commands, each
 `--go` a job with its own folder, display, and footer. Piped from a script
 or a heredoc it drives several jobs through one karvi. The rules:

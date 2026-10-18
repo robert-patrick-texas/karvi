@@ -93,10 +93,10 @@ IPv4 and IPv6 sockets are locally available.
 
 ## Command grammar and one-session execution
 
-`command` has alias `cmd`; `--cmd` aliases `--command`. Targets are supplied
-positionally or with `--target`/`--host`. `--address` aliases
-`--management-address` and supplies a literal connection address; it never
-selects a target.
+`command` has aliases `cmd` and `c`, `run` has `r`, and `login` has `l`;
+`--cmd` aliases `--command`. Targets are supplied positionally or with
+`--target`/`--host`. `--address` aliases `--management-address` and supplies a
+literal connection address; it never selects a target.
 
 ```bash
 karvi command router1 show clock
@@ -374,9 +374,9 @@ carries the probe outcomes.
 
 ## Stream mode
 
-`karvi stream`, or `karvi -`, reads a run line by line from standard
-input, typed at a terminal or piped from a script: a line beginning with
-a dash is one run option, one dash or two alike (`--target router1`, `-c
+`karvi stream`, `karvi s`, or `karvi -`, reads a run line by line from
+standard input, typed at a terminal or piped from a script: a line beginning
+with a dash is one run option, one dash or two alike (`--target router1`, `-c
 show clock`, `--tl r1 r2`, `--dp`), a value wholly wrapped in quotes
 losing them as a shell would remove them (`--cmd "show clock"`); any
 other line is one command sent as written, quotes and all; blank and `!`

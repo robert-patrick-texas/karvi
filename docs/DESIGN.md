@@ -158,8 +158,9 @@ verb rather than a 44th option, and one shared slice means a new `run` option
 reaches `crun` by construction. *Not taken:* `run --collect`; a new activity
 type.
 
-**Stream mode.** `karvi stream` (alias `karvi -`) reads standard input line by
-line: a line beginning with a dash and one more character is one run option, one
+**Stream mode.** `karvi stream` (aliases `karvi s`, `karvi -`) reads standard
+input line by line: a line beginning with a dash and one more character is one
+run option, one
 dash or two alike as on run's command line; any other line, a `-` alone among
 them, is one command sent as written, quotes and all; blank and `!`/`#` lines
 are skipped. The draft has two parts: the part that stays from one job to the

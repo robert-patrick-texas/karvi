@@ -325,15 +325,19 @@ var stopOptionTable = []*option{optGrace, optAfter, optForce, optHelp}
 
 // commandTable is the top-level grammar.
 var commandTable = []*command{
-	{path: "login", word: "login", shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
+	// login, command, run, and stream have one-letter aliases, l, c, r,
+	// and s (EXAMPLES chapter 66): an alias matches exactly, so c is command
+	// although config and crun begin with it, s is stream although setup
+	// does, and a word added later never makes r or l ambiguous.
+	{path: "login", word: "login", aliases: []string{"l"}, shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
 		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
-	{path: "command", word: "command", aliases: []string{"cmd"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
+	{path: "command", word: "command", aliases: []string{"cmd", "c"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
 		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
-	{path: "run", word: "run", shape: shapeFreeform, help: runHelpText, options: runOptions},
-	// stream, or -, reads a run line by line from standard input: the
+	{path: "run", word: "run", aliases: []string{"r"}, shape: shapeFreeform, help: runHelpText, options: runOptions},
+	// stream, s, or -, reads a run line by line from standard input: the
 	// lines carry run's options and the commands; the word itself takes
 	// --no-credh, every job's, and --help.
-	{path: "stream", word: "stream", aliases: []string{"-"}, shape: shapePlain, options: []*option{optNoCredh, optHelp}, help: func() string { return streamHelp }},
+	{path: "stream", word: "stream", aliases: []string{"s", "-"}, shape: shapePlain, options: []*option{optNoCredh, optHelp}, help: func() string { return streamHelp }},
 	// crun, the collection run: a command word sharing run's option slice,
 	// --cd=PATH among them, so every run option means on crun what it
 	// means on run and a new one reaches crun by construction; the handler

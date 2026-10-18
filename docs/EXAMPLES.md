@@ -14109,3 +14109,124 @@ throwaway container `man karvi-audit` has no page: the package holds
 (`path-exclude=/usr/share/man/*`), as it does karvi's others; `check-deb.sh`
 names no man page, the package taking them from `packaging/man` by glob. The
 evidence is kept beside the tree (`release-design-evidence/v0320-*`).
+
+## 66. One-letter command words (2026-10-18)
+
+A change on the operator's word after the release 0.32.0
+([chapter 65](#65-the-release-0320-2026-10-17)): the command words `c`, `r`,
+`l`, and `s`.
+
+**Issue 1, the one-letter command words.** The operator's word: "add aliases for
+karvi action words, c for command mode, r for run mode, l for login", then "add
+s as alias for action word stream".
+
+**What it gains.** One letter for each of the four words an operator types most.
+The released 0.32.0 refused `c` (`command`, `config`, `crun`) and `s` (`setup`,
+`stream`) as ambiguous; `r` and `l` reached `run` and `login` as prefixes alone,
+so a word added later beginning with either letter would have made it
+ambiguous. It waits on nothing: the parser's word rule matches a full name or
+an alias exactly before any prefix, as it does `cmd` and `-`, so each letter is
+one alias in the table.
+
+**The rule, agreed.** `c`, `r`, `l`, and `s` are aliases of `command`, `run`,
+`login`, and `stream`, matched exactly as `cmd` and `-` are; every other prefix
+resolves as before, `co` still ambiguous (`command`, `config`) and the only
+ambiguous one left among the top-level words, `cr` still `crun`, `se` still
+`setup`, `st` still `stream`. The `-c` option is unchanged: `--cmd` after the
+command word, `--config` before it. The help and `karvi(1)` list the letters
+beside `cmd` and `-`, and stream's usage names `karvi s`; tab completion offers
+the full words alone, abbreviation reaching the rest as before, and completes a
+device after `c`. The parser hands on the canonical word, so a job's kind stays
+`cmd`, `run`, or `crun` and no record, audit event, or display names a letter.
+
+**Executed.** The released 0.32.0 beside a lab build of `397ddea` with the
+change, against the fake IOS XE device built from the tree on 127.0.0.1:2231,
+`d1` in a one-row inventory. Each karvi call carries the lab's places (`--set`
+for the base, `sharedroot = "none"`, the spool, the temporary directory, the
+trust store, the capacity root, the scoreboards, `audit.file`) and `--config`
+naming the inventory, left out below. The released 0.32.0:
+
+```text
+$ karvi c d1 show version; echo exit=$?
+cli_command_ambiguous: "c" is ambiguous: command, config, crun
+exit=4
+$ karvi r --no-daemon --transport native --t d1 show version; echo exit=$?
+! ssh accepted new host-key d1 (ED25519)
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=618ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225453-00
+exit=0
+$ karvi l --help | sed -n 1,3p
+Usage:
+  karvi login [options] DEVICE
+$ karvi s </dev/null; echo exit=$?
+cli_command_ambiguous: "s" is ambiguous: setup, stream
+exit=4
+```
+
+The change's build:
+
+```text
+$ karvi --help | sed -n '/^Commands:/,/^  stream/p'
+Commands:
+  login, l                       Open one interactive SSH session
+  command, cmd, c                Run commands on one device
+  run, r                         Run commands against an explicit scope
+  crun                           Collect commands from a scope into one file per device
+  stream, s, -                   Read a run line by line from standard input
+$ karvi c --transport native d1 show version; echo exit=$?
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=615ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225454-00
+exit=0
+$ karvi r --no-daemon --transport native --t d1 show version; echo exit=$?
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=617ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225455-00
+exit=0
+$ karvi l --help | sed -n 1,3p
+Usage:
+  karvi login [options] DEVICE
+$ printf '%b' '--no-daemon\n--transport native\n--t d1\nshow version\n--go\n' | karvi s; echo exit=$?
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=614ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225455-01
+exit=0
+$ karvi co d1 show version; echo exit=$?
+cli_command_ambiguous: "co" is ambiguous: command, config
+exit=4
+$ karvi cr --help | sed -n 1,3p
+Usage:
+  karvi crun [target inputs] [options]
+$ karvi se --help | sed -n 1,3p
+Usage:
+  sudo karvi setup shared [--group NAME] [--mode 2770|2775]
+$ karvi job list
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261017-225455-01  0m01s     complete    netops    run     1/1       0  d1
+  261017-225455-00  0m01s     complete    netops    run     1/1       0  d1
+  261017-225454-00  0m01s     complete    netops    cmd     1/1       0  d1
+  261017-225453-00  0m01s     complete    netops    run     1/1       0  d1
+```
+
+A login is shown by its help alone, since it needs a terminal; its parse is the
+tests'. The four jobs are the released `r`, then the change's `c`, `r`, and `s`:
+`cmd` and `run`, never a letter. No `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, or `~/.local/share/karvi` was left.
+
+**Found on the way.** Four tests had pinned the words as they were and now hold
+the letters: `TestCrunWordParses`, `c` command's alias and never `crun`;
+`TestParseEveryCode`, `co` the ambiguous word; `TestCompleteCases`, `co` the
+ambiguous word and a device completed after `c`; `TestHelpStyleDecision`, the
+list's `login, l` and stream's usage. `TestParseAliases` gains the letters, `-c
+site.toml c router01 -c "show clock"` among them (the configuration before the
+word, the command after it), and `se tab`; `TestParseEveryPrefixOfEveryWord`
+reaches every prefix of the four by construction.
+
+**Not taken.** `r` and `l` left as prefixes: they worked, until a word beginning
+with their letter is added. The letters offered by tab completion: the list
+stays the full words, as it does for `cmd` and `-`.

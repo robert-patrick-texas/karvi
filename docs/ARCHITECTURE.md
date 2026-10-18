@@ -110,8 +110,8 @@ known set being `platform.KnownNames` over the configured tables; the three
 `platform-resolution` keys and a source's `defaults.platform` are validated
 against the same set at load, whatever `on-unknown` says.
 
-Stream mode (`karvi stream`, `karvi -`; `internal/cli/stream.go`) is a
-front to `run`: the lines of standard input build a `run` argument list,
+Stream mode (`karvi stream`, `karvi s`, `karvi -`; `internal/cli/stream.go`)
+is a front to `run`: the lines of standard input build a `run` argument list,
 each option line checked by `Parse` as it arrives and dropped with its
 number when refused, and `--go` hands the list to `run`'s handler, so the
 job, its records, and its display are a run's and no rule lives twice.

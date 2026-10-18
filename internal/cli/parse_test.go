@@ -376,6 +376,21 @@ func TestParseAliases(t *testing.T) {
 		{[]string{"-c", "site.toml", "cmd", "router01", "show", "clock"}, func(i *Invocation) bool {
 			return reflect.DeepEqual(i.Global.configs, []string{"site.toml"})
 		}},
+		// The one-letter words: c is command although config and crun
+		// share its letter, s is stream although setup does; r and l are
+		// run and login whatever word is added.
+		{[]string{"c", "router01", "show", "clock"}, func(i *Invocation) bool {
+			return i.Path == "command" && reflect.DeepEqual(i.Commands, []string{"show clock"})
+		}},
+		{[]string{"-c", "site.toml", "c", "router01", "-c", "show clock"}, func(i *Invocation) bool {
+			return reflect.DeepEqual(i.Global.configs, []string{"site.toml"}) && i.Path == "command" && reflect.DeepEqual(i.Commands, []string{"show clock"})
+		}},
+		{[]string{"r", "--target", "r1", "show", "clock"}, func(i *Invocation) bool {
+			return i.Path == "run" && reflect.DeepEqual(i.Commands, []string{"show clock"})
+		}},
+		{[]string{"l", "router01"}, func(i *Invocation) bool { return i.Path == "login" && targetValues(i)[0] == "target=router01" }},
+		{[]string{"s"}, func(i *Invocation) bool { return i.Path == "stream" }},
+		{[]string{"se", "tab"}, func(i *Invocation) bool { return i.Path == "setup tab" }},
 		{[]string{"--4", "login", "r1"}, func(i *Invocation) bool { return i.Global.ipv4 }},
 		{[]string{"login", "r1", "-6"}, func(i *Invocation) bool { return i.Flag(optIPv6) }},
 		{[]string{"login", "--rec", "router01"}, func(i *Invocation) bool {
@@ -474,7 +489,7 @@ func TestParseRemovedSpellingsAreUnknown(t *testing.T) {
 func TestParseEveryCode(t *testing.T) {
 	cases := map[string][][]string{
 		"cli_command_unknown":       {{"bogus"}, {"lgoin", "r1"}},
-		"cli_command_ambiguous":     {{"co"}, {"c", "r1", "show", "clock"}},
+		"cli_command_ambiguous":     {{"co"}, {"co", "r1", "show", "clock"}},
 		"cli_subcommand_missing":    {{"daemon"}, {"config"}},
 		"cli_subcommand_unknown":    {{"daemon", "bounce"}, {"config", "edit"}},
 		"cli_subcommand_ambiguous":  {{"daemon", "s"}, {"daemon", "st"}, {"daemon", "sta"}},

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **One-letter command words: `c` for `command`, `r` for `run`, `l` for
+  `login`, `s` for `stream`.** Each is an alias, so it matches exactly:
+  `karvi c r1 show clock` is `karvi command` and `karvi s` is `karvi stream`,
+  where `c` had been refused as ambiguous (`command`, `config`, `crun`) and `s`
+  likewise (`setup`, `stream`); `r` and `l`, which had reached `run` and
+  `login` as prefixes, stay theirs whatever word is added. `co` stays
+  ambiguous, `cr` stays `crun`, and `se` stays `setup`. The help and
+  `karvi(1)` list them beside `cmd` and `-`.
+
 ## 0.32.0 - 2026-10-17
 
 A minor release on 0.31.1. The configuration registry moves from 30 to 31, the
