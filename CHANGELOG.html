@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
 <li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
 <li><a href="#0311---2026-10-16">0.31.1 - 2026-10-16</a></li>
 <li><a href="#0310---2026-10-16">0.31.0 - 2026-10-16</a></li>
@@ -70,9 +71,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -121,6 +122,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
 <li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
 <li><a href="#0311---2026-10-16">0.31.1 - 2026-10-16</a></li>
 <li><a href="#0310---2026-10-16">0.31.0 - 2026-10-16</a></li>
@@ -144,9 +146,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -158,6 +160,31 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0321---2026-10-18">0.32.1 - 2026-10-18 <a class="anchor" href="#0321---2026-10-18" aria-label="Link to this section">#</a></h2>
+<p>A patch release on 0.32.0 for the one-letter command words and <code>karvi-audit</code>'s
+wider DEVICE column, which change no record, file, key, or schema; every
+counter is 0.32.0's (configuration schema 6, registry 31, execution plan 14,
+daemon IPC 12, command record 4, job manifest and summary 5, plan report 3,
+credential package 2, scoreboard 4, audit 2, metrics 1, inventory 1), and the
+module graph is 0.32.0's. A site has something to change only where a script
+reads <code>karvi-audit</code>'s table by position. An operator's 0.32.0 daemon, of
+another build, is drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong>One-letter command words: <code>c</code> for <code>command</code>, <code>r</code> for <code>run</code>, <code>l</code> for
+<code>login</code>, <code>s</code> for <code>stream</code>.</strong> Each is an alias, so it matches exactly:
+<code>karvi c r1 show clock</code> is <code>karvi command</code> and <code>karvi s</code> is <code>karvi stream</code>,
+where <code>c</code> had been refused as ambiguous (<code>command</code>, <code>config</code>, <code>crun</code>) and <code>s</code>
+likewise (<code>setup</code>, <code>stream</code>); <code>r</code> and <code>l</code>, which had reached <code>run</code> and
+<code>login</code> as prefixes, stay theirs whatever word is added. <code>co</code> stays
+ambiguous, <code>cr</code> stays <code>crun</code>, and <code>se</code> stays <code>setup</code>. The help and
+<code>karvi(1)</code> list them beside <code>cmd</code> and <code>-</code>.</li>
+<li><strong><code>karvi-audit</code>'s DEVICE column is 30 cells, from 20,</strong> so the extended
+hostnames of switches, routers, and servers show whole: a canonical name of
+up to 30 characters whole, a longer one cut with <code>…</code>; COMMAND starts
+ten cells later, and at a terminal DEVICE is whole and centred from 99
+columns (89 before). The lines to a pipe, which a script may read, move
+with it.</li>
+</ul>
 <h2 id="0320---2026-10-17">0.32.0 - 2026-10-17 <a class="anchor" href="#0320---2026-10-17" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.31.1. The configuration registry moves from 30 to 31, the
 execution plan from 13 to 14, the command record from 3 to 4, the job manifest
@@ -1662,7 +1689,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.32.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.32.1</code>.</footer>
 </main>
 </body>
 </html>

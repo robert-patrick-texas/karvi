@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -299,8 +299,9 @@ type stays <code>run</code>. <em>Why:</em> the site's most frequent invocation d
 verb rather than a 44th option, and one shared slice means a new <code>run</code> option
 reaches <code>crun</code> by construction. <em>Not taken:</em> <code>run --collect</code>; a new activity
 type.</p>
-<p><strong>Stream mode.</strong> <code>karvi stream</code> (alias <code>karvi -</code>) reads standard input line by
-line: a line beginning with a dash and one more character is one run option, one
+<p><strong>Stream mode.</strong> <code>karvi stream</code> (aliases <code>karvi s</code>, <code>karvi -</code>) reads standard
+input line by line: a line beginning with a dash and one more character is one
+run option, one
 dash or two alike as on run's command line; any other line, a <code>-</code> alone among
 them, is one command sent as written, quotes and all; blank and <code>!</code>/<code>#</code> lines
 are skipped. The draft has two parts: the part that stays from one job to the
@@ -2547,25 +2548,27 @@ dead); the scoreboard's live counts (a second read, gone once pruned); <code>0/2
 file not read); the heading alone or nothing for an empty list.</p>
 <p><strong><code>karvi-audit</code>'s table: fixed widths, no TIME.</strong> The columns stand at fixed
 widths, one space between them: JOB-ID 16 (a job's or a login's ID), OPERATOR
-18, MODE 5 (the kind, <code>login</code> among them), EVENT 7, OUTCOME 16, DEVICE 20, then
+18, MODE 5 (the kind, <code>login</code> among them), EVENT 7, OUTCOME 16, DEVICE 30, then
 COMMAND. A cell longer than its column is cut with <code>…</code>. At a terminal the line
 is cut with <code>…</code> so that its last cell stays free, COMMAND cut or not shown at
 all; to a pipe or a file nothing cuts it. OPERATOR and DEVICE, heading and
 cells, are centred while the width holds the column whole, an odd cell to the
 right, and at the column's left when the width cuts into it, so DEVICE is whole
-from 89 columns. OPERATOR is <code>OPERATOR/LOGINUSER</code> when the event names a login
+from 99 columns. OPERATOR is <code>OPERATOR/LOGINUSER</code> when the event names a login
 user, <code>/LOGINUSER</code> kept whole and the operator's part cut first. A statement's
 control characters are written as Go writes them in a quoted string (<code>\t</code>,
 <code>\n</code>, <code>\x1b</code>). <em>Why:</em> the job ID holds the job's start to the second; one rule
 for every mode, a table read whole or followed, its first line at once and its
 memory flat, which widths measured over the rows cannot give (thirty days'
 359,728 rows held before the first line); OUTCOME at 16 tells the two
-<code>not_attempted_*</code> words apart; on a jump box where operators <code>sudo</code> to a shared
-account the person is the part a review looks for; a newline in a statement
-would start a row with no columns. <em>Not taken:</em> TIME (19 cells); widths
-measured over every row, as <code>job list</code>'s; a longer cell whole, pushing the rest
-of its row; two cells between columns; OUTCOME at 10;
-<code>OPERATOR(LOGINUSER)</code>; the pair cut at its end; the control characters removed.</p>
+<code>not_attempted_*</code> words apart; DEVICE at 30 shows the extended hostnames of
+switches, routers, and servers whole; on a jump box where operators <code>sudo</code> to a
+shared account the person is the part a review looks for; a newline in a
+statement would start a row with no columns. <em>Not taken:</em> TIME (19 cells);
+widths measured over every row, as <code>job list</code>'s; a longer cell whole, pushing
+the rest of its row; two cells between columns; OUTCOME at 10; DEVICE at 20,
+which cut them; <code>OPERATOR(LOGINUSER)</code>; the pair cut at its end; the control
+characters removed.</p>
 <p><strong><code>karvi-audit</code>'s colours go to a terminal and through a pipe, never into a
 file.</strong> The headings in the label role, OPERATOR in the accent role, DEVICE in
 the target role (bold), and OUTCOME by its word: the success role for
@@ -3250,7 +3253,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.32.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.32.1</code>.</footer>
 </main>
 </body>
 </html>

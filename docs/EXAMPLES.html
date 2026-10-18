@@ -110,6 +110,8 @@
 <li><a href="#62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16)</a></li>
 <li><a href="#63-the-audit-trails-names-and-fields-2026-10-17">63. The audit trail&#39;s names and fields (2026-10-17)</a></li>
 <li><a href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">64. karvi-audit, the audit trail as a table (2026-10-17)</a></li>
+<li><a href="#65-the-release-0320-2026-10-17">65. The release 0.32.0 (2026-10-17)</a></li>
+<li><a href="#66-one-letter-command-words-and-karvi-audits-device-at-30-2026-10-18">66. One-letter command words, and karvi-audit&#39;s DEVICE at 30 (2026-10-18)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -121,9 +123,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -235,6 +237,8 @@
 <li><a href="#62-the-releases-0310-and-0311-2026-10-16">62. The releases 0.31.0 and 0.31.1 (2026-10-16)</a></li>
 <li><a href="#63-the-audit-trails-names-and-fields-2026-10-17">63. The audit trail&#39;s names and fields (2026-10-17)</a></li>
 <li><a href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">64. karvi-audit, the audit trail as a table (2026-10-17)</a></li>
+<li><a href="#65-the-release-0320-2026-10-17">65. The release 0.32.0 (2026-10-17)</a></li>
+<li><a href="#66-one-letter-command-words-and-karvi-audits-device-at-30-2026-10-18">66. One-letter command words, and karvi-audit&#39;s DEVICE at 30 (2026-10-18)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -246,9 +250,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -14488,8 +14492,293 @@ lists the executables, the manifest, <code>CHECKSUMS.sha256</code>, and the rele
 (<code>release-design-evidence/karvi-audit-2026-10-17</code>: the mock-ups and their
 events, issue 5's runs, each section's patch and lab scripts with their
 output, and S4's test, suite, and verifier logs).</p>
+<h2 id="65-the-release-0320-2026-10-17">65. The release 0.32.0 (2026-10-17) <a class="anchor" href="#65-the-release-0320-2026-10-17" aria-label="Link to this section">#</a></h2>
+<p>The eleventh public release, 0.32.0, on the operator's word and number,
+carrying <a href="#63-the-audit-trails-names-and-fields-2026-10-17">chapter 63</a> (the
+audit trail's names, fields, and line; the statements in place of their
+digests; the mask; the present-tense words; the collection's <code>replace</code> and
+<code>keep</code>) and <a href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">chapter 64</a>
+(<code>karvi-audit</code>, the fourth executable). Seven counters move: the registry 30 to
+31, the execution plan 13 to 14, the command record 3 to 4, the job manifest and
+summary 4 to 5, the plan report 2 to 3, the scoreboard 3 to 4, and the audit 1
+to 2. The daemon IPC schema stays 12, so there is no lifecycle replay and the
+compatibility example is the drain, beside the released 0.31.1 daemon. The
+sequence is <a href="#62-the-releases-0310-and-0311-2026-10-16">chapter 62</a>'s, the
+baseline's rule already met: <code>dev</code> held its <code>## Unreleased</code> block since chapter
+63's closing section.</p>
+<p><strong>What it gains.</strong> A site has the audit trail chapters 63 and 64 made, and
+<code>karvi-audit</code> to read it, from a published, checksummed bundle and package, with
+the documents on GitHub Pages at the release: an operator's 0.31.1 daemon is
+drained by the first submission after the upgrade, and OPERATIONS' upgrade
+examples are this release's own output.</p>
+<p><strong>Before the number.</strong> The tree and the release tools were archived first
+(<code>~/karvi/backup/archive-2026-10-17-2</code>: a mirror at <code>9b9b12f</code> and the six tools
+as they were). One tool changed, for the fourth executable:
+<code>evidence-rest.sh</code>'s <code>go version -m</code> line names <code>bin/karvi-audit-linux-amd64</code>
+beside the other three. <code>common.sh</code>'s prior stays empty. The verifiers already
+pinned the moved counters, since chapter 63's sections; the number alone
+changed in them.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.32.0 - 2026-10-17</code> under a
+lead paragraph: the seven counters that moved, the rest 0.31.1's, <code>karvi-audit</code>
+the fourth executable, the module graph 0.31.1's, and what a site changes (a
+parser of the audit file, the journal, or the syslog it forwards; a script
+reading the past-tense words or <code>replaced</code> and <code>kept</code>; a display template naming
+<code>&lt;replaced&gt;</code> or <code>&lt;kept&gt;</code>; a hook reading <code>KARVI_CRUN_REPLACED</code> or
+<code>KARVI_CRUN_KEPT</code>; a host holding the tab completion file from before).
+<code>CHECKSUMS.sha256</code> has four lines.</p>
+<p><strong>Where the release lists the executables.</strong> <code>release/BUILD-RESULT.md</code>'s table
+has <code>karvi-audit</code>'s row, its package line four executables, its suites nineteen
+with the audit suite, and its build identity the audit counter, which it had
+not listed; <code>release/release-manifest.json</code> has <code>karvi-audit-linux-amd64</code>
+beside the others, with the counters; <code>release/DOWNLOADS.md</code> names four
+executables in the package; <code>release/evidence/go-version-m.txt</code> the four. The
+package, the bundle, <code>install.sh</code>, and the verifiers had the executable since
+chapter 64's S3.</p>
+<p><strong>The sequence, as run</strong>, from the archive at 22:08 to the published check at
+22:37 (UTC; 18:08 to 18:37, EDT), the artifacts passing at their first run:</p>
+<ul>
+<li>22:08:43, the tree and the tools archived: a mirror at <code>9b9b12f</code> and the six
+tools.</li>
+<li>22:08:57 to 22:17:31, the baseline on a clean clone of <code>dev</code> at <code>9b9b12f</code>:
+gofmt, make, the release verifier with its package and container steps, exit
+0 each.</li>
+<li>22:17:43 to 22:18:17, the release-identity build, the compatibility example,
+and 1/3: <code>ba663d7</code>; the build <code>hyA17Kpg085-04k7Q6FO</code>; the v0.31.1 daemon
+drained idle, refusing busy.</li>
+<li>To 22:20:22, the core evidence: 1,069 named tests across 92 packages, vet 0,
+both socket lengths exit 0.</li>
+<li>22:21:01, the documents: <code>436a9e7</code> (2/3), <code>release/</code> from the v0.31.1
+pattern, OPERATIONS' examples the release's own.</li>
+<li>22:21:13 to 22:29:11, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>22:29:42, 3/3, the tag, <code>main</code>: <code>2737d35</code>, <code>karvi-v0.32.0</code>, <code>main</code>
+fast-forwarded from <code>1d33706</code>.</li>
+<li>22:29:49 to 22:35:26, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive, the audit suite among its suites; the
+package reproducible and checked against the extraction; 39,601,440 and
+6,444,864 bytes.</li>
+<li>22:35:37 to 22:35:49, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; <code>karvi-sysutil</code> and the template unit in place;
+22 files under <code>/usr/share/karvi</code>, as 0.31.1.</li>
+<li>22:36 to 22:37:10, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>, and
+the tag pushed; <code>pages.sh</code> pushed the release's site (<code>ce56f2c</code>), built, its
+52 files 200 and its footer <code>karvi-v0.32.0</code>; release <code>karvi-v0.32.0</code> with the
+five assets, marked latest; the assets downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.31.1 build=1m0vuMSWJ08PWlb3CIEZ
+daemon started socket=/dev/shm/r320/compat/base/socket/d.sock
+pid 2069378 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 1m0vuMSWJ08PWlb3CIEZ 0.31.1
+  client build hyA17Kpg085-04k7Q6FO 0.32.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2069561 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest --jq '&quot;latest: \(.tag_name) draft=\(.draft) prerelease=\(.prerelease) assets=\(.assets|length)&quot;'
+latest: karvi-v0.32.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.32.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.32.0-source-linux-amd64.tar.gz: OK
+karvi_0.32.0_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong> The code moved the bytes: <code>karvi</code> is 40,960 bytes larger,
+<code>karvi-prune</code> 4,096, <code>karvi-askpass</code> the same size with other bytes, and
+<code>karvi-audit</code> is 3,940,512; the bundle is 1,723,718 bytes larger and the package
+454,146. The default configuration gains <code>crun.mask</code> and the <code>masks</code> key's
+comment, and its collection footer and the ping gate's words take the present
+tense. 0.31.1's artifact index named the diff <code>karvi-v0.31.1..karvi-v0.31.1</code>,
+its own tag twice; this release's names <code>karvi-v0.31.1..karvi-v0.32.0</code>. In the
+throwaway container <code>man karvi-audit</code> has no page: the package holds
+<code>/usr/share/man/man1/karvi-audit.1.gz</code> (<code>dpkg-deb -c</code>), and the image's
+<code>/etc/dpkg/dpkg.cfg.d/excludes</code> drops every man page at install
+(<code>path-exclude=/usr/share/man/*</code>), as it does karvi's others; <code>check-deb.sh</code>
+names no man page, the package taking them from <code>packaging/man</code> by glob. The
+evidence is kept beside the tree (<code>release-design-evidence/v0320-*</code>).</p>
+<h2 id="66-one-letter-command-words-and-karvi-audits-device-at-30-2026-10-18">66. One-letter command words, and <code>karvi-audit</code>'s DEVICE at 30 (2026-10-18) <a class="anchor" href="#66-one-letter-command-words-and-karvi-audits-device-at-30-2026-10-18" aria-label="Link to this section">#</a></h2>
+<p>Two changes on the operator's word after the release 0.32.0
+(<a href="#65-the-release-0320-2026-10-17">chapter 65</a>), each its own commit: the
+command words <code>c</code>, <code>r</code>, <code>l</code>, and <code>s</code>, and <code>karvi-audit</code>'s DEVICE column at 30
+cells.</p>
+<p><strong>Issue 1, the one-letter command words.</strong> The operator's word: &quot;add aliases for
+karvi action words, c for command mode, r for run mode, l for login&quot;, then &quot;add
+s as alias for action word stream&quot;.</p>
+<p><strong>What it gains.</strong> One letter for each of the four words an operator types most.
+The released 0.32.0 refused <code>c</code> (<code>command</code>, <code>config</code>, <code>crun</code>) and <code>s</code> (<code>setup</code>,
+<code>stream</code>) as ambiguous; <code>r</code> and <code>l</code> reached <code>run</code> and <code>login</code> as prefixes alone,
+so a word added later beginning with either letter would have made it
+ambiguous. It waits on nothing: the parser's word rule matches a full name or
+an alias exactly before any prefix, as it does <code>cmd</code> and <code>-</code>, so each letter is
+one alias in the table.</p>
+<p><strong>The rule, agreed.</strong> <code>c</code>, <code>r</code>, <code>l</code>, and <code>s</code> are aliases of <code>command</code>, <code>run</code>,
+<code>login</code>, and <code>stream</code>, matched exactly as <code>cmd</code> and <code>-</code> are; every other prefix
+resolves as before, <code>co</code> still ambiguous (<code>command</code>, <code>config</code>) and the only
+ambiguous one left among the top-level words, <code>cr</code> still <code>crun</code>, <code>se</code> still
+<code>setup</code>, <code>st</code> still <code>stream</code>. The <code>-c</code> option is unchanged: <code>--cmd</code> after the
+command word, <code>--config</code> before it. The help and <code>karvi(1)</code> list the letters
+beside <code>cmd</code> and <code>-</code>, and stream's usage names <code>karvi s</code>; tab completion offers
+the full words alone, abbreviation reaching the rest as before, and completes a
+device after <code>c</code>. The parser hands on the canonical word, so a job's kind stays
+<code>cmd</code>, <code>run</code>, or <code>crun</code> and no record, audit event, or display names a letter.</p>
+<p><strong>Executed.</strong> The released 0.32.0 beside a lab build of <code>397ddea</code> with the
+change, against the fake IOS XE device built from the tree on 127.0.0.1:2231,
+<code>d1</code> in a one-row inventory. Each karvi call carries the lab's places (<code>--set</code>
+for the base, <code>sharedroot = &quot;none&quot;</code>, the spool, the temporary directory, the
+trust store, the capacity root, the scoreboards, <code>audit.file</code>) and <code>--config</code>
+naming the inventory, left out below. The released 0.32.0:</p>
+<pre><code class="language-text">$ karvi c d1 show version; echo exit=$?
+cli_command_ambiguous: &quot;c&quot; is ambiguous: command, config, crun
+exit=4
+$ karvi r --no-daemon --transport native --t d1 show version; echo exit=$?
+! ssh accepted new host-key d1 (ED25519)
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=618ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225453-00
+exit=0
+$ karvi l --help | sed -n 1,3p
+Usage:
+  karvi login [options] DEVICE
+$ karvi s &lt;/dev/null; echo exit=$?
+cli_command_ambiguous: &quot;s&quot; is ambiguous: setup, stream
+exit=4
+</code></pre>
+<p>The change's build:</p>
+<pre><code class="language-text">$ karvi --help | sed -n '/^Commands:/,/^  stream/p'
+Commands:
+  login, l                       Open one interactive SSH session
+  command, cmd, c                Run commands on one device
+  run, r                         Run commands against an explicit scope
+  crun                           Collect commands from a scope into one file per device
+  stream, s, -                   Read a run line by line from standard input
+$ karvi c --transport native d1 show version; echo exit=$?
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=615ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225454-00
+exit=0
+$ karvi r --no-daemon --transport native --t d1 show version; echo exit=$?
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=617ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225455-00
+exit=0
+$ karvi l --help | sed -n 1,3p
+Usage:
+  karvi login [options] DEVICE
+$ printf '%b' '--no-daemon\n--transport native\n--t d1\nshow version\n--go\n' | karvi s; echo exit=$?
+! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+Cisco IOS XE Software, Version 17.09.04a
+fake-iosxe uptime is 1 day
+! exit=0 elapsed=614ms artifacts=/dev/shm/kal/w/base/jobs/261017/261017-225455-01
+exit=0
+$ karvi co d1 show version; echo exit=$?
+cli_command_ambiguous: &quot;co&quot; is ambiguous: command, config
+exit=4
+$ karvi cr --help | sed -n 1,3p
+Usage:
+  karvi crun [target inputs] [options]
+$ karvi se --help | sed -n 1,3p
+Usage:
+  sudo karvi setup shared [--group NAME] [--mode 2770|2775]
+$ karvi job list
+  JOB-ID            TIME      STATUS      OPERATOR  MODE    DONE   FAIL  TARGET
+  261017-225455-01  0m01s     complete    netops    run     1/1       0  d1
+  261017-225455-00  0m01s     complete    netops    run     1/1       0  d1
+  261017-225454-00  0m01s     complete    netops    cmd     1/1       0  d1
+  261017-225453-00  0m01s     complete    netops    run     1/1       0  d1
+</code></pre>
+<p>A login is shown by its help alone, since it needs a terminal; its parse is the
+tests'. The four jobs are the released <code>r</code>, then the change's <code>c</code>, <code>r</code>, and <code>s</code>:
+<code>cmd</code> and <code>run</code>, never a letter. No <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, or <code>~/.local/share/karvi</code> was left.</p>
+<p><strong>Found on the way.</strong> Four tests had pinned the words as they were and now hold
+the letters: <code>TestCrunWordParses</code>, <code>c</code> command's alias and never <code>crun</code>;
+<code>TestParseEveryCode</code>, <code>co</code> the ambiguous word; <code>TestCompleteCases</code>, <code>co</code> the
+ambiguous word and a device completed after <code>c</code>; <code>TestHelpStyleDecision</code>, the
+list's <code>login, l</code> and stream's usage. <code>TestParseAliases</code> gains the letters, <code>-c site.toml c router01 -c &quot;show clock&quot;</code> among them (the configuration before the
+word, the command after it), and <code>se tab</code>; <code>TestParseEveryPrefixOfEveryWord</code>
+reaches every prefix of the four by construction.</p>
+<p><strong>Not taken.</strong> <code>r</code> and <code>l</code> left as prefixes: they worked, until a word beginning
+with their letter is added. The letters offered by tab completion: the list
+stays the full words, as it does for <code>cmd</code> and <code>-</code>.</p>
+<p><strong>Issue 2, <code>karvi-audit</code>'s DEVICE at 30.</strong> The operator's word: DEVICE at 30
+characters, so that <code>karvi-audit</code> displays the extended hostnames of switches,
+routers, and servers.</p>
+<p><strong>What it gains.</strong> A canonical name of up to 30 characters whole in DEVICE,
+where <a href="#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17">chapter 64</a>'s 20
+cut the extended hostnames. It waits on nothing: the widths are one list, and
+chapter 64's rules (a longer cell cut with <code>…</code>, centred while the width holds
+the column whole, at its left when the width cuts into it) take any width.</p>
+<p><strong>The rule, agreed.</strong> DEVICE is 30 cells; every other column and rule is chapter
+64's. COMMAND begins at the 99th cell, from the 89th; at a terminal DEVICE is
+whole and centred from 99 columns (89 before) and at its column's left below
+that; a name longer than 30 is cut to 29 and <code>…</code>. To a pipe the lines move with
+it, so a script that reads the table by position follows.</p>
+<p><strong>Executed.</strong> The read of OPERATIONS' example, chapter 64's lab job
+<code>261017-171016-00</code> still in the host's journal, by both builds, the window
+written with its date since <code>-S 17:10</code> now names today. The released 0.32.0:</p>
+<pre><code class="language-text">$ karvi-audit --nocolor -S '2026-10-17 17:10' -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                 DEVICE        COMMAND
+261017-171016-00       netops       run   start
+261017-171016-00       netops       run   command success               fake-iosxe      show clock
+261017-171016-00       netops       run   command connection_error      dead-iosxe      show clock
+261017-171016-00       netops       run   end     error
+</code></pre>
+<p>The change's build:</p>
+<pre><code class="language-text">$ karvi-audit --nocolor -S '2026-10-17 17:10' -g 261017-171016-00
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261017-171016-00       netops       run   start
+261017-171016-00       netops       run   command success                    fake-iosxe           show clock
+261017-171016-00       netops       run   command connection_error           dead-iosxe           show clock
+261017-171016-00       netops       run   end     error
+</code></pre>
+<p><code>TestLayout</code> pins the lines at a pipe and at 110, 99, 98, and 80 columns: at
+110 COMMAND cut with one cell free, at 99 DEVICE still centred with the line's
+<code>…</code> in the cell after it, at 98 and 80 DEVICE at its left. Its lines were
+checked against a rendering of the rule written apart from the code
+(<code>layout-oracle.py</code>), the same at every width. <code>TestDeviceWidth</code> holds a name
+of 30 characters whole and one of 31 cut, and <code>TestColours</code> the row's codes at
+the new padding.</p>
+<p><strong>Found on the way.</strong> The audit suite lays out its expected table with its own
+copy of the widths in awk, which moves with the code's. OPERATIONS' example and
+<code>karvi-audit(1)</code>'s rows are the change's read above.</p>
+<p><strong>Not taken.</strong> DEVICE at 20, which cut them. Widths measured over the rows,
+chapter 64's not-taken alternative, stands: a followed trail stays in line only
+at fixed widths.</p>
+<p><strong>Built.</strong> In two commits on the operator's word. Issue 1 <code>0665f13</code>: the four
+aliases in <code>internal/cli</code>'s table, the help's list and stream's usage,
+<code>karvi(1)</code> and <code>karvi-stream(1)</code> generated from them, README, OPERATIONS,
+ARCHITECTURE, and DESIGN's stream entry, the CHANGELOG's <code>Unreleased</code> block
+opened, and the tests above. Issue 2: DEVICE's width in <code>internal/auditview</code>,
+the audit suite's awk, <code>karvi-audit(1)</code>'s DEVICE line and its rows, OPERATIONS'
+example, DESIGN's table entry with its reason and DEVICE at 20 not taken, the
+CHANGELOG's second entry, and <code>TestLayout</code>, <code>TestColours</code>, and
+<code>TestDeviceWidth</code>.</p>
+<p><strong>Executed.</strong> Issue 1 passed gofmt, vet, <code>go test ./...</code>, and <code>make generated-clean</code> on its own tree, and its lab (<code>aliases-lab.sh</code>). Issue 2
+passed the same and the audit suite on a lab build. At the work's end, on the
+final tree but for these paragraphs: gofmt, vet, <code>go test ./...</code> (72 packages),
+and <code>make generated-clean</code>; all 19 suites on a lab build (<code>run_suites</code>, <code>KARVI</code>
+the lab build, 200 seconds). None left a <code>/tmp/karvi-&lt;uid&gt;</code>,
+<code>/var/tmp/karvi-&lt;uid&gt;</code>, <code>/dev/shm/karvi</code>, or karvi process.</p>
+<p><strong>Closed.</strong> The ROADMAP is unchanged: Next 1 unique job IDs, 2 shorter output
+strings. The next release, its number the operator's, carries both in its
+<code>Unreleased</code> block. The evidence is kept beside the tree
+(<code>release-design-evidence/command-word-aliases-2026-10-17</code>,
+<code>audit-device-30-2026-10-18</code>, and <code>chapter66-battery-2026-10-18</code>: the lab
+scripts with their output, the layout oracle, the patches, and the test and
+suite logs).</p>
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.32.0</code>.</footer>
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.32.1</code>.</footer>
 </main>
 </body>
 </html>

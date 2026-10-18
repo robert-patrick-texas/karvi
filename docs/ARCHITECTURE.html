@@ -67,9 +67,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -138,9 +138,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -250,8 +250,8 @@ so by the parser table's <code>standsFor</code>, which also makes <code>--dp</co
 known set being <code>platform.KnownNames</code> over the configured tables; the three
 <code>platform-resolution</code> keys and a source's <code>defaults.platform</code> are validated
 against the same set at load, whatever <code>on-unknown</code> says.</p>
-<p>Stream mode (<code>karvi stream</code>, <code>karvi -</code>; <code>internal/cli/stream.go</code>) is a
-front to <code>run</code>: the lines of standard input build a <code>run</code> argument list,
+<p>Stream mode (<code>karvi stream</code>, <code>karvi s</code>, <code>karvi -</code>; <code>internal/cli/stream.go</code>)
+is a front to <code>run</code>: the lines of standard input build a <code>run</code> argument list,
 each option line checked by <code>Parse</code> as it arrives and dropped with its
 number when refused, and <code>--go</code> hands the list to <code>run</code>'s handler, so the
 job, its records, and its display are a run's and no rule lives twice.</p>
@@ -856,7 +856,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.32.0</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.32.1</code>.</footer>
 </main>
 </body>
 </html>

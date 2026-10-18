@@ -76,9 +76,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,9 +156,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.32.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.32.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.32.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.32.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.32.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -245,10 +245,10 @@ the other usable family if necessary, and selects the numerically lowest
 address within the chosen family. A startup capability probe determines whether
 IPv4 and IPv6 sockets are locally available.</p>
 <h2 id="command-grammar-and-one-session-execution">Command grammar and one-session execution <a class="anchor" href="#command-grammar-and-one-session-execution" aria-label="Link to this section">#</a></h2>
-<p><code>command</code> has alias <code>cmd</code>; <code>--cmd</code> aliases <code>--command</code>. Targets are supplied
-positionally or with <code>--target</code>/<code>--host</code>. <code>--address</code> aliases
-<code>--management-address</code> and supplies a literal connection address; it never
-selects a target.</p>
+<p><code>command</code> has aliases <code>cmd</code> and <code>c</code>, <code>run</code> has <code>r</code>, and <code>login</code> has <code>l</code>;
+<code>--cmd</code> aliases <code>--command</code>. Targets are supplied positionally or with
+<code>--target</code>/<code>--host</code>. <code>--address</code> aliases <code>--management-address</code> and supplies a
+literal connection address; it never selects a target.</p>
 <pre><code class="language-bash">karvi command router1 show clock
 karvi cmd router1 --cmd 'show clock'
 karvi command --host router1 --cmd 'show clock'
@@ -468,9 +468,9 @@ ping socket; otherwise the system <code>ping</code> binary is used. Text output 
 line per gated device (the <code>display.ping.header</code> template), and every record
 carries the probe outcomes.</p>
 <h2 id="stream-mode">Stream mode <a class="anchor" href="#stream-mode" aria-label="Link to this section">#</a></h2>
-<p><code>karvi stream</code>, or <code>karvi -</code>, reads a run line by line from standard
-input, typed at a terminal or piped from a script: a line beginning with
-a dash is one run option, one dash or two alike (<code>--target router1</code>, <code>-c show clock</code>, <code>--tl r1 r2</code>, <code>--dp</code>), a value wholly wrapped in quotes
+<p><code>karvi stream</code>, <code>karvi s</code>, or <code>karvi -</code>, reads a run line by line from
+standard input, typed at a terminal or piped from a script: a line beginning
+with a dash is one run option, one dash or two alike (<code>--target router1</code>, <code>-c show clock</code>, <code>--tl r1 r2</code>, <code>--dp</code>), a value wholly wrapped in quotes
 losing them as a shell would remove them (<code>--cmd &quot;show clock&quot;</code>); any
 other line is one command sent as written, quotes and all; blank and <code>!</code>
 or <code>#</code> lines are skipped. <code>--go</code> (or <code>--sendit</code>) executes the draft as
@@ -658,7 +658,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.32.0</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.32.1</code>.</footer>
 </main>
 </body>
 </html>
