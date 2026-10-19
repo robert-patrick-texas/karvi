@@ -64,6 +64,9 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("inventory_load_failed", err)
 	}
+	if err := CheckShortcut(set, opts.Shortcut); err != nil {
+		return failedResult("cli_command_near_miss", err)
+	}
 	if err := applyManagementAddress(&set, opts.Address); err != nil {
 		return failedResult("management_address_invalid", err)
 	}
@@ -121,9 +124,9 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 		return failedResult("audit_sink_open_failed", err)
 	}
 	defer auditSink.Close()
-	resolution, err := resolver.Resolve(ctx, cfg, d, resolver.ProbeFamilies())
+	resolution, err := resolver.Resolve(ctx, cfg, d, resolver.ProbeFamilies(), opts.Lookup)
 	if err != nil {
-		return failedResult("name_resolution_error", err)
+		return failedResult("name_resolution_error", opts.Shortcut.refusal(d, err))
 	}
 	d = resolution.Device
 	debug(fmt.Sprintf("login resolved target=%q address=%s source=%s candidates=%d duration=%s", d.CanonicalName, resolution.SelectedAddress.String(), resolution.AddressSource, len(resolution.AddressCandidates), resolution.Duration))

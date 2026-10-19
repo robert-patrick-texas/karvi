@@ -9,6 +9,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credhelper"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
+	"github.com/robert-patrick-texas/karvi/internal/resolver"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -53,6 +54,8 @@ type CommandOptions struct {
 	NoBorder         bool
 	Collection       string // command given --cd: the plan carries the collection
 	Suffix           string // --fs: the collection file names' suffix
+	Shortcut         Shortcut
+	Lookup           resolver.LookupFunc // the DNS lookup; nil is the host's resolver
 }
 
 // RunOptions describes a run: its target inputs, its commands and their
@@ -102,6 +105,9 @@ type LoginOptions struct {
 	Port      int
 	// AddressAuthority is client or daemon for the first device.
 	AddressAuthority string
+	Shortcut         Shortcut
+	// Lookup is the DNS lookup; nil is the host's resolver.
+	Lookup resolver.LookupFunc
 }
 
 // ActivityResult is the safe terminal result returned locally or over IPC.

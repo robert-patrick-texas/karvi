@@ -39,7 +39,7 @@ func TestResolveHonorsAddressFamilyPreference(t *testing.T) {
 				return []netip.Addr{netip.MustParseAddr("2001:db8::9"), netip.MustParseAddr("2001:db8::8")}, nil
 			}
 			d := inventory.Direct("dual.example", "generic", "system", 0)
-			got, err := resolveWithLookup(context.Background(), cfg, d, Capabilities{IPv4: true, IPv6: true}, lookup)
+			got, err := Resolve(context.Background(), cfg, d, Capabilities{IPv4: true, IPv6: true}, lookup)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -69,7 +69,7 @@ func TestResolveFallsBackWhenPreferredFamilyHasNoRecord(t *testing.T) {
 		return []netip.Addr{netip.MustParseAddr("192.0.2.10")}, nil
 	}
 	d := inventory.Direct("fallback.example", "generic", "system", 0)
-	got, err := resolveWithLookup(context.Background(), cfg, d, Capabilities{IPv4: true, IPv6: true}, lookup)
+	got, err := Resolve(context.Background(), cfg, d, Capabilities{IPv4: true, IPv6: true}, lookup)
 	if err != nil {
 		t.Fatal(err)
 	}

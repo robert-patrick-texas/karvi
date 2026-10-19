@@ -62,7 +62,7 @@ func planAndPackage(ctx context.Context, common CommonOptions, set planner.Targe
 		return nil, err
 	}
 	if hasDaemonAuthority(plan) {
-		evidence, err := resolver.PrepareDaemon(ctx, cfg, plan.Targets)
+		evidence, err := resolver.PrepareDaemon(ctx, cfg, plan.Targets, opts.Address.Lookup)
 		if err != nil {
 			cp.Destroy()
 			return nil, err

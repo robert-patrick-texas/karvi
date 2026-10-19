@@ -40,6 +40,9 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	if err != nil {
 		return failedResult("inventory_load_failed", err)
 	}
+	if err := CheckShortcut(set, opts.Shortcut); err != nil {
+		return failedResult("cli_command_near_miss", err)
+	}
 	if err := applyManagementAddress(&set, opts.Address); err != nil {
 		return failedResult("management_address_invalid", err)
 	}
@@ -66,7 +69,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 		ActivityType: "command", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		Transport: opts.Transport, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: true,
-		Address: planner.AddressOptions{Overrides: overrides, Warn: func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }},
+		Address: planner.AddressOptions{Overrides: overrides, Lookup: opts.Lookup, Warn: func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }},
 		Warn:    func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) },
 	}
 	authorities := []string{}
@@ -76,7 +79,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	selection := records.Selection{Inputs: append([]records.TargetInput{}, opts.Targets...), Excludes: nonNilStrings(opts.Excludes), ManagementAddress: opts.Address, AddressAuthorities: authorities}
 	job, err := planAndPackage(ctx, opts.CommonOptions, one, draft, id, streams)
 	if err != nil {
-		return failedResult("execution_plan_invalid", err)
+		return failedResult("execution_plan_invalid", opts.Shortcut.refusal(d, err))
 	}
 	defer job.Destroy()
 	return jobexec.Run(ctx, jobexec.Request{

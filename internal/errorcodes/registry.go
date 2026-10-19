@@ -652,8 +652,9 @@ var entries = []Entry{
 	failure("scoreboard_root_invalid", "permission", exitPerm, false, "The scoreboard directory path is a symlink or not a directory."),
 
 	// Command-line parser rules, one code per rule.
-	failure("cli_command_unknown", "usage", exitUsage, false, "The command word matches no command."),
+	failure("cli_command_unknown", "usage", exitUsage, false, "The first word is neither a command nor a target: it matches no command and is a pattern rather than a plain name, or, taken as a device (`karvi DEVICE`), DNS says the name does not exist."),
 	failure("cli_command_ambiguous", "usage", exitUsage, false, "The command word prefix matches more than one command; the message names every candidate."),
+	failure("cli_command_near_miss", "usage", exitUsage, false, "The first word, taken as a device (`karvi DEVICE`), is no inventory name and one slip from a command word of four letters or more: a letter added, dropped, or changed, or two neighbours swapped, ignoring case; the message names the command word. Refused before any lookup or claim."),
 	failure("cli_subcommand_missing", "usage", exitUsage, false, "`daemon` or `config` is given without a subcommand."),
 	failure("cli_subcommand_unknown", "usage", exitUsage, false, "The subcommand word matches no subcommand."),
 	failure("cli_subcommand_ambiguous", "usage", exitUsage, false, "The subcommand prefix matches more than one subcommand; the message names every candidate."),

@@ -103,6 +103,17 @@ func targetInputs(inv *Invocation, cfg configload.Snapshot, streams app.IO) ([]a
 	return inputs, 0, true
 }
 
+// shortcut is the device word of `karvi DEVICE` for login and command
+// (EXAMPLES chapter 71), with the command word one slip from it; empty when
+// the line began with a command.
+func (inv *Invocation) shortcut() app.Shortcut {
+	if len(inv.Targets) == 0 || !inv.Targets[0].Shortcut {
+		return app.Shortcut{}
+	}
+	word := inv.Targets[0].Value
+	return app.Shortcut{Word: word, Near: nearCommand(word)}
+}
+
 func checkPort(inv *Invocation, w io.Writer) (int, bool) {
 	port := inv.Int(optPort)
 	if inv.Set(optPort) && (port < 1 || port > 65535) {
@@ -247,7 +258,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder)}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Shortcut: inv.shortcut()}, streams)
 	collection.impliedDirectory(&result)
 	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
@@ -597,7 +608,7 @@ func commandLogin(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	// Recording is performed by the script(1) wrapper around this process
 	// (login_record.go); the child never records in-process.
-	result := app.ExecuteLogin(ctx, app.LoginOptions{CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority)}, streams)
+	result := app.ExecuteLogin(ctx, app.LoginOptions{CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Shortcut: inv.shortcut()}, streams)
 	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
 }

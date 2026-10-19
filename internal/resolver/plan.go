@@ -183,9 +183,10 @@ func (e *TargetErrors) Unwrap() error {
 // source inventory; no hint gives daemon DNS with source dns-daemon. The
 // resolver context is the target's execution endpoint and the resolution
 // digest is SumResolution over the filled fields. Direct command mode shares
-// it, the local process being the endpoint. Other targets are skipped.
-func PrepareDaemon(ctx context.Context, cfg configload.Snapshot, targets []executionplan.ExecutionTarget) ([]executionplan.AddressEvidence, error) {
-	return PrepareDaemonWith(ctx, cfg, targets, ProbeFamilies(), net.DefaultResolver.LookupNetIP)
+// it, the local process being the endpoint. Other targets are skipped. lookup
+// is the DNS lookup; nil is the host's resolver.
+func PrepareDaemon(ctx context.Context, cfg configload.Snapshot, targets []executionplan.ExecutionTarget, lookup LookupFunc) ([]executionplan.AddressEvidence, error) {
+	return PrepareDaemonWith(ctx, cfg, targets, ProbeFamilies(), lookup)
 }
 
 // PrepareDaemonWith is PrepareDaemon with the socket capabilities and the

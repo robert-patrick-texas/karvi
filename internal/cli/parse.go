@@ -710,6 +710,40 @@ func shortcutCommand(args []string) bool {
 	return false
 }
 
+// nearCommand is the command word of four letters or more one slip from a
+// shortcut's word, ignoring case, or "" (rule 4): the mode refuses such a
+// word unless it is an inventory name.
+func nearCommand(word string) string {
+	word = strings.ToLower(word)
+	for _, c := range commandTable {
+		if len(c.word) >= 4 && oneSlip(word, c.word) {
+			return c.word
+		}
+	}
+	return ""
+}
+
+// oneSlip reports whether a and b differ by at most one slip: a letter
+// added, dropped, or changed, or two neighbours swapped.
+func oneSlip(a, b string) bool {
+	if len(a) < len(b) {
+		a, b = b, a
+	}
+	i := 0
+	for i < len(b) && a[i] == b[i] {
+		i++
+	}
+	switch {
+	case i == len(a):
+		return true
+	case len(a) == len(b)+1:
+		return a[i+1:] == b[i:]
+	case len(a) != len(b):
+		return false
+	}
+	return a[i+1:] == b[i+1:] || (i+1 < len(a) && a[i] == b[i+1] && a[i+1] == b[i] && a[i+2:] == b[i+2:])
+}
+
 func visibleWords(cmds []*command) []string {
 	var out []string
 	for _, c := range cmds {

@@ -86,9 +86,10 @@ Active failure causes.
 | `channel_exec_declaration_refused` | usage | 4 | no | A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted. |
 | `channel_exec_over_telnet` | dependency | 8 | no | A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
+| `cli_command_near_miss` | usage | 4 | no | The first word, taken as a device (`karvi DEVICE`), is no inventory name and one slip from a command word of four letters or more: a letter added, dropped, or changed, or two neighbours swapped, ignoring case; the message names the command word. Refused before any lookup or claim. |
 | `cli_command_text_missing` | usage | 4 | no | `command` or `run` has neither freeform text nor an explicit command. |
 | `cli_command_text_mixed` | usage | 4 | no | Freeform text is combined with `--cmd` or `--cf`. |
-| `cli_command_unknown` | usage | 4 | no | The command word matches no command. |
+| `cli_command_unknown` | usage | 4 | no | The first word is neither a command nor a target: it matches no command and is a pattern rather than a plain name, or, taken as a device (`karvi DEVICE`), DNS says the name does not exist. |
 | `cli_device_empty` | usage | 4 | no | A device name is empty or blank. |
 | `cli_device_missing` | usage | 4 | no | `login` or `command` has no target input (device, `--target`, `--tf`, `--tfr`, `--site`, `--device-group`, or `--all`). |
 | `cli_option_ambiguous` | usage | 4 | no | An option prefix matches more than one option; the message names every candidate. |

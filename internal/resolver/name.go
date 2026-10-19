@@ -65,15 +65,13 @@ func ProbeFamilies() Capabilities {
 // LookupNetIP in production, an injected answer in tests.
 type LookupFunc func(ctx context.Context, network, host string) ([]netip.Addr, error)
 
-type lookupNetIPFunc = LookupFunc
-
-func Resolve(ctx context.Context, cfg configload.Snapshot, d inventory.Device, caps Capabilities) (Resolution, error) {
-	return resolveWithLookup(ctx, cfg, d, caps, net.DefaultResolver.LookupNetIP)
-}
-
-// resolveWithLookup keeps address-family ordering independently testable while
-// the public resolver continues to use the host's configured DNS resolver.
-func resolveWithLookup(ctx context.Context, cfg configload.Snapshot, d inventory.Device, caps Capabilities, lookup lookupNetIPFunc) (Resolution, error) {
+// Resolve is login's resolution of its device: the name transform, then the
+// literal management address or a DNS lookup. lookup is the DNS lookup; nil
+// is the host's resolver.
+func Resolve(ctx context.Context, cfg configload.Snapshot, d inventory.Device, caps Capabilities, lookup LookupFunc) (Resolution, error) {
+	if lookup == nil {
+		lookup = net.DefaultResolver.LookupNetIP
+	}
 	started := time.Now()
 	r := Resolution{Device: d, InputTarget: d.SuppliedName(), TransformedName: d.CanonicalName, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}}
 	tr, err := Transform(cfg, d)

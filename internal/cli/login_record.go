@@ -99,6 +99,9 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	if err != nil {
 		return inv.Global.reportError(stderr, "inventory_load_failed", err)
 	}
+	if err := app.CheckShortcut(set, inv.shortcut()); err != nil {
+		return inv.Global.reportError(stderr, "cli_command_near_miss", err)
+	}
 	if err := app.CheckManagementAddress(set, inv.String(optAddress)); err != nil {
 		return inv.Global.reportError(stderr, "management_address_invalid", err)
 	}
