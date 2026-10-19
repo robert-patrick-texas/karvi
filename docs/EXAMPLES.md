@@ -14851,3 +14851,201 @@ version was replaced across the file, chapter 67's slip not repeated:
 has no page, as in chapters 65 and 67: the image drops every man page at
 install. The evidence is kept beside the tree
 (`release-design-evidence/v0330-*`).
+
+## 71. A device as the first word, `karvi DEVICE` (2026-10-19)
+
+The operator's request: a first word that would be refused as an unknown
+command, when it names a target, is a login at it alone, or a command at it
+with the words after it as the command, "shortcuts for less typing, such as
+`karvi device-name` to login at device-name, and `karvi router1 show ip int
+brief` which executes command `show ip int brief` at `router1`". A target is an
+exact match in any inventory, a name DNS resolves (a short name by the
+resolver's search list, `router1` as `router1.net.example.com` at
+`192.0.2.1`), or an IPv4 or IPv6 address. Designed in this session and
+recorded for the build; the program is unchanged.
+
+**What it gains.** The two most frequent invocations shorter by their action
+word: `karvi router1` for `karvi login router1`, `karvi router1 show clock` for
+`karvi command router1 show clock`. It waits on nothing: `login` and `command`
+already resolve a positional device as asked (`internal/app/targets.go`). A
+name is matched, ignoring case, against each inventory row's name, canonical
+name, or ID; any other is a direct target, a literal address its own
+management address with no lookup, a name looked up in DNS after its name
+transform by Go's resolver (the executables are built with `CGO_ENABLED=0`),
+which applies `/etc/resolv.conf`'s `search` list. The shortcut is the parser's
+reading of an unknown first word as one of the two modes, a guard that keeps a
+mistyped command word from becoming a connection, and the refusals.
+
+**The rule, agreed.** In simple terms: a first word that is no command and
+names a target is a login at it, or a command at it when words follow.
+
+1. Only a first word the parser refuses as unknown (`cli_command_unknown`) is
+   tried. A command word, an alias, or a unique prefix of one keeps its
+   meaning, and an ambiguous prefix stays `cli_command_ambiguous`; a device
+   named as one of them is reached by `karvi login NAME`.
+2. The word is a plain name, one `karvi login` takes as one literal name: none
+   of `* ? [ \ ^ $` and no leading `!`. Any other word is refused at once as
+   `cli_command_unknown`, before the configuration is read. A bracketed IPv6
+   address is a pattern; the plain form, with or without a zone, is an
+   address.
+3. Login or command: the words after the device are read as login's options.
+   It becomes a command at the first word of command text, which with every
+   word after it is the command and never read as options; at `--` with words
+   after it; or at an option login does not know and command knows or finds
+   ambiguous (`--cmd`, `--cf`, `--echo`, ...). Otherwise it is a login. The
+   mode chosen parses the whole line, so an abbreviation means what it means
+   in that mode, and an option neither knows is refused as login's.
+4. The target: an inventory name or a literal address goes ahead with no
+   lookup. A word one slip from a command word of four letters or more
+   (`login`, `command`, `crun`, `stream`, `daemon`, `config`, `setup`,
+   `watch`, `version`, `help`; one letter added, dropped, or changed, or two
+   neighbours swapped) that is no inventory name is refused as
+   `cli_command_near_miss` (exit 4): `"lgoin" is not a command; did you mean
+   login?`. Any other word is looked up where its mode looks it up now:
+   `login` before its credentials, `command` at planning, or after its
+   credentials under daemon address authority.
+5. A shortcut's word DNS says does not exist is `cli_command_unknown` (exit
+   4): `"router9" is neither a command nor a target: DNS has no such name`;
+   the registry's text widens to "neither a command nor a target". A timeout
+   or a server failure keeps `dns_timeout` or `dns_servfail` (exit 7): the
+   word may be a device.
+6. Unchanged: the host-key policy is the mode's, with no check of the trust
+   store for a name DNS alone found; no lookup earlier than the mode's;
+   nothing records that the shortcut was used, the parser handing on `login`
+   or `command`; a stream's lines; and tab completion, which offers command
+   words and options and never a device for the shortcut.
+
+Accepted with it:
+
+- A plain word costs the configuration read and the inventory load every login
+  makes: a broken configuration or inventory answers it with its own refusal,
+  and a word DNS does not know waits for DNS's answer, at most
+  `name.dns-timeout`.
+- A word that does not resolve leaves what `karvi login WORD` leaves today: an
+  empty `<ID>.id` claim in the scoreboards folder, removed on a later day; for
+  `command`, a job directory made and removed; with `--record`, the transcript
+  of the failed session. Under daemon address authority `command`'s
+  credentials, a prompt among them, come before the refusal, as for `karvi
+  command WORD TEXT` today; the guard keeps the mistyped command words from it.
+- A command word added later takes every device name that is a prefix of it;
+  `karvi login NAME` reaches such a device.
+
+**Executed.** The parser's present answers at `bf009f1`, through three probes
+of package `cli` given to `go test -overlay`, the tree untouched. A first word
+as the parser takes it, and a literal's address as a direct target (lines
+chosen from the log):
+
+```text
+"router1"                    path=""        targets=[] cli_command_unknown
+"router1 show ip int brief"  path=""        targets=[] cli_command_unknown
+"c"                          path="command" targets=[] cli_device_missing
+"co"                         path=""        targets=[] cli_command_ambiguous
+"cr"                         path="crun"    targets=[] -
+"ver"                        path="version" targets=[] -
+"w"                          path="watch"   targets=[] -
+"2001:db8::1"                path=""        targets=[] cli_command_unknown
+"rtr*"                       path=""        targets=[] cli_command_unknown
+"!r1"                        path=""        targets=[] cli_command_unknown
+"login [2001:db8::1]"        path="login"   targets=[{target [2001:db8::1] true}] -
+Direct("2001:db8::1") management address 2001:db8::1
+Direct("fe80::1%eth0") management address fe80::1%eth0
+```
+
+`c l r s - d j v w h` and `cr con lo ru se st ver he` reach their commands, as
+does every longer prefix of a command word; `co` alone is ambiguous. Login's
+and command's option tables, every word and every prefix resolved in both:
+
+```text
+options in both: 32, of them a different table entry: 0
+login only:   --record --ssh-option
+command only: --tl --cmd --cf --format --echo --border --noborder --continue-device-on-error --expect --blind --blind-return --timeout --maxbytes --blind-wait --literal --nof --of --cd --fs
+words and prefixes: 291
+naming two different options: 0
+ambiguous in login, one option in command: 0
+unknown to login, known or ambiguous in command: 96
+login's meaning, refused by command:
+  --e (--exclude; command: ambiguous)
+  --ex (--exclude; command: ambiguous)
+  --m (--management-address; command: ambiguous)
+  --ma (--management-address; command: ambiguous)
+  --o (--order; command: ambiguous)
+  --r (--record; command: unknown)
+```
+
+Eleven more lines follow, the longer prefixes of `--record` and of
+`--ssh-option`, each unknown to command. So every option both modes take is
+one table entry, taking its value the same way in both, and a login reading
+finds the end of the options where a command reading finds it; an
+abbreviation's meaning changes from one mode to the other only to a refusal,
+never to another option. `karvi r1 --e x` is a login with `--exclude x`;
+`karvi r1 --e x show clock` is a command, refused because `--e` is ambiguous
+there (`--echo`, `--exclude`, `--expect`).
+
+**Found on the way.**
+
+- README's command grammar and COMMAND-TROUBLESHOOTING's prompt entry said a
+  karvi option may follow the command words and that `--` is needed before
+  text holding an option's name; the parser and DESIGN's freeform boundary end
+  the options where the text begins (`cmd router1 show clock --echo` sends
+  `show clock --echo`), and README's `--` example had an unquoted `|` the shell
+  would take. Both corrected in `11cf2e7`, the troubleshooting entry losing its
+  "Version 0.9.0".
+- DESIGN's section 2 shortcut entry and section 3 target set named `--tl` among
+  every mode's target inputs; the table gives it to `command`, `run`, `crun`,
+  and a stream's lines, not `login`. Corrected in `bf009f1`.
+- A first reading held that under daemon address authority a name only the
+  daemon's resolver knows would refuse the shortcut. `login` and `command` run
+  in the invoking process, and `command`'s daemon-authority lookup is that
+  process's own (`resolver.PrepareDaemon`, "the local process being the
+  endpoint"): the resolver is the same, and the concern is withdrawn.
+- `login`'s lookup (`internal/app/login.go`) takes the system resolver with no
+  way for a test to answer in its place; `command`'s planner takes one
+  (`planner.AddressOptions.Lookup`).
+
+**Not taken.**
+
+- A lookup before the mode's, to refuse a word that is no target before any
+  claim: a second place that resolves, or one name looked up twice. The
+  mode's own place leaves what `karvi login WORD` leaves today, and the guard
+  keeps the mistyped command words from it.
+- Reading the line as a command first, and as a login when no command text
+  follows: `karvi r1 --echo` would be refused as an option login does not
+  know, where as a command it is refused for the text it lacks.
+- A check that a name DNS alone found has its host key in the trust store
+  before credentials are sent.
+- An ambiguous prefix tried as a device.
+- A code of its own for a word DNS does not know: the rule is one, a first
+  word that is a command or a target, and so is its code; `dns_nxdomain`, which
+  says a target was named.
+- A bracketed IPv6 address with its brackets removed: a second spelling of one
+  address.
+- Tab completion for the shortcut: device names at the first word, or both
+  modes' options after a device.
+
+**Left for the build.**
+
+- The parser: an unknown first word that is a plain name is the shortcut's,
+  read as rule 3 says, its device a positional target marked as the
+  shortcut's.
+- The modes: rule 4's guard where the target set is assembled, before any
+  claim, in `login`, `command`, and the recording wrapper; rule 5's refusal
+  where each looks the name up.
+- `cli_command_near_miss` registered, `cli_command_unknown`'s description
+  widened, and `docs/ERROR-CODES.md` regenerated.
+- The help: the usage lines `karvi DEVICE` and `karvi DEVICE COMMAND TEXT...`
+  and a sentence on command words, `karvi(1)` regenerated from it; `karvi r1
+  --help` prints the chosen mode's help.
+- DESIGN's entry, README's grammar, QUICKSTART, and the CHANGELOG.
+- The tests: the parser's readings under rules 1 to 3; each mode's cases of
+  rules 4 and 5 (an inventory name, a literal, the guard, no such name, a
+  timeout keeping its code); `login`'s lookup given the seam `command`'s has,
+  an optional lookup in its options, the system resolver when none.
+- The executed examples: the fake IOS XE device for the inventory, literal,
+  and guard cases; the search list in an Ubuntu 26.04 container with a DNS
+  server of its own (dnsmasq) and `search net.example.com`, the list being
+  applied to DNS queries.
+
+**Closed.** The ROADMAP's item holds the build, its design this chapter. The
+evidence is kept beside the tree
+(`release-design-evidence/device-shortcut-2026-10-19`: the probes, the
+overlay, and their log).
