@@ -242,6 +242,26 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the round trip through journald, its jobs at devices named for its run
   alone ([`docs/EXAMPLES.md`, chapter
   64](docs/EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)).
+- **`verify-shipped.sh` reviewed for what it leaves.** Its `STATELESS`
+  folder, made to show that `--help` and `version` create no home, is removed
+  only when that check passes, so a failing check leaves it in `/tmp`. The
+  release verifier's package folder had the same gap: a failed baseline left it
+  ([`docs/EXAMPLES.md`, chapter
+  73](docs/EXAMPLES.md#73-the-release-0340-2026-10-19)), and
+  `verify-release.sh` now removes it on a trap at its exit. The item: every
+  folder and file the script makes removed at its exit, passed, failed, or
+  interrupted.
+- **The scripts' traps on the signals.** Twenty-four scripts set their
+  cleanup with `trap ... EXIT HUP INT TERM`, the trap not ending the script:
+  sent TERM or HUP alone, such a script runs its cleanup and goes on, where
+  without the trap it would end. A draft of `verify-release.sh`'s trap in that
+  form, sent TERM during the container test, removed the package folder and
+  went on to print `karvi native release verification passed`, exit 0; on
+  `EXIT` alone bash runs the cleanup when the signal ends the script (TERM 143,
+  HUP 129, a Ctrl-C 130). The item: each of the twenty-four on `EXIT` alone,
+  as `verify-release.sh`'s is. The questions: a cleanup that stops a daemon or
+  a container, run once at the exit, checked under each signal; and a check
+  that keeps the other form out of the tree.
 
 ## The device-qualification track
 
