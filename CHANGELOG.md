@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.34.0 - 2026-10-19
+
+A minor release on 0.33.0 for a device as the first word, `karvi DEVICE`;
+every counter is 0.33.0's (configuration schema 6, registry 31, execution plan
+14, daemon IPC 12, command record 4, job manifest and summary 5, plan report 3,
+credential package 2, scoreboard 4, audit 2, metrics 1, inventory 1), and the
+module graph is 0.33.0's. A site has something to change where a script takes
+a first word that is no command for `cli_command_unknown` at once: a plain
+word now names a device, and a word one slip from a command word is
+`cli_command_near_miss`. An operator's 0.33.0 daemon, of another build, is
+drained by the first submission after the upgrade.
 
 - **A device as the first word, `karvi DEVICE`.** A first word that is no
   command and is a plain name, none of `* ? [ \ ^ $` and no leading `!`, names
