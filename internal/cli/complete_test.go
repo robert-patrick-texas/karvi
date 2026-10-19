@@ -225,10 +225,10 @@ func TestCompleteWord(t *testing.T) {
 	if _, err := os.Lstat(filepath.Join(filepath.Dir(cfg), "base")); !os.IsNotExist(err) {
 		t.Errorf("completion created the base directory: %v", err)
 	}
-	// The word is not in the table: it abbreviates to nothing and has no help.
-	var errBuf bytes.Buffer
-	if code := Main([]string{"__c"}, strings.NewReader(""), &bytes.Buffer{}, &errBuf); code != exitcode.ExitUsageError || !strings.Contains(errBuf.String(), "cli_command_unknown") {
-		t.Errorf("__c: %d %q", code, errBuf.String())
+	// The word is not in the table: it abbreviates to nothing, so __c is a
+	// device for the shortcut (EXAMPLES chapter 71), and it has no help.
+	if inv, err := Parse([]string{"__c"}); err != nil || inv.Path != "login" || len(inv.Targets) != 1 || !inv.Targets[0].Shortcut {
+		t.Errorf("__c: %v %+v", err, inv)
 	}
 	if strings.Contains(topHelp, completion.Word) {
 		t.Error("the hidden word is in the top help")

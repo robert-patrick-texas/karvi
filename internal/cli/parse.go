@@ -16,11 +16,13 @@ import (
 
 // TargetInput is one target input in command-line order. Kind is
 // the option name: target, tf, tfr, site, device-group, platform (run only),
-// or all. Positional is true for a device given without --target.
+// or all. Positional is true for a device given without --target; Shortcut
+// is true for the device of a first word that is no command (parseShortcut).
 type TargetInput struct {
 	Kind       string
 	Value      string
 	Positional bool
+	Shortcut   bool
 }
 
 // Declaration is one declaration in command-line order: an --expect,
@@ -219,13 +221,7 @@ func (p *parser) takeOption(opts []*option, where string, i *int) (*option, stri
 		}
 		return nil, "", errorcodes.Errorf("cli_option_unknown", "unknown option %s%s in %s", dashes, name, where)
 	}
-	var o *option
-	for _, c := range opts {
-		if c.name == canon {
-			o = c
-			break
-		}
-	}
+	o := findOption(opts, canon)
 	switch o.kind {
 	case kindFlag:
 		if hasInline {
@@ -260,6 +256,15 @@ func (p *parser) takeOption(opts []*option, where string, i *int) (*option, stri
 		return nil, "", err
 	}
 	return o, value, nil
+}
+
+func findOption(opts []*option, name string) *option {
+	for _, o := range opts {
+		if o.name == name {
+			return o
+		}
+	}
+	return nil
 }
 
 // pathForm reports whether a word has a path's form: it begins with /, ~,
@@ -592,7 +597,10 @@ func Parse(args []string) (*Invocation, error) {
 		if len(candidates) > 1 {
 			return inv, errorcodes.Errorf("cli_command_ambiguous", "%q is ambiguous: %s", args[i], strings.Join(candidates, ", "))
 		}
-		return inv, errorcodes.Errorf("cli_command_unknown", "unknown command %q", args[i])
+		if !plainName(args[i]) {
+			return inv, errorcodes.Errorf("cli_command_unknown", "unknown command %q", args[i])
+		}
+		return inv, p.parseShortcut(args[i:])
 	}
 	cmd := findCommand(commandTable, word)
 	inv.cmd, inv.Path = cmd, cmd.path
@@ -637,6 +645,69 @@ func Parse(args []string) (*Invocation, error) {
 	default:
 		return inv, p.parsePlain(cmd, rest)
 	}
+}
+
+// plainName reports whether a first word that is no command may name a
+// device for the shortcut (EXAMPLES chapter 71, rule 2): a word login takes as
+// one literal name, holding none of the selector grammar's * ? [ \ ^ $ and
+// no leading "!". A bracketed IPv6 address is a pattern.
+func plainName(word string) bool {
+	return strings.TrimSpace(word) != "" && !strings.ContainsAny(word, `*?[\^$`) && !strings.HasPrefix(word, "!")
+}
+
+// parseShortcut parses a line whose first word is no command but a plain
+// name (EXAMPLES chapter 71): the word is a positional device marked as the
+// shortcut's, and the line is a login at it, or a command at it when
+// shortcutCommand says so. The mode chosen parses the rest of the line, so an
+// abbreviation means what it means in that mode.
+func (p *parser) parseShortcut(args []string) error {
+	cmd := lookupCommand("login")
+	if shortcutCommand(args[1:]) {
+		cmd = lookupCommand("command")
+	}
+	p.inv.cmd, p.inv.Path = cmd, cmd.path
+	if err := p.positionalDevice(args[0]); err != nil {
+		return err
+	}
+	p.inv.Targets[0].Shortcut = true
+	if cmd.shape == shapeFreeformDevice {
+		return p.parseFreeform(cmd, args[1:], true)
+	}
+	return p.parsePlain(cmd, args[1:])
+}
+
+// shortcutCommand reports whether the words after a shortcut's device make
+// the line a command (rule 3). They are read as login's options; a command
+// begins at the first word of command text, at -- with words after it, or at
+// an option login does not know and command knows or finds ambiguous.
+// Anything else is a login, a refusal of login's among it.
+func shortcutCommand(args []string) bool {
+	login, command := lookupCommand("login"), lookupCommand("command")
+	for i := 0; i < len(args); i++ {
+		switch {
+		case args[i] == "--":
+			return i+1 < len(args)
+		case !isOptionArg(args[i]):
+			return true
+		}
+		_, name, _, hasInline := splitOptionArg(args[i])
+		canon, candidates := resolveWord(name, "--", optionWords(login.options))
+		if canon == "" {
+			if len(candidates) > 1 {
+				return false
+			}
+			canon, candidates = resolveWord(name, "--", optionWords(command.options))
+			return canon != "" || len(candidates) > 1
+		}
+		o := findOption(login.options, canon)
+		switch {
+		case o.kind == kindValue && !hasInline:
+			i++ // the option's value
+		case o.kind == kindOptional && !hasInline && i+1 < len(args) && pathForm(args[i+1]):
+			return false // login refuses the detached value
+		}
+	}
+	return false
 }
 
 func visibleWords(cmds []*command) []string {

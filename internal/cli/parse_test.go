@@ -484,11 +484,136 @@ func TestParseRemovedSpellingsAreUnknown(t *testing.T) {
 	}
 }
 
+// TestParseDeviceShortcut covers the parser's reading of a first word that
+// is no command (EXAMPLES chapter 71, rules 1 to 3): a command word, alias,
+// or prefix keeps its meaning; a plain name is a device marked as the
+// shortcut's, any other word unknown; the words after the device, read as
+// login's options, make the line a login or a command, and the mode chosen
+// parses it whole.
+func TestParseDeviceShortcut(t *testing.T) {
+	for _, tc := range []struct {
+		line     []string
+		path     string
+		targets  []string // the shortcut's device marked with a trailing *
+		commands []string
+		code     string
+	}{
+		// Rule 1: words that reach a command keep it; the guard against a
+		// mistyped one is the mode's (lgoin).
+		{[]string{"c", "r1", "show", "clock"}, "command", []string{"r1"}, []string{"show clock"}, ""},
+		{[]string{"l", "r1"}, "login", []string{"r1"}, nil, ""},
+		{[]string{"lo", "r1"}, "login", []string{"r1"}, nil, ""},
+		{[]string{"co", "r1"}, "", nil, nil, "cli_command_ambiguous"},
+		{[]string{"lgoin", "r1"}, "command", []string{"lgoin*"}, []string{"r1"}, ""},
+		// Rule 2: a plain name, an address with or without a zone among
+		// them; a pattern is unknown.
+		{[]string{"router1"}, "login", []string{"router1*"}, nil, ""},
+		{[]string{"Router1"}, "login", []string{"Router1*"}, nil, ""},
+		{[]string{"192.0.2.1"}, "login", []string{"192.0.2.1*"}, nil, ""},
+		{[]string{"2001:db8::1"}, "login", []string{"2001:db8::1*"}, nil, ""},
+		{[]string{"fe80::1%eth0"}, "login", []string{"fe80::1%eth0*"}, nil, ""},
+		{[]string{"--quiet", "router1"}, "login", []string{"router1*"}, nil, ""},
+		{[]string{"--", "-r1"}, "login", []string{"-r1*"}, nil, ""},
+		{[]string{"rtr*"}, "", nil, nil, "cli_command_unknown"},
+		{[]string{"r?"}, "", nil, nil, "cli_command_unknown"},
+		{[]string{"[2001:db8::1]"}, "", nil, nil, "cli_command_unknown"},
+		{[]string{`r\1`}, "", nil, nil, "cli_command_unknown"},
+		{[]string{"^r1", "show", "clock"}, "", nil, nil, "cli_command_unknown"},
+		{[]string{"r1$"}, "", nil, nil, "cli_command_unknown"},
+		{[]string{"!r1"}, "", nil, nil, "cli_command_unknown"},
+		{[]string{" "}, "", nil, nil, "cli_command_unknown"},
+		// Rule 3: login's options keep a login; command text, -- with
+		// words after it, or an option of command's alone make a command.
+		{[]string{"router1", "show", "ip", "int", "brief"}, "command", []string{"router1*"}, []string{"show ip int brief"}, ""},
+		{[]string{"r1", "r2"}, "command", []string{"r1*"}, []string{"r2"}, ""},
+		{[]string{"r1", "--platform", "cisco_iosxe"}, "login", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--platform", "cisco_iosxe", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--pi", "--port=2222", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--target", "r2"}, "login", []string{"r1*", "r2"}, nil, ""},
+		{[]string{"r1", "--tl", "r2", "show", "clock"}, "command", []string{"r1*", "r2"}, []string{"show clock"}, ""},
+		{[]string{"r1", "show", "clock", "--echo"}, "command", []string{"r1*"}, []string{"show clock --echo"}, ""},
+		{[]string{"r1", "--"}, "login", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--", "-x", "y"}, "command", []string{"r1*"}, []string{"-x y"}, ""},
+		{[]string{"r1", "--echo", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--cmd", "show clock", "--cmd", "show version"}, "command", []string{"r1*"}, []string{"show clock", "show version"}, ""},
+		{[]string{"r1", "-c", "show clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--cf", "cmds"}, "command", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--echo"}, "command", nil, nil, "cli_command_text_missing"},
+		{[]string{"r1", "--e", "x"}, "login", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--e", "x", "show", "clock"}, "command", nil, nil, "cli_option_ambiguous"},
+		{[]string{"r1", "--record"}, "login", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--record=/tmp/t"}, "login", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--record", "/tmp/t"}, "login", nil, nil, "cli_option_value_detached"},
+		{[]string{"r1", "--record", "show", "clock"}, "command", nil, nil, "cli_option_unknown"},
+		{[]string{"r1", "--port"}, "login", nil, nil, "cli_option_value_missing"},
+		{[]string{"r1", "--bogus", "show", "clock"}, "login", nil, nil, "cli_option_unknown"},
+		{[]string{"r1", "--p", "x", "show", "clock"}, "login", nil, nil, "cli_option_ambiguous"},
+	} {
+		inv, err := Parse(tc.line)
+		if errorcodes.Of(err) != tc.code || (tc.code == "" && err != nil) {
+			t.Errorf("%q: %v, want %q", tc.line, err, tc.code)
+			continue
+		}
+		if inv.Path != tc.path {
+			t.Errorf("%q: path %q, want %q", tc.line, inv.Path, tc.path)
+		}
+		if tc.code != "" {
+			continue
+		}
+		var targets []string
+		for _, tgt := range inv.Targets {
+			mark := ""
+			if tgt.Shortcut {
+				mark = "*"
+			}
+			targets = append(targets, tgt.Value+mark)
+		}
+		if !reflect.DeepEqual(targets, tc.targets) || !reflect.DeepEqual(inv.Commands, tc.commands) {
+			t.Errorf("%q: targets %q commands %q, want %q %q", tc.line, targets, inv.Commands, tc.targets, tc.commands)
+		}
+	}
+	// What each mode makes of its options: login's --e is --exclude, a
+	// bare --record records, and command's --echo is on.
+	if inv := mustParse(t, "r1", "--e", "x", "--record"); !reflect.DeepEqual(inv.Strings(optExclude), []string{"x"}) || inv.Record == nil {
+		t.Errorf("login options: %+v", inv)
+	}
+	if inv := mustParse(t, "r1", "--echo", "show", "clock"); !inv.Flag(optEcho) || !inv.Freeform {
+		t.Errorf("command options: %+v", inv)
+	}
+	if inv := mustParse(t, "r1", "--cf", "cmds"); inv.CommandsFile != "cmds" {
+		t.Errorf("--cf: %+v", inv)
+	}
+	// The messages are the chosen mode's.
+	if _, msg := parseCode(t, "r1", "--bogus", "show", "clock"); msg != "cli_option_unknown: unknown option --bogus in login" {
+		t.Errorf("login's refusal: %q", msg)
+	}
+	if _, msg := parseCode(t, "r1", "--e", "x", "show", "clock"); !strings.Contains(msg, "in command: --echo, --exclude, --expect") {
+		t.Errorf("command's refusal: %q", msg)
+	}
+	if _, msg := parseCode(t, "rtr*"); msg != `cli_command_unknown: unknown command "rtr*"` {
+		t.Errorf("a pattern: %q", msg)
+	}
+	// Help is the chosen mode's.
+	for _, tc := range []struct {
+		line []string
+		help string
+	}{
+		{[]string{"r1", "--help"}, loginHelp},
+		{[]string{"r1", "-h"}, loginHelp},
+		{[]string{"r1", "--help", "show", "clock"}, commandHelp},
+		{[]string{"r1", "--echo", "--he"}, commandHelp},
+	} {
+		if inv := mustParse(t, tc.line...); !inv.Help || inv.helpText() != tc.help {
+			t.Errorf("%q: help %v, the wrong page", tc.line, inv.Help)
+		}
+	}
+}
+
 // TestParseEveryCode triggers each parser code and the parse-time
 // commands-file cardinality rule.
 func TestParseEveryCode(t *testing.T) {
 	cases := map[string][][]string{
-		"cli_command_unknown":       {{"bogus"}, {"lgoin", "r1"}},
+		"cli_command_unknown":       {{"rtr*"}, {"!r1", "show", "clock"}, {"[2001:db8::1]"}, {""}},
 		"cli_command_ambiguous":     {{"co"}, {"co", "r1", "show", "clock"}},
 		"cli_subcommand_missing":    {{"daemon"}, {"config"}},
 		"cli_subcommand_unknown":    {{"daemon", "bounce"}, {"config", "edit"}},
@@ -820,7 +945,7 @@ func TestMainParserDiagnostics(t *testing.T) {
 			}
 		})
 	}
-	for _, args := range [][]string{{"--help"}, {"-h"}, {}, {"help"}, {"command", "--help"}, {"cmd", "-h"}, {"run", "--he"}, {"login", "r1", "-h"}, {"daemon", "-h"}, {"daemon", "stop", "--help"}, {"config", "sh", "--h"}, {"watch", "-h"}, {"version", "-h"}, {"version"}, {"--version"}, {"version", "--format", "json"}} {
+	for _, args := range [][]string{{"--help"}, {"-h"}, {}, {"help"}, {"command", "--help"}, {"cmd", "-h"}, {"run", "--he"}, {"login", "r1", "-h"}, {"r1", "-h"}, {"r1", "--help", "show", "clock"}, {"daemon", "-h"}, {"daemon", "stop", "--help"}, {"config", "sh", "--h"}, {"watch", "-h"}, {"version", "-h"}, {"version"}, {"--version"}, {"version", "--format", "json"}} {
 		var stdout, stderr bytes.Buffer
 		if got := Main(args, strings.NewReader(""), &stdout, &stderr); got != 0 || stdout.Len() == 0 || stderr.Len() != 0 {
 			t.Fatalf("%q: exit=%d stdout=%d bytes stderr=%q", args, got, stdout.Len(), stderr.String())

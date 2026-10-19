@@ -306,7 +306,7 @@ run d4 0 -- login --debug 127.0.0.1
 ! grep -q 'command=' "$TMP/err" || fail "d4: login debug shows command text"
 
 echo "== parser codes"
-run c1 4 -- bogus;                                  code c1 cli_command_unknown
+run c1 4 -- "bogus*";                                code c1 cli_command_unknown
 run c2 4 -- daemon;                                 code c2 cli_subcommand_missing
 run c3 4 -- daemon bounce;                          code c3 cli_subcommand_unknown
 run c4 4 -- daemon s;                               code c4 cli_subcommand_ambiguous; mentions c4 start; mentions c4 serve; mentions c4 status; mentions c4 stop
