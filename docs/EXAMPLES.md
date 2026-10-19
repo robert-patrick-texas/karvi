@@ -15049,3 +15049,250 @@ there (`--echo`, `--exclude`, `--expect`).
 evidence is kept beside the tree
 (`release-design-evidence/device-shortcut-2026-10-19`: the probes, the
 overlay, and their log).
+
+## 72. The device shortcut built (2026-10-19)
+
+The ROADMAP's item "A device as the first word", built by chapter 71's rule
+in four sections, each committed on the operator's word: the parser
+(`005d5b6`), the modes (`6162641`), the help and the documents (`6a47cd5`),
+and this chapter.
+
+**What it gains.** `karvi router1` logs in at router1 and `karvi router1 show
+clock` runs a command there, as chapter 71 agreed; a mistyped command word is
+refused before it becomes a connection, and a name DNS says does not exist is
+refused as neither a command nor a target.
+
+**Settled while building**, on the operator's agreement:
+
+- The guard ignores case. In simple terms: a first word that matches no
+  inventory row and is within one slip of a command word, whatever its case,
+  is refused. `Login`, `LGOIN`, and `Lgoin` are refused unless the inventory
+  names them; an inventory row matches ignoring case, so `karvi LGOIN` reaches
+  the row `lgoin`.
+- Rule 5 kept as agreed: only DNS saying there is no such name makes the word
+  neither a command nor a target. On a host whose resolver is systemd-resolved
+  with no search domain, as this one, resolved does not send a one-label name
+  to unicast DNS ("No appropriate name servers or networks for name found")
+  and its stub answers SERVFAIL, so a mistyped one-label word there keeps
+  `dns_servfail` (exit 7); a site that uses short names sets a search domain,
+  and a word not found is then NXDOMAIN and refused, as in the container
+  below. Not taken: SERVFAIL refused for a one-label word, which would tell an
+  operator whose server fails that an existing device does not exist.
+
+Where chapter 71's words left the parser a choice, it reads them literally,
+as reported at the first section's gate:
+
+- An option ambiguous in login keeps the line a login, refused as login's
+  (`karvi r1 --p x show clock`: "ambiguous in login"); no word ambiguous in
+  login is one option in command.
+- `karvi r1 --record /tmp/t` is login's refusal of the detached value, not a
+  command.
+- `karvi -- -r1` is a login at `-r1`, as `karvi login -- -r1` is.
+- A blank first word stays `cli_command_unknown`.
+
+**Built.**
+
+- The parser (`internal/cli/parse.go`): `plainName` is rule 2, `parseShortcut`
+  and `shortcutCommand` rule 3; the device is a positional target marked
+  `TargetInput.Shortcut`. `nearCommand` and `oneSlip` give the command word of
+  four letters or more one slip from the word.
+- The modes (`internal/app/shortcut.go`): `app.Shortcut`, the word and its
+  near command word, recorded nowhere; `CheckShortcut`, rule 4, after the
+  assembly in `login`, `command`, and the recording wrapper, before any claim;
+  rule 5's refusal at login's lookup and at command's planning and
+  daemon-authority preparation. Login's and command's options take a lookup,
+  nil the host's resolver, which `resolver.Resolve` and `PrepareDaemon` now
+  take as `Select` did.
+- `cli_command_near_miss` registered (usage, exit 4), `cli_command_unknown`'s
+  description widened, `docs/ERROR-CODES.md` regenerated.
+- The top help's usage lines and paragraph, `karvi(1)` regenerated from them;
+  DESIGN section 2's entry; README's grammar; QUICKSTART; CHANGELOG's
+  `Unreleased` block. Tab completion is unchanged.
+- Tests: `TestParseDeviceShortcut` (rules 1 to 3, each mode's messages and
+  help), `TestNearCommand`, `TestShortcutGuard` (through `Main`, the recording
+  wrapper among them), and `TestShortcutModes` (in `login` and in `command`:
+  an inventory name, a literal, the guard, no such name, no such name under
+  daemon address authority, a timeout, and the name without the shortcut,
+  each with its lookups counted). The tests that took a plain word for an
+  unknown command, and k03's c1, now give a pattern.
+
+**Executed.** A lab build of `6a47cd5` (`karvi 0.33.0`, commit `6a47cd5-lab`)
+against the fake IOS XE device built from the tree on 127.0.0.1:2231, with an
+inventory of two rows, `core1` and `lgoin`, both the fake; each karvi call
+carries the lab's places, left out below, and its credentials come from the
+environment. An inventory name, as a command and as a login under `script(1)`
+typing `exit` (the fake closes without an exit status, exit 110 as in chapter
+68), and a literal address:
+
+```text
+$ karvi core1 --transport native show clock
+! ssh accepted new host-key core1 (ED25519)
+! core1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=619ms artifacts=/dev/shm/k72/w/d/base/jobs/261019/261019-145346-00
+$ karvi core1
+! core1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=system
+Router>exit
+ssh_process_failed: exit status 255
+exit=110
+$ karvi 127.0.0.1 --pi --port 2231 --transport native show clock
+! ssh accepted new host-key 127.0.0.1 (ED25519)
+! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=615ms artifacts=/dev/shm/k72/w/d/base/jobs/261019/261019-145349-00
+```
+
+The inventory row one slip from `login`, in two cases, goes ahead; a word one
+slip from a command word that is no inventory name does not (each refusal
+15 to 20 ms by the lab's clock, exit 4):
+
+```text
+$ karvi LGOIN --transport native show clock
+! lgoin [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=619ms artifacts=/dev/shm/k72/w/d/base/jobs/261019/261019-145350-00
+$ karvi logni
+cli_command_near_miss: "logni" is not a command; did you mean login?
+$ karvi logni --record
+cli_command_near_miss: "logni" is not a command; did you mean login?
+$ karvi Login core1
+cli_command_near_miss: "Login" is not a command; did you mean login?
+$ karvi comand core1 show clock
+cli_command_near_miss: "comand" is not a command; did you mean command?
+$ karvi verison
+cli_command_near_miss: "verison" is not a command; did you mean version?
+$ karvi stup shared
+cli_command_near_miss: "stup" is not a command; did you mean setup?
+```
+
+The scoreboards folder held five claims before the six refusals and five after
+(the lab's `ls`), and the base no transcript (the lab's `find`). The parser's
+refusals and the chosen mode's help, each refusal exit 4:
+
+```text
+$ karvi 'core*'
+cli_command_unknown: unknown command "core*"
+$ karvi co core1
+cli_command_ambiguous: "co" is ambiguous: command, config
+$ karvi core1 --e x show clock
+cli_option_ambiguous: --e is ambiguous in command: --echo, --exclude, --expect
+$ karvi core1 --record /tmp/t
+cli_option_value_detached: --record takes its PATH with =: --record=/tmp/t
+$ karvi core1 --echo
+cli_command_text_missing: command requires device command text: freeform words, --cmd TEXT, or --cf PATH
+$ karvi core1 --help | sed -n 2p
+  karvi login [options] DEVICE
+$ karvi core1 --echo --help | sed -n 2p
+  karvi command [options] DEVICE <device command words...>
+```
+
+DNS on this host, systemd-resolved with `search .`: a one-label name it will
+not send keeps `dns_servfail`; a dotted name DNS does not know is refused, and
+the same name after `login` keeps `dns_nxdomain`:
+
+```text
+$ karvi nosuch1
+dns_servfail: lookup nosuch1 on 127.0.0.53:53: server misbehaving (nosuch1)
+exit=7
+$ karvi nosuch1.example.com
+cli_command_unknown: "nosuch1.example.com" is neither a command nor a target: DNS has no such name
+exit=4
+$ karvi login nosuch1.example.com
+dns_nxdomain: lookup nosuch1.example.com on 127.0.0.53:53: no such host (nosuch1.example.com)
+exit=7
+$ karvi nosuch1.example.com show clock
+cli_command_unknown: "nosuch1.example.com" is neither a command nor a target: DNS has no such name
+exit=4
+```
+
+The audit trail (`karvi-audit --nocolor -S '2026-10-19 14:53:46' -d core1`,
+then `-d lgoin`) holds `cmd` and `login` events as before; nothing marks the
+shortcut:
+
+```text
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261019-145346-00       netops       cmd   command success                      core1              show clock
+261019-145347-00       netops       login start                                core1
+261019-145347-00       netops       login end     error                        core1
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261019-145349-01       netops       cmd   command success                      lgoin              show clock
+261019-145350-00       netops       cmd   command success                      lgoin              show clock
+```
+
+The search list in an Ubuntu 26.04.1 container under Docker with no network:
+dnsmasq answers `router1.net.example.com` with 127.0.0.1 and every other name
+as not existing, `/etc/resolv.conf` names it with `search net.example.com`,
+the fake listens on 127.0.0.1:2231, and an operator `op` runs the same build:
+
+```text
+$ karvi router1 --pi --port 2231 --transport native show clock
+! ssh accepted new host-key router1 (ED25519)
+! router1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=674ms artifacts=/home/op/w/base/jobs/261019/261019-185402-00
+$ karvi router9
+cli_command_unknown: "router9" is neither a command nor a target: DNS has no such name
+exit=4
+$ karvi router9 show clock
+cli_command_unknown: "router9" is neither a command nor a target: DNS has no such name
+exit=4
+$ karvi login router9
+dns_nxdomain: lookup router9 on 127.0.0.1:53: no such host (router9)
+exit=7
+```
+
+dnsmasq's log (the lab's `sed` of it) shows the search list applied, the
+preferred family first:
+
+```text
+query[AAAA] router1.net.example.com from 127.0.0.1
+config router1.net.example.com is NODATA-IPv6
+query[AAAA] router1 from 127.0.0.1
+config router1 is NXDOMAIN
+query[A] router1.net.example.com from 127.0.0.1
+config router1.net.example.com is 127.0.0.1
+query[AAAA] router9.net.example.com from 127.0.0.1
+config router9.net.example.com is NXDOMAIN
+query[AAAA] router9 from 127.0.0.1
+config router9 is NXDOMAIN
+query[A] router9.net.example.com from 127.0.0.1
+config router9.net.example.com is NXDOMAIN
+query[A] router9 from 127.0.0.1
+config router9 is NXDOMAIN
+```
+
+With `nameserver 127.0.0.2`, where a listener takes the queries and never
+answers, both forms keep `dns_timeout` after `name.dns-timeout` (2025 and 2027
+ms by the lab's clock):
+
+```text
+$ karvi router9
+dns_timeout: lookup router9: i/o timeout (router9)
+exit=7
+$ karvi router9 show clock
+dns_timeout: 1 of 1 targets failed address resolution: name:router9 (lookup router9: i/o timeout (router9))
+exit=7
+```
+
+gofmt, vet, `go test ./...` (72 packages), and `make generated-clean`
+on `6a47cd5`; all 19 suites on the lab build (`run_suites`, `KARVI` the lab
+build, 203 seconds). No lab or suite left a `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, `~/.local/share/karvi`, or karvi
+process.
+
+**Found on the way.**
+
+- A `command` test that names no transport takes the native transport, which
+  reaches whatever listens at the target's port: a draft of
+  `TestShortcutModes` reached this host's OpenSSH on 127.0.0.1:22 twice, its
+  authentication refused. The test names `--transport system` with a fake
+  `ssh` and no askpass helper on `PATH`, so every case that goes ahead ends at
+  `dependency_askpass_unavailable` having contacted nothing.
+- The container's image builds only on the host's network (`docker build
+  --network host`): Docker's build network here resolves no name.
+
+**Closed.** The ROADMAP's item is removed; the CHANGELOG's `Unreleased` block
+holds the shortcut for the next release. The evidence is kept beside the tree
+(`release-design-evidence/device-shortcut-build-2026-10-19`: the lab script
+and its output, the container's Dockerfile, script, and output, and the test
+and suite logs); the lab build and the container image are removed.

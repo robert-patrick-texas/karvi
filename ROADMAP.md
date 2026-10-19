@@ -242,22 +242,6 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the round trip through journald, its jobs at devices named for its run
   alone ([`docs/EXAMPLES.md`, chapter
   64](docs/EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)).
-- **A device as the first word, `karvi DEVICE`.** A first word that is no
-  command and names a target is a login at it, or a command at it with the
-  words after it as the command: `karvi router1` for `karvi login router1`,
-  `karvi router1 show ip int brief` for `karvi command router1 show ip int
-  brief`. A target is an inventory name, a literal address, or a name DNS
-  resolves, a short name by the resolver's search list. The design is agreed
-  ([`docs/EXAMPLES.md`, chapter
-  71](docs/EXAMPLES.md#71-a-device-as-the-first-word-karvi-device-2026-10-19)):
-  a command word or its prefix wins; a plain name only; login's options until
-  command text, `--` with words after it, or an option only command knows; an
-  inventory name or an address with no lookup; a word one slip from a command
-  word refused with "did you mean"; any other looked up where its mode looks
-  it up now, a name DNS does not know `cli_command_unknown`; tab completion
-  unchanged. The build: the parser, the two modes' guard and refusal,
-  `cli_command_near_miss`, the help and `karvi(1)`, DESIGN's entry, and the
-  tests, `login`'s lookup given the seam `command`'s has.
 
 ## The device-qualification track
 
