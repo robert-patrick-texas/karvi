@@ -191,6 +191,7 @@ const commandHelp = `Usage:
   karvi command [options] DEVICE <device command words...>
   karvi command [options] --target DEVICE --cmd TEXT [--cmd TEXT...]
   karvi cmd [options] DEVICE --cf PATH|-
+  karvi DEVICE [options] <device command words...>
 
 Target inputs (command-line order is kept; command connects to the first
 device of the assembled set):
@@ -527,6 +528,7 @@ const loginHelp = `Usage:
   karvi login [options] DEVICE
   karvi login [options] --target DEVICE
   karvi login --host DEVICE [options]
+  karvi DEVICE [options]
 
 Open one interactive session with the first device of the assembled target
 set. Options may appear before or after the device; -- makes a later argument
