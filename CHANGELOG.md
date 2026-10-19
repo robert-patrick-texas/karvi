@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **The release verifier removes its package folder when it fails.**
+  `scripts/verify-release.sh` removes `/tmp/karvi-verify-deb-<random>` at its
+  exit, passed, failed, or interrupted; a step after the package's build that
+  failed, or a Ctrl-C, left the folder and the package in it.
+
 ## 0.34.0 - 2026-10-19
 
 A minor release on 0.33.0 for a device as the first word, `karvi DEVICE`;

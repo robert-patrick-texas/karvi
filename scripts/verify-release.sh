@@ -81,11 +81,13 @@ host_shared_unchanged "$host_before"
 # lists, on the dev line a build of its own identity. Built into a directory
 # of its own, checked against the tree, tested as root in a container
 # (karvi-sysutil, the template unit, the service account's daemon; chapter
-# 57, issue 16), and removed: the tree gains nothing.
+# 57, issue 16), and removed at the exit, passed or failed: the tree gains
+# nothing. The trap is on EXIT alone: bash runs it when a signal ends the
+# script as well, where a trap on the signals would go on after them.
 deb_dist=$(mktemp -d "${TMPDIR:-/tmp}/karvi-verify-deb-XXXXXX")
+trap 'rm -rf "${deb_dist:?}"' EXIT
 DIST=$deb_dist make deb
 ./scripts/check-deb.sh "$deb_dist"/karvi_*_amd64.deb "$ROOT"
 ./scripts/sysutil-smoke-test.sh "$deb_dist"/karvi_*_amd64.deb
-rm -rf "${deb_dist:?}"
 make checksums
 printf 'karvi native release verification passed\n'
