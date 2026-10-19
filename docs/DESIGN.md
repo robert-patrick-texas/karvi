@@ -104,9 +104,10 @@ every candidate. *Why:* the unique-error-code rule of the whole program (see
 platform name; `--dp`, `--dw`, `--ds` stand for
 `--dispatch parallel|wave|serial`. A shortcut is a whole word of the table that
 carries the value, so no handler knows the shortcuts exist and the last
-spelling on a line wins. `--tl LIST` adds each comma- or whitespace-separated
-name as a `--target` at the list's position, so the plan and manifest record
-target inputs and never a list.
+spelling on a line wins. `--tl LIST`, an option of `command`, `run`, `crun`,
+and a stream's lines but not of `login`, adds each comma- or
+whitespace-separated name as a `--target` at the list's position, so the plan
+and manifest record target inputs and never a list.
 *Why:* the operator's most typed values; nothing after the parser changes.
 *Not taken:* aliases (an alias still takes a value); a list kind in the plan.
 
@@ -280,13 +281,13 @@ one normalisation makes the identity explicit.
 
 **One target set, assembled in command-line order, in every mode.** `login`,
 `command`, and `run` assemble one list from a positional device, repeatable
-`--target` (globs allowed), `--tl`, `--tf FILE`, `--tf DIR`, `--tfr PATH`, and
-the inventory selectors `--site`, `--device-group`, `--select-platform`,
-`--all`, each contributing at its position; the first occurrence of a name
-keeps its place, later duplicates are removed, then `--exclude` matches, then
-`dispatch.order` orders the result. `login` and `command` connect to the first
-device of the set, and refuse a literal `--address` when the set holds more
-than one. *Why:* inventory matches had been placed before direct targets
+`--target` (globs allowed), `--tl` (not in `login`), `--tf FILE`, `--tf DIR`,
+`--tfr PATH`, and the inventory selectors `--site`, `--device-group`,
+`--select-platform`, `--all`, each contributing at its position; the first
+occurrence of a name keeps its place, later duplicates are removed, then
+`--exclude` matches, then `dispatch.order` orders the result. `login` and
+`command` connect to the first device of the set, and refuse a literal
+`--address` when the set holds more than one. *Why:* inventory matches had been placed before direct targets
 regardless of the line, a defect; one rule covers every source and mode, and
 an operator can pick a device from a file without a script.
 
