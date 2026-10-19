@@ -1,6 +1,6 @@
-karvi 0.33.0
-commit: source-release-v0.33.0
-build: pEeV3vr3M3y-k2vZryhR
+karvi 0.34.0
+commit: source-release-v0.34.0
+build: Tk7LptpG6De_7CGUjfqI
 go: go1.27.2
 config_schema: 6
 command_record_schema: 4
