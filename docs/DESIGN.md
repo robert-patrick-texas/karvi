@@ -99,6 +99,33 @@ code, all exiting as usage errors before any connection; ambiguity messages name
 every candidate. *Why:* the unique-error-code rule of the whole program (see
 [§15](#15-configuration-and-errors)). *Not taken:* a single `cli_usage` code.
 
+**A device as the first word.** A first word that reaches no command and is a
+plain name, none of `* ? [ \ ^ $` and no leading `!`, names a device: `karvi
+r1` is `karvi login r1`, and `karvi r1 show clock` is `karvi command r1 show
+clock`. The words after the device are read as `login`'s options; command
+text, `--` with words after it, or an option `login` does not know and
+`command` knows or finds ambiguous makes the line a command, and the mode
+chosen parses the whole line, its help included (`karvi r1 --help`). A command
+word, alias, or prefix keeps its meaning, an ambiguous prefix stays
+`cli_command_ambiguous`, and any other word is `cli_command_unknown` before the
+configuration is read; a device named as a command word is reached by `karvi
+login NAME`. Where the target set is assembled, before any claim or lookup, a
+word one slip from a command word of four letters or more, ignoring case (a
+letter added, dropped, or changed, or two neighbours swapped), that is no
+inventory name is `cli_command_near_miss`. Where the mode looks the word up, a
+name DNS says does not exist is `cli_command_unknown`, neither a command nor a
+target; a timeout or a server failure keeps its `dns_*` code. Nothing records
+that the shortcut was used, and the host-key policy, a stream's lines, and tab
+completion are unchanged. *Why:* the two most frequent invocations, shorter by
+their action word, with nothing after the parser new but the guard and the
+refusal; the guard keeps a mistyped command word from becoming a connection.
+*Not taken:* a lookup before the mode's; reading the line as a command first;
+a trust-store check for a name DNS alone found; an ambiguous prefix tried as a
+device; a code of its own for a word DNS does not know; a bracketed IPv6
+address with its brackets removed; tab completion for the shortcut
+([`docs/EXAMPLES.md`, chapter
+71](EXAMPLES.md#71-a-device-as-the-first-word-karvi-device-2026-10-19)).
+
 **Shortcuts stand for an option with its value.** `--pi`, `--pn`, `--pr`,
 `--pj`, `--pa`, `--pl`, `--ps`, `--pg` stand for `--platform` with a built-in
 platform name; `--dp`, `--dw`, `--ds` stand for

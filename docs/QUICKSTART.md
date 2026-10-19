@@ -50,6 +50,8 @@ keys"](OPERATIONS.md#the-platforms-fallback-and-the-operators-keys)).
 karvi login router1
 karvi login --4 --host router1
 karvi login --record --host router1
+# A first word that is no command names a device: the same login as the first
+karvi router1
 ```
 
 ## One-device commands
@@ -59,6 +61,8 @@ karvi cmd router1 --cmd 'show clock' --cmd 'show version'
 karvi command --ipv6 --host router1 --echo --cmd 'show clock'
 karvi command --border --host router1 --cmd 'show clock' --cmd 'show version'
 karvi command --noborder --host router1 --cmd 'show clock'
+# The device first, command text after it: karvi command router1 show clock
+karvi router1 show clock
 ```
 
 ## Fleet run

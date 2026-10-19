@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **A device as the first word, `karvi DEVICE`.** A first word that is no
+  command and is a plain name, none of `* ? [ \ ^ $` and no leading `!`, names
+  a device: `karvi router1` is `karvi login router1`, and `karvi router1 show
+  clock` is `karvi command router1 show clock`, as is a line with `--` and
+  words after it or an option only `command` takes (`--cmd`, `--cf`, `--echo`,
+  ...); `karvi router1 --help` prints the mode's help. A command word, alias,
+  or prefix wins, and `karvi login NAME` reaches a device named as one. A word
+  one slip from a command word of four letters or more, ignoring case, that no
+  inventory names is refused as `cli_command_near_miss` (exit 4) before any
+  claim or lookup; a name DNS says does not exist is `cli_command_unknown`
+  (exit 4), neither a command nor a target, where `karvi login NAME` keeps
+  `dns_nxdomain` (exit 7); a timeout or a server failure keeps its code. A
+  plain first word that was `cli_command_unknown` at once now costs the
+  configuration read, the inventory load, and, unless the inventory or an
+  address answers it, a DNS lookup.
+
 ## 0.33.0 - 2026-10-18
 
 A minor release on 0.32.1 for one activity ID for every activity, a `cmd`

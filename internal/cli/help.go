@@ -127,6 +127,8 @@ const topHelp = `karvi - run the fleet, gather the output
 
 Usage:
   karvi [global-options] <command> [options] [payload]
+  karvi [global-options] DEVICE [options]
+  karvi [global-options] DEVICE [options] COMMAND TEXT...
 
 Commands:
   login, l                       Open one interactive SSH session
@@ -164,6 +166,13 @@ take one or two leading dashes (-echo and --echo are the same), and a value
 may be attached with =. In command and run, options are recognized only until
 device command text begins; after that every argument, including -h and --,
 is sent to the device. Use -- to begin device text with a dash.
+
+A first word that is no command names a device: karvi DEVICE is a login at
+it, and karvi DEVICE COMMAND TEXT... a command, as is a line with -- and words
+after it or an option only command takes (--cmd, --cf, --echo, ...); the
+options are the mode's. A command word, alias, or prefix wins, so a device
+named as one is reached by karvi login NAME; a word one slip from a command
+word is refused unless it is an inventory name.
 
 An option that stands for a configuration key, such as --order for
 dispatch.order or --workers for dispatch.parallel-workers, sets that key for

@@ -125,6 +125,20 @@ whose first word begins with a dash:
 karvi command router1 'show running-config | include hostname'
 ```
 
+A first word that is no command names a device: `karvi router1` is `karvi
+login router1`, and `karvi router1 show clock` is `karvi command router1 show
+clock`, as is a line with `--` and words after it or an option only `command`
+takes. A command word, alias, or prefix wins, so a device named `con` or
+`crun` is reached by `karvi login con`. A word one slip from a command word
+(`lgoin`) is refused unless the inventory names it, and a name DNS does not
+know is neither a command nor a target:
+
+```bash
+karvi router1
+karvi router1 show clock
+karvi router1 --cmd 'show clock' --cmd 'show version'
+```
+
 One device session drives `command` and `run` on both SSH transports: on
 `system` one fresh `ssh -tt` process with ControlMaster off, on `scrapligo-v1`
 one connection with no subprocess. Every requested command runs sequentially
