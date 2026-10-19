@@ -61,10 +61,12 @@ credentials solely on this message.
 
 ## Prompt/command missing from a device error
 
-Version 0.9.0 renders the effective prompt and exact sent command when `--echo`
-is enabled, even for a device-reported command error. Recognized karvi options
-may follow positional command words. Use `--` when a literal device command
-contains a token such as `--echo`, `--border`, or another karvi option name.
+karvi renders the effective prompt and exact sent command when `--echo` is
+enabled, even for a device-reported command error. Give `--echo` before the
+device command text: options end where the text begins, so every later word, a
+karvi option name such as `--echo` or `--border` among them, is sent to the
+device as part of the command. `--` is needed only before text whose first word
+begins with a dash.
 
 ## Prompt timeout
 

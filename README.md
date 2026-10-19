@@ -106,18 +106,23 @@ karvi command --cmd 'show clock' --target router1 --command 'show version'
 karvi command --address 192.0.2.10 --target router1 --cmd 'show clock'
 ```
 
-Recognized karvi options may follow positional command words. This makes the
-following valid and sends one device command, `show clock show clock`:
+karvi options end where the device command text begins: an option goes before
+the device or between the device and the text, and every word from the text's
+first on reaches the device unchanged, a karvi option name, `-4`, or `-h` among
+them. The words form one device command; several commands take repeated
+`--cmd` or a `--cf` file. The first line below sends `show clock` with `--echo`
+on; the second sends one command, `show clock --echo`:
 
 ```bash
-karvi cmd router1 'show clock' 'show clock' --echo --border --transport system
+karvi cmd router1 --echo show clock
+karvi cmd router1 show clock --echo
 ```
 
-Use `--` before literal device command text containing a token that matches a
-karvi option:
+Quote text the shell would read, a pipe among it, and give `--` before text
+whose first word begins with a dash:
 
 ```bash
-karvi command router1 -- show running-config | include --echo
+karvi command router1 'show running-config | include hostname'
 ```
 
 One device session drives `command` and `run` on both SSH transports: on
