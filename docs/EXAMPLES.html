@@ -115,6 +115,9 @@
 <li><a href="#67-the-release-0321-2026-10-18">67. The release 0.32.1 (2026-10-18)</a></li>
 <li><a href="#68-one-activity-id-for-every-activity-2026-10-18">68. One activity ID for every activity (2026-10-18)</a></li>
 <li><a href="#69-the-six-longest-messages-shorter-2026-10-18">69. The six longest messages, shorter (2026-10-18)</a></li>
+<li><a href="#70-the-release-0330-2026-10-18">70. The release 0.33.0 (2026-10-18)</a></li>
+<li><a href="#71-a-device-as-the-first-word-karvi-device-2026-10-19">71. A device as the first word, karvi DEVICE (2026-10-19)</a></li>
+<li><a href="#72-the-device-shortcut-built-2026-10-19">72. The device shortcut built (2026-10-19)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -126,9 +129,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -245,6 +248,9 @@
 <li><a href="#67-the-release-0321-2026-10-18">67. The release 0.32.1 (2026-10-18)</a></li>
 <li><a href="#68-one-activity-id-for-every-activity-2026-10-18">68. One activity ID for every activity (2026-10-18)</a></li>
 <li><a href="#69-the-six-longest-messages-shorter-2026-10-18">69. The six longest messages, shorter (2026-10-18)</a></li>
+<li><a href="#70-the-release-0330-2026-10-18">70. The release 0.33.0 (2026-10-18)</a></li>
+<li><a href="#71-a-device-as-the-first-word-karvi-device-2026-10-19">71. A device as the first word, karvi DEVICE (2026-10-19)</a></li>
+<li><a href="#72-the-device-shortcut-built-2026-10-19">72. The device shortcut built (2026-10-19)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -256,9 +262,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -15161,8 +15167,506 @@ next six on the operator's word. The evidence is kept beside the tree
 (<code>release-design-evidence/shorter-output-strings-2026-10-18</code>: the extractor,
 its output, <code>rank.py</code> and its ranking, <code>sketch.py</code> and its renderings, the lab
 script and its output, the test and suite logs).</p>
+<h2 id="70-the-release-0330-2026-10-18">70. The release 0.33.0 (2026-10-18) <a class="anchor" href="#70-the-release-0330-2026-10-18" aria-label="Link to this section">#</a></h2>
+<p>The thirteenth public release, 0.33.0, on the operator's word and number,
+carrying <a href="#68-one-activity-id-for-every-activity-2026-10-18">chapter 68</a> (one
+claim for every activity's ID, and a <code>cmd</code> job's <code>job_id</code>) and <a href="#69-the-six-longest-messages-shorter-2026-10-18">chapter
+69</a> (the six longest messages
+shorter, under DESIGN's message rule). No counter moves and the module graph is
+0.32.1's; the operator numbered it a minor release, where chapter 67's
+precedent would have made it a patch. The daemon IPC schema stays 12, so there
+is no lifecycle replay and the compatibility example is the drain, beside the
+released 0.32.1 daemon. The sequence is <a href="#67-the-release-0321-2026-10-18">chapter
+67</a>'s, the baseline's rule already met: <code>dev</code>
+held its <code>## Unreleased</code> block since chapter 68's commit. The operator's first
+word was to build the release, so the sequence stopped after the package's
+install check and went on to the push at the operator's second word, to
+publish it.</p>
+<p><strong>What it gains.</strong> A site has one ID for every activity, a <code>cmd</code> job's
+<code>job_id</code>, and the six shorter messages from a published, checksummed bundle
+and package, with the documents on GitHub Pages at the release: an operator's
+0.32.1 daemon is drained by the first submission after the upgrade, and
+OPERATIONS' upgrade examples are this release's own output.</p>
+<p><strong>Before the number.</strong> The tree and the release tools were archived first
+(<code>~/karvi/backup/archive-2026-10-18-2</code>: a mirror at <code>0db26c9</code> and the six tools
+as they were). No tool changed: <code>common.sh</code>'s prior stays empty, and
+<code>evidence-rest.sh</code> already names the four executables.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.33.0 - 2026-10-18</code> under a
+lead paragraph: a minor release on 0.32.1, every counter 0.32.1's, the module
+graph 0.32.1's, and a site changing a script that lists the scoreboards folder
+(each activity's claim <code>&lt;ID&gt;.id</code> lies there, whatever <code>watch.enabled</code> says),
+takes a <code>cmd</code> job's <code>job_id</code> for empty or absent, or matches the six messages'
+old words. <code>CHECKSUMS.sha256</code> has its four lines from the release-identity
+build.</p>
+<p><strong>The sequence, as run</strong>, from the archive at 18:32 to the published check at
+19:33 (UTC; 14:32 to 15:33, EDT), every step passing at its first run:</p>
+<ul>
+<li>18:32:11, the tree and the tools archived: a mirror at <code>0db26c9</code> and the six
+tools.</li>
+<li>18:32:22 to 18:40:30, the baseline on a clean clone of <code>dev</code> at <code>0db26c9</code>:
+gofmt, make, the release verifier with its package and container steps, exit
+0 each.</li>
+<li>18:41:00 to 18:41:36, the release-identity build, the compatibility example,
+and 1/3: <code>5138208</code>; the build <code>pEeV3vr3M3y-k2vZryhR</code>; the v0.32.1 daemon
+drained idle, refusing busy.</li>
+<li>To 18:43:31, the core evidence: 1,074 named tests across 92 packages, vet 0,
+both socket lengths exit 0.</li>
+<li>18:44:51, the documents: <code>2267e8d</code> (2/3), <code>release/</code> from the v0.32.1
+pattern, OPERATIONS' examples the release's own.</li>
+<li>18:44:55 to 18:52:39, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>18:52:58, 3/3, the tag, <code>main</code>: <code>e55e3ff</code>, <code>karvi-v0.33.0</code>, <code>main</code>
+fast-forwarded from <code>e0e6d89</code>.</li>
+<li>18:53:03 to 18:58:27, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive; the package reproducible and checked
+against the extraction; 39,615,164 and 6,454,980 bytes.</li>
+<li>18:58:37 to 18:58:48, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; <code>karvi-sysutil</code> and the template unit in place;
+22 files under <code>/usr/share/karvi</code>, as 0.32.1. The stop for the operator's
+word.</li>
+<li>19:32:49 to 19:33:50, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>d7702cd</code>), built,
+its 52 files 200 and its footer <code>karvi-v0.33.0</code>; release <code>karvi-v0.33.0</code> with
+the five assets, marked latest; the assets downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.32.1 build=AVfLwnLJ5Ay5xcmJOSWS
+daemon started socket=/dev/shm/r330/compat/base/socket/d.sock
+pid 2849946 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build AVfLwnLJ5Ay5xcmJOSWS 0.32.1
+  client build pEeV3vr3M3y-k2vZryhR 0.33.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2850048 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.33.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.33.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.33.0-source-linux-amd64.tar.gz: OK
+karvi_0.33.0_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong> <code>karvi</code> is 4,096 bytes smaller; <code>karvi-askpass</code>,
+<code>karvi-prune</code>, and <code>karvi-audit</code> keep 0.32.1's sizes, with other bytes; the
+bundle is 8,772 bytes larger and the package 5,742. The default configuration
+and the module metadata of the four executables were regenerated to 0.32.1's
+bytes, since no key and no module changed, so 3/3 carries eight evidence
+files, as 0.32.1's did. The artifact index's diff range was set after the
+version was replaced across the file, chapter 67's slip not repeated:
+<code>karvi-v0.32.1..karvi-v0.33.0</code>. In the throwaway container <code>man karvi-audit</code>
+has no page, as in chapters 65 and 67: the image drops every man page at
+install. The evidence is kept beside the tree
+(<code>release-design-evidence/v0330-*</code>).</p>
+<h2 id="71-a-device-as-the-first-word-karvi-device-2026-10-19">71. A device as the first word, <code>karvi DEVICE</code> (2026-10-19) <a class="anchor" href="#71-a-device-as-the-first-word-karvi-device-2026-10-19" aria-label="Link to this section">#</a></h2>
+<p>The operator's request: a first word that would be refused as an unknown
+command, when it names a target, is a login at it alone, or a command at it
+with the words after it as the command, &quot;shortcuts for less typing, such as
+<code>karvi device-name</code> to login at device-name, and <code>karvi router1 show ip int brief</code> which executes command <code>show ip int brief</code> at <code>router1</code>&quot;. A target is an
+exact match in any inventory, a name DNS resolves (a short name by the
+resolver's search list, <code>router1</code> as <code>router1.net.example.com</code> at
+<code>192.0.2.1</code>), or an IPv4 or IPv6 address. Designed in this session and
+recorded for the build; the program is unchanged.</p>
+<p><strong>What it gains.</strong> The two most frequent invocations shorter by their action
+word: <code>karvi router1</code> for <code>karvi login router1</code>, <code>karvi router1 show clock</code> for
+<code>karvi command router1 show clock</code>. It waits on nothing: <code>login</code> and <code>command</code>
+already resolve a positional device as asked (<code>internal/app/targets.go</code>). A
+name is matched, ignoring case, against each inventory row's name, canonical
+name, or ID; any other is a direct target, a literal address its own
+management address with no lookup, a name looked up in DNS after its name
+transform by Go's resolver (the executables are built with <code>CGO_ENABLED=0</code>),
+which applies <code>/etc/resolv.conf</code>'s <code>search</code> list. The shortcut is the parser's
+reading of an unknown first word as one of the two modes, a guard that keeps a
+mistyped command word from becoming a connection, and the refusals.</p>
+<p><strong>The rule, agreed.</strong> In simple terms: a first word that is no command and
+names a target is a login at it, or a command at it when words follow.</p>
+<ol>
+<li>Only a first word the parser refuses as unknown (<code>cli_command_unknown</code>) is
+tried. A command word, an alias, or a unique prefix of one keeps its
+meaning, and an ambiguous prefix stays <code>cli_command_ambiguous</code>; a device
+named as one of them is reached by <code>karvi login NAME</code>.</li>
+<li>The word is a plain name, one <code>karvi login</code> takes as one literal name: none
+of <code>* ? [ \ ^ $</code> and no leading <code>!</code>. Any other word is refused at once as
+<code>cli_command_unknown</code>, before the configuration is read. A bracketed IPv6
+address is a pattern; the plain form, with or without a zone, is an
+address.</li>
+<li>Login or command: the words after the device are read as login's options.
+It becomes a command at the first word of command text, which with every
+word after it is the command and never read as options; at <code>--</code> with words
+after it; or at an option login does not know and command knows or finds
+ambiguous (<code>--cmd</code>, <code>--cf</code>, <code>--echo</code>, ...). Otherwise it is a login. The
+mode chosen parses the whole line, so an abbreviation means what it means
+in that mode, and an option neither knows is refused as login's.</li>
+<li>The target: an inventory name or a literal address goes ahead with no
+lookup. A word one slip from a command word of four letters or more
+(<code>login</code>, <code>command</code>, <code>crun</code>, <code>stream</code>, <code>daemon</code>, <code>config</code>, <code>setup</code>,
+<code>watch</code>, <code>version</code>, <code>help</code>; one letter added, dropped, or changed, or two
+neighbours swapped) that is no inventory name is refused as
+<code>cli_command_near_miss</code> (exit 4): <code>&quot;lgoin&quot; is not a command; did you mean login?</code>. Any other word is looked up where its mode looks it up now:
+<code>login</code> before its credentials, <code>command</code> at planning, or after its
+credentials under daemon address authority.</li>
+<li>A shortcut's word DNS says does not exist is <code>cli_command_unknown</code> (exit
+4): <code>&quot;router9&quot; is neither a command nor a target: DNS has no such name</code>;
+the registry's text widens to &quot;neither a command nor a target&quot;. A timeout
+or a server failure keeps <code>dns_timeout</code> or <code>dns_servfail</code> (exit 7): the
+word may be a device.</li>
+<li>Unchanged: the host-key policy is the mode's, with no check of the trust
+store for a name DNS alone found; no lookup earlier than the mode's;
+nothing records that the shortcut was used, the parser handing on <code>login</code>
+or <code>command</code>; a stream's lines; and tab completion, which offers command
+words and options and never a device for the shortcut.</li>
+</ol>
+<p>Accepted with it:</p>
+<ul>
+<li>A plain word costs the configuration read and the inventory load every login
+makes: a broken configuration or inventory answers it with its own refusal,
+and a word DNS does not know waits for DNS's answer, at most
+<code>name.dns-timeout</code>.</li>
+<li>A word that does not resolve leaves what <code>karvi login WORD</code> leaves today: an
+empty <code>&lt;ID&gt;.id</code> claim in the scoreboards folder, removed on a later day; for
+<code>command</code>, a job directory made and removed; with <code>--record</code>, the transcript
+of the failed session. Under daemon address authority <code>command</code>'s
+credentials, a prompt among them, come before the refusal, as for <code>karvi command WORD TEXT</code> today; the guard keeps the mistyped command words from it.</li>
+<li>A command word added later takes every device name that is a prefix of it;
+<code>karvi login NAME</code> reaches such a device.</li>
+</ul>
+<p><strong>Executed.</strong> The parser's present answers at <code>bf009f1</code>, through three probes
+of package <code>cli</code> given to <code>go test -overlay</code>, the tree untouched. A first word
+as the parser takes it, and a literal's address as a direct target (lines
+chosen from the log):</p>
+<pre><code class="language-text">&quot;router1&quot;                    path=&quot;&quot;        targets=[] cli_command_unknown
+&quot;router1 show ip int brief&quot;  path=&quot;&quot;        targets=[] cli_command_unknown
+&quot;c&quot;                          path=&quot;command&quot; targets=[] cli_device_missing
+&quot;co&quot;                         path=&quot;&quot;        targets=[] cli_command_ambiguous
+&quot;cr&quot;                         path=&quot;crun&quot;    targets=[] -
+&quot;ver&quot;                        path=&quot;version&quot; targets=[] -
+&quot;w&quot;                          path=&quot;watch&quot;   targets=[] -
+&quot;2001:db8::1&quot;                path=&quot;&quot;        targets=[] cli_command_unknown
+&quot;rtr*&quot;                       path=&quot;&quot;        targets=[] cli_command_unknown
+&quot;!r1&quot;                        path=&quot;&quot;        targets=[] cli_command_unknown
+&quot;login [2001:db8::1]&quot;        path=&quot;login&quot;   targets=[{target [2001:db8::1] true}] -
+Direct(&quot;2001:db8::1&quot;) management address 2001:db8::1
+Direct(&quot;fe80::1%eth0&quot;) management address fe80::1%eth0
+</code></pre>
+<p><code>c l r s - d j v w h</code> and <code>cr con lo ru se st ver he</code> reach their commands, as
+does every longer prefix of a command word; <code>co</code> alone is ambiguous. Login's
+and command's option tables, every word and every prefix resolved in both:</p>
+<pre><code class="language-text">options in both: 32, of them a different table entry: 0
+login only:   --record --ssh-option
+command only: --tl --cmd --cf --format --echo --border --noborder --continue-device-on-error --expect --blind --blind-return --timeout --maxbytes --blind-wait --literal --nof --of --cd --fs
+words and prefixes: 291
+naming two different options: 0
+ambiguous in login, one option in command: 0
+unknown to login, known or ambiguous in command: 96
+login's meaning, refused by command:
+  --e (--exclude; command: ambiguous)
+  --ex (--exclude; command: ambiguous)
+  --m (--management-address; command: ambiguous)
+  --ma (--management-address; command: ambiguous)
+  --o (--order; command: ambiguous)
+  --r (--record; command: unknown)
+</code></pre>
+<p>Eleven more lines follow, the longer prefixes of <code>--record</code> and of
+<code>--ssh-option</code>, each unknown to command. So every option both modes take is
+one table entry, taking its value the same way in both, and a login reading
+finds the end of the options where a command reading finds it; an
+abbreviation's meaning changes from one mode to the other only to a refusal,
+never to another option. <code>karvi r1 --e x</code> is a login with <code>--exclude x</code>;
+<code>karvi r1 --e x show clock</code> is a command, refused because <code>--e</code> is ambiguous
+there (<code>--echo</code>, <code>--exclude</code>, <code>--expect</code>).</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>README's command grammar and COMMAND-TROUBLESHOOTING's prompt entry said a
+karvi option may follow the command words and that <code>--</code> is needed before
+text holding an option's name; the parser and DESIGN's freeform boundary end
+the options where the text begins (<code>cmd router1 show clock --echo</code> sends
+<code>show clock --echo</code>), and README's <code>--</code> example had an unquoted <code>|</code> the shell
+would take. Both corrected in <code>11cf2e7</code>, the troubleshooting entry losing its
+&quot;Version 0.9.0&quot;.</li>
+<li>DESIGN's section 2 shortcut entry and section 3 target set named <code>--tl</code> among
+every mode's target inputs; the table gives it to <code>command</code>, <code>run</code>, <code>crun</code>,
+and a stream's lines, not <code>login</code>. Corrected in <code>bf009f1</code>.</li>
+<li>A first reading held that under daemon address authority a name only the
+daemon's resolver knows would refuse the shortcut. <code>login</code> and <code>command</code> run
+in the invoking process, and <code>command</code>'s daemon-authority lookup is that
+process's own (<code>resolver.PrepareDaemon</code>, &quot;the local process being the
+endpoint&quot;): the resolver is the same, and the concern is withdrawn.</li>
+<li><code>login</code>'s lookup (<code>internal/app/login.go</code>) takes the system resolver with no
+way for a test to answer in its place; <code>command</code>'s planner takes one
+(<code>planner.AddressOptions.Lookup</code>).</li>
+</ul>
+<p><strong>Not taken.</strong></p>
+<ul>
+<li>A lookup before the mode's, to refuse a word that is no target before any
+claim: a second place that resolves, or one name looked up twice. The
+mode's own place leaves what <code>karvi login WORD</code> leaves today, and the guard
+keeps the mistyped command words from it.</li>
+<li>Reading the line as a command first, and as a login when no command text
+follows: <code>karvi r1 --echo</code> would be refused as an option login does not
+know, where as a command it is refused for the text it lacks.</li>
+<li>A check that a name DNS alone found has its host key in the trust store
+before credentials are sent.</li>
+<li>An ambiguous prefix tried as a device.</li>
+<li>A code of its own for a word DNS does not know: the rule is one, a first
+word that is a command or a target, and so is its code; <code>dns_nxdomain</code>, which
+says a target was named.</li>
+<li>A bracketed IPv6 address with its brackets removed: a second spelling of one
+address.</li>
+<li>Tab completion for the shortcut: device names at the first word, or both
+modes' options after a device.</li>
+</ul>
+<p><strong>Left for the build.</strong></p>
+<ul>
+<li>The parser: an unknown first word that is a plain name is the shortcut's,
+read as rule 3 says, its device a positional target marked as the
+shortcut's.</li>
+<li>The modes: rule 4's guard where the target set is assembled, before any
+claim, in <code>login</code>, <code>command</code>, and the recording wrapper; rule 5's refusal
+where each looks the name up.</li>
+<li><code>cli_command_near_miss</code> registered, <code>cli_command_unknown</code>'s description
+widened, and <code>docs/ERROR-CODES.md</code> regenerated.</li>
+<li>The help: the usage lines <code>karvi DEVICE</code> and <code>karvi DEVICE COMMAND TEXT...</code>
+and a sentence on command words, <code>karvi(1)</code> regenerated from it; <code>karvi r1 --help</code> prints the chosen mode's help.</li>
+<li>DESIGN's entry, README's grammar, QUICKSTART, and the CHANGELOG.</li>
+<li>The tests: the parser's readings under rules 1 to 3; each mode's cases of
+rules 4 and 5 (an inventory name, a literal, the guard, no such name, a
+timeout keeping its code); <code>login</code>'s lookup given the seam <code>command</code>'s has,
+an optional lookup in its options, the system resolver when none.</li>
+<li>The executed examples: the fake IOS XE device for the inventory, literal,
+and guard cases; the search list in an Ubuntu 26.04 container with a DNS
+server of its own (dnsmasq) and <code>search net.example.com</code>, the list being
+applied to DNS queries.</li>
+</ul>
+<p><strong>Closed.</strong> The ROADMAP's item holds the build, its design this chapter. The
+evidence is kept beside the tree
+(<code>release-design-evidence/device-shortcut-2026-10-19</code>: the probes, the
+overlay, and their log).</p>
+<h2 id="72-the-device-shortcut-built-2026-10-19">72. The device shortcut built (2026-10-19) <a class="anchor" href="#72-the-device-shortcut-built-2026-10-19" aria-label="Link to this section">#</a></h2>
+<p>The ROADMAP's item &quot;A device as the first word&quot;, built by chapter 71's rule
+in four sections, each committed on the operator's word: the parser
+(<code>005d5b6</code>), the modes (<code>6162641</code>), the help and the documents (<code>6a47cd5</code>),
+and this chapter.</p>
+<p><strong>What it gains.</strong> <code>karvi router1</code> logs in at router1 and <code>karvi router1 show clock</code> runs a command there, as chapter 71 agreed; a mistyped command word is
+refused before it becomes a connection, and a name DNS says does not exist is
+refused as neither a command nor a target.</p>
+<p><strong>Settled while building</strong>, on the operator's agreement:</p>
+<ul>
+<li>The guard ignores case. In simple terms: a first word that matches no
+inventory row and is within one slip of a command word, whatever its case,
+is refused. <code>Login</code>, <code>LGOIN</code>, and <code>Lgoin</code> are refused unless the inventory
+names them; an inventory row matches ignoring case, so <code>karvi LGOIN</code> reaches
+the row <code>lgoin</code>.</li>
+<li>Rule 5 kept as agreed: only DNS saying there is no such name makes the word
+neither a command nor a target. On a host whose resolver is systemd-resolved
+with no search domain, as this one, resolved does not send a one-label name
+to unicast DNS (&quot;No appropriate name servers or networks for name found&quot;)
+and its stub answers SERVFAIL, so a mistyped one-label word there keeps
+<code>dns_servfail</code> (exit 7); a site that uses short names sets a search domain,
+and a word not found is then NXDOMAIN and refused, as in the container
+below. Not taken: SERVFAIL refused for a one-label word, which would tell an
+operator whose server fails that an existing device does not exist.</li>
+</ul>
+<p>Where chapter 71's words left the parser a choice, it reads them literally,
+as reported at the first section's gate:</p>
+<ul>
+<li>An option ambiguous in login keeps the line a login, refused as login's
+(<code>karvi r1 --p x show clock</code>: &quot;ambiguous in login&quot;); no word ambiguous in
+login is one option in command.</li>
+<li><code>karvi r1 --record /tmp/t</code> is login's refusal of the detached value, not a
+command.</li>
+<li><code>karvi -- -r1</code> is a login at <code>-r1</code>, as <code>karvi login -- -r1</code> is.</li>
+<li>A blank first word stays <code>cli_command_unknown</code>.</li>
+</ul>
+<p><strong>Built.</strong></p>
+<ul>
+<li>The parser (<code>internal/cli/parse.go</code>): <code>plainName</code> is rule 2, <code>parseShortcut</code>
+and <code>shortcutCommand</code> rule 3; the device is a positional target marked
+<code>TargetInput.Shortcut</code>. <code>nearCommand</code> and <code>oneSlip</code> give the command word of
+four letters or more one slip from the word.</li>
+<li>The modes (<code>internal/app/shortcut.go</code>): <code>app.Shortcut</code>, the word and its
+near command word, recorded nowhere; <code>CheckShortcut</code>, rule 4, after the
+assembly in <code>login</code>, <code>command</code>, and the recording wrapper, before any claim;
+rule 5's refusal at login's lookup and at command's planning and
+daemon-authority preparation. Login's and command's options take a lookup,
+nil the host's resolver, which <code>resolver.Resolve</code> and <code>PrepareDaemon</code> now
+take as <code>Select</code> did.</li>
+<li><code>cli_command_near_miss</code> registered (usage, exit 4), <code>cli_command_unknown</code>'s
+description widened, <code>docs/ERROR-CODES.md</code> regenerated.</li>
+<li>The top help's usage lines and paragraph, <code>karvi(1)</code> regenerated from them;
+DESIGN section 2's entry; README's grammar; QUICKSTART; CHANGELOG's
+<code>Unreleased</code> block. Tab completion is unchanged.</li>
+<li>Tests: <code>TestParseDeviceShortcut</code> (rules 1 to 3, each mode's messages and
+help), <code>TestNearCommand</code>, <code>TestShortcutGuard</code> (through <code>Main</code>, the recording
+wrapper among them), and <code>TestShortcutModes</code> (in <code>login</code> and in <code>command</code>:
+an inventory name, a literal, the guard, no such name, no such name under
+daemon address authority, a timeout, and the name without the shortcut,
+each with its lookups counted). The tests that took a plain word for an
+unknown command, and k03's c1, now give a pattern.</li>
+</ul>
+<p><strong>Executed.</strong> A lab build of <code>6a47cd5</code> (<code>karvi 0.33.0</code>, commit <code>6a47cd5-lab</code>)
+against the fake IOS XE device built from the tree on 127.0.0.1:2231, with an
+inventory of two rows, <code>core1</code> and <code>lgoin</code>, both the fake; each karvi call
+carries the lab's places, left out below, and its credentials come from the
+environment. An inventory name, as a command and as a login under <code>script(1)</code>
+typing <code>exit</code> (the fake closes without an exit status, exit 110 as in chapter
+68), and a literal address:</p>
+<pre><code class="language-text">$ karvi core1 --transport native show clock
+! ssh accepted new host-key core1 (ED25519)
+! core1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=619ms artifacts=/dev/shm/k72/w/d/base/jobs/261019/261019-145346-00
+$ karvi core1
+! core1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=system
+Router&gt;exit
+ssh_process_failed: exit status 255
+exit=110
+$ karvi 127.0.0.1 --pi --port 2231 --transport native show clock
+! ssh accepted new host-key 127.0.0.1 (ED25519)
+! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=615ms artifacts=/dev/shm/k72/w/d/base/jobs/261019/261019-145349-00
+</code></pre>
+<p>The inventory row one slip from <code>login</code>, in two cases, goes ahead; a word one
+slip from a command word that is no inventory name does not (each refusal
+15 to 20 ms by the lab's clock, exit 4):</p>
+<pre><code class="language-text">$ karvi LGOIN --transport native show clock
+! lgoin [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=619ms artifacts=/dev/shm/k72/w/d/base/jobs/261019/261019-145350-00
+$ karvi logni
+cli_command_near_miss: &quot;logni&quot; is not a command; did you mean login?
+$ karvi logni --record
+cli_command_near_miss: &quot;logni&quot; is not a command; did you mean login?
+$ karvi Login core1
+cli_command_near_miss: &quot;Login&quot; is not a command; did you mean login?
+$ karvi comand core1 show clock
+cli_command_near_miss: &quot;comand&quot; is not a command; did you mean command?
+$ karvi verison
+cli_command_near_miss: &quot;verison&quot; is not a command; did you mean version?
+$ karvi stup shared
+cli_command_near_miss: &quot;stup&quot; is not a command; did you mean setup?
+</code></pre>
+<p>The scoreboards folder held five claims before the six refusals and five after
+(the lab's <code>ls</code>), and the base no transcript (the lab's <code>find</code>). The parser's
+refusals and the chosen mode's help, each refusal exit 4:</p>
+<pre><code class="language-text">$ karvi 'core*'
+cli_command_unknown: unknown command &quot;core*&quot;
+$ karvi co core1
+cli_command_ambiguous: &quot;co&quot; is ambiguous: command, config
+$ karvi core1 --e x show clock
+cli_option_ambiguous: --e is ambiguous in command: --echo, --exclude, --expect
+$ karvi core1 --record /tmp/t
+cli_option_value_detached: --record takes its PATH with =: --record=/tmp/t
+$ karvi core1 --echo
+cli_command_text_missing: command requires device command text: freeform words, --cmd TEXT, or --cf PATH
+$ karvi core1 --help | sed -n 2p
+  karvi login [options] DEVICE
+$ karvi core1 --echo --help | sed -n 2p
+  karvi command [options] DEVICE &lt;device command words...&gt;
+</code></pre>
+<p>DNS on this host, systemd-resolved with <code>search .</code>: a one-label name it will
+not send keeps <code>dns_servfail</code>; a dotted name DNS does not know is refused, and
+the same name after <code>login</code> keeps <code>dns_nxdomain</code>:</p>
+<pre><code class="language-text">$ karvi nosuch1
+dns_servfail: lookup nosuch1 on 127.0.0.53:53: server misbehaving (nosuch1)
+exit=7
+$ karvi nosuch1.example.com
+cli_command_unknown: &quot;nosuch1.example.com&quot; is neither a command nor a target: DNS has no such name
+exit=4
+$ karvi login nosuch1.example.com
+dns_nxdomain: lookup nosuch1.example.com on 127.0.0.53:53: no such host (nosuch1.example.com)
+exit=7
+$ karvi nosuch1.example.com show clock
+cli_command_unknown: &quot;nosuch1.example.com&quot; is neither a command nor a target: DNS has no such name
+exit=4
+</code></pre>
+<p>The audit trail (<code>karvi-audit --nocolor -S '2026-10-19 14:53:46' -d core1</code>,
+then <code>-d lgoin</code>) holds <code>cmd</code> and <code>login</code> events as before; nothing marks the
+shortcut:</p>
+<pre><code class="language-text">JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261019-145346-00       netops       cmd   command success                      core1              show clock
+261019-145347-00       netops       login start                                core1
+261019-145347-00       netops       login end     error                        core1
+JOB-ID                OPERATOR      MODE  EVENT   OUTCOME                      DEVICE             COMMAND
+261019-145349-01       netops       cmd   command success                      lgoin              show clock
+261019-145350-00       netops       cmd   command success                      lgoin              show clock
+</code></pre>
+<p>The search list in an Ubuntu 26.04.1 container under Docker with no network:
+dnsmasq answers <code>router1.net.example.com</code> with 127.0.0.1 and every other name
+as not existing, <code>/etc/resolv.conf</code> names it with <code>search net.example.com</code>,
+the fake listens on 127.0.0.1:2231, and an operator <code>op</code> runs the same build:</p>
+<pre><code class="language-text">$ karvi router1 --pi --port 2231 --transport native show clock
+! ssh accepted new host-key router1 (ED25519)
+! router1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=674ms artifacts=/home/op/w/base/jobs/261019/261019-185402-00
+$ karvi router9
+cli_command_unknown: &quot;router9&quot; is neither a command nor a target: DNS has no such name
+exit=4
+$ karvi router9 show clock
+cli_command_unknown: &quot;router9&quot; is neither a command nor a target: DNS has no such name
+exit=4
+$ karvi login router9
+dns_nxdomain: lookup router9 on 127.0.0.1:53: no such host (router9)
+exit=7
+</code></pre>
+<p>dnsmasq's log (the lab's <code>sed</code> of it) shows the search list applied, the
+preferred family first:</p>
+<pre><code class="language-text">query[AAAA] router1.net.example.com from 127.0.0.1
+config router1.net.example.com is NODATA-IPv6
+query[AAAA] router1 from 127.0.0.1
+config router1 is NXDOMAIN
+query[A] router1.net.example.com from 127.0.0.1
+config router1.net.example.com is 127.0.0.1
+query[AAAA] router9.net.example.com from 127.0.0.1
+config router9.net.example.com is NXDOMAIN
+query[AAAA] router9 from 127.0.0.1
+config router9 is NXDOMAIN
+query[A] router9.net.example.com from 127.0.0.1
+config router9.net.example.com is NXDOMAIN
+query[A] router9 from 127.0.0.1
+config router9 is NXDOMAIN
+</code></pre>
+<p>With <code>nameserver 127.0.0.2</code>, where a listener takes the queries and never
+answers, both forms keep <code>dns_timeout</code> after <code>name.dns-timeout</code> (2025 and 2027
+ms by the lab's clock):</p>
+<pre><code class="language-text">$ karvi router9
+dns_timeout: lookup router9: i/o timeout (router9)
+exit=7
+$ karvi router9 show clock
+dns_timeout: 1 of 1 targets failed address resolution: name:router9 (lookup router9: i/o timeout (router9))
+exit=7
+</code></pre>
+<p>gofmt, vet, <code>go test ./...</code> (72 packages), and <code>make generated-clean</code>
+on <code>6a47cd5</code>; all 19 suites on the lab build (<code>run_suites</code>, <code>KARVI</code> the lab
+build, 203 seconds). No lab or suite left a <code>/tmp/karvi-&lt;uid&gt;</code>,
+<code>/var/tmp/karvi-&lt;uid&gt;</code>, <code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi
+process.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>A <code>command</code> test that names no transport takes the native transport, which
+reaches whatever listens at the target's port: a draft of
+<code>TestShortcutModes</code> reached this host's OpenSSH on 127.0.0.1:22 twice, its
+authentication refused. The test names <code>--transport system</code> with a fake
+<code>ssh</code> and no askpass helper on <code>PATH</code>, so every case that goes ahead ends at
+<code>dependency_askpass_unavailable</code> having contacted nothing.</li>
+<li>The container's image builds only on the host's network (<code>docker build --network host</code>): Docker's build network here resolves no name.</li>
+</ul>
+<p><strong>Closed.</strong> The ROADMAP's item is removed; the CHANGELOG's <code>Unreleased</code> block
+holds the shortcut for the next release. The evidence is kept beside the tree
+(<code>release-design-evidence/device-shortcut-build-2026-10-19</code>: the lab script
+and its output, the container's Dockerfile, script, and output, and the test
+and suite logs); the lab build and the container image are removed.</p>
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>

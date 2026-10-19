@@ -64,9 +64,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -132,9 +132,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -181,12 +181,16 @@ keys&quot;</a>).</p>
 <pre><code class="language-bash">karvi login router1
 karvi login --4 --host router1
 karvi login --record --host router1
+# A first word that is no command names a device: the same login as the first
+karvi router1
 </code></pre>
 <h2 id="one-device-commands">One-device commands <a class="anchor" href="#one-device-commands" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi cmd router1 --cmd 'show clock' --cmd 'show version'
 karvi command --ipv6 --host router1 --echo --cmd 'show clock'
 karvi command --border --host router1 --cmd 'show clock' --cmd 'show version'
 karvi command --noborder --host router1 --cmd 'show clock'
+# The device first, command text after it: karvi command router1 show clock
+karvi router1 show clock
 </code></pre>
 <h2 id="fleet-run">Fleet run <a class="anchor" href="#fleet-run" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi run --target router1 --target router2 --transport system \
@@ -211,7 +215,7 @@ karvi command --host router1 --format jsonl --cmd 'show clock'
 karvi command --host router1 --format json --cmd 'show clock'
 </code></pre>
 
-<footer>Generated from <code>docs/QUICKSTART.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>docs/QUICKSTART.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>

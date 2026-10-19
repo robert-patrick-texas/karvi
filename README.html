@@ -76,9 +76,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,9 +156,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -255,13 +255,27 @@ karvi command --host router1 --cmd 'show clock'
 karvi command --cmd 'show clock' --target router1 --command 'show version'
 karvi command --address 192.0.2.10 --target router1 --cmd 'show clock'
 </code></pre>
-<p>Recognized karvi options may follow positional command words. This makes the
-following valid and sends one device command, <code>show clock show clock</code>:</p>
-<pre><code class="language-bash">karvi cmd router1 'show clock' 'show clock' --echo --border --transport system
+<p>karvi options end where the device command text begins: an option goes before
+the device or between the device and the text, and every word from the text's
+first on reaches the device unchanged, a karvi option name, <code>-4</code>, or <code>-h</code> among
+them. The words form one device command; several commands take repeated
+<code>--cmd</code> or a <code>--cf</code> file. The first line below sends <code>show clock</code> with <code>--echo</code>
+on; the second sends one command, <code>show clock --echo</code>:</p>
+<pre><code class="language-bash">karvi cmd router1 --echo show clock
+karvi cmd router1 show clock --echo
 </code></pre>
-<p>Use <code>--</code> before literal device command text containing a token that matches a
-karvi option:</p>
-<pre><code class="language-bash">karvi command router1 -- show running-config | include --echo
+<p>Quote text the shell would read, a pipe among it, and give <code>--</code> before text
+whose first word begins with a dash:</p>
+<pre><code class="language-bash">karvi command router1 'show running-config | include hostname'
+</code></pre>
+<p>A first word that is no command names a device: <code>karvi router1</code> is <code>karvi login router1</code>, and <code>karvi router1 show clock</code> is <code>karvi command router1 show clock</code>, as is a line with <code>--</code> and words after it or an option only <code>command</code>
+takes. A command word, alias, or prefix wins, so a device named <code>con</code> or
+<code>crun</code> is reached by <code>karvi login con</code>. A word one slip from a command word
+(<code>lgoin</code>) is refused unless the inventory names it, and a name DNS does not
+know is neither a command nor a target:</p>
+<pre><code class="language-bash">karvi router1
+karvi router1 show clock
+karvi router1 --cmd 'show clock' --cmd 'show version'
 </code></pre>
 <p>One device session drives <code>command</code> and <code>run</code> on both SSH transports: on
 <code>system</code> one fresh <code>ssh -tt</code> process with ControlMaster off, on <code>scrapligo-v1</code>
@@ -658,7 +672,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>

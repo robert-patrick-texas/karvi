@@ -65,9 +65,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -134,9 +134,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -197,10 +197,12 @@ records <code>ssh_session_channel_refused</code> and is run as <code>linux_shell
 <code>ssh_session_channel_refused</code> in the connection category. Do not rotate
 credentials solely on this message.</p>
 <h2 id="promptcommand-missing-from-a-device-error">Prompt/command missing from a device error <a class="anchor" href="#promptcommand-missing-from-a-device-error" aria-label="Link to this section">#</a></h2>
-<p>Version 0.9.0 renders the effective prompt and exact sent command when <code>--echo</code>
-is enabled, even for a device-reported command error. Recognized karvi options
-may follow positional command words. Use <code>--</code> when a literal device command
-contains a token such as <code>--echo</code>, <code>--border</code>, or another karvi option name.</p>
+<p>karvi renders the effective prompt and exact sent command when <code>--echo</code> is
+enabled, even for a device-reported command error. Give <code>--echo</code> before the
+device command text: options end where the text begins, so every later word, a
+karvi option name such as <code>--echo</code> or <code>--border</code> among them, is sent to the
+device as part of the command. <code>--</code> is needed only before text whose first word
+begins with a dash.</p>
 <h2 id="prompt-timeout">Prompt timeout <a class="anchor" href="#prompt-timeout" aria-label="Link to this section">#</a></h2>
 <p>A <code>command_session_prompt_timeout</code> means OpenSSH started but karvi did not
 observe a final prompt ending in <code>#</code>, <code>&gt;</code>, or <code>$</code> before the bounded timeout.
@@ -223,7 +225,7 @@ timeout appropriate for the device, inspect the retained command record, and
 avoid enabling paging. The production large-output spooling gate remains open
 in this engineering candidate.</p>
 
-<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>

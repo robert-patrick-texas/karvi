@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -250,14 +250,38 @@ be.</p>
 code, all exiting as usage errors before any connection; ambiguity messages name
 every candidate. <em>Why:</em> the unique-error-code rule of the whole program (see
 <a href="#15-configuration-and-errors">§15</a>). <em>Not taken:</em> a single <code>cli_usage</code> code.</p>
+<p><strong>A device as the first word.</strong> A first word that reaches no command and is a
+plain name, none of <code>* ? [ \ ^ $</code> and no leading <code>!</code>, names a device: <code>karvi r1</code> is <code>karvi login r1</code>, and <code>karvi r1 show clock</code> is <code>karvi command r1 show clock</code>. The words after the device are read as <code>login</code>'s options; command
+text, <code>--</code> with words after it, or an option <code>login</code> does not know and
+<code>command</code> knows or finds ambiguous makes the line a command, and the mode
+chosen parses the whole line, its help included (<code>karvi r1 --help</code>). A command
+word, alias, or prefix keeps its meaning, an ambiguous prefix stays
+<code>cli_command_ambiguous</code>, and any other word is <code>cli_command_unknown</code> before the
+configuration is read; a device named as a command word is reached by <code>karvi login NAME</code>. Where the target set is assembled, before any claim or lookup, a
+word one slip from a command word of four letters or more, ignoring case (a
+letter added, dropped, or changed, or two neighbours swapped), that is no
+inventory name is <code>cli_command_near_miss</code>. Where the mode looks the word up, a
+name DNS says does not exist is <code>cli_command_unknown</code>, neither a command nor a
+target; a timeout or a server failure keeps its <code>dns_*</code> code. Nothing records
+that the shortcut was used, and the host-key policy, a stream's lines, and tab
+completion are unchanged. <em>Why:</em> the two most frequent invocations, shorter by
+their action word, with nothing after the parser new but the guard and the
+refusal; the guard keeps a mistyped command word from becoming a connection.
+<em>Not taken:</em> a lookup before the mode's; reading the line as a command first;
+a trust-store check for a name DNS alone found; an ambiguous prefix tried as a
+device; a code of its own for a word DNS does not know; a bracketed IPv6
+address with its brackets removed; tab completion for the shortcut
+(<a href="EXAMPLES.html#71-a-device-as-the-first-word-karvi-device-2026-10-19"><code>docs/EXAMPLES.md</code>, chapter
+71</a>).</p>
 <p><strong>Shortcuts stand for an option with its value.</strong> <code>--pi</code>, <code>--pn</code>, <code>--pr</code>,
 <code>--pj</code>, <code>--pa</code>, <code>--pl</code>, <code>--ps</code>, <code>--pg</code> stand for <code>--platform</code> with a built-in
 platform name; <code>--dp</code>, <code>--dw</code>, <code>--ds</code> stand for
 <code>--dispatch parallel|wave|serial</code>. A shortcut is a whole word of the table that
 carries the value, so no handler knows the shortcuts exist and the last
-spelling on a line wins. <code>--tl LIST</code> adds each comma- or whitespace-separated
-name as a <code>--target</code> at the list's position, so the plan and manifest record
-target inputs and never a list.
+spelling on a line wins. <code>--tl LIST</code>, an option of <code>command</code>, <code>run</code>, <code>crun</code>,
+and a stream's lines but not of <code>login</code>, adds each comma- or
+whitespace-separated name as a <code>--target</code> at the list's position, so the plan
+and manifest record target inputs and never a list.
 <em>Why:</em> the operator's most typed values; nothing after the parser changes.
 <em>Not taken:</em> aliases (an alias still takes a value); a list kind in the plan.</p>
 <p><strong>Declarations attach backwards.</strong> <code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>,
@@ -413,13 +437,13 @@ ordering, and the shuffle rank. <em>Why:</em> every comparison already ignored c
 one normalisation makes the identity explicit.</p>
 <p><strong>One target set, assembled in command-line order, in every mode.</strong> <code>login</code>,
 <code>command</code>, and <code>run</code> assemble one list from a positional device, repeatable
-<code>--target</code> (globs allowed), <code>--tl</code>, <code>--tf FILE</code>, <code>--tf DIR</code>, <code>--tfr PATH</code>, and
-the inventory selectors <code>--site</code>, <code>--device-group</code>, <code>--select-platform</code>,
-<code>--all</code>, each contributing at its position; the first occurrence of a name
-keeps its place, later duplicates are removed, then <code>--exclude</code> matches, then
-<code>dispatch.order</code> orders the result. <code>login</code> and <code>command</code> connect to the first
-device of the set, and refuse a literal <code>--address</code> when the set holds more
-than one. <em>Why:</em> inventory matches had been placed before direct targets
+<code>--target</code> (globs allowed), <code>--tl</code> (not in <code>login</code>), <code>--tf FILE</code>, <code>--tf DIR</code>,
+<code>--tfr PATH</code>, and the inventory selectors <code>--site</code>, <code>--device-group</code>,
+<code>--select-platform</code>, <code>--all</code>, each contributing at its position; the first
+occurrence of a name keeps its place, later duplicates are removed, then
+<code>--exclude</code> matches, then <code>dispatch.order</code> orders the result. <code>login</code> and
+<code>command</code> connect to the first device of the set, and refuse a literal
+<code>--address</code> when the set holds more than one. <em>Why:</em> inventory matches had been placed before direct targets
 regardless of the line, a defect; one rule covers every source and mode, and
 an operator can pick a device from a file without a script.</p>
 <p><strong>Negation on the command line removes.</strong> A <code>--target</code>, <code>--site</code>,
@@ -3288,7 +3312,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>

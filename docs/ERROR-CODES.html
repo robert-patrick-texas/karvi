@@ -63,9 +63,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,9 +130,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -529,6 +529,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>The command word prefix matches more than one command; the message names every candidate.</td>
 </tr>
 <tr>
+<td><code>cli_command_near_miss</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td>The first word, taken as a device (<code>karvi DEVICE</code>), is no inventory name and one slip from a command word of four letters or more: a letter added, dropped, or changed, or two neighbours swapped, ignoring case; the message names the command word. Refused before any lookup or claim.</td>
+</tr>
+<tr>
 <td><code>cli_command_text_missing</code></td>
 <td>usage</td>
 <td style="text-align:right">4</td>
@@ -547,7 +554,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>The command word matches no command.</td>
+<td>The first word is neither a command nor a target: it matches no command and is a pattern rather than a plain name, or, taken as a device (<code>karvi DEVICE</code>), DNS says the name does not exist.</td>
 </tr>
 <tr>
 <td><code>cli_device_empty</code></td>
@@ -5317,7 +5324,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>

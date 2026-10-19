@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
 <li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
 <li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
 <li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
@@ -72,9 +73,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -123,6 +124,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
 <li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
 <li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
 <li><a href="#0320---2026-10-17">0.32.0 - 2026-10-17</a></li>
@@ -148,9 +150,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.33.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.33.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.33.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -162,6 +164,32 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0340---2026-10-19">0.34.0 - 2026-10-19 <a class="anchor" href="#0340---2026-10-19" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.33.0 for a device as the first word, <code>karvi DEVICE</code>;
+every counter is 0.33.0's (configuration schema 6, registry 31, execution plan
+14, daemon IPC 12, command record 4, job manifest and summary 5, plan report 3,
+credential package 2, scoreboard 4, audit 2, metrics 1, inventory 1), and the
+module graph is 0.33.0's. A site has something to change where a script takes
+a first word that is no command for <code>cli_command_unknown</code> at once: a plain
+word now names a device, and a word one slip from a command word is
+<code>cli_command_near_miss</code>. An operator's 0.33.0 daemon, of another build, is
+drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong>A device as the first word, <code>karvi DEVICE</code>.</strong> A first word that is no
+command and is a plain name, none of <code>* ? [ \ ^ $</code> and no leading <code>!</code>, names
+a device: <code>karvi router1</code> is <code>karvi login router1</code>, and <code>karvi router1 show clock</code> is <code>karvi command router1 show clock</code>, as is a line with <code>--</code> and
+words after it or an option only <code>command</code> takes (<code>--cmd</code>, <code>--cf</code>, <code>--echo</code>,
+...); <code>karvi router1 --help</code> prints the mode's help. A command word, alias,
+or prefix wins, and <code>karvi login NAME</code> reaches a device named as one. A word
+one slip from a command word of four letters or more, ignoring case, that no
+inventory names is refused as <code>cli_command_near_miss</code> (exit 4) before any
+claim or lookup; a name DNS says does not exist is <code>cli_command_unknown</code>
+(exit 4), neither a command nor a target, where <code>karvi login NAME</code> keeps
+<code>dns_nxdomain</code> (exit 7); a timeout or a server failure keeps its code. A
+plain first word that was <code>cli_command_unknown</code> at once now costs the
+configuration read, the inventory load, and, unless the inventory or an
+address answers it, a DNS lookup.</li>
+</ul>
 <h2 id="0330---2026-10-18">0.33.0 - 2026-10-18 <a class="anchor" href="#0330---2026-10-18" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.32.1 for one activity ID for every activity, a <code>cmd</code>
 job's <code>job_id</code>, and the six longest messages shorter; every counter is
@@ -1730,7 +1758,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.33.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.34.0</code>.</footer>
 </main>
 </body>
 </html>
