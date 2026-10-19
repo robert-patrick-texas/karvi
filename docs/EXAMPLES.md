@@ -15296,3 +15296,151 @@ holds the shortcut for the next release. The evidence is kept beside the tree
 (`release-design-evidence/device-shortcut-build-2026-10-19`: the lab script
 and its output, the container's Dockerfile, script, and output, and the test
 and suite logs); the lab build and the container image are removed.
+
+## 73. The release 0.34.0 (2026-10-19)
+
+The fourteenth public release, 0.34.0, on the operator's word and number,
+carrying [chapter 72](#72-the-device-shortcut-built-2026-10-19): a device as
+the first word, `karvi DEVICE`, by [chapter
+71](#71-a-device-as-the-first-word-karvi-device-2026-10-19)'s rule, and the
+short form's usage line in `login`'s and `command`'s help. No counter moves and
+the module graph is 0.33.0's; the operator numbered it a minor release, for the
+new grammar. The daemon IPC schema stays 12, so there is no lifecycle replay
+and the compatibility example is the drain, beside the released 0.33.0 daemon.
+The sequence is [chapter 70](#70-the-release-0330-2026-10-18)'s, the baseline's
+rule already met: `dev` held its `## Unreleased` block since chapter 72's
+documents commit. The baseline's first run failed at its last step, the
+container test, on the host's Docker network; it passed once the operator had
+restarted Docker. The operator's first word was to build the release, so the
+sequence stopped after the package's install check and went on to the push at
+the operator's second word, to publish it.
+
+**What it gains.** A site has `karvi DEVICE` and `cli_command_near_miss` from a
+published, checksummed bundle and package, with the documents on GitHub Pages
+at the release: an operator's 0.33.0 daemon is drained by the first submission
+after the upgrade, and OPERATIONS' upgrade examples are this release's own
+output.
+
+**Before the number.** The tree and the release tools were archived first
+(`~/karvi/backup/archive-2026-10-19`: a mirror at `c433174` and the six tools
+as they were). No tool changed: `common.sh`'s prior stays empty, and
+`evidence-rest.sh` already names the four executables.
+
+**The baseline's first run.** gofmt and make passed on the clean clone, and
+the release verifier passed the Go tests, the race run, the nineteen suites,
+and the package with `check-deb.sh`, then stopped at the container test:
+`sysutil-smoke: FAIL: the image did not build`, `apt-get update` reaching no
+mirror. A container on Docker's default network reached no address, by name or
+by number, where the host reached each one and a build on the host's network
+(`--network host`) ran; the host had restarted that morning, and the day
+before, chapter 70's container steps had passed. The fault was the host's, not
+the tree's, so nothing in the tree changed: the operator restarted Docker, the
+same probe then reached every address and an image build on the default
+network ran `apt-get update`, and the baseline ran again on a fresh clone. The
+probe, a shell loop in a throwaway `ubuntu:26.04` on the default network:
+
+```text
+# before Docker's restart
+8.8.8.8/53 not reached
+1.1.1.1/443 not reached
+91.189.91.82/80 not reached
+# after Docker's restart
+8.8.8.8/53 reached
+1.1.1.1/443 reached
+91.189.91.82/80 reached
+```
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.34.0 - 2026-10-19` under a
+lead paragraph: a minor release on 0.33.0, every counter 0.33.0's, the module
+graph 0.33.0's, and a site changing a script that takes a first word that is
+no command for `cli_command_unknown` at once (a plain word now names a device,
+and a word one slip from a command word is `cli_command_near_miss`).
+`CHECKSUMS.sha256` has its four lines from the release-identity build.
+
+**The sequence, as run**, from the archive at 19:25 to the published check at
+21:10 (UTC; 15:25 to 17:10, EDT), every step after the baseline's rerun passing
+at its first run:
+
+- 19:25:39, the tree and the tools archived: a mirror at `c433174` and the six
+  tools.
+- 19:25:45 to 19:34:22, the baseline's first run on a clean clone of `dev` at
+  `c433174`: gofmt and make exit 0, the release verifier exit 1 at the
+  container test. The stop for the operator.
+- Before 20:25, Docker restarted by the operator, the probe passing.
+- 20:25:42 to 20:33:39, the baseline again on a fresh clone at `c433174`:
+  gofmt, make, the release verifier with its package and container steps, exit
+  0 each.
+- 20:34:07 to 20:34:37, the release-identity build, the compatibility example,
+  and 1/3: `e4f4365`; the build `Tk7LptpG6De_7CGUjfqI`; the v0.33.0 daemon
+  drained idle, refusing busy.
+- To 20:36:35, the core evidence: 1,078 named tests across 92 packages, vet 0,
+  both socket lengths exit 0.
+- 20:37:42, the documents: `8df9d61` (2/3), `release/` from the v0.33.0
+  pattern, OPERATIONS' examples the release's own.
+- 20:37:46 to 20:45:30, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 20:45:59, 3/3, the tag, `main`: `26a45c8`, `karvi-v0.34.0`, `main`
+  fast-forwarded from `e55e3ff`.
+- 20:46:03 to 20:51:25, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 39,638,296 and 6,465,508 bytes.
+- 20:51:35 to 20:51:45, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; `karvi-sysutil` and the template unit in place;
+  22 files under `/usr/share/karvi`, as 0.33.0. The stop for the operator's
+  word.
+- 21:09:32 to 21:10:28, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`42ba9fe`), built,
+  its 52 files 200 and its footer `karvi-v0.34.0`; release `karvi-v0.34.0` with
+  the five assets, marked latest; the assets downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.33.0 build=pEeV3vr3M3y-k2vZryhR
+daemon started socket=/dev/shm/r340/compat/base/socket/d.sock
+pid 426127 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build pEeV3vr3M3y-k2vZryhR 0.33.0
+  client build Tk7LptpG6De_7CGUjfqI 0.34.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 426232 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.34.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.34.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.34.0-source-linux-amd64.tar.gz: OK
+karvi_0.34.0_amd64.deb: OK
+```
+
+**Found on the way.**
+
+- `karvi` is 12,288 bytes larger; `karvi-askpass`, `karvi-prune`, and
+  `karvi-audit` keep 0.33.0's sizes, with other bytes; the bundle is 23,132
+  bytes larger and the package 10,528.
+- The default configuration and the module metadata of the four executables
+  were regenerated to 0.33.0's bytes, since no key and no module changed, so
+  3/3 carries eight evidence files, as 0.33.0's did.
+- The artifact index's diff range was set after the version was replaced
+  across the file, as in chapter 70: `karvi-v0.33.0..karvi-v0.34.0`.
+- Chapter 72's note that Docker's build network here resolves no name was this
+  same fault, from the host's restart, not a property of the host: after
+  Docker's restart the default network builds the images.
+- The release verifier removes its package folder only when every step after
+  the package's build passes: the first run left
+  `/tmp/karvi-verify-deb-<random>` with the package in it, removed by hand. A
+  failed verifier leaving its folder is left for the operator to decide.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67
+  and 70: the image drops every man page at install.
+
+The evidence is kept beside the tree (`release-design-evidence/v0340-*`, the
+first baseline's log among them).
