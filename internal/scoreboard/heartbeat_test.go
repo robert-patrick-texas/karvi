@@ -45,8 +45,12 @@ func TestHeartbeatRewritesTheSnapshot(t *testing.T) {
 		s.Targets = []records.ScoreboardTarget{{Name: "r1", State: records.TargetRunning, Bytes: int64(beats) * 1000}}
 		return s
 	})
-	time.Sleep(120 * time.Millisecond)
+	// The first beat is due at 20 ms; a loaded host writing through a disk
+	// can take longer, so the test waits for it, up to half a second.
 	beat := read()
+	for deadline := time.Now().Add(500 * time.Millisecond); beat.LastUpdatedAt.Equal(started) && time.Now().Before(deadline); beat = read() {
+		time.Sleep(20 * time.Millisecond)
+	}
 	if !beat.LastUpdatedAt.After(started.Add(30*time.Second)) || beat.ElapsedNS < int64(59*time.Second) || beat.Status != "running" {
 		t.Fatalf("the beat did not refresh the snapshot: last_updated_at %v elapsed %s status %s", beat.LastUpdatedAt, time.Duration(beat.ElapsedNS), beat.Status)
 	}
