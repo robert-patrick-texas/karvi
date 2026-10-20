@@ -13,7 +13,7 @@ another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:
 
 ```
-daemon drained version=0.33.0 build=pEeV3vr3M3y-k2vZryhR
+daemon drained version=0.34.0 build=Tk7LptpG6De_7CGUjfqI
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 ```
 
@@ -23,8 +23,8 @@ over the client's:
 
 ```
 daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build pEeV3vr3M3y-k2vZryhR 0.33.0
-  client build Tk7LptpG6De_7CGUjfqI 0.34.0
+  daemon build Tk7LptpG6De_7CGUjfqI 0.34.0
+  client build fNsX8VA8zKCBF5ctuqyS 0.34.1
 ```
 
 Meanwhile `karvi run --no-daemon` runs in the foreground, and `karvi job

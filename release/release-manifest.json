@@ -1,9 +1,9 @@
 {
   "application": "karvi",
-  "version": "0.34.0",
-  "release_date": "2026-10-19",
+  "version": "0.34.1",
+  "release_date": "2026-10-20",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.33.0 for a device as the first word: a first word that is no command, alias, or prefix and is a plain name (none of * ? [ \\ ^ $, no leading !) names a device, karvi DEVICE a login and karvi DEVICE COMMAND TEXT a command, as is a line with -- or an option only command takes; a word one slip from a command word of four letters or more, ignoring case, that no inventory names is refused cli_command_near_miss (exit 4) before any claim or lookup; a name DNS says does not exist is cli_command_unknown (exit 4), where karvi login NAME keeps dns_nxdomain (exit 7); every counter is 0.33.0's (configuration schema 6, registry 31, execution plan 14, daemon IPC 12, command record 4, job manifest and summary 5, plan report 3, credential package 2, scoreboard 4, audit 2); the first submission after the upgrade drains a 0.33.0 daemon; see CHANGELOG.md",
+  "behavior_change_from_previous": "a patch release on 0.34.0: a karvi started through a symbolic link of another name keeps its scratch files, a pid being alive as karvi when the file it runs is named karvi…; scripts/verify-release.sh removes its package folder at any exit; golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, golang.org/x/term v0.47.0, github.com/creack/pty v1.1.24, and github.com/sirikothe/gotextfsm v1.2.0, with which the native transport offers mlkem768x25519-sha256 first among karvi's default key exchanges, a negotiation failure's message and the Delete key at a prompt as they were; built with Go 1.27.3; every counter is 0.34.0's (configuration schema 6, registry 31, execution plan 14, daemon IPC 12, command record 4, job manifest and summary 5, plan report 3, credential package 2, scoreboard 4, audit 2); the first submission after the upgrade drains a 0.34.0 daemon; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
@@ -18,10 +18,10 @@
   "plan_report_schema_version": 3,
   "included_binary_profile": "scrapligo-v1-native-linux-amd64",
   "build": {
-    "go_version": "go1.27.2",
+    "go_version": "go1.27.3",
     "official_go_floor": "1.27.0",
-    "source_identity": "source-release-v0.34.0",
-    "build": "Tk7LptpG6De_7CGUjfqI",
+    "source_identity": "source-release-v0.34.1",
+    "build": "fNsX8VA8zKCBF5ctuqyS",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
@@ -30,14 +30,14 @@
   },
   "source_statistics": {
     "go_files_outside_vendor": 530,
-    "go_lines_outside_vendor": 109962,
-    "named_top_level_tests": 1078,
+    "go_lines_outside_vendor": 110025,
+    "named_top_level_tests": 1079,
     "packages": 92
   },
   "binaries": {
     "karvi-linux-amd64": {
-      "bytes": 12767392,
-      "sha256": "5fd9bc2b4ee332c9075cb203e55db212097ebf370a74ae6d67a994015f638cbf",
+      "bytes": 12828832,
+      "sha256": "2f0ff112627eaa7103d72bcea5d0ae6a5778ab3d49ca979088987d416fdeb94c",
       "reported_ssh_transports": [
         {
           "id": "scrapligo-v1",
@@ -55,19 +55,19 @@
     },
     "karvi-askpass-linux-amd64": {
       "bytes": 3915936,
-      "sha256": "08819ee9cf166f349a29955718b04896b070a5f9ca939e6477d6598abde36a31"
+      "sha256": "b70ffc5fb45249e2c511652db90ddda71b0f9cd676b4796ab6682fc46f00c4ba"
     },
     "karvi-prune-linux-amd64": {
       "bytes": 3797152,
-      "sha256": "d2ebd01e0c22c46e07ca69979dd4c45fc5f69488cf98b359b9b464b7ba192774"
+      "sha256": "2e33238f5f2a99a8be4884c87732727cbf77b7c5635486bb3357484a29e57af5"
     },
     "karvi-audit-linux-amd64": {
       "bytes": 3940512,
-      "sha256": "d65f66b6bde35a796e97d32592d3ba4d761822f64c48af77209d2eb0cf608dea"
+      "sha256": "b5d4091c03b20a89d9aa5b31855e1b6247d6657725a545714a2dea165808b1de"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.34.0 - 2026-10-19"
+    "changelog": "CHANGELOG.md 0.34.1 - 2026-10-20"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only (the client's IPC schema and build)",
@@ -100,14 +100,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.33.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.34.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 31, unchanged from v0.33.0"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 31, unchanged from v0.34.0"
   },
   "native_dependency": {
     "module": "github.com/scrapli/scrapligo",
@@ -137,17 +137,17 @@
     "debian_package": "passed (the tree's package in the release verifier's run, checked by scripts/check-deb.sh with lintian and tested as root in an Ubuntu 26.04 container under Docker by scripts/sysutil-smoke-test.sh, and the published package built twice from the verified bundle to the same bytes and checked by scripts/check-deb.sh)"
   },
   "previous_release": {
-    "version": "0.33.0",
-    "git_tag": "karvi-v0.33.0",
-    "notes": "a minor release on 0.32.1; every release is installed as new"
+    "version": "0.34.0",
+    "git_tag": "karvi-v0.34.0",
+    "notes": "a minor release on 0.33.0; every release is installed as new"
   },
   "vendored_modules": [
     "github.com/scrapli/scrapligo v1.4.2",
-    "github.com/creack/pty v1.1.23",
-    "github.com/sirikothe/gotextfsm v1.0.1-0.20200816110946-6aa2cfd355e4",
+    "github.com/creack/pty v1.1.24",
+    "github.com/sirikothe/gotextfsm v1.2.0",
     "github.com/yuin/goldmark v1.8.6",
-    "golang.org/x/crypto v0.26.0",
-    "golang.org/x/sys v0.23.0",
-    "golang.org/x/term v0.23.0"
+    "golang.org/x/crypto v0.58.0",
+    "golang.org/x/sys v0.49.0",
+    "golang.org/x/term v0.47.0"
   ]
 }
