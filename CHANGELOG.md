@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.34.1 - 2026-10-20
+
+A patch release on 0.34.0 for karvi under a shorter name, the newest modules,
+and Go 1.27.3, which change no record, file, key, or schema; every counter is
+0.34.0's (configuration schema 6, registry 31, execution plan 14, daemon IPC
+12, command record 4, job manifest and summary 5, plan report 3, credential
+package 2, scoreboard 4, audit 2, metrics 1, inventory 1), five modules move
+to their newest versions, and a site has nothing to change. An operator's
+0.34.0 daemon, of another build, is drained by the first submission after the
+upgrade.
 
 - **karvi under a shorter name keeps its scratch files.** A karvi started
   through a symbolic link of another name, a site's `/usr/bin/k`, was judged
@@ -13,9 +22,10 @@
   an alias; the executable itself keeps its name and place.
 
 - **The release verifier removes its package folder when it fails.**
-  `scripts/verify-release.sh` removes `/tmp/karvi-verify-deb-<random>` at its
-  exit, passed, failed, or interrupted; a step after the package's build that
-  failed, or a Ctrl-C, left the folder and the package in it.
+  `scripts/verify-release.sh` removes
+  `${TMPDIR:-/tmp}/karvi-verify-deb-<random>` at its exit, passed, failed, or
+  interrupted; a step after the package's build that failed, or a Ctrl-C, left
+  the folder and the package in it.
 
 - **The newest x/crypto, x/sys, x/term, pty, and gotextfsm.**
   `golang.org/x/crypto` v0.58.0 (from v0.26.0), `golang.org/x/sys` v0.49.0
@@ -29,6 +39,10 @@
   `mlkem768x25519-sha256`, first among karvi's default key exchanges, which
   x/crypto now implements. A negotiation failure's message and the Delete key
   at a prompt are as they were.
+
+- **Go 1.27.3.** The executables are built with Go 1.27.3, where 0.34.0's
+  were built with Go 1.27.2. Go 1.27.3 carries security fixes to
+  `crypto/x509`, which `karvi` links and the three helpers do not.
 
 ## 0.34.0 - 2026-10-19
 
