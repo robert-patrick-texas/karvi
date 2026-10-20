@@ -15444,3 +15444,118 @@ karvi_0.34.0_amd64.deb: OK
 
 The evidence is kept beside the tree (`release-design-evidence/v0340-*`, the
 first baseline's log among them).
+
+## 74. A shorter name keeps its scratch files (2026-10-20)
+
+A site reported, on recorded logins, `warning: transcript_timing_unreadable:
+/opt/karvi/shared/transcripts/261020/austin-rtr1-092239.log is rendered at 212
+columns without its resizes: open
+/dev/shm/karvi/jsmith/karvi-script-743682-4076103593.timing: no such file or
+directory` (the device and the operator renamed). The site starts karvi
+through a symbolic link, `/usr/bin/k` to
+`/usr/bin/karvi`: through the link every recorded login said it, and through
+`karvi` none did (the site's own check).
+
+**What it gains.** A recorded login through a site's shorter name is rendered
+as the terminal showed it, its resizes kept; a running karvi under that name
+keeps its askpass socket, its `ssh` configuration, and its spools from another
+karvi's sweep. It waits on nothing.
+
+**The cause.** The recording wrapper writes `script(1)`'s timing log into the
+scratch as `karvi-script-<pid>-*.timing`, its own pid in the name, and the
+login's child sweeps the scratch at its start (chapter 30). The sweep keeps a
+file whose pid is alive as karvi, and judged that by the base name of the
+pid's `argv[0]`: `k`. The wrapper was judged dead and its log removed a second
+into the session; at the session's end the transcript was rendered at the
+starting columns. The spool sweep shares the rule (`osutil.KarviAlive`). One
+other cause fits the same message: logind's `RemoveIPC` (chapter 57, issue 14)
+removes an operator's files under `/dev/shm` 10 s after the last logind
+session ends, which a recording outlives only when run outside the operator's
+own sessions; the site's check settled it.
+
+**The rule, agreed.** In simple terms:
+
+- A shorter name is a symbolic link or an alias, `k` for the fewest keys.
+- The executable keeps its own name and place: `karvi-askpass` is found beside
+  it, and the sweeps judge an owner by the name of the file it runs.
+- A pid is alive as karvi when the file it runs (`/proc/PID/exe`) is named
+  `karvi…`.
+
+**Executed.** The released 0.34.0 beside a lab build of `c05c432` with the
+change, each started as `k`, a symbolic link to its `karvi-linux-amd64`, in a
+100 by 30 terminal, a fake system transport printing `core1#` and ending a
+second later, every place under the lab (`link-lab.sh`). The released 0.34.0:
+
+```text
+! transcript=/dev/shm/k74/lab/released/state/transcripts/261020/core1-102258.log
+! core1 [127.0.0.1] platform=generic user=lab backend=builtin-env-fallback transport=system
+core1#
+warning: transcript_timing_unreadable: /dev/shm/k74/lab/released/state/transcripts/261020/core1-102258.log is rendered at 100 columns without its resizes: open /dev/shm/k74/lab/released/state/tmp/karvi-script-799558-3639330774.timing: no such file or directory
+! transcript=/dev/shm/k74/lab/released/state/transcripts/261020/core1-102258.log
+```
+
+The change's build:
+
+```text
+! transcript=/dev/shm/k74/lab/fixed/state/transcripts/261020/core1-102300.log
+! core1 [127.0.0.1] platform=generic user=lab backend=builtin-env-fallback transport=system
+core1#
+! transcript=/dev/shm/k74/lab/fixed/state/transcripts/261020/core1-102300.log
+```
+
+Both exited 0 and left the scratch empty. The lab's own `script(1)`, the
+terminal the session ran in, writes a NUL at its input's end, echoed as `^@`
+before the second line in both runs and dropped above. While a session ran
+through a link `kv`, its wrapper's `argv[0]` was the link's path and its
+`/proc/PID/exe` the `karvi-linux-amd64` the link names.
+
+**Why this way.**
+
+- The file a process runs names the executable whatever link or alias started
+  it. An upgrade that replaces the file while karvi runs leaves the kernel's
+  `/usr/bin/karvi (deleted)`; the suffix is dropped, as `os.Executable` drops
+  it, so a karvi running across an upgrade keeps its files.
+- A renamed or copied executable is outside the rule, as it is outside
+  `karvi-askpass`'s: OPERATIONS says so beside the shorter name's completion.
+
+**Not taken.** `argv[0]`, what the starter chose (a link's path, or anything
+`exec -a` gives). `/proc/PID/comm`, which a link sets to its own name, as
+`argv[0]` (executed with a link `k` to `bash`: `comm=k`). The pid's start time
+in each file's name beside the pid: exact against a reused pid, but every name
+changes, and the askpass socket's longer name shortens the scratch it fits
+under (107 bytes in all). The timing log held open or kept anonymous: it
+mends the timing log alone, and the askpass socket, the `ssh` configuration,
+and the spools stay judged by `argv[0]`. No name check at all: a pid reused by
+another program would keep an abandoned file.
+
+**Found on the way.** A terminal with no size, a harness with none: `script(1)`
+logs columns of -1 and the notice reads `timing log line 4: columns "-1"`,
+through the link or not. A terminal an operator types in has its size; the
+suite's new case sizes its own.
+
+**Built.** `osutil.ProcessExecutableName`, the base name of `/proc/PID/exe`
+without the suffix, in place of `ProcessCommandName` (`argv[0]`), and
+`KarviAlive` by it; `output.SweepSpools`' comment names the rule.
+`TestProcessExecutableName`; `TestKarviAliveByExecutable`, the test binary
+copied as `karvi-sweep-test` and run through a link `k`, alive, and alive once
+its file is removed, and the test binary under `argv[0]` `karvi` not; on the
+released rule it fails, `a karvi started as k judged not alive`. The transcript
+suite records a login through a link `k` in a sized terminal: no
+`transcript_timing_unreadable`, the start record's columns 100, the timing log
+gone; on the released 0.34.0 it fails at that case. DESIGN states the rule and
+its not-taken form, OPERATIONS the shorter name in one line, the CHANGELOG's
+`Unreleased` block the change.
+
+**Executed.** gofmt, vet, `go test ./...` (72 packages), and `make
+generated-clean` on the final tree; all 19 suites on a lab build (`run_suites`,
+`KARVI` the lab build, `TMPDIR=/var/tmp`, 230 seconds). Under `/tmp` the spool
+suite's S9 stopped twice, in three lanes and in one, on
+`output_preflight_space`: 3,228,434,432 bytes needed, 2,757,001,216 and
+2,903,162,880 free, this host's `/tmp` a 4.9 GB tmpfs holding 1.4 GB of other
+work; every suite before it passed both times. None left a `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, `~/.local/share/karvi`, or karvi
+process.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/shorter-name-sweep-2026-10-20`: the two lab scripts
+and their output, the suite's runs on both builds, the test and suite logs).

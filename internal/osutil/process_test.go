@@ -30,15 +30,86 @@ func TestApplyGOMAXPROCSMatchesEffectiveCPU(t *testing.T) {
 	}
 }
 
-// TestProcessCommandName: the sweep's owner check reads argv[0]'s base name
-// of a live process and nothing of a dead or absent one.
-func TestProcessCommandName(t *testing.T) {
-	if got := ProcessCommandName(os.Getpid()); got == "" || strings.Contains(got, "/") {
-		t.Fatalf("own name %q", got)
+// TestProcessExecutableName: the sweeps' owner check reads the base name of
+// the file a live process runs, this test binary's own, and nothing of a
+// dead or absent one.
+func TestProcessExecutableName(t *testing.T) {
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got := ProcessCommandName(0); got != "" {
+	if got := ProcessExecutableName(os.Getpid()); got != filepath.Base(self) {
+		t.Fatalf("own name %q, want %q", got, filepath.Base(self))
+	}
+	if got := ProcessExecutableName(0); got != "" {
 		t.Fatalf("pid 0: %q", got)
 	}
+}
+
+// TestKarviAliveByExecutable: a karvi started through a symbolic link of
+// another name, a site's /usr/bin/k, is alive as karvi, and stays so once an
+// upgrade replaces its file; under argv[0] the login's own sweep removed its
+// wrapper's timing log (docs/EXAMPLES.md chapter 74). A process that calls
+// itself karvi in argv[0] and runs another file is not. The processes are
+// this test binary, copied as karvi-sweep-test, run as the helper below.
+func TestKarviAliveByExecutable(t *testing.T) {
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(self)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	karvi := filepath.Join(dir, "karvi-sweep-test")
+	if err := os.WriteFile(karvi, data, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "k")
+	if err := os.Symlink(karvi, link); err != nil {
+		t.Fatal(err)
+	}
+	linked := startAliveHelper(t, link, "k")
+	if !KarviAlive(linked) {
+		t.Fatalf("a karvi started as k judged not alive: its file %q", ProcessExecutableName(linked))
+	}
+	if err := os.Remove(karvi); err != nil {
+		t.Fatal(err)
+	}
+	if !KarviAlive(linked) {
+		t.Fatalf("a karvi whose file was replaced judged not alive: its file %q", ProcessExecutableName(linked))
+	}
+	named := startAliveHelper(t, self, "karvi")
+	if KarviAlive(named) {
+		t.Fatalf("argv[0] karvi running %q judged alive as karvi", ProcessExecutableName(named))
+	}
+}
+
+// startAliveHelper starts path as TestKarviAliveHelper under argv[0] argv0
+// and returns its pid; the helper is killed when the test ends.
+func startAliveHelper(t *testing.T, path, argv0 string) int {
+	t.Helper()
+	cmd := exec.Command(path, "-test.run=^TestKarviAliveHelper$")
+	cmd.Args[0] = argv0
+	cmd.Env = append(os.Environ(), "KARVI_ALIVE_HELPER=1")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+	})
+	return cmd.Process.Pid
+}
+
+// TestKarviAliveHelper waits to be killed, for TestKarviAliveByExecutable,
+// and is nothing when run on its own.
+func TestKarviAliveHelper(t *testing.T) {
+	if os.Getenv("KARVI_ALIVE_HELPER") != "1" {
+		t.Skip("the helper of TestKarviAliveByExecutable")
+	}
+	time.Sleep(time.Minute)
 }
 
 // TestProcessAliveOtherUser: init belongs to root, so an unprivileged

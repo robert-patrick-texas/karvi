@@ -1563,7 +1563,9 @@ their maker's pid (`karvi-ssh-<pid>-*.conf`, `karvi-script-<pid>-*.timing`,
 operator, such an entry whose pid is not alive as a karvi executable, at every
 admission, at the daemon's start, and at a login's start, logged as
 `scratch_abandoned_removed`; anything else in the folder is left, and no
-socket is connected to.
+socket is connected to. A pid is alive as karvi when the file it runs
+(`/proc/PID/exe`) is named `karvi…`, the spool sweep's rule too: a symbolic
+link or an alias of another name, a site's `k`, runs karvi all the same.
 *Why:* a shell session's `ssh` under a dead parent kept the remote shell, since
 EOF on a pty does not end it: a router's vty until its exec-timeout, a server's
 shell for good, and a killed login's `ssh` fought the shell for the terminal
@@ -1574,7 +1576,9 @@ recorded login runs for hours); `karvi-prune` (no configuration, no judgement
 of an owner alive); an askpass socket judged by connecting to it (the broker
 serves one connection, so a probe took a live job's and its authentication
 failed, executed); a broker that waits past a connection that sends nothing
-(its one-use rule changed, and a probe still races the helper).
+(its one-use rule changed, and a probe still races the helper); the owner
+judged by its `argv[0]` (the name it was started by: a login started through a
+site's link `k` had its timing log swept by its own child, executed).
 
 **The scratch is bounded for the askpass socket.** A path socket holds 107
 bytes, and the askpass socket's name, `askpass-<pid>-<16 hex>.sock`, is up to 37

@@ -3,9 +3,10 @@
 # the delivered binary: destination and day folder, side-by-side transcript
 # and metadata, modes, the transcript rendered as the terminal showed it
 # (script(1)'s marker lines removed, a correction applied, colours dropped,
-# the timing log gone from the scratch), karvi's own lines kept out of the
-# transcript, the metadata formats, a login's first contact said from the
-# trust store, and the refusals.
+# the timing log gone from the scratch), a login through a symbolic link of
+# another name, karvi's own lines kept out of the transcript, the metadata
+# formats, a login's first contact said from the trust store, and the
+# refusals.
 set -eu
 
 # absent PATTERN FILE: the file must not match. A bare "! grep" line is exempt
@@ -41,7 +42,11 @@ exit 0
 EOF_INNER
 chmod 755 "$FAKE_SSH"
 
-COMMON="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored' '$KARVI' --set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'scoreboards=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
+# COMMON is karvi under the suite's environment (ENVS) and settings (SETS);
+# a case that starts karvi by another name puts its own between the two.
+ENVS="HOME='$HOME_DIR' NETUSER=smoke NETPASS=not-a-real-secret KARVI_TRANSCRIPT_DIR='$TMP/ignored'"
+SETS="--set 'basedir=\"$BASE\"' --set 'sharedroot=\"none\"' --set 'spooldir=\"$BASE/spool\"' --set 'tempdir=\"$BASE/tmp\"' --set 'platform-resolution.default=\"\"' --set 'scoreboards=\"$BASE/scoreboards\"' --set 'sessions.shared-capacity-root=\"$BASE/capacity\"' --set 'ssh.transports.system=\"$FAKE_SSH\"' --set display.color=never --set audit.journald-required=false --set 'audit.file=\"$BASE/audit.jsonl\"'"
+COMMON="$ENVS '$KARVI' $SETS"
 
 # recorded NAME EXTRA_GLOBALS LOGIN_ARGS: runs a recorded login under a pty.
 recorded() {
@@ -126,6 +131,18 @@ recorded path "--set 'output.directory-mode=\"0700\"'" "--record=$TMP/rec --addr
 [ "$(stat -c '%a' "$TMP/rec")" = 700 ]
 [ "$(stat -c '%a' "$TMP/rec/$DAY")" = 700 ]
 grep -q "$MARKER" "$TMP/rec/$DAY"/transcript-device-*.log
+
+# A site's shorter name, a symbolic link k: the login's own sweep judges the
+# wrapper by the file it runs, keeps its timing log, and the transcript is
+# rendered at the widths the log records (EXAMPLES chapter 74). The pty is
+# given a size, so a width is there to record.
+ln -s "$KARVI" "$TMP/k"
+timeout 20s script -qefc "stty cols 100 rows 30; $ENVS '$TMP/k' $SETS login --record=$TMP/rec-link --address 127.0.0.1 transcript-device" /dev/null >"$TMP/link.out" 2>"$TMP/link.err"
+absent transcript_timing_unreadable "$TMP/link.out"
+absent transcript_timing_unreadable "$TMP/link.err"
+grep -q "$MARKER" "$TMP/rec-link/$DAY"/transcript-device-*.log
+[ "$(jsonl_lines record "$TMP/rec-link/$DAY"/transcript-device-*.meta.jsonl record terminal.columns | head -1)" = "start${TAB}100" ]
+[ -z "$(ls -A "$BASE/tmp" | grep '^karvi-script-')" ]      # the timing log removed from the scratch
 
 # Metadata formats: text appends key: value lines, json is one end document.
 recorded text "--set 'transcript.metadata-format=\"text\"'" "--record=$TMP/rec-text --address 127.0.0.1 transcript-device"

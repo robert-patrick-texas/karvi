@@ -87,11 +87,13 @@ func askpassSocketOwner(name string) (int, bool) {
 	return pid, true
 }
 
-// KarviAlive says whether pid is alive as a karvi executable
-// (/proc/PID/cmdline): the one condition that keeps a file its name says
-// pid made. A pid that died, or was reused by something else, does not.
+// KarviAlive says whether pid is alive as a karvi executable, one whose
+// file's name begins with karvi (ProcessExecutableName): the one condition
+// that keeps a file its name says pid made. A pid that died, or was reused
+// by something else, does not. A karvi started through a link or an alias
+// of another name does.
 func KarviAlive(pid int) bool {
-	return ProcessAlive(pid, "") && strings.HasPrefix(ProcessCommandName(pid), "karvi")
+	return ProcessAlive(pid, "") && strings.HasPrefix(ProcessExecutableName(pid), "karvi")
 }
 
 // scratchOwnerAlive is KarviAlive; a test replaces it, since a test binary

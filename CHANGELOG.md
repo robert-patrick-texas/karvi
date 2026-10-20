@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **karvi under a shorter name keeps its scratch files.** A karvi started
+  through a symbolic link of another name, a site's `/usr/bin/k`, was judged
+  dead by the scratch and spool sweeps, which read the name it was started by:
+  a recorded login's own child removed its wrapper's timing log at once, and
+  the transcript was rendered without its resizes under
+  `transcript_timing_unreadable`; another karvi's sweep could take a running
+  one's askpass socket, `ssh` configuration, or spool alike. A pid is now alive
+  as karvi when the file it runs is named `karvi…`. A shorter name is a link or
+  an alias; the executable itself keeps its name and place.
+
 - **The release verifier removes its package folder when it fails.**
   `scripts/verify-release.sh` removes `/tmp/karvi-verify-deb-<random>` at its
   exit, passed, failed, or interrupted; a step after the package's build that

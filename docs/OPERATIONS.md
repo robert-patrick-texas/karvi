@@ -1762,6 +1762,11 @@ nothing. It completes `karvi-audit`'s long flags alike, through
 to type. A host that holds the file from before a helper was added runs
 `sudo karvi setup tab` once more, which reports `updated`.
 
+A shorter name, such as `k` for the fewest keys to type, is a symbolic link
+or an alias, never the executable renamed or copied: files depend on its name
+and place, `karvi-askpass` found beside it and a scratch file or spool kept
+while its maker runs a file named `karvi…`.
+
 A site that gives karvi a shorter name, a symbolic link on the path, binds
 that name to the same function in a file of its own, as root:
 

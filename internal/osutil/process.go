@@ -178,21 +178,22 @@ func ProcessAlive(pid int, start string) bool {
 	return start == "" || ProcessStartIdentity(pid) == start
 }
 
-// ProcessCommandName is the base name of a live process's first argument
-// (/proc/PID/cmdline), empty when the process is gone or unreadable: the
-// spool sweep's owner check, which keeps a spool
-// whose pid is alive as a karvi executable and removes one whose pid died
-// or was reused by something else.
-func ProcessCommandName(pid int) string {
+// ProcessExecutableName is the base name of the executable file a live
+// process runs (/proc/PID/exe), empty when the process is gone or
+// unreadable: the sweeps' owner check (KarviAlive). It is the file, not the
+// name the process was started by: a symbolic link of another name on the
+// path (a site's /usr/bin/k) runs karvi all the same, and argv[0] is what
+// the starter chose. A file replaced while it runs, by an upgrade, keeps its
+// name; the kernel's " (deleted)" is dropped, as os.Executable drops it.
+func ProcessExecutableName(pid int) string {
 	if pid <= 0 {
 		return ""
 	}
-	b, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	target, err := os.Readlink(fmt.Sprintf("/proc/%d/exe", pid))
 	if err != nil {
 		return ""
 	}
-	first, _, _ := strings.Cut(string(b), "\x00")
-	return filepath.Base(first)
+	return filepath.Base(strings.TrimSuffix(target, " (deleted)"))
 }
 
 // StartTied starts cmd so that it ends when this process dies: the kernel

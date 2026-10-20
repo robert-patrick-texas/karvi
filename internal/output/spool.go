@@ -69,7 +69,7 @@ func spoolOwner(name string) (pid int, ok bool) {
 // SweepSpools removes the abandoned spools in dir: a file of the spool's
 // name shape, owned by the
 // effective uid, whose pid is not alive, or is alive as something other
-// than a karvi executable (/proc/PID/cmdline), left by a daemon or client
+// than a karvi executable (osutil.KarviAlive), left by a daemon or client
 // that died with a command in flight. A live karvi pid is in use and its
 // file is left alone; anything else in the directory is not karvi's and is
 // not touched. Each removal is reported through log as
