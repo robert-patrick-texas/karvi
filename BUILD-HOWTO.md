@@ -99,8 +99,8 @@ cat go.mod
 ### 4.1 Official native-enabled build
 
 The source carries every module the build needs: `go.mod` names scrapligo
-v1.4.2, golang.org/x/crypto v0.26.0, golang.org/x/sys v0.23.0, and
-golang.org/x/term v0.23.0 with their two indirect requirements, `go.sum` holds
+v1.4.2, golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and
+golang.org/x/term v0.47.0 with their two indirect requirements, `go.sum` holds
 their sums, and `vendor/` holds their sources. goldmark v1.8.6 is vendored
 beside them for `tools/md-to-html` (`make html`); no executable contains it. A
 build host needs no network. On a host with an approved module proxy, `make

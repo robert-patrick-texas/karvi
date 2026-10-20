@@ -1,18 +1,16 @@
 // Package termline reads one edited line from a terminal, for stream mode's
 // lines and the credential prompts: golang.org/x/term's editor (Ctrl-A and
-// Ctrl-E, Ctrl-K, Ctrl-U, Ctrl-W, Backspace and Ctrl-H, the arrows, and the
-// up arrow recalling earlier lines), with the Delete key as a forward
-// delete and Ctrl-C told apart from Ctrl-D. The terminal is in raw mode for
-// one line's read alone and back in its own mode for everything else, so
-// a message, a job's display, and a Ctrl-C during a job are as they were.
+// Ctrl-E, Ctrl-K, Ctrl-U, Ctrl-W, Backspace and Ctrl-H, the Delete key, the
+// arrows, and the up arrow recalling earlier lines), with Ctrl-C told apart
+// from Ctrl-D. The terminal is in raw mode for one line's read alone and
+// back in its own mode for everything else, so a message, a job's display,
+// and a Ctrl-C during a job are as they were.
 package termline
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"os"
-	"unicode/utf8"
 
 	"golang.org/x/term"
 
@@ -50,7 +48,6 @@ func FromReader(r io.Reader, out io.Writer) *Line {
 		io.Reader
 		io.Writer
 	}{k, out}, "")
-	t.AutoCompleteCallback = forwardDelete
 	return &Line{keys: k, t: t}
 }
 
@@ -92,39 +89,16 @@ func (l *Line) read(fn func() (string, error)) (string, error) {
 	return line, err
 }
 
-// deleteKey is the sequence the Delete key sends, which x/term does not
-// know; deleteRune, a private-use character no keyboard sends, stands for
-// it in front of the editor, which hands it to forwardDelete.
-const deleteKey = "\x1b[3~"
-
-const deleteRune = ''
-
-// forwardDelete is the editor's callback for a key it does not handle: the
-// Delete key removes the character under the cursor; every other key is
-// the editor's.
-func forwardDelete(line string, pos int, key rune) (string, int, bool) {
-	if key != deleteRune {
-		return "", 0, false
-	}
-	if pos >= len(line) {
-		return line, pos, true
-	}
-	_, size := utf8.DecodeRuneInString(line[pos:])
-	return line[:pos] + line[pos+size:], pos, true
-}
-
 // keyReader stands in front of the editor and translates what it reads:
 // every \n becomes the \r the editor takes as Enter (a key typed while a
 // job runs, or pasted, passes through the terminal's own mode, which turns
 // Enter into \n; without the translation such a line would run into the
-// next), and the Delete key becomes deleteRune, a sequence split across
-// two reads waiting for its end. Each Ctrl-C is counted: the editor ends
-// the line with io.EOF for Ctrl-C and Ctrl-D alike, and read takes one
-// count for each io.EOF a Ctrl-C caused.
+// next). Each Ctrl-C is counted: the editor ends the line with io.EOF for
+// Ctrl-C and Ctrl-D alike, and read takes one count for each io.EOF a
+// Ctrl-C caused.
 type keyReader struct {
 	r          io.Reader
 	out        []byte // translated, not yet delivered
-	held       []byte // the start of a Delete key sequence, waiting
 	err        error  // the read error behind out, delivered after it
 	interrupts int
 }
@@ -138,7 +112,7 @@ func (k *keyReader) Read(b []byte) (int, error) {
 		}
 		buf := make([]byte, 256)
 		n, err := k.r.Read(buf)
-		k.translate(buf[:n], err != nil)
+		k.translate(buf[:n])
 		k.err = err
 	}
 	n := copy(b, k.out)
@@ -146,30 +120,15 @@ func (k *keyReader) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-// translate appends data to out, translated; at the end of the input
-// (last) a held sequence start is passed on as it is.
-func (k *keyReader) translate(data []byte, last bool) {
-	data = append(k.held, data...)
-	k.held = nil
-	for i := 0; i < len(data); {
-		rest := data[i:]
-		switch {
-		case rest[0] == '\n':
-			k.out = append(k.out, '\r')
-			i++
-		case rest[0] == 3:
+// translate appends data to out, each \n as \r, counting each Ctrl-C.
+func (k *keyReader) translate(data []byte) {
+	for _, b := range data {
+		switch b {
+		case '\n':
+			b = '\r'
+		case 3:
 			k.interrupts++
-			k.out = append(k.out, 3)
-			i++
-		case bytes.HasPrefix(rest, []byte(deleteKey)):
-			k.out = utf8.AppendRune(k.out, deleteRune)
-			i += len(deleteKey)
-		case !last && len(rest) < len(deleteKey) && bytes.HasPrefix([]byte(deleteKey), rest):
-			k.held = append([]byte(nil), rest...)
-			i = len(data)
-		default:
-			k.out = append(k.out, rest[0])
-			i++
 		}
+		k.out = append(k.out, b)
 	}
 }

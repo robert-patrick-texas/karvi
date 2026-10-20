@@ -372,7 +372,7 @@ func TestFakeRefusesExec(t *testing.T) {
 }
 
 func TestXCryptoImplements(t *testing.T) {
-	for name, want := range map[string]bool{"mlkem768x25519-sha256": false, "sntrup761x25519-sha512@openssh.com": false, "curve25519-sha256": true, "diffie-hellman-group1-sha1": true} {
+	for name, want := range map[string]bool{"mlkem768x25519-sha256": true, "sntrup761x25519-sha512@openssh.com": false, "curve25519-sha256": true, "curve25519-sha256@libssh.org": true, "diffie-hellman-group1-sha1": true} {
 		if got := xcryptoImplements(sshalgorithms.Kex, name); got != want {
 			t.Errorf("kex %s: %t", name, got)
 		}
@@ -386,7 +386,7 @@ func TestXCryptoImplements(t *testing.T) {
 		t.Error("macs")
 	}
 	offered, dropped, err := offer(nil)
-	if err != nil || dropped || strings.Join(offered[sshalgorithms.Ciphers], ",") != "aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr" || strings.Join(offered[sshalgorithms.Kex], ",")[:17] != "curve25519-sha256" {
+	if err != nil || dropped || strings.Join(offered[sshalgorithms.Ciphers], ",") != "aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr" || !strings.HasPrefix(strings.Join(offered[sshalgorithms.Kex], ","), "mlkem768x25519-sha256,curve25519-sha256,curve25519-sha256@libssh.org,") {
 		t.Fatalf("defaults offered %v dropped=%t %v", offered, dropped, err)
 	}
 	offered, dropped, err = offer(sshalgorithms.Apply(sshalgorithms.Defaults(), map[string]any{"ciphers-append": []any{"aes128-cbc"}}))

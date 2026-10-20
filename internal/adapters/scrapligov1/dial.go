@@ -7,7 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -424,7 +424,13 @@ func (c *connection) keyboardInteractive(_, _ string, questions []string, _ []bo
 	return answers, nil
 }
 
-var noCommonAlgorithm = regexp.MustCompile(`no common algorithm for (key exchange|host key|client to server cipher|server to client cipher|client to server MAC|server to client MAC); client offered: \[([^\]]*)\], server offered: \[([^\]]*)\]`)
+// negotiatedKinds are the lists a negotiation failure names, by x/crypto's
+// words for them.
+var negotiatedKinds = map[string]sshalgorithms.Kind{
+	"key exchange": sshalgorithms.Kex, "host key": sshalgorithms.HostKey,
+	"client to server cipher": sshalgorithms.Ciphers, "server to client cipher": sshalgorithms.Ciphers,
+	"client to server MAC": sshalgorithms.MACs, "server to client MAC": sshalgorithms.MACs,
+}
 
 // offer is the device's lists filtered to what the vendored x/crypto
 // implements; when the cipher offer holds aes128-cbc the encrypt-then-MAC
@@ -465,7 +471,8 @@ var xcryptoHostKeys = map[string]bool{
 }
 
 // xcryptoImplements asks x/crypto itself: its SetDefaults keeps only the
-// key exchanges, ciphers, and MACs it implements.
+// key exchanges, ciphers, and MACs it implements, and adds
+// curve25519-sha256@libssh.org beside curve25519-sha256.
 func xcryptoImplements(kind sshalgorithms.Kind, name string) bool {
 	var config ssh.Config
 	switch kind {
@@ -474,15 +481,15 @@ func xcryptoImplements(kind sshalgorithms.Kind, name string) bool {
 	case sshalgorithms.Kex:
 		config.KeyExchanges = []string{name}
 		config.SetDefaults()
-		return len(config.KeyExchanges) == 1
+		return slices.Contains(config.KeyExchanges, name)
 	case sshalgorithms.Ciphers:
 		config.Ciphers = []string{name}
 		config.SetDefaults()
-		return len(config.Ciphers) == 1
+		return slices.Contains(config.Ciphers, name)
 	case sshalgorithms.MACs:
 		config.MACs = []string{name}
 		config.SetDefaults()
-		return len(config.MACs) == 1
+		return slices.Contains(config.MACs, name)
 	}
 	return false
 }
@@ -494,31 +501,29 @@ func (c *connection) handshakeError(target string, port int, err error) error {
 	if errorcodes.Of(err) != "" {
 		return err // the host-key policy's own code
 	}
+	// x/crypto's negotiation error names the list, its own offer, and the
+	// device's.
+	var negotiation *ssh.AlgorithmNegotiationError
+	if errors.As(err, &negotiation) {
+		if kind, named := negotiatedKinds[negotiation.What]; named {
+			deviceOffer := negotiation.RequestedAlgorithms
+			identity := hostkey.Identity(c.req.Host, port)
+			if kind == sshalgorithms.HostKey && c.req.Policy.Mode != hostkey.Insecure {
+				if types, _ := hostkey.EnrolledTypes(c.req.Policy.KnownHostsFile, identity); len(types) > 0 {
+					return hostkey.TypesNotOffered(c.req.Policy, identity, deviceOffer)
+				}
+			}
+			// A list karvi did not hold was x/crypto's own, which its
+			// error names.
+			offerer, offered := "karvi", c.offered[kind]
+			if _, held := c.offered[kind]; !held {
+				offerer, offered = "native", negotiation.SupportedAlgorithms
+			}
+			return sshalgorithms.NegotiationFailed(kind, offerer, offered, deviceOffer)
+		}
+	}
 	text := err.Error()
 	switch {
-	case noCommonAlgorithm.MatchString(text):
-		m := noCommonAlgorithm.FindStringSubmatch(text)
-		deviceOffer := strings.Fields(m[3])
-		kind := map[string]sshalgorithms.Kind{"key exchange": sshalgorithms.Kex, "host key": sshalgorithms.HostKey}[m[1]]
-		switch {
-		case strings.HasSuffix(m[1], "cipher"):
-			kind = sshalgorithms.Ciphers
-		case strings.HasSuffix(m[1], "MAC"):
-			kind = sshalgorithms.MACs
-		}
-		identity := hostkey.Identity(c.req.Host, port)
-		if kind == sshalgorithms.HostKey && c.req.Policy.Mode != hostkey.Insecure {
-			if types, _ := hostkey.EnrolledTypes(c.req.Policy.KnownHostsFile, identity); len(types) > 0 {
-				return hostkey.TypesNotOffered(c.req.Policy, identity, deviceOffer)
-			}
-		}
-		// A list karvi did not hold was x/crypto's own, which its error
-		// names.
-		offerer, offered := "karvi", c.offered[kind]
-		if _, held := c.offered[kind]; !held {
-			offerer, offered = "native", strings.Fields(m[2])
-		}
-		return sshalgorithms.NegotiationFailed(kind, offerer, offered, deviceOffer)
 	case strings.Contains(text, "unable to authenticate"):
 		return errorcodes.Errorf("authentication_failed", "SSH authentication failed for %s at %s: %v", c.req.Username, target, err)
 	case errors.Is(err, os.ErrDeadlineExceeded):

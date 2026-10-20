@@ -17,6 +17,19 @@
   exit, passed, failed, or interrupted; a step after the package's build that
   failed, or a Ctrl-C, left the folder and the package in it.
 
+- **The newest x/crypto, x/sys, x/term, pty, and gotextfsm.**
+  `golang.org/x/crypto` v0.58.0 (from v0.26.0), `golang.org/x/sys` v0.49.0
+  (v0.23.0), `golang.org/x/term` v0.47.0 (v0.23.0), `github.com/creack/pty`
+  v1.1.24 (v1.1.23), and `github.com/sirikothe/gotextfsm` v1.2.0 (a 2020
+  snapshot); scrapligo v1.4.2 and goldmark v1.8.6 were the newest already.
+  `govulncheck` finds ten advisories against `x/crypto/ssh` on `karvi`'s call
+  paths at the old modules (GO-2025-3487, GO-2026-5013, GO-2026-5015,
+  GO-2026-5017 to GO-2026-5021, GO-2026-6354, GO-2026-6355), and none at the
+  new; the helpers had none. The native transport now offers
+  `mlkem768x25519-sha256`, first among karvi's default key exchanges, which
+  x/crypto now implements. A negotiation failure's message and the Delete key
+  at a prompt are as they were.
+
 ## 0.34.0 - 2026-10-19
 
 A minor release on 0.33.0 for a device as the first word, `karvi DEVICE`;
