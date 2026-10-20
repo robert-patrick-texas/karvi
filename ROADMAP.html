@@ -60,9 +60,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +124,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -375,6 +375,26 @@ from journald, how a suite's is, and the audit suite's, whose subject is
 the round trip through journald, its jobs at devices named for its run
 alone (<a href="docs/EXAMPLES.html#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
 64</a>).</li>
+<li><strong><code>verify-shipped.sh</code> reviewed for what it leaves.</strong> Its <code>STATELESS</code>
+folder, made to show that <code>--help</code> and <code>version</code> create no home, is removed
+only when that check passes, so a failing check leaves it in <code>/tmp</code>. The
+release verifier's package folder had the same gap: a failed baseline left it
+(<a href="docs/EXAMPLES.html#73-the-release-0340-2026-10-19"><code>docs/EXAMPLES.md</code>, chapter
+73</a>), and
+<code>verify-release.sh</code> now removes it on a trap at its exit. The item: every
+folder and file the script makes removed at its exit, passed, failed, or
+interrupted.</li>
+<li><strong>The scripts' traps on the signals.</strong> Twenty-four scripts set their
+cleanup with <code>trap ... EXIT HUP INT TERM</code>, the trap not ending the script:
+sent TERM or HUP alone, such a script runs its cleanup and goes on, where
+without the trap it would end. A draft of <code>verify-release.sh</code>'s trap in that
+form, sent TERM during the container test, removed the package folder and
+went on to print <code>karvi native release verification passed</code>, exit 0; on
+<code>EXIT</code> alone bash runs the cleanup when the signal ends the script (TERM 143,
+HUP 129, a Ctrl-C 130). The item: each of the twenty-four on <code>EXIT</code> alone,
+as <code>verify-release.sh</code>'s is. The questions: a cleanup that stops a daemon or
+a container, run once at the exit, checked under each signal; and a check
+that keeps the other form out of the tree.</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -409,7 +429,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.34.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.34.1</code>.</footer>
 </main>
 </body>
 </html>

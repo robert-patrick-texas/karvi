@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
 <li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
 <li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
 <li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
@@ -73,9 +74,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,6 +125,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
 <li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
 <li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
 <li><a href="#0321---2026-10-18">0.32.1 - 2026-10-18</a></li>
@@ -150,9 +152,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -164,6 +166,54 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0341---2026-10-20">0.34.1 - 2026-10-20 <a class="anchor" href="#0341---2026-10-20" aria-label="Link to this section">#</a></h2>
+<p>A patch release on 0.34.0 for karvi under a shorter name, the newest modules,
+and Go 1.27.3, which change no record, file, key, or schema; every counter is
+0.34.0's (configuration schema 6, registry 31, execution plan 14, daemon IPC
+12, command record 4, job manifest and summary 5, plan report 3, credential
+package 2, scoreboard 4, audit 2, metrics 1, inventory 1), five modules move
+to their newest versions, and a site has nothing to change. An operator's
+0.34.0 daemon, of another build, is drained by the first submission after the
+upgrade.</p>
+<ul>
+<li>
+<p><strong>karvi under a shorter name keeps its scratch files.</strong> A karvi started
+through a symbolic link of another name, a site's <code>/usr/bin/k</code>, was judged
+dead by the scratch and spool sweeps, which read the name it was started by:
+a recorded login's own child removed its wrapper's timing log at once, and
+the transcript was rendered without its resizes under
+<code>transcript_timing_unreadable</code>; another karvi's sweep could take a running
+one's askpass socket, <code>ssh</code> configuration, or spool alike. A pid is now alive
+as karvi when the file it runs is named <code>karvi…</code>. A shorter name is a link or
+an alias; the executable itself keeps its name and place.</p>
+</li>
+<li>
+<p><strong>The release verifier removes its package folder when it fails.</strong>
+<code>scripts/verify-release.sh</code> removes
+<code>${TMPDIR:-/tmp}/karvi-verify-deb-&lt;random&gt;</code> at its exit, passed, failed, or
+interrupted; a step after the package's build that failed, or a Ctrl-C, left
+the folder and the package in it.</p>
+</li>
+<li>
+<p><strong>The newest x/crypto, x/sys, x/term, pty, and gotextfsm.</strong>
+<code>golang.org/x/crypto</code> v0.58.0 (from v0.26.0), <code>golang.org/x/sys</code> v0.49.0
+(v0.23.0), <code>golang.org/x/term</code> v0.47.0 (v0.23.0), <code>github.com/creack/pty</code>
+v1.1.24 (v1.1.23), and <code>github.com/sirikothe/gotextfsm</code> v1.2.0 (a 2020
+snapshot); scrapligo v1.4.2 and goldmark v1.8.6 were the newest already.
+<code>govulncheck</code> finds ten advisories against <code>x/crypto/ssh</code> on <code>karvi</code>'s call
+paths at the old modules (GO-2025-3487, GO-2026-5013, GO-2026-5015,
+GO-2026-5017 to GO-2026-5021, GO-2026-6354, GO-2026-6355), and none at the
+new; the helpers had none. The native transport now offers
+<code>mlkem768x25519-sha256</code>, first among karvi's default key exchanges, which
+x/crypto now implements. A negotiation failure's message and the Delete key
+at a prompt are as they were.</p>
+</li>
+<li>
+<p><strong>Go 1.27.3.</strong> The executables are built with Go 1.27.3, where 0.34.0's
+were built with Go 1.27.2. Go 1.27.3 carries security fixes to
+<code>crypto/x509</code>, which <code>karvi</code> links and the three helpers do not.</p>
+</li>
+</ul>
 <h2 id="0340---2026-10-19">0.34.0 - 2026-10-19 <a class="anchor" href="#0340---2026-10-19" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.33.0 for a device as the first word, <code>karvi DEVICE</code>;
 every counter is 0.33.0's (configuration schema 6, registry 31, execution plan
@@ -1758,7 +1808,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.34.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.34.1</code>.</footer>
 </main>
 </body>
 </html>

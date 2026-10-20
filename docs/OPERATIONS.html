@@ -93,9 +93,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -190,9 +190,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -213,15 +213,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.33.0 build=pEeV3vr3M3y-k2vZryhR
+<pre><code>daemon drained version=0.34.0 build=Tk7LptpG6De_7CGUjfqI
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build pEeV3vr3M3y-k2vZryhR 0.33.0
-  client build Tk7LptpG6De_7CGUjfqI 0.34.0
+  daemon build Tk7LptpG6De_7CGUjfqI 0.34.0
+  client build fNsX8VA8zKCBF5ctuqyS 0.34.1
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -1938,6 +1938,10 @@ nothing. It completes <code>karvi-audit</code>'s long flags alike, through
 <code>karvi-audit __complete</code>; a name, a time, and a pattern are the operator's
 to type. A host that holds the file from before a helper was added runs
 <code>sudo karvi setup tab</code> once more, which reports <code>updated</code>.</p>
+<p>A shorter name, such as <code>k</code> for the fewest keys to type, is a symbolic link
+or an alias, never the executable renamed or copied: files depend on its name
+and place, <code>karvi-askpass</code> found beside it and a scratch file or spool kept
+while its maker runs a file named <code>karvi…</code>.</p>
 <p>A site that gives karvi a shorter name, a symbolic link on the path, binds
 that name to the same function in a file of its own, as root:</p>
 <pre><code class="language-bash">sudo ln -s &quot;$(command -v karvi)&quot; /usr/local/bin/k
@@ -2283,7 +2287,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.34.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.34.1</code>.</footer>
 </main>
 </body>
 </html>

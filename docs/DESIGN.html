@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -1595,7 +1595,9 @@ their maker's pid (<code>karvi-ssh-&lt;pid&gt;-*.conf</code>, <code>karvi-script
 operator, such an entry whose pid is not alive as a karvi executable, at every
 admission, at the daemon's start, and at a login's start, logged as
 <code>scratch_abandoned_removed</code>; anything else in the folder is left, and no
-socket is connected to.
+socket is connected to. A pid is alive as karvi when the file it runs
+(<code>/proc/PID/exe</code>) is named <code>karvi…</code>, the spool sweep's rule too: a symbolic
+link or an alias of another name, a site's <code>k</code>, runs karvi all the same.
 <em>Why:</em> a shell session's <code>ssh</code> under a dead parent kept the remote shell, since
 EOF on a pty does not end it: a router's vty until its exec-timeout, a server's
 shell for good, and a killed login's <code>ssh</code> fought the shell for the terminal
@@ -1606,7 +1608,9 @@ recorded login runs for hours); <code>karvi-prune</code> (no configuration, no j
 of an owner alive); an askpass socket judged by connecting to it (the broker
 serves one connection, so a probe took a live job's and its authentication
 failed, executed); a broker that waits past a connection that sends nothing
-(its one-use rule changed, and a probe still races the helper).</p>
+(its one-use rule changed, and a probe still races the helper); the owner
+judged by its <code>argv[0]</code> (the name it was started by: a login started through a
+site's link <code>k</code> had its timing log swept by its own child, executed).</p>
 <p><strong>The scratch is bounded for the askpass socket.</strong> A path socket holds 107
 bytes, and the askpass socket's name, <code>askpass-&lt;pid&gt;-&lt;16 hex&gt;.sock</code>, is up to 37
 with a seven-digit pid (Linux's <code>PID_MAX_LIMIT</code>, 4194304), so the scratch
@@ -3312,7 +3316,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.34.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.34.1</code>.</footer>
 </main>
 </body>
 </html>
