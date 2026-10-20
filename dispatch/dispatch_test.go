@@ -102,17 +102,38 @@ func TestRamp(t *testing.T) {
 		t.Fatalf("floor=%d", got)
 	}
 }
+
+// afterFailure fails task a and holds every other task until a's result
+// is recorded, which the sink hears after the halt is decided.
+type afterFailure struct{ recorded chan struct{} }
+
+func (f afterFailure) Execute(_ context.Context, t Task, _ Context) Result {
+	if t.Key != "a" {
+		<-f.recorded
+	}
+	return Result{Task: t, Success: t.Key != "a", StartedAt: time.Now(), EndedAt: time.Now()}
+}
+
 func TestParallelHalt(t *testing.T) {
 	tasks := []Task{}
 	for i := 0; i < 20; i++ {
 		tasks = append(tasks, Task{Key: string(rune('a' + i)), Position: i + 1})
 	}
-	s := LocalDispatcher{}.Execute(context.Background(), Plan{Mode: "parallel", Tasks: tasks, Width: 2, HaltErrorCount: 1}, fake{fail: map[string]bool{"a": true}}, nil)
-	if s.Counts.Failed < 1 || s.HaltReason != "error_count" {
+	// A task taken beside a returns after a's failure is recorded, so the
+	// halt meets the rest unstarted; tasks that take no time could all run
+	// while a's worker waited for a CPU.
+	recorded := make(chan struct{})
+	sink := EventSinkFunc(func(e Event) {
+		if e.Kind == "task_terminal" && e.Task.Key == "a" {
+			close(recorded)
+		}
+	})
+	s := LocalDispatcher{}.Execute(context.Background(), Plan{Mode: "parallel", Tasks: tasks, Width: 2, HaltErrorCount: 1}, afterFailure{recorded}, sink)
+	if s.Counts.Failed != 1 || s.HaltReason != "error_count" {
 		t.Fatalf("%+v", s)
 	}
-	if s.Counts.NotStarted == 0 {
-		t.Fatalf("expected unstarted: %+v", s.Counts)
+	if s.Counts.Terminal > 2 {
+		t.Fatalf("a task started after the halt: %+v", s.Counts)
 	}
 }
 
