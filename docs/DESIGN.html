@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -2716,9 +2716,11 @@ was <code>watch.directory</code>, a literal path, while the writers, the folders
 and, with the shared folder closed, did not show the operator's own jobs
 written to the fallback. <em>Not taken:</em> <code>watch</code> reading the first usable place
 alone, or the fallback alone (it loses the team's view).</p>
-<p><strong>Login transcripts record the device stream only.</strong> <code>--record[=PATH]</code> writes
-<code>&lt;device&gt;-&lt;HHMMSS&gt;.log</code> and its metadata side by side in a day folder,
-exclusively created and bumped together on collision; the transcript holds what
+<p><strong>Login transcripts record the device stream only.</strong> <code>--record</code> writes
+<code>&lt;device&gt;-&lt;HHMMSS&gt;.log</code> and its metadata side by side in a day folder of
+<code>transcript.root</code>, exclusively created and bumped together on collision, and
+<code>--record=PATH</code> into PATH under the device's name (the next entry); the
+transcript holds what
 the device returned and never operator keystrokes, so a password typed at a
 non-echoing prompt is not written. <code>transcript.format</code> values other than text
 are refused rather than silently falling back. The terminal names the file
@@ -2729,6 +2731,25 @@ rendered and colored as every header and footer.
 <em>Why:</em> the operator declined recording the input stream; a JSON document is
 valid only when complete; the header scrolls away in a long session, and
 the operator leaving it wants the path where it ends.</p>
+<p><strong><code>--record=PATH</code> records into the operator's folder under the device's
+name.</strong> PATH is the folder itself, with no day folder, created with its
+parents when absent (<code>--record=.</code> is the working directory). A session's
+names are <code>&lt;device&gt;.log</code> and <code>&lt;device&gt;.meta.jsonl</code>; when either is taken both
+take the session's start, <code>&lt;device&gt;-&lt;YYMMDD&gt;-&lt;HHMMSS&gt;</code>; when either of those
+is taken too the login is refused with <code>transcript_name_taken</code>, the taken
+names stacked, and nothing is written. Each name is created exclusively, so a
+file of the operator's in PATH is never changed. A bare <code>--record</code> keeps
+<code>transcript.root</code>'s day folder and <code>&lt;device&gt;-&lt;HHMMSS&gt;</code>. <em>Why:</em> an operator who
+names a folder means that folder, and the device's name is the one looked
+for; the day folder serves <code>karvi-prune</code>, which walks the transcript trees
+alone, and a shared tree holding many sessions a day; a folder without day
+folders spans days, so the second name carries the date: with the time
+alone, Monday's <code>router1-184652.log</code> would refuse a Tuesday session started
+at 18:46:52. <em>Not taken:</em> the configured layout under PATH (the day folder
+and the time in every name, where the operator named the place);
+<code>&lt;device&gt;-&lt;HHMMSS&gt;</code> as the second name; the session ID as the second name
+(never taken, and longer); <code>.1</code>, <code>.2</code> after the second name (the operator
+chose the refusal).</p>
 <p><strong>Terminal text is rendered as the terminal showed it.</strong> One renderer turns a
 terminal's bytes into text, for a login's transcript and for the shell's output
 and prompts in <code>command</code> and <code>run</code> on every platform. It holds the line being
@@ -3316,7 +3337,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.34.1</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.35.0</code>.</footer>
 </main>
 </body>
 </html>

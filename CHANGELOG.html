@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
 <li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
 <li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
 <li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
@@ -74,9 +75,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -125,6 +126,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
 <li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
 <li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
 <li><a href="#0330---2026-10-18">0.33.0 - 2026-10-18</a></li>
@@ -152,9 +154,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -166,6 +168,29 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0350---2026-10-21">0.35.0 - 2026-10-21 <a class="anchor" href="#0350---2026-10-21" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.34.1 for a recorded login into the operator's folder,
+<code>--record=PATH</code>; every counter is 0.34.1's (configuration schema 6, registry
+31, execution plan 14, daemon IPC 12, command record 4, job manifest and
+summary 5, plan report 3, credential package 2, scoreboard 4, audit 2, metrics
+1, inventory 1), and the module graph and Go are 0.34.1's. A site has
+something to change where a script looks for a <code>--record=PATH</code> session's files
+under <code>PATH/YYMMDD/</code>: they are <code>PATH/&lt;device&gt;.log</code> and its metadata, or
+<code>PATH/&lt;device&gt;-YYMMDD-HHMMSS</code> when that name was taken. An operator's 0.34.1
+daemon, of another build, is drained by the first submission after the
+upgrade.</p>
+<ul>
+<li><strong><code>--record=PATH</code> records into PATH under the device's name.</strong> A recorded
+login given a folder writes into it, with no day folder, PATH and its
+parents created when absent (<code>--record=.</code> is the working directory):
+<code>router1.log</code> beside <code>router1.meta.jsonl</code>. When either name is taken, both
+take the session's start, <code>router1-261020-184652.log</code> and its metadata;
+when either of those is taken too, the login is refused with
+<code>transcript_name_taken</code> (exit 111) and nothing is written. A file of the
+operator's in PATH is never changed. A bare <code>--record</code> keeps
+<code>transcript.root</code>'s day folder and <code>&lt;device&gt;-HHMMSS</code>.
+<code>transcript_path_not_directory</code> reads <code>--record=PATH; name a folder</code>.</li>
+</ul>
 <h2 id="0341---2026-10-20">0.34.1 - 2026-10-20 <a class="anchor" href="#0341---2026-10-20" aria-label="Link to this section">#</a></h2>
 <p>A patch release on 0.34.0 for karvi under a shorter name, the newest modules,
 and Go 1.27.3, which change no record, file, key, or schema; every counter is
@@ -1808,7 +1833,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.34.1</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.35.0</code>.</footer>
 </main>
 </body>
 </html>

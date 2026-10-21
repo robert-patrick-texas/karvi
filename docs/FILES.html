@@ -62,9 +62,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -128,9 +128,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -904,6 +904,22 @@ had; each but the summary has its switch, <code>output.files.*</code>, and <code
 <td>the recording's metadata</td>
 </tr>
 <tr>
+<td><code>&lt;device&gt;.log</code>, else <code>&lt;device&gt;-YYMMDD-HHMMSS.log</code></td>
+<td>PATH of <code>--record=PATH</code></td>
+<td><code>0640</code></td>
+<td><code>0640</code></td>
+<td>the operator who logged in</td>
+<td>a login recorded into the operator's folder</td>
+</tr>
+<tr>
+<td><code>&lt;device&gt;.meta.jsonl</code>, else <code>&lt;device&gt;-YYMMDD-HHMMSS.meta.jsonl</code></td>
+<td>the same</td>
+<td><code>0640</code></td>
+<td><code>0640</code></td>
+<td>the same</td>
+<td>its metadata</td>
+</tr>
+<tr>
 <td><code>&lt;device&gt;[SUFFIX]</code></td>
 <td>the collection directory</td>
 <td><code>0660</code> (<code>crun.file-mode</code>)</td>
@@ -1154,7 +1170,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.34.1</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.35.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -60,9 +60,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +124,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -154,27 +154,36 @@ the same way for itself.</p>
 <h2 id="destination-and-layout">Destination and layout <a class="anchor" href="#destination-and-layout" aria-label="Link to this section">#</a></h2>
 <ul>
 <li>
-<p>Without PATH, sessions record below <code>transcript.root</code> (default
-<code>&lt;basedir&gt;/transcripts</code>). <code>--record=PATH</code> uses PATH in its place; when
-<code>transcript.root</code> is locked, <code>--record=PATH</code> is refused with
-<code>transcript_root_locked</code>. PATH attaches with <code>=</code> only: <code>--record /x r1</code>
-is refused as <code>cli_option_value_detached</code>, where the path had been taken
-for the device. No environment variable selects a destination.</p>
-</li>
-<li>
-<p>A session writes into <code>&lt;destination&gt;/YYMMDD/</code>, named from the start
-date in the effective <code>timezone</code>; a session that crosses midnight stays in
-its start-day folder. <code>--record=session.log</code> therefore creates a folder
-named <code>session.log</code>, and a PATH that exists and is not a folder is refused
-with <code>transcript_path_not_directory</code>.</p>
-</li>
-<li>
-<p>The transcript <code>&lt;device&gt;-&lt;HHMMSS&gt;.log</code> and its metadata
-<code>&lt;device&gt;-&lt;HHMMSS&gt;.meta.jsonl</code> sit side by side, where <code>&lt;device&gt;</code> is the
-lowercase target name with every character other than letters, digits,
-<code>.</code>, <code>_</code>, and <code>-</code> replaced by <code>_</code>. When either name is taken, both are
-bumped together: <code>router01-143005.1.log</code> and
+<p>Without PATH, a session records below <code>transcript.root</code> (default
+<code>&lt;basedir&gt;/transcripts</code>), in <code>&lt;root&gt;/YYMMDD/</code>, named from the start date
+in the effective <code>timezone</code>; a session that crosses midnight stays in its
+start-day folder. The transcript <code>&lt;device&gt;-&lt;HHMMSS&gt;.log</code> and its metadata
+<code>&lt;device&gt;-&lt;HHMMSS&gt;.meta.jsonl</code> sit side by side. When either name is
+taken, both are bumped together: <code>router01-143005.1.log</code> and
 <code>router01-143005.1.meta.jsonl</code>, then <code>.2</code>.</p>
+</li>
+<li>
+<p><code>--record=PATH</code> records into PATH itself, with no day folder, as
+<code>&lt;device&gt;.log</code> and <code>&lt;device&gt;.meta.jsonl</code>. When either name is taken, both
+take the session's start: <code>router01-261020-143005.log</code> and
+<code>router01-261020-143005.meta.jsonl</code>. When either of those is taken too,
+the login is refused with <code>transcript_name_taken</code> and nothing is written;
+a session started in another second has another name. A file already in
+PATH is never changed: a name it holds passes to the next.</p>
+</li>
+<li>
+<p><code>&lt;device&gt;</code> is the lowercase target name with every character other than
+letters, digits, <code>.</code>, <code>_</code>, and <code>-</code> replaced by <code>_</code>.</p>
+</li>
+<li>
+<p><code>--record=.</code> is the working directory. A PATH that does not exist is
+created with its parents, so <code>--record=session.log</code> creates a folder named
+<code>session.log</code>; a PATH that exists and is not a folder is refused with
+<code>transcript_path_not_directory</code>. When <code>transcript.root</code> is locked,
+<code>--record=PATH</code> is refused with <code>transcript_root_locked</code>. PATH attaches
+with <code>=</code> only: <code>--record /x r1</code> is refused as <code>cli_option_value_detached</code>,
+where the path had been taken for the device. No environment variable
+selects a destination.</p>
 </li>
 <li>
 <p>The terminal names the transcript twice, with one line in the display's style:
@@ -244,12 +253,14 @@ window. The runbook's row D16 records what IOS XE's line editor gives
 (<a href="DEVICE-QUALIFICATION-RUNBOOK.html#4-the-rows"><code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code>, section
 4</a>).</p>
 <p>Cleanup: <code>karvi-prune</code> recognizes an ended session by the end record in its
-metadata file and removes the transcript and metadata together.</p>
+metadata file and removes the transcript and metadata together. It walks the
+day folders of the transcript trees alone: what a session recorded into a
+<code>--record=PATH</code> folder is the operator's to keep or remove.</p>
 <p><code>karvi-login(1)</code> (<code>man karvi login</code>), TRANSCRIPTS, restates the
 destination, the names, the two lines, and what the transcript holds for
 the terminal; a change to one changes both.</p>
 
-<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.34.1</code>.</footer>
+<footer>Generated from <code>docs/LOGIN-TRANSCRIPTS.md</code> at <code>karvi-v0.35.0</code>.</footer>
 </main>
 </body>
 </html>

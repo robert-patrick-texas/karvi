@@ -76,9 +76,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,9 +156,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -423,13 +423,13 @@ to operate until native is actually selected.</p>
 <h2 id="login-transcripts-and-host-keys">Login, transcripts, and host keys <a class="anchor" href="#login-transcripts-and-host-keys" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi login router1
 karvi login --host router1 --record
-karvi login router1 --record=./router1.log
+karvi login router1 --record=.
 karvi login --host router1 --address 192.0.2.10
 </code></pre>
 <p>Recording uses a controlling PTY, propagates terminal resize, restores terminal
 state, and writes a <code>0640</code> transcript and metadata pair below
-<code>transcript.root/YYMMDD/</code> (see
-<a href="docs/LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>).</p>
+<code>transcript.root/YYMMDD/</code>, or into the folder <code>--record=PATH</code> names under the
+device's name (see <a href="docs/LOGIN-TRANSCRIPTS.html"><code>docs/LOGIN-TRANSCRIPTS.md</code></a>).</p>
 <p>One host-key policy governs login, command, and run:</p>
 <pre><code class="language-toml">[ssh]
 host-key-policy = &quot;accept-new&quot;
@@ -672,7 +672,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.34.1</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.35.0</code>.</footer>
 </main>
 </body>
 </html>

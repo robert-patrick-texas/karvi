@@ -120,6 +120,8 @@
 <li><a href="#72-the-device-shortcut-built-2026-10-19">72. The device shortcut built (2026-10-19)</a></li>
 <li><a href="#73-the-release-0340-2026-10-19">73. The release 0.34.0 (2026-10-19)</a></li>
 <li><a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">74. A shorter name keeps its scratch files (2026-10-20)</a></li>
+<li><a href="#75-the-release-0341-2026-10-20">75. The release 0.34.1 (2026-10-20)</a></li>
+<li><a href="#76-the-operators-folder---recordpath-2026-10-20">76. The operator&#39;s folder, --record=PATH (2026-10-20)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -131,9 +133,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -255,6 +257,8 @@
 <li><a href="#72-the-device-shortcut-built-2026-10-19">72. The device shortcut built (2026-10-19)</a></li>
 <li><a href="#73-the-release-0340-2026-10-19">73. The release 0.34.0 (2026-10-19)</a></li>
 <li><a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">74. A shorter name keeps its scratch files (2026-10-20)</a></li>
+<li><a href="#75-the-release-0341-2026-10-20">75. The release 0.34.1 (2026-10-20)</a></li>
+<li><a href="#76-the-operators-folder---recordpath-2026-10-20">76. The operator&#39;s folder, --record=PATH (2026-10-20)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -266,9 +270,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.34.1 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.34.1 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.34.1</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -15899,8 +15903,523 @@ process.</p>
 <p><strong>Closed.</strong> The evidence is kept beside the tree
 (<code>release-design-evidence/shorter-name-sweep-2026-10-20</code>: the two lab scripts
 and their output, the suite's runs on both builds, the test and suite logs).</p>
+<h2 id="75-the-release-0341-2026-10-20">75. The release 0.34.1 (2026-10-20) <a class="anchor" href="#75-the-release-0341-2026-10-20" aria-label="Link to this section">#</a></h2>
+<p>The fifteenth public release, 0.34.1, on the operator's word and number,
+carrying <a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">chapter 74</a>
+(a karvi started under a shorter name keeps its scratch files) and the release
+verifier's package folder removed at its exit (<code>b5691fe</code>, <a href="#73-the-release-0340-2026-10-19">chapter
+73</a>'s finding). At the build's start the
+operator set a rule for this release and every later one: the newest Go on the
+host and the newest version of every module. Go 1.27.3, installed on the host
+after 0.34.0's build, builds it (the operator: &quot;Use the newer Go&quot;); five
+modules moved, and three of karvi's uses of them needed an adaptation. No
+counter moves, so the daemon IPC schema stays 12 and the compatibility example
+is the drain, beside the released 0.34.0 daemon. The sequence is chapter 73's.
+It stopped twice for the operator, each time on a test that read a result
+before it was due on this host, and both tests were mended on the operator's
+word. The build stopped after the package's install check and went on to the
+push at the operator's second word. After publishing, the rule's check became
+a release tool of its own, <code>latest.sh</code>, the baseline's first step.</p>
+<p><strong>What it gains.</strong> A site has chapter 74's fix from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release. The
+native transport runs on an <code>x/crypto</code> with none of the ten advisories
+<code>govulncheck</code> finds on <code>karvi</code>'s call paths at the old version, and offers
+<code>mlkem768x25519-sha256</code> first; <code>karvi</code> links Go 1.27.3's fixes to
+<code>crypto/x509</code>, which the three helpers do not link. Every later release meets
+the rule before its build, or stops and names what is behind.</p>
+<p><strong>The rule, agreed.</strong> In simple terms:</p>
+<ul>
+<li>A release builds with the newest stable Go, the first line of go.dev's
+<code>VERSION</code>; installing it on the host is the operator's (<code>sudo bump-go.sh</code>).</li>
+<li>Every module <code>go.mod</code> requires moves to its newest version within its
+major, each move a CHANGELOG entry.</li>
+<li>A new major is a new module path, a ROADMAP item (<code>scrapligo/v2</code>).</li>
+<li>The baseline checks both first and stops before its build when one is
+behind.</li>
+</ul>
+<p><strong>Before the number.</strong> The archive's mirror
+(<code>~/karvi/backup/archive-2026-10-19</code>) was fetched to <code>d7ea8db</code>, its README
+noting it and its <code>SHA256SUMS</code> renewed; the six release tools were unchanged.
+A container on Docker's default network reached each address of chapter 73's
+probe. The baseline on a clean clone of <code>d7ea8db</code> passed, and was moot once
+the modules moved.</p>
+<p><strong>The module move.</strong> By <code>GOFLAGS=-mod=mod go get -u -t ./...</code>, <code>go mod tidy</code>,
+<code>go mod vendor</code>, and <code>go mod verify</code> (<code>36b3ee4</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>From</th>
+<th>To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>golang.org/x/crypto</code></td>
+<td>v0.26.0</td>
+<td>v0.58.0</td>
+</tr>
+<tr>
+<td><code>golang.org/x/sys</code></td>
+<td>v0.23.0</td>
+<td>v0.49.0</td>
+</tr>
+<tr>
+<td><code>golang.org/x/term</code></td>
+<td>v0.23.0</td>
+<td>v0.47.0</td>
+</tr>
+<tr>
+<td><code>github.com/creack/pty</code></td>
+<td>v1.1.23</td>
+<td>v1.1.24</td>
+</tr>
+<tr>
+<td><code>github.com/sirikothe/gotextfsm</code></td>
+<td>2020 snapshot</td>
+<td>v1.2.0</td>
+</tr>
+</tbody>
+</table>
+<p>scrapligo v1.4.2 and goldmark v1.8.6 were the newest already. Four modules
+that only the graph names keep their versions (go-cmp v0.6.0, x/net v0.60.0,
+x/text, yaml.v3): no package of karvi's needs them, so <code>go get -u -t ./...</code>
+leaves them, and none is vendored or linked. <code>govulncheck</code> v1.9.0 on
+<code>cmd/karvi</code> before and after (the <code>#</code> lines are labels; every other line is
+<code>govulncheck</code>'s):</p>
+<pre><code class="language-text"># at d7ea8db, x/crypto v0.26.0
+Vulnerability #1: GO-2026-6355
+    Prevent DoS on deadlocked established channel in golang.org/x/crypto/ssh
+...
+Vulnerability #10: GO-2025-3487
+    Potential denial of service in golang.org/x/crypto
+Your code is affected by 10 vulnerabilities from 1 module.
+# at the new modules
+No vulnerabilities found.
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.34.1</code>.</footer>
+Your code is affected by 0 vulnerabilities.
+</code></pre>
+<p>The ten are GO-2025-3487, GO-2026-5013, GO-2026-5015, GO-2026-5017 to
+GO-2026-5021, GO-2026-6354, and GO-2026-6355, fixed between v0.35.0 and
+v0.56.0. The whole tree had fifteen, the fake device's server side among them,
+and has none; <code>karvi-askpass</code>, <code>karvi-prune</code>, and <code>karvi-audit</code> had none
+before.</p>
+<p><strong>The three adaptations.</strong> At the new modules <code>go test ./...</code> failed in three
+packages: the native adapter, its transport, and <code>termline</code>. Each failure was
+a use of a module that the module had changed under it; the three were agreed
+and are in the module move's commit.</p>
+<ol>
+<li><strong>A key exchange x/crypto keeps.</strong> karvi offers a name over the native
+transport only when x/crypto implements it, and asked x/crypto by giving
+<code>SetDefaults</code> the one name and counting one left. x/crypto now adds
+<code>curve25519-sha256@libssh.org</code> beside <code>curve25519-sha256</code>, so the count
+was two: karvi's defaults dropped <code>curve25519-sha256</code>, and a configured
+list of it alone was refused. The check now asks whether the name is among
+those kept.</li>
+<li><strong>A negotiation failure by its type.</strong> karvi read a failed negotiation
+from x/crypto's error text with a regular expression, to name the list and
+both offers in <code>ssh_algorithm_negotiation_failed</code>. The text changed (&quot;we
+offered&quot;, &quot;peer offered&quot;), and the failure fell through to
+<code>native_session_open_failed</code> with x/crypto's words. x/crypto now returns
+<code>*ssh.AlgorithmNegotiationError</code>, whose <code>What</code> names the list,
+<code>RequestedAlgorithms</code> the device's offer, and <code>SupportedAlgorithms</code> its
+own; karvi reads those, and the message is as it was.</li>
+<li><strong>The Delete key is x/term's.</strong> karvi's line editor at a prompt
+translated <code>ESC [ 3 ~</code> through x/term's <code>AutoCompleteCallback</code> into a
+private rune. x/term now decodes Delete itself and turns the callback off
+in <code>ReadPassword</code>, so at a password prompt the private rune went into the
+password: the test types <code>secret</code>, moves left, and presses Delete,
+wanting <code>secre</code>, and got <code>&quot;secre\ue000t&quot;</code>. karvi's translation and its
+callback are removed.</li>
+</ol>
+<p><strong>Executed.</strong> The released 0.34.0 (<code>old</code>), the new modules under 0.34.0's
+code (<code>nofix</code>), and the new modules with the adaptations (<code>new</code>), each over
+the native transport against the fake device built from the tree with one
+list of its own, every place under the lab (<code>lab.sh</code>; the <code>[n]</code>, <code>--</code>, and
+<code>exit=</code> lines are its labels, the others karvi's):</p>
+<pre><code class="language-text">[2] the fake device offers aes128-ctr alone (karvi's defaults leave it out)
+-- old: karvi  command --transport native d1 show clock
+exit=110
+ssh_algorithm_negotiation_failed: command failed for name:d1
+karvi: target=d1 status=connection_error error=ssh_algorithm_negotiation_failed: no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr
+-- nofix: karvi  command --transport native d1 show clock
+exit=110
+native_session_open_failed: command failed for name:d1
+karvi: target=d1 status=connection_error error=native_session_open_failed: SSH handshake with 127.0.0.1:2231: ssh: handshake failed: ssh: no common algorithm for client to server cipher; we offered: [&quot;aes256-gcm@openssh.com&quot; &quot;chacha20-poly1305@openssh.com&quot; &quot;aes256-ctr&quot;], peer offered: [&quot;aes128-ctr&quot;]
+-- new: karvi  command --transport native d1 show clock
+exit=110
+ssh_algorithm_negotiation_failed: command failed for name:d1
+karvi: target=d1 status=connection_error error=ssh_algorithm_negotiation_failed: no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr
+[3] the fake device offers mlkem768x25519-sha256 alone
+-- old: karvi  command --transport native d1 show clock
+exit=110
+ssh_algorithm_negotiation_failed: command failed for name:d1
+-- nofix: karvi  command --transport native d1 show clock
+exit=0
+-- new: karvi  command --transport native d1 show clock
+exit=0
+[4] karvi's key exchange list curve25519-sha256 alone, the fake device's defaults
+-- old: karvi --set ssh-algorithms.kex=[&quot;curve25519-sha256&quot;] command --transport native d1 show clock
+exit=0
+-- nofix: karvi --set ssh-algorithms.kex=[&quot;curve25519-sha256&quot;] command --transport native d1 show clock
+exit=2
+ssh_algorithms_unavailable: command failed for name:d1
+karvi: target=d1 status=connection_error error=ssh_algorithms_unavailable: none of the configured key exchange algorithms (curve25519-sha256) is implemented by scrapligo-v1
+-- new: karvi --set ssh-algorithms.kex=[&quot;curve25519-sha256&quot;] command --transport native d1 show clock
+exit=0
+</code></pre>
+<p>Case [3]'s <code>old</code> line naming both offers is left out above. The native
+default key exchanges, by an overlay test printing the offer, before and after
+the first adaptation (the <code>#</code> lines are labels):</p>
+<pre><code class="language-text"># x/crypto v0.58.0, before
+kex: [mlkem768x25519-sha256 curve25519-sha256@libssh.org ecdh-sha2-nistp521 ...]
+# x/crypto v0.58.0, adapted
+kex: [mlkem768x25519-sha256 curve25519-sha256 curve25519-sha256@libssh.org ecdh-sha2-nistp521 ...]
+</code></pre>
+<p><strong>The first stop: the heartbeat test.</strong> The baseline on a clone of <code>36b3ee4</code>
+failed at the release verifier's <code>go test</code>:
+<code>TestHeartbeatRewritesTheSnapshot</code> started a heartbeat every 20 ms and read
+the scoreboard snapshot once, 120 ms later. Each beat is written by atomic
+replacement with an fsync, free on tmpfs and costly on a disk, and the
+release runs with <code>TMPDIR=/var/tmp</code>, where the test's folder is on the root
+disk. The first beat, measured over 200 writers each:</p>
+<pre><code class="language-text">TMPDIR=/dev/shm/kd/lt first beat: median 22ms, p95 22ms, p99 23ms, max 24ms, over 120ms: 0 of 200
+TMPDIR=/var/tmp first beat: median 64ms, p95 125ms, p99 176ms, max 185ms, over 120ms: 11 of 200
+</code></pre>
+<p>The test now reads the snapshot every 20 ms until the first beat lands, up to
+500 ms (the operator's number), and fails as before when none does
+(<code>3e4af95</code>). Operations are not touched: a beat comes every 2 s, and a
+scoreboard is stale only after 10 s. The baseline on a clone of <code>3e4af95</code>
+passed.</p>
+<p><strong>The second stop: the parallel-halt test.</strong> The core evidence after 1/3
+failed <code>TestParallelHalt</code> in <code>dispatch</code>, unchanged since 0.34.0 and standard
+library only: <code>expected unstarted: {Total:20 Terminal:20 Succeeded:19 Failed:1 NotStarted:0 Inflight:0}</code>. Twenty tasks that take no time run two
+wide, the first failing, with a halt at one error; the test required some left
+unstarted. With more than one CPU the other worker could take and finish all
+nineteen while the failing task's result waited to be recorded. Failures out
+of 20,000 runs (the measurement's own lines):</p>
+<pre><code class="language-text">The test as committed, go test -count=20000 -cpu N -run '^TestParallelHalt$' ./dispatch, failures:
+  cpu=1 0   cpu=2 13   cpu=4 32   cpu=8 25
+The test that holds every task beside a until a's failure is recorded (parallel-halt-test.patch), failures:
+  cpu=1 0   cpu=2 0   cpu=4 0   cpu=8 0
+</code></pre>
+<p>A task beside the failing one now waits for the failure's recorded result
+(the sink's <code>task_terminal</code> for it), so the halt meets the rest unstarted; the
+test requires one failure, the halt by error count, and at most two tasks run
+(<code>80f2032</code>). Over 20,000 runs at four CPUs two had run 37 times, one the rest;
+with the halt's stop mutated away the test fails, <code>a task started after the halt</code>. The core evidence then passed.</p>
+<p><strong>The rule's check, <code>latest.sh</code>.</strong> Written after publishing, on the operator's
+word, from the checks the build had run by hand, and installed as the seventh
+release tool. <code>release-tools/latest.sh [TREE]</code> compares the release's Go
+(<code>GO</code>, <code>/usr/local/go/bin/go</code> by default) with the first line of
+<code>https://go.dev/VERSION?m=text</code>, as <code>bump-go.sh</code> reads it, then runs <code>go list -m -u</code> on every module <code>go.mod</code> requires, in a copy of <code>go.mod</code> and <code>go.sum</code>.
+Each one behind is named above its newest, and it exits 1. It also stops when
+it cannot check: no <code>go.mod</code> and <code>go.sum</code>, go.dev or the module proxy unread,
+<code>GO</code> unrunnable. <code>baseline.sh</code> runs it on the clone, into <code>latest.txt</code> beside
+the baseline's logs, and stops before the build when it fails. Not counted: a
+module only the graph names, a new major, and uv, ty, and ruff, which
+<code>bump-uv.sh</code> keeps and karvi does not use.</p>
+<p><strong>Executed.</strong> <code>examples.sh</code> on the installed tools (the <code>[n]</code> and <code>exit=</code>
+lines are its labels, the others <code>latest.sh</code>'s and <code>baseline.sh</code>'s):</p>
+<pre><code class="language-text">[1] the tree at 83a321d
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 7 modules /home/netops/karvi/karvi/go.mod requires
+github.com/scrapli/scrapligo     v1.4.2                                 newest
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+github.com/creack/pty            v1.1.24                                newest
+github.com/sirikothe/gotextfsm   v1.2.0                                 newest
+latest: Go and every module at their newest
+exit=0
+[4] Go 1.27.2 as the release's Go (fetched by GOTOOLCHAIN into /dev/shm/r341/ex-installed/gocache)
+== Go: /dev/shm/r341/ex-installed/gocache/golang.org/toolchain@v0.0.1-go1.27.2.linux-amd64/bin/go against go.dev
+go                               go1.27.2                               behind
+                                 go1.27.3                               newest: sudo bump-go.sh
+...
+latest: 1 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+exit=1
+[5] go.dev unreachable (an HTTPS proxy on a closed port)
+curl: (7) Failed to connect to go.dev port 443 via 127.0.0.1 after 0 ms: Could not connect to server
+latest: go.dev's newest Go unread
+exit=1
+[7] baseline.sh with a source whose dev is karvi-v0.34.0
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 7 modules /dev/shm/r341/ex-installed/j/base/karvi/go.mod requires
+github.com/scrapli/scrapligo     v1.4.2                                 newest
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.26.0                                behind
+                                 v0.58.0                                newest
+golang.org/x/sys                 v0.23.0                                behind
+                                 v0.49.0                                newest
+golang.org/x/term                v0.23.0                                behind
+                                 v0.47.0                                newest
+github.com/creack/pty            v1.1.23                                behind
+                                 v1.1.24                                newest
+github.com/sirikothe/gotextfsm   v1.0.1-0.20200816110946-6aa2cfd355e4   behind
+                                 v1.2.0                                 newest
+latest: 5 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+baseline: stopped before the build; /dev/shm/r341/ex-installed/j/base/latest.txt
+exit=1
+</code></pre>
+<p>A folder with no <code>go.mod</code> and the module proxy unreachable each exit 1 as
+well, the first with <code>latest: …: no go.mod and go.sum</code>, the second with <code>go</code>'s
+own lines and <code>latest: the module proxy unread</code>. A full draft baseline on
+<code>83a321d</code> went on past the check through the tests and the suites; the release
+verifier failed only at the package, as it does on any released commit, which
+holds no <code>## Unreleased</code> block.</p>
+<p><strong>The sequence, as run</strong>, from the archive at 15:12 to the published check at
+18:25 (UTC; 11:12 to 14:25, EDT):</p>
+<ul>
+<li>15:12:48, the archive's mirror fetched to <code>d7ea8db</code>.</li>
+<li>15:13:01 to 15:22:37, the baseline on a clean clone of <code>d7ea8db</code>: gofmt,
+make, and the release verifier exit 0 each; moot after the module move.</li>
+<li>15:46:57, the module move and the three adaptations: <code>36b3ee4</code>.</li>
+<li>15:47:14 to 15:48:29, the baseline on a clone of <code>36b3ee4</code>: the release
+verifier exit 1 at the heartbeat test. The first stop for the operator.</li>
+<li>17:11:55, the heartbeat test mended: <code>3e4af95</code>.</li>
+<li>17:12:05 to 17:20:44, the baseline on a clone of <code>3e4af95</code>: gofmt, make,
+the release verifier with its package and container steps, exit 0 each.</li>
+<li>17:21:17 to 17:22:07, the release-identity build, the compatibility
+example, and 1/3: the build <code>fNsX8VA8zKCBF5ctuqyS</code> by go1.27.3; the 0.34.0
+daemon drained idle, refusing busy; <code>59ee9d9</code>.</li>
+<li>17:22:18 to 17:24:19, the core evidence: <code>TestParallelHalt</code> failed. The
+second stop for the operator.</li>
+<li>17:30:34, the parallel-halt test mended: <code>80f2032</code>.</li>
+<li>17:30:40 to 17:32:35, the core evidence: 1,079 named tests across 92
+packages, vet 0, both socket lengths exit 0.</li>
+<li>17:33:39, the documents: <code>bb7d376</code> (2/3).</li>
+<li>17:33:45 to 17:42:12, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>17:42:50, 3/3, the tag, <code>main</code>: <code>83a321d</code>, <code>karvi-v0.34.1</code>, <code>main</code>
+fast-forwarded from <code>26a45c8</code>.</li>
+<li>17:42:56 to 17:49:02, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive; the package reproducible and checked
+against the extraction; 39,758,258 and 6,491,586 bytes.</li>
+<li>17:49:14 to 17:49:26, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>. The stop for
+the operator's word.</li>
+<li>18:24:12 to 18:25:28, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>d83610d</code>), built,
+its 52 files 200 and its footer <code>karvi-v0.34.1</code>; release <code>karvi-v0.34.1</code>
+with the five assets, marked latest; the assets downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.34.0 build=Tk7LptpG6De_7CGUjfqI
+daemon started socket=/dev/shm/r341/compat/base/socket/d.sock
+pid 1155014 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build Tk7LptpG6De_7CGUjfqI 0.34.0
+  client build fNsX8VA8zKCBF5ctuqyS 0.34.1
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1155115 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.34.1 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.34.1-artifacts.sha256    # the assets downloaded back
+karvi-v0.34.1-source-linux-amd64.tar.gz: OK
+karvi_0.34.1_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li><code>karvi</code> is 61,440 bytes larger; <code>karvi-askpass</code>, <code>karvi-prune</code>, and
+<code>karvi-audit</code> keep 0.34.0's sizes, with other bytes; the bundle is 119,962
+bytes larger and the package 26,078.</li>
+<li>The module metadata of the four executables names Go 1.27.3 and the five
+modules' new versions; the default configuration was regenerated to
+0.34.0's bytes, since no key changed. 3/3 carries nine evidence files.</li>
+<li><code>TMPDIR=/var/tmp</code> puts <code>t.TempDir()</code> on the root disk, where an fsync costs
+tens of milliseconds and at times over a hundred; tests that take no time
+race the Go scheduler on a loaded host. A test waits on a condition, never
+a fixed time.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in chapters 67,
+70, and 73: the minimal image leaves out <code>/usr/share/man</code>, and the package
+carries <code>karvi-audit.1.gz</code> (<code>dpkg-deb -c</code>).</li>
+<li><code>gh release view</code> has no field saying a release is the latest; <code>gh api repos/robert-patrick-texas/karvi/releases/latest</code> answers it.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0341-*</code>: the
+timeline, the baselines, the build and its evidence, the module move's
+<code>v0341-dependencies/</code>, and the two tests' measurements, patches, overlays,
+and mutation; <code>latest-check-2026-10-20/</code>: the script, <code>baseline.sh</code> and its
+patch, the examples, and the full draft baseline).</p>
+<h2 id="76-the-operators-folder---recordpath-2026-10-20">76. The operator's folder, <code>--record=PATH</code> (2026-10-20) <a class="anchor" href="#76-the-operators-folder---recordpath-2026-10-20" aria-label="Link to this section">#</a></h2>
+<p>The operator reviewed how <code>--record=PATH</code> applies to <code>login</code>. Given
+<code>--record=./</code>, karvi made a day folder in the working directory and named the
+files by the time, <code>./261020/router1-184652.log</code> beside its metadata. The
+operator asked for PATH to be taken as meant, the working directory for <code>.</code>
+and <code>./</code>, another path created when it does not exist; for the files to take
+the device's name, <code>router1.log</code>, with the time added only when that name is
+taken; and for a refusal when that name is taken too.</p>
+<p><strong>What it gains.</strong> A recorded login lands in the folder the operator named,
+under a name the operator looks for: <code>--record=.</code> writes <code>router1.log</code> where
+the operator stands. It waits on nothing.</p>
+<p><strong>The tree before.</strong> <code>--record=PATH</code> took the place of <code>transcript.root</code>
+alone, so the configured tree's layout came with it:
+<code>PATH/YYMMDD/&lt;device&gt;-HHMMSS.log</code> beside <code>&lt;device&gt;-HHMMSS.meta.jsonl</code> (the
+metadata's extension by <code>transcript.metadata-format</code>), either name taken
+moving both to <code>.1</code>, <code>.2</code>. The day folder serves <code>karvi-prune</code>, which walks
+the transcript trees alone and never a <code>--record=PATH</code> folder. README's
+example <code>karvi login router1 --record=./router1.log</code> made a folder named
+<code>router1.log</code>; <code>Destination</code>'s comment, the refusal's text, and the suite's
+comment still said <code>YYYY-MM-DD</code> for <code>YYMMDD</code>.</p>
+<p><strong>The review.</strong> The proposal agreed, with three points raised:</p>
+<ul>
+<li><strong>Scope.</strong> <code>--record=PATH</code> alone; a bare <code>--record</code> keeps the day folder
+and <code>&lt;device&gt;-HHMMSS</code>, since prune walks day folders and a shared tree holds
+many sessions a day.</li>
+<li><strong>The second name carries the date.</strong> A folder without day folders spans
+days: with the time alone, Monday's <code>router1-184652.log</code> would refuse a
+Tuesday session started at 18:46:52. With the date, a refusal means two
+sessions to one device started in the same second into the same folder.</li>
+<li><strong>The pair moves together.</strong> Either name taken moves both, and each name
+is created exclusively, so a file of the operator's in PATH, a <code>crun --fs=.log</code> collection's <code>router1.log</code>, is never changed.</li>
+</ul>
+<p><code>.</code> and <code>./</code> need no case of their own: PATH is used as given.</p>
+<p><strong>The rule, agreed.</strong> In simple terms:</p>
+<ul>
+<li><code>--record=PATH</code> writes straight into PATH, with no day folder; PATH is
+created if missing.</li>
+<li>Names are <code>router1.log</code> and <code>router1.meta.jsonl</code>.</li>
+<li>If either is taken: <code>router1-261020-184652.log</code> and
+<code>router1-261020-184652.meta.jsonl</code>.</li>
+<li>If either of those is taken: refused, and nothing is written.</li>
+<li>A bare <code>--record</code> is unchanged.</li>
+</ul>
+<p>The refusal, agreed with the build: <code>transcript_name_taken</code>, exit 111 (the
+output class), retryable, since a session started a second later has a free
+second name; the message names the folder, then <code>; retry</code>, with the taken
+names stacked under it. <code>transcript_path_not_directory</code> reads
+<code>--record=PATH; name a folder</code>, its old text naming <code>&lt;PATH&gt;/YYYY-MM-DD/</code>.</p>
+<p><strong>Executed.</strong> <code>record-lab.sh</code>: six recorded logins of <code>router1</code> from one
+working directory under a 100 by 30 terminal, a fake system transport
+printing <code>router1#</code> and ending a second later, every place under the lab. The
+<code>[n]</code>, <code>exit=</code>, and <code>--</code> lines are the script's; the folder listings are
+<code>find</code>'s, mode and path; the rest is karvi's, each session's header and the
+fake's prompt left out. The released 0.34.1, cases 1 and 3:</p>
+<pre><code class="language-text">[1] karvi login --record=. router1
+exit=0
+! transcript=/dev/shm/rp/released/work/261020/router1-201657.log
+! transcript=/dev/shm/rp/released/work/261020/router1-201657.log
+drwxr-x--- 261020
+-rw-r----- 261020/router1-201657.log
+-rw-r----- 261020/router1-201657.meta.jsonl
+[3] karvi login --record=./new/sub router1
+exit=0
+! transcript=/dev/shm/rp/released/work/new/sub/261020/router1-201701.log
+! transcript=/dev/shm/rp/released/work/new/sub/261020/router1-201701.log
+drwxr-x--- sub
+drwxr-x--- sub/261020
+-rw-r----- sub/261020/router1-201701.log
+-rw-r----- sub/261020/router1-201701.meta.jsonl
+</code></pre>
+<p>A lab build of the change, every case (in case 5 the script had taken
+<code>router1.log</code> and the second name of each of the next 30 seconds):</p>
+<pre><code class="language-text">[1] karvi login --record=. router1
+exit=0
+! transcript=/dev/shm/rp/new/work/router1.log
+! transcript=/dev/shm/rp/new/work/router1.log
+-rw-r----- router1.log
+-rw-r----- router1.meta.jsonl
+[2] karvi login --record=. router1
+exit=0
+! transcript=/dev/shm/rp/new/work/router1-261020-201633.log
+! transcript=/dev/shm/rp/new/work/router1-261020-201633.log
+-rw-r----- router1-261020-201633.log
+-rw-r----- router1-261020-201633.meta.jsonl
+-rw-r----- router1.log
+-rw-r----- router1.meta.jsonl
+[3] karvi login --record=./new/sub router1
+exit=0
+! transcript=/dev/shm/rp/new/work/new/sub/router1.log
+! transcript=/dev/shm/rp/new/work/new/sub/router1.log
+drwxr-x--- sub
+-rw-r----- sub/router1.log
+-rw-r----- sub/router1.meta.jsonl
+[4] karvi login --record=./coll router1
+exit=0
+! transcript=/dev/shm/rp/new/work/coll/router1-261020-201637.log
+! transcript=/dev/shm/rp/new/work/coll/router1-261020-201637.log
+-rw-r----- router1-261020-201637.log
+-rw-r----- router1-261020-201637.meta.jsonl
+-rw-rw-r-- router1.log
+-- coll/router1.log: collected
+[5] karvi login --record=./full router1
+exit=111
+transcript_name_taken: /dev/shm/rp/new/work/full; retry
+  router1.log
+  router1-261020-201639.log
+-- full holds 31 files, none .meta.jsonl: 0
+[6] karvi login --record router1
+exit=0
+! transcript=/dev/shm/rp/new/state/transcripts/261020/router1-201639.log
+! transcript=/dev/shm/rp/new/state/transcripts/261020/router1-201639.log
+drwxr-x--- 261020
+-rw-r----- 261020/router1-201639.log
+-rw-r----- 261020/router1-201639.meta.jsonl
+</code></pre>
+<p>In case 3 both <code>new</code> and <code>sub</code> were created 0750, <code>output.directory-mode</code>'s
+default. Neither build left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, or <code>~/.local/share/karvi</code>.</p>
+<p><strong>Why this way.</strong></p>
+<ul>
+<li>An operator who names a folder means that folder, and the device's name is
+the one looked for; the time joins it only when the name is taken.</li>
+<li>The day folder and the time in every name belong to the configured tree,
+which prune walks and many sessions share.</li>
+<li>Each name is claimed by exclusive create, as before, so a refusal is the
+claim's own answer and no check races another session.</li>
+</ul>
+<p><strong>Not taken.</strong> The configured layout under PATH, the day folder and the time
+in every name, where the operator named the place. <code>&lt;device&gt;-&lt;HHMMSS&gt;</code> as the
+second name: the cross-day refusal. The session ID as the second name
+(<code>router1-261020-184652-k3</code>): never taken, and longer. <code>.1</code>, <code>.2</code> after the
+second name: the operator chose the refusal.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>The refusal leaves the session ID's empty <code>.id</code> claim in the scoreboards
+folder, as every activity does: an activity never removes its claim, and
+each removes its operator's claims of earlier days, so no ID is handed out
+twice. PATH holds nothing of the refused session.</li>
+<li>groff ends a sentence at a line ending in <code>.</code>, so the man page's
+<code>--record=.</code> at a line's end took two spaces after it; <code>\&amp;</code> keeps one.</li>
+</ul>
+<p><strong>Built.</strong> <code>transcript.Destination</code> holds the root, the folder a session
+records into (<code>&lt;root&gt;/YYMMDD</code>, or PATH), and whether PATH chose it; <code>Claim</code>
+takes the names in order and names, under PATH, each one found taken.
+<code>transcript_name_taken</code> is registered and in ERROR-CODES.
+<code>TestClaimInChosenFolder</code>: PATH created with its parents, the device's name,
+the second name in the effective timezone (<code>America/New_York</code>, a start at
+02:46:52 UTC the 21st named <code>261020-224652</code>), the refusal and its stacked
+names, an operator's <code>edge.log</code> left as it was, and a taken metadata name
+alone moving the pair. The transcript suite records into PATH, a second name,
+the refusal with nothing written, and <code>--record=.</code>; on the released 0.34.1 it
+fails at the PATH case, where the day folder is. LOGIN-TRANSCRIPTS and
+<code>karvi-login(1)</code>'s TRANSCRIPTS state the layout, DESIGN the rule with its why
+and not-taken forms, FILES the PATH pair, README's example records into the
+working directory, and the CHANGELOG's <code>Unreleased</code> block has the change
+(<code>bb52d41</code>, <code>d705805</code>).</p>
+<p><strong>Executed.</strong> gofmt, vet, <code>go test -count=1 ./...</code> (72 packages), and <code>make generated-clean</code> on the final tree (<code>d705805</code>); all 19 suites on a lab build
+of it (<code>run_suites</code>, <code>KARVI</code> the lab build, <code>TMPDIR=/var/tmp</code>, 232 seconds).
+None left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>, <code>/dev/shm/karvi</code>,
+<code>~/.local/share/karvi</code>, or karvi process.</p>
+<p><strong>Closed.</strong> The evidence is kept beside the tree
+(<code>release-design-evidence/record-path-2026-10-20</code>: the decision, the lab
+script and its output on both builds, the suite's runs on both, and the test,
+vet, and battery logs).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.35.0</code>.</footer>
 </main>
 </body>
 </html>
