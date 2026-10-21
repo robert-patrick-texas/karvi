@@ -1,14 +1,16 @@
-# karvi v0.34.1 build and qualification result
+# karvi v0.35.0 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.34.1 (2026-10-20) is a patch release on 0.34.0: a karvi started through a
-link of another name keeps its scratch files; five modules move to their newest
-versions, with which the native transport offers `mlkem768x25519-sha256` first;
-and the executables are built with Go 1.27.3. Every counter is 0.34.0's, and the
-first submission after the upgrade drains a 0.34.0 daemon. The changes are in
+v0.35.0 (2026-10-21) is a minor release on 0.34.1 for a recorded login into
+the operator's folder: `karvi login --record=PATH` records into PATH itself,
+with no day folder, as `<device>.log` beside its metadata, then as
+`<device>-YYMMDD-HHMMSS` when that name is taken, and is refused
+`transcript_name_taken` when that is taken too. Every counter, the module
+graph, and Go are 0.34.1's, and the first submission after the upgrade drains
+a 0.34.1 daemon. The changes are in
 [`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
 real-device qualification: the native transport is proven against the fake
 device built from the tree, its IOS XE and Linux personas.
@@ -16,9 +18,9 @@ device built from the tree, its IOS XE and Linux personas.
 ## Build identity
 
 ```text
-version:                  0.34.1
-commit:                   source-release-v0.34.1
-build:                    fNsX8VA8zKCBF5ctuqyS
+version:                  0.35.0
+commit:                   source-release-v0.35.0
+build:                    onQ7svRY49FAEYS1IIHv
 Go toolchain:             go1.27.3
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
@@ -45,7 +47,7 @@ transports.
 
 The release source passed, with Go 1.27.3:
 
-- 1,079 top-level named Go tests across 92 packages in vendor mode, no
+- 1,080 top-level named Go tests across 92 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -84,7 +86,7 @@ The release source passed, with Go 1.27.3:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.34.0 daemon, started from the released executable of
+  beside the released v0.34.1 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -115,7 +117,7 @@ The release source passed, with Go 1.27.3:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`3e4af95` before the number was assigned (the maintainer's release tools
+`9ad6d6a` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -126,10 +128,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,828,832 | `2f0ff112627eaa7103d72bcea5d0ae6a5778ab3d49ca979088987d416fdeb94c` |
-| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `b70ffc5fb45249e2c511652db90ddda71b0f9cd676b4796ab6682fc46f00c4ba` |
-| `bin/karvi-prune-linux-amd64` | 3,797,152 | `2e33238f5f2a99a8be4884c87732727cbf77b7c5635486bb3357484a29e57af5` |
-| `bin/karvi-audit-linux-amd64` | 3,940,512 | `b5d4091c03b20a89d9aa5b31855e1b6247d6657725a545714a2dea165808b1de` |
+| `bin/karvi-linux-amd64` | 12,832,928 | `5d675c32cd1d90ceccdc874064d47a2c445c0b1a9f9ab53f2dff0447d7d56727` |
+| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `1b5624ba51e3cc84d87b6227b0ab95affd065f9ef71b46f0deb399ca9f7d6e28` |
+| `bin/karvi-prune-linux-amd64` | 3,797,152 | `557c64ac4739bce4ec72a9262c0068dbaa481ddffa039cef3c2ec9d24546c7a6` |
+| `bin/karvi-audit-linux-amd64` | 3,944,608 | `2f15c8eadb8169d70dff745d7340d8788851c33d4c984ff88d8b932aad7922f1` |
 
 ## Operational upgrade sequence
 
