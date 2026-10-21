@@ -15918,3 +15918,186 @@ timeline, the baselines, the build and its evidence, the module move's
 `v0341-dependencies/`, and the two tests' measurements, patches, overlays,
 and mutation; `latest-check-2026-10-20/`: the script, `baseline.sh` and its
 patch, the examples, and the full draft baseline).
+
+## 76. The operator's folder, `--record=PATH` (2026-10-20)
+
+The operator reviewed how `--record=PATH` applies to `login`. Given
+`--record=./`, karvi made a day folder in the working directory and named the
+files by the time, `./261020/router1-184652.log` beside its metadata. The
+operator asked for PATH to be taken as meant, the working directory for `.`
+and `./`, another path created when it does not exist; for the files to take
+the device's name, `router1.log`, with the time added only when that name is
+taken; and for a refusal when that name is taken too.
+
+**What it gains.** A recorded login lands in the folder the operator named,
+under a name the operator looks for: `--record=.` writes `router1.log` where
+the operator stands. It waits on nothing.
+
+**The tree before.** `--record=PATH` took the place of `transcript.root`
+alone, so the configured tree's layout came with it:
+`PATH/YYMMDD/<device>-HHMMSS.log` beside `<device>-HHMMSS.meta.jsonl` (the
+metadata's extension by `transcript.metadata-format`), either name taken
+moving both to `.1`, `.2`. The day folder serves `karvi-prune`, which walks
+the transcript trees alone and never a `--record=PATH` folder. README's
+example `karvi login router1 --record=./router1.log` made a folder named
+`router1.log`; `Destination`'s comment, the refusal's text, and the suite's
+comment still said `YYYY-MM-DD` for `YYMMDD`.
+
+**The review.** The proposal agreed, with three points raised:
+
+- **Scope.** `--record=PATH` alone; a bare `--record` keeps the day folder
+  and `<device>-HHMMSS`, since prune walks day folders and a shared tree holds
+  many sessions a day.
+- **The second name carries the date.** A folder without day folders spans
+  days: with the time alone, Monday's `router1-184652.log` would refuse a
+  Tuesday session started at 18:46:52. With the date, a refusal means two
+  sessions to one device started in the same second into the same folder.
+- **The pair moves together.** Either name taken moves both, and each name
+  is created exclusively, so a file of the operator's in PATH, a `crun
+  --fs=.log` collection's `router1.log`, is never changed.
+
+`.` and `./` need no case of their own: PATH is used as given.
+
+**The rule, agreed.** In simple terms:
+
+- `--record=PATH` writes straight into PATH, with no day folder; PATH is
+  created if missing.
+- Names are `router1.log` and `router1.meta.jsonl`.
+- If either is taken: `router1-261020-184652.log` and
+  `router1-261020-184652.meta.jsonl`.
+- If either of those is taken: refused, and nothing is written.
+- A bare `--record` is unchanged.
+
+The refusal, agreed with the build: `transcript_name_taken`, exit 111 (the
+output class), retryable, since a session started a second later has a free
+second name; the message names the folder, then `; retry`, with the taken
+names stacked under it. `transcript_path_not_directory` reads
+`--record=PATH; name a folder`, its old text naming `<PATH>/YYYY-MM-DD/`.
+
+**Executed.** `record-lab.sh`: six recorded logins of `router1` from one
+working directory under a 100 by 30 terminal, a fake system transport
+printing `router1#` and ending a second later, every place under the lab. The
+`[n]`, `exit=`, and `--` lines are the script's; the folder listings are
+`find`'s, mode and path; the rest is karvi's, each session's header and the
+fake's prompt left out. The released 0.34.1, cases 1 and 3:
+
+```text
+[1] karvi login --record=. router1
+exit=0
+! transcript=/dev/shm/rp/released/work/261020/router1-201657.log
+! transcript=/dev/shm/rp/released/work/261020/router1-201657.log
+drwxr-x--- 261020
+-rw-r----- 261020/router1-201657.log
+-rw-r----- 261020/router1-201657.meta.jsonl
+[3] karvi login --record=./new/sub router1
+exit=0
+! transcript=/dev/shm/rp/released/work/new/sub/261020/router1-201701.log
+! transcript=/dev/shm/rp/released/work/new/sub/261020/router1-201701.log
+drwxr-x--- sub
+drwxr-x--- sub/261020
+-rw-r----- sub/261020/router1-201701.log
+-rw-r----- sub/261020/router1-201701.meta.jsonl
+```
+
+A lab build of the change, every case (in case 5 the script had taken
+`router1.log` and the second name of each of the next 30 seconds):
+
+```text
+[1] karvi login --record=. router1
+exit=0
+! transcript=/dev/shm/rp/new/work/router1.log
+! transcript=/dev/shm/rp/new/work/router1.log
+-rw-r----- router1.log
+-rw-r----- router1.meta.jsonl
+[2] karvi login --record=. router1
+exit=0
+! transcript=/dev/shm/rp/new/work/router1-261020-201633.log
+! transcript=/dev/shm/rp/new/work/router1-261020-201633.log
+-rw-r----- router1-261020-201633.log
+-rw-r----- router1-261020-201633.meta.jsonl
+-rw-r----- router1.log
+-rw-r----- router1.meta.jsonl
+[3] karvi login --record=./new/sub router1
+exit=0
+! transcript=/dev/shm/rp/new/work/new/sub/router1.log
+! transcript=/dev/shm/rp/new/work/new/sub/router1.log
+drwxr-x--- sub
+-rw-r----- sub/router1.log
+-rw-r----- sub/router1.meta.jsonl
+[4] karvi login --record=./coll router1
+exit=0
+! transcript=/dev/shm/rp/new/work/coll/router1-261020-201637.log
+! transcript=/dev/shm/rp/new/work/coll/router1-261020-201637.log
+-rw-r----- router1-261020-201637.log
+-rw-r----- router1-261020-201637.meta.jsonl
+-rw-rw-r-- router1.log
+-- coll/router1.log: collected
+[5] karvi login --record=./full router1
+exit=111
+transcript_name_taken: /dev/shm/rp/new/work/full; retry
+  router1.log
+  router1-261020-201639.log
+-- full holds 31 files, none .meta.jsonl: 0
+[6] karvi login --record router1
+exit=0
+! transcript=/dev/shm/rp/new/state/transcripts/261020/router1-201639.log
+! transcript=/dev/shm/rp/new/state/transcripts/261020/router1-201639.log
+drwxr-x--- 261020
+-rw-r----- 261020/router1-201639.log
+-rw-r----- 261020/router1-201639.meta.jsonl
+```
+
+In case 3 both `new` and `sub` were created 0750, `output.directory-mode`'s
+default. Neither build left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, or `~/.local/share/karvi`.
+
+**Why this way.**
+
+- An operator who names a folder means that folder, and the device's name is
+  the one looked for; the time joins it only when the name is taken.
+- The day folder and the time in every name belong to the configured tree,
+  which prune walks and many sessions share.
+- Each name is claimed by exclusive create, as before, so a refusal is the
+  claim's own answer and no check races another session.
+
+**Not taken.** The configured layout under PATH, the day folder and the time
+in every name, where the operator named the place. `<device>-<HHMMSS>` as the
+second name: the cross-day refusal. The session ID as the second name
+(`router1-261020-184652-k3`): never taken, and longer. `.1`, `.2` after the
+second name: the operator chose the refusal.
+
+**Found on the way.**
+
+- The refusal leaves the session ID's empty `.id` claim in the scoreboards
+  folder, as every activity does: an activity never removes its claim, and
+  each removes its operator's claims of earlier days, so no ID is handed out
+  twice. PATH holds nothing of the refused session.
+- groff ends a sentence at a line ending in `.`, so the man page's
+  `--record=.` at a line's end took two spaces after it; `\&` keeps one.
+
+**Built.** `transcript.Destination` holds the root, the folder a session
+records into (`<root>/YYMMDD`, or PATH), and whether PATH chose it; `Claim`
+takes the names in order and names, under PATH, each one found taken.
+`transcript_name_taken` is registered and in ERROR-CODES.
+`TestClaimInChosenFolder`: PATH created with its parents, the device's name,
+the second name in the effective timezone (`America/New_York`, a start at
+02:46:52 UTC the 21st named `261020-224652`), the refusal and its stacked
+names, an operator's `edge.log` left as it was, and a taken metadata name
+alone moving the pair. The transcript suite records into PATH, a second name,
+the refusal with nothing written, and `--record=.`; on the released 0.34.1 it
+fails at the PATH case, where the day folder is. LOGIN-TRANSCRIPTS and
+`karvi-login(1)`'s TRANSCRIPTS state the layout, DESIGN the rule with its why
+and not-taken forms, FILES the PATH pair, README's example records into the
+working directory, and the CHANGELOG's `Unreleased` block has the change
+(`bb52d41`, `d705805`).
+
+**Executed.** gofmt, vet, `go test -count=1 ./...` (72 packages), and `make
+generated-clean` on the final tree (`d705805`); all 19 suites on a lab build
+of it (`run_suites`, `KARVI` the lab build, `TMPDIR=/var/tmp`, 232 seconds).
+None left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`, `/dev/shm/karvi`,
+`~/.local/share/karvi`, or karvi process.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/record-path-2026-10-20`: the decision, the lab
+script and its output on both builds, the suite's runs on both, and the test,
+vet, and battery logs).
