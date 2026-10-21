@@ -15559,3 +15559,362 @@ process.
 **Closed.** The evidence is kept beside the tree
 (`release-design-evidence/shorter-name-sweep-2026-10-20`: the two lab scripts
 and their output, the suite's runs on both builds, the test and suite logs).
+
+## 75. The release 0.34.1 (2026-10-20)
+
+The fifteenth public release, 0.34.1, on the operator's word and number,
+carrying [chapter 74](#74-a-shorter-name-keeps-its-scratch-files-2026-10-20)
+(a karvi started under a shorter name keeps its scratch files) and the release
+verifier's package folder removed at its exit (`b5691fe`, [chapter
+73](#73-the-release-0340-2026-10-19)'s finding). At the build's start the
+operator set a rule for this release and every later one: the newest Go on the
+host and the newest version of every module. Go 1.27.3, installed on the host
+after 0.34.0's build, builds it (the operator: "Use the newer Go"); five
+modules moved, and three of karvi's uses of them needed an adaptation. No
+counter moves, so the daemon IPC schema stays 12 and the compatibility example
+is the drain, beside the released 0.34.0 daemon. The sequence is chapter 73's.
+It stopped twice for the operator, each time on a test that read a result
+before it was due on this host, and both tests were mended on the operator's
+word. The build stopped after the package's install check and went on to the
+push at the operator's second word. After publishing, the rule's check became
+a release tool of its own, `latest.sh`, the baseline's first step.
+
+**What it gains.** A site has chapter 74's fix from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release. The
+native transport runs on an `x/crypto` with none of the ten advisories
+`govulncheck` finds on `karvi`'s call paths at the old version, and offers
+`mlkem768x25519-sha256` first; `karvi` links Go 1.27.3's fixes to
+`crypto/x509`, which the three helpers do not link. Every later release meets
+the rule before its build, or stops and names what is behind.
+
+**The rule, agreed.** In simple terms:
+
+- A release builds with the newest stable Go, the first line of go.dev's
+  `VERSION`; installing it on the host is the operator's (`sudo bump-go.sh`).
+- Every module `go.mod` requires moves to its newest version within its
+  major, each move a CHANGELOG entry.
+- A new major is a new module path, a ROADMAP item (`scrapligo/v2`).
+- The baseline checks both first and stops before its build when one is
+  behind.
+
+**Before the number.** The archive's mirror
+(`~/karvi/backup/archive-2026-10-19`) was fetched to `d7ea8db`, its README
+noting it and its `SHA256SUMS` renewed; the six release tools were unchanged.
+A container on Docker's default network reached each address of chapter 73's
+probe. The baseline on a clean clone of `d7ea8db` passed, and was moot once
+the modules moved.
+
+**The module move.** By `GOFLAGS=-mod=mod go get -u -t ./...`, `go mod tidy`,
+`go mod vendor`, and `go mod verify` (`36b3ee4`):
+
+| Module | From | To |
+|---|---|---|
+| `golang.org/x/crypto` | v0.26.0 | v0.58.0 |
+| `golang.org/x/sys` | v0.23.0 | v0.49.0 |
+| `golang.org/x/term` | v0.23.0 | v0.47.0 |
+| `github.com/creack/pty` | v1.1.23 | v1.1.24 |
+| `github.com/sirikothe/gotextfsm` | 2020 snapshot | v1.2.0 |
+
+scrapligo v1.4.2 and goldmark v1.8.6 were the newest already. Four modules
+that only the graph names keep their versions (go-cmp v0.6.0, x/net v0.60.0,
+x/text, yaml.v3): no package of karvi's needs them, so `go get -u -t ./...`
+leaves them, and none is vendored or linked. `govulncheck` v1.9.0 on
+`cmd/karvi` before and after (the `#` lines are labels; every other line is
+`govulncheck`'s):
+
+```text
+# at d7ea8db, x/crypto v0.26.0
+Vulnerability #1: GO-2026-6355
+    Prevent DoS on deadlocked established channel in golang.org/x/crypto/ssh
+...
+Vulnerability #10: GO-2025-3487
+    Potential denial of service in golang.org/x/crypto
+Your code is affected by 10 vulnerabilities from 1 module.
+# at the new modules
+No vulnerabilities found.
+
+Your code is affected by 0 vulnerabilities.
+```
+
+The ten are GO-2025-3487, GO-2026-5013, GO-2026-5015, GO-2026-5017 to
+GO-2026-5021, GO-2026-6354, and GO-2026-6355, fixed between v0.35.0 and
+v0.56.0. The whole tree had fifteen, the fake device's server side among them,
+and has none; `karvi-askpass`, `karvi-prune`, and `karvi-audit` had none
+before.
+
+**The three adaptations.** At the new modules `go test ./...` failed in three
+packages: the native adapter, its transport, and `termline`. Each failure was
+a use of a module that the module had changed under it; the three were agreed
+and are in the module move's commit.
+
+1. **A key exchange x/crypto keeps.** karvi offers a name over the native
+   transport only when x/crypto implements it, and asked x/crypto by giving
+   `SetDefaults` the one name and counting one left. x/crypto now adds
+   `curve25519-sha256@libssh.org` beside `curve25519-sha256`, so the count
+   was two: karvi's defaults dropped `curve25519-sha256`, and a configured
+   list of it alone was refused. The check now asks whether the name is among
+   those kept.
+2. **A negotiation failure by its type.** karvi read a failed negotiation
+   from x/crypto's error text with a regular expression, to name the list and
+   both offers in `ssh_algorithm_negotiation_failed`. The text changed ("we
+   offered", "peer offered"), and the failure fell through to
+   `native_session_open_failed` with x/crypto's words. x/crypto now returns
+   `*ssh.AlgorithmNegotiationError`, whose `What` names the list,
+   `RequestedAlgorithms` the device's offer, and `SupportedAlgorithms` its
+   own; karvi reads those, and the message is as it was.
+3. **The Delete key is x/term's.** karvi's line editor at a prompt
+   translated `ESC [ 3 ~` through x/term's `AutoCompleteCallback` into a
+   private rune. x/term now decodes Delete itself and turns the callback off
+   in `ReadPassword`, so at a password prompt the private rune went into the
+   password: the test types `secret`, moves left, and presses Delete,
+   wanting `secre`, and got `"secre\ue000t"`. karvi's translation and its
+   callback are removed.
+
+**Executed.** The released 0.34.0 (`old`), the new modules under 0.34.0's
+code (`nofix`), and the new modules with the adaptations (`new`), each over
+the native transport against the fake device built from the tree with one
+list of its own, every place under the lab (`lab.sh`; the `[n]`, `--`, and
+`exit=` lines are its labels, the others karvi's):
+
+```text
+[2] the fake device offers aes128-ctr alone (karvi's defaults leave it out)
+-- old: karvi  command --transport native d1 show clock
+exit=110
+ssh_algorithm_negotiation_failed: command failed for name:d1
+karvi: target=d1 status=connection_error error=ssh_algorithm_negotiation_failed: no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr
+-- nofix: karvi  command --transport native d1 show clock
+exit=110
+native_session_open_failed: command failed for name:d1
+karvi: target=d1 status=connection_error error=native_session_open_failed: SSH handshake with 127.0.0.1:2231: ssh: handshake failed: ssh: no common algorithm for client to server cipher; we offered: ["aes256-gcm@openssh.com" "chacha20-poly1305@openssh.com" "aes256-ctr"], peer offered: ["aes128-ctr"]
+-- new: karvi  command --transport native d1 show clock
+exit=110
+ssh_algorithm_negotiation_failed: command failed for name:d1
+karvi: target=d1 status=connection_error error=ssh_algorithm_negotiation_failed: no cipher algorithm in common: karvi offered aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr; the device offered aes128-ctr
+[3] the fake device offers mlkem768x25519-sha256 alone
+-- old: karvi  command --transport native d1 show clock
+exit=110
+ssh_algorithm_negotiation_failed: command failed for name:d1
+-- nofix: karvi  command --transport native d1 show clock
+exit=0
+-- new: karvi  command --transport native d1 show clock
+exit=0
+[4] karvi's key exchange list curve25519-sha256 alone, the fake device's defaults
+-- old: karvi --set ssh-algorithms.kex=["curve25519-sha256"] command --transport native d1 show clock
+exit=0
+-- nofix: karvi --set ssh-algorithms.kex=["curve25519-sha256"] command --transport native d1 show clock
+exit=2
+ssh_algorithms_unavailable: command failed for name:d1
+karvi: target=d1 status=connection_error error=ssh_algorithms_unavailable: none of the configured key exchange algorithms (curve25519-sha256) is implemented by scrapligo-v1
+-- new: karvi --set ssh-algorithms.kex=["curve25519-sha256"] command --transport native d1 show clock
+exit=0
+```
+
+Case [3]'s `old` line naming both offers is left out above. The native
+default key exchanges, by an overlay test printing the offer, before and after
+the first adaptation (the `#` lines are labels):
+
+```text
+# x/crypto v0.58.0, before
+kex: [mlkem768x25519-sha256 curve25519-sha256@libssh.org ecdh-sha2-nistp521 ...]
+# x/crypto v0.58.0, adapted
+kex: [mlkem768x25519-sha256 curve25519-sha256 curve25519-sha256@libssh.org ecdh-sha2-nistp521 ...]
+```
+
+**The first stop: the heartbeat test.** The baseline on a clone of `36b3ee4`
+failed at the release verifier's `go test`:
+`TestHeartbeatRewritesTheSnapshot` started a heartbeat every 20 ms and read
+the scoreboard snapshot once, 120 ms later. Each beat is written by atomic
+replacement with an fsync, free on tmpfs and costly on a disk, and the
+release runs with `TMPDIR=/var/tmp`, where the test's folder is on the root
+disk. The first beat, measured over 200 writers each:
+
+```text
+TMPDIR=/dev/shm/kd/lt first beat: median 22ms, p95 22ms, p99 23ms, max 24ms, over 120ms: 0 of 200
+TMPDIR=/var/tmp first beat: median 64ms, p95 125ms, p99 176ms, max 185ms, over 120ms: 11 of 200
+```
+
+The test now reads the snapshot every 20 ms until the first beat lands, up to
+500 ms (the operator's number), and fails as before when none does
+(`3e4af95`). Operations are not touched: a beat comes every 2 s, and a
+scoreboard is stale only after 10 s. The baseline on a clone of `3e4af95`
+passed.
+
+**The second stop: the parallel-halt test.** The core evidence after 1/3
+failed `TestParallelHalt` in `dispatch`, unchanged since 0.34.0 and standard
+library only: `expected unstarted: {Total:20 Terminal:20 Succeeded:19
+Failed:1 NotStarted:0 Inflight:0}`. Twenty tasks that take no time run two
+wide, the first failing, with a halt at one error; the test required some left
+unstarted. With more than one CPU the other worker could take and finish all
+nineteen while the failing task's result waited to be recorded. Failures out
+of 20,000 runs (the measurement's own lines):
+
+```text
+The test as committed, go test -count=20000 -cpu N -run '^TestParallelHalt$' ./dispatch, failures:
+  cpu=1 0   cpu=2 13   cpu=4 32   cpu=8 25
+The test that holds every task beside a until a's failure is recorded (parallel-halt-test.patch), failures:
+  cpu=1 0   cpu=2 0   cpu=4 0   cpu=8 0
+```
+
+A task beside the failing one now waits for the failure's recorded result
+(the sink's `task_terminal` for it), so the halt meets the rest unstarted; the
+test requires one failure, the halt by error count, and at most two tasks run
+(`80f2032`). Over 20,000 runs at four CPUs two had run 37 times, one the rest;
+with the halt's stop mutated away the test fails, `a task started after the
+halt`. The core evidence then passed.
+
+**The rule's check, `latest.sh`.** Written after publishing, on the operator's
+word, from the checks the build had run by hand, and installed as the seventh
+release tool. `release-tools/latest.sh [TREE]` compares the release's Go
+(`GO`, `/usr/local/go/bin/go` by default) with the first line of
+`https://go.dev/VERSION?m=text`, as `bump-go.sh` reads it, then runs `go list
+-m -u` on every module `go.mod` requires, in a copy of `go.mod` and `go.sum`.
+Each one behind is named above its newest, and it exits 1. It also stops when
+it cannot check: no `go.mod` and `go.sum`, go.dev or the module proxy unread,
+`GO` unrunnable. `baseline.sh` runs it on the clone, into `latest.txt` beside
+the baseline's logs, and stops before the build when it fails. Not counted: a
+module only the graph names, a new major, and uv, ty, and ruff, which
+`bump-uv.sh` keeps and karvi does not use.
+
+**Executed.** `examples.sh` on the installed tools (the `[n]` and `exit=`
+lines are its labels, the others `latest.sh`'s and `baseline.sh`'s):
+
+```text
+[1] the tree at 83a321d
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 7 modules /home/netops/karvi/karvi/go.mod requires
+github.com/scrapli/scrapligo     v1.4.2                                 newest
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+github.com/creack/pty            v1.1.24                                newest
+github.com/sirikothe/gotextfsm   v1.2.0                                 newest
+latest: Go and every module at their newest
+exit=0
+[4] Go 1.27.2 as the release's Go (fetched by GOTOOLCHAIN into /dev/shm/r341/ex-installed/gocache)
+== Go: /dev/shm/r341/ex-installed/gocache/golang.org/toolchain@v0.0.1-go1.27.2.linux-amd64/bin/go against go.dev
+go                               go1.27.2                               behind
+                                 go1.27.3                               newest: sudo bump-go.sh
+...
+latest: 1 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+exit=1
+[5] go.dev unreachable (an HTTPS proxy on a closed port)
+curl: (7) Failed to connect to go.dev port 443 via 127.0.0.1 after 0 ms: Could not connect to server
+latest: go.dev's newest Go unread
+exit=1
+[7] baseline.sh with a source whose dev is karvi-v0.34.0
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 7 modules /dev/shm/r341/ex-installed/j/base/karvi/go.mod requires
+github.com/scrapli/scrapligo     v1.4.2                                 newest
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.26.0                                behind
+                                 v0.58.0                                newest
+golang.org/x/sys                 v0.23.0                                behind
+                                 v0.49.0                                newest
+golang.org/x/term                v0.23.0                                behind
+                                 v0.47.0                                newest
+github.com/creack/pty            v1.1.23                                behind
+                                 v1.1.24                                newest
+github.com/sirikothe/gotextfsm   v1.0.1-0.20200816110946-6aa2cfd355e4   behind
+                                 v1.2.0                                 newest
+latest: 5 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+baseline: stopped before the build; /dev/shm/r341/ex-installed/j/base/latest.txt
+exit=1
+```
+
+A folder with no `go.mod` and the module proxy unreachable each exit 1 as
+well, the first with `latest: …: no go.mod and go.sum`, the second with `go`'s
+own lines and `latest: the module proxy unread`. A full draft baseline on
+`83a321d` went on past the check through the tests and the suites; the release
+verifier failed only at the package, as it does on any released commit, which
+holds no `## Unreleased` block.
+
+**The sequence, as run**, from the archive at 15:12 to the published check at
+18:25 (UTC; 11:12 to 14:25, EDT):
+
+- 15:12:48, the archive's mirror fetched to `d7ea8db`.
+- 15:13:01 to 15:22:37, the baseline on a clean clone of `d7ea8db`: gofmt,
+  make, and the release verifier exit 0 each; moot after the module move.
+- 15:46:57, the module move and the three adaptations: `36b3ee4`.
+- 15:47:14 to 15:48:29, the baseline on a clone of `36b3ee4`: the release
+  verifier exit 1 at the heartbeat test. The first stop for the operator.
+- 17:11:55, the heartbeat test mended: `3e4af95`.
+- 17:12:05 to 17:20:44, the baseline on a clone of `3e4af95`: gofmt, make,
+  the release verifier with its package and container steps, exit 0 each.
+- 17:21:17 to 17:22:07, the release-identity build, the compatibility
+  example, and 1/3: the build `fNsX8VA8zKCBF5ctuqyS` by go1.27.3; the 0.34.0
+  daemon drained idle, refusing busy; `59ee9d9`.
+- 17:22:18 to 17:24:19, the core evidence: `TestParallelHalt` failed. The
+  second stop for the operator.
+- 17:30:34, the parallel-halt test mended: `80f2032`.
+- 17:30:40 to 17:32:35, the core evidence: 1,079 named tests across 92
+  packages, vet 0, both socket lengths exit 0.
+- 17:33:39, the documents: `bb7d376` (2/3).
+- 17:33:45 to 17:42:12, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 17:42:50, 3/3, the tag, `main`: `83a321d`, `karvi-v0.34.1`, `main`
+  fast-forwarded from `26a45c8`.
+- 17:42:56 to 17:49:02, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 39,758,258 and 6,491,586 bytes.
+- 17:49:14 to 17:49:26, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`. The stop for
+  the operator's word.
+- 18:24:12 to 18:25:28, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`d83610d`), built,
+  its 52 files 200 and its footer `karvi-v0.34.1`; release `karvi-v0.34.1`
+  with the five assets, marked latest; the assets downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.34.0 build=Tk7LptpG6De_7CGUjfqI
+daemon started socket=/dev/shm/r341/compat/base/socket/d.sock
+pid 1155014 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build Tk7LptpG6De_7CGUjfqI 0.34.0
+  client build fNsX8VA8zKCBF5ctuqyS 0.34.1
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1155115 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.34.1 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.34.1-artifacts.sha256    # the assets downloaded back
+karvi-v0.34.1-source-linux-amd64.tar.gz: OK
+karvi_0.34.1_amd64.deb: OK
+```
+
+**Found on the way.**
+
+- `karvi` is 61,440 bytes larger; `karvi-askpass`, `karvi-prune`, and
+  `karvi-audit` keep 0.34.0's sizes, with other bytes; the bundle is 119,962
+  bytes larger and the package 26,078.
+- The module metadata of the four executables names Go 1.27.3 and the five
+  modules' new versions; the default configuration was regenerated to
+  0.34.0's bytes, since no key changed. 3/3 carries nine evidence files.
+- `TMPDIR=/var/tmp` puts `t.TempDir()` on the root disk, where an fsync costs
+  tens of milliseconds and at times over a hundred; tests that take no time
+  race the Go scheduler on a loaded host. A test waits on a condition, never
+  a fixed time.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67,
+  70, and 73: the minimal image leaves out `/usr/share/man`, and the package
+  carries `karvi-audit.1.gz` (`dpkg-deb -c`).
+- `gh release view` has no field saying a release is the latest; `gh api
+  repos/robert-patrick-texas/karvi/releases/latest` answers it.
+
+The evidence is kept beside the tree (`release-design-evidence/v0341-*`: the
+timeline, the baselines, the build and its evidence, the module move's
+`v0341-dependencies/`, and the two tests' measurements, patches, overlays,
+and mutation; `latest-check-2026-10-20/`: the script, `baseline.sh` and its
+patch, the examples, and the full draft baseline).
