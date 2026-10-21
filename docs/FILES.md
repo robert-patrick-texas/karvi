@@ -273,6 +273,8 @@ had; each but the summary has its switch, `output.files.*`, and `--nof` or
 |---|---|---|---|---|---|
 | `<device>-HHMMSS.log` | `transcripts/YYMMDD/` | `0640` | `0640` | the operator who logged in | a recorded login (`login --record`), as the terminal showed it ([`docs/LOGIN-TRANSCRIPTS.md`](LOGIN-TRANSCRIPTS.md)) |
 | `<device>-HHMMSS.meta.jsonl` | the same | `0640` | `0640` | the same | the recording's metadata |
+| `<device>.log`, else `<device>-YYMMDD-HHMMSS.log` | PATH of `--record=PATH` | `0640` | `0640` | the operator who logged in | a login recorded into the operator's folder |
+| `<device>.meta.jsonl`, else `<device>-YYMMDD-HHMMSS.meta.jsonl` | the same | `0640` | `0640` | the same | its metadata |
 | `<device>[SUFFIX]` | the collection directory | `0660` (`crun.file-mode`) | `0660` | the operator who last collected the device | the device's collected output, replaced only when the device succeeds ([`docs/COLLECTION.md`](COLLECTION.md)) |
 | `.<file>.<job-id>` | the same | `0660` | `0660` | the collecting operator | the replacement while it is written, renamed over the file; a stale one is swept by its job ID |
 

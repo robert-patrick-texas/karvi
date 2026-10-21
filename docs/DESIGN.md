@@ -2798,9 +2798,11 @@ and, with the shared folder closed, did not show the operator's own jobs
 written to the fallback. *Not taken:* `watch` reading the first usable place
 alone, or the fallback alone (it loses the team's view).
 
-**Login transcripts record the device stream only.** `--record[=PATH]` writes
-`<device>-<HHMMSS>.log` and its metadata side by side in a day folder,
-exclusively created and bumped together on collision; the transcript holds what
+**Login transcripts record the device stream only.** `--record` writes
+`<device>-<HHMMSS>.log` and its metadata side by side in a day folder of
+`transcript.root`, exclusively created and bumped together on collision, and
+`--record=PATH` into PATH under the device's name (the next entry); the
+transcript holds what
 the device returned and never operator keystrokes, so a password typed at a
 non-echoing prompt is not written. `transcript.format` values other than text
 are refused rather than silently falling back. The terminal names the file
@@ -2811,6 +2813,26 @@ rendered and colored as every header and footer.
 *Why:* the operator declined recording the input stream; a JSON document is
 valid only when complete; the header scrolls away in a long session, and
 the operator leaving it wants the path where it ends.
+
+**`--record=PATH` records into the operator's folder under the device's
+name.** PATH is the folder itself, with no day folder, created with its
+parents when absent (`--record=.` is the working directory). A session's
+names are `<device>.log` and `<device>.meta.jsonl`; when either is taken both
+take the session's start, `<device>-<YYMMDD>-<HHMMSS>`; when either of those
+is taken too the login is refused with `transcript_name_taken`, the taken
+names stacked, and nothing is written. Each name is created exclusively, so a
+file of the operator's in PATH is never changed. A bare `--record` keeps
+`transcript.root`'s day folder and `<device>-<HHMMSS>`. *Why:* an operator who
+names a folder means that folder, and the device's name is the one looked
+for; the day folder serves `karvi-prune`, which walks the transcript trees
+alone, and a shared tree holding many sessions a day; a folder without day
+folders spans days, so the second name carries the date: with the time
+alone, Monday's `router1-184652.log` would refuse a Tuesday session started
+at 18:46:52. *Not taken:* the configured layout under PATH (the day folder
+and the time in every name, where the operator named the place);
+`<device>-<HHMMSS>` as the second name; the session ID as the second name
+(never taken, and longer); `.1`, `.2` after the second name (the operator
+chose the refusal).
 
 **Terminal text is rendered as the terminal showed it.** One renderer turns a
 terminal's bytes into text, for a login's transcript and for the shell's output

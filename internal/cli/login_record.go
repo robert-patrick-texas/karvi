@@ -51,9 +51,9 @@ func recorderDiagnostics() *os.File {
 // captures only the stream the device returns. The
 // wrapper resolves the destination and layout:
 // it assembles the target set to learn the device, claims the transcript and
-// metadata pair under the day folder, writes the metadata start record,
-// launches the child with the original arguments, and at the end strips the
-// script(1) marker lines, writes the metadata end record, and names the
+// metadata pair in its folder (transcript.root's day folder, or PATH),
+// writes the metadata start record, launches the child with the original
+// arguments, and at the end strips the script(1) marker lines, writes the metadata end record, and names the
 // transcript again as the header did (display.record.header and
 // display.record.footer, one line each by default). The child parses
 // the same invocation, uses the session ID given here, and does not record.

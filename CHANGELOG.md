@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **`--record=PATH` records into PATH under the device's name.** A recorded
+  login given a folder writes into it, with no day folder, PATH and its
+  parents created when absent (`--record=.` is the working directory):
+  `router1.log` beside `router1.meta.jsonl`. When either name is taken, both
+  take the session's start, `router1-261020-184652.log` and its metadata;
+  when either of those is taken too, the login is refused with
+  `transcript_name_taken` (exit 111) and nothing is written. A file of the
+  operator's in PATH is never changed. A bare `--record` keeps
+  `transcript.root`'s day folder and `<device>-HHMMSS`.
+  `transcript_path_not_directory` reads `--record=PATH; name a folder`.
+
 ## 0.34.1 - 2026-10-20
 
 A patch release on 0.34.0 for karvi under a shorter name, the newest modules,

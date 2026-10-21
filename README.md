@@ -319,14 +319,14 @@ to operate until native is actually selected.
 ```bash
 karvi login router1
 karvi login --host router1 --record
-karvi login router1 --record=./router1.log
+karvi login router1 --record=.
 karvi login --host router1 --address 192.0.2.10
 ```
 
 Recording uses a controlling PTY, propagates terminal resize, restores terminal
 state, and writes a `0640` transcript and metadata pair below
-`transcript.root/YYMMDD/` (see
-[`docs/LOGIN-TRANSCRIPTS.md`](docs/LOGIN-TRANSCRIPTS.md)).
+`transcript.root/YYMMDD/`, or into the folder `--record=PATH` names under the
+device's name (see [`docs/LOGIN-TRANSCRIPTS.md`](docs/LOGIN-TRANSCRIPTS.md)).
 
 One host-key policy governs login, command, and run:
 

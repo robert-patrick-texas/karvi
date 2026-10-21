@@ -151,17 +151,30 @@ writes the session below
 .B transcript.root
 (the shared transcripts tree where it exists, else
 .IR BASEDIR/transcripts ),
-or below
-.I PATH
-for
-.BI \-\-record= PATH ,
 in a folder of the start day,
 .IR YYMMDD :
 the transcript
 .I DEVICE\-HHMMSS.log
 and its metadata
 .I DEVICE\-HHMMSS.meta.jsonl
-side by side, folders at
+side by side, both moving to
+.I .1
+and on when either name is taken.
+.BI \-\-record= PATH
+writes into
+.I PATH
+itself, created with its parents when absent
+.RB ( \-\-record=.\&
+is the working directory), as
+.I DEVICE.log
+and
+.IR DEVICE.meta.jsonl ;
+when either is taken, both take the session's start,
+.IR DEVICE\-YYMMDD\-HHMMSS ,
+and when either of those is taken too the login is refused,
+.BR transcript_name_taken ,
+and nothing is written.
+Folders are created at
 .B output.directory\-mode
 and files at 0640.
 The terminal names the transcript before the session and again as its last

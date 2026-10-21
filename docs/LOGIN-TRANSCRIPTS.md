@@ -18,23 +18,30 @@ the same way for itself.
 
 ## Destination and layout
 
-- Without PATH, sessions record below `transcript.root` (default
-  `<basedir>/transcripts`). `--record=PATH` uses PATH in its place; when
-  `transcript.root` is locked, `--record=PATH` is refused with
-  `transcript_root_locked`. PATH attaches with `=` only: `--record /x r1`
-  is refused as `cli_option_value_detached`, where the path had been taken
-  for the device. No environment variable selects a destination.
-- A session writes into `<destination>/YYMMDD/`, named from the start
-  date in the effective `timezone`; a session that crosses midnight stays in
-  its start-day folder. `--record=session.log` therefore creates a folder
-  named `session.log`, and a PATH that exists and is not a folder is refused
-  with `transcript_path_not_directory`.
-- The transcript `<device>-<HHMMSS>.log` and its metadata
-  `<device>-<HHMMSS>.meta.jsonl` sit side by side, where `<device>` is the
-  lowercase target name with every character other than letters, digits,
-  `.`, `_`, and `-` replaced by `_`. When either name is taken, both are
-  bumped together: `router01-143005.1.log` and
+- Without PATH, a session records below `transcript.root` (default
+  `<basedir>/transcripts`), in `<root>/YYMMDD/`, named from the start date
+  in the effective `timezone`; a session that crosses midnight stays in its
+  start-day folder. The transcript `<device>-<HHMMSS>.log` and its metadata
+  `<device>-<HHMMSS>.meta.jsonl` sit side by side. When either name is
+  taken, both are bumped together: `router01-143005.1.log` and
   `router01-143005.1.meta.jsonl`, then `.2`.
+- `--record=PATH` records into PATH itself, with no day folder, as
+  `<device>.log` and `<device>.meta.jsonl`. When either name is taken, both
+  take the session's start: `router01-261020-143005.log` and
+  `router01-261020-143005.meta.jsonl`. When either of those is taken too,
+  the login is refused with `transcript_name_taken` and nothing is written;
+  a session started in another second has another name. A file already in
+  PATH is never changed: a name it holds passes to the next.
+- `<device>` is the lowercase target name with every character other than
+  letters, digits, `.`, `_`, and `-` replaced by `_`.
+- `--record=.` is the working directory. A PATH that does not exist is
+  created with its parents, so `--record=session.log` creates a folder named
+  `session.log`; a PATH that exists and is not a folder is refused with
+  `transcript_path_not_directory`. When `transcript.root` is locked,
+  `--record=PATH` is refused with `transcript_root_locked`. PATH attaches
+  with `=` only: `--record /x r1` is refused as `cli_option_value_detached`,
+  where the path had been taken for the device. No environment variable
+  selects a destination.
 - The terminal names the transcript twice, with one line in the display's style:
   `display.record.header` before the session and `display.record.footer` as the
   last line, after the device's last output, a session that failed included.
@@ -110,7 +117,9 @@ window. The runbook's row D16 records what IOS XE's line editor gives
 4](DEVICE-QUALIFICATION-RUNBOOK.md#4-the-rows)).
 
 Cleanup: `karvi-prune` recognizes an ended session by the end record in its
-metadata file and removes the transcript and metadata together.
+metadata file and removes the transcript and metadata together. It walks the
+day folders of the transcript trees alone: what a session recorded into a
+`--record=PATH` folder is the operator's to keep or remove.
 
 `karvi-login(1)` (`man karvi login`), TRANSCRIPTS, restates the
 destination, the names, the two lines, and what the transcript holds for
