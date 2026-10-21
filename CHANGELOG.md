@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.35.0 - 2026-10-21
+
+A minor release on 0.34.1 for a recorded login into the operator's folder,
+`--record=PATH`; every counter is 0.34.1's (configuration schema 6, registry
+31, execution plan 14, daemon IPC 12, command record 4, job manifest and
+summary 5, plan report 3, credential package 2, scoreboard 4, audit 2, metrics
+1, inventory 1), and the module graph and Go are 0.34.1's. A site has
+something to change where a script looks for a `--record=PATH` session's files
+under `PATH/YYMMDD/`: they are `PATH/<device>.log` and its metadata, or
+`PATH/<device>-YYMMDD-HHMMSS` when that name was taken. An operator's 0.34.1
+daemon, of another build, is drained by the first submission after the
+upgrade.
 
 - **`--record=PATH` records into PATH under the device's name.** A recorded
   login given a folder writes into it, with no day folder, PATH and its
