@@ -1,7 +1,8 @@
 #!/bin/sh
 # Login recording against
-# the delivered binary: destination and day folder, side-by-side transcript
-# and metadata, modes, the transcript rendered as the terminal showed it
+# the delivered binary: destination (transcript.root's day folder, or the
+# operator's folder under the device's name), side-by-side transcript and
+# metadata, modes, the transcript rendered as the terminal showed it
 # (script(1)'s marker lines removed, a correction applied, colours dropped,
 # the timing log gone from the scratch), a login through a symbolic link of
 # another name, karvi's own lines kept out of the transcript, the metadata
@@ -124,13 +125,42 @@ recorded after "" "--management-address 127.0.0.1 transcript-device --record"
 [ "$(ls "$dir"/transcript-device-*.log | wc -l)" = 2 ]
 [ "$(ls "$dir"/transcript-device-*.meta.jsonl | wc -l)" = 2 ]
 
-# --record=PATH records into <PATH>/YYYY-MM-DD/ and creates PATH with
-# output.directory-mode.
+# --record=PATH records into PATH itself under the device's name and creates
+# PATH with output.directory-mode; a second session takes the name with its
+# start, <device>-YYMMDD-HHMMSS; with both names taken the login is refused
+# and nothing is written.
 recorded path "--set 'output.directory-mode=\"0700\"'" "--record=$TMP/rec --address 127.0.0.1 transcript-device"
-[ "$(ls "$TMP/rec/$DAY"/transcript-device-*.log | wc -l)" = 1 ]
 [ "$(stat -c '%a' "$TMP/rec")" = 700 ]
-[ "$(stat -c '%a' "$TMP/rec/$DAY")" = 700 ]
-grep -q "$MARKER" "$TMP/rec/$DAY"/transcript-device-*.log
+[ ! -e "$TMP/rec/$DAY" ]
+grep -q "$MARKER" "$TMP/rec/transcript-device.log"
+[ -f "$TMP/rec/transcript-device.meta.jsonl" ]
+[ "$(tr -d '\r' <"$TMP/path.out" | tail -1)" = "! transcript=$TMP/rec/transcript-device.log" ]
+recorded path2 "" "--record=$TMP/rec --address 127.0.0.1 transcript-device"
+second=$(ls "$TMP/rec" | grep -x "transcript-device-$DAY-[0-9]\{6\}\.log")
+[ -f "$TMP/rec/${second%.log}.meta.jsonl" ]
+[ "$(ls "$TMP/rec" | wc -l)" = 4 ]
+# The second name taken for each of the next 30 seconds, so the login
+# starts in one of them.
+i=0
+while [ $i -lt 30 ]; do
+  taken=$TMP/rec/transcript-device-$(date -d "+$i sec" +%y%m%d-%H%M%S).log
+  [ -e "$taken" ] || : >"$taken"
+  i=$((i + 1))
+done
+held=$(ls "$TMP/rec" | wc -l)
+recorded taken "" "--record=$TMP/rec --address 127.0.0.1 transcript-device" && code=0 || code=$?
+[ "$code" -eq 111 ]
+cat "$TMP/taken.out" "$TMP/taken.err" | tr -d '\r' >"$TMP/taken.txt"
+grep -qx "transcript_name_taken: $TMP/rec; retry" "$TMP/taken.txt"
+grep -qx '  transcript-device\.log' "$TMP/taken.txt"
+grep -qx "  transcript-device-$DAY-[0-9]\{6\}\.log" "$TMP/taken.txt"
+absent '! transcript=' "$TMP/taken.txt"
+[ "$(ls "$TMP/rec" | wc -l)" = "$held" ]
+# --record=. is the working directory itself.
+install -d -m 700 "$TMP/cwd"
+timeout 20s script -qefc "cd '$TMP/cwd' && $COMMON login --record=. --address 127.0.0.1 transcript-device" /dev/null >"$TMP/cwd.out" 2>"$TMP/cwd.err"
+grep -q "$MARKER" "$TMP/cwd/transcript-device.log"
+[ "$(ls "$TMP/cwd" | wc -l)" = 2 ]
 
 # A site's shorter name, a symbolic link k: the login's own sweep judges the
 # wrapper by the file it runs, keeps its timing log, and the transcript is
@@ -140,13 +170,13 @@ ln -s "$KARVI" "$TMP/k"
 timeout 20s script -qefc "stty cols 100 rows 30; $ENVS '$TMP/k' $SETS login --record=$TMP/rec-link --address 127.0.0.1 transcript-device" /dev/null >"$TMP/link.out" 2>"$TMP/link.err"
 absent transcript_timing_unreadable "$TMP/link.out"
 absent transcript_timing_unreadable "$TMP/link.err"
-grep -q "$MARKER" "$TMP/rec-link/$DAY"/transcript-device-*.log
-[ "$(jsonl_lines record "$TMP/rec-link/$DAY"/transcript-device-*.meta.jsonl record terminal.columns | head -1)" = "start${TAB}100" ]
+grep -q "$MARKER" "$TMP/rec-link"/transcript-device.log
+[ "$(jsonl_lines record "$TMP/rec-link"/transcript-device.meta.jsonl record terminal.columns | head -1)" = "start${TAB}100" ]
 [ -z "$(ls -A "$BASE/tmp" | grep '^karvi-script-')" ]      # the timing log removed from the scratch
 
 # Metadata formats: text appends key: value lines, json is one end document.
 recorded text "--set 'transcript.metadata-format=\"text\"'" "--record=$TMP/rec-text --address 127.0.0.1 transcript-device"
-tmeta=$(ls "$TMP/rec-text/$DAY"/transcript-device-*.meta.txt)
+tmeta=$(ls "$TMP/rec-text"/transcript-device.meta.txt)
 grep -q '^record: start$' "$tmeta"; grep -q '^ended_at: ' "$tmeta"; grep -q '^device.canonical_name: transcript-device$' "$tmeta"
 # A session that fails keeps its transcript, and the footer names it: the
 # device answered, then the connection ended with 255.
@@ -158,21 +188,21 @@ EOF_INNER
 chmod 755 "$TMP/fake-ssh-fail"
 recorded failed "--set 'ssh.transports.system=\"$TMP/fake-ssh-fail\"'" "--record=$TMP/rec-failed --address 127.0.0.1 transcript-device" && code=0 || code=$?
 [ "$code" -ne 0 ]
-failed=$(ls "$TMP/rec-failed/$DAY"/transcript-device-*.log)
+failed=$(ls "$TMP/rec-failed"/transcript-device.log)
 grep -q "$MARKER" "$failed"
 [ "$(tr -d '\r' <"$TMP/failed.out" | tail -1)" = "! transcript=$failed" ]
 # --quiet suppresses both lines, as every header and footer; a record
 # template that does not render refuses the login before a transcript.
 recorded quiet "--quiet" "--record=$TMP/rec-quiet --address 127.0.0.1 transcript-device"
 absent '! transcript=' "$TMP/quiet.out"
-[ "$(ls "$TMP/rec-quiet/$DAY"/transcript-device-*.log | wc -l)" = 1 ]
+[ "$(ls "$TMP/rec-quiet"/transcript-device.log | wc -l)" = 1 ]
 recorded badtemplate "--set 'display.record.footer=\"! <nosuch>\"'" "--record=$TMP/rec-bad --address 127.0.0.1 transcript-device" && code=0 || code=$?
 [ "$code" -ne 0 ]
 cat "$TMP/badtemplate.out" "$TMP/badtemplate.err" | grep -q 'config_display_template_invalid\|display_placeholder_unsupported'
 [ ! -e "$TMP/rec-bad" ]
 
 recorded json "--set 'transcript.metadata-format=\"json\"'" "--record=$TMP/rec-json --address 127.0.0.1 transcript-device"
-jmeta=$(ls "$TMP/rec-json/$DAY"/transcript-device-*.meta.json)
+jmeta=$(ls "$TMP/rec-json"/transcript-device.meta.json)
 grep -q '"record":"end"' "$jmeta"; [ "$(wc -l <"$jmeta")" = 1 ]
 
 # karvi's own lines reach the terminal while script(1) holds it raw, so each
@@ -182,7 +212,7 @@ grep -q '"record":"end"' "$jmeta"; [ "$(wc -l <"$jmeta")" = 1 ]
 recorded debug "--debug" "--record=$TMP/rec-debug --address 127.0.0.1 transcript-device"
 grep -q ' DEBUG login interactive session starting' "$TMP/debug.out"
 [ -z "$(grep ' DEBUG \|transcript-device \[127\.0\.0\.1\] platform=' "$TMP/debug.out" | grep -v "$(printf '\r')\$")" ]
-absent ' DEBUG ' "$(ls "$TMP/rec-debug/$DAY"/transcript-device-*.log)"
+absent ' DEBUG ' "$(ls "$TMP/rec-debug"/transcript-device.log)"
 
 # A login's first contact (accept-new): OpenSSH at LogLevel ERROR says
 # nothing, so karvi reads the trust store before the session and, when the

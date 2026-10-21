@@ -601,6 +601,7 @@ Active failure causes.
 | `transcript_create_failed` | output | 111 | no | The login transcript directory, file, or metadata cannot be created. |
 | `transcript_directory_not_writable` | permission | 9 | no | A folder in the transcript tree exists and the operator cannot create files in it. |
 | `transcript_format_unavailable` | dependency | 8 | no | `transcript.format` is `jsonl` or `json` and this executable has no transcript event recorder. |
+| `transcript_name_taken` | output | 111 | yes | Under `--record=PATH` both of a session's names are taken in PATH, the device's own and that name with the session's start (`<device>-YYMMDD-HHMMSS`), each by its transcript or its metadata. Nothing is written; a session started in another second has another second name. |
 | `transcript_path_invalid` | usage | 4 | no | The requested transcript path cannot be made absolute. |
 | `transcript_path_not_directory` | usage | 4 | no | The `--record=PATH` path exists and is not a folder. |
 | `transcript_recorder_failed` | internal | 1 | no | The util-linux `script` recorder fails without an exit status. |

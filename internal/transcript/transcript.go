@@ -72,18 +72,19 @@ func SafeName(target string) string {
 
 // Destination is where a session records.
 type Destination struct {
-	Root string // transcript.root or --record=PATH
-	Day  string // <Root>/YYYY-MM-DD
+	Root   string // transcript.root or --record=PATH
+	Folder string // <Root>/YYMMDD, or PATH itself
+	Chosen bool   // --record=PATH: the operator's folder, the device's name
 }
 
 // Resolve chooses the destination root: record is the --record value ("" for
 // the configured root, otherwise PATH), rootSetting is transcript.root,
 // shared is sharedroot, and rootLocked reports whether transcript.root is
-// locked. A PATH that exists and is not a folder is refused with
+// locked. The configured root records into its day folder, PATH into
+// itself. A PATH that exists and is not a folder is refused with
 // transcript_path_not_directory; PATH with a locked root with
 // transcript_root_locked (both exit ExitUsageError).
 func Resolve(record, rootSetting, shared, base, home string, rootLocked bool, started time.Time, loc *time.Location) (Destination, error) {
-	root := ""
 	if record != "" {
 		if rootLocked {
 			return Destination{}, errorcodes.Errorf("transcript_root_locked", "--record=PATH is refused because transcript.root is locked; record without a path to use %s", rootSetting)
@@ -93,17 +94,15 @@ func Resolve(record, rootSetting, shared, base, home string, rootLocked bool, st
 			return Destination{}, errorcodes.Errorf("transcript_path_invalid", "resolve transcript path: %w", err)
 		}
 		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
-			return Destination{}, errorcodes.Errorf("transcript_path_not_directory", "--record=%s exists and is not a folder; a session records into <PATH>/YYYY-MM-DD/", record)
+			return Destination{}, errorcodes.Errorf("transcript_path_not_directory", "--record=%s; name a folder", record)
 		}
-		root = p
-	} else {
-		p, err := osutil.ResolveTranscriptRoot(rootSetting, shared, base, home)
-		if err != nil {
-			return Destination{}, errorcodes.Errorf("transcript_path_invalid", "resolve transcript.root: %w", err)
-		}
-		root = p
+		return Destination{Root: p, Folder: p, Chosen: true}, nil
 	}
-	return Destination{Root: root, Day: filepath.Join(root, osutil.DayFolder(started, loc))}, nil
+	root, err := osutil.ResolveTranscriptRoot(rootSetting, shared, base, home)
+	if err != nil {
+		return Destination{}, errorcodes.Errorf("transcript_path_invalid", "resolve transcript.root: %w", err)
+	}
+	return Destination{Root: root, Folder: filepath.Join(root, osutil.DayFolder(started, loc))}, nil
 }
 
 // Pair is a claimed transcript and metadata file sharing one name.
@@ -112,28 +111,48 @@ type Pair struct {
 	Metadata   string
 }
 
-// Claim creates the destination day folder if needed (mode; under a setgid
-// root the root's mode) and claims <device>-<HHMMSS><ext> and
-// <device>-<HHMMSS><metaExt> in it, exclusively. When either name is taken,
-// both are bumped together with the first free numeric suffix. Both files
+// Claim creates the destination folder if needed (mode; a day folder under a
+// setgid root takes the root's mode) and claims a transcript and its
+// metadata under one name, <name><ext> and <name><metaExt>, exclusively.
+// When either name is taken, both move to the next name together. In the
+// configured root the names are <device>-<HHMMSS>, then .1, .2, and on; in
+// --record=PATH they are <device>, then <device>-<YYMMDD>-<HHMMSS>, and with
+// both taken the claim is refused with transcript_name_taken. Both files
 // exist, empty and mode 0640, when Claim returns.
 func Claim(dest Destination, device string, started time.Time, loc *time.Location, ext, metaExt string, mode os.FileMode) (Pair, error) {
-	if err := osutil.EnsureOutputDirectory(dest.Day, osutil.DayFolderMode(dest.Root, mode), "transcript_directory_not_writable"); err != nil {
+	if err := osutil.EnsureOutputDirectory(dest.Folder, osutil.DayFolderMode(dest.Root, mode), "transcript_directory_not_writable"); err != nil {
 		return Pair{}, err
 	}
 	if loc == nil {
 		loc = time.Local
 	}
-	base := SafeName(device) + "-" + started.In(loc).Format("150405")
-	for n := 0; n < 10000; n++ {
-		name := base
-		if n > 0 {
-			name = base + "." + strconv.Itoa(n)
+	safe := SafeName(device)
+	base := safe + "-" + started.In(loc).Format("150405")
+	// nth is the claim's nth name, false past the last.
+	nth := func(n int) (string, bool) {
+		switch {
+		case dest.Chosen && n == 0:
+			return safe, true
+		case dest.Chosen && n == 1:
+			return safe + "-" + started.In(loc).Format("060102-150405"), true
+		case dest.Chosen:
+			return "", false
+		case n == 0:
+			return base, true
 		}
-		p := Pair{Transcript: filepath.Join(dest.Day, name+ext), Metadata: filepath.Join(dest.Day, name+metaExt)}
+		return base + "." + strconv.Itoa(n), n < 10000
+	}
+	var taken []string
+	for n := 0; ; n++ {
+		name, more := nth(n)
+		if !more {
+			break
+		}
+		p := Pair{Transcript: filepath.Join(dest.Folder, name+ext), Metadata: filepath.Join(dest.Folder, name+metaExt)}
 		tf, err := osutil.CreateExclusive(p.Transcript, 0)
 		if err != nil {
 			if os.IsExist(err) {
+				taken = append(taken, filepath.Base(p.Transcript))
 				continue
 			}
 			return Pair{}, errorcodes.Errorf("transcript_create_failed", "create %s: %w", p.Transcript, err)
@@ -143,6 +162,7 @@ func Claim(dest Destination, device string, started time.Time, loc *time.Locatio
 		if err != nil {
 			os.Remove(p.Transcript)
 			if os.IsExist(err) {
+				taken = append(taken, filepath.Base(p.Metadata))
 				continue
 			}
 			return Pair{}, errorcodes.Errorf("transcript_create_failed", "create %s: %w", p.Metadata, err)
@@ -150,7 +170,10 @@ func Claim(dest Destination, device string, started time.Time, loc *time.Locatio
 		mf.Close()
 		return p, nil
 	}
-	return Pair{}, errorcodes.Errorf("transcript_create_failed", "no free transcript name for %s in %s", base, dest.Day)
+	if dest.Chosen {
+		return Pair{}, errorcodes.Errorf("transcript_name_taken", "%s; retry\n  %s", dest.Folder, strings.Join(taken, "\n  "))
+	}
+	return Pair{}, errorcodes.Errorf("transcript_create_failed", "no free transcript name for %s in %s", base, dest.Folder)
 }
 
 // Metadata is the session metadata record. Start fields

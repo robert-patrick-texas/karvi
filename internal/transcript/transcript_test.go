@@ -24,13 +24,17 @@ func TestResolveDestination(t *testing.T) {
 	base, home := t.TempDir(), t.TempDir()
 	started := time.Date(2026, 9, 14, 23, 30, 5, 0, time.UTC)
 	d, err := Resolve("", "auto", "none", base, home, true, started, time.UTC)
-	if err != nil || d.Root != filepath.Join(base, "transcripts") || d.Day != filepath.Join(base, "transcripts", "260914") {
+	if err != nil || d.Root != filepath.Join(base, "transcripts") || d.Folder != filepath.Join(base, "transcripts", "260914") || d.Chosen {
 		t.Fatalf("configured root: %+v %v", d, err)
 	}
 	ny, _ := time.LoadLocation("America/New_York")
+	if d, err := Resolve("", "auto", "none", base, home, false, started, ny); err != nil || filepath.Base(d.Folder) != "260914" {
+		t.Fatalf("configured root in the timezone: %+v %v", d, err)
+	}
+	// PATH is the folder itself, with no day folder.
 	d, err = Resolve("~/rec", "auto", "none", base, home, false, started, ny)
-	if err != nil || d.Root != filepath.Join(home, "rec") || filepath.Base(d.Day) != "260914" {
-		t.Fatalf("PATH with home and timezone: %+v %v", d, err)
+	if err != nil || d.Root != filepath.Join(home, "rec") || d.Folder != d.Root || !d.Chosen {
+		t.Fatalf("PATH with home: %+v %v", d, err)
 	}
 	if _, err := Resolve("/x", "auto", "none", base, home, true, started, time.UTC); errorcodes.Of(err) != "transcript_root_locked" {
 		t.Fatalf("locked root: %v", err)
@@ -43,14 +47,14 @@ func TestResolveDestination(t *testing.T) {
 		t.Fatalf("PATH is a file: %v", err)
 	}
 	// A missing PATH is accepted; it is created at claim time.
-	if d, err := Resolve(filepath.Join(home, "new"), "auto", "none", base, home, false, started, time.UTC); err != nil || d.Root != filepath.Join(home, "new") {
+	if d, err := Resolve(filepath.Join(home, "new"), "auto", "none", base, home, false, started, time.UTC); err != nil || d.Folder != filepath.Join(home, "new") {
 		t.Fatalf("missing PATH: %+v %v", d, err)
 	}
 }
 
 func TestClaimBumpsBothNames(t *testing.T) {
 	root := t.TempDir()
-	dest := Destination{Root: root, Day: filepath.Join(root, "260914")}
+	dest := Destination{Root: root, Folder: filepath.Join(root, "260914")}
 	started := time.Date(2026, 9, 14, 14, 30, 5, 0, time.UTC)
 	p1, err := Claim(dest, "Router01", started, time.UTC, ".log", ".meta.jsonl", 0o750)
 	if err != nil {
@@ -65,7 +69,7 @@ func TestClaimBumpsBothNames(t *testing.T) {
 			t.Fatalf("%s: %v %v", f, fi, err)
 		}
 	}
-	if fi, _ := os.Stat(dest.Day); fi.Mode().Perm() != 0o750 {
+	if fi, _ := os.Stat(dest.Folder); fi.Mode().Perm() != 0o750 {
 		t.Fatalf("day folder mode %o", fi.Mode().Perm())
 	}
 	// The same second again, and a device whose name collapses to the same
@@ -79,15 +83,71 @@ func TestClaimBumpsBothNames(t *testing.T) {
 		t.Fatalf("bump 2: %+v %v", p3, err)
 	}
 	// A taken metadata name alone bumps both.
-	if err := os.WriteFile(filepath.Join(dest.Day, "edge-143005.meta.jsonl"), nil, 0o640); err != nil {
+	if err := os.WriteFile(filepath.Join(dest.Folder, "edge-143005.meta.jsonl"), nil, 0o640); err != nil {
 		t.Fatal(err)
 	}
 	p4, err := Claim(dest, "edge", started, time.UTC, ".log", ".meta.jsonl", 0o750)
 	if err != nil || filepath.Base(p4.Transcript) != "edge-143005.1.log" {
 		t.Fatalf("metadata taken: %+v %v", p4, err)
 	}
-	if _, err := os.Stat(filepath.Join(dest.Day, "edge-143005.log")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(dest.Folder, "edge-143005.log")); !os.IsNotExist(err) {
 		t.Fatal("the unpaired transcript must be removed")
+	}
+}
+
+// TestClaimInChosenFolder: --record=PATH records into PATH under the
+// device's name, then the name with the session's start, then refuses.
+func TestClaimInChosenFolder(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "a", "rec")
+	dest := Destination{Root: path, Folder: path, Chosen: true}
+	ny, _ := time.LoadLocation("America/New_York")
+	started := time.Date(2026, 10, 21, 2, 46, 52, 0, time.UTC) // 2026-10-20 22:46:52 in New York
+	p1, err := Claim(dest, "Router1", started, ny, ".log", ".meta.jsonl", 0o750)
+	if err != nil || p1.Transcript != filepath.Join(path, "router1.log") || p1.Metadata != filepath.Join(path, "router1.meta.jsonl") {
+		t.Fatalf("first: %+v %v", p1, err)
+	}
+	for _, d := range []string{path, filepath.Dir(path)} {
+		if fi, err := os.Stat(d); err != nil || fi.Mode().Perm() != 0o750 {
+			t.Fatalf("%s: %v %v", d, fi, err)
+		}
+	}
+	p2, err := Claim(dest, "router1", started, ny, ".log", ".meta.jsonl", 0o750)
+	if err != nil || filepath.Base(p2.Transcript) != "router1-261020-224652.log" || filepath.Base(p2.Metadata) != "router1-261020-224652.meta.jsonl" {
+		t.Fatalf("second: %+v %v", p2, err)
+	}
+	_, err = Claim(dest, "router1", started, ny, ".log", ".meta.jsonl", 0o750)
+	if errorcodes.Of(err) != "transcript_name_taken" || !strings.Contains(err.Error(), path+"; retry\n  router1.log\n  router1-261020-224652.log") {
+		t.Fatalf("third: %v", err)
+	}
+	// An operator's own file of the device's name moves the session to the
+	// second name, the file untouched; a taken metadata name alone does too.
+	own := t.TempDir()
+	dest = Destination{Root: own, Folder: own, Chosen: true}
+	if err := os.WriteFile(filepath.Join(own, "edge.log"), []byte("collected\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if p, err := Claim(dest, "edge", started, ny, ".log", ".meta.jsonl", 0o750); err != nil || filepath.Base(p.Transcript) != "edge-261020-224652.log" {
+		t.Fatalf("own file: %+v %v", p, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(own, "edge.log")); string(b) != "collected\n" {
+		t.Fatalf("the operator's file changed: %q", b)
+	}
+	if err := os.WriteFile(filepath.Join(own, "core.meta.jsonl"), nil, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if p, err := Claim(dest, "core", started, ny, ".log", ".meta.jsonl", 0o750); err != nil || filepath.Base(p.Metadata) != "core-261020-224652.meta.jsonl" {
+		t.Fatalf("metadata taken: %+v %v", p, err)
+	}
+	if _, err := os.Stat(filepath.Join(own, "core.log")); !os.IsNotExist(err) {
+		t.Fatal("the unpaired transcript must be removed")
+	}
+	// A taken metadata name at both names is named as taken.
+	if err := os.WriteFile(filepath.Join(own, "core-261020-224653.meta.jsonl"), nil, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	_, err = Claim(dest, "core", started.Add(time.Second), ny, ".log", ".meta.jsonl", 0o750)
+	if errorcodes.Of(err) != "transcript_name_taken" || !strings.HasSuffix(err.Error(), "\n  core.meta.jsonl\n  core-261020-224653.meta.jsonl") {
+		t.Fatalf("both metadata names taken: %v", err)
 	}
 }
 

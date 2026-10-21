@@ -460,6 +460,7 @@ var entries = []Entry{
 	failure("transcript_create_failed", "output", exitOutput, false, "The login transcript directory, file, or metadata cannot be created."),
 	failure("transcript_root_locked", "usage", exitUsage, false, "`--record=PATH` is given while `transcript.root` is locked."),
 	failure("transcript_path_not_directory", "usage", exitUsage, false, "The `--record=PATH` path exists and is not a folder."),
+	failure("transcript_name_taken", "output", exitOutput, true, "Under `--record=PATH` both of a session's names are taken in PATH, the device's own and that name with the session's start (`<device>-YYMMDD-HHMMSS`), each by its transcript or its metadata. Nothing is written; a session started in another second has another second name."),
 	failure("transcript_format_unavailable", "dependency", exitDep, false, "`transcript.format` is `jsonl` or `json` and this executable has no transcript event recorder."),
 	failure("transcript_path_invalid", "usage", exitUsage, false, "The requested transcript path cannot be made absolute."),
 	failure("transcript_recorder_failed", "internal", exitGen, false, "The util-linux `script` recorder fails without an exit status."),
