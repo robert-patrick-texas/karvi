@@ -16101,3 +16101,183 @@ None left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`, `/dev/shm/karvi`,
 (`release-design-evidence/record-path-2026-10-20`: the decision, the lab
 script and its output on both builds, the suite's runs on both, and the test,
 vet, and battery logs).
+
+## 77. The release 0.35.0 (2026-10-21)
+
+The sixteenth public release, 0.35.0, on the operator's word and number,
+carrying [chapter 76](#76-the-operators-folder---recordpath-2026-10-20):
+`--record=PATH` records into the operator's folder under the device's name.
+The operator numbered it a minor release, for the changed layout. No counter
+moves, and the module graph and Go are 0.34.1's: `latest.sh` found nothing
+behind. The daemon IPC schema stays 12, so the compatibility example is the
+drain, beside the released 0.34.1 daemon. The sequence is [chapter
+75](#75-the-release-0341-2026-10-20)'s, `latest.sh` first. It stopped twice
+for the operator at the core evidence, both times on the host's `/tmp`,
+crowded by other work. The first stop moved the socket step's folders under
+the release's `TMPDIR`, by a change to `evidence-core.sh` on the operator's
+word. The second was the step's 145-byte case, whose socket folders fall back
+to `/tmp` by the tree's design; it passed once the operator had freed `/tmp`.
+The build stopped after the package's install check and went on to the push
+at the operator's second word.
+
+**What it gains.** A site has chapter 76's `--record=PATH` from a published,
+checksummed bundle and package, with the documents on GitHub Pages at the
+release: a recorded login lands in the folder the operator named, as
+`router1.log`. The core evidence's 25-byte socket case no longer depends on
+the free space of `/tmp`.
+
+**Before the number.** The archive's mirror was fetched to `9ad6d6a` (its
+README notes it; `SHA256SUMS` renewed). A container on Docker's default
+network reached every probe address. `latest.sh` on the tree: go1.27.3 and
+the seven modules at their newest, exit 0. `dev` had held its `## Unreleased`
+block, chapter 76's entry, since `d705805`.
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.35.0 - 2026-10-21` under a
+lead paragraph: a minor release on 0.34.1, every counter 0.34.1's, the module
+graph and Go 0.34.1's, and a site changing a script that looks for a
+`--record=PATH` session's files under `PATH/YYMMDD/`. `CHECKSUMS.sha256` has
+its four lines from the release-identity build.
+
+**The first stop: `/tmp` at 25 bytes.** The core evidence after 1/3 passed
+its 1,080 named tests and vet, then the socket step exited 1 at both lengths:
+the same fourteen `internal/cli` tests failed each time, the rest passing.
+One of them, rerun alone under the step's 25-byte `TMPDIR` (go test's lines):
+
+```text
+--- FAIL: TestRunNoDaemonCarriesTheBlindSendToThePlan (0.01s)
+    blind_send_run_test.go:93: exit=111 stderr="output_preflight_space: /tmp/yyyyyyyyyyyyyyyyyyyy/nd2262294818/state/jobs/261021/261021-083746-00, /tmp/yyyyyyyyyyyyyyyyyyyy/karvi-test-spool-2541224105: need 2215247872 bytes free, only 1760579584 free\n" stdout=""
+```
+
+The step built its two folders under `/tmp` whatever `TMPDIR` said, where
+every other step runs under the release's `TMPDIR=/var/tmp` (chapter 74's
+finding). This host's `/tmp` is a 4.9 GB tmpfs, then 1.7 GB free, most of the
+rest other projects' scratch; 0.34.1's step had passed there with more room.
+
+**The tool's change, agreed.** In simple terms:
+
+- The socket step's two folders sit under `${TMPDIR:-/tmp}`.
+- Their lengths stay 25 and 145 bytes: the padding takes the base's length
+  off, where it took off `/tmp/`'s five.
+
+The release tools were archived first (`untracked/release-tools-before-0.35.0`
+in the archive, its README noting why). The change, with its comment in the
+script's header:
+
+```text
+-    d=/tmp/$(head -c 300 /dev/zero | tr '\0' 'y' | head -c $((len-5))); mkdir -p "$d"
++    base=${TMPDIR:-/tmp}
++    d=$base/$(head -c 300 /dev/zero | tr '\0' 'y' | head -c $((len-${#base}-1))); mkdir -p "$d"
+```
+
+Executed before the rerun, each base at each length gives 25 and 145 bytes.
+
+**The second stop: `/tmp` at 145 bytes.** The rerun passed the 25-byte case,
+under `/var/tmp`, and failed the 145-byte case on the same fourteen tests.
+Rerun alone:
+
+```text
+--- FAIL: TestRunNoDaemonCarriesTheBlindSendToThePlan (0.01s)
+    blind_send_run_test.go:93: exit=111 stderr="output_preflight_space: /tmp/nd1881490143/state/jobs/261021/261021-114703-00: need 2148139008 bytes free, only 1631383552 free\n" stdout=""
+```
+
+A 145-byte `TMPDIR` holds no socket path within Linux's 107 bytes, so
+`internal/testsocket.Dir` and `osutiltest`'s scratch root fall back to `/tmp`
+by design, and the jobs under them meet the same free-space floor. No change
+to the tool reaches that. The operator freed `/tmp`, to 2,463,956,992 bytes
+free, and the core evidence passed: 1,080 named tests across 92 packages, vet
+0, both lengths exit 0.
+
+**Why this way.** The step follows the release's `TMPDIR`, as the tests, the
+suites, and the verifiers do; its lengths are what it proves, not the
+filesystem. The 145-byte case keeps its fallback, the tree's guard for any
+long `TMPDIR`.
+
+**Not taken.** Waiting for `/tmp` alone: the tool stays tied to a place other
+work fills. The test helpers' fallback moved from `/tmp` to `/var/tmp`: a
+change to two test packages, mid-release, for the host's fault and not the
+tree's.
+
+**The sequence, as run**, from the archive at 12:25 to the published check at
+17:18 (UTC; 08:25 to 13:18, EDT):
+
+- 12:25:25, the archive's mirror fetched to `9ad6d6a`; the bridge probe
+  passed; `latest.sh` exit 0.
+- 12:25:27 to 12:34:20, the baseline on a clean clone of `9ad6d6a`:
+  `latest.sh`, gofmt, make, and the release verifier with its package and
+  container steps, exit 0 each.
+- 12:34:38 to 12:35:22, the release-identity build, the compatibility
+  example, and 1/3: the build `onQ7svRY49FAEYS1IIHv` by go1.27.3; the 0.34.1
+  daemon drained idle, refusing busy; `3c5f083`.
+- To 12:37:26, the core evidence: the socket step exit 1 at both lengths. The
+  first stop for the operator.
+- 15:44:30, the tools archived and `evidence-core.sh` changed.
+- To 15:46:35, the core evidence: the 145-byte case exit 1. The second stop.
+- 16:04:31, `/tmp` freed by the operator.
+- To 16:06:44, the core evidence: 1,080 named tests across 92 packages, vet
+  0, both socket lengths exit 0.
+- 16:07:17, the documents: `75dc244` (2/3).
+- 16:07:23 to 16:15:52, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 16:16:23, 3/3, the tag, `main`: `f444ee5`, `karvi-v0.35.0`, `main`
+  fast-forwarded from `83a321d`.
+- 16:16:29 to 16:22:28, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 39,769,939 and 6,500,380 bytes.
+- 16:22:46 to 16:22:57, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`. The stop for
+  the operator's word.
+- 17:17:37 to 17:18:44, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`a321793`), built,
+  its 52 files 200 and its footer `karvi-v0.35.0`; release `karvi-v0.35.0`
+  with the five assets, marked latest, its body the notes file; the assets
+  downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.34.1 build=fNsX8VA8zKCBF5ctuqyS
+daemon started socket=/dev/shm/r350/compat/base/socket/d.sock
+pid 2117455 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build fNsX8VA8zKCBF5ctuqyS 0.34.1
+  client build onQ7svRY49FAEYS1IIHv 0.35.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2117555 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.35.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.35.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.35.0-source-linux-amd64.tar.gz: OK
+karvi_0.35.0_amd64.deb: OK
+```
+
+**Found on the way.**
+
+- `karvi` and `karvi-audit` are each 4,096 bytes larger; `karvi-audit` links
+  the error registry, which gained `transcript_name_taken`. `karvi-askpass`
+  and `karvi-prune` keep 0.34.1's sizes, with other bytes; the bundle is
+  11,681 bytes larger and the package 8,794.
+- The default configuration and the module metadata of the four executables
+  were regenerated to 0.34.1's bytes, since no key and no module changed, so
+  3/3 carries eight evidence files.
+- `bin/` is the release's build again, so the transcript suite's PATH case,
+  which the released 0.34.1 failed, passes against it.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67,
+  70, 73, and 75: the minimal image leaves out `/usr/share/man`.
+
+The evidence is kept beside the tree (`release-design-evidence/v0350-*`: the
+timeline, the baseline with `latest.sh`'s output, the build, the compatibility
+example, the 1/3 and 2/3 patches, the artifacts, the container install, the
+release notes, the push, the site, and the published check;
+`v0350-socket-step/`: the two failed socket logs, the single-test reruns, the
+tool's patch, and `/tmp`'s free space before and after).
