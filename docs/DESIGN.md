@@ -2649,6 +2649,36 @@ exactly once, from the plan and never from the device's echo, with a marked
 secret redacted. *Why:* operators need to see what was sent while the stream
 stays payload-free.
 
+**`--live` shows the session's bytes as they are read, in place of the text
+display.** `command`, and `run` and `crun` with `--no-daemon`, given `--live`
+write every byte the transport reads from the device to standard output as it
+is read (`Session.pump` for both SSH transports, an exec session's settle
+loop, telnet's read loop, through `platform.Live`): each device's header when
+its session opens, the banner and the setup included, then the footer. A
+record leaves karvi's own lines alone (a failed command, a command not sent),
+on a line of their own; the records, the job's files, and the audit are
+unchanged, and the plan does not carry the option, so its digest is the same.
+A run is serial and follows each device in turn: `dispatch.default` is set to
+`serial` from `--live` in the lock-aware layer when the configuration says
+another mode, a site's lock on the key refusing it as it refuses `--ds`.
+Refused beside it (`live_option_conflict`): the display's own options
+(`--format jsonl|json`, `--echo`, `--border`, `--noborder`); on a run,
+`--dispatch parallel` or `wave`, the key set so by `--set`, and a run with no
+display in the client's process (no `--no-daemon`, `--dry-run`, `--exercise`,
+`--follow=false`). The transport hands the view each secret before writing it,
+and the view writes its exact value `<removed>`, found across a read's edge
+(`platform.SecretFilter`); escape sequences follow `output.ansi`; an exec
+command is shown at the prompt `--echo` shows. *Why:* the text display renders
+each record once its command completes, so a long command showed nothing until
+its end and the setup never; one device at a time keeps one session's bytes on
+the screen; display only keeps every record, file, and digest the same with or
+without it. *Not taken:* the device's bytes in `--debug`, which carries no
+device output; the echo line printed when a command is sent, which names the
+command and shows nothing more until it completes; the bytes beside the text
+display (each twice); the bytes through the daemon (an IPC frame of their own,
+in [`ROADMAP.md`](../ROADMAP.md#later)); `serial` set whatever the
+configuration says (a site's lock on `serial` would refuse it).
+
 ## 13. The watch screen
 
 **A diffed frame on the alternate screen, karvi's own.** `karvi watch` renders

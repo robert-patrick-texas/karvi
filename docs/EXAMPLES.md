@@ -16281,3 +16281,190 @@ example, the 1/3 and 2/3 patches, the artifacts, the container install, the
 release notes, the push, the site, and the published check;
 `v0350-socket-step/`: the two failed socket logs, the single-test reruns, the
 tool's patch, and `/tmp`'s free space before and after).
+
+## 78. The live view, `--live` (2026-10-25)
+
+While a command file per target was being settled, the operator asked when an
+operator sees a command session. Executed against the released 0.35.0, the
+answer was that the display renders each command's record once the command
+has completed, and a live view of the device's bytes was proposed. This
+session restated it for the operator's concurrence. The operator named it
+`--live`; kept it to `command` and `run --no-daemon`; made a run with it
+always serial, any other dispatch refused; had it follow each device's session
+in turn; left a daemon run to the roadmap; asked that no byte reach the
+terminal twice and that the session's setup be shown; and agreed the
+recommendations for the remaining questions. It was recorded as ROADMAP's
+first Next item (`aa8d90b`) and built in three pieces while the operator was
+away.
+
+**What it gains.** A long command is seen as it runs: the lines of a slow
+`show` reach the screen as the device sends them, and the operator sees the
+login, the enable step, and the paging commands, which the text display never
+shows. It waits on nothing; a daemon run's live view waits in the roadmap.
+
+**The tree before.** `live-lab.sh`, the released 0.35.0 at the fake device,
+whose `show slow` answers after four seconds, every line of standard output
+and standard error stamped as it arrived: standard output held nothing from
+0.68 s, when `show slow` was sent, until 4.75 s, when its record was
+rendered, the running command unnamed there; the header came after the first
+command had completed, not at the session's open; `enable` and the paging
+commands never reached standard output, and `--debug` showed each step and no
+device byte.
+
+**The rule, agreed.** In simple terms:
+
+- `--live` prints the device's bytes as they arrive, the setup included, on
+  `command`, and on `run` and `crun` with `--no-daemon`.
+- It is display only: the records, the job's files, and the audit are
+  unchanged, and no byte reaches the terminal twice.
+- A run with it is serial and follows each device in turn; another dispatch
+  is refused.
+- A secret the session writes is never shown.
+- A daemon run's view is for later.
+
+The recommendations agreed with it:
+
+- The bytes go to standard output in place of the text display: each
+  device's header when its session opens, the footer after the last device,
+  karvi's own lines as the text display prints them.
+- An exec command is shown at the prompt `--echo` shows.
+- Control bytes follow `output.ansi`.
+- `--format jsonl|json`, `--echo`, `--border`, and `--noborder` are refused
+  beside it, and a configured border is set aside; `--quiet` drops the header
+  and the footer.
+- karvi's lines are coloured, the device's bytes never.
+- `dispatch.default` is set to `serial` from `--live` as `--ds` sets it;
+  `--dispatch parallel|wave` and `--set` of another mode are refused; the
+  files' default yields.
+- Each secret's exact value is removed, across reads.
+- `crun --no-daemon` takes it as `run` does; a run without `--no-daemon`, or
+  with `--dry-run` or `--exercise`, is refused; `--nof` is allowed.
+
+**Executed.** `live-a-lab.sh`: a lab build of the working tree at the fake
+device (`-drip 1s`, `-echo-secret`), `command router1 --live --cmd 'show
+clock' --cmd 'show drip'` over the system transport. The `O` and `E` and the
+seconds since the start are the script's stamps, a line's when the line
+arrived, its `\r` taken out by the script; the rest is karvi's:
+
+```text
+O   0.03 ! router1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=system
+O   0.10
+O   0.20 Router>enable
+O   0.30 Password: <removed>
+O   0.40 Router#terminal length 0
+O   0.51 Router#terminal width 512
+O   0.61 Router#show clock
+O   0.62 *10:00:00.000 UTC Tue Sep 15 2026
+E   0.71 ! ssh accepted new host-key router1 (ED25519)
+O   0.73 Router#show drip
+O   0.74 drip 1
+O   1.73 drip 2
+O   2.73 drip 3
+O   2.83 Router#exit
+O   2.84 ! exit=0 elapsed=2.82s artifacts=/dev/shm/lv/base/jobs/261025/261025-161508-00
+```
+
+The native transport's run is the same a tenth of a second sooner. The job's
+`output.router1.txt` is a command's without `--live`, `Password:` with
+nothing after it. `live-b-lab.sh`: `run --no-daemon --live --target router1
+--target router2 --cmd 'show drip'` under a lab file whose `dispatch.default`
+is `parallel`, the platform's default transport (native), the set-up lines
+and router2's `drip 2` left out here:
+
+```text
+O   0.03 ! router1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+O   0.54 Router#show drip
+O   0.54 drip 1
+O   1.54 drip 2
+O   2.54 drip 3
+O   2.64 Router#exit
+O   2.65 ! router2 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+O   3.15 Router#show drip
+O   3.16 drip 1
+O   5.15 drip 3
+O   5.26 Router#exit
+O   5.26 ! exit=0 elapsed=5.24s artifacts=/dev/shm/lv/base/jobs/261025/261025-162451-00
+```
+
+Every record's `dispatch.mode` is `serial`; `crun`'s is the same, its
+collection line after the footer. Three refusals, karvi's standard error, each
+exit 4:
+
+```text
+live_option_conflict: --live and --echo are mutually exclusive
+live_option_conflict: --live without --no-daemon; add --no-daemon
+live_option_conflict: --live and --dispatch parallel are mutually exclusive
+```
+
+**Why this way.**
+
+- Each transport reads the device's bytes in one place, so the view is
+  given them there and nothing else changes: the records are built from the
+  same bytes as before.
+- The plan does not carry the option, so a job and its live run hash alike,
+  and the daemon never sees it.
+- The renderer owns standard output, so the view writes through it under its
+  lock, and karvi's lines and the device's bytes never meet mid-line.
+- One device at a time, since two sessions' bytes interleaved would read as
+  neither.
+
+**Not taken.** The device's bytes in `--debug`, which carries no device
+output. The echo line printed when a command is sent: it names the command and
+shows nothing more until it completes. The bytes beside the text display: each
+twice. The bytes through the daemon, a frame of their own on the IPC: in
+ROADMAP's Later. `serial` written whatever the configuration says (below).
+The option in the plan: a display choice would change the digest.
+
+**Found on the way.**
+
+- A site's lock refuses any write to its key, even the value it locks, so a
+  `--live` that always wrote `serial` would be refused where a site locks
+  `dispatch.default` to `serial`. `--live` writes it only when the
+  configuration, read once beforehand, says another mode.
+- Telnet reads the device in a loop of its own, not `Session.pump`; it is
+  tapped too, its password and enable secret handed to the view.
+- `--follow=false` on `run --no-daemon` discards the display; it is refused
+  beside `--live`, a run with no display.
+- `--li` abbreviated `--literal` on `command`, `run`, and `crun`; beside
+  `--live` it is ambiguous, `--lit` the shortest.
+- The host-key line, on standard error, comes with the device's first
+  record, after its bytes on the screen.
+- The error-code source check refused an uncoded error in the dispatch check;
+  it carries `live_option_conflict`.
+- The native suite's case numbers stop at S35, whose letters (S35a to S35f)
+  `ONLY=S35` also runs; the new case is S36.
+
+**Built.** In three pieces:
+
+- A, `command --live`: `platform.Live` and `OpenRequest.Live`; `devsession`'s
+  `pump`, its exec settle loop, and `writeSecret`; telnet's read loop and its
+  secret writes; `platform.SecretFilter`; the executor opening the view from
+  the device's record before the transport opens, writing an exec command at
+  its prompt, and ending the view after the driver's close; the renderer's
+  live mode (`internal/jobexec/live.go`), the ping and header code shared with
+  the text display; the option, its refusals, and `live_option_conflict`; the
+  fake device's `show drip` (`-drip`, and `DripGate`, with which a test
+  releases each line once the one before has been shown); a test at each
+  layer (`TestSecretFilterRemovesEachSecret`,
+  `TestLiveShowsTheSessionAsItArrives`, `TestTelnetLiveSeesTheSession`,
+  `TestLiveTakesTheTextDisplaysPlace`,
+  `TestCommandLiveShowsTheSessionAsItArrives`); COMMAND-SESSION's Live view.
+- B, `run` and `crun` with `--no-daemon`: the run's refusals, `liveDispatch`,
+  `TestLiveRunRefusals`, `TestRunLiveFollowsEachDeviceInTurn`.
+- C: the native suite's S36 (`command --live` over both transports, a run of
+  two devices under a parallel default, no secret anywhere, two refusals),
+  DESIGN section 12's entry, this chapter, and ROADMAP's Next item removed,
+  its Later item and its secrets entry updated.
+
+**Executed.** vet, `go test -count=1 ./...` (72 packages), and `make
+generated-clean` on the final tree, after each piece and at the end; all 19
+suites on a lab build of it (`run_suites`, `KARVI` the lab build,
+`TMPDIR=/var/tmp`, 228 seconds), S36 among them. On the released 0.35.0, S36
+fails at its first `--live`, `cli_option_unknown: unknown option --live in
+command`. None left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, `~/.local/share/karvi`, or karvi process.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/live-build-2026-10-25`: the two lab scripts and
+their logs, and the battery's logs). A daemon run's live view is in ROADMAP's
+Later.

@@ -1015,3 +1015,61 @@ directory = \"$TMP/cd\""
   stop_fake
   echo 'native smoke: S34 --cd and --fs on run and command: the unfiltered file, the folder'"'"'s text files, the kept device, a rejected statement with and without --continue, the collection line after the footer on both paths, no hook but crun'"'"'s, --nof, the suffix and the implied working directory, the sweep, crun'"'"'s --fs, a bad suffix: ok'
 fi
+
+# S36: --live. command --live over each transport prints the header, then
+# the device's bytes from the first (the banner's line, enable with the
+# echoed secret written <removed>, the paging commands, the command), each
+# once, then the footer; no file or stream holds the secret, and the job's
+# text file is a command's without it. run --no-daemon --live under a
+# parallel default runs serial, each device's header before its session;
+# --echo beside it, and a run without --no-daemon, are refused.
+if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S36 ]; then
+  S36_SECRET=Zq7-live-SECRET
+  s36_run() {  # tag, karvi args...; sets CODE, JOB_DIR
+    s36_tag=$1; shift
+    rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
+    CODE=0
+    env NETENABLE="$S36_SECRET" HOME="$TMP/home" NETUSER=netops NETPASS=pw \
+      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
+      >"$TMP/out.$s36_tag" 2>"$TMP/err.$s36_tag" || CODE=$?
+    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+  }
+  s36_no_secret() {  # tag: no file of the job or stream of the run holds the secret
+    s36_hits=$(grep -rl -- "$S36_SECRET" "$TMP/base" "$TMP/out.$1" "$TMP/err.$1" 2>/dev/null || true)
+    [ -z "$s36_hits" ] || fail "S36 $1: the echoed enable secret is in $s36_hits"
+  }
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\nfake2,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  start_fake -port 0 -hostname Router -drip 200ms -echo-secret -enable "$S36_SECRET"
+  : >"$KH"; chmod 600 "$KH"
+  write_config accept-new "$BUILTIN
+[dispatch]
+default = \"parallel\""
+  s36_session='Router>enable|Password: <removed>|Router#terminal length 0|Router#terminal width 512|Router#show drip|drip 1|drip 2|drip 3|Router#exit|'
+  for s36_transport in system native; do
+    s36_run "s36$s36_transport" command --live --transport "$s36_transport" fake-iosxe --cmd 'show drip'
+    [ "$CODE" -eq 0 ] || fail "S36 $s36_transport: exit $CODE: $(head -1 "$TMP/err.s36$s36_transport")"
+    s36_no_secret "s36$s36_transport"
+    s36_out=$(tr -d '\r' <"$TMP/out.s36$s36_transport" | tr '\n' '|')
+    case $s36_out in
+      "! fake-iosxe [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=$s36_transport||$s36_session! exit=0 elapsed="*) ;;
+      *) fail "S36 $s36_transport: the display is $s36_out" ;;
+    esac
+    [ "$(sed -n '2,3p' "$JOB_DIR/output.fake-iosxe.txt" | tr '\n' '|')" = 'Router>enable|Password:|' ] || fail "S36 $s36_transport: the text file's set-up lines are $(sed -n '2,3p' "$JOB_DIR/output.fake-iosxe.txt" | tr '\n' '|')"
+  done
+  s36_run s36run run --no-daemon --live --transport native --target fake-iosxe --target fake2 --cmd 'show drip'
+  [ "$CODE" -eq 0 ] || fail "S36 run: exit $CODE: $(head -1 "$TMP/err.s36run")"
+  s36_no_secret s36run
+  s36_head() { printf '! %s [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native||' "$1"; }
+  s36_out=$(tr -d '\r' <"$TMP/out.s36run" | tr '\n' '|')
+  case $s36_out in
+    "$(s36_head fake-iosxe)$s36_session$(s36_head fake2)$s36_session! exit=0 elapsed="*) ;;
+    *) fail "S36 run: the display is $s36_out" ;;
+  esac
+  [ "$(jsonl_records "$JOB_DIR/commands.jsonl" dispatch.mode | sort -u)" = serial ] || fail "S36 run: the records' modes are $(jsonl_records "$JOB_DIR/commands.jsonl" dispatch.mode | tr '\n' ' ')"
+  s36_run s36echo command --live --echo --transport native fake-iosxe --cmd 'show clock'
+  [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/err.s36echo")" = 'live_option_conflict: --live and --echo are mutually exclusive' ] || fail "S36 --echo: exit $CODE, $(head -1 "$TMP/err.s36echo")"
+  s36_run s36daemon run --live --transport native --target fake-iosxe --cmd 'show clock'
+  [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/err.s36daemon")" = 'live_option_conflict: --live without --no-daemon; add --no-daemon' ] && [ ! -S "$TMP/base/socket/d.sock" ] || fail "S36 daemon: exit $CODE, $(head -1 "$TMP/err.s36daemon")"
+  stop_fake
+  echo 'native smoke: S36 --live: command over system and native (the header, every byte from the first, the secret removed, the footer), the text file unchanged, run serial under a parallel default with each device in turn, no secret anywhere, --echo and a daemon run refused: ok'
+fi
