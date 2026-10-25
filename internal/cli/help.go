@@ -263,6 +263,10 @@ Options:
                                  indented JSON array for human inspection
   --echo                         Show prompt plus sent command in text output,
                                  including device-reported command errors
+  --live                         Print the device's bytes as they arrive, the
+                                 session's setup included, in place of the text
+                                 display; not with --format jsonl|json, --echo,
+                                 --border, or --noborder
   --border                       Replace the configured border with dashes
   --noborder                     Disable configured and dynamic borders
   --continue-device-on-error     Do not stop later commands after a device error

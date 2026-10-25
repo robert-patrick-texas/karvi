@@ -166,7 +166,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	session, err := devsession.Open(ctx, stream, devsession.Options{
 		Definition: d.req.Definition, EnableSecret: d.req.EnablePassword, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes,
 		LoginTimeout: connectTimeout + promptTimeout, EnableTimeout: enableTimeout, PromptTimeout: promptTimeout,
-		Debug: d.f.Debug,
+		Debug: d.f.Debug, Live: d.req.Live,
 	})
 	// The one-use askpass broker serves the authentication, which is over
 	// once the first prompt has arrived (or the open has failed).
@@ -196,7 +196,7 @@ func (d *Driver) prepareExec(ctx context.Context) error {
 		return err
 	}
 	d.master = master
-	d.exec = devsession.OpenExec(&execConn{m: master}, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug})
+	d.exec = devsession.OpenExec(&execConn{m: master}, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug, Live: d.req.Live})
 	d.debugf("system SSH exec master ready pid=%d socket=%s auth=%q", master.cmd.Process.Pid, master.socket, master.lines.Method())
 	return nil
 }

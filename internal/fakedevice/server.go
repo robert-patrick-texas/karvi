@@ -55,6 +55,12 @@ type Options struct {
 	// wait before the answer to the enable secret. Delay["enable"] is the
 	// wait before the Password: prompt.
 	LoginDelay, SecretDelay time.Duration
+	// DripInterval is the wait between the three lines "show drip" answers,
+	// output that arrives while the command runs (a live view's case);
+	// DripGate, when given, is received from in its place, once before
+	// each line after the first.
+	DripInterval time.Duration
+	DripGate     <-chan struct{}
 	// EchoSecret echoes the enable secret as it is typed, as a misconfigured
 	// device or terminal server may: the case that proves the secret reaches
 	// no output file even then.
@@ -723,6 +729,23 @@ func (s *Server) shell(ch ssh.Channel) {
 			// line takes the default in the brackets.
 			value = "copy"
 			if !w("\r\nDestination filename [startup-config]? ") {
+				return
+			}
+		case "show drip":
+			if !w("\r\ndrip 1\r\n") {
+				return
+			}
+			for i := 2; i <= 3; i++ {
+				if s.opts.DripGate != nil {
+					<-s.opts.DripGate
+				} else {
+					time.Sleep(s.opts.DripInterval)
+				}
+				if !w(fmt.Sprintf("drip %d\r\n", i)) {
+					return
+				}
+			}
+			if !w(prompt()) {
 				return
 			}
 		case "show mute":

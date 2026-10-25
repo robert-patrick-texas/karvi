@@ -89,6 +89,10 @@ type Request struct {
 	CandidateCount int // command: devices in the ordered target set
 	// Daemon is true when the daemon runs the job; the scoreboard says so.
 	Daemon bool
+	// Live is the live view (--live), in the client's process alone: each
+	// device's session bytes in place of the text display. It is not in the
+	// plan, so the job's digest is the same without it.
+	Live bool
 
 	// OnAccepted is called once the job is accepted: the manifest is
 	// durable and the started audit record written. The daemon answers

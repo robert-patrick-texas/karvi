@@ -676,6 +676,7 @@ var entries = []Entry{
 	failure("debug_show_secrets_requires_debug", "usage", exitUsage, false, "`--debug-show-secrets` is given without `--debug`."),
 	failure("address_family_conflict", "usage", exitUsage, false, "`--ipv4` and `--ipv6`, in any spelling or position, are both given."),
 	failure("border_options_conflict", "usage", exitUsage, false, "`--border` and `--noborder` are both given."),
+	failure("live_option_conflict", "usage", exitUsage, false, "`--live` is given with an option that shapes the text display it replaces: `--format jsonl` or `json`, `--echo`, `--border`, or `--noborder`."),
 	failure("output_options_conflict", "usage", exitUsage, false, "`command` is given both `--of` and `--nof`; the one says output files on, the other off."),
 	failure("port_out_of_range", "usage", exitUsage, false, "`--port` is outside 1..65535."),
 	failure("blind_return_out_of_range", "usage", exitUsage, false, "`--blind-return` is outside 0..20, or a command ends in more than twenty `\\r` sequences."),

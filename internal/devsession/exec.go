@@ -60,6 +60,7 @@ type ExecOptions struct {
 	Spool          Spool
 	InFlightBytes  *atomic.Int64
 	Debug          func(string)
+	Live           platform.Live // every byte of both streams, as settled (--live)
 }
 
 // ExecSession runs a device's commands on exec channels of its connection.
@@ -226,6 +227,9 @@ func (s *ExecSession) Execute(ctx context.Context, command platform.Command) pla
 					readErr = c.err
 				}
 				continue
+			}
+			if s.opts.Live != nil {
+				s.opts.Live.Write(c.data)
 			}
 			werr := sinks[c.stream].write(c.data)
 			settledOne[c.stream] <- struct{}{}

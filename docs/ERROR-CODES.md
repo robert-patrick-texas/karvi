@@ -441,6 +441,7 @@ Active failure causes.
 | `job_unknown` | usage | 112 | no | follow_job or cancel_job names a job the daemon does not hold, or one evicted from its bounded job table. |
 | `jsonl_short_write` | output | 111 | no | A JSON line is only partly appended to its file. |
 | `karvi_executable_unlocatable` | dependency | 8 | no | The path of the running karvi executable cannot be determined. |
+| `live_option_conflict` | usage | 4 | no | `--live` is given with an option that shapes the text display it replaces: `--format jsonl` or `json`, `--echo`, `--border`, or `--noborder`. |
 | `login_driver_not_interactive` | dependency | 8 | no | The opened login transport does not provide an interactive session. |
 | `login_transport_not_interactive` | dependency | 8 | no | `login` selected a transport that is not system-compatible OpenSSH. |
 | `management_address_invalid` | usage | 4 | no | `--management-address` is not a valid IP address. |

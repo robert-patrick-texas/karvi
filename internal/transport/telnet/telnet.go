@@ -121,7 +121,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 			return errorcodes.Ensure(err, "secret_password_unset")
 		}
 		defer wipe(pass)
-		if err := d.writeLine(string(pass)); err != nil {
+		if err := d.writeSecretLine(pass); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send password: %w", err)
 		}
 		buf, kind, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, promptRE)
@@ -164,7 +164,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 				return errorcodes.Ensure(err, "secret_enable_password_unset")
 			}
 			defer wipe(enable)
-			if err := d.writeLine(string(enable)); err != nil {
+			if err := d.writeSecretLine(enable); err != nil {
 				return errorcodes.Errorf("telnet_write_failed", "send enable password: %w", err)
 			}
 			buf, _, err = d.readUntil(ctx, max(time.Until(enableDeadline), time.Millisecond), d.f.MaxOutputBytes, promptRE)
@@ -298,6 +298,14 @@ func (d *Driver) Close() error {
 	return err
 }
 func (d *Driver) writeLine(s string) error { _, err := io.WriteString(d.conn, s+"\r\n"); return err }
+
+// writeSecretLine is writeLine for a secret, the live view given it first.
+func (d *Driver) writeSecretLine(secret []byte) error {
+	if d.req.Live != nil {
+		d.req.Live.Secret(secret)
+	}
+	return d.writeLine(string(secret))
+}
 func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int64, patterns ...*regexp.Regexp) ([]byte, int, error) {
 	deadline := time.Now().Add(timeout)
 	// A context deadline (execution.device-timeout) ends a blocked read too.
@@ -323,6 +331,9 @@ func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int
 				_, _ = d.conn.Write(responses)
 			}
 			out.Write(clean)
+			if d.req.Live != nil && len(clean) > 0 {
+				d.req.Live.Write(clean)
+			}
 			data := out.Bytes()
 			for i, p := range patterns {
 				if p.Match(data) {

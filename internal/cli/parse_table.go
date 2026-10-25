@@ -157,6 +157,7 @@ var (
 	optFormat        = enumOpt("format", "text", "jsonl", "json")
 	optFormatTJ      = enumOpt("format", "text", "json")
 	optEcho          = flagOpt("echo")
+	optLive          = flagOpt("live") // the session's bytes as they arrive, in place of the text display
 	optBorder        = flagOpt("border")
 	optNoBorder      = flagOpt("noborder")
 	optContinue      = flagOpt("continue-device-on-error")
@@ -332,7 +333,7 @@ var commandTable = []*command{
 	{path: "login", word: "login", aliases: []string{"l"}, shape: shapePlain, maxPos: -1, help: func() string { return loginHelp },
 		options: []*option{optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optTarget, optTf, optTfr, optExclude, optSite, optGroup, optSelectPlatform, optAll, optOrder, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optRecord, optSSHOption, optQuiet, optDebug, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
 	{path: "command", word: "command", aliases: []string{"cmd", "c"}, shape: shapeFreeformDevice, help: func() string { return commandHelp },
-		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
+		options: []*option{optTarget, optTl, optTf, optTfr, optSite, optGroup, optSelectPlatform, optAll, optExclude, optOrder, optCmd, optCf, optPlatform, optPI, optPN, optPR, optPJ, optPA, optPL, optPS, optPG, optAddress, optPort, optTransport, optHostKeyPolicy, optKnownHosts, optFormat, optEcho, optLive, optBorder, optNoBorder, optQuiet, optDebug, optContinue, optExpect, optBlind, optBlindReturn, optTimeout, optMaxBytes, optBlindWait, optLiteral, optNof, optOf, optCd, optFs, optIPv4, optIPv6, optPing, optNoPing, optNoCredh, optAddrAuthority, optHelp}},
 	{path: "run", word: "run", aliases: []string{"r"}, shape: shapeFreeform, help: runHelpText, options: runOptions},
 	// stream, s, or -, reads a run line by line from standard input: the
 	// lines carry run's options and the commands; the word itself takes

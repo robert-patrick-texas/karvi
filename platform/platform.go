@@ -242,6 +242,10 @@ type OpenRequest struct {
 	// be called from the transport's own goroutine before Open or Prepare
 	// returns, and on a session that then fails to authenticate.
 	HostKeyNotice func(HostKeyNotice)
+	// Live, when given, is the operator's live view of the session
+	// (--live): every byte the transport reads from the device's shell or
+	// exec channels, as it reads it, and each secret before it is written.
+	Live Live
 }
 
 // HostKeyNotice is what a transport says of the device's host key, one of

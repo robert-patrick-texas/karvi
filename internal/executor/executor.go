@@ -119,7 +119,20 @@ type Options struct {
 	// renderer streams from the source before the spool is removed.
 	OnRecord func(records.CommandRecord, output.Source)
 	Debug    func(string)
+	// Live, when given, opens the operator's live view of a device's
+	// session (--live) before its transport opens, from the device's record
+	// as far as it is known then; the view is ended when the device's
+	// session is.
+	Live func(records.CommandRecord) LiveView
 }
+
+// LiveView is one device's live view: the transport's platform.Live, and
+// End once the session has closed.
+type LiveView interface {
+	platform.Live
+	End()
+}
+
 type DeviceExecutor struct {
 	opts Options
 	ping pingStats
@@ -443,6 +456,14 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	// device's first record whether the session then opens or not.
 	var found hostKeyFindings
 	openReq.HostKeyNotice = found.add
+	var live LiveView
+	if e.opts.Live != nil {
+		live = e.opts.Live(e.record(work, dc, cred, g, step{}, "", nil, nil, nil, "", "", nil, 0, capacityWait, time.Time{}, time.Now()))
+		openReq.Live = live
+		// After the driver's close, deferred below: the session's last
+		// bytes are shown first.
+		defer live.End()
+	}
 	factory := e.factory(selection, algorithms)
 	connectStart := time.Now()
 	e.debugf("device transport opening target=%q address=%s port=%d platform=%q", d.CanonicalName, address, port, def.Name)
@@ -580,6 +601,11 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		commandHash := sha256.Sum256([]byte(st.command))
 		limit, _ := platform.Command{MaxBytes: st.maxBytes}.Limit(e.maxCommandBytes())
 		e.debugf("device command start target=%q%s index=%d total=%d sha256=%s bytes=%d command=%s timeout=%s maxbytes=%d blind=%t blind_returns=%d expectations=%s", d.CanonicalName, st.debugKind(), st.index+1, st.count, hex.EncodeToString(commandHash[:8]), len(st.command), debugCommandText(st.command), st.timeout, limit, st.blind, st.returns, debugExpectations(st.expect))
+		if live != nil && t.Channel == platform.ChannelExec {
+			// An exec channel echoes nothing: the command is shown at the
+			// prompt --echo shows it at.
+			live.Write([]byte(records.ExecPrompt(d.CanonicalName) + st.command + "\n"))
+		}
 		execCtx, cancelExec := ctx, context.CancelFunc(func() {})
 		if !deviceDeadline.IsZero() {
 			execCtx, cancelExec = context.WithDeadline(ctx, deviceDeadline)

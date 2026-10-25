@@ -326,6 +326,11 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// The daemon's job has no reader of its standard output: the renderer
 	// keeps the counts and formats nothing.
 	renderer.daemon = req.Daemon
+	renderer.live = req.Live
+	var live func(records.CommandRecord) executor.LiveView
+	if req.Live {
+		live = renderer.LiveDevice
+	}
 	if !req.Daemon {
 		renderer.sayTo(streams.Stderr, cfg)
 	}
@@ -336,7 +341,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		Grants: req.Grants, Protection: req.Protection, Pinger: pinger,
 		Capacity: capManager, Store: store, Audit: auditSink, Metrics: sampler,
 		ScratchDir: scratch, ControlRoot: controlRoot, Home: req.Operator.Home, BaseDir: base, SpoolDir: spoolDir, InFlight: board.inFlight,
-		OnRecord: renderer.OnRecordFrom, Debug: debug,
+		OnRecord: renderer.OnRecordFrom, Debug: debug, Live: live,
 	})
 	tasks := make([]dispatch.Task, len(plan.Targets))
 	queued := time.Now()

@@ -62,6 +62,9 @@ type Options struct {
 	// command to its prompt; PromptTimeout the wait after a paging command.
 	LoginTimeout, EnableTimeout, PromptTimeout time.Duration
 	Debug                                      func(string)
+	// Live, when given, is shown every byte read from the device, as it
+	// is read, and each secret before it is written (--live).
+	Live platform.Live
 }
 
 // promptSettleDelay is how long a prompt-shaped final line must remain
@@ -548,6 +551,9 @@ func (s *Session) pump() {
 	for {
 		n, err := s.stream.Read(buffer)
 		if n > 0 {
+			if s.opts.Live != nil {
+				s.opts.Live.Write(buffer[:n])
+			}
 			s.chunks <- chunk{data: append([]byte(nil), buffer[:n]...)}
 		}
 		if err != nil {
@@ -737,8 +743,13 @@ func (s *Session) write(text string) error {
 	return err
 }
 
-// writeSecret writes the secret and a return without keeping a copy.
+// writeSecret writes the secret and a return without keeping a copy; a live
+// view is given it first, which holds one to keep it off the screen until
+// the device's end.
 func (s *Session) writeSecret(secret []byte) error {
+	if s.opts.Live != nil {
+		s.opts.Live.Secret(secret)
+	}
 	line := make([]byte, 0, len(secret)+1)
 	line = append(line, secret...)
 	line = append(line, '\n')

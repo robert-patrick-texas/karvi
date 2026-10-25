@@ -269,6 +269,48 @@ send). When an error proves the command was sent but prompt metadata is
 unavailable, human output uses a deterministic inferred prompt and the record
 remains marked inferred. JSONL is never decorated.
 
+## Live view
+
+```bash
+karvi command router1 --live --cmd 'show drip'
+```
+
+prints the device's bytes on standard output as the session reads them, in
+place of the text display: the header when the session opens, then every byte
+from the first, the login banner and the setup (`enable`, the paging commands)
+included, each command as the device echoes it, and the footer after the
+session's end. Nothing waits for a command to complete, so the lines of a long
+`show` are seen as they come:
+
+```text
+! router1 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native
+
+Router>enable
+Password: <removed>
+Router#terminal length 0
+Router#terminal width 512
+Router#show drip
+drip 1
+drip 2
+drip 3
+Router#exit
+! exit=0 elapsed=2.1s artifacts=/srv/karvi/jobs/261025/261025-161152-00
+```
+
+It is display only. A record leaves karvi's own lines alone, a failed
+command's `karvi: target=…` line on a line of its own after the device's
+bytes; the records, the job's files, and the audit are those of the same
+command without `--live`, which the plan does not carry, so its digest is the
+same. The exact value of each secret the session writes (the enable secret, a
+telnet password) is shown `<removed>`, found even when the device echoes it in
+two pieces; escape sequences follow `output.ansi`, as the text display's do. An
+exec target echoes nothing, so each command is shown at the prompt `--echo`
+shows it at (`srv1$ uname -a`), its stdout and stderr as they arrive. `--quiet`
+drops the header and the footer. Beside `--live`, the options that shape the
+display it replaces are refused (`live_option_conflict`): `--format jsonl` or
+`json`, `--echo`, `--border`, and `--noborder`; a configured echo or border is
+set aside.
+
 ## Debugging
 
 ```bash

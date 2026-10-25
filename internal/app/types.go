@@ -52,6 +52,7 @@ type CommandOptions struct {
 	Echo             bool
 	DynamicBorder    bool
 	NoBorder         bool
+	Live             bool   // --live: the session's bytes in place of the text display, not in the plan
 	Collection       string // command given --cd: the plan carries the collection
 	Suffix           string // --fs: the collection file names' suffix
 	Shortcut         Shortcut

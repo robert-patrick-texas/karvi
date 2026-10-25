@@ -76,6 +76,13 @@ type recordRenderer struct {
 	seenDevices          map[string]bool
 	errors               map[string]int
 	outputByteSize       int64
+	// live is the live view (--live): each device's session bytes take the
+	// text display's place, written as they are read through current, and
+	// a record leaves karvi's lines alone; lastByte is the last byte
+	// written, for the line break before karvi's next line.
+	live     bool
+	current  *liveDevice
+	lastByte byte
 }
 
 func newRecordRenderer(out io.Writer, format string, cfg configload.Snapshot, quiet, debug bool, activityID, artifact, activityType string, echo, dynamicBorder, noBorder bool) (*recordRenderer, error) {
@@ -311,33 +318,13 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 		}
 	}
 
-	// The ICMP gate's one line for the device, before its first record of
-	// either kind even when that record is hidden: routine narration, so --quiet
-	// suppresses it, and an empty display.ping.header switches it off. The
-	// line is the template rendered as the headers are, styled by role;
-	// error details and the packet-loss notice
-	// follow only under --debug.
-	deviceKey := rec.Device.ID
-	if deviceKey == "" {
-		deviceKey = target
+	ping, ok := r.pingLinesLocked(rec, values, target)
+	if !ok {
+		return
 	}
-	firstOfDevice := !r.seenDevices[deviceKey]
-	r.seenDevices[deviceKey] = true
-	if rec.Ping != nil && firstOfDevice && !r.quiet && r.pingTemplate != "" {
+	if len(ping) > 0 {
 		takeBorder()
-		lines, err := r.formatter.RenderStyledLines(r.pingTemplate, PingValues(values.Target, values.Address, rec.Ping), r.lineStyle, r.terminalWidth)
-		if err != nil {
-			r.setErrorLocked("config_display_template_invalid", err)
-			return
-		}
-		for _, line := range lines {
-			data = appendLine(data, line)
-		}
-		if r.debug {
-			for _, line := range PingDebugLines(rec.Ping, rec.Notices) {
-				data = appendLine(data, line)
-			}
-		}
+		data = append(data, ping...)
 	}
 
 	// A record without an error object that did not succeed was not sent, a
@@ -351,36 +338,30 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 			line := fmt.Sprintf("karvi: target=%s status=%s command=%d/%d", target, rec.Status, rec.CommandIndex, rec.CommandCount)
 			data = appendLine(data, display.ANSIStyle(line, r.lineStyle.Error, r.colorEnabled, true))
 		}
-		r.write(data)
+		r.writeKarviLocked(data)
 		return
 	}
 	r.lastValues = values
-	takeBorder()
-	headerKey := values.Target + "\x00" + values.Address
-	writeHeader := !r.quiet && r.headerTemplate != ""
-	if r.activityType == "command" {
-		writeHeader = writeHeader && !r.headerWritten
-	} else {
-		writeHeader = writeHeader && r.lastHeaderKey != headerKey
-	}
-	if writeHeader {
-		lines, err := r.formatter.RenderStyledLines(r.headerTemplate, values, r.lineStyle, r.terminalWidth)
-		if err != nil {
-			r.setErrorLocked("config_display_template_invalid", err)
+	if r.live {
+		// The session's bytes were the display: karvi's lines alone follow,
+		// the header of a device whose session never opened and a failure.
+		header, ok := r.headerLinesLocked(values)
+		if !ok {
 			return
 		}
-		r.currentHeaderWidth = 0
-		for _, line := range lines {
-			data = appendLine(data, line)
-			if width := display.VisibleWidth(line); width > r.currentHeaderWidth {
-				r.currentHeaderWidth = width
-			}
+		data = append(data, header...)
+		if rec.Error != nil {
+			data = appendLine(data, r.failureLine(rec, target))
 		}
-		r.headerWritten = true
-		r.lastHeaderKey = headerKey
-	} else if r.headerTemplate == "" {
-		r.currentHeaderWidth = 0
+		r.writeKarviLocked(data)
+		return
 	}
+	takeBorder()
+	header, ok := r.headerLinesLocked(values)
+	if !ok {
+		return
+	}
+	data = append(data, header...)
 
 	if r.echo && echoRecord(rec) {
 		// The prompt the statement was sent at, as the job's text file shows
@@ -463,17 +444,88 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	// a second target's failure but rendered no line when that record contained
 	// no device output, which made a partial run appear to stop after target one.
 	if rec.Error != nil {
-		failure := fmt.Sprintf("karvi: target=%s status=%s error=%s: %s", target, rec.Status, rec.Error.Code, rec.Error.Message)
-		if sessionInit {
-			failure = fmt.Sprintf("karvi: target=%s session_init=%s command=%d/%d status=%s error=%s: %s", target, rec.SessionInitProfile, rec.CommandIndex, rec.CommandCount, rec.Status, rec.Error.Code, rec.Error.Message)
-		}
-		data = appendLine(data, display.ANSIStyle(failure, r.lineStyle.Error, r.colorEnabled, true))
+		data = appendLine(data, r.failureLine(rec, target))
 	}
 
 	r.write(data)
 	if r.err == nil {
 		r.pendingBorder, r.pendingBorderColor = r.nextBorder()
 	}
+}
+
+// failureLine is a failed record's line, styled as an error.
+func (r *recordRenderer) failureLine(rec records.CommandRecord, target string) string {
+	failure := fmt.Sprintf("karvi: target=%s status=%s error=%s: %s", target, rec.Status, rec.Error.Code, rec.Error.Message)
+	if rec.CommandKind == "session_init" {
+		failure = fmt.Sprintf("karvi: target=%s session_init=%s command=%d/%d status=%s error=%s: %s", target, rec.SessionInitProfile, rec.CommandIndex, rec.CommandCount, rec.Status, rec.Error.Code, rec.Error.Message)
+	}
+	return display.ANSIStyle(failure, r.lineStyle.Error, r.colorEnabled, true)
+}
+
+// pingLinesLocked is the ICMP gate's one line for the device, before its
+// first record of either kind even when that record is hidden, or before its
+// live view: routine narration, so --quiet suppresses it, and an empty
+// display.ping.header switches it off. The line is the template rendered as
+// the headers are, styled by role; error details and the packet-loss notice
+// follow only under --debug. ok is false when the template did not render.
+func (r *recordRenderer) pingLinesLocked(rec records.CommandRecord, values display.Values, target string) (lines []byte, ok bool) {
+	deviceKey := rec.Device.ID
+	if deviceKey == "" {
+		deviceKey = target
+	}
+	firstOfDevice := !r.seenDevices[deviceKey]
+	r.seenDevices[deviceKey] = true
+	if rec.Ping == nil || !firstOfDevice || r.quiet || r.pingTemplate == "" {
+		return nil, true
+	}
+	rendered, err := r.formatter.RenderStyledLines(r.pingTemplate, PingValues(values.Target, values.Address, rec.Ping), r.lineStyle, r.terminalWidth)
+	if err != nil {
+		r.setErrorLocked("config_display_template_invalid", err)
+		return nil, false
+	}
+	for _, line := range rendered {
+		lines = appendLine(lines, line)
+	}
+	if r.debug {
+		for _, line := range PingDebugLines(rec.Ping, rec.Notices) {
+			lines = appendLine(lines, line)
+		}
+	}
+	return lines, true
+}
+
+// headerLinesLocked is the header when it is due: a command's once, a run's
+// at each device it has not just shown. ok is false when the template did
+// not render.
+func (r *recordRenderer) headerLinesLocked(values display.Values) (lines []byte, ok bool) {
+	headerKey := values.Target + "\x00" + values.Address
+	writeHeader := !r.quiet && r.headerTemplate != ""
+	if r.activityType == "command" {
+		writeHeader = writeHeader && !r.headerWritten
+	} else {
+		writeHeader = writeHeader && r.lastHeaderKey != headerKey
+	}
+	if !writeHeader {
+		if r.headerTemplate == "" {
+			r.currentHeaderWidth = 0
+		}
+		return nil, true
+	}
+	rendered, err := r.formatter.RenderStyledLines(r.headerTemplate, values, r.lineStyle, r.terminalWidth)
+	if err != nil {
+		r.setErrorLocked("config_display_template_invalid", err)
+		return nil, false
+	}
+	r.currentHeaderWidth = 0
+	for _, line := range rendered {
+		lines = appendLine(lines, line)
+		if width := display.VisibleWidth(line); width > r.currentHeaderWidth {
+			r.currentHeaderWidth = width
+		}
+	}
+	r.headerWritten = true
+	r.lastHeaderKey = headerKey
+	return lines, true
 }
 
 func echoRecord(rec records.CommandRecord) bool {
@@ -654,6 +706,7 @@ func (r *recordRenderer) WriteFooter(ended time.Time, code int, elapsed time.Dur
 		r.pendingBorder = ""
 		r.pendingBorderColor = ""
 	}
+	r.liveBreakLocked()
 	if r.err != nil || r.quiet {
 		return r.err
 	}
@@ -708,6 +761,9 @@ func (r *recordRenderer) writeString(text string) {
 	}
 	n, err := io.WriteString(r.out, text)
 	r.outputByteSize += int64(n)
+	if n > 0 {
+		r.lastByte = text[n-1]
+	}
 	if err != nil {
 		r.setErrorLocked("terminal_write_failed", err)
 		return
@@ -723,6 +779,9 @@ func (r *recordRenderer) write(data []byte) {
 	}
 	n, err := r.out.Write(data)
 	r.outputByteSize += int64(n)
+	if n > 0 {
+		r.lastByte = data[n-1]
+	}
 	if err != nil {
 		r.setErrorLocked("terminal_write_failed", err)
 		return

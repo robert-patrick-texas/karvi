@@ -86,7 +86,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 			return err
 		}
 		d.auth = conn
-		d.exec = devsession.OpenExec(conn, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug})
+		d.exec = devsession.OpenExec(conn, devsession.ExecOptions{Definition: d.req.Definition, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes, Debug: d.f.Debug, Live: d.req.Live})
 		d.debugf("native SSH session ready target=%q channel=exec", host)
 		return nil
 	}
@@ -102,7 +102,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 	session, err := devsession.Open(ctx, stream, devsession.Options{
 		Definition: d.req.Definition, EnableSecret: d.req.EnablePassword, MaxOutputBytes: d.f.MaxOutputBytes, Spool: d.f.Spool.ForRequest(d.req), InFlightBytes: d.req.InFlightBytes,
 		LoginTimeout: promptTimeout, EnableTimeout: durationOr(d.f.Config.Duration("execution.enable-timeout"), 10*time.Second), PromptTimeout: promptTimeout,
-		Debug: d.f.Debug,
+		Debug: d.f.Debug, Live: d.req.Live,
 	})
 	if err != nil {
 		return err

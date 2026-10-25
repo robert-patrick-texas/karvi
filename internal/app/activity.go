@@ -85,7 +85,7 @@ func ExecuteCommand(ctx context.Context, opts CommandOptions, streams IO) Activi
 	return jobexec.Run(ctx, jobexec.Request{
 		Plan: job.Plan, Header: job.Header, Package: job.Projection, Grants: job.Package, Protection: executionplan.ProtectionLocalPeer, Mode: executionplan.ModeLive,
 		Config: cfg, Operator: operator, Quiet: opts.Quiet, Debug: opts.Debug,
-		ActivityType: "command", ActivityID: id,
+		ActivityType: "command", ActivityID: id, Live: opts.Live,
 		Selection: selection, CandidateCount: candidates,
 	}, streams)
 }

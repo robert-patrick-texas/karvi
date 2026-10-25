@@ -256,3 +256,50 @@ func TestOutputRendered(t *testing.T) {
 		t.Errorf("lastPrompt: %q", got)
 	}
 }
+
+// telnetLive is a platform.Live that keeps the bytes and, for each secret,
+// the bytes it came after.
+type telnetLive struct {
+	mu      sync.Mutex
+	data    strings.Builder
+	secrets []string
+}
+
+func (l *telnetLive) Write(p []byte) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.data.Write(p)
+}
+
+func (l *telnetLive) Secret(v []byte) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.secrets = append(l.secrets, string(v)+" after "+l.data.String())
+}
+
+// TestTelnetLiveSeesTheSession: the live view is given every byte read after
+// the telnet negotiation, the enable step and a command's echo included,
+// and the enable secret before it is written.
+func TestTelnetLiveSeesTheSession(t *testing.T) {
+	iosxe, _ := platform.Builtin("cisco_iosxe")
+	client, server := net.Pipe()
+	dv := &device{}
+	go shell(server, "dev>", true, dv)
+	live := &telnetLive{}
+	d := &Driver{f: Factory{Config: configload.Snapshot{}, MaxOutputBytes: 1 << 20}, req: platform.OpenRequest{Definition: iosxe, EnablePassword: func(f func([]byte) error) error { return f([]byte("Zq7-en")) }, Live: live}, conn: client}
+	defer d.Close()
+	if err := d.Prepare(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if r := d.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: time.Second}); r.Err != nil {
+		t.Fatal(r.Err)
+	}
+	live.mu.Lock()
+	defer live.mu.Unlock()
+	if got := live.data.String(); got != "dev>enable\r\nPassword: \r\ndev#terminal length 0\r\ndev#terminal width 512\r\ndev#show clock\r\ndev#" {
+		t.Fatalf("view %q", got)
+	}
+	if len(live.secrets) != 1 || live.secrets[0] != "Zq7-en after dev>enable\r\nPassword: " {
+		t.Fatalf("secrets %q", live.secrets)
+	}
+}

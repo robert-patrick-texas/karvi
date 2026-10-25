@@ -27,6 +27,7 @@ func main() {
 	password := flag.String("password", "pw", "accepted password")
 	enable := flag.String("enable", "en", "enable secret; empty means none")
 	slow := flag.Duration("slow", 3*time.Second, "delay before 'show slow' answers, and the Linux persona's 'slow'")
+	drip := flag.Duration("drip", time.Second, "wait between the three lines 'show drip' answers")
 	loginDelay := flag.Duration("login-delay", 0, "delay before the shell's first prompt")
 	enableDelay := flag.Duration("enable-delay", 0, "delay before the Password: prompt that answers 'enable'")
 	secretDelay := flag.Duration("secret-delay", 0, "delay before the answer to the enable secret")
@@ -46,7 +47,7 @@ func main() {
 	sudoAsks := flag.Bool("sudo-asks", false, "the Linux persona's sudo needs a password: 'sudo -n id -u' is refused")
 	decorations := flag.Bool("decorations", false, "the Linux persona's shell writes bash's decorations (bracketed paste, title, colours)")
 	flag.Parse()
-	opts := fakedevice.Options{Persona: *persona, SudoAsks: *sudoAsks, Decorations: *decorations, Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
+	opts := fakedevice.Options{Persona: *persona, SudoAsks: *sudoAsks, Decorations: *decorations, Port: *port, Hostname: *hostname, Username: *user, Password: *password, Enable: *enable, Delay: map[string]time.Duration{"show slow": *slow, "slow": *slow, "enable": *enableDelay}, LoginDelay: *loginDelay, SecretDelay: *secretDelay, DripInterval: *drip, EchoSecret: *echoSecret, BigLines: *big, RSASHA1Only: *rsaSHA1Only, StartPrivileged: *startPrivileged, Unsaved: *unsaved, NoKeyboardInteractive: *noKbd}
 	split := func(v string) []string {
 		if v == "" {
 			return nil

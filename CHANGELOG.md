@@ -9,6 +9,22 @@
   `router1#configure terminal` and `router1(config)#end`, the record's
   `promptbefore`, as `output.TARGET.txt` always had it. The records are
   unchanged.
+- **A live view, `--live`, for `command`.** `command --live` prints the
+  device's bytes on standard output as the session reads them, in place of
+  the text display: the header when the session opens, every byte from the
+  first, the setup (`enable`, the paging commands) included, and the footer
+  after the session's end, so a long `show` is seen as it comes and not when
+  it completes. A record leaves karvi's own lines alone (a failed command's
+  `karvi: target=…`); the records, the job's files, the audit, and the
+  plan's digest are those of the same command without it. The exact value of
+  each secret the session writes (the enable secret, a telnet password) is
+  shown `<removed>`, even when the device echoes it in two pieces; escape
+  sequences follow `output.ansi`; an exec target's command is shown at the
+  prompt `--echo` shows it at. `--format jsonl` or `json`, `--echo`,
+  `--border`, or `--noborder` beside it is refused with the new code
+  `live_option_conflict` (exit 4), and a configured echo or border is set
+  aside. On `command`, `--li` no longer abbreviates `--literal`; `--lit`
+  does. The fake device answers `show drip` with three lines, `-drip` apart.
 
 ## 0.35.0 - 2026-10-21
 

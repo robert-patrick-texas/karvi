@@ -136,6 +136,23 @@ func checkBorders(inv *Invocation, w io.Writer) (int, bool) {
 	return checkExclusive(inv, w, "border_options_conflict", optBorder, optNoBorder)
 }
 
+// checkLive refuses, beside --live, the options that shape the text display
+// it replaces: --format jsonl or json, --echo, --border, and --noborder.
+func checkLive(inv *Invocation, w io.Writer) (int, bool) {
+	if !inv.Flag(optLive) {
+		return 0, true
+	}
+	if format := inv.String(optFormat); format != "" && format != "text" {
+		return inv.Global.usageError(w, "live_option_conflict", "--live and --format %s are mutually exclusive", format), false
+	}
+	for _, o := range []*option{optEcho, optBorder, optNoBorder} {
+		if code, ok := checkExclusive(inv, w, "live_option_conflict", optLive, o); !ok {
+			return code, false
+		}
+	}
+	return 0, true
+}
+
 // collectionOptionsError is the check of the collection options' values,
 // shared by the handlers and by stream mode when a line is read: a bare
 // --cd or --fs (or one given = and nothing) is refused, the value
@@ -233,6 +250,9 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkBorders(inv, streams.Stderr); !ok {
 		return code
 	}
+	if code, ok := checkLive(inv, streams.Stderr); !ok {
+		return code
+	}
 	if code, ok := checkExclusive(inv, streams.Stderr, "output_options_conflict", optOf, optNof); !ok {
 		return code
 	}
@@ -258,7 +278,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Shortcut: inv.shortcut()}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
 	collection.impliedDirectory(&result)
 	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
