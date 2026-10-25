@@ -9,7 +9,54 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **A command file per target.** A folder of command files, one per target,
+1. **A live view, `--live`.** The display renders each command's record once
+   the command completes, so nothing reaches standard output while a command
+   runs (four seconds of a slow `show`, the running command unnamed), and the
+   session's setup (`enable`, `terminal length 0`) is never shown. `--live`
+   prints the device's bytes as they arrive, for `command`, `run --no-daemon`,
+   and `crun --no-daemon`. It is display only: the records, the job's files,
+   and the audit are unchanged. The bytes are taken where the session reads
+   them: `Session.pump` in `internal/devsession` for both SSH transports, an
+   exec target's two readers in `exec.go`. The rules:
+   - **Standard output, in place of the text display**, so no byte reaches the
+     terminal twice: each device's ping line, its header when its session
+     opens, then its bytes from the first, the setup included, each read
+     written at once so a prompt shows when it lands; the footer after the
+     last device. karvi's own lines (a failed command, a command not sent)
+     stay as the text display prints them.
+   - **An exec target** echoes nothing, so karvi prints the prompt line that
+     `--echo` prints as each command starts; the remote's standard output and
+     standard error both go to standard output, in the order they arrive.
+   - **Control bytes** follow `output.ansi` through the text display's
+     stripper: escape sequences pass at a terminal (`auto`) and are stripped
+     into a pipe or file or under `strip`; other bytes pass as received.
+   - **The display's options are refused beside it:** `--format jsonl|json`
+     (the records are in `commands.jsonl`), `--echo` (the device's own echo
+     shows each command), `--border`, and `--noborder`; a configured border is
+     set aside. `--quiet` drops the header and footer, as it does now.
+   - **Colour** is karvi's own lines', as now (none under `--nocolor` or into
+     a file); the device's bytes are never coloured.
+   - **Serial dispatch.** A run with `--live` follows each device's session in
+     turn. `--live` sets `dispatch.default` to `serial` in the lock-aware
+     command-line layer, as `--ds` does: `--dispatch parallel|wave`, `--dp`,
+     `--dw`, or a `--set dispatch.default` other than `serial` on the same line
+     is refused, and so is a site's lock on another mode; the configuration
+     files' default yields. `--workers` and the wave options do what they do
+     under `--ds`.
+   - **A secret is never shown.** The session writes a secret through
+     `writeSecret` alone, and the live view removes the exact value of each
+     secret written from the bytes shown, across a read's edge; the same
+     removal serves the records under secrets in statements
+     ([Later](#later)).
+   - **Refused:** `run --live` without `--no-daemon`, and `--live` with
+     `--dry-run` or `--exercise`, which contact no device. `--nof` is allowed;
+     the screen is then the only copy.
+
+   Not taken: the device's bytes in `--debug`, which carries no device output;
+   the echo line printed when a command is sent, which names the command but
+   shows nothing until it completes. A daemon run's live view is in
+   [Later](#later).
+2. **A command file per target.** A folder of command files, one per target,
    each named as the target's collection file is (`core-nyc-01`) and read
    literally as a `--cf` file is, sent in one job with each target given its
    own: the plan carries the lists per target, `--dry-run` shows each target's,
@@ -27,7 +74,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    or device text beside the folder; the folder on `crun`; the job folder's
    copy of each list (a collection's is `commands.PLATFORM.txt`); and the
    folder as a stream's option line.
-2. **Shorter output strings.** A review of every error and warning message
+3. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
    credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
@@ -84,6 +131,11 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the patterns are best effort, a masked `commands.txt` would send `<removed>`
   on a rerun, the manifest's plan would no longer match its digest, and a
   record's `command_sha256` beside a masked line is a fingerprint to guess.
+- **A daemon run's live view.** `--live` ([Next](#next)) runs in the client's
+  process alone. Through the daemon (`run` without `--no-daemon`, `job
+  follow`), the device's bytes would reach the follower as frames of their own
+  on the IPC, the job serial as in the client's process. For consideration;
+  nothing is decided.
 - **Job files, `--jf PATH`.** A saved `run` invocation (targets, commands or
   macros, options) that must plan to the same job as the command line it
   replaces. The logic it was to carry is settled elsewhere: a decision taken
