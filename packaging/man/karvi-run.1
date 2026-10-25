@@ -255,6 +255,13 @@ indented JSON array for human inspection
 \fB\-\-echo\fR
 Show prompt plus sent command in text output
 .TP
+\fB\-\-live\fR
+With \-\-no\-daemon: print each device's bytes as
+they arrive, one device after another (serial
+dispatch), in place of the text display; not
+with \-\-format jsonl|json, \-\-echo, \-\-border,
+\-\-noborder, \-\-dry\-run, or another dispatch
+.TP
 \fB\-\-border\fR
 Replace the configured run border with dashes
 .TP

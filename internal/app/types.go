@@ -84,6 +84,7 @@ type RunOptions struct {
 	Echo               bool
 	DynamicBorder      bool
 	NoBorder           bool
+	Live               bool // --live: the session's bytes in place of the text display, not in the plan
 	Detach             bool
 	// Follow renders the job's records as they become durable; false
 	// follows the stream for its terminal only.

@@ -492,6 +492,11 @@ Options:
   --format text|jsonl|json       Text (default), compact JSON Lines, or an
                                  indented JSON array for human inspection
   --echo                         Show prompt plus sent command in text output
+  --live                         With --no-daemon: print each device's bytes as
+                                 they arrive, one device after another (serial
+                                 dispatch), in place of the text display; not
+                                 with --format jsonl|json, --echo, --border,
+                                 --noborder, --dry-run, or another dispatch
   --border                       Replace the configured run border with dashes
   --noborder                     Disable configured and dynamic run borders
   --ipv4, --4                    Prefer IPv4 when both families are available

@@ -283,7 +283,7 @@ session's end. Nothing waits for a command to complete, so the lines of a long
 `show` are seen as they come:
 
 ```text
-! router1 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native
+! router1 [192.0.2.1] platform=cisco_iosxe user=bob backend=env transport=native
 
 Router>enable
 Password: <removed>
@@ -296,6 +296,15 @@ drip 3
 Router#exit
 ! exit=0 elapsed=2.1s artifacts=/srv/karvi/jobs/261025/261025-161152-00
 ```
+
+`run --no-daemon --live` (and `crun`'s) follows each device's session in turn,
+each device's header before its bytes: the run is serial, `dispatch.default`
+set to `serial` from `--live` when the configuration says another mode, so a
+site's lock on the key refuses the run as it refuses `--ds`. `--dispatch
+parallel` or `wave`, `dispatch.default` set to either by `--set`, and a run
+with no display in the client's process (no `--no-daemon`, `--dry-run`,
+`--exercise`, `--follow=false`) are refused beside it. A run through the
+daemon has no live view.
 
 It is display only. A record leaves karvi's own lines alone, a failed
 command's `karvi: target=…` line on a line of its own after the device's

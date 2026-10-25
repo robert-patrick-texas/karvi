@@ -141,7 +141,7 @@ func ExecuteRunLocal(ctx context.Context, opts RunOptions, streams IO) ActivityR
 	return jobexec.Run(ctx, jobexec.Request{
 		Plan: job.Plan, Header: job.Header, Package: job.Projection, Grants: job.Package, Protection: executionplan.ProtectionLocalPeer, Mode: executionplan.ModeLive,
 		Config: cfg, Operator: operator, Quiet: opts.Quiet, Debug: opts.Debug,
-		ActivityType: "run", ActivityID: id,
+		ActivityType: "run", ActivityID: id, Live: opts.Live,
 		Selection: selection,
 	}, streams)
 }

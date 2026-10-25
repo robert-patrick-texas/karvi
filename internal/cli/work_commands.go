@@ -296,8 +296,82 @@ func workRead(inv *Invocation, word string, stderr io.Writer) (app.CommonOptions
 	outputOptions(inv, flags)
 	continueOptions(inv, word, flags)
 	c := collectionOptions(inv, word, flags)
+	if code, ok := liveOptions(inv, word, flags, stderr); !ok {
+		return app.CommonOptions{}, c, code, false
+	}
 	common, code, ok := inv.global().read(flags, stderr)
 	return common, c, code, ok
+}
+
+// liveOptions makes a --live run serial (a command has one device): when the
+// configuration says another mode, dispatch.default is set to serial from
+// --live in the lock-aware cli layer, as --ds sets it, so that a site's lock
+// on the key refuses the run in the read that follows; another mode from
+// --set is refused here. An explicit --dispatch was judged before
+// (checkLiveRun). A configuration that does not read is left to that read
+// to report.
+func liveOptions(inv *Invocation, word string, flags map[string]configload.FlagValue, stderr io.Writer) (int, bool) {
+	if word == "command" || !inv.Flag(optLive) || inv.Set(optDispatch) {
+		return 0, true
+	}
+	reading := inv.Global.reading
+	if reading == nil {
+		r, err := app.ReadConfigFiles(app.ConfigRequest{Roots: inv.Global.configs, Sets: inv.Global.sets})
+		if err != nil {
+			return 0, true
+		}
+		reading = &r
+	}
+	cfg, _, err := reading.Snapshot(flags, nil)
+	if err != nil {
+		return 0, true
+	}
+	set, err := liveDispatch(cfg)
+	if err != nil {
+		return inv.Global.reportError(stderr, "live_option_conflict", err), false
+	}
+	if set {
+		setKey(flags, longName(optLive), "dispatch.default", "serial")
+	}
+	return 0, true
+}
+
+// liveDispatch says whether a --live run's configuration needs
+// dispatch.default set to serial: not when it says serial; refused when
+// --set says another mode.
+func liveDispatch(cfg configload.Snapshot) (bool, error) {
+	mode := cfg.String("dispatch.default")
+	if mode == "serial" {
+		return false, nil
+	}
+	if v, _ := cfg.Provenance("dispatch.default"); v.Source.Layer == "set" {
+		return false, errorcodes.Errorf("live_option_conflict", "--live and dispatch.default = %q at %s are mutually exclusive", mode, v.Source)
+	}
+	return true, nil
+}
+
+// checkLiveRun refuses --live on a run that has no display in this process
+// or runs devices side by side: without --no-daemon, with --dry-run,
+// --exercise, or --follow=false, and with a dispatch other than serial.
+func checkLiveRun(inv *Invocation, w io.Writer) (int, bool) {
+	if !inv.Flag(optLive) {
+		return 0, true
+	}
+	for _, o := range []*option{optDryRun, optExercise} {
+		if code, ok := checkExclusive(inv, w, "live_option_conflict", optLive, o); !ok {
+			return code, false
+		}
+	}
+	if !inv.Flag(optNoDaemon) {
+		return inv.Global.usageError(w, "live_option_conflict", "--live without --no-daemon; add --no-daemon"), false
+	}
+	if inv.Set(optFollow) && !inv.Flag(optFollow) {
+		return inv.Global.usageError(w, "live_option_conflict", "--live and --follow=false are mutually exclusive"), false
+	}
+	if mode := inv.String(optDispatch); inv.Set(optDispatch) && mode != "serial" {
+		return inv.Global.usageError(w, "live_option_conflict", "--live and --dispatch %s are mutually exclusive", mode), false
+	}
+	return 0, true
 }
 
 // declarations are the per-command interactive-prompt lists the client
@@ -476,6 +550,12 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkBorders(inv, streams.Stderr); !ok {
 		return code
 	}
+	if code, ok := checkLive(inv, streams.Stderr); !ok {
+		return code
+	}
+	if code, ok := checkLiveRun(inv, streams.Stderr); !ok {
+		return code
+	}
 	if err := collectionOptionsError(inv); err != nil {
 		return inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err)
 	}
@@ -547,7 +627,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder}
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
 	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// With no command on the line, each device runs its platform's
