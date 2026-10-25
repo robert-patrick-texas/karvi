@@ -57,7 +57,33 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   templates stay a tool's ([`docs/DESIGN.md`, section
   7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)). A
   value that differs per target makes the list per target, the command file
-  per target ([Next](#next)).
+  per target ([Next](#next)). A macro file may also define a secret or link a
+  reference to a credential; a secret is the exception to the expansion
+  before the plan, a reference until the session (secrets in statements,
+  below).
+- **Secrets in statements.** A statement names a secret instead of holding it
+  (`snmp-server community %secret:snmp-ro% RO`, the spelling open): the client
+  resolves the reference as it resolves a login's password, or from a macro
+  file that defines the secret or links the reference to a credential; the
+  value travels to the daemon in the credential package and the session
+  writes it to the device alone. The plan, its digest, every record, the job's
+  files, the audit, and the display keep the reference, never the literal
+  secret, and the session removes the exact value from what the device sends
+  back. Today a statement's secret is masked in the audit by the platform's
+  `masks` and kept as sent in the job's files (`commands.txt`,
+  `commands.jsonl`, `errors.jsonl`, `manifest.json`, `output.TARGET.txt`), in
+  the `--echo` display, and in `--debug`'s command start line; until this is
+  built, a tool that renders
+  configuration renders no secret in clear, the device's own encrypted forms
+  where it has them. The questions: the reference's spelling, and whether it
+  is declared (a command file is literal, and a `%` in a banner is device
+  text); where a named secret lives in each backend, per target or per site; a
+  macro file that holds a secret, and the permission check a credential file
+  has; a reference that finds no value (refused at planning); and the stream.
+  Masking the job's files by the platform's `masks` was weighed and set aside:
+  the patterns are best effort, a masked `commands.txt` would send `<removed>`
+  on a rerun, the manifest's plan would no longer match its digest, and a
+  record's `command_sha256` beside a masked line is a fingerprint to guess.
 - **Job files, `--jf PATH`.** A saved `run` invocation (targets, commands or
   macros, options) that must plan to the same job as the command line it
   replaces. The logic it was to carry is settled elsewhere: a decision taken
