@@ -438,7 +438,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 	if e.opts.Metrics != nil {
 		e.opts.Metrics.AddStage("capacity_wait", capacityWait)
 	}
-	openReq := platform.OpenRequest{Address: address.String(), Port: port, Username: projection.DeviceUsername, Definition: def, Channel: t.Channel, Timeout: e.opts.Config.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName, "device_id": d.ID, "activity_type": e.opts.ActivityType, "transport_selector": selection.Selector, "display_prompt": inferredPrompt(d.CanonicalName, d.Name, def)}}
+	openReq := platform.OpenRequest{Address: address.String(), Port: port, Username: projection.DeviceUsername, Definition: def, Channel: t.Channel, Timeout: e.opts.Config.Duration("ssh.connect-timeout"), Metadata: map[string]string{"canonical_name": d.CanonicalName}}
 	if grant.Password.IsSet() {
 		openReq.Password = grant.Password.WithBytes
 	}
@@ -1319,25 +1319,6 @@ func AuditDetails(notices []records.Notice) map[string]any {
 		}
 	}
 	return details
-}
-
-func inferredPrompt(canonical, name string, def platform.Definition) string {
-	n := strings.TrimSpace(canonical)
-	if n == "" {
-		n = strings.TrimSpace(name)
-	}
-	if n == "" {
-		n = "device"
-	}
-	driver := strings.ToLower(def.Driver)
-	suffix := "#"
-	switch {
-	case strings.Contains(driver, "junos"):
-		suffix = ">"
-	case driver == "linux" || strings.Contains(driver, "linux"):
-		suffix = "$"
-	}
-	return n + suffix
 }
 
 // Definition is the effective platform definition the executor would open

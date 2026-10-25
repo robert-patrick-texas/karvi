@@ -65,7 +65,7 @@ done
 	driver, err := factory.Open(context.Background(), platform.OpenRequest{
 		Address: "192.0.2.10", Port: 22, Username: "operator",
 		Definition: platform.Definition{Name: "cisco_iosxe"},
-		Metadata:   map[string]string{"canonical_name": "switch01", "activity_type": "command"},
+		Metadata:   map[string]string{"canonical_name": "switch01"},
 		Password:   func(fn func([]byte) error) error { return fn([]byte("test-only")) },
 	})
 	if err != nil {
