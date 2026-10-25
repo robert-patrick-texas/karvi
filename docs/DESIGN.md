@@ -1450,6 +1450,41 @@ IPC schemas are closed (`additionalProperties: false`), the report schema open.
 content the daemon cannot judge that still affects the digest. *Not taken:*
 reusing the inventory device type in the plan (address facts twice).
 
+**Templates and decisions from a device's answer are a tool's outside karvi,
+between jobs.** karvi sends the commands a plan enumerates and renders no
+template. A configuration rendered from templates and data (Jinja2 over YAML,
+TOML, or JSON) is text a tool outside karvi writes before planning; a command
+chosen from a device's answer (a `show ip route vrf NAME` for each VRF a `show
+vrf` printed) is chosen by such a tool from one job's records and sent by the
+next job. The tool reads the records (`--format jsonl`, `commands.jsonl`,
+`schema/command-record.schema.json`), the registered codes, and the dry run's
+report for the exact targets, and leaves the selection of devices to karvi. A
+macro file's plain substitution (`--mf`) is a question of its own
+([`ROADMAP.md`](../ROADMAP.md#later)). *Why:* every job stays a complete
+statement of intent: `--dry-run` shows each command, the digest covers it, and
+the count of commands is known before the first is sent; the daemon never
+interprets output; Jinja2's reference implementation is Python's, and the
+parsing of a command's text changes with the platform and its release. The cost
+is a second session per device and the seconds between the two jobs. *Not
+taken:* a template engine in the client (gonja or pongo2: near Jinja2 but not
+it, their filters and tests different and Ansible's absent); commands generated
+in the session from a declared pattern over an earlier command's output (one
+login, but the plan would state a rule and not the commands, and the daemon
+would read output; `--expect` is the precedent and much narrower), open again
+only if the second session proves the cost.
+
+**A job may send each target its own command list.** A folder holds one command
+file per target, named by the function that names the target's collection file
+(`core-nyc-01`) and read literally as a `--cf` file is; the plan carries the
+lists per target beside a collection's per-platform lists, the digest covers
+them, and `--dry-run` shows each target's. A selected target without a file is
+refused at planning. The command-line option or options and the rest are
+settled when built ([`ROADMAP.md`](../ROADMAP.md#next)). *Why:* a rendered
+configuration and the checks before and after a change differ per target; the
+plan already holds lists that differ by target, a collection's platform lists,
+and one function names a device's file. *Not taken:* a job per target (the one
+job's accounting, scoreboard, dispatch, and admission lost).
+
 **Address authority is `client` or `daemon`, and one selection rule serves
 both.** A literal address wins, then the inventory management address, then the
 alternates; DNS runs only with no literal. Under client authority the client

@@ -9,7 +9,25 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **Shorter output strings.** A review of every error and warning message
+1. **A command file per target.** A folder of command files, one per target,
+   each named as the target's collection file is (`core-nyc-01`) and read
+   literally as a `--cf` file is, sent in one job with each target given its
+   own: the plan carries the lists per target, `--dry-run` shows each target's,
+   and a selected target without a file is refused at planning
+   ([`docs/DESIGN.md`, section
+   7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)). A tool
+   outside karvi writes the folder: a configuration rendered from templates
+   and data, the commands chosen from an earlier job's records (a `show ip
+   route vrf NAME` for each VRF a `show vrf` printed), or the same checks
+   before and after a change. The questions: the command-line option or
+   options; a file that names no selected target (refused, or kept for a later
+   run from the same folder, a canary first); the folder's skips (`--tf DIR`'s
+   dot files, `readme*`, `disabled*`, and backup names) and a suffix on the
+   names, `--fs` being the collection file's; the line's own `--cmd`, `--cf`,
+   or device text beside the folder; the folder on `crun`; the job folder's
+   copy of each list (a collection's is `commands.PLATFORM.txt`); and the
+   folder as a stream's option line.
+2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
    credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
@@ -31,18 +49,21 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Later
 
-- **Macro files, `--mf PATH`.** A command file with a parser: variable
-  substitution from the command line, the file, or the device's inventory
-  row, expanded in the client before the plan, so the plan, its digest,
-  `commands.txt`, and every record are those of an ordinary job. A value that
-  differs per device makes the command list per device, which the plan holds
-  today only for a collection's platform lists; that is the design question.
+- **Macro files, `--mf PATH`.** A command file with plain text substitution
+  and pattern replacement, for what a site needs at the least effort, with no
+  tool outside karvi: values from the command line, the file, or the target's
+  inventory row, expanded in the client before the plan, so the plan, its
+  digest, `commands.txt`, and every record are those of an ordinary job; the
+  templates stay a tool's ([`docs/DESIGN.md`, section
+  7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)). A
+  value that differs per target makes the list per target, the command file
+  per target ([Next](#next)).
 - **Job files, `--jf PATH`.** A saved `run` invocation (targets, commands or
   macros, options) that must plan to the same job as the command line it
-  replaces, plus logic. The logic's first question is where it runs: a
-  decision taken from a device's answer is taken in the session, per device,
-  while the command plan is fixed and digested before the daemon accepts the
-  job; `--expect` and the blind returns are the precedent to grow from.
+  replaces. The logic it was to carry is settled elsewhere: a decision taken
+  from a device's answer is taken between jobs, by a tool outside karvi
+  ([`docs/DESIGN.md`, section
+  7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)).
 - **Credentials.** A formula's match evidence carrying its source's file,
   line, and key; a command-line option to pin a direct target to a key;
   further backends, each with its own type, keys, and driver: a SQLite store
