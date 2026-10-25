@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **`--echo` shows the prompt a statement was sent at.** The display of
+  `command`, `run`, and `job follow` echoed each statement at the prompt
+  that came back after it, so a statement that changes the mode read
+  `router1(config)#configure terminal` and `router1#end`; it now reads
+  `router1#configure terminal` and `router1(config)#end`, the record's
+  `promptbefore`, as `output.TARGET.txt` always had it. The records are
+  unchanged.
+
 ## 0.35.0 - 2026-10-21
 
 A minor release on 0.34.1 for a recorded login into the operator's folder,

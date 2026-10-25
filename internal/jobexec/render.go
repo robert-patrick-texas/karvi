@@ -383,7 +383,10 @@ func (r *recordRenderer) OnRecordFrom(rec records.CommandRecord, src output.Sour
 	}
 
 	if r.echo && echoRecord(rec) {
-		prompt := rec.Prompt
+		// The prompt the statement was sent at, as the job's text file shows
+		// it: the returned prompt is the next mode's after `configure
+		// terminal` or `end`.
+		prompt := rec.PromptBefore
 		if rec.Channel == records.ChannelExec {
 			prompt = records.ExecPrompt(target)
 		} else if prompt == "" {

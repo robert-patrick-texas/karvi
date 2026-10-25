@@ -234,8 +234,9 @@ or:
 echo = true
 ```
 
-prints the effective prompt plus command before each result, including a
-device-reported command error:
+prints the prompt the statement was sent at plus the command before each
+result, including a device-reported command error, as the job's text file
+shows it (`router1#configure terminal`, then `router1(config)#end`):
 
 ```text
 router1#show clock

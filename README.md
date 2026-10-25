@@ -278,7 +278,11 @@ karvi command --debug --host router1 --cmd 'show clock' \
 Diagnostics include configuration provenance, resolution, credential backend,
 transport selection, session milestones, command index/hash, timing, output
 size, prompt provenance, and stable errors. They do not include passwords,
-enable passwords, raw command text, or device output.
+enable passwords, or device output. Each command appears once, on its `device
+command start` line as the plan holds it, never from the device's echo, and
+every other line names a command by its hash and size; a secret written into
+a statement therefore appears on that line
+([`ROADMAP.md`](ROADMAP.md#later), "Secrets in statements").
 
 ## SSH transport configuration
 

@@ -32,6 +32,7 @@ func TestRecordRendererEchoesObservedPromptAndCommand(t *testing.T) {
 		Status:         "success",
 		Output:         "01:20:19.849 EDT Thu Sep 10 2026\n",
 		OutputEncoding: "utf-8",
+		PromptBefore:   "router1#",
 		Prompt:         "router1#",
 		PromptSource:   "observed",
 		PromptObserved: &observed,
@@ -43,6 +44,40 @@ func TestRecordRendererEchoesObservedPromptAndCommand(t *testing.T) {
 	}
 	if !strings.Contains(got, "01:20:19.849 EDT Thu Sep 10 2026") {
 		t.Fatalf("device output missing: %q", got)
+	}
+}
+
+// TestEchoShowsThePromptTheStatementWasSentAt: a statement that changes the
+// mode is echoed at the prompt it was sent at, not the one it returned, as
+// the job's text file has it.
+func TestEchoShowsThePromptTheStatementWasSentAt(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{
+		"display.command.header=",
+		"display.command.footer=",
+		"display.command.border=",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	renderer, err := newRecordRenderer(&out, "text", cfg, false, false, "activity-1", "/tmp/artifacts", "command", true, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	observed := true
+	for _, s := range [][3]string{
+		{"configure terminal", "router1#", "router1(config)#"},
+		{"end", "router1(config)#", "router1#"},
+	} {
+		renderer.OnRecord(records.CommandRecord{
+			Device:  records.DeviceProjection{CanonicalName: "router1"},
+			Command: s[0], Status: "success", OutputEncoding: "utf-8",
+			PromptBefore: s[1], Prompt: s[2], PromptSource: "observed", PromptObserved: &observed,
+			Timing: records.Timing{EndedAt: time.Now()},
+		})
+	}
+	if got, want := out.String(), "router1#configure terminal\nrouter1(config)#end\n"; got != want {
+		t.Fatalf("echo:\n%q\nwant:\n%q", got, want)
 	}
 }
 
