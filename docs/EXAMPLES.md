@@ -16937,3 +16937,190 @@ lab scripts with their logs and exits, the suites' logs, the three batteries'
 logs (`battery-1`, `battery-2`, and the last beside them, `battery.sh`), and the
 gaps as agreed, `decisions.md`). ROADMAP's Next item 1 is now the shorter output
 strings.
+
+## 80. The release 0.36.0 (2026-10-26)
+
+The seventeenth public release, 0.36.0, on the operator's word and number,
+carrying [chapter 78](#78-the-live-view---live-2026-10-25) (`--live`) and
+[chapter 79](#79-a-command-file-per-target-2026-10-25) (a command file per
+target, `--cf DIR`, and the order of a run's commands), with `--echo` at the
+prompt a statement was sent at. A minor release: execution plan 15, plan
+report 4, and scoreboard 5 move, and a run's commands change order (the
+CHANGELOG's Breaking entries). The daemon IPC schema stays 12, so the
+compatibility example is the drain, beside the released 0.35.0 daemon. Before
+the baseline, `latest.sh` found scrapligo v1.4.2 behind v1.4.3, and the module
+moved first, on the operator's word. The sequence is [chapter
+75](#75-the-release-0341-2026-10-20)'s as [chapter
+77](#77-the-release-0350-2026-10-21) ran it. It stopped once, before the
+baseline, on Docker's bridge, which the operator restarted. The operator gave
+the word to publish at the start, so the build went on from the package's
+install check to the push.
+
+**What it gains.** A site has chapters 78 and 79 from a published,
+checksummed bundle and package, with the documents on GitHub Pages at the
+release: a list per device from one folder, a run's commands in the order
+written with `--cf` repeated, and a session followed as it comes. The native
+transport is built on scrapligo's newest v1, as chapter 75's rule asks.
+
+**Before the number.** The archive's mirror held `4a187f7`, `dev` as the
+session found it. The bridge probe failed: a container on Docker's default
+network reached none of the three addresses, where the host reached each. The
+host had restarted on 2026-10-22, and Docker with it, as in chapter 73. The
+module move went on meanwhile, needing no container, and the probe failed
+again after it. The operator restarted Docker, and the probe reached every
+address (the `#` lines are labels):
+
+```text
+# before Docker's restart
+8.8.8.8/53 not reached
+1.1.1.1/443 not reached
+91.189.91.82/80 not reached
+# after Docker's restart
+8.8.8.8/53 reached
+1.1.1.1/443 reached
+91.189.91.82/80 reached
+```
+
+**The module move.** `latest.sh` on the tree at `4a187f7` (its own lines,
+four rows of modules at their newest left out):
+
+```text
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 7 modules /home/netops/karvi/karvi/go.mod requires
+github.com/scrapli/scrapligo     v1.4.2                                 behind
+                                 v1.4.3                                 newest
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+latest: 1 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+```
+
+By `GOFLAGS=-mod=mod go get github.com/scrapli/scrapligo@v1.4.3`, `go mod
+tidy`, `go mod vendor`, and `go mod verify` (`633c82d`). The vendored tree
+changed in one file, the NETCONF driver's `sendClientCapabilities`: under
+NETCONF 1.1 the hello is written without its trailing return, which a strict
+server reads as a doubled line feed before the first chunk. karvi links the
+package, through scrapligo's driver options, and never runs it; nothing the
+native transport sends or reads changes. The native suite passed on a lab
+build of the move.
+
+**The version's spellings.** The release verifier pins the module three
+times: `vendor/modules.txt`, the executable's module metadata, and `karvi
+--version`'s `scrapligo: 1.4.2`; the shipped verifier pins the last. A move of
+the module alone would have failed the baseline. The version is spelled by
+hand in the transport's build information, which `karvi version` reports, the
+help's transport status and the man pages generated from it, the v0.6.0
+suite, and five documents. The move carried every living spelling to 1.4.3,
+and ROADMAP's v2 item now says karvi stays on v1, with no patch number to go
+stale. `scrapligov1.Version`, the adapter's own copy, had no reader and was
+removed. History keeps its versions: the CHANGELOG's earlier blocks and the
+chapters above. The battery passed on the move: vet, generated-clean, `go test
+-count=1 ./...` (72 packages), and the nineteen suites in 235 seconds.
+
+**Not taken.** Reading the version from the executable's own module metadata
+(`runtime/debug.ReadBuildInfo`) in place of the spellings: a change to how
+`karvi version` reports a transport, a design gap the release did not open.
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.36.0 - 2026-10-26` under a
+lead paragraph: a minor release on 0.35.0, the three counters that move and
+every other 0.35.0's, scrapligo v1.4.3, Go 0.35.0's, and what a site changes
+where a script reads `command_plan_digest`, the plan's `commands_file`, or the
+scoreboard's `commands.file`, counts on every `--cmd` going before a `--cf`
+file's lines, writes a declaration after a `--cf`, abbreviates `--literal` as
+`--li`, or looks for the two retired codes. The retired codes' release,
+`retiredV0360`, is the number, so nothing was renamed. `CHECKSUMS.sha256` has
+its four lines from the release-identity build.
+
+**The sequence, as run**, from the first probe at 12:26 to the published
+check at 14:03 (UTC; 08:26 to 10:03, EDT):
+
+- 12:26:51, the archive's mirror at `4a187f7`; the bridge probe failed,
+  reported to the operator.
+- 12:27:16 to 12:39:46, the module move, its spellings, the native suite, and
+  the battery; 12:39:58, `633c82d`.
+- 12:40:29, the archive's mirror fetched to `633c82d`; `latest.sh` exit 0; the
+  probe failed again. The stop for the operator.
+- 13:30:47, Docker restarted by the operator; the probe passed.
+- 13:30:54 to 13:39:56, the baseline on a clean clone of `633c82d`:
+  `latest.sh`, gofmt, make, and the release verifier with its package and
+  container steps, exit 0 each.
+- 13:40:16 to 13:41:08, the release-identity build, the compatibility
+  example, and 1/3: the build `kXY4cc6JRtLekvXNL0My` by go1.27.3; the 0.35.0
+  daemon drained idle, refusing busy; `03e0348`.
+- 13:41:14 to 13:43:19, the core evidence: 1,105 named tests across 92
+  packages, vet 0, both socket lengths exit 0, with 3.9 GB free in `/tmp`.
+- 13:44:59, the documents: `0ffde3f` (2/3).
+- 13:45:03 to 13:53:33, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 13:53:52, 3/3, the tag, `main`: `c26a320`, `karvi-v0.36.0`, `main`
+  fast-forwarded from `f444ee5`.
+- 13:53:58 to 14:00:15, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 39,846,090 and 6,538,086 bytes.
+- 14:00:28 to 14:00:42, the package installed in a throwaway `ubuntu:26.04`:
+  `apt install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`.
+- 14:00:59 to 14:03, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`be1c1ae`), built,
+  its 52 files 200 and its footer `karvi-v0.36.0`; release `karvi-v0.36.0`
+  with the five assets, marked latest, its body the notes file; the assets
+  downloaded back match.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.35.0 build=onQ7svRY49FAEYS1IIHv
+daemon started socket=/dev/shm/r360/compat/base/socket/d.sock
+pid 3277173 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build onQ7svRY49FAEYS1IIHv 0.35.0
+  client build kXY4cc6JRtLekvXNL0My 0.36.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3277347 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.36.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.36.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.36.0-source-linux-amd64.tar.gz: OK
+karvi_0.36.0_amd64.deb: OK
+```
+
+**Found on the way.**
+
+- `karvi` is 61,440 bytes larger; `karvi-askpass`, `karvi-prune`, and
+  `karvi-audit` are each 4,096 bytes smaller; the bundle is 76,151 bytes
+  larger and the package 37,706.
+- The default configuration was regenerated to 0.35.0's bytes, since no key
+  changed, so 3/3 carries nine evidence files; the module metadata of the four
+  executables names scrapligo v1.4.3.
+- After a host restart Docker's bridge again reached nothing until Docker was
+  restarted, as in chapter 73; the probe before the baseline found it.
+- `gh release create` run from the tools' parent, outside a checkout, stops at
+  `not a git repository` and creates nothing; `-R
+  robert-patrick-texas/karvi` names the repository.
+- `release/SCRAPLIGO-EVIDENCE.md` said scrapligo-v1 contributes the driver and
+  channel, and ROADMAP's v2 item put the host-key policy under v1's driver and
+  channel, where the adapter's package comment says they are not used. The
+  operator asked for a check: the adapter calls scrapligo's transport wrapper,
+  its options, and its logger alone; the channel and the drivers are linked,
+  since the options package imports them, and never called. Both documents were
+  corrected after the release, on the operator's word, so the release's bundle
+  and site keep the old line until the next release.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67,
+  70, 73, 75, and 77: the minimal image leaves out `/usr/share/man`.
+
+The evidence is kept beside the tree (`release-design-evidence/v0360-*`: the
+timeline, the bridge probe, the baseline with `latest.sh`'s output, the build,
+the compatibility example, the 1/3 and 2/3 patches, the artifacts, the
+container install, the release notes, the push, the site, the GitHub release,
+and the published check; `v0360-dependencies/`: the module move's logs, the
+vendored diff, the native suite, and the battery).
