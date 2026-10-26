@@ -351,6 +351,18 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   passes a large entry in a sealed memfd over the socket. The questions: the
   largest event karvi writes, and whether one is bounded; the audit file
   beside it; a device command event of that size.
+- **The spool suite's timeout row waiting on a condition.** The spool suite's S4
+  cuts `show big` at a one-second command timeout and needs 1 MiB settled by the
+  cut. The fake builds its 65.7 MB answer before it sends it, and what settles
+  by the cut follows the disk under the spool: of 48 cuts at the fake with the
+  spool on `/var/tmp`, all but one settled 12 to 48 MB and one 141,422 bytes,
+  and a battery failed the row with nothing settled, the suite alone once in
+  three ([`docs/EXAMPLES.md`, chapter
+  79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)). The item: the
+  row asserts the cut's settled bytes whatever the disk's pace. The questions: a
+  cut timed from the answer's first byte rather than from the send; the row's
+  threshold; and the rows that time a fixed cut beside it (the cancel and the
+  lost session at 0.7 s).
 - **`verify-shipped.sh` reviewed for what it leaves.** Its `STATELESS`
   folder, made to show that `--help` and `version` create no home, is removed
   only when that check passes, so a failing check leaves it in `/tmp`. The

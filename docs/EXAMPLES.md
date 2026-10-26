@@ -16925,8 +16925,8 @@ passed. On the released 0.35.0, S37 fails at its first row,
   spool and the job folders on `/var/tmp` (`e-spool-timing-lab.sh`), 48 cuts, 24
   of each build, alone and after the limit row, settled 12 to 48 MB but one, a
   lab build's at 141,422 bytes; on `/dev/shm` none fell under 9.4 MB. The row's
-  path is not one the build touched; it is left as it stands and raised with the
-  operator.
+  path is not one the build touched; it is ROADMAP's Later item "The spool
+  suite's timeout row waiting on a condition", on the operator's word.
 - A planning refusal on `command` carries no stage prefix (`command`'s refusals
   have none), where `run` and `crun` through the daemon print
   `client planning:`; the stage prefixes are among Next item 1's open questions.
