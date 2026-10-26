@@ -1414,7 +1414,15 @@ folder.
 - **Two devices with one file name**, `core-nyc-01.example.net` beside
   `core-nyc-01.example.org` under the crop, are `commands_file_name_collision`
   (exit 5), whatever files the job writes.
+- **A collection over the folder** is refused at planning: a `crun`, or a
+  `run` or `command` given `--cd` or `--fs`, whose collection directory is the
+  `--cf` folder (with or without `--fs`), or whose collection file for a
+  selected device is a `--cf` file of the run, links followed, is
+  `commands_file_in_collection` (exit 4).
 - **`--dry-run`** shows each device's list on its `commands:` line.
+- **The job folder** keeps each device's list as `commands/NAME`, its `\r`
+  returns written back, so `karvi run --tf J/failed-devices.txt --cf
+  J/commands` reruns the failures, each with its own list.
 - **The plan's size.** Each device's list travels to the daemon in the plan,
   bounded by `daemon.max-ipc-frame-bytes` (8 MiB by default, at most 64 MiB).
   The plan is about 900 bytes a device before its list, and a list costs about
@@ -1440,7 +1448,7 @@ is what reads it.
 | `commands-jsonl` | `commands.jsonl` | every record, one JSON object per line: the authority | `karvi job follow` cannot replay the job; a device's text cannot be derived again; tools that read records |
 | `errors-jsonl` | `errors.jsonl` | the records that did not succeed, each also in `commands.jsonl` | the short list of failures |
 | `failed-devices-txt` | `failed-devices.txt` | the devices to run again | the rerun's `--tf` file |
-| `commands-txt` | `commands.txt` | the commands as requested | the rerun's `--cf` file |
+| `commands-txt` | `commands.txt` for one list, `commands.PLATFORM.txt` per platform, `commands/NAME` per device | what each device was sent, as `--cf` lines | the rerun's `--cf` file or folder |
 | `manifest-json` | `manifest.json` | the job as it was accepted | the record of what was asked, by whom, under which configuration |
 | `metrics-json` | `metrics.json` | process and dispatch measurements | the measurements |
 
@@ -1450,8 +1458,13 @@ Relationships worth knowing:
   with `output-txt = true` keeps text only. It is a one-way choice: without
   the records there is nothing to derive a device's text from again, and
   the notice of a text file that could not be written says so.
-- **A rerun needs `failed-devices.txt` and `commands.txt` together**
-  (`karvi run --tf …/failed-devices.txt --cf …/commands.txt`).
+- **A rerun needs `failed-devices.txt` and the commands together**
+  (`karvi run --tf …/failed-devices.txt --cf …/commands.txt`, or `--cf
+  …/commands` beside a `--cf` folder). Each command's `\r` returns are
+  written back, so the copy is read without `--literal`; an `--expect`, a
+  `--blind` without returns, a `--timeout`, or a `--maxbytes` has no form in
+  a file and stays in `manifest.json`'s plan, and a command whose own text
+  ends in `\r`, which only `--literal` sends, reads back as returns.
 - **`summary.json` has no key: every folder holds it.** It is written
   when the job is accepted, naming the job's devices, and again whole at
   the job's end with the result, the counts, the causes, and each
@@ -1459,8 +1472,10 @@ Relationships worth knowing:
   status. `karvi job list`, `karvi job follow`, and `karvi-prune` read
   it.
 - **The summary names only the files that were written** (`paths`, and
-  `output.commands_jsonl`). The devices' text files are not listed; the
-  name is `output.` + the device's name (or its address) + `.txt`.
+  `output.commands_jsonl`): `commands.txt` when every device is sent one
+  list. The devices' text files and the per-platform and per-device command
+  copies are not listed; the name is `output.` + the device's name (or its
+  address) + `.txt`, and the copies are named as above.
 - **All seven false leaves the folder with its summary alone.** No folder
   at all is `output.persist-command = false`, the same as `cmd --nof`:
   the footer ends `artifacts=none`.
@@ -1860,8 +1875,11 @@ karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
   names each device's file and outcome, and `failed-devices.txt` is the
   rerun as for any run. A `crun` runs a device's whole list past a
   rejected statement.
-- **The commands** are `--cmd`, `--cf`, or the device text as on `run`;
-  with none, each device is sent its platform's `crun-commands` list
+- **The commands** are `--cmd`, `--cf`, or the device text as on `run`, a
+  `--cf` folder or file never the collection's own
+  (`commands_file_in_collection`, ["A command list per
+  device"](#a-command-list-per-device)); with none, each device is sent its
+  platform's `crun-commands` list
   (`[platform.NAME] crun-commands = [...]`; the built-in platforms with a
   configuration ship the configuration and the version; a platform
   without a list refuses the run at planning, `--dry-run` shows each

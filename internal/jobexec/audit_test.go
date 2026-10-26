@@ -66,3 +66,50 @@ func TestJobEventStatements(t *testing.T) {
 		}
 	}
 }
+
+// TestJobStartBesideLists: beside a list per platform or per device the
+// job's start lists no statements, each device's command events naming its
+// own (EXAMPLES chapter 79), and counts the longest list, as the metrics do.
+func TestJobStartBesideLists(t *testing.T) {
+	home := t.TempDir()
+	file := filepath.Join(home, "audit.jsonl")
+	cfg, err := configload.Load(configload.Options{HomeDir: home, SkipAuto: true, Environment: []string{}, Sets: []string{`audit.file="` + file + `"`, `audit.journald-required=false`}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sink, err := audit.New(cfg, home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plans := []executionplan.ExecutionPlan{
+		{PlanID: "p1", PlatformCommands: map[string][]string{"cisco_iosxe": {"show running-config", "show version"}}},
+		{PlanID: "p2", TargetCommands: map[string]executionplan.CommandList{"a": {Commands: []string{"show clock"}}, "b": {Commands: []string{"show users", "show clock", "show version"}}}},
+	}
+	for _, plan := range plans {
+		req := Request{Plan: plan, Config: cfg, Operator: credentials.Operator{Username: "tester", UID: 1001}, ActivityType: "run"}
+		if err := writeActivityAudit(sink, req, "261026-101500-00", "start", "", 0, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sink.Close()
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", data)
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != len(plans) {
+		t.Fatalf("%d lines: %s", len(lines), data)
+	}
+	for i, want := range []float64{2, 3} {
+		var r struct {
+			Action map[string]any `json:"action"`
+		}
+		if err := json.Unmarshal([]byte(lines[i]), &r); err != nil {
+			t.Fatal(err)
+		}
+		if _, listed := r.Action["commands"]; listed || r.Action["command_count"] != want {
+			t.Errorf("plan %d: %s", i+1, lines[i])
+		}
+	}
+}

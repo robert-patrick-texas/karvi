@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -204,8 +205,13 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if err != nil {
 		return executionplan.ExecutionPlan{}, err
 	}
-	// A --cf folder's lists first: the folder is the job's input, and its
-	// refusals come before the output's.
+	// The run's --cf inputs first: a collection over them, then a folder's
+	// lists; the inputs' refusals come before the output's.
+	if out.Collection != nil {
+		if err := checkCollectionInputs(targets, cfg.Bool("output.crop-to-dot"), out.Collection, opts.CommandsFiles, opts.CommandFolders); err != nil {
+			return executionplan.ExecutionPlan{}, err
+		}
+	}
 	var targetLists map[string]executionplan.CommandList
 	if opts.TargetCommands != nil {
 		if targetLists, err = targetCommandLists(cfg, targets, cfg.Bool("output.crop-to-dot"), opts.CommandFolders, opts.TargetCommands); err != nil {
@@ -493,6 +499,50 @@ func checkFileNames(targets []executionplan.ExecutionTarget, crop bool, collecti
 			return errorcodes.Errorf("output_file_name_collision", "devices %s and %s would both write the file %s; under output.crop-to-dot the first label of a name is its file name, and two devices need two", prior, t.Device.CanonicalName, file)
 		}
 		seen[name] = t.Device.CanonicalName
+	}
+	return nil
+}
+
+// checkCollectionInputs refuses a collection that would write over the
+// lists the run reads (EXAMPLES chapter 79): a --cf folder that is the
+// collection folder, with or without a suffix, or a --cf file, its links
+// followed, in the collection folder under the name a selected device's
+// collection file takes. A hard link elsewhere is kept, since the
+// collection renames a new file into place; a collection folder not yet
+// made holds neither. paths are the --cf paths as given, folders those of
+// them that are folders.
+func checkCollectionInputs(targets []executionplan.ExecutionTarget, crop bool, collection *executionplan.CollectionSettings, paths, folders []string) error {
+	dir, err := os.Stat(collection.Directory)
+	if err != nil {
+		return nil
+	}
+	var devices map[string]string // a collection file's name: its device
+	for _, path := range paths {
+		if path == "-" {
+			continue
+		}
+		if slices.Contains(folders, path) {
+			if info, err := os.Stat(path); err == nil && os.SameFile(info, dir) {
+				return errorcodes.Errorf("commands_file_in_collection", "a --cf folder is the collection folder\n  %s\n  %s", path, collection.Directory)
+			}
+			continue
+		}
+		real, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			continue
+		}
+		if parent, err := os.Stat(filepath.Dir(real)); err != nil || !os.SameFile(parent, dir) {
+			continue
+		}
+		if devices == nil {
+			devices = make(map[string]string, len(targets))
+			for _, t := range targets {
+				devices[output.FileName(t.Device.CanonicalName, crop)+collection.Suffix] = t.Device.CanonicalName
+			}
+		}
+		if device, ok := devices[filepath.Base(real)]; ok {
+			return errorcodes.Errorf("commands_file_in_collection", "a --cf file is the collection file of %s\n  %s\n  %s", device, path, filepath.Join(collection.Directory, filepath.Base(real)))
+		}
 	}
 	return nil
 }

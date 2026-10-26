@@ -22,7 +22,13 @@ const manifestSchema = "../schema/job-manifest.schema.json"
 // header referencing the projection's digest.
 func fixtureManifest(t *testing.T) Manifest {
 	t.Helper()
-	final := plantest.FinalPlan()
+	return fixtureManifestOf(t, plantest.FinalPlan())
+}
+
+// fixtureManifestOf is fixtureManifest over final, each target's initial
+// states one per command of its own list.
+func fixtureManifestOf(t *testing.T, final executionplan.ExecutionPlan) Manifest {
+	t.Helper()
 	scope := func(ids ...string) credentialpackage.CredentialScope {
 		return credentialpackage.CredentialScope{TargetIDs: ids, Transports: []string{"system"}, Ports: []uint16{22}}
 	}
@@ -45,7 +51,7 @@ func fixtureManifest(t *testing.T) Manifest {
 	header.CredentialPackage = &executionplan.PackageReference{Protection: executionplan.ProtectionLocalPeer, Digest: digest}
 	initial := []InitialState{}
 	for _, x := range final.Targets {
-		for i := range final.Commands {
+		for i := range final.CommandsFor(&x) {
 			initial = append(initial, InitialState{DeviceID: x.TargetID, CommandIndex: i + 1, State: "not_started"})
 		}
 	}
@@ -115,6 +121,32 @@ func TestManifestValidationVectors(t *testing.T) {
 		if got := errorcodes.Of(m.Validate()); got != tc.code {
 			t.Errorf("%s: code=%q, want %s (%v)", tc.name, got, tc.code, m.Validate())
 		}
+	}
+}
+
+// TestManifestInitialStatesByTargetList: beside a list per target (EXAMPLES
+// chapter 79) each initial state's command index is within its own
+// device's list, and the plan's empty one list bounds nothing.
+func TestManifestInitialStatesByTargetList(t *testing.T) {
+	draft := plantest.DraftPlan()
+	draft.Commands = []string{}
+	list := func(commands ...string) executionplan.CommandList {
+		return executionplan.CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}
+	}
+	draft.TargetCommands = map[string]executionplan.CommandList{}
+	for i, x := range draft.Targets {
+		draft.TargetCommands[x.TargetID] = list([]string{"show clock", "show version", "show users"}[:i+1]...)
+	}
+	m := fixtureManifestOf(t, plantest.FinalPlanOf(draft))
+	if len(m.InitialStates) != 6 {
+		t.Fatalf("%d initial states", len(m.InitialStates))
+	}
+	if err := m.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	m.InitialStates[0].CommandIndex = 2 // the first target's list has one command
+	if got := errorcodes.Of(m.Validate()); got != "manifest_invalid" {
+		t.Fatalf("an index past the device's list: %q", got)
 	}
 }
 

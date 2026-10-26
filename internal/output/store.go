@@ -107,6 +107,7 @@ type Store struct {
 	crop           bool // CropNames
 	id             string
 	paths          Paths
+	dirMode        os.FileMode // DirectoryMode, the commands/ folder's
 	commands, errs *os.File
 	fsync          bool
 	sequence       int64
@@ -235,6 +236,7 @@ func Create(opts Options) (*Store, error) {
 	if mode == 0 {
 		mode = osutil.DefaultDirectoryMode
 	}
+	s.dirMode = mode
 	if err := osutil.EnsureOutputDirectory(opts.Root, mode, "output_directory_not_writable"); err != nil {
 		return nil, err
 	}
@@ -256,35 +258,58 @@ func Create(opts Options) (*Store, error) {
 	return s, nil
 }
 func (s *Store) Paths() Paths { return s.paths }
-func (s *Store) WriteCommands(commands []string) error {
-	if s.skip.CommandsTxt || len(commands) == 0 {
-		return nil
-	}
-	return atomicBytes(s.paths.CommandsText, commandsText(commands), osutil.OutputFileMode)
-}
 
-// WriteCommandLists writes the plan's list per platform as
-// commands.PLATFORM.txt beside commands.txt, each a --cf file for that
-// platform; nothing when the plan carries no
-// list, and nothing when commands.txt is switched off.
-func (s *Store) WriteCommandLists(lists map[string][]string) error {
+// WriteCommands writes the job folder's copies of what each device is
+// sent, each a --cf file for a rerun (EXAMPLES chapter 79): commands.txt
+// for the plan's one list, commands.PLATFORM.txt for each platform's, and
+// commands/NAME for each target's, NAME as a --cf folder's files are named
+// (FileName). Nothing is written when commands.txt is switched off, and
+// Paths names commands.txt only when it is written, the plan having one
+// list.
+func (s *Store) WriteCommands(plan *executionplan.ExecutionPlan) error {
 	if s.skip.CommandsTxt {
 		return nil
 	}
-	for name, commands := range lists {
-		path := filepath.Join(filepath.Dir(s.paths.CommandsText), "commands."+name+".txt")
-		if err := atomicBytes(path, commandsText(commands), osutil.OutputFileMode); err != nil {
+	if len(plan.Commands) == 0 {
+		s.paths.CommandsText = ""
+	} else if err := atomicBytes(s.paths.CommandsText, commandsText(plan.Commands, plan.BlindReturns), osutil.OutputFileMode); err != nil {
+		return err
+	}
+	for name, commands := range plan.PlatformCommands {
+		if err := atomicBytes(filepath.Join(s.paths.Root, "commands."+name+".txt"), commandsText(commands, nil), osutil.OutputFileMode); err != nil {
+			return err
+		}
+	}
+	if len(plan.TargetCommands) == 0 {
+		return nil
+	}
+	dir := filepath.Join(s.paths.Root, "commands")
+	if err := osutil.EnsureOutputDirectory(dir, s.dirMode, "output_directory_not_writable"); err != nil {
+		return err
+	}
+	for i := range plan.Targets {
+		t := &plan.Targets[i]
+		list := plan.TargetCommands[t.TargetID]
+		if err := atomicBytes(filepath.Join(dir, FileName(t.Device.CanonicalName, s.crop)), commandsText(list.Commands, list.BlindReturns), osutil.OutputFileMode); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// commandsText is a command file's content: one statement per line.
-func commandsText(commands []string) []byte {
+// commandsText is a command file's content: one statement per line, each
+// command's blind returns written back as its trailing \r sequences, so
+// that the file read without --literal sends what was sent. A command
+// whose own text ends in \r, which only --literal sends, reads back as
+// returns; its other declarations have no form in a file and stay in the
+// plan.
+func commandsText(commands []string, returns []int) []byte {
 	var b strings.Builder
-	for _, c := range commands {
+	for i, c := range commands {
 		b.WriteString(c)
+		if i < len(returns) {
+			b.WriteString(strings.Repeat(`\r`, returns[i]))
+		}
 		b.WriteByte('\n')
 	}
 	return []byte(b.String())

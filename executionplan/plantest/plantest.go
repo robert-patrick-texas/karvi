@@ -166,7 +166,12 @@ func Profile() executionplan.SessionInitProfile {
 // client-authority targets bound to GrantA with no session-init profile,
 // core-a bound to GrantB with SessionInitProfile.
 func FinalPlan() executionplan.ExecutionPlan {
-	draft := DraftPlan()
+	return FinalPlanOf(DraftPlan())
+}
+
+// FinalPlanOf is FinalPlan from draft, a DraftPlan edited (its commands, a
+// list per target).
+func FinalPlanOf(draft executionplan.ExecutionPlan) executionplan.ExecutionPlan {
 	prepared, err := executionplan.IncorporatePreparation(draft, Evidence(draft))
 	must(err)
 	for i := range prepared.Targets {

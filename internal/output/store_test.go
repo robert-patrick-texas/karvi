@@ -2,6 +2,7 @@ package output
 
 import (
 	"fmt"
+	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/platform"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -165,7 +166,7 @@ func TestSkippedFiles(t *testing.T) {
 	}
 	writeAll := func(s *Store) {
 		t.Helper()
-		if err := s.WriteCommands([]string{"show clock"}); err != nil {
+		if err := s.WriteCommands(&executionplan.ExecutionPlan{Commands: []string{"show clock"}}); err != nil {
 			t.Fatal(err)
 		}
 		for _, write := range []func(any) error{s.WriteManifest, s.WriteMetrics, s.WriteSummary} {
@@ -371,42 +372,82 @@ func TestNoticesLeaveInSequence(t *testing.T) {
 	}
 }
 
-// TestWriteCommandLists: a plan's list
-// per platform is commands.PLATFORM.txt beside commands.txt, one statement
-// per line, and none when commands.txt is switched off or there is no list.
-func TestWriteCommandLists(t *testing.T) {
+// TestWriteCommands: the job folder's copies of what each device is sent
+// (EXAMPLES chapter 79), each a --cf file, one statement per line with its
+// blind returns written back as trailing \r: commands.txt for one list,
+// commands.PLATFORM.txt per platform, commands/NAME per target (NAME as a
+// --cf folder's, cropped); Paths names commands.txt only when it is
+// written, and nothing is written when commands.txt is switched off.
+func TestWriteCommands(t *testing.T) {
 	dir := t.TempDir()
-	s, err := Create(Options{Root: filepath.Join(dir, "job"), ID: "260924-020000-00"})
-	if err != nil {
+	read := func(path string) string {
+		t.Helper()
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(got)
+	}
+	create := func(name string, skip FileSet) *Store {
+		t.Helper()
+		s, err := Create(Options{Root: filepath.Join(dir, name), ID: "260924-020000-00", CropNames: true, Skip: skip})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { s.Close() })
+		return s
+	}
+	one := create("one", FileSet{})
+	if err := one.WriteCommands(&executionplan.ExecutionPlan{Commands: []string{"copy running-config startup-config", "show clock", "reload"}, BlindReturns: []int{1, 0, 2}}); err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
-	if err := s.WriteCommands(nil); err != nil {
+	if got := read(one.Paths().CommandsText); got != "copy running-config startup-config\\r\nshow clock\nreload\\r\\r\n" {
+		t.Fatalf("one list: %q", got)
+	}
+	platforms := create("platforms", FileSet{})
+	if err := platforms.WriteCommands(&executionplan.ExecutionPlan{PlatformCommands: map[string][]string{"cisco_iosxe": {"show running-config", "show version"}, "juniper_junos": {"show configuration"}}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "job", "commands.txt")); !os.IsNotExist(err) {
-		t.Fatalf("no commands, no commands.txt: %v", err)
+	if got := read(filepath.Join(dir, "platforms", "commands.cisco_iosxe.txt")); got != "show running-config\nshow version\n" {
+		t.Fatalf("cisco_iosxe: %q", got)
 	}
-	if err := s.WriteCommandLists(map[string][]string{"cisco_iosxe": {"show running-config", "show version"}, "juniper_junos": {"show configuration"}}); err != nil {
+	if got := read(filepath.Join(dir, "platforms", "commands.juniper_junos.txt")); got != "show configuration\n" {
+		t.Fatalf("juniper_junos: %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "platforms", "commands.txt")); !os.IsNotExist(err) || platforms.Paths().CommandsText != "" {
+		t.Fatalf("lists alone: commands.txt %v, named %q", err, platforms.Paths().CommandsText)
+	}
+	target := func(id, name string) executionplan.ExecutionTarget {
+		return executionplan.ExecutionTarget{TargetID: id, Device: executionplan.DeviceProjection{CanonicalName: name}}
+	}
+	targets := create("targets", FileSet{})
+	plan := &executionplan.ExecutionPlan{
+		Targets: []executionplan.ExecutionTarget{target("a", "core-nyc-01.example.net"), target("b", "10.1.2.3")},
+		TargetCommands: map[string]executionplan.CommandList{
+			"a": {Commands: []string{"show clock", "copy running-config startup-config"}, BlindReturns: []int{0, 1}},
+			"b": {Commands: []string{"show version"}},
+		},
+	}
+	if err := targets.WriteCommands(plan); err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(filepath.Join(dir, "job", "commands.cisco_iosxe.txt"))
-	if err != nil || string(got) != "show running-config\nshow version\n" {
-		t.Fatalf("cisco_iosxe: %q %v", got, err)
+	if got := read(filepath.Join(dir, "targets", "commands", "core-nyc-01")); got != "show clock\ncopy running-config startup-config\\r\n" {
+		t.Fatalf("core-nyc-01: %q", got)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "job", "commands.juniper_junos.txt")); err != nil {
+	if got := read(filepath.Join(dir, "targets", "commands", "10-1-2-3")); got != "show version\n" {
+		t.Fatalf("10-1-2-3: %q", got)
+	}
+	if targets.Paths().CommandsText != "" {
+		t.Fatalf("target lists name commands.txt: %q", targets.Paths().CommandsText)
+	}
+	off := create("off", FileSet{CommandsTxt: true})
+	if err := off.WriteCommands(plan); err != nil {
 		t.Fatal(err)
 	}
-	off, err := Create(Options{Root: filepath.Join(dir, "job2"), ID: "260924-020001-00", Skip: FileSet{CommandsTxt: true}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer off.Close()
-	if err := off.WriteCommandLists(map[string][]string{"cisco_iosxe": {"show version"}}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(dir, "job2", "commands.cisco_iosxe.txt")); !os.IsNotExist(err) {
-		t.Fatalf("commands.txt off, no list file: %v", err)
+	for _, name := range []string{"commands.txt", "commands"} {
+		if _, err := os.Stat(filepath.Join(dir, "off", name)); !os.IsNotExist(err) {
+			t.Fatalf("commands.txt off, %s: %v", name, err)
+		}
 	}
 }
 

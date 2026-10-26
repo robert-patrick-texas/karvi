@@ -485,6 +485,67 @@ func TestCheckFileNames(t *testing.T) {
 	}
 }
 
+// TestCheckCollectionInputs covers the refusal of a collection over the
+// run's own --cf inputs (EXAMPLES chapter 79): a --cf folder that is the
+// collection folder, by a link and with a suffix too; a --cf file that is a
+// selected device's collection file, the suffix counted and a link
+// followed; and what is kept: a file under no selected device's name, the
+// name the suffix leaves free, a hard link elsewhere, standard input, and
+// a collection folder not yet made.
+func TestCheckCollectionInputs(t *testing.T) {
+	dir := t.TempDir()
+	coll := filepath.Join(dir, "coll")
+	if err := os.Mkdir(coll, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"core-nyc-01", "core-nyc-02", "core-nyc-01.txt"} {
+		if err := os.WriteFile(filepath.Join(coll, name), []byte("show clock\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	link, file, hard := filepath.Join(dir, "link"), filepath.Join(dir, "file.txt"), filepath.Join(dir, "hard.txt")
+	if err := os.Symlink("coll", link); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join("coll", "core-nyc-01"), file); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(filepath.Join(coll, "core-nyc-01"), hard); err != nil {
+		t.Fatal(err)
+	}
+	targets := []executionplan.ExecutionTarget{{Device: executionplan.DeviceProjection{CanonicalName: "core-nyc-01.example.net"}}}
+	collection := func(dir, suffix string) *executionplan.CollectionSettings {
+		return &executionplan.CollectionSettings{Directory: dir, Word: "crun", Suffix: suffix}
+	}
+	for _, tc := range []struct {
+		name           string
+		paths, folders []string
+		suffix, want   string
+	}{
+		{"the folder", []string{coll}, []string{coll}, "", "a --cf folder is the collection folder\n  " + coll + "\n  " + coll},
+		{"the folder by a link", []string{"-", link}, []string{link}, "", "a --cf folder is the collection folder\n  " + link + "\n  " + coll},
+		{"the folder with a suffix", []string{coll}, []string{coll}, ".txt", "a --cf folder is the collection folder\n  " + coll + "\n  " + coll},
+		{"a device's file", []string{filepath.Join(coll, "core-nyc-01")}, nil, "", "a --cf file is the collection file of core-nyc-01.example.net\n  " + filepath.Join(coll, "core-nyc-01") + "\n  " + filepath.Join(coll, "core-nyc-01")},
+		{"a device's file with its suffix", []string{filepath.Join(coll, "core-nyc-01.txt")}, nil, ".txt", "a --cf file is the collection file of core-nyc-01.example.net\n  " + filepath.Join(coll, "core-nyc-01.txt") + "\n  " + filepath.Join(coll, "core-nyc-01.txt")},
+		{"a device's file by a link", []string{file}, nil, "", "a --cf file is the collection file of core-nyc-01.example.net\n  " + file + "\n  " + filepath.Join(coll, "core-nyc-01")},
+		{"the name the suffix leaves free", []string{filepath.Join(coll, "core-nyc-01")}, nil, ".txt", ""},
+		{"a file under no selected device's name", []string{filepath.Join(coll, "core-nyc-02")}, nil, "", ""},
+		{"a hard link elsewhere", []string{hard}, nil, "", ""},
+		{"standard input", []string{"-"}, nil, "", ""},
+	} {
+		err := checkCollectionInputs(targets, true, collection(coll, tc.suffix), tc.paths, tc.folders)
+		switch {
+		case tc.want == "" && err != nil:
+			t.Errorf("%s: %v", tc.name, err)
+		case tc.want != "" && (errorcodes.Of(err) != "commands_file_in_collection" || err.Error() != "commands_file_in_collection: "+tc.want):
+			t.Errorf("%s: %v", tc.name, err)
+		}
+	}
+	if err := checkCollectionInputs(targets, true, collection(filepath.Join(dir, "absent"), ""), []string{coll}, []string{coll}); err != nil {
+		t.Errorf("a collection folder not yet made: %v", err)
+	}
+}
+
 // TestDraftPlatformCommands covers the platform command lists and the
 // collection sub-block in the planner: with PlatformCommands and no command the
 // plan carries each target platform's list and the digest covers it; a

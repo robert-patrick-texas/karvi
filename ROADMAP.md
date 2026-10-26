@@ -20,11 +20,11 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    a change. Built: a run's commands in the order written, `--cf` given more
    than once, and `--cf` taking a folder, each selected target sent `DIR/NAME`,
    with the refusals of a target without its file and of two targets with one
-   name, the plan's list per target, `--dry-run` showing each, and a stream's
-   `--cf DIR` line. To build: the refusal of a collection into a `--cf` folder
-   or onto a `--cf` file of the same run; the job folder's `commands/NAME`, and
-   every copy writing a command's `\r` returns back; `COLLECTION`, `FILES`, and
-   the CHANGELOG.
+   name, the plan's list per target, `--dry-run` showing each, a stream's `--cf
+   DIR` line, the refusal of a collection into a `--cf` folder or onto a `--cf`
+   file of the same run, and the job folder's `commands/NAME`, every copy
+   writing a command's `\r` returns back. To build: the native suite's case and
+   the chapter's record.
 2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
@@ -356,6 +356,17 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the round trip through journald, its jobs at devices named for its run
   alone ([`docs/EXAMPLES.md`, chapter
   64](docs/EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)).
+- **An audit event over journald's datagram bound.** The audit writes each
+  event to journald as one datagram, and the socket refuses one over its send
+  buffer (212,992 bytes on the development host, `net.core.wmem_default`): a
+  job whose `start` event carries one list of 4,000 statements, 296,785 bytes,
+  is refused at its acceptance, `audit_write_failed: … message too long`, exit
+  111, before any device is contacted ([`docs/EXAMPLES.md`, chapter
+  79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)). The item: an
+  event of any size the audit accepts reaches journald, as `sd_journal_send`
+  passes a large entry in a sealed memfd over the socket. The questions: the
+  largest event karvi writes, and whether one is bounded; the audit file
+  beside it; a device command event of that size.
 - **`verify-shipped.sh` reviewed for what it leaves.** Its `STATELESS`
   folder, made to show that `--help` and `version` create no home, is removed
   only when that check passes, so a failing check leaves it in `/tmp`. The

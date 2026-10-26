@@ -257,10 +257,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 		return FailedResult("output_store_create_failed", err)
 	}
 	defer store.Close()
-	if err := store.WriteCommands(plan.Commands); err != nil {
-		return FailedResult("output_commands_write_failed", err)
-	}
-	if err := store.WriteCommandLists(plan.PlatformCommands); err != nil {
+	if err := store.WriteCommands(&plan); err != nil {
 		return FailedResult("output_commands_write_failed", err)
 	}
 	auditSink, err := audit.New(cfg, req.Operator.Home)
@@ -590,7 +587,10 @@ func buildSummary(accepted records.AcceptedSummary, paths output.Paths, end time
 // writeActivityAudit writes a job's own event, <kind>.<event> (start, cancel,
 // or end; docs/EXAMPLES.md, chapter 63), under the job's ID, which is its
 // activity's in every kind; a start and a cancel pass no outcome, and the
-// start alone carries the job's statements.
+// start alone carries the job's statements, when every device is sent one
+// list: beside a list per platform or per device each device's command
+// events name its own (EXAMPLES chapter 79), and the count is the longest
+// list's.
 func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, code int, reason string, extra ...map[string]any) error {
 	eventID, _ := osutil.NewID(time.Now())
 	telnet := false
@@ -599,8 +599,8 @@ func writeActivityAudit(s *audit.Sink, req Request, id, event, outcome string, c
 			telnet = true
 		}
 	}
-	action := map[string]any{"mode": jobKind(req), "operation": "command_sequence", "command_count": len(req.Plan.Commands), "plan_id": req.Plan.PlanID}
-	if event == "start" {
+	action := map[string]any{"mode": jobKind(req), "operation": "command_sequence", "command_count": req.Plan.CommandCount(), "plan_id": req.Plan.PlanID}
+	if event == "start" && len(req.Plan.Commands) > 0 {
 		action["commands"] = req.Plan.Commands
 	}
 	return s.WriteAudit(records.AuditRecord{EventID: eventID, EventName: jobKind(req) + "." + event, Timestamp: time.Now(), Outcome: outcome, Severity: func() string {

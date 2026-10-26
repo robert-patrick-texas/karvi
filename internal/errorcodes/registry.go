@@ -638,6 +638,7 @@ var entries = []Entry{
 	fallback("config_load_failed", "config", exitConfig, "Configuration loading fails without a specific code."),
 	failure("commands_file_unreadable", "usage", exitUsage, false, "A `--cf` file, or a device's file in a `--cf` folder, cannot be opened or read, or is itself a folder."),
 	failure("commands_file_empty", "usage", exitUsage, false, "The `--cf` file, a device's file in a `--cf` folder, or standard input has zero bytes."),
+	failure("commands_file_in_collection", "usage", exitUsage, false, "A collection (`crun`, or `run` or `command` given `--cd` or `--fs`) would write over the lists the run reads: a `--cf` folder is the collection folder, with or without a suffix, or a `--cf` file is the collection file of a selected device, links followed. Refused at planning, before any device is contacted, the `--cf` path as given over the collection's. Collect into another folder (`--cd=PATH`, `crun.directory`), or keep the lists outside it."),
 	failure("stdin_source_repeated", "usage", exitUsage, false, "More than one input reads standard input: `--cf -` or `--tf -` given twice, or the two together."),
 	failure("stream_input_read_failed", "internal", exitGen, false, "In stream mode, standard input fails to read or a line exceeds the reader's 1 MiB limit."),
 	failure("target_source_missing", "inventory", exitInv, false, "A `--tf` or `--tfr` file or folder does not exist."),

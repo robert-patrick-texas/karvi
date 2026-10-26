@@ -79,6 +79,32 @@
   about 9 MB for 2,500 devices of 40-line lists, over the 8 MiB default
   ([`docs/OPERATIONS.md`, "A command list per
   device"](docs/OPERATIONS.md#a-command-list-per-device)).
+- **A collection never writes over the run's own `--cf` lists.** `crun`, and
+  `run` or `command` given `--cd` or `--fs`, replaced the lists they had read
+  with the devices' output, exit 0, when the collection directory was a `--cf`
+  folder of the run or a `--cf` file was a selected device's collection file;
+  either is now refused at planning with the new code
+  `commands_file_in_collection` (exit 4), the `--cf` path over the
+  collection's, links followed, with or without `--fs`.
+- **The job folder's command copies send what was sent.** `commands.txt`
+  writes each command's blind returns back as its trailing `\r` sequences,
+  where they were dropped and a rerun from the copy timed out at the prompt
+  the returns had answered; beside a `--cf` folder the job folder keeps each
+  device's list as `commands/NAME`, so `karvi run --tf
+  J/failed-devices.txt --cf J/commands` reruns the failures with their own
+  lists. A copy is read without `--literal`.
+- **`summary.json` names `commands.txt` only when it is written.** A `crun`
+  with the platform's lists and a run with a `--cf` folder write none, and
+  the summary's `paths` named it.
+- **The audit's job `start` beside lists per platform or per device.** It
+  carried `command_count` 0 and an empty `commands`; the count is now the
+  longest list's, as the metrics give it, and `commands` is left out, each
+  device's command events naming what it was sent.
+- **A job manifest's initial states are checked against each device's own
+  list.** The manifest's validation, which `tools/schema-check` runs on a job
+  folder, refused a `crun` with the platform's lists and a run with a `--cf`
+  folder (`manifest_invalid`, a command index out of range of the plan's
+  empty one list).
 
 ## 0.35.0 - 2026-10-21
 

@@ -1509,10 +1509,12 @@ each lacks, and so are two selected targets with one name,
 `commands_file_name_collision` naming the file and the devices, whatever files
 the job writes; a file that cannot serve takes the `--cf` file codes; a file no
 selected target is named for is left unread, so a canary is the same command
-with one target and the same folder. A collection into a `--cf` folder, or onto
-a `--cf` file, of the same run is refused at planning, on `crun` and on `run` or
-`command` with `--cd` or `--fs`; on `crun`, commands on the line replace the
-platform's `crun-commands` as they always have. The plan carries each target's
+with one target and the same folder. A collection into a `--cf` folder of the
+same run, with or without a suffix, or onto a `--cf` file of it, links followed,
+is refused at planning, `commands_file_in_collection` with the `--cf` path over
+the collection's, on `crun` and on `run` or `command` with `--cd` or `--fs`; on
+`crun`, commands on the line replace the platform's `crun-commands` as they
+always have. The plan carries each target's
 list and no digest of its own: `plan_digest`, which the daemon's commit, the
 idempotency key, and the credential package read, covers the whole plan
 (`target_commands`, each list with its commands' declarations). The lists travel
@@ -1524,17 +1526,22 @@ sent as `--cf` lines, each command's `\r` returns written back: `commands.txt`
 for one list, `commands.PLATFORM.txt` per platform, and `commands/NAME` per
 target, so `--tf failed-devices.txt --cf commands` from the job folder reruns
 the failures with their own lists; an `--expect`, a `--blind` without returns, a
-`--timeout`, or a `--maxbytes` has no form in a file and is the plan's alone. In
-a stream, a `--cf DIR` line stays from job to job as any `--cf` line does and is
-read at each `--go`. *Why:* a rendered configuration and the checks before and
-after a change differ per target; the plan already holds lists that differ by
-target, a collection's platform lists, and one function names a device's file; a
-lookup by exact name reads nothing else in the folder, so it needs no skip list;
-`--fs` is the collection's suffix, which on a run turns a collection on, so as
-the folder's it would write a device's output over its list; and a digest earns
-its place by a reader that needs it, which the lists' never had; the codes are
-the input's, not the output's, and two devices collide on a folder's file
-whether or not anything is written. *Not taken:* a job per target (the one job's
+`--timeout`, or a `--maxbytes` has no form in a file and is the plan's alone. A
+copy is read without `--literal`, so a command whose own text ends in `\r`,
+which only `--literal` sends, reads back as returns. The summary names
+`commands.txt` only when it is written; the job's audit `start` lists the
+statements only when every device is sent one list, its count the longest
+list's, and each device's command events name what it was sent. In a stream, a
+`--cf DIR` line stays from job to job as any `--cf` line does and is read at
+each `--go`. *Why:* a rendered configuration and the checks before and after a
+change differ per target; the plan already holds lists that differ by target, a
+collection's platform lists, and one function names a device's file; a lookup by
+exact name reads nothing else in the folder, so it needs no skip list; `--fs` is
+the collection's suffix, which on a run turns a collection on, so as the
+folder's it would write a device's output over its list; and a digest earns its
+place by a reader that needs it, which the lists' never had; the codes are the
+input's, not the output's, and two devices collide on a folder's file whether or
+not anything is written. *Not taken:* a job per target (the one job's
 accounting, scoreboard, dispatch, and admission lost); a separate option for the
 folder (one more to learn, the same reader); a folder that must match the
 selection (a canary would need a folder of its own); a suffix or `--tf`'s skip
@@ -1543,7 +1550,11 @@ digest over the lists; `output_file_name_collision` widened (its name and "would
 both write" wrong for an input); a larger default frame (every request may hold
 that much of the daemon's memory), each distinct list once (only lists devices
 share, which `--cf FILE` sends once), or the lists in a transfer of their own (a
-new channel for a limit not met).
+new channel for a limit not met); the collection refusal as an inventory one
+(the selection is not at fault); the plan recording `--literal` for the copies
+(two forms of copy, and the rerun would need to know which); every list in the
+audit `start` (the event is one journald datagram, and 2,500 devices' lists
+come to megabytes).
 
 **Address authority is `client` or `daemon`, and one selection rule serves
 both.** A literal address wins, then the inventory management address, then the

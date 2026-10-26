@@ -22,6 +22,7 @@ karvi crun --select-platform cisco_nxos            # one platform
 karvi crun --target core-nyc-01.example.net        # one device, before a change
 karvi crun --target core-nyc-01.example.net --cmd 'show running-config'
 karvi crun --all --cf site-collect.txt             # one list for every device
+karvi crun --all --cf lists                        # each device its own file, lists/NAME
 karvi crun --all --dry-run                         # each device's list, no device contacted
 ```
 
@@ -49,9 +50,18 @@ karvi crun --all --dry-run                         # each device's list, no devi
   directory has mode `2770` or `2775` in the operators' group, and every
   member replaces every file.
 - **The commands** are the line's `--cmd`, `--cf`, or device text, sent to
-  every device; with none, each device is sent its platform's
-  `crun-commands` list, and a device whose platform has no list is refused
-  at planning. The job folder holds `commands.PLATFORM.txt` per list sent.
+  every device in the order written, a `--cf` folder sending each device its
+  own file in it ([`docs/OPERATIONS.md`, "A command list per
+  device"](OPERATIONS.md#a-command-list-per-device)); with none, each device
+  is sent its platform's `crun-commands` list, and a device whose platform has
+  no list is refused at planning. The job folder holds `commands.PLATFORM.txt`
+  per list sent, and `commands/NAME` per device beside a `--cf` folder.
+- **The collection never writes over its own lists.** A `--cf` folder that is
+  the collection directory, with or without `--fs`, or a `--cf` file that is a
+  selected device's collection file, links followed, is refused at planning,
+  `commands_file_in_collection` (exit 4), the `--cf` path over the
+  collection's; so is a `run` or `command` given `--cd` or `--fs`. Keep the
+  lists in a folder of their own.
 - **The job folder** is the collection's audit: `commands.jsonl` with every
   record, `summary.json` with the `collection` block naming each device's
   file and outcome, `manifest.json` with the plan. `--nof` collects with no

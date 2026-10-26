@@ -612,15 +612,18 @@ func (m *Manifest) Validate() error {
 	if m.CredentialPackage.JobID != m.JobID || m.CredentialPackage.PlanDigest != m.Plan.PlanDigest {
 		return errorcodes.Errorf("manifest_invalid", "credential package names another job or plan")
 	}
-	targets := map[string]bool{}
-	for _, t := range m.Plan.Targets {
-		targets[t.TargetID] = true
+	targets := map[string]*executionplan.ExecutionTarget{}
+	for i := range m.Plan.Targets {
+		targets[m.Plan.Targets[i].TargetID] = &m.Plan.Targets[i]
 	}
 	for i, s := range m.InitialStates {
-		if !targets[s.DeviceID] {
+		t := targets[s.DeviceID]
+		if t == nil {
 			return errorcodes.Errorf("manifest_invalid", "initial_states[%d] names %q, not a plan target", i, s.DeviceID)
 		}
-		if s.CommandIndex < 1 || s.CommandIndex > len(m.Plan.Commands) {
+		// The index is within the device's own list: the plan's one, its
+		// platform's, or its own (EXAMPLES chapter 79).
+		if s.CommandIndex < 1 || s.CommandIndex > len(m.Plan.CommandsFor(t)) {
 			return errorcodes.Errorf("manifest_invalid", "initial_states[%d] command index %d is out of range", i, s.CommandIndex)
 		}
 	}

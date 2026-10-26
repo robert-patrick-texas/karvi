@@ -259,13 +259,23 @@ had; each but the summary has its switch, `output.files.*`, and `--nof` or
 |---|---|---|
 | `manifest.json` | `manifest-json` | the job as it was accepted: the plan, the targets, the configuration that mattered |
 | `commands.jsonl` | `commands-jsonl` | every command's record, one JSON line each; what `job follow` replays |
-| `commands.txt` | `commands-txt` | the job's commands, as a command file for a rerun (`--cf`) |
+| `commands.txt` | `commands-txt` | the job's commands when every device is sent one list, as a command file for a rerun (`--cf`) |
 | `commands.<platform>.txt` | `commands-txt` | a collection's commands, one file per platform |
+| `commands/<name>` | `commands-txt` | each device's own list beside a `--cf` folder, named as the folder's files |
 | `errors.jsonl` | `errors-jsonl` | the records that did not succeed (each is also in `commands.jsonl`) |
 | `failed-devices.txt` | `failed-devices-txt` | the devices that failed, as a target file for a rerun (`--tf`) |
 | `output.<target>.txt` | `output-txt` | each device's session as text |
 | `metrics.json` | `metrics-json` | the job's timings, widths, and wave decisions |
 | `summary.json` | none | the job's kind (`cmd`, `run`, or `crun`) and devices; written at the job's acceptance, and again whole at its end with the result, the counts, the exit, and each device's outcome |
+
+The three command copies are what each device was sent, as `--cf` lines, each
+command's `\r` returns written back, so a copy read without `--literal` sends
+what was sent, and `karvi run --tf J/failed-devices.txt --cf J/commands` reruns
+a folder's failures with their own lists. A file cannot hold an `--expect`, a
+`--blind` without returns, a `--timeout`, or a `--maxbytes`; `manifest.json`'s
+plan alone does. A command whose own text ends in `\r`, which only `--literal`
+sends, reads back as returns. `summary.json`'s `paths` names `commands.txt` when
+it is written; the other copies are named by rule, as the output files are.
 
 ### 4.4 Transcripts and collection files
 
