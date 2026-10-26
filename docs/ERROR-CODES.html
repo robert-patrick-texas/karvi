@@ -63,9 +63,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,9 +130,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -785,28 +785,35 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>The <code>--cf</code> file or standard input has zero bytes.</td>
+<td>The <code>--cf</code> file, a device's file in a <code>--cf</code> folder, or standard input has zero bytes.</td>
 </tr>
 <tr>
-<td><code>commands_file_is_directory</code></td>
+<td><code>commands_file_in_collection</code></td>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>The <code>--cf</code> path is a folder.</td>
+<td>A collection (<code>crun</code>, or <code>run</code> or <code>command</code> given <code>--cd</code> or <code>--fs</code>) would write over the lists the run reads: a <code>--cf</code> folder is the collection folder, with or without a suffix, or a <code>--cf</code> file is the collection file of a selected device, links followed. Refused at planning, before any device is contacted, the <code>--cf</code> path as given over the collection's. Collect into another folder (<code>--cd=PATH</code>, <code>crun.directory</code>), or keep the lists outside it.</td>
 </tr>
 <tr>
-<td><code>commands_file_repeated</code></td>
-<td>usage</td>
-<td style="text-align:right">4</td>
+<td><code>commands_file_missing</code></td>
+<td>inventory</td>
+<td style="text-align:right">5</td>
 <td style="text-align:center">no</td>
-<td><code>--cf</code> is given more than once.</td>
+<td>A <code>--cf</code> folder holds no file for a device of the target set: each device is sent <code>DIR/NAME</code>, NAME its collection file's (<code>output.crop-to-dot</code>); refused at planning, before any device is contacted, naming the folder and up to ten devices, each with the file it lacks. Write the files, or leave the devices out of the selection.</td>
+</tr>
+<tr>
+<td><code>commands_file_name_collision</code></td>
+<td>inventory</td>
+<td style="text-align:right">5</td>
+<td style="text-align:center">no</td>
+<td>Two devices of the target set would read one file of a <code>--cf</code> folder: under <code>output.crop-to-dot</code> a device name's file name is its first label, and <code>core.example.net</code> beside <code>core.example.com</code> is one <code>DIR/core</code>; refused at planning, whatever files the job writes, naming the file and the devices. Set <code>output.crop-to-dot = false</code>, or run the two apart.</td>
 </tr>
 <tr>
 <td><code>commands_file_unreadable</code></td>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>A <code>--cf</code> file cannot be opened or read.</td>
+<td>A <code>--cf</code> file, or a device's file in a <code>--cf</code> folder, cannot be opened or read, or is itself a folder.</td>
 </tr>
 <tr>
 <td><code>config_audit_disabled</code></td>
@@ -2220,7 +2227,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> is given with <code>--cf</code> alone; a declaration attaches to the <code>--cmd</code> before it, and a file line takes <code>\r</code> at its end.</td>
+<td><code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, or <code>--maxbytes</code> follows a <code>--cf</code>; a declaration attaches to the <code>--cmd</code> written right before it, and a file line takes <code>\r</code> at its end.</td>
 </tr>
 <tr>
 <td><code>dependency_askpass_unavailable</code></td>
@@ -2892,7 +2899,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>dependency</td>
 <td style="text-align:right">112</td>
 <td style="text-align:center">no</td>
-<td>An IPC frame exceeds the maximum frame size.</td>
+<td>An IPC frame exceeds <code>daemon.max-ipc-frame-bytes</code>, as a job's plan does with many targets and long lists under a <code>--cf</code> folder, each target's list carried in the plan. Raise the key (at most 64 MiB), split the selection, or run with <code>--no-daemon</code>, which sends no frame.</td>
 </tr>
 <tr>
 <td><code>ipc_invalid_json</code></td>
@@ -3012,6 +3019,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td style="text-align:right">8</td>
 <td style="text-align:center">no</td>
 <td>The path of the running karvi executable cannot be determined.</td>
+</tr>
+<tr>
+<td><code>live_option_conflict</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td><code>--live</code> is given with an option that shapes the text display it replaces (<code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>), or a run's with what leaves it no display in the client's process (no <code>--no-daemon</code>; <code>--dry-run</code>, <code>--exercise</code>, <code>--follow=false</code>) or runs its devices side by side (<code>--dispatch</code> <code>parallel</code> or <code>wave</code>, or <code>dispatch.default</code> set so by <code>--set</code>): the live view follows one device's session at a time.</td>
 </tr>
 <tr>
 <td><code>login_driver_not_interactive</code></td>
@@ -3900,7 +3914,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>More than one input reads standard input (<code>--cf -</code> together with <code>--tf -</code>).</td>
+<td>More than one input reads standard input: <code>--cf -</code> or <code>--tf -</code> given twice, or the two together.</td>
 </tr>
 <tr>
 <td><code>stream_input_read_failed</code></td>
@@ -4837,6 +4851,18 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>Device reported a command error.</td>
 </tr>
 <tr>
+<td><code>commands_file_is_directory</code></td>
+<td>v0.36.0</td>
+<td><code>commands_file_unreadable</code></td>
+<td>The <code>--cf</code> path was a folder; <code>--cf</code> now takes a folder, each device sent its own file in it, and a folder in a device's place is <code>commands_file_unreadable</code>.</td>
+</tr>
+<tr>
+<td><code>commands_file_repeated</code></td>
+<td>v0.36.0</td>
+<td><code>stdin_source_repeated</code></td>
+<td><code>--cf</code> was given more than once; it now repeats, each file's lines in its place on the line, and a second <code>--cf -</code> is <code>stdin_source_repeated</code>.</td>
+</tr>
+<tr>
 <td><code>config_credential_backend_scope_unsupported</code></td>
 <td>v0.30.0</td>
 <td><code>config_credential_backend_key_unsupported</code></td>
@@ -5331,7 +5357,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

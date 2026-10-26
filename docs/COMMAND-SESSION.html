@@ -34,6 +34,7 @@
 <li><a href="#a-commands-own-bounds">A command&#39;s own bounds</a></li>
 <li><a href="#prompt-detection">Prompt detection</a></li>
 <li><a href="#echo">Echo</a></li>
+<li><a href="#live-view">Live view</a></li>
 <li><a href="#debugging">Debugging</a></li>
 <li><a href="#device-error-behavior">Device-error behavior</a></li>
 </ul></li>
@@ -68,9 +69,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -106,6 +107,7 @@
 <li><a href="#a-commands-own-bounds">A command&#39;s own bounds</a></li>
 <li><a href="#prompt-detection">Prompt detection</a></li>
 <li><a href="#echo">Echo</a></li>
+<li><a href="#live-view">Live view</a></li>
 <li><a href="#debugging">Debugging</a></li>
 <li><a href="#device-error-behavior">Device-error behavior</a></li>
 </ul></li>
@@ -140,9 +142,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -161,6 +163,14 @@ or more explicit commands:</p>
 karvi cmd router1 --cmd 'show clock'
 karvi command --host router1 --command 'show clock'
 karvi command --cmd 'show clock' --target router1 --command 'show version'
+</code></pre>
+<p><code>--cmd</code> and <code>--cf</code> mix and repeat, and the commands go in the order written: a
+<code>--cmd</code> its command, a <code>--cf</code> its file's lines, as written (<code>--cf -</code> reads
+standard input, once). A <code>--cf</code> given a folder sends each device its own file
+in it, <code>DIR/NAME</code>, NAME its collection file's
+(<a href="OPERATIONS.html#a-command-list-per-device"><code>docs/OPERATIONS.md</code></a>). This sends
+<code>show clock</code>, the lines of <code>checks.txt</code>, and <code>show users</code>:</p>
+<pre><code class="language-bash">karvi command router1 --cmd 'show clock' --cf checks.txt --cmd 'show users'
 </code></pre>
 <p><code>--target</code> and <code>--host</code> are target synonyms. <code>--address</code> aliases
 <code>--management-address</code>; neither address option supplies the required target:</p>
@@ -305,8 +315,10 @@ and all bytes read, the session closed. <code>--literal</code> sends the text as
 written. <code>--expect PATTERN=RESPONSE</code> answers a device prompt the platform's
 pattern does not match, as it appears, consumed once in declared order;
 <code>--blind</code> declares that the prompt may not return. Every declaration
-attaches to the <code>--cmd</code> it follows or to the freeform command. The waits
-are <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>.</p>
+attaches to the <code>--cmd</code> written right before it, or to the freeform command;
+one written after a <code>--cf</code> is refused (<code>declaration_with_commands_file</code>), as a
+file line takes <code>\r</code> at its end. The waits are
+<a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>.</p>
 <h2 id="a-commands-own-bounds">A command's own bounds <a class="anchor" href="#a-commands-own-bounds" aria-label="Link to this section">#</a></h2>
 <p><code>--timeout DURATION</code> and <code>--maxbytes BYTES</code> are declarations too, at most one
 of each per command: the command's timeout in place of
@@ -349,8 +361,9 @@ patterns (<code>% Invalid input detected</code> and its siblings for <code>cisco
 <pre><code class="language-toml">[display.command]
 echo = true
 </code></pre>
-<p>prints the effective prompt plus command before each result, including a
-device-reported command error:</p>
+<p>prints the prompt the statement was sent at plus the command before each
+result, including a device-reported command error, as the job's text file
+shows it (<code>router1#configure terminal</code>, then <code>router1(config)#end</code>):</p>
 <pre><code class="language-text">router1#show clock
 01:20:19.849 EDT Thu Sep 10 2026
 </code></pre>
@@ -375,6 +388,48 @@ was not sent, and <code>prompt</code> is empty when no prompt came back (a timeo
 send). When an error proves the command was sent but prompt metadata is
 unavailable, human output uses a deterministic inferred prompt and the record
 remains marked inferred. JSONL is never decorated.</p>
+<h2 id="live-view">Live view <a class="anchor" href="#live-view" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-bash">karvi command router1 --live --cmd 'show drip'
+</code></pre>
+<p>prints the device's bytes on standard output as the session reads them, in
+place of the text display: the header when the session opens, then every byte
+from the first, the login banner and the setup (<code>enable</code>, the paging commands)
+included, each command as the device echoes it, and the footer after the
+session's end. Nothing waits for a command to complete, so the lines of a long
+<code>show</code> are seen as they come:</p>
+<pre><code class="language-text">! router1 [192.0.2.1] platform=cisco_iosxe user=bob backend=env transport=native
+
+Router&gt;enable
+Password: &lt;removed&gt;
+Router#terminal length 0
+Router#terminal width 512
+Router#show drip
+drip 1
+drip 2
+drip 3
+Router#exit
+! exit=0 elapsed=2.1s artifacts=/srv/karvi/jobs/261025/261025-161152-00
+</code></pre>
+<p><code>run --no-daemon --live</code> (and <code>crun</code>'s) follows each device's session in turn,
+each device's header before its bytes: the run is serial, <code>dispatch.default</code>
+set to <code>serial</code> from <code>--live</code> when the configuration says another mode, so a
+site's lock on the key refuses the run as it refuses <code>--ds</code>. <code>--dispatch parallel</code> or <code>wave</code>, <code>dispatch.default</code> set to either by <code>--set</code>, and a run
+with no display in the client's process (no <code>--no-daemon</code>, <code>--dry-run</code>,
+<code>--exercise</code>, <code>--follow=false</code>) are refused beside it. A run through the
+daemon has no live view.</p>
+<p>It is display only. A record leaves karvi's own lines alone, a failed
+command's <code>karvi: target=…</code> line on a line of its own after the device's
+bytes; the records, the job's files, and the audit are those of the same
+command without <code>--live</code>, which the plan does not carry, so its digest is the
+same. The exact value of each secret the session writes (the enable secret, a
+telnet password) is shown <code>&lt;removed&gt;</code>, found even when the device echoes it in
+two pieces; escape sequences follow <code>output.ansi</code>, as the text display's do. An
+exec target echoes nothing, so each command is shown at the prompt <code>--echo</code>
+shows it at (<code>srv1$ uname -a</code>), its stdout and stderr as they arrive. <code>--quiet</code>
+drops the header and the footer. Beside <code>--live</code>, the options that shape the
+display it replaces are refused (<code>live_option_conflict</code>): <code>--format jsonl</code> or
+<code>json</code>, <code>--echo</code>, <code>--border</code>, and <code>--noborder</code>; a configured echo or border is
+set aside.</p>
 <h2 id="debugging">Debugging <a class="anchor" href="#debugging" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi command --debug --host router1 --cmd 'show clock' \
   &gt;command.out 2&gt;command.debug
@@ -420,7 +475,7 @@ the connection serving the next command, so the policy applies to them too. A
 refused channel or exec request, a lost connection, the device timeout, and a
 keepalive expiry end the session.</p>
 
-<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

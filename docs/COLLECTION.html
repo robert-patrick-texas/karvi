@@ -65,9 +65,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -134,9 +134,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -166,6 +166,7 @@ karvi crun --select-platform cisco_nxos            # one platform
 karvi crun --target core-nyc-01.example.net        # one device, before a change
 karvi crun --target core-nyc-01.example.net --cmd 'show running-config'
 karvi crun --all --cf site-collect.txt             # one list for every device
+karvi crun --all --cf lists                        # each device its own file, lists/NAME
 karvi crun --all --dry-run                         # each device's list, no device contacted
 </code></pre>
 <ul>
@@ -193,9 +194,18 @@ the counts); <code>failed-devices.txt</code> in the job folder is the rerun.</li
 directory has mode <code>2770</code> or <code>2775</code> in the operators' group, and every
 member replaces every file.</li>
 <li><strong>The commands</strong> are the line's <code>--cmd</code>, <code>--cf</code>, or device text, sent to
-every device; with none, each device is sent its platform's
-<code>crun-commands</code> list, and a device whose platform has no list is refused
-at planning. The job folder holds <code>commands.PLATFORM.txt</code> per list sent.</li>
+every device in the order written, a <code>--cf</code> folder sending each device its
+own file in it (<a href="OPERATIONS.html#a-command-list-per-device"><code>docs/OPERATIONS.md</code>, &quot;A command list per
+device&quot;</a>); with none, each device
+is sent its platform's <code>crun-commands</code> list, and a device whose platform has
+no list is refused at planning. The job folder holds <code>commands.PLATFORM.txt</code>
+per list sent, and <code>commands/NAME</code> per device beside a <code>--cf</code> folder.</li>
+<li><strong>The collection never writes over its own lists.</strong> A <code>--cf</code> folder that is
+the collection directory, with or without <code>--fs</code>, or a <code>--cf</code> file that is a
+selected device's collection file, links followed, is refused at planning,
+<code>commands_file_in_collection</code> (exit 4), the <code>--cf</code> path over the
+collection's; so is a <code>run</code> or <code>command</code> given <code>--cd</code> or <code>--fs</code>. Keep the
+lists in a folder of their own.</li>
 <li><strong>The job folder</strong> is the collection's audit: <code>commands.jsonl</code> with every
 record, <code>summary.json</code> with the <code>collection</code> block naming each device's
 file and outcome, <code>manifest.json</code> with the plan. <code>--nof</code> collects with no
@@ -887,7 +897,7 @@ change to one changes both.</li>
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

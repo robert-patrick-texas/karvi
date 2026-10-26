@@ -122,6 +122,9 @@
 <li><a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">74. A shorter name keeps its scratch files (2026-10-20)</a></li>
 <li><a href="#75-the-release-0341-2026-10-20">75. The release 0.34.1 (2026-10-20)</a></li>
 <li><a href="#76-the-operators-folder---recordpath-2026-10-20">76. The operator&#39;s folder, --record=PATH (2026-10-20)</a></li>
+<li><a href="#77-the-release-0350-2026-10-21">77. The release 0.35.0 (2026-10-21)</a></li>
+<li><a href="#78-the-live-view---live-2026-10-25">78. The live view, --live (2026-10-25)</a></li>
+<li><a href="#79-a-command-file-per-target-2026-10-25">79. A command file per target (2026-10-25)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -133,9 +136,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -259,6 +262,9 @@
 <li><a href="#74-a-shorter-name-keeps-its-scratch-files-2026-10-20">74. A shorter name keeps its scratch files (2026-10-20)</a></li>
 <li><a href="#75-the-release-0341-2026-10-20">75. The release 0.34.1 (2026-10-20)</a></li>
 <li><a href="#76-the-operators-folder---recordpath-2026-10-20">76. The operator&#39;s folder, --record=PATH (2026-10-20)</a></li>
+<li><a href="#77-the-release-0350-2026-10-21">77. The release 0.35.0 (2026-10-21)</a></li>
+<li><a href="#78-the-live-view---live-2026-10-25">78. The live view, --live (2026-10-25)</a></li>
+<li><a href="#79-a-command-file-per-target-2026-10-25">79. A command file per target (2026-10-25)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -270,9 +276,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -16418,8 +16424,753 @@ None left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt
 (<code>release-design-evidence/record-path-2026-10-20</code>: the decision, the lab
 script and its output on both builds, the suite's runs on both, and the test,
 vet, and battery logs).</p>
+<h2 id="77-the-release-0350-2026-10-21">77. The release 0.35.0 (2026-10-21) <a class="anchor" href="#77-the-release-0350-2026-10-21" aria-label="Link to this section">#</a></h2>
+<p>The sixteenth public release, 0.35.0, on the operator's word and number,
+carrying <a href="#76-the-operators-folder---recordpath-2026-10-20">chapter 76</a>:
+<code>--record=PATH</code> records into the operator's folder under the device's name.
+The operator numbered it a minor release, for the changed layout. No counter
+moves, and the module graph and Go are 0.34.1's: <code>latest.sh</code> found nothing
+behind. The daemon IPC schema stays 12, so the compatibility example is the
+drain, beside the released 0.34.1 daemon. The sequence is <a href="#75-the-release-0341-2026-10-20">chapter
+75</a>'s, <code>latest.sh</code> first. It stopped twice
+for the operator at the core evidence, both times on the host's <code>/tmp</code>,
+crowded by other work. The first stop moved the socket step's folders under
+the release's <code>TMPDIR</code>, by a change to <code>evidence-core.sh</code> on the operator's
+word. The second was the step's 145-byte case, whose socket folders fall back
+to <code>/tmp</code> by the tree's design; it passed once the operator had freed <code>/tmp</code>.
+The build stopped after the package's install check and went on to the push
+at the operator's second word.</p>
+<p><strong>What it gains.</strong> A site has chapter 76's <code>--record=PATH</code> from a published,
+checksummed bundle and package, with the documents on GitHub Pages at the
+release: a recorded login lands in the folder the operator named, as
+<code>router1.log</code>. The core evidence's 25-byte socket case no longer depends on
+the free space of <code>/tmp</code>.</p>
+<p><strong>Before the number.</strong> The archive's mirror was fetched to <code>9ad6d6a</code> (its
+README notes it; <code>SHA256SUMS</code> renewed). A container on Docker's default
+network reached every probe address. <code>latest.sh</code> on the tree: go1.27.3 and
+the seven modules at their newest, exit 0. <code>dev</code> had held its <code>## Unreleased</code>
+block, chapter 76's entry, since <code>d705805</code>.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.35.0 - 2026-10-21</code> under a
+lead paragraph: a minor release on 0.34.1, every counter 0.34.1's, the module
+graph and Go 0.34.1's, and a site changing a script that looks for a
+<code>--record=PATH</code> session's files under <code>PATH/YYMMDD/</code>. <code>CHECKSUMS.sha256</code> has
+its four lines from the release-identity build.</p>
+<p><strong>The first stop: <code>/tmp</code> at 25 bytes.</strong> The core evidence after 1/3 passed
+its 1,080 named tests and vet, then the socket step exited 1 at both lengths:
+the same fourteen <code>internal/cli</code> tests failed each time, the rest passing.
+One of them, rerun alone under the step's 25-byte <code>TMPDIR</code> (go test's lines):</p>
+<pre><code class="language-text">--- FAIL: TestRunNoDaemonCarriesTheBlindSendToThePlan (0.01s)
+    blind_send_run_test.go:93: exit=111 stderr=&quot;output_preflight_space: /tmp/yyyyyyyyyyyyyyyyyyyy/nd2262294818/state/jobs/261021/261021-083746-00, /tmp/yyyyyyyyyyyyyyyyyyyy/karvi-test-spool-2541224105: need 2215247872 bytes free, only 1760579584 free\n&quot; stdout=&quot;&quot;
+</code></pre>
+<p>The step built its two folders under <code>/tmp</code> whatever <code>TMPDIR</code> said, where
+every other step runs under the release's <code>TMPDIR=/var/tmp</code> (chapter 74's
+finding). This host's <code>/tmp</code> is a 4.9 GB tmpfs, then 1.7 GB free, most of the
+rest other projects' scratch; 0.34.1's step had passed there with more room.</p>
+<p><strong>The tool's change, agreed.</strong> In simple terms:</p>
+<ul>
+<li>The socket step's two folders sit under <code>${TMPDIR:-/tmp}</code>.</li>
+<li>Their lengths stay 25 and 145 bytes: the padding takes the base's length
+off, where it took off <code>/tmp/</code>'s five.</li>
+</ul>
+<p>The release tools were archived first (<code>untracked/release-tools-before-0.35.0</code>
+in the archive, its README noting why). The change, with its comment in the
+script's header:</p>
+<pre><code class="language-text">-    d=/tmp/$(head -c 300 /dev/zero | tr '\0' 'y' | head -c $((len-5))); mkdir -p &quot;$d&quot;
++    base=${TMPDIR:-/tmp}
++    d=$base/$(head -c 300 /dev/zero | tr '\0' 'y' | head -c $((len-${#base}-1))); mkdir -p &quot;$d&quot;
+</code></pre>
+<p>Executed before the rerun, each base at each length gives 25 and 145 bytes.</p>
+<p><strong>The second stop: <code>/tmp</code> at 145 bytes.</strong> The rerun passed the 25-byte case,
+under <code>/var/tmp</code>, and failed the 145-byte case on the same fourteen tests.
+Rerun alone:</p>
+<pre><code class="language-text">--- FAIL: TestRunNoDaemonCarriesTheBlindSendToThePlan (0.01s)
+    blind_send_run_test.go:93: exit=111 stderr=&quot;output_preflight_space: /tmp/nd1881490143/state/jobs/261021/261021-114703-00: need 2148139008 bytes free, only 1631383552 free\n&quot; stdout=&quot;&quot;
+</code></pre>
+<p>A 145-byte <code>TMPDIR</code> holds no socket path within Linux's 107 bytes, so
+<code>internal/testsocket.Dir</code> and <code>osutiltest</code>'s scratch root fall back to <code>/tmp</code>
+by design, and the jobs under them meet the same free-space floor. No change
+to the tool reaches that. The operator freed <code>/tmp</code>, to 2,463,956,992 bytes
+free, and the core evidence passed: 1,080 named tests across 92 packages, vet
+0, both lengths exit 0.</p>
+<p><strong>Why this way.</strong> The step follows the release's <code>TMPDIR</code>, as the tests, the
+suites, and the verifiers do; its lengths are what it proves, not the
+filesystem. The 145-byte case keeps its fallback, the tree's guard for any
+long <code>TMPDIR</code>.</p>
+<p><strong>Not taken.</strong> Waiting for <code>/tmp</code> alone: the tool stays tied to a place other
+work fills. The test helpers' fallback moved from <code>/tmp</code> to <code>/var/tmp</code>: a
+change to two test packages, mid-release, for the host's fault and not the
+tree's.</p>
+<p><strong>The sequence, as run</strong>, from the archive at 12:25 to the published check at
+17:18 (UTC; 08:25 to 13:18, EDT):</p>
+<ul>
+<li>12:25:25, the archive's mirror fetched to <code>9ad6d6a</code>; the bridge probe
+passed; <code>latest.sh</code> exit 0.</li>
+<li>12:25:27 to 12:34:20, the baseline on a clean clone of <code>9ad6d6a</code>:
+<code>latest.sh</code>, gofmt, make, and the release verifier with its package and
+container steps, exit 0 each.</li>
+<li>12:34:38 to 12:35:22, the release-identity build, the compatibility
+example, and 1/3: the build <code>onQ7svRY49FAEYS1IIHv</code> by go1.27.3; the 0.34.1
+daemon drained idle, refusing busy; <code>3c5f083</code>.</li>
+<li>To 12:37:26, the core evidence: the socket step exit 1 at both lengths. The
+first stop for the operator.</li>
+<li>15:44:30, the tools archived and <code>evidence-core.sh</code> changed.</li>
+<li>To 15:46:35, the core evidence: the 145-byte case exit 1. The second stop.</li>
+<li>16:04:31, <code>/tmp</code> freed by the operator.</li>
+<li>To 16:06:44, the core evidence: 1,080 named tests across 92 packages, vet
+0, both socket lengths exit 0.</li>
+<li>16:07:17, the documents: <code>75dc244</code> (2/3).</li>
+<li>16:07:23 to 16:15:52, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>16:16:23, 3/3, the tag, <code>main</code>: <code>f444ee5</code>, <code>karvi-v0.35.0</code>, <code>main</code>
+fast-forwarded from <code>83a321d</code>.</li>
+<li>16:16:29 to 16:22:28, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive; the package reproducible and checked
+against the extraction; 39,769,939 and 6,500,380 bytes.</li>
+<li>16:22:46 to 16:22:57, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>. The stop for
+the operator's word.</li>
+<li>17:17:37 to 17:18:44, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>a321793</code>), built,
+its 52 files 200 and its footer <code>karvi-v0.35.0</code>; release <code>karvi-v0.35.0</code>
+with the five assets, marked latest, its body the notes file; the assets
+downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.34.1 build=fNsX8VA8zKCBF5ctuqyS
+daemon started socket=/dev/shm/r350/compat/base/socket/d.sock
+pid 2117455 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build fNsX8VA8zKCBF5ctuqyS 0.34.1
+  client build onQ7svRY49FAEYS1IIHv 0.35.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 2117555 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.35.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.35.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.35.0-source-linux-amd64.tar.gz: OK
+karvi_0.35.0_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li><code>karvi</code> and <code>karvi-audit</code> are each 4,096 bytes larger; <code>karvi-audit</code> links
+the error registry, which gained <code>transcript_name_taken</code>. <code>karvi-askpass</code>
+and <code>karvi-prune</code> keep 0.34.1's sizes, with other bytes; the bundle is
+11,681 bytes larger and the package 8,794.</li>
+<li>The default configuration and the module metadata of the four executables
+were regenerated to 0.34.1's bytes, since no key and no module changed, so
+3/3 carries eight evidence files.</li>
+<li><code>bin/</code> is the release's build again, so the transcript suite's PATH case,
+which the released 0.34.1 failed, passes against it.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in chapters 67,
+70, 73, and 75: the minimal image leaves out <code>/usr/share/man</code>.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0350-*</code>: the
+timeline, the baseline with <code>latest.sh</code>'s output, the build, the compatibility
+example, the 1/3 and 2/3 patches, the artifacts, the container install, the
+release notes, the push, the site, and the published check;
+<code>v0350-socket-step/</code>: the two failed socket logs, the single-test reruns, the
+tool's patch, and <code>/tmp</code>'s free space before and after).</p>
+<h2 id="78-the-live-view---live-2026-10-25">78. The live view, <code>--live</code> (2026-10-25) <a class="anchor" href="#78-the-live-view---live-2026-10-25" aria-label="Link to this section">#</a></h2>
+<p>While a command file per target was being settled, the operator asked when an
+operator sees a command session. Executed against the released 0.35.0, the
+answer was that the display renders each command's record once the command
+has completed, and a live view of the device's bytes was proposed. This
+session restated it for the operator's concurrence. The operator named it
+<code>--live</code>; kept it to <code>command</code> and <code>run --no-daemon</code>; made a run with it
+always serial, any other dispatch refused; had it follow each device's session
+in turn; left a daemon run to the roadmap; asked that no byte reach the
+terminal twice and that the session's setup be shown; and agreed the
+recommendations for the remaining questions. It was recorded as ROADMAP's
+first Next item (<code>aa8d90b</code>) and built in three pieces while the operator was
+away.</p>
+<p><strong>What it gains.</strong> A long command is seen as it runs: the lines of a slow
+<code>show</code> reach the screen as the device sends them, and the operator sees the
+login, the enable step, and the paging commands, which the text display never
+shows. It waits on nothing; a daemon run's live view waits in the roadmap.</p>
+<p><strong>The tree before.</strong> <code>live-lab.sh</code>, the released 0.35.0 at the fake device,
+whose <code>show slow</code> answers after four seconds, every line of standard output
+and standard error stamped as it arrived: standard output held nothing from
+0.68 s, when <code>show slow</code> was sent, until 4.75 s, when its record was
+rendered, the running command unnamed there; the header came after the first
+command had completed, not at the session's open; <code>enable</code> and the paging
+commands never reached standard output, and <code>--debug</code> showed each step and no
+device byte.</p>
+<p><strong>The rule, agreed.</strong> In simple terms:</p>
+<ul>
+<li><code>--live</code> prints the device's bytes as they arrive, the setup included, on
+<code>command</code>, and on <code>run</code> and <code>crun</code> with <code>--no-daemon</code>.</li>
+<li>It is display only: the records, the job's files, and the audit are
+unchanged, and no byte reaches the terminal twice.</li>
+<li>A run with it is serial and follows each device in turn; another dispatch
+is refused.</li>
+<li>A secret the session writes is never shown.</li>
+<li>A daemon run's view is for later.</li>
+</ul>
+<p>The recommendations agreed with it:</p>
+<ul>
+<li>The bytes go to standard output in place of the text display: each
+device's header when its session opens, the footer after the last device,
+karvi's own lines as the text display prints them.</li>
+<li>An exec command is shown at the prompt <code>--echo</code> shows.</li>
+<li>Control bytes follow <code>output.ansi</code>.</li>
+<li><code>--format jsonl|json</code>, <code>--echo</code>, <code>--border</code>, and <code>--noborder</code> are refused
+beside it, and a configured border is set aside; <code>--quiet</code> drops the header
+and the footer.</li>
+<li>karvi's lines are coloured, the device's bytes never.</li>
+<li><code>dispatch.default</code> is set to <code>serial</code> from <code>--live</code> as <code>--ds</code> sets it;
+<code>--dispatch parallel|wave</code> and <code>--set</code> of another mode are refused; the
+files' default yields.</li>
+<li>Each secret's exact value is removed, across reads.</li>
+<li><code>crun --no-daemon</code> takes it as <code>run</code> does; a run without <code>--no-daemon</code>, or
+with <code>--dry-run</code> or <code>--exercise</code>, is refused; <code>--nof</code> is allowed.</li>
+</ul>
+<p><strong>Executed.</strong> <code>live-a-lab.sh</code>: a lab build of the working tree at the fake
+device (<code>-drip 1s</code>, <code>-echo-secret</code>), <code>command router1 --live --cmd 'show clock' --cmd 'show drip'</code> over the system transport. The <code>O</code> and <code>E</code> and the
+seconds since the start are the script's stamps, a line's when the line
+arrived, its <code>\r</code> taken out by the script; the rest is karvi's:</p>
+<pre><code class="language-text">O   0.03 ! router1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=system
+O   0.10
+O   0.20 Router&gt;enable
+O   0.30 Password: &lt;removed&gt;
+O   0.40 Router#terminal length 0
+O   0.51 Router#terminal width 512
+O   0.61 Router#show clock
+O   0.62 *10:00:00.000 UTC Tue Sep 15 2026
+E   0.71 ! ssh accepted new host-key router1 (ED25519)
+O   0.73 Router#show drip
+O   0.74 drip 1
+O   1.73 drip 2
+O   2.73 drip 3
+O   2.83 Router#exit
+O   2.84 ! exit=0 elapsed=2.82s artifacts=/dev/shm/lv/base/jobs/261025/261025-161508-00
+</code></pre>
+<p>The native transport's run is the same a tenth of a second sooner. The job's
+<code>output.router1.txt</code> is a command's without <code>--live</code>, <code>Password:</code> with
+nothing after it. <code>live-b-lab.sh</code>: <code>run --no-daemon --live --target router1 --target router2 --cmd 'show drip'</code> under a lab file whose <code>dispatch.default</code>
+is <code>parallel</code>, the platform's default transport (native), the set-up lines
+and router2's <code>drip 2</code> left out here:</p>
+<pre><code class="language-text">O   0.03 ! router1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+O   0.54 Router#show drip
+O   0.54 drip 1
+O   1.54 drip 2
+O   2.54 drip 3
+O   2.64 Router#exit
+O   2.65 ! router2 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
+O   3.15 Router#show drip
+O   3.16 drip 1
+O   5.15 drip 3
+O   5.26 Router#exit
+O   5.26 ! exit=0 elapsed=5.24s artifacts=/dev/shm/lv/base/jobs/261025/261025-162451-00
+</code></pre>
+<p>Every record's <code>dispatch.mode</code> is <code>serial</code>; <code>crun</code>'s is the same, its
+collection line after the footer. Three refusals, karvi's standard error, each
+exit 4:</p>
+<pre><code class="language-text">live_option_conflict: --live and --echo are mutually exclusive
+live_option_conflict: --live without --no-daemon; add --no-daemon
+live_option_conflict: --live and --dispatch parallel are mutually exclusive
+</code></pre>
+<p><strong>Why this way.</strong></p>
+<ul>
+<li>Each transport reads the device's bytes in one place, so the view is
+given them there and nothing else changes: the records are built from the
+same bytes as before.</li>
+<li>The plan does not carry the option, so a job and its live run hash alike,
+and the daemon never sees it.</li>
+<li>The renderer owns standard output, so the view writes through it under its
+lock, and karvi's lines and the device's bytes never meet mid-line.</li>
+<li>One device at a time, since two sessions' bytes interleaved would read as
+neither.</li>
+</ul>
+<p><strong>Not taken.</strong> The device's bytes in <code>--debug</code>, which carries no device
+output. The echo line printed when a command is sent: it names the command and
+shows nothing more until it completes. The bytes beside the text display: each
+twice. The bytes through the daemon, a frame of their own on the IPC: in
+ROADMAP's Later. <code>serial</code> written whatever the configuration says (below).
+The option in the plan: a display choice would change the digest.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>A site's lock refuses any write to its key, even the value it locks, so a
+<code>--live</code> that always wrote <code>serial</code> would be refused where a site locks
+<code>dispatch.default</code> to <code>serial</code>. <code>--live</code> writes it only when the
+configuration, read once beforehand, says another mode.</li>
+<li>Telnet reads the device in a loop of its own, not <code>Session.pump</code>; it is
+tapped too, its password and enable secret handed to the view.</li>
+<li><code>--follow=false</code> on <code>run --no-daemon</code> discards the display; it is refused
+beside <code>--live</code>, a run with no display.</li>
+<li><code>--li</code> abbreviated <code>--literal</code> on <code>command</code>, <code>run</code>, and <code>crun</code>; beside
+<code>--live</code> it is ambiguous, <code>--lit</code> the shortest.</li>
+<li>The host-key line, on standard error, comes with the device's first
+record, after its bytes on the screen.</li>
+<li>The error-code source check refused an uncoded error in the dispatch check;
+it carries <code>live_option_conflict</code>.</li>
+<li>The native suite's case numbers stop at S35, whose letters (S35a to S35f)
+<code>ONLY=S35</code> also runs; the new case is S36.</li>
+</ul>
+<p><strong>Built.</strong> In three pieces:</p>
+<ul>
+<li>A, <code>command --live</code>: <code>platform.Live</code> and <code>OpenRequest.Live</code>; <code>devsession</code>'s
+<code>pump</code>, its exec settle loop, and <code>writeSecret</code>; telnet's read loop and its
+secret writes; <code>platform.SecretFilter</code>; the executor opening the view from
+the device's record before the transport opens, writing an exec command at
+its prompt, and ending the view after the driver's close; the renderer's
+live mode (<code>internal/jobexec/live.go</code>), the ping and header code shared with
+the text display; the option, its refusals, and <code>live_option_conflict</code>; the
+fake device's <code>show drip</code> (<code>-drip</code>, and <code>DripGate</code>, with which a test
+releases each line once the one before has been shown); a test at each
+layer (<code>TestSecretFilterRemovesEachSecret</code>,
+<code>TestLiveShowsTheSessionAsItArrives</code>, <code>TestTelnetLiveSeesTheSession</code>,
+<code>TestLiveTakesTheTextDisplaysPlace</code>,
+<code>TestCommandLiveShowsTheSessionAsItArrives</code>); COMMAND-SESSION's Live view.</li>
+<li>B, <code>run</code> and <code>crun</code> with <code>--no-daemon</code>: the run's refusals, <code>liveDispatch</code>,
+<code>TestLiveRunRefusals</code>, <code>TestRunLiveFollowsEachDeviceInTurn</code>.</li>
+<li>C: the native suite's S36 (<code>command --live</code> over both transports, a run of
+two devices under a parallel default, no secret anywhere, two refusals),
+DESIGN section 12's entry, this chapter, and ROADMAP's Next item removed,
+its Later item and its secrets entry updated.</li>
+</ul>
+<p><strong>Executed.</strong> vet, <code>go test -count=1 ./...</code> (72 packages), and <code>make generated-clean</code> on the final tree, after each piece and at the end; all 19
+suites on a lab build of it (<code>run_suites</code>, <code>KARVI</code> the lab build,
+<code>TMPDIR=/var/tmp</code>, 228 seconds), S36 among them. On the released 0.35.0, S36
+fails at its first <code>--live</code>, <code>cli_option_unknown: unknown option --live in command</code>. None left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi process.</p>
+<p><strong>Closed.</strong> The evidence is kept beside the tree
+(<code>release-design-evidence/live-build-2026-10-25</code>: the two lab scripts and
+their logs, and the battery's logs). A daemon run's live view is in ROADMAP's
+Later.</p>
+<h2 id="79-a-command-file-per-target-2026-10-25">79. A command file per target (2026-10-25) <a class="anchor" href="#79-a-command-file-per-target-2026-10-25" aria-label="Link to this section">#</a></h2>
+<p>ROADMAP's first Next item since chapter 78 was a folder of command files, one
+per target. DESIGN section 7 had settled the folder, its names (the targets'
+collection files'), and the refusal of a selected target without a file, and
+left seven questions. This session took them one at a time against a lab build
+of the tree at <code>267ec9d</code>, in dry runs and at the fake device. The operator
+agreed six recommendations, replaced the fourth with a rule of the operator's
+own, the order as written, and asked that digests be argued from their readers
+rather than assumed. The design is recorded in DESIGN section 7 and was
+ROADMAP's Next item; its build, the next day in five sections, closes the
+chapter.</p>
+<p><strong>What it gains.</strong> One job sends each device its own list: a configuration a
+tool rendered per device, or checks before and after a change that differ by
+device, with the one job's accounting, scoreboard, dispatch, and admission.
+Today that is a job per device, or a stream with a <code>--target</code> and a <code>--cf</code>
+line for each job. It waits on nothing: the folder reader and its skips
+(<code>--tf</code>), the naming function (the collection file's), the plan's lists beside
+its <code>Commands</code> (<code>crun</code>'s per platform), and the dry run's <code>commands:</code> line per
+target all exist.</p>
+<p><strong>The tree before.</strong> The labs below, a build of <code>267ec9d</code> (<code>karvi 0.35.0</code>),
+LAB the scripts' name for the lab folder:</p>
+<ul>
+<li>
+<p><code>--cf</code> refuses a folder, exit 4:</p>
+<pre><code class="language-text">commands_file_is_directory: commands file LAB/lists is a folder; --cf names one file
+</code></pre>
+</li>
+<li>
+<p><code>--tf</code> given a folder reads every file in it, merged, skipping by name: of
+<code>.hidden</code>, <code>README</code>, <code>disabled-nyc</code>, <code>nyc.txt</code>, <code>nyc.txt.bak</code>, and <code>web</code> it
+read <code>nyc.txt</code> and <code>web</code>.</p>
+</li>
+<li>
+<p><code>crun</code>'s dry run prints each target's list where the lists differ by
+platform (<code>commands: show running-config; show version</code> for an IOS XE
+device, the five Linux commands for a server).</p>
+</li>
+<li>
+<p><code>--cmd</code> values go first wherever <code>--cf</code> stands, and <code>--cf</code> is taken once
+(below); no operator document said so.</p>
+</li>
+</ul>
+<p><strong>The rules, agreed.</strong> In simple terms:</p>
+<ol>
+<li>The option. <code>--cf</code> names a file or a folder. A file is sent to every
+target, as before; a folder sends each target the file named as its
+collection file is (<code>core-nyc-01</code>), read the same way. <code>--cf -</code> stays one
+list.</li>
+<li>A file that names no selected target. The targets are chosen as always
+(<code>--target</code>, <code>--tf</code>, <code>--site</code>, <code>--all</code>); the folder only supplies their
+lists. A selected target with no file is refused; a file no selected target
+is named for is left unread, not in the plan or the job folder. A canary is
+the same command with one target and the same folder.</li>
+<li>The skips and a suffix. Each target reads exactly one file,
+<code>DIR/&lt;its collection name&gt;</code>: lowercase, the whole name under
+<code>output.crop-to-dot = false</code>, no suffix. Nothing else in the folder is
+looked at, so there is no skip list. The file reads as any <code>--cf</code> file
+(empty, a folder, or unreadable: refused). Two selected targets with one
+name are refused, as a collection's are. <code>--fs</code> stays the collection's.</li>
+<li><code>--cmd</code>, <code>--cf FILE</code>, and <code>--cf DIR</code> together: the order as written. Each
+target's list is built in the order the operator gave: a <code>--cmd</code> adds its
+command, a <code>--cf FILE</code> its lines, a <code>--cf DIR</code> that target's file; every
+target gets the same sequence but for what its folders supply. <code>--cf</code>
+repeats, files and folders mixed; <code>--cf -</code> once. A declaration attaches to
+the <code>--cmd</code> before it and goes with it into every target's list at its
+place. Device text stays refused beside <code>--cmd</code> or <code>--cf</code>. So
+<code>--cmd=&quot;show clock&quot; --cf DIR1 --cf DIR2 --cmd=&quot;write mem&quot;</code> sends each
+switch <code>show clock</code>, its DIR1 file, its DIR2 file, and <code>write mem</code>.</li>
+<li>The folder on <code>crun</code>: as on <code>run</code>. Commands on the line replace the
+platform's list, as before. karvi refuses to collect into a folder it is
+reading commands from, or onto a command file it is reading, on <code>crun</code> and
+on <code>run</code> or <code>command</code> with <code>--cd</code> or <code>--fs</code>. A device without its file stops
+the whole job at planning, a nightly <code>crun --all</code> included, until the tool
+writes a file for each device added to the inventory.</li>
+<li>The job folder's copy. It keeps what each device was sent, in a form <code>--cf</code>
+reads back: <code>commands.txt</code> for one list, <code>commands.PLATFORM.txt</code> per
+platform, <code>commands/&lt;name&gt;</code> per target, so <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns the failures with their own
+lists. A command's <code>\r</code> returns are written back as its trailing <code>\r</code>;
+<code>--expect</code>, a <code>--blind</code> without returns, <code>--timeout</code>, and <code>--maxbytes</code> have
+no form in a file, and the plan in <code>manifest.json</code> holds them. A command
+file's lines are statements, never karvi options; <code>\r</code> at a line's end is
+the one escape read, <code>--literal</code> turning it off.</li>
+<li>The folder as a stream line. A <code>--cf DIR</code> line is a <code>--cf</code> line like a
+file's: it stays from job to job until <code>--purge-commands</code> or <code>--reset</code>,
+takes its place in the order typed, and is read fresh at each <code>--go</code>.</li>
+</ol>
+<p>And the digests: the plan carries each target's list and nothing is added to
+digest it; <code>plan_digest</code> already covers the whole plan; <code>command_plan_digest</code>
+only checks itself and is removed when this is built.</p>
+<p><strong>Executed.</strong> <code>q4b-order-lab.sh</code>, at the fake IOS XE device, <code>LAB/one.txt</code>
+holding <code>show users</code>: <code>command core-nyc-01.example.net --transport native --cf LAB/one.txt --cmd 'show clock'</code> exited 0, and its job's <code>commands.txt</code> read
+<code>show clock</code>, then <code>show users</code>, the <code>--cf</code> written first sent second. A second
+<code>--cf</code> was refused, exit 4:</p>
+<pre><code class="language-text">commands_file_repeated: --cf may be given once; it names one file or -
+</code></pre>
+<p><code>q4-mix-lab.sh</code>: a file line <code>copy running-config startup-config\r</code> answered
+the device's <code>Destination filename [startup-config]?</code> (exit 0); device text
+beside <code>--cf</code> was <code>cli_command_text_mixed</code>, a <code>--timeout</code> with <code>--cf</code> alone
+<code>declaration_with_commands_file</code>, each exit 4.</p>
+<p><code>q3-names-lab.sh</code>, dry runs: <code>--fs=.cfg</code> on a run turns a collection on into
+the working directory (<code>collection: LAB/work (file mode 0660, suffix .cfg)</code>),
+and two devices with one collection name are refused, exit 5:</p>
+<pre><code class="language-text">output_file_name_collision: client planning: devices core-nyc-01.example.net and core-nyc-01.example.org would both write the file core-nyc-01; under output.crop-to-dot the first label of a name is its file name, and two devices need two
+</code></pre>
+<p><code>q2-precedent-lab.sh</code>: a <code>crun</code> of <code>core-nyc-01.example.net</code> into a folder
+holding <code>core-nyc-01</code>, <code>core-nyc-02</code>, and <code>old-rtr-09</code> replaced <code>core-nyc-01</code>
+alone (<code>! collection=LAB/coll replace=1 keep=0</code>); the other two were byte for
+byte as before.</p>
+<p><code>q5-crun-lab.sh</code>: <code>crun --target core-nyc-01.example.net --transport native --cf LAB/coll/core-nyc-01 --cd=LAB/coll</code>, the file holding <code>show clock</code> and
+<code>show users</code>, exited 0 with <code>! collection=LAB/coll replace=1 keep=0</code>, and the
+command file then held the device's output, <code>! show clock</code> and <code>! show users</code>
+blocks, the commands gone.</p>
+<p><code>q6-copy-lab.sh</code>, <code>execution.command-timeout</code> 3s in the lab's configuration:
+after the copy answered by the file line's <code>\r</code> (exit 0), its job's
+<code>commands.txt</code> held <code>copy running-config startup-config</code> without the <code>\r</code>, and
+a rerun from it waited at the question, exit 107:</p>
+<pre><code class="language-text">Destination filename [startup-config]?
+karvi: target=core-nyc-01.example.net status=timeout error=command_timeout: command timed out after 3s (execution.command-timeout) while waiting for a returning prompt; the session is closed
+</code></pre>
+<p>A <code>--cmd</code> with <code>--expect 'Destination filename.*='</code> succeeded and its
+<code>commands.txt</code> held the text alone. A <code>crun</code> with the platform's list wrote
+<code>commands.cisco_iosxe.txt</code>.</p>
+<p><code>q7-stream-lab.sh</code>: a stream of <code>--target core-nyc-01.example.net</code>,
+<code>--transport native</code>, <code>--cf LAB/one.txt</code> (<code>show clock</code>), and <code>--go</code>; the
+script waited for that job's summary to carry its final status, rewrote the
+file to <code>show version</code>, and sent <code>--go</code> and <code>--end</code>. Both jobs exited 0; the
+first's <code>commands.txt</code> held <code>show clock</code>, the second's <code>show version</code>.</p>
+<p>The digests, by their readers. <code>plan_digest</code> is read by the daemon's prepare
+and commit (<code>internal/daemon/client.go</code>), the idempotency key, which refuses
+another plan under a committed key (<code>internal/daemon/prepare.go</code>), the
+credential package, which names its plan (<code>internal/planner/credential.go</code>),
+and the exercise report's check. <code>command_plan_digest</code> is read by the plan's
+<code>Validate</code>, the commit header, and the dry run's report, each comparing it
+with data in the same message, and shown on the dry run's <code>commands:</code> line; no
+suite, script, operator document, audit event, summary, or scoreboard reads
+it, and its tests check its sum.</p>
+<p><strong>Why this way.</strong></p>
+<ul>
+<li>A job is its arguments in the order given, so an operator stacks actions on
+one line; a folder is one more command source in that order.</li>
+<li><code>--cf</code> is the commands of a run, whether one list or one per target; a
+folder was refused, so no line that worked changes meaning.</li>
+<li>The selection decides which devices run and the folder supplies their
+lists, as a collection folder already holds files of devices a run did not
+select; the refusal of a selected target without a file catches a misspelled
+name.</li>
+<li>A lookup by exact name reads nothing else, so a skip list could only refuse
+a device whose own name begins with <code>readme</code> or <code>disabled</code>.</li>
+<li>The names a folder shares with the collection's make the overwrite the easy
+mistake, so it is refused.</li>
+<li>A digest earns its place by a reader that needs it; the plan's lists are
+covered by the one that has readers.</li>
+</ul>
+<p><strong>Not taken.</strong> A separate option for the folder: one more to learn, the same
+reader underneath (the cost accepted: <code>--tf DIR</code> merges its files, <code>--cf DIR</code>
+keeps them apart). A folder that must match the selection: a canary would need
+a folder of its own. <code>--fs</code> as the folder's suffix: on a run it turns a
+collection on, so typed from the folder it would write a device's output over
+its list. <code>--tf</code>'s skip list. <code>--cmd</code> refused beside a folder, recommended
+first for a plan with one list per target and withdrawn: it would have dropped
+the operator's stacked actions, and the <code>--cmd</code>-first order it leaned on was
+the tree's departure, not the operator's rule. Every target's list written to
+the job folder whatever the job: a 2,500-device job with one list would write
+2,500 identical files. A digest over the lists, and <code>command_plan_digest</code>
+extended to them.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>The tree sends every <code>--cmd</code> before a <code>--cf</code> file's lines wherever the
+<code>--cf</code> stands, and takes <code>--cf</code> once; both go with the build.</li>
+<li>The job folder's <code>commands.txt</code>, a command file for a rerun, drops a
+command's <code>\r</code> returns and its <code>--expect</code>; the build writes the returns back
+and <code>FILES.md</code> says what a file cannot hold.</li>
+<li>A <code>crun</code> can replace its own <code>--cf</code> file with the device's output today;
+the build's refusal covers a file as well as a folder.</li>
+<li><code>internal/cli/stream.go</code>'s package comment says every job clears the
+commands and a command in option form is sent once; the stream's help, its
+<code>kept</code> flag, and <code>q7-stream-lab.sh</code> say option-form commands stay. The
+comment is corrected with the build.</li>
+<li><code>command_plan_digest</code> has no reader outside checks against its own message;
+it goes with the build, the plan's and the header's schemas with it.</li>
+<li>A lab whose job launches the daemon stops it before removing its folder: the
+first run of <code>q2-precedent-lab.sh</code> left the daemon serving a removed folder,
+and it recreated an empty <code>base/state</code> there as it ended.</li>
+</ul>
+<p><strong>Leaves for later.</strong> A suffix on the folder's names, apart from <code>--fs</code>, and a
+job file (<code>--jf</code>) that carries each command's declarations, as a stream's lines
+do and a command file cannot: both in ROADMAP's Later. The build is ROADMAP's
+Next item.</p>
+<p><strong>Recorded.</strong> The design's evidence is kept beside the tree
+(<code>release-design-evidence/cf-per-target-2026-10-25</code>: the eight lab scripts,
+their logs and exits, and the answers as agreed, <code>decisions.md</code>).</p>
+<p><strong>The build (2026-10-26).</strong> Five sections, each verified and committed on the
+operator's word: A <code>d07eae8</code>, <code>command_plan_digest</code> removed; B <code>5c7ebb9</code>, the
+order as written and <code>--cf</code> repeated; C <code>74e3e0c</code>, <code>--cf DIR</code>; D <code>5a6b8f3</code>, the
+collection's refusal and the job folder's copies; E, the native suite's S37 and
+this record. The build found nine gaps, each opened with what it gains and what
+it waits on, executed on the tree before it, recommended, restated in simple
+terms, and agreed one at a time; LAB is the scripts' name for the lab folder.</p>
+<p><strong>Gap B1, the scoreboard's command file beside several <code>--cf</code>, agreed.</strong> On the
+tree at <code>d07eae8</code> (<code>b1-file-lab.sh</code>), a <code>--cmd</code> beside <code>--cf LAB/one.txt</code> gave
+the plan <code>commands_file: one.txt</code> and the scoreboard
+<code>{&quot;count&quot;:2,&quot;file&quot;:&quot;one.txt&quot;}</code>, whose one reader is the watch screen's pane
+line, <code>run: 2 statements from one.txt</code>. The rule: the plan's <code>commands_files</code>
+and the scoreboard's <code>commands.files</code> (scoreboard 5) name every <code>--cf</code> by its
+base name in the order given, <code>-</code> for standard input and a folder by its own
+name; the pane line joins them, <code>run: 3 statements from one.txt, two.txt</code>. <em>Not
+taken:</em> the first file's name alone (misleading); no field (the job's
+identification lost on the screen); the names joined into one string (a name may
+hold <code>, </code>).</p>
+<p><strong>Gap B2, a declaration written after a <code>--cf</code>, agreed.</strong> <code>b2-decl-lab.sh</code>: the
+line <code>--cmd 'copy running-config startup-config'</code>, <code>--cf LAB/one.txt</code>,
+<code>--expect 'Destination filename.*='</code> exited 0, the <code>--expect</code> on the copy three
+arguments back. The rule: a declaration attaches to the command source written
+right before it; after a <code>--cf</code> it is refused, the one code for both cases, and
+a stream drops such a line with the same message; before every source it is
+<code>declaration_before_command</code>. The cost accepted: that line, accepted before, is
+refused.</p>
+<pre><code class="language-text">declaration_with_commands_file: --expect follows --cf; write it after its --cmd (a file line takes \r at its end)
+</code></pre>
+<p><em>Not taken:</em> the nearest <code>--cmd</code> however far back (defined, but not what the
+line shows); the file's last line (a file line takes no declaration).</p>
+<p><strong>Gap C1, a selected device without its file, agreed.</strong> On the tree at <code>5c7ebb9</code>
+(<code>c1-codes-lab.sh</code>), <code>--cf LAB/lists</code> was <code>commands_file_is_directory</code>, exit 4;
+a planning refusal named one device, or ten of nineteen on one line and the
+count left. The rule: a new code, <code>commands_file_missing</code>, inventory, exit 5,
+the folder and up to ten devices stacked, each with the file it lacks, then
+<code>and N more</code>; a device's file that exists and cannot serve takes
+<code>commands_file_empty</code> or <code>commands_file_unreadable</code>, exit 4, and
+<code>commands_file_is_directory</code> is retired. Built (<code>c-folder-lab.sh</code>):</p>
+<pre><code class="language-text">commands_file_missing: client planning: LAB/lists has no file for 1 device
+  edge-sfo-01.example.net (edge-sfo-01)
+</code></pre>
+<p><em>Not taken:</em> usage, exit 4 (the folder is valid; the selection does not match
+it); one line joined by <code>; </code>; every device with no cap (a wrong folder under
+<code>--all</code> is 2,500 lines).</p>
+<p><strong>Gap C2, two selected devices with one file name, agreed.</strong>
+<code>c2-collision-lab.sh</code>: a pair whose names crop to <code>core-nyc-01</code> was
+<code>output_file_name_collision</code> (exit 5) only when the run writes a text file, and
+accepted under <code>--nof</code>. The rule: a code of its own,
+<code>commands_file_name_collision</code>, inventory, exit 5, checked whenever a <code>--cf</code>
+folder is on the line and before the output's check, the remedy
+(<code>output.crop-to-dot = false</code>, or the two run apart) its description. Built:</p>
+<pre><code class="language-text">commands_file_name_collision: client planning: LAB/lists/core-nyc-01 is the file of 2 devices
+  core-nyc-01.example.net
+  core-nyc-01.example.org
+</code></pre>
+<p><em>Not taken:</em> <code>output_file_name_collision</code> widened (its name and &quot;would both
+write&quot; are wrong for an input, plainly so under <code>--nof</code>).</p>
+<p><strong>Gap C3, the lists against the IPC frame, agreed.</strong> <code>c1-codes-lab.sh</code> and
+<code>c3-frame-lab.sh</code>: the plan is about 900 bytes a target with one <code>--cf</code> file
+(2,500 targets 2.28 MB), and under a 1 MiB frame a run was refused
+<code>ipc_frame_too_large: daemon validation: maximum 1048576 bytes</code>, exit 112, the
+daemon started first and no device contacted; the client's <code>ipc.Write</code> refuses a
+request over its own <code>daemon.max-ipc-frame-bytes</code>. The rule: the lists stay in
+the plan, the frame their bound as for any plan; the refusal stacks the
+request's size over the bound, its description the remedy (the key, at most 64
+MiB; the selection split; <code>--no-daemon</code>, which sends no frame); OPERATIONS gives
+the sizes. Built (<code>c-frame-lab.sh</code>), 2,500 devices of 40-line lists, refused
+under the 8 MiB default and accepted under 16 MiB:</p>
+<pre><code class="language-text">ipc_frame_too_large: daemon validation: the request is over daemon.max-ipc-frame-bytes
+  8957370 bytes
+  8388608 allowed
+</code></pre>
+<p><em>Not taken:</em> a larger default (every request may hold that much of the daemon's
+memory); each distinct list once (only lists devices share, which <code>--cf FILE</code>
+sends once); the lists in a transfer of their own (a new channel for a limit not
+met); the daemon reading the folder (it never opens an operator's file).</p>
+<p><strong>Gap D1, a collection over the run's own <code>--cf</code> lists, agreed.</strong> On the tree at
+<code>74e3e0c</code> (<code>d1-collect-lab.sh</code>), <code>crun --all --cf LAB/coll --cd=LAB/coll</code> exited
+0 with both devices' lists replaced by their output, and so did the same by a
+link and by <code>crun.directory = LAB/coll</code> with no <code>--cd</code>; with <code>--fs=.txt</code> the
+lists were kept and <code>NAME.txt</code> written beside them;
+<code>run --cf LAB/coll/core-nyc-01 --cd=LAB/coll</code> and
+<code>command --cf LAB/coll/core-nyc-01.txt --cd=LAB/coll --fs=.txt</code> replaced the
+file they read. The rule: a collection never writes into a <code>--cf</code> folder of its
+own run, with or without a suffix, or onto a <code>--cf</code> file of it, links followed;
+a new code, <code>commands_file_in_collection</code>, usage, exit 4 (the fault is two
+places on the line or in the configuration, the remedy another folder), at
+planning before the folder's lists are built; a file under no selected device's
+name, or under the name a suffix leaves free, and a hard link elsewhere (the
+collection renames a new file into place) stay accepted. Built
+(<code>d-build-lab.sh</code>):</p>
+<pre><code class="language-text">commands_file_in_collection: client planning: a --cf folder is the collection folder
+  LAB/link
+  LAB/coll
+commands_file_in_collection: client planning: a --cf file is the collection file of core-nyc-01.example.net
+  LAB/coll/core-nyc-01
+  LAB/coll/core-nyc-01
+</code></pre>
+<p><em>Not taken:</em> inventory, exit 5 (the selection is not at fault); the folder
+refused only without a suffix (question 5 agreed both);
+<code>output_file_name_collision</code> or <code>crun_directory_not_writable</code> reused (the wrong
+subject); a warning and the run going on (the lists lost).</p>
+<p><strong>Gap D2, the summary's <code>paths</code> for the copies, agreed.</strong> <code>d2-copies-lab.sh</code>:
+one list's <code>commands.txt</code> dropped its file line's <code>\r</code> and its <code>--cmd</code>'s
+<code>--blind-return 1</code>, and the rerun from it timed out, exit 101; <code>crun</code> with the
+platform's lists wrote <code>commands.cisco_iosxe.txt</code> and a <code>--cf</code> folder no copy,
+and each summary named a <code>commands.txt</code> that was absent;
+<code>--tf J/failed-devices.txt --cf J/commands</code> was <code>commands_file_unreadable</code>. The
+rule: the summary names only files the job wrote, <code>commands_txt</code> when
+<code>commands.txt</code> is written (one list for every device); <code>commands.PLATFORM.txt</code>
+and <code>commands/</code> are named by rule, as <code>output.NAME.txt</code> is, and FILES says so.
+<em>Not taken:</em> a key per copy, or one naming the folder (nothing reads one); an
+empty <code>commands.txt</code> written always (a rerun file that sends nothing).</p>
+<p><strong>Gap D3, a command sent under <code>--literal</code> and its copy, agreed.</strong>
+<code>d3-literal-lab.sh</code>: a <code>--literal</code> line <code>show clock\r</code> was sent as written with
+no return, and its copy, <code>show clock\r</code>, reread without <code>--literal</code> sent
+<code>show clock</code> and one return; a <code>--literal --cmd 'show clock' --blind-return 1</code>
+sent one return and its copy dropped it; the plan records no <code>--literal</code>. The
+rule: every copy is written for a rerun without <code>--literal</code>, each command its
+text and then one <code>\r</code> per return; a command whose own text ends in <code>\r</code>, which
+only <code>--literal</code> sends, is the one statement a copy cannot carry and reads back
+as returns; FILES says so, beside what a file cannot hold. <em>Not taken:</em> the plan
+recording <code>--literal</code> and a literal job's copies written for a <code>--literal</code>
+reread (two forms of copy, the rerun needing to know which, and such a job's
+returns lost); a second escape for a literal trailing <code>\r</code> (a grammar change for
+one rare case); refusing a <code>--literal</code> text that ends in <code>\r</code> (sending text as
+written is what <code>--literal</code> is for).</p>
+<p><strong>Gap D4, the job's audit <code>start</code> beside lists per platform or per device,
+agreed.</strong> <code>d4-audit-lab.sh</code>: one list's <code>run.start</code> carried <code>command_count=2</code>
+and the two statements; <code>crun</code> with the platform's lists and a <code>--cf</code> folder
+carried <code>command_count=0 commands=[]</code>, each device's <code>&lt;kind&gt;.command</code> events
+naming what it was sent; one <code>--cf</code> file of 4,000 lines made a 296,785-byte
+start event and the run was refused at its acceptance,
+<code>audit_write_failed: … journald: … message too long</code>, exit 111, as journald
+takes each event as one datagram (212,992 bytes on the development host). The
+rule: the start's <code>command_count</code> is the longest list's, the figure the metrics
+and the dry run give; <code>commands</code> only when every device is sent one list, and
+left out, not empty, beside lists per platform or per device; the audit stays 2.
+<em>Not taken:</em> every list in the start (megabytes at 2,500 devices, over the
+datagram bound); a <code>platform_commands</code> field for <code>crun</code> (the device events cover
+it, and nothing reads it); <code>commands=[]</code> kept (it says nothing was sent). The
+bound itself is ROADMAP's Later item &quot;An audit event over journald's datagram
+bound&quot;, on the operator's word.</p>
+<p><strong>Built.</strong></p>
+<ul>
+<li>A: <code>command_plan_digest</code> out of the plan, the job header, and the dry-run and
+exercise reports, with <code>SumCommands</code>, <code>SumCommandPlan</code>, and their checks;
+execution plan 15 and plan report 4; the dry run's <code>commands:</code> line the count
+alone; the pinned digests moved.</li>
+<li>B: the parser's <code>Invocation.Sources</code> (<code>--cmd</code> and <code>--cf</code> in order) and
+<code>Declaration.Command</code> indexing them; <code>commandPlan</code> building the list in order;
+<code>--cf</code> repeated, <code>stdin_source_repeated</code> for a second <code>--cf -</code>,
+<code>commands_file_repeated</code> retired; B1's <code>commands_files</code> and scoreboard 5, the
+watch screen's pane line; B2's refusal; the stream in the order typed and its
+package comment corrected; the help, the man pages, COMMAND-SESSION's grammar,
+README, OPERATIONS.</li>
+<li>C: <code>--cf</code> stated, a file read at once and a folder at planning through
+<code>planner.TargetCommands</code>, each device's <code>DIR/NAME</code> in its place; the plan's
+<code>target_commands</code> (<code>executionplan.CommandList</code> per target, each with its
+declarations), <code>ListFor</code> and <code>CommandsFor</code> by target, read by the executor,
+the job's initial states, the daemon's checks, <code>LargestCommandLimit</code>, and
+<code>CommandCount</code>; the dry run's list per device; C1's and C2's codes, C3's
+message; OPERATIONS's section &quot;A command list per device&quot;.</li>
+<li>D: D1's refusal (<code>checkCollectionInputs</code>); one <code>Store.WriteCommands</code> for the
+three copies, each command's returns written back (<code>commandsText</code>),
+<code>commands/NAME</code> beside a folder; D2's summary, D3's rule, D4's start event;
+the manifest's check of each initial state against its device's own list
+(found, below); FILES, COLLECTION, OPERATIONS, DESIGN, ROADMAP.</li>
+<li>E: the native suite's S37: the order written and its two refusals; a folder
+through the daemon, each device's list, the copies with their <code>\r</code>, no
+<code>commands.txt</code> named, the audit's start, <code>tools/schema-check</code>; the rerun of
+its failures by <code>--tf J/failed-devices.txt --cf J/commands</code> and a copy's <code>\r</code>
+answering the save's question; one list's <code>commands.txt</code> and its rerun; a
+device without its file, two with one, and a collection over the folder and
+the file, a fresh fake counting no connection; the native suite's closing
+checks moved to its end; the spool suite's S8 reading the build's scoreboard
+counter and the completion suite's fixture at 5; ROADMAP's Next item removed.</li>
+</ul>
+<p>The tests: <code>TestCommandsInTheOrderWritten</code>,
+<code>TestStreamLoopCommandsInTheOrderTyped</code>, <code>TestDraftCarriesTheCommandFiles</code> (B);
+<code>TestCommandsFromAFolder</code>, <code>TestTargetCommands</code>, <code>TestTargetCommandLists</code>,
+<code>TestDraftCarriesTargetLists</code>, <code>TestFrameBoundNamesTheSizes</code> (C);
+<code>TestCheckCollectionInputs</code>, <code>TestWriteCommands</code>, <code>TestJobStartBesideLists</code>,
+<code>TestManifestInitialStatesByTargetList</code> (D). Each section's lab ran on a build
+of its tree at the fake device, and the k03 suite on a build for B, C, and D,
+the native suite for D too.</p>
+<p><strong>Executed.</strong> The full battery on a lab build of the final tree (<code>battery.sh</code>,
+<code>TMPDIR=/var/tmp</code>): vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (72
+packages), and the 19 suites by <code>run_suites</code>, S37 among them, in 237 seconds,
+each exit 0; none left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi process. The first run
+stopped at the spool suite's S8 and the second at its S4 (both below); the third
+passed. On the released 0.35.0, S37 fails at its first row,
+<code>commands_file_repeated: --cf may be given once; it names one file or -</code>.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>The manifest's check compared each initial state's command index with the
+plan's one list, empty under <code>crun</code>'s platform lists and beside a <code>--cf</code>
+folder, so <code>tools/schema-check</code> refused those jobs' folders
+(<code>manifest_invalid: initial_states[0] command index 1 is out of range</code>, the
+build of <code>74e3e0c</code> on <code>d-build-lab.sh</code>'s job folders); fixed in D with no
+design choice, each state read against its device's own list.</li>
+<li>The native suite's closing checks, the operator's trust store unchanged and no
+fake or daemon left, ran before S33 to S36, which came after them in the file;
+E moved them to the end, after S37.</li>
+<li>One list whose audit <code>start</code> is over journald's datagram bound fails the job
+at its acceptance (gap D4): ROADMAP's Later.</li>
+<li>The spool suite's S8 pinned the scoreboard's schema at 4, which B moved to 5,
+and the k03 suite run for B and C does not reach it: the first battery failed
+there. S8 now reads the build's own counter (<code>karvi version</code>,
+<code>scoreboard_schema_version</code>), and the completion suite's scoreboard fixture is
+at 5.</li>
+<li>The spool suite's S4 timeout row gives <code>show big</code> a one-second cut and needs 1
+MiB settled by it. The second battery failed there with nothing settled, and
+the suite alone on a lab build failed once in three. At the fake with the
+spool and the job folders on <code>/var/tmp</code> (<code>e-spool-timing-lab.sh</code>), 48 cuts, 24
+of each build, alone and after the limit row, settled 12 to 48 MB but one, a
+lab build's at 141,422 bytes; on <code>/dev/shm</code> none fell under 9.4 MB. The row's
+path is not one the build touched; it is ROADMAP's Later item &quot;The spool
+suite's timeout row waiting on a condition&quot;, on the operator's word.</li>
+<li>A planning refusal on <code>command</code> carries no stage prefix (<code>command</code>'s refusals
+have none), where <code>run</code> and <code>crun</code> through the daemon print
+<code>client planning:</code>; the stage prefixes are among Next item 1's open questions.</li>
+</ul>
+<p><strong>Closed.</strong> The build's evidence is kept beside the tree
+(<code>release-design-evidence/next1-build-2026-10-26</code>: each gap's and each section's
+lab scripts with their logs and exits, the suites' logs, the three batteries'
+logs (<code>battery-1</code>, <code>battery-2</code>, and the last beside them, <code>battery.sh</code>), and the
+gaps as agreed, <code>decisions.md</code>). ROADMAP's Next item 1 is now the shorter output
+strings.</p>
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -74,9 +74,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +152,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -232,8 +232,8 @@ pflag.</p>
 word; in <code>run</code>, at the first positional word. After that karvi recognises no
 option, no abbreviation, no <code>--</code>, and no help flag: every remaining argument
 reaches the device unchanged, <code>-4</code> and <code>-h</code> included. Freeform forms exactly
-one device command; several commands take repeated <code>--cmd</code> or a <code>--cf</code> file,
-and mixing freeform with either is refused. <em>Why:</em> the earlier parser
+one device command; several commands take repeated <code>--cmd</code> or <code>--cf</code>, and
+mixing freeform with either is refused. <em>Why:</em> the earlier parser
 captured karvi options inside device text, so <code>traceroute -4 host</code> lost its
 <code>-4</code> and a trailing <code>-h</code> printed help. <em>Not taken:</em> recognising options after
 positional words.</p>
@@ -285,11 +285,15 @@ and manifest record target inputs and never a list.
 <em>Why:</em> the operator's most typed values; nothing after the parser changes.
 <em>Not taken:</em> aliases (an alias still takes a value); a list kind in the plan.</p>
 <p><strong>Declarations attach backwards.</strong> <code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>,
-<code>--timeout</code>, and <code>--maxbytes</code> attach to the nearest preceding <code>--cmd</code>, or to
-the one freeform command; a declaration before the first command, or with
-<code>--cf</code> alone, is a usage error.
-<em>Why:</em> position is meaningful in one direction only, so a reader never
-guesses which command a leading declaration meant.</p>
+<code>--timeout</code>, and <code>--maxbytes</code> attach to the command source written right
+before them, which must be a <code>--cmd</code>, or to the one freeform command; an option
+that is no command between them does not count. A declaration before the first
+command, or after a <code>--cf</code>, is a usage error (<code>declaration_before_command</code>,
+<code>declaration_with_commands_file</code>). <em>Why:</em> position is meaningful in one
+direction only, so a reader never guesses which command a leading declaration
+meant, and one after a file would read as the file's last line's, which takes
+no declaration (<a href="EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
+79</a>).</p>
 <p><strong><code>--record[=PATH]</code> and <code>--of[=PATH]</code> take their path with <code>=</code> only.</strong> A bare
 <code>--record</code> or <code>--of</code> is the switch; a word after it is the device. <em>Why:</em>
 executed examples showed <code>cmd --of xe-1 show clock</code> misread as a folder
@@ -325,12 +329,13 @@ reaches <code>crun</code> by construction. <em>Not taken:</em> <code>run --colle
 type.</p>
 <p><strong>Stream mode.</strong> <code>karvi stream</code> (aliases <code>karvi s</code>, <code>karvi -</code>) reads standard
 input line by line: a line beginning with a dash and one more character is one
-run option, one
-dash or two alike as on run's command line; any other line, a <code>-</code> alone among
-them, is one command sent as written, quotes and all; blank and <code>!</code>/<code>#</code> lines
-are skipped. The draft has two parts: the part that stays from one job to the
-next, the targets, the options, and the commands given in option form, and the
-commands given as bare lines, which are the job's. An option line's word is
+run option, one dash or two alike as on run's command line; any other line, a
+<code>-</code> alone among them, is one command sent as written, quotes and all; blank and
+<code>!</code>/<code>#</code> lines are skipped. The draft has two parts: the part that stays from one
+job to the next, the targets, the options, and the commands given in option
+form, and the commands given as bare lines, which are the job's. A job's
+commands go in the order typed, and a declaration line after a <code>--cf</code> line is
+dropped, as <code>run</code> refuses the declaration there. An option line's word is
 resolved through run's own table, so <code>--cmd</code> and its aliases, <code>--cf</code>, and the
 <code>--expect</code>/<code>--blind</code>/<code>--blind-return</code> declarations belong to the commands, each
 declaration with the command before it, an abbreviation or an <code>=</code> spelling means
@@ -349,45 +354,43 @@ every target input run's table marks (<code>--target</code>, <code>--tl</code>, 
 <code>--purge-</code>, naming both, is refused as <code>cli_option_ambiguous</code>; <code>--reset</code> empties
 the draft; <code>--restart</code> empties it and reads the configuration again (the next
 entry); <code>--end</code>, <code>--quit</code>, <code>--exit</code>, EOF, or Ctrl-C leave, a Ctrl-C outranking
-lines already read. A bad line is reported with its number and
-dropped, the draft standing; <code>--cf</code>, <code>--tf</code>, and <code>--tfr</code> may not name <code>-</code> in any
-spelling, since standard input is the stream; a read failure or a line over 1
-MiB ends the stream with <code>stream_input_read_failed</code>. The exit is the last job's,
-0 when none ran. <code>--cd</code> and <code>--fs</code> are option lines of the part that stays:
-<code>--go</code> and <code>--clear</code> keep them, <code>--reset</code> removes them, a later line replaces
-the value (the last spelling wins), and <code>--cd=.</code> is the stream's working
-directory; one file per device per directory means a later job to a device
-replaces the earlier job's file, which <code>--fs</code> keeps apart (<code>--fs=.ver</code>, then
-<code>--fs=.run</code>). An <code>=</code>-only option line takes its value with <code>=</code> alone, text after
-a space refused when the line is read; the value checks of <code>--cd</code> and <code>--fs</code> run
-when the line is read too, so a bad line is dropped with its number and the
-draft stands; at <code>--go</code>, a draft with <code>--fs</code> and no <code>--cd</code> takes the stream's
-working directory.
-Typed at a terminal, a line is edited with the usual keys, the
-Delete key among them, and the up arrow recalls earlier lines (the line
-editor <code>internal/termline</code> over <code>golang.org/x/term</code>, vendored, which the
-credential prompts share): the terminal is in raw mode for one line's read
-alone, through the tree's one raw-mode helper, and back in its own mode for
-every message and every job, so a job's display, its Ctrl-C, and its
-credential prompt are unchanged; the reader reads a line when the loop asks
-for it and never beside a job, which would hold the raw mode through it;
-the editing echoes on the controlling terminal, and a line typed ahead
-during a job, which the terminal's own mode ends with <code>\n</code>, is translated
-to the Enter the editor takes. <em>Why:</em> a job composed line by line at a terminal
-or piped from a script, reusing the table parser and the run path so no rule
-lives twice; a typo must not cost the draft; a command the operator gives in
-option form is a standing part of the draft, sent by every job until purged, and
-a bare line is the job's alone; one dash and quotes mean on a line what they
-mean to <code>run</code> and the shell, so an operator's command-line habits carry over;
-and a line <code>run</code> would read as freeform text must never take the commands after
-it. <em>Not taken:</em> directives as table options; shell-style splitting of an option
-line (<code>--tl r1 r2</code> gives the case, and a command's own quotes would be lost); a
-<code>- foo</code> or <code>-- foo</code> line sent as a command; <code>--purge</code> as both purges; every
-command cleared by <code>--go</code>; a prompt; raw mode held across a job (the job's
-Ctrl-C would become a byte to read), which a reader reading ahead had done until
-the credential prompts showed it; GNU readline (not reachable without cgo;
-<code>rlwrap</code> remains an operator's choice); a generic error for the read failure
-(every path carries its own code).</p>
+lines already read. A bad line is reported with its number and dropped, the
+draft standing; <code>--cf</code>, <code>--tf</code>, and <code>--tfr</code> may not name <code>-</code> in any spelling,
+since standard input is the stream; a read failure or a line over 1 MiB ends the
+stream with <code>stream_input_read_failed</code>. The exit is the last job's, 0 when none
+ran. <code>--cd</code> and <code>--fs</code> are option lines of the part that stays: <code>--go</code> and
+<code>--clear</code> keep them, <code>--reset</code> removes them, a later line replaces the value
+(the last spelling wins), and <code>--cd=.</code> is the stream's working directory; one
+file per device per directory means a later job to a device replaces the earlier
+job's file, which <code>--fs</code> keeps apart (<code>--fs=.ver</code>, then <code>--fs=.run</code>). An
+<code>=</code>-only option line takes its value with <code>=</code> alone, text after a space refused
+when the line is read; the value checks of <code>--cd</code> and <code>--fs</code> run when the line
+is read too, so a bad line is dropped with its number and the draft stands; at
+<code>--go</code>, a draft with <code>--fs</code> and no <code>--cd</code> takes the stream's working directory.
+Typed at a terminal, a line is edited with the usual keys, the Delete key among
+them, and the up arrow recalls earlier lines (the line editor
+<code>internal/termline</code> over <code>golang.org/x/term</code>, vendored, which the credential
+prompts share): the terminal is in raw mode for one line's read alone, through
+the tree's one raw-mode helper, and back in its own mode for every message and
+every job, so a job's display, its Ctrl-C, and its credential prompt are
+unchanged; the reader reads a line when the loop asks for it and never beside a
+job, which would hold the raw mode through it; the editing echoes on the
+controlling terminal, and a line typed ahead during a job, which the terminal's
+own mode ends with <code>\n</code>, is translated to the Enter the editor takes. <em>Why:</em> a
+job composed line by line at a terminal or piped from a script, reusing the
+table parser and the run path so no rule lives twice; a typo must not cost the
+draft; a command the operator gives in option form is a standing part of the
+draft, sent by every job until purged, and a bare line is the job's alone; one
+dash and quotes mean on a line what they mean to <code>run</code> and the shell, so an
+operator's command-line habits carry over; and a line <code>run</code> would read as
+freeform text must never take the commands after it. <em>Not taken:</em> directives as
+table options; shell-style splitting of an option line (<code>--tl r1 r2</code> gives the
+case, and a command's own quotes would be lost); a <code>- foo</code> or <code>-- foo</code> line sent
+as a command; <code>--purge</code> as both purges; every command cleared by <code>--go</code>; a
+prompt; raw mode held across a job (the job's Ctrl-C would become a byte to
+read), which a reader reading ahead had done until the credential prompts showed
+it; GNU readline (not reachable without cgo; <code>rlwrap</code> remains an operator's
+choice); a generic error for the read failure (every path carries its own code).</p>
 <p><strong>A stream's restart.</strong> <code>--restart</code>, a directive of its own (the word whole),
 empties the draft, its commands and its targets, as <code>--reset</code> does, and reads
 the configuration again as the stream's start does: the files with their
@@ -461,8 +464,8 @@ never silently skipped. <code>targets.empty-source</code> (<code>warn</code> or 
 is always an error, and an empty final set always is. <em>Why:</em> hierarchical
 host-list folders without scripts, with hidden and backup files never read by
 accident, and no source silently ignored.</p>
-<p><strong>Commands files are literal.</strong> <code>--cf</code> reads one file and sends its contents
-as written: blank and comment lines are sent, only the line terminator is
+<p><strong>Commands files are literal.</strong> <code>--cf</code> reads a file and sends its contents as
+written: blank and comment lines are sent, only the line terminator is
 removed, and a zero-byte file is an error. <em>Why:</em> karvi does not alter device
 text.</p>
 <p><strong>Dispatch order is reproducible from the record.</strong> <code>dispatch.order</code> is
@@ -1481,16 +1484,114 @@ the client is responsible for, and a property of the import graph cannot drift.
 <em>Not taken:</em> an orchestrating client inside the daemon package.</p>
 <p><strong>The plan is a complete, hashed statement of intent.</strong> The execution plan
 carries the operator, the exact ordered targets (each a device projection with
-its address plan, credential binding, and platform), the commands and their
-digest, what the client decided for the job (dispatch, output, session-init),
-and the client's resolved configuration as its <code>configuration</code> block, so the
-daemon reads no configuration of its own to run it. It carries no job
-ID and no mode, so an exercise and its live submission hash identically. Its
+its address plan, credential binding, and platform), the commands, what the
+client decided for the job (dispatch, output, session-init), and the client's
+resolved configuration as its <code>configuration</code> block, so the daemon reads no
+configuration of its own to run it. It carries no job ID and no mode, so an
+exercise and its live submission hash identically. Its
 digest is over the canonical JSON, deterministic by field order; the plan and
 IPC schemas are closed (<code>additionalProperties: false</code>), the report schema open.
 <em>Why:</em> the daemon judges a plan it can only validate; an unknown field would be
 content the daemon cannot judge that still affects the digest. <em>Not taken:</em>
 reusing the inventory device type in the plan (address facts twice).</p>
+<p><strong>Templates and decisions from a device's answer are a tool's outside karvi,
+between jobs.</strong> karvi sends the commands a plan enumerates and renders no
+template. A configuration rendered from templates and data (Jinja2 over YAML,
+TOML, or JSON) is text a tool outside karvi writes before planning; a command
+chosen from a device's answer (a <code>show ip route vrf NAME</code> for each VRF a <code>show vrf</code> printed) is chosen by such a tool from one job's records and sent by the
+next job. The tool reads the records (<code>--format jsonl</code>, <code>commands.jsonl</code>,
+<code>schema/command-record.schema.json</code>), the registered codes, and the dry run's
+report for the exact targets, and leaves the selection of devices to karvi. A
+macro file's plain substitution (<code>--mf</code>) is a question of its own
+(<a href="../ROADMAP.html#later"><code>ROADMAP.md</code></a>). <em>Why:</em> every job stays a complete
+statement of intent: <code>--dry-run</code> shows each command, the digest covers it, and
+the count of commands is known before the first is sent; the daemon never
+interprets output; Jinja2's reference implementation is Python's, and the
+parsing of a command's text changes with the platform and its release. The cost
+is a second session per device and the seconds between the two jobs. <em>Not
+taken:</em> a template engine in the client (gonja or pongo2: near Jinja2 but not
+it, their filters and tests different and Ansible's absent); commands generated
+in the session from a declared pattern over an earlier command's output (one
+login, but the plan would state a rule and not the commands, and the daemon
+would read output; <code>--expect</code> is the precedent and much narrower), open again
+only if the second session proves the cost.</p>
+<p><strong>A run's commands follow its command line, in the order written.</strong> Each <code>--cmd</code>
+adds its command, each <code>--cf FILE</code> its lines, and each <code>--cf DIR</code> the target's
+own file, in the order the operator gave them, and every target is sent that
+sequence; <code>--cf</code> may be given more than once, <code>--cf -</code> once. A declaration
+(<code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, <code>--maxbytes</code>) attaches to
+the <code>--cmd</code> written right before it and goes with that command into every
+target's list at its place; one written after a <code>--cf</code> is refused. The plan
+names every <code>--cf</code> by its base name in the order given (<code>commands_files</code>, <code>-</code>
+for standard input), and so does the scoreboard (<code>commands.files</code>), whose one
+reader, the watch screen, joins them: <code>run: 3 statements from one.txt, two.txt</code>.
+A command file's lines are statements, never karvi options; a trailing <code>\r</code> is
+the one escape read in them. Device text stays refused beside <code>--cmd</code> or <code>--cf</code>:
+its words may sit anywhere on the line and have no place in an order. <em>Why:</em> a
+job is its arguments in the order given, so an operator stacks actions on one
+line: a timestamp, each device's own lines, a save (<code>--cmd &quot;show clock&quot; --cf DIR1 --cf DIR2 --cmd &quot;write mem&quot;</code>); a name per file keeps the job told apart on
+the watch screen. <em>Not taken:</em> the <code>--cmd</code> values first wherever <code>--cf</code> stands,
+and one <code>--cf</code>, the tree's rule before, which no operator document stated; a
+declaration after a <code>--cf</code> on the nearest <code>--cmd</code> however far back (defined, but
+not what the line shows); the first file's name alone, or none, on the watch
+screen (<a href="EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
+79</a>).</p>
+<p><strong>A job may send each target its own command list: <code>--cf DIR</code>.</strong> <code>--cf</code> names a
+file or a folder. A folder sends each selected target the file <code>DIR/NAME</code>, NAME
+its collection file's (<code>core-nyc-01</code>, lowercase; the whole name under
+<code>output.crop-to-dot = false</code>), with no suffix and no skip list, read as a <code>--cf</code>
+file is. A selected target without its file is refused at planning,
+<code>commands_file_missing</code> naming the folder and up to ten devices with the file
+each lacks, and so are two selected targets with one name,
+<code>commands_file_name_collision</code> naming the file and the devices, whatever files
+the job writes; a file that cannot serve takes the <code>--cf</code> file codes; a file no
+selected target is named for is left unread, so a canary is the same command
+with one target and the same folder. A collection into a <code>--cf</code> folder of the
+same run, with or without a suffix, or onto a <code>--cf</code> file of it, links followed,
+is refused at planning, <code>commands_file_in_collection</code> with the <code>--cf</code> path over
+the collection's, on <code>crun</code> and on <code>run</code> or <code>command</code> with <code>--cd</code> or <code>--fs</code>; on
+<code>crun</code>, commands on the line replace the platform's <code>crun-commands</code> as they
+always have. The plan carries each target's
+list and no digest of its own: <code>plan_digest</code>, which the daemon's commit, the
+idempotency key, and the credential package read, covers the whole plan
+(<code>target_commands</code>, each list with its commands' declarations). The lists travel
+in the plan, bounded as any plan by <code>daemon.max-ipc-frame-bytes</code>, whose refusal
+gives the request's size over the bound: the plan is about 900 bytes a target
+before its list, so 2,500 targets of 40-line lists come to about 9 MB.
+<code>--dry-run</code> shows each target's list. The job folder keeps what each device was
+sent as <code>--cf</code> lines, each command's <code>\r</code> returns written back: <code>commands.txt</code>
+for one list, <code>commands.PLATFORM.txt</code> per platform, and <code>commands/NAME</code> per
+target, so <code>--tf failed-devices.txt --cf commands</code> from the job folder reruns
+the failures with their own lists; an <code>--expect</code>, a <code>--blind</code> without returns, a
+<code>--timeout</code>, or a <code>--maxbytes</code> has no form in a file and is the plan's alone. A
+copy is read without <code>--literal</code>, so a command whose own text ends in <code>\r</code>,
+which only <code>--literal</code> sends, reads back as returns. The summary names
+<code>commands.txt</code> only when it is written; the job's audit <code>start</code> lists the
+statements only when every device is sent one list, its count the longest
+list's, and each device's command events name what it was sent. In a stream, a
+<code>--cf DIR</code> line stays from job to job as any <code>--cf</code> line does and is read at
+each <code>--go</code>. <em>Why:</em> a rendered configuration and the checks before and after a
+change differ per target; the plan already holds lists that differ by target, a
+collection's platform lists, and one function names a device's file; a lookup by
+exact name reads nothing else in the folder, so it needs no skip list; <code>--fs</code> is
+the collection's suffix, which on a run turns a collection on, so as the
+folder's it would write a device's output over its list; and a digest earns its
+place by a reader that needs it, which the lists' never had; the codes are the
+input's, not the output's, and two devices collide on a folder's file whether or
+not anything is written. <em>Not taken:</em> a job per target (the one job's
+accounting, scoreboard, dispatch, and admission lost); a separate option for the
+folder (one more to learn, the same reader); a folder that must match the
+selection (a canary would need a folder of its own); a suffix or <code>--tf</code>'s skip
+list; <code>--cmd</code> refused beside a folder (the operator's stacked actions lost); a
+digest over the lists; <code>output_file_name_collision</code> widened (its name and &quot;would
+both write&quot; wrong for an input); a larger default frame (every request may hold
+that much of the daemon's memory), each distinct list once (only lists devices
+share, which <code>--cf FILE</code> sends once), or the lists in a transfer of their own (a
+new channel for a limit not met); the collection refusal as an inventory one
+(the selection is not at fault); the plan recording <code>--literal</code> for the copies
+(two forms of copy, and the rerun would need to know which); every list in the
+audit <code>start</code> (the event is one journald datagram, and 2,500 devices' lists
+come to megabytes).</p>
 <p><strong>Address authority is <code>client</code> or <code>daemon</code>, and one selection rule serves
 both.</strong> A literal address wins, then the inventory management address, then the
 alternates; DNS runs only with no literal. Under client authority the client
@@ -2549,6 +2650,35 @@ contains passwords, tokens, or device output; it shows each command sent
 exactly once, from the plan and never from the device's echo, with a marked
 secret redacted. <em>Why:</em> operators need to see what was sent while the stream
 stays payload-free.</p>
+<p><strong><code>--live</code> shows the session's bytes as they are read, in place of the text
+display.</strong> <code>command</code>, and <code>run</code> and <code>crun</code> with <code>--no-daemon</code>, given <code>--live</code>
+write every byte the transport reads from the device to standard output as it
+is read (<code>Session.pump</code> for both SSH transports, an exec session's settle
+loop, telnet's read loop, through <code>platform.Live</code>): each device's header when
+its session opens, the banner and the setup included, then the footer. A
+record leaves karvi's own lines alone (a failed command, a command not sent),
+on a line of their own; the records, the job's files, and the audit are
+unchanged, and the plan does not carry the option, so its digest is the same.
+A run is serial and follows each device in turn: <code>dispatch.default</code> is set to
+<code>serial</code> from <code>--live</code> in the lock-aware layer when the configuration says
+another mode, a site's lock on the key refusing it as it refuses <code>--ds</code>.
+Refused beside it (<code>live_option_conflict</code>): the display's own options
+(<code>--format jsonl|json</code>, <code>--echo</code>, <code>--border</code>, <code>--noborder</code>); on a run,
+<code>--dispatch parallel</code> or <code>wave</code>, the key set so by <code>--set</code>, and a run with no
+display in the client's process (no <code>--no-daemon</code>, <code>--dry-run</code>, <code>--exercise</code>,
+<code>--follow=false</code>). The transport hands the view each secret before writing it,
+and the view writes its exact value <code>&lt;removed&gt;</code>, found across a read's edge
+(<code>platform.SecretFilter</code>); escape sequences follow <code>output.ansi</code>; an exec
+command is shown at the prompt <code>--echo</code> shows. <em>Why:</em> the text display renders
+each record once its command completes, so a long command showed nothing until
+its end and the setup never; one device at a time keeps one session's bytes on
+the screen; display only keeps every record, file, and digest the same with or
+without it. <em>Not taken:</em> the device's bytes in <code>--debug</code>, which carries no
+device output; the echo line printed when a command is sent, which names the
+command and shows nothing more until it completes; the bytes beside the text
+display (each twice); the bytes through the daemon (an IPC frame of their own,
+in <a href="../ROADMAP.html#later"><code>ROADMAP.md</code></a>); <code>serial</code> set whatever the
+configuration says (a site's lock on <code>serial</code> would refuse it).</p>
 <h2 id="13-the-watch-screen">13. The watch screen <a class="anchor" href="#13-the-watch-screen" aria-label="Link to this section">#</a></h2>
 <p><strong>A diffed frame on the alternate screen, karvi's own.</strong> <code>karvi watch</code> renders
 a frame in memory, diffs it against what the terminal shows, and rewrites only
@@ -3337,7 +3467,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

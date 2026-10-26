@@ -76,9 +76,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,9 +156,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -217,8 +217,8 @@ by a client: its administrator restarts its unit
 (<a href="docs/OPERATIONS.html#a-service-accounts-daemon-under-systemd"><code>docs/OPERATIONS.md</code>, &quot;A service account's daemon under
 systemd&quot;</a>).</p>
 <p>The official Linux/amd64 executable is the <strong>scrapligo-v1 build</strong> (<code>make build</code>; <code>scripts/verify-release.sh</code>), whose version output lists the
-external <code>system</code> transport and <code>scrapligo: 1.4.2</code> compiled in. The source
-pins ScrapliGo <strong>v1.4.2</strong> behind the karvi-owned adapter boundary, with the
+external <code>system</code> transport and <code>scrapligo: 1.4.3</code> compiled in. The source
+pins ScrapliGo <strong>v1.4.3</strong> behind the karvi-owned adapter boundary, with the
 module files and <code>vendor/</code> committed so a build host needs no network. It
 is the only build: the <code>scrapligo_v1</code> build tag and the dependency-free
 preview module are gone, and a plain <code>go build</code> carries the adapter. A
@@ -259,8 +259,7 @@ karvi command --address 192.0.2.10 --target router1 --cmd 'show clock'
 the device or between the device and the text, and every word from the text's
 first on reaches the device unchanged, a karvi option name, <code>-4</code>, or <code>-h</code> among
 them. The words form one device command; several commands take repeated
-<code>--cmd</code> or a <code>--cf</code> file. The first line below sends <code>show clock</code> with <code>--echo</code>
-on; the second sends one command, <code>show clock --echo</code>:</p>
+<code>--cmd</code> or <code>--cf</code>, sent in the order written. The first line below sends <code>show clock</code> with <code>--echo</code> on; the second sends one command, <code>show clock --echo</code>:</p>
 <pre><code class="language-bash">karvi cmd router1 --echo show clock
 karvi cmd router1 show clock --echo
 </code></pre>
@@ -391,7 +390,10 @@ messages.</p>
 <p>Diagnostics include configuration provenance, resolution, credential backend,
 transport selection, session milestones, command index/hash, timing, output
 size, prompt provenance, and stable errors. They do not include passwords,
-enable passwords, raw command text, or device output.</p>
+enable passwords, or device output. Each command appears once, on its <code>device command start</code> line as the plan holds it, never from the device's echo, and
+every other line names a command by its hash and size; a secret written into
+a statement therefore appears on that line
+(<a href="ROADMAP.html#later"><code>ROADMAP.md</code></a>, &quot;Secrets in statements&quot;).</p>
 <h2 id="ssh-transport-configuration">SSH transport configuration <a class="anchor" href="#ssh-transport-configuration" aria-label="Link to this section">#</a></h2>
 <p>Configuration schema <strong>6</strong> and registry schema <strong>13</strong> use per-mode selectors and
 named implementation slots (<a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>):</p>
@@ -672,7 +674,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -60,9 +60,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +124,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -166,18 +166,66 @@ device's collection succeeded&quot;).</li>
 </ol>
 <h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
 <ul>
-<li><strong>Macro files, <code>--mf PATH</code>.</strong> A command file with a parser: variable
-substitution from the command line, the file, or the device's inventory
-row, expanded in the client before the plan, so the plan, its digest,
-<code>commands.txt</code>, and every record are those of an ordinary job. A value that
-differs per device makes the command list per device, which the plan holds
-today only for a collection's platform lists; that is the design question.</li>
+<li><strong>Macro files, <code>--mf PATH</code>.</strong> A command file with plain text substitution
+and pattern replacement, for what a site needs at the least effort, with no
+tool outside karvi: values from the command line, the file, or the target's
+inventory row, expanded in the client before the plan, so the plan, its
+digest, <code>commands.txt</code>, and every record are those of an ordinary job; the
+templates stay a tool's (<a href="docs/DESIGN.html#7-the-plan-the-daemon-and-the-credential-channel"><code>docs/DESIGN.md</code>, section
+7</a>). A
+value that differs per target makes the list per target, the command file
+per target (<a href="#next">Next</a>). A macro file may also define a secret or link a
+reference to a credential; a secret is the exception to the expansion
+before the plan, a reference until the session (secrets in statements,
+below).</li>
+<li><strong>Secrets in statements.</strong> A statement names a secret instead of holding it
+(<code>snmp-server community %secret:snmp-ro% RO</code>, the spelling open): the client
+resolves the reference as it resolves a login's password, or from a macro
+file that defines the secret or links the reference to a credential; the
+value travels to the daemon in the credential package and the session
+writes it to the device alone. The plan, its digest, every record, the job's
+files, the audit, and the display keep the reference, never the literal
+secret, and the session removes the exact value from what the device sends
+back, as the live view's <code>platform.SecretFilter</code> removes a secret the
+session writes from the screen. Today a statement's secret is masked in the
+audit by the platform's <code>masks</code> and kept as sent in the job's files
+(<code>commands.txt</code>, <code>commands.jsonl</code>, <code>errors.jsonl</code>, <code>manifest.json</code>,
+<code>output.TARGET.txt</code>), in the <code>--echo</code> and <code>--live</code> displays, and in
+<code>--debug</code>'s command start line; until this is
+built, a tool that renders
+configuration renders no secret in clear, the device's own encrypted forms
+where it has them. The questions: the reference's spelling, and whether it
+is declared (a command file is literal, and a <code>%</code> in a banner is device
+text); where a named secret lives in each backend, per target or per site; a
+macro file that holds a secret, and the permission check a credential file
+has; a reference that finds no value (refused at planning); and the stream.
+Masking the job's files by the platform's <code>masks</code> was weighed and set aside:
+the patterns are best effort, a masked <code>commands.txt</code> would send <code>&lt;removed&gt;</code>
+on a rerun, the manifest's plan would no longer match its digest, and a
+record's <code>command_sha256</code> beside a masked line is a fingerprint to guess.</li>
+<li><strong>A daemon run's live view.</strong> <code>--live</code> runs in the client's process alone
+(<a href="docs/DESIGN.html#12-display-and-help"><code>docs/DESIGN.md</code>, section 12</a>).
+Through the daemon (<code>run</code> without <code>--no-daemon</code>, <code>job follow</code>), the device's bytes would reach the follower as frames of their own
+on the IPC, the job serial as in the client's process. For consideration;
+nothing is decided.</li>
 <li><strong>Job files, <code>--jf PATH</code>.</strong> A saved <code>run</code> invocation (targets, commands or
 macros, options) that must plan to the same job as the command line it
-replaces, plus logic. The logic's first question is where it runs: a
-decision taken from a device's answer is taken in the session, per device,
-while the command plan is fixed and digested before the daemon accepts the
-job; <code>--expect</code> and the blind returns are the precedent to grow from.</li>
+replaces. The logic it was to carry is settled elsewhere: a decision taken
+from a device's answer is taken between jobs, by a tool outside karvi
+(<a href="docs/DESIGN.html#7-the-plan-the-daemon-and-the-credential-channel"><code>docs/DESIGN.md</code>, section
+7</a>). A job
+file could also carry each command's declarations (<code>--expect</code>, <code>--blind</code>,
+<code>--blind-return</code>, <code>--timeout</code>, <code>--maxbytes</code>), as a stream's lines do and a
+command file cannot, its lines being statements alone
+(<a href="docs/EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
+79</a>).</li>
+<li><strong>A suffix on a <code>--cf</code> folder's names.</strong> A folder's files are named exactly
+as the targets' collection files (<code>core-nyc-01</code>), so a tool that writes
+<code>core-nyc-01.cfg</code> renames them. A suffix of the input's own is for
+consideration, apart from <code>--fs</code>, which is the collection's and on a run
+turns a collection on (<a href="docs/EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
+79</a>); nothing is
+decided.</li>
 <li><strong>Credentials.</strong> A formula's match evidence carrying its source's file,
 line, and key; a command-line option to pin a direct target to a key;
 further backends, each with its own type, keys, and driver: a SQLite store
@@ -227,7 +275,10 @@ declare one as required for its consumption. The review lists each digest
 the program computes or records with who computes it, who reads it, and
 what breaks without it, and removes those nothing consumes in production;
 the development use, comparing two outputs, stays. The audit's are gone
-(chapter 63, its statements in their place).</li>
+(chapter 63, its statements in their place), and so is the plan's
+<code>command_plan_digest</code>, read only by checks against the same message that
+<code>plan_digest</code> already binds (chapter 79); <code>plan_digest</code>, which the daemon's
+commit, the idempotency key, and the credential package read, stays.</li>
 <li><strong><code>Sealed</code> credential packages.</strong> The envelope schema accepts the
 protection and the <code>Sealer</code> interface is fixed, but no channel carries it
 and no reviewed provider exists; it waits for the stage that brings a
@@ -251,7 +302,7 @@ Go binding, through <code>ebitengine/purego</code>, to <code>libscrapli</code>, 
 session, the channel, and the SSH (libssh2) and Telnet transports. It loads
 the library from <code>LIBSCRAPLI_PATH</code>, else from <code>~/.cache/scrapli</code>, downloading
 it there from GitHub at first use without checking the published <code>.sha256</code>.
-karvi stays on v1.4.2, whose line is maintained, until four questions are
+karvi stays on v1, whose line is maintained, until four questions are
 answered: whether a release can ship the library beside the static executables
 and always names it, so no session reaches the network or writes into the
 operator's home; whether karvi's host-key policy, today inside its own SSH
@@ -276,6 +327,52 @@ command line, in a command file, and in <code>crun</code>; and which platforms g
 for Linux servers (<a href="docs/EXAMPLES.html#24-jobs-across-linux-servers-2026-10-04"><code>docs/EXAMPLES.md</code>, chapter
 24</a>), whose record
 of a command without a prompt it would build on.</li>
+<li><strong>A device that is not a line CLI: a WTI DSM console server.</strong> A WTI DSM
+answers SSH at <code>DSM&gt;</code> (its Scripting Options can make the prompt the site
+ID) with slash commands (<code>/J</code>, <code>/RN</code>), asks <code>Sure?</code> of a switching command
+unless <code>,Y</code> follows it, and sets its parameters in menus (<code>/N</code>, <code>/P</code>, <code>/F</code>):
+an item's number, its value, Escape until <code>Saving Configuration</code> and the
+prompt; the status screen <code>/S</code> is left by Escape, and some forms move by the
+arrows and Tab. The device session sends a statement as a line, ends a
+response at the platform's prompt on the last rendered line, writes an
+<code>--expect</code> response with a carriage return, and renders a line, not a
+screen: a cursor positioned anywhere ends the line
+(<a href="docs/COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>). What it gains: the
+DSM's settings collected and compared by <code>crun</code> as a router's are, its menus
+walked by a command, and a method for the next device of its kind. The
+parts, each taken only where a recording shows it needed: a
+<code>[platform.NAME]</code> table admitting the definition's prompt pattern, exit
+commands, and failure patterns (<code>generic</code>'s prompt pattern matches <code>DSM&gt;</code>
+today, but an alias of it closes with <code>exit</code> for <code>/X</code> and reports no rejected
+command); keys in a statement and in an <code>--expect</code> response (Escape, Tab, the
+arrows, Enter, Ctrl-X), a response that ends in a key written without the
+carriage return, so the chain of expectations walks a menu as one statement;
+a screen mode for a form that positions the cursor, a terminal of a fixed
+size matched as a whole once it is quiet, its record the final screen; and a
+recording that becomes the model: <code>transcript.format = &quot;jsonl&quot;</code>, the event
+recorder named and refused today, keeping both directions with their times
+(<code>script(1)</code>'s advanced log), a printable key the device does not echo
+recorded <code>&lt;removed&gt;</code> and a named key by its name; a step that drafts from it
+the prompt, the exit, and each response's last line paired with the keys
+typed at it, as a <code>[platform.NAME]</code> table and a command file the operator
+edits; and the fake device replaying the recording, so the draft is tested
+without the device before the
+<a href="#the-device-qualification-track">device-qualification track</a> qualifies it on
+one. Two ways beside it: WTI's REST API (JSON over HTTPS from its firmware
+6.51: status, serial ports, users), a channel karvi does not have, NETCONF's
+(above) the nearest; and a target reached through a console port (<code>/C 3</code>,
+the attached device's platform after the hop, <code>^X</code> at close), out-of-band
+access when the management network is down, an item of its own that needs
+the keys. It waits on a unit: its firmware, <code>karvi command dsm1 /J --live</code>
+under <code>generic</code>, and one session recorded raw in both directions under
+<code>script -m advanced</code> (<code>/J</code>, <code>/RN</code>, <code>/S</code> and Escape, <code>/N</code> into an item and out
+unchanged, <code>/X</code>, no secret typed), which shows what a login shows first, the
+menus' wording, and whether a form positions the cursor. The questions: the
+keys' spelling and the table's key names; a menu walk as one record or one
+per screen; the screen mode's size and its record; where the recording's
+secret rule fails (a device that echoes a password, a key typed ahead); and
+whether the drafting step is karvi's or a tool's. For consideration; nothing
+is decided.</li>
 <li><strong>A device's banner kept out of <code>system</code>'s failure text.</strong> OpenSSH writes a
 device's pre-authentication banner on its standard error at <code>LogLevel INFO</code>
 and above, among its own lines; the shell's command session (<code>VERBOSE</code>) and
@@ -375,6 +472,29 @@ from journald, how a suite's is, and the audit suite's, whose subject is
 the round trip through journald, its jobs at devices named for its run
 alone (<a href="docs/EXAMPLES.html#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17"><code>docs/EXAMPLES.md</code>, chapter
 64</a>).</li>
+<li><strong>An audit event over journald's datagram bound.</strong> The audit writes each
+event to journald as one datagram, and the socket refuses one over its send
+buffer (212,992 bytes on the development host, <code>net.core.wmem_default</code>): a
+job whose <code>start</code> event carries one list of 4,000 statements, 296,785 bytes,
+is refused at its acceptance, <code>audit_write_failed: … message too long</code>, exit
+111, before any device is contacted (<a href="docs/EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
+79</a>). The item: an
+event of any size the audit accepts reaches journald, as <code>sd_journal_send</code>
+passes a large entry in a sealed memfd over the socket. The questions: the
+largest event karvi writes, and whether one is bounded; the audit file
+beside it; a device command event of that size.</li>
+<li><strong>The spool suite's timeout row waiting on a condition.</strong> The spool suite's S4
+cuts <code>show big</code> at a one-second command timeout and needs 1 MiB settled by the
+cut. The fake builds its 65.7 MB answer before it sends it, and what settles
+by the cut follows the disk under the spool: of 48 cuts at the fake with the
+spool on <code>/var/tmp</code>, all but one settled 12 to 48 MB and one 141,422 bytes,
+and a battery failed the row with nothing settled, the suite alone once in
+three (<a href="docs/EXAMPLES.html#79-a-command-file-per-target-2026-10-25"><code>docs/EXAMPLES.md</code>, chapter
+79</a>). The item: the
+row asserts the cut's settled bytes whatever the disk's pace. The questions: a
+cut timed from the answer's first byte rather than from the send; the row's
+threshold; and the rows that time a fixed cut beside it (the cancel and the
+lost session at 0.7 s).</li>
 <li><strong><code>verify-shipped.sh</code> reviewed for what it leaves.</strong> Its <code>STATELESS</code>
 folder, made to show that <code>--help</code> and <code>version</code> create no home, is removed
 only when that check passes, so a failing check leaves it in <code>/tmp</code>. The
@@ -429,7 +549,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

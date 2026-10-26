@@ -62,9 +62,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -128,9 +128,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -840,12 +840,17 @@ had; each but the summary has its switch, <code>output.files.*</code>, and <code
 <tr>
 <td><code>commands.txt</code></td>
 <td><code>commands-txt</code></td>
-<td>the job's commands, as a command file for a rerun (<code>--cf</code>)</td>
+<td>the job's commands when every device is sent one list, as a command file for a rerun (<code>--cf</code>)</td>
 </tr>
 <tr>
 <td><code>commands.&lt;platform&gt;.txt</code></td>
 <td><code>commands-txt</code></td>
 <td>a collection's commands, one file per platform</td>
+</tr>
+<tr>
+<td><code>commands/&lt;name&gt;</code></td>
+<td><code>commands-txt</code></td>
+<td>each device's own list beside a <code>--cf</code> folder, named as the folder's files</td>
 </tr>
 <tr>
 <td><code>errors.jsonl</code></td>
@@ -874,6 +879,14 @@ had; each but the summary has its switch, <code>output.files.*</code>, and <code
 </tr>
 </tbody>
 </table>
+<p>The three command copies are what each device was sent, as <code>--cf</code> lines, each
+command's <code>\r</code> returns written back, so a copy read without <code>--literal</code> sends
+what was sent, and <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns
+a folder's failures with their own lists. A file cannot hold an <code>--expect</code>, a
+<code>--blind</code> without returns, a <code>--timeout</code>, or a <code>--maxbytes</code>; <code>manifest.json</code>'s
+plan alone does. A command whose own text ends in <code>\r</code>, which only <code>--literal</code>
+sends, reads back as returns. <code>summary.json</code>'s <code>paths</code> names <code>commands.txt</code> when
+it is written; the other copies are named by rule, as the output files are.</p>
 <h3 id="44-transcripts-and-collection-files">4.4 Transcripts and collection files <a class="anchor" href="#44-transcripts-and-collection-files" aria-label="Link to this section">#</a></h3>
 <table>
 <thead>
@@ -1170,7 +1183,7 @@ the home from the password database, so a run under another <code>HOME</code> st
 writes to the account's own.</li>
 </ul>
 
-<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/FILES.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

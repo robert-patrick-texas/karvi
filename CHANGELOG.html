@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
 <li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
 <li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
 <li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
@@ -75,9 +76,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -126,6 +127,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
 <li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
 <li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
 <li><a href="#0340---2026-10-19">0.34.0 - 2026-10-19</a></li>
@@ -154,9 +156,9 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -168,6 +170,129 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0360---2026-10-26">0.36.0 - 2026-10-26 <a class="anchor" href="#0360---2026-10-26" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.35.0 for a command list per device, <code>--cf DIR</code>, and a
+live view of a session, <code>--live</code>. Three counters move, execution plan 15,
+plan report 4, and scoreboard 5; every other is 0.35.0's (configuration schema
+6, registry 31, daemon IPC 12, command record 4, job manifest and summary 5,
+credential package 2, audit 2, metrics 1, inventory 1). scrapligo moves to
+v1.4.3, and Go is 0.35.0's. A site has something to change where a script
+reads <code>command_plan_digest</code> (removed; <code>plan_digest</code> covers the commands) or
+the plan's <code>commands_file</code> or the scoreboard's <code>commands.file</code> (now the lists
+<code>commands_files</code> and <code>commands.files</code>), counts on every <code>--cmd</code> going before a
+<code>--cf</code> file's lines, writes a declaration after a <code>--cf</code>, abbreviates
+<code>--literal</code> as <code>--li</code>, or looks for <code>commands_file_repeated</code> or
+<code>commands_file_is_directory</code>, both retired. An operator's 0.35.0 daemon, of
+another build, is drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong><code>--echo</code> shows the prompt a statement was sent at.</strong> The display of
+<code>command</code>, <code>run</code>, and <code>job follow</code> echoed each statement at the prompt
+that came back after it, so a statement that changes the mode read
+<code>router1(config)#configure terminal</code> and <code>router1#end</code>; it now reads
+<code>router1#configure terminal</code> and <code>router1(config)#end</code>, the record's
+<code>promptbefore</code>, as <code>output.TARGET.txt</code> always had it. The records are
+unchanged.</li>
+<li><strong>A live view, <code>--live</code>, for <code>command</code>, and for <code>run</code> and <code>crun</code> with
+<code>--no-daemon</code>.</strong> <code>--live</code> prints the device's bytes on standard output as
+the session reads them, in place of the text display: the header when the
+session opens, every byte from the first, the setup (<code>enable</code>, the paging
+commands) included, and the footer after the session's end, so a long
+<code>show</code> is seen as it comes and not when it completes. A run with <code>--live</code>
+is serial and follows each device's session in turn: <code>dispatch.default</code>
+is set to <code>serial</code> from <code>--live</code> when the configuration says another mode,
+so that a site's lock on the key refuses it as it refuses <code>--ds</code>. A record
+leaves karvi's own lines alone (a failed command's <code>karvi: target=…</code>); the
+records, the job's files, the audit, and the plan's digest are those of
+the same job without it. The exact value of each secret the session
+writes (the enable secret, a telnet password) is shown <code>&lt;removed&gt;</code>, even
+when the device echoes it in two pieces; escape sequences follow
+<code>output.ansi</code>; an exec target's command is shown at the prompt <code>--echo</code>
+shows it at. Refused with the new code <code>live_option_conflict</code> (exit 4):
+<code>--format jsonl</code> or <code>json</code>, <code>--echo</code>, <code>--border</code>, or <code>--noborder</code> beside
+it; on a run, no <code>--no-daemon</code>, <code>--dry-run</code>, <code>--exercise</code>,
+<code>--follow=false</code>, <code>--dispatch parallel</code> or <code>wave</code>, or <code>dispatch.default</code>
+set to either by <code>--set</code>. A configured echo or border is set aside. On
+<code>command</code>, <code>run</code>, and <code>crun</code>, <code>--li</code> no longer abbreviates <code>--literal</code>;
+<code>--lit</code> does. The fake device answers <code>show drip</code> with three lines,
+<code>-drip</code> apart.</li>
+<li><strong>Breaking: <code>command_plan_digest</code> removed; execution plan 15, plan report
+4.</strong> The plan, the job header, and the dry-run and exercise reports no
+longer carry <code>command_plan_digest</code>, which nothing read but checks against
+the same message; <code>plan_digest</code> covers the plan, its commands included, and
+a job's <code>manifest.json</code> holds the plan and the header without it. The dry
+run's <code>commands:</code> line holds the count alone.</li>
+<li><strong>Breaking: a run's commands go in the order written, and <code>--cf</code>
+repeats.</strong> <code>command</code>, <code>run</code>, <code>crun</code>, and a stream send each <code>--cmd</code> and
+each <code>--cf</code> file's lines in the order the line gives them, where every
+<code>--cmd</code> went first wherever <code>--cf</code> stood: <code>--cf checks.txt --cmd 'show clock'</code> now sends the file first. <code>--cf</code> may be given more than once, each
+file read in its place; a second <code>--cf -</code> is <code>stdin_source_repeated</code> (exit
+4), and <code>commands_file_repeated</code> is retired. A declaration (<code>--expect</code>,
+<code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, <code>--maxbytes</code>) attaches to the
+<code>--cmd</code> written right before it: one written after a <code>--cf</code>, which went to
+an earlier <code>--cmd</code>, is refused <code>declaration_with_commands_file</code> (exit 4),
+and a stream drops such a line; one before every command is
+<code>declaration_before_command</code>, with or without a <code>--cf</code>. A stream takes
+several <code>--cf</code> lines, each in the order typed.</li>
+<li><strong>Breaking: the plan's <code>commands_files</code> and the scoreboard's
+<code>commands.files</code>; scoreboard 5.</strong> The plan names every <code>--cf</code> by its base
+name in the order given, <code>-</code> for standard input, in place of
+<code>commands_file</code> (execution plan 15); the scoreboard's <code>commands.files</code> in
+place of <code>commands.file</code> does the same, and the watch screen's pane line
+joins them: <code>run: 3 statements from one.txt, two.txt</code>.</li>
+<li><strong><code>--cf</code> takes a folder: each device its own list.</strong> On <code>command</code>, <code>run</code>,
+<code>crun</code>, and a stream, <code>--cf DIR</code> sends each selected device the file
+<code>DIR/NAME</code>, NAME its collection file's (<code>core-nyc-01</code>, the whole name under
+<code>output.crop-to-dot = false</code>), read as a <code>--cf</code> file in its place among the
+line's commands; a file no selected device is named for is not read. A
+selected device without its file is refused at planning with the new code
+<code>commands_file_missing</code> (exit 5), naming the folder and up to ten devices
+with the file each lacks, and two selected devices with one file name with
+the new code <code>commands_file_name_collision</code> (exit 5), whatever files the
+job writes; an empty or unreadable file, or a folder in its place, is
+<code>commands_file_empty</code> or <code>commands_file_unreadable</code> (exit 4), and
+<code>commands_file_is_directory</code> is retired. The plan carries each device's
+list with its declarations, <code>target_commands</code> (execution plan 15);
+<code>--dry-run</code> shows each device's list on its <code>commands:</code> line; a stream
+reads the folder as each job is planned.</li>
+<li><strong><code>ipc_frame_too_large</code> gives the size over the bound.</strong> A request over
+<code>daemon.max-ipc-frame-bytes</code> is refused with its size over the bound,
+stacked, where the message named the bound alone, and a frame read over it
+names the key. A plan carrying many devices' lists can reach the bound:
+about 9 MB for 2,500 devices of 40-line lists, over the 8 MiB default
+(<a href="docs/OPERATIONS.html#a-command-list-per-device"><code>docs/OPERATIONS.md</code>, &quot;A command list per
+device&quot;</a>).</li>
+<li><strong>A collection never writes over the run's own <code>--cf</code> lists.</strong> <code>crun</code>, and
+<code>run</code> or <code>command</code> given <code>--cd</code> or <code>--fs</code>, replaced the lists they had read
+with the devices' output, exit 0, when the collection directory was a <code>--cf</code>
+folder of the run or a <code>--cf</code> file was a selected device's collection file;
+either is now refused at planning with the new code
+<code>commands_file_in_collection</code> (exit 4), the <code>--cf</code> path over the
+collection's, links followed, with or without <code>--fs</code>.</li>
+<li><strong>The job folder's command copies send what was sent.</strong> <code>commands.txt</code>
+writes each command's blind returns back as its trailing <code>\r</code> sequences,
+where they were dropped and a rerun from the copy timed out at the prompt
+the returns had answered; beside a <code>--cf</code> folder the job folder keeps each
+device's list as <code>commands/NAME</code>, so <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns the failures with their own
+lists. A copy is read without <code>--literal</code>.</li>
+<li><strong><code>summary.json</code> names <code>commands.txt</code> only when it is written.</strong> A <code>crun</code>
+with the platform's lists and a run with a <code>--cf</code> folder write none, and
+the summary's <code>paths</code> named it.</li>
+<li><strong>The audit's job <code>start</code> beside lists per platform or per device.</strong> It
+carried <code>command_count</code> 0 and an empty <code>commands</code>; the count is now the
+longest list's, as the metrics give it, and <code>commands</code> is left out, each
+device's command events naming what it was sent.</li>
+<li><strong>A job manifest's initial states are checked against each device's own
+list.</strong> The manifest's validation, which <code>tools/schema-check</code> runs on a job
+folder, refused a <code>crun</code> with the platform's lists and a run with a <code>--cf</code>
+folder (<code>manifest_invalid</code>, a command index out of range of the plan's
+empty one list).</li>
+<li><strong>The newest scrapligo.</strong> <code>github.com/scrapli/scrapligo</code> v1.4.3 (from
+v1.4.2); the other six modules and Go 1.27.3 were the newest already. Its
+one change is to the NETCONF driver's hello under NETCONF 1.1, which
+<code>karvi</code> links and never runs; nothing the native transport sends or reads
+changes. <code>karvi version</code> and the transport's status in the help name
+scrapligo 1.4.3.</li>
+</ul>
 <h2 id="0350---2026-10-21">0.35.0 - 2026-10-21 <a class="anchor" href="#0350---2026-10-21" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.34.1 for a recorded login into the operator's folder,
 <code>--record=PATH</code>; every counter is 0.34.1's (configuration schema 6, registry
@@ -1833,7 +1958,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>

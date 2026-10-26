@@ -49,6 +49,7 @@
 <li><a href="#device-error-echo">Device-error echo</a></li>
 <li><a href="#start-statements-for-generic-devices">Start statements for generic devices</a></li>
 <li><a href="#long-commands-a-copy-and-a-show-tech">Long commands: a copy and a show tech</a></li>
+<li><a href="#a-command-list-per-device">A command list per device</a></li>
 <li><a href="#the-jobs-output-files">The job&#39;s output files</a></li>
 <li><a href="#the-spool-directory">The spool directory</a></li>
 <li><a href="#the-shared-trees">The shared trees</a></li>
@@ -93,9 +94,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -146,6 +147,7 @@
 <li><a href="#device-error-echo">Device-error echo</a></li>
 <li><a href="#start-statements-for-generic-devices">Start statements for generic devices</a></li>
 <li><a href="#long-commands-a-copy-and-a-show-tech">Long commands: a copy and a show tech</a></li>
+<li><a href="#a-command-list-per-device">A command list per device</a></li>
 <li><a href="#the-jobs-output-files">The job&#39;s output files</a></li>
 <li><a href="#the-spool-directory">The spool directory</a></li>
 <li><a href="#the-shared-trees">The shared trees</a></li>
@@ -190,9 +192,9 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.35.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.35.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.2 integration evidence — karvi v0.35.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
+<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -213,15 +215,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.34.1 build=fNsX8VA8zKCBF5ctuqyS
+<pre><code>daemon drained version=0.35.0 build=onQ7svRY49FAEYS1IIHv
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build fNsX8VA8zKCBF5ctuqyS 0.34.1
-  client build onQ7svRY49FAEYS1IIHv 0.35.0
+  daemon build onQ7svRY49FAEYS1IIHv 0.35.0
+  client build kXY4cc6JRtLekvXNL0My 0.36.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -1563,6 +1565,45 @@ file off the device.</li>
 with that command from one job to the next; after a bare line it goes with
 that job alone.</li>
 </ul>
+<h2 id="a-command-list-per-device">A command list per device <a class="anchor" href="#a-command-list-per-device" aria-label="Link to this section">#</a></h2>
+<p><code>--cf</code> given a folder sends each device its own file in it, <code>DIR/NAME</code>, NAME
+the device's collection file name (<code>core-nyc-01</code> for
+<code>core-nyc-01.example.net</code>, the whole name under <code>output.crop-to-dot = false</code>),
+read as a <code>--cf</code> file is. A tool writes the folder: a configuration rendered
+for each device, or the checks before and after a change. The selection still
+chooses the devices, and a file no selected device is named for is not read,
+so a canary is the same command with one target and the same folder.</p>
+<pre><code class="language-bash">karvi run --site nyc --cmd 'show clock' --cf rendered --cmd 'write memory'
+</code></pre>
+<p>sends each device <code>show clock</code>, its own file's lines, and <code>write memory</code>, in
+the order written; a declaration goes after its <code>--cmd</code>, never after the
+folder.</p>
+<ul>
+<li><strong>A device without its file</strong> stops the job at planning,
+<code>commands_file_missing</code> (exit 5), naming the folder and up to ten devices,
+each with the file it lacks. An empty or unreadable file, or a folder in its
+place, is <code>commands_file_empty</code> or <code>commands_file_unreadable</code> (exit 4).</li>
+<li><strong>Two devices with one file name</strong>, <code>core-nyc-01.example.net</code> beside
+<code>core-nyc-01.example.org</code> under the crop, are <code>commands_file_name_collision</code>
+(exit 5), whatever files the job writes.</li>
+<li><strong>A collection over the folder</strong> is refused at planning: a <code>crun</code>, or a
+<code>run</code> or <code>command</code> given <code>--cd</code> or <code>--fs</code>, whose collection directory is the
+<code>--cf</code> folder (with or without <code>--fs</code>), or whose collection file for a
+selected device is a <code>--cf</code> file of the run, links followed, is
+<code>commands_file_in_collection</code> (exit 4).</li>
+<li><strong><code>--dry-run</code></strong> shows each device's list on its <code>commands:</code> line.</li>
+<li><strong>The job folder</strong> keeps each device's list as <code>commands/NAME</code>, its <code>\r</code>
+returns written back, so <code>karvi run --tf J/failed-devices.txt --cf J/commands</code> reruns the failures, each with its own list.</li>
+<li><strong>The plan's size.</strong> Each device's list travels to the daemon in the plan,
+bounded by <code>daemon.max-ipc-frame-bytes</code> (8 MiB by default, at most 64 MiB).
+The plan is about 900 bytes a device before its list, and a list costs about
+its text: 2,500 devices of 40-line lists come to about 9 MB. A job over the
+bound is refused before any device is contacted, <code>ipc_frame_too_large</code> with
+the request's size over the bound; raise the key, split the selection, or
+run with <code>--no-daemon</code>, which sends no frame.</li>
+<li><strong>In a stream</strong>, a <code>--cf DIR</code> line stays from job to job and the folder is
+read as each job is planned, so a tool may rewrite the files between jobs.</li>
+</ul>
 <h2 id="the-jobs-output-files">The job's output files <a class="anchor" href="#the-jobs-output-files" aria-label="Link to this section">#</a></h2>
 <p>A job folder (<code>&lt;basedir&gt;/jobs/YYMMDD/&lt;job id&gt;/</code>) holds <code>summary.json</code>
 and seven other kinds of file, each with a true/false key under
@@ -1606,9 +1647,9 @@ is what reads it.</p>
 </tr>
 <tr>
 <td><code>commands-txt</code></td>
-<td><code>commands.txt</code></td>
-<td>the commands as requested</td>
-<td>the rerun's <code>--cf</code> file</td>
+<td><code>commands.txt</code> for one list, <code>commands.PLATFORM.txt</code> per platform, <code>commands/NAME</code> per device</td>
+<td>what each device was sent, as <code>--cf</code> lines</td>
+<td>the rerun's <code>--cf</code> file or folder</td>
 </tr>
 <tr>
 <td><code>manifest-json</code></td>
@@ -1630,8 +1671,12 @@ is what reads it.</p>
 with <code>output-txt = true</code> keeps text only. It is a one-way choice: without
 the records there is nothing to derive a device's text from again, and
 the notice of a text file that could not be written says so.</li>
-<li><strong>A rerun needs <code>failed-devices.txt</code> and <code>commands.txt</code> together</strong>
-(<code>karvi run --tf …/failed-devices.txt --cf …/commands.txt</code>).</li>
+<li><strong>A rerun needs <code>failed-devices.txt</code> and the commands together</strong>
+(<code>karvi run --tf …/failed-devices.txt --cf …/commands.txt</code>, or <code>--cf …/commands</code> beside a <code>--cf</code> folder). Each command's <code>\r</code> returns are
+written back, so the copy is read without <code>--literal</code>; an <code>--expect</code>, a
+<code>--blind</code> without returns, a <code>--timeout</code>, or a <code>--maxbytes</code> has no form in
+a file and stays in <code>manifest.json</code>'s plan, and a command whose own text
+ends in <code>\r</code>, which only <code>--literal</code> sends, reads back as returns.</li>
 <li><strong><code>summary.json</code> has no key: every folder holds it.</strong> It is written
 when the job is accepted, naming the job's devices, and again whole at
 the job's end with the result, the counts, the causes, and each
@@ -1639,8 +1684,10 @@ device's outcome; a job has ended when its summary names a final
 status. <code>karvi job list</code>, <code>karvi job follow</code>, and <code>karvi-prune</code> read
 it.</li>
 <li><strong>The summary names only the files that were written</strong> (<code>paths</code>, and
-<code>output.commands_jsonl</code>). The devices' text files are not listed; the
-name is <code>output.</code> + the device's name (or its address) + <code>.txt</code>.</li>
+<code>output.commands_jsonl</code>): <code>commands.txt</code> when every device is sent one
+list. The devices' text files and the per-platform and per-device command
+copies are not listed; the name is <code>output.</code> + the device's name (or its
+address) + <code>.txt</code>, and the copies are named as above.</li>
 <li><strong>All seven false leaves the folder with its summary alone.</strong> No folder
 at all is <code>output.persist-command = false</code>, the same as <code>cmd --nof</code>:
 the footer ends <code>artifacts=none</code>.</li>
@@ -1998,8 +2045,11 @@ rerun as for any run. A <code>crun</code> runs a device's whole list past a
 rejected statement.</p>
 </li>
 <li>
-<p><strong>The commands</strong> are <code>--cmd</code>, <code>--cf</code>, or the device text as on <code>run</code>;
-with none, each device is sent its platform's <code>crun-commands</code> list
+<p><strong>The commands</strong> are <code>--cmd</code>, <code>--cf</code>, or the device text as on <code>run</code>, a
+<code>--cf</code> folder or file never the collection's own
+(<code>commands_file_in_collection</code>, <a href="#a-command-list-per-device">&quot;A command list per
+device&quot;</a>); with none, each device is sent its
+platform's <code>crun-commands</code> list
 (<code>[platform.NAME] crun-commands = [...]</code>; the built-in platforms with a
 configuration ship the configuration and the version; a platform
 without a list refuses the run at planning, <code>--dry-run</code> shows each
@@ -2129,9 +2179,10 @@ command that begins with a dash goes as <code>--cmd</code>'s value: <code>--cmd 
 <li>The draft has two parts. The targets, the options, and the commands
 given in option form (<code>--cmd</code>, <code>-c</code>, <code>--command</code>, <code>--cf</code>, any
 spelling) stay from one job to the next; a command given as a bare
-line is the job's alone. <code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>,
-<code>--timeout</code>, and <code>--maxbytes</code> lines attach to the command before them
-and stay or clear with it. The
+line is the job's alone; a job's commands go in the order typed.
+<code>--expect</code>, <code>--blind</code>, <code>--blind-return</code>, <code>--timeout</code>, and <code>--maxbytes</code>
+lines attach to the command before them and stay or clear with it; one
+after a <code>--cf</code> line is dropped. The
 option words mean what they mean on a <code>run</code> command line,
 abbreviations and the <code>=</code> spelling included. An option whose value
 attaches with <code>=</code> alone takes it that way here too: a line <code>--of /tmp/x</code> is dropped with its number as <code>cli_option_value_detached</code>, and
@@ -2287,7 +2338,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.35.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.36.0</code>.</footer>
 </main>
 </body>
 </html>
