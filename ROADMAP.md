@@ -197,6 +197,52 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   for Linux servers ([`docs/EXAMPLES.md`, chapter
   24](docs/EXAMPLES.md#24-jobs-across-linux-servers-2026-10-04)), whose record
   of a command without a prompt it would build on.
+- **A device that is not a line CLI: a WTI DSM console server.** A WTI DSM
+  answers SSH at `DSM>` (its Scripting Options can make the prompt the site
+  ID) with slash commands (`/J`, `/RN`), asks `Sure?` of a switching command
+  unless `,Y` follows it, and sets its parameters in menus (`/N`, `/P`, `/F`):
+  an item's number, its value, Escape until `Saving Configuration` and the
+  prompt; the status screen `/S` is left by Escape, and some forms move by the
+  arrows and Tab. The device session sends a statement as a line, ends a
+  response at the platform's prompt on the last rendered line, writes an
+  `--expect` response with a carriage return, and renders a line, not a
+  screen: a cursor positioned anywhere ends the line
+  ([`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)). What it gains: the
+  DSM's settings collected and compared by `crun` as a router's are, its menus
+  walked by a command, and a method for the next device of its kind. The
+  parts, each taken only where a recording shows it needed: a
+  `[platform.NAME]` table admitting the definition's prompt pattern, exit
+  commands, and failure patterns (`generic`'s prompt pattern matches `DSM>`
+  today, but an alias of it closes with `exit` for `/X` and reports no rejected
+  command); keys in a statement and in an `--expect` response (Escape, Tab, the
+  arrows, Enter, Ctrl-X), a response that ends in a key written without the
+  carriage return, so the chain of expectations walks a menu as one statement;
+  a screen mode for a form that positions the cursor, a terminal of a fixed
+  size matched as a whole once it is quiet, its record the final screen; and a
+  recording that becomes the model: `transcript.format = "jsonl"`, the event
+  recorder named and refused today, keeping both directions with their times
+  (`script(1)`'s advanced log), a printable key the device does not echo
+  recorded `<removed>` and a named key by its name; a step that drafts from it
+  the prompt, the exit, and each response's last line paired with the keys
+  typed at it, as a `[platform.NAME]` table and a command file the operator
+  edits; and the fake device replaying the recording, so the draft is tested
+  without the device before the
+  [device-qualification track](#the-device-qualification-track) qualifies it on
+  one. Two ways beside it: WTI's REST API (JSON over HTTPS from its firmware
+  6.51: status, serial ports, users), a channel karvi does not have, NETCONF's
+  (above) the nearest; and a target reached through a console port (`/C 3`,
+  the attached device's platform after the hop, `^X` at close), out-of-band
+  access when the management network is down, an item of its own that needs
+  the keys. It waits on a unit: its firmware, `karvi command dsm1 /J --live`
+  under `generic`, and one session recorded raw in both directions under
+  `script -m advanced` (`/J`, `/RN`, `/S` and Escape, `/N` into an item and out
+  unchanged, `/X`, no secret typed), which shows what a login shows first, the
+  menus' wording, and whether a form positions the cursor. The questions: the
+  keys' spelling and the table's key names; a menu walk as one record or one
+  per screen; the screen mode's size and its record; where the recording's
+  secret rule fails (a device that echoes a password, a key typed ahead); and
+  whether the drafting step is karvi's or a tool's. For consideration; nothing
+  is decided.
 - **A device's banner kept out of `system`'s failure text.** OpenSSH writes a
   device's pre-authentication banner on its standard error at `LogLevel INFO`
   and above, among its own lines; the shell's command session (`VERBOSE`) and
