@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/helplayout"
+	"github.com/robert-patrick-texas/karvi/internal/planner"
 )
 
 func mustParse(t *testing.T, args ...string) *Invocation {
@@ -1001,7 +1003,7 @@ func TestLoadCommandsFileSendsLinesAsWritten(t *testing.T) {
 	if _, err = loadCommandsFile("-", strings.NewReader("")); errorcodes.Of(err) != "commands_file_empty" {
 		t.Fatalf("empty stdin: %v", err)
 	}
-	if _, err = loadCommandsFile(dir, nil); errorcodes.Of(err) != "commands_file_is_directory" {
+	if _, err = loadCommandsFile(dir, nil); errorcodes.Of(err) != "commands_file_unreadable" || !strings.Contains(err.Error(), "is a folder") {
 		t.Fatalf("folder: %v", err)
 	}
 	if _, err = loadCommandsFile(filepath.Join(dir, "missing"), nil); errorcodes.Of(err) != "commands_file_unreadable" {
@@ -1040,29 +1042,84 @@ func TestCommandsInTheOrderWritten(t *testing.T) {
 		t.Fatalf("sources %+v declarations %+v", inv.Sources, inv.Declarations)
 	}
 	var stderr bytes.Buffer
-	commands, decls, code, ok := commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr})
+	set, code, ok := commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr})
 	if !ok {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
-	if want := []string{"show clock", "show users", "show version", "show clock", "copy running-config startup-config"}; !reflect.DeepEqual(commands, want) {
-		t.Fatalf("commands %q, want %q", commands, want)
+	if want := []string{"show clock", "show users", "show version", "show clock", "copy running-config startup-config"}; !reflect.DeepEqual(set.commands, want) || set.perTarget != nil {
+		t.Fatalf("commands %q, want %q", set.commands, want)
 	}
-	if len(decls.expect) != 5 || len(decls.expect[4]) != 1 || decls.expect[4][0].Pattern != "Destination filename.*" {
-		t.Fatalf("expectations %+v: the --expect belongs to the copy, the fifth command", decls.expect)
+	if len(set.decl.expect) != 5 || len(set.decl.expect[4]) != 1 || set.decl.expect[4][0].Pattern != "Destination filename.*" {
+		t.Fatalf("expectations %+v: the --expect belongs to the copy, the fifth command", set.decl.expect)
 	}
 	if got := commandsFileNames(inv); !reflect.DeepEqual(got, []string{one, two}) {
 		t.Fatalf("file names %q", got)
 	}
 	// A file written before a --cmd is sent first, and one file may repeat.
 	inv = mustParse(t, "command", "r1", "--cf", two, "--cmd", "show users", "--cf", two)
-	if commands, _, _, ok = commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr}); !ok || !reflect.DeepEqual(commands, []string{"show clock", "show users", "show clock"}) {
-		t.Fatalf("file first: %q", commands)
+	if set, _, ok = commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr}); !ok || !reflect.DeepEqual(set.commands, []string{"show clock", "show users", "show clock"}) {
+		t.Fatalf("file first: %q", set.commands)
 	}
 	// Standard input once: a second --cf - is refused before any read.
 	inv = mustParse(t, "run", "--target", "r1", "--cf", "-", "--cf", "-")
 	stderr.Reset()
 	if _, ok := checkTargetSources(inv, &stderr); ok || !strings.HasPrefix(stderr.String(), "stdin_source_repeated: ") {
 		t.Fatalf("--cf - twice: %q", stderr.String())
+	}
+}
+
+// TestCommandsFromAFolder covers --cf DIR (EXAMPLES chapter 79): the
+// folder is read at planning, each name's file in its place among the
+// line's commands, a --cmd's declaration at that command's place in every
+// list, a file line's trailing \r its blind return; a name without its
+// file is MissingCommandsFile, and a file that cannot serve takes the --cf
+// file codes.
+func TestCommandsFromAFolder(t *testing.T) {
+	dir := t.TempDir()
+	lists := filepath.Join(dir, "lists")
+	for name, content := range map[string]string{"core-nyc-01": "show users\nclear counters\\r\n", "core-nyc-02": "show version\n", "empty": ""} {
+		if err := os.MkdirAll(lists, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(lists, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(lists, "nested"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	inv := mustParse(t, "run", "--target", "r1", "--cmd", "show clock", "--cf", lists, "--cmd", "copy running-config startup-config", "--expect", "Destination filename.*=")
+	var stderr bytes.Buffer
+	set, code, ok := commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr})
+	if !ok || set.perTarget == nil || len(set.commands) != 0 || !reflect.DeepEqual(set.folders, []string{lists}) {
+		t.Fatalf("exit %d %s: %+v", code, stderr.String(), set)
+	}
+	if got := commandsFileNames(inv); !reflect.DeepEqual(got, []string{lists}) {
+		t.Fatalf("file names %q", got)
+	}
+	one, err := set.perTarget("core-nyc-01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"show clock", "show users", "clear counters", "copy running-config startup-config"}; !reflect.DeepEqual(one.Commands, want) {
+		t.Fatalf("core-nyc-01 %q, want %q", one.Commands, want)
+	}
+	if !reflect.DeepEqual(one.BlindReturns, []int{0, 0, 1, 0}) || !reflect.DeepEqual(one.Blind, []bool{false, false, true, false}) || len(one.Expectations) != 4 || len(one.Expectations[3]) != 1 {
+		t.Fatalf("core-nyc-01 declarations %+v", one)
+	}
+	two, err := set.perTarget("core-nyc-02")
+	if err != nil || len(two.Commands) != 3 || len(two.Expectations) != 3 || len(two.Expectations[2]) != 1 || len(two.BlindReturns) != 0 {
+		t.Fatalf("core-nyc-02 %+v: %v", two, err)
+	}
+	var missing *planner.MissingCommandsFile
+	if _, err := set.perTarget("edge-sfo-01"); !errors.As(err, &missing) || missing.Folder != lists || missing.Name != "edge-sfo-01" {
+		t.Fatalf("no file: %v", err)
+	}
+	if _, err := set.perTarget("empty"); errorcodes.Of(err) != "commands_file_empty" {
+		t.Fatalf("an empty file: %v", err)
+	}
+	if _, err := set.perTarget("nested"); errorcodes.Of(err) != "commands_file_unreadable" || !strings.Contains(err.Error(), "is a folder") {
+		t.Fatalf("a folder in a device's place: %v", err)
 	}
 }
 

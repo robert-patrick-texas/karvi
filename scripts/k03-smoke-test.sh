@@ -108,7 +108,9 @@ run r8 0 -- command 127.0.0.1 --cf "$TMP/cmds";                            sent 
 run r9 0 -- command 127.0.0.1 --cf "$TMP/cmds" --cmd "show users" --cf "$TMP/cmds"; sent r9 "show clock" "" "# comment" "show version" "show users" "show clock" "" "# comment" "show version"
 : >"$TMP/empty"
 run r10 4 -- command 127.0.0.1 --cf "$TMP/empty";                          code r10 commands_file_empty
-run r11 4 -- command 127.0.0.1 --cf "$TMP";                                code r11 commands_file_is_directory
+run r11 5 -- command 127.0.0.1 --cf "$TMP";                                code r11 commands_file_missing
+install -d -m 700 "$TMP/lists"; printf 'show users\n' >"$TMP/lists/127-0-0-1"
+run r11b 0 -- command 127.0.0.1 --cmd "show clock" --cf "$TMP/lists";      sent r11b "show clock" "show users"
 printf '127.0.0.1\n' >"$TMP/targets"
 run r12 0 -- run --no-daemon --tf "$TMP/targets" show clock;               sent r12 "show clock"
 

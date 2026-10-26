@@ -80,6 +80,11 @@ type DraftOptions struct {
 	// limit above output.max-job-bytes.
 	Timeouts []int64
 	MaxBytes []int64
+	// TargetCommands, with a --cf folder on the line, builds each target's
+	// list in place of Commands and the five lists above, which are then
+	// empty; CommandFolders are the folders as given, for the refusals.
+	TargetCommands TargetCommands
+	CommandFolders []string
 
 	// Transport is the --transport override applied to every target.
 	Transport string
@@ -113,7 +118,7 @@ type DraftOptions struct {
 func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Operator, set TargetSet, opts DraftOptions, now time.Time) (executionplan.ExecutionPlan, error) {
 	// A crun with no command takes each platform's list, so
 	// its scope is the devices alone.
-	if len(set.Devices) == 0 || (len(opts.Commands) == 0 && !opts.PlatformCommands) {
+	if len(set.Devices) == 0 || (len(opts.Commands) == 0 && !opts.PlatformCommands && opts.TargetCommands == nil) {
 		return executionplan.ExecutionPlan{}, errorcodes.Errorf("activity_scope_empty", "at least one device and one command are required")
 	}
 	if opts.ActivityType == "" {
@@ -199,13 +204,21 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if err != nil {
 		return executionplan.ExecutionPlan{}, err
 	}
+	// A --cf folder's lists first: the folder is the job's input, and its
+	// refusals come before the output's.
+	var targetLists map[string]executionplan.CommandList
+	if opts.TargetCommands != nil {
+		if targetLists, err = targetCommandLists(cfg, targets, cfg.Bool("output.crop-to-dot"), opts.CommandFolders, opts.TargetCommands); err != nil {
+			return executionplan.ExecutionPlan{}, err
+		}
+	}
 	if !output.SkippedFiles(cfg, out.Crun()).OutputTxt || out.Collection != nil {
 		if err := checkFileNames(targets, cfg.Bool("output.crop-to-dot"), out.Collection); err != nil {
 			return executionplan.ExecutionPlan{}, err
 		}
 	}
 	var lists map[string][]string
-	if opts.PlatformCommands && len(opts.Commands) == 0 {
+	if opts.PlatformCommands && len(opts.Commands) == 0 && opts.TargetCommands == nil {
 		if lists, err = platformCommandLists(targets, cfg.NamedTables("platform")); err != nil {
 			return executionplan.ExecutionPlan{}, err
 		}
@@ -219,7 +232,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		SchemaVersion: executionplan.SchemaVersion, PlanID: planID,
 		Operator: executionplan.Operator{Username: operator.Username, UID: operator.UID, PrimaryGID: operator.PrimaryGID, Groups: append([]string(nil), operator.Groups...)},
 		Targets:  targets,
-		Commands: append([]string{}, opts.Commands...), CommandsFiles: commandsFiles, PlatformCommands: lists, PlatformFilters: filters, PlatformMasks: masks,
+		Commands: append([]string{}, opts.Commands...), CommandsFiles: commandsFiles, PlatformCommands: lists, TargetCommands: targetLists, PlatformFilters: filters, PlatformMasks: masks,
 		BlindReturns: append([]int{}, opts.BlindReturns...),
 		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),

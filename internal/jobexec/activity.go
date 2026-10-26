@@ -336,7 +336,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	}
 	devExec := executor.New(executor.Options{
 		Config: cfg, Operator: req.Operator, ActivityID: id, ActivityType: req.ActivityType, Kind: jobKind(req),
-		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, BlindReturns: plan.BlindReturns, Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
+		Commands: plan.Commands, PlatformCommands: plan.PlatformCommands, TargetCommands: plan.TargetCommands, BlindReturns: plan.BlindReturns, Blind: plan.Blind, Expectations: plan.Expectations, TimeoutsNS: plan.TimeoutsNS, MaxBytes: plan.MaxBytes,
 		SessionInit: plan.SessionInit, CandidateCount: req.CandidateCount, DispatchOrder: plan.Dispatch.DispatchOrder, ShuffleKey: plan.Dispatch.ShuffleKey,
 		Grants: req.Grants, Protection: req.Protection, Pinger: pinger,
 		Capacity: capManager, Store: store, Audit: auditSink, Metrics: sampler,
@@ -500,7 +500,7 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 func buildManifest(req Request, id string, accepted time.Time) records.Manifest {
 	initial := make([]records.InitialState, 0, len(req.Plan.Targets)*req.Plan.CommandCount())
 	for _, t := range req.Plan.Targets {
-		for i := range req.Plan.CommandsFor(t.Device.Platform) {
+		for i := range req.Plan.CommandsFor(&t) {
 			initial = append(initial, records.InitialState{DeviceID: t.TargetID, CommandIndex: i + 1, State: "not_started"})
 		}
 	}

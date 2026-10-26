@@ -2,11 +2,13 @@ package executionplan
 
 import (
 	"encoding/json"
+	"maps"
 	"net/netip"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
 	"github.com/robert-patrick-texas/karvi/inventory"
 )
 
@@ -534,10 +536,12 @@ func TestPlatformCommands(t *testing.T) {
 	if err := p.Validate(Draft); err != nil {
 		t.Fatalf("lists in place of commands: %v", err)
 	}
-	if got := p.CommandsFor(one); len(got) != 2 || got[0] != "show running-config" {
+	of := ExecutionTarget{Device: DeviceProjection{Platform: one}}
+	if got := p.CommandsFor(&of); len(got) != 2 || got[0] != "show running-config" {
 		t.Fatalf("CommandsFor: %q", got)
 	}
-	if got := p.CommandsFor("no-such-platform"); len(got) != 0 {
+	other := ExecutionTarget{Device: DeviceProjection{Platform: "no-such-platform"}}
+	if got := p.CommandsFor(&other); len(got) != 0 {
 		t.Fatalf("a platform without a list falls back to the plan's commands, which are none: %q", got)
 	}
 	if p.CommandCount() != 2 {
@@ -595,6 +599,80 @@ func TestPlatformCommands(t *testing.T) {
 		c.Output.Collection = &CollectionSettings{Directory: "/srv/karvi/crun", Word: w}
 		if err := c.Validate(Draft); err == nil || !strings.Contains(err.Error(), "output.collection.word") {
 			t.Fatalf("word %q: %v", w, err)
+		}
+	}
+}
+
+// TestTargetCommands covers the lists per target at schema 15 (EXAMPLES
+// chapter 79): one for every target in place of the plan's commands, each
+// with its declarations under the plan's own rules, ListFor and the counts
+// reading them, and the schema holding them.
+func TestTargetCommands(t *testing.T) {
+	base := fixtureDraftPlan(t)
+	empty := func(commands ...string) CommandList {
+		return CommandList{Commands: commands, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}
+	}
+	withLists := func() ExecutionPlan {
+		p := base
+		p.Commands = []string{}
+		p.TargetCommands = map[string]CommandList{}
+		for i, tg := range p.Targets {
+			list := empty("show clock")
+			for j := 0; j < i; j++ {
+				list.Commands = append(list.Commands, "show version")
+			}
+			p.TargetCommands[tg.TargetID] = list
+		}
+		first := p.TargetCommands[p.Targets[0].TargetID]
+		first.Commands = []string{"show clock", "copy running-config startup-config"}
+		first.Expectations = [][]Expectation{{}, {{Pattern: "Destination filename.*", Response: ""}}}
+		first.MaxBytes = []int64{0, 4096}
+		p.TargetCommands[p.Targets[0].TargetID] = first
+		return p
+	}
+	p := withLists()
+	if err := p.Validate(Draft); err != nil {
+		t.Fatalf("lists per target: %v", err)
+	}
+	canarytest.SchemaParity(t, planSchema, p)
+	if got := p.CommandsFor(&p.Targets[0]); len(got) != 2 || got[1] != "copy running-config startup-config" {
+		t.Fatalf("CommandsFor: %q", got)
+	}
+	if got := p.ListFor(&p.Targets[0]); len(got.Expectations) != 2 || got.Expectations[1][0].Pattern != "Destination filename.*" {
+		t.Fatalf("ListFor carries the declarations: %+v", got)
+	}
+	if n := p.CommandCount(); n != len(p.Targets) {
+		t.Fatalf("CommandCount %d, want the longest list, %d", n, len(p.Targets))
+	}
+	if limit, declared := p.LargestCommandLimit(1024); limit != 4096 || !declared {
+		t.Fatalf("LargestCommandLimit %d %v, want a target's declaration", limit, declared)
+	}
+	for _, c := range []struct {
+		name string
+		edit func(*ExecutionPlan)
+		want string
+	}{
+		{"a target without a list", func(p *ExecutionPlan) { delete(p.TargetCommands, p.Targets[1].TargetID) }, "execution_plan_invalid: target_commands: target"},
+		{"a list for no target", func(p *ExecutionPlan) { p.TargetCommands["name:other.example.net"] = empty("show clock") }, "is not a target of the plan"},
+		{"commands beside them", func(p *ExecutionPlan) { p.Commands = []string{"show clock"} }, "carries no commands or platform lists of its own"},
+		{"an empty list", func(p *ExecutionPlan) { p.TargetCommands[p.Targets[1].TargetID] = empty() }, "commands: at least one command is required"},
+		{"a NUL", func(p *ExecutionPlan) { p.TargetCommands[p.Targets[1].TargetID] = empty("show\x00clock") }, "contains a NUL byte"},
+		{"declarations of another length", func(p *ExecutionPlan) {
+			l := p.TargetCommands[p.Targets[1].TargetID]
+			l.Blind = []bool{true, false, false}
+			p.TargetCommands[p.Targets[1].TargetID] = l
+		}, ".blind: 3 entries for 2 commands"},
+		{"a negative bound", func(p *ExecutionPlan) {
+			l := p.TargetCommands[p.Targets[0].TargetID]
+			l.TimeoutsNS = []int64{0, -1}
+			p.TargetCommands[p.Targets[0].TargetID] = l
+		}, ".timeouts_ns: command 2"},
+	} {
+		q := withLists()
+		q.TargetCommands = maps.Clone(q.TargetCommands)
+		c.edit(&q)
+		if err := q.Validate(Draft); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v, want %q", c.name, err, c.want)
 		}
 	}
 }

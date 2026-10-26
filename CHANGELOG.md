@@ -57,6 +57,28 @@
   `commands_file` (execution plan 15); the scoreboard's `commands.files` in
   place of `commands.file` does the same, and the watch screen's pane line
   joins them: `run: 3 statements from one.txt, two.txt`.
+- **`--cf` takes a folder: each device its own list.** On `command`, `run`,
+  `crun`, and a stream, `--cf DIR` sends each selected device the file
+  `DIR/NAME`, NAME its collection file's (`core-nyc-01`, the whole name under
+  `output.crop-to-dot = false`), read as a `--cf` file in its place among the
+  line's commands; a file no selected device is named for is not read. A
+  selected device without its file is refused at planning with the new code
+  `commands_file_missing` (exit 5), naming the folder and up to ten devices
+  with the file each lacks, and two selected devices with one file name with
+  the new code `commands_file_name_collision` (exit 5), whatever files the
+  job writes; an empty or unreadable file, or a folder in its place, is
+  `commands_file_empty` or `commands_file_unreadable` (exit 4), and
+  `commands_file_is_directory` is retired. The plan carries each device's
+  list with its declarations, `target_commands` (execution plan 15);
+  `--dry-run` shows each device's list on its `commands:` line; a stream
+  reads the folder as each job is planned.
+- **`ipc_frame_too_large` gives the size over the bound.** A request over
+  `daemon.max-ipc-frame-bytes` is refused with its size over the bound,
+  stacked, where the message named the bound alone, and a frame read over it
+  names the key. A plan carrying many devices' lists can reach the bound:
+  about 9 MB for 2,500 devices of 40-line lists, over the 8 MiB default
+  ([`docs/OPERATIONS.md`, "A command list per
+  device"](docs/OPERATIONS.md#a-command-list-per-device)).
 
 ## 0.35.0 - 2026-10-21
 

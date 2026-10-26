@@ -122,9 +122,10 @@ Active failure causes.
 | `command_session_stdin_pipe_failed` | internal | 1 | no | The standard-input pipe for the direct command session cannot be created. |
 | `command_session_stdout_pipe_failed` | internal | 1 | no | The standard-output pipe for the direct command session cannot be created. |
 | `command_timeout` | timeout | 107 | yes | A device command does not complete before the command timeout. |
-| `commands_file_empty` | usage | 4 | no | The `--cf` file or standard input has zero bytes. |
-| `commands_file_is_directory` | usage | 4 | no | The `--cf` path is a folder. |
-| `commands_file_unreadable` | usage | 4 | no | A `--cf` file cannot be opened or read. |
+| `commands_file_empty` | usage | 4 | no | The `--cf` file, a device's file in a `--cf` folder, or standard input has zero bytes. |
+| `commands_file_missing` | inventory | 5 | no | A `--cf` folder holds no file for a device of the target set: each device is sent `DIR/NAME`, NAME its collection file's (`output.crop-to-dot`); refused at planning, before any device is contacted, naming the folder and up to ten devices, each with the file it lacks. Write the files, or leave the devices out of the selection. |
+| `commands_file_name_collision` | inventory | 5 | no | Two devices of the target set would read one file of a `--cf` folder: under `output.crop-to-dot` a device name's file name is its first label, and `core.example.net` beside `core.example.com` is one `DIR/core`; refused at planning, whatever files the job writes, naming the file and the devices. Set `output.crop-to-dot = false`, or run the two apart. |
+| `commands_file_unreadable` | usage | 4 | no | A `--cf` file, or a device's file in a `--cf` folder, cannot be opened or read, or is itself a folder. |
 | `config_audit_disabled` | config | 2 | no | `audit.enabled` is false; auditing cannot be disabled. |
 | `config_audit_file_required_missing` | config | 2 | no | `audit.file-required` is true but `audit.file` is empty. |
 | `config_builtin_default_invalid` | internal | 1 | no | A built-in configuration default cannot be parsed. |
@@ -422,7 +423,7 @@ Active failure causes.
 | `inventory_source_pattern_invalid` | inventory | 5 | no | An inventory source `path` is not a valid glob pattern. |
 | `inventory_source_unreadable` | inventory | 5 | no | An inventory source file cannot be read. |
 | `ipc_encode_failed` | internal | 112 | no | The daemon cannot encode a response. |
-| `ipc_frame_too_large` | dependency | 112 | no | An IPC frame exceeds the maximum frame size. |
+| `ipc_frame_too_large` | dependency | 112 | no | An IPC frame exceeds `daemon.max-ipc-frame-bytes`, as a job's plan does with many targets and long lists under a `--cf` folder, each target's list carried in the plan. Raise the key (at most 64 MiB), split the selection, or run with `--no-daemon`, which sends no frame. |
 | `ipc_invalid_json` | dependency | 112 | no | An IPC frame is not valid JSON. |
 | `ipc_operation_unknown` | dependency | 112 | no | An IPC request names an unknown operation. |
 | `ipc_peer_credentials_missing` | dependency | 112 | no | The IPC socket reports no peer credentials. |
@@ -723,6 +724,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `cloginrc_shared_owner_unapproved` | v0.11.0 to v0.17.0 | `credential_file_shared_owner_unapproved` | A shared credential file is owned by a user not in `security.approved-admin-users`. One code per condition for every credential file backend. |
 | `cloginrc_symlink_rejected` | v0.11.0 to v0.17.0 | `credential_file_symlink_rejected` | A `.cloginrc` path is a symlink while credential symlinks are not allowed. One code per condition for every credential file backend. |
 | `command_device_error` | v0.10.0 (catalog name) | `device_command_error` | Device reported a command error. |
+| `commands_file_is_directory` | v0.36.0 | `commands_file_unreadable` | The `--cf` path was a folder; `--cf` now takes a folder, each device sent its own file in it, and a folder in a device's place is `commands_file_unreadable`. |
 | `commands_file_repeated` | v0.36.0 | `stdin_source_repeated` | `--cf` was given more than once; it now repeats, each file's lines in its place on the line, and a second `--cf -` is `stdin_source_repeated`. |
 | `config_credential_backend_scope_unsupported` | v0.30.0 | `config_credential_backend_key_unsupported` | `scope` or `required` was set on a credential backend that is not a file backend; every key a backend's type does not read is refused under one code. |
 | `config_daemon_idle_timer_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `daemon.shutdown-idle-timer` is neither 0 (never) nor within 1m..720h. Replaced at v0.14.0 by the one range rule over the registry rows. |

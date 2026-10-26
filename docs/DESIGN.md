@@ -1499,38 +1499,51 @@ not what the line shows); the first file's name alone, or none, on the watch
 screen ([`docs/EXAMPLES.md`, chapter
 79](EXAMPLES.md#79-a-command-file-per-target-2026-10-25)).
 
-**A job may send each target its own command list: `--cf DIR`.** `--cf` names
-a file or a folder. A folder sends each selected target the file `DIR/NAME`,
-NAME its collection file's (`core-nyc-01`, lowercase; the whole name under
-`output.crop-to-dot = false`), with no suffix and no skip list, read as a
-`--cf` file is. A selected target without its file is refused at planning, and
-so are two selected targets with one name; a file no selected target is named
-for is left unread, so a canary is the same command with one target and the
-same folder. A collection into a `--cf` folder, or onto a `--cf` file, of the
-same run is refused at planning, on `crun` and on `run` or `command` with
-`--cd` or `--fs`; on `crun`, commands on the line replace the platform's
-`crun-commands` as they always have. The plan carries each target's list and no
-digest of its own: `plan_digest`, which the daemon's commit, the idempotency
-key, and the credential package read, covers the whole plan. `--dry-run` shows
-each target's list. The job folder keeps what each device was sent as `--cf`
-lines, each command's `\r` returns written back: `commands.txt` for one list,
-`commands.PLATFORM.txt` per platform, and `commands/NAME` per target, so `--tf
-failed-devices.txt --cf commands` from the job folder reruns the failures with
-their own lists; an `--expect`, a `--blind` without returns, a `--timeout`, or a
-`--maxbytes` has no form in a file and is the plan's alone. In a stream, a `--cf
-DIR` line stays from job to job as any `--cf` line does and is read at each
-`--go`. *Why:* a rendered configuration and the checks before and after a change
-differ per target; the plan already holds lists that differ by target, a
-collection's platform lists, and one function names a device's file; a lookup by
-exact name reads nothing else in the folder, so it needs no skip list; `--fs` is
-the collection's suffix, which on a run turns a collection on, so as the
-folder's it would write a device's output over its list; and a digest earns its
-place by a reader that needs it, which the lists' never had. *Not taken:* a job
-per target (the one job's accounting, scoreboard, dispatch, and admission lost);
-a separate option for the folder (one more to learn, the same reader); a folder
-that must match the selection (a canary would need a folder of its own); a
-suffix or `--tf`'s skip list; `--cmd` refused beside a folder (the operator's
-stacked actions lost); a digest over the lists.
+**A job may send each target its own command list: `--cf DIR`.** `--cf` names a
+file or a folder. A folder sends each selected target the file `DIR/NAME`, NAME
+its collection file's (`core-nyc-01`, lowercase; the whole name under
+`output.crop-to-dot = false`), with no suffix and no skip list, read as a `--cf`
+file is. A selected target without its file is refused at planning,
+`commands_file_missing` naming the folder and up to ten devices with the file
+each lacks, and so are two selected targets with one name,
+`commands_file_name_collision` naming the file and the devices, whatever files
+the job writes; a file that cannot serve takes the `--cf` file codes; a file no
+selected target is named for is left unread, so a canary is the same command
+with one target and the same folder. A collection into a `--cf` folder, or onto
+a `--cf` file, of the same run is refused at planning, on `crun` and on `run` or
+`command` with `--cd` or `--fs`; on `crun`, commands on the line replace the
+platform's `crun-commands` as they always have. The plan carries each target's
+list and no digest of its own: `plan_digest`, which the daemon's commit, the
+idempotency key, and the credential package read, covers the whole plan
+(`target_commands`, each list with its commands' declarations). The lists travel
+in the plan, bounded as any plan by `daemon.max-ipc-frame-bytes`, whose refusal
+gives the request's size over the bound: the plan is about 900 bytes a target
+before its list, so 2,500 targets of 40-line lists come to about 9 MB.
+`--dry-run` shows each target's list. The job folder keeps what each device was
+sent as `--cf` lines, each command's `\r` returns written back: `commands.txt`
+for one list, `commands.PLATFORM.txt` per platform, and `commands/NAME` per
+target, so `--tf failed-devices.txt --cf commands` from the job folder reruns
+the failures with their own lists; an `--expect`, a `--blind` without returns, a
+`--timeout`, or a `--maxbytes` has no form in a file and is the plan's alone. In
+a stream, a `--cf DIR` line stays from job to job as any `--cf` line does and is
+read at each `--go`. *Why:* a rendered configuration and the checks before and
+after a change differ per target; the plan already holds lists that differ by
+target, a collection's platform lists, and one function names a device's file; a
+lookup by exact name reads nothing else in the folder, so it needs no skip list;
+`--fs` is the collection's suffix, which on a run turns a collection on, so as
+the folder's it would write a device's output over its list; and a digest earns
+its place by a reader that needs it, which the lists' never had; the codes are
+the input's, not the output's, and two devices collide on a folder's file
+whether or not anything is written. *Not taken:* a job per target (the one job's
+accounting, scoreboard, dispatch, and admission lost); a separate option for the
+folder (one more to learn, the same reader); a folder that must match the
+selection (a canary would need a folder of its own); a suffix or `--tf`'s skip
+list; `--cmd` refused beside a folder (the operator's stacked actions lost); a
+digest over the lists; `output_file_name_collision` widened (its name and "would
+both write" wrong for an input); a larger default frame (every request may hold
+that much of the daemon's memory), each distinct list once (only lists devices
+share, which `--cf FILE` sends once), or the lists in a transfer of their own (a
+new channel for a limit not met).
 
 **Address authority is `client` or `daemon`, and one selection rule serves
 both.** A literal address wins, then the inventory management address, then the

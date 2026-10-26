@@ -1389,6 +1389,42 @@ as `--expect` does
   with that command from one job to the next; after a bare line it goes with
   that job alone.
 
+## A command list per device
+
+`--cf` given a folder sends each device its own file in it, `DIR/NAME`, NAME
+the device's collection file name (`core-nyc-01` for
+`core-nyc-01.example.net`, the whole name under `output.crop-to-dot = false`),
+read as a `--cf` file is. A tool writes the folder: a configuration rendered
+for each device, or the checks before and after a change. The selection still
+chooses the devices, and a file no selected device is named for is not read,
+so a canary is the same command with one target and the same folder.
+
+```bash
+karvi run --site nyc --cmd 'show clock' --cf rendered --cmd 'write memory'
+```
+
+sends each device `show clock`, its own file's lines, and `write memory`, in
+the order written; a declaration goes after its `--cmd`, never after the
+folder.
+
+- **A device without its file** stops the job at planning,
+  `commands_file_missing` (exit 5), naming the folder and up to ten devices,
+  each with the file it lacks. An empty or unreadable file, or a folder in its
+  place, is `commands_file_empty` or `commands_file_unreadable` (exit 4).
+- **Two devices with one file name**, `core-nyc-01.example.net` beside
+  `core-nyc-01.example.org` under the crop, are `commands_file_name_collision`
+  (exit 5), whatever files the job writes.
+- **`--dry-run`** shows each device's list on its `commands:` line.
+- **The plan's size.** Each device's list travels to the daemon in the plan,
+  bounded by `daemon.max-ipc-frame-bytes` (8 MiB by default, at most 64 MiB).
+  The plan is about 900 bytes a device before its list, and a list costs about
+  its text: 2,500 devices of 40-line lists come to about 9 MB. A job over the
+  bound is refused before any device is contacted, `ipc_frame_too_large` with
+  the request's size over the bound; raise the key, split the selection, or
+  run with `--no-daemon`, which sends no frame.
+- **In a stream**, a `--cf DIR` line stays from job to job and the folder is
+  read as each job is planned, so a tool may rewrite the files between jobs.
+
 ## The job's output files
 
 A job folder (`<basedir>/jobs/YYMMDD/<job id>/`) holds `summary.json`

@@ -354,9 +354,12 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 		// so an override is seen before anything is sent; the channel is the
 		// one the platform resolved to.
 		fmt.Fprintf(&b, "  intended: ping=%s transport=%s port=%d platform=%s channel=%s\n", describeIntendedPing(t.IntendedPing), t.IntendedTransport.Transport, t.IntendedTransport.Port, pt.Device.Platform, pt.Channel)
-		// A crun's device runs its platform's list: shown
-		// per device, since the lists differ across platforms.
-		if list, ok := r.Plan.PlatformCommands[pt.Device.Platform]; ok {
+		// A device that runs a list of its own, its file in a --cf folder,
+		// or its platform's under a crun: shown per device, since the
+		// lists differ.
+		if list, ok := r.Plan.TargetCommands[pt.TargetID]; ok {
+			fmt.Fprintf(&b, "  commands: %s\n", strings.Join(list.Commands, "; "))
+		} else if list, ok := r.Plan.PlatformCommands[pt.Device.Platform]; ok {
 			fmt.Fprintf(&b, "  commands: %s\n", strings.Join(list, "; "))
 		}
 		for _, f := range t.Findings {

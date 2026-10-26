@@ -80,8 +80,8 @@ commands given in option form (--cmd, -c, --command, --cf); a command given
 as a bare line is the job's alone. --expect, --blind, --blind-return,
 --timeout, and --maxbytes lines attach to the command before them, a --cmd
 or a bare line; one after a --cf line is dropped. A job's commands go in the
-order typed. --cf, --tf, and --tfr may not name -: standard input is the
-stream.
+order typed, and a --cf folder is read as each job is planned. --cf, --tf,
+and --tfr may not name -: standard input is the stream.
 
 Directives, each a whole line, one dash or two:
   --go, --sendit                 Execute the draft as run; the bare-line
@@ -227,7 +227,9 @@ Device commands (one form per invocation):
   Positional words after the device are joined with one space into one command.
   --cmd TEXT, --command, --c     Separate command; repeatable
   --cf PATH|-                    One command per line, sent as written;
-                                 repeatable; - reads standard input
+                                 repeatable; - reads standard input; a
+                                 folder sends the device its own file,
+                                 DIR/NAME, NAME its collection file's
   --cmd and --cf mix, sent in the order given.
   A command ending in \r sequences is sent without them, followed by that
   many carriage returns before the prompt is read (a [confirm] answer), and is
@@ -403,7 +405,10 @@ Device commands (one form per invocation):
   Positional words are joined with one space into one command.
   --cmd TEXT, --command, --c     Separate command; repeatable
   --cf PATH|-                    One command per line, sent as written;
-                                 repeatable
+                                 repeatable; a folder sends each device its
+                                 own file, DIR/NAME, NAME its collection
+                                 file's (a device without one refuses the
+                                 run)
   --cmd and --cf mix, sent in the order given.
   A command ending in \r sequences is sent without them, followed by that
   many carriage returns before the prompt is read (a [confirm] answer), and is

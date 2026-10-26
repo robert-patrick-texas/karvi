@@ -44,7 +44,8 @@ import (
 // platform's mask list (EXAMPLES chapter 63, issue 8); 15 command_plan_digest
 // removed from the plan and the header, read only by checks against the same
 // message, and, without another bump (15 was unreleased), commands_file
-// become commands_files, every --cf's base name (EXAMPLES chapter 79).
+// become commands_files, every --cf's base name, and target_commands, each
+// target's list under a --cf folder (EXAMPLES chapter 79).
 const SchemaVersion = 15
 
 // Mode is the requested execution mode of a job.
@@ -131,6 +132,13 @@ type ExecutionPlan struct {
 	// Commands is empty. The blind and expect declarations belong to
 	// Commands alone.
 	PlatformCommands map[string][]string `json:"platform_commands,omitempty"`
+	// TargetCommands is a command list per target (schema 15), by target
+	// ID: a run with a --cf folder on its line sends each target the
+	// line's commands in the order written, the folder's file for the
+	// target in its place, each command with its declarations. Present for
+	// every target or for none; with it Commands and PlatformCommands are
+	// empty.
+	TargetCommands map[string]CommandList `json:"target_commands,omitempty"`
 	// PlatformFilters is a drop list per platform for the collection file
 	// (schema 9): the patterns the writer
 	// applies to each output line of a record of that platform; a platform
@@ -301,23 +309,56 @@ var CollectionWords = []string{"crun", "run", "command"}
 // for as crun.
 func (o OutputSettings) Crun() bool { return o.Collection != nil && o.Collection.Word == "crun" }
 
-// CommandsFor is the command list a device of platform runs: its platform's
-// list when the plan holds one, else the plan's Commands.
-func (p *ExecutionPlan) CommandsFor(platform string) []string {
-	if list, ok := p.PlatformCommands[platform]; ok {
+// CommandList is one list of device commands with each command's
+// declarations: the five lists parallel to Commands, each empty when no
+// command has one or one entry per command, as the plan's own fields are
+// (validateBlindSends, validateCommandBounds). The plan's own list is one;
+// each target of a run with a --cf folder has its own (TargetCommands).
+type CommandList struct {
+	Commands     []string        `json:"commands"`
+	BlindReturns []int           `json:"blind_returns"`
+	Blind        []bool          `json:"blind"`
+	Expectations [][]Expectation `json:"expectations"`
+	TimeoutsNS   []int64         `json:"timeouts_ns"`
+	MaxBytes     []int64         `json:"max_bytes"`
+}
+
+// ownList is the plan's own list: Commands and its five fields.
+func (p *ExecutionPlan) ownList() CommandList {
+	return CommandList{Commands: p.Commands, BlindReturns: p.BlindReturns, Blind: p.Blind, Expectations: p.Expectations, TimeoutsNS: p.TimeoutsNS, MaxBytes: p.MaxBytes}
+}
+
+// ListFor is the command list target runs: its own when the plan carries
+// one per target, else its platform's when the plan holds one (with no
+// declarations), else the plan's.
+func (p *ExecutionPlan) ListFor(t *ExecutionTarget) CommandList {
+	if list, ok := p.TargetCommands[t.TargetID]; ok {
 		return list
 	}
-	return p.Commands
+	if list, ok := p.PlatformCommands[t.Device.Platform]; ok {
+		return CommandList{Commands: list, BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{}}
+	}
+	return p.ownList()
+}
+
+// CommandsFor is the commands target runs (ListFor's).
+func (p *ExecutionPlan) CommandsFor(t *ExecutionTarget) []string {
+	return p.ListFor(t).Commands
 }
 
 // CommandCount is the figure the metrics and the reports call "commands":
-// the length of Commands, or of the longest platform list when the plan
-// carries lists alone.
+// the length of Commands, or of the longest platform or target list when
+// the plan carries lists alone.
 func (p *ExecutionPlan) CommandCount() int {
 	n := len(p.Commands)
 	for _, list := range p.PlatformCommands {
 		if len(list) > n {
 			n = len(list)
+		}
+	}
+	for _, list := range p.TargetCommands {
+		if len(list.Commands) > n {
+			n = len(list.Commands)
 		}
 	}
 	return n
@@ -466,13 +507,16 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 			return fmt.Errorf("execution_plan_invalid: targets[%d]: %w", i, err)
 		}
 	}
-	if len(p.Commands) == 0 && len(p.PlatformCommands) == 0 {
+	if len(p.Commands) == 0 && len(p.PlatformCommands) == 0 && len(p.TargetCommands) == 0 {
 		return planInvalid("commands", "at least one command is required")
 	}
 	for i, c := range p.Commands {
 		if strings.ContainsRune(c, 0) {
 			return planInvalid("commands", "command %d contains a NUL byte", i+1)
 		}
+	}
+	if err := p.validateTargetCommands(); err != nil {
+		return err
 	}
 	for name, list := range p.PlatformCommands {
 		if len(list) == 0 {
@@ -484,7 +528,7 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 			}
 		}
 	}
-	if len(p.Commands) == 0 {
+	if len(p.Commands) == 0 && len(p.TargetCommands) == 0 {
 		for _, t := range p.Targets {
 			if _, ok := p.PlatformCommands[t.Device.Platform]; !ok {
 				return planInvalid("platform_commands", "target %s is platform %s, which has no list", t.TargetID, t.Device.Platform)
@@ -527,13 +571,14 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 			return planInvalid("output.collection.suffix", "%q %s", c.Suffix, problem)
 		}
 	}
-	if err := p.validateBlindSends(); err != nil {
+	own := p.ownList()
+	if err := own.validateBlindSends(""); err != nil {
+		return err
+	}
+	if err := own.validateCommandBounds(""); err != nil {
 		return err
 	}
 	if err := p.validateExecDeclarations(); err != nil {
-		return err
-	}
-	if err := p.validateCommandBounds(); err != nil {
 		return err
 	}
 	if err := p.validateSessionInit(); err != nil {
@@ -625,17 +670,64 @@ func (p *ExecutionPlan) validateExecDeclarations() error {
 		if t.Channel != ChannelExec {
 			continue
 		}
-		for i := range p.Commands {
+		list := p.ListFor(&t)
+		for i := range list.Commands {
 			kind := ""
 			switch {
-			case i < len(p.Blind) && p.Blind[i]:
+			case i < len(list.Blind) && list.Blind[i]:
 				kind = "a blind send (--blind, --blind-return, or a trailing \\r)"
-			case i < len(p.Expectations) && len(p.Expectations[i]) > 0:
+			case i < len(list.Expectations) && len(list.Expectations[i]) > 0:
 				kind = "an --expect"
 			}
 			if kind != "" {
 				return fmt.Errorf("channel_exec_declaration_refused: %s: command %d carries %s, which answers a terminal, and the target's platform runs it on an exec channel, which has none; remove the declaration or use a platform on the shell channel", t.Device.CanonicalName, i+1, kind)
 			}
+		}
+	}
+	return nil
+}
+
+// validateTargetCommands checks the lists per target: present for every
+// target or for none, none for a target the plan does not list, and with
+// them neither Commands nor platform lists; each list's commands present
+// and free of NUL, its declarations under the plan's own rules.
+func (p *ExecutionPlan) validateTargetCommands() error {
+	if len(p.TargetCommands) == 0 {
+		return nil
+	}
+	if len(p.Commands) > 0 || len(p.PlatformCommands) > 0 {
+		return planInvalid("target_commands", "a plan with target lists carries no commands or platform lists of its own")
+	}
+	listed := make(map[string]bool, len(p.Targets))
+	for _, t := range p.Targets {
+		if _, ok := p.TargetCommands[t.TargetID]; !ok {
+			return planInvalid("target_commands", "target %q has no list", t.TargetID)
+		}
+		listed[t.TargetID] = true
+	}
+	ids := make([]string, 0, len(p.TargetCommands))
+	for id := range p.TargetCommands {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		if !listed[id] {
+			return planInvalid("target_commands", "%q is not a target of the plan", id)
+		}
+		list, at := p.TargetCommands[id], "target_commands."+id+"."
+		if len(list.Commands) == 0 {
+			return planInvalid(at+"commands", "at least one command is required")
+		}
+		for i, c := range list.Commands {
+			if strings.ContainsRune(c, 0) {
+				return planInvalid(at+"commands", "command %d contains a NUL byte", i+1)
+			}
+		}
+		if err := list.validateBlindSends(at); err != nil {
+			return err
+		}
+		if err := list.validateCommandBounds(at); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -650,52 +742,52 @@ func (p *ExecutionPlan) validateExecDeclarations() error {
 // count implies the tolerance and the client records the implication; and
 // no command with both a count above zero and a declaration. The daemon
 // validates the plan it is given, so these rules hold whatever client
-// drafted it.
-func (p *ExecutionPlan) validateBlindSends() error {
-	if p.BlindReturns == nil {
-		return planInvalid("blind_returns", "must be present (empty allowed)")
+// drafted it. at prefixes each field named, empty for the plan's own list.
+func (l CommandList) validateBlindSends(at string) error {
+	if l.BlindReturns == nil {
+		return planInvalid(at+"blind_returns", "must be present (empty allowed)")
 	}
-	if len(p.BlindReturns) != 0 && len(p.BlindReturns) != len(p.Commands) {
-		return planInvalid("blind_returns", "%d entries for %d commands; empty or one per command", len(p.BlindReturns), len(p.Commands))
+	if len(l.BlindReturns) != 0 && len(l.BlindReturns) != len(l.Commands) {
+		return planInvalid(at+"blind_returns", "%d entries for %d commands; empty or one per command", len(l.BlindReturns), len(l.Commands))
 	}
-	for i, n := range p.BlindReturns {
+	for i, n := range l.BlindReturns {
 		if n < 0 || n > BlindReturnsMax {
-			return planInvalid("blind_returns", "command %d: %d must be 0..%d", i+1, n, BlindReturnsMax)
+			return planInvalid(at+"blind_returns", "command %d: %d must be 0..%d", i+1, n, BlindReturnsMax)
 		}
 	}
-	if p.Blind == nil {
-		return planInvalid("blind", "must be present (empty allowed)")
+	if l.Blind == nil {
+		return planInvalid(at+"blind", "must be present (empty allowed)")
 	}
-	if len(p.Blind) != 0 && len(p.Blind) != len(p.Commands) {
-		return planInvalid("blind", "%d entries for %d commands; empty or one per command", len(p.Blind), len(p.Commands))
+	if len(l.Blind) != 0 && len(l.Blind) != len(l.Commands) {
+		return planInvalid(at+"blind", "%d entries for %d commands; empty or one per command", len(l.Blind), len(l.Commands))
 	}
-	for i, n := range p.BlindReturns {
-		if n > 0 && (len(p.Blind) == 0 || !p.Blind[i]) {
-			return planInvalid("blind", "command %d: %d blind returns require the flag", i+1, n)
+	for i, n := range l.BlindReturns {
+		if n > 0 && (len(l.Blind) == 0 || !l.Blind[i]) {
+			return planInvalid(at+"blind", "command %d: %d blind returns require the flag", i+1, n)
 		}
 	}
-	if p.Expectations == nil {
-		return planInvalid("expectations", "must be present (empty allowed)")
+	if l.Expectations == nil {
+		return planInvalid(at+"expectations", "must be present (empty allowed)")
 	}
-	if len(p.Expectations) != 0 && len(p.Expectations) != len(p.Commands) {
-		return planInvalid("expectations", "%d entries for %d commands; empty or one per command", len(p.Expectations), len(p.Commands))
+	if len(l.Expectations) != 0 && len(l.Expectations) != len(l.Commands) {
+		return planInvalid(at+"expectations", "%d entries for %d commands; empty or one per command", len(l.Expectations), len(l.Commands))
 	}
-	for i, list := range p.Expectations {
+	for i, list := range l.Expectations {
 		if list == nil {
-			return planInvalid("expectations", "command %d: must be present (empty allowed)", i+1)
+			return planInvalid(at+"expectations", "command %d: must be present (empty allowed)", i+1)
 		}
 		if len(list) > ExpectationsMax {
-			return planInvalid("expectations", "command %d: %d declarations; at most %d", i+1, len(list), ExpectationsMax)
+			return planInvalid(at+"expectations", "command %d: %d declarations; at most %d", i+1, len(list), ExpectationsMax)
 		}
-		if len(list) > 0 && i < len(p.BlindReturns) && p.BlindReturns[i] > 0 {
-			return planInvalid("expectations", "command %d: carries %d blind returns and a declaration; a command takes one or the other", i+1, p.BlindReturns[i])
+		if len(list) > 0 && i < len(l.BlindReturns) && l.BlindReturns[i] > 0 {
+			return planInvalid(at+"expectations", "command %d: carries %d blind returns and a declaration; a command takes one or the other", i+1, l.BlindReturns[i])
 		}
 		for j, d := range list {
 			if d.Pattern == "" {
-				return planInvalid("expectations", "command %d declaration %d: the pattern is required", i+1, j+1)
+				return planInvalid(at+"expectations", "command %d declaration %d: the pattern is required", i+1, j+1)
 			}
 			if _, err := regexp.Compile(d.Pattern); err != nil {
-				return planInvalid("expectations", "command %d declaration %d: pattern %q: %v", i+1, j+1, d.Pattern, err)
+				return planInvalid(at+"expectations", "command %d declaration %d: pattern %q: %v", i+1, j+1, d.Pattern, err)
 			}
 		}
 	}
@@ -705,21 +797,21 @@ func (p *ExecutionPlan) validateBlindSends() error {
 // validateCommandBounds checks each command's own bounds: each list present,
 // empty or one entry per command, and no entry negative (0 is the job's
 // value). The ranges, the blind conflict, the device timeout, and the job
-// limit are the client's to check.
-func (p *ExecutionPlan) validateCommandBounds() error {
+// limit are the client's to check. at prefixes each field named.
+func (l CommandList) validateCommandBounds(at string) error {
 	for _, f := range []struct {
 		field string
 		list  []int64
-	}{{"timeouts_ns", p.TimeoutsNS}, {"max_bytes", p.MaxBytes}} {
+	}{{"timeouts_ns", l.TimeoutsNS}, {"max_bytes", l.MaxBytes}} {
 		if f.list == nil {
-			return planInvalid(f.field, "must be present (empty allowed)")
+			return planInvalid(at+f.field, "must be present (empty allowed)")
 		}
-		if len(f.list) != 0 && len(f.list) != len(p.Commands) {
-			return planInvalid(f.field, "%d entries for %d commands; empty or one per command", len(f.list), len(p.Commands))
+		if len(f.list) != 0 && len(f.list) != len(l.Commands) {
+			return planInvalid(at+f.field, "%d entries for %d commands; empty or one per command", len(f.list), len(l.Commands))
 		}
 		for i, v := range f.list {
 			if v < 0 {
-				return planInvalid(f.field, "command %d: %d must not be negative (0 is the job's value)", i+1, v)
+				return planInvalid(at+f.field, "command %d: %d must not be negative (0 is the job's value)", i+1, v)
 			}
 		}
 	}
@@ -731,15 +823,26 @@ func (p *ExecutionPlan) validateCommandBounds() error {
 // configuration, or above it a --maxbytes entry, and declared reports that
 // the largest is a declaration. The job's value counts while any command
 // takes it: an entry of 0, a command list with no entries (the platform
-// lists among them), or a session-init profile.
+// lists among them), or a session-init profile; with target lists, theirs
+// in place of the plan's.
 func (p *ExecutionPlan) LargestCommandLimit(jobLimit int64) (limit int64, declared bool) {
-	jobs := len(p.MaxBytes) == 0 || len(p.SessionInit) > 0
-	for _, v := range p.MaxBytes {
-		switch {
-		case v == 0:
-			jobs = true
-		case v > limit:
-			limit = v
+	jobs := len(p.SessionInit) > 0
+	lists := []CommandList{p.ownList()}
+	if len(p.TargetCommands) > 0 {
+		lists = lists[:0]
+		for _, l := range p.TargetCommands {
+			lists = append(lists, l)
+		}
+	}
+	for _, l := range lists {
+		jobs = jobs || len(l.MaxBytes) == 0
+		for _, v := range l.MaxBytes {
+			switch {
+			case v == 0:
+				jobs = true
+			case v > limit:
+				limit = v
+			}
 		}
 	}
 	if jobs && jobLimit >= limit {

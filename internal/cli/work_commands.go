@@ -2,11 +2,14 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/netip"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -17,6 +20,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
+	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/targetsource"
 )
 
@@ -264,7 +268,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
 	}
-	commands, decl, code, ok := commandPlan(inv, streams)
+	set, code, ok := commandPlan(inv, streams)
 	if !ok {
 		return code
 	}
@@ -280,7 +284,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFiles: commandsFileNames(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: set.commands, CommandsFiles: commandsFileNames(inv), TargetCommands: set.perTarget, CommandFolders: set.folders, BlindReturns: set.decl.returns, Blind: set.decl.blind, Expectations: set.decl.expect, Timeouts: set.decl.timeouts, MaxBytes: set.decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
 	collection.impliedDirectory(&result)
 	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
@@ -389,40 +393,92 @@ type declarations struct {
 	maxBytes []int64
 }
 
+// commandSet is a run's commands: one list for every target, the commands
+// and their declarations, or, with a --cf folder on the line, perTarget,
+// which planning calls for each target once the targets are known, and
+// the folders as given.
+type commandSet struct {
+	commands  []string
+	decl      declarations
+	perTarget planner.TargetCommands
+	folders   []string
+}
+
 // commandPlan returns the device commands in the order the command line
 // gives their sources, a --cmd its command and a --cf its file's lines
-// (EXAMPLES chapter 79), and their declarations after declarationLists. The
-// parser has already ensured at least one source and placed every
+// (EXAMPLES chapter 79), and their declarations after declarationLists.
+// The parser has already ensured at least one source and placed every
 // declaration on the --cmd before it (or the freeform command), so a file's
 // lines carry none; each declaration's source is turned into its command's
-// place in the list.
-func commandPlan(inv *Invocation, streams app.IO) ([]string, declarations, int, bool) {
-	var commands []string
-	at := make([]int, len(inv.Sources)) // each source's first command, one-based
+// place in the list. A --cf file is read here; a --cf folder is read at
+// planning, each target's file in it, by the set's perTarget.
+func commandPlan(inv *Invocation, streams app.IO) (commandSet, int, bool) {
+	files := make([][]string, len(inv.Sources))
+	folder := make([]bool, len(inv.Sources))
+	var folders []string
 	for i, s := range inv.Sources {
-		at[i] = len(commands) + 1
 		if !s.File {
-			commands = append(commands, s.Value)
+			continue
+		}
+		if info, err := os.Stat(s.Value); s.Value != "-" && err == nil && info.IsDir() {
+			folder[i], folders = true, append(folders, s.Value)
 			continue
 		}
 		lines, err := loadCommandsFile(s.Value, streams.Stdin)
 		if err != nil {
-			return nil, declarations{}, inv.Global.reportError(streams.Stderr, "commands_file_unreadable", err), false
+			return commandSet{}, inv.Global.reportError(streams.Stderr, "commands_file_unreadable", err), false
 		}
-		commands = append(commands, lines...)
+		files[i] = lines
 	}
-	decls := make([]Declaration, len(inv.Declarations))
-	for i, d := range inv.Declarations {
-		if d.Command >= 1 && d.Command <= len(at) {
-			d.Command = at[d.Command-1]
+	literal := inv.Flag(optLiteral)
+	// build is the list for one name in the folders: the sources in order,
+	// a folder's file for the name in its place.
+	build := func(name string) ([]string, declarations, error) {
+		var commands []string
+		at := make([]int, len(inv.Sources)) // each source's first command, one-based
+		for i, s := range inv.Sources {
+			at[i] = len(commands) + 1
+			switch {
+			case !s.File:
+				commands = append(commands, s.Value)
+			case folder[i]:
+				lines, err := loadCommandsFile(filepath.Join(s.Value, name), nil)
+				if errors.Is(err, fs.ErrNotExist) {
+					return nil, declarations{}, &planner.MissingCommandsFile{Folder: s.Value, Name: name}
+				}
+				if err != nil {
+					return nil, declarations{}, err
+				}
+				commands = append(commands, lines...)
+			default:
+				commands = append(commands, files[i]...)
+			}
 		}
-		decls[i] = d
+		decls := make([]Declaration, len(inv.Declarations))
+		for i, d := range inv.Declarations {
+			if d.Command >= 1 && d.Command <= len(at) {
+				d.Command = at[d.Command-1]
+			}
+			decls[i] = d
+		}
+		decl, err := declarationLists(commands, decls, literal)
+		return commands, decl, err
 	}
-	decl, err := declarationLists(commands, decls, inv.Flag(optLiteral))
-	if err != nil {
-		return nil, declarations{}, inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err), false
+	if len(folders) == 0 {
+		commands, decl, err := build("")
+		if err != nil {
+			return commandSet{}, inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err), false
+		}
+		return commandSet{commands: commands, decl: decl}, 0, true
 	}
-	return commands, decl, 0, true
+	perTarget := func(name string) (executionplan.CommandList, error) {
+		commands, decl, err := build(name)
+		if err != nil {
+			return executionplan.CommandList{}, err
+		}
+		return executionplan.CommandList{Commands: commands, BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, TimeoutsNS: decl.timeouts, MaxBytes: decl.maxBytes}, nil
+	}
+	return commandSet{perTarget: perTarget, folders: folders}, 0, true
 }
 
 // commandsFileNames are the --cf paths as given, in order: the planner keeps
@@ -606,7 +662,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if code, ok := checkTargetSources(inv, streams.Stderr); !ok {
 		return code
 	}
-	commands, decl, code, ok := commandPlan(inv, streams)
+	set, code, ok := commandPlan(inv, streams)
 	if !ok {
 		return code
 	}
@@ -647,13 +703,13 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFiles: commandsFileNames(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: set.commands, CommandsFiles: commandsFileNames(inv), TargetCommands: set.perTarget, CommandFolders: set.folders, BlindReturns: set.decl.returns, Blind: set.decl.blind, Expectations: set.decl.expect, Timeouts: set.decl.timeouts, MaxBytes: set.decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
 	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// With no command on the line, each device runs its platform's
 		// list; the word runs the device's whole list past a rejected
 		// statement through its flag-origin key (continueOptions).
-		opts.PlatformCommands = len(commands) == 0
+		opts.PlatformCommands = len(set.commands) == 0 && set.perTarget == nil
 	}
 	if inv.Flag(optDryRun) {
 		result := app.InspectRun(ctx, opts, !inv.Flag(optNoDaemon), read, streams)
@@ -747,7 +803,7 @@ func loadCommandsFile(path string, stdin io.Reader) ([]string, error) {
 		}
 		defer f.Close()
 		if info, err := f.Stat(); err == nil && info.IsDir() {
-			return nil, errorcodes.Errorf("commands_file_is_directory", "commands file %s is a folder; --cf names one file", path)
+			return nil, errorcodes.Errorf("commands_file_unreadable", "commands file %s is a folder", path)
 		}
 		r = f
 	}

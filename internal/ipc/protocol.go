@@ -220,7 +220,7 @@ func (l *LineReader) Next(dst any) error {
 		return err
 	}
 	if int64(len(line)) > l.max {
-		return fmt.Errorf("ipc_frame_too_large: maximum %d bytes", l.max)
+		return fmt.Errorf("ipc_frame_too_large: a frame is over daemon.max-ipc-frame-bytes, %d bytes", l.max)
 	}
 	if len(line) == 0 {
 		return io.ErrUnexpectedEOF
@@ -244,7 +244,7 @@ func Read(r io.Reader, dst any, maxBytes int64) error {
 		return err
 	}
 	if int64(len(line)) > maxBytes {
-		return fmt.Errorf("ipc_frame_too_large: maximum %d bytes", maxBytes)
+		return fmt.Errorf("ipc_frame_too_large: a frame is over daemon.max-ipc-frame-bytes, %d bytes", maxBytes)
 	}
 	if len(line) == 0 {
 		return io.ErrUnexpectedEOF
@@ -267,7 +267,16 @@ func Write(w io.Writer, value any, maxBytes int64) error {
 		return err
 	}
 	if int64(len(data)+1) > maxBytes {
-		return fmt.Errorf("ipc_frame_too_large: maximum %d bytes", maxBytes)
+		// The frame's size over the bound, stacked (EXAMPLES chapter 79):
+		// a plan carries every target's list under a --cf folder.
+		noun := "frame"
+		switch value.(type) {
+		case Request, *Request:
+			noun = "request"
+		case Response, *Response:
+			noun = "response"
+		}
+		return fmt.Errorf("ipc_frame_too_large: the %s is over daemon.max-ipc-frame-bytes\n  %d bytes\n  %d allowed", noun, len(data)+1, maxBytes)
 	}
 	data = append(data, '\n')
 	n, err := w.Write(data)

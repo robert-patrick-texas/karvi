@@ -9,6 +9,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credhelper"
 	"github.com/robert-patrick-texas/karvi/internal/jobexec"
+	"github.com/robert-patrick-texas/karvi/internal/planner"
 	"github.com/robert-patrick-texas/karvi/internal/resolver"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -43,6 +44,8 @@ type CommandOptions struct {
 	AddressAuthority string // client | daemon for the first device
 	Commands         []string
 	CommandsFiles    []string                      // the --cf paths in order; their base names reach the scoreboard
+	TargetCommands   planner.TargetCommands        // with a --cf folder: each target's list, built at planning
+	CommandFolders   []string                      // the --cf folders as given, for the refusals
 	BlindReturns     []int                         // empty, or one count per command
 	Blind            []bool                        // empty, or one tolerance flag per command
 	Expectations     [][]executionplan.Expectation // empty, or one expect-and-send list per command
@@ -71,6 +74,8 @@ type RunOptions struct {
 	AddressAuthorities []string // TARGET=client|daemon, in order
 	Commands           []string
 	CommandsFiles      []string                      // the --cf paths in order; their base names reach the scoreboard
+	TargetCommands     planner.TargetCommands        // with a --cf folder: each target's list, built at planning
+	CommandFolders     []string                      // the --cf folders as given, for the refusals
 	BlindReturns       []int                         // empty, or one count per command
 	Blind              []bool                        // empty, or one tolerance flag per command
 	Expectations       [][]executionplan.Expectation // empty, or one expect-and-send list per command

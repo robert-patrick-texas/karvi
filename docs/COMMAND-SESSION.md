@@ -14,8 +14,10 @@ karvi command --cmd 'show clock' --target router1 --command 'show version'
 
 `--cmd` and `--cf` mix and repeat, and the commands go in the order written: a
 `--cmd` its command, a `--cf` its file's lines, as written (`--cf -` reads
-standard input, once). This sends `show clock`, the lines of `checks.txt`, and
-`show users`:
+standard input, once). A `--cf` given a folder sends each device its own file
+in it, `DIR/NAME`, NAME its collection file's
+([`docs/OPERATIONS.md`](OPERATIONS.md#a-command-list-per-device)). This sends
+`show clock`, the lines of `checks.txt`, and `show users`:
 
 ```bash
 karvi command router1 --cmd 'show clock' --cf checks.txt --cmd 'show users'

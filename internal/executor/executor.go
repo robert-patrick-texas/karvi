@@ -62,8 +62,11 @@ type Options struct {
 	Kind     string
 	Commands []string
 	// PlatformCommands is the plan's list per platform; a device whose
-	// platform has one runs it in place of Commands.
+	// platform has one runs it in place of Commands. TargetCommands is the
+	// plan's list per target, by target ID, each with its declarations; a
+	// target with one runs it in place of either.
 	PlatformCommands map[string][]string
+	TargetCommands   map[string]executionplan.CommandList
 	// BlindReturns is each requested command's count of blind returns, one
 	// entry per command, or empty for none (the wait for the prompt after a
 	// blind send is execution.blind-wait). Blind is each command's tolerance flag, one
@@ -1014,34 +1017,34 @@ func (e *DeviceExecutor) sequence(t executionplan.ExecutionTarget) deviceSequenc
 			seq.steps = append(seq.steps, step{kind: kindSessionInit, profile: seq.profile, index: i, count: len(prof.Commands), command: c, timeout: timeout, source: source})
 		}
 	}
-	// The device's list: its platform's when the plan carries lists, else
-	// the plan's commands. The blind and
-	// expect declarations belong to the plan's commands alone.
-	commands, own := e.opts.Commands, true
-	if e.opts.PlatformCommands != nil {
-		if list, ok := e.opts.PlatformCommands[t.Device.Platform]; ok {
-			commands, own = list, false
-		}
+	// The device's list: its own when the plan carries one per target, its
+	// platform's when the plan carries lists per platform (with no
+	// declarations), else the plan's commands with theirs.
+	list := executionplan.CommandList{Commands: e.opts.Commands, BlindReturns: e.opts.BlindReturns, Blind: e.opts.Blind, Expectations: e.opts.Expectations, TimeoutsNS: e.opts.TimeoutsNS, MaxBytes: e.opts.MaxBytes}
+	if own, ok := e.opts.TargetCommands[t.TargetID]; ok {
+		list = own
+	} else if commands, ok := e.opts.PlatformCommands[t.Device.Platform]; ok {
+		list = executionplan.CommandList{Commands: commands}
 	}
-	for i, c := range commands {
-		st := step{kind: kindRequested, profile: seq.profile, index: i, count: len(commands), command: c, timeout: commandTimeout, source: platform.SessionTimeout}
-		if own && i < len(e.opts.TimeoutsNS) && e.opts.TimeoutsNS[i] > 0 {
-			st.timeout, st.source = time.Duration(e.opts.TimeoutsNS[i]), platform.DeclaredTimeout
+	for i, c := range list.Commands {
+		st := step{kind: kindRequested, profile: seq.profile, index: i, count: len(list.Commands), command: c, timeout: commandTimeout, source: platform.SessionTimeout}
+		if i < len(list.TimeoutsNS) && list.TimeoutsNS[i] > 0 {
+			st.timeout, st.source = time.Duration(list.TimeoutsNS[i]), platform.DeclaredTimeout
 		}
-		if own && i < len(e.opts.MaxBytes) {
-			st.maxBytes = e.opts.MaxBytes[i]
+		if i < len(list.MaxBytes) {
+			st.maxBytes = list.MaxBytes[i]
 		}
-		if own && i < len(e.opts.BlindReturns) {
-			st.returns = e.opts.BlindReturns[i]
+		if i < len(list.BlindReturns) {
+			st.returns = list.BlindReturns[i]
 		}
 		// The flag, or the count that implies it, makes the command blind
 		// and its wait the blind wait; session-init commands are never blind
 		// and carry no declaration.
-		if st.returns > 0 || (own && i < len(e.opts.Blind) && e.opts.Blind[i]) {
+		if st.returns > 0 || (i < len(list.Blind) && list.Blind[i]) {
 			st.blind, st.timeout, st.source = true, e.opts.Config.Duration("execution.blind-wait"), "execution.blind-wait"
 		}
-		if own && i < len(e.opts.Expectations) {
-			for j, d := range e.opts.Expectations[i] {
+		if i < len(list.Expectations) {
+			for j, d := range list.Expectations[i] {
 				re, err := regexp.Compile(d.Pattern)
 				if err != nil {
 					seq.invalid = fmt.Errorf("execution_plan_invalid: expectations: command %d declaration %d: pattern %q: %v", i+1, j+1, d.Pattern, err)

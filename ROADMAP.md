@@ -9,23 +9,22 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **A command file per target, `--cf DIR`.** Settled, to be built
+1. **A command file per target, `--cf DIR`.** Settled, being built
    ([`docs/DESIGN.md`, section
    7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel);
    [`docs/EXAMPLES.md`, chapter
    79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)). A tool
-   outside karvi writes the folder: a configuration rendered from templates
-   and data, the commands chosen from an earlier job's records (a `show ip
-   route vrf NAME` for each VRF a `show vrf` printed), or the same checks
-   before and after a change. The build: `--cf` taking a folder, each selected
-   target sent `DIR/NAME`, NAME its collection file's; the refusals at planning
-   (a selected target without its file, two targets with one name, a collection
-   into a `--cf` folder or onto a `--cf` file of the same run); the plan's list
-   per target and `--dry-run` showing each; the job folder's `commands/NAME`,
-   and every copy writing a command's `\r` returns back; a stream's `--cf DIR`
-   line; the help, the man pages, `COMMAND-SESSION`, `COLLECTION`, `FILES`,
-   `ERROR-CODES`, and the CHANGELOG. A run's commands already follow the order
-   written, `--cf` given more than once.
+   outside karvi writes the folder: a configuration rendered from templates and
+   data, the commands chosen from an earlier job's records (a `show ip route vrf
+   NAME` for each VRF a `show vrf` printed), or the same checks before and after
+   a change. Built: a run's commands in the order written, `--cf` given more
+   than once, and `--cf` taking a folder, each selected target sent `DIR/NAME`,
+   with the refusals of a target without its file and of two targets with one
+   name, the plan's list per target, `--dry-run` showing each, and a stream's
+   `--cf DIR` line. To build: the refusal of a collection into a `--cf` folder
+   or onto a `--cf` file of the same run; the job folder's `commands/NAME`, and
+   every copy writing a command's `\r` returns back; `COLLECTION`, `FILES`, and
+   the CHANGELOG.
 2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
