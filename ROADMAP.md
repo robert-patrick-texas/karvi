@@ -240,6 +240,37 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   secret rule fails (a device that echoes a password, a key typed ahead); and
   whether the drafting step is karvi's or a tool's. For consideration; nothing
   is decided.
+- **Platforms beyond the built-ins.** A device of another vendor has no
+  definition: a `[platform.NAME]` table is an alias of a built-in or
+  `generic`'s definition, and `generic`'s prompt matches neither a Huawei VRP
+  nor an HPE Comware prompt (`<HUAWEI>`, `[HUAWEI]`), so the session never finds
+  one. scrapligo's YAML definitions (v1.4.3 embeds seventeen, eleven beyond
+  karvi's: Aruba WLC, Cumulus Linux and vtysh, HPE Comware, Huawei VRP, IP
+  Infusion OcNOS, Nokia SR Linux, SR OS, and SR OS classic, Palo Alto PAN-OS,
+  Ruijie, and VyOS) drive scrapligo's channel and network driver, which karvi
+  does not run, and the scrapli community's platforms are Python modules,
+  several with code of their own. The YAML maps onto karvi's definition nearly
+  field for field (the privilege levels, the desired level,
+  `failed-when-contains`, the paging commands sent at open, the exit at close),
+  short of a level's `not-contains`, a raw write at open, variants, and driver
+  options; karvi adds the collection list, its drop list, the masks, and the
+  session cap. Two parts, in order. First, a `[platform.NAME]` table admitting
+  the prompt pattern, the privilege levels, the failure patterns, and the exit
+  commands (the part the WTI item above names), so a site reaches a vendor
+  without a release; it reverses the rule that prompt and error patterns are
+  compiled data, never configuration ([`docs/DESIGN.md`, section
+  3](docs/DESIGN.md#3-targets-inventory-and-platforms)), at the risk that a
+  wrong failure pattern records a rejected command as succeeded, and with it
+  comes a step that drafts such a table from a scrapligo YAML for the operator
+  to edit. Then, a vendor the fleet runs made a built-in from its reviewed
+  definition, as the network built-ins were made from scrapligo's, with its
+  collection list, drop list, masks, tests against a fake persona or a recorded
+  session, and the [device-qualification
+  track](#the-device-qualification-track); the upstream data is a draft, not a
+  reference (scrapligo's VRP configuration prompt misses VRP 8's `[~HUAWEI]`).
+  Not taken: loading YAML at run time, a dependency and a format karvi would
+  half implement, which still misses the Python platforms. It waits on a device
+  of another vendor in the fleet.
 - **A device's banner kept out of `system`'s failure text.** OpenSSH writes a
   device's pre-authentication banner on its standard error at `LogLevel INFO`
   and above, among its own lines; the shell's command session (`VERBOSE`) and
