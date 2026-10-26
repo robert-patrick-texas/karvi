@@ -28,6 +28,31 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    (`job_orphaned`'s "its scoreboard ended error") and the help's and the
    registry's prose ("halted terminal status", "replaced only when the
    device's collection succeeded").
+2. **The native transport without scrapligo.** scrapligo-v1 contributes a
+   transport wrapper whose open, read, write, and close pass through to karvi's
+   own x/crypto connection, its options, and its logger
+   ([`release/SCRAPLIGO-EVIDENCE.md`](release/SCRAPLIGO-EVIDENCE.md)); the
+   device session, the host-key policy, and the `system` and Telnet transports
+   are karvi's, and scrapligo's channel and drivers are linked and never
+   called. Each scrapligo release still moves the module, its version in the
+   verifiers, the help, and `karvi version`, and the evidence, with a battery
+   over code karvi does not run (0.36.0's was a NETCONF change:
+   [`docs/EXAMPLES.md`, chapter
+   80](docs/EXAMPLES.md#80-the-release-0360-2026-10-26)). The stream
+   calls the connection directly, which takes its port and connect timeout
+   from karvi's request; the module goes, and with it gotextfsm and
+   creack/pty, which only scrapligo imports (139 vendored files); and so do the
+   import-boundary check, the version pins, the evidence file, and
+   [`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md)'s requirement
+   that the version output identify ScrapliGo. The implementation ID
+   `scrapligo-v1` is renamed wherever an operator meets it
+   (`ssh.transports.native`, `karvi version`, the help and the man pages, the
+   messages, the suites, and the documents), a breaking change to the
+   configuration. The questions: the new ID, and whether `ssh.transports` still
+   maps a slot to an implementation when each slot has one. Nothing karvi runs
+   is lost; the ScrapliGo v2 and NETCONF items below stand apart, and a v2
+   adapter would register beside karvi's own. It waits on nothing, and comes
+   before scrapligo's next release would be taken.
 
 ## Later
 
