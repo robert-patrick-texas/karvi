@@ -1473,17 +1473,57 @@ login, but the plan would state a rule and not the commands, and the daemon
 would read output; `--expect` is the precedent and much narrower), open again
 only if the second session proves the cost.
 
-**A job may send each target its own command list.** A folder holds one command
-file per target, named by the function that names the target's collection file
-(`core-nyc-01`) and read literally as a `--cf` file is; the plan carries the
-lists per target beside a collection's per-platform lists, the digest covers
-them, and `--dry-run` shows each target's. A selected target without a file is
-refused at planning. The command-line option or options and the rest are
-settled when built ([`ROADMAP.md`](../ROADMAP.md#next)). *Why:* a rendered
-configuration and the checks before and after a change differ per target; the
-plan already holds lists that differ by target, a collection's platform lists,
-and one function names a device's file. *Not taken:* a job per target (the one
-job's accounting, scoreboard, dispatch, and admission lost).
+**A run's commands follow its command line, in the order written.** Each
+`--cmd` adds its command, each `--cf FILE` its lines, and each `--cf DIR` the
+target's own file, in the order the operator gave them, and every target is
+sent that sequence; `--cf` may be given more than once, `--cf -` once. A
+declaration (`--expect`, `--blind`, `--blind-return`, `--timeout`,
+`--maxbytes`) attaches to the `--cmd` before it and goes with that command into
+every target's list at its place. A command file's lines are statements, never
+karvi options; a trailing `\r` is the one escape read in them. Device text
+stays refused beside `--cmd` or `--cf`: its words may sit anywhere on the line
+and have no place in an order. *Why:* a job is its arguments in the order
+given, so an operator stacks actions on one line: a timestamp, each device's
+own lines, a save (`--cmd "show clock" --cf DIR1 --cf DIR2 --cmd "write
+mem"`). *Not taken:* the `--cmd` values first wherever `--cf` stands, and one
+`--cf`, the tree's rule until this is built, which no operator document stated
+([`docs/EXAMPLES.md`, chapter
+79](EXAMPLES.md#79-a-command-file-per-target-2026-10-25)).
+
+**A job may send each target its own command list: `--cf DIR`.** `--cf` names
+a file or a folder. A folder sends each selected target the file `DIR/NAME`,
+NAME its collection file's (`core-nyc-01`, lowercase; the whole name under
+`output.crop-to-dot = false`), with no suffix and no skip list, read as a
+`--cf` file is. A selected target without its file is refused at planning, and
+so are two selected targets with one name; a file no selected target is named
+for is left unread, so a canary is the same command with one target and the
+same folder. A collection into a `--cf` folder, or onto a `--cf` file, of the
+same run is refused at planning, on `crun` and on `run` or `command` with
+`--cd` or `--fs`; on `crun`, commands on the line replace the platform's
+`crun-commands` as they always have. The plan carries each target's list and
+no digest of its own: `plan_digest`, which the daemon's commit, the idempotency
+key, and the credential package read, covers the whole plan, and
+`command_plan_digest`, read only by checks against the same message, is
+removed when this is built. `--dry-run` shows each target's list. The job
+folder keeps what each device was sent as `--cf` lines, each command's `\r`
+returns written back: `commands.txt` for one list, `commands.PLATFORM.txt` per
+platform, and `commands/NAME` per target, so `--tf failed-devices.txt --cf
+commands` from the job folder reruns the failures with their own lists; an
+`--expect`, a `--blind` without returns, a `--timeout`, or a `--maxbytes` has
+no form in a file and is the plan's alone. In a stream, a `--cf DIR` line stays
+from job to job as any `--cf` line does and is read at each `--go`. *Why:* a
+rendered configuration and the checks before and after a change differ per
+target; the plan already holds lists that differ by target, a collection's
+platform lists, and one function names a device's file; a lookup by exact name
+reads nothing else in the folder, so it needs no skip list; `--fs` is the
+collection's suffix, which on a run turns a collection on, so as the folder's
+it would write a device's output over its list; and a digest earns its place
+by a reader that needs it, which the lists' never had. *Not taken:* a job per
+target (the one job's accounting, scoreboard, dispatch, and admission lost); a
+separate option for the folder (one more to learn, the same reader); a folder
+that must match the selection (a canary would need a folder of its own); a
+suffix or `--tf`'s skip list; `--cmd` refused beside a folder (the operator's
+stacked actions lost); a digest over the lists.
 
 **Address authority is `client` or `daemon`, and one selection rule serves
 both.** A literal address wins, then the inventory management address, then the

@@ -9,24 +9,25 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **A command file per target.** A folder of command files, one per target,
-   each named as the target's collection file is (`core-nyc-01`) and read
-   literally as a `--cf` file is, sent in one job with each target given its
-   own: the plan carries the lists per target, `--dry-run` shows each target's,
-   and a selected target without a file is refused at planning
+1. **A command file per target, `--cf DIR`.** Settled, to be built
    ([`docs/DESIGN.md`, section
-   7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)). A tool
+   7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel);
+   [`docs/EXAMPLES.md`, chapter
+   79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)). A tool
    outside karvi writes the folder: a configuration rendered from templates
    and data, the commands chosen from an earlier job's records (a `show ip
    route vrf NAME` for each VRF a `show vrf` printed), or the same checks
-   before and after a change. The questions: the command-line option or
-   options; a file that names no selected target (refused, or kept for a later
-   run from the same folder, a canary first); the folder's skips (`--tf DIR`'s
-   dot files, `readme*`, `disabled*`, and backup names) and a suffix on the
-   names, `--fs` being the collection file's; the line's own `--cmd`, `--cf`,
-   or device text beside the folder; the folder on `crun`; the job folder's
-   copy of each list (a collection's is `commands.PLATFORM.txt`); and the
-   folder as a stream's option line.
+   before and after a change. The build: `--cf` taking a folder, each selected
+   target sent `DIR/NAME`, NAME its collection file's; a run's commands in the
+   order written, `--cf` given more than once; the refusals at planning (a
+   selected target without its file, two targets with one name, a collection
+   into a `--cf` folder or onto a `--cf` file of the same run); the plan's
+   list per target, `--dry-run` showing each, and `command_plan_digest`
+   removed; the job folder's `commands/NAME`, and every copy writing a
+   command's `\r` returns back; a stream's `--cf DIR` line; the help, the man
+   pages, `COMMAND-SESSION`, `COLLECTION`, `FILES`, `ERROR-CODES`, and the
+   CHANGELOG; and `internal/cli/stream.go`'s package comment, which says every
+   job clears the commands, corrected.
 2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
@@ -97,7 +98,19 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   replaces. The logic it was to carry is settled elsewhere: a decision taken
   from a device's answer is taken between jobs, by a tool outside karvi
   ([`docs/DESIGN.md`, section
-  7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)).
+  7](docs/DESIGN.md#7-the-plan-the-daemon-and-the-credential-channel)). A job
+  file could also carry each command's declarations (`--expect`, `--blind`,
+  `--blind-return`, `--timeout`, `--maxbytes`), as a stream's lines do and a
+  command file cannot, its lines being statements alone
+  ([`docs/EXAMPLES.md`, chapter
+  79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)).
+- **A suffix on a `--cf` folder's names.** A folder's files are named exactly
+  as the targets' collection files (`core-nyc-01`), so a tool that writes
+  `core-nyc-01.cfg` renames them. A suffix of the input's own is for
+  consideration, apart from `--fs`, which is the collection's and on a run
+  turns a collection on ([`docs/EXAMPLES.md`, chapter
+  79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)); nothing is
+  decided.
 - **Credentials.** A formula's match evidence carrying its source's file,
   line, and key; a command-line option to pin a direct target to a key;
   further backends, each with its own type, keys, and driver: a SQLite store
@@ -148,7 +161,11 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the program computes or records with who computes it, who reads it, and
   what breaks without it, and removes those nothing consumes in production;
   the development use, comparing two outputs, stays. The audit's are gone
-  (chapter 63, its statements in their place).
+  (chapter 63, its statements in their place). The plan's
+  `command_plan_digest`, read only by checks against the same message that
+  `plan_digest` already binds, goes with the command file per target
+  ([Next](#next)); `plan_digest`, which the daemon's commit, the idempotency
+  key, and the credential package read, stays.
 - **`Sealed` credential packages.** The envelope schema accepts the
   protection and the `Sealer` interface is fixed, but no channel carries it
   and no reviewed provider exists; it waits for the stage that brings a

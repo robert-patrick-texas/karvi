@@ -16468,3 +16468,214 @@ command`. None left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
 (`release-design-evidence/live-build-2026-10-25`: the two lab scripts and
 their logs, and the battery's logs). A daemon run's live view is in ROADMAP's
 Later.
+
+## 79. A command file per target (2026-10-25)
+
+ROADMAP's first Next item since chapter 78 was a folder of command files, one
+per target. DESIGN section 7 had settled the folder, its names (the targets'
+collection files'), and the refusal of a selected target without a file, and
+left seven questions. This session took them one at a time against a lab build
+of the tree at `267ec9d`, in dry runs and at the fake device. The operator
+agreed six recommendations, replaced the fourth with a rule of the operator's
+own, the order as written, and asked that digests be argued from their readers
+rather than assumed. The design is recorded in DESIGN section 7 and ROADMAP's
+Next item; nothing was built.
+
+**What it gains.** One job sends each device its own list: a configuration a
+tool rendered per device, or checks before and after a change that differ by
+device, with the one job's accounting, scoreboard, dispatch, and admission.
+Today that is a job per device, or a stream with a `--target` and a `--cf`
+line for each job. It waits on nothing: the folder reader and its skips
+(`--tf`), the naming function (the collection file's), the plan's lists beside
+its `Commands` (`crun`'s per platform), and the dry run's `commands:` line per
+target all exist.
+
+**The tree before.** The labs below, a build of `267ec9d` (`karvi 0.35.0`),
+LAB the scripts' name for the lab folder:
+
+- `--cf` refuses a folder, exit 4:
+
+  ```text
+  commands_file_is_directory: commands file LAB/lists is a folder; --cf names one file
+  ```
+
+- `--tf` given a folder reads every file in it, merged, skipping by name: of
+  `.hidden`, `README`, `disabled-nyc`, `nyc.txt`, `nyc.txt.bak`, and `web` it
+  read `nyc.txt` and `web`.
+- `crun`'s dry run prints each target's list where the lists differ by
+  platform (`commands: show running-config; show version` for an IOS XE
+  device, the five Linux commands for a server).
+- `--cmd` values go first wherever `--cf` stands, and `--cf` is taken once
+  (below); no operator document said so.
+
+**The rules, agreed.** In simple terms:
+
+1. The option. `--cf` names a file or a folder. A file is sent to every
+   target, as before; a folder sends each target the file named as its
+   collection file is (`core-nyc-01`), read the same way. `--cf -` stays one
+   list.
+2. A file that names no selected target. The targets are chosen as always
+   (`--target`, `--tf`, `--site`, `--all`); the folder only supplies their
+   lists. A selected target with no file is refused; a file no selected target
+   is named for is left unread, not in the plan or the job folder. A canary is
+   the same command with one target and the same folder.
+3. The skips and a suffix. Each target reads exactly one file,
+   `DIR/<its collection name>`: lowercase, the whole name under
+   `output.crop-to-dot = false`, no suffix. Nothing else in the folder is
+   looked at, so there is no skip list. The file reads as any `--cf` file
+   (empty, a folder, or unreadable: refused). Two selected targets with one
+   name are refused, as a collection's are. `--fs` stays the collection's.
+4. `--cmd`, `--cf FILE`, and `--cf DIR` together: the order as written. Each
+   target's list is built in the order the operator gave: a `--cmd` adds its
+   command, a `--cf FILE` its lines, a `--cf DIR` that target's file; every
+   target gets the same sequence but for what its folders supply. `--cf`
+   repeats, files and folders mixed; `--cf -` once. A declaration attaches to
+   the `--cmd` before it and goes with it into every target's list at its
+   place. Device text stays refused beside `--cmd` or `--cf`. So
+   `--cmd="show clock" --cf DIR1 --cf DIR2 --cmd="write mem"` sends each
+   switch `show clock`, its DIR1 file, its DIR2 file, and `write mem`.
+5. The folder on `crun`: as on `run`. Commands on the line replace the
+   platform's list, as before. karvi refuses to collect into a folder it is
+   reading commands from, or onto a command file it is reading, on `crun` and
+   on `run` or `command` with `--cd` or `--fs`. A device without its file stops
+   the whole job at planning, a nightly `crun --all` included, until the tool
+   writes a file for each device added to the inventory.
+6. The job folder's copy. It keeps what each device was sent, in a form `--cf`
+   reads back: `commands.txt` for one list, `commands.PLATFORM.txt` per
+   platform, `commands/<name>` per target, so `karvi run --tf
+   J/failed-devices.txt --cf J/commands` reruns the failures with their own
+   lists. A command's `\r` returns are written back as its trailing `\r`;
+   `--expect`, a `--blind` without returns, `--timeout`, and `--maxbytes` have
+   no form in a file, and the plan in `manifest.json` holds them. A command
+   file's lines are statements, never karvi options; `\r` at a line's end is
+   the one escape read, `--literal` turning it off.
+7. The folder as a stream line. A `--cf DIR` line is a `--cf` line like a
+   file's: it stays from job to job until `--purge-commands` or `--reset`,
+   takes its place in the order typed, and is read fresh at each `--go`.
+
+And the digests: the plan carries each target's list and nothing is added to
+digest it; `plan_digest` already covers the whole plan; `command_plan_digest`
+only checks itself and is removed when this is built.
+
+**Executed.** `q4b-order-lab.sh`, at the fake IOS XE device, `LAB/one.txt`
+holding `show users`: `command core-nyc-01.example.net --transport native --cf
+LAB/one.txt --cmd 'show clock'` exited 0, and its job's `commands.txt` read
+`show clock`, then `show users`, the `--cf` written first sent second. A second
+`--cf` was refused, exit 4:
+
+```text
+commands_file_repeated: --cf may be given once; it names one file or -
+```
+
+`q4-mix-lab.sh`: a file line `copy running-config startup-config\r` answered
+the device's `Destination filename [startup-config]?` (exit 0); device text
+beside `--cf` was `cli_command_text_mixed`, a `--timeout` with `--cf` alone
+`declaration_with_commands_file`, each exit 4.
+
+`q3-names-lab.sh`, dry runs: `--fs=.cfg` on a run turns a collection on into
+the working directory (`collection: LAB/work (file mode 0660, suffix .cfg)`),
+and two devices with one collection name are refused, exit 5:
+
+```text
+output_file_name_collision: client planning: devices core-nyc-01.example.net and core-nyc-01.example.org would both write the file core-nyc-01; under output.crop-to-dot the first label of a name is its file name, and two devices need two
+```
+
+`q2-precedent-lab.sh`: a `crun` of `core-nyc-01.example.net` into a folder
+holding `core-nyc-01`, `core-nyc-02`, and `old-rtr-09` replaced `core-nyc-01`
+alone (`! collection=LAB/coll replace=1 keep=0`); the other two were byte for
+byte as before.
+
+`q5-crun-lab.sh`: `crun --target core-nyc-01.example.net --transport native
+--cf LAB/coll/core-nyc-01 --cd=LAB/coll`, the file holding `show clock` and
+`show users`, exited 0 with `! collection=LAB/coll replace=1 keep=0`, and the
+command file then held the device's output, `! show clock` and `! show users`
+blocks, the commands gone.
+
+`q6-copy-lab.sh`, `execution.command-timeout` 3s in the lab's configuration:
+after the copy answered by the file line's `\r` (exit 0), its job's
+`commands.txt` held `copy running-config startup-config` without the `\r`, and
+a rerun from it waited at the question, exit 107:
+
+```text
+Destination filename [startup-config]?
+karvi: target=core-nyc-01.example.net status=timeout error=command_timeout: command timed out after 3s (execution.command-timeout) while waiting for a returning prompt; the session is closed
+```
+
+A `--cmd` with `--expect 'Destination filename.*='` succeeded and its
+`commands.txt` held the text alone. A `crun` with the platform's list wrote
+`commands.cisco_iosxe.txt`.
+
+`q7-stream-lab.sh`: a stream of `--target core-nyc-01.example.net`,
+`--transport native`, `--cf LAB/one.txt` (`show clock`), and `--go`; the
+script waited for that job's summary to carry its final status, rewrote the
+file to `show version`, and sent `--go` and `--end`. Both jobs exited 0; the
+first's `commands.txt` held `show clock`, the second's `show version`.
+
+The digests, by their readers. `plan_digest` is read by the daemon's prepare
+and commit (`internal/daemon/client.go`), the idempotency key, which refuses
+another plan under a committed key (`internal/daemon/prepare.go`), the
+credential package, which names its plan (`internal/planner/credential.go`),
+and the exercise report's check. `command_plan_digest` is read by the plan's
+`Validate`, the commit header, and the dry run's report, each comparing it
+with data in the same message, and shown on the dry run's `commands:` line; no
+suite, script, operator document, audit event, summary, or scoreboard reads
+it, and its tests check its sum.
+
+**Why this way.**
+
+- A job is its arguments in the order given, so an operator stacks actions on
+  one line; a folder is one more command source in that order.
+- `--cf` is the commands of a run, whether one list or one per target; a
+  folder was refused, so no line that worked changes meaning.
+- The selection decides which devices run and the folder supplies their
+  lists, as a collection folder already holds files of devices a run did not
+  select; the refusal of a selected target without a file catches a misspelled
+  name.
+- A lookup by exact name reads nothing else, so a skip list could only refuse
+  a device whose own name begins with `readme` or `disabled`.
+- The names a folder shares with the collection's make the overwrite the easy
+  mistake, so it is refused.
+- A digest earns its place by a reader that needs it; the plan's lists are
+  covered by the one that has readers.
+
+**Not taken.** A separate option for the folder: one more to learn, the same
+reader underneath (the cost accepted: `--tf DIR` merges its files, `--cf DIR`
+keeps them apart). A folder that must match the selection: a canary would need
+a folder of its own. `--fs` as the folder's suffix: on a run it turns a
+collection on, so typed from the folder it would write a device's output over
+its list. `--tf`'s skip list. `--cmd` refused beside a folder, recommended
+first for a plan with one list per target and withdrawn: it would have dropped
+the operator's stacked actions, and the `--cmd`-first order it leaned on was
+the tree's departure, not the operator's rule. Every target's list written to
+the job folder whatever the job: a 2,500-device job with one list would write
+2,500 identical files. A digest over the lists, and `command_plan_digest`
+extended to them.
+
+**Found on the way.**
+
+- The tree sends every `--cmd` before a `--cf` file's lines wherever the
+  `--cf` stands, and takes `--cf` once; both go with the build.
+- The job folder's `commands.txt`, a command file for a rerun, drops a
+  command's `\r` returns and its `--expect`; the build writes the returns back
+  and `FILES.md` says what a file cannot hold.
+- A `crun` can replace its own `--cf` file with the device's output today;
+  the build's refusal covers a file as well as a folder.
+- `internal/cli/stream.go`'s package comment says every job clears the
+  commands and a command in option form is sent once; the stream's help, its
+  `kept` flag, and `q7-stream-lab.sh` say option-form commands stay. The
+  comment is corrected with the build.
+- `command_plan_digest` has no reader outside checks against its own message;
+  it goes with the build, the plan's and the header's schemas with it.
+- A lab whose job launches the daemon stops it before removing its folder: the
+  first run of `q2-precedent-lab.sh` left the daemon serving a removed folder,
+  and it recreated an empty `base/state` there as it ended.
+
+**Leaves for later.** A suffix on the folder's names, apart from `--fs`, and a
+job file (`--jf`) that carries each command's declarations, as a stream's lines
+do and a command file cannot: both in ROADMAP's Later. The build is ROADMAP's
+Next item.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/cf-per-target-2026-10-25`: the eight lab scripts,
+their logs and exits, and the answers as agreed, `decisions.md`). Recorded, not
+built.
