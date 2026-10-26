@@ -105,6 +105,12 @@
   folder, refused a `crun` with the platform's lists and a run with a `--cf`
   folder (`manifest_invalid`, a command index out of range of the plan's
   empty one list).
+- **The newest scrapligo.** `github.com/scrapli/scrapligo` v1.4.3 (from
+  v1.4.2); the other six modules and Go 1.27.3 were the newest already. Its
+  one change is to the NETCONF driver's hello under NETCONF 1.1, which
+  `karvi` links and never runs; nothing the native transport sends or reads
+  changes. `karvi version` and the transport's status in the help name
+  scrapligo 1.4.3.
 
 ## 0.35.0 - 2026-10-21
 

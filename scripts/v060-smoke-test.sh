@@ -68,8 +68,8 @@ json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx system
 "$KARVI" config validate >"$TMP/internal-validate.out"
 "$KARVI" run --help >"$TMP/run-help.txt"
 json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx scrapligo-v1
-grep -q 'status: available (scrapligo 1.4.2 compiled in)' "$TMP/run-help.txt"
-grep -q 'scrapligo: 1.4.2' "$TMP/version.txt"
+grep -q 'status: available (scrapligo 1.4.3 compiled in)' "$TMP/run-help.txt"
+grep -q 'scrapligo: 1.4.3' "$TMP/version.txt"
 line=$(grep -n 'silently using OpenSSH\.$' "$TMP/run-help.txt" | cut -d: -f1)
 [ -n "$line" ]
 next=$((line + 1))

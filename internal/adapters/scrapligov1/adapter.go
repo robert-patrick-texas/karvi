@@ -4,7 +4,3 @@
 // layer speaks to the device; scrapligo's channel and network driver are not
 // used. No other karvi package imports github.com/scrapli/scrapligo.
 package scrapligov1
-
-// Version is the exact upstream version this adapter is built and qualified
-// against.
-const Version = "v1.4.2"

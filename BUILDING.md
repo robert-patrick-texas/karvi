@@ -6,7 +6,7 @@ builds, installation, and rollback.
 ## The release build
 
 The release ships the scrapligo-v1 executable. The source pins
-`github.com/scrapli/scrapligo v1.4.2`, and `go.mod`, `go.sum`, and `vendor/`
+`github.com/scrapli/scrapligo v1.4.3`, and `go.mod`, `go.sum`, and `vendor/`
 are committed, so the build needs Go 1.27 or later and no network:
 
 ```bash
@@ -23,7 +23,7 @@ through an internal module proxy. No build tag is involved: the
 every build carries the adapter. Its text version output MUST include:
 
 ```text
-scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)
 ```
 
 The suites run in three lanes at once (`scripts/lib/suites.sh`);

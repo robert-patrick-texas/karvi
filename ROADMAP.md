@@ -169,7 +169,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   session, the channel, and the SSH (libssh2) and Telnet transports. It loads
   the library from `LIBSCRAPLI_PATH`, else from `~/.cache/scrapli`, downloading
   it there from GitHub at first use without checking the published `.sha256`.
-  karvi stays on v1.4.2, whose line is maintained, until four questions are
+  karvi stays on v1, whose line is maintained, until four questions are
   answered: whether a release can ship the library beside the static executables
   and always names it, so no session reaches the network or writes into the
   operator's home; whether karvi's host-key policy, today inside its own SSH

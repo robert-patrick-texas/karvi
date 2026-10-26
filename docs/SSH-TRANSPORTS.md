@@ -22,7 +22,7 @@ contains a repeatable section:
 ```text
 ssh_transports:
   system: external (id=system, linkage=external-executable)
-  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+  scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)
 ```
 
 The second line appears only in a native-enabled build. JSON consumers use

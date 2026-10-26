@@ -9,7 +9,7 @@ command -v go >/dev/null 2>&1 || { echo 'go is required' >&2; exit 1; }
 [[ "$(cat VERSION)" == '0.35.0' ]]
 [[ -s go.sum ]] || { echo 'go.sum is missing; run make deps on an approved connected builder' >&2; exit 1; }
 [[ -s vendor/modules.txt ]] || { echo 'vendor/modules.txt is missing; run make vendor' >&2; exit 1; }
-grep -Eq '^# github.com/scrapli/scrapligo v1\.4\.2$' vendor/modules.txt
+grep -Eq '^# github.com/scrapli/scrapligo v1\.4\.3$' vendor/modules.txt
 
 violations=$(grep -RIl 'github.com/scrapli/scrapligo' --include='*.go' . 2>/dev/null \
   | grep -v '^./vendor/' \
@@ -51,7 +51,7 @@ make build
 # variable: the verifier leaves no by-product in the tree, and grep -q on a
 # pipe could end the writer early under pipefail.)
 metadata=$(GOTOOLCHAIN=local go version -m bin/karvi-linux-amd64)
-grep -Eq 'dep[[:space:]]+github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2' <<<"$metadata"
+grep -Eq 'dep[[:space:]]+github.com/scrapli/scrapligo[[:space:]]+v1\.4\.3' <<<"$metadata"
 ./bin/karvi-linux-amd64 version --format json | grep -q '"version": "0.35.0"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"config_schema_version": 6'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 4'
@@ -60,7 +60,7 @@ grep -Eq 'dep[[:space:]]+github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2' <<<"$
 ./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 31'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "scrapligo-v1"'
-./bin/karvi-linux-amd64 --version | grep -q '^  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)$'
+./bin/karvi-linux-amd64 --version | grep -q '^  scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)$'
 # The executable names its build, the Go build ID's last part: without it
 # its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
 . "$ROOT/scripts/lib/json.sh"

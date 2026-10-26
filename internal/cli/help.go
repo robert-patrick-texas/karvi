@@ -368,7 +368,7 @@ A recurring collection is the site's systemd timer or cron over this word
 func runHelpText() string {
 	status := "unavailable in this executable"
 	if native.Available("scrapligo-v1") {
-		status = "available (scrapligo 1.4.2 compiled in)"
+		status = "available (scrapligo 1.4.3 compiled in)"
 	}
 	return fmt.Sprintf(`Usage:
   karvi run [target inputs] [options] <device command words...>

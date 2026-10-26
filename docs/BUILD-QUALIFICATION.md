@@ -200,10 +200,9 @@ make deps            # optional on a connected host: download and verify
 ```
 
 - Vendor metadata, executable module metadata, JSON version output, and
-  text version output MUST identify ScrapliGo v1.4.2 (v1.4.1 in earlier
-  releases). Only
-  `internal/adapters/scrapligov1` may import it; the verifier fails on any
-  other import.
+  text version output MUST identify ScrapliGo v1.4.3 (v1.4.1 and v1.4.2 in
+  earlier releases). Only `internal/adapters/scrapligov1` may import it; the
+  verifier fails on any other import.
 - The scrapligo-v1 path MUST be karvi's connection under karvi's session:
   the verifier asserts `WithCustomTransport`, `HostKeyCallback`, and
   `hostkey.Verify` in the adapter and `devsession.Open` in the provider,

@@ -54,8 +54,8 @@ systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd)).
 
 The official Linux/amd64 executable is the **scrapligo-v1 build** (`make
 build`; `scripts/verify-release.sh`), whose version output lists the
-external `system` transport and `scrapligo: 1.4.2` compiled in. The source
-pins ScrapliGo **v1.4.2** behind the karvi-owned adapter boundary, with the
+external `system` transport and `scrapligo: 1.4.3` compiled in. The source
+pins ScrapliGo **v1.4.3** behind the karvi-owned adapter boundary, with the
 module files and `vendor/` committed so a build host needs no network. It
 is the only build: the `scrapligo_v1` build tag and the dependency-free
 preview module are gone, and a plain `go build` carries the adapter. A

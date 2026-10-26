@@ -455,8 +455,8 @@ type Driver interface {
 
 // The prompt levels and failure patterns of the built-in platforms are
 // scrapligo-v1's platform definitions (assets/platforms/*.yaml in the
-// module, read at v1.4.1; the pin is v1.4.2, whose one
-// change is elsewhere, and the assets are no longer vendored since nothing
+// module, read at v1.4.1; the pin is v1.4.3, whose changes since
+// are elsewhere, and the assets are no longer vendored since nothing
 // imports them),
 // the driver's vocabulary for level names.
 // GenericPromptPattern is scrapligo's generic prompt; BroadPromptPattern is

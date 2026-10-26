@@ -99,7 +99,7 @@ cat go.mod
 ### 4.1 Official native-enabled build
 
 The source carries every module the build needs: `go.mod` names scrapligo
-v1.4.2, golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and
+v1.4.3, golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and
 golang.org/x/term v0.47.0 with their two indirect requirements, `go.sum` holds
 their sums, and `vendor/` holds their sources. goldmark v1.8.6 is vendored
 beside them for `tools/md-to-html` (`make html`); no executable contains it. A
@@ -134,17 +134,17 @@ suite. `make native-smoke` runs the parity suite alone after `make build`;
 The release must contain exactly:
 
 ```text
-github.com/scrapli/scrapligo v1.4.2
+github.com/scrapli/scrapligo v1.4.3
 ```
 
 Confirm the dependency in source, vendor metadata, and the executable:
 
 ```bash
-grep -F 'github.com/scrapli/scrapligo v1.4.2' go.mod
-grep -F '# github.com/scrapli/scrapligo v1.4.2' vendor/modules.txt
+grep -F 'github.com/scrapli/scrapligo v1.4.3' go.mod
+grep -F '# github.com/scrapli/scrapligo v1.4.3' vendor/modules.txt
 go version -m bin/karvi-linux-amd64 | \
-  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.2'
-./bin/karvi-linux-amd64 --version | grep -F 'scrapligo: 1.4.2'
+  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.3'
+./bin/karvi-linux-amd64 --version | grep -F 'scrapligo: 1.4.3'
 ```
 
 Do not use `go get ...@latest` in a release tree.
