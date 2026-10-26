@@ -9,26 +9,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **Shorter output strings.** A review of every error and warning message
-   karvi writes for the operator, shortening each where a word adds nothing so
-   that it still conveys its meaning in fewer words, as chapter 56 left the
-   credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
-   output formatted for alignment and colour as appropriate. Not the help, the
-   header and footer templates, or the daemon log. The rule is stated in
-   [`docs/DESIGN.md`](docs/DESIGN.md), and the six longest messages follow it
-   ([`docs/EXAMPLES.md`, chapter
-   69](docs/EXAMPLES.md#69-the-six-longest-messages-shorter-2026-10-18)); the
-   rest are reviewed under it, longest first, from a list ranked from the
-   source, the tests, suites, and documents that quote a message changed with
-   it. The questions still open: the stage prefixes (`client planning:`) and
-   Go's own error text in a chain; the configuration errors' order (`MESSAGE
-   for KEY at SOURCE`); and the generated error-code descriptions
-   ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
-   Chapter 63's words reach it too: the messages built from them
-   (`job_orphaned`'s "its scoreboard ended error") and the help's and the
-   registry's prose ("halted terminal status", "replaced only when the
-   device's collection succeeded").
-2. **The native transport without scrapligo.** scrapligo-v1 contributes a
+1. **The native transport without scrapligo.** scrapligo-v1 contributes a
    transport wrapper whose open, read, write, and close pass through to karvi's
    own x/crypto connection, its options, and its logger
    ([`release/SCRAPLIGO-EVIDENCE.md`](release/SCRAPLIGO-EVIDENCE.md)); the
@@ -56,6 +37,25 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Later
 
+- **Shorter output strings.** A review of every error and warning message
+  karvi writes for the operator, shortening each where a word adds nothing so
+  that it still conveys its meaning in fewer words, as chapter 56 left the
+  credential sources' `NETPASS_NYC not set` and `NETPASS_NYC empty`; and the
+  output formatted for alignment and colour as appropriate. Not the help, the
+  header and footer templates, or the daemon log. The rule is stated in
+  [`docs/DESIGN.md`](docs/DESIGN.md), and the six longest messages follow it
+  ([`docs/EXAMPLES.md`, chapter
+  69](docs/EXAMPLES.md#69-the-six-longest-messages-shorter-2026-10-18)); the
+  rest are reviewed under it, longest first, from a list ranked from the
+  source, the tests, suites, and documents that quote a message changed with
+  it. The questions still open: the stage prefixes (`client planning:`) and
+  Go's own error text in a chain; the configuration errors' order (`MESSAGE
+  for KEY at SOURCE`); and the generated error-code descriptions
+  ([`docs/ERROR-CODES.md`](docs/ERROR-CODES.md)) under the same rule.
+  Chapter 63's words reach it too: the messages built from them
+  (`job_orphaned`'s "its scoreboard ended error") and the help's and the
+  registry's prose ("halted terminal status", "replaced only when the
+  device's collection succeeded").
 - **Macro files, `--mf PATH`.** A command file with plain text substitution
   and pattern replacement, for what a site needs at the least effort, with no
   tool outside karvi: values from the command line, the file, or the target's
