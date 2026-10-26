@@ -1,10 +1,10 @@
-karvi 0.35.0
-commit: source-release-v0.35.0
-build: onQ7svRY49FAEYS1IIHv
+karvi 0.36.0
+commit: source-release-v0.36.0
+build: kXY4cc6JRtLekvXNL0My
 go: go1.27.3
 config_schema: 6
 command_record_schema: 4
-scoreboard_schema: 4
+scoreboard_schema: 5
 audit_schema: 2
 job_schema: 5
 daemon_ipc_schema: 12
@@ -12,5 +12,5 @@ config_registry_schema: 31
 fips_mode: false
 icmp_method: socket
 ssh_transports:
-  scrapligo: 1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+  scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)
   system: external (id=system, linkage=external-executable)

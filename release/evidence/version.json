@@ -1,12 +1,12 @@
 {
   "application": "karvi",
-  "version": "0.35.0",
-  "commit": "source-release-v0.35.0",
-  "build": "onQ7svRY49FAEYS1IIHv",
+  "version": "0.36.0",
+  "commit": "source-release-v0.36.0",
+  "build": "kXY4cc6JRtLekvXNL0My",
   "go_version": "go1.27.3",
   "config_schema_version": 6,
   "command_record_schema_version": 4,
-  "scoreboard_schema_version": 4,
+  "scoreboard_schema_version": 5,
   "audit_schema_version": 2,
   "job_schema_version": 5,
   "daemon_ipc_schema_version": 12,
@@ -17,7 +17,7 @@
     {
       "id": "scrapligo-v1",
       "name": "scrapligo",
-      "version": "1.4.2",
+      "version": "1.4.3",
       "linkage": "compiled-in"
     },
     {
