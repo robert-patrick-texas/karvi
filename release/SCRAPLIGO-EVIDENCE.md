@@ -1,9 +1,9 @@
-# ScrapliGo v1.4.2 integration evidence — karvi v0.35.0
+# ScrapliGo v1.4.3 integration evidence — karvi v0.36.0
 
 The authoritative module declares:
 
 ```text
-github.com/scrapli/scrapligo v1.4.2
+github.com/scrapli/scrapligo v1.4.3
 ```
 
 Only `internal/adapters/scrapligov1` may import that module
@@ -13,7 +13,7 @@ proof of the boundary). The provider registers the stable implementation ID
 no build tag is involved.
 
 The executable is built from the committed `go.mod`, `go.sum`, and `vendor/`
-(`vendor/modules.txt` names `github.com/scrapli/scrapligo v1.4.2`), with Go
+(`vendor/modules.txt` names `github.com/scrapli/scrapligo v1.4.3`), with Go
 1.27.3 and no network. `evidence/go-version-m.txt` is `go version -m` of the
 shipped executables and names the module and its version;
 `evidence/version.txt` lists both transports. The sums in `go.sum` are the

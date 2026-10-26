@@ -1,16 +1,16 @@
-# karvi v0.35.0 build and qualification result
+# karvi v0.36.0 build and qualification result
 
 ## Result
 
 The build, with the native scrapligo-v1 transport compiled in beside the
 external `system` transport, is **qualified as an engineering candidate**.
-v0.35.0 (2026-10-21) is a minor release on 0.34.1 for a recorded login into
-the operator's folder: `karvi login --record=PATH` records into PATH itself,
-with no day folder, as `<device>.log` beside its metadata, then as
-`<device>-YYMMDD-HHMMSS` when that name is taken, and is refused
-`transcript_name_taken` when that is taken too. Every counter, the module
-graph, and Go are 0.34.1's, and the first submission after the upgrade drains
-a 0.34.1 daemon. The changes are in
+v0.36.0 (2026-10-26) is a minor release on 0.35.0 for a command list per
+device and a live view of a session: `--cf DIR` sends each selected device its
+own file in the folder, a run's commands go in the order written with `--cf`
+repeated, and `--live` shows the device's bytes as the session reads them.
+Execution plan 15, plan report 4, and scoreboard 5 move, every other counter
+is 0.35.0's; scrapligo moves to v1.4.3, Go is 0.35.0's, and the first
+submission after the upgrade drains a 0.35.0 daemon. The changes are in
 [`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
 real-device qualification: the native transport is proven against the fake
 device built from the tree, its IOS XE and Linux personas.
@@ -18,28 +18,28 @@ device built from the tree, its IOS XE and Linux personas.
 ## Build identity
 
 ```text
-version:                  0.35.0
-commit:                   source-release-v0.35.0
-build:                    onQ7svRY49FAEYS1IIHv
+version:                  0.36.0
+commit:                   source-release-v0.36.0
+build:                    kXY4cc6JRtLekvXNL0My
 Go toolchain:             go1.27.3
 build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
-scrapligo:                v1.4.2 (id=scrapligo-v1, linkage=compiled-in)
+scrapligo:                v1.4.3 (id=scrapligo-v1, linkage=compiled-in)
 configuration schema:    6
 configuration registry:  31
 command record schema:   4
 daemon IPC schema:       12
 job manifest/summary:    5
-execution plan:          14
-scoreboard:              4
+execution plan:          15
+scoreboard:              5
 credential package:      2
-plan report:             3
+plan report:             4
 audit:                   2
 CGO:                      disabled
 ```
 
 The authoritative `go.mod` names the Go 1.27 floor and pins
-`github.com/scrapli/scrapligo v1.4.2`; `evidence/go-version-m.txt` shows the
+`github.com/scrapli/scrapligo v1.4.3`; `evidence/go-version-m.txt` shows the
 module in the shipped executables, and `evidence/version.txt` lists both
 transports.
 
@@ -47,7 +47,7 @@ transports.
 
 The release source passed, with Go 1.27.3:
 
-- 1,080 top-level named Go tests across 92 packages in vendor mode, no
+- 1,105 top-level named Go tests across 92 packages in vendor mode, no
   build tag, 0 failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
@@ -86,7 +86,7 @@ The release source passed, with Go 1.27.3:
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.34.1 daemon, started from the released executable of
+  beside the released v0.35.0 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -117,7 +117,7 @@ The release source passed, with Go 1.27.3:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`9ad6d6a` before the number was assigned (the maintainer's release tools
+`633c82d` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -128,10 +128,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,832,928 | `5d675c32cd1d90ceccdc874064d47a2c445c0b1a9f9ab53f2dff0447d7d56727` |
-| `bin/karvi-askpass-linux-amd64` | 3,915,936 | `1b5624ba51e3cc84d87b6227b0ab95affd065f9ef71b46f0deb399ca9f7d6e28` |
-| `bin/karvi-prune-linux-amd64` | 3,797,152 | `557c64ac4739bce4ec72a9262c0068dbaa481ddffa039cef3c2ec9d24546c7a6` |
-| `bin/karvi-audit-linux-amd64` | 3,944,608 | `2f15c8eadb8169d70dff745d7340d8788851c33d4c984ff88d8b932aad7922f1` |
+| `bin/karvi-linux-amd64` | 12,894,368 | `ce87ec4d16ff80c842f75c675cab73c56525f6700db5d57bf919d67bc4d1f92d` |
+| `bin/karvi-askpass-linux-amd64` | 3,911,840 | `871a98e8f3b5b77a51a493a347037523815286af54fee4466d553e09314a5f9c` |
+| `bin/karvi-prune-linux-amd64` | 3,793,056 | `f2f7395050f480f41ade3b9f1aaeca10b46e499d5fbc0c04154dfeea63b95e14` |
+| `bin/karvi-audit-linux-amd64` | 3,940,512 | `2e4be343a078efb3a13acbc70740d257e51a266e009be0e6eae715c1cbfd98b1` |
 
 ## Operational upgrade sequence
 
