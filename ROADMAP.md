@@ -173,7 +173,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   answered: whether a release can ship the library beside the static executables
   and always names it, so no session reaches the network or writes into the
   operator's home; whether karvi's host-key policy, today inside its own SSH
-  handshake under v1's driver and channel ([`SECURITY.md`](SECURITY.md)), has a
+  handshake under v1's transport wrapper ([`SECURITY.md`](SECURITY.md)), has a
   place in v2 beyond a known-hosts file; the adapter's shape, with the session
   in the library and not shared with `system`
   ([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](docs/TRANSPORT-DRIVER-ARCHITECTURE.md));

@@ -20,10 +20,13 @@ shipped executables and names the module and its version;
 ones recorded from the module proxy when the modules were first fetched, and
 `go mod verify` passes in `evidence/release-qualification.log`.
 
-scrapligo-v1 contributes the driver and channel; the connection is karvi's own
-x/crypto transport with the host-key policy in the handshake, and the session
-logic is karvi's device session shared with the `system` transport
+scrapligo-v1 contributes its transport wrapper, its options, and its logger;
+the connection inside the wrapper is karvi's own x/crypto transport with the
+host-key policy in the handshake, and the session logic is karvi's device
+session shared with the `system` transport
 ([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](../docs/TRANSPORT-DRIVER-ARCHITECTURE.md)).
+scrapligo's channel and its drivers are linked, since its options package
+imports them, and never called.
 The parity suite (`scripts/native-smoke-test.sh`, in both verifiers) runs every
 case as `command` and `run` over both transports against the fake device built
 from the tree, its IOS XE persona and, for the exec channel, its Linux persona,
