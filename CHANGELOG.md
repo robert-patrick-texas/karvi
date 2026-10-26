@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.36.0 - 2026-10-26
+
+A minor release on 0.35.0 for a command list per device, `--cf DIR`, and a
+live view of a session, `--live`. Three counters move, execution plan 15,
+plan report 4, and scoreboard 5; every other is 0.35.0's (configuration schema
+6, registry 31, daemon IPC 12, command record 4, job manifest and summary 5,
+credential package 2, audit 2, metrics 1, inventory 1). scrapligo moves to
+v1.4.3, and Go is 0.35.0's. A site has something to change where a script
+reads `command_plan_digest` (removed; `plan_digest` covers the commands) or
+the plan's `commands_file` or the scoreboard's `commands.file` (now the lists
+`commands_files` and `commands.files`), counts on every `--cmd` going before a
+`--cf` file's lines, writes a declaration after a `--cf`, abbreviates
+`--literal` as `--li`, or looks for `commands_file_repeated` or
+`commands_file_is_directory`, both retired. An operator's 0.35.0 daemon, of
+another build, is drained by the first submission after the upgrade.
 
 - **`--echo` shows the prompt a statement was sent at.** The display of
   `command`, `run`, and `job follow` echoed each statement at the prompt
