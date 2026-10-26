@@ -293,8 +293,8 @@ echo "spool smoke: S7 --nof displayed the spooled answer without a job folder"
 
 # S8: the count on the scoreboard during a command: the
 # target row's bytes and the metrics' in_flight_bytes above zero at some
-# beat of the 65.7 MB response, the snapshot at schema 3, and both back to
-# zero at the end. The file is copied before it is read: the heartbeat
+# beat of the 65.7 MB response, the snapshot at the build's scoreboard
+# schema (`karvi version`), and both back to zero at the end. The file is copied before it is read: the heartbeat
 # rewrites it every 250 ms.
 rm -f "$SCORE"/*.json
 HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big' >"$TMP/out.s8" 2>"$TMP/err.s8" &
@@ -315,7 +315,8 @@ CODE=0; wait "$CLIENT" || CODE=$?
 [ "$CODE" -eq 0 ] || fail "S8: exit $CODE"
 [ "$seen" -gt 0 ] && [ "$inflight" -gt 0 ] || fail "S8: no beat carried the running count (bytes $seen, in flight $inflight)"
 snap=$(ls "$SCORE"/*.json | head -1)
-json_is "$snap" schema_version 4 || fail "S8: schema $(json_get "$snap" schema_version)"
+"$KARVI" version --format json >"$TMP/version.json"
+json_is "$snap" schema_version "$(json_get "$TMP/version.json" scoreboard_schema_version)" || fail "S8: schema $(json_get "$snap" schema_version), the build's $(json_get "$TMP/version.json" scoreboard_schema_version)"
 json_is "$snap" targets.0.bytes 0 || fail "S8: the ended target still counts $(json_get "$snap" targets.0.bytes)"
 json_is "$snap" metrics.in_flight_bytes 0 || fail "S8: in_flight_bytes $(json_get "$snap" metrics.in_flight_bytes) at the end"
 json_is "$snap" status complete || fail "S8: status $(json_get "$snap" status)"

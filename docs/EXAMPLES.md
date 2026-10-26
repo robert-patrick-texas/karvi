@@ -16478,8 +16478,9 @@ left seven questions. This session took them one at a time against a lab build
 of the tree at `267ec9d`, in dry runs and at the fake device. The operator
 agreed six recommendations, replaced the fourth with a rule of the operator's
 own, the order as written, and asked that digests be argued from their readers
-rather than assumed. The design is recorded in DESIGN section 7 and ROADMAP's
-Next item; nothing was built.
+rather than assumed. The design is recorded in DESIGN section 7 and was
+ROADMAP's Next item; its build, the next day in five sections, closes the
+chapter.
 
 **What it gains.** One job sends each device its own list: a configuration a
 tool rendered per device, or checks before and after a change that differ by
@@ -16675,7 +16676,264 @@ job file (`--jf`) that carries each command's declarations, as a stream's lines
 do and a command file cannot: both in ROADMAP's Later. The build is ROADMAP's
 Next item.
 
-**Closed.** The evidence is kept beside the tree
+**Recorded.** The design's evidence is kept beside the tree
 (`release-design-evidence/cf-per-target-2026-10-25`: the eight lab scripts,
-their logs and exits, and the answers as agreed, `decisions.md`). Recorded, not
-built.
+their logs and exits, and the answers as agreed, `decisions.md`).
+
+**The build (2026-10-26).** Five sections, each verified and committed on the
+operator's word: A `d07eae8`, `command_plan_digest` removed; B `5c7ebb9`, the
+order as written and `--cf` repeated; C `74e3e0c`, `--cf DIR`; D `5a6b8f3`, the
+collection's refusal and the job folder's copies; E, the native suite's S37 and
+this record. The build found nine gaps, each opened with what it gains and what
+it waits on, executed on the tree before it, recommended, restated in simple
+terms, and agreed one at a time; LAB is the scripts' name for the lab folder.
+
+**Gap B1, the scoreboard's command file beside several `--cf`, agreed.** On the
+tree at `d07eae8` (`b1-file-lab.sh`), a `--cmd` beside `--cf LAB/one.txt` gave
+the plan `commands_file: one.txt` and the scoreboard
+`{"count":2,"file":"one.txt"}`, whose one reader is the watch screen's pane
+line, `run: 2 statements from one.txt`. The rule: the plan's `commands_files`
+and the scoreboard's `commands.files` (scoreboard 5) name every `--cf` by its
+base name in the order given, `-` for standard input and a folder by its own
+name; the pane line joins them, `run: 3 statements from one.txt, two.txt`. *Not
+taken:* the first file's name alone (misleading); no field (the job's
+identification lost on the screen); the names joined into one string (a name may
+hold `, `).
+
+**Gap B2, a declaration written after a `--cf`, agreed.** `b2-decl-lab.sh`: the
+line `--cmd 'copy running-config startup-config'`, `--cf LAB/one.txt`,
+`--expect 'Destination filename.*='` exited 0, the `--expect` on the copy three
+arguments back. The rule: a declaration attaches to the command source written
+right before it; after a `--cf` it is refused, the one code for both cases, and
+a stream drops such a line with the same message; before every source it is
+`declaration_before_command`. The cost accepted: that line, accepted before, is
+refused.
+
+```text
+declaration_with_commands_file: --expect follows --cf; write it after its --cmd (a file line takes \r at its end)
+```
+
+*Not taken:* the nearest `--cmd` however far back (defined, but not what the
+line shows); the file's last line (a file line takes no declaration).
+
+**Gap C1, a selected device without its file, agreed.** On the tree at `5c7ebb9`
+(`c1-codes-lab.sh`), `--cf LAB/lists` was `commands_file_is_directory`, exit 4;
+a planning refusal named one device, or ten of nineteen on one line and the
+count left. The rule: a new code, `commands_file_missing`, inventory, exit 5,
+the folder and up to ten devices stacked, each with the file it lacks, then
+`and N more`; a device's file that exists and cannot serve takes
+`commands_file_empty` or `commands_file_unreadable`, exit 4, and
+`commands_file_is_directory` is retired. Built (`c-folder-lab.sh`):
+
+```text
+commands_file_missing: client planning: LAB/lists has no file for 1 device
+  edge-sfo-01.example.net (edge-sfo-01)
+```
+
+*Not taken:* usage, exit 4 (the folder is valid; the selection does not match
+it); one line joined by `; `; every device with no cap (a wrong folder under
+`--all` is 2,500 lines).
+
+**Gap C2, two selected devices with one file name, agreed.**
+`c2-collision-lab.sh`: a pair whose names crop to `core-nyc-01` was
+`output_file_name_collision` (exit 5) only when the run writes a text file, and
+accepted under `--nof`. The rule: a code of its own,
+`commands_file_name_collision`, inventory, exit 5, checked whenever a `--cf`
+folder is on the line and before the output's check, the remedy
+(`output.crop-to-dot = false`, or the two run apart) its description. Built:
+
+```text
+commands_file_name_collision: client planning: LAB/lists/core-nyc-01 is the file of 2 devices
+  core-nyc-01.example.net
+  core-nyc-01.example.org
+```
+
+*Not taken:* `output_file_name_collision` widened (its name and "would both
+write" are wrong for an input, plainly so under `--nof`).
+
+**Gap C3, the lists against the IPC frame, agreed.** `c1-codes-lab.sh` and
+`c3-frame-lab.sh`: the plan is about 900 bytes a target with one `--cf` file
+(2,500 targets 2.28 MB), and under a 1 MiB frame a run was refused
+`ipc_frame_too_large: daemon validation: maximum 1048576 bytes`, exit 112, the
+daemon started first and no device contacted; the client's `ipc.Write` refuses a
+request over its own `daemon.max-ipc-frame-bytes`. The rule: the lists stay in
+the plan, the frame their bound as for any plan; the refusal stacks the
+request's size over the bound, its description the remedy (the key, at most 64
+MiB; the selection split; `--no-daemon`, which sends no frame); OPERATIONS gives
+the sizes. Built (`c-frame-lab.sh`), 2,500 devices of 40-line lists, refused
+under the 8 MiB default and accepted under 16 MiB:
+
+```text
+ipc_frame_too_large: daemon validation: the request is over daemon.max-ipc-frame-bytes
+  8957370 bytes
+  8388608 allowed
+```
+
+*Not taken:* a larger default (every request may hold that much of the daemon's
+memory); each distinct list once (only lists devices share, which `--cf FILE`
+sends once); the lists in a transfer of their own (a new channel for a limit not
+met); the daemon reading the folder (it never opens an operator's file).
+
+**Gap D1, a collection over the run's own `--cf` lists, agreed.** On the tree at
+`74e3e0c` (`d1-collect-lab.sh`), `crun --all --cf LAB/coll --cd=LAB/coll` exited
+0 with both devices' lists replaced by their output, and so did the same by a
+link and by `crun.directory = LAB/coll` with no `--cd`; with `--fs=.txt` the
+lists were kept and `NAME.txt` written beside them;
+`run --cf LAB/coll/core-nyc-01 --cd=LAB/coll` and
+`command --cf LAB/coll/core-nyc-01.txt --cd=LAB/coll --fs=.txt` replaced the
+file they read. The rule: a collection never writes into a `--cf` folder of its
+own run, with or without a suffix, or onto a `--cf` file of it, links followed;
+a new code, `commands_file_in_collection`, usage, exit 4 (the fault is two
+places on the line or in the configuration, the remedy another folder), at
+planning before the folder's lists are built; a file under no selected device's
+name, or under the name a suffix leaves free, and a hard link elsewhere (the
+collection renames a new file into place) stay accepted. Built
+(`d-build-lab.sh`):
+
+```text
+commands_file_in_collection: client planning: a --cf folder is the collection folder
+  LAB/link
+  LAB/coll
+commands_file_in_collection: client planning: a --cf file is the collection file of core-nyc-01.example.net
+  LAB/coll/core-nyc-01
+  LAB/coll/core-nyc-01
+```
+
+*Not taken:* inventory, exit 5 (the selection is not at fault); the folder
+refused only without a suffix (question 5 agreed both);
+`output_file_name_collision` or `crun_directory_not_writable` reused (the wrong
+subject); a warning and the run going on (the lists lost).
+
+**Gap D2, the summary's `paths` for the copies, agreed.** `d2-copies-lab.sh`:
+one list's `commands.txt` dropped its file line's `\r` and its `--cmd`'s
+`--blind-return 1`, and the rerun from it timed out, exit 101; `crun` with the
+platform's lists wrote `commands.cisco_iosxe.txt` and a `--cf` folder no copy,
+and each summary named a `commands.txt` that was absent;
+`--tf J/failed-devices.txt --cf J/commands` was `commands_file_unreadable`. The
+rule: the summary names only files the job wrote, `commands_txt` when
+`commands.txt` is written (one list for every device); `commands.PLATFORM.txt`
+and `commands/` are named by rule, as `output.NAME.txt` is, and FILES says so.
+*Not taken:* a key per copy, or one naming the folder (nothing reads one); an
+empty `commands.txt` written always (a rerun file that sends nothing).
+
+**Gap D3, a command sent under `--literal` and its copy, agreed.**
+`d3-literal-lab.sh`: a `--literal` line `show clock\r` was sent as written with
+no return, and its copy, `show clock\r`, reread without `--literal` sent
+`show clock` and one return; a `--literal --cmd 'show clock' --blind-return 1`
+sent one return and its copy dropped it; the plan records no `--literal`. The
+rule: every copy is written for a rerun without `--literal`, each command its
+text and then one `\r` per return; a command whose own text ends in `\r`, which
+only `--literal` sends, is the one statement a copy cannot carry and reads back
+as returns; FILES says so, beside what a file cannot hold. *Not taken:* the plan
+recording `--literal` and a literal job's copies written for a `--literal`
+reread (two forms of copy, the rerun needing to know which, and such a job's
+returns lost); a second escape for a literal trailing `\r` (a grammar change for
+one rare case); refusing a `--literal` text that ends in `\r` (sending text as
+written is what `--literal` is for).
+
+**Gap D4, the job's audit `start` beside lists per platform or per device,
+agreed.** `d4-audit-lab.sh`: one list's `run.start` carried `command_count=2`
+and the two statements; `crun` with the platform's lists and a `--cf` folder
+carried `command_count=0 commands=[]`, each device's `<kind>.command` events
+naming what it was sent; one `--cf` file of 4,000 lines made a 296,785-byte
+start event and the run was refused at its acceptance,
+`audit_write_failed: … journald: … message too long`, exit 111, as journald
+takes each event as one datagram (212,992 bytes on the development host). The
+rule: the start's `command_count` is the longest list's, the figure the metrics
+and the dry run give; `commands` only when every device is sent one list, and
+left out, not empty, beside lists per platform or per device; the audit stays 2.
+*Not taken:* every list in the start (megabytes at 2,500 devices, over the
+datagram bound); a `platform_commands` field for `crun` (the device events cover
+it, and nothing reads it); `commands=[]` kept (it says nothing was sent). The
+bound itself is ROADMAP's Later item "An audit event over journald's datagram
+bound", on the operator's word.
+
+**Built.**
+
+- A: `command_plan_digest` out of the plan, the job header, and the dry-run and
+  exercise reports, with `SumCommands`, `SumCommandPlan`, and their checks;
+  execution plan 15 and plan report 4; the dry run's `commands:` line the count
+  alone; the pinned digests moved.
+- B: the parser's `Invocation.Sources` (`--cmd` and `--cf` in order) and
+  `Declaration.Command` indexing them; `commandPlan` building the list in order;
+  `--cf` repeated, `stdin_source_repeated` for a second `--cf -`,
+  `commands_file_repeated` retired; B1's `commands_files` and scoreboard 5, the
+  watch screen's pane line; B2's refusal; the stream in the order typed and its
+  package comment corrected; the help, the man pages, COMMAND-SESSION's grammar,
+  README, OPERATIONS.
+- C: `--cf` stated, a file read at once and a folder at planning through
+  `planner.TargetCommands`, each device's `DIR/NAME` in its place; the plan's
+  `target_commands` (`executionplan.CommandList` per target, each with its
+  declarations), `ListFor` and `CommandsFor` by target, read by the executor,
+  the job's initial states, the daemon's checks, `LargestCommandLimit`, and
+  `CommandCount`; the dry run's list per device; C1's and C2's codes, C3's
+  message; OPERATIONS's section "A command list per device".
+- D: D1's refusal (`checkCollectionInputs`); one `Store.WriteCommands` for the
+  three copies, each command's returns written back (`commandsText`),
+  `commands/NAME` beside a folder; D2's summary, D3's rule, D4's start event;
+  the manifest's check of each initial state against its device's own list
+  (found, below); FILES, COLLECTION, OPERATIONS, DESIGN, ROADMAP.
+- E: the native suite's S37: the order written and its two refusals; a folder
+  through the daemon, each device's list, the copies with their `\r`, no
+  `commands.txt` named, the audit's start, `tools/schema-check`; the rerun of
+  its failures by `--tf J/failed-devices.txt --cf J/commands` and a copy's `\r`
+  answering the save's question; one list's `commands.txt` and its rerun; a
+  device without its file, two with one, and a collection over the folder and
+  the file, a fresh fake counting no connection; the native suite's closing
+  checks moved to its end; the spool suite's S8 reading the build's scoreboard
+  counter and the completion suite's fixture at 5; ROADMAP's Next item removed.
+
+The tests: `TestCommandsInTheOrderWritten`,
+`TestStreamLoopCommandsInTheOrderTyped`, `TestDraftCarriesTheCommandFiles` (B);
+`TestCommandsFromAFolder`, `TestTargetCommands`, `TestTargetCommandLists`,
+`TestDraftCarriesTargetLists`, `TestFrameBoundNamesTheSizes` (C);
+`TestCheckCollectionInputs`, `TestWriteCommands`, `TestJobStartBesideLists`,
+`TestManifestInitialStatesByTargetList` (D). Each section's lab ran on a build
+of its tree at the fake device, and the k03 suite on a build for B, C, and D,
+the native suite for D too.
+
+**Executed.** The full battery on a lab build of the final tree (`battery.sh`,
+`TMPDIR=/var/tmp`): vet, `make generated-clean`, `go test -count=1 ./...` (72
+packages), and the 19 suites by `run_suites`, S37 among them, in 237 seconds,
+each exit 0; none left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, `~/.local/share/karvi`, or karvi process. The first run
+stopped at the spool suite's S8 and the second at its S4 (both below); the third
+passed. On the released 0.35.0, S37 fails at its first row,
+`commands_file_repeated: --cf may be given once; it names one file or -`.
+
+**Found on the way.**
+
+- The manifest's check compared each initial state's command index with the
+  plan's one list, empty under `crun`'s platform lists and beside a `--cf`
+  folder, so `tools/schema-check` refused those jobs' folders
+  (`manifest_invalid: initial_states[0] command index 1 is out of range`, the
+  build of `74e3e0c` on `d-build-lab.sh`'s job folders); fixed in D with no
+  design choice, each state read against its device's own list.
+- The native suite's closing checks, the operator's trust store unchanged and no
+  fake or daemon left, ran before S33 to S36, which came after them in the file;
+  E moved them to the end, after S37.
+- One list whose audit `start` is over journald's datagram bound fails the job
+  at its acceptance (gap D4): ROADMAP's Later.
+- The spool suite's S8 pinned the scoreboard's schema at 4, which B moved to 5,
+  and the k03 suite run for B and C does not reach it: the first battery failed
+  there. S8 now reads the build's own counter (`karvi version`,
+  `scoreboard_schema_version`), and the completion suite's scoreboard fixture is
+  at 5.
+- The spool suite's S4 timeout row gives `show big` a one-second cut and needs 1
+  MiB settled by it. The second battery failed there with nothing settled, and
+  the suite alone on a lab build failed once in three. At the fake with the
+  spool and the job folders on `/var/tmp` (`e-spool-timing-lab.sh`), 48 cuts, 24
+  of each build, alone and after the limit row, settled 12 to 48 MB but one, a
+  lab build's at 141,422 bytes; on `/dev/shm` none fell under 9.4 MB. The row's
+  path is not one the build touched; it is left as it stands and raised with the
+  operator.
+- A planning refusal on `command` carries no stage prefix (`command`'s refusals
+  have none), where `run` and `crun` through the daemon print
+  `client planning:`; the stage prefixes are among Next item 1's open questions.
+
+**Closed.** The build's evidence is kept beside the tree
+(`release-design-evidence/next1-build-2026-10-26`: each gap's and each section's
+lab scripts with their logs and exits, the suites' logs, the three batteries'
+logs (`battery-1`, `battery-2`, and the last beside them, `battery.sh`), and the
+gaps as agreed, `decisions.md`). ROADMAP's Next item 1 is now the shorter output
+strings.

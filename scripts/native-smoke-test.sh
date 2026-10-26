@@ -752,12 +752,6 @@ max-ipc-frame-bytes = 65536' '' --cmd 'show big' --cmd 'show clock'
   echo 'native smoke: S31 the frame bound: the output left out with follow_output_omitted, the file whole: ok'
 fi
 
-[ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
-stop_fake
-if pgrep -f "$TMP/bin/fake" >/dev/null 2>&1 || pgrep -f "daemon serve.*$TMP" >/dev/null 2>&1; then
-  fail "a fake or a daemon is still running"
-fi
-echo 'native smoke: pass'
 
 # S33: the collection run. Two rows: the fake,
 # and `dead`, an alias of cisco_iosxe on a port nothing listens on. A crun
@@ -1073,3 +1067,115 @@ default = \"parallel\""
   stop_fake
   echo 'native smoke: S36 --live: command over system and native (the header, every byte from the first, the secret removed, the footer), the text file unchanged, run serial under a parallel default with each device in turn, no secret anywhere, --echo and a daemon run refused: ok'
 fi
+
+# S37: the command list per device (EXAMPLES chapter 79). A run's commands
+# go in the order written, files and --cmd alike; a declaration after a
+# --cf and a second --cf - are refused. A --cf folder through the daemon
+# sends each device the line's commands with its own file in its place;
+# the job folder keeps each list as commands/NAME, its \r returns written
+# back, the summary names no commands.txt, the audit's start counts the
+# longest list and lists none, and tools/schema-check takes the folder; the
+# rerun of the failures by --tf J/failed-devices.txt --cf J/commands sends
+# each its own list, a copy's \r answering the save's prompt. One list's
+# commands.txt keeps its \r too, and the rerun from it succeeds. Refused at
+# planning, no device contacted: a device without its file, two devices
+# with one file name, and a collection over the run's own --cf folder or
+# file.
+if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S37 ]; then
+  (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/schema-check" ./tools/schema-check)
+  s37_run() {  # tag, karvi args...; sets CODE, JOB_DIR
+    s37_tag=$1; shift
+    rm -rf "${TMP:?}/base" "${TMP:?}/home"; install -d -m 700 "$TMP/base" "$TMP/home"
+    CODE=0
+    env NETENABLE=en HOME="$TMP/home" NETUSER=netops NETPASS=pw \
+      "$KARVI" --config "$TMP/karvi.toml" --set 'platform-resolution.default=""' "$@" \
+      >"$TMP/out.$s37_tag" 2>"$TMP/err.$s37_tag" </dev/null || CODE=$?
+    JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
+  }
+  s37_sent() { jsonl_records "$JOB_DIR/commands.jsonl" device.canonical_name command | tr '\t' ' ' | paste -sd '|' -; }
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\nfake-b,127.0.0.1,cisco_iosxe\ndead,127.0.0.1,dead\nedge.example.net,127.0.0.1,cisco_iosxe\nedge.example.org,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  start_fake -port 0 -hostname fake-iosxe
+  : >"$KH"; chmod 600 "$KH"
+  write_config accept-new "$BUILTIN
+[platform.dead]
+driver = \"cisco_iosxe\"
+ssh-port = 1"
+  rm -rf "${TMP:?}/s37"; install -d -m 700 "$TMP/s37" "$TMP/s37/lists"
+  printf 'show version\n' >"$TMP/s37/a.txt"
+  printf 'show users\n' >"$TMP/s37/b.txt"
+  printf '%s\n' 'copy running-config startup-config\r' >"$TMP/s37/save.txt"
+  printf 'show version\n' >"$TMP/s37/lists/fake-iosxe"
+  printf '%s\n' 'copy running-config startup-config\r' >"$TMP/s37/lists/fake-b"
+  printf 'show users\n' >"$TMP/s37/lists/dead"
+  printf 'show clock\n' >"$TMP/s37/lists/edge"
+
+  # The order written, and its two refusals.
+  s37_run s37order run --no-daemon --transport native --target fake-iosxe --cf "$TMP/s37/a.txt" --cmd 'show clock' --cf "$TMP/s37/b.txt"
+  [ "$CODE" -eq 0 ] || fail "S37 order: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s37order" | head -1)"
+  [ "$(s37_sent)" = 'fake-iosxe show version|fake-iosxe show clock|fake-iosxe show users' ] || fail "S37 order: sent $(s37_sent)"
+  json_is "$JOB_DIR/manifest.json" plan.commands_files '["a.txt","b.txt"]' || fail "S37 order: the plan's commands_files are $(json_get "$JOB_DIR/manifest.json" plan.commands_files)"
+  s37_run s37decl run --no-daemon --transport native --target fake-iosxe --cmd 'show clock' --cf "$TMP/s37/a.txt" --expect 'Destination filename.*='
+  [ "$CODE" -eq 4 ] && grep -q '^declaration_with_commands_file: --expect follows --cf' "$TMP/err.s37decl" || fail "S37 a declaration after --cf: exit $CODE, $(head -1 "$TMP/err.s37decl")"
+  s37_run s37stdin run --no-daemon --transport native --target fake-iosxe --cf - --cf -
+  [ "$CODE" -eq 4 ] && grep -q '^stdin_source_repeated: ' "$TMP/err.s37stdin" || fail "S37 two --cf -: exit $CODE, $(head -1 "$TMP/err.s37stdin")"
+
+  # A folder through the daemon, dead unreachable.
+  s37_run s37dir run --transport native --target fake-iosxe --target fake-b --target dead --cmd 'show clock' --cf "$TMP/s37/lists"
+  s37_audit=$(audit_events "$TMP/base/audit.jsonl" event_name action.command_count action.commands | grep '^run\.start' || true)
+  stop_daemon
+  [ "$CODE" -eq 101 ] || fail "S37 folder: exit $CODE, expected dead's failure: $(grep -E '^[a-z_]+:' "$TMP/err.s37dir" | head -1)"
+  [ "$(s37_sent | tr '|' '\n' | sort | paste -sd '|' -)" = 'dead show clock|dead show users|fake-b copy running-config startup-config|fake-b show clock|fake-iosxe show clock|fake-iosxe show version' ] || fail "S37 folder: sent $(s37_sent)"
+  [ "$(ls "$JOB_DIR/commands" | tr '\n' ' ')" = 'dead fake-b fake-iosxe ' ] && [ ! -e "$JOB_DIR/commands.txt" ] || fail "S37 folder: the job folder holds $(job_files), commands/ $(ls "$JOB_DIR/commands" 2>/dev/null | tr '\n' ' ')"
+  [ "$(cat "$JOB_DIR/commands/fake-b")" = 'show clock
+copy running-config startup-config\r' ] && [ "$(cat "$JOB_DIR/commands/dead")" = 'show clock
+show users' ] || fail "S37 folder: the copies are $(tr '\n' '|' <"$JOB_DIR/commands/fake-b") and $(tr '\n' '|' <"$JOB_DIR/commands/dead")"
+  if json_has "$JOB_DIR/summary.json" paths.commands_txt; then fail "S37 folder: the summary names commands.txt, a file not written"; fi
+  [ "$(cat "$JOB_DIR/failed-devices.txt")" = dead ] || fail "S37 folder: failed-devices.txt is $(cat "$JOB_DIR/failed-devices.txt")"
+  [ "$s37_audit" = "$(printf 'run.start\t2\t')" ] || fail "S37 folder: the audit's start is $s37_audit"
+  "$TMP/bin/schema-check" "$JOB_DIR" >"$TMP/s37.check" 2>&1 || fail "S37 folder: schema-check: $(cat "$TMP/s37.check")"
+  rm -rf "${TMP:?}/s37/job"; cp -R "$JOB_DIR" "$TMP/s37/job"
+
+  # The rerun from the job folder: dead reachable now, and fake-b's copy's \r.
+  write_config accept-new "$BUILTIN
+[platform.dead]
+driver = \"cisco_iosxe\"
+ssh-port = PORT"
+  s37_run s37rerun run --no-daemon --transport native --tf "$TMP/s37/job/failed-devices.txt" --cf "$TMP/s37/job/commands"
+  [ "$CODE" -eq 0 ] && [ "$(s37_sent)" = 'dead show clock|dead show users' ] || fail "S37 rerun: exit $CODE, sent $(s37_sent)"
+  s37_run s37save run --no-daemon --transport native --target fake-b --cf "$TMP/s37/job/commands"
+  [ "$CODE" -eq 0 ] && [ "$(s37_sent)" = 'fake-b show clock|fake-b copy running-config startup-config' ] || fail "S37 fake-b's copy: exit $CODE, sent $(s37_sent): $(grep -E '^[a-z_]+:' "$TMP/err.s37save" | head -1)"
+
+  # One list: commands.txt keeps the \r, and the rerun from it succeeds.
+  s37_run s37one run --no-daemon --transport native --target fake-iosxe --cf "$TMP/s37/save.txt" --cmd 'show clock'
+  [ "$CODE" -eq 0 ] && [ "$(cat "$JOB_DIR/commands.txt")" = 'copy running-config startup-config\r
+show clock' ] || fail "S37 one list: exit $CODE, commands.txt $(tr '\n' '|' <"$JOB_DIR/commands.txt" 2>/dev/null)"
+  json_is "$JOB_DIR/summary.json" paths.commands_txt "$JOB_DIR/commands.txt" || fail "S37 one list: the summary's paths lack commands_txt"
+  cp "$JOB_DIR/commands.txt" "$TMP/s37/rerun.txt"
+  s37_run s37one2 run --no-daemon --transport native --target fake-iosxe --cf "$TMP/s37/rerun.txt"
+  [ "$CODE" -eq 0 ] || fail "S37 one list's rerun: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s37one2" | head -1)"
+
+  # The planning refusals, no device contacted: a fresh fake counts none.
+  stop_fake
+  start_fake -port 0 -hostname fake-iosxe
+  write_config accept-new "$BUILTIN"
+  s37_run s37missing run --no-daemon --transport native --target fake-iosxe --target edge.example.net --target edge.example.org --cmd 'show clock' --cf "$TMP/s37/lists"
+  [ "$CODE" -eq 5 ] && grep -q '^commands_file_name_collision: ' "$TMP/err.s37missing" || fail "S37 two devices with one file: exit $CODE, $(head -1 "$TMP/err.s37missing")"
+  rm -f "$TMP/s37/lists/edge"
+  s37_run s37missing run --no-daemon --transport native --target fake-iosxe --target edge.example.net --cf "$TMP/s37/lists"
+  [ "$CODE" -eq 5 ] && [ "$(sed -n '1,2p' "$TMP/err.s37missing" | sed 's/^[a-z_]*: \(client planning: \)\{0,1\}//')" = "$TMP/s37/lists has no file for 1 device
+  edge.example.net (edge)" ] || fail "S37 a device without its file: exit $CODE, $(head -2 "$TMP/err.s37missing" | tr '\n' '|')"
+  s37_run s37coll crun --no-daemon --transport native --target fake-iosxe --cf "$TMP/s37/lists" --cd="$TMP/s37/lists"
+  [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/s37/lists/fake-iosxe")" = 'show version' ] && grep -q '^commands_file_in_collection: \(client planning: \)\{0,1\}a --cf folder is the collection folder$' "$TMP/err.s37coll" || fail "S37 a collection into the folder: exit $CODE, $(head -1 "$TMP/err.s37coll")"
+  s37_run s37coll run --no-daemon --transport native --target fake-iosxe --cf "$TMP/s37/lists/fake-iosxe" --cd="$TMP/s37/lists"
+  [ "$CODE" -eq 4 ] && [ "$(cat "$TMP/s37/lists/fake-iosxe")" = 'show version' ] && grep -q '^commands_file_in_collection: \(client planning: \)\{0,1\}a --cf file is the collection file of fake-iosxe$' "$TMP/err.s37coll" || fail "S37 a collection onto the file: exit $CODE, $(head -1 "$TMP/err.s37coll")"
+  stop_fake
+  grep -q '^connections=0 sessions=0$' "$TMP/fake.err" || fail "S37 refusals: the fake counted $(grep '^connections=' "$TMP/fake.err")"
+  printf '%s\n' 'native smoke: S37 a command list per device: the order written and its two refusals, a folder through the daemon (each list, the copies with their \r, no commands.txt named, the audit start, schema-check), the rerun of its failures and a copy'"'"'s \r, one list'"'"'s commands.txt and its rerun, a device without its file, two with one, a collection over the folder and the file: ok'
+fi
+
+[ "$(host_store_digest "$OWN_STORE")" = "$OWN_BEFORE" ] || fail "the operator's trust store $OWN_STORE changed"
+stop_fake
+if pgrep -f "$TMP/bin/fake" >/dev/null 2>&1 || pgrep -f "daemon serve.*$TMP" >/dev/null 2>&1; then
+  fail "a fake or a daemon is still running"
+fi
+echo 'native smoke: pass'
