@@ -125,9 +125,9 @@ func sampleRecord() *records.CommandRecord {
 // start repeats them.
 func TestSchema10ReceiptCarriesWarnings(t *testing.T) {
 	at := time.Date(2026, 9, 27, 0, 33, 4, 0, time.UTC)
-	r := JobReceipt{JobID: plantest.JobID, AcceptedAt: at, ArtifactDir: "/tmp/jobs/260927/" + plantest.JobID, PlanDigest: executionplan.SumCommands(plantest.Commands), Mode: executionplan.ModeLive, Warnings: []string{"spool_width_narrowed: /tmp/karvi-1000 has 60070989824 bytes free, 1073741824 per command in flight (output.max-command-bytes): the job runs 55 at a time instead of 64"}}
+	r := JobReceipt{JobID: plantest.JobID, AcceptedAt: at, ArtifactDir: "/tmp/jobs/260927/" + plantest.JobID, PlanDigest: executionplan.Sum([]byte("plan")), Mode: executionplan.ModeLive, Warnings: []string{"spool_width_narrowed: /tmp/karvi-1000 has 60070989824 bytes free, 1073741824 per command in flight (output.max-command-bytes): the job runs 55 at a time instead of 64"}}
 	canarytest.SchemaParityAt(t, ipcSchema, "#/$defs/job_receipt", r)
-	b, _ := json.Marshal(JobReceipt{JobID: plantest.JobID, AcceptedAt: at, ArtifactDir: "/x", PlanDigest: executionplan.SumCommands(plantest.Commands), Mode: executionplan.ModeLive})
+	b, _ := json.Marshal(JobReceipt{JobID: plantest.JobID, AcceptedAt: at, ArtifactDir: "/x", PlanDigest: executionplan.Sum([]byte("plan")), Mode: executionplan.ModeLive})
 	if strings.Contains(string(b), "warnings") {
 		t.Fatalf("no warnings, no field: %s", b)
 	}

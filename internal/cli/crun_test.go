@@ -85,7 +85,7 @@ func TestCrunDryRunListsPerPlatform(t *testing.T) {
 	}
 	out := stdout.String()
 	wd, _ := os.Getwd()
-	for _, want := range []string{"outcome: plan", "commands: 2 (", "collection: " + filepath.Join(wd, "configs") + " (file mode 0660)", "- name:127.0.0.1: planned", "  commands: show version; show clock"} {
+	for _, want := range []string{"outcome: plan", "commands: 2\n", "collection: " + filepath.Join(wd, "configs") + " (file mode 0660)", "- name:127.0.0.1: planned", "  commands: show version; show clock"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("report lacks %q:\n%s", want, out)
 		}
@@ -95,7 +95,7 @@ func TestCrunDryRunListsPerPlatform(t *testing.T) {
 	if got := Main(append([]string{list}, args("--cmd", "show users")...), strings.NewReader(""), &stdout, &stderr); got != 0 {
 		t.Fatalf("with --cmd: exit=%d stderr=%q", got, stderr.String())
 	}
-	if out := stdout.String(); strings.Contains(out, "  commands: show version") || !strings.Contains(out, "commands: 1 (") {
+	if out := stdout.String(); strings.Contains(out, "  commands: show version") || !strings.Contains(out, "commands: 1\n") {
 		t.Errorf("with --cmd the operator's list alone:\n%s", out)
 	}
 }

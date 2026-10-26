@@ -518,7 +518,6 @@
         "activity_id",
         "plan",
         "plan_digest",
-        "command_plan_digest",
         "daemons",
         "preparations",
         "targets",
@@ -533,7 +532,7 @@
       ],
       "properties": {
         "schema_version": {
-          "const": 3
+          "const": 4
         },
         "kind": {
           "enum": [
@@ -569,9 +568,6 @@
           "$ref": "execution-plan.schema.json#/$defs/execution_plan"
         },
         "plan_digest": {
-          "$ref": "execution-plan.schema.json#/$defs/digest"
-        },
-        "command_plan_digest": {
           "$ref": "execution-plan.schema.json#/$defs/digest"
         },
         "daemons": {

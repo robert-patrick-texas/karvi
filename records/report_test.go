@@ -70,7 +70,7 @@ func fixtureInspection() PlanReport {
 	return PlanReport{
 		SchemaVersion: PlanReportSchemaVersion, Kind: ReportInspection, ReportID: reportID, GeneratedAt: plantest.DraftedAt.Add(time.Second),
 		Producer: producer(), ProducerRole: ProducerClient, Operator: Operator{Username: "netops", UID: 1000}, ActivityID: activityID,
-		Plan: draft, PlanDigest: sum, CommandPlanDigest: draft.CommandPlanDigest,
+		Plan: draft, PlanDigest: sum,
 		Daemons: []executionplan.DaemonReadiness{readiness()}, Preparations: []executionplan.PreparationReport{},
 		Targets: []TargetReport{
 			targetReport(draft.Targets[0], ReadinessPlanned, bound(plantest.GrantA)),
@@ -116,7 +116,7 @@ func fixtureExercise() PlanReport {
 	return PlanReport{
 		SchemaVersion: PlanReportSchemaVersion, Kind: ReportExercise, ReportID: reportID, GeneratedAt: plantest.FinalizedAt.Add(2 * time.Second),
 		Producer: producer(), ProducerRole: ProducerDaemon, Operator: Operator{Username: "netops", UID: 1000}, ActivityID: activityID, JobID: plantest.JobID,
-		Plan: final, PlanDigest: final.PlanDigest, CommandPlanDigest: final.CommandPlanDigest,
+		Plan: final, PlanDigest: final.PlanDigest,
 		Daemons: []executionplan.DaemonReadiness{readiness()}, Preparations: []executionplan.PreparationReport{prep}, CredentialPackage: &pkg,
 		Targets:  targets,
 		Counts:   ReportCounts{Targets: 3, ByReadiness: map[string]int{ReadinessReady: 2, ReadinessNotReady: 1}, ByAuthority: map[string]int{"client": 2, "daemon": 1}, Commands: 4, Errors: 1},
@@ -166,10 +166,7 @@ func TestReportValidationVectors(t *testing.T) {
 		{"schema", fixtureInspection, func(r *PlanReport) { r.SchemaVersion = 1 }, "schema_version"},
 		{"kind", fixtureInspection, func(r *PlanReport) { r.Kind = "dry-run" }, "kind"},
 		{"report id", fixtureInspection, func(r *PlanReport) { r.ReportID = "r1" }, "report_id"},
-		{"plan digest", fixtureInspection, func(r *PlanReport) {
-			r.Plan.Commands[0] = "show clock detail"
-			r.Plan.CommandPlanDigest = executionplan.SumCommands(r.Plan.Commands)
-		}, "plan_digest"},
+		{"plan digest", fixtureInspection, func(r *PlanReport) { r.Plan.Commands[0] = "show clock detail" }, "plan_digest"},
 		{"target order", fixtureInspection, func(r *PlanReport) { r.Targets[0], r.Targets[1] = r.Targets[1], r.Targets[0] }, "targets[0].target_id"},
 		{"exercise readiness in inspection", fixtureInspection, func(r *PlanReport) { r.Targets[0].Readiness = ReadinessReady }, "targets[0].readiness"},
 		{"address disagrees", fixtureInspection, func(r *PlanReport) { r.Targets[0].Address.Selected = netip.MustParseAddr("10.0.0.9") }, "targets[0].address"},

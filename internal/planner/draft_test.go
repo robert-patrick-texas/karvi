@@ -159,7 +159,9 @@ func draftOptions(commands []string) DraftOptions {
 // the configuration block's new key crun.mask and its digest; the k03
 // set's platform has no masks, so the plan carries none; nothing else
 // moved.
-const goldenK03Draft = "fb4309d6c9eb45f185ceed00452f02370a81239d0c17620780478d8009315d30"
+// Re-pinned at schema 15, command_plan_digest removed (EXAMPLES chapter
+// 79); nothing else moved.
+const goldenK03Draft = "f3c786fe0c3b8daaf62ec5f248587cb337c2635de177c7162037095f91c2169e"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -482,9 +484,6 @@ func TestDraftPlatformCommands(t *testing.T) {
 	}
 	if len(draft.Commands) != 0 || len(draft.PlatformCommands) != 1 || len(draft.PlatformCommands["generic"]) != 2 {
 		t.Fatalf("lists: commands %q platform_commands %q", draft.Commands, draft.PlatformCommands)
-	}
-	if draft.CommandPlanDigest != executionplan.SumCommandPlan(nil, draft.PlatformCommands) {
-		t.Fatal("the digest does not cover the lists")
 	}
 	if err := draft.Validate(executionplan.Draft); err != nil {
 		t.Fatal(err)

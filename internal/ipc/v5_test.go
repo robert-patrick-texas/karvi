@@ -158,8 +158,7 @@ func TestSchema5PayloadsValidateAndMatchTheSchema(t *testing.T) {
 	}
 	bad = fixturePrepare(t)
 	bad.Draft.Commands[0] = "changed"
-	bad.Draft.CommandPlanDigest = executionplan.SumCommands(bad.Draft.Commands)
-	if err := bad.Validate(); errorcodes.Of(err) != "job_header_invalid" {
+	if err := bad.Validate(); errorcodes.Of(err) != "plan_digest_mismatch" {
 		t.Errorf("prepare header not matching draft: %v", err)
 	}
 	badc := fixtureCommit(t)

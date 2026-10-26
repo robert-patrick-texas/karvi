@@ -32,6 +32,12 @@
   `command`, `run`, and `crun`, `--li` no longer abbreviates `--literal`;
   `--lit` does. The fake device answers `show drip` with three lines,
   `-drip` apart.
+- **Breaking: `command_plan_digest` removed; execution plan 15, plan report
+  4.** The plan, the job header, and the dry-run and exercise reports no
+  longer carry `command_plan_digest`, which nothing read but checks against
+  the same message; `plan_digest` covers the plan, its commands included, and
+  a job's `manifest.json` holds the plan and the header without it. The dry
+  run's `commands:` line holds the count alone.
 
 ## 0.35.0 - 2026-10-21
 

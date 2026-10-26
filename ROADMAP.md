@@ -21,13 +21,12 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    target sent `DIR/NAME`, NAME its collection file's; a run's commands in the
    order written, `--cf` given more than once; the refusals at planning (a
    selected target without its file, two targets with one name, a collection
-   into a `--cf` folder or onto a `--cf` file of the same run); the plan's
-   list per target, `--dry-run` showing each, and `command_plan_digest`
-   removed; the job folder's `commands/NAME`, and every copy writing a
-   command's `\r` returns back; a stream's `--cf DIR` line; the help, the man
-   pages, `COMMAND-SESSION`, `COLLECTION`, `FILES`, `ERROR-CODES`, and the
-   CHANGELOG; and `internal/cli/stream.go`'s package comment, which says every
-   job clears the commands, corrected.
+   into a `--cf` folder or onto a `--cf` file of the same run); the plan's list
+   per target and `--dry-run` showing each; the job folder's `commands/NAME`,
+   and every copy writing a command's `\r` returns back; a stream's `--cf DIR`
+   line; the help, the man pages, `COMMAND-SESSION`, `COLLECTION`, `FILES`,
+   `ERROR-CODES`, and the CHANGELOG; and `internal/cli/stream.go`'s package
+   comment, which says every job clears the commands, corrected.
 2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
@@ -161,11 +160,10 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   the program computes or records with who computes it, who reads it, and
   what breaks without it, and removes those nothing consumes in production;
   the development use, comparing two outputs, stays. The audit's are gone
-  (chapter 63, its statements in their place). The plan's
+  (chapter 63, its statements in their place), and so is the plan's
   `command_plan_digest`, read only by checks against the same message that
-  `plan_digest` already binds, goes with the command file per target
-  ([Next](#next)); `plan_digest`, which the daemon's commit, the idempotency
-  key, and the credential package read, stays.
+  `plan_digest` already binds (chapter 79); `plan_digest`, which the daemon's
+  commit, the idempotency key, and the credential package read, stays.
 - **`Sealed` credential packages.** The envelope schema accepts the
   protection and the `Sealer` interface is fixed, but no channel carries it
   and no reviewed provider exists; it waits for the stage that brings a

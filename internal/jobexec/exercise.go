@@ -191,7 +191,7 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	report := records.PlanReport{
 		SchemaVersion: records.PlanReportSchemaVersion, Kind: records.ReportExercise, ReportID: reportID, GeneratedAt: time.Now(),
 		Producer: producerInfo(), ProducerRole: records.ProducerDaemon, Operator: osutil.RecordOperator(req.Operator), ActivityID: st.id, JobID: st.id,
-		Plan: plan, PlanDigest: plan.PlanDigest, CommandPlanDigest: plan.CommandPlanDigest,
+		Plan: plan, PlanDigest: plan.PlanDigest,
 		Daemons: daemons, Preparations: preparations, CredentialPackage: &pkg,
 		Targets: targets,
 		Counts:  records.ReportCounts{Targets: len(targets), ByReadiness: byReadiness, ByAuthority: byAuthority, Commands: plan.CommandCount(), Errors: errorsN, Warnings: warningsN},

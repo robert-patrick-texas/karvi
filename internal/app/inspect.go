@@ -260,7 +260,7 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 	return records.PlanReport{
 		SchemaVersion: records.PlanReportSchemaVersion, Kind: records.ReportInspection, ReportID: reportID, GeneratedAt: time.Now(),
 		Producer: producerInfo(), ProducerRole: records.ProducerClient, Operator: osutil.RecordOperator(cd.operator), ActivityID: activityID,
-		Plan: draft, PlanDigest: sum, CommandPlanDigest: draft.CommandPlanDigest,
+		Plan: draft, PlanDigest: sum,
 		Daemons: daemons, Preparations: []executionplan.PreparationReport{},
 		Targets:  targets,
 		Counts:   records.ReportCounts{Targets: len(targets), ByReadiness: byReadiness, ByAuthority: byAuthority, Commands: draft.CommandCount(), Errors: errorsN, Warnings: warningsN},
@@ -323,7 +323,7 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 	for _, f := range r.Findings {
 		fmt.Fprintf(&b, "finding: %s %s %s\n", f.Severity, f.Code, f.Message)
 	}
-	fmt.Fprintf(&b, "commands: %d (command_plan_digest %s)\n", r.Counts.Commands, shortDigest(r.CommandPlanDigest.String()))
+	fmt.Fprintf(&b, "commands: %d\n", r.Counts.Commands)
 	fmt.Fprintf(&b, "dispatch: %s order=%s\n", dispatchLine, r.Plan.Dispatch.DispatchOrder)
 	if c := r.Plan.Output.Collection; c != nil {
 		suffix := ""
@@ -366,13 +366,6 @@ func renderInspection(out io.Writer, format string, r records.PlanReport, socket
 	fmt.Fprintf(&b, "next: %s (the same scope without --dry-run, or with --exercise)\n", r.NextOperation)
 	_, err := io.WriteString(out, b.String())
 	return err
-}
-
-func shortDigest(d string) string {
-	if len(d) <= 16 {
-		return d
-	}
-	return d[:8] + "…" + d[len(d)-7:]
 }
 
 func joinAddrs[T fmt.Stringer](addrs []T) string {

@@ -1439,11 +1439,11 @@ the client is responsible for, and a property of the import graph cannot drift.
 
 **The plan is a complete, hashed statement of intent.** The execution plan
 carries the operator, the exact ordered targets (each a device projection with
-its address plan, credential binding, and platform), the commands and their
-digest, what the client decided for the job (dispatch, output, session-init),
-and the client's resolved configuration as its `configuration` block, so the
-daemon reads no configuration of its own to run it. It carries no job
-ID and no mode, so an exercise and its live submission hash identically. Its
+its address plan, credential binding, and platform), the commands, what the
+client decided for the job (dispatch, output, session-init), and the client's
+resolved configuration as its `configuration` block, so the daemon reads no
+configuration of its own to run it. It carries no job ID and no mode, so an
+exercise and its live submission hash identically. Its
 digest is over the canonical JSON, deterministic by field order; the plan and
 IPC schemas are closed (`additionalProperties: false`), the report schema open.
 *Why:* the daemon judges a plan it can only validate; an unknown field would be
@@ -1500,27 +1500,25 @@ for is left unread, so a canary is the same command with one target and the
 same folder. A collection into a `--cf` folder, or onto a `--cf` file, of the
 same run is refused at planning, on `crun` and on `run` or `command` with
 `--cd` or `--fs`; on `crun`, commands on the line replace the platform's
-`crun-commands` as they always have. The plan carries each target's list and
-no digest of its own: `plan_digest`, which the daemon's commit, the idempotency
-key, and the credential package read, covers the whole plan, and
-`command_plan_digest`, read only by checks against the same message, is
-removed when this is built. `--dry-run` shows each target's list. The job
-folder keeps what each device was sent as `--cf` lines, each command's `\r`
-returns written back: `commands.txt` for one list, `commands.PLATFORM.txt` per
-platform, and `commands/NAME` per target, so `--tf failed-devices.txt --cf
-commands` from the job folder reruns the failures with their own lists; an
-`--expect`, a `--blind` without returns, a `--timeout`, or a `--maxbytes` has
-no form in a file and is the plan's alone. In a stream, a `--cf DIR` line stays
-from job to job as any `--cf` line does and is read at each `--go`. *Why:* a
-rendered configuration and the checks before and after a change differ per
-target; the plan already holds lists that differ by target, a collection's
-platform lists, and one function names a device's file; a lookup by exact name
-reads nothing else in the folder, so it needs no skip list; `--fs` is the
-collection's suffix, which on a run turns a collection on, so as the folder's
-it would write a device's output over its list; and a digest earns its place
-by a reader that needs it, which the lists' never had. *Not taken:* a job per
-target (the one job's accounting, scoreboard, dispatch, and admission lost); a
-separate option for the folder (one more to learn, the same reader); a folder
+`crun-commands` as they always have. The plan carries each target's list and no
+digest of its own: `plan_digest`, which the daemon's commit, the idempotency
+key, and the credential package read, covers the whole plan. `--dry-run` shows
+each target's list. The job folder keeps what each device was sent as `--cf`
+lines, each command's `\r` returns written back: `commands.txt` for one list,
+`commands.PLATFORM.txt` per platform, and `commands/NAME` per target, so `--tf
+failed-devices.txt --cf commands` from the job folder reruns the failures with
+their own lists; an `--expect`, a `--blind` without returns, a `--timeout`, or a
+`--maxbytes` has no form in a file and is the plan's alone. In a stream, a `--cf
+DIR` line stays from job to job as any `--cf` line does and is read at each
+`--go`. *Why:* a rendered configuration and the checks before and after a change
+differ per target; the plan already holds lists that differ by target, a
+collection's platform lists, and one function names a device's file; a lookup by
+exact name reads nothing else in the folder, so it needs no skip list; `--fs` is
+the collection's suffix, which on a run turns a collection on, so as the
+folder's it would write a device's output over its list; and a digest earns its
+place by a reader that needs it, which the lists' never had. *Not taken:* a job
+per target (the one job's accounting, scoreboard, dispatch, and admission lost);
+a separate option for the folder (one more to learn, the same reader); a folder
 that must match the selection (a canary would need a folder of its own); a
 suffix or `--tf`'s skip list; `--cmd` refused beside a folder (the operator's
 stacked actions lost); a digest over the lists.

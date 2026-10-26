@@ -1,7 +1,6 @@
 package executionplan
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"net/netip"
 	"path/filepath"
@@ -42,8 +41,10 @@ import (
 // job reads from that configuration; 13 the header's client its pid and host
 // alone, its app name, version, and commit, which nothing read, removed
 // (EXAMPLES chapter 57, issue 3); 14 platform_masks, each target
-// platform's mask list (EXAMPLES chapter 63, issue 8).
-const SchemaVersion = 14
+// platform's mask list (EXAMPLES chapter 63, issue 8); 15 command_plan_digest
+// removed from the plan and the header, read only by checks against the same
+// message (EXAMPLES chapter 79).
+const SchemaVersion = 15
 
 // Mode is the requested execution mode of a job.
 type Mode string
@@ -127,7 +128,7 @@ type ExecutionPlan struct {
 	// each device its platform's list. A target points at its list by its
 	// device's platform, and every target's platform has a list when
 	// Commands is empty. The blind and expect declarations belong to
-	// Commands alone. CommandPlanDigest covers Commands and every list.
+	// Commands alone.
 	PlatformCommands map[string][]string `json:"platform_commands,omitempty"`
 	// PlatformFilters is a drop list per platform for the collection file
 	// (schema 9): the patterns the writer
@@ -140,17 +141,16 @@ type ExecutionPlan struct {
 	// together and a collection file under crun.mask by its device's
 	// platform's alone; a platform absent from the map has none. Present
 	// for every job; the plan digest covers it.
-	PlatformMasks     map[string][]string           `json:"platform_masks,omitempty"`
-	CommandPlanDigest Digest                        `json:"command_plan_digest"`
-	BlindReturns      []int                         `json:"blind_returns"`
-	Blind             []bool                        `json:"blind"`
-	Expectations      [][]Expectation               `json:"expectations"`
-	TimeoutsNS        []int64                       `json:"timeouts_ns"`
-	MaxBytes          []int64                       `json:"max_bytes"`
-	SessionInit       map[string]SessionInitProfile `json:"session_init"`
-	Dispatch          DispatchSettings              `json:"dispatch"`
-	Output            OutputSettings                `json:"output"`
-	Sources           SourceDigests                 `json:"sources"`
+	PlatformMasks map[string][]string           `json:"platform_masks,omitempty"`
+	BlindReturns  []int                         `json:"blind_returns"`
+	Blind         []bool                        `json:"blind"`
+	Expectations  [][]Expectation               `json:"expectations"`
+	TimeoutsNS    []int64                       `json:"timeouts_ns"`
+	MaxBytes      []int64                       `json:"max_bytes"`
+	SessionInit   map[string]SessionInitProfile `json:"session_init"`
+	Dispatch      DispatchSettings              `json:"dispatch"`
+	Output        OutputSettings                `json:"output"`
+	Sources       SourceDigests                 `json:"sources"`
 	// Configuration is the client's resolved configuration (schema 12),
 	// which sources.config_digest digests: the daemon runs the job under it.
 	Configuration Configuration         `json:"configuration"`
@@ -174,7 +174,7 @@ type ExecutionPlan struct {
 // RE2 expression; a command with a count above zero and a declaration is
 // invalid, since typed-ahead returns and answered prompts on one command
 // reproduce the miscount hazard the declarations exist to remove. All four
-// fields are under plan_digest; the commands digest rule is unchanged. The
+// fields are under plan_digest. The
 // bounds are constants, not configuration keys: the closed schema states
 // each as a number, and a client and a daemon configured apart would
 // disagree after preparation. Both are twenty, the extended ping's nineteen
@@ -385,7 +385,6 @@ type PublicJobHeader struct {
 	Mode              Mode              `json:"mode"`
 	ExecutionDomain   string            `json:"execution_domain"`
 	Priority          int               `json:"priority"`
-	CommandPlanDigest Digest            `json:"command_plan_digest"`
 	PlanDigest        Digest            `json:"plan_digest"`
 	CredentialPackage *PackageReference `json:"credential_package,omitempty"`
 }
@@ -404,43 +403,6 @@ type ClientIdentity struct {
 type PackageReference struct {
 	Protection string `json:"protection"`
 	Digest     Digest `json:"digest"`
-}
-
-// SumCommands is the command-plan digest of a plan without platform lists:
-// SHA-256 over each command followed by a NUL byte, the rule the manifest
-// field of the same name has always used.
-func SumCommands(commands []string) Digest {
-	return SumCommandPlan(commands, nil)
-}
-
-// SumCommandPlan is the command-plan digest over Commands and the platform
-// lists: the commands as SumCommands has
-// always summed them, then each platform in sorted order as a 0x01 byte,
-// its name, a NUL, and its commands each followed by a NUL. A plan without
-// lists sums as it did.
-func SumCommandPlan(commands []string, lists map[string][]string) Digest {
-	h := sha256.New()
-	for _, c := range commands {
-		h.Write([]byte(c))
-		h.Write([]byte{0})
-	}
-	names := make([]string, 0, len(lists))
-	for name := range lists {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		h.Write([]byte{1})
-		h.Write([]byte(name))
-		h.Write([]byte{0})
-		for _, c := range lists[name] {
-			h.Write([]byte(c))
-			h.Write([]byte{0})
-		}
-	}
-	var d Digest
-	copy(d[:], h.Sum(nil))
-	return d
 }
 
 // SumPlan returns the digest of the plan with plan_digest cleared. Over a
@@ -552,9 +514,6 @@ func (p *ExecutionPlan) Validate(stage Stage) error {
 				return planInvalid("platform_masks", "platform %s pattern %d holds no capturing group", name, i+1)
 			}
 		}
-	}
-	if want := SumCommandPlan(p.Commands, p.PlatformCommands); p.CommandPlanDigest != want {
-		return planInvalid("command_plan_digest", "%s does not match the commands (%s)", p.CommandPlanDigest, want)
 	}
 	if c := p.Output.Collection; c != nil {
 		if !filepath.IsAbs(c.Directory) {
@@ -984,9 +943,6 @@ func (h *PublicJobHeader) Validate(stage Stage) error {
 	if h.Priority != 0 {
 		return headerInvalid("priority", "%d is reserved; v1 accepts 0", h.Priority)
 	}
-	if h.CommandPlanDigest.IsZero() {
-		return headerInvalid("command_plan_digest", "is required")
-	}
 	if h.PlanDigest.IsZero() {
 		return headerInvalid("plan_digest", "is required")
 	}
@@ -1011,13 +967,9 @@ func (h *PublicJobHeader) Validate(stage Stage) error {
 	return nil
 }
 
-// Matches checks that the header describes plan at the given stage: the
-// command-plan digest, the plan digest (draft or final), and the execution
-// domain of every target.
+// Matches checks that the header describes plan at the given stage: the plan
+// digest (draft or final) and the execution domain of every target.
 func (h *PublicJobHeader) Matches(plan *ExecutionPlan, stage Stage) error {
-	if h.CommandPlanDigest != plan.CommandPlanDigest {
-		return headerInvalid("command_plan_digest", "%s differs from the plan's %s", h.CommandPlanDigest, plan.CommandPlanDigest)
-	}
 	sum, err := SumPlan(*plan)
 	if err != nil {
 		return headerInvalid("plan_digest", "cannot encode the plan: %v", err)

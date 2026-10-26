@@ -13,8 +13,8 @@ import (
 
 // PlanReportSchemaVersion is the plan-inspection/exercise report counter:
 // 2 removes the daemon row's execution_policy_digest; 3 the outcomes plan
-// and exercise.
-const PlanReportSchemaVersion = 3
+// and exercise; 4 removes command_plan_digest.
+const PlanReportSchemaVersion = 4
 
 // SensitivePropertyPattern is executionplan.SensitivePropertyPattern, the
 // one definition the audit screen and finding validation share.
@@ -72,7 +72,6 @@ type PlanReport struct {
 	JobID               string                                   `json:"job_id,omitempty"`
 	Plan                executionplan.ExecutionPlan              `json:"plan"`
 	PlanDigest          executionplan.Digest                     `json:"plan_digest"`
-	CommandPlanDigest   executionplan.Digest                     `json:"command_plan_digest"`
 	Daemons             []executionplan.DaemonReadiness          `json:"daemons"`
 	Preparations        []executionplan.PreparationReport        `json:"preparations"`
 	CredentialPackage   *credentialpackage.SafePackageProjection `json:"credential_package,omitempty"`
@@ -207,9 +206,6 @@ func (r *PlanReport) Validate() error {
 	}
 	if r.PlanDigest != sum {
 		return reportInvalid("plan_digest", "recorded %s, plan hashes to %s", r.PlanDigest, sum)
-	}
-	if r.CommandPlanDigest != r.Plan.CommandPlanDigest {
-		return reportInvalid("command_plan_digest", "differs from the plan's")
 	}
 	if r.Daemons == nil {
 		return reportInvalid("daemons", "must be present (empty allowed)")

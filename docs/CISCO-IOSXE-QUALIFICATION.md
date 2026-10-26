@@ -170,7 +170,7 @@ Record evidence, on both transports, for:
 
 For each qualified combination retain the karvi version and commit, the Go
 version, the ScrapliGo version, the fake's commit where a row was confirmed
-against it, the device model, the IOS XE release, the command plan digest,
+against it, the device model, the IOS XE release, the plan digest,
 sanitized records and debug output, resource measurements, and the pass/fail
 disposition (the script's evidence directory,
 [`docs/DEVICE-QUALIFICATION-RUNBOOK.md`

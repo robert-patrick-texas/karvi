@@ -229,8 +229,8 @@ karvi-qualification-c9300-lab-20260921T140000Z/
 
 Against "Required evidence": the karvi version and commit, the Go and
 ScrapliGo versions (`identification.txt`, `version.json`); the device
-model and release (`device-release.txt` and D1's records); the command
-plan digest (each `manifest.json`); sanitized records and debug output
+model and release (`device-release.txt` and D1's records); the plan
+digest (each `manifest.json`); sanitized records and debug output
 (the final scan is the sanitization check: a hit fails the run and the
 directory must not be shared); resource measurements (each record's
 timing; the daemon's memory is the output-scale run's subject, section

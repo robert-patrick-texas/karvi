@@ -17,9 +17,9 @@ const (
 	// The schema number is in every stage's digest, so the three pins move
 	// at each plan schema bump and with a field added under an unreleased
 	// one; goldenFinal also binds the job ID through the package reference.
-	goldenDraft    = "7ed8b0fd36bf42107fd32b1438757bd3df69d21baf994427cfddb47d620c1d36"
-	goldenPrepared = "6512e96bdbe3bf12b61da1bc42d47cc15f1240e86a2ac9ba6f968bf82b22c148"
-	goldenFinal    = "0ad5e85c67db7ed7276f9bfd8e8620a77e19dcb4c359fa8a4e25a17435608ba4"
+	goldenDraft    = "ce797cf942ededa77c995ff1a7ab648c3cd8a3467507fc12fb44eb7ec9c3dda7"
+	goldenPrepared = "b713991323e8ff90804038e93d6e1440dbe8a190943807b6b95af3a02048c2a6"
+	goldenFinal    = "f37c04aa649a54880903c6b75c95f7058e038612eeda8c8414cf251867b40315"
 )
 
 var fixtureCommands = []string{"show clock", "show version", "show ip interface brief", "show running-config | include hostname"}
@@ -28,9 +28,9 @@ func fixtureDraftPlan(t *testing.T) ExecutionPlan {
 	t.Helper()
 	return ExecutionPlan{
 		SchemaVersion: SchemaVersion, PlanID: fixturePlanID,
-		Operator: Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
-		Targets:  []ExecutionTarget{fixtureDirect(t), fixtureInventory(t), fixtureDaemonDraft(t)},
-		Commands: fixtureCommands, CommandPlanDigest: SumCommands(fixtureCommands),
+		Operator:     Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
+		Targets:      []ExecutionTarget{fixtureDirect(t), fixtureInventory(t), fixtureDaemonDraft(t)},
+		Commands:     fixtureCommands,
 		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
 		SessionInit: map[string]SessionInitProfile{},
 		Dispatch:    DispatchSettings{Mode: DispatchSerial, Width: 1, DispatchOrder: OrderDefault},
@@ -102,7 +102,7 @@ func fixtureHeader(t *testing.T, plan ExecutionPlan, stage Stage) PublicJobHeade
 	h := PublicJobHeader{
 		SchemaVersion: SchemaVersion, IdempotencyKey: "idem-1", JobID: fixtureJobID,
 		Operator: plan.Operator, Client: ClientIdentity{PID: 4242, Hostname: "ops01"},
-		Mode: ModeLive, ExecutionDomain: ExecutionDomainLocal, CommandPlanDigest: plan.CommandPlanDigest, PlanDigest: sum,
+		Mode: ModeLive, ExecutionDomain: ExecutionDomainLocal, PlanDigest: sum,
 	}
 	if stage == Committed {
 		h.CredentialPackage = &PackageReference{Protection: ProtectionLocalPeer, Digest: Sum([]byte("package"))}
@@ -245,11 +245,7 @@ func TestPlanValidationVectors(t *testing.T) {
 		{"duplicate target", func(p *ExecutionPlan) { p.Targets = append(p.Targets, p.Targets[0]) }, "execution_plan_invalid: targets"},
 		{"invalid target", func(p *ExecutionPlan) { p.Targets[0].ExecutionEndpoint = "remote" }, "execution_plan_invalid: targets[0]: execution_target_invalid"},
 		{"no commands", func(p *ExecutionPlan) { p.Commands = []string{} }, "execution_plan_invalid: commands"},
-		{"command digest", func(p *ExecutionPlan) { p.Commands = append(p.Commands, "show ip route") }, "execution_plan_invalid: command_plan_digest"},
-		{"nul in command", func(p *ExecutionPlan) {
-			p.Commands = []string{"show\x00clock"}
-			p.CommandPlanDigest = SumCommands(p.Commands)
-		}, "execution_plan_invalid: commands"},
+		{"nul in command", func(p *ExecutionPlan) { p.Commands = []string{"show\x00clock"} }, "execution_plan_invalid: commands"},
 		{"nil blind returns", func(p *ExecutionPlan) { p.BlindReturns = nil }, "execution_plan_invalid: blind_returns: must be present"},
 		{"blind returns short", func(p *ExecutionPlan) { p.BlindReturns = []int{1} }, "execution_plan_invalid: blind_returns: 1 entries for 4 commands"},
 		{"blind return negative", func(p *ExecutionPlan) { p.BlindReturns = []int{0, -1, 0, 0} }, "execution_plan_invalid: blind_returns: command 2: -1 must be 0..20"},
@@ -380,19 +376,6 @@ func TestHeaderDomainCoversEveryTarget(t *testing.T) {
 	if err := h.Matches(&draft, Draft); err == nil || !strings.HasPrefix(err.Error(), "job_header_invalid: execution_domain") {
 		t.Fatalf("foreign endpoint accepted: %v", err)
 	}
-}
-
-func TestSumCommandsMatchesTheManifestRule(t *testing.T) {
-	// The manifest's command_plan_digest is SHA-256 over each command followed
-	// by NUL, so this vector is sha256("show clock\x00").
-	if got := SumCommands([]string{"show clock"}).String(); got != "969208752962a3a36418bd94ba7b6d848d8b6ad9bcce1982457e1c662a51a2e6" {
-		t.Fatalf("SumCommands = %s", got)
-	}
-	if SumCommands(nil) == SumCommands([]string{""}) {
-		t.Fatal("an empty command must differ from no command")
-	}
-	// NUL inside a command would collide with two commands, so the plan
-	// refuses it (validated in TestPlanValidationVectors).
 }
 
 func structFields(v any) map[string]string {
@@ -534,8 +517,8 @@ func TestIncorporatePreparationCopiesTheSelectedSource(t *testing.T) {
 
 // TestPlatformCommands covers the platform command lists at schema 7: a
 // plan may carry a list per platform in place of commands,
-// every target's platform must have one then, the digest covers the lists,
-// an empty list is refused, and the collection sub-block is validated.
+// every target's platform must have one then, an empty list is refused, and
+// the collection sub-block is validated.
 func TestPlatformCommands(t *testing.T) {
 	base := fixtureDraftPlan(t)
 	lists := map[string][]string{}
@@ -548,7 +531,6 @@ func TestPlatformCommands(t *testing.T) {
 	}
 	p := base
 	p.Commands, p.PlatformCommands = nil, lists
-	p.CommandPlanDigest = SumCommandPlan(nil, lists)
 	if err := p.Validate(Draft); err != nil {
 		t.Fatalf("lists in place of commands: %v", err)
 	}
@@ -561,33 +543,21 @@ func TestPlatformCommands(t *testing.T) {
 	if p.CommandCount() != 2 {
 		t.Fatalf("CommandCount %d", p.CommandCount())
 	}
-	if SumCommandPlan(nil, map[string][]string{one: {"a", "b"}}) == SumCommandPlan(nil, map[string][]string{one: {"b", "a"}}) {
-		t.Fatal("the digest does not see the order of a list")
-	}
-	if SumCommandPlan([]string{"show clock"}, nil) != SumCommands([]string{"show clock"}) {
-		t.Fatal("a plan without lists sums as it did")
-	}
 	// A target whose platform has no list, with no commands to fall back on.
 	q := p
 	q.PlatformCommands = map[string][]string{"no-such-platform": {"show version"}}
-	q.CommandPlanDigest = SumCommandPlan(nil, q.PlatformCommands)
 	if err := q.Validate(Draft); err == nil || !strings.Contains(err.Error(), "has no list") {
 		t.Fatalf("a target without a list: %v", err)
 	}
-	// Commands beside lists: the target falls back, the digest covers both.
+	// Commands beside lists: the target falls back.
 	r := base
 	r.PlatformCommands = lists
-	r.CommandPlanDigest = SumCommandPlan(r.Commands, lists)
 	if err := r.Validate(Draft); err != nil {
 		t.Fatalf("commands beside lists: %v", err)
 	}
-	if r.CommandPlanDigest == SumCommands(r.Commands) {
-		t.Fatal("the digest ignores the lists")
-	}
-	// An empty list is refused; the old digest rule does not cover a list.
+	// An empty list is refused.
 	e := p
 	e.PlatformCommands = map[string][]string{one: {}}
-	e.CommandPlanDigest = SumCommandPlan(nil, e.PlatformCommands)
 	if err := e.Validate(Draft); err == nil || !strings.Contains(err.Error(), "empty list") {
 		t.Fatalf("an empty list: %v", err)
 	}

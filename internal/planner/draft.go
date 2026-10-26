@@ -219,7 +219,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		SchemaVersion: executionplan.SchemaVersion, PlanID: planID,
 		Operator: executionplan.Operator{Username: operator.Username, UID: operator.UID, PrimaryGID: operator.PrimaryGID, Groups: append([]string(nil), operator.Groups...)},
 		Targets:  targets,
-		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, PlatformMasks: masks, CommandPlanDigest: executionplan.SumCommandPlan(opts.Commands, lists),
+		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, PlatformMasks: masks,
 		BlindReturns: append([]int{}, opts.BlindReturns...),
 		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),
@@ -511,7 +511,7 @@ func Header(plan executionplan.ExecutionPlan, jobID string, mode executionplan.M
 		Operator: plan.Operator,
 		Client:   executionplan.ClientIdentity{PID: os.Getpid(), Hostname: hostname},
 		Mode:     mode, ExecutionDomain: executionplan.ExecutionDomainLocal, Priority: 0,
-		CommandPlanDigest: plan.CommandPlanDigest, PlanDigest: digest,
+		PlanDigest: digest,
 	}, nil
 }
 

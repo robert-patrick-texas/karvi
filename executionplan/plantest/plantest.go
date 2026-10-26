@@ -116,9 +116,9 @@ func ConfigDigest() string {
 func DraftPlan() executionplan.ExecutionPlan {
 	return executionplan.ExecutionPlan{
 		SchemaVersion: executionplan.SchemaVersion, PlanID: PlanID,
-		Operator: executionplan.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
-		Targets:  []executionplan.ExecutionTarget{DirectTarget(), InventoryTarget(), DaemonTarget()},
-		Commands: append([]string{}, Commands...), CommandPlanDigest: executionplan.SumCommands(Commands),
+		Operator:     executionplan.Operator{Username: "netops", UID: 1000, PrimaryGID: 1000, Groups: []string{"netops"}},
+		Targets:      []executionplan.ExecutionTarget{DirectTarget(), InventoryTarget(), DaemonTarget()},
+		Commands:     append([]string{}, Commands...),
 		BlindReturns: []int{}, Blind: []bool{}, Expectations: [][]executionplan.Expectation{}, TimeoutsNS: []int64{}, MaxBytes: []int64{},
 		SessionInit: map[string]executionplan.SessionInitProfile{},
 		Dispatch:    executionplan.DispatchSettings{Mode: executionplan.DispatchSerial, Width: 1, DispatchOrder: executionplan.OrderDefault},
@@ -192,7 +192,7 @@ func Header(plan executionplan.ExecutionPlan, stage executionplan.Stage) executi
 	h := executionplan.PublicJobHeader{
 		SchemaVersion: executionplan.SchemaVersion, IdempotencyKey: "idem-1", JobID: JobID,
 		Operator: plan.Operator, Client: executionplan.ClientIdentity{PID: 4242, Hostname: "ops01"},
-		Mode: executionplan.ModeLive, ExecutionDomain: executionplan.ExecutionDomainLocal, CommandPlanDigest: plan.CommandPlanDigest, PlanDigest: sum,
+		Mode: executionplan.ModeLive, ExecutionDomain: executionplan.ExecutionDomainLocal, PlanDigest: sum,
 	}
 	if stage == executionplan.Committed {
 		h.CredentialPackage = &executionplan.PackageReference{Protection: executionplan.ProtectionLocalPeer, Digest: executionplan.Sum([]byte("package"))}
