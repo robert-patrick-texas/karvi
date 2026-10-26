@@ -74,7 +74,7 @@ func newScoreboardState(req Request, id string, now time.Time, producer records.
 		ActivityType: req.ActivityType, Mode: scoreboardMode(req), Status: "initializing", DispatchMode: &mode, Width: maxInt(1, startWidth),
 		Counts:  records.Counts{Total: len(plan.Targets), NotStarted: len(plan.Targets)},
 		Targets: targets, Inputs: inputs,
-		Commands:  &records.ScoreboardCommands{Count: plan.CommandCount(), File: plan.CommandsFile},
+		Commands:  &records.ScoreboardCommands{Count: plan.CommandCount(), Files: plan.CommandsFiles},
 		Metrics:   &records.ScoreboardMetrics{},
 		Daemon:    req.Daemon,
 		StartedAt: now, LastUpdatedAt: now, Producer: producer,

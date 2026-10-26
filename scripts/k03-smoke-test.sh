@@ -105,7 +105,7 @@ run r6 4 -- login 127.0.0.1 --record-file x;                               code 
 run r7 0 -- command --ssh-host-key-policy insecure --ssh-known-hosts-file auto 127.0.0.1 show clock; sent r7 "show clock"
 printf 'show clock\n\n# comment\nshow version\r\n' >"$TMP/cmds"
 run r8 0 -- command 127.0.0.1 --cf "$TMP/cmds";                            sent r8 "show clock" "" "# comment" "show version"
-run r9 4 -- command 127.0.0.1 --cf "$TMP/cmds" --cf "$TMP/cmds";           code r9 commands_file_repeated
+run r9 0 -- command 127.0.0.1 --cf "$TMP/cmds" --cmd "show users" --cf "$TMP/cmds"; sent r9 "show clock" "" "# comment" "show version" "show users" "show clock" "" "# comment" "show version"
 : >"$TMP/empty"
 run r10 4 -- command 127.0.0.1 --cf "$TMP/empty";                          code r10 commands_file_empty
 run r11 4 -- command 127.0.0.1 --cf "$TMP";                                code r11 commands_file_is_directory

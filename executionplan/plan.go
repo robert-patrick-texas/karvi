@@ -43,7 +43,8 @@ import (
 // (EXAMPLES chapter 57, issue 3); 14 platform_masks, each target
 // platform's mask list (EXAMPLES chapter 63, issue 8); 15 command_plan_digest
 // removed from the plan and the header, read only by checks against the same
-// message (EXAMPLES chapter 79).
+// message, and, without another bump (15 was unreleased), commands_file
+// become commands_files, every --cf's base name (EXAMPLES chapter 79).
 const SchemaVersion = 15
 
 // Mode is the requested execution mode of a job.
@@ -119,10 +120,10 @@ type ExecutionPlan struct {
 	Operator      Operator          `json:"operator"`
 	Targets       []ExecutionTarget `json:"targets"`
 	Commands      []string          `json:"commands"`
-	// CommandsFile is the base name of the --cf file the commands came
-	// from, for the scoreboard (schema 8);
-	// empty when every command was given on the line.
-	CommandsFile string `json:"commands_file,omitempty"`
+	// CommandsFiles are the base names of the --cf files the commands came
+	// from, in the order given, - for standard input, for the scoreboard
+	// (schema 15); empty when every command was given on the line.
+	CommandsFiles []string `json:"commands_files,omitempty"`
 	// PlatformCommands is a command list per platform (schema 7): a crun
 	// that names no command sends
 	// each device its platform's list. A target points at its list by its

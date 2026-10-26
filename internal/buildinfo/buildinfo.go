@@ -13,7 +13,7 @@ const (
 	Version              = "0.35.0"
 	ConfigSchemaVersion  = 6
 	CommandRecordSchema  = 4
-	ScoreboardSchema     = 4
+	ScoreboardSchema     = 5
 	AuditSchema          = 2
 	JobSchema            = 5
 	DaemonIPCSchema      = 12

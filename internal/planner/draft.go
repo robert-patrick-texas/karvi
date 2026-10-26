@@ -43,11 +43,11 @@ type DraftOptions struct {
 	// and the echo key.
 	ActivityType string
 	Commands     []string
-	// Inputs are the invocation's target inputs as given and CommandsFile
-	// the --cf path; the plan carries them for the scoreboard as
-	// sources.inputs and commands_file.
-	Inputs       []records.TargetInput
-	CommandsFile string
+	// Inputs are the invocation's target inputs as given and CommandsFiles
+	// the --cf paths in order; the plan carries them for the scoreboard as
+	// sources.inputs and commands_files.
+	Inputs        []records.TargetInput
+	CommandsFiles []string
 	// PlatformCommands makes the plan carry each target platform's
 	// crun-commands list when Commands is empty; a platform without a
 	// list refuses the draft.
@@ -191,9 +191,9 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 	if provenance.Sources == nil {
 		provenance.Sources = []inventory.SourceRef{}
 	}
-	commandsFile := ""
-	if opts.CommandsFile != "" {
-		commandsFile = filepath.Base(opts.CommandsFile)
+	var commandsFiles []string
+	for _, path := range opts.CommandsFiles {
+		commandsFiles = append(commandsFiles, filepath.Base(path))
 	}
 	out, err := outputSettings(cfg, operator, opts)
 	if err != nil {
@@ -219,7 +219,7 @@ func Draft(ctx context.Context, cfg configload.Snapshot, operator credentials.Op
 		SchemaVersion: executionplan.SchemaVersion, PlanID: planID,
 		Operator: executionplan.Operator{Username: operator.Username, UID: operator.UID, PrimaryGID: operator.PrimaryGID, Groups: append([]string(nil), operator.Groups...)},
 		Targets:  targets,
-		Commands: append([]string{}, opts.Commands...), CommandsFile: commandsFile, PlatformCommands: lists, PlatformFilters: filters, PlatformMasks: masks,
+		Commands: append([]string{}, opts.Commands...), CommandsFiles: commandsFiles, PlatformCommands: lists, PlatformFilters: filters, PlatformMasks: masks,
 		BlindReturns: append([]int{}, opts.BlindReturns...),
 		Blind:        append([]bool{}, opts.Blind...), Expectations: copyExpectations(opts.Expectations),
 		TimeoutsNS: append([]int64{}, opts.Timeouts...), MaxBytes: append([]int64{}, opts.MaxBytes...),

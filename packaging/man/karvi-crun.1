@@ -14,7 +14,7 @@ karvi\-crun \- collect commands from a scope into one file per device
 .br
 \fBkarvi\fR \fBcrun\fR [target inputs] [options] \-\-cmd TEXT [\-\-cmd TEXT...]
 .br
-\fBkarvi\fR \fBcrun\fR [target inputs] [options] \-\-cf PATH|\-
+\fBkarvi\fR \fBcrun\fR [target inputs] [options] \-\-cf PATH|\- [\-\-cf PATH...]
 .br
 \fBkarvi\fR \fBcrun\fR [target inputs] [options] <device command words...>
 .\" END GENERATED SYNOPSIS
@@ -98,12 +98,15 @@ Positional words are joined with one space into one command.
 Separate command; repeatable
 .TP
 \fB\-\-cf\fR \fIPATH|\-\fR
-One command per line, sent as written; at most once
+One command per line, sent as written;
+repeatable
+.TP
+\fB\-\-cmd\fR \fIand\fR \fB\-\-cf\fR \fImix\fR, \fIsent\fR \fIin\fR \fIthe\fR \fIorder\fR \fIgiven.\fR
 .PP
 A command ending in \er sequences is sent without them, followed by that
 many carriage returns before the prompt is read (a [confirm] answer), and is
 blind; nothing else in the text is interpreted.
-.SS "Interactive prompts (each attaches to the \-\-cmd it follows, or to the one freeform command; a command takes blind returns or \-\-expect, not both)"
+.SS "Interactive prompts (each attaches to the \-\-cmd written right before it, never after a \-\-cf, or to the one freeform command; a command takes blind returns or \-\-expect, not both)"
 .TP
 \fB\-\-expect\fR \fIPATTERN=RESPONSE\fR
 When a line matching PATTERN (RE2) appears,
@@ -132,7 +135,7 @@ sets the lock\-aware execution.blind\-wait)
 \fB\-\-literal\fR
 Send every command as written; no \er
 interpretation; a RESPONSE is always as written
-.SS "A command's own bounds (each attaches to the \-\-cmd it follows, or to the one freeform command; at most one of each per command)"
+.SS "A command's own bounds (each attaches to the \-\-cmd written right before it, never after a \-\-cf, or to the one freeform command; at most one of each per command)"
 .TP
 \fB\-\-timeout\fR \fIDURATION\fR
 The command's timeout in place of

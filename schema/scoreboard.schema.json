@@ -9,7 +9,7 @@
     "targets", "inputs", "daemon", "recording", "started_at", "last_updated_at",
     "elapsed_ns", "halt", "error_summary", "producer"],
   "properties": {
-    "schema_version": {"const": 4},
+    "schema_version": {"const": 5},
     "activity_type": {"enum": ["login", "command", "run"]},
     "mode": {"enum": ["login", "cmd", "run", "crun", "exercise"]},
     "status": {"enum": ["initializing", "queued", "running", "draining",
@@ -37,7 +37,7 @@
     },
     "commands": {
       "type": "object", "additionalProperties": false, "required": ["count"],
-      "properties": {"count": {"type": "integer", "minimum": 0}, "file": {"type": "string"}}
+      "properties": {"count": {"type": "integer", "minimum": 0}, "files": {"type": "array", "items": {"type": "string"}}}
     },
     "collection": {
       "type": "object", "additionalProperties": false, "required": ["directory", "replace", "keep"],

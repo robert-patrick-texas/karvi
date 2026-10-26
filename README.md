@@ -110,8 +110,8 @@ karvi options end where the device command text begins: an option goes before
 the device or between the device and the text, and every word from the text's
 first on reaches the device unchanged, a karvi option name, `-4`, or `-h` among
 them. The words form one device command; several commands take repeated
-`--cmd` or a `--cf` file. The first line below sends `show clock` with `--echo`
-on; the second sends one command, `show clock --echo`:
+`--cmd` or `--cf`, sent in the order written. The first line below sends `show
+clock` with `--echo` on; the second sends one command, `show clock --echo`:
 
 ```bash
 karvi cmd router1 --echo show clock

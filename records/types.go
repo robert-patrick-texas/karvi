@@ -12,7 +12,7 @@ import (
 
 const (
 	CommandSchemaVersion    = 4 // 3: channel, and an exec command's exit and stderr; 4: the status words in the present tense
-	ScoreboardSchemaVersion = 4 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes; 4: the status, state, and count words in the present tense
+	ScoreboardSchemaVersion = 5 // 2: mode, targets with states, inputs, commands, collection, metrics, daemon; 3: the target row's bytes and the metrics' in_flight_bytes; 4: the status, state, and count words in the present tense; 5: commands.files, each --cf's name, for commands.file
 	AuditSchemaVersion      = 2 // 2: <kind>.<event> names, job_id or login_id, loginuser, the device typed, statements in place of digests
 	JobSchemaVersion        = 5 // 3: the policy block removed, the plan's configuration block the job's; 4: the summary written at acceptance, naming the devices; 5: the status, outcome, and count words in the present tense
 	MetricsSchemaVersion    = 1
@@ -405,11 +405,11 @@ type ScoreboardTarget struct {
 }
 
 // ScoreboardCommands says what the job sends each device: the count of
-// statements (the largest platform list for a crun) and, under --cf, the
-// file's base name; never a statement's text.
+// statements (the largest platform list for a crun) and, under --cf, each
+// file's base name in the order given; never a statement's text.
 type ScoreboardCommands struct {
-	Count int    `json:"count"`
-	File  string `json:"file,omitempty"`
+	Count int      `json:"count"`
+	Files []string `json:"files,omitempty"`
 }
 
 // ScoreboardCollection is a crun's collection so far: the directory's

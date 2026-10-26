@@ -16,7 +16,7 @@ func TestV090TrailingOptionsAreDeviceTextUnderK03(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := strings.Join(inv.Commands, "|"), "show clock show clock --border --transport system --echo"; got != want {
+	if got, want := strings.Join(cmdTexts(inv), "|"), "show clock show clock --border --transport system --echo"; got != want {
 		t.Fatalf("commands=%q, want %q", got, want)
 	}
 	if inv.Flag(optEcho) || inv.Flag(optBorder) || inv.Set(optTransport) {
@@ -26,7 +26,7 @@ func TestV090TrailingOptionsAreDeviceTextUnderK03(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !inv.Flag(optEcho) || !inv.Flag(optBorder) || inv.String(optTransport) != "system" || inv.Targets[0].Value != "vzn-ohio" || inv.Commands[0] != "show clock show clock" {
+	if !inv.Flag(optEcho) || !inv.Flag(optBorder) || inv.String(optTransport) != "system" || inv.Targets[0].Value != "vzn-ohio" || cmdTexts(inv)[0] != "show clock show clock" {
 		t.Fatalf("inv=%+v", inv)
 	}
 }

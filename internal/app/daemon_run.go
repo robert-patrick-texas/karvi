@@ -92,7 +92,7 @@ func draftClient(ctx context.Context, opts RunOptions, dryRun bool, streams IO) 
 	}
 	warn := func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }
 	draftOpts := planner.DraftOptions{
-		ActivityType: "run", Commands: opts.Commands, CommandsFile: opts.CommandsFile, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
+		ActivityType: "run", Commands: opts.Commands, CommandsFiles: opts.CommandsFiles, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
 		Transport:        opts.Transport,
 		PlatformCommands: opts.PlatformCommands, Collection: opts.Collection, Suffix: opts.Suffix,
 		Format: opts.Format, Echo: opts.Echo, DynamicBorder: opts.DynamicBorder, NoBorder: opts.NoBorder, Follow: !opts.Detach,

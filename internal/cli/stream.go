@@ -23,24 +23,27 @@ import (
 // then its value as the rest of the line after a space or =, a value wholly
 // wrapped in one pair of quotes losing them as a shell would remove them; any
 // other line, a - alone among them, is one command, sent as written, quotes and
-// all, \r read as --cmd reads it. The draft has two parts: the options (targets
-// among them), which stay from one job to the next, and the commands, which
-// every job clears. An option line whose word is --cmd, --command, or --cf, or
-// one of the five declarations (--expect, --blind, --blind-return, --timeout,
-// --maxbytes), belongs to the commands, so a command typed the way run takes
-// it is sent once, like a bare line. The directives are whole lines, one dash or two alike: --go or
-// --sendit executes the draft and clears the commands (with nothing to send, a
-// notice and no job); --clear empties the commands alone; --reset empties the
-// draft; --restart empties it and reads the configuration again, as the
-// stream's start does, and the next job runs the credential helper again,
-// whose values the stream holds from its first job; --end, --quit, EOF, or
-// Ctrl-C leave without executing. A
-// line the parser refuses is reported with its number and dropped, as is an
-// option whose value attaches with = alone given text after a space. Standard
-// input is the stream, so --cf, --tf, and --tfr may not name - in any spelling.
-// The exit is the last executed job's, 0 when none ran; a read failure or a
-// line over the scanner's limit ends the stream with stream_input_read_failed,
-// and a --restart whose reading fails ends it with the reading's code.
+// all, \r read as --cmd reads it. The draft has two parts, each in the order
+// typed: the options (targets among them) and the commands, which a job sends
+// in that order (EXAMPLES chapter 79). An option line whose word is --cmd,
+// --command, or --cf belongs to the commands and stays from one job to the
+// next, as the options do; a bare line is its job's alone; a line of one of the
+// five declarations (--expect, --blind, --blind-return, --timeout, --maxbytes)
+// joins the command before it, and is dropped after a --cf line, as run refuses
+// it there. The directives are whole lines, one dash or two alike: --go or
+// --sendit executes the draft and clears the bare-line commands (with nothing
+// to send, a notice and no job); --clear empties the bare-line commands alone;
+// --purge-commands empties every command and --purge-targets every target
+// input; --reset empties the draft; --restart empties it and reads the
+// configuration again, as the stream's start does, and the next job runs the
+// credential helper again, whose values the stream holds from its first job;
+// --end, --quit, EOF, or Ctrl-C leave without executing. A line the parser
+// refuses is reported with its number and dropped, as is an option whose value
+// attaches with = alone given text after a space. Standard input is the stream,
+// so --cf, --tf, and --tfr may not name - in any spelling. The exit is the last
+// executed job's, 0 when none ran; a read failure or a line over the scanner's
+// limit ends the stream with stream_input_read_failed, and a --restart whose
+// reading fails ends it with the reading's code.
 //
 // The reader turns the draft into a run invocation (Parse over a built
 // argument list) and hands it to run's handler, so the job, its records,

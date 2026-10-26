@@ -42,7 +42,7 @@ type CommandOptions struct {
 	Port             int
 	AddressAuthority string // client | daemon for the first device
 	Commands         []string
-	CommandsFile     string                        // the --cf path; its base name reaches the scoreboard
+	CommandsFiles    []string                      // the --cf paths in order; their base names reach the scoreboard
 	BlindReturns     []int                         // empty, or one count per command
 	Blind            []bool                        // empty, or one tolerance flag per command
 	Expectations     [][]executionplan.Expectation // empty, or one expect-and-send list per command
@@ -70,7 +70,7 @@ type RunOptions struct {
 	Platform           string   // --platform: every device of the set runs as this known platform
 	AddressAuthorities []string // TARGET=client|daemon, in order
 	Commands           []string
-	CommandsFile       string                        // the --cf path; its base name reaches the scoreboard
+	CommandsFiles      []string                      // the --cf paths in order; their base names reach the scoreboard
 	BlindReturns       []int                         // empty, or one count per command
 	Blind              []bool                        // empty, or one tolerance flag per command
 	Expectations       [][]executionplan.Expectation // empty, or one expect-and-send list per command

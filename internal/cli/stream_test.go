@@ -224,6 +224,37 @@ func TestStreamLoopCommandBounds(t *testing.T) {
 	}
 }
 
+// TestStreamLoopCommandsInTheOrderTyped: several --cf lines stay in the
+// draft, each in its place among the --cmd lines, and a declaration line
+// after a --cf line is dropped as run refuses it there (EXAMPLES chapter
+// 79), the draft as it was.
+func TestStreamLoopCommandsInTheOrderTyped(t *testing.T) {
+	var runs [][]string
+	execute := func(_ int, argv []string) int {
+		runs = append(runs, append([]string{}, argv...))
+		return 0
+	}
+	var stderr bytes.Buffer
+	in := strings.Join([]string{
+		"--target r1",
+		"--cmd show clock",
+		"--cf /tmp/one.txt",
+		"--cf /tmp/two.txt",
+		"--expect confirm=y",
+		"--cmd write memory",
+		"--go",
+	}, "\n") + "\n"
+	streamLoop(context.Background(), streamScanner(strings.NewReader(in)), globalOptions{}, &stderr, execute, restartNone)
+	want := [][]string{{"run", "--target", "r1", "--cmd", "show clock", "--cf", "/tmp/one.txt", "--cf", "/tmp/two.txt", "--cmd", "write memory"}}
+	if !reflect.DeepEqual(runs, want) {
+		t.Errorf("runs:\n%q\nwant:\n%q", runs, want)
+	}
+	wantErr := "stream line 5 dropped: declaration_with_commands_file: --expect follows --cf; write it after its --cmd (a file line takes \\r at its end)\n"
+	if stderr.String() != wantErr {
+		t.Errorf("stderr:\n%s\nwant:\n%s", stderr.String(), wantErr)
+	}
+}
+
 // TestStreamLoopSingleDashAndQuotes: a line beginning with one dash is an
 // option line as one beginning with two is, the command options and the
 // directives among them (-go leaving the option-form commands, -clear

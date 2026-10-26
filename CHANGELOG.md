@@ -38,6 +38,25 @@
   the same message; `plan_digest` covers the plan, its commands included, and
   a job's `manifest.json` holds the plan and the header without it. The dry
   run's `commands:` line holds the count alone.
+- **Breaking: a run's commands go in the order written, and `--cf`
+  repeats.** `command`, `run`, `crun`, and a stream send each `--cmd` and
+  each `--cf` file's lines in the order the line gives them, where every
+  `--cmd` went first wherever `--cf` stood: `--cf checks.txt --cmd 'show
+  clock'` now sends the file first. `--cf` may be given more than once, each
+  file read in its place; a second `--cf -` is `stdin_source_repeated` (exit
+  4), and `commands_file_repeated` is retired. A declaration (`--expect`,
+  `--blind`, `--blind-return`, `--timeout`, `--maxbytes`) attaches to the
+  `--cmd` written right before it: one written after a `--cf`, which went to
+  an earlier `--cmd`, is refused `declaration_with_commands_file` (exit 4),
+  and a stream drops such a line; one before every command is
+  `declaration_before_command`, with or without a `--cf`. A stream takes
+  several `--cf` lines, each in the order typed.
+- **Breaking: the plan's `commands_files` and the scoreboard's
+  `commands.files`; scoreboard 5.** The plan names every `--cf` by its base
+  name in the order given, `-` for standard input, in place of
+  `commands_file` (execution plan 15); the scoreboard's `commands.files` in
+  place of `commands.file` does the same, and the watch screen's pane line
+  joins them: `run: 3 statements from one.txt, two.txt`.
 
 ## 0.35.0 - 2026-10-21
 

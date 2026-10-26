@@ -25,8 +25,10 @@ import (
 // (--cf - and --tf - among them), and --tfr -.
 func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 	stdinUses := 0
-	if inv.CommandsFile == "-" {
-		stdinUses++
+	for _, s := range inv.Sources {
+		if s.File && s.Value == "-" {
+			stdinUses++
+		}
 	}
 	for _, t := range inv.Targets {
 		switch t.Kind {
@@ -41,7 +43,7 @@ func checkTargetSources(inv *Invocation, w io.Writer) (int, bool) {
 		}
 	}
 	if stdinUses > 1 {
-		return inv.Global.usageError(w, "stdin_source_repeated", "standard input may be read by one input: --cf - or one --tf -"), false
+		return inv.Global.usageError(w, "stdin_source_repeated", "standard input may be read by one input: one --cf - or one --tf -"), false
 	}
 	return 0, true
 }
@@ -278,7 +280,7 @@ func commandCommand(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if format == "" {
 		format = "text"
 	}
-	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
+	result := app.ExecuteCommand(ctx, app.CommandOptions{Collection: collection.word, Suffix: collection.suffix, CommonOptions: common, Targets: inputs, Excludes: inv.Strings(optExclude), Address: inv.String(optAddress), Platform: inv.String(optPlatform), Transport: inv.String(optTransport), Port: inv.Int(optPort), AddressAuthority: inv.String(optAddrAuthority), Commands: commands, CommandsFiles: commandsFileNames(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Format: format, Echo: inv.Flag(optEcho), DynamicBorder: inv.Flag(optBorder), NoBorder: inv.Flag(optNoBorder), Live: inv.Flag(optLive), Shortcut: inv.shortcut()}, streams)
 	collection.impliedDirectory(&result)
 	inv.Global.printResultError(result, streams.Stderr)
 	return result.ExitCode
@@ -387,34 +389,52 @@ type declarations struct {
 	maxBytes []int64
 }
 
-// commandPlan returns the device commands, the explicit --cmd values in
-// order then the lines of --cf, and their declarations after
-// declarationLists. The parser has already ensured at least one source and
-// placed every declaration on a --cmd (or the freeform command), so the
-// file's lines, appended after the --cmd values, carry none.
+// commandPlan returns the device commands in the order the command line
+// gives their sources, a --cmd its command and a --cf its file's lines
+// (EXAMPLES chapter 79), and their declarations after declarationLists. The
+// parser has already ensured at least one source and placed every
+// declaration on the --cmd before it (or the freeform command), so a file's
+// lines carry none; each declaration's source is turned into its command's
+// place in the list.
 func commandPlan(inv *Invocation, streams app.IO) ([]string, declarations, int, bool) {
-	commands := append([]string(nil), inv.Commands...)
-	if inv.Set(optCf) {
-		lines, err := loadCommandsFile(inv.CommandsFile, streams.Stdin)
+	var commands []string
+	at := make([]int, len(inv.Sources)) // each source's first command, one-based
+	for i, s := range inv.Sources {
+		at[i] = len(commands) + 1
+		if !s.File {
+			commands = append(commands, s.Value)
+			continue
+		}
+		lines, err := loadCommandsFile(s.Value, streams.Stdin)
 		if err != nil {
 			return nil, declarations{}, inv.Global.reportError(streams.Stderr, "commands_file_unreadable", err), false
 		}
 		commands = append(commands, lines...)
 	}
-	decl, err := declarationLists(commands, inv.Declarations, inv.Flag(optLiteral))
+	decls := make([]Declaration, len(inv.Declarations))
+	for i, d := range inv.Declarations {
+		if d.Command >= 1 && d.Command <= len(at) {
+			d.Command = at[d.Command-1]
+		}
+		decls[i] = d
+	}
+	decl, err := declarationLists(commands, decls, inv.Flag(optLiteral))
 	if err != nil {
 		return nil, declarations{}, inv.Global.reportError(streams.Stderr, errorcodes.Of(err), err), false
 	}
 	return commands, decl, 0, true
 }
 
-// commandsFileName is the --cf path as given, or empty: the planner keeps
-// its base name for the scoreboard.
-func commandsFileName(inv *Invocation) string {
-	if inv.Set(optCf) {
-		return inv.CommandsFile
+// commandsFileNames are the --cf paths as given, in order: the planner keeps
+// their base names for the scoreboard.
+func commandsFileNames(inv *Invocation) []string {
+	var names []string
+	for _, s := range inv.Sources {
+		if s.File {
+			names = append(names, s.Value)
+		}
 	}
-	return ""
+	return names
 }
 
 // blindEscape is the only escape karvi interprets in device text.
@@ -627,7 +647,7 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	}
 	follow := !inv.Set(optFollow) || inv.Flag(optFollow)
 	echo, dynamicBorder, noBorder := inv.Flag(optEcho), inv.Flag(optBorder), inv.Flag(optNoBorder)
-	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFile: commandsFileName(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
+	opts := app.RunOptions{CommonOptions: common, Follow: follow, Exercise: inv.Flag(optExercise), Detach: inv.Flag(optDetach), Targets: inputs, Excludes: inv.Strings(optExclude), ManagementAddress: address, Platform: inv.String(optPlatform), AddressAuthorities: authorities, Commands: commands, CommandsFiles: commandsFileNames(inv), BlindReturns: decl.returns, Blind: decl.blind, Expectations: decl.expect, Timeouts: decl.timeouts, MaxBytes: decl.maxBytes, Transport: inv.String(optTransport), Format: format, Echo: echo, DynamicBorder: dynamicBorder, NoBorder: noBorder, Live: inv.Flag(optLive)}
 	opts.Collection, opts.Suffix = collection.word, collection.suffix
 	if crun {
 		// With no command on the line, each device runs its platform's

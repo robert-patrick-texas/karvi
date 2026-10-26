@@ -404,6 +404,25 @@ func TestHeaderAtDraftAndCommitted(t *testing.T) {
 // with no declaration gets an empty list rather than null, and a pattern
 // that does not compile is execution_plan_invalid at drafting, before any
 // daemon call.
+// TestDraftCarriesTheCommandFiles: the plan names each --cf by its base
+// name in the order given, - for standard input, for the scoreboard; a job
+// with none names none.
+func TestDraftCarriesTheCommandFiles(t *testing.T) {
+	cfg := testConfig(t)
+	opts := draftOptions([]string{"show clock", "show users", "show version"})
+	opts.CommandsFiles = []string{"/srv/lists/one.txt", "-", "two.txt"}
+	draft, err := Draft(context.Background(), cfg, operator, k03Set(t), opts, plantest.DraftedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"one.txt", "-", "two.txt"}; !reflect.DeepEqual(draft.CommandsFiles, want) {
+		t.Fatalf("commands_files %q, want %q", draft.CommandsFiles, want)
+	}
+	if draft, err = Draft(context.Background(), cfg, operator, k03Set(t), draftOptions([]string{"show clock"}), plantest.DraftedAt); err != nil || draft.CommandsFiles != nil {
+		t.Fatalf("no --cf: %q %v", draft.CommandsFiles, err)
+	}
+}
+
 func TestDraftCarriesTheDeclarations(t *testing.T) {
 	cfg := testConfig(t)
 	opts := draftOptions([]string{"copy running-config startup-config", "reload"})

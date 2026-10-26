@@ -30,16 +30,25 @@ type TargetInput struct {
 // --cmd it follows. The parser keeps the five in one positional record, as
 // it keeps the target inputs, because Invocation.values loses the order
 // between options and a declaration is meaningful only for the command it
-// follows. Command is the one-based index into Invocation.Commands of that
+// follows. Command is the one-based index into Invocation.Sources of that
 // --cmd, or 1 for the one freeform command; the parser refuses a declaration
-// before the first --cmd or with --cf alone, so a handler never sees Command
-// 0. Value is the option's raw value: the PATTERN=RESPONSE text, N,
-// DURATION, BYTES, or "true"; declarationLists (work_commands.go) interprets
-// it.
+// before the first source or after a --cf, so a handler never sees Command
+// 0 or a file. Value is the option's raw value: the PATTERN=RESPONSE text,
+// N, DURATION, BYTES, or "true"; declarationLists (work_commands.go)
+// interprets it.
 type Declaration struct {
 	Option  string // "expect", "blind", "blind-return", "timeout", or "maxbytes"
 	Value   string
 	Command int
+}
+
+// CommandSource is one source of device commands in command-line order: a
+// --cmd, or the one joined freeform command, its text in Value; or a --cf,
+// File set and its path or - in Value. The device commands are the sources'
+// in this order (commandPlan).
+type CommandSource struct {
+	File  bool
+	Value string
 }
 
 // Invocation is the parsed command line. Handlers read option values through
@@ -49,10 +58,9 @@ type Invocation struct {
 	Path         string // "login", "daemon stop", ...; "" when only global options were given
 	Help         bool   // help was requested at some position; Path names the level
 	Targets      []TargetInput
-	Commands     []string // explicit --cmd values, or the one joined freeform command
-	Freeform     bool     // Commands came from freeform text
+	Sources      []CommandSource // --cmd and --cf in order, or the one joined freeform command
+	Freeform     bool            // Sources is the freeform text's one command
 	Declarations []Declaration
-	CommandsFile string
 	Positional   []string // plain commands: positional arguments (login: none; devices are Targets)
 	Record       *string  // login: nil when not recording; "" for --record without PATH
 	Pending      []*option
@@ -363,12 +371,9 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 			inv.Targets = append(inv.Targets, TargetInput{Kind: o.inputKind(), Value: value})
 		}
 	case roleCmd:
-		inv.Commands = append(inv.Commands, value)
+		inv.Sources = append(inv.Sources, CommandSource{Value: value})
 	case roleCf:
-		if inv.Set(o) {
-			return false, errorcodes.Errorf("commands_file_repeated", "--cf may be given once; it names one file or -")
-		}
-		inv.CommandsFile = value
+		inv.Sources = append(inv.Sources, CommandSource{File: true, Value: value})
 	case roleDeclaration:
 		if o == optExpect {
 			if err := checkExpect(value); err != nil {
@@ -380,7 +385,7 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 		}
 		// --blind=false declares nothing, as --all=false selects nothing.
 		if o.kind != kindFlag || value != "false" {
-			inv.Declarations = append(inv.Declarations, Declaration{Option: o.name, Value: value, Command: len(inv.Commands)})
+			inv.Declarations = append(inv.Declarations, Declaration{Option: o.name, Value: value, Command: len(inv.Sources)})
 		}
 	}
 	if o == optExclude {
@@ -479,13 +484,13 @@ func splitExpect(value string) (pattern, response string, ok bool) {
 }
 
 // placeDeclarations applies the placement rule once the command sources are
-// known: each declaration attaches to the
-// nearest preceding --cmd, or in freeform to the one command. Before the
-// first --cmd it has no command and is refused rather than attached to the
-// first, so a reader never guesses; with --cf alone it is refused, since a
-// declaration attaches to a --cmd and a file line takes \r at its end. With
-// --cf and --cmd together the file lines carry none. The message
-// says where to write the declaration.
+// known: each declaration attaches to the source written right before it,
+// which must be a --cmd, or in freeform to the one command. Before the first
+// source it has no command and is refused rather than attached to the first,
+// so a reader never guesses; after a --cf it is refused, though a --cmd
+// stands further back, since it would read as the file's and a file line
+// takes \r at its end (EXAMPLES chapter 79). A file's lines carry none. The
+// message says where to write the declaration.
 func (p *parser) placeDeclarations() error {
 	inv := p.inv
 	for i := range inv.Declarations {
@@ -493,10 +498,10 @@ func (p *parser) placeDeclarations() error {
 		switch {
 		case inv.Freeform:
 			d.Command = 1
-		case len(inv.Commands) == 0 && inv.Set(optCf):
-			return errorcodes.Errorf("declaration_with_commands_file", "--%s is not accepted with --cf alone: a declaration attaches to the --cmd before it, so give that command with --cmd (a file line takes \\r at its end)", d.Option)
 		case d.Command == 0:
 			return errorcodes.Errorf("declaration_before_command", "--%s is given before the first --cmd; write it after the command it belongs to", d.Option)
+		case inv.Sources[d.Command-1].File:
+			return errorcodes.Errorf("declaration_with_commands_file", "--%s follows --cf; write it after its --cmd (a file line takes \\r at its end)", d.Option)
 		}
 	}
 	return nil
@@ -795,7 +800,7 @@ func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) er
 		free = args[i:]
 		break
 	}
-	explicit := len(inv.Commands) > 0 || inv.Set(optCf)
+	explicit := len(inv.Sources) > 0
 	switch {
 	case explicit && len(free) > 0:
 		return errorcodes.Errorf("cli_command_text_mixed", "freeform text %q cannot be combined with --cmd or --cf", strings.Join(free, " "))
@@ -806,7 +811,7 @@ func (p *parser) parseFreeform(cmd *command, args []string, deviceFirst bool) er
 	case !explicit && len(free) == 0:
 		// crun without command text sends each device its platform's list.
 	case !explicit:
-		inv.Commands = []string{strings.Join(free, " ")}
+		inv.Sources = []CommandSource{{Value: strings.Join(free, " ")}}
 		inv.Freeform = true
 	}
 	return p.placeDeclarations()

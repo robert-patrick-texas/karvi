@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/records"
@@ -305,8 +306,8 @@ func workLine(s records.ScoreboardSnapshot) string {
 		if c.Count != 1 {
 			text += "s"
 		}
-		if c.File != "" {
-			text += " from " + c.File
+		if len(c.Files) > 0 {
+			text += " from " + strings.Join(c.Files, ", ")
 		}
 		return text
 	}

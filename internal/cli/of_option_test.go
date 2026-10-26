@@ -33,8 +33,8 @@ func TestOfOptionParses(t *testing.T) {
 		if got := targetValues(inv); len(got) != 1 || got[0] != tc.target {
 			t.Errorf("%q: targets %q, want %q", tc.args, got, tc.target)
 		}
-		if len(inv.Commands) != 1 || inv.Commands[0] != tc.cmd {
-			t.Errorf("%q: commands %q, want %q", tc.args, inv.Commands, tc.cmd)
+		if len(cmdTexts(inv)) != 1 || cmdTexts(inv)[0] != tc.cmd {
+			t.Errorf("%q: commands %q, want %q", tc.args, cmdTexts(inv), tc.cmd)
 		}
 		flags := map[string]configload.FlagValue{}
 		outputOptions(inv, flags)

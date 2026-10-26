@@ -1944,9 +1944,10 @@ or a heredoc it drives several jobs through one karvi. The rules:
 - The draft has two parts. The targets, the options, and the commands
   given in option form (`--cmd`, `-c`, `--command`, `--cf`, any
   spelling) stay from one job to the next; a command given as a bare
-  line is the job's alone. `--expect`, `--blind`, `--blind-return`,
-  `--timeout`, and `--maxbytes` lines attach to the command before them
-  and stay or clear with it. The
+  line is the job's alone; a job's commands go in the order typed.
+  `--expect`, `--blind`, `--blind-return`, `--timeout`, and `--maxbytes`
+  lines attach to the command before them and stay or clear with it; one
+  after a `--cf` line is dropped. The
   option words mean what they mean on a `run` command line,
   abbreviations and the `=` spelling included. An option whose value
   attaches with `=` alone takes it that way here too: a line `--of

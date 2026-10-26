@@ -60,6 +60,7 @@ const (
 	retiredV0270        = "v0.27.0"
 	retiredV0290        = "v0.29.0"
 	retiredV0300        = "v0.30.0"
+	retiredV0360        = "v0.36.0"
 )
 
 var entries = []Entry{
@@ -634,10 +635,9 @@ var entries = []Entry{
 	failure("ipc_schema_invalid", "internal", exitJob, false, "An IPC request is built with a schema number below 1."),
 	fallback("config_load_failed", "config", exitConfig, "Configuration loading fails without a specific code."),
 	failure("commands_file_unreadable", "usage", exitUsage, false, "A `--cf` file cannot be opened or read."),
-	failure("commands_file_repeated", "usage", exitUsage, false, "`--cf` is given more than once."),
 	failure("commands_file_is_directory", "usage", exitUsage, false, "The `--cf` path is a folder."),
 	failure("commands_file_empty", "usage", exitUsage, false, "The `--cf` file or standard input has zero bytes."),
-	failure("stdin_source_repeated", "usage", exitUsage, false, "More than one input reads standard input (`--cf -` together with `--tf -`)."),
+	failure("stdin_source_repeated", "usage", exitUsage, false, "More than one input reads standard input: `--cf -` or `--tf -` given twice, or the two together."),
 	failure("stream_input_read_failed", "internal", exitGen, false, "In stream mode, standard input fails to read or a line exceeds the reader's 1 MiB limit."),
 	failure("target_source_missing", "inventory", exitInv, false, "A `--tf` or `--tfr` file or folder does not exist."),
 	failure("target_source_permission_denied", "inventory", exitInv, false, "A `--tf` or `--tfr` file or folder cannot be read for lack of permission."),
@@ -682,7 +682,7 @@ var entries = []Entry{
 	failure("blind_return_out_of_range", "usage", exitUsage, false, "`--blind-return` is outside 0..20, or a command ends in more than twenty `\\r` sequences."),
 	failure("blind_return_conflict", "usage", exitUsage, false, "One command both ends in `\\r` sequences and is given `--blind-return`, or is given `--blind-return` more than once; the two counts contradict, and one form is written."),
 	failure("declaration_before_command", "usage", exitUsage, false, "`--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` is given before the first `--cmd`; each attaches to the `--cmd` it follows (or to the one freeform command) and is written after it."),
-	failure("declaration_with_commands_file", "usage", exitUsage, false, "`--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` is given with `--cf` alone; a declaration attaches to the `--cmd` before it, and a file line takes `\\r` at its end."),
+	failure("declaration_with_commands_file", "usage", exitUsage, false, "`--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` follows a `--cf`; a declaration attaches to the `--cmd` written right before it, and a file line takes `\\r` at its end."),
 	failure("declaration_repeated", "usage", exitUsage, false, "One command is given `--timeout` or `--maxbytes` more than once; each is one value per command."),
 	failure("timeout_with_blind", "usage", exitUsage, false, "A blind command (`--blind`, `--blind-return`, or a trailing `\\r`) is given `--timeout`; a blind command waits for `execution.blind-wait` (`--blind-wait`) in place of a timeout, and the prompt's absence is its success."),
 	failure("expect_malformed", "usage", exitUsage, false, "An `--expect` value has no `=`, or an empty PATTERN before its first `=`; a literal `=` in the pattern is written `[=]`."),
@@ -849,4 +849,5 @@ var entries = []Entry{
 	retired("vault_client_cert_key_unpaired", retiredV0300, "Only one of a Vault backend's client certificate and key was configured, found when a device reached it; the configuration's load refuses the key left unread.", "config_credential_backend_key_unsupported"),
 	retired("redis_auth_missing", retiredV0300, "The variable a Redis backend's `auth-password-env` names was not set, found after the connection; that variable, and `auth-username-env`'s beside it, unset or empty, are one code with every variable a credential source names, read before any connection.", "credential_env_missing"),
 	retired("vault_token_missing", retiredV0300, "The variable a Vault backend's `token-env` names was unset or empty; it is one code with every variable a credential source names.", "credential_env_missing"),
+	retired("commands_file_repeated", retiredV0360, "`--cf` was given more than once; it now repeats, each file's lines in its place on the line, and a second `--cf -` is `stdin_source_repeated`.", "stdin_source_repeated"),
 }

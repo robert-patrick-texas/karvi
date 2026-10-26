@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
+	"github.com/robert-patrick-texas/karvi/internal/app"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
@@ -96,8 +97,8 @@ func TestParseADR0002Rows(t *testing.T) {
 		if inv.Help {
 			t.Errorf("row %d: help must not be recognized", r.n)
 		}
-		if !reflect.DeepEqual(inv.Commands, r.commands) {
-			t.Errorf("row %d: commands %q, want %q", r.n, inv.Commands, r.commands)
+		if !reflect.DeepEqual(cmdTexts(inv), r.commands) {
+			t.Errorf("row %d: commands %q, want %q", r.n, cmdTexts(inv), r.commands)
 		}
 		if got := targetValues(inv); !reflect.DeepEqual(got, r.targets) {
 			t.Errorf("row %d: targets %q, want %q", r.n, got, r.targets)
@@ -353,10 +354,10 @@ func TestParseAliases(t *testing.T) {
 		{[]string{"run", "--h"}, func(i *Invocation) bool { return i.Help && i.Path == "run" }},
 		{[]string{"daemon", "stop", "-h"}, func(i *Invocation) bool { return i.Help && i.Path == "daemon stop" }},
 		{[]string{"command", "-t", "router01", "-c", "show clock"}, func(i *Invocation) bool {
-			return reflect.DeepEqual(targetValues(i), []string{"target=router01"}) && reflect.DeepEqual(i.Commands, []string{"show clock"})
+			return reflect.DeepEqual(targetValues(i), []string{"target=router01"}) && reflect.DeepEqual(cmdTexts(i), []string{"show clock"})
 		}},
 		{[]string{"command", "--host", "router01", "--command", "show clock"}, func(i *Invocation) bool {
-			return reflect.DeepEqual(targetValues(i), []string{"target=router01"}) && reflect.DeepEqual(i.Commands, []string{"show clock"})
+			return reflect.DeepEqual(targetValues(i), []string{"target=router01"}) && reflect.DeepEqual(cmdTexts(i), []string{"show clock"})
 		}},
 		{[]string{"run", "-t", "r1", "-t", "r2", "--c", "show clock"}, func(i *Invocation) bool {
 			return reflect.DeepEqual(targetValues(i), []string{"target=r1", "target=r2"})
@@ -380,13 +381,13 @@ func TestParseAliases(t *testing.T) {
 		// share its letter, s is stream although setup does; r and l are
 		// run and login whatever word is added.
 		{[]string{"c", "router01", "show", "clock"}, func(i *Invocation) bool {
-			return i.Path == "command" && reflect.DeepEqual(i.Commands, []string{"show clock"})
+			return i.Path == "command" && reflect.DeepEqual(cmdTexts(i), []string{"show clock"})
 		}},
 		{[]string{"-c", "site.toml", "c", "router01", "-c", "show clock"}, func(i *Invocation) bool {
-			return reflect.DeepEqual(i.Global.configs, []string{"site.toml"}) && i.Path == "command" && reflect.DeepEqual(i.Commands, []string{"show clock"})
+			return reflect.DeepEqual(i.Global.configs, []string{"site.toml"}) && i.Path == "command" && reflect.DeepEqual(cmdTexts(i), []string{"show clock"})
 		}},
 		{[]string{"r", "--target", "r1", "show", "clock"}, func(i *Invocation) bool {
-			return i.Path == "run" && reflect.DeepEqual(i.Commands, []string{"show clock"})
+			return i.Path == "run" && reflect.DeepEqual(cmdTexts(i), []string{"show clock"})
 		}},
 		{[]string{"l", "router01"}, func(i *Invocation) bool { return i.Path == "login" && targetValues(i)[0] == "target=router01" }},
 		{[]string{"s"}, func(i *Invocation) bool { return i.Path == "stream" }},
@@ -409,7 +410,7 @@ func TestParseAliases(t *testing.T) {
 		t.Errorf("--cfg after the command word: %s", code)
 	}
 	// After the command word, -c is --cmd; before it, -c is --config.
-	if inv := mustParse(t, "command", "-c", "show clock", "-t", "r1"); inv.Commands[0] != "show clock" {
+	if inv := mustParse(t, "command", "-c", "show clock", "-t", "r1"); cmdTexts(inv)[0] != "show clock" {
 		t.Errorf("-c after command word: %+v", inv)
 	}
 	// --h is never --host.
@@ -568,8 +569,8 @@ func TestParseDeviceShortcut(t *testing.T) {
 			}
 			targets = append(targets, tgt.Value+mark)
 		}
-		if !reflect.DeepEqual(targets, tc.targets) || !reflect.DeepEqual(inv.Commands, tc.commands) {
-			t.Errorf("%q: targets %q commands %q, want %q %q", tc.line, targets, inv.Commands, tc.targets, tc.commands)
+		if !reflect.DeepEqual(targets, tc.targets) || !reflect.DeepEqual(cmdTexts(inv), tc.commands) {
+			t.Errorf("%q: targets %q commands %q, want %q %q", tc.line, targets, cmdTexts(inv), tc.targets, tc.commands)
 		}
 	}
 	// What each mode makes of its options: login's --e is --exclude, a
@@ -580,7 +581,7 @@ func TestParseDeviceShortcut(t *testing.T) {
 	if inv := mustParse(t, "r1", "--echo", "show", "clock"); !inv.Flag(optEcho) || !inv.Freeform {
 		t.Errorf("command options: %+v", inv)
 	}
-	if inv := mustParse(t, "r1", "--cf", "cmds"); inv.CommandsFile != "cmds" {
+	if inv := mustParse(t, "r1", "--cf", "cmds"); !reflect.DeepEqual(inv.Sources, []CommandSource{{File: true, Value: "cmds"}}) {
 		t.Errorf("--cf: %+v", inv)
 	}
 	// The messages are the chosen mode's.
@@ -629,7 +630,6 @@ func TestParseEveryCode(t *testing.T) {
 		"cli_command_text_mixed":    {{"command", "r1", "--cmd", "show clock", "show", "version"}, {"command", "--target", "r1", "--cf", "f", "show", "clock"}, {"run", "--target", "r1", "--cmd", "x", "show", "clock"}, {"command", "r1", "--cmd", "x", "--", "y"}},
 		"cli_positional_missing":    {{"job", "cancel"}, {"job", "cancel", "--reason", "x"}, {"j", "c"}, {"job", "follow"}, {"j", "f", "--format", "jsonl"}},
 		"cli_positional_unexpected": {{"version", "extra"}, {"watch", "extra"}, {"daemon", "status", "extra"}, {"daemon", "stop", "now"}, {"job", "cancel", "a", "b"}, {"job", "follow", "a", "b"}, {"config", "generate", "a", "b"}, {"config", "validate", "--", "a", "b"}},
-		"commands_file_repeated":    {{"command", "r1", "--cf", "a", "--cf", "b"}, {"run", "--target", "r1", "--cf", "a", "--cf", "a"}},
 		// Malformed selectors, reserved ^ and $, a bare !, and a ! in
 		// --exclude are refused at parse time.
 		"target_selector_pattern_invalid": {{"run", "--site", "ny[c", "--all", "show", "clock"}, {"run", "--target", "^r1", "show", "clock"}, {"command", "r1$", "show", "clock"}, {"command", "--target", "r[!]", "--cmd", "x"}, {"run", "--all", "--exclude", "!r1", "show", "clock"}, {"run", "--device-group", "!", "--all", "show", "clock"}, {"run", "--select-platform", `cisco\`, "--all", "show", "clock"}, {"login", "--exclude", "r[c-a]", "r1"}},
@@ -720,7 +720,7 @@ func TestParsePlainCommands(t *testing.T) {
 // TestParseFreeformBoundary covers where freeform text begins in command.
 func TestParseFreeformBoundary(t *testing.T) {
 	inv := mustParse(t, "command", "--tf", "list.txt", "show", "clock")
-	if !reflect.DeepEqual(targetValues(inv), []string{"tf=list.txt"}) || inv.Commands[0] != "show clock" || !inv.Freeform {
+	if !reflect.DeepEqual(targetValues(inv), []string{"tf=list.txt"}) || cmdTexts(inv)[0] != "show clock" || !inv.Freeform {
 		t.Fatalf("a target input before the first word makes it freeform: %+v %q", inv, targetValues(inv))
 	}
 	if len(inv.Pending) != 0 {
@@ -729,7 +729,7 @@ func TestParseFreeformBoundary(t *testing.T) {
 	// Every target input of run is accepted by login and command, and a
 	// selector before the first word makes that word freeform.
 	inv = mustParse(t, "command", "--site", "core", "--device-group", "edge", "--all", "--exclude", "r9", "show", "clock")
-	if !reflect.DeepEqual(targetValues(inv), []string{"site=core", "device-group=edge", "all=true"}) || inv.Commands[0] != "show clock" || inv.Strings(optExclude)[0] != "r9" || len(inv.Pending) != 0 {
+	if !reflect.DeepEqual(targetValues(inv), []string{"site=core", "device-group=edge", "all=true"}) || cmdTexts(inv)[0] != "show clock" || inv.Strings(optExclude)[0] != "r9" || len(inv.Pending) != 0 {
 		t.Fatalf("%q %+v", targetValues(inv), inv)
 	}
 	inv = mustParse(t, "login", "r1", "r2", "--tf", "list.txt", "--site", "core")
@@ -799,11 +799,11 @@ func TestParseFreeformBoundary(t *testing.T) {
 		t.Fatalf("run --all=false: %q", targetValues(inv))
 	}
 	inv = mustParse(t, "command", "--target", "r1", "--", "-x", "--echo")
-	if inv.Commands[0] != "-x --echo" || len(inv.Targets) != 1 {
+	if cmdTexts(inv)[0] != "-x --echo" || len(inv.Targets) != 1 {
 		t.Fatalf("-- after a target input begins freeform: %+v", inv)
 	}
 	inv = mustParse(t, "command", "--", "r1", "-x")
-	if targetValues(inv)[0] != "target=r1" || inv.Commands[0] != "-x" {
+	if targetValues(inv)[0] != "target=r1" || cmdTexts(inv)[0] != "-x" {
 		t.Fatalf("-- without a target input: next argument is the device: %+v", inv)
 	}
 	inv = mustParse(t, "command", "--", "-r1", "show", "clock")
@@ -811,7 +811,7 @@ func TestParseFreeformBoundary(t *testing.T) {
 		t.Fatalf("%+v", inv)
 	}
 	inv = mustParse(t, "run", "--target", "r1", "--", "--echo", "-h")
-	if inv.Commands[0] != "--echo -h" || inv.Help {
+	if cmdTexts(inv)[0] != "--echo -h" || inv.Help {
 		t.Fatalf("%+v", inv)
 	}
 	inv = mustParse(t, "command", "r1", "-h")
@@ -819,24 +819,24 @@ func TestParseFreeformBoundary(t *testing.T) {
 		t.Fatal("help between the device and the first word is help")
 	}
 	inv = mustParse(t, "command", "r1", "show", "-h")
-	if inv.Help || inv.Commands[0] != "show -h" {
+	if inv.Help || cmdTexts(inv)[0] != "show -h" {
 		t.Fatalf("help after freeform is device text: %+v", inv)
 	}
 	inv = mustParse(t, "command", "r1", "show", "clock", "--", "x")
-	if inv.Commands[0] != "show clock -- x" {
+	if cmdTexts(inv)[0] != "show clock -- x" {
 		t.Fatalf("-- after freeform is device text: %+v", inv)
 	}
 	inv = mustParse(t, "command", "r1", "  show   clock  ")
-	if inv.Commands[0] != "  show   clock  " {
-		t.Fatalf("spacing inside an argument is preserved: %q", inv.Commands[0])
+	if cmdTexts(inv)[0] != "  show   clock  " {
+		t.Fatalf("spacing inside an argument is preserved: %q", cmdTexts(inv)[0])
 	}
 	inv = mustParse(t, "command", "--echo", "r1", "--border", "show", "clock")
-	if !inv.Flag(optEcho) || !inv.Flag(optBorder) || inv.Commands[0] != "show clock" {
+	if !inv.Flag(optEcho) || !inv.Flag(optBorder) || cmdTexts(inv)[0] != "show clock" {
 		t.Fatalf("%+v", inv)
 	}
 	// Explicit form: options in any order.
 	inv = mustParse(t, "command", "--cmd", "show clock", "--address", "192.0.2.10", "--target", "router1", "--command", "show version", "--echo")
-	if !reflect.DeepEqual(inv.Commands, []string{"show clock", "show version"}) || targetValues(inv)[0] != "target=router1" || !inv.Flag(optEcho) {
+	if !reflect.DeepEqual(cmdTexts(inv), []string{"show clock", "show version"}) || targetValues(inv)[0] != "target=router1" || !inv.Flag(optEcho) {
 		t.Fatalf("%+v", inv)
 	}
 	// Positional device then --target: both are targets, in order.
@@ -846,7 +846,7 @@ func TestParseFreeformBoundary(t *testing.T) {
 	}
 	// run: the first positional word begins freeform even when it looks like a device.
 	inv = mustParse(t, "run", "--all", "r1", "--echo")
-	if inv.Commands[0] != "r1 --echo" || targetValues(inv)[0] != "all=true" {
+	if cmdTexts(inv)[0] != "r1 --echo" || targetValues(inv)[0] != "all=true" {
 		t.Fatalf("%+v %q", inv, targetValues(inv))
 	}
 }
@@ -1009,6 +1009,63 @@ func TestLoadCommandsFileSendsLinesAsWritten(t *testing.T) {
 	}
 }
 
+// cmdTexts are the command sources' texts but a --cf's: the --cmd values in
+// order, or the one freeform command.
+func cmdTexts(inv *Invocation) []string {
+	var out []string
+	for _, s := range inv.Sources {
+		if !s.File {
+			out = append(out, s.Value)
+		}
+	}
+	return out
+}
+
+// TestCommandsInTheOrderWritten covers the command sources in command-line
+// order (EXAMPLES chapter 79): --cf repeats, a --cf written before a --cmd
+// is sent first, each declaration lands on its --cmd's place among the
+// lines, and standard input is read by one --cf - alone.
+func TestCommandsInTheOrderWritten(t *testing.T) {
+	dir := t.TempDir()
+	one, two := filepath.Join(dir, "one.txt"), filepath.Join(dir, "two.txt")
+	if err := os.WriteFile(one, []byte("show users\nshow version\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(two, []byte("show clock\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	inv := mustParse(t, "run", "--target", "r1", "--cmd", "show clock", "--cf", one, "--cf", two, "--cmd", "copy running-config startup-config", "--expect", "Destination filename.*=")
+	wantSources := []CommandSource{{Value: "show clock"}, {File: true, Value: one}, {File: true, Value: two}, {Value: "copy running-config startup-config"}}
+	if !reflect.DeepEqual(inv.Sources, wantSources) || !reflect.DeepEqual(inv.Declarations, []Declaration{decl("expect", "Destination filename.*=", 4)}) {
+		t.Fatalf("sources %+v declarations %+v", inv.Sources, inv.Declarations)
+	}
+	var stderr bytes.Buffer
+	commands, decls, code, ok := commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr})
+	if !ok {
+		t.Fatalf("exit %d: %s", code, stderr.String())
+	}
+	if want := []string{"show clock", "show users", "show version", "show clock", "copy running-config startup-config"}; !reflect.DeepEqual(commands, want) {
+		t.Fatalf("commands %q, want %q", commands, want)
+	}
+	if len(decls.expect) != 5 || len(decls.expect[4]) != 1 || decls.expect[4][0].Pattern != "Destination filename.*" {
+		t.Fatalf("expectations %+v: the --expect belongs to the copy, the fifth command", decls.expect)
+	}
+	if got := commandsFileNames(inv); !reflect.DeepEqual(got, []string{one, two}) {
+		t.Fatalf("file names %q", got)
+	}
+	// A file written before a --cmd is sent first, and one file may repeat.
+	inv = mustParse(t, "command", "r1", "--cf", two, "--cmd", "show users", "--cf", two)
+	if commands, _, _, ok = commandPlan(inv, app.IO{Stdin: strings.NewReader(""), Stderr: &stderr}); !ok || !reflect.DeepEqual(commands, []string{"show clock", "show users", "show clock"}) {
+		t.Fatalf("file first: %q", commands)
+	}
+	// Standard input once: a second --cf - is refused before any read.
+	inv = mustParse(t, "run", "--target", "r1", "--cf", "-", "--cf", "-")
+	stderr.Reset()
+	if _, ok := checkTargetSources(inv, &stderr); ok || !strings.HasPrefix(stderr.String(), "stdin_source_repeated: ") {
+		t.Fatalf("--cf - twice: %q", stderr.String())
+	}
+}
+
 // decl is a test shorthand for a parsed declaration on one-based command n.
 func decl(option, value string, n int) Declaration {
 	return Declaration{Option: option, Value: value, Command: n}
@@ -1124,18 +1181,19 @@ func TestDeclarationsAttachToTheirCommand(t *testing.T) {
 	if !reflect.DeepEqual(inv.Declarations, want) {
 		t.Fatalf("declarations %+v, want %+v", inv.Declarations, want)
 	}
-	if !reflect.DeepEqual(inv.Commands, []string{"copy running-config startup-config", "clear counters", "reload", "show clock"}) {
-		t.Fatalf("commands %q", inv.Commands)
+	if !reflect.DeepEqual(cmdTexts(inv), []string{"copy running-config startup-config", "clear counters", "reload", "show clock"}) {
+		t.Fatalf("commands %q", cmdTexts(inv))
 	}
 	// Freeform: the options precede the text and belong to the one command.
 	inv = mustParse(t, "run", "--target", "r1", "--blind", "--expect", `confirm\]=`, "reload")
 	if want := []Declaration{decl("blind", "true", 1), decl("expect", `confirm\]=`, 1)}; !reflect.DeepEqual(inv.Declarations, want) || !inv.Freeform {
 		t.Fatalf("freeform declarations %+v (freeform %v), want %+v", inv.Declarations, inv.Freeform, want)
 	}
-	// --cf with --cmd: the declaration attaches to the --cmd; the file lines
-	// carry none (commandPlan appends them after the --cmd values).
+	// --cf with --cmd: the declaration attaches to the --cmd, the second
+	// source; the file lines carry none (commandPlan turns the source into
+	// its command's place).
 	inv = mustParse(t, "command", "r1", "--cf", "-", "--cmd", "reload", "--blind")
-	if want := []Declaration{decl("blind", "true", 1)}; !reflect.DeepEqual(inv.Declarations, want) {
+	if want := []Declaration{decl("blind", "true", 2)}; !reflect.DeepEqual(inv.Declarations, want) {
 		t.Fatalf("declarations with --cf and --cmd %+v, want %+v", inv.Declarations, want)
 	}
 	inv = mustParse(t, "command", "r1", "--cmd", "reload", "--blind=false")
@@ -1152,7 +1210,11 @@ func TestDeclarationsAttachToTheirCommand(t *testing.T) {
 		{[]string{"command", "r1", "--blind", "--cmd", "reload"}, "declaration_before_command"},
 		{[]string{"run", "--target", "r1", "--blind-return", "1", "--cmd", "clear counters", "--cmd", "show clock"}, "declaration_before_command"},
 		{[]string{"command", "r1", "--cf", "-", "--expect", "a="}, "declaration_with_commands_file"},
-		{[]string{"command", "r1", "--blind-return", "1", "--cf", "-"}, "declaration_with_commands_file"},
+		{[]string{"command", "r1", "--blind-return", "1", "--cf", "-"}, "declaration_before_command"},
+		// After a --cf, though a --cmd stands further back (EXAMPLES
+		// chapter 79): it would read as the file's.
+		{[]string{"command", "r1", "--cmd", "copy", "--cf", "-", "--expect", "a="}, "declaration_with_commands_file"},
+		{[]string{"run", "--target", "r1", "--cmd", "copy", "--cf", "-", "--target", "r2", "--blind"}, "declaration_with_commands_file"},
 		{[]string{"command", "r1", "--cmd", "reload", "--expect", "confirm"}, "expect_malformed"},
 		{[]string{"command", "r1", "--cmd", "reload", "--expect", "=y"}, "expect_malformed"},
 		{[]string{"command", "r1", "--cmd", "reload", "--expect", "Save? (yes/no=y"}, "expect_pattern_invalid"},
@@ -1179,7 +1241,7 @@ func TestDeclarationsAttachToTheirCommand(t *testing.T) {
 		"Target:=a=": {Pattern: "Target:", Response: "a="},
 	} {
 		inv = mustParse(t, "command", "r1", "--cmd", "x", "--expect", value)
-		if got, err := declarationLists(inv.Commands, inv.Declarations, false); err != nil || got.expect[0][0] != want {
+		if got, err := declarationLists(cmdTexts(inv), inv.Declarations, false); err != nil || got.expect[0][0] != want {
 			t.Errorf("%q: %+v, %v; want %+v", value, got.expect, err, want)
 		}
 	}
@@ -1202,7 +1264,7 @@ func TestCommandBoundDeclarations(t *testing.T) {
 	if !reflect.DeepEqual(inv.Declarations, want) {
 		t.Fatalf("declarations %+v, want %+v", inv.Declarations, want)
 	}
-	got, err := declarationLists(inv.Commands, inv.Declarations, false)
+	got, err := declarationLists(cmdTexts(inv), inv.Declarations, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1242,7 +1304,7 @@ func TestCommandBoundDeclarations(t *testing.T) {
 		{[]string{"command", "r1", "--cmd", "x", "--maxbytes", "1MiB"}, "cli_option_value_invalid", "takes an integer"},
 		{[]string{"command", "r1", "--timeout", "5m", "--cmd", "x"}, "declaration_before_command", "--timeout is given before the first --cmd"},
 		{[]string{"run", "--target", "r1", "--maxbytes", "2048", "--cmd", "x"}, "declaration_before_command", ""},
-		{[]string{"run", "--target", "r1", "--cf", "-", "--timeout", "5m"}, "declaration_with_commands_file", "--timeout is not accepted with --cf alone"},
+		{[]string{"run", "--target", "r1", "--cf", "-", "--timeout", "5m"}, "declaration_with_commands_file", "--timeout follows --cf; write it after its --cmd"},
 		{[]string{"run", "--target", "r1", "--cmd", "x", "--max", "2048"}, "cli_option_ambiguous", ""},
 	} {
 		_, err := Parse(tc.args)

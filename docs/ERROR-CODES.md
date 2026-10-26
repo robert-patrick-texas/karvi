@@ -124,7 +124,6 @@ Active failure causes.
 | `command_timeout` | timeout | 107 | yes | A device command does not complete before the command timeout. |
 | `commands_file_empty` | usage | 4 | no | The `--cf` file or standard input has zero bytes. |
 | `commands_file_is_directory` | usage | 4 | no | The `--cf` path is a folder. |
-| `commands_file_repeated` | usage | 4 | no | `--cf` is given more than once. |
 | `commands_file_unreadable` | usage | 4 | no | A `--cf` file cannot be opened or read. |
 | `config_audit_disabled` | config | 2 | no | `audit.enabled` is false; auditing cannot be disabled. |
 | `config_audit_file_required_missing` | config | 2 | no | `audit.file-required` is true but `audit.file` is empty. |
@@ -327,7 +326,7 @@ Active failure causes.
 | `debug_show_secrets_requires_debug` | usage | 4 | no | `--debug-show-secrets` is given without `--debug`. |
 | `declaration_before_command` | usage | 4 | no | `--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` is given before the first `--cmd`; each attaches to the `--cmd` it follows (or to the one freeform command) and is written after it. |
 | `declaration_repeated` | usage | 4 | no | One command is given `--timeout` or `--maxbytes` more than once; each is one value per command. |
-| `declaration_with_commands_file` | usage | 4 | no | `--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` is given with `--cf` alone; a declaration attaches to the `--cmd` before it, and a file line takes `\r` at its end. |
+| `declaration_with_commands_file` | usage | 4 | no | `--expect`, `--blind`, `--blind-return`, `--timeout`, or `--maxbytes` follows a `--cf`; a declaration attaches to the `--cmd` written right before it, and a file line takes `\r` at its end. |
 | `dependency_askpass_unavailable` | dependency | 8 | no | The `karvi-askpass` helper executable cannot be found. |
 | `dependency_script_unavailable` | dependency | 8 | no | Login recording needs util-linux `script`, which cannot be found. |
 | `dependency_ssh_keyscan_unavailable` | dependency | 109 | no | Host-key inspection needs `ssh-keyscan`, which cannot be found. |
@@ -568,7 +567,7 @@ Active failure causes.
 | `ssh_process_failed` | connection | 110 | no | Unclassified. OpenSSH exits with an error whose diagnostic matches no specific cause. |
 | `ssh_session_channel_refused` | connection | 110 | no | The SSH server refuses to open a session channel; this is never an authentication failure. |
 | `state_tree_create_failed` | permission | 9 | no | Unclassified. The logs, socket, state, jobs, or transcripts subtree cannot be created or is not acceptable without a more specific code. |
-| `stdin_source_repeated` | usage | 4 | no | More than one input reads standard input (`--cf -` together with `--tf -`). |
+| `stdin_source_repeated` | usage | 4 | no | More than one input reads standard input: `--cf -` or `--tf -` given twice, or the two together. |
 | `stream_input_read_failed` | internal | 1 | no | In stream mode, standard input fails to read or a line exceeds the reader's 1 MiB limit. |
 | `tabular_comment_prefix_invalid` | inventory | 5 | no | A tabular source uses a comment prefix other than `#`. |
 | `tabular_delimiter_invalid` | inventory | 5 | no | A tabular source delimiter is not one valid character. |
@@ -724,6 +723,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `cloginrc_shared_owner_unapproved` | v0.11.0 to v0.17.0 | `credential_file_shared_owner_unapproved` | A shared credential file is owned by a user not in `security.approved-admin-users`. One code per condition for every credential file backend. |
 | `cloginrc_symlink_rejected` | v0.11.0 to v0.17.0 | `credential_file_symlink_rejected` | A `.cloginrc` path is a symlink while credential symlinks are not allowed. One code per condition for every credential file backend. |
 | `command_device_error` | v0.10.0 (catalog name) | `device_command_error` | Device reported a command error. |
+| `commands_file_repeated` | v0.36.0 | `stdin_source_repeated` | `--cf` was given more than once; it now repeats, each file's lines in its place on the line, and a second `--cf -` is `stdin_source_repeated`. |
 | `config_credential_backend_scope_unsupported` | v0.30.0 | `config_credential_backend_key_unsupported` | `scope` or `required` was set on a credential backend that is not a file backend; every key a backend's type does not read is refused under one code. |
 | `config_daemon_idle_timer_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `daemon.shutdown-idle-timer` is neither 0 (never) nor within 1m..720h. Replaced at v0.14.0 by the one range rule over the registry rows. |
 | `config_dir_recursion_depth_out_of_range` | v0.11.0 to v0.17.0 | `config_value_out_of_range` | `config.dir-recursion-depth` is outside 0..32. Replaced at v0.14.0 by the one range rule over the registry rows. |

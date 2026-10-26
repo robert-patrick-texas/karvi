@@ -31,8 +31,10 @@ at its end is read as \-\-cmd reads it, and a line of \er alone sends a blank
 line. The targets and options stay from one job to the next, and so do the
 commands given in option form (\-\-cmd, \-c, \-\-command, \-\-cf); a command given
 as a bare line is the job's alone. \-\-expect, \-\-blind, \-\-blind\-return,
-\-\-timeout, and \-\-maxbytes lines attach to the command before them. \-\-cf,
-\-\-tf, and \-\-tfr may not name \-: standard input is the stream.
+\-\-timeout, and \-\-maxbytes lines attach to the command before them, a \-\-cmd
+or a bare line; one after a \-\-cf line is dropped. A job's commands go in the
+order typed. \-\-cf, \-\-tf, and \-\-tfr may not name \-: standard input is the
+stream.
 .SS "Directives, each a whole line, one dash or two"
 .TP
 \fB\-\-go\fR, \fB\-\-sendit\fR

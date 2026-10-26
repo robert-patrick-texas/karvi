@@ -162,7 +162,7 @@
         "operator": {"$ref": "#/$defs/operator"},
         "targets": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/execution_target"}},
         "commands": {"type": "array", "items": {"type": "string"}},
-        "commands_file": {"type": "string"},
+        "commands_files": {"type": "array", "items": {"type": "string"}},
         "platform_commands": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
         "platform_filters": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},
         "platform_masks": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "items": {"type": "string"}}},

@@ -78,8 +78,8 @@ pflag.
 word; in `run`, at the first positional word. After that karvi recognises no
 option, no abbreviation, no `--`, and no help flag: every remaining argument
 reaches the device unchanged, `-4` and `-h` included. Freeform forms exactly
-one device command; several commands take repeated `--cmd` or a `--cf` file,
-and mixing freeform with either is refused. *Why:* the earlier parser
+one device command; several commands take repeated `--cmd` or `--cf`, and
+mixing freeform with either is refused. *Why:* the earlier parser
 captured karvi options inside device text, so `traceroute -4 host` lost its
 `-4` and a trailing `-h` printed help. *Not taken:* recognising options after
 positional words.
@@ -139,11 +139,15 @@ and manifest record target inputs and never a list.
 *Not taken:* aliases (an alias still takes a value); a list kind in the plan.
 
 **Declarations attach backwards.** `--expect`, `--blind`, `--blind-return`,
-`--timeout`, and `--maxbytes` attach to the nearest preceding `--cmd`, or to
-the one freeform command; a declaration before the first command, or with
-`--cf` alone, is a usage error.
-*Why:* position is meaningful in one direction only, so a reader never
-guesses which command a leading declaration meant.
+`--timeout`, and `--maxbytes` attach to the command source written right
+before them, which must be a `--cmd`, or to the one freeform command; an option
+that is no command between them does not count. A declaration before the first
+command, or after a `--cf`, is a usage error (`declaration_before_command`,
+`declaration_with_commands_file`). *Why:* position is meaningful in one
+direction only, so a reader never guesses which command a leading declaration
+meant, and one after a file would read as the file's last line's, which takes
+no declaration ([`docs/EXAMPLES.md`, chapter
+79](EXAMPLES.md#79-a-command-file-per-target-2026-10-25)).
 
 **`--record[=PATH]` and `--of[=PATH]` take their path with `=` only.** A bare
 `--record` or `--of` is the switch; a word after it is the device. *Why:*
@@ -188,12 +192,13 @@ type.
 
 **Stream mode.** `karvi stream` (aliases `karvi s`, `karvi -`) reads standard
 input line by line: a line beginning with a dash and one more character is one
-run option, one
-dash or two alike as on run's command line; any other line, a `-` alone among
-them, is one command sent as written, quotes and all; blank and `!`/`#` lines
-are skipped. The draft has two parts: the part that stays from one job to the
-next, the targets, the options, and the commands given in option form, and the
-commands given as bare lines, which are the job's. An option line's word is
+run option, one dash or two alike as on run's command line; any other line, a
+`-` alone among them, is one command sent as written, quotes and all; blank and
+`!`/`#` lines are skipped. The draft has two parts: the part that stays from one
+job to the next, the targets, the options, and the commands given in option
+form, and the commands given as bare lines, which are the job's. A job's
+commands go in the order typed, and a declaration line after a `--cf` line is
+dropped, as `run` refuses the declaration there. An option line's word is
 resolved through run's own table, so `--cmd` and its aliases, `--cf`, and the
 `--expect`/`--blind`/`--blind-return` declarations belong to the commands, each
 declaration with the command before it, an abbreviation or an `=` spelling means
@@ -212,45 +217,43 @@ every target input run's table marks (`--target`, `--tl`, `--tf`, `--tfr`,
 `--purge-`, naming both, is refused as `cli_option_ambiguous`; `--reset` empties
 the draft; `--restart` empties it and reads the configuration again (the next
 entry); `--end`, `--quit`, `--exit`, EOF, or Ctrl-C leave, a Ctrl-C outranking
-lines already read. A bad line is reported with its number and
-dropped, the draft standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any
-spelling, since standard input is the stream; a read failure or a line over 1
-MiB ends the stream with `stream_input_read_failed`. The exit is the last job's,
-0 when none ran. `--cd` and `--fs` are option lines of the part that stays:
-`--go` and `--clear` keep them, `--reset` removes them, a later line replaces
-the value (the last spelling wins), and `--cd=.` is the stream's working
-directory; one file per device per directory means a later job to a device
-replaces the earlier job's file, which `--fs` keeps apart (`--fs=.ver`, then
-`--fs=.run`). An `=`-only option line takes its value with `=` alone, text after
-a space refused when the line is read; the value checks of `--cd` and `--fs` run
-when the line is read too, so a bad line is dropped with its number and the
-draft stands; at `--go`, a draft with `--fs` and no `--cd` takes the stream's
-working directory.
-Typed at a terminal, a line is edited with the usual keys, the
-Delete key among them, and the up arrow recalls earlier lines (the line
-editor `internal/termline` over `golang.org/x/term`, vendored, which the
-credential prompts share): the terminal is in raw mode for one line's read
-alone, through the tree's one raw-mode helper, and back in its own mode for
-every message and every job, so a job's display, its Ctrl-C, and its
-credential prompt are unchanged; the reader reads a line when the loop asks
-for it and never beside a job, which would hold the raw mode through it;
-the editing echoes on the controlling terminal, and a line typed ahead
-during a job, which the terminal's own mode ends with `\n`, is translated
-to the Enter the editor takes. *Why:* a job composed line by line at a terminal
-or piped from a script, reusing the table parser and the run path so no rule
-lives twice; a typo must not cost the draft; a command the operator gives in
-option form is a standing part of the draft, sent by every job until purged, and
-a bare line is the job's alone; one dash and quotes mean on a line what they
-mean to `run` and the shell, so an operator's command-line habits carry over;
-and a line `run` would read as freeform text must never take the commands after
-it. *Not taken:* directives as table options; shell-style splitting of an option
-line (`--tl r1 r2` gives the case, and a command's own quotes would be lost); a
-`- foo` or `-- foo` line sent as a command; `--purge` as both purges; every
-command cleared by `--go`; a prompt; raw mode held across a job (the job's
-Ctrl-C would become a byte to read), which a reader reading ahead had done until
-the credential prompts showed it; GNU readline (not reachable without cgo;
-`rlwrap` remains an operator's choice); a generic error for the read failure
-(every path carries its own code).
+lines already read. A bad line is reported with its number and dropped, the
+draft standing; `--cf`, `--tf`, and `--tfr` may not name `-` in any spelling,
+since standard input is the stream; a read failure or a line over 1 MiB ends the
+stream with `stream_input_read_failed`. The exit is the last job's, 0 when none
+ran. `--cd` and `--fs` are option lines of the part that stays: `--go` and
+`--clear` keep them, `--reset` removes them, a later line replaces the value
+(the last spelling wins), and `--cd=.` is the stream's working directory; one
+file per device per directory means a later job to a device replaces the earlier
+job's file, which `--fs` keeps apart (`--fs=.ver`, then `--fs=.run`). An
+`=`-only option line takes its value with `=` alone, text after a space refused
+when the line is read; the value checks of `--cd` and `--fs` run when the line
+is read too, so a bad line is dropped with its number and the draft stands; at
+`--go`, a draft with `--fs` and no `--cd` takes the stream's working directory.
+Typed at a terminal, a line is edited with the usual keys, the Delete key among
+them, and the up arrow recalls earlier lines (the line editor
+`internal/termline` over `golang.org/x/term`, vendored, which the credential
+prompts share): the terminal is in raw mode for one line's read alone, through
+the tree's one raw-mode helper, and back in its own mode for every message and
+every job, so a job's display, its Ctrl-C, and its credential prompt are
+unchanged; the reader reads a line when the loop asks for it and never beside a
+job, which would hold the raw mode through it; the editing echoes on the
+controlling terminal, and a line typed ahead during a job, which the terminal's
+own mode ends with `\n`, is translated to the Enter the editor takes. *Why:* a
+job composed line by line at a terminal or piped from a script, reusing the
+table parser and the run path so no rule lives twice; a typo must not cost the
+draft; a command the operator gives in option form is a standing part of the
+draft, sent by every job until purged, and a bare line is the job's alone; one
+dash and quotes mean on a line what they mean to `run` and the shell, so an
+operator's command-line habits carry over; and a line `run` would read as
+freeform text must never take the commands after it. *Not taken:* directives as
+table options; shell-style splitting of an option line (`--tl r1 r2` gives the
+case, and a command's own quotes would be lost); a `- foo` or `-- foo` line sent
+as a command; `--purge` as both purges; every command cleared by `--go`; a
+prompt; raw mode held across a job (the job's Ctrl-C would become a byte to
+read), which a reader reading ahead had done until the credential prompts showed
+it; GNU readline (not reachable without cgo; `rlwrap` remains an operator's
+choice); a generic error for the read failure (every path carries its own code).
 
 **A stream's restart.** `--restart`, a directive of its own (the word whole),
 empties the draft, its commands and its targets, as `--reset` does, and reads
@@ -335,8 +338,8 @@ is always an error, and an empty final set always is. *Why:* hierarchical
 host-list folders without scripts, with hidden and backup files never read by
 accident, and no source silently ignored.
 
-**Commands files are literal.** `--cf` reads one file and sends its contents
-as written: blank and comment lines are sent, only the line terminator is
+**Commands files are literal.** `--cf` reads a file and sends its contents as
+written: blank and comment lines are sent, only the line terminator is
 removed, and a zero-byte file is an error. *Why:* karvi does not alter device
 text.
 
@@ -1473,21 +1476,27 @@ login, but the plan would state a rule and not the commands, and the daemon
 would read output; `--expect` is the precedent and much narrower), open again
 only if the second session proves the cost.
 
-**A run's commands follow its command line, in the order written.** Each
-`--cmd` adds its command, each `--cf FILE` its lines, and each `--cf DIR` the
-target's own file, in the order the operator gave them, and every target is
-sent that sequence; `--cf` may be given more than once, `--cf -` once. A
-declaration (`--expect`, `--blind`, `--blind-return`, `--timeout`,
-`--maxbytes`) attaches to the `--cmd` before it and goes with that command into
-every target's list at its place. A command file's lines are statements, never
-karvi options; a trailing `\r` is the one escape read in them. Device text
-stays refused beside `--cmd` or `--cf`: its words may sit anywhere on the line
-and have no place in an order. *Why:* a job is its arguments in the order
-given, so an operator stacks actions on one line: a timestamp, each device's
-own lines, a save (`--cmd "show clock" --cf DIR1 --cf DIR2 --cmd "write
-mem"`). *Not taken:* the `--cmd` values first wherever `--cf` stands, and one
-`--cf`, the tree's rule until this is built, which no operator document stated
-([`docs/EXAMPLES.md`, chapter
+**A run's commands follow its command line, in the order written.** Each `--cmd`
+adds its command, each `--cf FILE` its lines, and each `--cf DIR` the target's
+own file, in the order the operator gave them, and every target is sent that
+sequence; `--cf` may be given more than once, `--cf -` once. A declaration
+(`--expect`, `--blind`, `--blind-return`, `--timeout`, `--maxbytes`) attaches to
+the `--cmd` written right before it and goes with that command into every
+target's list at its place; one written after a `--cf` is refused. The plan
+names every `--cf` by its base name in the order given (`commands_files`, `-`
+for standard input), and so does the scoreboard (`commands.files`), whose one
+reader, the watch screen, joins them: `run: 3 statements from one.txt, two.txt`.
+A command file's lines are statements, never karvi options; a trailing `\r` is
+the one escape read in them. Device text stays refused beside `--cmd` or `--cf`:
+its words may sit anywhere on the line and have no place in an order. *Why:* a
+job is its arguments in the order given, so an operator stacks actions on one
+line: a timestamp, each device's own lines, a save (`--cmd "show clock" --cf
+DIR1 --cf DIR2 --cmd "write mem"`); a name per file keeps the job told apart on
+the watch screen. *Not taken:* the `--cmd` values first wherever `--cf` stands,
+and one `--cf`, the tree's rule before, which no operator document stated; a
+declaration after a `--cf` on the nearest `--cmd` however far back (defined, but
+not what the line shows); the first file's name alone, or none, on the watch
+screen ([`docs/EXAMPLES.md`, chapter
 79](EXAMPLES.md#79-a-command-file-per-target-2026-10-25)).
 
 **A job may send each target its own command list: `--cf DIR`.** `--cf` names

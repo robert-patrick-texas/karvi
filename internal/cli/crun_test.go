@@ -16,11 +16,11 @@ import (
 // the handler; c is command's alias, never crun.
 func TestCrunWordParses(t *testing.T) {
 	inv, err := Parse([]string{"crun", "--all"})
-	if err != nil || inv.Path != "crun" || len(inv.Commands) != 0 || len(inv.Targets) != 1 {
+	if err != nil || inv.Path != "crun" || len(cmdTexts(inv)) != 0 || len(inv.Targets) != 1 {
 		t.Fatalf("crun --all: %v %+v", err, inv)
 	}
 	inv, err = Parse([]string{"cr", "--target", "r1", "--cd=/srv/karvi/crun", "--cmd", "show version"})
-	if err != nil || inv.Path != "crun" || inv.String(optCd) != "/srv/karvi/crun" || len(inv.Commands) != 1 {
+	if err != nil || inv.Path != "crun" || inv.String(optCd) != "/srv/karvi/crun" || len(cmdTexts(inv)) != 1 {
 		t.Fatalf("cr with --cd=PATH: %v %+v", err, inv)
 	}
 	if inv, err := Parse([]string{"run", "--all", "--cd=/x", "show", "version"}); err != nil || inv.String(optCd) != "/x" {

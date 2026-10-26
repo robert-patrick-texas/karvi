@@ -112,7 +112,7 @@ func TestPane(t *testing.T) {
 	s.Width, s.WaveNumber = 8, 2
 	s.Producer = records.Producer{Hostname: "ops.example", PID: 879625}
 	s.Daemon = true
-	s.Commands = &records.ScoreboardCommands{Count: 3, File: "show-set.txt"}
+	s.Commands = &records.ScoreboardCommands{Count: 3, Files: []string{"show-set.txt"}}
 	s.Metrics = &records.ScoreboardMetrics{OutputBytes: 15012, Finished: 57, MinMS: 725, AvgMS: 739, MaxMS: 749}
 	s.Targets = []records.ScoreboardTarget{{Name: "gtn-a", State: "success"}, {Name: "gtn-b", State: "fail"}, {Name: "gtn-wan-9500-1", State: "running"}, {Name: "gtn-c", State: "queued"}}
 	m.Frame()
@@ -308,7 +308,8 @@ func TestWorkLine(t *testing.T) {
 		"login":                                 {Mode: "login"},
 		"exercise":                              {Mode: "exercise"},
 		"cmd: 1 statement":                      {Mode: "cmd", Commands: &records.ScoreboardCommands{Count: 1}},
-		"run: 3 statements from show-set.txt":   {Mode: "run", Commands: &records.ScoreboardCommands{Count: 3, File: "show-set.txt"}},
+		"run: 3 statements from show-set.txt":   {Mode: "run", Commands: &records.ScoreboardCommands{Count: 3, Files: []string{"show-set.txt"}}},
+		"run: 5 statements from one.txt, -":     {Mode: "run", Commands: &records.ScoreboardCommands{Count: 5, Files: []string{"one.txt", "-"}}},
 		"crun: into backups, 3 replaced 0 kept": {Mode: "crun", Collection: &records.ScoreboardCollection{Directory: "backups", Replaced: 3}},
 		"run":                                   {ActivityType: "run"},
 	}

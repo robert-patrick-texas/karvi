@@ -12,6 +12,15 @@ karvi command --host router1 --command 'show clock'
 karvi command --cmd 'show clock' --target router1 --command 'show version'
 ```
 
+`--cmd` and `--cf` mix and repeat, and the commands go in the order written: a
+`--cmd` its command, a `--cf` its file's lines, as written (`--cf -` reads
+standard input, once). This sends `show clock`, the lines of `checks.txt`, and
+`show users`:
+
+```bash
+karvi command router1 --cmd 'show clock' --cf checks.txt --cmd 'show users'
+```
+
 `--target` and `--host` are target synonyms. `--address` aliases
 `--management-address`; neither address option supplies the required target:
 
@@ -178,8 +187,10 @@ and all bytes read, the session closed. `--literal` sends the text as
 written. `--expect PATTERN=RESPONSE` answers a device prompt the platform's
 pattern does not match, as it appears, consumed once in declared order;
 `--blind` declares that the prompt may not return. Every declaration
-attaches to the `--cmd` it follows or to the freeform command. The waits
-are [`docs/TIMEOUTS.md`](TIMEOUTS.md).
+attaches to the `--cmd` written right before it, or to the freeform command;
+one written after a `--cf` is refused (`declaration_with_commands_file`), as a
+file line takes `\r` at its end. The waits are
+[`docs/TIMEOUTS.md`](TIMEOUTS.md).
 
 ## A command's own bounds
 

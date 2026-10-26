@@ -36,8 +36,9 @@ const platformOptionHelp = `  --platform NAME                The platform the de
 
 // commandBoundsHelp is the per-command bounds, shared by command and run:
 // --timeout and --maxbytes are declarations in both.
-const commandBoundsHelp = `A command's own bounds (each attaches to the --cmd it follows, or to the one
-freeform command; at most one of each per command):
+const commandBoundsHelp = `A command's own bounds (each attaches to the --cmd written right before it,
+never after a --cf, or to the one freeform command; at most one of each per
+command):
   --timeout DURATION             The command's timeout in place of
                                  execution.command-timeout, and over telnet of
                                  telnet.read-timeout (1s..12h); not on a blind
@@ -77,8 +78,10 @@ at its end is read as --cmd reads it, and a line of \r alone sends a blank
 line. The targets and options stay from one job to the next, and so do the
 commands given in option form (--cmd, -c, --command, --cf); a command given
 as a bare line is the job's alone. --expect, --blind, --blind-return,
---timeout, and --maxbytes lines attach to the command before them. --cf,
---tf, and --tfr may not name -: standard input is the stream.
+--timeout, and --maxbytes lines attach to the command before them, a --cmd
+or a bare line; one after a --cf line is dropped. A job's commands go in the
+order typed. --cf, --tf, and --tfr may not name -: standard input is the
+stream.
 
 Directives, each a whole line, one dash or two:
   --go, --sendit                 Execute the draft as run; the bare-line
@@ -190,7 +193,7 @@ adapters appear only when they were included in the build.
 const commandHelp = `Usage:
   karvi command [options] DEVICE <device command words...>
   karvi command [options] --target DEVICE --cmd TEXT [--cmd TEXT...]
-  karvi cmd [options] DEVICE --cf PATH|-
+  karvi cmd [options] DEVICE --cf PATH|- [--cf PATH...]
   karvi DEVICE [options] <device command words...>
 
 Target inputs (command-line order is kept; command connects to the first
@@ -223,14 +226,16 @@ device of the assembled set):
 Device commands (one form per invocation):
   Positional words after the device are joined with one space into one command.
   --cmd TEXT, --command, --c     Separate command; repeatable
-  --cf PATH|-                    One command per line, sent as written; at most
-                                 once; - reads standard input
+  --cf PATH|-                    One command per line, sent as written;
+                                 repeatable; - reads standard input
+  --cmd and --cf mix, sent in the order given.
   A command ending in \r sequences is sent without them, followed by that
   many carriage returns before the prompt is read (a [confirm] answer), and is
   blind; nothing else in the text is interpreted.
 
-Interactive prompts (each attaches to the --cmd it follows, or to the one
-freeform command; a command takes blind returns or --expect, not both):
+Interactive prompts (each attaches to the --cmd written right before it, never
+after a --cf, or to the one freeform command; a command takes blind returns
+or --expect, not both):
   --expect PATTERN=RESPONSE      When a line matching PATTERN (RE2) appears,
                                  type RESPONSE and a return; consumed once, in
                                  declared order; empty RESPONSE is a bare
@@ -318,7 +323,7 @@ func crunHelpText() string {
 	usage := `Usage:
   karvi crun [target inputs] [options]
   karvi crun [target inputs] [options] --cmd TEXT [--cmd TEXT...]
-  karvi crun [target inputs] [options] --cf PATH|-
+  karvi crun [target inputs] [options] --cf PATH|- [--cf PATH...]
   karvi crun [target inputs] [options] <device command words...>
 
 The collection run: one file per device, named by the device, in one flat
@@ -366,7 +371,7 @@ func runHelpText() string {
 	return fmt.Sprintf(`Usage:
   karvi run [target inputs] [options] <device command words...>
   karvi run [target inputs] [options] --cmd TEXT [--cmd TEXT...]
-  karvi run [target inputs] [options] --cf PATH|-
+  karvi run [target inputs] [options] --cf PATH|- [--cf PATH...]
 
 Target inputs (at least one; command-line order is kept, the first occurrence
 of a name keeps its position, names are lowercase):
@@ -397,13 +402,16 @@ of a name keeps its position, names are lowercase):
 Device commands (one form per invocation):
   Positional words are joined with one space into one command.
   --cmd TEXT, --command, --c     Separate command; repeatable
-  --cf PATH|-                    One command per line, sent as written; at most once
+  --cf PATH|-                    One command per line, sent as written;
+                                 repeatable
+  --cmd and --cf mix, sent in the order given.
   A command ending in \r sequences is sent without them, followed by that
   many carriage returns before the prompt is read (a [confirm] answer), and is
   blind; nothing else in the text is interpreted.
 
-Interactive prompts (each attaches to the --cmd it follows, or to the one
-freeform command; a command takes blind returns or --expect, not both):
+Interactive prompts (each attaches to the --cmd written right before it, never
+after a --cf, or to the one freeform command; a command takes blind returns
+or --expect, not both):
   --expect PATTERN=RESPONSE      When a line matching PATTERN (RE2) appears,
                                  type RESPONSE and a return; consumed once, in
                                  declared order; empty RESPONSE is a bare

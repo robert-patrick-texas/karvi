@@ -18,15 +18,14 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
    and data, the commands chosen from an earlier job's records (a `show ip
    route vrf NAME` for each VRF a `show vrf` printed), or the same checks
    before and after a change. The build: `--cf` taking a folder, each selected
-   target sent `DIR/NAME`, NAME its collection file's; a run's commands in the
-   order written, `--cf` given more than once; the refusals at planning (a
-   selected target without its file, two targets with one name, a collection
+   target sent `DIR/NAME`, NAME its collection file's; the refusals at planning
+   (a selected target without its file, two targets with one name, a collection
    into a `--cf` folder or onto a `--cf` file of the same run); the plan's list
    per target and `--dry-run` showing each; the job folder's `commands/NAME`,
    and every copy writing a command's `\r` returns back; a stream's `--cf DIR`
    line; the help, the man pages, `COMMAND-SESSION`, `COLLECTION`, `FILES`,
-   `ERROR-CODES`, and the CHANGELOG; and `internal/cli/stream.go`'s package
-   comment, which says every job clears the commands, corrected.
+   `ERROR-CODES`, and the CHANGELOG. A run's commands already follow the order
+   written, `--cf` given more than once.
 2. **Shorter output strings.** A review of every error and warning message
    karvi writes for the operator, shortening each where a word adds nothing so
    that it still conveys its meaning in fewer words, as chapter 56 left the
