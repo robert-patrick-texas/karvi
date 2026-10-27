@@ -17302,3 +17302,288 @@ OPERATIONS "Upgrade" and the service account's "After an upgrade";
 The evidence is kept beside the tree (`update-design-evidence/`: the
 container test's log, the transcript and the script and image that made it,
 and the signature lab).
+
+## 82. The native transport without scrapligo (2026-10-27)
+
+ROADMAP's Next 1, opened on the operator's word. The `scrapligo-v1` adapter is
+a wrapper and nothing more: it passes karvi's own `x/crypto/ssh` connection to
+scrapligo as a custom transport (`transport.NewTransport`,
+`WithCustomTransport`), and scrapligo's `Read`, `Write`, and `Close` hand the
+bytes back. The device session, the host-key policy, `system`, and Telnet are
+karvi's own code. Designed in this session, one gap at a time, and recorded
+for the build; the program is unchanged.
+
+**What it gains.** No scrapligo move with each of its releases: the module,
+its pins in the verifiers, the help text, `karvi version`, the evidence file,
+and a full battery run, over code karvi never runs (0.36.0's move was a
+NETCONF change). Three modules leave `vendor/` (scrapligo, gotextfsm, and
+creack/pty, 139 files), and about 18 KB of scrapligo code the executable. The
+release checks that exist only for scrapligo go: the import boundary, the
+version pins, `release/SCRAPLIGO-EVIDENCE.md`, and BUILD-QUALIFICATION's rule
+that the version output names ScrapliGo. Nothing an operator runs is lost. It
+waits on nothing, and lands before scrapligo's next release would have to be
+taken. The cost is a breaking configuration change: `scrapligo-v1` is named
+in 65 files outside `vendor/`.
+
+The gaps, in the order taken: what `ssh.transports` still means; the new
+implementation ID; the package and file names; the retired error codes' text;
+what replaces the evidence and the release requirements; and ROADMAP's
+ScrapliGo v2 item.
+
+**Gap 1, `ssh.transports`, agreed.** In simple terms: `ssh.transports` keeps
+what still chooses a program, the OpenSSH executable and the `exec:` slots;
+what could only ever name the one native implementation goes.
+
+1. Kept: `ssh.transports.system`, an executable path, and a custom slot
+   `NAME = "exec:PATH"`, another OpenSSH-compatible program.
+2. Removed, and refused at load: the key `ssh.transports.native`; a custom
+   slot's `builtin:ID` or bare ID value; an implementation ID given as a
+   mode's selector; and the selector `preferred`.
+3. `native` stays the selector's name wherever an operator writes one:
+   `--transport native`, the inventory's `transport` column, and
+   `ssh.<mode>.transport`.
+4. The implementation ID is then seen only where gap 2 finds it.
+
+Checked while recording: a removed key moves the registry, from 31 to 32, and
+leaves the configuration schema at 6, as 0.31.0's removal of
+`output.files.summary-json` moved the registry from 29 to 30 alone.
+
+Not taken: keeping `ssh.transports.native` with one legal value, a key whose
+only valid setting is its default; removing `ssh.transports` whole, when
+`system` and the `exec:` slots still choose a program.
+
+**Executed.** The released 0.36.0 (`bin/karvi`; the tree's Go code is
+unchanged since), with a lab configuration in `/dev/shm`, removed after:
+
+```
+$ karvi config show ssh.transports.native
+key:        ssh.transports.native
+value:      "scrapligo-v1"
+source:     <builtin>
+default:    "scrapligo-v1"
+$ karvi config validate b.toml        # native = "scrapligo-v2"
+native_transport_unavailable: ssh.transports.native selects "scrapligo-v2", which is not compiled into this karvi executable
+exit 2
+$ karvi config validate c2.toml       # alt = "exec:/usr/bin/ssh", native2 = "builtin:scrapligo-v1"
+valid: true
+$ karvi config validate d.toml        # ssh.command.transport = "scrapligo-v1"
+valid: true
+```
+
+`karvi version` lists `scrapligo: 1.4.3 (id=scrapligo-v1,
+linkage=compiled-in)` under `ssh_transports:`.
+
+**Gap 2, the implementation ID, agreed.** In simple terms: no new ID; the
+native transport is called `native`, as `system` and `telnet` are called by
+their names.
+
+1. `Selection.Implementation` goes: with every transport's ID its kind, it
+   repeats `Kind`, which is used in its place.
+2. `karvi version` lists `native: compiled-in` over `system:
+   external-executable`; the JSON keeps its shape, with `"id": "native"`, and
+   the job manifest's copy with it.
+3. The words: login's refusal, "transport native is not system-compatible
+   SSH"; the exercise finding, "native transport available" (and "system
+   transport available", today "system transport system available"); the
+   `--debug` line without `implementation=`.
+4. No record changes: a command record already carries the kind, and a login
+   record `system` or `telnet` alone, login refusing `native`.
+
+Checked in the build: whether the job schema (5) moves for the manifest's
+changed value.
+
+Not taken: a new ID such as `karvi-v1`, one more word with only one value;
+`x-crypto`, a library the version output does not list.
+
+**Executed.** The released 0.36.0 against the fake IOS XE device
+(`cmd/karvi-fake-device` built from the tree), with a lab in `/dev/shm`,
+removed after. After gap 1 the ID is seen in four places, and in no record:
+
+```
+command --transport native   → record "transport":"native"
+command --transport system   → record "transport":"system"
+login --transport native     → login_transport_not_interactive: transport scrapligo-v1 is not system-compatible SSH; login supports only system-compatible SSH transports
+command --debug              → device transport target="fake-iosxe" selector="native" implementation="scrapligo-v1" kind=native
+job manifest                 → app.build.ssh_transports[0].id = scrapligo-v1
+                               plan.configuration.ssh.transports.native = scrapligo-v1   (goes with gap 1)
+```
+
+The fourth is `run --exercise`'s finding, `native transport scrapligo-v1
+available` (`internal/jobexec/exercise.go`), from its format `%s transport %s
+available` over the kind and the ID.
+
+**Gap 3, the package and file names, agreed.** In simple terms: one package,
+`internal/transport/native`, laid out like `systemssh` and `telnet`.
+
+1. The adapter's `dial.go` and `exec.go`, with their tests, move into
+   `internal/transport/native`. The connection is the `devsession.Stream`
+   itself; scrapligo's wrapper, its logger, and the `stream` shim go.
+2. `provider_scrapligov1.go` becomes `native.go`; `scrapligoDriver` becomes
+   `driver`, and `openScrapliGoV1` becomes `open`.
+3. The registry goes, one implementation always compiled in: `register`,
+   `Available`, the map of openers, and `Factory.Implementation`. `Admits`
+   keeps its platform list.
+4. `internal/buildinfo/transport_scrapligov1.go` goes, with the registration;
+   `karvi version`'s two entries are a fixed list.
+5. `internal/adapters/` keeps `sshkey` alone.
+
+Not taken: renaming the adapter (`internal/adapters/xcryptossh`) and keeping
+two packages, whose one reason, the scrapligo import boundary, is gone.
+
+**Executed.** `go list` on the tree at `293b1df`:
+
+```
+internal/transport/native: 2 files        (registry.go, provider_scrapligov1.go)
+internal/transport/systemssh: 6 files     (driver and connection in one package)
+internal/transport/telnet: 1 files        (the same)
+internal/adapters/scrapligov1: 3 files    (adapter.go, dial.go, exec.go)
+internal/adapters/sshkey: 1 files
+
+internal/adapters/scrapligov1 -> scrapligo/driver/options, scrapligo/logging, scrapligo/transport
+internal/transport/native     -> internal/adapters/scrapligov1   (its only importer)
+```
+
+The adapter is karvi's own `x/crypto/ssh` connection (the dial, the host-key
+policy in the handshake, the keepalive, the authentication, and exec), passed
+through scrapligo's `Transport` and read back by `stream`.
+
+**Gap 4, the error codes, agreed.** In simple terms: the text names the
+native transport where it says what holds now, and keeps scrapligo where it
+is the history; two codes retire, and one new code refuses an `ssh.transports`
+entry that cannot be used.
+
+1. The active `session_keepalive_timeout` says "`native-ssh.keepalive-*` on
+   the native transport".
+2. The retired codes keep scrapligo where it is what the code was about, and
+   name the native transport where they say what holds now:
+   `host_key_scan_failed`, "...; the native transport checks the key in its
+   own handshake"; `native_command_failed`, "...; karvi's device session now
+   runs its commands"; `native_driver_create_failed` and
+   `native_platform_create_failed`, "..., which the native transport no
+   longer uses". `native_response_nil` is unchanged, history and still true.
+3. Runtime messages naming the ID follow gap 2: `ssh_algorithms_unavailable`'s
+   "which scrapligo-v1 cannot use" names `native`; the
+   `native_session_open_failed` lines about scrapligo's logger and transport
+   go with the wrapper.
+4. Retired: `native_transport_unavailable`, the native transport in every
+   executable; `transport_implementation_invalid`, no implementation IDs.
+5. New: `transport_mapping_invalid` refuses at load an `ssh.transports` entry
+   whose value is not `exec:PATH` (`system`'s, an executable path), or that
+   takes a built-in transport's name, `native` or `telnet`.
+6. `transport_custom_slot_default` says "which only the `system` slot
+   accepts".
+7. `preferred` and `scrapligo-v1` as selectors need no code: they are
+   ordinary slot names, `transport_mapping_missing` when no slot maps them.
+
+Checked: the registry artifact carries the active `config_*` codes alone
+(`errorcodes.ActiveWithPrefix("config_")`), so the `transport_*` codes do not
+move it; gap 1's key moves it.
+
+Not taken: a row for `ssh.transports.native` in the removed-keys table
+(`internal/configload/removed.go`), the removals since 0.31.0 being plain
+unknown keys and this one a slot's name, not a registered key; keeping the
+name `transport_implementation_invalid`, a word gap 2 removes.
+
+**Executed.** The released 0.36.0's `config validate`, in a lab in `/dev/shm`,
+removed after:
+
+```
+alt = "builtin:nope"             → native_transport_unavailable: ssh.transports.alt selects "nope", which is not compiled into this karvi executable
+alt = "Bad!"                     → transport_implementation_invalid: ssh.transports.alt has invalid implementation "Bad!"
+alt = "default"                  → valid: true (transport_custom_slot_default is raised when a mode selects the slot)
+ssh.command.transport = "nosuch" → transport_mapping_missing: ssh.command.transport: selector "nosuch" has no ssh.transports.nosuch mapping
+telnet = "exec:/usr/bin/ssh"     → valid: true
+output.files.summary-json = true → config_unknown_key (removed in 0.31.0)
+```
+
+`ssh.transports.telnet` is accepted and never read: `--transport telnet`
+selects Telnet before any slot. After gap 1 `ssh.transports.native` would be
+the same; item 5 refuses both.
+
+**Gap 5, the evidence and the release requirements, agreed.** In simple
+terms: what proves only scrapligo goes; the checks that the native path is
+karvi's own connection stay, on the new files; the 0.36.0 record is left as
+it is.
+
+1. `release/SCRAPLIGO-EVIDENCE.md` goes, with its row in
+   `tools/md-to-html/docs.go` and ROADMAP's link. Nothing replaces it: the
+   offline vendored build and the Go version are `BUILD-RESULT.md`'s, `go mod
+   verify` is `release-qualification.log`'s, the parity suite is
+   BUILD-QUALIFICATION's, and the device matrix is CISCO-IOSXE-QUALIFICATION's.
+2. `verify-release.sh` drops the module pin, the import boundary, and the
+   `WithCustomTransport` check.
+3. BUILD-QUALIFICATION drops line 5's "ships the scrapligo-v1 executable", the
+   version output identifying ScrapliGo, and the import boundary.
+4. The "lacks scrapligo-v1" checks go from four suites (`native`, `spool`,
+   `audit`, `job-list`) and `verify-shipped.sh`, from the days a build could
+   leave the native transport out, and `make native-build`, named only in
+   their messages, with them.
+5. The structural checks stay, on `internal/transport/native/`:
+   `HostKeyCallback`, `hostkey.Verify`, and `devsession.Open`, and the failure
+   on `ssh-keyscan`, `os/exec`, `PrepareNative`, or `InspectRemote`.
+   BUILD-QUALIFICATION's rule: the native transport checks the host key in its
+   own handshake, under karvi's device session, and runs no subprocess.
+6. `verify-shipped.sh`'s verbatim version line is `  native: compiled-in`;
+   BUILD-QUALIFICATION's parity suite runs over `system` and `native`.
+7. Reworded, the release tools archived first: `common.sh`'s comments on the
+   scrapligo_v1 tag, `evidence-rest.sh`'s log title "native build
+   (scrapligo-v1)" and its comment that `go-version-m.txt` names scrapligo,
+   and the `Makefile`'s comment on the tag.
+8. Unchanged: 0.36.0's record, `release/BUILD-RESULT.md`, `release/evidence/`,
+   and `release-manifest.json`; the next release writes its own, with
+   `native: compiled-in` and no "build tag" line.
+
+Not taken: a `NATIVE-EVIDENCE.md` in its place, holding nothing another file
+does not; dropping the structural checks for the parity suite's connection
+count, which proves no second connection but not that no subprocess runs.
+
+**Executed.** `verify-release.sh`'s scrapligo checks, by hand on the tree:
+
+```
+# github.com/scrapli/scrapligo v1.4.3                    (the module pin)
+outside vendor/, only internal/adapters/scrapligov1/ imports scrapligo   (the boundary)
+WithCustomTransport in dial.go: 1
+HostKeyCallback in dial.go: 2
+hostkey.Verify in dial.go: 1
+devsession.Open in provider: 2
+native-smoke-test.sh:161 … "expected one connection"     (the parity suite's count)
+```
+
+**Gap 6, ROADMAP's ScrapliGo v2 item, agreed.** In simple terms: a v2, if
+ever taken, is a transport of its own with its own selector beside `system`,
+`native`, and `telnet`, not a second implementation behind `native`.
+
+1. Kept: v2's facts (the `ebitengine/purego` binding, `libscrapli` 0.0.1 at
+   14.6 MB, `LIBSCRAPLI_PATH`, and the unchecked download into
+   `~/.cache/scrapli`) and the four questions: whether a release ships the
+   library and always names it; where karvi's host-key policy fits; the
+   adapter's shape, the session in the library and not shared with `system`;
+   and what it gains for the fleet.
+2. Replaced: "karvi stays on v1" by "karvi carries no scrapligo since its
+   native transport became its own" (this chapter); the host-key question's
+   "today inside its own SSH handshake under v1's transport wrapper" by
+   "today inside karvi's own SSH handshake"; the closing "A v2 adapter
+   registers `scrapligo-v2` beside `scrapligo-v1`" by "v2 would be a
+   transport with its own selector; a mapping from a slot to an
+   implementation comes back only if a transport ever has two".
+3. Unchanged: "Platforms beyond the built-ins", which reads scrapligo's YAML
+   as upstream draft data, not the vendored module; NETCONF, whose `ssh -s`
+   and x/crypto's `RequestSubsystem` still hold.
+4. Next 1 leaves ROADMAP when it is built.
+
+Not taken: dropping the v2 item, whose facts and questions are what anyone
+taking it would need; keeping `ssh.transports.native` for a v2 that may never
+come, which gap 1 settled.
+
+**Executed.** The lines the change makes false, `ROADMAP.md:191-208` at
+`293b1df`:
+
+```
+karvi stays on v1, whose line is maintained, until four questions are answered: …
+whether karvi's host-key policy, today inside its own SSH handshake under v1's transport wrapper …
+A v2 adapter registers `scrapligo-v2` beside `scrapligo-v1` ([`docs/SSH-TRANSPORTS.md`] …)
+```
+
+**Found on the way.** `docs/SSH-TRANSPORTS.md`'s table gives `command` the
+default `system`; `DefaultSelector` gives `native` to every mode but `login`.
+The table is corrected in the build.
