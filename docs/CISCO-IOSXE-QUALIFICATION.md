@@ -4,9 +4,9 @@
 
 The laboratory qualifies `cisco_iosxe` first, on both transports together:
 one device session (`internal/devsession`) drives the system OpenSSH
-process and the `scrapligo-v1` connection alike, so every row below is run
-over `system` and `scrapligo-v1` and the two records compared. Every
-built-in platform is admitted on `scrapligo-v1`; IOS XE is the platform
+process and the `native` connection alike, so every row below is run
+over `system` and `native` and the two records compared. Every
+built-in platform is admitted on `native`; IOS XE is the platform
 qualified first. The intended device families are:
 
 - Cisco Catalyst 9000-series switches;
@@ -169,7 +169,7 @@ Record evidence, on both transports, for:
 ## Required evidence
 
 For each qualified combination retain the karvi version and commit, the Go
-version, the ScrapliGo version, the fake's commit where a row was confirmed
+version, the fake's commit where a row was confirmed
 against it, the device model, the IOS XE release, the plan digest,
 sanitized records and debug output, resource measurements, and the pass/fail
 disposition (the script's evidence directory,

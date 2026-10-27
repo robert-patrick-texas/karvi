@@ -11,7 +11,7 @@
 ./bin/karvi run --help
 ```
 
-The included executable lists `system` and `scrapligo-v1`. `command` and
+The included executable lists `native` and `system`. `command` and
 `run` use the native transport by default and `login` uses `system`; pass
 `--transport` to choose.
 

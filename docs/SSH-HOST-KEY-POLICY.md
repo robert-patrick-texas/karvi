@@ -1,8 +1,8 @@
 # SSH host-key policy
 
 karvi retains one host-key policy and one karvi-owned trust store for `login`,
-`command`, and `run`, independent of whether the implementation is system
-OpenSSH or a configured native adapter. Transport selection is documented in
+`command`, and `run`, whichever transport carries the session, system OpenSSH
+or the native transport. Transport selection is documented in
 [`SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md).
 
 ## Configuration
@@ -34,7 +34,7 @@ UserKnownHostsFile "<karvi-known-hosts>"
 GlobalKnownHostsFile "/dev/null"
 ```
 
-On `scrapligo-v1`, karvi's callback in the SSH handshake reads the same
+On `native`, karvi's callback in the SSH handshake reads the same
 file: a key found under the device's identity must match; an unknown device
 is enrolled as one line under the file lock (re-read while locked, so two
 concurrent connections enrol once). No `ssh-keyscan` runs.
@@ -49,7 +49,7 @@ the target colour and the rest in the warning colour:
 
 The device's first record carries the notice `host_key_enrolled` with the key
 type, and its `<kind>.command` audit event `details.host_key_enrolled`.
-`scrapligo-v1` says it when its own enrollment wrote the line; over `system`
+`native` says it when its own enrollment wrote the line; over `system`
 karvi takes OpenSSH's `Warning: Permanently added …` line from the standard
 error of the exec master and the command session. A job that finds the key
 stored meanwhile by another says nothing. A login runs OpenSSH at `LogLevel
@@ -66,7 +66,7 @@ other stored.
 A matching key must already exist. Unknown keys fail as
 `host_key_not_enrolled`; mismatches fail as `host_key_changed`.
 
-System OpenSSH receives `StrictHostKeyChecking yes`. On `scrapligo-v1` the
+System OpenSSH receives `StrictHostKeyChecking yes`. On `native` the
 handshake callback refuses an unknown device as `host_key_not_enrolled` and
 a changed key as `host_key_changed`; the connection is closed before
 authentication. A missing trust store is `host_key_not_enrolled` before any
@@ -99,7 +99,7 @@ connection, no usable key) the session goes on uncompared, and the first
 record carries `host_key_not_compared` with a short cause and the whole
 reason, shown as `! ssh host-key DEVICE not compared: CAUSE`, one of
 `ssh-keyscan not installed`, `ssh-keyscan timed out`, `ssh-keyscan failed`,
-`no usable key`, `trust store unreadable`. On `scrapligo-v1`
+`no usable key`, `trust store unreadable`. On `native`
 the handshake callback accepts the key and compares it to the enrolled one
 itself.
 
@@ -119,7 +119,7 @@ under its address:
 Another port on the same host may be another SSH server with another key,
 so the port is part of the identity. The system transport passes the
 identity to OpenSSH as `HostKeyAlias`, so OpenSSH neither looks up nor
-writes the address; `scrapligo-v1` looks up only the identity. A line
+writes the address; `native` looks up only the identity. A line
 `accept-new` writes reads
 
 ```text

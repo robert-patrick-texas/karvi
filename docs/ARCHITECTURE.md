@@ -260,37 +260,29 @@ prompt/command text are never cropped.
 
 ## Transport composition
 
-`internal/transportselect` resolves CLI/inventory override, mode setting, mode
-default, named slot, and concrete adapter. The executor sees only a
-`platform.Driver`. `internal/transport/native` is keyed by stable implementation
-IDs; build-tagged providers register adapters. `internal/buildinfo` separately
-reports the exact transport composition of the executable.
+`internal/transportselect` resolves CLI/inventory override, mode setting, and
+mode default to a transport: `native` or `telnet`, compiled in, or a named
+slot's executable. The executor sees only a `platform.Driver`.
+`internal/buildinfo` separately reports the executable's SSH transports.
 
-Only `internal/adapters/scrapligov1` imports ScrapliGo. The source admission
-gate currently allows canonical `cisco_iosxe`; compilation does not constitute
-platform qualification.
+The native transport admits every built-in platform; admission does not
+constitute platform qualification.
 
 ### One shape of the source
 
-Every build carries the scrapligo-v1 adapter: the provider file in
-`internal/transport/native` registers it at init, `internal/buildinfo`
-reports it, and `command` and `run` resolve their `native` default to it.
-Earlier a build tag, `scrapligo_v1`, selected between this shape and a
-dependency-free one (`build/go.preview.mod`) whose executable reported only
-`system`; releases through v0.11.0 shipped that preview, v0.12.0 shipped
-the native executable with the tag still in place, and the tag and the
-module were then removed.
-
-What the second shape had been kept for was the adapter boundary: if the
-rest of the source compiled with no dependency present, nothing outside the
-adapter had come to depend on ScrapliGo. That proof now rests on
-`scripts/verify-release.sh` alone, which fails on any import of
-`github.com/scrapli/scrapligo` outside `internal/adapters/scrapligov1`. The
-registry keyed by implementation ID stays, as the place a later adapter
-registers, and with it the fail-closed path: a native slot naming an
-implementation without a registered provider is
-`native_transport_unavailable` and never falls back to OpenSSH
-(`TestUnregisteredNativeImplementationFailsClosed`).
+Every build carries the native transport: `internal/transport/native` is
+karvi's own `x/crypto/ssh` connection, `internal/buildinfo` lists it, and
+`command` and `run` resolve their default to it. Earlier a build tag,
+`scrapligo_v1`, selected between this shape and a dependency-free one
+(`build/go.preview.mod`) whose executable reported only `system`; releases
+through v0.11.0 shipped that preview, v0.12.0 shipped the native executable
+with the tag still in place, and the tag and the preview module were then
+removed. Through v0.36.0 the connection passed through scrapligo's transport
+wrapper, behind an import boundary `scripts/verify-release.sh` checked; the
+wrapper, the module, the boundary, and the registry keyed by implementation
+ID then went ([`docs/EXAMPLES.md`, chapter
+82](EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)). A
+device that selects `native` never falls back to OpenSSH.
 
 ## Daemon and storage
 

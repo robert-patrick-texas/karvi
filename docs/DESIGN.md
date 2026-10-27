@@ -849,7 +849,7 @@ server or many, first match winning); or a key and a password, offered as the
 server asks, the key first and the password on partial success. A key is a
 reference to its file, never its bytes: the plan, the credential package, and
 the records carry its path and its SHA-256 fingerprint, the process that
-connects (`ssh`, or the native adapter, both the operator's) reads the file at
+connects (`ssh`, or the native transport, both the operator's) reads the file at
 the connection, and a `keyfile` passes the credential file checks (the owner,
 `0600`, no symlink). A key protected by a passphrase is skipped with a notice,
 never prompted for and never offered to the askpass helper; passphrases are
@@ -892,7 +892,7 @@ client for `command`) reads the files as they are then, compared with nothing:
 the system transport's managed configuration sets `PubkeyAuthentication yes`,
 `IdentitiesOnly yes`, `IdentityAgent none`, and one `IdentityFile` per key, with
 password and keyboard-interactive off when the credential has no password; the
-native adapter offers the keys as signers, the password methods only beside a
+native transport offers the keys as signers, the password methods only beside a
 password. Both transports try the methods in one order, `publickey`,
 `keyboard-interactive`, then `password`, the last two answered with the
 password, since some servers allow keyboard-interactive and refuse password
@@ -903,7 +903,7 @@ authenticated), and every `<kind>.command` audit event names it beside the
 device username and the credential backend: the system transport runs its
 command sessions at `LogLevel VERBOSE` and takes OpenSSH's `Authenticated to …
 using "M".` line from the stderr it already reads, keeping it from the
-diagnostics, and the native adapter notes the last of its callbacks x/crypto
+diagnostics, and the native transport notes the last of its callbacks x/crypto
 called before succeeding. `login` stays at `ERROR`, its stderr being the
 operator's terminal, and names no method. Which key authenticated is not
 recorded; OpenSSH's `DEBUG1` lines on the same stderr would name it, a later
@@ -972,8 +972,8 @@ to be kept equal.
 the whole device session once (first prompt, privilege, paging, session-init,
 command execution, failure detection, output normalisation, close) over a
 `Stream` of `Read`, `Write`, `Close`, and `Abort`. The system transport
-supplies the stream from an `ssh -tt` process's pipes; scrapligo-v1 supplies it
-from karvi's own SSH connection behind scrapligo's transport wrapper. Each
+supplies the stream from an `ssh -tt` process's pipes; the native transport
+supplies it from karvi's own SSH connection. Each
 command is written once and read until the prompt; the two transports' records
 differ only in `transport`, timings, and identifiers, and a parity suite runs
 every case as four combinations (`command` and `run` over both) and compares
@@ -995,7 +995,7 @@ command.** A device whose `channel` is `exec` gets one connection for its
 command list, as a shell device does; each command is one exec channel on it, in
 order, without a pty and with standard input at its end, and the connection
 closes when the device's commands end: no `ControlPersist`, no reuse across
-jobs. On `scrapligo-v1` the channel is a session on karvi's connection, and
+jobs. On `native` the channel is a session on karvi's connection, and
 x/crypto's exit error gives the status and the signal's name; a channel closed
 without either is `command_exit_missing` only when the connection answers a
 keepalive request within 5 seconds, and a lost connection keeps the session's
@@ -1026,7 +1026,7 @@ own 255 and `exit-signal` a signal (`exit_signal` `unnamed`, since OpenSSH names
 none); with neither, a master that still answers `-O check` is
 `command_exit_missing`, unless it wrote `chan_read_failed for istate 3`, its
 sign of a refused exec request (`ssh_session_channel_refused`, the session
-ending, as on `scrapligo-v1`), and a master gone is the session's failure, its
+ending, as on `native`), and a master gone is the session's failure, its
 code from the diagnostics. The shell keeps `ControlMaster no`. *Why:* a fresh
 `ssh` per command took ten times as long as a master and authenticated once per
 command; a channel at a time never meets `MaxSessions`, and the ledger counts
@@ -1043,14 +1043,14 @@ request reaches neither the client's stderr nor the master's lines in its own
 words (the `exec request failed` text is queued to the client and lost with the
 channel), and without the one sign the case is `command_exit_missing`. *Not
 taken:* a fresh `ssh` per command; masters kept across jobs; exec on
-`scrapligo-v1` alone (the operator's framing names the control path, and the
+`native` alone (the operator's framing names the control path, and the
 parity run needs both transports); the `%C` name; `-E` files for the master and
 the clients; the master at `VERBOSE`; a refused exec request always
 `command_exit_missing`.
 
 **An exec command keeps the session's bounds, not its shell.** There is no first
 prompt: the session is ready when the connection has authenticated
-(`scrapligo-v1`) or the master answers `-O check` (`system`), within
+(`native`) or the master answers `-O check` (`system`), within
 `ssh.connect-timeout` and `execution.prompt-timeout`, the bound a shell's login
 has. No privilege step, paging command, or exit command is sent, an operator's
 exec alias of a network driver included. A session-init profile runs, each
@@ -1061,13 +1061,13 @@ sends, `\r` endings, `--blind-return`, and `--expect` are refused at planning
 for an exec target, naming the target and the command's index
 (`channel_exec_declaration_refused`, a usage error, the client's and the
 daemon's plan check alike); `--literal` is accepted. `execution.command-timeout`
-runs from the channel's opening to its exit status; at expiry `scrapligo-v1`
+runs from the channel's opening to its exit status; at expiry `native`
 asks for `KILL` and closes the channel, and `system`, whose client cannot send a
 signal, kills the client and records the notice `remote_command_not_stopped`. A
 command timeout falls under the device-error policy, the connection being
 usable: the rest stop unless `--continue-device-on-error`.
 `execution.device-timeout`, the keepalives, and a cancel are as for the shell
-(`scrapligo-v1` asking for `KILL` on the channel in flight);
+(`native` asking for `KILL` on the channel in flight);
 `execution.blind-wait` is not used. The output limit counts stdout and stderr
 together, and each stream is spooled past the threshold on its own; at the limit
 the command is stopped as at a timeout, the record is `output_limit_exceeded`
@@ -1208,16 +1208,24 @@ the device ceiling; a declared limit raising the job limit; `--maxbytes` above 1
 GiB before the record holds output of several GiB; a record field for the
 bounds; one list of objects in the plan.
 
-**scrapligo-v1 runs on karvi's own SSH connection.** The adapter supplies
-scrapligo with a custom transport: an x/crypto dial with karvi's host-key
-callback, a PTY and shell, the password read inside the authentication
-callbacks at authentication time. No subprocess, no `ssh-keyscan`, one TCP
-connection per open. *Why:* scrapligo's standard transport checks a known-hosts
-file strictly or not at all and cannot enroll a first-seen key; the earlier
-pre-scan made every open six connections.
+**The native transport is karvi's own SSH connection.** An x/crypto dial with
+karvi's host-key callback, a PTY and shell, the password read inside the
+authentication callbacks at authentication time. No subprocess, no
+`ssh-keyscan`, one TCP connection per open, and no SSH library beyond x/crypto.
+`native` and `telnet` are selected by name; an `ssh.transports` slot maps a
+name to an executable (`system`'s path, another slot's `exec:PATH`) and
+nothing else. *Why:* scrapligo's standard transport checks a known-hosts file
+strictly or not at all and cannot enroll a first-seen key; the earlier pre-scan
+made every open six connections; and once karvi's connection was all
+scrapligo-v1 carried, its wrapper passed each read, write, and close through and
+moved with every scrapligo release ([`docs/EXAMPLES.md`, chapter
+82](EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)). *Not
+taken:* a new implementation ID such as `karvi-v1`; `ssh.transports.native` kept
+with one legal value; a ScrapliGo v2 behind `native`, which would be a transport
+with its own selector.
 
-**Platform admission is a table per native implementation; every built-in is
-admitted.** Each native registration lists what it admits by the definition's
+**Platform admission is the native transport's table; every built-in is
+admitted.** The native transport lists what it admits by the definition's
 base driver, never a table's label; a platform not admitted is
 `native_platform_not_qualified` before any connection. *Why:* the table shape
 serves a later connector with its own admission list; with every built-in's
@@ -1251,7 +1259,7 @@ and a `linux_shell` row over the shell persona. A difference by design is
 pinned, not excluded: `tools/paritycheck -pin` names a record, a path and
 everything under it, and the value each transport must hold there, checked in
 every stream and left out of the comparison across them; the exec cases pin
-`exit_signal` (`TERM` on `scrapligo-v1`, `unnamed` on `system`) with its
+`exit_signal` (`TERM` on `native`, `unnamed` on `system`) with its
 message, and `remote_command_not_stopped` on a command `system` gave up. The
 suites never reach the host's `sshd`; a server's evidence is each build
 section's run against a real OpenSSH and the qualification runbook's rows for a
@@ -3289,12 +3297,11 @@ reusing a low number would collide with a released protocol.
 
 ## 16. Build, verification, and release
 
-**One shape of the source, one build, vendored.** The scrapligo-v1 adapter is
+**One shape of the source, one build, vendored.** The native transport is
 compiled into every executable with no build tag; `vendor/` is part of the
 tree so a build host needs no network; `make build` from the vendored tree is
-the release. A native slot naming an unregistered implementation fails closed.
-*Why:* a tag-gated preview shape rotted unless something compiled it and once
-shipped the wrong executable.
+the release. *Why:* a tag-gated preview shape rotted unless something compiled
+it and once shipped the wrong executable.
 
 **Verification runs the battery once per bytes.** The release verifier builds
 from source and runs the tests, the race detector, and every suite; the bundle
@@ -3429,16 +3436,14 @@ the help's own line classes (`internal/helplayout`: a heading as a subsection,
 an entry as a tagged paragraph with its option words in bold and its
 description refilled, a prose run as a paragraph), the words byte for byte and
 the line breaks groff's. The top help's title line is NAME's, written by hand,
-as is everything outside the two regions. Build-dependent help text (`run`'s
-native adapter status) is the page's as it is the help's, regenerated with it.
-*Why:* six of the twelve help texts (config, daemon, job, setup, version,
-watch) have no option entries and carry their options in the Usage lines and
-the prose, and the others hold rules in prose between their entries (the GLOB
-syntax, the `\r` rule), so the help is the unit, not its entries; one
-classifier serves the terminal and the page, so they cannot read a line
-differently. *Not taken:* an OPTIONS region from the entries alone (empty on
-six pages, the prose rules lost); generating the whole page; a hand-written
-DESCRIPTION with OPTIONS generated on the pages with entries alone.
+as is everything outside the two regions. *Why:* six of the twelve help texts
+(config, daemon, job, setup, version, watch) have no option entries and carry
+their options in the Usage lines and the prose, and the others hold rules in
+prose between their entries (the GLOB syntax, the `\r` rule), so the help is the
+unit, not its entries; one classifier serves the terminal and the page, so they
+cannot read a line differently. *Not taken:* an OPTIONS region from the entries
+alone (empty on six pages, the prose rules lost); generating the whole page; a
+hand-written DESCRIPTION with OPTIONS generated on the pages with entries alone.
 
 **The generator reaches the help through one accessor and one renderer.**
 `internal/cli` exports `HelpPages()`, the parser table's help texts in its order

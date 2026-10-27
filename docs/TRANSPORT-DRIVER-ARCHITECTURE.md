@@ -22,16 +22,15 @@ also implement `platform.SetupReporter`: after
 the paging commands, each with the prompt it was sent at and the answer,
 never the enable secret or anything read after it), which the executor
 hands to the output store for the device's `output.TARGET.txt`. The
-transports beneath it supply the stream or the exec connection. Core code never
-imports ScrapliGo; third-party and operating-system adapters live under
-`internal/`.
+transports beneath it, under `internal/transport/`, supply the stream or the
+exec connection.
 
 ```text
 executor -> platform.Driver
               |-- internal/transport/systemssh ---.
               |                                    |-- internal/devsession
               |-- internal/transport/native -------'      Session over a Stream (shell): one ssh -tt
-              |        `-- internal/adapters/scrapligov1      process; one x/crypto connection
+              |                                               process; one x/crypto connection
               |                                           ExecSession over an ExecConn (exec): an ssh -M
               |                                               master and an ssh -S client per command; a
               |                                               channel per command on one x/crypto connection
@@ -52,12 +51,12 @@ executor, both SSH transports, telnet, and the session work on
 CLI/inventory override
   -> ssh.<mode>.transport
   -> default (login=system, command/run=native)
-  -> ssh.transports.<slot>
-  -> executable or compiled implementation
+  -> native or telnet, compiled in; any other name ssh.transports.<slot>
+  -> the slot's executable
 ```
 
-`preferred` maps to `native`. A compiled ID may be selected directly. No
-fallback occurs after a selected adapter is unavailable.
+`native` and `telnet` are not slots, and a slot maps only to an executable. No
+fallback occurs after a selected transport is unavailable.
 
 ## System OpenSSH
 
@@ -85,39 +84,37 @@ diagnostics. A socket a killed master left is swept at the daemon's start and
 at admission. Interactive login is system-only: it hands the terminal to
 OpenSSH.
 
-## ScrapliGo v1
+## Native
 
-The provider file in `internal/transport/native` registers implementation ID
-`scrapligo-v1` at init in every build (the `scrapligo_v1` build tag that once
-made it optional is gone). `internal/adapters/scrapligov1` is karvi's
-connection: an x/crypto SSH connection through scrapligo's transport wrapper,
-with the unified host-key policy as the handshake's callback, the credential's
-keys offered as signers before the password methods (which a credential with
-keys and no password does not offer), karvi's algorithm lists, the connect and
-handshake timeouts, and the keepalives, exposed as a `devsession.Stream`, or for
-an exec device as a `devsession.ExecConn` that opens a session channel per
-command on the one connection, asks for `KILL` before closing a channel given
-up, and tells a channel closed without a status from a lost connection by a
-keepalive request. scrapligo's channel and network driver are not used, and no
-subprocess runs (no `ssh`, `ssh-keyscan`, or askpass). The provider in
-`internal/transport/native` opens the session on that stream, so both transports
-give the same records for the same commands. The provider admits every built-in
-platform by its base: `generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
-`juniper_junos`, `arista_eos`, and `linux` (`linux_shell`'s base); an alias
-table resolves to its built-in's base, so `native_platform_not_qualified` is
-unreachable on `scrapligo-v1`. [`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md)
-holds the build composition and the import boundary.
+`internal/transport/native` is karvi's connection, in every build: an x/crypto
+SSH connection with the unified host-key policy as the handshake's callback, the
+credential's keys offered as signers before the password methods (which a
+credential with keys and no password does not offer), karvi's algorithm lists,
+the connect and handshake timeouts, and the keepalives, exposed as a
+`devsession.Stream`, or for an exec device as a `devsession.ExecConn` that opens
+a session channel per command on the one connection, asks for `KILL` before
+closing a channel given up, and tells a channel closed without a status from a
+lost connection by a keepalive request. No subprocess runs (no `ssh`,
+`ssh-keyscan`, or askpass). The package's driver opens the session on that
+stream, so both transports give the same records for the same commands. It
+admits every built-in platform by its base: `generic`, `cisco_iosxe`,
+`cisco_iosxr`, `cisco_nxos`, `juniper_junos`, `arista_eos`, and `linux`
+(`linux_shell`'s base); an alias table resolves to its built-in's base, so
+`native_platform_not_qualified` is unreachable on `native`.
+[`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md) holds the build composition.
 
 ## Build identity
 
-`internal/buildinfo` has a deterministic registry separate from configuration.
-System is always listed as an external executable. Build-tagged composition
-files register compiled adapters and exact versions. Future adapters use unique
-IDs, allowing multiple implementations in one binary.
+`internal/buildinfo` lists the SSH transports, separate from configuration and
+the same in every executable: `native`, compiled in, and `system`, an external
+executable.
 
 ## Extension rule
 
-A new SSH library brings a stream, not a session. It requires:
+A new SSH library brings a stream, not a session, and becomes a transport of
+its own, with its own selector beside `system`, `native`, and `telnet`; a
+mapping from a slot to an implementation comes back only if a transport ever
+has two. It requires:
 
 1. a `devsession.Stream` (read, write, close; an `Aborter` when the
    transport can be cut at once; the keepalive expiry returned as
@@ -125,17 +122,16 @@ A new SSH library brings a stream, not a session. It requires:
    algorithm lists applied in its handshake, and a `devsession.ExecConn`
    for exec devices (a channel per command, its exit status and signal, a
    stop for a command given up);
-2. a build-composition registration file under `internal/buildinfo`;
-3. a provider registration under `internal/transport/native` naming the
-   platforms it admits;
-4. configuration mapping and validation tests;
+2. its entry in `internal/buildinfo`'s list, which `karvi version` prints;
+3. a package under `internal/transport/` with its driver and the platforms it
+   admits, and its selector in `internal/transportselect`;
+4. selection and validation tests;
 5. host-key, algorithm-negotiation, connect-timeout, and open-failure
    classification tests against the fake (`internal/fakedevice`);
 6. a parity run (`scripts/native-smoke-test.sh`) showing its records equal
    the system transport's path by path, over the shell and the exec channel,
-   with any difference by design pinned per transport;
-7. binary version evidence; and
-8. platform qualification before becoming the `native` default.
+   with any difference by design pinned per transport; and
+7. platform qualification before becoming a mode's default.
 
 Prompt, privilege, paging, session-init, timeout, cancel, and blind-send
 behaviour, and an exec command's settling, limit, and outcomes, are the

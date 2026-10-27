@@ -9,31 +9,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
 
 ## Next
 
-1. **The native transport without scrapligo.** scrapligo-v1 contributes a
-   transport wrapper whose open, read, write, and close pass through to karvi's
-   own x/crypto connection, its options, and its logger
-   ([`release/SCRAPLIGO-EVIDENCE.md`](release/SCRAPLIGO-EVIDENCE.md)); the
-   device session, the host-key policy, and the `system` and Telnet transports
-   are karvi's, and scrapligo's channel and drivers are linked and never
-   called. Each scrapligo release still moves the module, its version in the
-   verifiers, the help, and `karvi version`, and the evidence, with a battery
-   over code karvi does not run (0.36.0's was a NETCONF change:
-   [`docs/EXAMPLES.md`, chapter
-   80](docs/EXAMPLES.md#80-the-release-0360-2026-10-26)). The stream
-   calls the connection directly, which takes its port and connect timeout
-   from karvi's request; the module goes, and with it gotextfsm and
-   creack/pty, which only scrapligo imports (139 vendored files); and so do the
-   import-boundary check, the version pins, the evidence file, and
-   [`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md)'s requirement
-   that the version output identify ScrapliGo. The implementation ID
-   `scrapligo-v1` is renamed wherever an operator meets it
-   (`ssh.transports.native`, `karvi version`, the help and the man pages, the
-   messages, the suites, and the documents), a breaking change to the
-   configuration. The questions: the new ID, and whether `ssh.transports` still
-   maps a slot to an implementation when each slot has one. Nothing karvi runs
-   is lost; the ScrapliGo v2 and NETCONF items below stand apart, and a v2
-   adapter would register beside karvi's own. It waits on nothing, and comes
-   before scrapligo's next release would be taken.
+None chosen: the operator names the next item, from "Later" or anew.
 
 ## Later
 
@@ -145,7 +121,7 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   transport already reads, so a line filter could take it and drop every other
   `debug1:` line before the diagnostics; an exec device's master already runs
   at `DEBUG1` through such a filter, so its stream carries the line, while the
-  shell's runs at `VERBOSE`; the native adapter could note the signer that
+  shell's runs at `VERBOSE`; the native transport could note the signer that
   signed. The questions: the record's field (path and fingerprint
   beside `auth`), the audit's, and `login`, whose stderr is the operator's
   terminal ([`docs/DESIGN.md`, section 4](docs/DESIGN.md#4-credentials)).
@@ -194,17 +170,20 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   session, the channel, and the SSH (libssh2) and Telnet transports. It loads
   the library from `LIBSCRAPLI_PATH`, else from `~/.cache/scrapli`, downloading
   it there from GitHub at first use without checking the published `.sha256`.
-  karvi stays on v1, whose line is maintained, until four questions are
-  answered: whether a release can ship the library beside the static executables
-  and always names it, so no session reaches the network or writes into the
-  operator's home; whether karvi's host-key policy, today inside its own SSH
-  handshake under v1's transport wrapper ([`SECURITY.md`](SECURITY.md)), has a
+  karvi carries no scrapligo since its native transport became its own
+  ([`docs/EXAMPLES.md`, chapter
+  82](docs/EXAMPLES.md#82-the-native-transport-without-scrapligo-2026-10-27)),
+  and taking v2 waits on four questions: whether a release can ship the library
+  beside the static executables and always names it, so no session reaches the
+  network or writes into the operator's home; whether karvi's host-key policy,
+  today inside karvi's own SSH handshake ([`SECURITY.md`](SECURITY.md)), has a
   place in v2 beyond a known-hosts file; the adapter's shape, with the session
   in the library and not shared with `system`
   ([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](docs/TRANSPORT-DRIVER-ARCHITECTURE.md));
   and what it gains for a fleet karvi qualifies on `cisco_iosxe` over SSH
-  (NETCONF, Telnet, more platform definitions). A v2 adapter registers
-  `scrapligo-v2` beside `scrapligo-v1`
+  (NETCONF, Telnet, more platform definitions). v2 would be a transport with
+  its own selector beside `system`, `native`, and `telnet`; a mapping from a
+  slot to an implementation comes back only if a transport ever has two
   ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)).
 - **NETCONF.** NETCONF over SSH (RFC 6242): the `netconf` subsystem on the
   session channel, port 830 by default, in place of a shell or an exec. The

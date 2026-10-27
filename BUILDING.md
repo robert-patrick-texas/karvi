@@ -5,9 +5,8 @@ builds, installation, and rollback.
 
 ## The release build
 
-The release ships the scrapligo-v1 executable. The source pins
-`github.com/scrapli/scrapligo v1.4.3`, and `go.mod`, `go.sum`, and `vendor/`
-are committed, so the build needs Go 1.27 or later and no network:
+`go.mod`, `go.sum`, and `vendor/` are committed, so the build needs Go 1.27 or
+later and no network:
 
 ```bash
 ./scripts/verify-shipped.sh     # the shipped executables as bytes, in seconds
@@ -18,12 +17,11 @@ sha256sum -c CHECKSUMS.sha256   # the rebuild reproduces the shipped bytes
 ```
 
 `make deps` (download and verify) is optional, on a connected host or
-through an internal module proxy. No build tag is involved: the
-`scrapligo_v1` tag and the dependency-free preview module were removed, and
-every build carries the adapter. Its text version output MUST include:
+through an internal module proxy. No build tag is involved, and every build
+carries the native transport. Its text version output MUST include:
 
 ```text
-scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)
+  native: compiled-in
 ```
 
 The suites run in three lanes at once (`scripts/lib/suites.sh`);

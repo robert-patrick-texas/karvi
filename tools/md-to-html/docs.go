@@ -33,7 +33,7 @@ var documents = []document{
 	{"docs/PRUNE.md", "Operating karvi", "`karvi-prune`: what retention removes and when, its report, exits, flags, and schedules."},
 	{"docs/SCALE.md", "Operating karvi", "A large network from a many-core host: the width, the free-space check, the memory budget."},
 	{"docs/SSH-HOST-KEY-POLICY.md", "Operating karvi", "The host-key policy and the trust store: enrollment, changed keys, diagnostics."},
-	{"docs/SSH-TRANSPORTS.md", "Operating karvi", "The two SSH transports, `system` and `scrapligo-v1`, and how one is selected."},
+	{"docs/SSH-TRANSPORTS.md", "Operating karvi", "The two SSH transports, `system` and `native`, and how one is selected."},
 	{"docs/TIMEOUTS.md", "Operating karvi", "What bounds a device session: the keys, how they relate, what each expiry records."},
 
 	{"docs/FILES.md", "Reference", "Every directory and file karvi reads or writes, shared and individual: mode, owner, group, and how each place is chosen."},
@@ -53,7 +53,6 @@ var documents = []document{
 	{"docs/DEVICE-QUALIFICATION-RUNBOOK.md", "Building, qualification, and release", "The laboratory run, row by row, and the evidence it keeps."},
 	{"release/BUILD-RESULT.md", "Building, qualification, and release", "The current release's build and qualification result."},
 	{"release/DOWNLOADS.md", "Building, qualification, and release", "The current release's artifacts and their checksums."},
-	{"release/SCRAPLIGO-EVIDENCE.md", "Building, qualification, and release", "The vendored scrapligo module's integration evidence."},
 
 	{"CONTRIBUTING.md", "The project", "The principles a change keeps, building and testing, branches and releases."},
 	{"SECURITY.md", "The project", "Reporting a vulnerability, and the boundaries: host keys, credentials, legacy cryptography, Telnet."},

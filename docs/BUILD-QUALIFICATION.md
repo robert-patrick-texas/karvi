@@ -2,8 +2,7 @@
 
 ## Build gates
 
-The release ships the scrapligo-v1 executable. Both
-verifiers run offline from the committed `vendor/` tree:
+Both verifiers run offline from the committed `vendor/` tree:
 
 ```bash
 make build COMMIT=source-release-v$(cat VERSION)
@@ -14,15 +13,14 @@ COMMIT=source-release-v$(cat VERSION) ./scripts/verify-release.sh
 
 `verify-bundle.sh` verifies the executables as they are in `bin/`, without
 rebuilding them: identity and checksums, static Linux binaries, the build
-`karvi version` names (20 characters, never `none`), both transport IDs in
-`version` (it refuses an executable without `scrapligo-v1`), stateless
-help/version behavior, script syntax, `gofmt` over the Go source outside
-`vendor/`, the unit tests and vet in vendor mode, deterministic generated files,
-the example configurations, removed-key rejection, and every historical smoke
-suite through `v090-smoke-test.sh`, plus the k03 parser suite, the
-daemon-upgrade smoke suite, the v0100 suite `scripts/v0100-smoke-test.sh` (`make
-v0100-smoke`), the canary suite `scripts/canary-smoke-test.sh`, and the parity
-suite `scripts/native-smoke-test.sh`.
+`karvi version` names (20 characters, never `none`), both transports in
+`version`, stateless help/version behavior, script syntax, `gofmt` over the Go
+source outside `vendor/`, the unit tests and vet in vendor mode, deterministic
+generated files, the example configurations, removed-key rejection, and every
+historical smoke suite through `v090-smoke-test.sh`, plus the k03 parser suite,
+the daemon-upgrade smoke suite, the v0100 suite `scripts/v0100-smoke-test.sh`
+(`make v0100-smoke`), the canary suite `scripts/canary-smoke-test.sh`, and the
+parity suite `scripts/native-smoke-test.sh`.
 
 `verify-release.sh` builds from source: the import boundary and host-key
 assertions on the adapter, `gofmt`, `go mod verify`, the tests, vet, and the
@@ -190,7 +188,7 @@ which reaches no device.
   `scripts/daemon-lifecycle-replay.sh` during release engineering when its
   bundle is available and its daemon IPC schema differs.
 
-## Official native build and session gates
+## Official build and session gates
 
 On an approved Go 1.27+ builder:
 
@@ -199,24 +197,20 @@ make deps            # optional on a connected host: download and verify
 ./scripts/verify-release.sh
 ```
 
-- Vendor metadata, executable module metadata, JSON version output, and
-  text version output MUST identify ScrapliGo v1.4.3 (v1.4.1 and v1.4.2 in
-  earlier releases). Only `internal/adapters/scrapligov1` may import it; the
-  verifier fails on any other import.
-- The scrapligo-v1 path MUST be karvi's connection under karvi's session:
-  the verifier asserts `WithCustomTransport`, `HostKeyCallback`, and
-  `hostkey.Verify` in the adapter and `devsession.Open` in the provider,
-  and fails if either references `ssh-keyscan`, `os/exec`, or the removed
-  pre-scan (`PrepareNative`, `InspectRemote`).
-- The tagged tests, `go vet`, and the race run MUST pass under
-  `-mod=vendor`.
+- The native transport MUST check the host key in its own handshake, under
+  karvi's device session, and run no subprocess: the verifier asserts
+  `HostKeyCallback` and `hostkey.Verify` in `internal/transport/native/dial.go`
+  and `devsession.Open` in its `native.go`, and fails if the package
+  references `ssh-keyscan`, `os/exec`, or the removed pre-scan
+  (`PrepareNative`, `InspectRemote`).
+- The tests, `go vet`, and the race run MUST pass under `-mod=vendor`.
 - `karvi version --format json` MUST report the schema counters the
   verifiers check (configuration, command record, daemon IPC, job, and
   registry) and both transport IDs; the text form's transport line is
   checked verbatim.
 - **The parity suite** (`scripts/native-smoke-test.sh`) MUST pass: every
   case the script lists, each as `command` and `run --no-daemon` over
-  `system` and `scrapligo-v1` (S1 through the daemon as well), against the
+  `system` and `native` (S1 through the daemon as well), against the
   fake device built from the tree into the suite's work directory with its
   own trust store, base directory, and `HOME`: its IOS XE persona, and its
   Linux persona for the exec channel and `linux_shell` (S35).

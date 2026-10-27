@@ -183,8 +183,8 @@ the site has locked refuses the option, and the key's range applies.
 const versionHelp = `Usage:
   karvi version [--format text|json] [--help]
 
-Reports the exact SSH transports available to this executable. Optional native
-adapters appear only when they were included in the build.
+Reports the SSH transports in this executable: native, compiled in, and
+system, the external OpenSSH executable.
 `
 
 const commandHelp = `Usage:

@@ -105,7 +105,7 @@ k03-smoke: build
 v0100-smoke: build
 	./scripts/v0100-smoke-test.sh
 
-# The parity suite needs the native executable.
+# The parity suite runs the executable this build writes.
 native-smoke: build
 	GO=$(GO) ./scripts/native-smoke-test.sh
 

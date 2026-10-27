@@ -5,7 +5,7 @@ how the values relate, what each expiry records, and where each lives in the
 code, the blind wait among them. The decisions are
 [`docs/DESIGN.md`](DESIGN.md); [`docs/ERROR-CODES.md`](ERROR-CODES.md) holds the
 codes, `configs/reference.toml` the keys. The `system` transport is OpenSSH's
-`ssh`; `scrapligo-v1` is karvi's own connection.
+`ssh`; `native` is karvi's own connection.
 
 No timer ends an open session on its total age except
 `execution.device-timeout`. The others bound one step each, prove the peer
@@ -17,8 +17,8 @@ grace).
 | Key (environment variable) | Default | Range (refused at load as `config_value_out_of_range`) | Bounds |
 |---|---|---|---|
 | `ssh.connect-timeout` (`KARVI__SSH__CONNECT_TIMEOUT`) | 10s | 1s–5m | `system`: the TCP connect (OpenSSH `ConnectTimeout`); also part of its first-prompt allowance |
-| `native-ssh.connect-timeout` (`KARVI__NATIVE_SSH__CONNECT_TIMEOUT`) | 10s | 1s–5m | scrapligo-v1: the TCP dial |
-| `native-ssh.handshake-timeout` (`KARVI__NATIVE_SSH__HANDSHAKE_TIMEOUT`) | 10s | 1s–5m | scrapligo-v1: the SSH handshake, authentication, and the PTY and shell requests |
+| `native-ssh.connect-timeout` (`KARVI__NATIVE_SSH__CONNECT_TIMEOUT`) | 10s | 1s–5m | `native`: the TCP dial |
+| `native-ssh.handshake-timeout` (`KARVI__NATIVE_SSH__HANDSHAKE_TIMEOUT`) | 10s | 1s–5m | `native`: the SSH handshake, authentication, and the PTY and shell requests |
 | `telnet.connect-timeout` (`KARVI__TELNET__CONNECT_TIMEOUT`) | 10s | 1s–5m | telnet: the TCP connect |
 | `execution.prompt-timeout` (`KARVI__EXECUTION__PROMPT_TIMEOUT`) | 10s | 1s–5m | the first prompt after login; the prompt after each paging command |
 | `execution.enable-timeout` (`KARVI__EXECUTION__ENABLE_TIMEOUT`) | 10s | 1s–5m | one privilege level's whole step, from the escalate command to that level's prompt |
@@ -27,7 +27,7 @@ grace).
 | `--timeout DURATION`, a declaration on one requested command | unset: `execution.command-timeout` | 1s–12h, when parsed; at most a set `execution.device-timeout`, at planning (`timeout_over_device_timeout`); refused on a blind command (`timeout_with_blind`) | that command, in place of `execution.command-timeout` and over telnet of `telnet.read-timeout` too |
 | `execution.device-timeout` (`KARVI__EXECUTION__DEVICE_TIMEOUT`) | 0s (unbounded) | 0, or 1s–168h | one device's whole command list, the session-init profile and the requested commands, from the prepared session |
 | `ssh.server-alive-interval` (`KARVI__SSH__SERVER_ALIVE_INTERVAL`), `ssh.server-alive-count-max` (`KARVI__SSH__SERVER_ALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `system`: OpenSSH `ServerAliveInterval` (whole seconds, rounded up) and `ServerAliveCountMax` |
-| `native-ssh.keepalive-interval` (`KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL`), `native-ssh.keepalive-count-max` (`KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | scrapligo-v1: karvi's `keepalive@openssh.com` requests |
+| `native-ssh.keepalive-interval` (`KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL`), `native-ssh.keepalive-count-max` (`KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX`) | 15s, 3 | 0 disables, else 1s–10m; 1–100 | `native`: karvi's `keepalive@openssh.com` requests |
 | `telnet.read-timeout` (`KARVI__TELNET__READ_TIMEOUT`) | 60s | 1s–12h | telnet: each command whole, from the write to the prompt, the smaller of it and the command's timeout (not reset by output); a command given `--timeout` has that alone |
 | `execution.blind-wait` (`KARVI__EXECUTION__BLIND_WAIT`; `--blind-wait`) | 10s | 0–10m | the prompt's return after a blind command (`--blind`, `--blind-return N` with 0–20 returns, or a command ending in `\r` sequences), in place of its command timeout; 0 sends and does not wait |
 
@@ -49,7 +49,7 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 
 ## 2. How the values relate
 
-| Phase | `system` | `scrapligo-v1` | telnet |
+| Phase | `system` | `native` | telnet |
 |---|---|---|---|
 | Connect | `ssh.connect-timeout` | `native-ssh.connect-timeout`, then `native-ssh.handshake-timeout` | `telnet.connect-timeout` |
 | First prompt (login) | `ssh.connect-timeout` + `execution.prompt-timeout`, from the start of the `ssh` process | `execution.prompt-timeout`, after the handshake | `execution.prompt-timeout` |
@@ -64,10 +64,10 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 - **The first-prompt allowance differs by transport.** The `ssh` process
   dials, authenticates, and starts the shell in one stretch karvi cannot see
   into, so `system` awaits the first prompt for the connect and prompt
-  timeouts together; scrapligo-v1 times its dial and handshake itself and
+  timeouts together; `native` times its dial and handshake itself and
   awaits the prompt for `execution.prompt-timeout` alone. A device whose
   first prompt is slower than the prompt timeout can open on `system` and be
-  `command_session_prompt_timeout` on scrapligo-v1.
+  `command_session_prompt_timeout` on `native`.
 - **The device clock** starts when the session is prepared. The ICMP gate,
   the capacity wait, connect, login, enable, and paging are outside it, each
   under its own bound.
@@ -86,7 +86,7 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
   reaches the daemon, as the other timeouts do in the plan's `execution`
   block. Session-init profile commands are never blind.
 - **Keepalive timing seen** against the fake with 1s × 2: 3.0s from the
-  silence on scrapligo-v1, 5.3–5.6s on `system`, where OpenSSH's own
+  silence on `native`, 5.3–5.6s on `system`, where OpenSSH's own
   whole-second timers are the likely cause. At the defaults the difference
   is small beside the total.
 - **The keepalive request** is the global request `keepalive@openssh.com`
@@ -105,7 +105,7 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 | A command's timeout | `command_timeout` | timeout; `timeout` | yes | 107 | not attempted; the session is ended, under `--continue-device-on-error` too |
 | `execution.device-timeout` | `device_timeout` | timeout; `timeout` | yes | 107 | `not_attempted_prior_command_failure`; the requested records are `not_attempted_session_init_failure` when a profile command was cut |
 | Keepalives unanswered | `session_keepalive_timeout` | connection; `connection_error` | yes | 110 | not attempted |
-| scrapligo-v1's dial or handshake | `native_session_open_failed` | connection; `connection_error` | yes | 110 | not attempted |
+| `native`'s dial or handshake | `native_session_open_failed` | connection; `connection_error` | yes | 110 | not attempted |
 | `execution.blind-wait` (the prompt absent after a blind command: `--blind`, a count, or the escape; its declared prompts answered as they appeared) | none; the notice `prompt_not_observed_after_blind_send` (`reason` `blind_wait_expired`, or `session_ended` when the stream ended first) | `success`, all bytes read as the output, `prompt_observed` false | — | 0 | `not_attempted_prior_command_failure` naming the blind send, the device `command_session_lost`; as the last command the device succeeds |
 
 - A failed `run` exits 101 whatever the code.
@@ -128,7 +128,7 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 
 | Setting | Go name | Where |
 |---|---|---|
-| First prompt | `devsession.Options.LoginTimeout` (fallback 40s) | `internal/devsession/session.go`; filled in `internal/transport/systemssh/systemssh.go` `Prepare` (`connectTimeout + promptTimeout`) and `internal/transport/native/provider_scrapligov1.go` (`promptTimeout`) |
+| First prompt | `devsession.Options.LoginTimeout` (fallback 40s) | `internal/devsession/session.go`; filled in `internal/transport/systemssh/systemssh.go` `Prepare` (`connectTimeout + promptTimeout`) and `internal/transport/native/native.go` (`promptTimeout`) |
 | Enable | `devsession.Options.EnableTimeout` (fallback 10s); `stepCtx` in `escalate` | the same files; telnet: `enableTimeout`, `enableDeadline` in `internal/transport/telnet/telnet.go` |
 | Paging | `devsession.Options.PromptTimeout` (fallback 10s) | the same files |
 | Command | `platform.Command.Timeout`, `TimeoutSource` (`platform.DeclaredTimeout`, `platform.SessionTimeout`); the executor's `step.timeout`, `step.source`; `executionplan.SessionInitProfile.CommandTimeoutNS` | `internal/executor/executor.go` `sequence` |
@@ -136,11 +136,11 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 | Blind send | `platform.Command.Blind` (the tolerance; `Timeout` is then the blind wait), `BlindReturns`; the executor's `step.blind`, `step.returns`, `Options.Blind`, `Options.BlindReturns`, `Options.BlindWait`; `executionplan.ExecutionPlan.Blind`, `BlindReturns`, `BlindWaitNS` (`BlindReturnsMax`, `BlindWaitMax`); the client's `Declaration`, `declarationLists`, and `declarations` | `internal/devsession/session.go` `Execute`; `internal/executor/executor.go` `sequence`; `executionplan/plan.go`; `internal/cli/work_commands.go` |
 | Expect-and-send | `platform.Command.Expectations` (compiled); the session's `expecter`; the executor's `step.expect`, `Options.Expectations`; `executionplan.ExecutionPlan.Expectations`, `Expectation` (`ExpectationsMax`); the client's `splitExpect`, `Declaration`, `declarationLists`, and `declarations` | the same files; `internal/cli/parse.go` |
 | Device | `deviceTimeout`, `deviceDeadline`, `deviceExpired`, `deviceCut`, `skipRest` | `internal/executor/executor.go`, the command loop |
-| scrapligo-v1 connect, handshake | `DialRequest.ConnectTimeout`, `DialRequest.HandshakeTimeout` | `internal/adapters/scrapligov1/dial.go` |
-| scrapligo-v1 keepalive | `DialRequest.KeepaliveInterval`, `DialRequest.KeepaliveCountMax`; `connection.keepalive`, `connection.lastRead`, `connection.lost`; the constant `keepaliveRequest` | `internal/adapters/scrapligov1/dial.go` |
+| `native` connect, handshake | `DialRequest.ConnectTimeout`, `DialRequest.HandshakeTimeout` | `internal/transport/native/dial.go` |
+| `native` keepalive | `DialRequest.KeepaliveInterval`, `DialRequest.KeepaliveCountMax`; `connection.keepalive`, `connection.lastRead`, `connection.lost`; the constant `keepaliveRequest` | `internal/transport/native/dial.go` |
 | `system` keepalive | `processStream.aliveInterval`, `processStream.aliveCountMax`; `classify`'s "not responding" case | `internal/transport/systemssh/stream.go`, `systemssh.go` |
 | The keepalive timeout's wording | `devsession.KeepaliveTimeout(count, interval, detail)` | `internal/devsession/session.go` |
-| Fixed waits, not configurable | `promptSettleDelay` (100ms, a prompt-shaped last line must stay unchanged); `shellEndGrace` (2s, the shell's end after the exit commands) | `internal/devsession/session.go`; `internal/adapters/scrapligov1/dial.go` |
+| Fixed waits, not configurable | `promptSettleDelay` (100ms, a prompt-shaped last line must stay unchanged); `shellEndGrace` (2s, the shell's end after the exit commands) | `internal/devsession/session.go`; `internal/transport/native/dial.go` |
 
 ## 5. Test and fixture labels
 

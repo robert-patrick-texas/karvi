@@ -15,8 +15,8 @@ registered error codes, the client-owned planning boundary with the
 credential plane, `run --dry-run`, `run --exercise`, `--detach` and
 `follow_job`, the two-probe ICMP gate, shutdown accounting, `cancel_job`
 with `karvi job cancel`, `karvi job list` over the jobs' summaries, one
-device session driving both SSH transports with scrapligo-v1 as karvi's own
-connection, and platform names and their resolution.
+device session driving both SSH transports with the native transport as
+karvi's own connection, and platform names and their resolution.
 Items still open are listed in [`ROADMAP.md`](ROADMAP.md). The sections below
 describe the behavior of the code as it exists; `VERSION` names the release.
 
@@ -41,9 +41,9 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
-5. Configuration schema 6; this tree's other counters: registry schema 30,
-   daemon IPC schema 12, execution plan 13, job manifest and summary 4, plan
-   report 2, scoreboard 3.
+5. Configuration schema 6; this tree's other counters: registry schema 32,
+   daemon IPC schema 12, execution plan 15, job manifest and summary 5, plan
+   report 4, scoreboard 5.
 
 A client drains a daemon of another build at that daemon's own IPC schema and
 kills nothing; job submission stays exact-schema, and a daemon of a newer
@@ -52,16 +52,12 @@ by a client: its administrator restarts its unit
 ([`docs/OPERATIONS.md`, "A service account's daemon under
 systemd"](docs/OPERATIONS.md#a-service-accounts-daemon-under-systemd)).
 
-The official Linux/amd64 executable is the **scrapligo-v1 build** (`make
-build`; `scripts/verify-release.sh`), whose version output lists the
-external `system` transport and `scrapligo: 1.4.3` compiled in. The source
-pins ScrapliGo **v1.4.3** behind the karvi-owned adapter boundary, with the
-module files and `vendor/` committed so a build host needs no network. It
-is the only build: the `scrapligo_v1` build tag and the dependency-free
-preview module are gone, and a plain `go build` carries the adapter. A
-native slot that names an implementation the executable does not carry
-fails closed (`native_transport_unavailable`): missing native support never
-falls back silently to OpenSSH.
+The official Linux/amd64 executable is built by `make build` and verified by
+`scripts/verify-release.sh`; its version output lists the `native` transport
+compiled in and the external `system` transport. The module files and `vendor/`
+are committed so a build host needs no network. The native transport is karvi's
+own `x/crypto/ssh` connection, in every executable, and a device that selects it
+never falls back silently to OpenSSH.
 
 ## Address-family selection
 
@@ -140,8 +136,8 @@ karvi router1 --cmd 'show clock' --cmd 'show version'
 ```
 
 One device session drives `command` and `run` on both SSH transports: on
-`system` one fresh `ssh -tt` process with ControlMaster off, on `scrapligo-v1`
-one connection with no subprocess. Every requested command runs sequentially
+`system` one fresh `ssh -tt` process with ControlMaster off, on `native` one
+connection with no subprocess. Every requested command runs sequentially
 through that one authenticated interactive shell, after one privilege escalation
 and the platform's paging commands
 ([`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)). This avoids Cisco IOS XE
@@ -286,8 +282,8 @@ a statement therefore appears on that line
 
 ## SSH transport configuration
 
-Configuration schema **6** and registry schema **13** use per-mode selectors and
-named implementation slots ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)):
+Configuration schema **6** and registry schema **32** use per-mode selectors and
+named executable slots ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)):
 
 ```toml
 [config]
@@ -304,17 +300,16 @@ transport = "default"       # default -> native
 
 [ssh.transports]
 system = "ssh"
-native = "scrapligo-v1"
-# alternate1 = "scrapligo-v2"
-# alternate2 = "exec:./future-device-handler"
+# alternate1 = "exec:./future-device-handler"
 ```
 
-A selector may be `default`, `system`, `native`, `preferred`, `telnet`, a named
-slot, or a compiled implementation ID. A bare system executable is found
-through `PATH`; a slash-containing relative path is resolved from the karvi
-executable directory. Explicit unavailable mappings fail configuration
-validation. The default native mapping is lazy, allowing a system-only preview
-to operate until native is actually selected.
+A selector may be `default`, `system`, `native`, `telnet`, or a named slot.
+`native` and `telnet` are karvi's built-in transports; a slot maps a name to
+an executable, `system` to OpenSSH and any other slot to `exec:PROGRAM` or
+`exec:PATH`. A bare executable is found through `PATH`; a slash-containing
+relative path is resolved from the karvi executable directory. A mapping that
+cannot be used fails configuration validation, and a slot named `native` or
+`telnet` is refused (`transport_mapping_invalid`).
 
 `karvi --version` reports the exact transport composition of the executable.
 
@@ -488,7 +483,7 @@ completion"](docs/OPERATIONS.md#tab-completion)).
 The candidate includes layered TOML configuration with include graphs, locks,
 macros, validation and provenance; CSV inventory and deterministic DNS;
 credential policies and authenticated askpass; one device session over system
-OpenSSH and the compiled scrapligo-v1 connection, gated Telnet; serial,
+OpenSSH and karvi's own native connection, gated Telnet; serial,
 parallel, and adaptive-wave dispatch; durable JSONL and summaries; audit,
 scoreboards, metrics, per-user daemon IPC, capacity admission, retention
 (`karvi-prune`, [`docs/PRUNE.md`](docs/PRUNE.md)), the audit trail read as a
@@ -535,8 +530,6 @@ The full build-and-verify run, with the race detector and the parity suite
 make deps            # optional on a connected host: download and verify
 ./scripts/verify-release.sh
 ```
-
-Only `internal/adapters/scrapligov1` imports ScrapliGo.
 
 ## Documents
 

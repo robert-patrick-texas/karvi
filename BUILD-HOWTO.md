@@ -96,15 +96,15 @@ cat go.mod
 
 ## 4. Choose the build path
 
-### 4.1 Official native-enabled build
+### 4.1 Official build
 
-The source carries every module the build needs: `go.mod` names scrapligo
-v1.4.3, golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and
-golang.org/x/term v0.47.0 with their two indirect requirements, `go.sum` holds
-their sums, and `vendor/` holds their sources. goldmark v1.8.6 is vendored
-beside them for `tools/md-to-html` (`make html`); no executable contains it. A
-build host needs no network. On a host with an approved module proxy, `make
-deps` re-downloads the modules and checks them against `go.sum` first:
+The source carries every module the build needs: `go.mod` names
+golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and golang.org/x/term
+v0.47.0, `go.sum` holds their sums, and `vendor/` holds their sources. goldmark
+v1.8.6 is vendored beside them for `tools/md-to-html` (`make html`); no
+executable contains it. A build host needs no network. On a host with an
+approved module proxy, `make deps` re-downloads the modules and checks them
+against `go.sum` first:
 
 ```bash
 export GOPROXY='https://proxy.golang.org,direct'   # or the approved internal proxy
@@ -115,44 +115,26 @@ make deps            # optional on a connected host: download and verify
 ```
 
 `verify-release.sh` is the official build's gate. It asserts in source that
-the scrapligo-v1 adapter carries karvi's host-key callback on scrapligo's
-custom transport and that the provider opens karvi's device session, and
-fails if that path references `ssh-keyscan`, `os/exec`, or the removed
-pre-scan; runs `go mod verify`, the tests, `go vet`, and the race run
-under `-mod=vendor`; builds the executable and
-checks its module metadata, its version counters, and both transport IDs;
-runs every historical smoke suite; then runs the parity suite
-`scripts/native-smoke-test.sh`, which builds the fake device from the tree
-and runs every case as `command` and `run` over `system` and
-`scrapligo-v1` with its own trust store, base directory, and `HOME`,
-comparing the records path by path (about a minute; no fake or daemon is
+the native transport carries karvi's host-key callback in its handshake and
+opens karvi's device session, and fails if its package references
+`ssh-keyscan`, `os/exec`, or the removed pre-scan; runs `go mod verify`, the
+tests, `go vet`, and the race run under `-mod=vendor`; builds the executable
+and checks its version counters and both transport IDs; runs every historical
+smoke suite; then runs the parity suite `scripts/native-smoke-test.sh`, which
+builds the fake device from the tree and runs every case as `command` and
+`run` over `system` and `native` with its own trust store, base directory, and
+`HOME`, comparing the records path by path (about a minute; no fake or daemon is
 left running and the operator's trust store is unchanged); then the canary
 suite. `make native-smoke` runs the parity suite alone after `make build`;
 `ONLY=S21 scripts/native-smoke-test.sh` runs one case.
 [`docs/BUILD-QUALIFICATION.md`](docs/BUILD-QUALIFICATION.md) states the gates.
 
-The release must contain exactly:
-
-```text
-github.com/scrapli/scrapligo v1.4.3
-```
-
-Confirm the dependency in source, vendor metadata, and the executable:
-
-```bash
-grep -F 'github.com/scrapli/scrapligo v1.4.3' go.mod
-grep -F '# github.com/scrapli/scrapligo v1.4.3' vendor/modules.txt
-go version -m bin/karvi-linux-amd64 | \
-  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.3'
-./bin/karvi-linux-amd64 --version | grep -F 'scrapligo: 1.4.3'
-```
-
 Do not use `go get ...@latest` in a release tree.
 
 ### 4.2 Verify the shipped executables without rebuilding
 
-The bundle's `bin/` holds the scrapligo-v1 executables of
-[§4.1](#41-official-native-enabled-build), built with the release identity, and
+The bundle's `bin/` holds the executables of
+[§4.1](#41-official-build), built with the release identity, and
 `CHECKSUMS.sha256` names them:
 
 ```bash
@@ -211,8 +193,7 @@ account's daemon), never on the build host.
 ## 5. Direct Go build commands
 
 The Makefile is preferred because it keeps the build metadata consistent.
-The equivalent core commands are (no build tag is needed; every build
-carries the scrapligo-v1 adapter):
+The equivalent core commands are (no build tag is needed):
 
 ```bash
 export CGO_ENABLED=0

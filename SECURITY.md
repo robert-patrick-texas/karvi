@@ -15,15 +15,15 @@ follows.
 
 `ssh.host-key-policy` is the single host-identity policy for `karvi login`,
 `karvi command`, and `karvi run`. It applies to both system OpenSSH and the
-native ScrapliGo v1 adapter.
+native transport.
 
-### `auto` / `default` — recommended general default
+### `accept-new` — the default
 
 - A previously unknown key is accepted and persisted on first use.
 - A later mismatch fails the connection.
 - System OpenSSH is configured with `StrictHostKeyChecking accept-new`.
-- Native SSH performs a public-key preflight, race-safe enrollment, then opens
-  ScrapliGo with strict verification against the same file.
+- The native transport checks the key in its own SSH handshake against the
+  same file, and enrolls an unknown device's key under the file lock.
 - First-use acceptance is vulnerable to an attacker already positioned in the
   path. Organizations requiring authenticated enrollment must use `secure`.
 
@@ -77,10 +77,10 @@ identity, and has the fingerprint verified before the line is appended.
 
 ## Key rotation
 
-A mismatch in `auto` or `secure` is a security event, not an automatic rotation.
-Confirm the device change through an independent channel, remove only the old
-entry, and enroll the verified replacement. Do not switch to `insecure` as a
-silent rotation mechanism.
+A mismatch in `accept-new` or `secure` is a security event, not an automatic
+rotation. Confirm the device change through an independent channel, remove only
+the old entry, and enroll the verified replacement. Do not switch to `insecure`
+as a silent rotation mechanism.
 
 ## Run failure isolation
 

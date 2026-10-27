@@ -609,7 +609,7 @@ is written `sudo -n …`: where `sudo` wants a password it is refused at once,
 `command_exit_nonzero` with `sudo`'s message in `stderr`, and never waits.
 
 **A command given up.** At its command timeout, a cancel, or the output limit,
-`scrapligo-v1` asks the server to end the command before closing its channel.
+`native` asks the server to end the command before closing its channel.
 The system transport's OpenSSH client cannot ask, so the record carries the
 notice `remote_command_not_stopped` and the command may still be running on
 the server, its parent pid 1; a later command finds it (`ps -eo

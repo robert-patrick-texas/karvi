@@ -103,13 +103,14 @@ and classifies what OpenSSH says; its record's `credential.auth` names the
 method that authenticated; and it detects the prompt, a missing one being
 `command_session_prompt_timeout`. Raising `--set
 'execution.prompt-timeout="60s"'` tells a slow prompt (a slow AAA answer) from
-none. `native` is `scrapligo-v1`, another SSH stack altogether: when it reaches
-the prompt and `system` does not, the difference is OpenSSH's or the generated
-configuration's, and a plain `ssh -vvv` beside `ssh -vvv -F` a copy of karvi's
-configuration finds the setting. `--set 'ssh-algorithms.source="transport"'`
-takes karvi's key exchange, cipher, and MAC lists out of the comparison: a
-device that connects under it and fails without is refused by karvi's lists,
-and the failure's `karvi offered` against `the device offered` names the list.
+none. `native` is karvi's own x/crypto connection, another SSH stack altogether:
+when it reaches the prompt and `system` does not, the difference is OpenSSH's or
+the generated configuration's, and a plain `ssh -vvv` beside `ssh -vvv -F` a
+copy of karvi's configuration finds the setting. `--set
+'ssh-algorithms.source="transport"'` takes karvi's key exchange, cipher, and MAC
+lists out of the comparison: a device that connects under it and fails without
+is refused by karvi's lists, and the failure's `karvi offered` against `the
+device offered` names the list.
 [`docs/COMMAND-TROUBLESHOOTING.md`](COMMAND-TROUBLESHOOTING.md) reads a
 command's capture.
 

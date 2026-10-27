@@ -66,7 +66,7 @@ key, listed with its relations in [`docs/TIMEOUTS.md`](TIMEOUTS.md).
 resolve target/address/credential/transport/platform definition
   -> open the connection, the host-key policy in the handshake
        system: private OpenSSH config, one-use askpass, one fresh ssh -tt process
-       scrapligo-v1: one x/crypto connection, no subprocess
+       native: one x/crypto connection, no subprocess
   -> wait for the first prompt            (execution.prompt-timeout; system adds ssh.connect-timeout)
   -> escalate once when below the level    (execution.enable-timeout, the whole step)
   -> paging commands, each to the prompt   (execution.prompt-timeout each)
@@ -79,12 +79,12 @@ resolve target/address/credential/transport/platform definition
        emit one command record
        stop or continue according to the device-error policy
   -> the definition's exit-commands, then close
-       (scrapligo-v1 waits up to 2 s for the shell's end)
+       (native waits up to 2 s for the shell's end)
   -> remove temporary config and askpass material (system)
 ```
 
 Keepalives prove the peer alive throughout (`ssh.server-alive-*` on
-`system`, `native-ssh.keepalive-*` on `scrapligo-v1`); a device gone silent
+`system`, `native-ssh.keepalive-*` on `native`); a device gone silent
 ends as `session_keepalive_timeout`. A session that has failed (a timeout,
 a lost read, a write failure, output over the limit before the prompt
 returned) is aborted, not closed: nothing is sent on a desynchronised
@@ -95,8 +95,8 @@ explicit not-attempted records.
 
 The shell above is the device session for
 `command` and for `run` over the system transport alike, and the same
-session logic drives scrapligo-v1's connection (`internal/devsession`). The
-session adds two steps between the first prompt and the first requested
+session logic drives the native transport's connection (`internal/devsession`).
+The session adds two steps between the first prompt and the first requested
 command, both from the platform definition:
 
 1. **Privilege.** The first prompt is matched against the platform's
@@ -141,7 +141,7 @@ resolve target/address/credential/transport/platform definition
   -> open the connection, the host-key policy in the handshake
        system: one ssh -M -N master per device, its stderr read at DEBUG1;
                ready when it answers -O check
-       scrapligo-v1: one x/crypto connection; ready when it has authenticated
+       native: one x/crypto connection; ready when it has authenticated
                                            (ssh.connect-timeout and execution.prompt-timeout)
   -> session-init profile, if one matches  (each command on its own channel)
   -> for each requested command:           (execution.device-timeout over the whole list)
@@ -152,7 +152,7 @@ resolve target/address/credential/transport/platform definition
        emit one command record
        stop or continue according to the device-error policy
   -> close: system ssh -O exit, the master killed on an abort;
-            scrapligo-v1 closes its connection
+            native closes its connection
 ```
 
 There is no first prompt, no privilege step, no paging command, and no exit
@@ -174,7 +174,7 @@ session's failure. A device that refuses the channel or the exec request is
 
 A command timeout, a cancel, and the output limit (stdout and stderr counted
 together) stop the command and close its channel, and the connection serves
-the next command: `scrapligo-v1` asks the device for `KILL` first; `system`,
+the next command: `native` asks the device for `KILL` first; `system`,
 whose client cannot send a signal, kills the client and records the notice
 `remote_command_not_stopped`, the command possibly still running on the
 device.
@@ -217,7 +217,7 @@ The session renders the received bytes as the terminal showed them
 applied, colours, window titles, and every other sequence dropped) and matches
 the unfinished last line, without its trailing blanks, against the platform's
 prompt patterns: the levels' patterns for a platform that declares them
-(scrapligo-v1's platform definitions, carried in `platform.go` for the
+(scrapligo's platform definitions, carried in `platform.go` for the
 built-ins), `generic`'s prompt pattern otherwise, and a broad line ending
 in `#`, `>`, or `$` for a platform with neither. A candidate prompt must
 remain the final content for a short settle period so a banner line ending

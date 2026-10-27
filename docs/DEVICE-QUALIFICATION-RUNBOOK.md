@@ -28,7 +28,7 @@ A production Linux server is qualified by hand, by the rows of [section
 | A read-only command with a large output | D9 | `BIG_COMMAND="show tech-support"` runs for minutes and produces megabytes; the row's command timeout is 600 s |
 | A DNS name for the device with both A and AAAA records, and IPv6 reachability from the host | D12 | `DUALSTACK_NAME` |
 | Agreement that `configure terminal` followed by `end` may be sent | D4 | `CONFIG_ROW=1`; nothing is sent between the two |
-| A laboratory unit that may be reloaded, and the time for it to return | D13 | `RELOAD="scrapligo-v1"` or both transports, one reload each; a save prompt is answered `no` |
+| A laboratory unit that may be reloaded, and the time for it to return | D13 | `RELOAD="native"` or both transports, one reload each; a save prompt is answered `no` |
 | The device's model and software release, as the change record names them | the evidence | The script records what `show version` answers; the reviewers compare |
 
 What the run never needs: a changed host key on the device (every
@@ -44,7 +44,7 @@ command line or in a file.
 cd karvi-v0.36.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
-FAKE=1 CONFIG_ROW=1 RELOAD="system scrapligo-v1" scripts/device-qualification.sh
+FAKE=1 CONFIG_ROW=1 RELOAD="system native" scripts/device-qualification.sh
 ```
 
 The last line must end `device qualification: pass`. Executed
@@ -71,7 +71,7 @@ DEVICE=c9300-lab ADDRESS=192.0.2.10 \
   scripts/device-qualification.sh
 
 # The reload, alone, on the laboratory unit:
-DEVICE=c9300-lab ADDRESS=192.0.2.10 ROWS=D13 RELOAD="scrapligo-v1 system" \
+DEVICE=c9300-lab ADDRESS=192.0.2.10 ROWS=D13 RELOAD="native system" \
   scripts/device-qualification.sh
 ```
 
@@ -81,7 +81,7 @@ Each invocation writes a new evidence directory,
 
 ## 4. The rows
 
-Each row runs over `system` and `scrapligo-v1`. `both` means `command` and
+Each row runs over `system` and `native`. `both` means `command` and
 `run --no-daemon` on each transport, four streams compared path by path by
 `tools/paritycheck` (the matrix's "records equal path by path" row on the
 device).
@@ -212,7 +212,7 @@ Rows the script does not run, and how they are done:
 ```text
 karvi-qualification-c9300-lab-20260921T140000Z/
   identification.txt    date, host, OpenSSH, the executable's SHA-256, `karvi version`
-  version.json          the same, with the ScrapliGo version
+  version.json          the same, as JSON
   device-release.txt    the release line of D1's `show version`
   results.tsv           row, check, disposition (pass, fail, skip, observe), detail
   D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml,
@@ -227,8 +227,8 @@ karvi-qualification-c9300-lab-20260921T140000Z/
   SHA256SUMS            every file above
 ```
 
-Against "Required evidence": the karvi version and commit, the Go and
-ScrapliGo versions (`identification.txt`, `version.json`); the device
+Against "Required evidence": the karvi version and commit, the Go
+version (`identification.txt`, `version.json`); the device
 model and release (`device-release.txt` and D1's records); the plan
 digest (each `manifest.json`); sanitized records and debug output
 (the final scan is the sanitization check: a hit fails the run and the
@@ -251,7 +251,7 @@ resident memory from `/proc`. The measurements and what they show are
 [`docs/SCALE.md`](SCALE.md).
 
 ```bash
-N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
+N=32 TRANSPORT=native scripts/output-scale-run.sh
 ```
 
 ## 7. When a row fails
@@ -367,9 +367,9 @@ k() { karvi --config "$E/work/karvi.toml" "$@"; }
 | Row | Check | What is sent | Pass |
 |---|---|---|---|
 | L1 | the server's SSH | plain `ssh -v`; `sudo -n sshd -T` through karvi | observed: the server's OpenSSH, the methods it offers, the method that authenticated, `MaxSessions` where the account may read it |
-| L2 | exec records, on both transports | `command` and `run --no-daemon`, each over `system` and `scrapligo-v1`: `uname -snrm`, `echo out; echo err >&2`, `ls /nonexistent`, under `--continue-device-on-error` | `success`, `success` with `out` in `output` and `err` in `stderr`, `command_exit_nonzero` with `ls`'s message in `stderr`; exit 107 (`command`), 101 (`run`); `credential.auth` names the method; `paritycheck` finds the four streams equal; no socket left in `$S/sockets` |
+| L2 | exec records, on both transports | `command` and `run --no-daemon`, each over `system` and `native`: `uname -snrm`, `echo out; echo err >&2`, `ls /nonexistent`, under `--continue-device-on-error` | `success`, `success` with `out` in `output` and `err` in `stderr`, `command_exit_nonzero` with `ls`'s message in `stderr`; exit 107 (`command`), 101 (`run`); `credential.auth` names the method; `paritycheck` finds the four streams equal; no socket left in `$S/sockets` |
 | L3 | `sudo -n` | `sudo -n id -u` | observed: `0`, or `command_exit_nonzero` with `sudo`'s message: whether a site's `sudo -n` commands run on this server |
-| L4 | a command given up | on each transport, `sleep 32` at the 2 s command timeout, then `echo still-usable`; then a look for what was left, and its end | `command_timeout`, then `success`; `remote_command_not_stopped` on `system`'s first record and on no `scrapligo-v1` record; observed: `system` leaves `sleep 32` running (its parent pid 1) and `scrapligo-v1` leaves nothing |
+| L4 | a command given up | on each transport, `sleep 32` at the 2 s command timeout, then `echo still-usable`; then a look for what was left, and its end | `command_timeout`, then `success`; `remote_command_not_stopped` on `system`'s first record and on no `native` record; observed: `system` leaves `sleep 32` running (its parent pid 1) and `native` leaves nothing |
 | L5 | the collection | `crun` with the built-in list twice, a minute apart, then once over `system` | each exit 0 with five blocks; the files identical but for what changed on the server between them |
 | L6 | the shell, for a server that refuses exec | L2's commands to `SERVER-shell` (`linux_shell`) | observed: exit 0, each record `success` with the server's prompt in `prompt`, no escape byte in any output; `ls`'s failure recorded as a success and the login shell's aliases applied (the shell's limits); a server that refuses exec shows in L2 as `ssh_session_channel_refused` |
 
@@ -422,7 +422,7 @@ rmdir "$S/sockets" "$S/tmp" "$S"
 
 Read each row's files against the table and write its line, for example `L2
 exec-records  pass  parity: 3 records equal in 4 streams`, `L4
-given-up  pass  system left 1 (ppid 1), scrapligo-v1 none`. A row that fails
+given-up  pass  system left 1 (ppid 1), native none`. A row that fails
 keeps its files, as section 7 says; a server that ends the rows with an
 `authentication_failed` or a `host_key_*` code is read in
 [`docs/COMMAND-TROUBLESHOOTING.md`](COMMAND-TROUBLESHOOTING.md) before
