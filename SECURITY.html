@@ -55,9 +55,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -125,9 +124,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -161,14 +159,14 @@ follows.</p>
 <h2 id="ssh-host-key-policy">SSH host-key policy <a class="anchor" href="#ssh-host-key-policy" aria-label="Link to this section">#</a></h2>
 <p><code>ssh.host-key-policy</code> is the single host-identity policy for <code>karvi login</code>,
 <code>karvi command</code>, and <code>karvi run</code>. It applies to both system OpenSSH and the
-native ScrapliGo v1 adapter.</p>
-<h3 id="auto--default--recommended-general-default"><code>auto</code> / <code>default</code> — recommended general default <a class="anchor" href="#auto--default--recommended-general-default" aria-label="Link to this section">#</a></h3>
+native transport.</p>
+<h3 id="accept-new--the-default"><code>accept-new</code> — the default <a class="anchor" href="#accept-new--the-default" aria-label="Link to this section">#</a></h3>
 <ul>
 <li>A previously unknown key is accepted and persisted on first use.</li>
 <li>A later mismatch fails the connection.</li>
 <li>System OpenSSH is configured with <code>StrictHostKeyChecking accept-new</code>.</li>
-<li>Native SSH performs a public-key preflight, race-safe enrollment, then opens
-ScrapliGo with strict verification against the same file.</li>
+<li>The native transport checks the key in its own SSH handshake against the
+same file, and enrolls an unknown device's key under the file lock.</li>
 <li>First-use acceptance is vulnerable to an attacker already positioned in the
 path. Organizations requiring authenticated enrollment must use <code>secure</code>.</li>
 </ul>
@@ -214,10 +212,10 @@ it finds the store by the <code>resolved:</code> line, writes each key under the
 identity, and has the fingerprint verified before the line is appended.</p>
 <p><code>ssh-keyscan</code> discovers a key but does not authenticate it.</p>
 <h2 id="key-rotation">Key rotation <a class="anchor" href="#key-rotation" aria-label="Link to this section">#</a></h2>
-<p>A mismatch in <code>auto</code> or <code>secure</code> is a security event, not an automatic rotation.
-Confirm the device change through an independent channel, remove only the old
-entry, and enroll the verified replacement. Do not switch to <code>insecure</code> as a
-silent rotation mechanism.</p>
+<p>A mismatch in <code>accept-new</code> or <code>secure</code> is a security event, not an automatic
+rotation. Confirm the device change through an independent channel, remove only
+the old entry, and enroll the verified replacement. Do not switch to <code>insecure</code>
+as a silent rotation mechanism.</p>
 <h2 id="run-failure-isolation">Run failure isolation <a class="anchor" href="#run-failure-isolation" aria-label="Link to this section">#</a></h2>
 <p>A host-key failure belongs to one target. A multi-target run writes the failure
 record and proceeds with other devices. Normal run-wide halt thresholds and
@@ -246,7 +244,7 @@ allowing a legacy algorithm does not bypass host identity verification.</p>
 <code>security.allow-telnet=true</code>. It is never an SSH fallback and provides no host
 identity or confidentiality.</p>
 
-<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>SECURITY.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

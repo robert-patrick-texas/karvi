@@ -94,9 +94,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -192,9 +191,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -208,6 +206,36 @@
 <img width="1672" height="941" alt="A Viking keeping watch over the network racks of a datacenter" src="../images/viking-guardian-of-the-datacenter.png" />
 <h1 id="operations-guide">Operations guide <a class="anchor" href="#operations-guide" aria-label="Link to this section">#</a></h1>
 <h2 id="upgrade">Upgrade <a class="anchor" href="#upgrade" aria-label="Link to this section">#</a></h2>
+<p>On a host installed from the package, the administrator installs a newer
+release in one step:</p>
+<pre><code class="language-bash">sudo karvi-sysutil package update --check    # report only
+sudo karvi-sysutil package update
+</code></pre>
+<p>It reads the latest release's tag from the redirect of GitHub's
+<code>releases/latest</code>, and when that release's package is newer than the
+installed one fetches it and its <code>.sha256</code> with curl, checks the one against
+the other, and installs it with <code>apt-get</code>, any new dependency with it:</p>
+<pre><code>package  karvi 0.36.0
+latest   karvi 0.37.0
+fetched  karvi_0.37.0_amd64.deb  6542362 bytes
+checked  karvi_0.37.0_amd64.deb  sha256 as its .sha256
+updated  karvi 0.36.0 to 0.37.0
+</code></pre>
+<p><code>--proxy URL</code> reaches GitHub through an <code>http://</code> or <code>https://</code> proxy, given
+once; <code>-k</code> (<code>--insecure</code>) accepts any certificate, GitHub's and the proxy's,
+for a network whose proxy inspects TLS under an authority the host does not
+trust. It is refused without curl, beside a bundle install's
+<code>/usr/local/bin/karvi</code> (a newer bundle's <code>scripts/install.sh</code> updates that
+one), and without the package; a refusal, or a failure before the install,
+changes nothing. The checksum finds a damaged download; where the package
+came from rests on TLS alone, and under <code>-k</code> on nothing, until the release is
+signed (a ROADMAP item). A rollback is an earlier package by hand
+(<a href="../BUILD-HOWTO.html#10-install-and-roll-back"><code>BUILD-HOWTO.md</code> section 10</a>).
+The operators' own daemons then need nothing (below); each running instance
+of <code>karvi-daemon@.service</code> is named for its restart, the administrator's
+(see &quot;A service account's daemon under systemd&quot;, below):</p>
+<pre><code>karvi-sysutil: karvi-daemon@karvi.service keeps the karvi it started with; systemctl restart karvi-daemon@karvi.service
+</code></pre>
 <p>An operator's own daemon, the one the operator's client launches
 (<code>daemon.launch = &quot;client&quot;</code>, the default), needs nothing run after an upgrade.
 A daemon serves a client only when its IPC schema and its build, the Go build ID
@@ -215,15 +243,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.35.0 build=onQ7svRY49FAEYS1IIHv
+<pre><code>daemon drained version=0.36.0 build=kXY4cc6JRtLekvXNL0My
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build onQ7svRY49FAEYS1IIHv 0.35.0
-  client build kXY4cc6JRtLekvXNL0My 0.36.0
+  daemon build kXY4cc6JRtLekvXNL0My 0.36.0
+  client build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -640,7 +668,8 @@ so a site that raises the grace changes no unit. <code>Restart=on-failure</code>
 a daemon that fails, and the idle timer is off (above). A site's own settings
 go in a drop-in under <code>/etc/systemd/system/karvi-daemon@.service.d/</code>, which an
 upgrade never touches.</p>
-<p><strong>After an upgrade</strong>, and after a rollback (<code>apt install --allow-downgrades</code>,
+<p><strong>After an upgrade</strong>, by <code>sudo karvi-sysutil package update</code>, which names
+the instance, or by hand, and after a rollback (<code>apt install --allow-downgrades</code>,
 or an earlier bundle's <code>install.sh</code>, <a href="../BUILD-HOWTO.html#10-install-and-roll-back"><code>BUILD-HOWTO.md</code> section
 10</a>), the template has been
 replaced and systemd reloaded, and the daemon still runs the program it
@@ -682,7 +711,7 @@ that may fail on purpose says so (<code>grep … || true</code>). A command that
 is written <code>sudo -n …</code>: where <code>sudo</code> wants a password it is refused at once,
 <code>command_exit_nonzero</code> with <code>sudo</code>'s message in <code>stderr</code>, and never waits.</p>
 <p><strong>A command given up.</strong> At its command timeout, a cancel, or the output limit,
-<code>scrapligo-v1</code> asks the server to end the command before closing its channel.
+<code>native</code> asks the server to end the command before closing its channel.
 The system transport's OpenSSH client cannot ask, so the record carries the
 notice <code>remote_command_not_stopped</code> and the command may still be running on
 the server, its parent pid 1; a later command finds it (<code>ps -eo pid,etime,args</code>) if it matters. In both cases the connection serves the next
@@ -2338,7 +2367,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

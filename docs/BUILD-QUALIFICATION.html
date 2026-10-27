@@ -61,13 +61,12 @@
 <li><a href="#v0100-shutdown-accounting-expectations">v0.10.0 shutdown-accounting expectations</a></li>
 <li><a href="#v0100-credential-delivery-expectations">v0.10.0 credential-delivery expectations</a></li>
 <li><a href="#daemon-upgrade-gates">Daemon upgrade gates</a></li>
-<li><a href="#official-native-build-and-session-gates">Official native build and session gates</a></li>
+<li><a href="#official-build-and-session-gates">Official build and session gates</a></li>
 </ul></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,13 +129,12 @@
 <li><a href="#v0100-shutdown-accounting-expectations">v0.10.0 shutdown-accounting expectations</a></li>
 <li><a href="#v0100-credential-delivery-expectations">v0.10.0 credential-delivery expectations</a></li>
 <li><a href="#daemon-upgrade-gates">Daemon upgrade gates</a></li>
-<li><a href="#official-native-build-and-session-gates">Official native build and session gates</a></li>
+<li><a href="#official-build-and-session-gates">Official build and session gates</a></li>
 </ul></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -149,8 +147,7 @@
 <main>
 <h1 id="build-qualification">Build qualification <a class="anchor" href="#build-qualification" aria-label="Link to this section">#</a></h1>
 <h2 id="build-gates">Build gates <a class="anchor" href="#build-gates" aria-label="Link to this section">#</a></h2>
-<p>The release ships the scrapligo-v1 executable. Both
-verifiers run offline from the committed <code>vendor/</code> tree:</p>
+<p>Both verifiers run offline from the committed <code>vendor/</code> tree:</p>
 <pre><code class="language-bash">make build COMMIT=source-release-v$(cat VERSION)
 make checksums tools-build
 ./scripts/verify-bundle.sh
@@ -158,14 +155,14 @@ COMMIT=source-release-v$(cat VERSION) ./scripts/verify-release.sh
 </code></pre>
 <p><code>verify-bundle.sh</code> verifies the executables as they are in <code>bin/</code>, without
 rebuilding them: identity and checksums, static Linux binaries, the build
-<code>karvi version</code> names (20 characters, never <code>none</code>), both transport IDs in
-<code>version</code> (it refuses an executable without <code>scrapligo-v1</code>), stateless
-help/version behavior, script syntax, <code>gofmt</code> over the Go source outside
-<code>vendor/</code>, the unit tests and vet in vendor mode, deterministic generated files,
-the example configurations, removed-key rejection, and every historical smoke
-suite through <code>v090-smoke-test.sh</code>, plus the k03 parser suite, the
-daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.sh</code> (<code>make v0100-smoke</code>), the canary suite <code>scripts/canary-smoke-test.sh</code>, and the parity
-suite <code>scripts/native-smoke-test.sh</code>.</p>
+<code>karvi version</code> names (20 characters, never <code>none</code>), both transports in
+<code>version</code>, stateless help/version behavior, script syntax, <code>gofmt</code> over the Go
+source outside <code>vendor/</code>, the unit tests and vet in vendor mode, deterministic
+generated files, the example configurations, removed-key rejection, and every
+historical smoke suite through <code>v090-smoke-test.sh</code>, plus the k03 parser suite,
+the daemon-upgrade smoke suite, the v0100 suite <code>scripts/v0100-smoke-test.sh</code>
+(<code>make v0100-smoke</code>), the canary suite <code>scripts/canary-smoke-test.sh</code>, and the
+parity suite <code>scripts/native-smoke-test.sh</code>.</p>
 <p><code>verify-release.sh</code> builds from source: the import boundary and host-key
 assertions on the adapter, <code>gofmt</code>, <code>go mod verify</code>, the tests, vet, and the
 race detector in vendor mode, the build, its module metadata, version
@@ -207,9 +204,9 @@ v0.21.0 and v0.21.1, which keep it, it is v0.19.0; for v0.22.0, the karvi
 line's first release, and v0.23.0 to v0.28.0, which keep 10, there was none;
 for v0.29.0, which moved the schema to 11, it was v0.28.0; for v0.30.0, which
 moved it to 12, and v0.30.1, v0.31.0, v0.31.1, v0.32.0, v0.32.1, v0.33.0,
-v0.34.0, v0.34.1, v0.35.0, and v0.36.0, which keep it, there was none:
-v0.29.0's daemon predates the drain that exits and listens on <code>daemon.sock</code>,
-which the new client never reaches).</li>
+v0.34.0, v0.34.1, v0.35.0, v0.36.0, and v0.37.0, which keep it, there was
+none: v0.29.0's daemon predates the drain that exits and listens on
+<code>daemon.sock</code>, which the new client never reaches).</li>
 <li>The Go tests and the suites MUST leave the host's shared places as they
 were: both verifiers list the shared scoreboard directory and the shared
 trees under <code>/opt/karvi</code> and <code>/var/lib/karvi</code>, and whether
@@ -329,30 +326,26 @@ beside it; <code>daemon stop --force</code> MUST reach it at its schema.</li>
 <code>scripts/daemon-lifecycle-replay.sh</code> during release engineering when its
 bundle is available and its daemon IPC schema differs.</li>
 </ul>
-<h2 id="official-native-build-and-session-gates">Official native build and session gates <a class="anchor" href="#official-native-build-and-session-gates" aria-label="Link to this section">#</a></h2>
+<h2 id="official-build-and-session-gates">Official build and session gates <a class="anchor" href="#official-build-and-session-gates" aria-label="Link to this section">#</a></h2>
 <p>On an approved Go 1.27+ builder:</p>
 <pre><code class="language-bash">make deps            # optional on a connected host: download and verify
 ./scripts/verify-release.sh
 </code></pre>
 <ul>
-<li>Vendor metadata, executable module metadata, JSON version output, and
-text version output MUST identify ScrapliGo v1.4.3 (v1.4.1 and v1.4.2 in
-earlier releases). Only <code>internal/adapters/scrapligov1</code> may import it; the
-verifier fails on any other import.</li>
-<li>The scrapligo-v1 path MUST be karvi's connection under karvi's session:
-the verifier asserts <code>WithCustomTransport</code>, <code>HostKeyCallback</code>, and
-<code>hostkey.Verify</code> in the adapter and <code>devsession.Open</code> in the provider,
-and fails if either references <code>ssh-keyscan</code>, <code>os/exec</code>, or the removed
-pre-scan (<code>PrepareNative</code>, <code>InspectRemote</code>).</li>
-<li>The tagged tests, <code>go vet</code>, and the race run MUST pass under
-<code>-mod=vendor</code>.</li>
+<li>The native transport MUST check the host key in its own handshake, under
+karvi's device session, and run no subprocess: the verifier asserts
+<code>HostKeyCallback</code> and <code>hostkey.Verify</code> in <code>internal/transport/native/dial.go</code>
+and <code>devsession.Open</code> in its <code>native.go</code>, and fails if the package
+references <code>ssh-keyscan</code>, <code>os/exec</code>, or the removed pre-scan
+(<code>PrepareNative</code>, <code>InspectRemote</code>).</li>
+<li>The tests, <code>go vet</code>, and the race run MUST pass under <code>-mod=vendor</code>.</li>
 <li><code>karvi version --format json</code> MUST report the schema counters the
 verifiers check (configuration, command record, daemon IPC, job, and
 registry) and both transport IDs; the text form's transport line is
 checked verbatim.</li>
 <li><strong>The parity suite</strong> (<code>scripts/native-smoke-test.sh</code>) MUST pass: every
 case the script lists, each as <code>command</code> and <code>run --no-daemon</code> over
-<code>system</code> and <code>scrapligo-v1</code> (S1 through the daemon as well), against the
+<code>system</code> and <code>native</code> (S1 through the daemon as well), against the
 fake device built from the tree into the suite's work directory with its
 own trust store, base directory, and <code>HOME</code>: its IOS XE persona, and its
 Linux persona for the exec channel and <code>linux_shell</code> (S35).
@@ -386,7 +379,7 @@ from a host with journald.</li>
 <a href="CISCO-IOSXE-QUALIFICATION.html"><code>docs/CISCO-IOSXE-QUALIFICATION.md</code></a> holds the
 laboratory matrix and <a href="../ROADMAP.html"><code>ROADMAP.md</code></a> the open production gates.</p>
 
-<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/BUILD-QUALIFICATION.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

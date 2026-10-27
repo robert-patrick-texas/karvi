@@ -60,9 +60,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -124,9 +123,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -144,7 +142,9 @@ the operator has set. A settled decision is an entry in
 <a href="docs/DESIGN.html"><code>docs/DESIGN.md</code></a>; a session that builds an item is a chapter
 of <a href="docs/EXAMPLES.html"><code>docs/EXAMPLES.md</code></a>. Nothing here is a promise of a date.</p>
 <h2 id="next">Next <a class="anchor" href="#next" aria-label="Link to this section">#</a></h2>
-<ol>
+<p>None chosen: the operator names the next item, from &quot;Later&quot; or anew.</p>
+<h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
+<ul>
 <li><strong>Shorter output strings.</strong> A review of every error and warning message
 karvi writes for the operator, shortening each where a word adds nothing so
 that it still conveys its meaning in fewer words, as chapter 56 left the
@@ -163,9 +163,6 @@ Chapter 63's words reach it too: the messages built from them
 (<code>job_orphaned</code>'s &quot;its scoreboard ended error&quot;) and the help's and the
 registry's prose (&quot;halted terminal status&quot;, &quot;replaced only when the
 device's collection succeeded&quot;).</li>
-</ol>
-<h2 id="later">Later <a class="anchor" href="#later" aria-label="Link to this section">#</a></h2>
-<ul>
 <li><strong>Macro files, <code>--mf PATH</code>.</strong> A command file with plain text substitution
 and pattern replacement, for what a site needs at the least effort, with no
 tool outside karvi: values from the command line, the file, or the target's
@@ -253,7 +250,7 @@ credential's keys the server accepted. OpenSSH names the key at <code>DEBUG1</co
 transport already reads, so a line filter could take it and drop every other
 <code>debug1:</code> line before the diagnostics; an exec device's master already runs
 at <code>DEBUG1</code> through such a filter, so its stream carries the line, while the
-shell's runs at <code>VERBOSE</code>; the native adapter could note the signer that
+shell's runs at <code>VERBOSE</code>; the native transport could note the signer that
 signed. The questions: the record's field (path and fingerprint
 beside <code>auth</code>), the audit's, and <code>login</code>, whose stderr is the operator's
 terminal (<a href="docs/DESIGN.html#4-credentials"><code>docs/DESIGN.md</code>, section 4</a>).</li>
@@ -302,17 +299,20 @@ Go binding, through <code>ebitengine/purego</code>, to <code>libscrapli</code>, 
 session, the channel, and the SSH (libssh2) and Telnet transports. It loads
 the library from <code>LIBSCRAPLI_PATH</code>, else from <code>~/.cache/scrapli</code>, downloading
 it there from GitHub at first use without checking the published <code>.sha256</code>.
-karvi stays on v1, whose line is maintained, until four questions are
-answered: whether a release can ship the library beside the static executables
-and always names it, so no session reaches the network or writes into the
-operator's home; whether karvi's host-key policy, today inside its own SSH
-handshake under v1's driver and channel (<a href="SECURITY.html"><code>SECURITY.md</code></a>), has a
+karvi carries no scrapligo since its native transport became its own
+(<a href="docs/EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+82</a>),
+and taking v2 waits on four questions: whether a release can ship the library
+beside the static executables and always names it, so no session reaches the
+network or writes into the operator's home; whether karvi's host-key policy,
+today inside karvi's own SSH handshake (<a href="SECURITY.html"><code>SECURITY.md</code></a>), has a
 place in v2 beyond a known-hosts file; the adapter's shape, with the session
 in the library and not shared with <code>system</code>
 (<a href="docs/TRANSPORT-DRIVER-ARCHITECTURE.html"><code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code></a>);
 and what it gains for a fleet karvi qualifies on <code>cisco_iosxe</code> over SSH
-(NETCONF, Telnet, more platform definitions). A v2 adapter registers
-<code>scrapligo-v2</code> beside <code>scrapligo-v1</code>
+(NETCONF, Telnet, more platform definitions). v2 would be a transport with
+its own selector beside <code>system</code>, <code>native</code>, and <code>telnet</code>; a mapping from a
+slot to an implementation comes back only if a transport ever has two
 (<a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>).</li>
 <li><strong>NETCONF.</strong> NETCONF over SSH (RFC 6242): the <code>netconf</code> subsystem on the
 session channel, port 830 by default, in place of a shell or an exec. The
@@ -373,6 +373,37 @@ per screen; the screen mode's size and its record; where the recording's
 secret rule fails (a device that echoes a password, a key typed ahead); and
 whether the drafting step is karvi's or a tool's. For consideration; nothing
 is decided.</li>
+<li><strong>Platforms beyond the built-ins.</strong> A device of another vendor has no
+definition: a <code>[platform.NAME]</code> table is an alias of a built-in or
+<code>generic</code>'s definition, and <code>generic</code>'s prompt matches neither a Huawei VRP
+nor an HPE Comware prompt (<code>&lt;HUAWEI&gt;</code>, <code>[HUAWEI]</code>), so the session never finds
+one. scrapligo's YAML definitions (v1.4.3 embeds seventeen, eleven beyond
+karvi's: Aruba WLC, Cumulus Linux and vtysh, HPE Comware, Huawei VRP, IP
+Infusion OcNOS, Nokia SR Linux, SR OS, and SR OS classic, Palo Alto PAN-OS,
+Ruijie, and VyOS) drive scrapligo's channel and network driver, which karvi
+does not run, and the scrapli community's platforms are Python modules,
+several with code of their own. The YAML maps onto karvi's definition nearly
+field for field (the privilege levels, the desired level,
+<code>failed-when-contains</code>, the paging commands sent at open, the exit at close),
+short of a level's <code>not-contains</code>, a raw write at open, variants, and driver
+options; karvi adds the collection list, its drop list, the masks, and the
+session cap. Two parts, in order. First, a <code>[platform.NAME]</code> table admitting
+the prompt pattern, the privilege levels, the failure patterns, and the exit
+commands (the part the WTI item above names), so a site reaches a vendor
+without a release; it reverses the rule that prompt and error patterns are
+compiled data, never configuration (<a href="docs/DESIGN.html#3-targets-inventory-and-platforms"><code>docs/DESIGN.md</code>, section
+3</a>), at the risk that a
+wrong failure pattern records a rejected command as succeeded, and with it
+comes a step that drafts such a table from a scrapligo YAML for the operator
+to edit. Then, a vendor the fleet runs made a built-in from its reviewed
+definition, as the network built-ins were made from scrapligo's, with its
+collection list, drop list, masks, tests against a fake persona or a recorded
+session, and the <a href="#the-device-qualification-track">device-qualification
+track</a>; the upstream data is a draft, not a
+reference (scrapligo's VRP configuration prompt misses VRP 8's <code>[~HUAWEI]</code>).
+Not taken: loading YAML at run time, a dependency and a format karvi would
+half implement, which still misses the Python platforms. It waits on a device
+of another vendor in the fleet.</li>
 <li><strong>A device's banner kept out of <code>system</code>'s failure text.</strong> OpenSSH writes a
 device's pre-authentication banner on its standard error at <code>LogLevel INFO</code>
 and above, among its own lines; the shell's command session (<code>VERBOSE</code>) and
@@ -515,6 +546,35 @@ HUP 129, a Ctrl-C 130). The item: each of the twenty-four on <code>EXIT</code> a
 as <code>verify-release.sh</code>'s is. The questions: a cleanup that stops a daemon or
 a container, run once at the exit, checked under each signal; and a check
 that keeps the other form out of the tree.</li>
+<li><strong>The release's signature.</strong> <code>karvi-sysutil package update</code> checks the
+package against its <code>.sha256</code>, which comes from the same release over the
+same connection: it finds a damaged download, and proves nothing of where
+the package came from. Under <code>-k</code>, a proxy that inspects TLS, or anything
+that answers for github.com inside the network, can serve another package
+with a checksum that matches it, and <code>apt-get</code> runs its maintainer scripts as
+root. The item: the release signs <code>karvi-vX.Y.Z-artifacts.sha256</code> with an
+SSH key (<code>ssh-keygen -Y sign</code>) and publishes the <code>.sig</code> beside it; the package
+ships the public key as <code>/usr/share/karvi/release-signers</code>, in
+<code>allowed_signers</code> form; and the update verifies the signature with
+<code>ssh-keygen -Y verify</code> (<code>openssh-client</code> is already a dependency) before it
+reads the package's sum from the signed file. Trust begins at the first
+package installed by hand, which brings the key. A lab of 2026-10-27 signed
+0.36.0's aggregate checksums with a throwaway key: the file verified, exit
+0, and the same file with one sum changed failed, <code>incorrect signature</code>,
+exit 255. The questions: where the key is kept and the release step that
+signs, in <code>release-tools</code>; a key's change (a package carrying both keys
+before the old one goes); and whether the bundle's <code>verify-bundle.sh</code> checks
+the signature too. <em>Not taken:</em> GPG or minisign (another tool and its
+keyring), GitHub's attestations (<code>gh</code> on every host).</li>
+<li><strong>The package update on a timer.</strong> <code>karvi-sysutil package update</code> runs when
+the administrator runs it. A timer under <code>/usr/share/karvi</code>, inactive as the
+others are, would run it on a schedule. The questions: whether the timer
+installs or only reports (<code>--check</code>); where its <code>--proxy</code> and <code>-k</code> are kept,
+a timer having no command line (a file under <code>/etc/karvi</code>); and whether an
+unattended install restarts the instances of <code>karvi-daemon@.service</code> it
+names, a restart cancelling what outlasts the grace. It waits on the
+release's signature: an install no one watches should not rest on a
+checksum alone.</li>
 </ul>
 <h2 id="the-device-qualification-track">The device-qualification track <a class="anchor" href="#the-device-qualification-track" aria-label="Link to this section">#</a></h2>
 <p>Independent of the items above. The runbook
@@ -549,7 +609,7 @@ interactive session whose operator saw it end.</li>
 2,500-device accounting gate waits on that run and on review by the network
 operations and security owners.</p>
 
-<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>ROADMAP.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -68,9 +68,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -140,9 +139,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -222,23 +220,24 @@ go version
 instead of automatically selecting the newest one. The authoritative minimum
 is the <code>go</code> directive in karvi's <code>go.mod</code>.</p>
 <h2 id="3-verify-and-extract-the-full-source-bundle">3. Verify and extract the full source bundle <a class="anchor" href="#3-verify-and-extract-the-full-source-bundle" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-bash">sha256sum -c karvi-v0.36.0-source-linux-amd64.tar.gz.sha256
-tar -tzf karvi-v0.36.0-source-linux-amd64.tar.gz &gt;/dev/null
-tar -xzf karvi-v0.36.0-source-linux-amd64.tar.gz
-cd karvi-v0.36.0
+<pre><code class="language-bash">sha256sum -c karvi-v0.37.0-source-linux-amd64.tar.gz.sha256
+tar -tzf karvi-v0.37.0-source-linux-amd64.tar.gz &gt;/dev/null
+tar -xzf karvi-v0.37.0-source-linux-amd64.tar.gz
+cd karvi-v0.37.0
 </code></pre>
 <p>Review the release boundary before building:</p>
 <pre><code class="language-bash">cat VERSION
 cat go.mod
 </code></pre>
 <h2 id="4-choose-the-build-path">4. Choose the build path <a class="anchor" href="#4-choose-the-build-path" aria-label="Link to this section">#</a></h2>
-<h3 id="41-official-native-enabled-build">4.1 Official native-enabled build <a class="anchor" href="#41-official-native-enabled-build" aria-label="Link to this section">#</a></h3>
-<p>The source carries every module the build needs: <code>go.mod</code> names scrapligo
-v1.4.3, golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and
-golang.org/x/term v0.47.0 with their two indirect requirements, <code>go.sum</code> holds
-their sums, and <code>vendor/</code> holds their sources. goldmark v1.8.6 is vendored
-beside them for <code>tools/md-to-html</code> (<code>make html</code>); no executable contains it. A
-build host needs no network. On a host with an approved module proxy, <code>make deps</code> re-downloads the modules and checks them against <code>go.sum</code> first:</p>
+<h3 id="41-official-build">4.1 Official build <a class="anchor" href="#41-official-build" aria-label="Link to this section">#</a></h3>
+<p>The source carries every module the build needs: <code>go.mod</code> names
+golang.org/x/crypto v0.58.0, golang.org/x/sys v0.49.0, and golang.org/x/term
+v0.47.0, <code>go.sum</code> holds their sums, and <code>vendor/</code> holds their sources. goldmark
+v1.8.6 is vendored beside them for <code>tools/md-to-html</code> (<code>make html</code>); no
+executable contains it. A build host needs no network. On a host with an
+approved module proxy, <code>make deps</code> re-downloads the modules and checks them
+against <code>go.sum</code> first:</p>
 <pre><code class="language-bash">export GOPROXY='https://proxy.golang.org,direct'   # or the approved internal proxy
 export GOSUMDB='sum.golang.org'                    # or the approved internal sumdb
 
@@ -246,35 +245,23 @@ make deps            # optional on a connected host: download and verify
 ./scripts/verify-release.sh
 </code></pre>
 <p><code>verify-release.sh</code> is the official build's gate. It asserts in source that
-the scrapligo-v1 adapter carries karvi's host-key callback on scrapligo's
-custom transport and that the provider opens karvi's device session, and
-fails if that path references <code>ssh-keyscan</code>, <code>os/exec</code>, or the removed
-pre-scan; runs <code>go mod verify</code>, the tests, <code>go vet</code>, and the race run
-under <code>-mod=vendor</code>; builds the executable and
-checks its module metadata, its version counters, and both transport IDs;
-runs every historical smoke suite; then runs the parity suite
-<code>scripts/native-smoke-test.sh</code>, which builds the fake device from the tree
-and runs every case as <code>command</code> and <code>run</code> over <code>system</code> and
-<code>scrapligo-v1</code> with its own trust store, base directory, and <code>HOME</code>,
-comparing the records path by path (about a minute; no fake or daemon is
+the native transport carries karvi's host-key callback in its handshake and
+opens karvi's device session, and fails if its package references
+<code>ssh-keyscan</code>, <code>os/exec</code>, or the removed pre-scan; runs <code>go mod verify</code>, the
+tests, <code>go vet</code>, and the race run under <code>-mod=vendor</code>; builds the executable
+and checks its version counters and both transport IDs; runs every historical
+smoke suite; then runs the parity suite <code>scripts/native-smoke-test.sh</code>, which
+builds the fake device from the tree and runs every case as <code>command</code> and
+<code>run</code> over <code>system</code> and <code>native</code> with its own trust store, base directory, and
+<code>HOME</code>, comparing the records path by path (about a minute; no fake or daemon is
 left running and the operator's trust store is unchanged); then the canary
 suite. <code>make native-smoke</code> runs the parity suite alone after <code>make build</code>;
 <code>ONLY=S21 scripts/native-smoke-test.sh</code> runs one case.
 <a href="docs/BUILD-QUALIFICATION.html"><code>docs/BUILD-QUALIFICATION.md</code></a> states the gates.</p>
-<p>The release must contain exactly:</p>
-<pre><code class="language-text">github.com/scrapli/scrapligo v1.4.3
-</code></pre>
-<p>Confirm the dependency in source, vendor metadata, and the executable:</p>
-<pre><code class="language-bash">grep -F 'github.com/scrapli/scrapligo v1.4.3' go.mod
-grep -F '# github.com/scrapli/scrapligo v1.4.3' vendor/modules.txt
-go version -m bin/karvi-linux-amd64 | \
-  grep -E 'github.com/scrapli/scrapligo[[:space:]]+v1\.4\.3'
-./bin/karvi-linux-amd64 --version | grep -F 'scrapligo: 1.4.3'
-</code></pre>
 <p>Do not use <code>go get ...@latest</code> in a release tree.</p>
 <h3 id="42-verify-the-shipped-executables-without-rebuilding">4.2 Verify the shipped executables without rebuilding <a class="anchor" href="#42-verify-the-shipped-executables-without-rebuilding" aria-label="Link to this section">#</a></h3>
-<p>The bundle's <code>bin/</code> holds the scrapligo-v1 executables of
-<a href="#41-official-native-enabled-build">§4.1</a>, built with the release identity, and
+<p>The bundle's <code>bin/</code> holds the executables of
+<a href="#41-official-build">§4.1</a>, built with the release identity, and
 <code>CHECKSUMS.sha256</code> names them:</p>
 <pre><code class="language-bash">./scripts/verify-bundle.sh
 </code></pre>
@@ -321,8 +308,7 @@ Ubuntu 26.04 container under Docker (<code>scripts/sysutil-smoke-test.sh PACKAGE
 account's daemon), never on the build host.</p>
 <h2 id="5-direct-go-build-commands">5. Direct Go build commands <a class="anchor" href="#5-direct-go-build-commands" aria-label="Link to this section">#</a></h2>
 <p>The Makefile is preferred because it keeps the build metadata consistent.
-The equivalent core commands are (no build tag is needed; every build
-carries the scrapligo-v1 adapter):</p>
+The equivalent core commands are (no build tag is needed):</p>
 <pre><code class="language-bash">export CGO_ENABLED=0
 
 go test -mod=vendor ./...
@@ -482,6 +468,14 @@ sudo apt install ./karvi_&lt;version&gt;_amd64.deb
 karvi version --format json
 sudo apt install --allow-downgrades ./karvi_&lt;earlier&gt;_amd64.deb   # roll back
 </code></pre>
+<p>On a host that reaches GitHub, <code>sudo karvi-sysutil package update</code> does the
+first two in one step: when the latest release's package is newer than the
+installed one, it fetches the package and its <code>.sha256</code> with curl, checks the
+one against the other, and installs it with <code>apt-get</code>; <code>--check</code> only
+reports, <code>--proxy URL</code> goes through an <code>http://</code> or <code>https://</code> proxy, and <code>-k</code>
+accepts any certificate, GitHub's and the proxy's (<code>karvi-sysutil(8)</code>). It is
+refused without curl, beside the bundle's install below, and without the
+package; a rollback is the command above.</p>
 <p>A minimized image, one whose dpkg excludes <code>/usr/share/doc/*</code> and
 <code>/usr/share/man/*</code> (Docker's Ubuntu, the minimal cloud images), installs the
 executables and <code>/usr/share/karvi</code> alone, no document or manual page; the
@@ -531,7 +525,7 @@ and the <code>go version -m</code> output together as the local release record.<
 <li>a statement of all remaining production gates.</li>
 </ul>
 
-<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>BUILD-HOWTO.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

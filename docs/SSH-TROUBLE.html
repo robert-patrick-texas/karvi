@@ -61,9 +61,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -126,9 +125,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -257,13 +255,12 @@ karvi --debug command WLC --cmd 'show clock' --transport native
 and classifies what OpenSSH says; its record's <code>credential.auth</code> names the
 method that authenticated; and it detects the prompt, a missing one being
 <code>command_session_prompt_timeout</code>. Raising <code>--set 'execution.prompt-timeout=&quot;60s&quot;'</code> tells a slow prompt (a slow AAA answer) from
-none. <code>native</code> is <code>scrapligo-v1</code>, another SSH stack altogether: when it reaches
-the prompt and <code>system</code> does not, the difference is OpenSSH's or the generated
-configuration's, and a plain <code>ssh -vvv</code> beside <code>ssh -vvv -F</code> a copy of karvi's
-configuration finds the setting. <code>--set 'ssh-algorithms.source=&quot;transport&quot;'</code>
-takes karvi's key exchange, cipher, and MAC lists out of the comparison: a
-device that connects under it and fails without is refused by karvi's lists,
-and the failure's <code>karvi offered</code> against <code>the device offered</code> names the list.
+none. <code>native</code> is karvi's own x/crypto connection, another SSH stack altogether:
+when it reaches the prompt and <code>system</code> does not, the difference is OpenSSH's or
+the generated configuration's, and a plain <code>ssh -vvv</code> beside <code>ssh -vvv -F</code> a
+copy of karvi's configuration finds the setting. <code>--set 'ssh-algorithms.source=&quot;transport&quot;'</code> takes karvi's key exchange, cipher, and MAC
+lists out of the comparison: a device that connects under it and fails without
+is refused by karvi's lists, and the failure's <code>karvi offered</code> against <code>the device offered</code> names the list.
 <a href="COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a> reads a
 command's capture.</p>
 <h2 id="4-on-the-device">4. On the device <a class="anchor" href="#4-on-the-device" aria-label="Link to this section">#</a></h2>
@@ -271,7 +268,7 @@ command's capture.</p>
 the session there, and in what state), <code>show ip ssh</code>, <code>show aaa servers</code>, <code>show logging</code>, and <code>debug ip ssh detail</code> during an attempt. They say whether the
 device got past authentication on its side.</p>
 
-<footer>Generated from <code>docs/SSH-TROUBLE.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-TROUBLE.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

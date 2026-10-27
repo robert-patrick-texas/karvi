@@ -63,9 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -130,9 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -1215,6 +1213,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A configuration key that karvi removed is set in a file, the environment, or <code>--set</code>; the message names the key and the release that removed it.</td>
 </tr>
 <tr>
+<td><code>config_key_unset</code></td>
+<td>config</td>
+<td style="text-align:right">2</td>
+<td style="text-align:center">no</td>
+<td><code>config show</code> names a key a table could hold that the configuration does not set: a transport slot, a platform's field, a macro.</td>
+</tr>
+<tr>
 <td><code>config_load_failed</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -1495,6 +1500,13 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A <code>--set</code> value cannot be parsed.</td>
 </tr>
 <tr>
+<td><code>config_show_format_conflict</code></td>
+<td>usage</td>
+<td style="text-align:right">4</td>
+<td style="text-align:center">no</td>
+<td><code>config show</code> is given <code>--format</code> beside keys or <code>--explain</code>; <code>--format</code> encodes the full view alone, and the view of keys is text.</td>
+</tr>
+<tr>
 <td><code>config_ssh_algorithm_duplicate</code></td>
 <td>config</td>
 <td style="text-align:right">2</td>
@@ -1611,7 +1623,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>An <code>ssh.&lt;mode&gt;.transport</code> value is not <code>default</code>, <code>preferred</code>, <code>telnet</code>, or a valid slot name.</td>
+<td>An <code>ssh.&lt;mode&gt;.transport</code> value is not <code>default</code>, <code>native</code>, <code>telnet</code>, or a valid slot name.</td>
 </tr>
 <tr>
 <td><code>config_transport_slot_name_invalid</code></td>
@@ -2318,7 +2330,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>usage</td>
 <td style="text-align:right">4</td>
 <td style="text-align:center">no</td>
-<td>A device transport selector is not <code>default</code>, <code>preferred</code>, <code>telnet</code>, or a valid slot name.</td>
+<td>A device transport selector is not <code>default</code>, <code>native</code>, <code>telnet</code>, or a valid slot name.</td>
 </tr>
 <tr>
 <td><code>display_border_render_too_long</code></td>
@@ -3119,13 +3131,6 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>The native transport cannot open the device session.</td>
 </tr>
 <tr>
-<td><code>native_transport_unavailable</code></td>
-<td>dependency</td>
-<td style="text-align:right">8</td>
-<td style="text-align:center">no</td>
-<td>The selected native implementation is not compiled into this executable; there is no fallback to system OpenSSH.</td>
-</tr>
-<tr>
 <td><code>network_unreachable</code></td>
 <td>connection</td>
 <td style="text-align:right">110</td>
@@ -3333,7 +3338,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">2</td>
 <td style="text-align:center">no</td>
-<td>A platform's default transport is not <code>default</code>, <code>preferred</code>, <code>telnet</code>, or a valid slot name.</td>
+<td>A platform's default transport is not <code>default</code>, <code>native</code>, <code>telnet</code>, or a valid slot name.</td>
 </tr>
 <tr>
 <td><code>platform_definition_invalid</code></td>
@@ -3753,7 +3758,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>connection</td>
 <td style="text-align:right">110</td>
 <td style="text-align:center">yes</td>
-<td>The device answers none of the SSH keepalive requests of an open session (<code>ssh.server-alive-*</code> on the system transport, <code>native-ssh.keepalive-*</code> on scrapligo-v1); the session ends.</td>
+<td>The device answers none of the SSH keepalive requests of an open session (<code>ssh.server-alive-*</code> on the system transport, <code>native-ssh.keepalive-*</code> on the native transport); the session ends.</td>
 </tr>
 <tr>
 <td><code>setup_completion_dir_missing</code></td>
@@ -4222,7 +4227,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>config</td>
 <td style="text-align:right">8</td>
 <td style="text-align:center">no</td>
-<td>A custom transport slot is mapped to <code>default</code>, which only the <code>system</code> and <code>native</code> slots accept.</td>
+<td>A custom transport slot is mapped to <code>default</code>, which only the <code>system</code> slot accepts.</td>
 </tr>
 <tr>
 <td><code>transport_exec_executable_unavailable</code></td>
@@ -4253,11 +4258,11 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>A transport executable specification is empty.</td>
 </tr>
 <tr>
-<td><code>transport_implementation_invalid</code></td>
+<td><code>transport_mapping_invalid</code></td>
 <td>config</td>
 <td style="text-align:right">8</td>
 <td style="text-align:center">no</td>
-<td>A transport mapping names an implementation identifier that is not valid.</td>
+<td>An <code>ssh.transports.&lt;slot&gt;</code> entry is refused at load: a custom slot's value is not <code>exec:PATH</code>, or the slot takes a built-in transport's name, <code>native</code> or <code>telnet</code>.</td>
 </tr>
 <tr>
 <td><code>transport_mapping_missing</code></td>
@@ -5088,7 +5093,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>host_key_scan_failed</code></td>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>native_session_open_failed</code></td>
-<td>ssh-keyscan failed before a native connection; scrapligo-v1 checks the key in its own handshake.</td>
+<td>ssh-keyscan failed before a native connection; the native transport checks the key in its own handshake.</td>
 </tr>
 <tr>
 <td><code>host_key_trust_store_candidates_exhausted</code></td>
@@ -5172,19 +5177,19 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td><code>native_command_failed</code></td>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>device_command_error</code>, <code>command_timeout</code>, <code>command_session_lost</code></td>
-<td>The native transport reported that a command failed; scrapligo-v1 now runs karvi's device session.</td>
+<td>The native transport reported that a command failed; karvi's device session now runs its commands.</td>
 </tr>
 <tr>
 <td><code>native_driver_create_failed</code></td>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>native_session_open_failed</code></td>
-<td>The native transport could not create scrapligo's network driver, which scrapligo-v1 no longer uses.</td>
+<td>The native transport could not create scrapligo's network driver, which the native transport no longer uses.</td>
 </tr>
 <tr>
 <td><code>native_platform_create_failed</code></td>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>native_session_open_failed</code></td>
-<td>The native transport could not create scrapligo's platform, which scrapligo-v1 no longer uses.</td>
+<td>The native transport could not create scrapligo's platform, which the native transport no longer uses.</td>
 </tr>
 <tr>
 <td><code>native_response_nil</code></td>
@@ -5197,6 +5202,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>command_session_lost</code></td>
 <td>A command was sent on a closed native session; the device session refuses it.</td>
+</tr>
+<tr>
+<td><code>native_transport_unavailable</code></td>
+<td>v0.37.0</td>
+<td><code>transport_mapping_invalid</code></td>
+<td>The selected native implementation was not compiled into this executable; the native transport is in every executable, and a slot no longer names an implementation.</td>
 </tr>
 <tr>
 <td><code>output_no_space</code></td>
@@ -5255,7 +5266,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <tr>
 <td><code>transport_configuration_error</code></td>
 <td>v0.10.0</td>
-<td><code>transport_mode_unknown</code>, <code>transport_selector_invalid</code>, <code>transport_mapping_missing</code>, <code>transport_custom_slot_default</code>, <code>transport_system_executable_unavailable</code>, <code>transport_exec_executable_unavailable</code>, <code>transport_implementation_invalid</code></td>
+<td><code>transport_mode_unknown</code>, <code>transport_selector_invalid</code>, <code>transport_mapping_missing</code>, <code>transport_custom_slot_default</code>, <code>transport_system_executable_unavailable</code>, <code>transport_exec_executable_unavailable</code>, <code>transport_mapping_invalid</code></td>
 <td>Any transport selector or slot resolution failure.</td>
 </tr>
 <tr>
@@ -5281,6 +5292,12 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 <td>v0.11.0 to v0.17.0</td>
 <td><code>config_transport_selector_invalid</code></td>
 <td>A transport driver is registered with a nil factory. Emitted only by the public transport package, removed at v0.14.0 with its contracts.</td>
+</tr>
+<tr>
+<td><code>transport_implementation_invalid</code></td>
+<td>v0.37.0</td>
+<td><code>transport_mapping_invalid</code></td>
+<td>A transport mapping named an implementation identifier that was not valid; a custom slot now maps only to <code>exec:PATH</code>.</td>
 </tr>
 <tr>
 <td><code>transport_registry_nil</code></td>
@@ -5357,7 +5374,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.</p>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/ERROR-CODES.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

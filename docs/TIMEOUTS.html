@@ -62,9 +62,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -128,9 +127,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -147,7 +145,7 @@ how the values relate, what each expiry records, and where each lives in the
 code, the blind wait among them. The decisions are
 <a href="DESIGN.html"><code>docs/DESIGN.md</code></a>; <a href="ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a> holds the
 codes, <code>configs/reference.toml</code> the keys. The <code>system</code> transport is OpenSSH's
-<code>ssh</code>; <code>scrapligo-v1</code> is karvi's own connection.</p>
+<code>ssh</code>; <code>native</code> is karvi's own connection.</p>
 <p>No timer ends an open session on its total age except
 <code>execution.device-timeout</code>. The others bound one step each, prove the peer
 alive, or belong to the operator (a cancel) and the daemon (its shutdown
@@ -173,13 +171,13 @@ grace).</p>
 <td><code>native-ssh.connect-timeout</code> (<code>KARVI__NATIVE_SSH__CONNECT_TIMEOUT</code>)</td>
 <td>10s</td>
 <td>1s–5m</td>
-<td>scrapligo-v1: the TCP dial</td>
+<td><code>native</code>: the TCP dial</td>
 </tr>
 <tr>
 <td><code>native-ssh.handshake-timeout</code> (<code>KARVI__NATIVE_SSH__HANDSHAKE_TIMEOUT</code>)</td>
 <td>10s</td>
 <td>1s–5m</td>
-<td>scrapligo-v1: the SSH handshake, authentication, and the PTY and shell requests</td>
+<td><code>native</code>: the SSH handshake, authentication, and the PTY and shell requests</td>
 </tr>
 <tr>
 <td><code>telnet.connect-timeout</code> (<code>KARVI__TELNET__CONNECT_TIMEOUT</code>)</td>
@@ -233,7 +231,7 @@ grace).</p>
 <td><code>native-ssh.keepalive-interval</code> (<code>KARVI__NATIVE_SSH__KEEPALIVE_INTERVAL</code>), <code>native-ssh.keepalive-count-max</code> (<code>KARVI__NATIVE_SSH__KEEPALIVE_COUNT_MAX</code>)</td>
 <td>15s, 3</td>
 <td>0 disables, else 1s–10m; 1–100</td>
-<td>scrapligo-v1: karvi's <code>keepalive@openssh.com</code> requests</td>
+<td><code>native</code>: karvi's <code>keepalive@openssh.com</code> requests</td>
 </tr>
 <tr>
 <td><code>telnet.read-timeout</code> (<code>KARVI__TELNET__READ_TIMEOUT</code>)</td>
@@ -269,7 +267,7 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 <tr>
 <th>Phase</th>
 <th><code>system</code></th>
-<th><code>scrapligo-v1</code></th>
+<th><code>native</code></th>
 <th>telnet</th>
 </tr>
 </thead>
@@ -334,10 +332,10 @@ these keys bound no job. A daemon's plan check refuses a negative or miscounted
 <li><strong>The first-prompt allowance differs by transport.</strong> The <code>ssh</code> process
 dials, authenticates, and starts the shell in one stretch karvi cannot see
 into, so <code>system</code> awaits the first prompt for the connect and prompt
-timeouts together; scrapligo-v1 times its dial and handshake itself and
+timeouts together; <code>native</code> times its dial and handshake itself and
 awaits the prompt for <code>execution.prompt-timeout</code> alone. A device whose
 first prompt is slower than the prompt timeout can open on <code>system</code> and be
-<code>command_session_prompt_timeout</code> on scrapligo-v1.</li>
+<code>command_session_prompt_timeout</code> on <code>native</code>.</li>
 <li><strong>The device clock</strong> starts when the session is prepared. The ICMP gate,
 the capacity wait, connect, login, enable, and paging are outside it, each
 under its own bound.</li>
@@ -356,7 +354,7 @@ value travels in the execution plan (<code>blind_wait_ns</code>), so <code>--bli
 reaches the daemon, as the other timeouts do in the plan's <code>execution</code>
 block. Session-init profile commands are never blind.</li>
 <li><strong>Keepalive timing seen</strong> against the fake with 1s × 2: 3.0s from the
-silence on scrapligo-v1, 5.3–5.6s on <code>system</code>, where OpenSSH's own
+silence on <code>native</code>, 5.3–5.6s on <code>system</code>, where OpenSSH's own
 whole-second timers are the likely cause. At the defaults the difference
 is small beside the total.</li>
 <li><strong>The keepalive request</strong> is the global request <code>keepalive@openssh.com</code>
@@ -427,7 +425,7 @@ name is not configurable.</li>
 <td>not attempted</td>
 </tr>
 <tr>
-<td>scrapligo-v1's dial or handshake</td>
+<td><code>native</code>'s dial or handshake</td>
 <td><code>native_session_open_failed</code></td>
 <td>connection; <code>connection_error</code></td>
 <td>yes</td>
@@ -473,7 +471,7 @@ shell being out of step.</li>
 <tr>
 <td>First prompt</td>
 <td><code>devsession.Options.LoginTimeout</code> (fallback 40s)</td>
-<td><code>internal/devsession/session.go</code>; filled in <code>internal/transport/systemssh/systemssh.go</code> <code>Prepare</code> (<code>connectTimeout + promptTimeout</code>) and <code>internal/transport/native/provider_scrapligov1.go</code> (<code>promptTimeout</code>)</td>
+<td><code>internal/devsession/session.go</code>; filled in <code>internal/transport/systemssh/systemssh.go</code> <code>Prepare</code> (<code>connectTimeout + promptTimeout</code>) and <code>internal/transport/native/native.go</code> (<code>promptTimeout</code>)</td>
 </tr>
 <tr>
 <td>Enable</td>
@@ -511,14 +509,14 @@ shell being out of step.</li>
 <td><code>internal/executor/executor.go</code>, the command loop</td>
 </tr>
 <tr>
-<td>scrapligo-v1 connect, handshake</td>
+<td><code>native</code> connect, handshake</td>
 <td><code>DialRequest.ConnectTimeout</code>, <code>DialRequest.HandshakeTimeout</code></td>
-<td><code>internal/adapters/scrapligov1/dial.go</code></td>
+<td><code>internal/transport/native/dial.go</code></td>
 </tr>
 <tr>
-<td>scrapligo-v1 keepalive</td>
+<td><code>native</code> keepalive</td>
 <td><code>DialRequest.KeepaliveInterval</code>, <code>DialRequest.KeepaliveCountMax</code>; <code>connection.keepalive</code>, <code>connection.lastRead</code>, <code>connection.lost</code>; the constant <code>keepaliveRequest</code></td>
-<td><code>internal/adapters/scrapligov1/dial.go</code></td>
+<td><code>internal/transport/native/dial.go</code></td>
 </tr>
 <tr>
 <td><code>system</code> keepalive</td>
@@ -533,7 +531,7 @@ shell being out of step.</li>
 <tr>
 <td>Fixed waits, not configurable</td>
 <td><code>promptSettleDelay</code> (100ms, a prompt-shaped last line must stay unchanged); <code>shellEndGrace</code> (2s, the shell's end after the exit commands)</td>
-<td><code>internal/devsession/session.go</code>; <code>internal/adapters/scrapligov1/dial.go</code></td>
+<td><code>internal/devsession/session.go</code>; <code>internal/transport/native/dial.go</code></td>
 </tr>
 </tbody>
 </table>
@@ -581,7 +579,7 @@ shell being out of step.</li>
 </tbody>
 </table>
 
-<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/TIMEOUTS.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

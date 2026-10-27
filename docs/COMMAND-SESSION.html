@@ -69,9 +69,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -142,9 +141,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -204,7 +202,7 @@ key, listed with its relations in <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md
 <pre><code class="language-text">resolve target/address/credential/transport/platform definition
   -&gt; open the connection, the host-key policy in the handshake
        system: private OpenSSH config, one-use askpass, one fresh ssh -tt process
-       scrapligo-v1: one x/crypto connection, no subprocess
+       native: one x/crypto connection, no subprocess
   -&gt; wait for the first prompt            (execution.prompt-timeout; system adds ssh.connect-timeout)
   -&gt; escalate once when below the level    (execution.enable-timeout, the whole step)
   -&gt; paging commands, each to the prompt   (execution.prompt-timeout each)
@@ -217,11 +215,11 @@ key, listed with its relations in <a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md
        emit one command record
        stop or continue according to the device-error policy
   -&gt; the definition's exit-commands, then close
-       (scrapligo-v1 waits up to 2 s for the shell's end)
+       (native waits up to 2 s for the shell's end)
   -&gt; remove temporary config and askpass material (system)
 </code></pre>
 <p>Keepalives prove the peer alive throughout (<code>ssh.server-alive-*</code> on
-<code>system</code>, <code>native-ssh.keepalive-*</code> on <code>scrapligo-v1</code>); a device gone silent
+<code>system</code>, <code>native-ssh.keepalive-*</code> on <code>native</code>); a device gone silent
 ends as <code>session_keepalive_timeout</code>. A session that has failed (a timeout,
 a lost read, a write failure, output over the limit before the prompt
 returned) is aborted, not closed: nothing is sent on a desynchronised
@@ -230,8 +228,8 @@ explicit not-attempted records.</p>
 <h2 id="one-session-for-command-and-run">One session for command and run <a class="anchor" href="#one-session-for-command-and-run" aria-label="Link to this section">#</a></h2>
 <p>The shell above is the device session for
 <code>command</code> and for <code>run</code> over the system transport alike, and the same
-session logic drives scrapligo-v1's connection (<code>internal/devsession</code>). The
-session adds two steps between the first prompt and the first requested
+session logic drives the native transport's connection (<code>internal/devsession</code>).
+The session adds two steps between the first prompt and the first requested
 command, both from the platform definition:</p>
 <ol>
 <li><strong>Privilege.</strong> The first prompt is matched against the platform's
@@ -272,7 +270,7 @@ standard input at its end (<a href="DESIGN.html#5-transports-and-the-device-sess
   -&gt; open the connection, the host-key policy in the handshake
        system: one ssh -M -N master per device, its stderr read at DEBUG1;
                ready when it answers -O check
-       scrapligo-v1: one x/crypto connection; ready when it has authenticated
+       native: one x/crypto connection; ready when it has authenticated
                                            (ssh.connect-timeout and execution.prompt-timeout)
   -&gt; session-init profile, if one matches  (each command on its own channel)
   -&gt; for each requested command:           (execution.device-timeout over the whole list)
@@ -283,7 +281,7 @@ standard input at its end (<a href="DESIGN.html#5-transports-and-the-device-sess
        emit one command record
        stop or continue according to the device-error policy
   -&gt; close: system ssh -O exit, the master killed on an abort;
-            scrapligo-v1 closes its connection
+            native closes its connection
 </code></pre>
 <p>There is no first prompt, no privilege step, no paging command, and no exit
 command, and nothing carries from one command to the next (<code>cd</code>, variables,
@@ -302,7 +300,7 @@ session's failure. A device that refuses the channel or the exec request is
 <code>ssh_session_channel_refused</code>; the command did not run and the session ends.</p>
 <p>A command timeout, a cancel, and the output limit (stdout and stderr counted
 together) stop the command and close its channel, and the connection serves
-the next command: <code>scrapligo-v1</code> asks the device for <code>KILL</code> first; <code>system</code>,
+the next command: <code>native</code> asks the device for <code>KILL</code> first; <code>system</code>,
 whose client cannot send a signal, kills the client and records the notice
 <code>remote_command_not_stopped</code>, the command possibly still running on the
 device.</p>
@@ -339,7 +337,7 @@ at planning (<a href="TIMEOUTS.html"><code>docs/TIMEOUTS.md</code></a>,
 applied, colours, window titles, and every other sequence dropped) and matches
 the unfinished last line, without its trailing blanks, against the platform's
 prompt patterns: the levels' patterns for a platform that declares them
-(scrapligo-v1's platform definitions, carried in <code>platform.go</code> for the
+(scrapligo's platform definitions, carried in <code>platform.go</code> for the
 built-ins), <code>generic</code>'s prompt pattern otherwise, and a broad line ending
 in <code>#</code>, <code>&gt;</code>, or <code>$</code> for a platform with neither. A candidate prompt must
 remain the final content for a short settle period so a banner line ending
@@ -475,7 +473,7 @@ the connection serving the next command, so the policy applies to them too. A
 refused channel or exec request, a lost connection, the device timeout, and a
 keepalive expiry end the session.</p>
 
-<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

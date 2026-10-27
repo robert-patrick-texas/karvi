@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
 <li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
 <li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
 <li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
@@ -76,9 +77,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,6 +127,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
 <li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
 <li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
 <li><a href="#0341---2026-10-20">0.34.1 - 2026-10-20</a></li>
@@ -156,9 +157,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -170,6 +170,86 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0370---2026-10-27">0.37.0 - 2026-10-27 <a class="anchor" href="#0370---2026-10-27" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.36.0 for the package's update from GitHub, <code>karvi-sysutil package update</code>, and the native transport as karvi's own, without scrapligo.
+The configuration registry moves to 32; every other counter is 0.36.0's
+(configuration schema 6, execution plan 15, plan report 4, scoreboard 5,
+daemon IPC 12, command record 4, job manifest and summary 5, credential
+package 2, audit 2, metrics 1, inventory 1). scrapligo, gotextfsm, and pty
+leave the build; Go and the other modules are 0.36.0's. A site has something
+to change where a configuration sets <code>ssh.transports.native</code> or maps a custom
+slot to <code>builtin:ID</code> or a bare ID (each refused <code>transport_mapping_invalid</code>),
+a script selects <code>--transport preferred</code>, reads the native transport's ID
+<code>scrapligo-v1</code> (now <code>native</code>) or the <code>--debug</code> transport line's
+<code>implementation=</code>, counts on <code>config show KEY</code> printing <code>error: not found</code> for
+a key it cannot show, gives <code>config show</code> <code>--format</code> beside keys or
+<code>--explain</code>, reads the registry artifact's <code>sensitive</code>, or looks for
+<code>native_transport_unavailable</code> or <code>transport_implementation_invalid</code>, both
+retired. An operator's 0.36.0 daemon, of another build, is drained by the
+first submission after the upgrade.</p>
+<ul>
+<li><strong><code>karvi-sysutil package update</code>, the package's update from GitHub.</strong>
+<code>sudo karvi-sysutil package update</code> finds the latest release from the
+redirect of its page, <code>releases/latest</code>, and when that release's package is
+newer than the installed one fetches <code>karvi_X.Y.Z_amd64.deb</code> and its
+<code>.sha256</code> with curl, checks the one against the other, and installs it with
+<code>apt-get</code>; <code>--check</code> only reports. <code>--proxy URL</code> reaches GitHub through an
+<code>http://</code> or <code>https://</code> proxy, and <code>-k</code> (<code>--insecure</code>) accepts any
+certificate, GitHub's and the proxy's, for a network that inspects TLS. It
+is refused without curl, beside a bundle install's <code>/usr/local/bin/karvi</code>,
+and without the package. A running daemon of <code>karvi-daemon@.service</code> is
+named for its restart, which stays the administrator's; an operator's own
+daemon is drained by the operator's next submission. The checksum finds a
+damaged download and proves nothing of the release's origin, which the
+release's signature, a ROADMAP item, is to
+(<a href="docs/OPERATIONS.html#upgrade"><code>docs/OPERATIONS.md</code>, &quot;Upgrade&quot;</a>).</li>
+<li><strong>Breaking: the native transport is <code>native</code>, and <code>ssh.transports</code> maps
+programs alone; registry 32.</strong> The native transport is karvi's own
+<code>x/crypto/ssh</code> connection, which scrapligo only passed through, and it has
+no implementation ID apart from its name: <code>karvi version</code> lists <code>native: compiled-in</code> over <code>system: external-executable</code>, its JSON and a job
+manifest's <code>app.build.ssh_transports</code> carry <code>&quot;id&quot;: &quot;native&quot;</code> (the job
+schema stays 5), and the <code>--debug</code> transport line drops <code>implementation=</code>.
+<code>ssh.transports</code> keeps <code>system</code>, an OpenSSH executable, and a custom slot's
+<code>exec:PATH</code>; the key <code>ssh.transports.native</code> is removed (registry 32, the
+configuration schema 6). The new code <code>transport_mapping_invalid</code> (exit 2)
+refuses at load <code>ssh.transports.native</code> or <code>ssh.transports.telnet</code>,
+whatever the value, and a custom slot's <code>builtin:ID</code> or bare ID, such as
+<code>alt = &quot;scrapligo-v1&quot;</code>; <code>native_transport_unavailable</code> and
+<code>transport_implementation_invalid</code> are retired. The selector <code>preferred</code>
+and an implementation ID given as a selector are gone: each is an ordinary
+slot name, and <code>--transport preferred</code> is <code>transport_mapping_missing</code> (exit
+8) unless a slot maps it. <code>run --exercise</code> shows <code>transport: native available</code> and <code>transport: system available (/usr/bin/ssh)</code>, its finding
+reads <code>native transport available</code> (and <code>system transport available</code>), and
+its details drop <code>implementation</code>, which an askpass failure's details
+replace with <code>kind</code>. Login's refusal of the native transport names it
+<code>native</code>; <code>config init</code>'s starter no longer writes <code>native = &quot;scrapligo-v1&quot;</code>; the run and crun help drop the native status paragraph.</li>
+<li><strong>scrapligo leaves the build.</strong> <code>github.com/scrapli/scrapligo</code> v1.4.3 is
+removed, and with it <code>github.com/sirikothe/gotextfsm</code> v1.2.0 and
+<code>github.com/creack/pty</code> v1.1.24, which only scrapligo imported; <code>vendor/</code>
+loses 140 files (x/crypto's <code>ssh/knownhosts</code>, which only scrapligo used, among
+them), and the executable about 18 KB. goldmark, x/crypto, x/sys, and x/term
+are unchanged. Nothing the native transport sends or reads changes. The
+release drops what checked scrapligo alone: <code>release/SCRAPLIGO-EVIDENCE.md</code>,
+the module pin and the import boundary in <code>verify-release.sh</code>, and
+BUILD-QUALIFICATION's rule that the version output names ScrapliGo; the checks
+that the native transport verifies the host key in its own handshake and runs
+no subprocess stay, on <code>internal/transport/native</code>.</li>
+<li><strong>Breaking: <code>config show KEY</code> refuses a key it cannot show.</strong> A name that is
+no key is refused as <code>--set</code> refuses it, <code>config_unknown_key</code> (or
+<code>config_key_removed</code>), and a key a table could hold that the configuration
+does not set, a transport slot, a platform's field, or a macro, with the new
+code <code>config_key_unset</code>; each exits 2, on standard error, before any key is
+printed. Each was a block reading <code>error: not found</code> on standard output among
+the keys shown, exit 0, so a script's misspelt <code>karvi config show ssh.transprots.alt &amp;&amp; ...</code> went on.</li>
+<li><strong>Breaking: <code>config show</code> refuses <code>--format</code> beside keys or <code>--explain</code>.</strong>
+<code>--format</code> encodes the full view alone, the values as TOML lines or a JSON
+object; beside keys or <code>--explain</code>, whose view is text, it was ignored, and
+<code>config show --format json display.color</code> printed text. It is now refused
+before the configuration loads with the new code <code>config_show_format_conflict</code>
+(exit 4). The registry artifact's keys no longer carry <code>sensitive</code>, a mark set
+on none, and the JSON view's <code>&lt;redacted&gt;</code> branch, which nothing reached, goes
+with it.</li>
+</ul>
 <h2 id="0360---2026-10-26">0.36.0 - 2026-10-26 <a class="anchor" href="#0360---2026-10-26" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.35.0 for a command list per device, <code>--cf DIR</code>, and a
 live view of a session, <code>--live</code>. Three counters move, execution plan 15,
@@ -1958,7 +2038,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

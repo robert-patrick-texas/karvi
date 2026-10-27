@@ -66,9 +66,8 @@
 <li><a href="#8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device</a></li>
 <li><a href="#9-a-production-server">9. A production server</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -136,9 +135,8 @@
 <li><a href="#8-what-the-script-will-and-will-not-do-to-the-device">8. What the script will and will not do to the device</a></li>
 <li><a href="#9-a-production-server">9. A production server</a></li>
 </ul></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -225,7 +223,7 @@ A production Linux server is qualified by hand, by the rows of <a href="#9-a-pro
 <tr>
 <td>A laboratory unit that may be reloaded, and the time for it to return</td>
 <td>D13</td>
-<td><code>RELOAD=&quot;scrapligo-v1&quot;</code> or both transports, one reload each; a save prompt is answered <code>no</code></td>
+<td><code>RELOAD=&quot;native&quot;</code> or both transports, one reload each; a save prompt is answered <code>no</code></td>
 </tr>
 <tr>
 <td>The device's model and software release, as the change record names them</td>
@@ -241,10 +239,10 @@ operator's own trust store, configuration, or state (all under the
 evidence directory's <code>work/</code> while the run lasts), or a credential on a
 command line or in a file.</p>
 <h2 id="2-before-the-laboratory-the-script-against-the-fake">2. Before the laboratory: the script against the fake <a class="anchor" href="#2-before-the-laboratory-the-script-against-the-fake" aria-label="Link to this section">#</a></h2>
-<pre><code class="language-bash">cd karvi-v0.36.0
+<pre><code class="language-bash">cd karvi-v0.37.0
 sha256sum -c CHECKSUMS.sha256          # the released executables
 make tools-build                       # bin/secret-scan
-FAKE=1 CONFIG_ROW=1 RELOAD=&quot;system scrapligo-v1&quot; scripts/device-qualification.sh
+FAKE=1 CONFIG_ROW=1 RELOAD=&quot;system native&quot; scripts/device-qualification.sh
 </code></pre>
 <p>The last line must end <code>device qualification: pass</code>. Executed
 on the released executable: 71 pass, 10 observe, 2 skip (D5
@@ -267,14 +265,14 @@ DEVICE=c9300-lab ADDRESS=192.0.2.10 \
   scripts/device-qualification.sh
 
 # The reload, alone, on the laboratory unit:
-DEVICE=c9300-lab ADDRESS=192.0.2.10 ROWS=D13 RELOAD=&quot;scrapligo-v1 system&quot; \
+DEVICE=c9300-lab ADDRESS=192.0.2.10 ROWS=D13 RELOAD=&quot;native system&quot; \
   scripts/device-qualification.sh
 </code></pre>
 <p>Each invocation writes a new evidence directory,
 <code>karvi-qualification-DEVICE-UTCSTAMP/</code>, and refuses an existing one.
 <code>ROWS=&quot;D1 D7&quot;</code> runs only the rows named.</p>
 <h2 id="4-the-rows">4. The rows <a class="anchor" href="#4-the-rows" aria-label="Link to this section">#</a></h2>
-<p>Each row runs over <code>system</code> and <code>scrapligo-v1</code>. <code>both</code> means <code>command</code> and
+<p>Each row runs over <code>system</code> and <code>native</code>. <code>both</code> means <code>command</code> and
 <code>run --no-daemon</code> on each transport, four streams compared path by path by
 <code>tools/paritycheck</code> (the matrix's &quot;records equal path by path&quot; row on the
 device).</p>
@@ -515,7 +513,7 @@ the session's raw bytes (<code>script -T timing -m advanced -c 'karvi login DEVI
 <h2 id="5-the-evidence">5. The evidence <a class="anchor" href="#5-the-evidence" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-text">karvi-qualification-c9300-lab-20260921T140000Z/
   identification.txt    date, host, OpenSSH, the executable's SHA-256, `karvi version`
-  version.json          the same, with the ScrapliGo version
+  version.json          the same, as JSON
   device-release.txt    the release line of D1's `show version`
   results.tsv           row, check, disposition (pass, fail, skip, observe), detail
   D1/ ... D14/          per invocation: TAG.out, TAG.err, TAG.exit, TAG.karvi.toml,
@@ -529,8 +527,8 @@ the session's raw bytes (<code>script -T timing -m advanced -c 'karvi login DEVI
                         (the transcript and its .meta.jsonl)
   SHA256SUMS            every file above
 </code></pre>
-<p>Against &quot;Required evidence&quot;: the karvi version and commit, the Go and
-ScrapliGo versions (<code>identification.txt</code>, <code>version.json</code>); the device
+<p>Against &quot;Required evidence&quot;: the karvi version and commit, the Go
+version (<code>identification.txt</code>, <code>version.json</code>); the device
 model and release (<code>device-release.txt</code> and D1's records); the plan
 digest (each <code>manifest.json</code>); sanitized records and debug output
 (the final scan is the sanitization check: a hit fails the run and the
@@ -548,7 +546,7 @@ laboratory.</p>
 a 5 MiB <code>show big</code> at once through one daemon and reads the daemon's
 resident memory from <code>/proc</code>. The measurements and what they show are
 <a href="SCALE.html"><code>docs/SCALE.md</code></a>.</p>
-<pre><code class="language-bash">N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
+<pre><code class="language-bash">N=32 TRANSPORT=native scripts/output-scale-run.sh
 </code></pre>
 <h2 id="7-when-a-row-fails">7. When a row fails <a class="anchor" href="#7-when-a-row-fails" aria-label="Link to this section">#</a></h2>
 <ol>
@@ -685,7 +683,7 @@ k() { karvi --config &quot;$E/work/karvi.toml&quot; &quot;$@&quot;; }
 <tr>
 <td>L2</td>
 <td>exec records, on both transports</td>
-<td><code>command</code> and <code>run --no-daemon</code>, each over <code>system</code> and <code>scrapligo-v1</code>: <code>uname -snrm</code>, <code>echo out; echo err &gt;&amp;2</code>, <code>ls /nonexistent</code>, under <code>--continue-device-on-error</code></td>
+<td><code>command</code> and <code>run --no-daemon</code>, each over <code>system</code> and <code>native</code>: <code>uname -snrm</code>, <code>echo out; echo err &gt;&amp;2</code>, <code>ls /nonexistent</code>, under <code>--continue-device-on-error</code></td>
 <td><code>success</code>, <code>success</code> with <code>out</code> in <code>output</code> and <code>err</code> in <code>stderr</code>, <code>command_exit_nonzero</code> with <code>ls</code>'s message in <code>stderr</code>; exit 107 (<code>command</code>), 101 (<code>run</code>); <code>credential.auth</code> names the method; <code>paritycheck</code> finds the four streams equal; no socket left in <code>$S/sockets</code></td>
 </tr>
 <tr>
@@ -698,7 +696,7 @@ k() { karvi --config &quot;$E/work/karvi.toml&quot; &quot;$@&quot;; }
 <td>L4</td>
 <td>a command given up</td>
 <td>on each transport, <code>sleep 32</code> at the 2 s command timeout, then <code>echo still-usable</code>; then a look for what was left, and its end</td>
-<td><code>command_timeout</code>, then <code>success</code>; <code>remote_command_not_stopped</code> on <code>system</code>'s first record and on no <code>scrapligo-v1</code> record; observed: <code>system</code> leaves <code>sleep 32</code> running (its parent pid 1) and <code>scrapligo-v1</code> leaves nothing</td>
+<td><code>command_timeout</code>, then <code>success</code>; <code>remote_command_not_stopped</code> on <code>system</code>'s first record and on no <code>native</code> record; observed: <code>system</code> leaves <code>sleep 32</code> running (its parent pid 1) and <code>native</code> leaves nothing</td>
 </tr>
 <tr>
 <td>L5</td>
@@ -759,7 +757,7 @@ diff L/L5.1/&quot;$SERVER&quot; L/L5.2/&quot;$SERVER&quot; &gt;L/L5.diff12; diff
 k command &quot;$SERVER-shell&quot; &quot;$@&quot; &gt;L/L6.out 2&gt;L/L6.err; echo $? &gt;L/L6.exit
 rmdir &quot;$S/sockets&quot; &quot;$S/tmp&quot; &quot;$S&quot;
 </code></pre>
-<p>Read each row's files against the table and write its line, for example <code>L2 exec-records  pass  parity: 3 records equal in 4 streams</code>, <code>L4 given-up  pass  system left 1 (ppid 1), scrapligo-v1 none</code>. A row that fails
+<p>Read each row's files against the table and write its line, for example <code>L2 exec-records  pass  parity: 3 records equal in 4 streams</code>, <code>L4 given-up  pass  system left 1 (ppid 1), native none</code>. A row that fails
 keeps its files, as section 7 says; a server that ends the rows with an
 <code>authentication_failed</code> or a <code>host_key_*</code> code is read in
 <a href="COMMAND-TROUBLESHOOTING.html"><code>docs/COMMAND-TROUBLESHOOTING.md</code></a> before
@@ -778,7 +776,7 @@ evidence in clear, as for a device; the collection holds the server's
 addresses, routes, and enabled units. The network operations and security
 owners review the directory before it leaves the host.</p>
 
-<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/DEVICE-QUALIFICATION-RUNBOOK.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

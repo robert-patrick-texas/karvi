@@ -74,9 +74,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -152,9 +151,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -933,7 +931,7 @@ server or many, first match winning); or a key and a password, offered as the
 server asks, the key first and the password on partial success. A key is a
 reference to its file, never its bytes: the plan, the credential package, and
 the records carry its path and its SHA-256 fingerprint, the process that
-connects (<code>ssh</code>, or the native adapter, both the operator's) reads the file at
+connects (<code>ssh</code>, or the native transport, both the operator's) reads the file at
 the connection, and a <code>keyfile</code> passes the credential file checks (the owner,
 <code>0600</code>, no symlink). A key protected by a passphrase is skipped with a notice,
 never prompted for and never offered to the askpass helper; passphrases are
@@ -974,7 +972,7 @@ client for <code>command</code>) reads the files as they are then, compared with
 the system transport's managed configuration sets <code>PubkeyAuthentication yes</code>,
 <code>IdentitiesOnly yes</code>, <code>IdentityAgent none</code>, and one <code>IdentityFile</code> per key, with
 password and keyboard-interactive off when the credential has no password; the
-native adapter offers the keys as signers, the password methods only beside a
+native transport offers the keys as signers, the password methods only beside a
 password. Both transports try the methods in one order, <code>publickey</code>,
 <code>keyboard-interactive</code>, then <code>password</code>, the last two answered with the
 password, since some servers allow keyboard-interactive and refuse password
@@ -984,7 +982,7 @@ credential projection names the method that authenticated, <code>auth</code> (<c
 authenticated), and every <code>&lt;kind&gt;.command</code> audit event names it beside the
 device username and the credential backend: the system transport runs its
 command sessions at <code>LogLevel VERBOSE</code> and takes OpenSSH's <code>Authenticated to … using &quot;M&quot;.</code> line from the stderr it already reads, keeping it from the
-diagnostics, and the native adapter notes the last of its callbacks x/crypto
+diagnostics, and the native transport notes the last of its callbacks x/crypto
 called before succeeding. <code>login</code> stays at <code>ERROR</code>, its stderr being the
 operator's terminal, and names no method. Which key authenticated is not
 recorded; OpenSSH's <code>DEBUG1</code> lines on the same stderr would name it, a later
@@ -1049,8 +1047,8 @@ to be kept equal.</p>
 the whole device session once (first prompt, privilege, paging, session-init,
 command execution, failure detection, output normalisation, close) over a
 <code>Stream</code> of <code>Read</code>, <code>Write</code>, <code>Close</code>, and <code>Abort</code>. The system transport
-supplies the stream from an <code>ssh -tt</code> process's pipes; scrapligo-v1 supplies it
-from karvi's own SSH connection behind scrapligo's transport wrapper. Each
+supplies the stream from an <code>ssh -tt</code> process's pipes; the native transport
+supplies it from karvi's own SSH connection. Each
 command is written once and read until the prompt; the two transports' records
 differ only in <code>transport</code>, timings, and identifiers, and a parity suite runs
 every case as four combinations (<code>command</code> and <code>run</code> over both) and compares
@@ -1070,7 +1068,7 @@ command.</strong> A device whose <code>channel</code> is <code>exec</code> gets 
 command list, as a shell device does; each command is one exec channel on it, in
 order, without a pty and with standard input at its end, and the connection
 closes when the device's commands end: no <code>ControlPersist</code>, no reuse across
-jobs. On <code>scrapligo-v1</code> the channel is a session on karvi's connection, and
+jobs. On <code>native</code> the channel is a session on karvi's connection, and
 x/crypto's exit error gives the status and the signal's name; a channel closed
 without either is <code>command_exit_missing</code> only when the connection answers a
 keepalive request within 5 seconds, and a lost connection keeps the session's
@@ -1099,7 +1097,7 @@ own 255 and <code>exit-signal</code> a signal (<code>exit_signal</code> <code>un
 none); with neither, a master that still answers <code>-O check</code> is
 <code>command_exit_missing</code>, unless it wrote <code>chan_read_failed for istate 3</code>, its
 sign of a refused exec request (<code>ssh_session_channel_refused</code>, the session
-ending, as on <code>scrapligo-v1</code>), and a master gone is the session's failure, its
+ending, as on <code>native</code>), and a master gone is the session's failure, its
 code from the diagnostics. The shell keeps <code>ControlMaster no</code>. <em>Why:</em> a fresh
 <code>ssh</code> per command took ten times as long as a master and authenticated once per
 command; a channel at a time never meets <code>MaxSessions</code>, and the ledger counts
@@ -1115,13 +1113,13 @@ request reaches neither the client's stderr nor the master's lines in its own
 words (the <code>exec request failed</code> text is queued to the client and lost with the
 channel), and without the one sign the case is <code>command_exit_missing</code>. <em>Not
 taken:</em> a fresh <code>ssh</code> per command; masters kept across jobs; exec on
-<code>scrapligo-v1</code> alone (the operator's framing names the control path, and the
+<code>native</code> alone (the operator's framing names the control path, and the
 parity run needs both transports); the <code>%C</code> name; <code>-E</code> files for the master and
 the clients; the master at <code>VERBOSE</code>; a refused exec request always
 <code>command_exit_missing</code>.</p>
 <p><strong>An exec command keeps the session's bounds, not its shell.</strong> There is no first
 prompt: the session is ready when the connection has authenticated
-(<code>scrapligo-v1</code>) or the master answers <code>-O check</code> (<code>system</code>), within
+(<code>native</code>) or the master answers <code>-O check</code> (<code>system</code>), within
 <code>ssh.connect-timeout</code> and <code>execution.prompt-timeout</code>, the bound a shell's login
 has. No privilege step, paging command, or exit command is sent, an operator's
 exec alias of a network driver included. A session-init profile runs, each
@@ -1132,13 +1130,13 @@ sends, <code>\r</code> endings, <code>--blind-return</code>, and <code>--expect<
 for an exec target, naming the target and the command's index
 (<code>channel_exec_declaration_refused</code>, a usage error, the client's and the
 daemon's plan check alike); <code>--literal</code> is accepted. <code>execution.command-timeout</code>
-runs from the channel's opening to its exit status; at expiry <code>scrapligo-v1</code>
+runs from the channel's opening to its exit status; at expiry <code>native</code>
 asks for <code>KILL</code> and closes the channel, and <code>system</code>, whose client cannot send a
 signal, kills the client and records the notice <code>remote_command_not_stopped</code>. A
 command timeout falls under the device-error policy, the connection being
 usable: the rest stop unless <code>--continue-device-on-error</code>.
 <code>execution.device-timeout</code>, the keepalives, and a cancel are as for the shell
-(<code>scrapligo-v1</code> asking for <code>KILL</code> on the channel in flight);
+(<code>native</code> asking for <code>KILL</code> on the channel in flight);
 <code>execution.blind-wait</code> is not used. The output limit counts stdout and stderr
 together, and each stream is spooled past the threshold on its own; at the limit
 the command is stopped as at a timeout, the record is <code>output_limit_exceeded</code>
@@ -1268,15 +1266,23 @@ deadline growing by a declared excess; refusing a list whose timeouts sum past
 the device ceiling; a declared limit raising the job limit; <code>--maxbytes</code> above 1
 GiB before the record holds output of several GiB; a record field for the
 bounds; one list of objects in the plan.</p>
-<p><strong>scrapligo-v1 runs on karvi's own SSH connection.</strong> The adapter supplies
-scrapligo with a custom transport: an x/crypto dial with karvi's host-key
-callback, a PTY and shell, the password read inside the authentication
-callbacks at authentication time. No subprocess, no <code>ssh-keyscan</code>, one TCP
-connection per open. <em>Why:</em> scrapligo's standard transport checks a known-hosts
-file strictly or not at all and cannot enroll a first-seen key; the earlier
-pre-scan made every open six connections.</p>
-<p><strong>Platform admission is a table per native implementation; every built-in is
-admitted.</strong> Each native registration lists what it admits by the definition's
+<p><strong>The native transport is karvi's own SSH connection.</strong> An x/crypto dial with
+karvi's host-key callback, a PTY and shell, the password read inside the
+authentication callbacks at authentication time. No subprocess, no
+<code>ssh-keyscan</code>, one TCP connection per open, and no SSH library beyond x/crypto.
+<code>native</code> and <code>telnet</code> are selected by name; an <code>ssh.transports</code> slot maps a
+name to an executable (<code>system</code>'s path, another slot's <code>exec:PATH</code>) and
+nothing else. <em>Why:</em> scrapligo's standard transport checks a known-hosts file
+strictly or not at all and cannot enroll a first-seen key; the earlier pre-scan
+made every open six connections; and once karvi's connection was all
+scrapligo-v1 carried, its wrapper passed each read, write, and close through and
+moved with every scrapligo release (<a href="EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+82</a>). <em>Not
+taken:</em> a new implementation ID such as <code>karvi-v1</code>; <code>ssh.transports.native</code> kept
+with one legal value; a ScrapliGo v2 behind <code>native</code>, which would be a transport
+with its own selector.</p>
+<p><strong>Platform admission is the native transport's table; every built-in is
+admitted.</strong> The native transport lists what it admits by the definition's
 base driver, never a table's label; a platform not admitted is
 <code>native_platform_not_qualified</code> before any connection. <em>Why:</em> the table shape
 serves a later connector with its own admission list; with every built-in's
@@ -1307,7 +1313,7 @@ and a <code>linux_shell</code> row over the shell persona. A difference by desig
 pinned, not excluded: <code>tools/paritycheck -pin</code> names a record, a path and
 everything under it, and the value each transport must hold there, checked in
 every stream and left out of the comparison across them; the exec cases pin
-<code>exit_signal</code> (<code>TERM</code> on <code>scrapligo-v1</code>, <code>unnamed</code> on <code>system</code>) with its
+<code>exit_signal</code> (<code>TERM</code> on <code>native</code>, <code>unnamed</code> on <code>system</code>) with its
 message, and <code>remote_command_not_stopped</code> on a command <code>system</code> gave up. The
 suites never reach the host's <code>sshd</code>; a server's evidence is each build
 section's run against a real OpenSSH and the qualification runbook's rows for a
@@ -1414,14 +1420,28 @@ candidate too long for the askpass socket, present or not; a refusal is
 configuration the invocation loads, which its job runs under on every path; a
 running daemon keeps only its own sockets, state, and log under the <code>basedir</code> it
 started with, and swept its places at its start. The view takes several keys,
-and the whole table is a recipe over it (<a href="FILES.html"><code>docs/FILES.md</code></a>). A
-controlled enrollment takes the store's path from the line. <em>Why:</em> under <code>auto</code>
-a place depends on what the host holds, and the view printed none but two, so
-the two modes looked alike and a literal default named a place the activity did
-not use. <em>Not taken:</em> a new command word or option for paths; the rule repeated
-in shell in each site's scripts; a probe file written by the view (it moves the
-shared trees' times); <code>--explain</code> asking a running daemon; <code>sharedroot</code> and
-<code>crun.after</code> (no one place, not a place).</p>
+each checked before any is printed: a name that is no key is refused as <code>--set</code>
+refuses it (<code>config_unknown_key</code>), and a key a table could hold that the
+configuration does not set is <code>config_key_unset</code>, both exit 2. <code>--format</code>
+encodes the full view alone, the values as TOML lines or a JSON object; beside
+keys or <code>--explain</code>, whose view is text, it is refused,
+<code>config_show_format_conflict</code>. The whole table is a recipe over it
+(<a href="FILES.html"><code>docs/FILES.md</code></a>). A controlled enrollment takes the store's path
+from the line. <em>Why:</em> under <code>auto</code> a place depends on what the host holds, and
+the view printed none but two, so the two modes looked alike and a literal
+default named a place the activity did not use; a key the view could not show
+was an <code>error: not found</code> block, exit 0, so a script took a misspelt key for one
+shown (<a href="EXAMPLES.html#83-config-show-refuses-a-key-it-cannot-show-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+83</a>), and
+<code>--format json</code> beside a key printed text a JSON reader could not read
+(<a href="EXAMPLES.html#84-config-show-refuses---format-beside-keys-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+84</a>). <em>Not
+taken:</em> a new command word or option for paths; the rule repeated in shell in
+each site's scripts; a probe file written by the view (it moves the shared
+trees' times); <code>--explain</code> asking a running daemon; <code>sharedroot</code> and
+<code>crun.after</code> (no one place, not a place); an unset key shown as <code>value: null</code>;
+the keys before a refused one printed first; a JSON form of the keys' view, a
+new contract for readers that take two lines with <code>sed</code>.</p>
 <p><strong>The host-key identity is the canonical name and, off port 22, the port.</strong>
 Both transports enroll and look up <code>name</code> on port 22 and <code>[name]:PORT</code>
 elsewhere; the address is not part of it. <em>Why:</em> different ports on one host
@@ -2002,6 +2022,27 @@ manager; the daemon knowing its unit from <code>INVOCATION_ID</code> and its cgr
 client's setting says it); <code>daemon.launch</code> a boolean (<code>false</code> says what a
 client does not do, not who does); the template edited at the bundle's install
 (a unit other than the release's); the bundle's commands left by hand.</p>
+<p><strong>The package's update is <code>karvi-sysutil package update</code>.</strong> Run as root, it
+reads the latest release from the redirect of <code>releases/latest</code> to its tag,
+compares it with the installed package by <code>dpkg --compare-versions</code>, and when
+it is newer fetches the package and its <code>.sha256</code> with curl, checks the one
+against the other, and installs it with <code>apt-get</code>; <code>--check</code> only reports.
+<code>--proxy URL</code> and <code>-k</code> are curl's, <code>-k</code> for GitHub's certificate and the
+proxy's, for a site whose proxy inspects TLS. It is refused without curl,
+beside a bundle install, and without the package, and it restarts no daemon:
+each running instance of the template is named for the administrator's
+restart. <em>Why:</em> each release already publishes the package and its checksum,
+and one command replaces section 10 of <code>BUILD-HOWTO.md</code> by hand; a bundle
+install runs before the package's, which an update would leave behind it; a
+restart cancels what outlasts the grace, at a moment that is the
+administrator's. The checksum proves the download whole, not its origin: under
+<code>-k</code> a proxy, or anything answering for github.com, can serve a package with
+its own checksum, which the release's signature (a ROADMAP item) is to close.
+<em>Not taken:</em> the GitHub API (JSON, and a rate limit) for the redirect; a
+signed apt repository on gh-pages (the hosting, a key in apt's keyring, the
+pruning, and the restart still outside apt); curl as a dependency (the
+refusal names it); a downgrade (an earlier package by hand); the instances
+restarted after the install.</p>
 <h2 id="9-dispatch-and-the-icmp-gate">9. Dispatch and the ICMP gate <a class="anchor" href="#9-dispatch-and-the-icmp-gate" aria-label="Link to this section">#</a></h2>
 <p><strong>Dispatch is <code>serial</code>, <code>parallel</code>, or <code>wave</code>, bounded by a shared cap.</strong>
 <code>serial</code> runs one device at a time (the default), <code>parallel</code> a fixed width,
@@ -3151,12 +3192,11 @@ counter below 100 until 1.0, when every counter resets to 100; <code>karvi versi
 reports them all. <em>Why:</em> released daemons are identified by IPC schema, so
 reusing a low number would collide with a released protocol.</p>
 <h2 id="16-build-verification-and-release">16. Build, verification, and release <a class="anchor" href="#16-build-verification-and-release" aria-label="Link to this section">#</a></h2>
-<p><strong>One shape of the source, one build, vendored.</strong> The scrapligo-v1 adapter is
+<p><strong>One shape of the source, one build, vendored.</strong> The native transport is
 compiled into every executable with no build tag; <code>vendor/</code> is part of the
 tree so a build host needs no network; <code>make build</code> from the vendored tree is
-the release. A native slot naming an unregistered implementation fails closed.
-<em>Why:</em> a tag-gated preview shape rotted unless something compiled it and once
-shipped the wrong executable.</p>
+the release. <em>Why:</em> a tag-gated preview shape rotted unless something compiled
+it and once shipped the wrong executable.</p>
 <p><strong>Verification runs the battery once per bytes.</strong> The release verifier builds
 from source and runs the tests, the race detector, and every suite; the bundle
 verifier checks the shipped executables as bytes (checksums, counters,
@@ -3275,16 +3315,14 @@ the help's own line classes (<code>internal/helplayout</code>: a heading as a su
 an entry as a tagged paragraph with its option words in bold and its
 description refilled, a prose run as a paragraph), the words byte for byte and
 the line breaks groff's. The top help's title line is NAME's, written by hand,
-as is everything outside the two regions. Build-dependent help text (<code>run</code>'s
-native adapter status) is the page's as it is the help's, regenerated with it.
-<em>Why:</em> six of the twelve help texts (config, daemon, job, setup, version,
-watch) have no option entries and carry their options in the Usage lines and
-the prose, and the others hold rules in prose between their entries (the GLOB
-syntax, the <code>\r</code> rule), so the help is the unit, not its entries; one
-classifier serves the terminal and the page, so they cannot read a line
-differently. <em>Not taken:</em> an OPTIONS region from the entries alone (empty on
-six pages, the prose rules lost); generating the whole page; a hand-written
-DESCRIPTION with OPTIONS generated on the pages with entries alone.</p>
+as is everything outside the two regions. <em>Why:</em> six of the twelve help texts
+(config, daemon, job, setup, version, watch) have no option entries and carry
+their options in the Usage lines and the prose, and the others hold rules in
+prose between their entries (the GLOB syntax, the <code>\r</code> rule), so the help is the
+unit, not its entries; one classifier serves the terminal and the page, so they
+cannot read a line differently. <em>Not taken:</em> an OPTIONS region from the entries
+alone (empty on six pages, the prose rules lost); generating the whole page; a
+hand-written DESCRIPTION with OPTIONS generated on the pages with entries alone.</p>
 <p><strong>The generator reaches the help through one accessor and one renderer.</strong>
 <code>internal/cli</code> exports <code>HelpPages()</code>, the parser table's help texts in its order
 as <code>{Word, Text}</code>: the top help first (Word empty), then each visible top-level
@@ -3467,7 +3505,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

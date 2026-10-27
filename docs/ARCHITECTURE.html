@@ -67,9 +67,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -138,9 +137,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -376,33 +374,26 @@ end -&gt; discard pending separator, or emit it when last-border=true
 <code>--noborder</code> disables both static and dynamic forms. Device output and echoed
 prompt/command text are never cropped.</p>
 <h2 id="transport-composition">Transport composition <a class="anchor" href="#transport-composition" aria-label="Link to this section">#</a></h2>
-<p><code>internal/transportselect</code> resolves CLI/inventory override, mode setting, mode
-default, named slot, and concrete adapter. The executor sees only a
-<code>platform.Driver</code>. <code>internal/transport/native</code> is keyed by stable implementation
-IDs; build-tagged providers register adapters. <code>internal/buildinfo</code> separately
-reports the exact transport composition of the executable.</p>
-<p>Only <code>internal/adapters/scrapligov1</code> imports ScrapliGo. The source admission
-gate currently allows canonical <code>cisco_iosxe</code>; compilation does not constitute
-platform qualification.</p>
+<p><code>internal/transportselect</code> resolves CLI/inventory override, mode setting, and
+mode default to a transport: <code>native</code> or <code>telnet</code>, compiled in, or a named
+slot's executable. The executor sees only a <code>platform.Driver</code>.
+<code>internal/buildinfo</code> separately reports the executable's SSH transports.</p>
+<p>The native transport admits every built-in platform; admission does not
+constitute platform qualification.</p>
 <h3 id="one-shape-of-the-source">One shape of the source <a class="anchor" href="#one-shape-of-the-source" aria-label="Link to this section">#</a></h3>
-<p>Every build carries the scrapligo-v1 adapter: the provider file in
-<code>internal/transport/native</code> registers it at init, <code>internal/buildinfo</code>
-reports it, and <code>command</code> and <code>run</code> resolve their <code>native</code> default to it.
-Earlier a build tag, <code>scrapligo_v1</code>, selected between this shape and a
-dependency-free one (<code>build/go.preview.mod</code>) whose executable reported only
-<code>system</code>; releases through v0.11.0 shipped that preview, v0.12.0 shipped
-the native executable with the tag still in place, and the tag and the
-module were then removed.</p>
-<p>What the second shape had been kept for was the adapter boundary: if the
-rest of the source compiled with no dependency present, nothing outside the
-adapter had come to depend on ScrapliGo. That proof now rests on
-<code>scripts/verify-release.sh</code> alone, which fails on any import of
-<code>github.com/scrapli/scrapligo</code> outside <code>internal/adapters/scrapligov1</code>. The
-registry keyed by implementation ID stays, as the place a later adapter
-registers, and with it the fail-closed path: a native slot naming an
-implementation without a registered provider is
-<code>native_transport_unavailable</code> and never falls back to OpenSSH
-(<code>TestUnregisteredNativeImplementationFailsClosed</code>).</p>
+<p>Every build carries the native transport: <code>internal/transport/native</code> is
+karvi's own <code>x/crypto/ssh</code> connection, <code>internal/buildinfo</code> lists it, and
+<code>command</code> and <code>run</code> resolve their default to it. Earlier a build tag,
+<code>scrapligo_v1</code>, selected between this shape and a dependency-free one
+(<code>build/go.preview.mod</code>) whose executable reported only <code>system</code>; releases
+through v0.11.0 shipped that preview, v0.12.0 shipped the native executable
+with the tag still in place, and the tag and the preview module were then
+removed. Through v0.36.0 the connection passed through scrapligo's transport
+wrapper, behind an import boundary <code>scripts/verify-release.sh</code> checked; the
+wrapper, the module, the boundary, and the registry keyed by implementation
+ID then went (<a href="EXAMPLES.html#82-the-native-transport-without-scrapligo-2026-10-27"><code>docs/EXAMPLES.md</code>, chapter
+82</a>). A
+device that selects <code>native</code> never falls back to OpenSSH.</p>
 <h2 id="daemon-and-storage">Daemon and storage <a class="anchor" href="#daemon-and-storage" aria-label="Link to this section">#</a></h2>
 <p>The daemon is per effective UID, uses two owner-only Unix sockets in the
 <code>socket</code> subtree, and checks peer credentials on both. IPC schema 12 carries
@@ -856,7 +847,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

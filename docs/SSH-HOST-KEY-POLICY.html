@@ -68,9 +68,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -140,9 +139,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -155,8 +153,8 @@
 <main>
 <h1 id="ssh-host-key-policy">SSH host-key policy <a class="anchor" href="#ssh-host-key-policy" aria-label="Link to this section">#</a></h1>
 <p>karvi retains one host-key policy and one karvi-owned trust store for <code>login</code>,
-<code>command</code>, and <code>run</code>, independent of whether the implementation is system
-OpenSSH or a configured native adapter. Transport selection is documented in
+<code>command</code>, and <code>run</code>, whichever transport carries the session, system OpenSSH
+or the native transport. Transport selection is documented in
 <a href="SSH-TRANSPORTS.html"><code>SSH-TRANSPORTS.md</code></a>.</p>
 <h2 id="configuration">Configuration <a class="anchor" href="#configuration" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-toml">[ssh]
@@ -179,7 +177,7 @@ store.</li>
 UserKnownHostsFile &quot;&lt;karvi-known-hosts&gt;&quot;
 GlobalKnownHostsFile &quot;/dev/null&quot;
 </code></pre>
-<p>On <code>scrapligo-v1</code>, karvi's callback in the SSH handshake reads the same
+<p>On <code>native</code>, karvi's callback in the SSH handshake reads the same
 file: a key found under the device's identity must match; an unknown device
 is enrolled as one line under the file lock (re-read while locked, so two
 concurrent connections enrol once). No <code>ssh-keyscan</code> runs.</p>
@@ -190,7 +188,7 @@ the target colour and the rest in the warning colour:</p>
 </code></pre>
 <p>The device's first record carries the notice <code>host_key_enrolled</code> with the key
 type, and its <code>&lt;kind&gt;.command</code> audit event <code>details.host_key_enrolled</code>.
-<code>scrapligo-v1</code> says it when its own enrollment wrote the line; over <code>system</code>
+<code>native</code> says it when its own enrollment wrote the line; over <code>system</code>
 karvi takes OpenSSH's <code>Warning: Permanently added …</code> line from the standard
 error of the exec master and the command session. A job that finds the key
 stored meanwhile by another says nothing. A login runs OpenSSH at <code>LogLevel ERROR</code>, where it says nothing of the key (nor shows a device's banner), so karvi
@@ -203,7 +201,7 @@ other stored.</p>
 <h3 id="secure"><code>secure</code> <a class="anchor" href="#secure" aria-label="Link to this section">#</a></h3>
 <p>A matching key must already exist. Unknown keys fail as
 <code>host_key_not_enrolled</code>; mismatches fail as <code>host_key_changed</code>.</p>
-<p>System OpenSSH receives <code>StrictHostKeyChecking yes</code>. On <code>scrapligo-v1</code> the
+<p>System OpenSSH receives <code>StrictHostKeyChecking yes</code>. On <code>native</code> the
 handshake callback refuses an unknown device as <code>host_key_not_enrolled</code> and
 a changed key as <code>host_key_changed</code>; the connection is closed before
 authentication. A missing trust store is <code>host_key_not_enrolled</code> before any
@@ -229,7 +227,7 @@ connection, no usable key) the session goes on uncompared, and the first
 record carries <code>host_key_not_compared</code> with a short cause and the whole
 reason, shown as <code>! ssh host-key DEVICE not compared: CAUSE</code>, one of
 <code>ssh-keyscan not installed</code>, <code>ssh-keyscan timed out</code>, <code>ssh-keyscan failed</code>,
-<code>no usable key</code>, <code>trust store unreadable</code>. On <code>scrapligo-v1</code>
+<code>no usable key</code>, <code>trust store unreadable</code>. On <code>native</code>
 the handshake callback accepts the key and compares it to the enrolled one
 itself.</p>
 <p>This mode permits machine-in-the-middle impersonation and should be locked out
@@ -258,7 +256,7 @@ under its address:</p>
 <p>Another port on the same host may be another SSH server with another key,
 so the port is part of the identity. The system transport passes the
 identity to OpenSSH as <code>HostKeyAlias</code>, so OpenSSH neither looks up nor
-writes the address; <code>scrapligo-v1</code> looks up only the identity. A line
+writes the address; <code>native</code> looks up only the identity. A line
 <code>accept-new</code> writes reads</p>
 <pre><code class="language-text">[router1]:2222 ssh-ed25519 AAAA... karvi-auto-enrolled
 </code></pre>
@@ -452,7 +450,7 @@ STORE=$(karvi config show --explain ssh.known-hosts-file | sed -n 's/^resolved: 
 stat -c '%U %a %n' &quot;$(dirname &quot;$STORE&quot;)&quot; &quot;$STORE&quot;
 </code></pre>
 
-<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>docs/SSH-HOST-KEY-POLICY.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

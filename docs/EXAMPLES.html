@@ -125,6 +125,11 @@
 <li><a href="#77-the-release-0350-2026-10-21">77. The release 0.35.0 (2026-10-21)</a></li>
 <li><a href="#78-the-live-view---live-2026-10-25">78. The live view, --live (2026-10-25)</a></li>
 <li><a href="#79-a-command-file-per-target-2026-10-25">79. A command file per target (2026-10-25)</a></li>
+<li><a href="#80-the-release-0360-2026-10-26">80. The release 0.36.0 (2026-10-26)</a></li>
+<li><a href="#81-the-package-update-karvi-sysutil-package-update-2026-10-27">81. The package update, karvi-sysutil package update (2026-10-27)</a></li>
+<li><a href="#82-the-native-transport-without-scrapligo-2026-10-27">82. The native transport without scrapligo (2026-10-27)</a></li>
+<li><a href="#83-config-show-refuses-a-key-it-cannot-show-2026-10-27">83. config show refuses a key it cannot show (2026-10-27)</a></li>
+<li><a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84. config show refuses --format beside keys (2026-10-27)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -136,9 +141,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -265,6 +269,11 @@
 <li><a href="#77-the-release-0350-2026-10-21">77. The release 0.35.0 (2026-10-21)</a></li>
 <li><a href="#78-the-live-view---live-2026-10-25">78. The live view, --live (2026-10-25)</a></li>
 <li><a href="#79-a-command-file-per-target-2026-10-25">79. A command file per target (2026-10-25)</a></li>
+<li><a href="#80-the-release-0360-2026-10-26">80. The release 0.36.0 (2026-10-26)</a></li>
+<li><a href="#81-the-package-update-karvi-sysutil-package-update-2026-10-27">81. The package update, karvi-sysutil package update (2026-10-27)</a></li>
+<li><a href="#82-the-native-transport-without-scrapligo-2026-10-27">82. The native transport without scrapligo (2026-10-27)</a></li>
+<li><a href="#83-config-show-refuses-a-key-it-cannot-show-2026-10-27">83. config show refuses a key it cannot show (2026-10-27)</a></li>
+<li><a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84. config show refuses --format beside keys (2026-10-27)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -276,9 +285,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="../release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -17169,8 +17177,858 @@ lab scripts with their logs and exits, the suites' logs, the three batteries'
 logs (<code>battery-1</code>, <code>battery-2</code>, and the last beside them, <code>battery.sh</code>), and the
 gaps as agreed, <code>decisions.md</code>). ROADMAP's Next item 1 is now the shorter output
 strings.</p>
+<h2 id="80-the-release-0360-2026-10-26">80. The release 0.36.0 (2026-10-26) <a class="anchor" href="#80-the-release-0360-2026-10-26" aria-label="Link to this section">#</a></h2>
+<p>The seventeenth public release, 0.36.0, on the operator's word and number,
+carrying <a href="#78-the-live-view---live-2026-10-25">chapter 78</a> (<code>--live</code>) and
+<a href="#79-a-command-file-per-target-2026-10-25">chapter 79</a> (a command file per
+target, <code>--cf DIR</code>, and the order of a run's commands), with <code>--echo</code> at the
+prompt a statement was sent at. A minor release: execution plan 15, plan
+report 4, and scoreboard 5 move, and a run's commands change order (the
+CHANGELOG's Breaking entries). The daemon IPC schema stays 12, so the
+compatibility example is the drain, beside the released 0.35.0 daemon. Before
+the baseline, <code>latest.sh</code> found scrapligo v1.4.2 behind v1.4.3, and the module
+moved first, on the operator's word. The sequence is <a href="#75-the-release-0341-2026-10-20">chapter
+75</a>'s as <a href="#77-the-release-0350-2026-10-21">chapter
+77</a> ran it. It stopped once, before the
+baseline, on Docker's bridge, which the operator restarted. The operator gave
+the word to publish at the start, so the build went on from the package's
+install check to the push.</p>
+<p><strong>What it gains.</strong> A site has chapters 78 and 79 from a published,
+checksummed bundle and package, with the documents on GitHub Pages at the
+release: a list per device from one folder, a run's commands in the order
+written with <code>--cf</code> repeated, and a session followed as it comes. The native
+transport is built on scrapligo's newest v1, as chapter 75's rule asks.</p>
+<p><strong>Before the number.</strong> The archive's mirror held <code>4a187f7</code>, <code>dev</code> as the
+session found it. The bridge probe failed: a container on Docker's default
+network reached none of the three addresses, where the host reached each. The
+host had restarted on 2026-10-22, and Docker with it, as in chapter 73. The
+module move went on meanwhile, needing no container, and the probe failed
+again after it. The operator restarted Docker, and the probe reached every
+address (the <code>#</code> lines are labels):</p>
+<pre><code class="language-text"># before Docker's restart
+8.8.8.8/53 not reached
+1.1.1.1/443 not reached
+91.189.91.82/80 not reached
+# after Docker's restart
+8.8.8.8/53 reached
+1.1.1.1/443 reached
+91.189.91.82/80 reached
+</code></pre>
+<p><strong>The module move.</strong> <code>latest.sh</code> on the tree at <code>4a187f7</code> (its own lines,
+four rows of modules at their newest left out):</p>
+<pre><code class="language-text">== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 7 modules /home/netops/karvi/karvi/go.mod requires
+github.com/scrapli/scrapligo     v1.4.2                                 behind
+                                 v1.4.3                                 newest
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+latest: 1 behind; move each to its newest, with its CHANGELOG entry, and run the baseline again
+</code></pre>
+<p>By <code>GOFLAGS=-mod=mod go get github.com/scrapli/scrapligo@v1.4.3</code>, <code>go mod tidy</code>, <code>go mod vendor</code>, and <code>go mod verify</code> (<code>633c82d</code>). The vendored tree
+changed in one file, the NETCONF driver's <code>sendClientCapabilities</code>: under
+NETCONF 1.1 the hello is written without its trailing return, which a strict
+server reads as a doubled line feed before the first chunk. karvi links the
+package, through scrapligo's driver options, and never runs it; nothing the
+native transport sends or reads changes. The native suite passed on a lab
+build of the move.</p>
+<p><strong>The version's spellings.</strong> The release verifier pins the module three
+times: <code>vendor/modules.txt</code>, the executable's module metadata, and <code>karvi --version</code>'s <code>scrapligo: 1.4.2</code>; the shipped verifier pins the last. A move of
+the module alone would have failed the baseline. The version is spelled by
+hand in the transport's build information, which <code>karvi version</code> reports, the
+help's transport status and the man pages generated from it, the v0.6.0
+suite, and five documents. The move carried every living spelling to 1.4.3,
+and ROADMAP's v2 item now says karvi stays on v1, with no patch number to go
+stale. <code>scrapligov1.Version</code>, the adapter's own copy, had no reader and was
+removed. History keeps its versions: the CHANGELOG's earlier blocks and the
+chapters above. The battery passed on the move: vet, generated-clean, <code>go test -count=1 ./...</code> (72 packages), and the nineteen suites in 235 seconds.</p>
+<p><strong>Not taken.</strong> Reading the version from the executable's own module metadata
+(<code>runtime/debug.ReadBuildInfo</code>) in place of the spellings: a change to how
+<code>karvi version</code> reports a transport, a design gap the release did not open.</p>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.36.0 - 2026-10-26</code> under a
+lead paragraph: a minor release on 0.35.0, the three counters that move and
+every other 0.35.0's, scrapligo v1.4.3, Go 0.35.0's, and what a site changes
+where a script reads <code>command_plan_digest</code>, the plan's <code>commands_file</code>, or the
+scoreboard's <code>commands.file</code>, counts on every <code>--cmd</code> going before a <code>--cf</code>
+file's lines, writes a declaration after a <code>--cf</code>, abbreviates <code>--literal</code> as
+<code>--li</code>, or looks for the two retired codes. The retired codes' release,
+<code>retiredV0360</code>, is the number, so nothing was renamed. <code>CHECKSUMS.sha256</code> has
+its four lines from the release-identity build.</p>
+<p><strong>The sequence, as run</strong>, from the first probe at 12:26 to the published
+check at 14:03 (UTC; 08:26 to 10:03, EDT):</p>
+<ul>
+<li>12:26:51, the archive's mirror at <code>4a187f7</code>; the bridge probe failed,
+reported to the operator.</li>
+<li>12:27:16 to 12:39:46, the module move, its spellings, the native suite, and
+the battery; 12:39:58, <code>633c82d</code>.</li>
+<li>12:40:29, the archive's mirror fetched to <code>633c82d</code>; <code>latest.sh</code> exit 0; the
+probe failed again. The stop for the operator.</li>
+<li>13:30:47, Docker restarted by the operator; the probe passed.</li>
+<li>13:30:54 to 13:39:56, the baseline on a clean clone of <code>633c82d</code>:
+<code>latest.sh</code>, gofmt, make, and the release verifier with its package and
+container steps, exit 0 each.</li>
+<li>13:40:16 to 13:41:08, the release-identity build, the compatibility
+example, and 1/3: the build <code>kXY4cc6JRtLekvXNL0My</code> by go1.27.3; the 0.35.0
+daemon drained idle, refusing busy; <code>03e0348</code>.</li>
+<li>13:41:14 to 13:43:19, the core evidence: 1,105 named tests across 92
+packages, vet 0, both socket lengths exit 0, with 3.9 GB free in <code>/tmp</code>.</li>
+<li>13:44:59, the documents: <code>0ffde3f</code> (2/3).</li>
+<li>13:45:03 to 13:53:33, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>13:53:52, 3/3, the tag, <code>main</code>: <code>c26a320</code>, <code>karvi-v0.36.0</code>, <code>main</code>
+fast-forwarded from <code>f444ee5</code>.</li>
+<li>13:53:58 to 14:00:15, the artifacts: the bundle reproducible byte for byte
+and verified from its own archive; the package reproducible and checked
+against the extraction; 39,846,090 and 6,538,086 bytes.</li>
+<li>14:00:28 to 14:00:42, the package installed in a throwaway <code>ubuntu:26.04</code>:
+<code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>.</li>
+<li>14:00:59 to 14:03, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>be1c1ae</code>), built,
+its 52 files 200 and its footer <code>karvi-v0.36.0</code>; release <code>karvi-v0.36.0</code>
+with the five assets, marked latest, its body the notes file; the assets
+downloaded back match.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>) and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.35.0 build=onQ7svRY49FAEYS1IIHv
+daemon started socket=/dev/shm/r360/compat/base/socket/d.sock
+pid 3277173 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build onQ7svRY49FAEYS1IIHv 0.35.0
+  client build kXY4cc6JRtLekvXNL0My 0.36.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3277347 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.36.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.36.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.36.0-source-linux-amd64.tar.gz: OK
+karvi_0.36.0_amd64.deb: OK
+</code></pre>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li><code>karvi</code> is 61,440 bytes larger; <code>karvi-askpass</code>, <code>karvi-prune</code>, and
+<code>karvi-audit</code> are each 4,096 bytes smaller; the bundle is 76,151 bytes
+larger and the package 37,706.</li>
+<li>The default configuration was regenerated to 0.35.0's bytes, since no key
+changed, so 3/3 carries nine evidence files; the module metadata of the four
+executables names scrapligo v1.4.3.</li>
+<li>After a host restart Docker's bridge again reached nothing until Docker was
+restarted, as in chapter 73; the probe before the baseline found it.</li>
+<li><code>gh release create</code> run from the tools' parent, outside a checkout, stops at
+<code>not a git repository</code> and creates nothing; <code>-R robert-patrick-texas/karvi</code> names the repository.</li>
+<li><code>release/SCRAPLIGO-EVIDENCE.md</code> said scrapligo-v1 contributes the driver and
+channel, and ROADMAP's v2 item put the host-key policy under v1's driver and
+channel, where the adapter's package comment says they are not used. The
+operator asked for a check: the adapter calls scrapligo's transport wrapper,
+its options, and its logger alone; the channel and the drivers are linked,
+since the options package imports them, and never called. Both documents were
+corrected after the release, on the operator's word, so the release's bundle
+and site keep the old line until the next release.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in chapters 67,
+70, 73, 75, and 77: the minimal image leaves out <code>/usr/share/man</code>.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0360-*</code>: the
+timeline, the bridge probe, the baseline with <code>latest.sh</code>'s output, the build,
+the compatibility example, the 1/3 and 2/3 patches, the artifacts, the
+container install, the release notes, the push, the site, the GitHub release,
+and the published check; <code>v0360-dependencies/</code>: the module move's logs, the
+vendored diff, the native suite, and the battery).</p>
+<h2 id="81-the-package-update-karvi-sysutil-package-update-2026-10-27">81. The package update, <code>karvi-sysutil package update</code> (2026-10-27) <a class="anchor" href="#81-the-package-update-karvi-sysutil-package-update-2026-10-27" aria-label="Link to this section">#</a></h2>
+<p>The operator asked whether karvi updates itself: finds a newer <code>.deb</code> on
+GitHub, downloads it, verifies its checksum, and installs it; and if not, to
+consider it for <code>karvi-sysutil</code>, through curl, with <code>-k</code> for an internal
+network that inspects TLS on its way to the internet and <code>--proxy</code> for a proxy
+server. Nothing did. The session proposed the command and raised its first
+issue, what the checksum proves under <code>-k</code>. The operator made the release's
+signature a ROADMAP item for later, asked for the build at once with four
+rules of the operator's own (below), and asked what a host without the service
+account's daemon needs after an update.</p>
+<p><strong>What it gains.</strong> One root command replaces the steps of <code>BUILD-HOWTO.md</code>
+section 10 by hand (the download, <code>sha256sum -c</code>, <code>apt install</code>), from behind
+the proxies sites put before the internet. It waits on nothing: each release
+already publishes <code>karvi_X.Y.Z_amd64.deb</code> and its <code>.sha256</code>; GitHub's
+<code>releases/latest</code> redirects to the tag (<code>302</code>,
+<code>.../releases/tag/karvi-v0.36.0</code>), which names the version without the API;
+and an asset redirects once more, to <code>release-assets.githubusercontent.com</code>,
+a second host a proxy's list must allow.</p>
+<p><strong>The tree before.</strong> At <code>9c8ea43</code>, <code>karvi-sysutil</code> had <code>daemon install</code> and
+<code>daemon remove</code> alone; ROADMAP had no item for an update; the package depends
+on <code>openssh-client</code> and <code>adduser</code>, not on curl.</p>
+<p><strong>The first issue: the checksum under <code>-k</code>.</strong> The <code>.sha256</code> comes from the same
+release over the same connection as the package. Under <code>-k</code> anything that
+answers for github.com inside the network, the inspecting proxy among them,
+can serve another package with a checksum that matches it, and <code>apt-get</code> runs
+its maintainer scripts as root; without <code>-k</code> the checksum still finds only a
+damaged download, TLS alone vouching for the origin. The recommendation: the
+release signs its aggregate checksums with an SSH key, the package carries the
+public key, and the update verifies with <code>ssh-keygen -Y verify</code>
+(<code>openssh-client</code> is already a dependency). Executed with a throwaway key over
+0.36.0's <code>karvi-v0.36.0-artifacts.sha256</code>: the file verified, exit 0; the same
+file with one sum changed failed, <code>Signature verification failed: incorrect signature</code>, exit 255. Agreed, for later: ROADMAP's &quot;The release's signature&quot;.</p>
+<p><strong>The rules, agreed.</strong> In simple terms:</p>
+<ol>
+<li>The command. <code>sudo karvi-sysutil package update [--check] [-k|--insecure] [--proxy URL]</code> installs the latest release's package when it is newer than
+the installed one; <code>--check</code> only reports. A downgrade stays by hand.</li>
+<li>The refusals, before anything changes: not root; no curl (the operator's:
+refused, not made a dependency); a bundle install present,
+<code>/usr/local/bin/karvi</code> (the operator's: it runs before the package's, and
+an update would leave it in front); the package not installed.</li>
+<li>The checks. The latest tag is <code>karvi-vX.Y.Z</code>; the <code>.sha256</code> is one line,
+a sum and the package's name; the package's sum is that sum. A refusal or a
+failure before the install changes nothing.</li>
+<li><code>-k</code> covers GitHub's certificate and an <code>https://</code> proxy's (the
+operator's): curl's <code>--insecure</code> and <code>--proxy-insecure</code> together.
+<code>--proxy</code> takes one <code>http://</code> or <code>https://</code> URL; a second is a usage
+error, since every request is HTTPS through the one proxy.</li>
+<li>Later (the operator's): the release's signature, and the update on a timer,
+both ROADMAP items.</li>
+</ol>
+<p><strong>The question: a host without the service account's daemon.</strong> It needs no
+action. An operator's own daemon (<code>daemon.launch = &quot;client&quot;</code>, the default) is
+drained by the operator's next submission: idle, it exits at once and the
+client starts the installed karvi in the same invocation; holding jobs, it
+finishes them, killing nothing, and refuses new ones <code>daemon_draining</code> until
+it exits (OPERATIONS, &quot;Upgrade&quot;). Under <code>daemon.launch = &quot;systemd&quot;</code>, the
+service account's daemon or each operator's where a site's global file locks
+it so, an instance keeps its program and its account's submissions are
+refused <code>daemon_incompatible</code> until <code>systemctl restart</code>, which lets the jobs
+finish within <code>daemon.shutdown-grace-seconds</code> and cancels what remains. So the
+update lists the active instances of <code>karvi-daemon@*.service</code> and names each
+one's restart, and on a jump box prints nothing more. In simple terms: the
+update never restarts a daemon; an operator's own daemon needs nothing, the
+next run switching it over; each running instance under systemd is named with
+its restart, whose moment stays the administrator's, as the package's
+postinst has it (chapter 57, issue 16). Agreed; whether an unattended update
+restarts is the timer item's question.</p>
+<p><strong>Executed.</strong> In a throwaway <code>ubuntu:26.04</code> with curl and no network, the lab
+package <code>karvi_0.36.0+dev_amd64.deb</code> (a <code>make build</code> of the tree over
+<code>9c8ea43</code> with the update) installed, <code>tools/release-fixture</code> serving a
+release <code>karvi-v0.37.0</code>, the lab package repacked at that version, and
+<code>KARVI_RELEASES</code> naming the fixture:</p>
+<pre><code class="language-text"># karvi-sysutil package update --check
+karvi-sysutil: cannot reach https://127.0.0.1:8443/releases/latest; nothing changed
+curl: (60) SSL certificate OpenSSL verify result: self-signed certificate (18)
+exit 1
+# karvi-sysutil package update --check -k --proxy https://127.0.0.1:8445
+package  karvi 0.36.0+dev
+latest   karvi 0.37.0
+newer    sudo karvi-sysutil package update installs it
+exit 0
+# karvi-sysutil package update -k --proxy http://127.0.0.1:8444
+package  karvi 0.36.0+dev
+latest   karvi 0.37.0
+fetched  karvi_0.37.0_amd64.deb  6542362 bytes
+checked  karvi_0.37.0_amd64.deb  sha256 as its .sha256
+updated  karvi 0.36.0+dev to 0.37.0
+exit 0
+# karvi-sysutil package update -k
+package  karvi 0.37.0
+latest   karvi 0.37.0
+current  no newer release
+exit 0
+# karvi-sysutil package update --proxy 192.0.2.10:2025
+karvi-sysutil: --proxy takes an http:// or https:// URL
+  given 192.0.2.10:2025
+exit 2
+</code></pre>
+<p>The fixture's log showed the <code>--check</code> through <code>tls-proxy CONNECT 127.0.0.1:8443</code> and the update's three requests each through <code>proxy CONNECT</code>.
+<code>scripts/sysutil-smoke-test.sh</code>'s new step 10 runs the same under systemd with
+the service account's daemon running, and two refusals in the bundle's step
+13; on the lab package it passed, every step:</p>
+<ul>
+<li>the refusals, each exit 1 with the accounts and karvi's places as before:
+not root, no curl, a bundle's karvi beside the package, a certificate not
+trusted, the proxy's not trusted, a checksum of zeros, a tag <code>v2</code>, an asset
+missing; and, in step 13, the package not installed and the bundle's own
+install;</li>
+<li><code>--proxy</code> given a <code>socks5://</code> URL, and given twice, exit 2;</li>
+<li>an older release, <code>0.1.0</code>, current under <code>-k</code>;</li>
+<li>the fixture's origin certificate trusted through <code>update-ca-certificates</code>:
+<code>--check</code> without <code>-k</code> reports the newer <code>99.0.0</code>; through the HTTPS proxy
+without <code>-k</code> refused, with <code>-k</code> reported;</li>
+<li>the update through the HTTP proxy without <code>-k</code>: the package at 99.0.0,
+<code>karvi-sysutil: karvi-daemon@karvi.service keeps the karvi it started with; systemctl restart karvi-daemon@karvi.service</code>, the daemon's pid the same,
+the work folder gone; and again, current.</li>
+</ul>
+<p><strong>Why this way.</strong></p>
+<ul>
+<li>The redirect, not the API: no JSON for a bash script to read, and no rate
+limit of 60 an hour per address, which every host behind one proxy shares.</li>
+<li><code>apt-get install</code> of the file, not <code>dpkg -i</code>: a new dependency comes with
+it. The work folder is opened to 0755 so that apt's sandbox user <code>_apt</code>
+reads the package.</li>
+<li><code>curl --disable</code>: root's <code>.curlrc</code> cannot turn verification off unseen.
+curl's <code>https_proxy</code> and <code>no_proxy</code> from the environment still apply, which
+<code>sudo</code> drops unless its policy keeps them, so <code>--proxy</code> is the option.</li>
+<li><code>--proto =https</code> and <code>--proto-redir =https</code>: no request or redirect leaves
+HTTPS; an <code>http://</code> proxy still carries the tunnel.</li>
+<li>curl's first error line alone: curl 8.18 follows a certificate error with
+several lines of advice.</li>
+<li><code>KARVI_RELEASES</code>: the test's server, and a site's mirror in GitHub's layout.</li>
+</ul>
+<p><strong>Not taken.</strong> The GitHub API (above). A signed apt repository on gh-pages:
+apt and unattended-upgrades would carry the proxy, <code>-k</code>
+(<code>Acquire::https::Verify-Peer</code>), and the schedule, at the cost of the hosting,
+a key in apt's keyring, the pruning of each release's 6.5 MB, and the restart
+still outside apt. curl in <code>Depends</code> or <code>Recommends</code> (the refusal names it).
+<code>--cacert FILE</code>: a host trusts an inspecting authority through
+<code>update-ca-certificates</code>, as the test does. The instances restarted after the
+install. An update under the bundle: a newer bundle's <code>install.sh</code> is that
+install's update.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li>A development package, <code>0.36.0+dev</code>, sorts after <code>0.36.0</code>, so a lab install
+sees the release as current; the tag check takes <code>X.Y.Z</code> alone, as a
+release's tag is.</li>
+<li>An update makes three requests, each its own tunnel through the proxy: the
+redirect, the package, and its checksum.</li>
+</ul>
+<p><strong>Built.</strong> Over <code>9c8ea43</code>, committed in two on the operator's word, the
+feature and then ROADMAP's items:
+<code>packaging/sbin/karvi-sysutil</code> (<code>package update</code>, the usage, <code>refuse</code> taking
+an exit status); <code>packaging/man/karvi-sysutil.8</code>; <code>tools/release-fixture</code>, the
+test's releases and proxies; <code>scripts/sysutil-smoke-test.sh</code> (curl in the
+image, step 10, two refusals in step 13); <code>CHANGELOG.md</code>'s Unreleased;
+OPERATIONS &quot;Upgrade&quot; and the service account's &quot;After an upgrade&quot;;
+<code>BUILD-HOWTO.md</code> section 10; DESIGN section 8; and FILES' row for
+<code>karvi-sysutil</code>; then ROADMAP's two Later items.</p>
+<p>The evidence is kept beside the tree (<code>update-design-evidence/</code>: the
+container test's log, the transcript and the script and image that made it,
+and the signature lab).</p>
+<h2 id="82-the-native-transport-without-scrapligo-2026-10-27">82. The native transport without scrapligo (2026-10-27) <a class="anchor" href="#82-the-native-transport-without-scrapligo-2026-10-27" aria-label="Link to this section">#</a></h2>
+<p>ROADMAP's Next 1, opened on the operator's word. The <code>scrapligo-v1</code> adapter is
+a wrapper and nothing more: it passes karvi's own <code>x/crypto/ssh</code> connection to
+scrapligo as a custom transport (<code>transport.NewTransport</code>,
+<code>WithCustomTransport</code>), and scrapligo's <code>Read</code>, <code>Write</code>, and <code>Close</code> hand the
+bytes back. The device session, the host-key policy, <code>system</code>, and Telnet are
+karvi's own code. Designed in this session, one gap at a time, and recorded
+for the build; the program is unchanged.</p>
+<p><strong>What it gains.</strong> No scrapligo move with each of its releases: the module,
+its pins in the verifiers, the help text, <code>karvi version</code>, the evidence file,
+and a full battery run, over code karvi never runs (0.36.0's move was a
+NETCONF change). Three modules leave <code>vendor/</code> (scrapligo, gotextfsm, and
+creack/pty, 139 files), and about 18 KB of scrapligo code the executable. The
+release checks that exist only for scrapligo go: the import boundary, the
+version pins, <code>release/SCRAPLIGO-EVIDENCE.md</code>, and BUILD-QUALIFICATION's rule
+that the version output names ScrapliGo. Nothing an operator runs is lost. It
+waits on nothing, and lands before scrapligo's next release would have to be
+taken. The cost is a breaking configuration change: <code>scrapligo-v1</code> is named
+in 65 files outside <code>vendor/</code>.</p>
+<p>The gaps, in the order taken: what <code>ssh.transports</code> still means; the new
+implementation ID; the package and file names; the retired error codes' text;
+what replaces the evidence and the release requirements; and ROADMAP's
+ScrapliGo v2 item.</p>
+<p><strong>Gap 1, <code>ssh.transports</code>, agreed.</strong> In simple terms: <code>ssh.transports</code> keeps
+what still chooses a program, the OpenSSH executable and the <code>exec:</code> slots;
+what could only ever name the one native implementation goes.</p>
+<ol>
+<li>Kept: <code>ssh.transports.system</code>, an executable path, and a custom slot
+<code>NAME = &quot;exec:PATH&quot;</code>, another OpenSSH-compatible program.</li>
+<li>Removed, and refused at load: the key <code>ssh.transports.native</code>; a custom
+slot's <code>builtin:ID</code> or bare ID value; an implementation ID given as a
+mode's selector; and the selector <code>preferred</code>.</li>
+<li><code>native</code> stays the selector's name wherever an operator writes one:
+<code>--transport native</code>, the inventory's <code>transport</code> column, and
+<code>ssh.&lt;mode&gt;.transport</code>.</li>
+<li>The implementation ID is then seen only where gap 2 finds it.</li>
+</ol>
+<p>Checked while recording: a removed key moves the registry, from 31 to 32, and
+leaves the configuration schema at 6, as 0.31.0's removal of
+<code>output.files.summary-json</code> moved the registry from 29 to 30 alone.</p>
+<p>Not taken: keeping <code>ssh.transports.native</code> with one legal value, a key whose
+only valid setting is its default; removing <code>ssh.transports</code> whole, when
+<code>system</code> and the <code>exec:</code> slots still choose a program.</p>
+<p><strong>Executed.</strong> The released 0.36.0 (<code>bin/karvi</code>; the tree's Go code is
+unchanged since), with a lab configuration in <code>/dev/shm</code>, removed after:</p>
+<pre><code>$ karvi config show ssh.transports.native
+key:        ssh.transports.native
+value:      &quot;scrapligo-v1&quot;
+source:     &lt;builtin&gt;
+default:    &quot;scrapligo-v1&quot;
+$ karvi config validate b.toml        # native = &quot;scrapligo-v2&quot;
+native_transport_unavailable: ssh.transports.native selects &quot;scrapligo-v2&quot;, which is not compiled into this karvi executable
+exit 2
+$ karvi config validate c2.toml       # alt = &quot;exec:/usr/bin/ssh&quot;, native2 = &quot;builtin:scrapligo-v1&quot;
+valid: true
+$ karvi config validate d.toml        # ssh.command.transport = &quot;scrapligo-v1&quot;
+valid: true
+</code></pre>
+<p><code>karvi version</code> lists <code>scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)</code> under <code>ssh_transports:</code>.</p>
+<p><strong>Gap 2, the implementation ID, agreed.</strong> In simple terms: no new ID; the
+native transport is called <code>native</code>, as <code>system</code> and <code>telnet</code> are called by
+their names.</p>
+<ol>
+<li><code>Selection.Implementation</code> goes: with every transport's ID its kind, it
+repeats <code>Kind</code>, which is used in its place.</li>
+<li><code>karvi version</code> lists <code>native: compiled-in</code> over <code>system: external-executable</code>; the JSON keeps its shape, with <code>&quot;id&quot;: &quot;native&quot;</code>, and
+the job manifest's copy with it.</li>
+<li>The words: login's refusal, &quot;transport native is not system-compatible
+SSH&quot;; the exercise finding, &quot;native transport available&quot; (and &quot;system
+transport available&quot;, today &quot;system transport system available&quot;); the
+<code>--debug</code> line without <code>implementation=</code>.</li>
+<li>No record changes: a command record already carries the kind, and a login
+record <code>system</code> or <code>telnet</code> alone, login refusing <code>native</code>.</li>
+</ol>
+<p>Checked in the build: whether the job schema (5) moves for the manifest's
+changed value.</p>
+<p>Not taken: a new ID such as <code>karvi-v1</code>, one more word with only one value;
+<code>x-crypto</code>, a library the version output does not list.</p>
+<p><strong>Executed.</strong> The released 0.36.0 against the fake IOS XE device
+(<code>cmd/karvi-fake-device</code> built from the tree), with a lab in <code>/dev/shm</code>,
+removed after. After gap 1 the ID is seen in four places, and in no record:</p>
+<pre><code>command --transport native   → record &quot;transport&quot;:&quot;native&quot;
+command --transport system   → record &quot;transport&quot;:&quot;system&quot;
+login --transport native     → login_transport_not_interactive: transport scrapligo-v1 is not system-compatible SSH; login supports only system-compatible SSH transports
+command --debug              → device transport target=&quot;fake-iosxe&quot; selector=&quot;native&quot; implementation=&quot;scrapligo-v1&quot; kind=native
+job manifest                 → app.build.ssh_transports[0].id = scrapligo-v1
+                               plan.configuration.ssh.transports.native = scrapligo-v1   (goes with gap 1)
+</code></pre>
+<p>The fourth is <code>run --exercise</code>'s finding, <code>native transport scrapligo-v1 available</code> (<code>internal/jobexec/exercise.go</code>), from its format <code>%s transport %s available</code> over the kind and the ID.</p>
+<p><strong>Gap 3, the package and file names, agreed.</strong> In simple terms: one package,
+<code>internal/transport/native</code>, laid out like <code>systemssh</code> and <code>telnet</code>.</p>
+<ol>
+<li>The adapter's <code>dial.go</code> and <code>exec.go</code>, with their tests, move into
+<code>internal/transport/native</code>. The connection is the <code>devsession.Stream</code>
+itself; scrapligo's wrapper, its logger, and the <code>stream</code> shim go.</li>
+<li><code>provider_scrapligov1.go</code> becomes <code>native.go</code>; <code>scrapligoDriver</code> becomes
+<code>driver</code>, and <code>openScrapliGoV1</code> becomes <code>open</code>.</li>
+<li>The registry goes, one implementation always compiled in: <code>register</code>,
+<code>Available</code>, the map of openers, and <code>Factory.Implementation</code>. <code>Admits</code>
+keeps its platform list.</li>
+<li><code>internal/buildinfo/transport_scrapligov1.go</code> goes, with the registration;
+<code>karvi version</code>'s two entries are a fixed list.</li>
+<li><code>internal/adapters/</code> keeps <code>sshkey</code> alone.</li>
+</ol>
+<p>Not taken: renaming the adapter (<code>internal/adapters/xcryptossh</code>) and keeping
+two packages, whose one reason, the scrapligo import boundary, is gone.</p>
+<p><strong>Executed.</strong> <code>go list</code> on the tree at <code>293b1df</code>:</p>
+<pre><code>internal/transport/native: 2 files        (registry.go, provider_scrapligov1.go)
+internal/transport/systemssh: 6 files     (driver and connection in one package)
+internal/transport/telnet: 1 files        (the same)
+internal/adapters/scrapligov1: 3 files    (adapter.go, dial.go, exec.go)
+internal/adapters/sshkey: 1 files
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.36.0</code>.</footer>
+internal/adapters/scrapligov1 -&gt; scrapligo/driver/options, scrapligo/logging, scrapligo/transport
+internal/transport/native     -&gt; internal/adapters/scrapligov1   (its only importer)
+</code></pre>
+<p>The adapter is karvi's own <code>x/crypto/ssh</code> connection (the dial, the host-key
+policy in the handshake, the keepalive, the authentication, and exec), passed
+through scrapligo's <code>Transport</code> and read back by <code>stream</code>.</p>
+<p><strong>Gap 4, the error codes, agreed.</strong> In simple terms: the text names the
+native transport where it says what holds now, and keeps scrapligo where it
+is the history; two codes retire, and one new code refuses an <code>ssh.transports</code>
+entry that cannot be used.</p>
+<ol>
+<li>The active <code>session_keepalive_timeout</code> says &quot;<code>native-ssh.keepalive-*</code> on
+the native transport&quot;.</li>
+<li>The retired codes keep scrapligo where it is what the code was about, and
+name the native transport where they say what holds now:
+<code>host_key_scan_failed</code>, &quot;...; the native transport checks the key in its
+own handshake&quot;; <code>native_command_failed</code>, &quot;...; karvi's device session now
+runs its commands&quot;; <code>native_driver_create_failed</code> and
+<code>native_platform_create_failed</code>, &quot;..., which the native transport no
+longer uses&quot;. <code>native_response_nil</code> is unchanged, history and still true.</li>
+<li>Runtime messages naming the ID follow gap 2: <code>ssh_algorithms_unavailable</code>'s
+&quot;which scrapligo-v1 cannot use&quot; names <code>native</code>; the
+<code>native_session_open_failed</code> lines about scrapligo's logger and transport
+go with the wrapper.</li>
+<li>Retired: <code>native_transport_unavailable</code>, the native transport in every
+executable; <code>transport_implementation_invalid</code>, no implementation IDs.</li>
+<li>New: <code>transport_mapping_invalid</code> refuses at load an <code>ssh.transports</code> entry
+whose value is not <code>exec:PATH</code> (<code>system</code>'s, an executable path), or that
+takes a built-in transport's name, <code>native</code> or <code>telnet</code>.</li>
+<li><code>transport_custom_slot_default</code> says &quot;which only the <code>system</code> slot
+accepts&quot;.</li>
+<li><code>preferred</code> and <code>scrapligo-v1</code> as selectors need no code: they are
+ordinary slot names, <code>transport_mapping_missing</code> when no slot maps them.</li>
+</ol>
+<p>Checked: the registry artifact carries the active <code>config_*</code> codes alone
+(<code>errorcodes.ActiveWithPrefix(&quot;config_&quot;)</code>), so the <code>transport_*</code> codes do not
+move it; gap 1's key moves it.</p>
+<p>Not taken: a row for <code>ssh.transports.native</code> in the removed-keys table
+(<code>internal/configload/removed.go</code>), the removals since 0.31.0 being plain
+unknown keys and this one a slot's name, not a registered key; keeping the
+name <code>transport_implementation_invalid</code>, a word gap 2 removes.</p>
+<p><strong>Executed.</strong> The released 0.36.0's <code>config validate</code>, in a lab in <code>/dev/shm</code>,
+removed after:</p>
+<pre><code>alt = &quot;builtin:nope&quot;             → native_transport_unavailable: ssh.transports.alt selects &quot;nope&quot;, which is not compiled into this karvi executable
+alt = &quot;Bad!&quot;                     → transport_implementation_invalid: ssh.transports.alt has invalid implementation &quot;Bad!&quot;
+alt = &quot;default&quot;                  → valid: true (transport_custom_slot_default is raised when a mode selects the slot)
+ssh.command.transport = &quot;nosuch&quot; → transport_mapping_missing: ssh.command.transport: selector &quot;nosuch&quot; has no ssh.transports.nosuch mapping
+telnet = &quot;exec:/usr/bin/ssh&quot;     → valid: true
+output.files.summary-json = true → config_unknown_key (removed in 0.31.0)
+</code></pre>
+<p><code>ssh.transports.telnet</code> is accepted and never read: <code>--transport telnet</code>
+selects Telnet before any slot. After gap 1 <code>ssh.transports.native</code> would be
+the same; item 5 refuses both.</p>
+<p><strong>Gap 5, the evidence and the release requirements, agreed.</strong> In simple
+terms: what proves only scrapligo goes; the checks that the native path is
+karvi's own connection stay, on the new files; the 0.36.0 record is left as
+it is.</p>
+<ol>
+<li><code>release/SCRAPLIGO-EVIDENCE.md</code> goes, with its row in
+<code>tools/md-to-html/docs.go</code> and ROADMAP's link. Nothing replaces it: the
+offline vendored build and the Go version are <code>BUILD-RESULT.md</code>'s, <code>go mod verify</code> is <code>release-qualification.log</code>'s, the parity suite is
+BUILD-QUALIFICATION's, and the device matrix is CISCO-IOSXE-QUALIFICATION's.</li>
+<li><code>verify-release.sh</code> drops the module pin, the import boundary, and the
+<code>WithCustomTransport</code> check.</li>
+<li>BUILD-QUALIFICATION drops line 5's &quot;ships the scrapligo-v1 executable&quot;, the
+version output identifying ScrapliGo, and the import boundary.</li>
+<li>The &quot;lacks scrapligo-v1&quot; checks go from four suites (<code>native</code>, <code>spool</code>,
+<code>audit</code>, <code>job-list</code>) and <code>verify-shipped.sh</code>, from the days a build could
+leave the native transport out, and <code>make native-build</code>, named only in
+their messages, with them.</li>
+<li>The structural checks stay, on <code>internal/transport/native/</code>:
+<code>HostKeyCallback</code>, <code>hostkey.Verify</code>, and <code>devsession.Open</code>, and the failure
+on <code>ssh-keyscan</code>, <code>os/exec</code>, <code>PrepareNative</code>, or <code>InspectRemote</code>.
+BUILD-QUALIFICATION's rule: the native transport checks the host key in its
+own handshake, under karvi's device session, and runs no subprocess.</li>
+<li><code>verify-shipped.sh</code>'s verbatim version line is <code>  native: compiled-in</code>;
+BUILD-QUALIFICATION's parity suite runs over <code>system</code> and <code>native</code>.</li>
+<li>Reworded, the release tools archived first: <code>common.sh</code>'s comments on the
+scrapligo_v1 tag, <code>evidence-rest.sh</code>'s log title &quot;native build
+(scrapligo-v1)&quot; and its comment that <code>go-version-m.txt</code> names scrapligo,
+and the <code>Makefile</code>'s comment on the tag.</li>
+<li>Unchanged: 0.36.0's record, <code>release/BUILD-RESULT.md</code>, <code>release/evidence/</code>,
+and <code>release-manifest.json</code>; the next release writes its own, with
+<code>native: compiled-in</code> and no &quot;build tag&quot; line.</li>
+</ol>
+<p>Not taken: a <code>NATIVE-EVIDENCE.md</code> in its place, holding nothing another file
+does not; dropping the structural checks for the parity suite's connection
+count, which proves no second connection but not that no subprocess runs.</p>
+<p><strong>Executed.</strong> <code>verify-release.sh</code>'s scrapligo checks, by hand on the tree:</p>
+<pre><code># github.com/scrapli/scrapligo v1.4.3                    (the module pin)
+outside vendor/, only internal/adapters/scrapligov1/ imports scrapligo   (the boundary)
+WithCustomTransport in dial.go: 1
+HostKeyCallback in dial.go: 2
+hostkey.Verify in dial.go: 1
+devsession.Open in provider: 2
+native-smoke-test.sh:161 … &quot;expected one connection&quot;     (the parity suite's count)
+</code></pre>
+<p><strong>Gap 6, ROADMAP's ScrapliGo v2 item, agreed.</strong> In simple terms: a v2, if
+ever taken, is a transport of its own with its own selector beside <code>system</code>,
+<code>native</code>, and <code>telnet</code>, not a second implementation behind <code>native</code>.</p>
+<ol>
+<li>Kept: v2's facts (the <code>ebitengine/purego</code> binding, <code>libscrapli</code> 0.0.1 at
+14.6 MB, <code>LIBSCRAPLI_PATH</code>, and the unchecked download into
+<code>~/.cache/scrapli</code>) and the four questions: whether a release ships the
+library and always names it; where karvi's host-key policy fits; the
+adapter's shape, the session in the library and not shared with <code>system</code>;
+and what it gains for the fleet.</li>
+<li>Replaced: &quot;karvi stays on v1&quot; by &quot;karvi carries no scrapligo since its
+native transport became its own&quot; (this chapter); the host-key question's
+&quot;today inside its own SSH handshake under v1's transport wrapper&quot; by
+&quot;today inside karvi's own SSH handshake&quot;; the closing &quot;A v2 adapter
+registers <code>scrapligo-v2</code> beside <code>scrapligo-v1</code>&quot; by &quot;v2 would be a
+transport with its own selector; a mapping from a slot to an
+implementation comes back only if a transport ever has two&quot;.</li>
+<li>Unchanged: &quot;Platforms beyond the built-ins&quot;, which reads scrapligo's YAML
+as upstream draft data, not the vendored module; NETCONF, whose <code>ssh -s</code>
+and x/crypto's <code>RequestSubsystem</code> still hold.</li>
+<li>Next 1 leaves ROADMAP when it is built.</li>
+</ol>
+<p>Not taken: dropping the v2 item, whose facts and questions are what anyone
+taking it would need; keeping <code>ssh.transports.native</code> for a v2 that may never
+come, which gap 1 settled.</p>
+<p><strong>Executed.</strong> The lines the change makes false, <code>ROADMAP.md:191-208</code> at
+<code>293b1df</code>:</p>
+<pre><code>karvi stays on v1, whose line is maintained, until four questions are answered: …
+whether karvi's host-key policy, today inside its own SSH handshake under v1's transport wrapper …
+A v2 adapter registers `scrapligo-v2` beside `scrapligo-v1` ([`docs/SSH-TRANSPORTS.md`] …)
+</code></pre>
+<p><strong>Found on the way.</strong> <code>docs/SSH-TRANSPORTS.md</code>'s table gives <code>command</code> the
+default <code>system</code>; <code>DefaultSelector</code> gives <code>native</code> to every mode but <code>login</code>.
+The table is corrected in the build.</p>
+<p><strong>Built.</strong> In four sections, each committed and pushed on the operator's word:</p>
+<ul>
+<li>Section 1, <code>dd485e0</code>: the connection (<code>dial.go</code>, <code>exec.go</code>, and their tests)
+moved from <code>internal/adapters/scrapligov1</code> into <code>internal/transport/native</code>
+beside the driver (<code>native.go</code>: <code>driver</code>, <code>open</code>), the connection the
+<code>devsession.Stream</code> itself; scrapligo's transport wrapper, its logger, and the
+<code>stream</code> shim gone; <code>go.mod</code> without scrapligo, gotextfsm, and creack/pty,
+<code>vendor/</code> 140 files fewer; <code>karvi version</code>'s two transports a fixed list; the
+run and crun help without the native status paragraph; <code>verify-release.sh</code>
+without the module pin and the import boundary, its structural checks on the
+new package.</li>
+<li>Section 2, <code>91dba21</code>: <code>native</code> and <code>telnet</code> resolved directly, and
+<code>ssh.transports</code> holding <code>system</code> and <code>exec:PATH</code> alone; gap 1's refusals as
+<code>transport_mapping_invalid</code> and gap 4's codes, the two retired at
+<code>retiredV0370</code> (its label confirmed at the release); <code>ssh.transports.native</code>
+out of the registry, 32; the native registry and <code>Selection.Implementation</code>
+gone, and <code>&quot;id&quot;: &quot;native&quot;</code>; the suites' &quot;lacks scrapligo-v1&quot; guards and <code>make native-build</code> gone; the golden k03 draft re-pinned (the configuration block's
+key and its digest).</li>
+<li>Section 3, <code>2fa6e0a</code>: the documents, 17 naming <code>native</code>, SSH-TRANSPORTS
+rewritten, and DESIGN's entry &quot;The native transport is karvi's own SSH
+connection&quot;; <code>release/SCRAPLIGO-EVIDENCE.md</code> removed with its <code>docs.go</code> row;
+ROADMAP's Next 1 out and the v2 item per gap 6; the release tools' comments,
+archived first (<code>archive-2026-10-19</code>,
+<code>untracked/release-tools-before-native/</code>).</li>
+<li>Section 4: the CHANGELOG's two Unreleased entries, the breaking change and
+scrapligo's removal, and this record.</li>
+</ul>
+<p>The tests: <code>TestNativeAndTelnetResolveDirectly</code>, <code>TestModeDefaults</code>,
+<code>TestRemovedSelectorsAreSlotNames</code>, <code>TestMappingInvalidRefusedAtLoad</code>,
+<code>TestAlternateWithoutExecFailsConfigurationCheck</code>, and
+<code>TestCurrentListsTheTwoTransports</code>, in place of the seven that tested the
+registry, the implementation IDs, the <code>preferred</code> alias, and a build without
+the native transport.</p>
+<p>scrapligo stays where it is the history: ARCHITECTURE's &quot;One shape of the
+source&quot;, DESIGN's <em>Why</em> clauses, COMMAND-SESSION's origin of the prompt
+patterns, the comments in <code>platform/platform.go</code> and
+<code>internal/devsession/prompt.go</code>, the retired codes' text, and the refused values
+in the tests and the v060 suite.</p>
+<p><strong>Agreed while building</strong>, in section 2:</p>
+<ol>
+<li>The job schema stays 5: the manifest's plan and configuration blocks move
+with their own counters, as the plan's <code>channel</code> (plan 11) and
+<code>summary-json</code>'s removal (registry 30) left the job at 5, and <code>app.build</code>
+describes the build; section 1's removal of the transport entry's <code>version</code>
+reads the same.</li>
+<li>The exercise's text line: <code>system available (/usr/bin/ssh)</code>, where it read
+<code>(system /usr/bin/ssh)</code>, and <code>native available</code> with no parenthesis; the
+askpass failure's detail <code>kind</code> in place of <code>implementation</code>.</li>
+<li>The messages: <code>ssh.transports.native: native is a built-in transport, not a slot</code>; <code>ssh.transports.alt=&quot;scrapligo-v2&quot; is not exec:PATH</code>; and
+<code>transport_custom_slot_default</code>'s <code>... may not use default, which only the system slot accepts</code>.</li>
+</ol>
+<p><strong>Executed.</strong> The full battery on a lab build of <code>2fa6e0a</code> (<code>s4-battery.sh</code>, a
+copy of the tree in <code>/var/tmp</code>, <code>TMPDIR=/var/tmp</code>): vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (71 packages), and the 19 suites by
+<code>run_suites</code> in 244 seconds, each exit 0; none left a <code>/tmp/karvi-&lt;uid&gt;</code>,
+<code>/var/tmp/karvi-&lt;uid&gt;</code>, <code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi
+process. Before it, each section ran <code>go test ./...</code>; section 1 the native and
+v060 suites, section 2 the race detector on <code>native</code> and <code>transportselect</code>,
+the parity, v060, spool, job-list, and audit suites, and its executed examples.</p>
+<p>The exits the CHANGELOG quotes, from the same build (<code>s4-examples-lab.sh</code>, a
+lab in <code>/dev/shm</code>, removed after; the target a name under <code>.invalid</code>):</p>
+<pre><code>$ karvi --set ssh.transports.native=&quot;ssh&quot; command router1.invalid --transport system --cmd show clock
+transport_mapping_invalid: ssh.transports.native: native is a built-in transport, not a slot
+exit 2
+$ karvi command router1.invalid --transport preferred --cmd show clock
+transport_mapping_missing: device router1.invalid transport: selector &quot;preferred&quot; has no ssh.transports.preferred mapping
+exit 8
+</code></pre>
+<p><strong>Found while building</strong>, all in section 3 but the last:</p>
+<ul>
+<li>NOTICE listed scrapligo, creack/pty, and gotextfsm; they are gone from it.</li>
+<li>SECURITY's default host-key policy heading read <code>auto</code> / <code>default</code>, refused
+since v0.10.0; it reads <code>accept-new</code>, its native bullet rewritten.</li>
+<li>README's counters (registry 30 and 13, plan 13, job 4, plan report 2,
+scoreboard 3) were behind the tree's; they are the tree's.</li>
+<li>The <code>version</code> help's &quot;Optional native adapters appear only when they were
+included in the build&quot; names both transports, its man page regenerated.</li>
+<li>DESIGN's mangen entry named <code>run</code>'s build-dependent help, gone in section 1.</li>
+<li>The design's find, SSH-TRANSPORTS's table giving <code>command</code> the default
+<code>system</code>, is corrected.</li>
+<li><code>karvi config show no.such.key</code> prints <code>error: not found</code> and exits 0, as
+0.36.0 does. Raised with the operator, and built as chapter 83.</li>
+</ul>
+<p><strong>Closed.</strong> The build's evidence is kept beside the tree
+(<code>release-design-evidence/native-without-scrapligo-2026-10-27</code>: each section's
+<code>go test</code> log, the suites' logs of sections 1 and 2, the executed examples'
+scripts and logs, and section 4's battery, <code>s4-battery.sh</code> with its logs).
+ROADMAP's Next is &quot;None chosen&quot;.</p>
+<h2 id="83-config-show-refuses-a-key-it-cannot-show-2026-10-27">83. <code>config show</code> refuses a key it cannot show (2026-10-27) <a class="anchor" href="#83-config-show-refuses-a-key-it-cannot-show-2026-10-27" aria-label="Link to this section">#</a></h2>
+<p>Found while building chapter 82 (its section 2): <code>karvi config show no.such.key</code> prints <code>error: not found</code> and exits 0, as 0.36.0 does. Chapter
+28's issue 7 made an unknown key an <code>error: not found</code> block among the others,
+so that a script could take several places from one load; its exit was never
+decided. Opened on the operator's word after chapter 82's section 4.</p>
+<p><strong>What it gains.</strong> A misspelt or unset key no longer reads as success: <code>karvi config show ssh.transprots.alt &gt;/dev/null &amp;&amp; echo mapped</code> printed <code>mapped</code>. It
+waits on nothing. The cost: a site's script that read the <code>error: not found</code>
+block, or counted on exit 0 beside an unknown key, changes.</p>
+<p><strong>Executed.</strong> The lab build of <code>648b3a9</code> (<code>a-today-lab.sh</code>), with a lab
+configuration in <code>/dev/shm</code> mapping the slot <code>alt</code>, removed after; the script
+marks standard output <code>out|</code> and standard error <code>err|</code>:</p>
+<pre><code>$ karvi config show no.such.key
+  out| key: no.such.key
+  out| error: not found
+  exit 0
+
+$ karvi --set no.such.key=1 config show display.color
+  err| config_unknown_key: unknown configuration key for no.such.key at --set[1]
+  exit 2
+</code></pre>
+<p><code>ssh</code> (a table), <code>ssh.transports.native</code>, and the unset slot
+<code>ssh.transports.other</code> print the same block, exit 0; with three keys named,
+<code>display.color no.such.key spool.min-free</code>, the two blocks follow the first
+key's, exit 0. The loader's check (<code>IsKnownLeaf</code> and the removed-keys table)
+tells a name that is no key from a key a dynamic table could hold (a transport
+slot, a platform's field, a macro); a fixed key always has a value, its
+default.</p>
+<p><strong>The gap, agreed.</strong> In simple terms: <code>config show</code> refuses a key it cannot
+show, before printing anything, and a name that is no key as <code>--set</code> refuses
+it.</p>
+<ol>
+<li><code>config show KEY...</code> checks every name before printing anything; the first
+it cannot show refuses the view, on standard error, red at a terminal, and
+nothing goes to standard output.</li>
+<li>A name that is no key is refused as <code>--set</code> refuses it, by the loader's own
+check: <code>config_unknown_key</code> (or <code>config_key_removed</code>, <code>config_key_blank</code>),
+exit 2.</li>
+<li>A key a table could hold that the configuration does not set is the new
+code <code>config_key_unset</code>, exit 2: <code>ssh.transports.other is not set</code>.
+<code>ssh.transports.native</code> is one, which is true; setting it is refused at load
+(chapter 82, gap 1).</li>
+<li>The <code>error: not found</code> block goes, and the help and the manual page say what
+replaces it. Chapter 28's issue 7 otherwise stands.</li>
+</ol>
+<p>Not taken: one new code for any name the view does not list (<code>... is not in the configuration</code>), plainer, but a misspelt key would carry another code than
+<code>--set</code> gives it; an unset key shown as <code>value: null</code>, exit 0, a value the
+configuration does not hold; the keys before a refused one printed first and the
+refusal after, as <code>ls</code> does, a refusal after a partial answer.</p>
+<p>Found: with keys named, <code>config show --format json KEY</code> prints the text
+blocks, <code>--format json</code> ignored (the keys imply <code>--explain</code>); built as chapter
+84.</p>
+<p><strong>Built.</strong> In one piece:</p>
+<ul>
+<li><code>configload.checkName</code>, the loader's name check (blank, removed, not in the
+registry), shared by the load's <code>assign</code> and by <code>Explain</code>. <code>Explain</code> returns
+an error: every name is checked first, and a key with no value is
+<code>config_key_unset</code>; its <code>error: not found</code> branch is gone.</li>
+<li><code>config_key_unset</code> in the error registry, <code>docs/ERROR-CODES.md</code> and the
+registry artifact's code list regenerated; the registry counter stays 32 (a
+code does not move it, and this release moves it already).</li>
+<li><code>config show</code> reports the refusal through <code>reportError</code>, at the code's exit.</li>
+<li>The help and <code>karvi-config.1</code>; DESIGN's entry on the view (the rule, its
+<em>Why</em>, and the alternatives not taken); the CHANGELOG's Unreleased entry.</li>
+<li>The tests: <code>TestExplainRefusesANameItCannotShow</code> (each kind of name, and the
+first in the order given), <code>TestExplainSeveralKeys</code> over three keys shown,
+and <code>TestConfigShowRefusesAKeyItCannotShow</code> (exit 2, the line on standard
+error, nothing on standard output).</li>
+</ul>
+<p><strong>Executed after the build.</strong> The lab build of the tree with the change
+(<code>b-built-lab.sh</code>, the same cases and three more), removed after:</p>
+<pre><code>$ karvi config show display.color no.such.key spool.min-free
+  err| config_unknown_key: unknown configuration key for no.such.key
+  exit 2
+
+$ karvi config show ssh.transports.other
+  err| config_key_unset: ssh.transports.other is not set
+  exit 2
+
+$ karvi config show sessions.idle-timeout
+  err| config_key_removed: removed in v0.14.0; the key was read by nothing and has no replacement; remove it from the configuration for sessions.idle-timeout
+  exit 2
+
+$ karvi --set display.color=always config show no.such.key 2&gt;&amp;1 &gt;/dev/null | cat -v   # stderr to a pipe
+  err| ^[[1;31mconfig_unknown_key: unknown configuration key for no.such.key^[[0m
+</code></pre>
+<p><code>ssh</code> and <code>no.such.key</code> are <code>config_unknown_key</code>, <code>ssh.transports.native</code>
+<code>config_key_unset</code>, and <code>&quot;&quot;</code> <code>config_key_blank</code>, each exit 2; the mapped slot
+<code>ssh.transports.alt</code> is shown, exit 0.</p>
+<p>The full battery on a lab build of the tree with the change (<code>battery.sh</code>, a
+copy in <code>/var/tmp</code>, <code>TMPDIR=/var/tmp</code>): vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (71 packages), and the 19 suites by <code>run_suites</code> in 242 seconds,
+each exit 0; none left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi process. The first run
+(<code>battery-1</code>) failed <code>TestHelpMatchesParserTable</code>: the help said &quot;as --set
+refuses it&quot;, and a command's help names only the options its parser takes,
+<code>--set</code> being global; it now says &quot;as the load refuses it&quot;, the suites having
+passed in 246 seconds.</p>
+<p><strong>Closed.</strong> The evidence is kept beside the tree
+(<code>release-design-evidence/config-show-unknown-key-2026-10-27</code>: the two labs'
+scripts and logs, and the two batteries' logs, <code>battery-1</code> and the last beside
+it, with <code>battery.sh</code>).</p>
+<h2 id="84-config-show-refuses---format-beside-keys-2026-10-27">84. <code>config show</code> refuses <code>--format</code> beside keys (2026-10-27) <a class="anchor" href="#84-config-show-refuses---format-beside-keys-2026-10-27" aria-label="Link to this section">#</a></h2>
+<p>Found while designing chapter 83: with keys named, <code>config show --format json KEY</code> prints the text blocks. Opened on the operator's word after chapter 83.</p>
+<p><strong>What it gains.</strong> A script that asks for JSON gets JSON or a refusal, never
+text it cannot parse. It waits on nothing.</p>
+<p><strong>Executed.</strong> The lab build of <code>e9eac78</code> (<code>a-today-lab.sh</code>), with a lab
+configuration in <code>/dev/shm</code>, removed after; every case exit 0:</p>
+<pre><code>$ karvi config show --format json display.color
+  out| key:        display.color
+  out| value:      &quot;never&quot;
+  out| source:     /dev/shm/kcj/l/karvi.toml:5
+  ...
+  exit 0
+</code></pre>
+<p><code>config show --format json --explain</code> prints the whole text view (1,620 lines),
+and <code>config show --format toml display.color</code> the same block as above: the keys
+or <code>--explain</code> choose the text view, and <code>--format</code>, either value, is ignored.
+Only the full view, no key and no <code>--explain</code>, has a JSON form, the values as
+an object (232 lines, chapter 47's S2.1).</p>
+<p><strong>The gap, agreed.</strong> In simple terms: <code>--format</code> encodes the full view alone,
+and beside keys or <code>--explain</code> it is refused.</p>
+<ol>
+<li><code>--format</code> chooses the encoding of the full view alone: the values as TOML
+lines or as the JSON object.</li>
+<li>With keys named or <code>--explain</code>, the view is text, and a <code>--format</code> given
+beside it, <code>json</code> or <code>toml</code>, is refused before the configuration loads with
+the new code <code>config_show_format_conflict</code>, exit 4, as karvi's other
+<code>*_conflict</code> codes: <code>--format json beside display.color</code>, <code>--format json beside --explain</code>.</li>
+<li>The help says so: its synopsis gives the two views on two lines.</li>
+</ol>
+<p>Not taken: a JSON form of the keys' view, each key an object (value, source,
+default, environment, reload, lock, resolved, passed), so a script reads a
+resolved place without <code>sed</code>, a new contract, its field names and its schema to
+design, for readers that take two lines with <code>sed</code>; the JSON object narrowed to
+the keys named, keys then meaning a different view by the format; refusing
+<code>--format json</code> alone, <code>--format toml</code> being ignored there the same.</p>
+<p><strong>Agreed with it: the sensitive mark removed.</strong> No configuration key is marked
+sensitive: <code>configschema.Entry.Sensitive</code> is set on none, so the JSON view's
+<code>&lt;redacted&gt;</code> branch and <code>Explain</code>'s &quot;Sensitive keys are metadata-only&quot; never
+apply, and every key in the registry artifact carries <code>&quot;sensitive&quot;: false</code>. A
+value nothing uses is removed when found; this piece touches the JSON view, and
+the artifact's change falls within this release's registry 32.</p>
+<p><strong>Built.</strong> In one piece:</p>
+<ul>
+<li><code>config show</code> refuses <code>--format</code> beside keys or <code>--explain</code> before it loads
+the configuration (<code>config_show_format_conflict</code> in the error registry), the
+subject <code>--explain</code> where it is given and the first key otherwise; the
+format's default is the full view's.</li>
+<li><code>Entry.Sensitive</code> removed, with the JSON view's redaction and its sort, the
+encoder ordering a map's keys; <code>Explain</code>'s comment. The registry counter's
+comment names the mark under 32.</li>
+<li>Regenerated: <code>schema/config-schema.json</code> (the code, and 178 <code>&quot;sensitive&quot;</code>
+lines gone), <code>docs/ERROR-CODES.md</code>, and <code>karvi-config.1</code>.</li>
+<li>The help: the synopsis's two lines and the paragraph; DESIGN's entry on the
+view (the rule, its <em>Why</em>, and the JSON form not taken); the CHANGELOG's
+Unreleased entry.</li>
+<li>The test: <code>TestConfigShowFormatBesideKeys</code> (three refusals at exit 4 with a
+<code>--set</code> naming no key, which the refusal comes before, and the full view's
+JSON); <code>configShowSets</code>, the configuration both of the file's tests use.</li>
+<li>The k03 suite's c22, <code>config sh --format json --explain basedir</code>, exit 0,
+now expects the refusal, still exercising the abbreviated word, both
+options, and the key.</li>
+</ul>
+<p><strong>Executed after the build.</strong> The lab build of the tree with the change
+(<code>b-built-lab.sh</code>, the same cases and one more), removed after:</p>
+<pre><code>$ karvi config show --format json display.color
+  err| config_show_format_conflict: --format json beside display.color
+  exit 4
+
+$ karvi config show --format json --explain
+  err| config_show_format_conflict: --format json beside --explain
+  exit 4
+
+$ karvi --set no.such.key=1 config show --format json display.color
+  err| config_show_format_conflict: --format json beside display.color
+  exit 4
+</code></pre>
+<p><code>--format toml display.color</code> and <code>--format json --show-sources display.color</code>
+are refused the same way; <code>config show --format json</code> (the same digest, 232
+lines, 8,925 bytes), <code>--format toml</code>, and <code>--explain display.color</code> print as
+before, exit 0.</p>
+<p>The full battery on a lab build of the tree with the change (<code>battery.sh</code>, a
+copy in <code>/var/tmp</code>, <code>TMPDIR=/var/tmp</code>): vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (71 packages), and the 19 suites by <code>run_suites</code> in 258 seconds,
+each exit 0; none left a <code>/tmp/karvi-&lt;uid&gt;</code>, <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi process. The first run
+(<code>battery-1</code>) failed twice: the k03 suite at c22, above, which a search of the
+suites for <code>config show</code> had missed under its abbreviation; and
+<code>TestTreeConverts</code>, DESIGN linking this chapter before the copy held it.</p>
+<p><strong>Closed.</strong> The evidence is kept beside the tree
+(<code>release-design-evidence/config-show-json-2026-10-27</code>: the two labs' scripts
+and logs, and the two batteries' logs, <code>battery-1</code> and the last beside it, with
+<code>battery.sh</code>).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>

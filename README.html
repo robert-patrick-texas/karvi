@@ -76,9 +76,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -156,9 +155,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.36.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.36.0 artifact index</a></li>
-<li><a href="release/SCRAPLIGO-EVIDENCE.html">ScrapliGo v1.4.3 integration evidence — karvi v0.36.0</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -182,8 +180,8 @@ registered error codes, the client-owned planning boundary with the
 credential plane, <code>run --dry-run</code>, <code>run --exercise</code>, <code>--detach</code> and
 <code>follow_job</code>, the two-probe ICMP gate, shutdown accounting, <code>cancel_job</code>
 with <code>karvi job cancel</code>, <code>karvi job list</code> over the jobs' summaries, one
-device session driving both SSH transports with scrapligo-v1 as karvi's own
-connection, and platform names and their resolution.
+device session driving both SSH transports with the native transport as
+karvi's own connection, and platform names and their resolution.
 Items still open are listed in <a href="ROADMAP.html"><code>ROADMAP.md</code></a>. The sections below
 describe the behavior of the code as it exists; <code>VERSION</code> names the release.</p>
 <h2 id="release-status">Release status <a class="anchor" href="#release-status" aria-label="Link to this section">#</a></h2>
@@ -206,9 +204,9 @@ devices or jobs.</li>
 unless <code>--grace</code>, <code>--after=DURATION</code>, or <code>--force</code> is given.</li>
 <li>Every error carries one registered code, listed in
 <a href="docs/ERROR-CODES.html"><code>docs/ERROR-CODES.md</code></a>.</li>
-<li>Configuration schema 6; this tree's other counters: registry schema 30,
-daemon IPC schema 12, execution plan 13, job manifest and summary 4, plan
-report 2, scoreboard 3.</li>
+<li>Configuration schema 6; this tree's other counters: registry schema 32,
+daemon IPC schema 12, execution plan 15, job manifest and summary 5, plan
+report 4, scoreboard 5.</li>
 </ol>
 <p>A client drains a daemon of another build at that daemon's own IPC schema and
 kills nothing; job submission stays exact-schema, and a daemon of a newer
@@ -216,15 +214,12 @@ schema is refused. A service account's daemon under systemd is never drained
 by a client: its administrator restarts its unit
 (<a href="docs/OPERATIONS.html#a-service-accounts-daemon-under-systemd"><code>docs/OPERATIONS.md</code>, &quot;A service account's daemon under
 systemd&quot;</a>).</p>
-<p>The official Linux/amd64 executable is the <strong>scrapligo-v1 build</strong> (<code>make build</code>; <code>scripts/verify-release.sh</code>), whose version output lists the
-external <code>system</code> transport and <code>scrapligo: 1.4.3</code> compiled in. The source
-pins ScrapliGo <strong>v1.4.3</strong> behind the karvi-owned adapter boundary, with the
-module files and <code>vendor/</code> committed so a build host needs no network. It
-is the only build: the <code>scrapligo_v1</code> build tag and the dependency-free
-preview module are gone, and a plain <code>go build</code> carries the adapter. A
-native slot that names an implementation the executable does not carry
-fails closed (<code>native_transport_unavailable</code>): missing native support never
-falls back silently to OpenSSH.</p>
+<p>The official Linux/amd64 executable is built by <code>make build</code> and verified by
+<code>scripts/verify-release.sh</code>; its version output lists the <code>native</code> transport
+compiled in and the external <code>system</code> transport. The module files and <code>vendor/</code>
+are committed so a build host needs no network. The native transport is karvi's
+own <code>x/crypto/ssh</code> connection, in every executable, and a device that selects it
+never falls back silently to OpenSSH.</p>
 <h2 id="address-family-selection">Address-family selection <a class="anchor" href="#address-family-selection" aria-label="Link to this section">#</a></h2>
 <p>The configuration default remains IPv6-first:</p>
 <pre><code class="language-toml">[name]
@@ -277,8 +272,8 @@ karvi router1 show clock
 karvi router1 --cmd 'show clock' --cmd 'show version'
 </code></pre>
 <p>One device session drives <code>command</code> and <code>run</code> on both SSH transports: on
-<code>system</code> one fresh <code>ssh -tt</code> process with ControlMaster off, on <code>scrapligo-v1</code>
-one connection with no subprocess. Every requested command runs sequentially
+<code>system</code> one fresh <code>ssh -tt</code> process with ControlMaster off, on <code>native</code> one
+connection with no subprocess. Every requested command runs sequentially
 through that one authenticated interactive shell, after one privilege escalation
 and the platform's paging commands
 (<a href="docs/COMMAND-SESSION.html"><code>docs/COMMAND-SESSION.md</code></a>). This avoids Cisco IOS XE
@@ -395,8 +390,8 @@ every other line names a command by its hash and size; a secret written into
 a statement therefore appears on that line
 (<a href="ROADMAP.html#later"><code>ROADMAP.md</code></a>, &quot;Secrets in statements&quot;).</p>
 <h2 id="ssh-transport-configuration">SSH transport configuration <a class="anchor" href="#ssh-transport-configuration" aria-label="Link to this section">#</a></h2>
-<p>Configuration schema <strong>6</strong> and registry schema <strong>13</strong> use per-mode selectors and
-named implementation slots (<a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>):</p>
+<p>Configuration schema <strong>6</strong> and registry schema <strong>32</strong> use per-mode selectors and
+named executable slots (<a href="docs/SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a>):</p>
 <pre><code class="language-toml">[config]
 schema-version = 6
 
@@ -411,16 +406,15 @@ transport = &quot;default&quot;       # default -&gt; native
 
 [ssh.transports]
 system = &quot;ssh&quot;
-native = &quot;scrapligo-v1&quot;
-# alternate1 = &quot;scrapligo-v2&quot;
-# alternate2 = &quot;exec:./future-device-handler&quot;
+# alternate1 = &quot;exec:./future-device-handler&quot;
 </code></pre>
-<p>A selector may be <code>default</code>, <code>system</code>, <code>native</code>, <code>preferred</code>, <code>telnet</code>, a named
-slot, or a compiled implementation ID. A bare system executable is found
-through <code>PATH</code>; a slash-containing relative path is resolved from the karvi
-executable directory. Explicit unavailable mappings fail configuration
-validation. The default native mapping is lazy, allowing a system-only preview
-to operate until native is actually selected.</p>
+<p>A selector may be <code>default</code>, <code>system</code>, <code>native</code>, <code>telnet</code>, or a named slot.
+<code>native</code> and <code>telnet</code> are karvi's built-in transports; a slot maps a name to
+an executable, <code>system</code> to OpenSSH and any other slot to <code>exec:PROGRAM</code> or
+<code>exec:PATH</code>. A bare executable is found through <code>PATH</code>; a slash-containing
+relative path is resolved from the karvi executable directory. A mapping that
+cannot be used fails configuration validation, and a slot named <code>native</code> or
+<code>telnet</code> is refused (<code>transport_mapping_invalid</code>).</p>
 <p><code>karvi --version</code> reports the exact transport composition of the executable.</p>
 <h2 id="login-transcripts-and-host-keys">Login, transcripts, and host keys <a class="anchor" href="#login-transcripts-and-host-keys" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi login router1
@@ -559,7 +553,7 @@ completion&quot;</a>).</p>
 <p>The candidate includes layered TOML configuration with include graphs, locks,
 macros, validation and provenance; CSV inventory and deterministic DNS;
 credential policies and authenticated askpass; one device session over system
-OpenSSH and the compiled scrapligo-v1 connection, gated Telnet; serial,
+OpenSSH and karvi's own native connection, gated Telnet; serial,
 parallel, and adaptive-wave dispatch; durable JSONL and summaries; audit,
 scoreboards, metrics, per-user daemon IPC, capacity admission, retention
 (<code>karvi-prune</code>, <a href="docs/PRUNE.html"><code>docs/PRUNE.md</code></a>), the audit trail read as a
@@ -594,7 +588,6 @@ sha256sum -c CHECKSUMS.sha256
 <pre><code class="language-bash">make deps            # optional on a connected host: download and verify
 ./scripts/verify-release.sh
 </code></pre>
-<p>Only <code>internal/adapters/scrapligov1</code> imports ScrapliGo.</p>
 <h2 id="documents">Documents <a class="anchor" href="#documents" aria-label="Link to this section">#</a></h2>
 <p>Operator guides:</p>
 <ul>
@@ -674,7 +667,7 @@ operating-system, secret, and third-party adapters remain under
 <h2 id="license">License <a class="anchor" href="#license" aria-label="Link to this section">#</a></h2>
 <p>MIT. See <a href="LICENSE.html"><code>LICENSE.md</code></a>.</p>
 
-<footer>Generated from <code>README.md</code> at <code>karvi-v0.36.0</code>.</footer>
+<footer>Generated from <code>README.md</code> at <code>karvi-v0.37.0</code>.</footer>
 </main>
 </body>
 </html>
