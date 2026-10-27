@@ -439,6 +439,35 @@ of [`docs/EXAMPLES.md`](docs/EXAMPLES.md). Nothing here is a promise of a date.
   as `verify-release.sh`'s is. The questions: a cleanup that stops a daemon or
   a container, run once at the exit, checked under each signal; and a check
   that keeps the other form out of the tree.
+- **The release's signature.** `karvi-sysutil package update` checks the
+  package against its `.sha256`, which comes from the same release over the
+  same connection: it finds a damaged download, and proves nothing of where
+  the package came from. Under `-k`, a proxy that inspects TLS, or anything
+  that answers for github.com inside the network, can serve another package
+  with a checksum that matches it, and `apt-get` runs its maintainer scripts as
+  root. The item: the release signs `karvi-vX.Y.Z-artifacts.sha256` with an
+  SSH key (`ssh-keygen -Y sign`) and publishes the `.sig` beside it; the package
+  ships the public key as `/usr/share/karvi/release-signers`, in
+  `allowed_signers` form; and the update verifies the signature with
+  `ssh-keygen -Y verify` (`openssh-client` is already a dependency) before it
+  reads the package's sum from the signed file. Trust begins at the first
+  package installed by hand, which brings the key. A lab of 2026-10-27 signed
+  0.36.0's aggregate checksums with a throwaway key: the file verified, exit
+  0, and the same file with one sum changed failed, `incorrect signature`,
+  exit 255. The questions: where the key is kept and the release step that
+  signs, in `release-tools`; a key's change (a package carrying both keys
+  before the old one goes); and whether the bundle's `verify-bundle.sh` checks
+  the signature too. *Not taken:* GPG or minisign (another tool and its
+  keyring), GitHub's attestations (`gh` on every host).
+- **The package update on a timer.** `karvi-sysutil package update` runs when
+  the administrator runs it. A timer under `/usr/share/karvi`, inactive as the
+  others are, would run it on a schedule. The questions: whether the timer
+  installs or only reports (`--check`); where its `--proxy` and `-k` are kept,
+  a timer having no command line (a file under `/etc/karvi`); and whether an
+  unattended install restarts the instances of `karvi-daemon@.service` it
+  names, a restart cancelling what outlasts the grace. It waits on the
+  release's signature: an install no one watches should not rest on a
+  checksum alone.
 
 ## The device-qualification track
 
