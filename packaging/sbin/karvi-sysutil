@@ -1,9 +1,11 @@
 #!/bin/bash
-# karvi-sysutil: the administrator's tool for the service account's daemon,
-# run as root (karvi-sysutil(8); docs/EXAMPLES.md chapter 57, issue 16).
+# karvi-sysutil: the administrator's tool for the service account's daemon
+# and the package's update, run as root (karvi-sysutil(8); docs/EXAMPLES.md
+# chapter 57, issue 16, and chapter 81).
 #
 #   sudo karvi-sysutil daemon install [--group NAME]
 #   sudo karvi-sysutil daemon remove [--purge]
+#   sudo karvi-sysutil package update [--check] [-k|--insecure] [--proxy URL]
 #
 # install runs karvi setup shared, makes the system user karvi in the
 # operators' group with its home /opt/karvi/users/karvi, writes its
@@ -15,7 +17,9 @@
 # install is finished by running it again, and an install run over an
 # existing one repairs what the record lists as made. remove undoes what the
 # record lists, in reverse; the account and its home stay, their lines kept in
-# the record, unless --purge.
+# the record, unless --purge. package update installs the latest release's
+# package from GitHub when it is newer than the installed one, checked
+# against its .sha256 first.
 set -u
 set -o pipefail
 
@@ -35,12 +39,19 @@ KARVI=/usr/bin/karvi
 # The places another account's files may be in, given to root at --purge:
 # the shared trees of both system roots and the shared scratch.
 SHARED_PLACES=(/opt/karvi/shared /var/lib/karvi/shared /dev/shm/karvi)
+# The releases, in GitHub's layout: latest redirects to tag/karvi-vVERSION,
+# and each asset is download/karvi-vVERSION/NAME. KARVI_RELEASES names
+# another with that layout, a site's mirror or a test's server.
+RELEASES=${KARVI_RELEASES:-https://github.com/robert-patrick-texas/karvi/releases}
+# The bundle's karvi, which a package update would leave in front.
+BUNDLE_KARVI=/usr/local/bin/karvi
 
 usage() {
   cat <<'EOF'
 Usage:
   sudo karvi-sysutil daemon install [--group NAME]
   sudo karvi-sysutil daemon remove [--purge]
+  sudo karvi-sysutil package update [--check] [-k|--insecure] [--proxy URL]
 
 daemon install sets up the service account's daemon: karvi setup shared;
 the system user karvi in the operators' group (netops, or --group NAME), its
@@ -49,9 +60,18 @@ home /opt/karvi/users/karvi; its configuration with daemon.launch =
 Run again, it reports each part exists, and repairs one it made that has
 changed. daemon remove disables the unit and removes the configuration and
 the group membership it made; --purge also gives the account's files in the
-shared trees to root and removes the account and its home. --nocolor writes
-no colour; --help shows this text. The record of what was made is
-/etc/karvi/service-karvi.installed. See karvi-sysutil(8).
+shared trees to root and removes the account and its home. The record of
+what was made is /etc/karvi/service-karvi.installed.
+
+package update installs the latest release's package from GitHub when it is
+newer than the installed one: fetched with curl, checked against its
+.sha256, and installed with apt-get; --check only reports. --proxy URL
+reaches GitHub through an http:// or https:// proxy; -k accepts any
+certificate, GitHub's and the proxy's. A bundle install in /usr/local is
+refused. A daemon of karvi-daemon@.service keeps its program until the
+administrator restarts it.
+
+--nocolor writes no colour; --help shows this text. See karvi-sysutil(8).
 EOF
 }
 
@@ -65,11 +85,12 @@ paint() { # SGR TEXT: one line on standard error
     printf '%s\n' "$2" >&2
   fi
 }
-# refuse MESSAGE: each line in the error colour, exit 1.
+# refuse MESSAGE [STATUS]: each line in the error colour, exit STATUS, 1
+# unless given.
 refuse() {
   local line
   while IFS= read -r line; do paint '1;31' "$line"; done <<<"karvi-sysutil: $1"
-  exit 1
+  exit "${2:-1}"
 }
 warn() { paint '1;38;5;208' "karvi-sysutil: $1"; }
 # say STATE PART...: one part's line, as karvi setup shared writes its own.
@@ -395,8 +416,89 @@ remove_record() {
   return 0
 }
 
+# update_package CHECK INSECURE PROXY: the latest release's package, fetched
+# with curl, checked against its .sha256, and installed when it is newer
+# than the installed one; with CHECK yes, only reported. The checksum finds
+# a damaged download; it proves nothing of the release's origin, which the
+# release's signature is to (ROADMAP.md).
+update_package() {
+  local check=$1 insecure=$2 proxy=$3 installed reply code url tag latest deb f sum want got out unit
+  local fetch=(curl --disable --silent --show-error --proto "=https" --proto-redir "=https" --connect-timeout 30)
+  # The refusals, every one before anything changes.
+  command -v curl >/dev/null || refuse "curl not found; apt install curl"
+  if [ -e "$BUNDLE_KARVI" ] || [ -L "$BUNDLE_KARVI" ]; then
+    refuse "a bundle install is present, $BUNDLE_KARVI, run before the package's; update it with a newer bundle's scripts/install.sh"
+  fi
+  [ "$(dpkg-query -W -f='${db:Status-Status}' karvi 2>/dev/null)" = installed ] ||
+    refuse "the karvi package is not installed"
+  installed=$(dpkg-query -W -f='${Version}' karvi)
+  [ "$insecure" = yes ] && fetch+=(--insecure --proxy-insecure)
+  [ -n "$proxy" ] && fetch+=(--proxy "$proxy")
+  # work is the script's own, which the trap removes at the exit.
+  work=$(mktemp -d -t karvi-update.XXXXXX) || refuse "cannot make a work directory"
+  trap 'rm -rf -- "${work:?}"' EXIT
+
+  # The latest release, the tag its page redirects to.
+  reply=$("${fetch[@]}" -o /dev/null -w '%{http_code} %{redirect_url}' "$RELEASES/latest" 2>"$work/err") ||
+    refuse "cannot reach $RELEASES/latest; nothing changed
+$(sed -n 1p "$work/err")"
+  code=${reply%% *}
+  url=${reply#* }
+  tag=${url##*/tag/}
+  [[ $code == 30? ]] && [ "$tag" != "$url" ] || refuse "no latest release at $RELEASES/latest: HTTP $code; nothing changed"
+  latest=${tag#karvi-v}
+  [[ $tag == karvi-v* && $latest =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+    refuse "the latest release's tag is not a karvi release's; nothing changed
+  tag $tag"
+  say package "karvi $installed"
+  say latest "karvi $latest"
+  if ! dpkg --compare-versions "$latest" gt "$installed"; then
+    say current "no newer release"
+    return
+  fi
+  if [ "$check" = yes ]; then
+    say newer "sudo karvi-sysutil package update installs it"
+    return
+  fi
+
+  # The package and its checksum, one line of its sum and name.
+  deb=karvi_${latest}_amd64.deb
+  for f in "$deb" "$deb.sha256"; do
+    "${fetch[@]}" --fail --location --max-redirs 5 -o "$work/$f" "$RELEASES/download/$tag/$f" 2>"$work/err" ||
+      refuse "cannot download $RELEASES/download/$tag/$f; nothing changed
+$(sed -n 1p "$work/err")"
+  done
+  say fetched "$deb  $(stat -c %s "$work/$deb") bytes"
+  sum=$(cat "$work/$deb.sha256")
+  [[ $sum =~ ^([0-9a-f]{64})\ \ (.+)$ ]] && [ "${BASH_REMATCH[2]}" = "$deb" ] ||
+    refuse "$deb.sha256 is not the package's checksum; nothing changed"
+  want=${BASH_REMATCH[1]}
+  got=$(sha256sum "$work/$deb" | cut -d' ' -f1)
+  [ "$got" = "$want" ] || refuse "$deb does not match its checksum; nothing changed
+  want  sha256 $want
+  found sha256 $got"
+  say checked "$deb  sha256 as its .sha256"
+
+  # apt-get installs it with any new dependency; its sandbox user reads it.
+  chmod 0755 "$work" && chmod 0644 "$work/$deb" || refuse "cannot open $work to apt"
+  out=$(DEBIAN_FRONTEND=noninteractive apt-get install -y -q "$work/$deb" 2>&1) ||
+    refuse "apt-get install $deb failed
+$out"
+  [ "$(dpkg-query -W -f='${Version}' karvi)" = "$latest" ] ||
+    refuse "apt-get install $deb left karvi $(dpkg-query -W -f='${Version}' karvi)"
+  say updated "karvi $installed to $latest"
+
+  # A daemon of the template keeps the program it started with: an
+  # operator's own daemon is drained by the operator's next submission, one
+  # under systemd waits for the administrator's restart.
+  [ -d /run/systemd/system ] || return 0
+  while read -r unit _; do
+    warn "$unit keeps the karvi it started with; systemctl restart $unit"
+  done < <(systemctl list-units --no-legend --plain --type=service --state=active 'karvi-daemon@*.service' 2>/dev/null)
+}
+
 main() {
-  local args=() a verb='' group=netops purge=no
+  local args=() a object verb group=netops purge=no check=no insecure=no proxy=''
   for a in "$@"; do
     case $a in
       --nocolor) colour=no ;;
@@ -406,11 +508,11 @@ main() {
   done
   [ -n "${NO_COLOR:-}" ] && colour=no
   set -- "${args[@]}"
-  [ "${1:-}" = daemon ] || { usage >&2; exit 2; }
+  object=${1:-}
   verb=${2:-}
   shift 2 2>/dev/null || { usage >&2; exit 2; }
-  case $verb in
-    install)
+  case $object/$verb in
+    daemon/install)
       while [ $# -gt 0 ]; do
         case $1 in
           --group) [ $# -ge 2 ] || { usage >&2; exit 2; }; group=$2; shift 2 ;;
@@ -419,7 +521,7 @@ main() {
         esac
       done
       ;;
-    remove)
+    daemon/remove)
       while [ $# -gt 0 ]; do
         case $1 in
           --purge) purge=yes; shift ;;
@@ -427,12 +529,38 @@ main() {
         esac
       done
       ;;
+    package/update)
+      while [ $# -gt 0 ]; do
+        case $1 in
+          --check) check=yes; shift ;;
+          -k | --insecure) insecure=yes; shift ;;
+          --proxy | --proxy=*)
+            [ -z "$proxy" ] || refuse "--proxy given twice; one proxy carries every request" 2
+            if [ "$1" = --proxy ]; then
+              [ $# -ge 2 ] || { usage >&2; exit 2; }
+              proxy=$2
+              shift
+            else
+              proxy=${1#--proxy=}
+            fi
+            shift
+            case $proxy in
+              http://?* | https://?*) ;;
+              *) refuse "--proxy takes an http:// or https:// URL
+  given $proxy" 2 ;;
+            esac
+            ;;
+          *) usage >&2; exit 2 ;;
+        esac
+      done
+      ;;
     *) usage >&2; exit 2 ;;
   esac
-  [ "$(id -u)" -eq 0 ] || refuse "run as root: sudo karvi-sysutil daemon $verb"
-  case $verb in
-    install) install_daemon "$group" ;;
-    remove) remove_daemon "$purge" ;;
+  [ "$(id -u)" -eq 0 ] || refuse "run as root: sudo karvi-sysutil $object $verb"
+  case $object/$verb in
+    daemon/install) install_daemon "$group" ;;
+    daemon/remove) remove_daemon "$purge" ;;
+    package/update) update_package "$check" "$insecure" "$proxy" ;;
   esac
 }
 

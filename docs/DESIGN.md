@@ -2005,6 +2005,28 @@ client's setting says it); `daemon.launch` a boolean (`false` says what a
 client does not do, not who does); the template edited at the bundle's install
 (a unit other than the release's); the bundle's commands left by hand.
 
+**The package's update is `karvi-sysutil package update`.** Run as root, it
+reads the latest release from the redirect of `releases/latest` to its tag,
+compares it with the installed package by `dpkg --compare-versions`, and when
+it is newer fetches the package and its `.sha256` with curl, checks the one
+against the other, and installs it with `apt-get`; `--check` only reports.
+`--proxy URL` and `-k` are curl's, `-k` for GitHub's certificate and the
+proxy's, for a site whose proxy inspects TLS. It is refused without curl,
+beside a bundle install, and without the package, and it restarts no daemon:
+each running instance of the template is named for the administrator's
+restart. *Why:* each release already publishes the package and its checksum,
+and one command replaces section 10 of `BUILD-HOWTO.md` by hand; a bundle
+install runs before the package's, which an update would leave behind it; a
+restart cancels what outlasts the grace, at a moment that is the
+administrator's. The checksum proves the download whole, not its origin: under
+`-k` a proxy, or anything answering for github.com, can serve a package with
+its own checksum, which the release's signature (a ROADMAP item) is to close.
+*Not taken:* the GitHub API (JSON, and a rate limit) for the redirect; a
+signed apt repository on gh-pages (the hosting, a key in apt's keyring, the
+pruning, and the restart still outside apt); curl as a dependency (the
+refusal names it); a downgrade (an earlier package by hand); the instances
+restarted after the install.
+
 ## 9. Dispatch and the ICMP gate
 
 **Dispatch is `serial`, `parallel`, or `wave`, bounded by a shared cap.**

@@ -419,6 +419,15 @@ karvi version --format json
 sudo apt install --allow-downgrades ./karvi_<earlier>_amd64.deb   # roll back
 ```
 
+On a host that reaches GitHub, `sudo karvi-sysutil package update` does the
+first two in one step: when the latest release's package is newer than the
+installed one, it fetches the package and its `.sha256` with curl, checks the
+one against the other, and installs it with `apt-get`; `--check` only
+reports, `--proxy URL` goes through an `http://` or `https://` proxy, and `-k`
+accepts any certificate, GitHub's and the proxy's (`karvi-sysutil(8)`). It is
+refused without curl, beside the bundle's install below, and without the
+package; a rollback is the command above.
+
 A minimized image, one whose dpkg excludes `/usr/share/doc/*` and
 `/usr/share/man/*` (Docker's Ubuntu, the minimal cloud images), installs the
 executables and `/usr/share/karvi` alone, no document or manual page; the

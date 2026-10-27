@@ -1,20 +1,26 @@
 .\" karvi-sysutil(8): the administrator's tool for the service account's
-.\" daemon. Written by hand; its rules are docs/EXAMPLES.md chapter 57's,
-.\" issues 14 to 16, and its usage is the script's own (--help), so a change
-.\" to the script changes this page.
+.\" daemon and the package's update. Written by hand; its rules are
+.\" docs/EXAMPLES.md chapter 57's, issues 14 to 16, and chapter 81's, and its
+.\" usage is the script's own (--help), so a change to the script changes
+.\" this page.
 .TH KARVI-SYSUTIL 8 "" "karvi"
 .\" Paths and options are not hyphenated, and lines are not stretched.
 .nh
 .ds AD l
 .ad l
 .SH NAME
-karvi\-sysutil \- set up or remove the service account's karvi daemon
+karvi\-sysutil \- set up or remove the service account's karvi daemon, or update the karvi package
 .SH SYNOPSIS
 .B sudo karvi\-sysutil daemon install
 .RB [ "\-\-group \fINAME\fP" ]
 .br
 .B sudo karvi\-sysutil daemon remove
 .RB [ \-\-purge ]
+.br
+.B sudo karvi\-sysutil package update
+.RB [ \-\-check ]
+.RB [ \-k | \-\-insecure ]
+.RB [ "\-\-proxy \fIURL\fP" ]
 .SH DESCRIPTION
 .B karvi\-sysutil
 sets up a host's service account,
@@ -22,7 +28,8 @@ sets up a host's service account,
 whose daemon runs under systemd as the template unit's instance
 .BR karvi\-daemon@karvi.service ,
 started after the network, stopped before it at a shutdown, and bounded by
-the daemon's grace alone. It runs as root, directly or through
+the daemon's grace alone, and updates the karvi package from its releases.
+It runs as root, directly or through
 .BR sudo ,
 and exits 1 otherwise. An operator's own daemon, launched by the operator's
 client, needs none of it.
@@ -96,6 +103,43 @@ install's. A part already gone is reported
 without a record,
 .B daemon remove
 is refused.
+.PP
+.B package update
+updates the karvi package from its releases on GitHub,
+.IR https://github.com/robert\-patrick\-texas/karvi/releases .
+It is refused without
+.BR curl ;
+when
+.I /usr/local/bin/karvi
+is present, a bundle install, which runs before the package's and is
+updated by a newer bundle's
+.BR scripts/install.sh ;
+and when the karvi package is not installed. It reads the latest release's
+tag,
+.BI karvi\-v VERSION\fR,\fP
+from the redirect of
+.IR releases/latest ,
+and shows the installed package's version over the latest's; a release no
+newer is reported
+.BR current .
+A newer release's package,
+.BI karvi_ VERSION _amd64.deb\fR,\fP
+and its checksum file are fetched into a directory of their own, removed at
+the exit; the package's SHA\-256 must be the checksum file's; and
+.B apt\-get install
+installs it with any new dependency. A refusal or a failure before the
+install changes nothing. The checksum finds a damaged download; it proves
+nothing of where the package came from, which a signature of the release
+is to. An earlier package is installed by hand,
+.BR "apt install \-\-allow\-downgrades" .
+.PP
+After the install, each running instance of the template is named: it keeps
+the karvi it started with, and its account's submissions are refused, until
+the administrator's
+.B systemctl restart
+of it, which lets its jobs finish under the daemon's grace. An operator's
+own daemon, launched by the operator's client, needs nothing: the
+operator's next submission drains it and starts the installed karvi.
 .SH OPTIONS
 .TP
 .BI \-\-group " NAME"
@@ -109,6 +153,42 @@ when not given; an install whose record names another group is refused.
 With
 .BR "daemon remove" :
 remove the account and its home as well.
+.TP
+.B \-\-check
+With
+.BR "package update" :
+report whether a newer release is published, and install nothing.
+.TP
+.BR \-k ", " \-\-insecure
+With
+.BR "package update" :
+accept any certificate, GitHub's and an
+.B https://
+proxy's, as on a network whose proxy inspects TLS under a certificate of
+its own. A host that trusts the inspecting authority, in
+.I /usr/local/share/ca\-certificates
+with
+.BR update\-ca\-certificates (8),
+needs no
+.BR \-k .
+.TP
+.BI \-\-proxy " URL"
+With
+.BR "package update" :
+reach GitHub through the proxy at
+.IR URL ,
+.BI http:// HOST : PORT /
+or
+.BI https:// HOST : PORT /\fR,\fP
+given once; an
+.B https://
+proxy's own certificate is checked as GitHub's is. Without it, curl takes
+.B https_proxy
+and
+.B no_proxy
+from the environment, which
+.B sudo
+leaves out unless its policy keeps them.
 .TP
 .B \-\-nocolor
 No colour on standard error, which at a terminal shows errors in red and
@@ -144,10 +224,26 @@ and then the account's own, and one line per part, made or found.
 .TP
 .I /opt/karvi/users/karvi/.config/karvi/config.toml
 The account's configuration.
+.SH ENVIRONMENT
+.TP
+.B KARVI_RELEASES
+The releases
+.B package update
+reads, in GitHub's layout:
+.I latest
+redirecting to
+.BI tag/karvi\-v VERSION\fR,\fP
+and each asset at
+.BI download/karvi\-v VERSION / NAME\fR.\fP
+A site's mirror, or a test's server; GitHub's when not set.
 .SH EXIT STATUS
-0 when done; 1 for a refusal or a failure, nothing changed by a refusal; 2
-for a usage error.
+0 when done, a release no newer and a
+.B \-\-check
+included; 1 for a refusal or a failure, nothing changed by a refusal; 2 for
+a usage error.
 .SH SEE ALSO
+.BR apt\-get (8),
+.BR curl (1),
 .BR karvi\-daemon (1),
 .BR karvi\-setup (1),
 .BR systemctl (1),

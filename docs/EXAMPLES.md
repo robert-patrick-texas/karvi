@@ -17124,3 +17124,181 @@ the compatibility example, the 1/3 and 2/3 patches, the artifacts, the
 container install, the release notes, the push, the site, the GitHub release,
 and the published check; `v0360-dependencies/`: the module move's logs, the
 vendored diff, the native suite, and the battery).
+
+## 81. The package update, `karvi-sysutil package update` (2026-10-27)
+
+The operator asked whether karvi updates itself: finds a newer `.deb` on
+GitHub, downloads it, verifies its checksum, and installs it; and if not, to
+consider it for `karvi-sysutil`, through curl, with `-k` for an internal
+network that inspects TLS on its way to the internet and `--proxy` for a proxy
+server. Nothing did. The session proposed the command and raised its first
+issue, what the checksum proves under `-k`. The operator made the release's
+signature a ROADMAP item for later, asked for the build at once with four
+rules of the operator's own (below), and asked what a host without the service
+account's daemon needs after an update.
+
+**What it gains.** One root command replaces the steps of `BUILD-HOWTO.md`
+section 10 by hand (the download, `sha256sum -c`, `apt install`), from behind
+the proxies sites put before the internet. It waits on nothing: each release
+already publishes `karvi_X.Y.Z_amd64.deb` and its `.sha256`; GitHub's
+`releases/latest` redirects to the tag (`302`,
+`.../releases/tag/karvi-v0.36.0`), which names the version without the API;
+and an asset redirects once more, to `release-assets.githubusercontent.com`,
+a second host a proxy's list must allow.
+
+**The tree before.** At `9c8ea43`, `karvi-sysutil` had `daemon install` and
+`daemon remove` alone; ROADMAP had no item for an update; the package depends
+on `openssh-client` and `adduser`, not on curl.
+
+**The first issue: the checksum under `-k`.** The `.sha256` comes from the same
+release over the same connection as the package. Under `-k` anything that
+answers for github.com inside the network, the inspecting proxy among them,
+can serve another package with a checksum that matches it, and `apt-get` runs
+its maintainer scripts as root; without `-k` the checksum still finds only a
+damaged download, TLS alone vouching for the origin. The recommendation: the
+release signs its aggregate checksums with an SSH key, the package carries the
+public key, and the update verifies with `ssh-keygen -Y verify`
+(`openssh-client` is already a dependency). Executed with a throwaway key over
+0.36.0's `karvi-v0.36.0-artifacts.sha256`: the file verified, exit 0; the same
+file with one sum changed failed, `Signature verification failed: incorrect
+signature`, exit 255. Agreed, for later: ROADMAP's "The release's signature".
+
+**The rules, agreed.** In simple terms:
+
+1. The command. `sudo karvi-sysutil package update [--check] [-k|--insecure]
+   [--proxy URL]` installs the latest release's package when it is newer than
+   the installed one; `--check` only reports. A downgrade stays by hand.
+2. The refusals, before anything changes: not root; no curl (the operator's:
+   refused, not made a dependency); a bundle install present,
+   `/usr/local/bin/karvi` (the operator's: it runs before the package's, and
+   an update would leave it in front); the package not installed.
+3. The checks. The latest tag is `karvi-vX.Y.Z`; the `.sha256` is one line,
+   a sum and the package's name; the package's sum is that sum. A refusal or a
+   failure before the install changes nothing.
+4. `-k` covers GitHub's certificate and an `https://` proxy's (the
+   operator's): curl's `--insecure` and `--proxy-insecure` together.
+   `--proxy` takes one `http://` or `https://` URL; a second is a usage
+   error, since every request is HTTPS through the one proxy.
+5. Later (the operator's): the release's signature, and the update on a timer,
+   both ROADMAP items.
+
+**The question: a host without the service account's daemon.** It needs no
+action. An operator's own daemon (`daemon.launch = "client"`, the default) is
+drained by the operator's next submission: idle, it exits at once and the
+client starts the installed karvi in the same invocation; holding jobs, it
+finishes them, killing nothing, and refuses new ones `daemon_draining` until
+it exits (OPERATIONS, "Upgrade"). Under `daemon.launch = "systemd"`, the
+service account's daemon or each operator's where a site's global file locks
+it so, an instance keeps its program and its account's submissions are
+refused `daemon_incompatible` until `systemctl restart`, which lets the jobs
+finish within `daemon.shutdown-grace-seconds` and cancels what remains. So the
+update lists the active instances of `karvi-daemon@*.service` and names each
+one's restart, and on a jump box prints nothing more. In simple terms: the
+update never restarts a daemon; an operator's own daemon needs nothing, the
+next run switching it over; each running instance under systemd is named with
+its restart, whose moment stays the administrator's, as the package's
+postinst has it (chapter 57, issue 16). Agreed; whether an unattended update
+restarts is the timer item's question.
+
+**Executed.** In a throwaway `ubuntu:26.04` with curl and no network, the lab
+package `karvi_0.36.0+dev_amd64.deb` (a `make build` of the tree over
+`9c8ea43` with the update) installed, `tools/release-fixture` serving a
+release `karvi-v0.37.0`, the lab package repacked at that version, and
+`KARVI_RELEASES` naming the fixture:
+
+```text
+# karvi-sysutil package update --check
+karvi-sysutil: cannot reach https://127.0.0.1:8443/releases/latest; nothing changed
+curl: (60) SSL certificate OpenSSL verify result: self-signed certificate (18)
+exit 1
+# karvi-sysutil package update --check -k --proxy https://127.0.0.1:8445
+package  karvi 0.36.0+dev
+latest   karvi 0.37.0
+newer    sudo karvi-sysutil package update installs it
+exit 0
+# karvi-sysutil package update -k --proxy http://127.0.0.1:8444
+package  karvi 0.36.0+dev
+latest   karvi 0.37.0
+fetched  karvi_0.37.0_amd64.deb  6542362 bytes
+checked  karvi_0.37.0_amd64.deb  sha256 as its .sha256
+updated  karvi 0.36.0+dev to 0.37.0
+exit 0
+# karvi-sysutil package update -k
+package  karvi 0.37.0
+latest   karvi 0.37.0
+current  no newer release
+exit 0
+# karvi-sysutil package update --proxy 192.0.2.10:2025
+karvi-sysutil: --proxy takes an http:// or https:// URL
+  given 192.0.2.10:2025
+exit 2
+```
+
+The fixture's log showed the `--check` through `tls-proxy CONNECT
+127.0.0.1:8443` and the update's three requests each through `proxy CONNECT`.
+`scripts/sysutil-smoke-test.sh`'s new step 10 runs the same under systemd with
+the service account's daemon running, and two refusals in the bundle's step
+13; on the lab package it passed, every step:
+
+- the refusals, each exit 1 with the accounts and karvi's places as before:
+  not root, no curl, a bundle's karvi beside the package, a certificate not
+  trusted, the proxy's not trusted, a checksum of zeros, a tag `v2`, an asset
+  missing; and, in step 13, the package not installed and the bundle's own
+  install;
+- `--proxy` given a `socks5://` URL, and given twice, exit 2;
+- an older release, `0.1.0`, current under `-k`;
+- the fixture's origin certificate trusted through `update-ca-certificates`:
+  `--check` without `-k` reports the newer `99.0.0`; through the HTTPS proxy
+  without `-k` refused, with `-k` reported;
+- the update through the HTTP proxy without `-k`: the package at 99.0.0,
+  `karvi-sysutil: karvi-daemon@karvi.service keeps the karvi it started with;
+  systemctl restart karvi-daemon@karvi.service`, the daemon's pid the same,
+  the work folder gone; and again, current.
+
+**Why this way.**
+
+- The redirect, not the API: no JSON for a bash script to read, and no rate
+  limit of 60 an hour per address, which every host behind one proxy shares.
+- `apt-get install` of the file, not `dpkg -i`: a new dependency comes with
+  it. The work folder is opened to 0755 so that apt's sandbox user `_apt`
+  reads the package.
+- `curl --disable`: root's `.curlrc` cannot turn verification off unseen.
+  curl's `https_proxy` and `no_proxy` from the environment still apply, which
+  `sudo` drops unless its policy keeps them, so `--proxy` is the option.
+- `--proto =https` and `--proto-redir =https`: no request or redirect leaves
+  HTTPS; an `http://` proxy still carries the tunnel.
+- curl's first error line alone: curl 8.18 follows a certificate error with
+  several lines of advice.
+- `KARVI_RELEASES`: the test's server, and a site's mirror in GitHub's layout.
+
+**Not taken.** The GitHub API (above). A signed apt repository on gh-pages:
+apt and unattended-upgrades would carry the proxy, `-k`
+(`Acquire::https::Verify-Peer`), and the schedule, at the cost of the hosting,
+a key in apt's keyring, the pruning of each release's 6.5 MB, and the restart
+still outside apt. curl in `Depends` or `Recommends` (the refusal names it).
+`--cacert FILE`: a host trusts an inspecting authority through
+`update-ca-certificates`, as the test does. The instances restarted after the
+install. An update under the bundle: a newer bundle's `install.sh` is that
+install's update.
+
+**Found on the way.**
+
+- A development package, `0.36.0+dev`, sorts after `0.36.0`, so a lab install
+  sees the release as current; the tag check takes `X.Y.Z` alone, as a
+  release's tag is.
+- An update makes three requests, each its own tunnel through the proxy: the
+  redirect, the package, and its checksum.
+
+**Built.** Over `9c8ea43`, committed in two on the operator's word, the
+feature and then ROADMAP's items:
+`packaging/sbin/karvi-sysutil` (`package update`, the usage, `refuse` taking
+an exit status); `packaging/man/karvi-sysutil.8`; `tools/release-fixture`, the
+test's releases and proxies; `scripts/sysutil-smoke-test.sh` (curl in the
+image, step 10, two refusals in step 13); `CHANGELOG.md`'s Unreleased;
+OPERATIONS "Upgrade" and the service account's "After an upgrade";
+`BUILD-HOWTO.md` section 10; DESIGN section 8; and FILES' row for
+`karvi-sysutil`; then ROADMAP's two Later items.
+
+The evidence is kept beside the tree (`update-design-evidence/`: the
+container test's log, the transcript and the script and image that made it,
+and the signature lab).

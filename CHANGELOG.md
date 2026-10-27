@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **`karvi-sysutil package update`, the package's update from GitHub.**
+  `sudo karvi-sysutil package update` finds the latest release from the
+  redirect of its page, `releases/latest`, and when that release's package is
+  newer than the installed one fetches `karvi_X.Y.Z_amd64.deb` and its
+  `.sha256` with curl, checks the one against the other, and installs it with
+  `apt-get`; `--check` only reports. `--proxy URL` reaches GitHub through an
+  `http://` or `https://` proxy, and `-k` (`--insecure`) accepts any
+  certificate, GitHub's and the proxy's, for a network that inspects TLS. It
+  is refused without curl, beside a bundle install's `/usr/local/bin/karvi`,
+  and without the package. A running daemon of `karvi-daemon@.service` is
+  named for its restart, which stays the administrator's; an operator's own
+  daemon is drained by the operator's next submission. The checksum finds a
+  damaged download and proves nothing of the release's origin, which the
+  release's signature, a ROADMAP item, is to
+  ([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)).
+
 ## 0.36.0 - 2026-10-26
 
 A minor release on 0.35.0 for a command list per device, `--cf DIR`, and a

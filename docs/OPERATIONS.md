@@ -4,6 +4,45 @@
 
 ## Upgrade
 
+On a host installed from the package, the administrator installs a newer
+release in one step:
+
+```bash
+sudo karvi-sysutil package update --check    # report only
+sudo karvi-sysutil package update
+```
+
+It reads the latest release's tag from the redirect of GitHub's
+`releases/latest`, and when that release's package is newer than the
+installed one fetches it and its `.sha256` with curl, checks the one against
+the other, and installs it with `apt-get`, any new dependency with it:
+
+```
+package  karvi 0.36.0
+latest   karvi 0.37.0
+fetched  karvi_0.37.0_amd64.deb  6542362 bytes
+checked  karvi_0.37.0_amd64.deb  sha256 as its .sha256
+updated  karvi 0.36.0 to 0.37.0
+```
+
+`--proxy URL` reaches GitHub through an `http://` or `https://` proxy, given
+once; `-k` (`--insecure`) accepts any certificate, GitHub's and the proxy's,
+for a network whose proxy inspects TLS under an authority the host does not
+trust. It is refused without curl, beside a bundle install's
+`/usr/local/bin/karvi` (a newer bundle's `scripts/install.sh` updates that
+one), and without the package; a refusal, or a failure before the install,
+changes nothing. The checksum finds a damaged download; where the package
+came from rests on TLS alone, and under `-k` on nothing, until the release is
+signed (a ROADMAP item). A rollback is an earlier package by hand
+([`BUILD-HOWTO.md` section 10](../BUILD-HOWTO.md#10-install-and-roll-back)).
+The operators' own daemons then need nothing (below); each running instance
+of `karvi-daemon@.service` is named for its restart, the administrator's
+(see "A service account's daemon under systemd", below):
+
+```
+karvi-sysutil: karvi-daemon@karvi.service keeps the karvi it started with; systemctl restart karvi-daemon@karvi.service
+```
+
 An operator's own daemon, the one the operator's client launches
 (`daemon.launch = "client"`, the default), needs nothing run after an upgrade.
 A daemon serves a client only when its IPC schema and its build, the Go build ID
@@ -519,7 +558,8 @@ a daemon that fails, and the idle timer is off (above). A site's own settings
 go in a drop-in under `/etc/systemd/system/karvi-daemon@.service.d/`, which an
 upgrade never touches.
 
-**After an upgrade**, and after a rollback (`apt install --allow-downgrades`,
+**After an upgrade**, by `sudo karvi-sysutil package update`, which names
+the instance, or by hand, and after a rollback (`apt install --allow-downgrades`,
 or an earlier bundle's `install.sh`, [`BUILD-HOWTO.md` section
 10](../BUILD-HOWTO.md#10-install-and-roll-back)), the template has been
 replaced and systemd reloaded, and the daemon still runs the program it

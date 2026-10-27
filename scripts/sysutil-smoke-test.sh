@@ -29,20 +29,33 @@
 #      that is not the tree's, refused;
 #   9. the upgrade: the installed template changed and the package installed
 #      again, the instance needing no reload and its daemon's pid the same;
-#  10. the removal: the account and its home kept, a part gone reported
+#  10. package update (chapter 81) from a release fixture on 127.0.0.1, its
+#      page and assets over HTTPS behind an HTTP and an HTTPS proxy, each its
+#      own self-signed certificate: the refusals, each exit 1 with the
+#      package as before (not root, no curl, a bundle's karvi, a certificate
+#      not trusted, the proxy's not trusted, a checksum not the package's, a
+#      tag not a karvi release's, an asset missing), and --proxy's usage
+#      errors; an older release, current under -k; the origin's certificate
+#      trusted, --check reporting a newer one, -k reaching it through the
+#      HTTPS proxy; the update through the HTTP proxy, the package at the
+#      newer version, the instance named for its restart and its pid the
+#      same, the work folder gone; and the update again, current;
+#  11. the removal: the account and its home kept, a part gone reported
 #      absent, a second removal, an install taking the account back, --purge
 #      giving the account's shared files to root, their modes the same, and a
 #      removal without a record refused;
-#  11. dpkg -r: the template gone and systemd reloaded;
-#  12. the bundle on the host without the package (chapter 57, issue 19):
+#  12. dpkg -r: the template gone and systemd reloaded;
+#  13. the bundle on the host without the package (chapter 57, issue 19):
+#      package update refused, the package not installed;
 #      scripts/install.sh with the package's executables, the links, the
 #      page, and the template placed and systemd reloaded; the install run by
 #      karvi-sysutil from /usr/local/sbin, the daemon running the bundle's
 #      karvi; install.sh again as an upgrade, the reload done and the
-#      daemon's pid the same; and the removal with --purge.
+#      daemon's pid the same; package update refused, the bundle's karvi
+#      present; and the removal with --purge.
 # The container and its image are removed at the end; nothing else of
 # Docker's is touched. Needs Docker, the network to build the image, and Go
-# to build the fake device from the tree.
+# to build the fake device and the release fixture from the tree.
 set -u -o pipefail
 
 [ $# -eq 1 ] && [ -f "$1" ] || { echo "usage: sysutil-smoke-test.sh PACKAGE" >&2; exit 2; }
@@ -122,15 +135,16 @@ FROM ubuntu:26.04
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     systemd systemd-sysv dbus libpam-systemd adduser sudo \
-    openssh-server openssh-client ca-certificates \
+    openssh-server openssh-client ca-certificates curl \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 STOPSIGNAL SIGRTMIN+3
 EOF
-(cd "$ROOT" && CGO_ENABLED=0 GOTOOLCHAIN=local go build -mod=vendor -trimpath -o "$TMP/karvi-fake-device" ./cmd/karvi-fake-device) ||
-  fail "the fake device did not build"
+(cd "$ROOT" && CGO_ENABLED=0 GOTOOLCHAIN=local go build -mod=vendor -trimpath -o "$TMP/karvi-fake-device" ./cmd/karvi-fake-device &&
+  CGO_ENABLED=0 GOTOOLCHAIN=local go build -mod=vendor -trimpath -o "$TMP/release-fixture" ./tools/release-fixture) ||
+  fail "the fake device or the release fixture did not build"
 boot
-docker cp "$PKG" "$TAG:/root/karvi.deb" >/dev/null && docker cp "$TMP/karvi-fake-device" "$TAG:/usr/local/bin/" >/dev/null ||
-  fail "copy into the container"
+docker cp "$PKG" "$TAG:/root/karvi.deb" >/dev/null && docker cp "$TMP/karvi-fake-device" "$TAG:/usr/local/bin/" >/dev/null &&
+  docker cp "$TMP/release-fixture" "$TAG:/usr/local/bin/" >/dev/null || fail "copy into the container"
 x dpkg -i /root/karvi.deb >/dev/null || fail "dpkg -i ${PKG##*/}"
 ok "$(xsh '. /etc/os-release; echo "$PRETTY_NAME"'), $(x systemctl --version | sed -n '1p'), ${PKG##*/} installed"
 
@@ -297,7 +311,85 @@ x dpkg -i /root/karvi.deb >/dev/null || fail "dpkg -i again"
   fail "after the upgrade: NeedDaemonReload=$(prop NeedDaemonReload) MainPID=$(prop MainPID), was $pid"
 ok "upgrade: the package's postinst reloaded systemd, the daemon pid $pid the same"
 
-# 10. The removal.
+# 10. package update from the release fixture, its listeners 8443 (the
+# releases), 8444 (the HTTP proxy), and 8445 (the HTTPS proxy).
+REL=/root/releases
+x install -d "$REL"
+docker exec -d "$TAG" sh -c "exec release-fixture -dir $REL >/root/fixture.log 2>/root/fixture.err"
+xsh 'for _ in $(seq 1 50); do (exec 3<>/dev/tcp/127.0.0.1/8445) 2>/dev/null && exit 0; sleep 0.1; done; exit 1' || fail "the release fixture"
+update() { docker exec -w / -e KARVI_RELEASES=https://127.0.0.1:8443/releases "$TAG" karvi-sysutil --nocolor package update "$@"; }
+version() { x dpkg-query -W -f='${Version}' karvi; }
+# release VERSION [SUM]: the fixture's latest release VERSION, its package
+# the installed one's at that version, its checksum the package's or SUM.
+release() {
+  xsh "set -e; d=$REL/karvi-v$1; rm -rf /root/repack \"\$d\"; mkdir -p \"\$d\"
+    dpkg-deb -R /root/karvi.deb /root/repack
+    sed -i 's/^Version: .*/Version: $1/' /root/repack/DEBIAN/control
+    dpkg-deb -b --root-owner-group /root/repack \"\$d/karvi_$1_amd64.deb\" >/dev/null
+    cd \"\$d\" && sha256sum karvi_$1_amd64.deb >karvi_$1_amd64.deb.sha256
+    ${2:+sed -i 's/^[0-9a-f]*/$2/' karvi_$1_amd64.deb.sha256}
+    echo karvi-v$1 >$REL/latest" || fail "the release $1"
+}
+# usage_error WANT ARGS...: package update ARGS exits 2 saying WANT.
+usage_error() {
+  local want=$1 out rc
+  shift
+  out=$(update "$@" 2>&1)
+  rc=$?
+  [ "$rc" -eq 2 ] && [ "$out" = "$want" ] || fail "package update $*: exit $rc, want 2: $out"
+}
+V0=$(version)
+pid=$(prop MainPID)
+refused "update not root" "run as root: sudo karvi-sysutil package update" docker exec -u nobody -w / "$TAG" karvi-sysutil package update
+xsh 'mv /usr/bin/curl /root/curl.aside'
+refused "update without curl" "curl not found; apt install curl" update
+xsh 'mv /root/curl.aside /usr/bin/curl && ln -s /usr/bin/karvi /usr/local/bin/karvi'
+refused "update beside a bundle's karvi" \
+  "a bundle install is present, /usr/local/bin/karvi, run before the package's; update it with a newer bundle's scripts/install.sh" update
+x rm /usr/local/bin/karvi
+usage_error $'karvi-sysutil: --proxy takes an http:// or https:// URL\n  given socks5://127.0.0.1:1080' --proxy socks5://127.0.0.1:1080
+usage_error "karvi-sysutil: --proxy given twice; one proxy carries every request" --proxy http://127.0.0.1:8444 --proxy=https://127.0.0.1:8445
+release 0.1.0
+refused "update, the certificate not trusted" $'cannot reach https://127.0.0.1:8443/releases/latest; nothing changed\ncurl: (60) ' update --check
+out=$(update -k 2>&1) || fail "update -k, an older release: $out"
+[ "$out" = "$(printf '%s\n' "package  karvi $V0" "latest   karvi 0.1.0" "current  no newer release")" ] || fail "update -k, an older release: $out"
+[ "$(version)" = "$V0" ] || fail "update -k, an older release, changed the package: $(version)"
+xsh "cp $REL/origin.pem /usr/local/share/ca-certificates/release-fixture.crt && update-ca-certificates >/dev/null 2>&1" ||
+  fail "trusting the fixture's certificate"
+release 99.0.0
+out=$(update --check 2>&1) || fail "update --check: $out"
+has "$out" "latest   karvi 99.0.0" && has "$out" "newer    sudo karvi-sysutil package update installs it" && [ "$(version)" = "$V0" ] ||
+  fail "update --check: $out"
+refused "update, the proxy's certificate not trusted" $'cannot reach https://127.0.0.1:8443/releases/latest; nothing changed\ncurl: (60) ' \
+  update --check --proxy https://127.0.0.1:8445
+out=$(update --check -k --proxy https://127.0.0.1:8445 2>&1) || fail "update --check -k through the HTTPS proxy: $out"
+has "$out" "newer    sudo karvi-sysutil package update installs it" && has "$(x cat /root/fixture.log)" "tls-proxy CONNECT 127.0.0.1:8443" ||
+  fail "update --check -k through the HTTPS proxy: $out"
+out=$(update --proxy http://127.0.0.1:8444 2>&1) || fail "update through the HTTP proxy: $out"
+for line in "package  karvi $V0" "latest   karvi 99.0.0" "fetched  karvi_99.0.0_amd64.deb  " \
+  "checked  karvi_99.0.0_amd64.deb  sha256 as its .sha256" "updated  karvi $V0 to 99.0.0" \
+  "karvi-sysutil: $UNIT keeps the karvi it started with; systemctl restart $UNIT"; do
+  has "$out" "$line" || fail "update through the HTTP proxy: no \"$line\" in: $out"
+done
+[ "$(version)" = 99.0.0 ] && [ "$(prop MainPID)" = "$pid" ] && has "$(x cat /root/fixture.log)" "proxy CONNECT 127.0.0.1:8443" ||
+  fail "after the update: karvi $(version), MainPID $(prop MainPID), was $pid"
+[ -z "$(xsh 'ls -d /tmp/karvi-update.* 2>/dev/null')" ] || fail "the update's work folder remains"
+out=$(update 2>&1) || fail "update again: $out"
+[ "$out" = "$(printf '%s\n' "package  karvi 99.0.0" "latest   karvi 99.0.0" "current  no newer release")" ] || fail "update again: $out"
+release 99.0.1 "$(printf '0%.0s' $(seq 64))"
+refused "update, a checksum not the package's" \
+  $'karvi_99.0.1_amd64.deb does not match its checksum; nothing changed\n  want  sha256 0000000000000000000000000000000000000000000000000000000000000000\n  found sha256 ' update
+xsh "echo v2 >$REL/latest"
+refused "update, a tag not a karvi release's" $'the latest release\'s tag is not a karvi release\'s; nothing changed\n  tag v2' update
+xsh "echo karvi-v99.0.2 >$REL/latest"
+refused "update, an asset missing" \
+  $'cannot download https://127.0.0.1:8443/releases/download/karvi-v99.0.2/karvi_99.0.2_amd64.deb; nothing changed\ncurl: (22) ' update
+[ "$(version)" = 99.0.0 ] && [ -z "$(xsh 'ls -d /tmp/karvi-update.* 2>/dev/null')" ] ||
+  fail "after the refused updates: karvi $(version), $(xsh 'ls -d /tmp/karvi-update.* 2>/dev/null')"
+x pkill -x release-fixture
+ok "package update: refusals; an older release current; --check newer, through the HTTPS proxy under -k; $V0 to 99.0.0 through the HTTP proxy, $UNIT named, its pid $pid the same; again current"
+
+# 11. The removal.
 x rm "$CONFIG"
 out=$(sysutil remove 2>&1) || fail "remove: $out"
 for line in "removed  instance $UNIT  stopped, disabled" "absent   config $CONFIG" "removed  membership karvi in netops" "kept     account karvi"; do
@@ -323,14 +415,14 @@ done <"$TMP/owned"
 refused "remove without a record" "no service installed: $RECORD absent" sysutil remove
 ok "remove: the account kept, a gone part absent, taken back by install; --purge gave $(wc -l <"$TMP/owned") files to root, modes the same"
 
-# 11. dpkg -r: the template gone and systemd reloaded.
+# 12. dpkg -r: the template gone and systemd reloaded.
 mark=$(x date +%s)
 x dpkg -r karvi >/dev/null || fail "dpkg -r"
 [ -z "$(x systemctl list-unit-files --no-legend karvi-daemon@.service)" ] || fail "the template is still known"
 [[ $(x journalctl -b _PID=1 --since "@$mark" -o cat) == *Reloading* ]] || fail "systemd did not reload at dpkg -r"
 ok "dpkg -r: the template gone, systemd reloaded"
 
-# 12. The bundle: install.sh with the package's executables, on the host
+# 13. The bundle: install.sh with the package's executables, on the host
 # without the package.
 VERSION=$(cat "$ROOT/VERSION")
 B=$TMP/bundle
@@ -341,6 +433,7 @@ cp "$ROOT/VERSION" "$B/" && cp "$ROOT/scripts/install.sh" "$B/scripts/" && cp "$
   cp "$ROOT/packaging/man/karvi-sysutil.8" "$B/packaging/man/" && cp "$ROOT/packaging/systemd/system/karvi-daemon@.service" "$B/packaging/systemd/system/" ||
   fail "the bundle's files"
 docker cp "$B" "$TAG:/root/bundle" >/dev/null || fail "copy the bundle into the container"
+refused "update without the package" "the karvi package is not installed" x /root/bundle/packaging/sbin/karvi-sysutil --nocolor package update
 mark=$(x date +%s)
 out=$(x /root/bundle/scripts/install.sh --nocolor 2>&1) || fail "install.sh: $out"
 LIB=/usr/local/lib/karvi
@@ -369,6 +462,7 @@ xsh "echo '# changed by hand' >>/usr/local/lib/systemd/system/karvi-daemon@.serv
 x /root/bundle/scripts/install.sh --nocolor >/dev/null 2>&1 || fail "install.sh again"
 [ "$(prop NeedDaemonReload)" = no ] && [ "$(prop MainPID)" = "$pid" ] ||
   fail "after install.sh again: NeedDaemonReload=$(prop NeedDaemonReload) MainPID=$(prop MainPID), was $pid"
+refused "update from the bundle" "a bundle install is present, /usr/local/bin/karvi" x karvi-sysutil --nocolor package update
 out=$(sysutil remove --purge 2>&1) || fail "remove --purge from the bundle: $out"
 has "$out" "removed  account karvi" || fail "remove --purge from the bundle: $out"
 ok "bundle: install.sh placed the five executables, the page, and the template, systemd reloaded; the daemon set up ran $LIB/karvi-v$VERSION; install.sh again reloaded, the pid $pid the same; removed"
