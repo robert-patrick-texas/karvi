@@ -17913,3 +17913,173 @@ suites for `config show` had missed under its abbreviation; and
 (`release-design-evidence/config-show-json-2026-10-27`: the two labs' scripts
 and logs, and the two batteries' logs, `battery-1` and the last beside it, with
 `battery.sh`).
+
+## 85. The release 0.37.0 (2026-10-27)
+
+The eighteenth public release, 0.37.0, on the operator's word and number,
+carrying [chapter
+81](#81-the-package-update-karvi-sysutil-package-update-2026-10-27)
+(`karvi-sysutil package update`), [chapter
+82](#82-the-native-transport-without-scrapligo-2026-10-27) (the native
+transport without scrapligo), and chapters
+[83](#83-config-show-refuses-a-key-it-cannot-show-2026-10-27) and
+[84](#84-config-show-refuses---format-beside-keys-2026-10-27) (`config show`
+refusing a key it cannot show, and `--format` beside keys). A minor release:
+the configuration registry moves to 32, and a configuration or a script that
+names the native transport's old ID or a retired code changes (the
+CHANGELOG's Breaking entries). The daemon IPC schema stays 12, so the
+compatibility example is the drain, beside the released 0.36.0 daemon. The
+sequence is [chapter 75](#75-the-release-0341-2026-10-20)'s as [chapter
+80](#80-the-release-0360-2026-10-26) ran it. The operator gave the word to
+publish during the baseline. The build stopped once, at the artifacts, on the
+spool suite's timeout row; run again on the operator's word, the artifacts
+passed, and the build went on from the package's install check to the push.
+
+**What it gains.** A site has chapters 81 to 84 from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release. A host
+on 0.36.0 takes this release by `apt install`, as before; from 0.37.0 on, `sudo
+karvi-sysutil package update` fetches and installs the next. The native
+transport is karvi's own, and scrapligo, gotextfsm, and pty leave the build.
+`config show` refuses what it cannot show, where it printed `error: not found`
+and exited 0.
+
+**Before the number.** The archive's mirror was fetched to `2d47774`, `dev` as
+the session found it (= `origin/dev`, chapter 84). The bridge probe reached
+every address, and `/tmp` had 4.1 GB free. `latest.sh` found nothing behind, so
+nothing moved before the baseline: Go and the four modules are at 0.36.0's
+versions, and the other three left with chapter 82. `latest.sh` on the
+baseline's clean clone (its own lines):
+
+```text
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 4 modules /dev/shm/r370/base/karvi/go.mod requires
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+latest: Go and every module at their newest
+```
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.37.0 - 2026-10-27` under a
+lead paragraph: a minor release on 0.36.0 for the package's update and the
+native transport as karvi's own, the registry at 32 and every other counter
+0.36.0's, scrapligo, gotextfsm, and pty out of the build, and what a site
+changes where a configuration sets `ssh.transports.native` or maps a custom
+slot to `builtin:ID` or a bare ID, or a script reads the ID `scrapligo-v1`,
+`--debug`'s `implementation=`, `config show`'s `error: not found`, or the
+registry artifact's `sensitive`, or looks for the two retired codes. The
+retired codes' release, `retiredV0370`, is the number, so nothing was renamed.
+`CHECKSUMS.sha256` has its four lines from the release-identity build.
+
+**The documents.** 2/3 carries chapter 82 into the release's own record.
+`release/BUILD-RESULT.md`'s identity block loses its build-tag and scrapligo
+lines and reports `native: compiled-in`; its parity suite runs over `system`
+and `native`. In `release/release-manifest.json`, `native_dependency` and
+`build_tags` are removed, `included_binary_profile` is `native-linux-amd64`,
+`native_scrapligo_build` became `native_transport_checks`, and the vendored
+modules are the four.
+
+**The sequence, as run**, from the archive's fetch shortly before the baseline
+at 20:09 to the site's check at 22:41 (UTC; 16:09 to 18:41, EDT):
+
+- Before 20:09, the archive's mirror at `2d47774`; `latest.sh` exit 0; the
+  bridge probe passed.
+- 20:09:24 to 20:19:27, the baseline on a clean clone of `2d47774`:
+  `latest.sh`, gofmt, make, and the release verifier with its package and
+  container steps, exit 0 each. The operator's word to publish without
+  stopping came during it.
+- 20:19:43 to 20:20:26, the release-identity build, the compatibility
+  example, and 1/3: the build `1bFnbnZ8vZu2v2U7sP-a` by go1.27.3; the 0.36.0
+  daemon drained idle, refusing busy; `c3afd6a`.
+- 20:20:31 to 20:22:42, the core evidence: 1,107 named tests across 92
+  packages, vet 0, both socket lengths exit 0, with 4.1 GB free in `/tmp`.
+- 20:23:25, the documents: `8259980` (2/3).
+- 20:23:31 to 20:34:16, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+- 20:34:47, 3/3, the tag, `main`: `07f3f0b`, `karvi-v0.37.0`, `main`
+  fast-forwarded from `c26a320`.
+- 20:34:53, the artifacts: the bundle reproducible byte for byte; its own
+  verifier, in the extraction, failed the spool suite's S4 with nothing
+  settled by the cut, and no package was built. The stop for the operator.
+- 22:28:30 to 22:34:30, the artifacts again, on the operator's word: the
+  bundle the same bytes and verified from its own archive; the package
+  reproducible and checked against the extraction; 39,751,478 and 6,535,488
+  bytes.
+- 22:35:06, the package installed in a throwaway `ubuntu:26.04`: `apt
+  install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`.
+- 22:35:23 to 22:41, the push, the site, the GitHub release: `dev`, `main`,
+  and the tag pushed; `pages.sh` pushed the release's site (`a9e07c7`), its
+  50 files 200 and its footer `karvi-v0.37.0`; release `karvi-v0.37.0` with
+  the five assets, marked latest, its body the notes file; the assets
+  downloaded back match, and `releases/latest` redirects to the tag, the
+  redirect `package update` reads.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`), the spool suite's S4 in the two
+artifacts runs, and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.36.0 build=kXY4cc6JRtLekvXNL0My
+daemon started socket=/dev/shm/r370/compat/base/socket/d.sock
+pid 1936091 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build kXY4cc6JRtLekvXNL0My 0.36.0
+  client build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1936200 gone
+# the artifacts, run 1: the bundle's verifier in its extraction
+spool smoke: FAIL: S4 timeout: only 0 bytes settled by the cut
+suite lane 3 failed
+artifacts: [2] verify-bundle.sh exited 1 in the bundle's extraction (/dev/shm/r370/art/bundle-verify.log)
+# the artifacts, run 2
+spool smoke: S4 the limit (20000 held, 20147 observed), the timeout, the cancel, and the lost session record their settled bytes
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.37.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.37.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.37.0-source-linux-amd64.tar.gz: OK
+karvi_0.37.0_amd64.deb: OK
+```
+
+**The stop.** The first artifacts run failed the spool suite's S4 while
+another project's tests and a headless browser held the host's load at 10.6
+on its four CPUs. The release verifier had passed the same row on the same
+bytes ten minutes before. The failure is [ROADMAP](../ROADMAP.md#later)'s
+"The spool suite's timeout row waiting on a condition": what settles by a
+one-second cut follows the disk under the spool. A failed release step is not
+run again without the operator's word, so the build stopped, and the failure
+went to the operator with the two ways on: run the artifacts again, or fix the
+row first. The operator chose the rerun, at a load near 0.3, and it passed.
+
+**Not taken.** Fixing the row before the artifacts: a design session on the
+ROADMAP item, a new commit on `dev`, and 2/3, 3/3, and the tag made again
+(nothing was pushed, so the local tag could move), for a row that tests the
+spool, not the shipped executables. The fix stays the ROADMAP item.
+
+**Found on the way.**
+
+- `karvi` is 94,208 bytes smaller without the three modules; `karvi-prune`
+  is 4,096 bytes larger; `karvi-askpass` and `karvi-audit` are the same size;
+  the bundle is 94,612 bytes smaller and the package 2,598.
+- The default configuration's evidence no longer sets
+  `ssh.transports.native`, so 3/3 carries ten evidence files, the default
+  configuration among them; the module metadata of the four executables names
+  `x/crypto`, `x/sys`, and `x/term` alone.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67,
+  70, 73, 75, 77, and 80: the minimal image leaves out `/usr/share/man`.
+
+The evidence is kept beside the tree (`release-design-evidence/v0370-*`: the
+timeline, the baseline with `latest.sh`'s output, the build, the
+compatibility example, the 1/3 and 2/3 patches, the two artifacts runs with
+their bundle verifier logs, `check-deb`, the container install, and the
+release notes).
