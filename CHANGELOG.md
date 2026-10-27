@@ -1,6 +1,24 @@
 # Changelog
 
-## Unreleased
+## 0.37.0 - 2026-10-27
+
+A minor release on 0.36.0 for the package's update from GitHub, `karvi-sysutil
+package update`, and the native transport as karvi's own, without scrapligo.
+The configuration registry moves to 32; every other counter is 0.36.0's
+(configuration schema 6, execution plan 15, plan report 4, scoreboard 5,
+daemon IPC 12, command record 4, job manifest and summary 5, credential
+package 2, audit 2, metrics 1, inventory 1). scrapligo, gotextfsm, and pty
+leave the build; Go and the other modules are 0.36.0's. A site has something
+to change where a configuration sets `ssh.transports.native` or maps a custom
+slot to `builtin:ID` or a bare ID (each refused `transport_mapping_invalid`),
+a script selects `--transport preferred`, reads the native transport's ID
+`scrapligo-v1` (now `native`) or the `--debug` transport line's
+`implementation=`, counts on `config show KEY` printing `error: not found` for
+a key it cannot show, gives `config show` `--format` beside keys or
+`--explain`, reads the registry artifact's `sensitive`, or looks for
+`native_transport_unavailable` or `transport_implementation_invalid`, both
+retired. An operator's 0.36.0 daemon, of another build, is drained by the
+first submission after the upgrade.
 
 - **`karvi-sysutil package update`, the package's update from GitHub.**
   `sudo karvi-sysutil package update` finds the latest release from the
