@@ -17,6 +17,40 @@
   damaged download and proves nothing of the release's origin, which the
   release's signature, a ROADMAP item, is to
   ([`docs/OPERATIONS.md`, "Upgrade"](docs/OPERATIONS.md#upgrade)).
+- **Breaking: the native transport is `native`, and `ssh.transports` maps
+  programs alone; registry 32.** The native transport is karvi's own
+  `x/crypto/ssh` connection, which scrapligo only passed through, and it has
+  no implementation ID apart from its name: `karvi version` lists `native:
+  compiled-in` over `system: external-executable`, its JSON and a job
+  manifest's `app.build.ssh_transports` carry `"id": "native"` (the job
+  schema stays 5), and the `--debug` transport line drops `implementation=`.
+  `ssh.transports` keeps `system`, an OpenSSH executable, and a custom slot's
+  `exec:PATH`; the key `ssh.transports.native` is removed (registry 32, the
+  configuration schema 6). The new code `transport_mapping_invalid` (exit 2)
+  refuses at load `ssh.transports.native` or `ssh.transports.telnet`,
+  whatever the value, and a custom slot's `builtin:ID` or bare ID, such as
+  `alt = "scrapligo-v1"`; `native_transport_unavailable` and
+  `transport_implementation_invalid` are retired. The selector `preferred`
+  and an implementation ID given as a selector are gone: each is an ordinary
+  slot name, and `--transport preferred` is `transport_mapping_missing` (exit
+  8) unless a slot maps it. `run --exercise` shows `transport: native
+  available` and `transport: system available (/usr/bin/ssh)`, its finding
+  reads `native transport available` (and `system transport available`), and
+  its details drop `implementation`, which an askpass failure's details
+  replace with `kind`. Login's refusal of the native transport names it
+  `native`; `config init`'s starter no longer writes `native =
+  "scrapligo-v1"`; the run and crun help drop the native status paragraph.
+- **scrapligo leaves the build.** `github.com/scrapli/scrapligo` v1.4.3 is
+  removed, and with it `github.com/sirikothe/gotextfsm` v1.2.0 and
+  `github.com/creack/pty` v1.1.24, which only scrapligo imported; `vendor/`
+  loses 140 files (x/crypto's `ssh/knownhosts`, which only scrapligo used, among
+  them), and the executable about 18 KB. goldmark, x/crypto, x/sys, and x/term
+  are unchanged. Nothing the native transport sends or reads changes. The
+  release drops what checked scrapligo alone: `release/SCRAPLIGO-EVIDENCE.md`,
+  the module pin and the import boundary in `verify-release.sh`, and
+  BUILD-QUALIFICATION's rule that the version output names ScrapliGo; the checks
+  that the native transport verifies the host key in its own handshake and runs
+  no subprocess stay, on `internal/transport/native`.
 
 ## 0.36.0 - 2026-10-26
 

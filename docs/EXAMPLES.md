@@ -17587,3 +17587,101 @@ A v2 adapter registers `scrapligo-v2` beside `scrapligo-v1` ([`docs/SSH-TRANSPOR
 **Found on the way.** `docs/SSH-TRANSPORTS.md`'s table gives `command` the
 default `system`; `DefaultSelector` gives `native` to every mode but `login`.
 The table is corrected in the build.
+
+**Built.** In four sections, each committed and pushed on the operator's word:
+
+- Section 1, `dd485e0`: the connection (`dial.go`, `exec.go`, and their tests)
+  moved from `internal/adapters/scrapligov1` into `internal/transport/native`
+  beside the driver (`native.go`: `driver`, `open`), the connection the
+  `devsession.Stream` itself; scrapligo's transport wrapper, its logger, and the
+  `stream` shim gone; `go.mod` without scrapligo, gotextfsm, and creack/pty,
+  `vendor/` 140 files fewer; `karvi version`'s two transports a fixed list; the
+  run and crun help without the native status paragraph; `verify-release.sh`
+  without the module pin and the import boundary, its structural checks on the
+  new package.
+- Section 2, `91dba21`: `native` and `telnet` resolved directly, and
+  `ssh.transports` holding `system` and `exec:PATH` alone; gap 1's refusals as
+  `transport_mapping_invalid` and gap 4's codes, the two retired at
+  `retiredV0370` (its label confirmed at the release); `ssh.transports.native`
+  out of the registry, 32; the native registry and `Selection.Implementation`
+  gone, and `"id": "native"`; the suites' "lacks scrapligo-v1" guards and `make
+  native-build` gone; the golden k03 draft re-pinned (the configuration block's
+  key and its digest).
+- Section 3, `2fa6e0a`: the documents, 17 naming `native`, SSH-TRANSPORTS
+  rewritten, and DESIGN's entry "The native transport is karvi's own SSH
+  connection"; `release/SCRAPLIGO-EVIDENCE.md` removed with its `docs.go` row;
+  ROADMAP's Next 1 out and the v2 item per gap 6; the release tools' comments,
+  archived first (`archive-2026-10-19`,
+  `untracked/release-tools-before-native/`).
+- Section 4: the CHANGELOG's two Unreleased entries, the breaking change and
+  scrapligo's removal, and this record.
+
+The tests: `TestNativeAndTelnetResolveDirectly`, `TestModeDefaults`,
+`TestRemovedSelectorsAreSlotNames`, `TestMappingInvalidRefusedAtLoad`,
+`TestAlternateWithoutExecFailsConfigurationCheck`, and
+`TestCurrentListsTheTwoTransports`, in place of the seven that tested the
+registry, the implementation IDs, the `preferred` alias, and a build without
+the native transport.
+
+scrapligo stays where it is the history: ARCHITECTURE's "One shape of the
+source", DESIGN's *Why* clauses, COMMAND-SESSION's origin of the prompt
+patterns, the comments in `platform/platform.go` and
+`internal/devsession/prompt.go`, the retired codes' text, and the refused values
+in the tests and the v060 suite.
+
+**Agreed while building**, in section 2:
+
+1. The job schema stays 5: the manifest's plan and configuration blocks move
+   with their own counters, as the plan's `channel` (plan 11) and
+   `summary-json`'s removal (registry 30) left the job at 5, and `app.build`
+   describes the build; section 1's removal of the transport entry's `version`
+   reads the same.
+2. The exercise's text line: `system available (/usr/bin/ssh)`, where it read
+   `(system /usr/bin/ssh)`, and `native available` with no parenthesis; the
+   askpass failure's detail `kind` in place of `implementation`.
+3. The messages: `ssh.transports.native: native is a built-in transport, not a
+   slot`; `ssh.transports.alt="scrapligo-v2" is not exec:PATH`; and
+   `transport_custom_slot_default`'s `... may not use default, which only the
+   system slot accepts`.
+
+**Executed.** The full battery on a lab build of `2fa6e0a` (`s4-battery.sh`, a
+copy of the tree in `/var/tmp`, `TMPDIR=/var/tmp`): vet, `make
+generated-clean`, `go test -count=1 ./...` (71 packages), and the 19 suites by
+`run_suites` in 244 seconds, each exit 0; none left a `/tmp/karvi-<uid>`,
+`/var/tmp/karvi-<uid>`, `/dev/shm/karvi`, `~/.local/share/karvi`, or karvi
+process. Before it, each section ran `go test ./...`; section 1 the native and
+v060 suites, section 2 the race detector on `native` and `transportselect`,
+the parity, v060, spool, job-list, and audit suites, and its executed examples.
+
+The exits the CHANGELOG quotes, from the same build (`s4-examples-lab.sh`, a
+lab in `/dev/shm`, removed after; the target a name under `.invalid`):
+
+```
+$ karvi --set ssh.transports.native="ssh" command router1.invalid --transport system --cmd show clock
+transport_mapping_invalid: ssh.transports.native: native is a built-in transport, not a slot
+exit 2
+$ karvi command router1.invalid --transport preferred --cmd show clock
+transport_mapping_missing: device router1.invalid transport: selector "preferred" has no ssh.transports.preferred mapping
+exit 8
+```
+
+**Found while building**, all in section 3 but the last:
+
+- NOTICE listed scrapligo, creack/pty, and gotextfsm; they are gone from it.
+- SECURITY's default host-key policy heading read `auto` / `default`, refused
+  since v0.10.0; it reads `accept-new`, its native bullet rewritten.
+- README's counters (registry 30 and 13, plan 13, job 4, plan report 2,
+  scoreboard 3) were behind the tree's; they are the tree's.
+- The `version` help's "Optional native adapters appear only when they were
+  included in the build" names both transports, its man page regenerated.
+- DESIGN's mangen entry named `run`'s build-dependent help, gone in section 1.
+- The design's find, SSH-TRANSPORTS's table giving `command` the default
+  `system`, is corrected.
+- `karvi config show no.such.key` prints `error: not found` and exits 0, as
+  0.36.0 does. Not acted on; raised with the operator.
+
+**Closed.** The build's evidence is kept beside the tree
+(`release-design-evidence/native-without-scrapligo-2026-10-27`: each section's
+`go test` log, the suites' logs of sections 1 and 2, the executed examples'
+scripts and logs, and section 4's battery, `s4-battery.sh` with its logs).
+ROADMAP's Next is "None chosen".
