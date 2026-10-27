@@ -1,9 +1,6 @@
 bin/karvi-linux-amd64: go1.27.3
 	path	github.com/robert-patrick-texas/karvi/cmd/karvi
 	mod	github.com/robert-patrick-texas/karvi	(devel)	
-	dep	github.com/creack/pty	v1.1.24	
-	dep	github.com/scrapli/scrapligo	v1.4.3	
-	dep	github.com/sirikothe/gotextfsm	v1.2.0	
 	dep	golang.org/x/crypto	v0.58.0	
 	dep	golang.org/x/sys	v0.49.0	
 	dep	golang.org/x/term	v0.47.0	
