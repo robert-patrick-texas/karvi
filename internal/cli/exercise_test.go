@@ -125,7 +125,7 @@ func TestRunExerciseAgainstADaemon(t *testing.T) {
 	if got := Main(exerciseArgs(sets), strings.NewReader(""), &stdout, &stderr); got != 0 {
 		t.Fatalf("text exit=%d stderr=%q", got, stderr.String())
 	}
-	for _, want := range []string{"exercise ", "status: exercise", "job_submitted: true", "device_contacted: false", "daemon local: running", "preparation ", "- name:127.0.0.1: ready", "  address: client 127.0.0.1", "- name:localhost: ready", "  address: daemon 127.0.0.1 (resolver_context=", "  credential: bound ", "  transport: system available (system ", "host_key=accept-new enrolled=no", "  intended_ping: disabled", "next: submit_new_live_job (no device was contacted; this is not a command result)"} {
+	for _, want := range []string{"exercise ", "status: exercise", "job_submitted: true", "device_contacted: false", "daemon local: running", "preparation ", "- name:127.0.0.1: ready", "  address: client 127.0.0.1", "- name:localhost: ready", "  address: daemon 127.0.0.1 (resolver_context=", "  credential: bound ", "  transport: system available (/", "host_key=accept-new enrolled=no", "  intended_ping: disabled", "next: submit_new_live_job (no device was contacted; this is not a command result)"} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Errorf("text report lacks %q:\n%s", want, stdout.String())
 		}

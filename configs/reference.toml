@@ -100,27 +100,24 @@ ping-socket = true
 ping-system = true
 
 [ssh.login]
-# Named transport selector. default resolves to system for login; preferred resolves to
-# native.
+# Transport selector: native, telnet, or an ssh.transports slot. default resolves to system
+# for login.
 transport = "default"
 
 [ssh.command]
-# Named transport selector. default resolves to native for command; preferred also resolves to
-# native.
+# Transport selector: native, telnet, or an ssh.transports slot. default resolves to native
+# for command.
 transport = "default"
 
 [ssh.run]
-# Named transport selector. default resolves to native for run; preferred also resolves to
-# native.
+# Transport selector: native, telnet, or an ssh.transports slot. default resolves to native
+# for run.
 transport = "default"
 
 [ssh.transports]
 # System-SSH executable name or path. Relative paths resolve from the karvi executable
 # directory.
 system = "ssh"
-# Preferred compiled-in SSH implementation. Built-in default unavailability is tolerated until
-# selected; an explicit unavailable value is a configuration error.
-native = "scrapligo-v1"
 
 [ssh]
 # Include ~/.ssh/config after compatibility and managed-default blocks; it supplies only
@@ -207,7 +204,7 @@ read-timeout = "60s"
 command-timeout = "120s"
 # 1s–5m; the first prompt after login and the prompt after each paging command. The system
 # transport awaits the first prompt for ssh.connect-timeout plus this value from the start of
-# its ssh process; scrapligo-v1 for this value after its handshake.
+# its ssh process; the native transport for this value after its handshake.
 prompt-timeout = "10s"
 # 1s–5m; one privilege level's whole step, from the escalate command to that level's prompt.
 enable-timeout = "10s"

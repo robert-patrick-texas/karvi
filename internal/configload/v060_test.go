@@ -34,9 +34,6 @@ func TestV090DisplayTransportAndTimeoutDefaults(t *testing.T) {
 	if got := snap.String("ssh.transports.system"); got != "ssh" {
 		t.Fatalf("ssh.transports.system=%q, want ssh", got)
 	}
-	if got := snap.String("ssh.transports.native"); got != "scrapligo-v1" {
-		t.Fatalf("ssh.transports.native=%q, want scrapligo-v1", got)
-	}
 	if snap.Bool("display.command.echo") || snap.Bool("display.run.echo") {
 		t.Fatal("prompt echo must be opt-in by default")
 	}

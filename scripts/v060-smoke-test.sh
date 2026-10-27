@@ -64,17 +64,18 @@ json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx system
 
 # Every executable carries the native transport, compiled in.
 "$KARVI" config validate >"$TMP/internal-validate.out"
-json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx scrapligo-v1
+json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx native
 grep -q '^  native: compiled-in$' "$TMP/version.txt"
 
-# An operator-authored unavailable implementation is a configuration error even
-# if the corresponding slot is not selected by an activity.
+# An operator-authored custom slot that is not exec:PATH is a configuration
+# error even if no activity selects it.
 set +e
 "$KARVI" --set 'ssh.transports.alternate1="scrapligo-v2"' config validate \
   >"$TMP/unavailable.out" 2>"$TMP/unavailable.err"
 rc=$?
 set -e
 [ "$rc" -eq 2 ]
+grep -q 'transport_mapping_invalid' "$TMP/unavailable.err"
 grep -q 'ssh.transports.alternate1' "$TMP/unavailable.err"
 grep -q 'scrapligo-v2' "$TMP/unavailable.err"
 

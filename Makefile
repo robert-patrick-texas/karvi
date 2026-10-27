@@ -17,7 +17,7 @@ LDFLAGS := -s -w \
 	-X $(MODULE)/internal/buildinfo.Commit=$(COMMIT) \
 	-X $(MODULE)/internal/buildinfo.FIPSMode=$(FIPS_MODE)
 
-.PHONY: all fmt generate generated-clean deps vendor test vet build native-build checksums html deb smoke halt-smoke k03-smoke native-smoke clean
+.PHONY: all fmt generate generated-clean deps vendor test vet build checksums html deb smoke halt-smoke k03-smoke native-smoke clean
 
 all: generate test vet build
 
@@ -80,8 +80,6 @@ build:
 	ln -sfn karvi-prune-$(GOOS)-$(GOARCH) bin/karvi-prune
 	ln -sfn karvi-audit-$(GOOS)-$(GOARCH) bin/karvi-audit
 
-native-build: deps generate test vet build
-
 checksums:
 	@test -x bin/karvi-$(GOOS)-$(GOARCH)
 	@test -x bin/karvi-askpass-$(GOOS)-$(GOARCH)
@@ -93,8 +91,7 @@ checksums:
 		bin/karvi-audit-$(GOOS)-$(GOARCH) > CHECKSUMS.sha256
 
 # The smoke suites run against the executable make build produces, which
-# carries both transports (the scrapligo_v1 build tag and the dependency-free
-# preview module were removed after v0.12.0).
+# carries both transports.
 smoke: build
 	./scripts/lib/json-test.sh
 	./scripts/smoke-test.sh

@@ -34,7 +34,7 @@ func factory(t *testing.T, policy string, sets ...string) (Factory, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return Factory{Implementation: "scrapligo-v1", Config: cfg, Home: home}, known
+	return Factory{Config: cfg, Home: home}, known
 }
 
 func request(srv *fakedevice.Server, platformName string, enable string) platform.OpenRequest {
@@ -62,7 +62,7 @@ func prepared(t *testing.T, f Factory, req platform.OpenRequest) platform.Driver
 	return d
 }
 
-// TestProviderRunsTheDeviceSession: scrapligo-v1 is
+// TestProviderRunsTheDeviceSession: the native transport is
 // karvi's connection under karvi's device session: one connection and one
 // shell, no extra returns, the definition's paging order, device errors
 // from the platform's patterns, connection_reused, and a timeout that ends
@@ -102,8 +102,8 @@ func TestProviderRunsTheDeviceSession(t *testing.T) {
 	}
 }
 
-// TestProviderEnableOptional: the enable secret is optional on
-// scrapligo-v1.
+// TestProviderEnableOptional: the enable secret is optional on the
+// native transport.
 func TestProviderEnableOptional(t *testing.T) {
 	f, _ := factory(t, "insecure")
 	srv := startFake(t, fakedevice.Options{StartPrivileged: true, Enable: "en"})
@@ -128,7 +128,8 @@ func TestProviderEnableOptional(t *testing.T) {
 }
 
 // TestProviderAlgorithmsAndAdmission covers the device's algorithm lists on
-// scrapligo-v1 (a legacy device through a profile) and the admission table.
+// the native transport (a legacy device through a profile) and the
+// admission table.
 func TestProviderAlgorithmsAndAdmission(t *testing.T) {
 	legacy := startFake(t, fakedevice.Options{RSASHA1Only: true, KeyExchanges: []string{"diffie-hellman-group14-sha1"}, Ciphers: []string{"aes128-ctr"}, MACs: []string{"hmac-sha1"}})
 	f, _ := factory(t, "insecure")
@@ -147,16 +148,13 @@ func TestProviderAlgorithmsAndAdmission(t *testing.T) {
 	}
 
 	for _, def := range platform.Builtins() {
-		if err := Admits("scrapligo-v1", def); err != nil {
+		if err := Admits(def); err != nil {
 			t.Fatalf("%s: %v", def.Name, err)
 		}
 	}
-	err = Admits("scrapligo-v1", platform.Definition{Name: "c9300", Driver: "cisco_iosxe", Base: "scrapligo_v2_only"})
-	if errorcodes.Of(err) != "native_platform_not_qualified" || !strings.Contains(err.Error(), `platform "c9300" (base driver scrapligo_v2_only)`) {
+	err = Admits(platform.Definition{Name: "c9300", Driver: "cisco_iosxe", Base: "unqualified"})
+	if errorcodes.Of(err) != "native_platform_not_qualified" || !strings.Contains(err.Error(), `platform "c9300" (base driver unqualified)`) {
 		t.Fatalf("refusal: %v", err)
-	}
-	if err := Admits("not-compiled-in", platform.Definition{Base: "generic"}); err != nil {
-		t.Fatalf("unknown implementation: %v", err)
 	}
 }
 

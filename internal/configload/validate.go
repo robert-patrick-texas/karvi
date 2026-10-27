@@ -164,10 +164,10 @@ func (l *loader) validateTransportSyntax() error {
 	for _, mode := range []string{"login", "command", "run"} {
 		key := "ssh." + mode + ".transport"
 		value := strings.ToLower(strings.TrimSpace(l.snap.String(key)))
-		if value == "default" || value == "preferred" || value == "telnet" || transportNamePattern.MatchString(value) {
+		if value == "default" || value == "telnet" || transportNamePattern.MatchString(value) {
 			continue
 		}
-		return l.semantic("config_transport_selector_invalid", key, "must be default, preferred, telnet, or a lowercase named transport selector")
+		return l.semantic("config_transport_selector_invalid", key, "must be default, native, telnet, or a lowercase named transport selector")
 	}
 	for name, raw := range l.snap.Prefix("ssh.transports") {
 		if !transportNamePattern.MatchString(name) {

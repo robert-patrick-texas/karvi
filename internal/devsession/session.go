@@ -1,8 +1,8 @@
 // Package devsession is karvi's one device session: the prompt, privilege,
 // paging, command, and close rules of the device-session contract, implemented once
 // over a byte stream that a transport provides (system OpenSSH's process
-// pipes, scrapligo-v1's connection). The transports connect; this package
-// speaks to the device.
+// pipes, the native transport's connection). The transports connect; this
+// package speaks to the device.
 package devsession
 
 import (

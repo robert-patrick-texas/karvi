@@ -118,9 +118,7 @@ func renderExercise(out io.Writer, format string, r records.PlanReport, socket s
 			switch f.Code {
 			case "transport_assessment":
 				if f.Details["binary"] != "" {
-					transport += fmt.Sprintf(" (%s %s)", f.Details["implementation"], f.Details["binary"])
-				} else if f.Details["implementation"] != "" {
-					transport += fmt.Sprintf(" (%s)", f.Details["implementation"])
+					transport += fmt.Sprintf(" (%s)", f.Details["binary"])
 				}
 			case "host_key_enrollment":
 				transport += fmt.Sprintf(" host_key=%s enrolled=%s", t.IntendedTransport.HostKeyPolicy, yesNo(f.Details["enrolled"]))

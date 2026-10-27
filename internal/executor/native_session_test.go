@@ -10,7 +10,7 @@ import (
 )
 
 // TestNativeRunsTheDeviceSession is the native transport at the executor: a
-// device over scrapligo-v1 is admitted by its base platform, runs the same
+// device over it is admitted by its base platform, runs the same
 // session as the system transport (paging, device errors, connection
 // reuse), and records its commands.
 func TestNativeRunsTheDeviceSession(t *testing.T) {

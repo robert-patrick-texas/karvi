@@ -53,9 +53,9 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	if err != nil {
 		return failedResult("transport_unavailable", err)
 	}
-	debug(fmt.Sprintf("login transport selector=%q implementation=%q kind=%s", selection.Selector, selection.Implementation, selection.Kind))
+	debug(fmt.Sprintf("login transport selector=%q kind=%s", selection.Selector, selection.Kind))
 	if selection.Kind != transportselect.KindSystem {
-		return failedResult("login_transport_not_interactive", fmt.Errorf("transport %s is not system-compatible SSH; login supports only system-compatible SSH transports", selection.Implementation))
+		return failedResult("login_transport_not_interactive", fmt.Errorf("transport %s is not system-compatible SSH; login supports only system-compatible SSH transports", selection.Kind))
 	}
 	// The target set is assembled as run does; login connects to
 	// its first device. The interactive implementation replaces the device's
@@ -71,7 +71,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 		return failedResult("management_address_invalid", err)
 	}
 	candidates := set.CandidateCount()
-	d := firstDevice(set, platformName, selection.Implementation, opts.Port)
+	d := firstDevice(set, platformName, selection.Kind, opts.Port)
 	overrides := applyFirstAuthority(&d, opts.AddressAuthority)
 	if err := d.Validate(); err != nil {
 		return failedResult("device_invalid", err)
@@ -291,7 +291,7 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	displayValues := display.Values{
 		Timestamp: started, Target: d.CanonicalName, Address: resolution.SelectedAddress.String(),
 		Platform: d.Platform, User: resolved.DeviceUsername,
-		AuthBackend: resolved.Credential.Backend, Transport: selection.Implementation, ReferenceID: id,
+		AuthBackend: resolved.Credential.Backend, Transport: selection.Kind, ReferenceID: id,
 		Artifacts: result.ArtifactDir, Status: "running",
 	}
 	if !opts.CommonOptions.Quiet {

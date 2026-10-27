@@ -336,7 +336,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		e.emitFailureSet(work, dc, seq, nil, nil, "", code, "dependency", selectErr, false)
 		return dispatch.Result{Task: task, Success: false, ErrorCode: code, External: false, StartedAt: start, EndedAt: time.Now()}
 	}
-	e.debugf("device transport target=%q selector=%q implementation=%q kind=%s", d.CanonicalName, selection.Selector, selection.Implementation, selection.Kind)
+	e.debugf("device transport target=%q selector=%q kind=%s", d.CanonicalName, selection.Selector, selection.Kind)
 	address := t.AddressPlan.Selected
 	if !address.IsValid() {
 		err := fmt.Errorf("execution_target_invalid: target %s has no selected address", t.TargetID)
@@ -400,10 +400,10 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		e.emitFailureSet(work, dc, seq, cred, g, "", code, "config", err, false)
 		return dispatch.Result{Task: task, Success: false, ErrorCode: code, External: false, StartedAt: start, EndedAt: time.Now()}
 	}
-	// A native implementation admits the definition's base platform, before
+	// The native transport admits the definition's base platform, before
 	// any connection.
 	if selection.Kind == transportselect.KindNative {
-		if err := native.Admits(selection.Implementation, def); err != nil {
+		if err := native.Admits(def); err != nil {
 			code := errorcodes.Of(err)
 			e.emitFailureSet(work, dc, seq, cred, g, "", code, "dependency", err, false)
 			return dispatch.Result{Task: task, Success: false, ErrorCode: code, External: false, StartedAt: start, EndedAt: time.Now()}
@@ -791,7 +791,7 @@ func (e *DeviceExecutor) factory(selection transportselect.Selection, algorithms
 	case transportselect.KindTelnet:
 		return telnettransport.Factory{Config: e.opts.Config, MaxOutputBytes: limit}
 	default:
-		return native.Factory{Implementation: selection.Implementation, Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
+		return native.Factory{Config: e.opts.Config, Home: e.opts.Home, BaseDir: e.opts.BaseDir, MaxOutputBytes: limit, Spool: e.spool(), Debug: e.opts.Debug, Algorithms: algorithms}
 	}
 }
 

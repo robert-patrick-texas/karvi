@@ -185,7 +185,7 @@ after = ""
 after-timeout = "5m"
 
 # The transport each mode uses when the inventory row leaves it blank:
-# system is OpenSSH, native is scrapligo-v1 (karvi's own connection).
+# system is OpenSSH, native is karvi's own connection.
 [ssh.login]
 transport = "system"
 [ssh.command]

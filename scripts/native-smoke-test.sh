@@ -1,10 +1,10 @@
 #!/bin/sh
 # The parity suite: the
 # same command list run by `command` and by `run --no-daemon`, over `system`
-# and over `scrapligo-v1`, against the fake IOS XE device built from the
+# and over `native`, against the fake IOS XE device built from the
 # tree, gives the same requested-command records (tools/paritycheck holds
 # the excluded paths), the same lines at the device, and one connection and
-# one shell per combination. Needs the native executable and `go`.
+# one shell per combination. Needs `go`.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -33,7 +33,6 @@ stop_daemon() {
 cleanup() { stop_fake; stop_daemon 2>/dev/null || true; rm -rf "$TMP"; }
 trap cleanup EXIT HUP INT TERM
 
-"$KARVI" version --format json | grep -q '"id": "scrapligo-v1"' || fail "$KARVI lacks scrapligo-v1; build with make native-build"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 # tools/textfile derives a device's output.TARGET.txt from commands.jsonl (S27).
@@ -294,7 +293,7 @@ unset AUTH
 # S35: the exec channel over the Linux persona, logged in by the operator's
 # key (S13b's), one connection carrying a channel per command. Two
 # differences are by design and pinned: OpenSSH's client names no signal
-# (exit_signal unnamed on system, the name on scrapligo-v1), and a command
+# (exit_signal unnamed on system, the name on native), and a command
 # given up on system carries remote_command_not_stopped, since its client
 # cannot ask the device to end it.
 LINUX='[platform.linux]
@@ -396,12 +395,12 @@ cross_pair() {  # label, enrolling activity:transport, reading activity:transpor
   result=$("$TMP/bin/paritycheck" -expect success -pin "$4" $streams) || fail "$label: $(printf '%s' "$result" | sed "s|$TMP/out\.||g" | head -12)"
   echo "native smoke: $label: $result"
 }
-cross_pair 'S14d system enrolls, scrapligo-v1 reads under secure' command:system run:native "0.notices=system:[$ENROLLED];native:[]"
-cross_pair 'S14e scrapligo-v1 enrolls, system reads under secure' run:native command:system "0.notices=system:[];native:[$ENROLLED]"
+cross_pair 'S14d system enrolls, native reads under secure' command:system run:native "0.notices=system:[$ENROLLED];native:[]"
+cross_pair 'S14e native enrolls, system reads under secure' run:native command:system "0.notices=system:[];native:[$ENROLLED]"
 
 # S15-S17: the timeouts. The system transport awaits
 # the first prompt for ssh.connect-timeout plus execution.prompt-timeout and
-# scrapligo-v1 for the prompt timeout after its handshake, so the first
+# native for the prompt timeout after its handshake, so the first
 # prompt stays away past both.
 EXECUTION='prompt-timeout = "1s"'
 SHELL_OPENED=1

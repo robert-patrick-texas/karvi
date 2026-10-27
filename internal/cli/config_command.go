@@ -210,15 +210,13 @@ const minimalConfig = `# karvi starter configuration (schema 6)
 [config]
 schema-version = 6
 
-# The default run selector resolves to the native slot (scrapligo-v1). This
-# starter keeps run on system OpenSSH; remove this table to use the native
-# transport.
+# The default run selector is the native transport. This starter keeps run
+# on system OpenSSH; remove this table to use the native transport.
 [ssh.run]
 transport = "system"
 
 [ssh.transports]
 system = "ssh"
-native = "scrapligo-v1"
 
 [audit]
 # Keep true in managed Ubuntu deployments. Set false only for development hosts

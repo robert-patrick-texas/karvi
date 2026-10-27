@@ -31,7 +31,7 @@
 #   PLATFORM            the row's platform (cisco_iosxe)
 #   EVIDENCE            the evidence directory (./karvi-qualification-DEVICE-UTC)
 #   ROWS                the rows to run ("D1 D7"); all by default
-#   TRANSPORTS          "system scrapligo-v1"
+#   TRANSPORTS          "system native"
 #   INVALID_COMMAND     a read-only command the device rejects (show bogus)
 #   BIG_COMMAND         D9: a read-only command with a large output, such
 #                       as "show tech-support"; unset skips the row
@@ -45,7 +45,7 @@
 #                       skips the row
 #   CONFIG_ROW=1        D4: sends `configure terminal` and `end`, nothing
 #                       between them
-#   RELOAD="scrapligo-v1"
+#   RELOAD="native"
 #                       D13: reloads the device once per transport listed,
 #                       answering no to a save prompt; a laboratory unit only
 #   RELOAD_WAIT         D13: seconds to await the device's return (900)
@@ -65,7 +65,7 @@ SECRET_SCAN=${SECRET_SCAN:-$ROOT/bin/secret-scan}
 GO=${GO:-go}
 PLATFORM=${PLATFORM:-cisco_iosxe}
 PORT=${PORT:-22}
-TRANSPORTS=${TRANSPORTS:-system scrapligo-v1}
+TRANSPORTS=${TRANSPORTS:-system native}
 INVALID_COMMAND=${INVALID_COMMAND:-show bogus}
 BIG_LIMIT=${BIG_LIMIT:-65536}
 RELOAD_WAIT=${RELOAD_WAIT:-900}
@@ -153,7 +153,6 @@ else IDENTITY="[$DEVICE]:$PORT"; ADDRESS_IDENTITY="[$ADDRESS]:$PORT"; fi
   "$KARVI" version
 } >"$EVIDENCE/identification.txt"
 "$KARVI" version --format json >"$EVIDENCE/version.json"
-json_get "$EVIDENCE/version.json" 'ssh_transports.*.id' | grep -qx scrapligo-v1 || { echo "device qualification: $KARVI lacks scrapligo-v1" >&2; exit 2; }
 
 write_config() {  # policy, further tables; NAMES (inventory names, default DEVICE), SSH, OUTPUT, DISPATCH
   {

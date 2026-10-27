@@ -434,7 +434,7 @@ func offer(lists sshalgorithms.Lists) (sshalgorithms.Lists, bool, error) {
 	if len(lists) == 0 {
 		lists = sshalgorithms.Defaults()
 	}
-	offered, err := lists.Offer("scrapligo-v1", xcryptoImplements)
+	offered, err := lists.Offer("native", xcryptoImplements)
 	if err != nil {
 		return nil, false, err
 	}
@@ -449,7 +449,7 @@ func offer(lists sshalgorithms.Lists) (sshalgorithms.Lists, bool, error) {
 			}
 		}
 		if len(macs) == 0 {
-			return nil, false, errorcodes.Errorf("ssh_algorithms_unavailable", "the MAC list holds only encrypt-then-MAC algorithms, which scrapligo-v1 cannot use beside aes128-cbc")
+			return nil, false, errorcodes.Errorf("ssh_algorithms_unavailable", "the MAC list holds only encrypt-then-MAC algorithms, which native cannot use beside aes128-cbc")
 		}
 		offered[sshalgorithms.MACs] = macs
 		return offered, true, nil

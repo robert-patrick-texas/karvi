@@ -61,6 +61,7 @@ const (
 	retiredV0290        = "v0.29.0"
 	retiredV0300        = "v0.30.0"
 	retiredV0360        = "v0.36.0"
+	retiredV0370        = "v0.37.0"
 )
 
 var entries = []Entry{
@@ -185,7 +186,7 @@ var entries = []Entry{
 	failure("config_ping_methods_disabled", "config", exitConfig, false, "`network.ping-targets` is true while `network.ping-socket` and `network.ping-system` are both false."),
 	failure("config_transport_mapping_control_character", "config", exitConfig, false, "An `ssh.transports.<slot>` mapping contains a control character."),
 	failure("config_transport_mapping_empty", "config", exitConfig, false, "An `ssh.transports.<slot>` mapping is empty or not a string."),
-	failure("config_transport_selector_invalid", "config", exitConfig, false, "An `ssh.<mode>.transport` value is not `default`, `preferred`, `telnet`, or a valid slot name."),
+	failure("config_transport_selector_invalid", "config", exitConfig, false, "An `ssh.<mode>.transport` value is not `default`, `native`, `telnet`, or a valid slot name."),
 	failure("config_transport_slot_name_invalid", "config", exitConfig, false, "An `ssh.transports` slot name does not match `[a-z][a-z0-9_-]{0,63}`."),
 	failure("config_type_error", "config", exitConfig, false, "A value has the wrong type for its key."),
 	failure("config_watch_stale_after_too_short", "config", exitConfig, false, "`watch.stale-after` is less than twice `watch.refresh`."),
@@ -213,12 +214,11 @@ var entries = []Entry{
 	failure("maxbytes_over_job_limit", "usage", exitUsage, false, "A command's `--maxbytes` is above `output.max-job-bytes`, which bounds the job's whole output; refused at planning, naming both values and the `--set output.max-job-bytes=…` that raises the limit."),
 	failure("channel_exec_declaration_refused", "usage", exitUsage, false, "A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted."),
 	failure("native_platform_not_qualified", "dependency", exitDep, false, "The native transport does not admit the target's platform driver."),
-	failure("native_transport_unavailable", "dependency", exitDep, false, "The selected native implementation is not compiled into this executable; there is no fallback to system OpenSSH."),
 	failure("daemon_resolution_not_allowed", "policy", exitPerm, false, "A target has daemon address authority while `name.allow-daemon-resolution` is false."),
 	failure("telnet_not_allowed", "policy", exitPerm, false, "Telnet is selected while `security.allow-telnet` is false."),
-	failure("transport_custom_slot_default", "config", exitDep, false, "A custom transport slot is mapped to `default`, which only the `system` and `native` slots accept."),
+	failure("transport_custom_slot_default", "config", exitDep, false, "A custom transport slot is mapped to `default`, which only the `system` slot accepts."),
 	failure("transport_exec_executable_unavailable", "dependency", exitDep, false, "An `exec:` transport mapping names an executable that cannot be found."),
-	failure("transport_implementation_invalid", "config", exitDep, false, "A transport mapping names an implementation identifier that is not valid."),
+	failure("transport_mapping_invalid", "config", exitDep, false, "An `ssh.transports.<slot>` entry is refused at load: a custom slot's value is not `exec:PATH`, or the slot takes a built-in transport's name, `native` or `telnet`."),
 	failure("transport_mapping_missing", "config", exitDep, false, "The selected transport slot has no `ssh.transports.<slot>` mapping."),
 	failure("transport_mode_unknown", "internal", exitDep, false, "Transport selection was asked for an activity mode other than login, command, or run."),
 	failure("transport_selector_invalid", "config", exitDep, false, "A transport selector from the command line or inventory is not a valid slot name."),
@@ -317,7 +317,7 @@ var entries = []Entry{
 	failure("command_exit_missing", "device", exitDevice, false, "An exec channel closed without an exit status or a signal while its connection stayed up; `exit_status` and `exit_signal` are null."),
 	failure("network_unreachable", "connection", exitConn, true, "There is no route to the device or the network is unreachable."),
 	failure("output_limit_exceeded", "output", exitOutput, false, "Command output exceeds `output.max-command-bytes`."),
-	failure("session_keepalive_timeout", "connection", exitConn, true, "The device answers none of the SSH keepalive requests of an open session (`ssh.server-alive-*` on the system transport, `native-ssh.keepalive-*` on scrapligo-v1); the session ends."),
+	failure("session_keepalive_timeout", "connection", exitConn, true, "The device answers none of the SSH keepalive requests of an open session (`ssh.server-alive-*` on the system transport, `native-ssh.keepalive-*` on the native transport); the session ends."),
 	fallback("ssh_process_failed", "connection", exitConn, "OpenSSH exits with an error whose diagnostic matches no specific cause."),
 	failure("ssh_session_channel_refused", "connection", exitConn, false, "The SSH server refuses to open a session channel; this is never an authentication failure."),
 	failure("telnet_connection_failed", "connection", exitConn, true, "The Telnet TCP connection cannot be established."),
@@ -490,7 +490,7 @@ var entries = []Entry{
 	failure("device_name_control_character", "usage", exitUsage, false, "A device name contains a control character."),
 	failure("device_schema_unsupported", "internal", exitGen, false, "A device uses an unsupported schema version."),
 	failure("device_session_cap_out_of_range", "inventory", exitInv, false, "A device `session_cap` is outside 1..32."),
-	failure("device_transport_selector_invalid", "usage", exitUsage, false, "A device transport selector is not `default`, `preferred`, `telnet`, or a valid slot name."),
+	failure("device_transport_selector_invalid", "usage", exitUsage, false, "A device transport selector is not `default`, `native`, `telnet`, or a valid slot name."),
 	failure("inventory_address_authority_invalid", "inventory", exitInv, false, "An inventory row's `address_authority` is neither `client` nor `daemon`."),
 	failure("inventory_alternate_address_invalid", "inventory", exitInv, false, "An inventory row's `addresses` (alias `alternate_ips`) list holds a value that is not an IP address."),
 	failure("inventory_alternate_without_management", "inventory", exitInv, false, "An inventory row lists alternate addresses without a `management_address`."),
@@ -508,7 +508,7 @@ var entries = []Entry{
 	failure("name_transform_operation_not_table", "config", exitConfig, false, "A `name-transform` operation is not an inline table."),
 	failure("name_transform_operations_not_array", "config", exitConfig, false, "A `name-transform` table's `operations` is not an array."),
 	failure("name_transform_profile_unknown", "config", exitConfig, false, "An inventory source's `name-transform` names a name-transform table that is not defined; refused when the configuration loads."),
-	failure("platform_default_transport_invalid", "config", exitConfig, false, "A platform's default transport is not `default`, `preferred`, `telnet`, or a valid slot name."),
+	failure("platform_default_transport_invalid", "config", exitConfig, false, "A platform's default transport is not `default`, `native`, `telnet`, or a valid slot name."),
 	fallback("platform_definition_invalid", "config", exitConfig, "A platform definition fails validation without a specific code."),
 	failure("platform_name_blank", "config", exitConfig, false, "A platform definition has a blank name."),
 	failure("platform_privilege_level_unknown", "config", exitConfig, false, "A platform's privileged level is not one of its prompt levels (the driver's level names); reported before any connection."),
@@ -782,13 +782,13 @@ var entries = []Entry{
 	retired("daemon_ipc_incompatible", retiredV018to022, "The daemon's IPC schema alone decided compatibility, so an execution plan that moved under an unchanged schema left `compatible: true` and the first run refused at `prepare_job` (v0.16.0, v0.19.0); the version and the schema now both decide.", "daemon_incompatible"),
 	retired("run_output_render_failed", retiredV011to017, "`run --no-daemon` rendered the completed job from `commands.jsonl` and could fail to; it now renders each record from memory as `command` does, and a display that cannot be written is the code below.", "terminal_write_failed"),
 	retired("artifact_directory_create_failed", retiredV011to017, "`cmd --no-persist` could not create its scratch artifact directory; `cmd --nof` replaced the option and creates no directory. The one folder a command creates is its job folder.", "output_directory_not_writable"),
-	retired("host_key_scan_failed", retiredV011to017, "ssh-keyscan failed before a native connection; scrapligo-v1 checks the key in its own handshake.", "native_session_open_failed"),
+	retired("host_key_scan_failed", retiredV011to017, "ssh-keyscan failed before a native connection; the native transport checks the key in its own handshake.", "native_session_open_failed"),
 	retired("host_key_comparison_invalid", retiredV011to017, "A pre-connection key comparison had no result; the handshake's check decides.", "host_key_changed", "host_key_not_enrolled"),
-	retired("native_command_failed", retiredV011to017, "The native transport reported that a command failed; scrapligo-v1 now runs karvi's device session.", "device_command_error", "command_timeout", "command_session_lost"),
+	retired("native_command_failed", retiredV011to017, "The native transport reported that a command failed; karvi's device session now runs its commands.", "device_command_error", "command_timeout", "command_session_lost"),
 	retired("blind_return_multiple_commands", retiredV011to017, "`--blind-return` was the single-command form, refused with several commands (never released); the positional record attaches it to the `--cmd` it follows, and one given before the first `--cmd` is `declaration_before_command`.", "declaration_before_command"),
 	retired("native_command_empty", retiredV011to017, "The native transport refused an empty command; the device session sends the plan's commands, blank ones included, as the system transport does, and an invocation without command text is refused at parse time.", "cli_command_text_missing"),
-	retired("native_driver_create_failed", retiredV011to017, "The native transport could not create scrapligo's network driver, which scrapligo-v1 no longer uses.", "native_session_open_failed"),
-	retired("native_platform_create_failed", retiredV011to017, "The native transport could not create scrapligo's platform, which scrapligo-v1 no longer uses.", "native_session_open_failed"),
+	retired("native_driver_create_failed", retiredV011to017, "The native transport could not create scrapligo's network driver, which the native transport no longer uses.", "native_session_open_failed"),
+	retired("native_platform_create_failed", retiredV011to017, "The native transport could not create scrapligo's platform, which the native transport no longer uses.", "native_session_open_failed"),
 	retired("native_response_nil", retiredV011to017, "scrapligo's network driver returned no response; no longer used.", "command_session_lost"),
 	retired("native_session_closed", retiredV011to017, "A command was sent on a closed native session; the device session refuses it.", "command_session_lost"),
 	retired("config_dir_recursion_depth_out_of_range", retiredV011to017, "`config.dir-recursion-depth` is outside 0..32. Replaced at v0.14.0 by the one range rule over the registry rows.", "config_value_out_of_range"),
@@ -824,7 +824,7 @@ var entries = []Entry{
 	retired("macro_cycle", retiredV0100Catalog, "Macro cycle.", "config_macro_cycle"),
 	retired("macro_undefined", retiredV0100Catalog, "Undefined macro.", "config_macro_undefined"),
 	retired("output_no_space", retiredV0100Catalog, "Output file system full.", "output_preflight_space"),
-	retired("transport_configuration_error", v0100, "Any transport selector or slot resolution failure.", "transport_mode_unknown", "transport_selector_invalid", "transport_mapping_missing", "transport_custom_slot_default", "transport_system_executable_unavailable", "transport_exec_executable_unavailable", "transport_implementation_invalid"),
+	retired("transport_configuration_error", v0100, "Any transport selector or slot resolution failure.", "transport_mode_unknown", "transport_selector_invalid", "transport_mapping_missing", "transport_custom_slot_default", "transport_system_executable_unavailable", "transport_exec_executable_unavailable", "transport_mapping_invalid"),
 	retired("tty_unavailable", retiredV0100Catalog, "No terminal for a credential prompt.", "credential_prompt_unavailable"),
 	// The `.cloginrc` file-check codes became generic when the file rules
 	// moved to the shared credential-file package.
@@ -853,4 +853,6 @@ var entries = []Entry{
 	retired("vault_token_missing", retiredV0300, "The variable a Vault backend's `token-env` names was unset or empty; it is one code with every variable a credential source names.", "credential_env_missing"),
 	retired("commands_file_is_directory", retiredV0360, "The `--cf` path was a folder; `--cf` now takes a folder, each device sent its own file in it, and a folder in a device's place is `commands_file_unreadable`.", "commands_file_unreadable"),
 	retired("commands_file_repeated", retiredV0360, "`--cf` was given more than once; it now repeats, each file's lines in its place on the line, and a second `--cf -` is `stdin_source_repeated`.", "stdin_source_repeated"),
+	retired("native_transport_unavailable", retiredV0370, "The selected native implementation was not compiled into this executable; the native transport is in every executable, and a slot no longer names an implementation.", "transport_mapping_invalid"),
+	retired("transport_implementation_invalid", retiredV0370, "A transport mapping named an implementation identifier that was not valid; a custom slot now maps only to `exec:PATH`.", "transport_mapping_invalid"),
 }

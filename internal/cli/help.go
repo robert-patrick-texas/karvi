@@ -259,7 +259,7 @@ Options:
 ` + platformOptionHelp + `  --management-address IP, --address, --a
                                  Literal management IP; does not select the target
   --port N                       Device service port
-  --transport SELECTOR           default, system, native, preferred, telnet,
+  --transport SELECTOR           default, system, native, telnet,
                                  or a configured [ssh.transports] slot
 ` + hostKeyPolicyHelp + `  --ssh-known-hosts-file PATH|auto
                                  Unified karvi trust store
@@ -485,7 +485,7 @@ Dispatch:
   --follow                       Render durable records after completion (default)
 
 Options:
-  --transport SELECTOR           default, system, native, preferred, telnet,
+  --transport SELECTOR           default, system, native, telnet,
                                  or a configured [ssh.transports] slot
   --management-address IP, --address, --a
                                  Override the address for exactly one selected device

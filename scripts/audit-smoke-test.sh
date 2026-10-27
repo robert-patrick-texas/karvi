@@ -10,7 +10,7 @@
 # that shows a new event and ends 0 on Ctrl-C; nothing matched; journalctl's
 # refusal; the reader's own. On a host without journald the rows that read
 # the journal are skipped with the reason, as the canary suite's ICMP rows
-# are. Needs the native executable, karvi-audit beside it, and `go`; writes
+# are. Needs karvi-audit beside the executable, and `go`; writes
 # nothing outside its own directory.
 set -eu
 
@@ -65,8 +65,6 @@ if ! [ -S /run/systemd/journal/socket ] || ! command -v journalctl >/dev/null 2>
   exit 0
 fi
 
-"$KARVI" version --format json >"$TMP/version.json"
-json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx scrapligo-v1 || fail "$KARVI lacks scrapligo-v1; build with make native-build"
 install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/store"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -port 0 >"$TMP/port" 2>"$TMP/fake.err" &

@@ -13,7 +13,7 @@ const (
 	AuditSchema          = 2
 	JobSchema            = 5
 	DaemonIPCSchema      = 12
-	ConfigRegistrySchema = 31
+	ConfigRegistrySchema = 32
 )
 
 var (
@@ -32,7 +32,7 @@ type SSHTransport struct {
 // sshTransports are the two, by ID.
 func sshTransports() []SSHTransport {
 	return []SSHTransport{
-		{ID: "scrapligo-v1", Name: "native", Linkage: "compiled-in"},
+		{ID: "native", Name: "native", Linkage: "compiled-in"},
 		{ID: "system", Name: "system", Linkage: "external-executable"},
 	}
 }

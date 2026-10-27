@@ -10,21 +10,51 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/devsession"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
+	"github.com/robert-patrick-texas/karvi/internal/sshalgorithms"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-func init() {
-	register("scrapligo-v1", open, "generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux")
+// admits is the base platforms the native transport admits.
+var admits = []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux"}
+
+// Admits refuses a platform whose base driver the native transport does not
+// admit (native_platform_not_qualified); the label is never read.
+func Admits(def platform.Definition) error {
+	for _, base := range admits {
+		if base == def.Base {
+			return nil
+		}
+	}
+	return errorcodes.Errorf("native_platform_not_qualified", "the native transport does not admit platform %q (base driver %s); it admits %s", def.Name, def.Base, strings.Join(admits, ", "))
 }
 
-// open resolves the host-key policy; the connection and the device session
+// Factory opens a device over the native transport.
+type Factory struct {
+	Config configload.Snapshot
+	Home   string
+	// BaseDir is the operator's private root, which holds the trust store
+	// under ssh.known-hosts-file "auto".
+	BaseDir        string
+	MaxOutputBytes int64
+	// Spool is the session's spool: the directory,
+	// the threshold, and the activity; the device is filled per session.
+	Spool devsession.Spool
+	Debug func(string)
+	// Algorithms are the device's SSH algorithm lists; empty means the
+	// configuration's global lists.
+	Algorithms sshalgorithms.Lists
+}
+
+// Open resolves the host-key policy; the connection and the device session
 // open in Prepare.
-func open(_ context.Context, f Factory, req platform.OpenRequest) (platform.Driver, error) {
+func (f Factory) Open(_ context.Context, req platform.OpenRequest) (platform.Driver, error) {
 	policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home, f.BaseDir)
 	if err != nil {
 		return nil, err
@@ -63,7 +93,7 @@ func (d *driver) Prepare(ctx context.Context) error {
 		host = d.req.Address
 	}
 	promptTimeout := durationOr(d.f.Config.Duration("execution.prompt-timeout"), 10*time.Second)
-	d.debugf("native SSH session starting implementation=scrapligo-v1 target=%q address=%q port=%d host_key_policy=%s host_key_identity=%q channel=%s", host, d.req.Address, d.req.Port, d.policy.Mode, hostkey.Identity(host, int(d.req.Port)), d.channel())
+	d.debugf("native SSH session starting target=%q address=%q port=%d host_key_policy=%s host_key_identity=%q channel=%s", host, d.req.Address, d.req.Port, d.policy.Mode, hostkey.Identity(host, int(d.req.Port)), d.channel())
 	dial := DialRequest{
 		Host: host, Address: d.req.Address, Port: int(d.req.Port), Username: d.req.Username,
 		Password:         d.req.Password,

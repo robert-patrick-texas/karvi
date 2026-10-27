@@ -10,8 +10,8 @@
 // shell for linux_shell. Both record every input line and exec request, every
 // PTY request, the session channels per connection, and every signal request,
 // so a test can assert what a transport asked for. It needs
-// golang.org/x/crypto/ssh, which go.mod and vendor/ carry for the scrapligo-v1
-// adapter.
+// golang.org/x/crypto/ssh, which go.mod and vendor/ carry for the native
+// transport.
 package fakedevice
 
 import (

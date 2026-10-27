@@ -161,7 +161,9 @@ func draftOptions(commands []string) DraftOptions {
 // moved.
 // Re-pinned at schema 15, command_plan_digest removed (EXAMPLES chapter
 // 79); nothing else moved.
-const goldenK03Draft = "f3c786fe0c3b8daaf62ec5f248587cb337c2635de177c7162037095f91c2169e"
+// Re-pinned when ssh.transports.native was removed (EXAMPLES chapter 82):
+// the configuration block's key and its digest; nothing else moved.
+const goldenK03Draft = "e9ca5b66df8ac6d811fb29bd51aa3de088a33e3bcd01357233c66a7014cac68d"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)
@@ -612,9 +614,9 @@ func TestDraftPlatformCommands(t *testing.T) {
 // in the plan; exec over telnet refused naming both; exec on either SSH
 // transport carried.
 func TestTargetChannel(t *testing.T) {
-	ssh := transportselect.Selection{Kind: transportselect.KindNative, Implementation: "scrapligo-v1"}
-	system := transportselect.Selection{Kind: transportselect.KindSystem, Implementation: "system"}
-	telnet := transportselect.Selection{Kind: transportselect.KindTelnet, Implementation: "telnet"}
+	ssh := transportselect.Selection{Kind: transportselect.KindNative}
+	system := transportselect.Selection{Kind: transportselect.KindSystem}
+	telnet := transportselect.Selection{Kind: transportselect.KindTelnet}
 	tables := map[string]map[string]any{"srv": {"driver": "linux", "channel": "exec"}}
 	if c, err := targetChannel(platform.Resolve("linux_shell", tables), "r1", ssh); err != nil || c != platform.ChannelShell {
 		t.Fatalf("linux_shell: %q %v", c, err)
@@ -623,7 +625,7 @@ func TestTargetChannel(t *testing.T) {
 		t.Fatalf("exec over telnet: %v", err)
 	}
 	if c, err := targetChannel(platform.Resolve("srv", tables), "srv1", ssh); err != nil || c != platform.ChannelExec {
-		t.Fatalf("exec on scrapligo-v1: %q %v", c, err)
+		t.Fatalf("exec on native: %q %v", c, err)
 	}
 	if c, err := targetChannel(platform.Resolve("srv", tables), "srv1", system); err != nil || c != platform.ChannelExec {
 		t.Fatalf("exec on system: %q %v", c, err)

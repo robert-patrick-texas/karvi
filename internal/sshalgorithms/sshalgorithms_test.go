@@ -210,8 +210,8 @@ func TestOffer(t *testing.T) {
 	if err != nil || got[Kex][0] != "sntrup761x25519-sha512@openssh.com" || contains(got[Ciphers], "aes256-cbc") {
 		t.Fatalf("offer %v %v", got, err)
 	}
-	_, err = Lists{HostKey: {"ssh-ed25519"}, Kex: {"curve25519-sha256"}, Ciphers: {"aes256-cbc"}, MACs: {"hmac-sha1"}}.Offer("scrapligo-v1", implements)
-	if errorcodes.Of(err) != "ssh_algorithms_unavailable" || !strings.Contains(err.Error(), "cipher algorithms (aes256-cbc) is implemented by scrapligo-v1") {
+	_, err = Lists{HostKey: {"ssh-ed25519"}, Kex: {"curve25519-sha256"}, Ciphers: {"aes256-cbc"}, MACs: {"hmac-sha1"}}.Offer("native", implements)
+	if errorcodes.Of(err) != "ssh_algorithms_unavailable" || !strings.Contains(err.Error(), "cipher algorithms (aes256-cbc) is implemented by native") {
 		t.Fatalf("unavailable: %v", err)
 	}
 }

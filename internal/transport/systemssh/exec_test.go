@@ -249,7 +249,7 @@ func TestExecTimeoutThroughTheMaster(t *testing.T) {
 
 // TestExecRefusedThroughTheMaster: a device that refuses the exec request
 // (the IOS XE persona) is ssh_session_channel_refused, and the session
-// ends, as on scrapligo-v1.
+// ends, as on the native transport.
 func TestExecRefusedThroughTheMaster(t *testing.T) {
 	d, _ := execDriver(t, fakedevice.Options{StartPrivileged: true})
 	r := d.Execute(context.Background(), platform.Command{Text: "show version", Timeout: 5 * time.Second})

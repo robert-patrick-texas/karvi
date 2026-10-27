@@ -52,11 +52,11 @@ func TestOfFindsCodesThroughWrapping(t *testing.T) {
 }
 
 func TestWithExitFixesExitAndKeepsCode(t *testing.T) {
-	err := WithExit(errors.New("native_transport_unavailable: not compiled in"), 2)
+	err := WithExit(errors.New("transport_mapping_invalid: not exec:PATH"), 2)
 	if got := ExitAt(err, "config_load_failed"); got != 2 {
 		t.Fatalf("exit = %d, want 2", got)
 	}
-	if got := Message(err); got != "native_transport_unavailable: not compiled in" {
+	if got := Message(err); got != "transport_mapping_invalid: not exec:PATH" {
 		t.Fatalf("message = %q", got)
 	}
 	if WithExit(nil, 2) != nil {

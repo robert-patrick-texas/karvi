@@ -171,7 +171,7 @@ func (d *Device) Validate() error {
 		d.Transport = "native"
 	}
 	d.Transport = strings.ToLower(strings.TrimSpace(d.Transport))
-	if d.Transport != "default" && d.Transport != "preferred" && d.Transport != "telnet" && !transportSelectorPattern.MatchString(d.Transport) {
+	if d.Transport != "default" && d.Transport != "telnet" && !transportSelectorPattern.MatchString(d.Transport) {
 		return errorcodes.Errorf("device_transport_selector_invalid", "invalid transport selector %q", d.Transport)
 	}
 	if d.NameTransform == "" {

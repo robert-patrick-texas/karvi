@@ -16,7 +16,7 @@ var transportSelectorPattern = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
 
 // PrivilegeLevel is one prompt level of a platform: the pattern its prompt
 // matches and how the level is reached from the one below it. The built-in
-// levels are scrapligo-v1's platform definitions; a
+// levels are scrapligo's platform definitions; a
 // level's Pattern is matched against the final line the device sent.
 type PrivilegeLevel struct {
 	Name           string `json:"name"`
@@ -181,7 +181,7 @@ func (d *Definition) Validate() error {
 		d.DefaultTransport = "native"
 	}
 	d.DefaultTransport = strings.ToLower(strings.TrimSpace(d.DefaultTransport))
-	if d.DefaultTransport != "default" && d.DefaultTransport != "preferred" && d.DefaultTransport != "telnet" && !transportSelectorPattern.MatchString(d.DefaultTransport) {
+	if d.DefaultTransport != "default" && d.DefaultTransport != "telnet" && !transportSelectorPattern.MatchString(d.DefaultTransport) {
 		return errorcodes.Errorf("platform_default_transport_invalid", "invalid default transport selector %q", d.DefaultTransport)
 	}
 	if d.SSHPort == 0 {
@@ -454,10 +454,8 @@ type Driver interface {
 }
 
 // The prompt levels and failure patterns of the built-in platforms are
-// scrapligo-v1's platform definitions (assets/platforms/*.yaml in the
-// module, read at v1.4.1; the pin is v1.4.3, whose changes since
-// are elsewhere, and the assets are no longer vendored since nothing
-// imports them),
+// scrapligo's platform definitions (assets/platforms/*.yaml in its module,
+// read at v1.4.1; karvi no longer carries the module),
 // the driver's vocabulary for level names.
 // GenericPromptPattern is scrapligo's generic prompt; BroadPromptPattern is
 // karvi's original prompt shape for a platform without a definition of its

@@ -1,7 +1,6 @@
 // Package transportselect resolves operator-facing transport selectors into a
-// concrete executable or compiled-in SSH implementation. Keeping this policy
-// outside adapters prevents CLI, inventory, and dispatch code from depending
-// on ScrapliGo or any future SSH library.
+// transport: the compiled-in native or Telnet transport, or the system
+// transport's executable.
 package transportselect
 
 import (
@@ -15,7 +14,6 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
-	"github.com/robert-patrick-texas/karvi/internal/transport/native"
 )
 
 const (
@@ -27,14 +25,13 @@ const (
 var aliasPattern = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
 
 // Selection is the fully resolved transport used for one activity or device.
-// Selector is the operator-facing slot (for example native or alternate1),
-// while Implementation is the stable adapter identifier recorded in output.
+// Selector is the operator-facing name (for example native or alternate1),
+// while Kind is the transport recorded in output.
 type Selection struct {
-	Selector       string `json:"selector"`
-	Kind           string `json:"kind"`
-	Implementation string `json:"implementation"`
-	Binary         string `json:"binary,omitempty"`
-	ConfigKey      string `json:"config_key,omitempty"`
+	Selector  string `json:"selector"`
+	Kind      string `json:"kind"`
+	Binary    string `json:"binary,omitempty"`
+	ConfigKey string `json:"config_key,omitempty"`
 }
 
 // DefaultSelector is what a mode's "default" resolves to: system for a
@@ -70,25 +67,22 @@ func Resolve(cfg configload.Snapshot, mode, requested string) (Selection, error)
 	if selector == "" || selector == "default" {
 		selector = DefaultSelector(mode)
 	}
-	if selector == "preferred" {
-		selector = "native"
-	}
 	return resolveAlias(cfg, selector)
 }
 
+// resolveAlias resolves native and telnet to their compiled-in transports,
+// and any other selector through its ssh.transports slot: system's
+// executable, or a custom slot's exec:PATH.
 func resolveAlias(cfg configload.Snapshot, selector string) (Selection, error) {
 	selector = strings.ToLower(strings.TrimSpace(selector))
-	if selector == "telnet" {
-		return Selection{Selector: selector, Kind: KindTelnet, Implementation: "telnet"}, nil
+	switch selector {
+	case KindNative:
+		return Selection{Selector: selector, Kind: KindNative}, nil
+	case KindTelnet:
+		return Selection{Selector: selector, Kind: KindTelnet}, nil
 	}
 	if !aliasPattern.MatchString(selector) {
 		return Selection{}, fmt.Errorf("transport_selector_invalid: invalid transport selector %q", selector)
-	}
-
-	// A compiled-in implementation identifier may be selected directly. Named
-	// slots remain preferred because they let governance remap native later.
-	if native.Available(selector) {
-		return Selection{Selector: selector, Kind: KindNative, Implementation: selector}, nil
 	}
 
 	key := "ssh.transports." + selector
@@ -96,46 +90,34 @@ func resolveAlias(cfg configload.Snapshot, selector string) (Selection, error) {
 	if value == "" {
 		return Selection{}, fmt.Errorf("transport_mapping_missing: selector %q has no %s mapping", selector, key)
 	}
-	if value == "default" {
-		switch selector {
-		case "system":
+	if selector == KindSystem {
+		if value == "default" {
 			value = "ssh"
-		case "native":
-			value = "scrapligo-v1"
-		default:
-			return Selection{}, fmt.Errorf("transport_custom_slot_default: %s may not use default because custom slots have no implicit implementation", key)
 		}
-	}
-
-	if selector == "system" {
 		binary, err := resolveExecutable(value)
 		if err != nil {
 			return Selection{}, executableError("transport_system_executable_unavailable", key, value, err)
 		}
-		return Selection{Selector: selector, Kind: KindSystem, Implementation: "system", Binary: binary, ConfigKey: key}, nil
+		return Selection{Selector: selector, Kind: KindSystem, Binary: binary, ConfigKey: key}, nil
 	}
-	if strings.HasPrefix(value, "exec:") {
-		spec := strings.TrimPrefix(value, "exec:")
-		binary, err := resolveExecutable(spec)
-		if err != nil {
-			return Selection{}, executableError("transport_exec_executable_unavailable", key, value, err)
-		}
-		return Selection{Selector: selector, Kind: KindSystem, Implementation: "system", Binary: binary, ConfigKey: key}, nil
+	if value == "default" {
+		return Selection{}, fmt.Errorf("transport_custom_slot_default: %s may not use default, which only the system slot accepts", key)
 	}
-	implementation := strings.TrimPrefix(value, "builtin:")
-	if !aliasPattern.MatchString(implementation) {
-		return Selection{}, fmt.Errorf("transport_implementation_invalid: %s has invalid implementation %q", key, implementation)
+	spec, ok := strings.CutPrefix(value, "exec:")
+	if !ok {
+		return Selection{}, fmt.Errorf("transport_mapping_invalid: %s=%q is not exec:PATH", key, value)
 	}
-	if !native.Available(implementation) {
-		return Selection{}, fmt.Errorf("native_transport_unavailable: %s selects %q, which is not compiled into this karvi executable", key, implementation)
+	binary, err := resolveExecutable(spec)
+	if err != nil {
+		return Selection{}, executableError("transport_exec_executable_unavailable", key, value, err)
 	}
-	return Selection{Selector: selector, Kind: KindNative, Implementation: implementation, ConfigKey: key}, nil
+	return Selection{Selector: selector, Kind: KindSystem, Binary: binary, ConfigKey: key}, nil
 }
 
 // ValidateConfigured checks operator-authored transport declarations at config
-// load time. Built-in defaults are intentionally lazy: an executable stays
-// usable through system SSH even if its default native preference has no
-// registered provider. Explicit non-default declarations fail closed.
+// load time: a slot named for a built-in transport, and every explicit
+// non-default mapping and mode selector, fail closed. A custom slot mapped to
+// default fails when a mode selects it.
 func ValidateConfigured(cfg configload.Snapshot) error {
 	mappingKeys := make([]string, 0)
 	for suffix := range cfg.Prefix("ssh.transports") {
@@ -147,11 +129,14 @@ func ValidateConfigured(cfg configload.Snapshot) error {
 		if !ok || v.Source.Layer == "builtin" {
 			continue
 		}
+		selector := strings.TrimPrefix(key, "ssh.transports.")
+		if selector == KindNative || selector == KindTelnet {
+			return fmt.Errorf("transport_mapping_invalid: %s: %s is a built-in transport, not a slot", key, selector)
+		}
 		value, _ := v.Data.(string)
 		if strings.EqualFold(strings.TrimSpace(value), "default") {
 			continue
 		}
-		selector := strings.TrimPrefix(key, "ssh.transports.")
 		if _, err := resolveAlias(cfg, selector); err != nil {
 			return err
 		}
@@ -171,17 +156,6 @@ func ValidateConfigured(cfg configload.Snapshot) error {
 		}
 	}
 	return nil
-}
-
-// NativeStatus describes the effective native preference for contextual help
-// without turning an unavailable built-in default into a configuration error.
-func NativeStatus(cfg configload.Snapshot) (implementation string, available bool) {
-	value := strings.TrimSpace(cfg.String("ssh.transports.native"))
-	if value == "" || value == "default" {
-		value = "scrapligo-v1"
-	}
-	value = strings.TrimPrefix(value, "builtin:")
-	return value, native.Available(value)
 }
 
 func resolveExecutable(spec string) (string, error) {

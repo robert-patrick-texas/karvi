@@ -7,7 +7,7 @@
 # at planning, and, unless run as root, a folder whose summary cannot
 # be read and one that cannot be entered. The table to a pipe and at a
 # terminal of 80 columns, each filter, the rows under --target, the
-# refusals, and the JSON. Needs the native executable and `go`; writes
+# refusals, and the JSON. Needs `go`; writes
 # nothing outside its own directory.
 set -eu
 
@@ -35,8 +35,6 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-"$KARVI" version --format json >"$TMP/version.json"
-json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx scrapligo-v1 || fail "$KARVI lacks scrapligo-v1; build with make native-build"
 install -d -m 700 "$TMP/bin" "$TMP/home" "$TMP/base" "$TMP/score" "$TMP/crun"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
 "$TMP/bin/fake" -host-key-file "$TMP/hostkey" -slow 20s -port 0 >"$TMP/port" 2>"$TMP/fake.err" &

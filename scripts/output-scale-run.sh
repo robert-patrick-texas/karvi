@@ -14,14 +14,14 @@
 # same bytes), a platform `fexec` (driver linux, channel exec), and a key of
 # the run's own as the operator's keys; it also needs `ssh-keygen`.
 #
-#   N=32 TRANSPORT=scrapligo-v1 scripts/output-scale-run.sh
+#   N=32 TRANSPORT=native scripts/output-scale-run.sh
 #   N=32 TRANSPORT=system CHANNEL=exec scripts/output-scale-run.sh
 #
 # The spool directory is under TMP; its size is sampled while the job runs
 # and the peak is printed beside the memory,
 # so the run measures where the responses go now that they leave memory.
 #
-# Settings: N (devices, default 8), TRANSPORT (system or scrapligo-v1),
+# Settings: N (devices, default 8), TRANSPORT (system or native),
 # BIG_LINES (lines of `show big`, 73 recorded bytes each; the default 72000
 # is 5,256,000 bytes, just over 5 MiB), INFLIGHT (dispatch.server-max-inflight;
 # the default 0 is the daemon's own min(256,max(32,8xCPU)), which caps the
@@ -33,7 +33,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 GO=${GO:-go}
 N=${N:-8}
-TRANSPORT=${TRANSPORT:-scrapligo-v1}
+TRANSPORT=${TRANSPORT:-native}
 CHANNEL=${CHANNEL:-shell}
 BIG_LINES=${BIG_LINES:-72000}
 INFLIGHT=${INFLIGHT:-$N}

@@ -11,7 +11,7 @@
 # platform            a built-in platform or a [platform.NAME] alias of the
 #                     configuration (c9300 below); blank runs as
 #                     platform-resolution.default
-# transport           system (OpenSSH) or native (scrapligo-v1); blank is the
+# transport           system (OpenSSH) or native (karvi's own); blank is the
 #                     mode's default
 # site, groups        selectors for credential rows and policy maps; groups
 #                     are separated by ;

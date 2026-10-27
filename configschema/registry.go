@@ -23,9 +23,10 @@ import (
 // socket directory daemon.sockets in place of daemon.socket, and
 // ssh-algorithms.source with a profile's source; 30 removes
 // output.files.summary-json, every job folder holding its summary; 31
-// takes crun.mask and a platform table's masks.
+// takes crun.mask and a platform table's masks; 32 removes
+// ssh.transports.native, the native transport having one implementation.
 const (
-	RegistrySchemaVersion = 31
+	RegistrySchemaVersion = 32
 	ConfigSchemaVersion   = 6
 )
 

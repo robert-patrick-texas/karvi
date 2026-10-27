@@ -5,7 +5,7 @@
 # row asserts through scripts/lib/json.sh. A response of 65.7 MB is the
 # fake's `show big` at 900,000 lines, the size that streams for over a second
 # so a cut lands inside it; the small answers are the fake's usual ones.
-# Needs the native executable, karvi-prune beside it, and `go`.
+# Needs karvi-prune beside the executable, and `go`.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -38,7 +38,6 @@ stop_daemon() {
 cleanup() { stop_daemon 2>/dev/null || true; stop_fake; rm -rf "$TMP"; }
 trap cleanup EXIT HUP INT TERM
 
-"$KARVI" version --format json | grep -q '"id": "scrapligo-v1"' || fail "$KARVI lacks scrapligo-v1; build with make native-build"
 [ -x "$PRUNE" ] || fail "karvi-prune not found at $PRUNE"
 install -d -m 700 "$TMP" "$TMP/bin" "$TMP/store" "$TMP/home" "$TMP/base" "$SPOOL"
 (cd "$ROOT" && GOTOOLCHAIN=local "$GO" build -mod=vendor -o "$TMP/bin/fake" ./cmd/karvi-fake-device)
@@ -150,7 +149,7 @@ BIG_BYTES=65700000
 
 # S1: threshold 0 spools a small answer from its first byte; the record is
 # the memory form's, the spool opened and removed.
-karvi s1 --set output.spool-threshold-bytes=0 --debug cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show clock'
+karvi s1 --set output.spool-threshold-bytes=0 --debug cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S1: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s1" | head -1)"
 record s1; check_record S1 success
 json_is "$TMP/rec.json" output_bytes 34 || fail "S1: output_bytes $(json_get "$TMP/rec.json" output_bytes)"
@@ -167,7 +166,7 @@ echo "spool smoke: S1 threshold 0 spools a 34-byte answer, the spool removed"
 # fake's output is ASCII.
 prev_digest=""; prev_text=""
 for th in 1048576 1073741824 5000; do
-  karvi s2 --set output.spool-threshold-bytes=$th cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big'
+  karvi s2 --set output.spool-threshold-bytes=$th cmd fake-iosxe --format jsonl --transport native --cmd 'show big'
   [ "$CODE" -eq 0 ] || fail "S2 ($th): exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s2" | head -1)"
   record s2; check_record "S2 ($th)" success
   json_is "$TMP/rec.json" output_bytes $BIG_BYTES || fail "S2 ($th): output_bytes $(json_get "$TMP/rec.json" output_bytes)"
@@ -189,7 +188,7 @@ echo "spool smoke: S2 the 65.7 MB record equal through the spool, in memory, and
 
 # S3: a failure pattern in a spooled answer is found as the bytes settle:
 # `show bogus` at threshold 0 is device_command_error.
-karvi s3 --set output.spool-threshold-bytes=0 cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show bogus'
+karvi s3 --set output.spool-threshold-bytes=0 cmd fake-iosxe --format jsonl --transport native --cmd 'show bogus'
 record s3; check_record S3 device_error
 json_is "$TMP/rec.json" error.code device_command_error || fail "S3: $(json_get "$TMP/rec.json" error.code)"
 spool_empty S3
@@ -201,13 +200,13 @@ echo "spool smoke: S3 the failure pattern found through the spool"
 # settled by the cut; a cancel (SIGINT to the client mid-stream) and a lost
 # session (the fake killed mid-stream, then restarted on its port) hold what
 # settled too. Every spool is gone after.
-karvi s4l --set output.max-command-bytes=20000 cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big'
+karvi s4l --set output.max-command-bytes=20000 cmd fake-iosxe --format jsonl --transport native --cmd 'show big'
 [ "$CODE" -eq 111 ] || fail "S4 limit: exit $CODE"
 record s4l; check_record "S4 limit" output_limit_exceeded
 json_is "$TMP/rec.json" output_bytes 20000 || fail "S4 limit: output_bytes $(json_get "$TMP/rec.json" output_bytes)"
 observed=$(json_get "$TMP/rec.json" error.message | sed -n 's/.*, \([0-9]*\) observed.*/\1/p')
 [ -n "$observed" ] && [ "$observed" -gt 20000 ] && [ "$observed" -lt 30000 ] || fail "S4 limit: observed $observed"
-karvi s4t --set 'execution.command-timeout="1s"' cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big'
+karvi s4t --set 'execution.command-timeout="1s"' cmd fake-iosxe --format jsonl --transport native --cmd 'show big'
 [ "$CODE" -eq 107 ] || fail "S4 timeout: exit $CODE"
 record s4t; check_record "S4 timeout" timeout
 json_is "$TMP/rec.json" error.code command_timeout || fail "S4 timeout: $(json_get "$TMP/rec.json" error.code)"
@@ -215,7 +214,7 @@ json_is "$TMP/rec.json" error.code command_timeout || fail "S4 timeout: $(json_g
 spool_empty "S4 timeout"
 # The cancel: the client interrupted 0.7 s into the command, past the fake's
 # build of its answer and inside the stream.
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big' >"$TMP/out.s4c" 2>"$TMP/err.s4c" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4c" 2>"$TMP/err.s4c" &
 CLIENT=$!
 sleep 0.7; kill -INT "$CLIENT"
 CODE=0; wait "$CLIENT" || CODE=$?
@@ -223,7 +222,7 @@ CODE=0; wait "$CLIENT" || CODE=$?
 record s4c; check_record "S4 cancel" cancel
 spool_empty "S4 cancel"
 # The lost session: the fake killed 0.7 s in, then the same device again.
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big' >"$TMP/out.s4x" 2>"$TMP/err.s4x" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s4x" 2>"$TMP/err.s4x" &
 CLIENT=$!
 sleep 0.7; kill -9 "$FAKE_PID" 2>/dev/null || true; wait "$FAKE_PID" 2>/dev/null || true; FAKE_PID=
 CODE=0; wait "$CLIENT" || CODE=$?
@@ -245,7 +244,7 @@ sh -c 'exit 0' & DEAD=$!; wait "$DEAD" 2>/dev/null || true
 : >"$SPOOL/notes.txt"
 rc=0; "$PRUNE" --basedir "$TMP/base" --sharedroot none --scoreboards "$SCORE" --days 0 >"$TMP/out.prune" 2>"$TMP/err.prune" || rc=$?
 [ "$(ls -A "$SPOOL" | wc -l)" -eq 3 ] || fail "S5: karvi-prune touched the spool directory: $(ls -A "$SPOOL")"
-karvi s5 --debug cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show clock'
+karvi s5 --debug cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S5: exit $CODE"
 grep -q "spool_abandoned_removed: removed the abandoned spool $SPOOL/260927-100000-00.fake-iosxe.1.$DEAD.spool" "$TMP/err.s5" || fail "S5: the sweep did not report the dead pid's spool"
 [ ! -e "$SPOOL/260927-100000-00.fake-iosxe.1.$DEAD.spool" ] || fail "S5: the dead pid's spool remains"
@@ -284,7 +283,7 @@ echo "spool smoke: S6 the follower fed from the file, omitted over the bound, an
 # the text format streams from the spool before its
 # removal.
 before=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | wc -l)
-karvi s7 --set output.spool-threshold-bytes=0 cmd fake-iosxe --format text --nof --transport scrapligo-v1 --cmd 'show clock'
+karvi s7 --set output.spool-threshold-bytes=0 cmd fake-iosxe --format text --nof --transport native --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S7: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s7" | head -1)"
 grep -q '^\*10:00:00.000 UTC Tue Sep 15 2026$' "$TMP/out.s7" || fail "S7: the display lacks the answer: $(cat "$TMP/out.s7")"
 [ "$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | wc -l)" -eq "$before" ] || fail "S7: --nof created a job folder"
@@ -297,7 +296,7 @@ echo "spool smoke: S7 --nof displayed the spooled answer without a job folder"
 # schema (`karvi version`), and both back to zero at the end. The file is copied before it is read: the heartbeat
 # rewrites it every 250 ms.
 rm -f "$SCORE"/*.json
-HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show big' >"$TMP/out.s8" 2>"$TMP/err.s8" &
+HOME=$TMP/home NETUSER=netops NETPASS=pw NETENABLE=en "$KARVI" --config "$TMP/karvi.toml" cmd fake-iosxe --format jsonl --transport native --cmd 'show big' >"$TMP/out.s8" 2>"$TMP/err.s8" &
 CLIENT=$!
 seen=0; inflight=0
 while kill -0 "$CLIENT" 2>/dev/null; do
@@ -328,7 +327,7 @@ echo "spool smoke: S8 the scoreboard carried $seen bytes in flight during the re
 # more devices than the disk holds at the 1 GiB limit, above the floor and
 # the job's own files, to the width that fits, with the warning, when the
 # host's free space lets the suite ask for that many devices.
-karvi s9n --set 'freecheck="never"' --debug cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show clock'
+karvi s9n --set 'freecheck="never"' --debug cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
 [ "$CODE" -eq 0 ] || fail "S9 never: exit $CODE"
 grep -q 'freecheck=never volumes=0' "$TMP/err.s9n" || fail "S9 never: the debug stream lacks the word and the empty read"
 if [ "$DEVICES" -gt 0 ]; then
@@ -353,14 +352,14 @@ fi
 AVAIL=$(df --output=avail -B1 "$TMP" | tail -1)
 FLOOR=$((AVAIL + 1073741824))
 if [ "$FLOOR" -lt 1099511627776 ]; then
-  karvi s10a --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show clock'
+  karvi s10a --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd fake-iosxe --format jsonl --transport native --cmd 'show clock'
   [ "$CODE" -eq 111 ] || fail "S10 always: exit $CODE, expected 111"
   grep -q "^output_preflight_space: $TMP/base/jobs/[0-9]*/[0-9-]*, $SPOOL: need $FLOOR bytes free, only [0-9]* free" "$TMP/err.s10a" || fail "S10 always: the refusal does not name both paths and the figures: $(head -1 "$TMP/err.s10a")"
   # The refused job's reserved folder is released: the path the refusal
   # names is gone.
   s10_dir=$(sed -n 's/^output_preflight_space: \([^,]*\),.*/\1/p' "$TMP/err.s10a")
   [ -n "$s10_dir" ] && [ ! -d "$s10_dir" ] || fail "S10 always: the refused job's folder $s10_dir was left behind"
-  karvi s10n --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd --nof fake-iosxe --format jsonl --transport scrapligo-v1 --cmd 'show clock'
+  karvi s10n --set 'freecheck="always"' --set output.min-free-bytes-after-job=$FLOOR cmd --nof fake-iosxe --format jsonl --transport native --cmd 'show clock'
   [ "$CODE" -eq 111 ] || fail "S10 nof: exit $CODE, expected 111"
   grep -q "^output_preflight_space: $SPOOL: need" "$TMP/err.s10n" || fail "S10 nof: the spool's volume alone is named: $(head -1 "$TMP/err.s10n")"
   echo "spool smoke: S10 always refused at the floor, the job's folder and the spool named; --nof asked the spool's volume"

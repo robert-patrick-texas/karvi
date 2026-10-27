@@ -1,10 +1,8 @@
 #!/bin/sh
 # Verify the included executables and their source without rebuilding them.
-# The release ships the scrapligo-v1 executable: the
-# tests and tools run offline from the vendor tree, and the smoke suites run
-# against bin/ as shipped. scripts/verify-release.sh is the verifier that
-# builds from source. There is one shape of the source: the scrapligo_v1
-# build tag and the dependency-free preview module are gone. The checks of
+# The tests and tools run offline from the vendor tree, and the smoke suites
+# run against bin/ as shipped. scripts/verify-release.sh is the verifier that
+# builds from source. The checks of
 # the shipped bytes themselves are scripts/verify-shipped.sh, run first; the
 # suites are scripts/lib/suites.sh, the one list both verifiers run.
 set -eu
@@ -51,4 +49,4 @@ for f in "$TMP"/man/*; do cmp "packaging/man/${f##*/}" "$f"; done
 run_suites
 host_shared_unchanged "$host_before"
 
-echo 'bundle verification: pass (the scrapligo-v1 executable as shipped; devices not qualified here)'
+echo 'bundle verification: pass (the executables as shipped; devices not qualified here)'

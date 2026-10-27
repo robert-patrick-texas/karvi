@@ -240,7 +240,7 @@ Active failure causes.
 | `config_toml_syntax` | config | 2 | no | A configuration file is not valid TOML. |
 | `config_transport_mapping_control_character` | config | 2 | no | An `ssh.transports.<slot>` mapping contains a control character. |
 | `config_transport_mapping_empty` | config | 2 | no | An `ssh.transports.<slot>` mapping is empty or not a string. |
-| `config_transport_selector_invalid` | config | 2 | no | An `ssh.<mode>.transport` value is not `default`, `preferred`, `telnet`, or a valid slot name. |
+| `config_transport_selector_invalid` | config | 2 | no | An `ssh.<mode>.transport` value is not `default`, `native`, `telnet`, or a valid slot name. |
 | `config_transport_slot_name_invalid` | config | 2 | no | An `ssh.transports` slot name does not match `[a-z][a-z0-9_-]{0,63}`. |
 | `config_type_error` | config | 2 | no | A value has the wrong type for its key. |
 | `config_unknown_environment` | config | 2 | no | An unrecognized `KARVI__` environment variable is set while unknown variables are rejected. |
@@ -341,7 +341,7 @@ Active failure causes.
 | `device_schema_unsupported` | internal | 1 | no | A device uses an unsupported schema version. |
 | `device_session_cap_out_of_range` | inventory | 5 | no | A device `session_cap` is outside 1..32. |
 | `device_timeout` | timeout | 107 | yes | A device's command list, its session-init profile included, does not complete within `execution.device-timeout`; the session ends and the remaining commands are not attempted. |
-| `device_transport_selector_invalid` | usage | 4 | no | A device transport selector is not `default`, `preferred`, `telnet`, or a valid slot name. |
+| `device_transport_selector_invalid` | usage | 4 | no | A device transport selector is not `default`, `native`, `telnet`, or a valid slot name. |
 | `display_border_render_too_long` | config | 2 | no | A rendered border exceeds the maximum display length. |
 | `display_border_template_too_long` | config | 2 | no | A border template exceeds the maximum display length. |
 | `display_line_too_long` | config | 2 | no | A rendered header or footer line exceeds the maximum display length. |
@@ -456,7 +456,6 @@ Active failure causes.
 | `name_transform_profile_unknown` | config | 2 | no | An inventory source's `name-transform` names a name-transform table that is not defined; refused when the configuration loads. |
 | `native_platform_not_qualified` | dependency | 8 | no | The native transport does not admit the target's platform driver. |
 | `native_session_open_failed` | connection | 110 | yes | The native transport cannot open the device session. |
-| `native_transport_unavailable` | dependency | 8 | no | The selected native implementation is not compiled into this executable; there is no fallback to system OpenSSH. |
 | `network_unreachable` | connection | 110 | yes | There is no route to the device or the network is unreachable. |
 | `operator_identity_unavailable` | internal | 1 | no | The current operator's user name, UID, or home directory cannot be determined. |
 | `output_commands_short_write` | output | 111 | no | A command record is only partly written to commands.jsonl. |
@@ -486,7 +485,7 @@ Active failure causes.
 | `plan_digest_mismatch` | internal | 112 | no | The committed plan digest differs from the prepared plan, or a plan no longer hashes to its recorded digest. |
 | `plan_not_enumerated` | inventory | 112 | no | A job plan does not enumerate its targets. |
 | `plan_report_invalid` | internal | 1 | no | A dry-run or exercise report fails the plan-report contract; the message names the field first. |
-| `platform_default_transport_invalid` | config | 2 | no | A platform's default transport is not `default`, `preferred`, `telnet`, or a valid slot name. |
+| `platform_default_transport_invalid` | config | 2 | no | A platform's default transport is not `default`, `native`, `telnet`, or a valid slot name. |
 | `platform_definition_invalid` | config | 2 | no | Unclassified. A platform definition fails validation without a specific code. |
 | `platform_name_blank` | config | 2 | no | A platform definition has a blank name. |
 | `platform_option_unknown` | usage | 4 | no | `--platform NAME` (or a shortcut: `--pi`, `--pn`, `--pr`, `--pj`, `--pa`, `--pl`, `--ps`, `--pg`) in `login`, `command`, or `run` is not a known platform (a built-in or a configured `[platform.NAME]` table), or holds a glob character or a leading `!`; a name is required, never a pattern. Checked once after configuration and before the inventory is read. |
@@ -546,7 +545,7 @@ Active failure causes.
 | `secret_username_unset` | credential | 6 | no | Username material is read but was never set. |
 | `session_init_map_unmatched` | config | 2 | no | No `session-init-map` rule matches a target at planning. |
 | `session_init_prefix_ambiguous` | config | 2 | no | Two address-cidr `session-init-map` rules match a target with the same prefix length; the message names the rules and their sources. |
-| `session_keepalive_timeout` | connection | 110 | yes | The device answers none of the SSH keepalive requests of an open session (`ssh.server-alive-*` on the system transport, `native-ssh.keepalive-*` on scrapligo-v1); the session ends. |
+| `session_keepalive_timeout` | connection | 110 | yes | The device answers none of the SSH keepalive requests of an open session (`ssh.server-alive-*` on the system transport, `native-ssh.keepalive-*` on the native transport); the session ends. |
 | `setup_completion_dir_missing` | dependency | 8 | no | `karvi setup tab` found no `/etc/bash_completion.d`: the bash-completion package, which reads that directory, is not installed; nothing was created. |
 | `setup_completion_mismatch` | permission | 9 | no | `/etc/bash_completion.d/karvi` exists and is not a script karvi wrote (its first line is not karvi's marker); nothing was changed, since karvi never changes what a site made. |
 | `setup_completion_write_failed` | permission | 9 | no | `karvi setup tab` could not read or write `/etc/bash_completion.d/karvi`; the message names the path and the system error. |
@@ -613,12 +612,12 @@ Active failure causes.
 | `transform_pair_rune_invalid` | config | 2 | no | A `replace-chars` pair's `from` or `to` is not exactly one character. |
 | `transform_pairs_empty` | config | 2 | no | A `replace-chars` transform has no pairs. |
 | `transform_suffix_empty` | config | 2 | no | A suffix transform has an empty suffix. |
-| `transport_custom_slot_default` | config | 8 | no | A custom transport slot is mapped to `default`, which only the `system` and `native` slots accept. |
+| `transport_custom_slot_default` | config | 8 | no | A custom transport slot is mapped to `default`, which only the `system` slot accepts. |
 | `transport_exec_executable_unavailable` | dependency | 8 | no | An `exec:` transport mapping names an executable that cannot be found. |
 | `transport_executable_not_executable` | dependency | 8 | no | A configured transport executable has no execute permission. |
 | `transport_executable_not_regular` | dependency | 8 | no | A configured transport executable is not a regular file. |
 | `transport_executable_spec_empty` | config | 8 | no | A transport executable specification is empty. |
-| `transport_implementation_invalid` | config | 8 | no | A transport mapping names an implementation identifier that is not valid. |
+| `transport_mapping_invalid` | config | 8 | no | An `ssh.transports.<slot>` entry is refused at load: a custom slot's value is not `exec:PATH`, or the slot takes a built-in transport's name, `native` or `telnet`. |
 | `transport_mapping_missing` | config | 8 | no | The selected transport slot has no `ssh.transports.<slot>` mapping. |
 | `transport_mode_unknown` | internal | 8 | no | Transport selection was asked for an activity mode other than login, command, or run. |
 | `transport_selector_invalid` | config | 8 | no | A transport selector from the command line or inventory is not a valid slot name. |
@@ -764,7 +763,7 @@ No longer emitted. A retired code is never reused for another cause.
 | `host_key_comparison_invalid` | v0.11.0 to v0.17.0 | `host_key_changed`, `host_key_not_enrolled` | A pre-connection key comparison had no result; the handshake's check decides. |
 | `host_key_failure` | v0.10.0 | `host_key_not_enrolled`, `host_key_trust_store_unavailable` | Executor wrapper for any other host-key failure. |
 | `host_key_path_invalid` | v0.10.0 | `path_other_user_home_unsupported` | The configured known-hosts path cannot be expanded. |
-| `host_key_scan_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | ssh-keyscan failed before a native connection; scrapligo-v1 checks the key in its own handshake. |
+| `host_key_scan_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | ssh-keyscan failed before a native connection; the native transport checks the key in its own handshake. |
 | `host_key_trust_store_candidates_exhausted` | v0.27.0 | `host_key_trust_store_create_failed`, `host_key_directory_invalid`, `host_key_directory_permission` | The automatic trust store could not be created at any of its candidates; under `auto` the store is one path, `<basedir>/known_hosts`, and a failure to make it is the step's own code. |
 | `host_key_unknown_strict` | v0.10.0 | `host_key_not_enrolled` | Strict policy without a known key. |
 | `include_cycle` | v0.10.0 (catalog name) | `config_include_cycle` | Include cycle. |
@@ -778,11 +777,12 @@ No longer emitted. A retired code is never reused for another cause.
 | `macro_cycle` | v0.10.0 (catalog name) | `config_macro_cycle` | Macro cycle. |
 | `macro_undefined` | v0.10.0 (catalog name) | `config_macro_undefined` | Undefined macro. |
 | `native_command_empty` | v0.11.0 to v0.17.0 | `cli_command_text_missing` | The native transport refused an empty command; the device session sends the plan's commands, blank ones included, as the system transport does, and an invocation without command text is refused at parse time. |
-| `native_command_failed` | v0.11.0 to v0.17.0 | `device_command_error`, `command_timeout`, `command_session_lost` | The native transport reported that a command failed; scrapligo-v1 now runs karvi's device session. |
-| `native_driver_create_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | The native transport could not create scrapligo's network driver, which scrapligo-v1 no longer uses. |
-| `native_platform_create_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | The native transport could not create scrapligo's platform, which scrapligo-v1 no longer uses. |
+| `native_command_failed` | v0.11.0 to v0.17.0 | `device_command_error`, `command_timeout`, `command_session_lost` | The native transport reported that a command failed; karvi's device session now runs its commands. |
+| `native_driver_create_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | The native transport could not create scrapligo's network driver, which the native transport no longer uses. |
+| `native_platform_create_failed` | v0.11.0 to v0.17.0 | `native_session_open_failed` | The native transport could not create scrapligo's platform, which the native transport no longer uses. |
 | `native_response_nil` | v0.11.0 to v0.17.0 | `command_session_lost` | scrapligo's network driver returned no response; no longer used. |
 | `native_session_closed` | v0.11.0 to v0.17.0 | `command_session_lost` | A command was sent on a closed native session; the device session refuses it. |
+| `native_transport_unavailable` | v0.37.0 | `transport_mapping_invalid` | The selected native implementation was not compiled into this executable; the native transport is in every executable, and a slot no longer names an implementation. |
 | `output_no_space` | v0.10.0 (catalog name) | `output_preflight_space` | Output file system full. |
 | `redis_address_missing` | v0.30.0 | `config_credential_backend_address_invalid` | A Redis credential backend had no address, found when a device reached it; the address is required and checked when the configuration loads. |
 | `redis_auth_missing` | v0.30.0 | `credential_env_missing` | The variable a Redis backend's `auth-password-env` names was not set, found after the connection; that variable, and `auth-username-env`'s beside it, unset or empty, are one code with every variable a credential source names, read before any connection. |
@@ -792,11 +792,12 @@ No longer emitted. A retired code is never reused for another cause.
 | `ssh_legacy_host_pattern_all_hosts` | v0.11.0 to v0.17.0 | `config_ssh_legacy_hosts_removed`, `config_ssh_algorithms_map_catch_all` | A legacy or ancient SSH host pattern matched every host; the two keys are removed. |
 | `targets_file_unreadable` | v0.10.0 | `target_source_missing`, `target_source_permission_denied`, `target_source_unreadable` | A `--tf` file cannot be opened or read; split into the `target_source_*` codes. |
 | `transcript_directory_unavailable` | v0.10.0 | `transcript_directory_not_writable`, `transcript_path_not_directory` | Neither the preferred nor the fallback transcript directory could be created; the destination is now `transcript.root` or `--record=PATH`. |
-| `transport_configuration_error` | v0.10.0 | `transport_mode_unknown`, `transport_selector_invalid`, `transport_mapping_missing`, `transport_custom_slot_default`, `transport_system_executable_unavailable`, `transport_exec_executable_unavailable`, `transport_implementation_invalid` | Any transport selector or slot resolution failure. |
+| `transport_configuration_error` | v0.10.0 | `transport_mode_unknown`, `transport_selector_invalid`, `transport_mapping_missing`, `transport_custom_slot_default`, `transport_system_executable_unavailable`, `transport_exec_executable_unavailable`, `transport_mapping_invalid` | Any transport selector or slot resolution failure. |
 | `transport_driver_duplicate` | v0.11.0 to v0.17.0 | `config_transport_selector_invalid` | A transport driver name is registered twice. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `transport_driver_name_empty` | v0.11.0 to v0.17.0 | `config_transport_selector_invalid` | A transport driver is registered with an empty name. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `transport_driver_unregistered` | v0.11.0 to v0.17.0 | `device_transport_selector_invalid` | A transport driver name is opened that was never registered. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `transport_factory_nil` | v0.11.0 to v0.17.0 | `config_transport_selector_invalid` | A transport driver is registered with a nil factory. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
+| `transport_implementation_invalid` | v0.37.0 | `transport_mapping_invalid` | A transport mapping named an implementation identifier that was not valid; a custom slot now maps only to `exec:PATH`. |
 | `transport_registry_nil` | v0.11.0 to v0.17.0 | `config_transport_selector_invalid` | A transport driver is registered on a nil registry. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `transport_request_address_missing` | v0.11.0 to v0.17.0 | `execution_target_invalid` | A transport open request has no address. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |
 | `transport_request_host_key_mode_invalid` | v0.11.0 to v0.17.0 | `host_key_policy_invalid` | A transport open request has an unknown host-key mode. Emitted only by the public transport package, removed at v0.14.0 with its contracts. |

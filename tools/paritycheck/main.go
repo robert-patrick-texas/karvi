@@ -1,7 +1,7 @@
 // Command paritycheck compares the requested-command records of several
 // karvi jsonl streams path by path: the same command list run by `command`
 // and by `run`, over
-// `system` and over `scrapligo-v1`, must give the same records but for the
+// `system` and over `native`, must give the same records but for the
 // paths excluded below. Every other path is compared, so a new record field
 // is compared until it is excluded here on purpose.
 //

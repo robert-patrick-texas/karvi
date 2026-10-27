@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 31,
+  "registry_schema_version": 32,
   "config_schema_version": 6,
   "keys": [
     {
@@ -343,7 +343,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__LOGIN__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Named transport selector. `default` resolves to system for login; `preferred` resolves to native.",
+      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to system for login.",
       "since": "0.6.0"
     },
     {
@@ -356,7 +356,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__COMMAND__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Named transport selector. `default` resolves to native for command; `preferred` also resolves to native.",
+      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to native for command.",
       "since": "0.6.0"
     },
     {
@@ -369,7 +369,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__RUN__TRANSPORT",
       "cli_flags": null,
-      "documentation": "Named transport selector. `default` resolves to native for run; `preferred` also resolves to native.",
+      "documentation": "Transport selector: `native`, `telnet`, or an `ssh.transports` slot. `default` resolves to native for run.",
       "since": "0.6.0"
     },
     {
@@ -383,19 +383,6 @@
       "environment": "KARVI__SSH__TRANSPORTS__SYSTEM",
       "cli_flags": null,
       "documentation": "System-SSH executable name or path. Relative paths resolve from the karvi executable directory.",
-      "since": "0.6.0"
-    },
-    {
-      "path": "ssh.transports.native",
-      "kind": "string",
-      "default_literal": "\"scrapligo-v1\"",
-      "required": false,
-      "lock_eligible": true,
-      "sensitive": false,
-      "reload_class": "next-job",
-      "environment": "KARVI__SSH__TRANSPORTS__NATIVE",
-      "cli_flags": null,
-      "documentation": "Preferred compiled-in SSH implementation. Built-in default unavailability is tolerated until selected; an explicit unavailable value is a configuration error.",
       "since": "0.6.0"
     },
     {
@@ -750,7 +737,7 @@
       "cli_flags": null,
       "min": "1s",
       "max": "5m",
-      "documentation": "1s–5m; the first prompt after login and the prompt after each paging command. The system transport awaits the first prompt for `ssh.connect-timeout` plus this value from the start of its `ssh` process; scrapligo-v1 for this value after its handshake.",
+      "documentation": "1s–5m; the first prompt after login and the prompt after each paging command. The system transport awaits the first prompt for `ssh.connect-timeout` plus this value from the start of its `ssh` process; the native transport for this value after its handshake.",
       "since": "0.2.0"
     },
     {

@@ -350,17 +350,17 @@ func exerciseTarget(req Request, t executionplan.ExecutionTarget, hk hostKeyStat
 		add("transport", executionplan.SeverityError, errorcodes.Errorf("telnet_not_allowed", "device %s selects Telnet but security.allow-telnet is false", t.Device.CanonicalName), nil)
 	case sel.Kind == transportselect.KindSystem && askpassErr != nil:
 		tr.IntendedTransport.Available = records.CheckUnavailable
-		add("transport", executionplan.SeverityError, errorcodes.Errorf("dependency_askpass_unavailable", "locate karvi-askpass: %w", askpassErr), map[string]string{"implementation": sel.Implementation, "binary": sel.Binary})
+		add("transport", executionplan.SeverityError, errorcodes.Errorf("dependency_askpass_unavailable", "locate karvi-askpass: %w", askpassErr), map[string]string{"kind": sel.Kind, "binary": sel.Binary})
 	default:
 		tr.IntendedTransport.Available = records.CheckAvailable
-		details := map[string]string{"kind": sel.Kind, "implementation": sel.Implementation}
+		details := map[string]string{"kind": sel.Kind}
 		if sel.Binary != "" {
 			details["binary"] = sel.Binary
 		}
 		if sel.Kind == transportselect.KindSystem {
 			details["helper"] = askpass
 		}
-		add("transport", executionplan.SeverityInfo, errorcodes.Errorf("transport_assessment", "%s transport %s available", sel.Kind, sel.Implementation), details)
+		add("transport", executionplan.SeverityInfo, errorcodes.Errorf("transport_assessment", "%s transport available", sel.Kind), details)
 	}
 	// Host key, SSH kinds only.
 	if err == nil && sel.Kind != transportselect.KindTelnet {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func defaultConfig(t *testing.T) configload.Snapshot {
@@ -30,20 +31,20 @@ func lazySystemConfig(t *testing.T) configload.Snapshot {
 	return cfg
 }
 
-func TestModeDefaultsAndLazyUnavailableNative(t *testing.T) {
+func TestModeDefaults(t *testing.T) {
 	cfg := lazySystemConfig(t)
 	if err := ValidateConfigured(cfg); err != nil {
-		t.Fatalf("built-in unavailable native preference must be lazy: %v", err)
+		t.Fatalf("built-in configuration: %v", err)
 	}
 	login, err := Resolve(cfg, "login", "default")
 	if err != nil {
 		t.Fatalf("resolve login default: %v", err)
 	}
-	if login.Kind != KindSystem || login.Implementation != "system" || login.Binary == "" {
+	if login.Kind != KindSystem || login.Selector != "system" || login.Binary == "" {
 		t.Fatalf("unexpected login selection: %#v", login)
 	}
 	command, err := Resolve(cfg, "command", "")
-	if err != nil || command.Kind != KindNative || command.Implementation != "scrapligo-v1" || command.Selector != "native" {
+	if err != nil || command.Kind != KindNative || command.Selector != "native" {
 		t.Fatalf("unexpected command selection %#v err=%v", command, err)
 	}
 }
@@ -63,7 +64,7 @@ func TestExplicitUnavailableSystemMappingFailsConfigurationCheck(t *testing.T) {
 	}
 }
 
-func TestExplicitUnavailableAlternateBuiltInFailsConfigurationCheck(t *testing.T) {
+func TestAlternateWithoutExecFailsConfigurationCheck(t *testing.T) {
 	cfg, err := configload.Load(configload.Options{
 		InternalOnly: true,
 		Environment:  []string{},
@@ -73,7 +74,7 @@ func TestExplicitUnavailableAlternateBuiltInFailsConfigurationCheck(t *testing.T
 		t.Fatalf("load config: %v", err)
 	}
 	err = ValidateConfigured(cfg)
-	if err == nil || !strings.Contains(err.Error(), "alternate1") || !strings.Contains(err.Error(), "scrapligo-v2") {
+	if errorcodes.Of(err) != "transport_mapping_invalid" || !strings.Contains(err.Error(), "alternate1") || !strings.Contains(err.Error(), "scrapligo-v2") {
 		t.Fatalf("expected alternate mapping error, got %v", err)
 	}
 }

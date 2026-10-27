@@ -184,7 +184,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	meta := transcript.Metadata{
 		SessionID: sessionID, OperatorUsername: operator.Username, OperatorUID: operator.UID,
 		InputTarget: device.SuppliedName(), DeviceName: strings.ToLower(device.CanonicalName), CanonicalName: device.CanonicalName, Platform: platformName,
-		Transport: selection.Implementation, DispatchOrder: set.Order, ShuffleKey: set.ShuffleKey, CandidateCount: set.CandidateCount(),
+		Transport: selection.Kind, DispatchOrder: set.Order, ShuffleKey: set.ShuffleKey, CandidateCount: set.CandidateCount(),
 		TranscriptFile: filepath.Base(pair.Transcript), TranscriptFormat: format, Rows: rows, Columns: columns, StartedAt: started,
 	}
 	if err := transcript.WriteStart(pair.Metadata, metaFormat, meta); err != nil {
@@ -204,7 +204,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		cmd.ExtraFiles = []*os.File{f} // descriptor 3 in the child
 		cmd.Env = append(cmd.Env, loginDiagnosticsFDEnv+"=3")
 	}
-	values := display.Values{Timestamp: started, Target: device.CanonicalName, Platform: platformName, Transport: selection.Implementation, Transcript: pair.Transcript}
+	values := display.Values{Timestamp: started, Target: device.CanonicalName, Platform: platformName, Transport: selection.Kind, Transcript: pair.Transcript}
 	if !inv.Global.quiet {
 		writeRecordLine(cfg, formatter, "display.record.header", values, stderr)
 	}

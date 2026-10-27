@@ -11,7 +11,7 @@ check() { # check NAME WANT GOT
 }
 code() { set +e; "$@" >/dev/null 2>&1; echo $?; set -e; }
 
-printf '%s' '{"final_status":"completed","primary_exit_code":0,"terminal_causes":["halt"],"cancellation":null,"ok":true,"device_counts":{"incomplete":2,"total":3},"ssh_transports":[{"id":"scrapligo-v1"},{"id":"system"}],"text":"a \"quoted\" é: {x}"}' >"$TMP/compact.json"
+printf '%s' '{"final_status":"completed","primary_exit_code":0,"terminal_causes":["halt"],"cancellation":null,"ok":true,"device_counts":{"incomplete":2,"total":3},"ssh_transports":[{"id":"native"},{"id":"system"}],"text":"a \"quoted\" é: {x}"}' >"$TMP/compact.json"
 # Python 3.14's json.tool colours its output under FORCE_COLOR, into a file
 # too; PYTHON_COLORS=0 outranks it.
 PYTHON_COLORS=0 python3 -m json.tool "$TMP/compact.json" >"$TMP/indented.json"
@@ -25,7 +25,7 @@ for f in compact indented; do
   check "$f object" '{"incomplete":2,"total":3}' "$(json_get "$F" device_counts)"
   check "$f null" null "$(json_get "$F" cancellation)"
   check "$f true" true "$(json_get "$F" ok)"
-  check "$f each" 'scrapligo-v1 system' "$(json_get "$F" 'ssh_transports.*.id' | tr '\n' ' ' | sed 's/ $//')"
+  check "$f each" 'native system' "$(json_get "$F" 'ssh_transports.*.id' | tr '\n' ' ' | sed 's/ $//')"
   check "$f string with quotes" 'a "quoted" é: {x}' "$(json_get "$F" text)"
   check "$f absent exit" 1 "$(code json_get "$F" device_counts.none)"
   check "$f index past the end exit" 1 "$(code json_get "$F" terminal_causes.1)"
