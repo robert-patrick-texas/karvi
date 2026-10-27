@@ -59,6 +59,14 @@
   printed. Each was a block reading `error: not found` on standard output among
   the keys shown, exit 0, so a script's misspelt `karvi config show
   ssh.transprots.alt && ...` went on.
+- **Breaking: `config show` refuses `--format` beside keys or `--explain`.**
+  `--format` encodes the full view alone, the values as TOML lines or a JSON
+  object; beside keys or `--explain`, whose view is text, it was ignored, and
+  `config show --format json display.color` printed text. It is now refused
+  before the configuration loads with the new code `config_show_format_conflict`
+  (exit 4). The registry artifact's keys no longer carry `sensitive`, a mark set
+  on none, and the JSON view's `<redacted>` branch, which nothing reached, goes
+  with it.
 
 ## 0.36.0 - 2026-10-26
 

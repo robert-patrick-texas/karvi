@@ -696,6 +696,7 @@ var entries = []Entry{
 	failure("daemon_stop_options_conflict", "usage", exitUsage, false, "`daemon stop` or `restart` is given more than one of `--grace`, `--after`, and `--force`."),
 	failure("daemon_stop_after_not_positive", "usage", exitUsage, false, "`--after` is zero or negative."),
 	failure("config_generate_mode_conflict", "usage", exitUsage, false, "`config generate` is given both `--minimal` and `--full`."),
+	failure("config_show_format_conflict", "usage", exitUsage, false, "`config show` is given `--format` beside keys or `--explain`; `--format` encodes the full view alone, and the view of keys is text."),
 	failure("watch_tui_requires_terminal", "usage", exitUsage, false, "`watch --format tui` is requested while stdout is not a terminal."),
 	failure("run_mode_conflict", "usage", exitUsage, false, "`run` combines `--dry-run`, `--exercise`, or `--detach` with one another, or `--detach` with `--follow` or `--no-daemon`; or `--of` without `--no-daemon`, since a job through the daemon is written under the daemon's `output.root`."),
 

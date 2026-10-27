@@ -1375,19 +1375,26 @@ running daemon keeps only its own sockets, state, and log under the `basedir` it
 started with, and swept its places at its start. The view takes several keys,
 each checked before any is printed: a name that is no key is refused as `--set`
 refuses it (`config_unknown_key`), and a key a table could hold that the
-configuration does not set is `config_key_unset`, both exit 2; the whole table
-is a recipe over it ([`docs/FILES.md`](FILES.md)). A controlled enrollment takes
-the store's path from the line. *Why:* under `auto` a place depends on what the
-host holds, and the view printed none but two, so the two modes looked alike and
-a literal default named a place the activity did not use; a key the view could
-not show was an `error: not found` block, exit 0, so a script took a misspelt
-key for one shown ([`docs/EXAMPLES.md`, chapter
-83](EXAMPLES.md#83-config-show-refuses-a-key-it-cannot-show-2026-10-27)). *Not
+configuration does not set is `config_key_unset`, both exit 2. `--format`
+encodes the full view alone, the values as TOML lines or a JSON object; beside
+keys or `--explain`, whose view is text, it is refused,
+`config_show_format_conflict`. The whole table is a recipe over it
+([`docs/FILES.md`](FILES.md)). A controlled enrollment takes the store's path
+from the line. *Why:* under `auto` a place depends on what the host holds, and
+the view printed none but two, so the two modes looked alike and a literal
+default named a place the activity did not use; a key the view could not show
+was an `error: not found` block, exit 0, so a script took a misspelt key for one
+shown ([`docs/EXAMPLES.md`, chapter
+83](EXAMPLES.md#83-config-show-refuses-a-key-it-cannot-show-2026-10-27)), and
+`--format json` beside a key printed text a JSON reader could not read
+([`docs/EXAMPLES.md`, chapter
+84](EXAMPLES.md#84-config-show-refuses---format-beside-keys-2026-10-27)). *Not
 taken:* a new command word or option for paths; the rule repeated in shell in
 each site's scripts; a probe file written by the view (it moves the shared
 trees' times); `--explain` asking a running daemon; `sharedroot` and
 `crun.after` (no one place, not a place); an unset key shown as `value: null`;
-the keys before a refused one printed first.
+the keys before a refused one printed first; a JSON form of the keys' view, a
+new contract for readers that take two lines with `sed`.
 
 **The host-key identity is the canonical name and, off port 22, the port.**
 Both transports enroll and look up `name` on port 22 and `[name]:PORT`

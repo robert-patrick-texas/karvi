@@ -598,7 +598,8 @@ Options:
 const configHelp = `Usage:
   karvi config generate [--minimal|--full] [--force] [file]
   karvi config validate [--format text|json] [file|dir]
-  karvi config show [--format toml|json] [--explain] [--show-sources] [key...]
+  karvi config show [--format toml|json] [--show-sources]
+  karvi config show [--explain] [--show-sources] [key...]
   karvi config colors
 
 Options may appear before or after the positional argument; -- makes a later
@@ -607,14 +608,16 @@ colors prints every display.colors role in its colour, the configured theme
 first and then the other: the key, the colour, what set it, and the escape.
 Specified, not yet available: config validate --internal.
 
-config show prints the effective configuration. With --explain, or with keys
-named, it prints each key in turn, every key when none is named: its value,
-source, default, environment variable, reload class, and lock. A key it cannot
-show refuses the view, nothing printed: a name that is no key as the load
-refuses it, config_unknown_key, and a key a table could hold that the
-configuration does not set, config_key_unset. A key whose value is a place
-karvi writes or reads has, after its default, a resolved: line, the path the
-next activity in process would use, found by the activity's own rule without
+config show prints the effective configuration, its values as TOML lines or,
+with --format json, a JSON object. With --explain, or with keys named, it
+prints instead each key in turn as text, every key when none is named: its
+value, source, default, environment variable, reload class, and lock. A key it
+cannot show refuses the view, nothing printed: a name that is no key as the
+load refuses it, config_unknown_key, and a key a table could hold that the
+configuration does not set, config_key_unset. --format beside keys or
+--explain is config_show_format_conflict. A key whose value is a place karvi
+writes or reads has, after its default, a resolved: line, the path the next
+activity in process would use, found by the activity's own rule without
 creating anything, or error: CODE: message where the activity would refuse; a
 candidate present on the host and passed by follows as a passed: line with its
 reason. The lines come from the configuration this invocation loads, which its

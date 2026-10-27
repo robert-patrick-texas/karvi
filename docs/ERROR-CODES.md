@@ -225,6 +225,7 @@ Active failure causes.
 | `config_session_init_profile_name_reserved` | config | 2 | no | A `session-init` profile is named `none`, the word the plan and the records use for no profile. |
 | `config_set_syntax` | usage | 2 | no | A `--set` argument is not in `key=value` form. |
 | `config_set_value` | config | 2 | no | A `--set` value cannot be parsed. |
+| `config_show_format_conflict` | usage | 4 | no | `config show` is given `--format` beside keys or `--explain`; `--format` encodes the full view alone, and the view of keys is text. |
 | `config_ssh_algorithm_duplicate` | config | 2 | no | An SSH algorithm list names an algorithm twice, or a profile appends one already in the global list. |
 | `config_ssh_algorithm_forbidden` | config | 2 | no | An SSH algorithm list names a refused algorithm: `ssh-dss`, a certificate or security-key host-key algorithm, `3des-cbc`, a non-AES CBC cipher, `arcfour`, `none`, an MD5, truncated, or 64-bit MAC. |
 | `config_ssh_algorithm_list_empty` | config | 2 | no | An SSH algorithm list is empty. |

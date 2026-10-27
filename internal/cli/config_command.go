@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -165,10 +164,14 @@ func configColors(inv *Invocation, streams app.IO) int {
 
 func configShow(inv *Invocation, streams app.IO) int {
 	format := inv.String(optFormatToml)
-	if format == "" {
-		format = "toml"
-	}
 	explain := inv.Flag(optExplain) || len(inv.Positional) > 0
+	if explain && format != "" {
+		beside := "--explain"
+		if !inv.Flag(optExplain) {
+			beside = inv.Positional[0]
+		}
+		return inv.Global.usageError(streams.Stderr, "config_show_format_conflict", "--format %s beside %s", format, beside)
+	}
 	snap, code, ok := loadConfigSnapshot(inv, streams.Stderr)
 	if !ok {
 		return code
@@ -188,18 +191,9 @@ func configShow(inv *Invocation, streams app.IO) int {
 	}
 	switch format {
 	case "json":
-		values := map[string]any{}
-		keys := make([]string, 0, len(snap.Values))
-		for k := range snap.Values {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, k := range keys {
-			v := snap.Values[k].Data
-			if entry, ok := configschema.Lookup(k); ok && entry.Sensitive {
-				v = "<redacted>"
-			}
-			values[k] = v
+		values := make(map[string]any, len(snap.Values))
+		for k, v := range snap.Values {
+			values[k] = v.Data
 		}
 		enc := json.NewEncoder(streams.Stdout)
 		enc.SetIndent("", "  ")

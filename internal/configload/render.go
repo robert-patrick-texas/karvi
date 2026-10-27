@@ -169,7 +169,6 @@ type Resolver func(key string) (place Place, ok bool)
 // Every name is checked before any is rendered: the first that is no key is
 // refused as the load refuses it (checkName), and the first key a table could
 // hold but the configuration does not set is config_key_unset.
-// Sensitive keys are metadata-only.
 func (s Snapshot) Explain(names []string, resolve Resolver) (string, error) {
 	for _, k := range names {
 		if err := checkName(k, SourceRef{}); err != nil {

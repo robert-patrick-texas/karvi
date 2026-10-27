@@ -24,7 +24,8 @@ import (
 // ssh-algorithms.source with a profile's source; 30 removes
 // output.files.summary-json, every job folder holding its summary; 31
 // takes crun.mask and a platform table's masks; 32 removes
-// ssh.transports.native, the native transport having one implementation.
+// ssh.transports.native, the native transport having one implementation, and
+// a key's sensitive mark, set on none.
 const (
 	RegistrySchemaVersion = 32
 	ConfigSchemaVersion   = 6
@@ -49,7 +50,6 @@ type Entry struct {
 	DefaultLiteral string `json:"default_literal,omitempty"`
 	Required       bool   `json:"required"`
 	LockEligible   bool   `json:"lock_eligible"`
-	Sensitive      bool   `json:"sensitive"`
 	// ReloadClass is when a changed value takes effect: next-job, the
 	// default, for the invocation that sets it or the job it submits;
 	// daemon-start for a key a running daemon keeps from its start.

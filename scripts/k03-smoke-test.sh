@@ -329,7 +329,7 @@ run c18 4 -- command --border --noborder 127.0.0.1 show clock; code c18 border_o
 run c19 4 -- login --all=false;                     code c19 cli_device_missing
 run c20 4 -- config generate --minimal --full;      code c20 config_generate_mode_conflict
 run c21 0 -- config validate --format json;          grep -q '"valid": *true' "$TMP/out" || fail "c21: $(cat "$TMP/out")"
-run c22 0 -- config sh --format json --explain basedir; grep -q basedir "$TMP/out" || fail "c22"
+run c22 4 -- config sh --format json --explain basedir; code c22 config_show_format_conflict
 run c23 0 -- version --format json;                  grep -q '"version"' "$TMP/out" || fail "c23"
 
 if [ "$failures" -ne 0 ]; then

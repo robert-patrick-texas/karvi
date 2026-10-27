@@ -17745,8 +17745,9 @@ configuration`), plainer, but a misspelt key would carry another code than
 configuration does not hold; the keys before a refused one printed first and the
 refusal after, as `ls` does, a refusal after a partial answer.
 
-Found, not acted on: with keys named, `config show --format json KEY` prints
-the text blocks, `--format json` ignored (the keys imply `--explain`).
+Found: with keys named, `config show --format json KEY` prints the text
+blocks, `--format json` ignored (the keys imply `--explain`); built as chapter
+84.
 
 **Built.** In one piece:
 
@@ -17803,3 +17804,112 @@ passed in 246 seconds.
 (`release-design-evidence/config-show-unknown-key-2026-10-27`: the two labs'
 scripts and logs, and the two batteries' logs, `battery-1` and the last beside
 it, with `battery.sh`).
+
+## 84. `config show` refuses `--format` beside keys (2026-10-27)
+
+Found while designing chapter 83: with keys named, `config show --format json
+KEY` prints the text blocks. Opened on the operator's word after chapter 83.
+
+**What it gains.** A script that asks for JSON gets JSON or a refusal, never
+text it cannot parse. It waits on nothing.
+
+**Executed.** The lab build of `e9eac78` (`a-today-lab.sh`), with a lab
+configuration in `/dev/shm`, removed after; every case exit 0:
+
+```
+$ karvi config show --format json display.color
+  out| key:        display.color
+  out| value:      "never"
+  out| source:     /dev/shm/kcj/l/karvi.toml:5
+  ...
+  exit 0
+```
+
+`config show --format json --explain` prints the whole text view (1,620 lines),
+and `config show --format toml display.color` the same block as above: the keys
+or `--explain` choose the text view, and `--format`, either value, is ignored.
+Only the full view, no key and no `--explain`, has a JSON form, the values as
+an object (232 lines, chapter 47's S2.1).
+
+**The gap, agreed.** In simple terms: `--format` encodes the full view alone,
+and beside keys or `--explain` it is refused.
+
+1. `--format` chooses the encoding of the full view alone: the values as TOML
+   lines or as the JSON object.
+2. With keys named or `--explain`, the view is text, and a `--format` given
+   beside it, `json` or `toml`, is refused before the configuration loads with
+   the new code `config_show_format_conflict`, exit 4, as karvi's other
+   `*_conflict` codes: `--format json beside display.color`, `--format json
+   beside --explain`.
+3. The help says so: its synopsis gives the two views on two lines.
+
+Not taken: a JSON form of the keys' view, each key an object (value, source,
+default, environment, reload, lock, resolved, passed), so a script reads a
+resolved place without `sed`, a new contract, its field names and its schema to
+design, for readers that take two lines with `sed`; the JSON object narrowed to
+the keys named, keys then meaning a different view by the format; refusing
+`--format json` alone, `--format toml` being ignored there the same.
+
+**Agreed with it: the sensitive mark removed.** No configuration key is marked
+sensitive: `configschema.Entry.Sensitive` is set on none, so the JSON view's
+`<redacted>` branch and `Explain`'s "Sensitive keys are metadata-only" never
+apply, and every key in the registry artifact carries `"sensitive": false`. A
+value nothing uses is removed when found; this piece touches the JSON view, and
+the artifact's change falls within this release's registry 32.
+
+**Built.** In one piece:
+
+- `config show` refuses `--format` beside keys or `--explain` before it loads
+  the configuration (`config_show_format_conflict` in the error registry), the
+  subject `--explain` where it is given and the first key otherwise; the
+  format's default is the full view's.
+- `Entry.Sensitive` removed, with the JSON view's redaction and its sort, the
+  encoder ordering a map's keys; `Explain`'s comment. The registry counter's
+  comment names the mark under 32.
+- Regenerated: `schema/config-schema.json` (the code, and 178 `"sensitive"`
+  lines gone), `docs/ERROR-CODES.md`, and `karvi-config.1`.
+- The help: the synopsis's two lines and the paragraph; DESIGN's entry on the
+  view (the rule, its *Why*, and the JSON form not taken); the CHANGELOG's
+  Unreleased entry.
+- The test: `TestConfigShowFormatBesideKeys` (three refusals at exit 4 with a
+  `--set` naming no key, which the refusal comes before, and the full view's
+  JSON); `configShowSets`, the configuration both of the file's tests use.
+- The k03 suite's c22, `config sh --format json --explain basedir`, exit 0,
+  now expects the refusal, still exercising the abbreviated word, both
+  options, and the key.
+
+**Executed after the build.** The lab build of the tree with the change
+(`b-built-lab.sh`, the same cases and one more), removed after:
+
+```
+$ karvi config show --format json display.color
+  err| config_show_format_conflict: --format json beside display.color
+  exit 4
+
+$ karvi config show --format json --explain
+  err| config_show_format_conflict: --format json beside --explain
+  exit 4
+
+$ karvi --set no.such.key=1 config show --format json display.color
+  err| config_show_format_conflict: --format json beside display.color
+  exit 4
+```
+
+`--format toml display.color` and `--format json --show-sources display.color`
+are refused the same way; `config show --format json` (the same digest, 232
+lines, 8,925 bytes), `--format toml`, and `--explain display.color` print as
+before, exit 0.
+
+The full battery on a lab build of the tree with the change (`battery.sh`, a
+copy in `/var/tmp`, `TMPDIR=/var/tmp`): vet, `make generated-clean`, `go test
+-count=1 ./...` (71 packages), and the 19 suites by `run_suites` in 258 seconds,
+each exit 0; none left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, `~/.local/share/karvi`, or karvi process. The first run
+(`battery-1`) failed twice: the k03 suite at c22, above, which a search of the
+suites for `config show` had missed under its abbreviation; and
+`TestTreeConverts`, DESIGN linking this chapter before the copy held it.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/config-show-json-2026-10-27`: the two labs' scripts
+and logs, and the two batteries' logs, `battery-1` and the last beside it, with
+`battery.sh`).
