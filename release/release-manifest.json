@@ -1,13 +1,13 @@
 {
   "application": "karvi",
-  "version": "0.36.0",
-  "release_date": "2026-10-26",
+  "version": "0.37.0",
+  "release_date": "2026-10-27",
   "release_type": "engineering-candidate-release",
-  "behavior_change_from_previous": "a minor release on 0.35.0 for a command list per device and a live view of a session: --cf DIR sends each selected device the file DIR/NAME in its place on the line, a selected device without its file refused commands_file_missing and two with one file name commands_file_name_collision (exit 5), and a collection over the run's own --cf lists commands_file_in_collection (exit 4); a run's commands go in the order written and --cf repeats, a declaration after a --cf refused declaration_with_commands_file; --live prints the device's bytes on standard output as the session reads them, refused live_option_conflict (exit 4) beside an option it sets aside or on a run through the daemon; command_plan_digest removed; the plan's commands_files and target_commands, the scoreboard's commands.files; commands_file_repeated and commands_file_is_directory retired; execution plan 15, plan report 4, and scoreboard 5 move, every other counter is 0.35.0's (configuration schema 6, registry 31, daemon IPC 12, command record 4, job manifest and summary 5, credential package 2, audit 2); scrapligo v1.4.3, and Go is 0.35.0's; the first submission after the upgrade drains a 0.35.0 daemon; see CHANGELOG.md",
+  "behavior_change_from_previous": "a minor release on 0.36.0 for the package's update from GitHub and the native transport without scrapligo: sudo karvi-sysutil package update installs the latest release's package when it is newer, its download checked against its .sha256, --check only reporting, --proxy URL and -k for a proxy; the native transport is karvi's own x/crypto/ssh connection with the ID native (was scrapligo-v1), and the --debug transport line drops implementation=; ssh.transports maps programs alone: the key ssh.transports.native removed, ssh.transports.native or ssh.transports.telnet and a custom slot's builtin:ID or bare ID refused transport_mapping_invalid (exit 2), the selector preferred gone (--transport preferred is transport_mapping_missing, exit 8, unless a slot maps it); native_transport_unavailable and transport_implementation_invalid retired; config show KEY refuses a name that is no key (config_unknown_key, config_key_removed) and a key the configuration does not set (config_key_unset), exit 2, before any key is printed; config show refuses --format beside keys or --explain, config_show_format_conflict (exit 4); the registry artifact's sensitive mark removed; registry 32 moves, every other counter is 0.36.0's (configuration schema 6, execution plan 15, daemon IPC 12, command record 4, job manifest and summary 5, plan report 4, credential package 2, scoreboard 5, audit 2); scrapligo v1.4.3, gotextfsm v1.2.0, and pty v1.1.24 removed, Go and the other modules are 0.36.0's; the first submission after the upgrade drains a 0.36.0 daemon; see CHANGELOG.md",
   "design": "docs/DESIGN.md",
   "roadmap": "ROADMAP.md",
   "configuration_schema_version": 6,
-  "configuration_registry_schema_version": 31,
+  "configuration_registry_schema_version": 32,
   "command_record_schema_version": 4,
   "daemon_ipc_schema_version": 12,
   "scoreboard_schema_version": 5,
@@ -16,33 +16,31 @@
   "execution_plan_schema_version": 15,
   "credential_package_schema_version": 2,
   "plan_report_schema_version": 4,
-  "included_binary_profile": "scrapligo-v1-native-linux-amd64",
+  "included_binary_profile": "native-linux-amd64",
   "build": {
     "go_version": "go1.27.3",
     "official_go_floor": "1.27.0",
-    "source_identity": "source-release-v0.36.0",
-    "build": "kXY4cc6JRtLekvXNL0My",
+    "source_identity": "source-release-v0.37.0",
+    "build": "1bFnbnZ8vZu2v2U7sP-a",
     "cgo_enabled": false,
     "trimpath": true,
     "buildvcs": false,
-    "dependencies": "vendored (go.mod, go.sum, vendor/); built with no network",
-    "build_tags": "none (every build carries the adapter)"
+    "dependencies": "vendored (go.mod, go.sum, vendor/); built with no network"
   },
   "source_statistics": {
-    "go_files_outside_vendor": 538,
-    "go_lines_outside_vendor": 112174,
-    "named_top_level_tests": 1105,
+    "go_files_outside_vendor": 537,
+    "go_lines_outside_vendor": 112243,
+    "named_top_level_tests": 1107,
     "packages": 92
   },
   "binaries": {
     "karvi-linux-amd64": {
-      "bytes": 12894368,
-      "sha256": "ce87ec4d16ff80c842f75c675cab73c56525f6700db5d57bf919d67bc4d1f92d",
+      "bytes": 12800160,
+      "sha256": "8913914fae9f7da7d6ab377a4ecea3e2da16422f1cd95afdb8e00579b2476a59",
       "reported_ssh_transports": [
         {
-          "id": "scrapligo-v1",
-          "name": "scrapligo",
-          "version": "1.4.3",
+          "id": "native",
+          "name": "native",
           "linkage": "compiled-in"
         },
         {
@@ -51,23 +49,23 @@
           "linkage": "external-executable"
         }
       ],
-      "native_transport": "compiled-in (scrapligo v1.4.3)"
+      "native_transport": "compiled-in"
     },
     "karvi-askpass-linux-amd64": {
       "bytes": 3911840,
-      "sha256": "871a98e8f3b5b77a51a493a347037523815286af54fee4466d553e09314a5f9c"
+      "sha256": "5cc40412c675e0a8ad71aaed580ad02d604612c0e7277ae3de45d03d9b54878d"
     },
     "karvi-prune-linux-amd64": {
-      "bytes": 3793056,
-      "sha256": "f2f7395050f480f41ade3b9f1aaeca10b46e499d5fbc0c04154dfeea63b95e14"
+      "bytes": 3797152,
+      "sha256": "22489627e9e5b733a8a11297dc02e827078c8a23c9bed8b5112884cc396c3df1"
     },
     "karvi-audit-linux-amd64": {
       "bytes": 3940512,
-      "sha256": "2e4be343a078efb3a13acbc70740d257e51a266e009be0e6eae715c1cbfd98b1"
+      "sha256": "c1ba23b3800c2e37de51d3c52cbfd00e851eae57ec23911e8dcdc16448b678ac"
     }
   },
   "source_changes": {
-    "changelog": "CHANGELOG.md 0.36.0 - 2026-10-26"
+    "changelog": "CHANGELOG.md 0.37.0 - 2026-10-27"
   },
   "daemon_upgrade_recovery": {
     "job_submission_schema": "exact-current-only (the client's IPC schema and build)",
@@ -100,21 +98,14 @@
     "restart_grace_option": "--grace",
     "restart_after_option": "--after=DURATION",
     "forced_stop_accounting": "every unfinished unit incomplete_shutdown, exit 106",
-    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.35.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
+    "actual_lifecycle_replay": "not run: the newest release whose daemon IPC schema (11) differs from this client's (12) is v0.29.0, whose daemon predates the drain that exits and listens on daemon.sock, which this client never reaches; the compatibility example ran before the number was committed: beside the released v0.36.0 daemon, at this client's schema and of another build, the client's daemon status stacked the two builds (compatible: false), its run's exercise drained the idle daemon and started its own (exit 0, no device contacted), and with the older daemon holding a job on the fake device the client's run was refused daemon_draining (exit 112), the daemon exiting after the job (evidence/ipc-schema-compat.log)"
   },
   "configuration_migration": {
     "from_schema": 6,
     "to_schema": 6,
     "required": false,
     "compatibility_alias": false,
-    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 31, unchanged from v0.35.0"
-  },
-  "native_dependency": {
-    "module": "github.com/scrapli/scrapligo",
-    "version": "v1.4.3",
-    "compiled_in": true,
-    "reason": "every build carries the scrapligo-v1 adapter; built from the vendored tree",
-    "first_qualification_platform": "Cisco IOS XE Catalyst 9300"
+    "notes": "the configuration schema is unchanged from v0.10.0; config.schema-version stays 6; registry 32, 31 in v0.36.0: the key ssh.transports.native removed"
   },
   "qualification": {
     "unit_tests": "passed",
@@ -125,10 +116,10 @@
     "executable_smoke_suites": "passed (19 suites in three lanes, against the native executable)",
     "schema2_upgrade_fixture": "passed",
     "archive_reproducibility": "passed",
-    "native_scrapligo_build": "passed (scripts/verify-release.sh)",
+    "native_transport_checks": "passed (scripts/verify-release.sh: the host key checked in the transport's own handshake, under karvi's device session, no subprocess)",
     "real_cisco_iosxe": "not-run",
     "production_scale": "not-run",
-    "parity_suite_system_and_scrapligo_v1": "passed (the fake device's IOS XE and Linux personas)",
+    "parity_suite_system_and_native": "passed (the fake device's IOS XE and Linux personas)",
     "gofmt": "passed",
     "lifecycle_replay": "not-run (no prior: v0.29.0's daemon listens on daemon.sock, which this client never reaches)",
     "host_shared_places_unchanged": "passed (scripts/lib/host.sh in both verifiers)",
@@ -137,14 +128,11 @@
     "debian_package": "passed (the tree's package in the release verifier's run, checked by scripts/check-deb.sh with lintian and tested as root in an Ubuntu 26.04 container under Docker by scripts/sysutil-smoke-test.sh, and the published package built twice from the verified bundle to the same bytes and checked by scripts/check-deb.sh)"
   },
   "previous_release": {
-    "version": "0.35.0",
-    "git_tag": "karvi-v0.35.0",
-    "notes": "a minor release on 0.34.1; every release is installed as new"
+    "version": "0.36.0",
+    "git_tag": "karvi-v0.36.0",
+    "notes": "a minor release on 0.35.0; every release is installed as new"
   },
   "vendored_modules": [
-    "github.com/scrapli/scrapligo v1.4.3",
-    "github.com/creack/pty v1.1.24",
-    "github.com/sirikothe/gotextfsm v1.2.0",
     "github.com/yuin/goldmark v1.8.6",
     "golang.org/x/crypto v0.58.0",
     "golang.org/x/sys v0.49.0",

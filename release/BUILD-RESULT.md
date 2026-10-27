@@ -1,16 +1,19 @@
-# karvi v0.36.0 build and qualification result
+# karvi v0.37.0 build and qualification result
 
 ## Result
 
-The build, with the native scrapligo-v1 transport compiled in beside the
-external `system` transport, is **qualified as an engineering candidate**.
-v0.36.0 (2026-10-26) is a minor release on 0.35.0 for a command list per
-device and a live view of a session: `--cf DIR` sends each selected device its
-own file in the folder, a run's commands go in the order written with `--cf`
-repeated, and `--live` shows the device's bytes as the session reads them.
-Execution plan 15, plan report 4, and scoreboard 5 move, every other counter
-is 0.35.0's; scrapligo moves to v1.4.3, Go is 0.35.0's, and the first
-submission after the upgrade drains a 0.35.0 daemon. The changes are in
+The build, with the native transport compiled in beside the external
+`system` transport, is **qualified as an engineering candidate**. v0.37.0
+(2026-10-27) is a minor release on 0.36.0 for the package's update from GitHub
+and the native transport without scrapligo: `sudo karvi-sysutil package
+update` installs the latest release's package when it is newer, checked
+against its `.sha256`; the native transport is karvi's own `x/crypto/ssh`
+connection, named `native`, and `ssh.transports` maps programs alone; `config
+show` refuses a key it cannot show, and `--format` beside keys or `--explain`.
+The configuration registry moves to 32, every other counter is 0.36.0's;
+scrapligo, gotextfsm, and pty leave the build, Go and the other modules are
+0.36.0's, and the first submission after the upgrade drains a 0.36.0 daemon.
+The changes are in
 [`CHANGELOG.md`](../CHANGELOG.md). It is not a production claim and not a
 real-device qualification: the native transport is proven against the fake
 device built from the tree, its IOS XE and Linux personas.
@@ -18,15 +21,14 @@ device built from the tree, its IOS XE and Linux personas.
 ## Build identity
 
 ```text
-version:                  0.36.0
-commit:                   source-release-v0.36.0
-build:                    kXY4cc6JRtLekvXNL0My
+version:                  0.37.0
+commit:                   source-release-v0.37.0
+build:                    1bFnbnZ8vZu2v2U7sP-a
 Go toolchain:             go1.27.3
-build tag:                none (every build carries the adapter)
 dependencies:             vendored (go.mod, go.sum, vendor/); no network
-scrapligo:                v1.4.3 (id=scrapligo-v1, linkage=compiled-in)
+native:                   compiled-in
 configuration schema:    6
-configuration registry:  31
+configuration registry:  32
 command record schema:   4
 daemon IPC schema:       12
 job manifest/summary:    5
@@ -38,17 +40,17 @@ audit:                   2
 CGO:                      disabled
 ```
 
-The authoritative `go.mod` names the Go 1.27 floor and pins
-`github.com/scrapli/scrapligo v1.4.3`; `evidence/go-version-m.txt` shows the
-module in the shipped executables, and `evidence/version.txt` lists both
+The authoritative `go.mod` names the Go 1.27 floor and requires goldmark,
+`x/crypto`, `x/sys`, and `x/term`; `evidence/go-version-m.txt` shows the
+modules the shipped executables link, and `evidence/version.txt` lists both
 transports.
 
 ## Qualification performed
 
 The release source passed, with Go 1.27.3:
 
-- 1,105 top-level named Go tests across 92 packages in vendor mode, no
-  build tag, 0 failures (`evidence/core-qualification.log`);
+- 1,107 top-level named Go tests across 92 packages in vendor mode, 0
+  failures (`evidence/core-qualification.log`);
 - `go vet` across all packages, and the Go race detector across all
   packages in the release verifier's run
   (`evidence/release-qualification.log`; the battery runs once per bytes);
@@ -61,7 +63,7 @@ The release source passed, with Go 1.27.3:
 - example configuration validation and removed-key rejection;
 - all nineteen executable suites against the native executable, in three lanes
   (`scripts/lib/suites.sh`): the parity suite (`command` and `run` over `system`
-  and `scrapligo-v1` against the fake device's IOS XE and Linux personas, the
+  and `native` against the fake device's IOS XE and Linux personas, the
   exec channel included, records compared path by path), the forty-four-row
   v0100 suite (rehearsals, detach, follow, the interrupted client, the ICMP
   gate, shutdown accounting, stop and restart, cancel, `job follow`), and the
@@ -78,15 +80,15 @@ The release source passed, with Go 1.27.3:
   removed keys refused (`evidence/bundle-qualification.log`);
 - `scripts/verify-release.sh` end to end, rebuilding with the release
   identity to unchanged checksums, so that its battery ran against the
-  shipped bytes (`evidence/release-qualification.log`): the adapter's
-  import boundary and host-key assertions, `go mod verify`, the module
-  metadata of the executable;
+  shipped bytes (`evidence/release-qualification.log`): the native
+  transport checking the host key in its own handshake, under karvi's device
+  session, and running no subprocess, and `go mod verify`;
 - no lifecycle replay: the newest release whose daemon IPC schema (11) differs
   from this client's (12) is v0.29.0, whose daemon predates the drain that exits
   and listens on `daemon.sock`, which this client never reaches; the drain is
   the daemon-upgrade suite's, against a fixture daemon of an older schema and of
   another build. The compatibility example ran before the number was committed,
-  beside the released v0.35.0 daemon, started from the released executable of
+  beside the released v0.36.0 daemon, started from the released executable of
   the tree's `bin/` before the rebuild, at this client's IPC schema and of
   another build: the client's `daemon status` stacked the two builds
   (`compatible: false`); its run's exercise drained the idle daemon and started
@@ -117,7 +119,7 @@ The release source passed, with Go 1.27.3:
   `scripts/check-deb.sh` against it.
 
 The release verifier had first passed on a clean clone of `dev` at
-`633c82d` before the number was assigned (the maintainer's release tools
+`2d47774` before the number was assigned (the maintainer's release tools
 run it there, since a clone has no shipped bytes to check; the logs are kept
 with the maintainer's release evidence). The must-not-appear checks of the
 suites ran enforced throughout.
@@ -128,10 +130,10 @@ Evidence for this release is in `evidence/`.
 
 | Executable | Bytes | SHA-256 |
 |---|---:|---|
-| `bin/karvi-linux-amd64` | 12,894,368 | `ce87ec4d16ff80c842f75c675cab73c56525f6700db5d57bf919d67bc4d1f92d` |
-| `bin/karvi-askpass-linux-amd64` | 3,911,840 | `871a98e8f3b5b77a51a493a347037523815286af54fee4466d553e09314a5f9c` |
-| `bin/karvi-prune-linux-amd64` | 3,793,056 | `f2f7395050f480f41ade3b9f1aaeca10b46e499d5fbc0c04154dfeea63b95e14` |
-| `bin/karvi-audit-linux-amd64` | 3,940,512 | `2e4be343a078efb3a13acbc70740d257e51a266e009be0e6eae715c1cbfd98b1` |
+| `bin/karvi-linux-amd64` | 12,800,160 | `8913914fae9f7da7d6ab377a4ecea3e2da16422f1cd95afdb8e00579b2476a59` |
+| `bin/karvi-askpass-linux-amd64` | 3,911,840 | `5cc40412c675e0a8ad71aaed580ad02d604612c0e7277ae3de45d03d9b54878d` |
+| `bin/karvi-prune-linux-amd64` | 3,797,152 | `22489627e9e5b733a8a11297dc02e827078c8a23c9bed8b5112884cc396c3df1` |
+| `bin/karvi-audit-linux-amd64` | 3,940,512 | `c1ba23b3800c2e37de51d3c52cbfd00e851eae57ec23911e8dcdc16448b678ac` |
 
 ## Operational upgrade sequence
 
