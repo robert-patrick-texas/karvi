@@ -51,6 +51,14 @@
   BUILD-QUALIFICATION's rule that the version output names ScrapliGo; the checks
   that the native transport verifies the host key in its own handshake and runs
   no subprocess stay, on `internal/transport/native`.
+- **Breaking: `config show KEY` refuses a key it cannot show.** A name that is
+  no key is refused as `--set` refuses it, `config_unknown_key` (or
+  `config_key_removed`), and a key a table could hold that the configuration
+  does not set, a transport slot, a platform's field, or a macro, with the new
+  code `config_key_unset`; each exits 2, on standard error, before any key is
+  printed. Each was a block reading `error: not found` on standard output among
+  the keys shown, exit 0, so a script's misspelt `karvi config show
+  ssh.transprots.alt && ...` went on.
 
 ## 0.36.0 - 2026-10-26
 

@@ -184,6 +184,7 @@ Active failure causes.
 | `config_inventory_source_type_unsupported` | config | 2 | no | An inventory source `type` is not `csv`. |
 | `config_key_blank` | config | 2 | no | A configuration key is blank. |
 | `config_key_removed` | config | 2 | no | A configuration key that karvi removed is set in a file, the environment, or `--set`; the message names the key and the release that removed it. |
+| `config_key_unset` | config | 2 | no | `config show` names a key a table could hold that the configuration does not set: a transport slot, a platform's field, a macro. |
 | `config_load_failed` | config | 2 | no | Unclassified. Configuration loading fails without a specific code. |
 | `config_lock_authority_violation` | config | 2 | no | A lock is declared outside the auto-discovered global configuration graph. |
 | `config_lock_duplicate` | config | 2 | no | The same lock pattern is declared more than once. |

@@ -3207,6 +3207,7 @@
     "config_inventory_source_type_unsupported",
     "config_key_blank",
     "config_key_removed",
+    "config_key_unset",
     "config_load_failed",
     "config_lock_authority_violation",
     "config_lock_duplicate",

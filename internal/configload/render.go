@@ -166,9 +166,19 @@ type Resolver func(key string) (place Place, ok bool)
 // named, each with source, default, overrides, lock, and macro trace, and
 // where resolve names one (nil names none) a `resolved:` line, the place or
 // `error: CODE: message`, then one `passed:` line per candidate passed by.
-// A key not in the configuration is `error: not found` in its turn.
+// Every name is checked before any is rendered: the first that is no key is
+// refused as the load refuses it (checkName), and the first key a table could
+// hold but the configuration does not set is config_key_unset.
 // Sensitive keys are metadata-only.
-func (s Snapshot) Explain(names []string, resolve Resolver) string {
+func (s Snapshot) Explain(names []string, resolve Resolver) (string, error) {
+	for _, k := range names {
+		if err := checkName(k, SourceRef{}); err != nil {
+			return "", err
+		}
+		if _, ok := s.Values[k]; !ok {
+			return "", newError("config_key_unset", k+" is not set", "", SourceRef{}, nil)
+		}
+	}
 	keys := names
 	if len(keys) == 0 {
 		for k := range s.Values {
@@ -181,11 +191,7 @@ func (s Snapshot) Explain(names []string, resolve Resolver) string {
 		if idx > 0 {
 			b.WriteByte('\n')
 		}
-		v, ok := s.Values[k]
-		if !ok {
-			fmt.Fprintf(&b, "key: %s\nerror: not found\n", k)
-			continue
-		}
+		v := s.Values[k]
 		fmt.Fprintf(&b, "key:        %s\nvalue:      %s\nsource:     %s\ndefault:    %s\n", k, tomlValue(v.Data), v.Source.String(), tomlValue(v.Default))
 		if resolve != nil {
 			if pl, ok := resolve(k); ok {
@@ -218,5 +224,5 @@ func (s Snapshot) Explain(names []string, resolve Resolver) string {
 			fmt.Fprintf(&b, "overridden:  %s\n", strings.Join(parts, ", "))
 		}
 	}
-	return b.String()
+	return b.String(), nil
 }

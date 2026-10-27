@@ -81,6 +81,7 @@ var entries = []Entry{
 	failure("config_includes_not_at_file_root", "config", exitConfig, false, "`config.includes` appears in a file that is not a file graph root."),
 	failure("config_includes_too_late", "config", exitConfig, false, "`config.includes` appears after the first active include directive."),
 	failure("config_key_blank", "config", exitConfig, false, "A configuration key is blank."),
+	failure("config_key_unset", "config", exitConfig, false, "`config show` names a key a table could hold that the configuration does not set: a transport slot, a platform's field, a macro."),
 	failure("config_read_error", "config", exitConfig, false, "A configuration file cannot be read."),
 	failure("config_schema_version", "config", exitConfig, false, "`config.schema-version` is missing or is not the supported configuration schema."),
 	failure("config_set_syntax", "usage", exitConfig, false, "A `--set` argument is not in `key=value` form."),

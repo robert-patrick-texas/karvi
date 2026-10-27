@@ -1373,14 +1373,21 @@ candidate too long for the askpass socket, present or not; a refusal is
 configuration the invocation loads, which its job runs under on every path; a
 running daemon keeps only its own sockets, state, and log under the `basedir` it
 started with, and swept its places at its start. The view takes several keys,
-and the whole table is a recipe over it ([`docs/FILES.md`](FILES.md)). A
-controlled enrollment takes the store's path from the line. *Why:* under `auto`
-a place depends on what the host holds, and the view printed none but two, so
-the two modes looked alike and a literal default named a place the activity did
-not use. *Not taken:* a new command word or option for paths; the rule repeated
-in shell in each site's scripts; a probe file written by the view (it moves the
-shared trees' times); `--explain` asking a running daemon; `sharedroot` and
-`crun.after` (no one place, not a place).
+each checked before any is printed: a name that is no key is refused as `--set`
+refuses it (`config_unknown_key`), and a key a table could hold that the
+configuration does not set is `config_key_unset`, both exit 2; the whole table
+is a recipe over it ([`docs/FILES.md`](FILES.md)). A controlled enrollment takes
+the store's path from the line. *Why:* under `auto` a place depends on what the
+host holds, and the view printed none but two, so the two modes looked alike and
+a literal default named a place the activity did not use; a key the view could
+not show was an `error: not found` block, exit 0, so a script took a misspelt
+key for one shown ([`docs/EXAMPLES.md`, chapter
+83](EXAMPLES.md#83-config-show-refuses-a-key-it-cannot-show-2026-10-27)). *Not
+taken:* a new command word or option for paths; the rule repeated in shell in
+each site's scripts; a probe file written by the view (it moves the shared
+trees' times); `--explain` asking a running daemon; `sharedroot` and
+`crun.after` (no one place, not a place); an unset key shown as `value: null`;
+the keys before a refused one printed first.
 
 **The host-key identity is the canonical name and, off port 22, the port.**
 Both transports enroll and look up `name` on port 22 and `[name]:PORT`

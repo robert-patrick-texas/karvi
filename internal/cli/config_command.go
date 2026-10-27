@@ -179,7 +179,11 @@ func configShow(inv *Invocation, streams app.IO) int {
 		}
 	}
 	if explain {
-		fmt.Fprint(streams.Stdout, snap.Explain(inv.Positional, placeResolver(snap)))
+		out, err := snap.Explain(inv.Positional, placeResolver(snap))
+		if err != nil {
+			return inv.Global.reportError(streams.Stderr, "config_unknown_key", err)
+		}
+		fmt.Fprint(streams.Stdout, out)
 		return 0
 	}
 	switch format {

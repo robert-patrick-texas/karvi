@@ -17678,10 +17678,128 @@ exit 8
 - The design's find, SSH-TRANSPORTS's table giving `command` the default
   `system`, is corrected.
 - `karvi config show no.such.key` prints `error: not found` and exits 0, as
-  0.36.0 does. Not acted on; raised with the operator.
+  0.36.0 does. Raised with the operator, and built as chapter 83.
 
 **Closed.** The build's evidence is kept beside the tree
 (`release-design-evidence/native-without-scrapligo-2026-10-27`: each section's
 `go test` log, the suites' logs of sections 1 and 2, the executed examples'
 scripts and logs, and section 4's battery, `s4-battery.sh` with its logs).
 ROADMAP's Next is "None chosen".
+
+## 83. `config show` refuses a key it cannot show (2026-10-27)
+
+Found while building chapter 82 (its section 2): `karvi config show
+no.such.key` prints `error: not found` and exits 0, as 0.36.0 does. Chapter
+28's issue 7 made an unknown key an `error: not found` block among the others,
+so that a script could take several places from one load; its exit was never
+decided. Opened on the operator's word after chapter 82's section 4.
+
+**What it gains.** A misspelt or unset key no longer reads as success: `karvi
+config show ssh.transprots.alt >/dev/null && echo mapped` printed `mapped`. It
+waits on nothing. The cost: a site's script that read the `error: not found`
+block, or counted on exit 0 beside an unknown key, changes.
+
+**Executed.** The lab build of `648b3a9` (`a-today-lab.sh`), with a lab
+configuration in `/dev/shm` mapping the slot `alt`, removed after; the script
+marks standard output `out|` and standard error `err|`:
+
+```
+$ karvi config show no.such.key
+  out| key: no.such.key
+  out| error: not found
+  exit 0
+
+$ karvi --set no.such.key=1 config show display.color
+  err| config_unknown_key: unknown configuration key for no.such.key at --set[1]
+  exit 2
+```
+
+`ssh` (a table), `ssh.transports.native`, and the unset slot
+`ssh.transports.other` print the same block, exit 0; with three keys named,
+`display.color no.such.key spool.min-free`, the two blocks follow the first
+key's, exit 0. The loader's check (`IsKnownLeaf` and the removed-keys table)
+tells a name that is no key from a key a dynamic table could hold (a transport
+slot, a platform's field, a macro); a fixed key always has a value, its
+default.
+
+**The gap, agreed.** In simple terms: `config show` refuses a key it cannot
+show, before printing anything, and a name that is no key as `--set` refuses
+it.
+
+1. `config show KEY...` checks every name before printing anything; the first
+   it cannot show refuses the view, on standard error, red at a terminal, and
+   nothing goes to standard output.
+2. A name that is no key is refused as `--set` refuses it, by the loader's own
+   check: `config_unknown_key` (or `config_key_removed`, `config_key_blank`),
+   exit 2.
+3. A key a table could hold that the configuration does not set is the new
+   code `config_key_unset`, exit 2: `ssh.transports.other is not set`.
+   `ssh.transports.native` is one, which is true; setting it is refused at load
+   (chapter 82, gap 1).
+4. The `error: not found` block goes, and the help and the manual page say what
+   replaces it. Chapter 28's issue 7 otherwise stands.
+
+Not taken: one new code for any name the view does not list (`... is not in the
+configuration`), plainer, but a misspelt key would carry another code than
+`--set` gives it; an unset key shown as `value: null`, exit 0, a value the
+configuration does not hold; the keys before a refused one printed first and the
+refusal after, as `ls` does, a refusal after a partial answer.
+
+Found, not acted on: with keys named, `config show --format json KEY` prints
+the text blocks, `--format json` ignored (the keys imply `--explain`).
+
+**Built.** In one piece:
+
+- `configload.checkName`, the loader's name check (blank, removed, not in the
+  registry), shared by the load's `assign` and by `Explain`. `Explain` returns
+  an error: every name is checked first, and a key with no value is
+  `config_key_unset`; its `error: not found` branch is gone.
+- `config_key_unset` in the error registry, `docs/ERROR-CODES.md` and the
+  registry artifact's code list regenerated; the registry counter stays 32 (a
+  code does not move it, and this release moves it already).
+- `config show` reports the refusal through `reportError`, at the code's exit.
+- The help and `karvi-config.1`; DESIGN's entry on the view (the rule, its
+  *Why*, and the alternatives not taken); the CHANGELOG's Unreleased entry.
+- The tests: `TestExplainRefusesANameItCannotShow` (each kind of name, and the
+  first in the order given), `TestExplainSeveralKeys` over three keys shown,
+  and `TestConfigShowRefusesAKeyItCannotShow` (exit 2, the line on standard
+  error, nothing on standard output).
+
+**Executed after the build.** The lab build of the tree with the change
+(`b-built-lab.sh`, the same cases and three more), removed after:
+
+```
+$ karvi config show display.color no.such.key spool.min-free
+  err| config_unknown_key: unknown configuration key for no.such.key
+  exit 2
+
+$ karvi config show ssh.transports.other
+  err| config_key_unset: ssh.transports.other is not set
+  exit 2
+
+$ karvi config show sessions.idle-timeout
+  err| config_key_removed: removed in v0.14.0; the key was read by nothing and has no replacement; remove it from the configuration for sessions.idle-timeout
+  exit 2
+
+$ karvi --set display.color=always config show no.such.key 2>&1 >/dev/null | cat -v   # stderr to a pipe
+  err| ^[[1;31mconfig_unknown_key: unknown configuration key for no.such.key^[[0m
+```
+
+`ssh` and `no.such.key` are `config_unknown_key`, `ssh.transports.native`
+`config_key_unset`, and `""` `config_key_blank`, each exit 2; the mapped slot
+`ssh.transports.alt` is shown, exit 0.
+
+The full battery on a lab build of the tree with the change (`battery.sh`, a
+copy in `/var/tmp`, `TMPDIR=/var/tmp`): vet, `make generated-clean`, `go test
+-count=1 ./...` (71 packages), and the 19 suites by `run_suites` in 242 seconds,
+each exit 0; none left a `/tmp/karvi-<uid>`, `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, `~/.local/share/karvi`, or karvi process. The first run
+(`battery-1`) failed `TestHelpMatchesParserTable`: the help said "as --set
+refuses it", and a command's help names only the options its parser takes,
+`--set` being global; it now says "as the load refuses it", the suites having
+passed in 246 seconds.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/config-show-unknown-key-2026-10-27`: the two labs'
+scripts and logs, and the two batteries' logs, `battery-1` and the last beside
+it, with `battery.sh`).

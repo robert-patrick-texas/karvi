@@ -36,7 +36,11 @@ func TestPlaceResolver(t *testing.T) {
 		t.Helper()
 		got := map[string][]string{}
 		key := ""
-		for _, l := range strings.Split(snap.Explain(keys, placeResolver(snap)), "\n") {
+		out, err := snap.Explain(keys, placeResolver(snap))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, l := range strings.Split(out, "\n") {
 			switch {
 			case strings.HasPrefix(l, "key:"):
 				key = strings.TrimSpace(strings.TrimPrefix(l, "key:"))
