@@ -1,8 +1,7 @@
-// Package native is the composition boundary for built-in Go SSH adapters.
-// Core execution depends only on platform.Driver; each optional implementation
-// registers an opener from its provider file's init (the scrapligo_v1 build
-// tag that once gated the provider is gone: every executable carries it).
 package native
+
+// The registry of native implementations: native.go's init registers the
+// one there is.
 
 import (
 	"context"

@@ -29,12 +29,12 @@ file bin/karvi-audit-linux-amd64 | grep -q 'ELF 64-bit.*x86-64'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"job_schema_version": 5'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 31'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
-./bin/karvi-linux-amd64 --version | grep -q '^  system: external (id=system, linkage=external-executable)$'
+./bin/karvi-linux-amd64 --version | grep -q '^  system: external-executable$'
 # The shipped executable is the native one. (This line was once a bare
 # "! ... | grep -q" asserting the opposite, which set -e never enforced.)
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "scrapligo-v1"' \
   || { echo 'bin/karvi-linux-amd64 lacks scrapligo-v1: build it with make build checksums' >&2; exit 1; }
-./bin/karvi-linux-amd64 --version | grep -q '^  scrapligo: 1.4.3 (id=scrapligo-v1, linkage=compiled-in)$'
+./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'
 # The executable names its build, the Go build ID's last part: without it
 # its daemon would refuse to start (docs/EXAMPLES.md chapter 57, issue 8).
 . "$ROOT/scripts/lib/json.sh"

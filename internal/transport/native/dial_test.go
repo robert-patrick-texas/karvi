@@ -1,4 +1,4 @@
-package scrapligov1
+package native
 
 import (
 	"context"
@@ -198,7 +198,7 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.(*stream).Abort()
+	s.(*connection).Abort()
 	content, _ := os.ReadFile(file)
 	if got := string(content); got != strings.TrimSuffix(entry(first, first.HostKeys()[0]), "\n")+" karvi-auto-enrolled\n" {
 		t.Fatalf("store after the first open: %q", got)
@@ -213,7 +213,7 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	if len(notices) != 1 {
 		t.Fatalf("the known key said enrolled again: %+v", notices)
 	}
-	s.(*stream).Abort()
+	s.(*connection).Abort()
 	if first.Connections() != 2 {
 		t.Fatalf("connections=%d, want one per open", first.Connections())
 	}
@@ -239,7 +239,7 @@ func TestDialHostKeyPolicies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("insecure, changed key: %v", err)
 	}
-	s.(*stream).Abort()
+	s.(*connection).Abort()
 	if len(notices) != 1 || notices[0].Code != platform.HostKeyMismatchAccepted ||
 		len(notices[0].Enrolled) != 1 || len(notices[0].Presented) != 1 || notices[0].Enrolled[0] == notices[0].Presented[0] {
 		t.Fatalf("insecure notices %+v", notices)
@@ -264,7 +264,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.(*stream).Abort()
+	s.(*connection).Abort()
 	if content, _ := os.ReadFile(file); !strings.Contains(string(content), " ssh-ed25519 ") {
 		t.Fatalf("enrolled %q", content)
 	}
@@ -274,7 +274,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 		if err != nil {
 			t.Fatalf("secure with %s enrolled: %v", strings.Fields(key)[0], err)
 		}
-		s.(*stream).Abort()
+		s.(*connection).Abort()
 	}
 
 	// A legacy device signing only with ssh-rsa is reachable and enrolled.
@@ -305,9 +305,12 @@ func TestDialOpenFailures(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{Password: "other"})
 	absent := filepath.Join(t.TempDir(), "absent")
 
-	_, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, absent))
+	s, err := Dial(context.Background(), dialRequest(srv, hostkey.Insecure, absent))
 	if errorcodes.Of(err) != "authentication_failed" || strings.Contains(err.Error(), "pw") {
 		t.Fatalf("wrong password: %v", err)
+	}
+	if s != nil {
+		t.Fatalf("a failed dial returned a stream: %#v", s)
 	}
 
 	refused := dialRequest(srv, hostkey.Insecure, absent)
@@ -356,8 +359,8 @@ func TestFakeRefusesExec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.(*stream).Abort()
-	client := s.(*stream).t.Impl.(*connection).client
+	defer s.(*connection).Abort()
+	client := s.(*connection).client
 	session, err := client.NewSession()
 	if err != nil {
 		t.Skipf("second channel refused before exec: %v", err)

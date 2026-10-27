@@ -1,3 +1,8 @@
+// Package native is karvi's native SSH transport: its own x/crypto
+// connection, with the host-key policy in the handshake (dial.go), or an exec
+// device's, a channel per command (exec.go), under karvi's device session,
+// which the system transport shares. Core execution depends only on
+// platform.Driver.
 package native
 
 import (
@@ -7,7 +12,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/robert-patrick-texas/karvi/internal/adapters/scrapligov1"
 	"github.com/robert-patrick-texas/karvi/internal/devsession"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/hostkey"
@@ -15,12 +19,12 @@ import (
 )
 
 func init() {
-	register("scrapligo-v1", openScrapliGoV1, "generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux")
+	register("scrapligo-v1", open, "generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux")
 }
 
-// openScrapliGoV1 resolves the host-key policy; the connection and the
-// device session open in Prepare.
-func openScrapliGoV1(_ context.Context, f Factory, req platform.OpenRequest) (platform.Driver, error) {
+// open resolves the host-key policy; the connection and the device session
+// open in Prepare.
+func open(_ context.Context, f Factory, req platform.OpenRequest) (platform.Driver, error) {
 	policy, err := hostkey.Resolve(f.Config.String("ssh.host-key-policy"), f.Config.String("ssh.known-hosts-file"), f.Home, f.BaseDir)
 	if err != nil {
 		return nil, err
@@ -28,12 +32,12 @@ func openScrapliGoV1(_ context.Context, f Factory, req platform.OpenRequest) (pl
 	if f.MaxOutputBytes <= 0 {
 		f.MaxOutputBytes = f.Config.Int64("output.max-command-bytes")
 	}
-	return &scrapligoDriver{f: f, req: req, policy: policy}, nil
+	return &driver{f: f, req: req, policy: policy}, nil
 }
 
-// scrapligoDriver is one device over scrapligo-v1: karvi's connection and
+// driver is one device over the native transport: karvi's connection and
 // karvi's device session, as the system transport's driver is.
-type scrapligoDriver struct {
+type driver struct {
 	f       Factory
 	req     platform.OpenRequest
 	policy  hostkey.Policy
@@ -45,7 +49,7 @@ type scrapligoDriver struct {
 	auth platform.AuthReporter
 }
 
-func (d *scrapligoDriver) debugf(format string, args ...any) {
+func (d *driver) debugf(format string, args ...any) {
 	if d.f.Debug != nil {
 		d.f.Debug(fmt.Sprintf(format, args...))
 	}
@@ -53,14 +57,14 @@ func (d *scrapligoDriver) debugf(format string, args ...any) {
 
 // Prepare dials, runs the handshake, starts the shell, and opens the device
 // session: the first prompt, privilege, and paging.
-func (d *scrapligoDriver) Prepare(ctx context.Context) error {
+func (d *driver) Prepare(ctx context.Context) error {
 	host := d.req.Metadata["canonical_name"]
 	if host == "" {
 		host = d.req.Address
 	}
 	promptTimeout := durationOr(d.f.Config.Duration("execution.prompt-timeout"), 10*time.Second)
 	d.debugf("native SSH session starting implementation=scrapligo-v1 target=%q address=%q port=%d host_key_policy=%s host_key_identity=%q channel=%s", host, d.req.Address, d.req.Port, d.policy.Mode, hostkey.Identity(host, int(d.req.Port)), d.channel())
-	dial := scrapligov1.DialRequest{
+	dial := DialRequest{
 		Host: host, Address: d.req.Address, Port: int(d.req.Port), Username: d.req.Username,
 		Password:         d.req.Password,
 		Keys:             d.req.Keys,
@@ -77,7 +81,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 	}
 	if d.channel() == platform.ChannelExec {
 		// Ready once authenticated: no first prompt, privilege, or paging.
-		conn, err := scrapligov1.DialExec(ctx, dial)
+		conn, err := DialExec(ctx, dial)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -90,7 +94,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 		d.debugf("native SSH session ready target=%q channel=exec", host)
 		return nil
 	}
-	stream, err := scrapligov1.Dial(ctx, dial)
+	stream, err := Dial(ctx, dial)
 	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -113,7 +117,7 @@ func (d *scrapligoDriver) Prepare(ctx context.Context) error {
 }
 
 // channel is the target's channel, shell when the request names none.
-func (d *scrapligoDriver) channel() string {
+func (d *driver) channel() string {
 	if d.req.Channel == platform.ChannelExec {
 		return platform.ChannelExec
 	}
@@ -122,7 +126,7 @@ func (d *scrapligoDriver) channel() string {
 
 // Usable is the prepared session's answer; a driver never prepared is not
 // usable.
-func (d *scrapligoDriver) Usable() bool {
+func (d *driver) Usable() bool {
 	if d.exec != nil {
 		return d.exec.Usable()
 	}
@@ -131,22 +135,22 @@ func (d *scrapligoDriver) Usable() bool {
 
 // The executor finds the set-up lines by a type assertion, which a renamed
 // method would fail silently; this fails the build instead.
-var _ platform.SetupReporter = (*scrapligoDriver)(nil)
+var _ platform.SetupReporter = (*driver)(nil)
 
 // SetupLines is the session's set-up as it was sent (platform.SetupReporter);
 // an exec device sends none.
-func (d *scrapligoDriver) SetupLines() []platform.SetupLine {
+func (d *driver) SetupLines() []platform.SetupLine {
 	if d.session == nil {
 		return nil
 	}
 	return d.session.SetupLines()
 }
 
-var _ platform.AuthReporter = (*scrapligoDriver)(nil)
+var _ platform.AuthReporter = (*driver)(nil)
 
 // AuthMethod is the method that authenticated karvi's connection
 // (platform.AuthReporter).
-func (d *scrapligoDriver) AuthMethod() string {
+func (d *driver) AuthMethod() string {
 	if d.auth == nil {
 		return ""
 	}
@@ -154,7 +158,7 @@ func (d *scrapligoDriver) AuthMethod() string {
 }
 
 // Execute sends one command through the prepared session.
-func (d *scrapligoDriver) Execute(ctx context.Context, c platform.Command) platform.Result {
+func (d *driver) Execute(ctx context.Context, c platform.Command) platform.Result {
 	if c.Timeout <= 0 {
 		c.Timeout, c.TimeoutSource = durationOr(d.f.Config.Duration("execution.command-timeout"), 120*time.Second), platform.SessionTimeout
 	}
@@ -170,7 +174,7 @@ func (d *scrapligoDriver) Execute(ctx context.Context, c platform.Command) platf
 
 // Close sends the platform's exit commands on a usable session and closes
 // the connection; an exec device's connection closes with no command.
-func (d *scrapligoDriver) Close() error {
+func (d *driver) Close() error {
 	if d.exec != nil {
 		return d.exec.Close()
 	}

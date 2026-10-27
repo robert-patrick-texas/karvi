@@ -1,4 +1,4 @@
-package scrapligov1
+package native
 
 import (
 	"context"
@@ -19,8 +19,6 @@ import (
 // request with no PTY and standard input at its end.
 type ExecConnection struct {
 	c *connection
-	// close is the transport wrapper's close, which closes the connection.
-	close func() error
 }
 
 var (
@@ -31,18 +29,21 @@ var (
 // DialExec opens the connection and returns once it has authenticated.
 func DialExec(ctx context.Context, req DialRequest) (*ExecConnection, error) {
 	req.exec = true
-	t, c, err := open(ctx, req)
+	c, err := connect(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	return &ExecConnection{c: c, close: func() error { return t.Close(true) }}, nil
+	return &ExecConnection{c: c}, nil
 }
 
 // AuthMethod is the method that authenticated the connection.
 func (e *ExecConnection) AuthMethod() string { return e.c.AuthMethod() }
 
-// Close closes the connection.
-func (e *ExecConnection) Close() error { return e.close() }
+// Close shuts the connection.
+func (e *ExecConnection) Close() error {
+	e.c.shut()
+	return nil
+}
 
 // Start opens a session channel and runs the command on it. A device that
 // refuses the channel or the exec request on a live connection is

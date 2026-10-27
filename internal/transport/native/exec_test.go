@@ -1,4 +1,4 @@
-package scrapligov1
+package native
 
 import (
 	"context"

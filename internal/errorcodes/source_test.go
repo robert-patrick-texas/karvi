@@ -251,7 +251,7 @@ var detailFuncs = map[string]string{
 	"executionplan/digest.go:UnmarshalText":                               "malformed digest text is reported under the decoding operation's code (job_request_malformed at the daemon)",
 	"internal/transport/systemssh/command_session.go:startCommandSession": "message begins with the code classified from OpenSSH diagnostics",
 	"internal/transport/systemssh/systemssh.go:Interactive":               "message begins with the code classified from OpenSSH diagnostics",
-	"internal/adapters/scrapligov1/dial.go:password":                      "x/crypto reports a failed password callback under authentication_failed",
+	"internal/transport/native/dial.go:password":                          "x/crypto reports a failed password callback under authentication_failed",
 	"internal/sshalgorithms/sshalgorithms.go:CheckList":                   "returns its rule code alongside the message",
 	"internal/sshalgorithms/sshalgorithms.go:CheckProfile":                "returns a ProfileError carrying its rule code",
 	"internal/fakedevice/server.go:*":                                     "the engineering fixture's server-side diagnostics; never an operator error",

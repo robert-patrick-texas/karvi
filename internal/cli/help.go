@@ -1,11 +1,8 @@
 package cli
 
 import (
-	"fmt"
 	"strings"
 	"time"
-
-	"github.com/robert-patrick-texas/karvi/internal/transport/native"
 )
 
 func now() time.Time { return time.Now() }
@@ -366,11 +363,7 @@ A recurring collection is the site's systemd timer or cron over this word
 }
 
 func runHelpText() string {
-	status := "unavailable in this executable"
-	if native.Available("scrapligo-v1") {
-		status = "available (scrapligo 1.4.3 compiled in)"
-	}
-	return fmt.Sprintf(`Usage:
+	return `Usage:
   karvi run [target inputs] [options] <device command words...>
   karvi run [target inputs] [options] --cmd TEXT [--cmd TEXT...]
   karvi run [target inputs] [options] --cf PATH|- [--cf PATH...]
@@ -392,7 +385,7 @@ of a name keeps its position, names are lowercase):
   and \ escapes the next character; ^ and $ are refused. A selector value
   beginning with ! removes the devices it matches and selects none; in a
   target file, lines beginning with # or ! are comments.
-`+selectPlatformHelp+`  An unknown row platform in the set refuses the run under the default, fail.
+` + selectPlatformHelp + `  An unknown row platform in the set refuses the run under the default, fail.
   --order default|sorted|shuffle|random
                                  Dispatch order for this invocation (sets the
                                  lock-aware dispatch.order; the shuffle key
@@ -436,9 +429,9 @@ or --expect, not both):
   --literal                      Send every command as written; no \r
                                  interpretation; a RESPONSE is always as written
 
-`+commandBoundsHelp+`
+` + commandBoundsHelp + `
 Platform:
-`+platformOptionHelp+`
+` + platformOptionHelp + `
 Dispatch:
   --dispatch serial|parallel|wave
                                  How the devices run (dispatch.default, serial
@@ -500,7 +493,7 @@ Options:
                                  Who selects TARGET's address: the client at
                                  planning (default) or the daemon at prepare;
                                  repeatable, TARGET names a device of the set
-`+hostKeyPolicyHelp+`  --ssh-known-hosts-file PATH|auto
+` + hostKeyPolicyHelp + `  --ssh-known-hosts-file PATH|auto
                                  Unified karvi trust store
   --format text|jsonl|json       Text (default), compact JSON Lines, or an
                                  indented JSON array for human inspection
@@ -538,12 +531,9 @@ Options are recognized until the first device command word; after it every
 argument is device text. Run uses the per-user daemon unless --no-daemon is
 supplied.
 
-The preferred native slot maps to scrapligo-v1 by default; status: %s.
-Builds without that adapter reject native transport rather than silently using OpenSSH.
-
 Set ssh.halt-run-on-host-key-mismatch=true to stop new scheduling after the
 first changed host key while allowing already in-flight devices to finish.
-`, status)
+`
 }
 
 const loginHelp = `Usage:

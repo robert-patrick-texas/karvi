@@ -1,4 +1,4 @@
-package scrapligov1
+package native
 
 import (
 	"context"
@@ -14,9 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	scraplioptions "github.com/scrapli/scrapligo/driver/options"
-	scraplilogging "github.com/scrapli/scrapligo/logging"
-	scraplitransport "github.com/scrapli/scrapligo/transport"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/robert-patrick-texas/karvi/internal/devsession"
@@ -26,7 +23,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-// DialRequest is one scrapligo-v1 connection to a device.
+// DialRequest is one native connection to a device.
 type DialRequest struct {
 	// Host is the canonical name the device's host-key identity is formed
 	// from with Port.
@@ -48,8 +45,8 @@ type DialRequest struct {
 	ConnectTimeout, HandshakeTimeout time.Duration
 	// KeepaliveInterval, when positive, sends an SSH keepalive request on
 	// the interval once the shell has started; after KeepaliveCountMax
-	// consecutive unanswered ones the connection is closed and the stream
-	// ends with session_keepalive_timeout.
+	// consecutive unanswered ones the connection is shut and the shell's reads
+	// end with session_keepalive_timeout.
 	KeepaliveInterval time.Duration
 	KeepaliveCountMax int
 	// Term is the PTY's terminal type ("" sends none, as ssh -tt does
@@ -68,21 +65,19 @@ type DialRequest struct {
 	exec bool
 }
 
-// Dial opens karvi's connection through scrapligo's transport wrapper and
-// returns the device shell as a devsession.Stream: one TCP connection, the
-// host-key policy in the handshake, a PTY, and a shell. scrapligo's
-// channel and network driver are not used.
+// Dial opens karvi's connection and returns the device shell as a
+// devsession.Stream: one TCP connection, the host-key policy in the
+// handshake, a PTY, and a shell.
 func Dial(ctx context.Context, req DialRequest) (devsession.Stream, error) {
-	t, c, err := open(ctx, req)
+	c, err := connect(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	return &stream{t: t, c: c, ended: make(chan struct{})}, nil
+	return c, nil
 }
 
-// open fills the request's defaults and opens the connection through
-// scrapligo's transport wrapper.
-func open(ctx context.Context, req DialRequest) (*scraplitransport.Transport, *connection, error) {
+// connect fills the request's defaults and opens the connection.
+func connect(ctx context.Context, req DialRequest) (*connection, error) {
 	if req.Port == 0 {
 		req.Port = 22
 	}
@@ -98,27 +93,17 @@ func open(ctx context.Context, req DialRequest) (*scraplitransport.Transport, *c
 	if req.KeepaliveCountMax <= 0 {
 		req.KeepaliveCountMax = 3
 	}
-	c := &connection{ctx: ctx, req: req, closed: make(chan struct{})}
-	logger, err := scraplilogging.NewInstance()
-	if err != nil {
-		return nil, nil, errorcodes.Errorf("native_session_open_failed", "create the scrapligo logger: %v", err)
+	c := &connection{ctx: ctx, req: req, closed: make(chan struct{}), ended: make(chan struct{})}
+	if err := c.open(); err != nil {
+		c.shut()
+		return nil, err
 	}
-	t, err := scraplitransport.NewTransport(logger, req.Address, "",
-		scraplioptions.WithCustomTransport(c),
-		scraplioptions.WithPort(req.Port),
-		scraplioptions.WithTimeoutSocket(req.ConnectTimeout),
-	)
-	if err != nil {
-		return nil, nil, errorcodes.Errorf("native_session_open_failed", "create the scrapligo transport: %v", err)
-	}
-	if err := t.Open(); err != nil {
-		_ = c.Close()
-		return nil, nil, err
-	}
-	return t, c, nil
+	return c, nil
 }
 
-// connection is karvi's scrapligo transport implementation over x/crypto.
+// connection is karvi's connection over x/crypto: the device shell as a
+// devsession.Stream and Aborter, or an exec device's client (DialExec). Only
+// devsession's reader calls Read.
 type connection struct {
 	ctx     context.Context
 	req     DialRequest
@@ -138,7 +123,13 @@ type connection struct {
 	// the interval.
 	lastRead atomic.Int64
 
-	closed    chan struct{}
+	// closed is closed when the connection is shut; ended when a read
+	// first fails, the shell's end that Close waits for.
+	closed   chan struct{}
+	shutOnce sync.Once
+	ended    chan struct{}
+	endOnce  sync.Once
+	// closeOnce makes Close and Abort one shut.
 	closeOnce sync.Once
 	// auth is the method of the last authentication callback x/crypto
 	// called: it tries the methods in order and stops at the first that
@@ -146,7 +137,10 @@ type connection struct {
 	auth atomic.Value
 }
 
-var _ scraplitransport.Implementation = (*connection)(nil)
+var (
+	_ devsession.Stream  = (*connection)(nil)
+	_ devsession.Aborter = (*connection)(nil)
+)
 
 // The authentication methods, OpenSSH's names.
 const (
@@ -178,21 +172,21 @@ func (c *connection) debugf(format string, args ...any) {
 	}
 }
 
-// Open dials, runs the handshake with the policy in HostKeyCallback, and
+// open dials, runs the handshake with the policy in HostKeyCallback, and
 // starts the shell. Its errors carry their codes.
-func (c *connection) Open(a *scraplitransport.Args) error {
+func (c *connection) open() error {
 	req := c.req
-	target := net.JoinHostPort(req.Address, strconv.Itoa(a.Port))
+	target := net.JoinHostPort(req.Address, strconv.Itoa(req.Port))
 	offered, etmDropped, err := offer(req.Algorithms)
 	if err != nil {
 		return err
 	}
-	if offered[sshalgorithms.HostKey], err = req.Policy.HostKeyAlgorithms(offered[sshalgorithms.HostKey], hostkey.Identity(req.Host, a.Port)); err != nil {
+	if offered[sshalgorithms.HostKey], err = req.Policy.HostKeyAlgorithms(offered[sshalgorithms.HostKey], hostkey.Identity(req.Host, req.Port)); err != nil {
 		return err
 	}
 	c.offered = offered
 	c.debugf("native SSH connection dialing target=%q address=%s host_key_policy=%s %s etm_macs_dropped_for_aes128_cbc=%t", req.Host, target, req.Policy.Mode, offered.Describe(), etmDropped)
-	dialer := net.Dialer{Timeout: a.TimeoutSocket}
+	dialer := net.Dialer{Timeout: req.ConnectTimeout}
 	raw, err := dialer.DialContext(c.ctx, "tcp", target)
 	if err != nil {
 		if c.ctx.Err() != nil {
@@ -235,7 +229,7 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 		Auth:              auth,
 		HostKeyAlgorithms: offered[sshalgorithms.HostKey],
 		HostKeyCallback: func(_ string, _ net.Addr, key ssh.PublicKey) error {
-			verdict, err := hostkey.Verify(req.Policy, req.Host, a.Port, key.Type(), key.Marshal())
+			verdict, err := hostkey.Verify(req.Policy, req.Host, req.Port, key.Type(), key.Marshal())
 			if req.HostKeyNotice != nil {
 				if verdict.Stored {
 					req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyEnrolled, Label: hostkey.TypeLabel(key.Type())})
@@ -253,7 +247,7 @@ func (c *connection) Open(a *scraplitransport.Args) error {
 	sshConn, channels, requests, err := ssh.NewClientConn(raw, target, config)
 	if err != nil {
 		_ = raw.Close()
-		return c.handshakeError(target, a.Port, err)
+		return c.handshakeError(target, req.Port, err)
 	}
 	client := ssh.NewClient(sshConn, channels, requests)
 	c.mu.Lock()
@@ -318,7 +312,7 @@ const keepaliveRequest = "keepalive@openssh.com"
 // for the interval. As OpenSSH counts: the interval runs from the last
 // output or request, any reply clears the count, and an interval that ends
 // with KeepaliveCountMax requests unanswered closes the connection at once,
-// (count + 1) intervals after the last output; the stream's reader reports
+// (count + 1) intervals after the last output; the shell's reader reports
 // session_keepalive_timeout.
 func (c *connection) keepalive(client *ssh.Client) {
 	interval, countMax := c.req.KeepaliveInterval, c.req.KeepaliveCountMax
@@ -349,7 +343,7 @@ func (c *connection) keepalive(client *ssh.Client) {
 				c.mu.Lock()
 				c.lost = devsession.KeepaliveTimeout(countMax, interval, "")
 				c.mu.Unlock()
-				_ = c.Close()
+				c.shut()
 				return
 			}
 			unanswered++
@@ -542,9 +536,9 @@ func (c *connection) stepError(target, step string, err error) error {
 	return errorcodes.Errorf("native_session_open_failed", "%s on %s: %v", step, target, err)
 }
 
-// Close ends the session, the client, and the TCP connection.
-func (c *connection) Close() error {
-	c.closeOnce.Do(func() { close(c.closed) })
+// shut ends the session, the client, and the TCP connection at once.
+func (c *connection) shut() {
+	c.shutOnce.Do(func() { close(c.closed) })
 	c.mu.Lock()
 	session, client, raw := c.session, c.client, c.raw
 	c.session, c.client, c.raw = nil, nil, nil
@@ -558,26 +552,22 @@ func (c *connection) Close() error {
 	if raw != nil {
 		_ = raw.Close()
 	}
-	return nil
 }
 
-func (c *connection) IsAlive() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.session != nil
-}
-
-func (c *connection) Read(n int) ([]byte, error) {
+// Read returns the shell's output and notes its arrival for the keepalive.
+// Once the keepalive has ended the connection, its code is the error.
+func (c *connection) Read(b []byte) (int, error) {
 	c.mu.Lock()
 	stdout, lost := c.stdout, c.lost
 	c.mu.Unlock()
 	if lost != nil {
-		return nil, lost
+		c.end()
+		return 0, lost
 	}
 	if stdout == nil {
-		return nil, io.EOF
+		c.end()
+		return 0, io.EOF
 	}
-	b := make([]byte, n)
 	n, err := stdout.Read(b)
 	if n > 0 {
 		c.lastRead.Store(time.Now().UnixNano())
@@ -586,9 +576,13 @@ func (c *connection) Read(n int) ([]byte, error) {
 		if lost := c.lostError(); lost != nil {
 			err = lost
 		}
+		c.end()
 	}
-	return b[:n], err
+	return n, err
 }
+
+// end marks the shell's end, which Close waits for.
+func (c *connection) end() { c.endOnce.Do(func() { close(c.ended) }) }
 
 func (c *connection) lostError() error {
 	c.mu.Lock()
@@ -596,85 +590,37 @@ func (c *connection) lostError() error {
 	return c.lost
 }
 
-func (c *connection) Write(b []byte) error {
+func (c *connection) Write(b []byte) (int, error) {
 	c.mu.Lock()
 	stdin, lost := c.stdin, c.lost
 	c.mu.Unlock()
 	if lost != nil {
-		return lost
+		return 0, lost
 	}
 	if stdin == nil {
-		return io.ErrClosedPipe
+		return 0, io.ErrClosedPipe
 	}
-	_, err := stdin.Write(b)
-	return err
+	return stdin.Write(b)
 }
 
 // shellEndGrace is how long Close waits for the device to end the shell
 // after the session's exit commands before closing the connection.
 const shellEndGrace = 2 * time.Second
 
-// stream is the scrapligo wrapper as a devsession.Stream and Aborter. Only
-// devsession's reader calls Read. The wrapper's Close(false) waits for the
-// read lock a blocked read holds, so every close is Close(true).
-type stream struct {
-	t       *scraplitransport.Transport
-	c       *connection
-	pending []byte
-	err     error
-
-	ended     chan struct{}
-	endOnce   sync.Once
-	closeOnce sync.Once
-}
-
-var (
-	_ devsession.Stream  = (*stream)(nil)
-	_ devsession.Aborter = (*stream)(nil)
-)
-
-func (s *stream) Read(b []byte) (int, error) {
-	for len(s.pending) == 0 {
-		if s.err != nil {
-			return 0, s.err
-		}
-		data, err := s.t.Read()
-		s.pending = data
-		if err != nil {
-			s.err = err
-			s.endOnce.Do(func() { close(s.ended) })
-		}
-	}
-	n := copy(b, s.pending)
-	s.pending = s.pending[n:]
-	return n, nil
-}
-
-func (s *stream) Write(b []byte) (int, error) {
-	if err := s.t.Write(b); err != nil {
-		return 0, err
-	}
-	return len(b), nil
-}
-
-// Close waits for the shell's end up to the grace, then closes the
+// Close waits for the shell's end up to the grace, then shuts the
 // connection.
-func (s *stream) Close() error {
-	s.closeOnce.Do(func() {
+func (c *connection) Close() error {
+	c.closeOnce.Do(func() {
 		select {
-		case <-s.ended:
+		case <-c.ended:
 		case <-time.After(shellEndGrace):
 		}
-		_ = s.t.Close(true)
+		c.shut()
 	})
 	return nil
 }
 
-// Abort closes the connection at once: the session has failed.
-func (s *stream) Abort() {
-	s.closeOnce.Do(func() { _ = s.t.Close(true) })
+// Abort shuts the connection at once: the session has failed.
+func (c *connection) Abort() {
+	c.closeOnce.Do(c.shut)
 }
-
-// AuthMethod is the method that authenticated the connection beneath the
-// stream (platform.AuthReporter, through the provider).
-func (s *stream) AuthMethod() string { return s.c.AuthMethod() }

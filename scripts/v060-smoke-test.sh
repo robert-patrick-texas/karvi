@@ -58,22 +58,14 @@ common_args() {
 # Version output describes only transports present in this exact executable.
 "$KARVI" --version >"$TMP/version.txt"
 grep -q '^ssh_transports:$' "$TMP/version.txt"
-grep -q '^  system: external (id=system, linkage=external-executable)$' "$TMP/version.txt"
+grep -q '^  system: external-executable$' "$TMP/version.txt"
 "$KARVI" version --format json >"$TMP/version.json"
 json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx system
 
-# Every executable carries the scrapligo-v1 adapter (the build tag and the
-# dependency-free preview are gone), and reports the exact compiled-in
-# implementation.
+# Every executable carries the native transport, compiled in.
 "$KARVI" config validate >"$TMP/internal-validate.out"
-"$KARVI" run --help >"$TMP/run-help.txt"
 json_get "$TMP/version.json" 'ssh_transports.*.id' | grep -qx scrapligo-v1
-grep -q 'status: available (scrapligo 1.4.3 compiled in)' "$TMP/run-help.txt"
-grep -q 'scrapligo: 1.4.3' "$TMP/version.txt"
-line=$(grep -n 'silently using OpenSSH\.$' "$TMP/run-help.txt" | cut -d: -f1)
-[ -n "$line" ]
-next=$((line + 1))
-[ -z "$(sed -n "${next}p" "$TMP/run-help.txt")" ]
+grep -q '^  native: compiled-in$' "$TMP/version.txt"
 
 # An operator-authored unavailable implementation is a configuration error even
 # if the corresponding slot is not selected by an activity.

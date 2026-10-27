@@ -2,7 +2,7 @@
 // planner's judgement of the operator's keys: whether both transports can
 // sign with it without a passphrase, and its public key's fingerprint. It is
 // the adapter that keeps golang.org/x/crypto/ssh out of the credential code,
-// as internal/adapters/scrapligov1 keeps it out of the session.
+// as internal/transport/native keeps it out of the session.
 package sshkey
 
 import (

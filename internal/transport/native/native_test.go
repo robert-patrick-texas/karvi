@@ -17,16 +17,6 @@ import (
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-func startFake(t *testing.T, opts fakedevice.Options) *fakedevice.Server {
-	t.Helper()
-	srv, err := fakedevice.Start(opts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(srv.Close)
-	return srv
-}
-
 func factory(t *testing.T, policy string, sets ...string) (Factory, string) {
 	t.Helper()
 	home := t.TempDir()

@@ -2,11 +2,7 @@
 // executables. Release automation sets the variables with -ldflags.
 package buildinfo
 
-import (
-	"runtime"
-	"sort"
-	"sync"
-)
+import "runtime"
 
 const (
 	AppName              = "karvi"
@@ -25,47 +21,20 @@ var (
 	FIPSMode = "false"
 )
 
-// SSHTransport describes an SSH implementation that is usable by this exact
-// executable. Entries are registered by build-composition files, so version
-// output never claims that an adapter is present merely because configuration
-// names it as a preference.
+// SSHTransport is one SSH transport this executable carries: the native
+// transport compiled in, and OpenSSH run as an external executable.
 type SSHTransport struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
 	Linkage string `json:"linkage"`
 }
 
-var transportRegistry = struct {
-	sync.RWMutex
-	items map[string]SSHTransport
-}{items: map[string]SSHTransport{}}
-
-func init() {
-	registerSSHTransport(SSHTransport{ID: "system", Name: "system", Linkage: "external-executable"})
-}
-
-func registerSSHTransport(t SSHTransport) {
-	transportRegistry.Lock()
-	defer transportRegistry.Unlock()
-	if t.ID == "" || t.Name == "" || t.Linkage == "" {
-		panic("buildinfo: incomplete SSH transport registration")
-	}
-	if _, exists := transportRegistry.items[t.ID]; exists {
-		panic("buildinfo: duplicate SSH transport registration: " + t.ID)
-	}
-	transportRegistry.items[t.ID] = t
-}
-
+// sshTransports are the two, by ID.
 func sshTransports() []SSHTransport {
-	transportRegistry.RLock()
-	defer transportRegistry.RUnlock()
-	out := make([]SSHTransport, 0, len(transportRegistry.items))
-	for _, item := range transportRegistry.items {
-		out = append(out, item)
+	return []SSHTransport{
+		{ID: "scrapligo-v1", Name: "native", Linkage: "compiled-in"},
+		{ID: "system", Name: "system", Linkage: "external-executable"},
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
-	return out
 }
 
 // Info is the stable version projection rendered by `karvi version`.
