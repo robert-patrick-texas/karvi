@@ -47,6 +47,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0380---2026-10-28">0.38.0 - 2026-10-28</a></li>
 <li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
 <li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
 <li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
@@ -77,8 +78,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -127,6 +128,7 @@
 <li><a href="docs/EXAMPLES.html">karvi worked examples</a></li>
 <li><a href="CHANGELOG.html" aria-current="page">Changelog</a>
 <ul class="sections">
+<li><a href="#0380---2026-10-28">0.38.0 - 2026-10-28</a></li>
 <li><a href="#0370---2026-10-27">0.37.0 - 2026-10-27</a></li>
 <li><a href="#0360---2026-10-26">0.36.0 - 2026-10-26</a></li>
 <li><a href="#0350---2026-10-21">0.35.0 - 2026-10-21</a></li>
@@ -157,8 +159,8 @@
 <li><a href="docs/BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="docs/CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="docs/DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -170,6 +172,38 @@
 </nav>
 <main>
 <h1 id="changelog">Changelog <a class="anchor" href="#changelog" aria-label="Link to this section">#</a></h1>
+<h2 id="0380---2026-10-28">0.38.0 - 2026-10-28 <a class="anchor" href="#0380---2026-10-28" aria-label="Link to this section">#</a></h2>
+<p>A minor release on 0.37.0 for the Cisco platforms' names, <code>cisco_ios</code> and
+<code>cisco_xr</code>. Every counter is 0.37.0's (configuration schema 6, registry 32,
+execution plan 15, plan report 4, scoreboard 5, daemon IPC 12, command record 4,
+job manifest and summary 5, credential package 2, audit 2, metrics 1,
+inventory 1), and Go and the modules are 0.37.0's. The old names are read
+wherever a platform name is read. A site has something to change where a script
+or a tool looks for <code>cisco_iosxe</code> or <code>cisco_iosxr</code> in a record, a job folder, or
+output, which carry <code>cisco_ios</code> and <code>cisco_xr</code>; where a glob was written for an
+old name; or where a configuration holds <code>[platform.cisco_ios]</code> beside
+<code>[platform.cisco_iosxe]</code> or <code>[platform.cisco_xe]</code>, refused
+<code>config_platform_name_invalid</code>. An operator's 0.37.0 daemon, of another build,
+is drained by the first submission after the upgrade.</p>
+<ul>
+<li><strong>Breaking: the Cisco platforms take the names the market uses.</strong> The built-in
+<code>cisco_iosxe</code> is <code>cisco_ios</code>, for IOS and IOS XE alike, and <code>cisco_iosxr</code> is
+<code>cisco_xr</code>, the names Netmiko and NTC's TextFSM templates give them; their
+definitions are unchanged, <code>--pi</code> and <code>--pr</code> are short for them, and
+<code>platform-resolution.default</code> ships as <code>cisco_ios</code>. The other spellings in
+use, <code>cisco_xe</code> and <code>cisco_iosxe</code> for <code>cisco_ios</code> and <code>cisco_iosxr</code> for
+<code>cisco_xr</code>, are read as the built-in's name wherever a platform name is read:
+an inventory row, a source default, <code>--platform</code>, <code>--select-platform</code>,
+<code>platform-resolution.default</code> and <code>platform-resolution.unknown-fallback</code>, a
+<code>[platform.NAME]</code> table's name and driver, and a map rule's or a credential
+row's <code>platform</code>. Records, job folders, and output carry the built-in's name
+where they carried <code>cisco_iosxe</code> or <code>cisco_iosxr</code>; a glob matches built-in
+names alone; and a configuration holding <code>[platform.cisco_ios]</code> beside
+<code>[platform.cisco_iosxe]</code> or <code>[platform.cisco_xe]</code> is refused
+(<code>config_platform_name_invalid</code>), the two being one platform. The
+configuration registry stays at 32 (<a href="docs/EXAMPLES.html#86-platform-names-the-markets-2026-10-28"><code>docs/EXAMPLES.md</code>, chapter
+86</a>).</li>
+</ul>
 <h2 id="0370---2026-10-27">0.37.0 - 2026-10-27 <a class="anchor" href="#0370---2026-10-27" aria-label="Link to this section">#</a></h2>
 <p>A minor release on 0.36.0 for the package's update from GitHub, <code>karvi-sysutil package update</code>, and the native transport as karvi's own, without scrapligo.
 The configuration registry moves to 32; every other counter is 0.36.0's
@@ -2038,7 +2072,7 @@ operator's private archive. Their executables are not installed anywhere
 outside the operator's own environment, and every release is installed as
 new.</p>
 
-<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>CHANGELOG.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

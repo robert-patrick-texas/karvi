@@ -130,6 +130,8 @@
 <li><a href="#82-the-native-transport-without-scrapligo-2026-10-27">82. The native transport without scrapligo (2026-10-27)</a></li>
 <li><a href="#83-config-show-refuses-a-key-it-cannot-show-2026-10-27">83. config show refuses a key it cannot show (2026-10-27)</a></li>
 <li><a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84. config show refuses --format beside keys (2026-10-27)</a></li>
+<li><a href="#85-the-release-0370-2026-10-27">85. The release 0.37.0 (2026-10-27)</a></li>
+<li><a href="#86-platform-names-the-markets-2026-10-28">86. Platform names: the market&#39;s (2026-10-28)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -141,8 +143,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -274,6 +276,8 @@
 <li><a href="#82-the-native-transport-without-scrapligo-2026-10-27">82. The native transport without scrapligo (2026-10-27)</a></li>
 <li><a href="#83-config-show-refuses-a-key-it-cannot-show-2026-10-27">83. config show refuses a key it cannot show (2026-10-27)</a></li>
 <li><a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84. config show refuses --format beside keys (2026-10-27)</a></li>
+<li><a href="#85-the-release-0370-2026-10-27">85. The release 0.37.0 (2026-10-27)</a></li>
+<li><a href="#86-platform-names-the-markets-2026-10-28">86. Platform names: the market&#39;s (2026-10-28)</a></li>
 </ul></li>
 <li><a href="../CHANGELOG.html">Changelog</a></li>
 <li><a href="../ROADMAP.html">Roadmap</a></li>
@@ -285,8 +289,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -18027,8 +18031,378 @@ suites for <code>config show</code> had missed under its abbreviation; and
 (<code>release-design-evidence/config-show-json-2026-10-27</code>: the two labs' scripts
 and logs, and the two batteries' logs, <code>battery-1</code> and the last beside it, with
 <code>battery.sh</code>).</p>
+<h2 id="85-the-release-0370-2026-10-27">85. The release 0.37.0 (2026-10-27) <a class="anchor" href="#85-the-release-0370-2026-10-27" aria-label="Link to this section">#</a></h2>
+<p>The eighteenth public release, 0.37.0, on the operator's word and number,
+carrying <a href="#81-the-package-update-karvi-sysutil-package-update-2026-10-27">chapter
+81</a>
+(<code>karvi-sysutil package update</code>), <a href="#82-the-native-transport-without-scrapligo-2026-10-27">chapter
+82</a> (the native
+transport without scrapligo), and chapters
+<a href="#83-config-show-refuses-a-key-it-cannot-show-2026-10-27">83</a> and
+<a href="#84-config-show-refuses---format-beside-keys-2026-10-27">84</a> (<code>config show</code>
+refusing a key it cannot show, and <code>--format</code> beside keys). A minor release:
+the configuration registry moves to 32, and a configuration or a script that
+names the native transport's old ID or a retired code changes (the
+CHANGELOG's Breaking entries). The daemon IPC schema stays 12, so the
+compatibility example is the drain, beside the released 0.36.0 daemon. The
+sequence is <a href="#75-the-release-0341-2026-10-20">chapter 75</a>'s as <a href="#80-the-release-0360-2026-10-26">chapter
+80</a> ran it. The operator gave the word to
+publish during the baseline. The build stopped once, at the artifacts, on the
+spool suite's timeout row; run again on the operator's word, the artifacts
+passed, and the build went on from the package's install check to the push.</p>
+<p><strong>What it gains.</strong> A site has chapters 81 to 84 from a published, checksummed
+bundle and package, with the documents on GitHub Pages at the release. A host
+on 0.36.0 takes this release by <code>apt install</code>, as before; from 0.37.0 on, <code>sudo karvi-sysutil package update</code> fetches and installs the next. The native
+transport is karvi's own, and scrapligo, gotextfsm, and pty leave the build.
+<code>config show</code> refuses what it cannot show, where it printed <code>error: not found</code>
+and exited 0.</p>
+<p><strong>Before the number.</strong> The archive's mirror was fetched to <code>2d47774</code>, <code>dev</code> as
+the session found it (= <code>origin/dev</code>, chapter 84). The bridge probe reached
+every address, and <code>/tmp</code> had 4.1 GB free. <code>latest.sh</code> found nothing behind, so
+nothing moved before the baseline: Go and the four modules are at 0.36.0's
+versions, and the other three left with chapter 82. <code>latest.sh</code> on the
+baseline's clean clone (its own lines):</p>
+<pre><code class="language-text">== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 4 modules /dev/shm/r370/base/karvi/go.mod requires
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+latest: Go and every module at their newest
+</code></pre>
+<p><strong>The number.</strong> <code>VERSION</code>, the <code>Makefile</code>, <code>buildinfo.Version</code>, and the two
+verifiers; the <code>## Unreleased</code> block became <code>## 0.37.0 - 2026-10-27</code> under a
+lead paragraph: a minor release on 0.36.0 for the package's update and the
+native transport as karvi's own, the registry at 32 and every other counter
+0.36.0's, scrapligo, gotextfsm, and pty out of the build, and what a site
+changes where a configuration sets <code>ssh.transports.native</code> or maps a custom
+slot to <code>builtin:ID</code> or a bare ID, or a script reads the ID <code>scrapligo-v1</code>,
+<code>--debug</code>'s <code>implementation=</code>, <code>config show</code>'s <code>error: not found</code>, or the
+registry artifact's <code>sensitive</code>, or looks for the two retired codes. The
+retired codes' release, <code>retiredV0370</code>, is the number, so nothing was renamed.
+<code>CHECKSUMS.sha256</code> has its four lines from the release-identity build.</p>
+<p><strong>The documents.</strong> 2/3 carries chapter 82 into the release's own record.
+<code>release/BUILD-RESULT.md</code>'s identity block loses its build-tag and scrapligo
+lines and reports <code>native: compiled-in</code>; its parity suite runs over <code>system</code>
+and <code>native</code>. In <code>release/release-manifest.json</code>, <code>native_dependency</code> and
+<code>build_tags</code> are removed, <code>included_binary_profile</code> is <code>native-linux-amd64</code>,
+<code>native_scrapligo_build</code> became <code>native_transport_checks</code>, and the vendored
+modules are the four.</p>
+<p><strong>The sequence, as run</strong>, from the archive's fetch shortly before the baseline
+at 20:09 to the site's check at 22:41 (UTC; 16:09 to 18:41, EDT):</p>
+<ul>
+<li>Before 20:09, the archive's mirror at <code>2d47774</code>; <code>latest.sh</code> exit 0; the
+bridge probe passed.</li>
+<li>20:09:24 to 20:19:27, the baseline on a clean clone of <code>2d47774</code>:
+<code>latest.sh</code>, gofmt, make, and the release verifier with its package and
+container steps, exit 0 each. The operator's word to publish without
+stopping came during it.</li>
+<li>20:19:43 to 20:20:26, the release-identity build, the compatibility
+example, and 1/3: the build <code>1bFnbnZ8vZu2v2U7sP-a</code> by go1.27.3; the 0.36.0
+daemon drained idle, refusing busy; <code>c3afd6a</code>.</li>
+<li>20:20:31 to 20:22:42, the core evidence: 1,107 named tests across 92
+packages, vet 0, both socket lengths exit 0, with 4.1 GB free in <code>/tmp</code>.</li>
+<li>20:23:25, the documents: <code>8259980</code> (2/3).</li>
+<li>20:23:31 to 20:34:16, the remaining evidence: the shipped checks exit 0, the
+release verifier exit 0 with the nineteen suites, the package, and its
+container test, the checksums unchanged by its rebuild; the replay skipped.</li>
+<li>20:34:47, 3/3, the tag, <code>main</code>: <code>07f3f0b</code>, <code>karvi-v0.37.0</code>, <code>main</code>
+fast-forwarded from <code>c26a320</code>.</li>
+<li>20:34:53, the artifacts: the bundle reproducible byte for byte; its own
+verifier, in the extraction, failed the spool suite's S4 with nothing
+settled by the cut, and no package was built. The stop for the operator.</li>
+<li>22:28:30 to 22:34:30, the artifacts again, on the operator's word: the
+bundle the same bytes and verified from its own archive; the package
+reproducible and checked against the extraction; 39,751,478 and 6,535,488
+bytes.</li>
+<li>22:35:06, the package installed in a throwaway <code>ubuntu:26.04</code>: <code>apt install</code> exit 0; the four installed executables <code>CHECKSUMS.sha256</code>'s;
+<code>karvi-audit --help</code> exit 0; 22 files under <code>/usr/share/karvi</code>.</li>
+<li>22:35:23 to 22:41, the push, the site, the GitHub release: <code>dev</code>, <code>main</code>,
+and the tag pushed; <code>pages.sh</code> pushed the release's site (<code>a9e07c7</code>), its
+50 files 200 and its footer <code>karvi-v0.37.0</code>; release <code>karvi-v0.37.0</code> with
+the five assets, marked latest, its body the notes file; the assets
+downloaded back match, and <code>releases/latest</code> redirects to the tag, the
+redirect <code>package update</code> reads.</li>
+</ul>
+<p><strong>Executed.</strong> The compatibility example's turning points
+(<code>release/evidence/ipc-schema-compat.log</code>), the spool suite's S4 in the two
+artifacts runs, and the published state:</p>
+<pre><code class="language-text">[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.36.0 build=kXY4cc6JRtLekvXNL0My
+daemon started socket=/dev/shm/r370/compat/base/socket/d.sock
+pid 1936091 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build kXY4cc6JRtLekvXNL0My 0.36.0
+  client build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 1936200 gone
+# the artifacts, run 1: the bundle's verifier in its extraction
+spool smoke: FAIL: S4 timeout: only 0 bytes settled by the cut
+suite lane 3 failed
+artifacts: [2] verify-bundle.sh exited 1 in the bundle's extraction (/dev/shm/r370/art/bundle-verify.log)
+# the artifacts, run 2
+spool smoke: S4 the limit (20000 held, 20147 observed), the timeout, the cancel, and the lost session record their settled bytes
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.37.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.37.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.37.0-source-linux-amd64.tar.gz: OK
+karvi_0.37.0_amd64.deb: OK
+</code></pre>
+<p><strong>The stop.</strong> The first artifacts run failed the spool suite's S4 while
+another project's tests and a headless browser held the host's load at 10.6
+on its four CPUs. The release verifier had passed the same row on the same
+bytes ten minutes before. The failure is <a href="../ROADMAP.html#later">ROADMAP</a>'s
+&quot;The spool suite's timeout row waiting on a condition&quot;: what settles by a
+one-second cut follows the disk under the spool. A failed release step is not
+run again without the operator's word, so the build stopped, and the failure
+went to the operator with the two ways on: run the artifacts again, or fix the
+row first. The operator chose the rerun, at a load near 0.3, and it passed.</p>
+<p><strong>Not taken.</strong> Fixing the row before the artifacts: a design session on the
+ROADMAP item, a new commit on <code>dev</code>, and 2/3, 3/3, and the tag made again
+(nothing was pushed, so the local tag could move), for a row that tests the
+spool, not the shipped executables. The fix stays the ROADMAP item.</p>
+<p><strong>Found on the way.</strong></p>
+<ul>
+<li><code>karvi</code> is 94,208 bytes smaller without the three modules; <code>karvi-prune</code>
+is 4,096 bytes larger; <code>karvi-askpass</code> and <code>karvi-audit</code> are the same size;
+the bundle is 94,612 bytes smaller and the package 2,598.</li>
+<li>The default configuration's evidence no longer sets
+<code>ssh.transports.native</code>, so 3/3 carries ten evidence files, the default
+configuration among them; the module metadata of the four executables names
+<code>x/crypto</code>, <code>x/sys</code>, and <code>x/term</code> alone.</li>
+<li>In the throwaway container <code>man karvi-audit</code> has no page, as in chapters 67,
+70, 73, 75, 77, and 80: the minimal image leaves out <code>/usr/share/man</code>.</li>
+</ul>
+<p>The evidence is kept beside the tree (<code>release-design-evidence/v0370-*</code>: the
+timeline, the baseline with <code>latest.sh</code>'s output, the build, the
+compatibility example, the 1/3 and 2/3 patches, the two artifacts runs with
+their bundle verifier logs, <code>check-deb</code>, the container install, and the
+release notes).</p>
+<h2 id="86-platform-names-the-markets-2026-10-28">86. Platform names: the market's (2026-10-28) <a class="anchor" href="#86-platform-names-the-markets-2026-10-28" aria-label="Link to this section">#</a></h2>
+<p>Opened on the operator's question: what changing <code>cisco_iosxr</code> to <code>cisco_xr</code>
+needs. The built-in names are scrapligo's (<code>cisco_iosxe</code>, <code>cisco_iosxr</code>,
+<code>cisco_nxos</code>, <code>juniper_junos</code>, <code>arista_eos</code>), and scrapligo left the build in
+chapter 82. The operator's review of the leading references, Netmiko and NTC's
+TextFSM templates among them, found <code>cisco_ios</code> the most common name for IOS
+and IOS XE alike, with <code>cisco_xe</code> and <code>cisco_iosxe</code> other spellings of it
+rather than another platform, and <code>cisco_xr</code> the most common for IOS XR, with
+<code>cisco_iosxr</code> its other spelling. Netmiko gives <code>cisco_ios</code> and <code>cisco_xe</code> one
+driver class.</p>
+<p><strong>What it gains.</strong> An operator's inventory written for Netmiko, NTC's
+templates, or scrapli names a karvi platform as it stands: one thing fewer to
+change in adopting karvi. It waits on nothing. The cost: records, collection
+files, and output name <code>cisco_ios</code> and <code>cisco_xr</code> where they named
+<code>cisco_iosxe</code> and <code>cisco_iosxr</code>, and until the spellings are built (section 3)
+the old names are refused as unknown.</p>
+<p><strong>Executed.</strong> <code>run.sh</code> runs a scratch test in the tree's <code>platform</code> package
+through <code>go test -overlay</code>, the tree unchanged, at <code>ad796ea</code>; the third run puts
+<code>resolve-spellings.go</code>, whose <code>Normalize</code> reads <code>cisco_xe</code> and <code>cisco_ios</code> as
+<code>cisco_iosxe</code>, in place of <code>resolve.go</code>:</p>
+<pre><code>$ release-design-evidence/platform-names-2026-10-28/run.sh karvi
+== tree ad796ea, go version go1.27.3 linux/amd64
+== TestAliasToday
+cisco_ios known=true name=cisco_ios driver=cisco_iosxe base=cisco_iosxe masks=19 levels=4
+identical to cisco_iosxe apart from its name: true
+ok  	github.com/robert-patrick-texas/karvi/platform	0.004s
+== TestAliasTuned
+cisco_iosxe  base=cisco_iosxe session-cap=2 masks=0
+cisco_xe     base=cisco_iosxe session-cap=5 masks=19
+ok  	github.com/robert-patrick-texas/karvi/platform	0.003s
+== TestSpellings (resolve-spellings.go)
+cisco_iosxe  known=true name=cisco_iosxe session-cap=2 masks=0
+cisco_xe     known=true name=cisco_iosxe session-cap=2 masks=0
+Cisco_IOS    known=true name=cisco_iosxe session-cap=2 masks=0
+ok  	github.com/robert-patrick-texas/karvi/platform	0.004s
+</code></pre>
+<p>A site's alias table (<code>[platform.cisco_ios]</code>, <code>driver = &quot;cisco_iosxe&quot;</code>) is the
+built-in apart from its name, until the site tunes the built-in:
+<code>TestAliasTuned</code>'s site lowers <code>cisco_iosxe</code>'s session cap to 2 and turns its
+masks off, and the alias keeps 5 and 19, the built-in untuned. A map rule's
+<code>platform</code> (<code>credential-policy-map</code>, <code>ssh-algorithms-map</code>, a session-init
+rule, a credential CSV row) matches the row's own name
+(<code>internal/matching/rule.go</code>), so a rule for one name never reaches the other.
+<code>platform.Normalize</code> is already called wherever a platform name is read, for
+case; a spelling read there leaves no second name behind it.</p>
+<p><strong>The rule, agreed.</strong> In simple terms: karvi's built-ins take the names the
+market uses, the other spellings in use are read as those names wherever a
+name is read, and nothing after the read sees a second name.</p>
+<ol>
+<li>The built-ins are <code>generic</code>, <code>cisco_ios</code> (IOS and IOS XE: the definition
+<code>cisco_iosxe</code> had, none of it particular to IOS XE), <code>cisco_xr</code>,
+<code>cisco_nxos</code>, <code>juniper_junos</code>, <code>arista_eos</code>, <code>linux</code>, and <code>linux_shell</code>.</li>
+<li><code>cisco_xe</code> and <code>cisco_iosxe</code> are read as <code>cisco_ios</code>, and <code>cisco_iosxr</code> as
+<code>cisco_xr</code>, wherever a platform name is read, as its case is: inventory rows
+and source defaults, <code>--platform</code>, <code>platform-resolution.default</code> and
+<code>platform-resolution.unknown-fallback</code>, <code>[platform.NAME]</code> table names and
+drivers, and a map rule's <code>platform</code>. Records, tables, rules, collection
+files, and output name the built-in; a glob matches built-in names alone;
+two tables read as one platform are refused, as two cases of one name are.
+A spelling, a deliberate choice, draws no warning.</li>
+<li>A <code>[platform.NAME]</code> table with a driver is a derived definition, for a
+device family that differs (<code>[platform.asr9k]</code> in <code>docs/COLLECTION.md</code>),
+never a spelling. The generated configuration adds no tables.</li>
+<li><code>--pi</code> (<code>cisco_ios</code>) and <code>--pr</code> (<code>cisco_xr</code>) keep their spellings.
+Netmiko's <code>_telnet</code> names are not taken, the transport being chosen apart;
+another spelling (Netmiko's <code>juniper</code>) is added when an inventory brings it.</li>
+</ol>
+<p>Not taken:</p>
+<ul>
+<li><code>cisco_xr</code> alone, the first answer: a set mixing Netmiko's names with
+scrapli's.</li>
+<li>Netmiko's <code>cisco_xe</code> as the built-in and <code>cisco_ios</code> a site's table: the
+references name both <code>cisco_ios</code>, and the table inherits the built-in
+untuned (<code>TestAliasTuned</code>).</li>
+<li>scrapli's names kept, with <code>cisco_ios</code>, <code>cisco_xe</code>, and <code>cisco_xr</code> shipped as
+aliases, in code as <code>linux_shell</code> is or as tables in the generated
+configuration: each keeps its own name past the read, so a table's tuning
+and a map rule reach one spelling alone and a missed copy fails silently;
+records name one kind of device three ways; tables in the generated
+configuration reach only a site that generates one anew.</li>
+<li>Aliases keeping their own name, their tables following the base's and rules
+matching the base: a new mechanism, where <code>Normalize</code>, called at every read
+already, gives the same with none.</li>
+<li><code>--pi</code> and <code>--pr</code> renamed: a change with no gain.</li>
+</ul>
+<p><strong>The build, in three sections</strong>, each committed on the operator's word:</p>
+<ol>
+<li><code>cisco_iosxr</code> becomes <code>cisco_xr</code> (49 lines in 30 files): the definition,
+the native transport's admitted list, <code>--pr</code>, the help, the generated
+configuration and manual pages, the tests and the mask corpus
+(<code>platform/testdata/masks/cisco_xr.txt</code>), the current documents, and the
+CHANGELOG's Unreleased entry.</li>
+<li><code>cisco_iosxe</code> becomes <code>cisco_ios</code> (464 lines in 105 files, the suites among
+them); the full battery after it.</li>
+<li>The spellings in <code>Normalize</code>, <code>Builtin</code> reading through it, a map rule's
+<code>platform</code> read through it, the duplicate table's refusal naming the
+spelling, the help and manual pages listing the spellings, DESIGN's entry,
+and their tests; the full battery after it, and this chapter's Built record.</li>
+</ol>
+<p>History stays: the CHANGELOG's released entries, the chapters before this one,
+<code>release/evidence/default-config.toml</code> (rewritten at the next release), the
+mask corpus's note naming its scratch check <code>s4-iosxr-masks.go</code>, and Oxidized's
+model name <code>iosxr</code> in <code>docs/COLLECTION.md</code>. The Go names <code>ciscoIOSXRLevels</code>,
+<code>iosxrMasks</code>, and their IOS XE counterparts stay: they name the operating
+system the lists were written from.</p>
+<p>The evidence is kept beside the tree
+(<code>release-design-evidence/platform-names-2026-10-28</code>: <code>run.sh</code>,
+<code>alias_test.go</code>, <code>resolve-spellings.go</code>, and <code>run.log</code>).</p>
+<p><strong>Built.</strong> In three sections, each committed and pushed on the operator's word:</p>
+<ol>
+<li><code>02b97ae</code>, <code>cisco_iosxr</code> becomes <code>cisco_xr</code> (28 files): the builtins table
+and <code>Builtins</code>' order, the native transport's admitted list, <code>--pr</code>, the help
+and the reference configuration's comment, with the reference configuration
+and the four manual pages regenerated; the tests and the mask corpus
+(<code>platform/testdata/masks/cisco_xr.txt</code>); COLLECTION, DESIGN, OPERATIONS, and
+TRANSPORT-DRIVER-ARCHITECTURE. Verified: vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (71 packages).</li>
+<li><code>6056169</code>, <code>cisco_iosxe</code> becomes <code>cisco_ios</code> (100 files): as section 1, with
+<code>--pi</code>, <code>platform-resolution.default</code>'s shipped value (the registry stays at
+32: three earlier changed defaults never moved it), the suites, the
+examples, and the corpus <code>cisco_ios.txt</code>. Where the platform read as IOS XE
+alone (<code>crun</code>'s manual example, COMMAND-TROUBLESHOOTING, the IOS XE
+qualification) it reads IOS and IOS XE. The case-folding tests spell
+<code>cisco_ios</code> in mixed case (<code>Cisco_IOSXE</code> had escaped a lowercase rename),
+and the k03 draft is re-pinned for the configuration block's value and its
+digest. The full battery: build, vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (71 packages), and the 19 suites in 247 seconds, each exit 0.</li>
+<li>The spellings, in the commit carrying this record:
+<ul>
+<li><code>platform.Normalize</code> reads <code>cisco_xe</code> and <code>cisco_iosxe</code> as <code>cisco_ios</code>, and
+<code>cisco_iosxr</code> as <code>cisco_xr</code>, after case and spaces; <code>Builtin</code> reads its
+name through it.</li>
+<li><code>matching.PlatformValue</code> reads a platform selector's literal through
+<code>Normalize</code>, its <code>!</code> kept and a glob left as written: a map rule's and a
+credential row's <code>platform</code> compile through it, and so does
+<code>--select-platform</code> at assembly (its check before assembly already went
+through <code>Known</code>).</li>
+<li>The duplicate table's refusal names a built-in's other spelling. The
+<code>--platform</code> help, the reference configuration's comment, and the manual
+pages name the spellings; ARCHITECTURE's set platform and DESIGN's known
+platform set say so, and DESIGN gains the entry &quot;The built-ins carry the
+market's names, and the other spellings read as them&quot;. The CHANGELOG's
+Unreleased entry says the old names are read, no longer refused.</li>
+<li>The tests: <code>TestSpellingsReadAsTheBuiltin</code> (the site's tuning of
+<code>cisco_ios</code> reaching each spelling, and a table spelled <code>cisco_xe</code> being
+<code>cisco_ios</code>'s, listed once) and <code>TestPlatformValue</code>, with spelling cases in
+<code>TestNormalize</code>, <code>TestSelectRule</code>, <code>TestRowCells</code>,
+<code>TestPlatformTableValidation</code> (two tables read as one platform refused; a
+table and a driver by spelling accepted), <code>TestPlatformNamesNormalise</code> (a
+row and a source default), <code>TestCheckPlatformOption</code>,
+<code>TestAssemblePlatformSelectorKnown</code>, <code>TestAssembleSelectorGrammar</code>, and
+<code>TestResolvePlatform</code>.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Executed after the build.</strong> <code>s3-lab.sh</code>: a lab build of the tree with section
+3, from a copy in <code>/dev/shm</code>, with an inventory of four rows and a
+<code>[platform.cisco_ios]</code> table setting <code>ssh-port = 2222</code>, removed after; <code>run --dry-run</code> contacts no device, and the credential is the environment's
+(<code>NETUSER</code>, <code>NETPASS</code>). The script marks standard output <code>out|</code> and standard
+error <code>err|</code>; the inventory, then the reports' targets:</p>
+<pre><code>$ cat inv.csv
+  name,management_address,platform
+  r1,192.0.2.1,cisco_ios
+  r2,192.0.2.2,cisco_iosxe
+  r3,192.0.2.3,Cisco_XE
+  r4,192.0.2.4,cisco_iosxr
 
-<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.37.0</code>.</footer>
+$ grep -E '^\$ karvi|targets:|- name:|intended:|err\||exit' s3-lab.log
+$ karvi run --dry-run --all --cmd show clock
+  out| targets: 4 (client 4, daemon 0)
+  out| - name:r1: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r2: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r3: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r4: planned
+  out|   intended: ping=disabled transport=native port=22 platform=cisco_xr channel=shell
+  exit 0
+$ karvi run --dry-run --select-platform cisco_xe --cmd show clock
+  out| targets: 3 (client 3, daemon 0)
+  out| - name:r1: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r2: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r3: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  exit 0
+$ karvi run --dry-run --target r4 --platform CISCO_IOSXE --cmd show clock
+  out| targets: 1 (client 1, daemon 0)
+  out| - name:r4: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  exit 0
+$ karvi --set platform.cisco_iosxe.session-cap=2 config validate
+  err| config_platform_name_invalid: names compare without regard to case, spaces, or a built-in's other spelling: this table and [platform.cisco_ios] are one platform &quot;cisco_ios&quot; for platform.cisco_iosxe.session-cap at --set[1]
+  exit 2
+</code></pre>
+<p>The rows spelled <code>cisco_iosxe</code> and <code>Cisco_XE</code> run as <code>cisco_ios</code> on the site's
+port, <code>cisco_iosxr</code> as <code>cisco_xr</code>; <code>--select-platform cisco_xe</code> selects the
+three <code>cisco_ios</code> rows, and <code>--platform CISCO_IOSXE</code> runs <code>r4</code> as <code>cisco_ios</code>.</p>
+<p>The full battery on a lab copy of the tree with section 3 (<code>battery.sh</code>, a copy
+in <code>/var/tmp</code>, <code>TMPDIR=/var/tmp</code>): build, vet, <code>make generated-clean</code>, <code>go test -count=1 ./...</code> (71 packages), and the 19 suites by <code>run_suites</code> in 241 seconds,
+each exit 0, at a load of 0.5; none left a <code>/var/tmp/karvi-&lt;uid&gt;</code>,
+<code>/dev/shm/karvi</code>, <code>~/.local/share/karvi</code>, or karvi process (<code>/tmp/karvi-1000</code>,
+empty and there before the session, unchanged). The first run (<code>s3-battery</code>)
+failed the spool suite's S4 (&quot;only 0 bytes settled by the cut&quot;) at a load of
+10.5 from another project's work on the host's four CPUs, as in chapter 85; on
+the operator's word the battery ran again once the load had dropped
+(<code>wait-battery.sh</code>), the tree unchanged between the two.</p>
+<p>Found, for the release: <code>release/release-manifest.json</code> names the real-device
+qualification <code>real_cisco_iosxe</code> (0.37.0's manifest, history); the next
+release's manifest names it by the new name.</p>
+<p><strong>Closed.</strong> The evidence is kept beside the tree
+(<code>release-design-evidence/platform-names-2026-10-28</code>: the design's <code>run.sh</code>,
+<code>alias_test.go</code>, <code>resolve-spellings.go</code>, and <code>run.log</code>; <code>s1-go-test.log</code>,
+<code>s2-go-test.log</code>, and <code>s3-go-test.log</code>; <code>s3-lab.sh</code> and <code>s3-lab.log</code>;
+<code>battery.sh</code>, <code>wait-battery.sh</code>, and the batteries' logs, <code>s2-battery</code>,
+<code>s3-battery</code>, and <code>s3-battery-2</code>).</p>
+
+<footer>Generated from <code>docs/EXAMPLES.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

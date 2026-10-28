@@ -69,8 +69,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -141,8 +141,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -233,7 +233,7 @@ The session adds two steps between the first prompt and the first requested
 command, both from the platform definition:</p>
 <ol>
 <li><strong>Privilege.</strong> The first prompt is matched against the platform's
-prompt levels (<code>cisco_iosxe</code>: <code>exec</code> at <code>&gt;</code>, <code>privilege-exec</code> at <code>#</code>,
+prompt levels (<code>cisco_ios</code>: <code>exec</code> at <code>&gt;</code>, <code>privilege-exec</code> at <code>#</code>,
 <code>configuration</code> at <code>(config)#</code>). A shell that starts below the
 platform's <code>privileged-level</code> gets one <code>enable</code>, the enable secret at
 the password prompt, and must show the privileged prompt within
@@ -350,7 +350,7 @@ trailing blanks. The prompt the command was typed at holds its columns on the
 first line and is no part of the text. A repeated line matching the
 command later in legitimate device output is not silently discarded. A
 device-reported command error is the platform definition's failure
-patterns (<code>% Invalid input detected</code> and its siblings for <code>cisco_iosxe</code>);
+patterns (<code>% Invalid input detected</code> and its siblings for <code>cisco_ios</code>);
 <code>generic</code> reports none.</p>
 <h2 id="echo">Echo <a class="anchor" href="#echo" aria-label="Link to this section">#</a></h2>
 <pre><code class="language-bash">karvi command router1 --echo --cmd 'show clock'
@@ -395,7 +395,7 @@ from the first, the login banner and the setup (<code>enable</code>, the paging 
 included, each command as the device echoes it, and the footer after the
 session's end. Nothing waits for a command to complete, so the lines of a long
 <code>show</code> are seen as they come:</p>
-<pre><code class="language-text">! router1 [192.0.2.1] platform=cisco_iosxe user=bob backend=env transport=native
+<pre><code class="language-text">! router1 [192.0.2.1] platform=cisco_ios user=bob backend=env transport=native
 
 Router&gt;enable
 Password: &lt;removed&gt;
@@ -473,7 +473,7 @@ the connection serving the next command, so the policy applies to them too. A
 refused channel or exec request, a lost connection, the device timeout, and a
 keepalive expiry end the session.</p>
 
-<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-SESSION.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

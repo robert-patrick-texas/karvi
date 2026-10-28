@@ -65,8 +65,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -290,11 +290,11 @@ server's list is its own (<a href="#21-servers-linux-and-linux_shell">section 2.
 </thead>
 <tbody>
 <tr>
-<td><code>cisco_iosxe</code></td>
+<td><code>cisco_ios</code></td>
 <td><code>show running-config</code>, <code>show version</code></td>
 </tr>
 <tr>
-<td><code>cisco_iosxr</code></td>
+<td><code>cisco_xr</code></td>
 <td><code>show running-config</code>, <code>show version</code></td>
 </tr>
 <tr>
@@ -390,8 +390,8 @@ whole picture. A command a device does not know is a rejected statement:
 its block is the device's error text and the file is still replaced, so a
 list can carry a command only some models answer, at the cost of one error
 block in those that do not.</p>
-<h3 id="31-cisco_iosxe-cisco-ios-and-ios-xe">3.1 <code>cisco_iosxe</code> (Cisco IOS and IOS XE) <a class="anchor" href="#31-cisco_iosxe-cisco-ios-and-ios-xe" aria-label="Link to this section">#</a></h3>
-<pre><code class="language-toml">[platform.cisco_iosxe]
+<h3 id="31-cisco_ios-cisco-ios-and-ios-xe">3.1 <code>cisco_ios</code> (Cisco IOS and IOS XE) <a class="anchor" href="#31-cisco_ios-cisco-ios-and-ios-xe" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.cisco_ios]
 crun-commands = [
   &quot;show version&quot;,                 # both tools
   &quot;show inventory&quot;,               # both tools (RANCID: show inventory raw)
@@ -443,8 +443,8 @@ crun-commands = [
 <p>RANCID first sends <code>term no monitor-force</code>, a session setting, not a
 collection command; karvi's platform table holds such lines in
 <code>paging-commands</code>. Not carried: <code>show processes log vdc-all</code>, <code>show environment fex all fan</code>, <code>dir debug:</code>, <code>dir slot0:</code>, <code>dir usb2:</code>.</p>
-<h3 id="33-cisco_iosxr-cisco-ios-xr">3.3 <code>cisco_iosxr</code> (Cisco IOS XR) <a class="anchor" href="#33-cisco_iosxr-cisco-ios-xr" aria-label="Link to this section">#</a></h3>
-<pre><code class="language-toml">[platform.cisco_iosxr]
+<h3 id="33-cisco_xr-cisco-ios-xr">3.3 <code>cisco_xr</code> (Cisco IOS XR) <a class="anchor" href="#33-cisco_xr-cisco-ios-xr" aria-label="Link to this section">#</a></h3>
+<pre><code class="language-toml">[platform.cisco_xr]
 crun-commands = [
   &quot;show version&quot;,                        # RANCID: admin show version
   &quot;show inventory all&quot;,                  # Oxidized (RANCID: admin show inventory raw)
@@ -518,7 +518,7 @@ its own <code>crun-commands</code>. This is the recommended way to collect what 
 model answers without sending every model every command:</p>
 <pre><code class="language-toml"># Catalyst 9300 stacks: the stack, the SDM template, the licences
 [platform.c9300]
-driver = &quot;cisco_iosxe&quot;
+driver = &quot;cisco_ios&quot;
 crun-commands = [
   &quot;show version&quot;, &quot;show inventory&quot;, &quot;show switch detail&quot;, &quot;show sdm prefer&quot;,
   &quot;show license summary&quot;, &quot;show vlan&quot;, &quot;show vtp status&quot;, &quot;show running-config&quot;,
@@ -526,7 +526,7 @@ crun-commands = [
 
 # Catalyst 9500 with StackWise Virtual
 [platform.c9500]
-driver = &quot;cisco_iosxe&quot;
+driver = &quot;cisco_ios&quot;
 crun-commands = [
   &quot;show version&quot;, &quot;show inventory&quot;, &quot;show stackwise-virtual&quot;, &quot;show redundancy&quot;,
   &quot;show module&quot;, &quot;show license summary&quot;, &quot;show running-config&quot;,
@@ -534,7 +534,7 @@ crun-commands = [
 
 # ISR and Catalyst 8000 edge routers: install mode and the platform
 [platform.c8300]
-driver = &quot;cisco_iosxe&quot;
+driver = &quot;cisco_ios&quot;
 crun-commands = [
   &quot;show version&quot;, &quot;show inventory&quot;, &quot;show platform&quot;, &quot;show install active&quot;,
   &quot;show license summary&quot;, &quot;show running-config&quot;,
@@ -559,7 +559,7 @@ crun-commands = [
 
 # ASR 9000: the line cards' firmware and the admin plane
 [platform.asr9k]
-driver = &quot;cisco_iosxr&quot;
+driver = &quot;cisco_xr&quot;
 crun-commands = [
   &quot;show version&quot;, &quot;show inventory all&quot;, &quot;show platform&quot;, &quot;show redundancy&quot;,
   &quot;show install active&quot;, &quot;show hw-module fpd location all&quot;,
@@ -624,7 +624,7 @@ directory is named by the device as before: the model does not appear
 in the file name.</li>
 </ol>
 <p>Two rules keep the lists honest. An alias inherits the built-in
-definition of its driver, not a site's <code>[platform.cisco_iosxe]</code> table, so
+definition of its driver, not a site's <code>[platform.cisco_ios]</code> table, so
 an alias without <code>crun-commands</code> of its own sends the built-in list (the
 configuration and the version), whatever the site set on the base; a
 model's table names its whole list. A command only some models answer
@@ -730,11 +730,11 @@ the configuration last changed (<code>! Last configuration change at …</code>,
 </thead>
 <tbody>
 <tr>
-<td><code>cisco_iosxe</code></td>
+<td><code>cisco_ios</code></td>
 <td><code>^Building configuration\.\.\.$</code>, <code>^Current configuration : \d+ bytes$</code>, <code>^ntp clock-period \d+$</code>, <code>uptime is</code>, <code>^Load for five secs</code>, <code>^Time source is </code></td>
 </tr>
 <tr>
-<td><code>cisco_iosxr</code></td>
+<td><code>cisco_xr</code></td>
 <td><code>^Building configuration\.\.\.$</code>, <code>uptime is</code></td>
 </tr>
 <tr>
@@ -763,7 +763,7 @@ the configuration last changed (<code>! Last configuration change at …</code>,
 the filter off for that platform, and an alias (a model table of section
 4) inherits its driver's built-in list unless it sets its own. Write the
 patterns in TOML literal strings, so a backslash stays one:</p>
-<pre><code class="language-toml">[platform.cisco_iosxe]
+<pre><code class="language-toml">[platform.cisco_ios]
 crun-filters = [
   '^Building configuration\.\.\.$',
   '^Current configuration : \d+ bytes$',
@@ -775,7 +775,7 @@ crun-filters = [
 ]
 
 [platform.c9300]
-driver = &quot;cisco_iosxe&quot;
+driver = &quot;cisco_ios&quot;
 crun-filters = []                   # this model's files raw
 </code></pre>
 <p>A pattern that does not compile refuses the configuration before any
@@ -807,7 +807,7 @@ matched against a line without its terminator, or a marker's statement
 without its <code>! </code>; the text of every capturing group of every match is replaced
 by <code>&lt;removed&gt;</code>, text two groups cover once, and a group that matched nothing
 is left alone. A collection file is masked by its device's own platform's
-list. <code>cisco_iosxe</code> (19 patterns), <code>cisco_iosxr</code> (15), <code>cisco_nxos</code> (13),
+list. <code>cisco_ios</code> (19 patterns), <code>cisco_xr</code> (15), <code>cisco_nxos</code> (13),
 <code>arista_eos</code> (13), and <code>juniper_junos</code> (10, Junos's own <code>## SECRET-DATA</code> tag
 among them) each have a built-in list, written for a statement as sent and a
 line as the device prints it alike; <code>linux</code>, <code>linux_shell</code>, and <code>generic</code> have
@@ -823,8 +823,8 @@ statement the audit records, always, whatever <code>crun.mask</code> says
 <p>A pattern that does not compile, or holds no group, refuses the
 configuration before any device is contacted (<code>config_platform_mask_invalid</code>,
 exit 2, naming the table and the pattern):</p>
-<pre><code class="language-text">$ karvi --set &quot;platform.cisco_iosxe.masks=['(']&quot; config validate
-config_platform_mask_invalid: pattern 1 &quot;(&quot; does not compile: error parsing regexp: missing closing ): `(` for platform.cisco_iosxe.masks at --set[1]
+<pre><code class="language-text">$ karvi --set &quot;platform.cisco_ios.masks=['(']&quot; config validate
+config_platform_mask_invalid: pattern 1 &quot;(&quot; does not compile: error parsing regexp: missing closing ): `(` for platform.cisco_ios.masks at --set[1]
 </code></pre>
 <p>An operator who needs one run's files whole writes <code>karvi --set crun.mask=false crun …</code>, unless the site has locked the key in its global
 file (<code>[config-lock] &quot;crun.mask&quot; = true</code>), which refuses the <code>--set</code>
@@ -895,7 +895,7 @@ change to one changes both.</li>
 <code>/usr/share/karvi/cron/karvi-crun</code>: the schedule's two forms.</li>
 </ul>
 
-<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/COLLECTION.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

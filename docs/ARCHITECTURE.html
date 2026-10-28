@@ -67,8 +67,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -137,8 +137,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -203,26 +203,27 @@ channel).</p>
 <p><strong>Where a platform is resolved.</strong> A device's platform has two values with one
 boundary between them. The <em>set</em> platform is what the inventory row, the
 source's <code>defaults.platform</code>, or <code>--platform</code> gave, normalised (trimmed,
-lowercase) by the loader, <code>inventory.Direct</code>, and the <code>--platform</code> override
-(<code>app.withPlatform</code>: the first device in <code>login</code> and <code>command</code>, every device of
-the assembled set in <code>run</code>, <code>app.overridePlatform</code>); a device without one stays
-blank, and the loader never reads the resolution keys. What a device is <em>matched
-on</em> is <code>planner.SetPlatformFunc</code> over the set platform: blank for a blank field
-and, under <code>platform-resolution.on-unknown = &quot;warn&quot;</code>, for an unknown name; the
+lowercase, a built-in's other spelling read as its name) by the loader,
+<code>inventory.Direct</code>, and the <code>--platform</code> override (<code>app.withPlatform</code>: the first
+device in <code>login</code> and <code>command</code>, every device of the assembled set in <code>run</code>,
+<code>app.overridePlatform</code>); a device without one stays blank, and the loader never
+reads the resolution keys. What a device is <em>matched on</em> is
+<code>planner.SetPlatformFunc</code> over the set platform: blank for a blank field and,
+under <code>platform-resolution.on-unknown = &quot;warn&quot;</code>, for an unknown name; the
 target-set assembly's <code>--select-platform</code> selector and the credential planner's
 device view (which the credential-policy and session-init maps read) are its two
 readers, so a not-set or fallen-back device is matched by no <code>--select-platform</code>
 selector and no map <code>platform</code> rule. The two readers stand on either side of the
 override: the selector matches while the set is assembled, on what the inventory
 gave, and <code>--platform</code> acts on the assembled set, so the maps, the plan, and
-every record see the platform the device runs as (<code>--select-platform generic --platform cisco_iosxe</code> runs the inventory's generic rows as IOS XE). The
+every record see the platform the device runs as (<code>--select-platform generic --platform cisco_ios</code> runs the inventory's generic rows as IOS XE). The
 <em>platform used</em> is produced once, over the whole set, by
 <code>planner.ResolvePlatforms</code>, first in the plan draft before the daemon gate, the
 transport preflight, and the address plan: a known set platform as named; an
 unknown one refused with <code>platform_unknown</code> under <code>fail</code>, every unknown value in
 one message, or run as <code>platform-resolution.unknown-fallback</code> under <code>warn</code>; a
 blank one, and a direct target without <code>--platform</code>, as
-<code>platform-resolution.default</code> (<code>cisco_iosxe</code> as shipped), <code>generic</code> when the key
+<code>platform-resolution.default</code> (<code>cisco_ios</code> as shipped), <code>generic</code> when the key
 is empty. Each resolution carries at most one notice (<code>platform_not_set</code> for an
 inventory row, none for a direct target; <code>platform_unknown_fallback</code>), which the
 draft puts on the plan target's <code>notices</code> (present only when nonempty) and
@@ -847,7 +848,7 @@ rehearsals detect the capability without probing and report it as
 device from the <code>display.ping.header</code> template, with details and the notice
 under <code>--debug</code>.</p>
 
-<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/ARCHITECTURE.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -94,8 +94,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -191,8 +191,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -243,15 +243,15 @@ of its executable, equal the client's. The next submission (<code>run</code>, <c
 <code>--exercise</code>, <code>--detach</code>, a stream's job, or <code>daemon start</code>) drains a daemon of
 another build. Holding no job, it exits at once, and the client starts one of
 its own build in the same invocation:</p>
-<pre><code>daemon drained version=0.36.0 build=kXY4cc6JRtLekvXNL0My
+<pre><code>daemon drained version=0.37.0 build=1bFnbnZ8vZu2v2U7sP-a
 daemon started socket=/home/netops/.local/share/karvi/socket/d.sock
 </code></pre>
 <p>Holding jobs, the drained daemon finishes them and exits after the last,
 killing nothing. Until then every submission is refused, the daemon's build
 over the client's:</p>
 <pre><code>daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build kXY4cc6JRtLekvXNL0My 0.36.0
-  client build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+  daemon build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+  client build XVaquK8HnILbatvlhwRi 0.38.0
 </code></pre>
 <p>Meanwhile <code>karvi run --no-daemon</code> runs in the foreground, and <code>karvi job follow</code> and <code>karvi job cancel</code> reach the draining daemon's jobs, as a client of
 any build does at the same IPC schema. <code>karvi daemon status</code> stacks each of the
@@ -749,7 +749,7 @@ core = [&quot;show version&quot;, &quot;show inventory&quot;]
 directory = &quot;/srv/karvi/%region%/%operator%&quot;
 
 [platform.c9300]
-driver = &quot;cisco_iosxe&quot;
+driver = &quot;cisco_ios&quot;
 crun-commands = [&quot;%core%&quot;, &quot;show running-config&quot;]
 </code></pre>
 <pre><code class="language-text">$ karvi config show --explain crun.directory | grep 'key:\|value:\|macros:'
@@ -1484,7 +1484,7 @@ operator's keys) takes <code>default</code>'s <code>username</code> operations.<
 <p>Under the table above the operator <code>netops</code>, given a row whose <code>username</code> cell
 is blank, logs in as <code>netops-adm</code>, and the dry run's credential line names
 <code>user=netops-adm</code>:</p>
-<pre><code class="language-text">! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=netops-adm backend=site-creds transport=native
+<pre><code class="language-text">! 127.0.0.1 [127.0.0.1] platform=cisco_ios user=netops-adm backend=site-creds transport=native
 </code></pre>
 <p>With <code>username = [{op = &quot;lowercase&quot;}, {op = &quot;add-suffix&quot;, suffix = &quot;-adm&quot;}]</code>
 under <code>[credential-transform.default]</code>, the fallback given <code>NETUSER=NetOps</code>
@@ -1512,7 +1512,7 @@ holds it; capture stdout and stderr separately when opening a support issue.</p>
 <p>A device that runs as <code>generic</code> (a row set to <code>generic</code>, any device under
 <code>--pg</code>, and a row with no platform or a target outside the inventory
 when the site has set <code>platform-resolution.default</code> to <code>generic</code> or
-cleared it; as shipped the key is <code>cisco_iosxe</code>) is sent nothing at the
+cleared it; as shipped the key is <code>cisco_ios</code>) is sent nothing at the
 start of its session: <code>generic</code> has no paging
 statements of its own. Two mechanisms send statements before the requested
 commands, in <code>command</code> and <code>run</code>. They differ in which devices they reach
@@ -2042,7 +2042,7 @@ is the guide to what to collect (the command lists of both tools per platform,
 and sub-platform tables per device model). The daily invocation is one word and
 a scope:</p>
 <pre><code class="language-bash">karvi crun --all                       # each device its platform's crun-commands list
-karvi crun --select-platform cisco_iosxe --cf ios-collect.txt
+karvi crun --select-platform cisco_ios --cf ios-collect.txt
 karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
 </code></pre>
 <ul>
@@ -2345,7 +2345,7 @@ journald and <code>audit.file</code> alike, is masked: the text of every capturi
 of every match of a platform's <code>masks</code> is replaced by <code>&lt;removed&gt;</code>. A job's
 events are masked by the lists of all its devices' platforms together, so that
 no event leaves in clear what another platform's list hides; the job's folder
-keeps every statement as sent (the run above recorded <code>snmp-server community Publ1c RO</code> in <code>commands.jsonl</code>). <code>cisco_iosxe</code>, <code>cisco_iosxr</code>, <code>cisco_nxos</code>,
+keeps every statement as sent (the run above recorded <code>snmp-server community Publ1c RO</code> in <code>commands.jsonl</code>). <code>cisco_ios</code>, <code>cisco_xr</code>, <code>cisco_nxos</code>,
 <code>arista_eos</code>, and <code>juniper_junos</code> each have a built-in list, in force by
 default; a site's <code>[platform.NAME] masks</code> replaces a list whole, <code>[]</code> turns it
 off, and a pattern that does not compile or holds no group refuses the
@@ -2367,7 +2367,7 @@ journald's and the forwarder's; <code>karvi-prune</code> never touches it (&quot
 records, and scoreboards as authoritative. Human headers, borders, and footers
 are projections only.</p>
 
-<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/OPERATIONS.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

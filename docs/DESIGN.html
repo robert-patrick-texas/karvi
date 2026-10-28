@@ -74,8 +74,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -151,8 +151,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -479,20 +479,43 @@ address; inventory alternates exist for audit, exercise, and a future explicit
 failover. <em>Why:</em> implicit failover would repeat a non-idempotent command on a
 device the operator did not choose.</p>
 <p><strong>The known platform set has one definition.</strong> A known platform is one of the
-eight built-ins (<code>generic</code>, <code>cisco_iosxe</code>, <code>cisco_iosxr</code>, <code>cisco_nxos</code>,
+eight built-ins (<code>generic</code>, <code>cisco_ios</code>, <code>cisco_xr</code>, <code>cisco_nxos</code>,
 <code>juniper_junos</code>, <code>arista_eos</code>, <code>linux</code>, <code>linux_shell</code>) or a configured
-<code>[platform.NAME]</code> table; names compare after trimming and case folding and are
-recorded lowercase. A table for a built-in overrides that built-in's allowed
-fields; a table for a new name is an alias whose <code>driver</code> must name a built-in
-and which inherits that built-in's whole compiled definition (prompt levels,
-prompt and failure patterns, paging, exit commands, ports, session cap), its own
-fields overriding. A table name is a literal (no glob character, no leading
-<code>!</code>), and prompt and error patterns are compiled data, never configuration.
-<em>Why:</em> before this rule a table's <code>driver</code> was only a label: a new name ran as
-<code>generic</code>, so a rejected command was recorded as succeeded. Reviewed data, not
-ad hoc configuration, decides parser behaviour. <em>Not taken:</em> lowercasing table
-names in the loader (it would change the configuration digest for a naming rule
-the platform package owns).</p>
+<code>[platform.NAME]</code> table; names compare after trimming, case folding, and a
+built-in's other spelling, and are recorded lowercase under the built-in's name.
+A table for a built-in overrides that built-in's allowed fields; a table for a
+new name is an alias whose <code>driver</code> must name a built-in and which inherits that
+built-in's whole compiled definition (prompt levels, prompt and failure
+patterns, paging, exit commands, ports, session cap), its own fields overriding.
+A table name is a literal (no glob character, no leading <code>!</code>), and prompt and
+error patterns are compiled data, never configuration. <em>Why:</em> before this rule a
+table's <code>driver</code> was only a label: a new name ran as <code>generic</code>, so a rejected
+command was recorded as succeeded. Reviewed data, not ad hoc configuration,
+decides parser behaviour. <em>Not taken:</em> lowercasing table names in the loader (it
+would change the configuration digest for a naming rule the platform package
+owns).</p>
+<p><strong>The built-ins carry the market's names, and the other spellings read as
+them.</strong> <code>cisco_ios</code> is IOS and IOS XE alike and <code>cisco_xr</code> IOS XR, as Netmiko
+and NTC's TextFSM templates name them; <code>cisco_xe</code> and <code>cisco_iosxe</code> are read as
+<code>cisco_ios</code>, and <code>cisco_iosxr</code> as <code>cisco_xr</code>, by <code>platform.Normalize</code>, wherever
+a platform name is read: an inventory row and a source default, <code>--platform</code> and
+<code>--select-platform</code>, <code>platform-resolution.default</code> and
+<code>platform-resolution.unknown-fallback</code>, a <code>[platform.NAME]</code> table's name and its
+<code>driver</code>, and a map rule's or a credential row's <code>platform</code>
+(<code>matching.PlatformValue</code>). Records, tables, rules, and output name the
+built-in; a glob matches built-in names alone; two tables read as one platform
+are refused (<code>config_platform_name_invalid</code>). A table with a <code>driver</code> is a
+derived definition, for a device family that differs, never a spelling. <em>Why:</em>
+an inventory written for Netmiko, NTC's templates, or scrapli names a karvi
+platform as it stands, and a spelling read where case is folded leaves no second
+name for a site's table or map rule to miss (<a href="EXAMPLES.html#86-platform-names-the-markets-2026-10-28"><code>docs/EXAMPLES.md</code>, chapter
+86</a>). <em>Not taken:</em>
+scrapli's names kept, with the market's shipped as aliases in code or as tables
+in the generated configuration, each keeping its own name past the read (a
+table's tuning and a map rule reach one spelling alone, and a missed copy fails
+silently); aliases following their base's table and rules matching the base (a
+new mechanism where <code>Normalize</code> gives the same); Netmiko's <code>cisco_xe</code> as the
+built-in (the references name IOS and IOS XE <code>cisco_ios</code>).</p>
 <p><strong>One <code>linux</code> platform; a class of servers is an alias.</strong> Every Linux server is
 the built-in <code>linux</code>, or <code>linux_shell</code> where it refuses exec, and karvi has no
 definition per distribution. A site that wants other collection commands, caps,
@@ -507,7 +530,7 @@ other built-in <code>shell</code>; an eighth built-in, <code>linux_shell</code>,
 definition with <code>channel = &quot;shell&quot;</code> and <code>linux</code> as its base driver, so it is
 admitted wherever <code>linux</code> is and its records name <code>linux_shell</code>, and a table may
 name it as its driver. Any <code>[platform.NAME]</code> table may set either word on any
-driver, unchecked: an alias of <code>arista_eos</code> or <code>cisco_iosxr</code> with <code>channel = &quot;exec&quot;</code> runs as asked, and a device that refuses the channel fails with
+driver, unchecked: an alias of <code>arista_eos</code> or <code>cisco_xr</code> with <code>channel = &quot;exec&quot;</code> runs as asked, and a device that refuses the channel fails with
 <code>ssh_session_channel_refused</code>. A definition that leaves <code>channel</code> unset is
 <code>shell</code>. The channel is resolved once per target at planning and carried in
 the plan and the manifest, shown on a dry run's <code>intended:</code> line; the daemon
@@ -531,12 +554,12 @@ which a site's own global file would replace.</p>
 <p><strong>A device's platform is resolved once, at planning, in a fixed order.</strong>
 <code>--platform NAME</code> on the command line, else the inventory row's value, else
 the source's <code>defaults.platform</code>, else <code>platform-resolution.default</code>, whose
-shipped value is <code>cisco_iosxe</code>; an empty value gives <code>generic</code>. A platform from
+shipped value is <code>cisco_ios</code>; an empty value gives <code>generic</code>. A platform from
 the first three steps is <em>set</em>; one from the default is <em>not set</em>, and the
 distinction is what selectors and maps match on. <em>Why:</em> production fleets are
 Cisco-dominated, and an unlisted target that ran as <code>generic</code> sent no enable,
 no paging, and recorded a rejected command as succeeded, or the operator wrote
-<code>--platform cisco_iosxe</code> on every line; karvi infers nothing from a name or an
+<code>--platform cisco_ios</code> on every line; karvi infers nothing from a name or an
 address. <em>Not taken:</em> inferring a vendor; a prompt; keeping <code>generic</code>.</p>
 <p><strong>An unknown row platform refuses the activity.</strong> Under the default
 <code>platform-resolution.on-unknown = &quot;fail&quot;</code>, an inventory row whose platform is
@@ -3505,7 +3528,7 @@ requirement identifiers, decision numbers, and worked sessions behind these
 entries are in the operator's private archive; a reader who needs a rule's
 evidence finds it in the code and its tests, which are the reference.</p>
 
-<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/DESIGN.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

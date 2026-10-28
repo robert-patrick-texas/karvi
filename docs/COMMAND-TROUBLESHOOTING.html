@@ -65,8 +65,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -133,8 +133,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -215,7 +215,7 @@ Collect debug output and verify:</p>
 <h2 id="platform-appears-as-generic">Platform appears as <code>generic</code> <a class="anchor" href="#platform-appears-as-generic" aria-label="Link to this section">#</a></h2>
 <p>Generic mode can run simple commands, but platform-specific paging suppression,
 privilege acquisition, and error patterns require a qualified platform mapping.
-For Cisco IOS XE inventory, set the canonical platform to <code>cisco_iosxe</code> before
+For Cisco IOS and IOS XE inventory, set the canonical platform to <code>cisco_ios</code> before
 relying on those behaviors.</p>
 <h2 id="output-truncation-or-timeout">Output truncation or timeout <a class="anchor" href="#output-truncation-or-timeout" aria-label="Link to this section">#</a></h2>
 <p>Large commands should be tested separately before wide fan-out. Use a command
@@ -223,7 +223,7 @@ timeout appropriate for the device, inspect the retained command record, and
 avoid enabling paging. The production large-output spooling gate remains open
 in this engineering candidate.</p>
 
-<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/COMMAND-TROUBLESHOOTING.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>

@@ -63,8 +63,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -129,8 +129,8 @@
 <li><a href="BUILD-QUALIFICATION.html">Build qualification</a></li>
 <li><a href="CISCO-IOSXE-QUALIFICATION.html">Cisco IOS XE qualification</a></li>
 <li><a href="DEVICE-QUALIFICATION-RUNBOOK.html">Device qualification runbook</a></li>
-<li><a href="../release/BUILD-RESULT.html">karvi v0.37.0 build and qualification result</a></li>
-<li><a href="../release/DOWNLOADS.html">karvi v0.37.0 artifact index</a></li>
+<li><a href="../release/BUILD-RESULT.html">karvi v0.38.0 build and qualification result</a></li>
+<li><a href="../release/DOWNLOADS.html">karvi v0.38.0 artifact index</a></li>
 </ul>
 <p class="group">The project</p>
 <ul>
@@ -225,8 +225,8 @@ closing a channel given up, and tells a channel closed without a status from a
 lost connection by a keepalive request. No subprocess runs (no <code>ssh</code>,
 <code>ssh-keyscan</code>, or askpass). The package's driver opens the session on that
 stream, so both transports give the same records for the same commands. It
-admits every built-in platform by its base: <code>generic</code>, <code>cisco_iosxe</code>,
-<code>cisco_iosxr</code>, <code>cisco_nxos</code>, <code>juniper_junos</code>, <code>arista_eos</code>, and <code>linux</code>
+admits every built-in platform by its base: <code>generic</code>, <code>cisco_ios</code>,
+<code>cisco_xr</code>, <code>cisco_nxos</code>, <code>juniper_junos</code>, <code>arista_eos</code>, and <code>linux</code>
 (<code>linux_shell</code>'s base); an alias table resolves to its built-in's base, so
 <code>native_platform_not_qualified</code> is unreachable on <code>native</code>.
 <a href="SSH-TRANSPORTS.html"><code>docs/SSH-TRANSPORTS.md</code></a> holds the build composition.</p>
@@ -261,7 +261,7 @@ with any difference by design pinned per transport; and</li>
 behaviour, and an exec command's settling, limit, and outcomes, are the
 session's and are tested once, in <code>internal/devsession</code>, not per library.</p>
 
-<footer>Generated from <code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code> at <code>karvi-v0.37.0</code>.</footer>
+<footer>Generated from <code>docs/TRANSPORT-DRIVER-ARCHITECTURE.md</code> at <code>karvi-v0.38.0</code>.</footer>
 </main>
 </body>
 </html>
