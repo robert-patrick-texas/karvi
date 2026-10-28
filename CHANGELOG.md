@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased
+## 0.38.0 - 2026-10-28
+
+A minor release on 0.37.0 for the Cisco platforms' names, `cisco_ios` and
+`cisco_xr`. Every counter is 0.37.0's (configuration schema 6, registry 32,
+execution plan 15, plan report 4, scoreboard 5, daemon IPC 12, command record 4,
+job manifest and summary 5, credential package 2, audit 2, metrics 1,
+inventory 1), and Go and the modules are 0.37.0's. The old names are read
+wherever a platform name is read. A site has something to change where a script
+or a tool looks for `cisco_iosxe` or `cisco_iosxr` in a record, a job folder, or
+output, which carry `cisco_ios` and `cisco_xr`; where a glob was written for an
+old name; or where a configuration holds `[platform.cisco_ios]` beside
+`[platform.cisco_iosxe]` or `[platform.cisco_xe]`, refused
+`config_platform_name_invalid`. An operator's 0.37.0 daemon, of another build,
+is drained by the first submission after the upgrade.
 
 - **Breaking: the Cisco platforms take the names the market uses.** The built-in
   `cisco_iosxe` is `cisco_ios`, for IOS and IOS XE alike, and `cisco_iosxr` is

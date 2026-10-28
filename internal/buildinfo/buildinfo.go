@@ -6,7 +6,7 @@ import "runtime"
 
 const (
 	AppName              = "karvi"
-	Version              = "0.37.0"
+	Version              = "0.38.0"
 	ConfigSchemaVersion  = 6
 	CommandRecordSchema  = 4
 	ScoreboardSchema     = 5
