@@ -180,7 +180,7 @@ None chosen: the operator names the next item, from "Later" or anew.
   place in v2 beyond a known-hosts file; the adapter's shape, with the session
   in the library and not shared with `system`
   ([`docs/TRANSPORT-DRIVER-ARCHITECTURE.md`](docs/TRANSPORT-DRIVER-ARCHITECTURE.md));
-  and what it gains for a fleet karvi qualifies on `cisco_iosxe` over SSH
+  and what it gains for a fleet karvi qualifies on `cisco_ios` over SSH
   (NETCONF, Telnet, more platform definitions). v2 would be a transport with
   its own selector beside `system`, `native`, and `telnet`; a mapping from a
   slot to an implementation comes back only if a transport ever has two

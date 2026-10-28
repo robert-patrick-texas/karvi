@@ -56,7 +56,7 @@ type option struct {
 	// selection (records.TargetInput), as --site is "site".
 	input string
 	// standsFor and standsValue make a flag a shortcut: --pi is --platform
-	// cisco_iosxe. The parser hands over the option stood for with that
+	// cisco_ios. The parser hands over the option stood for with that
 	// value, so a handler reads one option and never the shortcut.
 	standsFor   *option
 	standsValue string
@@ -141,7 +141,7 @@ var (
 	// linux_shell, and generic. --pi is a whole word, so it is the shortcut
 	// and no longer a prefix of --ping (--pin still is); --pl likewise of
 	// --platform (--pla still is).
-	optPI            = shortcutOpt("pi", optPlatform, "cisco_iosxe")
+	optPI            = shortcutOpt("pi", optPlatform, "cisco_ios")
 	optPN            = shortcutOpt("pn", optPlatform, "cisco_nxos")
 	optPR            = shortcutOpt("pr", optPlatform, "cisco_xr")
 	optPJ            = shortcutOpt("pj", optPlatform, "juniper_junos")
@@ -232,7 +232,7 @@ var (
 	optDispatch = enumOpt("dispatch", "serial", "parallel", "wave")
 	// The dispatch shortcuts: whole words standing for --dispatch with a
 	// value, as --pi
-	// stands for --platform cisco_iosxe; the last of --dispatch and the
+	// stands for --platform cisco_ios; the last of --dispatch and the
 	// shortcuts on a line wins, as a repeated --dispatch does.
 	optDP          = shortcutOpt("dp", optDispatch, "parallel")
 	optDW          = shortcutOpt("dw", optDispatch, "wave")

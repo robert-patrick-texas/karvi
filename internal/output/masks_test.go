@@ -54,7 +54,7 @@ func TestCollectionMasks(t *testing.T) {
 	write := func(id string, masks map[string][]string, device, platform string) string {
 		t.Helper()
 		s, err := Create(Options{Root: filepath.Join(dir, id), ID: id, Skip: FileSet{OutputTxt: true},
-			Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Filters: map[string][]string{"cisco_iosxe": {`^Building configuration\.\.\.$`}}, Masks: masks}, Warn: func(string) {}})
+			Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Filters: map[string][]string{"cisco_ios": {`^Building configuration\.\.\.$`}}, Masks: masks}, Warn: func(string) {}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,22 +73,22 @@ func TestCollectionMasks(t *testing.T) {
 		got, _ := os.ReadFile(filepath.Join(coll, device))
 		return string(got)
 	}
-	lists := map[string][]string{"cisco_iosxe": iosxe, "juniper_junos": junos}
+	lists := map[string][]string{"cisco_ios": iosxe, "juniper_junos": junos}
 	want := "! snmp-server community <removed> RO\n\n! show running-config\nsnmp-server community <removed> RO\nkey chain K\n key 1\n  key-string 0 <removed>\nset snmp community Publ1c\nend\n"
-	if got := write("261017-020000-00", lists, "r1", "cisco_iosxe"); got != want {
+	if got := write("261017-020000-00", lists, "r1", "cisco_ios"); got != want {
 		t.Fatalf("r1 masked by its own list:\n%s\nwant:\n%s", got, want)
 	}
 	want = "! snmp-server community Publ1c RO\n\n! show running-config\n" + strings.TrimPrefix(config, "Building configuration...\n")
-	if got := write("261017-020001-00", nil, "r2", "cisco_iosxe"); got != want {
+	if got := write("261017-020001-00", nil, "r2", "cisco_ios"); got != want {
 		t.Fatalf("r2 without crun.mask:\n%s\nwant:\n%s", got, want)
 	}
 	want = "! snmp-server community Publ1c RO\n\n! show running-config\n" + config
-	if got := write("261017-020002-00", map[string][]string{"cisco_iosxe": iosxe}, "g1", "generic"); got != want {
+	if got := write("261017-020002-00", map[string][]string{"cisco_ios": iosxe}, "g1", "generic"); got != want {
 		t.Fatalf("g1, a platform with no list:\n%s\nwant:\n%s", got, want)
 	}
 	for _, bad := range []string{"(", `^key \S+`} {
 		_, err := Create(Options{Root: filepath.Join(dir, "job2"), ID: "261017-020003-00", Skip: FileSet{OutputTxt: true},
-			Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Masks: map[string][]string{"cisco_iosxe": {bad}}}, Warn: func(string) {}})
+			Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Masks: map[string][]string{"cisco_ios": {bad}}}, Warn: func(string) {}})
 		if err == nil || !strings.Contains(err.Error(), "execution_plan_invalid") || !strings.Contains(err.Error(), "platform_masks") || !strings.Contains(err.Error(), "pattern 1") {
 			t.Fatalf("%q: %v", bad, err)
 		}

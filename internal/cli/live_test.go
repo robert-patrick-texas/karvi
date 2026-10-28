@@ -101,7 +101,7 @@ func TestCommandLiveShowsTheSessionAsItArrives(t *testing.T) {
 		t.Fatalf("drip 1 was not shown while the command ran: %q", out)
 	}
 	for _, want := range []string{
-		"! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=u backend=builtin-env-fallback transport=native\n\r\nRouter>",
+		"! 127.0.0.1 [127.0.0.1] platform=cisco_ios user=u backend=builtin-env-fallback transport=native\n\r\nRouter>",
 		"enable\r\nPassword: <removed>",
 		"terminal length 0\r\n",
 		"show drip\r\ndrip 1\r\ndrip 2\r\ndrip 3\r\nRouter#",
@@ -204,10 +204,10 @@ func TestRunLiveFollowsEachDeviceInTurn(t *testing.T) {
 	base, _, _ := daemonTestRuntime(t)
 	inventory := filepath.Join(base, "inv.csv")
 	config := filepath.Join(base, "karvi.toml")
-	if err := os.WriteFile(inventory, []byte("name,management_address,platform\nrouter1,127.0.0.1,cisco_iosxe\nrouter2,127.0.0.1,cisco_iosxe\n"), 0o600); err != nil {
+	if err := os.WriteFile(inventory, []byte("name,management_address,platform\nrouter1,127.0.0.1,cisco_ios\nrouter2,127.0.0.1,cisco_ios\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	toml := fmt.Sprintf("[dispatch]\ndefault = \"parallel\"\n[platform.cisco_iosxe]\nssh-port = %d\n[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = %q\nrequired = true\nmode = \"header\"\ndelimiter = \",\"\nmandatory-fields = [\"name\", \"platform\"]\nname-transform = \"default\"\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\n", srv.Port(), inventory)
+	toml := fmt.Sprintf("[dispatch]\ndefault = \"parallel\"\n[platform.cisco_ios]\nssh-port = %d\n[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = %q\nrequired = true\nmode = \"header\"\ndelimiter = \",\"\nmandatory-fields = [\"name\", \"platform\"]\nname-transform = \"default\"\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\n", srv.Port(), inventory)
 	if err := os.WriteFile(config, []byte(toml), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ func TestRunLiveFollowsEachDeviceInTurn(t *testing.T) {
 	}
 	session := "Router#terminal length 0\r\nRouter#terminal width 512\r\nRouter#show drip\r\ndrip 1\r\ndrip 2\r\ndrip 3\r\nRouter#exit\r\n"
 	header := func(device string) string {
-		return "! " + device + " [127.0.0.1] platform=cisco_iosxe user=u backend=builtin-env-fallback transport=native\n\r\n"
+		return "! " + device + " [127.0.0.1] platform=cisco_ios user=u backend=builtin-env-fallback transport=native\n\r\n"
 	}
 	if !strings.HasPrefix(out, header("router1")+session+header("router2")+session+"! exit=0 elapsed=") || strings.Count(out, "! exit=") != 1 {
 		t.Fatalf("stdout:\n%q", out)

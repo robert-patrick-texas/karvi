@@ -25,11 +25,11 @@ func row(name, platformName string, line int) inventory.Device {
 // a configured default, and on-unknown = "warn" with and without a fallback.
 func TestResolvePlatform(t *testing.T) {
 	base := testConfig(t)
-	withDefault := testConfig(t, `platform-resolution.default="cisco_iosxe"`)
+	withDefault := testConfig(t, `platform-resolution.default="cisco_ios"`)
 	cleared := testConfig(t, `platform-resolution.default=""`) // the site's way to generic
 	warn := testConfig(t, `platform-resolution.on-unknown="warn"`)
-	warnFallback := testConfig(t, `platform-resolution.on-unknown="warn"`, `platform-resolution.unknown-fallback="cisco_iosxe"`)
-	failFallback := testConfig(t, `platform-resolution.unknown-fallback="cisco_iosxe"`)
+	warnFallback := testConfig(t, `platform-resolution.on-unknown="warn"`, `platform-resolution.unknown-fallback="cisco_ios"`)
+	failFallback := testConfig(t, `platform-resolution.unknown-fallback="cisco_ios"`)
 	for _, tc := range []struct {
 		name   string
 		cfg    configload.Snapshot
@@ -37,19 +37,19 @@ func TestResolvePlatform(t *testing.T) {
 		used   string
 		notice string // the code, or "" for none, or "platform_unknown" for the refusal
 	}{
-		{"blank row", base, row("r1", "", 7), "cisco_iosxe", NoticePlatformNotSet}, // the shipped default since registry 17
+		{"blank row", base, row("r1", "", 7), "cisco_ios", NoticePlatformNotSet}, // the shipped default since registry 17
 		{"blank row with the default cleared", cleared, row("r1", "", 7), "generic", NoticePlatformNotSet},
-		{"blank row with the default", withDefault, row("r1", "", 7), "cisco_iosxe", NoticePlatformNotSet},
-		{"direct target", base, inventory.Direct("r1", "", "system", 0), "cisco_iosxe", ""},
+		{"blank row with the default", withDefault, row("r1", "", 7), "cisco_ios", NoticePlatformNotSet},
+		{"direct target", base, inventory.Direct("r1", "", "system", 0), "cisco_ios", ""},
 		{"direct target with the default cleared", cleared, inventory.Direct("r1", "", "system", 0), "generic", ""},
-		{"direct target with the default", withDefault, inventory.Direct("r1", "", "system", 0), "cisco_iosxe", ""},
+		{"direct target with the default", withDefault, inventory.Direct("r1", "", "system", 0), "cisco_ios", ""},
 		{"direct target with --platform beside the default", withDefault, inventory.Direct("r1", "generic", "system", 0), "generic", ""},
-		{"known", base, row("r1", "cisco_iosxe", 7), "cisco_iosxe", ""},
-		{"known in another spelling", base, row("r1", " Cisco_IOSXE ", 7), "cisco_iosxe", ""},
+		{"known", base, row("r1", "cisco_ios", 7), "cisco_ios", ""},
+		{"known in another spelling", base, row("r1", " Cisco_IOS ", 7), "cisco_ios", ""},
 		{"unknown under fail", base, row("r1", "cisco_iosx", 7), "", "platform_unknown"},
 		{"unknown under fail with a fallback", failFallback, row("r1", "cisco_iosx", 7), "", "platform_unknown"},
 		{"unknown under warn", warn, row("r1", "cisco_iosx", 7), "generic", NoticePlatformUnknownFallback},
-		{"unknown under warn with a fallback", warnFallback, row("r1", "cisco_iosx", 7), "cisco_iosxe", NoticePlatformUnknownFallback},
+		{"unknown under warn with a fallback", warnFallback, row("r1", "cisco_iosx", 7), "cisco_ios", NoticePlatformUnknownFallback},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := ResolvePlatform(tc.cfg, tc.device)
@@ -92,25 +92,25 @@ func TestResolvePlatform(t *testing.T) {
 func TestResolvePlatformsGrouping(t *testing.T) {
 	devices := []inventory.Device{
 		row("core1", "cisco_iosx", 2), row("core2", "cisco_iosx", 3), row("core3", "cisco_iosx", 4), row("core4", "cisco_iosx", 5),
-		row("edge1", "junos", 6), row("lab1", "", 7), row("lab2", "", 8), row("sw-ios", "cisco_iosxe", 9),
+		row("edge1", "junos", 6), row("lab1", "", 7), row("lab2", "", 8), row("sw-ios", "cisco_ios", 9),
 	}
 	other := row("far1", "cisco_iosx", 2)
 	other.Source.Name = "remote"
 	devices = append(devices, other)
 	var warnings []string
 	warn := func(s string) { warnings = append(warnings, s) }
-	_, err := ResolvePlatforms(testConfig(t, `platform-resolution.default="cisco_iosxe"`), devices, warn)
+	_, err := ResolvePlatforms(testConfig(t, `platform-resolution.default="cisco_ios"`), devices, warn)
 	if errorcodes.Of(err) != "platform_unknown" {
 		t.Fatalf("err=%v", err)
 	}
-	want := `platform_unknown: inventory source lab line 2: platform "cisco_iosx" is not a known platform; 4 devices: core1, core2, core3, …; inventory source lab line 6: platform "junos" is not a known platform; 1 device: edge1; inventory source remote line 2: platform "cisco_iosx" is not a known platform; 1 device: far1 (known: generic, cisco_iosxe, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell)`
+	want := `platform_unknown: inventory source lab line 2: platform "cisco_iosx" is not a known platform; 4 devices: core1, core2, core3, …; inventory source lab line 6: platform "junos" is not a known platform; 1 device: edge1; inventory source remote line 2: platform "cisco_iosx" is not a known platform; 1 device: far1 (known: generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell)`
 	if err.Error() != want {
 		t.Fatalf("message\n got %s\nwant %s", err.Error(), want)
 	}
 	if len(warnings) != 0 {
 		t.Fatalf("a refusal printed warnings: %q", warnings)
 	}
-	out, err := ResolvePlatforms(testConfig(t, `platform-resolution.default="cisco_iosxe"`, `platform-resolution.on-unknown="warn"`), devices, warn)
+	out, err := ResolvePlatforms(testConfig(t, `platform-resolution.default="cisco_ios"`, `platform-resolution.on-unknown="warn"`), devices, warn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestResolvePlatformsGrouping(t *testing.T) {
 		`platform_unknown_fallback: inventory source lab line 2: platform "cisco_iosx" is not a known platform; 4 devices proceed as generic (platform-resolution.unknown-fallback): core1, core2, core3, …`,
 		`platform_unknown_fallback: inventory source lab line 6: platform "junos" is not a known platform; 1 device proceeds as generic (platform-resolution.unknown-fallback): edge1`,
 		`platform_unknown_fallback: inventory source remote line 2: platform "cisco_iosx" is not a known platform; 1 device proceeds as generic (platform-resolution.unknown-fallback): far1`,
-		`platform_not_set: inventory source lab: 2 devices have no platform; they proceed as cisco_iosxe (platform-resolution.default): lab1, lab2`,
+		`platform_not_set: inventory source lab: 2 devices have no platform; they proceed as cisco_ios (platform-resolution.default): lab1, lab2`,
 	}
 	if strings.Join(warnings, "\n") != strings.Join(wantLines, "\n") {
 		t.Fatalf("warnings\n got %s\nwant %s", strings.Join(warnings, "\n"), strings.Join(wantLines, "\n"))
@@ -131,7 +131,7 @@ func TestResolvePlatformsGrouping(t *testing.T) {
 		}
 		used = append(used, r.Platform+"/"+code)
 	}
-	if got := strings.Join(used, " "); got != "generic/platform_unknown_fallback generic/platform_unknown_fallback generic/platform_unknown_fallback generic/platform_unknown_fallback generic/platform_unknown_fallback cisco_iosxe/platform_not_set cisco_iosxe/platform_not_set cisco_iosxe/- generic/platform_unknown_fallback" {
+	if got := strings.Join(used, " "); got != "generic/platform_unknown_fallback generic/platform_unknown_fallback generic/platform_unknown_fallback generic/platform_unknown_fallback generic/platform_unknown_fallback cisco_ios/platform_not_set cisco_ios/platform_not_set cisco_ios/- generic/platform_unknown_fallback" {
 		t.Fatalf("resolutions %s", got)
 	}
 	warnings = nil
@@ -145,12 +145,12 @@ func TestResolvePlatformsGrouping(t *testing.T) {
 // unknown name; otherwise the normalised set name; "fail" keeps an unknown
 // name set so a selector reaches it.
 func TestSetPlatform(t *testing.T) {
-	fail := testConfig(t, `platform.C9300.driver="cisco_iosxe"`)
-	warn := testConfig(t, `platform.C9300.driver="cisco_iosxe"`, `platform-resolution.on-unknown="warn"`)
+	fail := testConfig(t, `platform.C9300.driver="cisco_ios"`)
+	warn := testConfig(t, `platform.C9300.driver="cisco_ios"`, `platform-resolution.on-unknown="warn"`)
 	for _, tc := range []struct{ set, underFail, underWarn string }{
 		{"", "", ""},
-		{"cisco_iosxe", "cisco_iosxe", "cisco_iosxe"},
-		{" Cisco_IOSXE ", "cisco_iosxe", "cisco_iosxe"},
+		{"cisco_ios", "cisco_ios", "cisco_ios"},
+		{" Cisco_IOS ", "cisco_ios", "cisco_ios"},
 		{"c9300", "c9300", "c9300"},
 		{"cisco_iosx", "cisco_iosx", ""},
 	} {
@@ -168,7 +168,7 @@ func TestSetPlatform(t *testing.T) {
 // carries the platform_not_set
 // notice with its details, a set row carries none, and the plan validates.
 func TestDraftCarriesPlatformNotices(t *testing.T) {
-	cfg := testConfig(t, `platform-resolution.default="cisco_iosxe"`)
+	cfg := testConfig(t, `platform-resolution.default="cisco_ios"`)
 	set := k03Set(t)
 	set.Devices[0].Platform = ""
 	draft, err := Draft(context.Background(), cfg, operator, set, draftOptions(plantest.Commands), plantest.DraftedAt)
@@ -179,7 +179,7 @@ func TestDraftCarriesPlatformNotices(t *testing.T) {
 		t.Fatal(err)
 	}
 	a, b := draft.Targets[0], draft.Targets[1]
-	if a.Device.Platform != "cisco_iosxe" || len(a.Notices) != 1 || a.Notices[0].Code != "platform_not_set" || a.Notices[0].Details["source"] != "smoke line 2" || a.Notices[0].Details["used"] != "cisco_iosxe" {
+	if a.Device.Platform != "cisco_ios" || len(a.Notices) != 1 || a.Notices[0].Code != "platform_not_set" || a.Notices[0].Details["source"] != "smoke line 2" || a.Notices[0].Details["used"] != "cisco_ios" {
 		t.Fatalf("not-set target: platform=%s notices=%+v", a.Device.Platform, a.Notices)
 	}
 	if b.Device.Platform != "generic" || b.Notices != nil {

@@ -14,7 +14,7 @@ import (
 var githubIDs = [][2]string{
 	{"Operations guide", "operations-guide"},
 	{"16. `NO_COLOR` (2026-10-03)", "16-no_color-2026-10-03"},
-	{"3.1 `cisco_iosxe`: Cisco IOS and IOS XE", "31-cisco_iosxe-cisco-ios-and-ios-xe"},
+	{"3.1 `cisco_ios`: Cisco IOS and IOS XE", "31-cisco_ios-cisco-ios-and-ios-xe"},
 	{"The collection run: `karvi crun`", "the-collection-run-karvi-crun"},
 	{"karvi-prune: retention", "karvi-prune-retention"},
 	{"1.1 A run's collection: `--cd` on run and command", "11-a-runs-collection---cd-on-run-and-command"},

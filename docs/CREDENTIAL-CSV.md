@@ -196,8 +196,8 @@ grant. No secret and no cell of a result column appears anywhere.
 
 ```
 name,management_address,platform,site,credkeyref
-sw-nyc-09,10.1.2.9,cisco_iosxe,nyc,break-glass
-sw-nyc-02,10.1.2.4,cisco_iosxe,nyc,
+sw-nyc-09,10.1.2.9,cisco_ios,nyc,break-glass
+sw-nyc-02,10.1.2.4,cisco_ios,nyc,
 ```
 
 **`credkey`** names a credential row. It is a literal: not blank, no `*`,

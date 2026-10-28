@@ -130,7 +130,7 @@ name = "*"
 # own collection list, and the built-in drop list. Inventory rows name the
 # alias by its own name.
 [platform.c9300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 paging-commands = ["terminal length 0"]
 crun-commands = ["show running-config", "show version", "show inventory"]
 # The drop list for the collection file (docs/COLLECTION.md): regular
@@ -149,7 +149,7 @@ crun-commands = ["show running-config", "show version", "show inventory"]
 # A platform-less row runs as default; a row naming an unknown platform
 # refuses the activity under fail, or runs as unknown-fallback under warn.
 [platform-resolution]
-default = "cisco_iosxe"
+default = "cisco_ios"
 on-unknown = "fail"
 unknown-fallback = "generic"
 
@@ -167,7 +167,7 @@ unknown-fallback = "generic"
 #
 # [[session-init-map]]
 # profile = "iosxe-wide"
-# platform = "cisco_iosxe"
+# platform = "cisco_ios"
 #
 # [[session-init-map]]
 # profile = "none-sent"

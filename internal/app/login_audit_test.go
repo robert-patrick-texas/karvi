@@ -31,7 +31,7 @@ func TestLoginEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	operator := credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}
-	d := inventory.Device{ID: "name:fake-iosxe", Name: "Fake-IOSXE", CanonicalName: "fake-iosxe", Platform: "cisco_iosxe"}
+	d := inventory.Device{ID: "name:fake-iosxe", Name: "Fake-IOSXE", CanonicalName: "fake-iosxe", Platform: "cisco_ios"}
 	for _, e := range [][2]string{{"start", ""}, {"end", "complete"}} {
 		if err := writeLoginAudit(sink, operator, cfg, "261017-101500-00", d, "netops", "builtin-env-fallback", e[0], e[1], 0, map[string]any{"diagnostic": ""}); err != nil {
 			t.Fatal(err)

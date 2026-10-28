@@ -76,14 +76,14 @@ selector and no map `platform` rule. The two readers stand on either side of the
 override: the selector matches while the set is assembled, on what the inventory
 gave, and `--platform` acts on the assembled set, so the maps, the plan, and
 every record see the platform the device runs as (`--select-platform generic
---platform cisco_iosxe` runs the inventory's generic rows as IOS XE). The
+--platform cisco_ios` runs the inventory's generic rows as IOS XE). The
 *platform used* is produced once, over the whole set, by
 `planner.ResolvePlatforms`, first in the plan draft before the daemon gate, the
 transport preflight, and the address plan: a known set platform as named; an
 unknown one refused with `platform_unknown` under `fail`, every unknown value in
 one message, or run as `platform-resolution.unknown-fallback` under `warn`; a
 blank one, and a direct target without `--platform`, as
-`platform-resolution.default` (`cisco_iosxe` as shipped), `generic` when the key
+`platform-resolution.default` (`cisco_ios` as shipped), `generic` when the key
 is empty. Each resolution carries at most one notice (`platform_not_set` for an
 inventory row, none for a direct target; `platform_unknown_fallback`), which the
 draft puts on the plan target's `notices` (present only when nonempty) and

@@ -119,7 +119,7 @@ func TestRecordRendererColorsHeaderFooterAndBorderBySemanticRole(t *testing.T) {
 		Device:          records.DeviceProjection{CanonicalName: "router1"},
 		InputTarget:     "router1",
 		SelectedAddress: "192.0.2.10",
-		Platform:        "cisco_iosxe",
+		Platform:        "cisco_ios",
 		Credential:      &records.CredentialProjection{DeviceUsername: "svc.operator", Backend: "builtin-env-fallback"},
 		Transport:       "system",
 		Command:         "show clock", Status: "success", Output: "clock-output\n", OutputEncoding: "utf-8",
@@ -282,7 +282,7 @@ func TestRunTextRendererPrintsOmittedOutputNotice(t *testing.T) {
 	}
 	renderer.OnRecord(records.CommandRecord{
 		Device: records.DeviceProjection{CanonicalName: "r1"}, InputTarget: "r1", SelectedAddress: "10.0.2.10",
-		Platform: "cisco_iosxe", Transport: "system", Status: "success", OutputEncoding: "utf-8", OutputBytes: 73000, OutputSHA256: "abc",
+		Platform: "cisco_ios", Transport: "system", Status: "success", OutputEncoding: "utf-8", OutputBytes: 73000, OutputSHA256: "abc",
 		Command: "show big", PromptBefore: "r1#", Prompt: "r1#", PromptSource: "observed",
 		Notices: []records.Notice{{Code: "follow_output_omitted", Message: "output of 73000 bytes left out of the follow stream: the record's 74107-byte line is more than daemon.max-ipc-frame-bytes (65536) allows in a frame; the output is in commands.jsonl"}},
 		Timing:  records.Timing{EndedAt: time.Now()},

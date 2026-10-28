@@ -51,7 +51,7 @@ func TestCommandEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := &DeviceExecutor{opts: Options{Config: cfg, Audit: sink, Kind: "cmd", Operator: credentials.Operator{Username: "tester", UID: 1001, LoginUser: "tester.login"}}}
-	e.afterRecord(records.CommandRecord{RecordID: "r1", JobID: "261017-101500-00", ActivityID: "261017-101500-00", ActivityType: "command", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_iosxe"}, output.Source{})
+	e.afterRecord(records.CommandRecord{RecordID: "r1", JobID: "261017-101500-00", ActivityID: "261017-101500-00", ActivityType: "command", Command: "show clock", Status: "success", Operator: records.Operator{Username: "tester", UID: 1001}, Device: records.DeviceProjection{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe"}, Platform: "cisco_ios"}, output.Source{})
 	sink.Close()
 	data, err := os.ReadFile(file)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestCommandEvent(t *testing.T) {
 	if line.SchemaVersion != records.AuditSchemaVersion || line.Process["pid"] != float64(os.Getpid()) {
 		t.Fatalf("schema_version %d, process %v", line.SchemaVersion, line.Process)
 	}
-	if line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Action["command"] != "show clock" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_iosxe"}) {
+	if line.EventName != "cmd.command" || line.JobID != "261017-101500-00" || line.LoginUser != "tester.login" || line.Action["mode"] != "cmd" || line.Action["command"] != "show clock" || line.Device == nil || *line.Device != (records.AuditDevice{ID: "name:fake-iosxe", CanonicalName: "fake-iosxe", Platform: "cisco_ios"}) {
 		t.Fatalf("event %s", data)
 	}
 	canarytest.SchemaParityLines(t, "../../schema/audit.schema.json", data)

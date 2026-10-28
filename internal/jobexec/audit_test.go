@@ -82,7 +82,7 @@ func TestJobStartBesideLists(t *testing.T) {
 		t.Fatal(err)
 	}
 	plans := []executionplan.ExecutionPlan{
-		{PlanID: "p1", PlatformCommands: map[string][]string{"cisco_iosxe": {"show running-config", "show version"}}},
+		{PlanID: "p1", PlatformCommands: map[string][]string{"cisco_ios": {"show running-config", "show version"}}},
 		{PlanID: "p2", TargetCommands: map[string]executionplan.CommandList{"a": {Commands: []string{"show clock"}}, "b": {Commands: []string{"show users", "show clock", "show version"}}}},
 	}
 	for _, plan := range plans {

@@ -70,9 +70,9 @@ DEVICES=$((FITS + 8))
 [ "$DEVICES" -le 200 ] || DEVICES=0
 {
   echo 'name,management_address,platform'
-  echo 'fake-iosxe,127.0.0.1,cisco_iosxe'
+  echo 'fake-iosxe,127.0.0.1,cisco_ios'
   i=1
-  while [ "$i" -le "$DEVICES" ]; do printf 'wide-%03d,127.0.0.1,cisco_iosxe\n' "$i"; i=$((i + 1)); done
+  while [ "$i" -le "$DEVICES" ]; do printf 'wide-%03d,127.0.0.1,cisco_ios\n' "$i"; i=$((i + 1)); done
 } >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
 basedir = "$TMP/base"
@@ -104,7 +104,7 @@ spool-threshold-bytes = 0
 default = "parallel"
 parallel-workers = 200
 server-max-inflight = 200
-[platform.cisco_iosxe]
+[platform.cisco_ios]
 ssh-port = $PORT
 [[inventory-source]]
 name = "spool"

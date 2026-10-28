@@ -219,7 +219,7 @@ refused "another group" $'the install\'s group is another; nothing changed; karv
 # 6. The shutdown: a 12-second job on the fake device, docker stop 3 s in.
 docker exec -d "$TAG" karvi-fake-device -port 2223 -host-key-file /root/fake.key -password S3cret -enable en -slow 12s
 xsh 'for _ in $(seq 1 50); do (exec 3<>/dev/tcp/127.0.0.1/2223) 2>/dev/null && exit 0; sleep 0.1; done; exit 1' || fail "the fake device"
-xsh 'install -d -m 0755 /opt/karvi-test && printf "name,management_address,port,platform\nd1,127.0.0.1,2223,cisco_iosxe\n" >/opt/karvi-test/inv.csv
+xsh 'install -d -m 0755 /opt/karvi-test && printf "name,management_address,port,platform\nd1,127.0.0.1,2223,cisco_ios\n" >/opt/karvi-test/inv.csv
   printf "[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \"/opt/karvi-test/inv.csv\"\nrequired = true\n\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\nport = [\"port\"]\n" >/opt/karvi-test/c.toml
   chmod 0644 /opt/karvi-test/*'
 job() { # COMMAND [--detach]: a job on d1 as the account

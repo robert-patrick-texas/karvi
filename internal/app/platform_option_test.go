@@ -14,23 +14,23 @@ import (
 // empty value passes; a glob character, a leading "!", or an unknown name is
 // platform_option_unknown with the value and the known platforms named.
 func TestCheckPlatformOption(t *testing.T) {
-	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.C9300.driver="cisco_iosxe"`}})
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.C9300.driver="cisco_ios"`}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	known := "generic, cisco_iosxe, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300"
+	known := "generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300"
 	for _, tc := range []struct {
 		value, want, refusal string
 	}{
 		{"", "", ""},
 		{"   ", "", ""},
-		{"cisco_iosxe", "cisco_iosxe", ""},
-		{" Cisco_IOSXE ", "cisco_iosxe", ""}, // [2] P6: trimmed and lowercased
-		{"C9300", "c9300", ""},               // [2] P7: the alias, whatever the table's spelling
+		{"cisco_ios", "cisco_ios", ""},
+		{" Cisco_IOS ", "cisco_ios", ""}, // [2] P6: trimmed and lowercased
+		{"C9300", "c9300", ""},           // [2] P7: the alias, whatever the table's spelling
 		{"generic", "generic", ""},
-		{"cisco_iosx", "", "is not a known platform"},                      // [2] P3
-		{"*", "", "a platform name is required, not a pattern"},            // [2] P4
-		{"!cisco_iosxe", "", "a platform name is required, not a pattern"}, // [2] P5
+		{"cisco_iosx", "", "is not a known platform"},                    // [2] P3
+		{"*", "", "a platform name is required, not a pattern"},          // [2] P4
+		{"!cisco_ios", "", "a platform name is required, not a pattern"}, // [2] P5
 		{"cisco?", "", "not a pattern"},
 		{"c[9]300", "", "not a pattern"},
 		{`c9300\`, "", "not a pattern"},

@@ -9,22 +9,22 @@ import (
 )
 
 func TestResolve(t *testing.T) {
-	iosxe, _ := Builtin("cisco_iosxe")
+	iosxe, _ := Builtin("cisco_ios")
 	generic, _ := Builtin("generic")
 	tables := map[string]map[string]any{
-		"c9300":       {"driver": " CISCO_IOSXE ", "ssh-port": int64(2222), "session-cap": int64(4)},
-		"edge":        {"driver": "c9300"},
-		"lab":         {"driver": "custom", "requires-enable": true},
-		"cisco_iosxe": {"driver": "cisco_nxos", "telnet-port": int64(2323)},
-		"strict":      {"driver": "cisco_iosxe", "requires-enable": true, "paging-commands": []any{"terminal length 0"}, "legacy-class": "none", "privileged-level": "exec"},
-		"collector":   {"driver": "cisco_iosxe", "crun-commands": []any{"show running-config", "show inventory"}},
-		"silent":      {"driver": "cisco_iosxe", "crun-commands": []any{}},
-		"Lab-Nxos":    {"driver": "cisco_nxos"},
+		"c9300":     {"driver": " CISCO_IOS ", "ssh-port": int64(2222), "session-cap": int64(4)},
+		"edge":      {"driver": "c9300"},
+		"lab":       {"driver": "custom", "requires-enable": true},
+		"cisco_ios": {"driver": "cisco_nxos", "telnet-port": int64(2323)},
+		"strict":    {"driver": "cisco_ios", "requires-enable": true, "paging-commands": []any{"terminal length 0"}, "legacy-class": "none", "privileged-level": "exec"},
+		"collector": {"driver": "cisco_ios", "crun-commands": []any{"show running-config", "show inventory"}},
+		"silent":    {"driver": "cisco_ios", "crun-commands": []any{}},
+		"Lab-Nxos":  {"driver": "cisco_nxos"},
 	}
 
 	got := Resolve("c9300", tables)
 	want := iosxe
-	want.Name, want.Base, want.SSHPort, want.SessionCap = "c9300", "cisco_iosxe", 2222, 4
+	want.Name, want.Base, want.SSHPort, want.SessionCap = "c9300", "cisco_ios", 2222, 4
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("alias:\n got %+v\nwant %+v", got, want)
 	}
@@ -45,8 +45,8 @@ func TestResolve(t *testing.T) {
 		t.Fatalf("lab: %+v", got)
 	}
 
-	got = Resolve("cisco_iosxe", tables)
-	if got.Base != "cisco_iosxe" || got.Driver != "cisco_nxos" || got.TelnetPort != 2323 || !reflect.DeepEqual(got.PrivilegeLevels, iosxe.PrivilegeLevels) {
+	got = Resolve("cisco_ios", tables)
+	if got.Base != "cisco_ios" || got.Driver != "cisco_nxos" || got.TelnetPort != 2323 || !reflect.DeepEqual(got.PrivilegeLevels, iosxe.PrivilegeLevels) {
 		t.Fatalf("a built-in's table: %+v", got)
 	}
 
@@ -65,7 +65,7 @@ func TestResolve(t *testing.T) {
 			t.Fatalf("%q: %+v", name, got)
 		}
 	}
-	if got := Resolve(" C9300 ", tables); got.Name != "c9300" || got.Base != "cisco_iosxe" || got.SSHPort != 2222 {
+	if got := Resolve(" C9300 ", tables); got.Name != "c9300" || got.Base != "cisco_ios" || got.SSHPort != 2222 {
 		t.Fatalf("spaces and case: %+v", got)
 	}
 	if got := Resolve("c9300", nil); got.Base != "generic" {
@@ -83,11 +83,11 @@ func TestResolve(t *testing.T) {
 
 func TestKnownAndKnownNames(t *testing.T) {
 	tables := map[string]map[string]any{
-		"C9300": {"driver": "cisco_iosxe"},
+		"C9300": {"driver": "cisco_ios"},
 		"edge":  {"driver": "c9300"},
 		"lab":   {},
 	}
-	builtins := []string{"generic", "cisco_iosxe", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
+	builtins := []string{"generic", "cisco_ios", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
 	if got := KnownNames(nil); !reflect.DeepEqual(got, builtins) {
 		t.Fatalf("no tables: %v", got)
 	}
@@ -98,7 +98,7 @@ func TestKnownAndKnownNames(t *testing.T) {
 	if got := KnownNames(tables); !reflect.DeepEqual(got, want) {
 		t.Fatalf("with tables: %v", got)
 	}
-	for _, name := range []string{"generic", "CISCO_IOSXE", " linux ", "c9300", "C9300", "edge", "lab"} {
+	for _, name := range []string{"generic", "CISCO_IOS", " linux ", "c9300", "C9300", "edge", "lab"} {
 		if !Known(name, tables) {
 			t.Fatalf("%q should be known", name)
 		}
@@ -109,13 +109,13 @@ func TestKnownAndKnownNames(t *testing.T) {
 		}
 	}
 	// A built-in's own table adds no name.
-	if got := KnownNames(map[string]map[string]any{"cisco_iosxe": {"ssh-port": int64(2222)}}); !reflect.DeepEqual(got, builtins) {
+	if got := KnownNames(map[string]map[string]any{"cisco_ios": {"ssh-port": int64(2222)}}); !reflect.DeepEqual(got, builtins) {
 		t.Fatalf("a built-in's table: %v", got)
 	}
 }
 
 func TestNormalize(t *testing.T) {
-	for in, want := range map[string]string{" Cisco_IOSXE ": "cisco_iosxe", "c9300": "c9300", "": "", "  ": "", "\tLinux": "linux"} {
+	for in, want := range map[string]string{" Cisco_IOS ": "cisco_ios", "c9300": "c9300", "": "", "  ": "", "\tLinux": "linux"} {
 		if got := Normalize(in); got != want {
 			t.Fatalf("Normalize(%q) = %q, want %q", in, got, want)
 		}
@@ -126,11 +126,11 @@ func TestNormalize(t *testing.T) {
 // names a level of the base definition; a base without levels has none.
 func TestValidatePrivilegedLevel(t *testing.T) {
 	tables := map[string]map[string]any{
-		"ok":      {"driver": "cisco_iosxe", "privileged-level": "exec"},
-		"admin":   {"driver": "cisco_iosxe", "privileged-level": "admin"},
+		"ok":      {"driver": "cisco_ios", "privileged-level": "exec"},
+		"admin":   {"driver": "cisco_ios", "privileged-level": "admin"},
 		"nolevel": {"driver": "generic", "privileged-level": "exec"},
 	}
-	for name, wantCode := range map[string]string{"ok": "", "admin": "platform_privilege_level_unknown", "nolevel": "platform_privilege_level_unknown", "cisco_iosxe": "", "generic": "", "linux": ""} {
+	for name, wantCode := range map[string]string{"ok": "", "admin": "platform_privilege_level_unknown", "nolevel": "platform_privilege_level_unknown", "cisco_ios": "", "generic": "", "linux": ""} {
 		def := Resolve(name, tables)
 		err := def.Validate()
 		got := ""
@@ -158,7 +158,7 @@ func TestValidatePrivilegedLevel(t *testing.T) {
 // array included; generic has none. linux and linux_shell share a server's
 // list, the version first and the enabled units last, with no drop list.
 func TestCrunCommands(t *testing.T) {
-	for _, name := range []string{"cisco_iosxe", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos"} {
+	for _, name := range []string{"cisco_ios", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos"} {
 		def, _ := Builtin(name)
 		if len(def.CrunCommands) < 2 || !strings.HasPrefix(def.CrunCommands[0], "show ") || !strings.Contains(def.CrunCommands[0], "config") {
 			t.Fatalf("%s: crun-commands %q", name, def.CrunCommands)
@@ -174,11 +174,11 @@ func TestCrunCommands(t *testing.T) {
 		}
 	}
 	tables := map[string]map[string]any{
-		"c9300":     {"driver": "cisco_iosxe"},
-		"collector": {"driver": "cisco_iosxe", "crun-commands": []any{"show running-config", "show inventory"}},
-		"silent":    {"driver": "cisco_iosxe", "crun-commands": []any{}},
+		"c9300":     {"driver": "cisco_ios"},
+		"collector": {"driver": "cisco_ios", "crun-commands": []any{"show running-config", "show inventory"}},
+		"silent":    {"driver": "cisco_ios", "crun-commands": []any{}},
 	}
-	iosxe, _ := Builtin("cisco_iosxe")
+	iosxe, _ := Builtin("cisco_ios")
 	if got := Resolve("c9300", tables).CrunCommands; !reflect.DeepEqual(got, iosxe.CrunCommands) {
 		t.Fatalf("an alias inherits the list: %q", got)
 	}
@@ -209,7 +209,7 @@ func TestChannelAndLinuxShell(t *testing.T) {
 		{"linux_shell", "linux", "linux_shell", ChannelShell},
 		{"bastion", "linux", "linux_shell", ChannelShell},
 		{"eos-exec", "arista_eos", "arista_eos", ChannelExec},
-		{"cisco_iosxe", "cisco_iosxe", "cisco_iosxe", ChannelShell},
+		{"cisco_ios", "cisco_ios", "cisco_ios", ChannelShell},
 	} {
 		def := Resolve(tc.name, tables)
 		if def.Base != tc.base || def.Driver != tc.driver || def.Channel != tc.channel {
@@ -241,14 +241,14 @@ func TestChannelAndLinuxShell(t *testing.T) {
 func TestFallback(t *testing.T) {
 	tables := map[string]map[string]any{
 		"appliance":   {"driver": "linux"},
-		"c9300":       {"driver": "cisco_iosxe", "fallback": []any{}},
+		"c9300":       {"driver": "cisco_ios", "fallback": []any{}},
 		"linux":       {"fallback": []any{"netvars", "keys"}},
 		"cisco_nxos":  {"fallback": []any{"keys", "prompt"}},
 		"linux_shell": {"session-cap": 4},
 	}
 	for _, tc := range []struct{ name, want string }{
 		{"generic", "netvars prompt"},
-		{"cisco_iosxe", "netvars prompt"},
+		{"cisco_ios", "netvars prompt"},
 		{"arista_eos", "netvars prompt"},
 		{"linux", "netvars keys"},
 		{"linux_shell", "keys"},

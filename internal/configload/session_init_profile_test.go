@@ -38,9 +38,9 @@ func TestSessionInitProfileValidation(t *testing.T) {
 		{"timeout 500ms", "[session-init.p]\ncommands = []\ncommand-timeout = \"500ms\"\n" + catchAll, "config_session_init_command_timeout_out_of_range", "session-init.p.command-timeout"},
 		{"timeout 13h", "[session-init.p]\ncommands = []\ncommand-timeout = \"13h\"\n" + catchAll, "config_session_init_command_timeout_out_of_range", "session-init.p.command-timeout"},
 		{"profile named none", "[session-init.none]\ncommands = []\n", "config_session_init_profile_name_reserved", "session-init.none"},
-		{"map rule without profile", "[session-init.p]\ncommands = []\n[[session-init-map]]\nplatform = \"cisco_iosxe\"\n" + catchAll, "config_session_init_map_profile_missing", "session-init-map.0.profile"},
-		{"map rule profile not a string", "[session-init.p]\ncommands = []\n[[session-init-map]]\nprofile = 1\nplatform = \"cisco_iosxe\"\n" + catchAll, "config_type_error", "session-init-map.0.profile"},
-		{"map rule unknown profile", "[session-init.p]\ncommands = []\n[[session-init-map]]\nprofile = \"q\"\nplatform = \"cisco_iosxe\"\n" + catchAll, "config_session_init_map_profile_unknown", "session-init-map.0.profile"},
+		{"map rule without profile", "[session-init.p]\ncommands = []\n[[session-init-map]]\nplatform = \"cisco_ios\"\n" + catchAll, "config_session_init_map_profile_missing", "session-init-map.0.profile"},
+		{"map rule profile not a string", "[session-init.p]\ncommands = []\n[[session-init-map]]\nprofile = 1\nplatform = \"cisco_ios\"\n" + catchAll, "config_type_error", "session-init-map.0.profile"},
+		{"map rule unknown profile", "[session-init.p]\ncommands = []\n[[session-init-map]]\nprofile = \"q\"\nplatform = \"cisco_ios\"\n" + catchAll, "config_session_init_map_profile_unknown", "session-init-map.0.profile"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			err := load(t, tc.body)

@@ -10,13 +10,13 @@ import (
 )
 
 // maskedPlatforms are the built-ins with a mask list.
-var maskedPlatforms = []string{"cisco_iosxe", "cisco_xr", "cisco_nxos", "arista_eos", "juniper_junos"}
+var maskedPlatforms = []string{"cisco_ios", "cisco_xr", "cisco_nxos", "arista_eos", "juniper_junos"}
 
 // TestBuiltinMasksCompile: every built-in list compiles with a group in
 // each pattern, the five network platforms carry one, and generic, linux,
 // and linux_shell none.
 func TestBuiltinMasksCompile(t *testing.T) {
-	sizes := map[string]int{"cisco_iosxe": 19, "cisco_xr": 15, "cisco_nxos": 13, "arista_eos": 13, "juniper_junos": 10}
+	sizes := map[string]int{"cisco_ios": 19, "cisco_xr": 15, "cisco_nxos": 13, "arista_eos": 13, "juniper_junos": 10}
 	for name, def := range builtins {
 		if _, i, err := CompileMasks(def.Masks); err != nil {
 			t.Fatalf("%s: pattern %d: %v", name, i+1, err)
@@ -78,15 +78,15 @@ func TestMask(t *testing.T) {
 // driver's built-in list, and linux has none.
 func TestResolveMasks(t *testing.T) {
 	tables := map[string]map[string]any{
-		"cisco_iosxe": {"masks": []any{`^hostname (\S+)`}},
-		"c9300":       {"driver": "cisco_iosxe"},
-		"quiet":       {"driver": "cisco_nxos", "masks": []any{}},
-		"linux":       {"masks": []any{`--password=(\S+)`}},
+		"cisco_ios": {"masks": []any{`^hostname (\S+)`}},
+		"c9300":     {"driver": "cisco_ios"},
+		"quiet":     {"driver": "cisco_nxos", "masks": []any{}},
+		"linux":     {"masks": []any{`--password=(\S+)`}},
 	}
-	if got := Resolve("cisco_iosxe", tables).Masks; len(got) != 1 || got[0] != `^hostname (\S+)` {
+	if got := Resolve("cisco_ios", tables).Masks; len(got) != 1 || got[0] != `^hostname (\S+)` {
 		t.Fatalf("the table's list replaces the built-in: %v", got)
 	}
-	if got := Resolve("c9300", tables).Masks; len(got) != len(builtins["cisco_iosxe"].Masks) {
+	if got := Resolve("c9300", tables).Masks; len(got) != len(builtins["cisco_ios"].Masks) {
 		t.Fatalf("an alias inherits the built-in list, not the site's base table: %v", got)
 	}
 	if got := Resolve("quiet", tables).Masks; len(got) != 0 {
@@ -135,8 +135,8 @@ func readCorpus(t *testing.T, name string) []corpusLine {
 // removed that is no secret is the over-masks the chapter accepts.
 func TestBuiltinMasksCorpus(t *testing.T) {
 	accepted := map[string][]string{
-		"cisco_iosxe": {"sent description uplink to core, password reset by noc", "line  key 1"},
-		"cisco_xr":    {"line  key 1"},
+		"cisco_ios": {"sent description uplink to core, password reset by noc", "line  key 1"},
+		"cisco_xr":  {"line  key 1"},
 	}
 	for _, name := range maskedPlatforms {
 		res, _, err := CompileMasks(builtins[name].Masks)

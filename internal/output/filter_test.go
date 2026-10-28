@@ -55,7 +55,7 @@ func TestCollectionFilters(t *testing.T) {
 	if err := os.MkdirAll(coll, 0o770); err != nil {
 		t.Fatal(err)
 	}
-	filters := map[string][]string{"cisco_iosxe": {`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `}, "cisco_nxos": {`^!Time: `}}
+	filters := map[string][]string{"cisco_ios": {`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `}, "cisco_nxos": {`^!Time: `}}
 	s, err := Create(Options{Root: filepath.Join(dir, "job"), ID: "260926-020000-00", Skip: FileSet{OutputTxt: true}, CropNames: true,
 		Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Filters: filters}, Warn: func(string) {}})
 	if err != nil {
@@ -67,8 +67,8 @@ func TestCollectionFilters(t *testing.T) {
 	config := "Building configuration...\n\nCurrent configuration : 512 bytes\n!\n! Last configuration change at 10:00:00 UTC Tue Sep 15 2026\n!\nhostname r1\n!\nntp clock-period 17179869\nend\n"
 	version := "Cisco IOS XE Software, Version 17.09.04a\nr1 uptime is 1 day\n"
 	for _, r := range []*records.CommandRecord{
-		rec("r1", "cisco_iosxe", "show running-config", config, "utf-8", 1),
-		rec("r1", "cisco_iosxe", "show version", base64.StdEncoding.EncodeToString([]byte(version)), "base64", 2),
+		rec("r1", "cisco_ios", "show running-config", config, "utf-8", 1),
+		rec("r1", "cisco_ios", "show version", base64.StdEncoding.EncodeToString([]byte(version)), "base64", 2),
 	} {
 		if _, err := appendRecord(s, r); err != nil {
 			t.Fatal(err)
@@ -100,7 +100,7 @@ func TestCollectionFilters(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = Create(Options{Root: filepath.Join(dir, "job2"), ID: "260926-020001-00", Skip: FileSet{OutputTxt: true},
-		Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Filters: map[string][]string{"cisco_iosxe": {"("}}}, Warn: func(string) {}})
+		Collection: &CollectionOptions{Directory: coll, FileMode: 0o660, Filters: map[string][]string{"cisco_ios": {"("}}}, Warn: func(string) {}})
 	if err == nil || !strings.Contains(err.Error(), "execution_plan_invalid") || !strings.Contains(err.Error(), "pattern 1") {
 		t.Fatalf("a list that does not compile: %v", err)
 	}

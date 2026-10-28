@@ -48,7 +48,7 @@ func TestHostKeyEnrolledOnTheFirstRecord(t *testing.T) {
 	store := filepath.Join(dir, "known_hosts")
 	native := func() *gateHarness {
 		h := newGateHarness(t, nil, nil)
-		h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`, `ssh.host-key-policy="accept-new"`, `ssh.known-hosts-file="`+store+`"`)
+		h.withAlgorithmConfig(`platform.c9300.driver="cisco_ios"`, `ssh.host-key-policy="accept-new"`, `ssh.known-hosts-file="`+store+`"`)
 		h.target.Device.Transport = "native"
 		h.target.Device.Platform = "c9300"
 		h.target.Device.Port = uint16(srv.Port())
@@ -139,7 +139,7 @@ func TestHostKeyMismatchAcceptedOnTheFirstRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := newGateHarness(t, nil, nil)
-	h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`, `ssh.host-key-policy="insecure"`, `ssh.known-hosts-file="`+store+`"`)
+	h.withAlgorithmConfig(`platform.c9300.driver="cisco_ios"`, `ssh.host-key-policy="insecure"`, `ssh.known-hosts-file="`+store+`"`)
 	h.target.Device.Transport = "native"
 	h.target.Device.Platform = "c9300"
 	h.target.Device.Port = uint16(srv.Port())

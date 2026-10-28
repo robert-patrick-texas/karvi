@@ -52,7 +52,7 @@ func resolveAll(r *Resolver, op credentials.Operator, names ...string) ([]creden
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			got[i], errs[i] = r.Resolve(context.Background(), op, inventory.Direct(name, "cisco_iosxe", "system", 22))
+			got[i], errs[i] = r.Resolve(context.Background(), op, inventory.Direct(name, "cisco_ios", "system", 22))
 		}()
 	}
 	wg.Wait()

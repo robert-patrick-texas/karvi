@@ -169,7 +169,7 @@ unknown row platform is refused unless
 platform\-resolution.on\-unknown = "warn"
 .TP
 \fB\-\-pi\fR, \fB\-\-pn\fR, \fB\-\-pr\fR, \fB\-\-pj\fR, \fB\-\-pa\fR, \fB\-\-pl\fR, \fB\-\-ps\fR, \fB\-\-pg\fR
-Short for \-\-platform cisco_iosxe, cisco_nxos,
+Short for \-\-platform cisco_ios, cisco_nxos,
 cisco_xr, juniper_junos, arista_eos, linux,
 linux_shell, generic
 .SS "Dispatch"
@@ -443,8 +443,8 @@ the dispatch options are
 .B karvi crun \-\-all
 Each device its platform's list, into the collection directory.
 .TP
-.B karvi crun \-\-select\-platform cisco_iosxe \-\-cf ios\-collect.txt
-One list for every IOS XE device.
+.B karvi crun \-\-select\-platform cisco_ios \-\-cf ios\-collect.txt
+One list for every IOS and IOS XE device.
 .TP
 .B karvi crun \-\-target core\-01 \-\-cd=. \-\-fs=.cfg
 One device into the working directory, as

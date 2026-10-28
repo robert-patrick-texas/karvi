@@ -25,7 +25,7 @@ func TestPlatformResolutionValidation(t *testing.T) {
 	for _, tc := range []struct {
 		name, body, code, key, text string
 	}{
-		{"default unknown", "[platform-resolution]\ndefault = \"cisco_iosx\"\n", "config_platform_resolution_unknown", "platform-resolution.default", "\"cisco_iosx\" is not a known platform (known: generic, cisco_iosxe"},
+		{"default unknown", "[platform-resolution]\ndefault = \"cisco_iosx\"\n", "config_platform_resolution_unknown", "platform-resolution.default", "\"cisco_iosx\" is not a known platform (known: generic, cisco_ios"},
 		{"fallback unknown under fail", "[platform-resolution]\nunknown-fallback = \"cisco_iosx\"\n", "config_platform_resolution_unknown", "platform-resolution.unknown-fallback", "\"cisco_iosx\" is not a known platform"},
 		{"fallback unknown under warn", "[platform-resolution]\non-unknown = \"warn\"\nunknown-fallback = \"cisco_iosx\"\n", "config_platform_resolution_unknown", "platform-resolution.unknown-fallback", "\"cisco_iosx\" is not a known platform"},
 		{"fallback blank", "[platform-resolution]\nunknown-fallback = \"\"\n", "config_platform_resolution_unknown", "platform-resolution.unknown-fallback", "\"\" is not a known platform"},
@@ -52,12 +52,12 @@ func TestPlatformResolutionValidation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := snap.String("platform-resolution.default") + "|" + snap.String("platform-resolution.on-unknown") + "|" + snap.String("platform-resolution.unknown-fallback"); got != "cisco_iosxe|fail|generic" {
+		if got := snap.String("platform-resolution.default") + "|" + snap.String("platform-resolution.on-unknown") + "|" + snap.String("platform-resolution.unknown-fallback"); got != "cisco_ios|fail|generic" {
 			t.Fatalf("defaults %q", got)
 		}
 	})
 	t.Run("names normalise", func(t *testing.T) {
-		snap, err := load(t, "[platform.c9300]\ndriver = \"cisco_iosxe\"\n[platform-resolution]\ndefault = \"C9300\"\non-unknown = \"warn\"\nunknown-fallback = \"Generic\"\n"+source+"defaults.platform = \" Cisco_IOSXE \"\n")
+		snap, err := load(t, "[platform.c9300]\ndriver = \"cisco_ios\"\n[platform-resolution]\ndefault = \"C9300\"\non-unknown = \"warn\"\nunknown-fallback = \"Generic\"\n"+source+"defaults.platform = \" Cisco_IOS \"\n")
 		if err != nil {
 			t.Fatal(err)
 		}

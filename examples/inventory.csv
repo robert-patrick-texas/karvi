@@ -20,10 +20,10 @@
 #                     equals it (examples/credentials.csv); never a secret
 # owner               a free attribute, kept in the records as attributes.owner
 name,management_address,platform,transport,site,groups,session_cap,credkeyref,owner
-edge-01,192.0.2.10,cisco_iosxe,system,nyc,"access;production",3,,netops
-edge-02,192.0.2.11,cisco_iosxe,system,nyc,"access;production",3,,netops
+edge-01,192.0.2.10,cisco_ios,system,nyc,"access;production",3,,netops
+edge-02,192.0.2.11,cisco_ios,system,nyc,"access;production",3,,netops
 # the core pair runs on the native transport and pins the break-glass row
-core-01,2001:db8::10,cisco_iosxe,native,iad,"core;production",5,break-glass,backbone
+core-01,2001:db8::10,cisco_ios,native,iad,"core;production",5,break-glass,backbone
 # an alias platform of examples/config.toml: IOS XE with one paging command
 access-09,192.0.2.19,c9300,system,nyc,"access;lab",2,,netops
 lab-linux-01,192.0.2.50,linux,system,lab,"test;linux",2,,automation

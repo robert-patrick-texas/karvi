@@ -125,13 +125,13 @@ func TestV0100DuplicateRowsCompareAuthorityAndAlternates(t *testing.T) {
 func TestPlatformNamesNormalise(t *testing.T) {
 	devices, err := loadCSV(t,
 		"name,management_address,platform\n"+
-			"a,192.0.2.1, Cisco_IOSXE \n"+
+			"a,192.0.2.1, Cisco_IOS \n"+
 			"b,192.0.2.2,\n",
 		`defaults.platform = " Juniper_JUNOS "`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if devices[0].Platform != "cisco_iosxe" || devices[1].Platform != "juniper_junos" {
+	if devices[0].Platform != "cisco_ios" || devices[1].Platform != "juniper_junos" {
 		t.Fatalf("platforms %q, %q", devices[0].Platform, devices[1].Platform)
 	}
 }
@@ -140,18 +140,18 @@ func TestPlatformNamesNormalise(t *testing.T) {
 // without a platform and without a source default loads blank (not set), a
 // source default sets it, and a row's own value beats the default.
 func TestPlatformNotSetStaysBlank(t *testing.T) {
-	devices, err := loadCSV(t, "name,management_address,platform\nr1,192.0.2.1,\nr2,192.0.2.2,cisco_iosxe\n")
+	devices, err := loadCSV(t, "name,management_address,platform\nr1,192.0.2.1,\nr2,192.0.2.2,cisco_ios\n")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if devices[0].Platform != "" || devices[1].Platform != "cisco_iosxe" {
+	if devices[0].Platform != "" || devices[1].Platform != "cisco_ios" {
 		t.Fatalf("platforms %q, %q", devices[0].Platform, devices[1].Platform)
 	}
-	devices, err = loadCSV(t, "name,management_address,platform\nr1,192.0.2.1,\nr2,192.0.2.2,cisco_iosxe\n", `defaults.platform = "Generic"`)
+	devices, err = loadCSV(t, "name,management_address,platform\nr1,192.0.2.1,\nr2,192.0.2.2,cisco_ios\n", `defaults.platform = "Generic"`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if devices[0].Platform != "generic" || devices[1].Platform != "cisco_iosxe" {
+	if devices[0].Platform != "generic" || devices[1].Platform != "cisco_ios" {
 		t.Fatalf("with a default: %q, %q", devices[0].Platform, devices[1].Platform)
 	}
 }

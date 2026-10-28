@@ -92,7 +92,7 @@ func TestSinkStampsTheSchemaVersion(t *testing.T) {
 // pair early is quoted, and a statement always, last.
 func TestLine(t *testing.T) {
 	op := records.Operator{Username: "netops", UID: 1000}
-	dev := &records.AuditDevice{ID: "name:core-rtr-1", CanonicalName: "core-rtr-1", Platform: "cisco_iosxe"}
+	dev := &records.AuditDevice{ID: "name:core-rtr-1", CanonicalName: "core-rtr-1", Platform: "cisco_ios"}
 	for _, tc := range []struct {
 		r    records.AuditRecord
 		want string

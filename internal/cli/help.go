@@ -26,7 +26,7 @@ const platformOptionHelp = `  --platform NAME                The platform the de
                                  unknown row platform is refused unless
                                  platform-resolution.on-unknown = "warn"
   --pi, --pn, --pr, --pj, --pa, --pl, --ps, --pg
-                                 Short for --platform cisco_iosxe, cisco_nxos,
+                                 Short for --platform cisco_ios, cisco_nxos,
                                  cisco_xr, juniper_junos, arista_eos, linux,
                                  linux_shell, generic
 `

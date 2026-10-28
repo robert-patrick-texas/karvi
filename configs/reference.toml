@@ -324,10 +324,10 @@ recursion-max-depth = 3
 
 [platform-resolution]
 # The platform of a device whose platform is not set (a blank inventory row without a source
-# default, or a direct target without --platform): a known platform, cisco_iosxe as shipped
+# default, or a direct target without --platform): a known platform, cisco_ios as shipped
 # since registry 17, generic or empty for generic, or the platform a site's network is
 # predominantly.
-default = "cisco_iosxe"
+default = "cisco_ios"
 # fail refuses an activity whose target set holds an inventory row naming an unknown platform
 # (platform_unknown); warn runs the device as platform-resolution.unknown-fallback with a
 # warning and the notice platform_unknown_fallback. Configuration values fail validation
@@ -643,7 +643,7 @@ max-physical-line-bytes = 1048576
 # [ssh-algorithms-profile.NAME], [[ssh-algorithms-map]], and [platform.NAME]
 # are shown in examples/config.toml.
 #
-# A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_xr,
+# A [platform.NAME] table for a built-in name (generic, cisco_ios, cisco_xr,
 # cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
 # a table for any other name is an alias and needs driver = "<built-in>", inheriting
 # the whole built-in definition. Names compare without regard to case and are

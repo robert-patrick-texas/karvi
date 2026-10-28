@@ -68,7 +68,7 @@ func TestCrunDryRunListsPerPlatform(t *testing.T) {
 	args := func(extra ...string) []string {
 		a := append([]string{}, sets...)
 		// --platform generic: a direct target runs as the shipped default,
-		// cisco_iosxe, which has a list; the
+		// cisco_ios, which has a list; the
 		// test is about the generic table's list and its absence.
 		a = append(a, "crun", "--dry-run", "--no-daemon", "--target", "127.0.0.1", "--transport", "system", "--platform", "generic")
 		return append(a, extra...)

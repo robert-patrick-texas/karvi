@@ -69,7 +69,7 @@ func TestPlatformFallback(t *testing.T) {
 		return &scriptedInput{env: map[string]string{"NETUSER": "netuser", "NETPASS": "netpass"}}
 	}
 	server := inventory.Direct("srv1", "linux", "native", 22)
-	router := inventory.Direct("rtr1", "cisco_iosxe", "native", 22)
+	router := inventory.Direct("rtr1", "cisco_ios", "native", 22)
 
 	// linux: keys alone; the variables never reach a server unasked, and a
 	// key that fails is a notice on the credential.
@@ -134,7 +134,7 @@ func TestPlatformFallback(t *testing.T) {
 		t.Fatalf("router netpass alone: %v", err)
 	}
 	// A router given the keys by its table.
-	if got, err := resolve(t, router, &scriptedInput{}, `platform.cisco_iosxe.fallback=["keys"]`); err != nil || got.Credential.Backend != "builtin-operator-keys" {
+	if got, err := resolve(t, router, &scriptedInput{}, `platform.cisco_ios.fallback=["keys"]`); err != nil || got.Credential.Backend != "builtin-operator-keys" {
 		t.Fatalf("router keys: %+v %v", got.Credential, err)
 	}
 }

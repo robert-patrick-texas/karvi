@@ -55,7 +55,7 @@ func TestRemovedKeysRefused(t *testing.T) {
 	}
 	t.Run("platform-caps pattern", func(t *testing.T) {
 		want(t, load(t, "[sessions.platform-caps]\ngeneric = 4\n", nil, nil), "config_key_removed", "sessions.platform-caps.generic")
-		want(t, load(t, "", nil, []string{"sessions.platform-caps.cisco_iosxe=2"}), "config_key_removed", "sessions.platform-caps.cisco_iosxe")
+		want(t, load(t, "", nil, []string{"sessions.platform-caps.cisco_ios=2"}), "config_key_removed", "sessions.platform-caps.cisco_ios")
 	})
 	// The removed sqlite credential backend type's keys, fields of a dynamic
 	// table, are refused on any backend, from a file before the table's type

@@ -39,7 +39,7 @@ func TestPatternGrammar(t *testing.T) {
 		{`\!lab`, "!lab", true},
 		{`\^x\$`, "^x$", true},
 		{"SW-*", "sw-1", true},
-		{"cisco_*", "CISCO_IOSXE", true},
+		{"cisco_*", "CISCO_IOS", true},
 		{"nyc", "NYC", true},
 		{"core", "Core", true},
 		{"*", "", true},
@@ -106,7 +106,7 @@ func TestParseSelectorNegation(t *testing.T) {
 // removes the rule, groups match any, the earlier of the first ordinary rule
 // and the longest CIDR wins, equal prefixes are ambiguous, no match is -1.
 func TestSelectRule(t *testing.T) {
-	f := Fields{Name: "sw-nyc-01.example.gov", Address: netip.MustParseAddr("10.1.2.3"), Platform: "cisco_iosxe", Site: "NYC", Groups: []string{"core", "lab"}}
+	f := Fields{Name: "sw-nyc-01.example.gov", Address: netip.MustParseAddr("10.1.2.3"), Platform: "cisco_ios", Site: "NYC", Groups: []string{"core", "lab"}}
 	rule := func(kv ...any) map[string]any {
 		m := map[string]any{}
 		for i := 0; i < len(kv); i += 2 {
@@ -124,8 +124,8 @@ func TestSelectRule(t *testing.T) {
 		{"group negation removes", []map[string]any{rule("device-group", []any{"core", "!lab"}), rule("name", "*")}, 1},
 		{"all keys AND", []map[string]any{rule("platform", "cisco_*", "site", "bos"), rule("name", "*")}, 1},
 		{"longest cidr", []map[string]any{rule("address-cidr", "10.0.0.0/8"), rule("address-cidr", "10.1.0.0/16"), rule("name", "*")}, 1},
-		{"earlier ordinary beats cidr", []map[string]any{rule("platform", "cisco_iosxe"), rule("address-cidr", "10.1.2.0/24"), rule("name", "*")}, 0},
-		{"earlier cidr beats ordinary", []map[string]any{rule("address-cidr", "10.1.2.0/24"), rule("platform", "cisco_iosxe")}, 0},
+		{"earlier ordinary beats cidr", []map[string]any{rule("platform", "cisco_ios"), rule("address-cidr", "10.1.2.0/24"), rule("name", "*")}, 0},
+		{"earlier cidr beats ordinary", []map[string]any{rule("address-cidr", "10.1.2.0/24"), rule("platform", "cisco_ios")}, 0},
 		{"cidr negation", []map[string]any{rule("address-cidr", []any{"10.0.0.0/8", "!10.1.0.0/16"}), rule("name", "*")}, 1},
 		{"none", []map[string]any{rule("site", "bos")}, -1},
 	} {

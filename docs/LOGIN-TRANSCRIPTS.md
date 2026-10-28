@@ -54,7 +54,7 @@ the same way for itself.
 
   ```text
   ! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log
-  ! router01 [10.0.0.1] platform=cisco_iosxe user=netops backend=interactive-tty transport=system
+  ! router01 [10.0.0.1] platform=cisco_ios user=netops backend=interactive-tty transport=system
   ...
   router01#exit
   ! transcript=/opt/karvi/users/netops/transcripts/261003/router01-143005.log

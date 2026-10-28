@@ -901,13 +901,13 @@
     {
       "path": "platform-resolution.default",
       "kind": "string",
-      "default_literal": "\"cisco_iosxe\"",
+      "default_literal": "\"cisco_ios\"",
       "required": false,
       "lock_eligible": true,
       "reload_class": "next-job",
       "environment": "KARVI__PLATFORM_RESOLUTION__DEFAULT",
       "cli_flags": null,
-      "documentation": "The platform of a device whose platform is not set (a blank inventory row without a source default, or a direct target without `--platform`): a known platform, `cisco_iosxe` as shipped since registry 17, `generic` or empty for `generic`, or the platform a site's network is predominantly.",
+      "documentation": "The platform of a device whose platform is not set (a blank inventory row without a source default, or a direct target without `--platform`): a known platform, `cisco_ios` as shipped since registry 17, `generic` or empty for `generic`, or the platform a site's network is predominantly.",
       "since": "0.12.0"
     },
     {

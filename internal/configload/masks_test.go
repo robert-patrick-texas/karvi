@@ -13,7 +13,7 @@ import (
 // config_platform_mask_invalid naming the table, the entry, and the reason;
 // crun.mask is false by default.
 func TestMasksValidation(t *testing.T) {
-	snap, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_iosxe"`, `platform.c9300.masks=['(?i)^\s*snmp-s\S*\s+comm\S*\s+(\S+)']`}})
+	snap, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_ios"`, `platform.c9300.masks=['(?i)^\s*snmp-s\S*\s+comm\S*\s+(\S+)']`}})
 	if err != nil {
 		t.Fatalf("a valid list: %v", err)
 	}
@@ -24,19 +24,19 @@ func TestMasksValidation(t *testing.T) {
 	if snap.Bool("crun.mask") {
 		t.Fatal("crun.mask is true by default")
 	}
-	if _, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_iosxe"`, `platform.c9300.masks=["(ok)", 7]`}}); errorcodes.Of(err) != "config_type_error" {
+	if _, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_ios"`, `platform.c9300.masks=["(ok)", 7]`}}); errorcodes.Of(err) != "config_type_error" {
 		t.Fatalf("a non-string entry: %v", err)
 	}
 	for _, c := range []struct{ list, reason string }{
 		{`["key (\\S+)", "("]`, `pattern 2 "(" does not compile: error parsing regexp`},
 		{`["key (\\S+)", "^enable secret \\S+"]`, `pattern 2 "^enable secret \\S+" holds no capturing group`},
 	} {
-		_, err = Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_iosxe"`, `platform.c9300.masks=` + c.list}})
+		_, err = Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_ios"`, `platform.c9300.masks=` + c.list}})
 		if errorcodes.Of(err) != "config_platform_mask_invalid" || !strings.Contains(err.Error(), "platform.c9300.masks") || !strings.Contains(err.Error(), c.reason) {
 			t.Fatalf("%s: %v", c.list, err)
 		}
 	}
-	if _, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.cisco_iosxe.masks=[]`, `crun.mask=true`}}); err != nil {
+	if _, err := Load(Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.cisco_ios.masks=[]`, `crun.mask=true`}}); err != nil {
 		t.Fatalf("an empty array turns the mask off: %v", err)
 	}
 }

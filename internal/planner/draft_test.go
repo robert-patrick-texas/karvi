@@ -79,7 +79,7 @@ func draftOptions(commands []string) DraftOptions {
 // Re-pinned at registry 16: the configuration digest moved with the
 // sharedroot key; the draft's own fields did not change. Re-pinned at
 // registry 17: the digest moved with
-// platform-resolution.default's shipped value, cisco_iosxe; the k03 rows
+// platform-resolution.default's shipped value, cisco_ios; the k03 rows
 // set their platforms, so the draft's targets did not change. Re-pinned at
 // registry 18: the digest moved with crun.after and crun.after-timeout;
 // the draft's own fields did not change. Re-pinned at registry 19 and plan
@@ -163,7 +163,10 @@ func draftOptions(commands []string) DraftOptions {
 // 79); nothing else moved.
 // Re-pinned when ssh.transports.native was removed (EXAMPLES chapter 82):
 // the configuration block's key and its digest; nothing else moved.
-const goldenK03Draft = "e9ca5b66df8ac6d811fb29bd51aa3de088a33e3bcd01357233c66a7014cac68d"
+// Re-pinned when platform-resolution.default took cisco_ios (EXAMPLES
+// chapter 86): the configuration block's value and its digest; nothing else
+// moved.
+const goldenK03Draft = "d75e2efe3d3d804c5f11b2a78f286e7c1b59d872a8d765ea019e1fbb4c67fccd"
 
 func TestDraftFromK03PinsDigest(t *testing.T) {
 	cfg := testConfig(t)

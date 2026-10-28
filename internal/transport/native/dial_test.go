@@ -80,7 +80,7 @@ func TestDialSessionOneConnectionOneShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	session := openSession(t, s, "cisco_iosxe")
+	session := openSession(t, s, "cisco_ios")
 	clock := session.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: 5 * time.Second})
 	if clock.Err != nil || string(clock.Output) != "*10:00:00.000 UTC Tue Sep 15 2026\n" || clock.Prompt != "Router#" {
 		t.Fatalf("show clock: %+v", clock)
@@ -115,7 +115,7 @@ func TestDialAbortAfterTimeoutReturnsAtOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	session := openSession(t, s, "cisco_iosxe")
+	session := openSession(t, s, "cisco_ios")
 	started := time.Now()
 	r := session.Execute(context.Background(), platform.Command{Text: "show slow", Timeout: 300 * time.Millisecond})
 	if r.ErrorCode != "command_timeout" || session.Usable() {
@@ -142,7 +142,7 @@ func TestKeepalives(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		session := openSession(t, s, "cisco_iosxe")
+		session := openSession(t, s, "cisco_ios")
 		t.Cleanup(func() { session.Close() })
 		return session
 	}
@@ -284,7 +284,7 @@ func TestDialHostKeyAlgorithmChoice(t *testing.T) {
 	if err != nil {
 		t.Fatalf("legacy device: %v", err)
 	}
-	session := openSession(t, s, "cisco_iosxe")
+	session := openSession(t, s, "cisco_ios")
 	if r := session.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: 5 * time.Second}); r.Err != nil {
 		t.Fatalf("legacy show clock: %+v", r)
 	}

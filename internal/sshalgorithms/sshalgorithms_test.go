@@ -152,9 +152,9 @@ func TestSelectSource(t *testing.T) {
 		source, site, platform string
 		want                   Selection
 	}{
-		{"", "edge", "cisco_iosxe", Selection{Lists: global, Rule: -1, Source: SourceKarvi}},
-		{SourceTransport, "edge", "cisco_iosxe", Selection{Lists: Lists{HostKey: global[HostKey]}, Rule: -1, Source: SourceTransport}},
-		{SourceTransport, "core", "cisco_iosxe", Selection{Lists: Apply(global, profiles["routers"]), Profile: "routers", Rule: 0, Source: SourceKarvi}},
+		{"", "edge", "cisco_ios", Selection{Lists: global, Rule: -1, Source: SourceKarvi}},
+		{SourceTransport, "edge", "cisco_ios", Selection{Lists: Lists{HostKey: global[HostKey]}, Rule: -1, Source: SourceTransport}},
+		{SourceTransport, "core", "cisco_ios", Selection{Lists: Apply(global, profiles["routers"]), Profile: "routers", Rule: 0, Source: SourceKarvi}},
 		{SourceKarvi, "edge", "linux", Selection{Lists: Lists{HostKey: {"ssh-ed25519"}}, Profile: "servers", Rule: 1, Source: SourceTransport}},
 	} {
 		got, err := Select(global, c.source, profiles, rules, matching.Fields{Name: "d1", Site: c.site, Platform: c.platform})

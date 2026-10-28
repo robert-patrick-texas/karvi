@@ -21,7 +21,7 @@ func TestBuiltinCrunFiltersCompile(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"cisco_iosxe", "cisco_xr", "cisco_nxos", "arista_eos"} {
+	for _, name := range []string{"cisco_ios", "cisco_xr", "cisco_nxos", "arista_eos"} {
 		if len(builtins[name].CrunFilters) == 0 {
 			t.Fatalf("%s ships no drop list", name)
 		}
@@ -31,15 +31,15 @@ func TestBuiltinCrunFiltersCompile(t *testing.T) {
 			t.Fatalf("%s ships a drop list: %v", name, builtins[name].CrunFilters)
 		}
 	}
-	res, _, _ := CompileFilters(builtins["cisco_iosxe"].CrunFilters)
+	res, _, _ := CompileFilters(builtins["cisco_ios"].CrunFilters)
 	for _, line := range []string{"Building configuration...", "Current configuration : 512 bytes", "ntp clock-period 17179869", "fake-iosxe uptime is 1 day", "Load for five secs: 1%/0%; one minute: 1%; five minutes: 1%", "Time source is NTP, 10:00:00.000 UTC Tue Sep 15 2026"} {
 		if !matchesAny(res, line) {
-			t.Fatalf("cisco_iosxe keeps %q", line)
+			t.Fatalf("cisco_ios keeps %q", line)
 		}
 	}
 	for _, line := range []string{"! Last configuration change at 10:00:00 UTC Tue Sep 15 2026", "hostname core-nyc-01", "Building configurationXXX", "end"} {
 		if matchesAny(res, line) {
-			t.Fatalf("cisco_iosxe drops %q", line)
+			t.Fatalf("cisco_ios drops %q", line)
 		}
 	}
 }
@@ -50,14 +50,14 @@ func TestBuiltinCrunFiltersCompile(t *testing.T) {
 // named by its index.
 func TestResolveCrunFilters(t *testing.T) {
 	tables := map[string]map[string]any{
-		"cisco_iosxe": {"crun-filters": []any{"^hostname "}},
-		"c9300":       {"driver": "cisco_iosxe"},
-		"quiet":       {"driver": "cisco_nxos", "crun-filters": []any{}},
+		"cisco_ios": {"crun-filters": []any{"^hostname "}},
+		"c9300":     {"driver": "cisco_ios"},
+		"quiet":     {"driver": "cisco_nxos", "crun-filters": []any{}},
 	}
-	if got := Resolve("cisco_iosxe", tables).CrunFilters; len(got) != 1 || got[0] != "^hostname " {
+	if got := Resolve("cisco_ios", tables).CrunFilters; len(got) != 1 || got[0] != "^hostname " {
 		t.Fatalf("the table's list replaces the built-in: %v", got)
 	}
-	if got := Resolve("c9300", tables).CrunFilters; len(got) != len(builtins["cisco_iosxe"].CrunFilters) {
+	if got := Resolve("c9300", tables).CrunFilters; len(got) != len(builtins["cisco_ios"].CrunFilters) {
 		t.Fatalf("an alias inherits the built-in list, not the site's base table: %v", got)
 	}
 	if got := Resolve("quiet", tables).CrunFilters; len(got) != 0 {

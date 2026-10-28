@@ -657,7 +657,7 @@ core = ["show version", "show inventory"]
 directory = "/srv/karvi/%region%/%operator%"
 
 [platform.c9300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 crun-commands = ["%core%", "show running-config"]
 ```
 
@@ -1321,7 +1321,7 @@ is blank, logs in as `netops-adm`, and the dry run's credential line names
 `user=netops-adm`:
 
 ```text
-! 127.0.0.1 [127.0.0.1] platform=cisco_iosxe user=netops-adm backend=site-creds transport=native
+! 127.0.0.1 [127.0.0.1] platform=cisco_ios user=netops-adm backend=site-creds transport=native
 ```
 
 With `username = [{op = "lowercase"}, {op = "add-suffix", suffix = "-adm"}]`
@@ -1361,7 +1361,7 @@ holds it; capture stdout and stderr separately when opening a support issue.
 A device that runs as `generic` (a row set to `generic`, any device under
 `--pg`, and a row with no platform or a target outside the inventory
 when the site has set `platform-resolution.default` to `generic` or
-cleared it; as shipped the key is `cisco_iosxe`) is sent nothing at the
+cleared it; as shipped the key is `cisco_ios`) is sent nothing at the
 start of its session: `generic` has no paging
 statements of its own. Two mechanisms send statements before the requested
 commands, in `command` and `run`. They differ in which devices they reach
@@ -1890,7 +1890,7 @@ a scope:
 
 ```bash
 karvi crun --all                       # each device its platform's crun-commands list
-karvi crun --select-platform cisco_iosxe --cf ios-collect.txt
+karvi crun --select-platform cisco_ios --cf ios-collect.txt
 karvi crun --target core-nyc-01.example.net --cd=/opt/karvi/shared/crun
 ```
 
@@ -2190,7 +2190,7 @@ of every match of a platform's `masks` is replaced by `<removed>`. A job's
 events are masked by the lists of all its devices' platforms together, so that
 no event leaves in clear what another platform's list hides; the job's folder
 keeps every statement as sent (the run above recorded `snmp-server community
-Publ1c RO` in `commands.jsonl`). `cisco_iosxe`, `cisco_xr`, `cisco_nxos`,
+Publ1c RO` in `commands.jsonl`). `cisco_ios`, `cisco_xr`, `cisco_nxos`,
 `arista_eos`, and `juniper_junos` each have a built-in list, in force by
 default; a site's `[platform.NAME] masks` replaces a list whole, `[]` turns it
 off, and a pattern that does not compile or holds no group refuses the

@@ -84,7 +84,7 @@ Collect debug output and verify:
 
 Generic mode can run simple commands, but platform-specific paging suppression,
 privilege acquisition, and error patterns require a qualified platform mapping.
-For Cisco IOS XE inventory, set the canonical platform to `cisco_iosxe` before
+For Cisco IOS and IOS XE inventory, set the canonical platform to `cisco_ios` before
 relying on those behaviors.
 
 ## Output truncation or timeout

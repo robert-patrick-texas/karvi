@@ -358,7 +358,7 @@ failover. *Why:* implicit failover would repeat a non-idempotent command on a
 device the operator did not choose.
 
 **The known platform set has one definition.** A known platform is one of the
-eight built-ins (`generic`, `cisco_iosxe`, `cisco_xr`, `cisco_nxos`,
+eight built-ins (`generic`, `cisco_ios`, `cisco_xr`, `cisco_nxos`,
 `juniper_junos`, `arista_eos`, `linux`, `linux_shell`) or a configured
 `[platform.NAME]` table; names compare after trimming and case folding and are
 recorded lowercase. A table for a built-in overrides that built-in's allowed
@@ -416,12 +416,12 @@ which a site's own global file would replace.
 **A device's platform is resolved once, at planning, in a fixed order.**
 `--platform NAME` on the command line, else the inventory row's value, else
 the source's `defaults.platform`, else `platform-resolution.default`, whose
-shipped value is `cisco_iosxe`; an empty value gives `generic`. A platform from
+shipped value is `cisco_ios`; an empty value gives `generic`. A platform from
 the first three steps is *set*; one from the default is *not set*, and the
 distinction is what selectors and maps match on. *Why:* production fleets are
 Cisco-dominated, and an unlisted target that ran as `generic` sent no enable,
 no paging, and recorded a rejected command as succeeded, or the operator wrote
-`--platform cisco_iosxe` on every line; karvi infers nothing from a name or an
+`--platform cisco_ios` on every line; karvi infers nothing from a name or an
 address. *Not taken:* inferring a vendor; a prompt; keeping `generic`.
 
 **An unknown row platform refuses the activity.** Under the default

@@ -77,7 +77,7 @@ type Definition struct {
 	// Masks is the platform's mask list: regular expressions in Go's syntax,
 	// each holding a capturing group; in a statement the audit records, and
 	// in a collection file's line under crun.mask, the text of every group of
-	// every match is replaced by Removed. cisco_iosxe, cisco_xr,
+	// every match is replaced by Removed. cisco_ios, cisco_xr,
 	// cisco_nxos, juniper_junos, and arista_eos have a built-in list; a
 	// site's [platform.NAME] masks replaces the list whole, and an empty
 	// array turns the mask off. CompileMasks is the one compiler of the list.
@@ -520,7 +520,7 @@ var (
 
 var builtins = map[string]Definition{
 	"generic":       {Name: "generic", Driver: "generic", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 3, ExitCommands: []string{"exit"}, PromptPattern: GenericPromptPattern},
-	"cisco_iosxe":   {Name: "cisco_iosxe", Driver: "cisco_iosxe", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 5, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is `}, Masks: iosxeMasks, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXELevels, FailurePatterns: ciscoFailures},
+	"cisco_ios":     {Name: "cisco_ios", Driver: "cisco_ios", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 5, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is `}, Masks: iosxeMasks, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXELevels, FailurePatterns: ciscoFailures},
 	"cisco_xr":      {Name: "cisco_xr", Driver: "cisco_xr", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 512"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^Building configuration\.\.\.$`, ` uptime is `}, Masks: iosxrMasks, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoIOSXRLevels, FailurePatterns: ciscoFailures},
 	"cisco_nxos":    {Name: "cisco_nxos", Driver: "cisco_nxos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "privilege-exec", SessionCap: 8, PagingCommands: []string{"terminal length 0", "terminal width 511"}, CrunCommands: []string{"show running-config", "show version"}, CrunFilters: []string{`^!Time: `, ` uptime is `}, Masks: nxosMasks, ExitCommands: []string{"exit"}, PrivilegeLevels: ciscoNXOSLevels, FailurePatterns: nxosFailures},
 	"juniper_junos": {Name: "juniper_junos", Driver: "juniper_junos", DefaultTransport: "native", Channel: ChannelShell, Fallback: netFallback, SSHPort: 22, TelnetPort: 23, PrivilegedLevel: "exec", SessionCap: 8, PagingCommands: []string{"set cli screen-length 0", "set cli screen-width 0"}, CrunCommands: []string{"show configuration", "show version"}, Masks: junosMasks, ExitCommands: []string{"exit"}, PrivilegeLevels: juniperJunosLevels, FailurePatterns: junosFailures},
@@ -542,7 +542,7 @@ func Builtin(name string) (Definition, bool) {
 	return d, ok
 }
 func Builtins() []Definition {
-	order := []string{"generic", "cisco_iosxe", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
+	order := []string{"generic", "cisco_ios", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
 	out := make([]Definition, 0, len(order))
 	for _, n := range order {
 		d, _ := Builtin(n)

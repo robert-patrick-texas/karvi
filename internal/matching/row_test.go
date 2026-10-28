@@ -43,9 +43,9 @@ func TestFirstRowIsFileOrder(t *testing.T) {
 		device RowFields
 		line   int
 	}{
-		{view("sw-nyc-01", "10.1.2.3", "cisco_iosxe", "nyc", "core", "lab"), 2},
-		{view("sw-nyc-02", "10.1.2.4", "cisco_iosxe", "nyc", "core", "lab"), 3},
-		{view("sw-bos-01", "192.0.2.1", "cisco_iosxe", "BOS", "edge"), 6},
+		{view("sw-nyc-01", "10.1.2.3", "cisco_ios", "nyc", "core", "lab"), 2},
+		{view("sw-nyc-02", "10.1.2.4", "cisco_ios", "nyc", "core", "lab"), 3},
+		{view("sw-bos-01", "192.0.2.1", "cisco_ios", "BOS", "edge"), 6},
 		{view("fw-nyc-01", "192.0.2.9", "linux", "Nyc", "edge"), 5},
 		{view("fw-nyc-02", "192.0.2.10", "linux", "nyc", "LAB"), 7},
 		{view("sw-lon-01", "", "", "lon"), 7},
@@ -62,15 +62,15 @@ func TestFirstRowIsFileOrder(t *testing.T) {
 
 // TestRowCells covers the row's cell rules cell by cell.
 func TestRowCells(t *testing.T) {
-	dev := view("SW-NYC-01", "10.1.2.3", "Cisco_IOSXE", "NYC", "Core", "Lab")
-	noAddr := view("sw-nyc-01", "", "cisco_iosxe", "nyc", "core")
+	dev := view("SW-NYC-01", "10.1.2.3", "Cisco_IOS", "NYC", "Core", "Lab")
+	noAddr := view("sw-nyc-01", "", "cisco_ios", "nyc", "core")
 	for _, tc := range []struct {
 		name  string
 		cells map[string]string
 		f     RowFields
 		want  bool
 	}{
-		{"case folds in every column", map[string]string{"device_name": "sw-nyc-*", "platform": "cisco_iosxe", "site": "nyc", "device_group": "core"}, dev, true},
+		{"case folds in every column", map[string]string{"device_name": "sw-nyc-*", "platform": "cisco_ios", "site": "nyc", "device_group": "core"}, dev, true},
 		{"every filled cell must agree", map[string]string{"device_name": "sw-nyc-*", "site": "bos"}, dev, false},
 		{"any group matches a positive cell", map[string]string{"device_group": "lab"}, dev, true},
 		{"a negated group excludes on any group", map[string]string{"site": "nyc", "device_group": "!lab"}, dev, false},
@@ -103,7 +103,7 @@ func TestRowKeyIsAPin(t *testing.T) {
 	general := mustRow(t, map[string]string{"device_name": "*"})
 
 	pinned := func(ref, site string, groups ...string) RowFields {
-		f := view("sw-01", "10.0.0.1", "cisco_iosxe", site, groups...)
+		f := view("sw-01", "10.0.0.1", "cisco_ios", site, groups...)
 		f.CredKeyRef = ref
 		return f
 	}

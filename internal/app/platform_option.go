@@ -55,7 +55,7 @@ func withPlatform(d inventory.Device, platformName string) inventory.Device {
 // set runs as platformName, the
 // inventory's devices and the direct targets alike. It acts after the set is
 // assembled, so --select-platform has matched the inventory's own values:
-// "--select-platform generic --platform cisco_iosxe" runs the rows the
+// "--select-platform generic --platform cisco_ios" runs the rows the
 // inventory calls generic as IOS XE.
 func overridePlatform(set *TargetSet, platformName string) {
 	if platformName == "" {

@@ -47,7 +47,7 @@ func TestEnvCellReadsTheResolversLookup(t *testing.T) {
 			t.Fatal(err)
 		}
 		r.SetInput(input)
-		return r.Resolve(context.Background(), op, inventory.Direct(name, "cisco_iosxe", "system", 22))
+		return r.Resolve(context.Background(), op, inventory.Direct(name, "cisco_ios", "system", 22))
 	}
 	input := &scriptedInput{env: map[string]string{"ROW_PASS": "from-the-provider", "NETUSER": "netuser", "NETPASS": "netpass"}}
 

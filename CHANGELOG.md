@@ -2,13 +2,16 @@
 
 ## Unreleased
 
-- **Breaking: the IOS XR platform is `cisco_xr`.** The built-in `cisco_iosxr`
-  is renamed `cisco_xr`, the name Netmiko and NTC's TextFSM templates give IOS
-  XR; its definition is unchanged, and `--pr` is short for it. An inventory
+- **Breaking: the Cisco platforms take the names the market uses.** The
+  built-in `cisco_iosxe` is `cisco_ios`, for IOS and IOS XE alike, and
+  `cisco_iosxr` is `cisco_xr`, the names Netmiko and NTC's TextFSM templates
+  give them; their definitions are unchanged, `--pi` and `--pr` are short for
+  them, and `platform-resolution.default` ships as `cisco_ios`. An inventory
   row, a source default, `--platform`, `platform-resolution.default` or
   `platform-resolution.unknown-fallback`, or a `[platform.NAME]` table or
-  driver naming `cisco_iosxr` is refused as an unknown platform, and a map
-  rule's `platform` naming it matches no device
+  driver naming an old name is refused as an unknown platform, and a map
+  rule's `platform` naming one matches no device; records, job folders, and
+  output carry the new names. The configuration registry stays at 32
   ([`docs/EXAMPLES.md`, chapter 86](docs/EXAMPLES.md#86-platform-names-the-markets-2026-10-28)).
 
 ## 0.37.0 - 2026-10-27

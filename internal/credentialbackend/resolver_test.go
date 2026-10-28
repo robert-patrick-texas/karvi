@@ -26,7 +26,7 @@ func TestBuiltinEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := inventory.Direct("127.0.0.1", "cisco_iosxe", "system", 22)
+	d := inventory.Direct("127.0.0.1", "cisco_ios", "system", 22)
 	got, err := r.Resolve(context.Background(), op, d)
 	if err != nil {
 		t.Fatal(err)
@@ -100,18 +100,18 @@ func TestEnableSecretOptionalByDefault(t *testing.T) {
 		}
 		return err
 	}
-	for _, p := range []string{"cisco_iosxe", "cisco_nxos", "arista_eos", "c9300"} {
-		if err := resolve(t, p, `platform.c9300.driver="cisco_iosxe"`); err != nil {
+	for _, p := range []string{"cisco_ios", "cisco_nxos", "arista_eos", "c9300"} {
+		if err := resolve(t, p, `platform.c9300.driver="cisco_ios"`); err != nil {
 			t.Fatalf("%s without an enable secret: %v", p, err)
 		}
 	}
-	if err := resolve(t, "cisco_iosxe", "platform.cisco_iosxe.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
+	if err := resolve(t, "cisco_ios", "platform.cisco_ios.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
 		t.Fatalf("required on the built-in: %v", err)
 	}
-	if err := resolve(t, "c9300", `platform.c9300.driver="cisco_iosxe"`, "platform.c9300.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
+	if err := resolve(t, "c9300", `platform.c9300.driver="cisco_ios"`, "platform.c9300.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
 		t.Fatalf("required on the alias: %v", err)
 	}
-	if err := resolve(t, "c9300", `platform.c9300.driver="cisco_iosxe"`, "platform.cisco_iosxe.requires-enable=true"); err != nil {
+	if err := resolve(t, "c9300", `platform.c9300.driver="cisco_ios"`, "platform.cisco_ios.requires-enable=true"); err != nil {
 		t.Fatalf("an alias does not read its built-in's table: %v", err)
 	}
 }
@@ -122,7 +122,7 @@ func TestEnableSecretOptionalByDefault(t *testing.T) {
 // one, and a set platform that requires one does not when the platform
 // used does not; with PlatformUsed empty the set platform stands in.
 func TestEnableRuleReadsThePlatformUsed(t *testing.T) {
-	cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_iosxe"`, "platform.c9300.requires-enable=true"}})
+	cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_ios"`, "platform.c9300.requires-enable=true"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestCredentialCSVInThePolicy(t *testing.T) {
 		defer got.Credential.Material.Destroy()
 		return got.DeviceUsername + " via " + got.Credential.Backend
 	}
-	ssh := func(name string) inventory.Device { return inventory.Direct(name, "cisco_iosxe", "system", 22) }
+	ssh := func(name string) inventory.Device { return inventory.Direct(name, "cisco_ios", "system", 22) }
 
 	got, err := resolve(t, ssh("sw-nyc-01"))
 	if u := user(t, got, err); u != "svc.switch via creds" {
@@ -200,10 +200,10 @@ func TestCredentialCSVInThePolicy(t *testing.T) {
 	if _, err = resolve(t, ssh("sw-nokey-01")); errorcodes.Of(err) != "credential_password_missing" {
 		t.Errorf("no password: %v", err)
 	}
-	if _, err = resolve(t, ssh("sw-nyc-01"), "platform.cisco_iosxe.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
+	if _, err = resolve(t, ssh("sw-nyc-01"), "platform.cisco_ios.requires-enable=true"); errorcodes.Of(err) != "credential_enable_missing" {
 		t.Errorf("no enable where the platform requires one: %v", err)
 	}
-	got, err = resolve(t, ssh("rt-nyc-01"), "platform.cisco_iosxe.requires-enable=true")
+	got, err = resolve(t, ssh("rt-nyc-01"), "platform.cisco_ios.requires-enable=true")
 	if u := user(t, got, err); u != "human via creds" {
 		t.Errorf("a row with an enable: %s", u)
 	}
@@ -279,7 +279,7 @@ func TestCredKeyRefPin(t *testing.T) {
 		return got.DeviceUsername + " via " + got.Credential.Backend + " key " + got.Credential.MatchedOn.CredKey
 	}
 	device := func(name, site, ref string) inventory.Device {
-		d := inventory.Direct(name, "cisco_iosxe", "system", 22)
+		d := inventory.Direct(name, "cisco_ios", "system", 22)
 		d.Site, d.CredKeyRef = site, ref
 		return d
 	}
@@ -364,7 +364,7 @@ func TestKeyedIsACapability(t *testing.T) {
 	for _, name := range []string{"plain", "unkeyed", "store"} {
 		r.backendProfile[name] = "default"
 	}
-	d := inventory.Direct("sw-nyc-01", "cisco_iosxe", "system", 22)
+	d := inventory.Direct("sw-nyc-01", "cisco_ios", "system", 22)
 	d.CredKeyRef = "core-admin"
 	got, err := r.Resolve(context.Background(), op, d)
 	if err != nil {

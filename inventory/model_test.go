@@ -13,7 +13,7 @@ func TestPlatformNotSetStaysBlank(t *testing.T) {
 	if err := d.Validate(); err != nil || d.Platform != "" {
 		t.Fatalf("validate: %v %+v", err, d)
 	}
-	if got := Direct("r1", " Cisco_IOSXE ", "", 0).Platform; got != "cisco_iosxe" {
+	if got := Direct("r1", " Cisco_IOS ", "", 0).Platform; got != "cisco_ios" {
 		t.Fatalf("set platform: %q", got)
 	}
 }

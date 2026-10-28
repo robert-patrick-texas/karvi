@@ -28,7 +28,7 @@
 # Settings:
 #   DEVICE, ADDRESS     the inventory name and the management address
 #   PORT                the SSH port (22)
-#   PLATFORM            the row's platform (cisco_iosxe)
+#   PLATFORM            the row's platform (cisco_ios)
 #   EVIDENCE            the evidence directory (./karvi-qualification-DEVICE-UTC)
 #   ROWS                the rows to run ("D1 D7"); all by default
 #   TRANSPORTS          "system native"
@@ -63,7 +63,7 @@ KARVI=${KARVI:-$ROOT/bin/karvi-linux-amd64}
 SECRET_SCAN=${SECRET_SCAN:-$ROOT/bin/secret-scan}
 . "$ROOT/scripts/lib/json.sh"
 GO=${GO:-go}
-PLATFORM=${PLATFORM:-cisco_iosxe}
+PLATFORM=${PLATFORM:-cisco_ios}
 PORT=${PORT:-22}
 TRANSPORTS=${TRANSPORTS:-system native}
 INVALID_COMMAND=${INVALID_COMMAND:-show bogus}

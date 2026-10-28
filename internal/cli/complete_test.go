@@ -80,7 +80,7 @@ func completionLab(t *testing.T) string {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 	inv := filepath.Join(dir, "inv.csv")
-	if err := os.WriteFile(inv, []byte("name,management_address,platform\ncore-nyc-01,192.0.2.1,cisco_iosxe\nedge-sfo-02,192.0.2.2,generic\n"), 0o600); err != nil {
+	if err := os.WriteFile(inv, []byte("name,management_address,platform\ncore-nyc-01,192.0.2.1,cisco_ios\nedge-sfo-02,192.0.2.2,generic\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	score := filepath.Join(dir, "score")
@@ -96,7 +96,7 @@ func completionLab(t *testing.T) string {
 		}
 	}
 	cfg := filepath.Join(dir, "karvi.toml")
-	text := "basedir = \"" + filepath.Join(dir, "base") + "\"\nsharedroot = \"none\"\nscoreboards = \"" + score + "\"\n[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \"" + inv + "\"\nrequired = true\nmode = \"header\"\ndelimiter = \",\"\nmandatory-fields = [\"name\", \"platform\"]\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\n[platform.lab_switch]\ndriver = \"cisco_iosxe\"\n"
+	text := "basedir = \"" + filepath.Join(dir, "base") + "\"\nsharedroot = \"none\"\nscoreboards = \"" + score + "\"\n[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \"" + inv + "\"\nrequired = true\nmode = \"header\"\ndelimiter = \",\"\nmandatory-fields = [\"name\", \"platform\"]\n[inventory-source.mappings]\nname = [\"name\"]\nmanagement_address = [\"management_address\"]\nplatform = [\"platform\"]\n[platform.lab_switch]\ndriver = \"cisco_ios\"\n"
 	if err := os.WriteFile(cfg, []byte(text), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestCompleteCases(t *testing.T) {
 		{name: "pending option not offered", line: []string{"login"}, current: "--ssh-o", exact: nil},
 		{name: "enum value", line: []string{"run", "--order"}, current: "", exact: []string{"default", "random", "shuffle", "sorted"}},
 		{name: "enum value prefix", line: []string{"watch", "--format"}, current: "t", exact: []string{"table", "tui"}},
-		{name: "platform names", line: append(g, "run", "--platform"), current: "", want: []string{"cisco_iosxe", "generic", "lab_switch"}},
+		{name: "platform names", line: append(g, "run", "--platform"), current: "", want: []string{"cisco_ios", "generic", "lab_switch"}},
 		{name: "set keys", line: []string{"--set"}, current: "output.ro", exact: []string{"output.root="}},
 		{name: "set keys inline", line: nil, current: "--set=output.ro", exact: []string{"--set=output.root="}},
 		{name: "target device", line: append(g, "run", "--target"), current: "", exact: []string{"core-nyc-01", "edge-sfo-02"}},

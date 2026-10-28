@@ -24,7 +24,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
-// sessionHarness runs one cisco_iosxe device through the executor over a
+// sessionHarness runs one cisco_ios device through the executor over a
 // system transport script that logs every line it receives, answers show
 // slow after three seconds (past the one-second command timeout), rejects
 // show bogus with the platform's error, ends as OpenSSH does after unanswered
@@ -89,7 +89,7 @@ func newSessionHarness(t *testing.T, commands []string, halt bool, sets ...strin
 		t.Fatal(err)
 	}
 	target := plantest.DirectTarget()
-	target.Device.Platform = "cisco_iosxe"
+	target.Device.Platform = "cisco_ios"
 	grant := credentialpackage.CredentialGrant{CredentialID: plantest.GrantA, Method: credentialpackage.MethodEmbeddedSecret, Username: credentials.NewSecretString("u"), Password: credentials.NewSecretString("p"), Policy: "default", Backend: "test", NotBefore: time.Now().Add(-time.Minute), NotAfter: time.Now().Add(time.Hour)}
 	h := &sessionHarness{log: log}
 	e := New(Options{

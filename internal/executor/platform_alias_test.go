@@ -8,12 +8,12 @@ import (
 )
 
 // TestAliasRunsAsItsBuiltIn: a
-// [platform.c9300] alias of cisco_iosxe gets the built-in's paging commands
+// [platform.c9300] alias of cisco_ios gets the built-in's paging commands
 // and failure patterns, and without an enable secret a device already at
 // the privileged prompt is sent no enable.
 func TestAliasRunsAsItsBuiltIn(t *testing.T) {
 	h := newSessionHarness(t, []string{"show clock", "show bogus"}, false)
-	h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`, `execution.command-timeout="1s"`)
+	h.withAlgorithmConfig(`platform.c9300.driver="cisco_ios"`, `execution.command-timeout="1s"`)
 	h.target.Device.Platform = "c9300"
 	res, recs := h.run(context.Background())
 	if res.Success || res.ErrorCode != "device_command_error" {

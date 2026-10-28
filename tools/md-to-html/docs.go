@@ -49,7 +49,7 @@ var documents = []document{
 	{"BUILDING.md", "Building, qualification, and release", "The release build, in brief."},
 	{"BUILD-HOWTO.md", "Building, qualification, and release", "An Ubuntu host prepared, the source bundle built offline, installed, and rolled back."},
 	{"docs/BUILD-QUALIFICATION.md", "Building, qualification, and release", "The gates a build and a release pass."},
-	{"docs/CISCO-IOSXE-QUALIFICATION.md", "Building, qualification, and release", "What qualifies `cisco_iosxe` on real devices, and what the fake already shows."},
+	{"docs/CISCO-IOSXE-QUALIFICATION.md", "Building, qualification, and release", "What qualifies `cisco_ios` on real devices, and what the fake already shows."},
 	{"docs/DEVICE-QUALIFICATION-RUNBOOK.md", "Building, qualification, and release", "The laboratory run, row by row, and the evidence it keeps."},
 	{"release/BUILD-RESULT.md", "Building, qualification, and release", "The current release's build and qualification result."},
 	{"release/DOWNLOADS.md", "Building, qualification, and release", "The current release's artifacts and their checksums."},

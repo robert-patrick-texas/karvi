@@ -45,7 +45,7 @@ while [ ! -s "$TMP/port" ] && [ $i -lt 100 ]; do sleep 0.05; i=$((i + 1)); done
 PORT=$(cat "$TMP/port")
 
 # dead-iosxe's address is a loopback the fake does not listen on: refused.
-printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\ndead-iosxe,127.0.0.9,cisco_iosxe\n' >"$TMP/inv.csv"
+printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead-iosxe,127.0.0.9,cisco_ios\n' >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
 basedir = "$TMP/base"
 sharedroot = "none"
@@ -65,7 +65,7 @@ shared-capacity-root = "$TMP/base/cap"
 directory = "$TMP/crun"
 [display]
 color = "never"
-[platform.cisco_iosxe]
+[platform.cisco_ios]
 ssh-port = $PORT
 [[inventory-source]]
 name = "lab"

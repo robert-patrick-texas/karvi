@@ -38,13 +38,13 @@ func TestDraftPlatformMasks(t *testing.T) {
 	}
 	// A job across platforms: each built-in list, generic's none.
 	set := k03Set(t)
-	set.Devices[0].Platform, set.Devices[1].Platform = "cisco_iosxe", "juniper_junos"
+	set.Devices[0].Platform, set.Devices[1].Platform = "cisco_ios", "juniper_junos"
 	if draft, err = Draft(context.Background(), testConfig(t), operator, set, opts, plantest.DraftedAt); err != nil {
 		t.Fatal(err)
 	}
-	iosxe, _ := platform.Builtin("cisco_iosxe")
+	iosxe, _ := platform.Builtin("cisco_ios")
 	junos, _ := platform.Builtin("juniper_junos")
-	if len(draft.PlatformMasks) != 2 || len(draft.PlatformMasks["cisco_iosxe"]) != len(iosxe.Masks) || len(draft.PlatformMasks["juniper_junos"]) != len(junos.Masks) {
+	if len(draft.PlatformMasks) != 2 || len(draft.PlatformMasks["cisco_ios"]) != len(iosxe.Masks) || len(draft.PlatformMasks["juniper_junos"]) != len(junos.Masks) {
 		t.Fatalf("each target platform's list: %v", draft.PlatformMasks)
 	}
 	if err := draft.Validate(executionplan.Draft); err != nil {

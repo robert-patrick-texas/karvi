@@ -20,7 +20,7 @@ ln -s "$PRUNE" "$TMP/bin/karvi-prune"
 ln -s "$AUDIT" "$TMP/bin/karvi-audit"
 export PATH=$TMP/bin:$PATH HOME=$TMP/home
 
-printf 'name,management_address,platform\ncore-nyc-01,192.0.2.1,cisco_iosxe\nedge-sfo-02,192.0.2.2,generic\n' >"$TMP/inv.csv"
+printf 'name,management_address,platform\ncore-nyc-01,192.0.2.1,cisco_ios\nedge-sfo-02,192.0.2.2,generic\n' >"$TMP/inv.csv"
 for id in 260925-101010-00 260925-090909-00; do
   printf '{"schema_version":5,"activity_id":"%s","job_id":"%s","operator":{"username":"u"},"mode":"run","status":"complete","started_at":"2026-09-25T10:00:00Z","last_updated_at":"2026-09-25T10:00:01Z"}\n' "$id" "$id" >"$TMP/sb/$id.json"
 done

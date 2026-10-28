@@ -169,7 +169,7 @@ func shell(conn net.Conn, start string, askSecret bool, dv *device) {
 // requires-enable says, sends nothing at privilege 15, and a secret prompt
 // with no secret resolved is privilege_failed.
 func TestTelnetEscalationWithOptionalEnable(t *testing.T) {
-	iosxe, _ := platform.Builtin("cisco_iosxe")
+	iosxe, _ := platform.Builtin("cisco_ios")
 	secret := func(f func([]byte) error) error { return f([]byte("en")) }
 	for _, tc := range []struct {
 		name, start string
@@ -281,7 +281,7 @@ func (l *telnetLive) Secret(v []byte) {
 // the telnet negotiation, the enable step and a command's echo included,
 // and the enable secret before it is written.
 func TestTelnetLiveSeesTheSession(t *testing.T) {
-	iosxe, _ := platform.Builtin("cisco_iosxe")
+	iosxe, _ := platform.Builtin("cisco_ios")
 	client, server := net.Pipe()
 	dv := &device{}
 	go shell(server, "dev>", true, dv)

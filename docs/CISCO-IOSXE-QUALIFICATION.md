@@ -2,11 +2,11 @@
 
 ## Scope
 
-The laboratory qualifies `cisco_iosxe` first, on both transports together:
+The laboratory qualifies `cisco_ios` first, on IOS XE, on both transports together:
 one device session (`internal/devsession`) drives the system OpenSSH
 process and the `native` connection alike, so every row below is run
 over `system` and `native` and the two records compared. Every
-built-in platform is admitted on `native`; IOS XE is the platform
+built-in platform is admitted on `native`; `cisco_ios` on IOS XE is
 qualified first. The intended device families are:
 
 - Cisco Catalyst 9000-series switches;
@@ -53,7 +53,7 @@ the requested-command records path by path:
 |---|---|
 | S1–S3 | success, a rejected command under halt and under continue, a command timeout; the daemon path |
 | S4–S5 | a session-init profile under `fail-device` and under `continue` |
-| S6, S25, S26 | an alias of `cisco_iosxe`, an alias with its own paging command, an unknown row platform under `warn` |
+| S6, S25, S26 | an alias of `cisco_ios`, an alias with its own paging command, an unknown row platform under `warn` |
 | S7–S9 | privilege 15 at login (nothing sent), a secret asked with none resolved, a wrong secret |
 | S10 | `generic` records a rejected command as it comes |
 | S11 | the output limit |

@@ -35,7 +35,7 @@ func TestShortcutModes(t *testing.T) {
 		t.Fatal(err)
 	}
 	csv := filepath.Join(dir, "inv.csv")
-	if err := os.WriteFile(csv, []byte("name,management_address,platform\nlgoin,127.0.0.1,cisco_iosxe\n"), 0o600); err != nil {
+	if err := os.WriteFile(csv, []byte("name,management_address,platform\nlgoin,127.0.0.1,cisco_ios\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	config := filepath.Join(dir, "karvi.toml")

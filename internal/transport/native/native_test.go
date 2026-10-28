@@ -70,7 +70,7 @@ func prepared(t *testing.T, f Factory, req platform.OpenRequest) platform.Driver
 func TestProviderRunsTheDeviceSession(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{Enable: "en", Delay: map[string]time.Duration{"show slow": 3 * time.Second}})
 	f, known := factory(t, "accept-new")
-	d := prepared(t, f, request(srv, "cisco_iosxe", "en"))
+	d := prepared(t, f, request(srv, "cisco_ios", "en"))
 	ctx := context.Background()
 	clock := d.Execute(ctx, platform.Command{Text: "show clock", Timeout: 5 * time.Second})
 	bogus := d.Execute(ctx, platform.Command{Text: "show bogus", Timeout: 5 * time.Second})
@@ -107,7 +107,7 @@ func TestProviderRunsTheDeviceSession(t *testing.T) {
 func TestProviderEnableOptional(t *testing.T) {
 	f, _ := factory(t, "insecure")
 	srv := startFake(t, fakedevice.Options{StartPrivileged: true, Enable: "en"})
-	d := prepared(t, f, request(srv, "cisco_iosxe", ""))
+	d := prepared(t, f, request(srv, "cisco_ios", ""))
 	if r := d.Execute(context.Background(), platform.Command{Text: "show clock", Timeout: 5 * time.Second}); r.Err != nil {
 		t.Fatalf("privilege 15 at login: %+v", r)
 	}
@@ -117,7 +117,7 @@ func TestProviderEnableOptional(t *testing.T) {
 	}
 
 	asks := startFake(t, fakedevice.Options{Enable: "en"})
-	d, err := f.Open(context.Background(), request(asks, "cisco_iosxe", ""))
+	d, err := f.Open(context.Background(), request(asks, "cisco_ios", ""))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestProviderAlgorithmsAndAdmission(t *testing.T) {
 			t.Fatalf("%s: %v", def.Name, err)
 		}
 	}
-	err = Admits(platform.Definition{Name: "c9300", Driver: "cisco_iosxe", Base: "unqualified"})
+	err = Admits(platform.Definition{Name: "c9300", Driver: "cisco_ios", Base: "unqualified"})
 	if errorcodes.Of(err) != "native_platform_not_qualified" || !strings.Contains(err.Error(), `platform "c9300" (base driver unqualified)`) {
 		t.Fatalf("refusal: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestProviderOffersKeys(t *testing.T) {
 	srv := startFake(t, fakedevice.Options{Enable: "en", AuthorizedKeys: sshkeytest.Authorized(t, held)})
 	f, _ := factory(t, "accept-new")
 	keyOnly := func(keys ...string) platform.OpenRequest {
-		req := request(srv, "cisco_iosxe", "en")
+		req := request(srv, "cisco_ios", "en")
 		req.Password, req.Keys = nil, keys
 		return req
 	}
@@ -203,7 +203,7 @@ func TestProviderOffersKeys(t *testing.T) {
 	if err := refused.Prepare(context.Background()); errorcodes.Of(err) != "authentication_failed" {
 		t.Fatalf("a refused key and no password: %v", err)
 	}
-	both := request(srv, "cisco_iosxe", "en")
+	both := request(srv, "cisco_ios", "en")
 	both.Keys = []string{otherPath}
 	bd := prepared(t, f, both)
 	if got := srv.KeyLogins(); len(got) != 1 {
@@ -225,7 +225,7 @@ func TestProviderPasswordMethods(t *testing.T) {
 	}{{false, "keyboard-interactive"}, {true, "password"}} {
 		srv := startFake(t, fakedevice.Options{Enable: "en", NoKeyboardInteractive: tc.noKbd})
 		f, _ := factory(t, "accept-new")
-		d := prepared(t, f, request(srv, "cisco_iosxe", "en"))
+		d := prepared(t, f, request(srv, "cisco_ios", "en"))
 		if m := d.(platform.AuthReporter).AuthMethod(); m != tc.want {
 			t.Errorf("no keyboard-interactive %t: method %q, want %q", tc.noKbd, m, tc.want)
 		}

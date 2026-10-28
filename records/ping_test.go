@@ -25,7 +25,7 @@ func fixtureRecord() CommandRecord {
 		Operator: Operator{Username: "netops", UID: 1000}, Device: DeviceProjection{ID: "name:core-a", Name: "core-a", CanonicalName: "core-a", Groups: []string{}},
 		InputTarget: "core-a", TransformedName: "core-a", DNSSuffixAction: "none", AddressCandidates: []string{"10.0.0.1"}, SelectedAddress: "10.0.0.1", AddressFamily: "ipv4", AddressSource: "inventory",
 		AddressAuthority: "client", ClientAddressCandidates: []string{"10.0.0.1"}, AddressResolutionActor: "client",
-		Platform: "cisco_iosxe", Transport: "system", Port: 22, ConnectionReused: nil,
+		Platform: "cisco_ios", Transport: "system", Port: 22, ConnectionReused: nil,
 		Credential:    &CredentialProjection{Policy: "default", DeviceUsername: "u", Backend: "env", MatchedOn: map[string]any{}, CredentialID: "c", Protection: "local-peer"},
 		Ping:          fixturePing(),
 		Dispatch:      DispatchContext{Mode: "serial", ServerID: "local", WorkerID: "w1", ScopePosition: 1, DesiredWidth: 1, EffectiveInflight: 1},

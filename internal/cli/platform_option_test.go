@@ -21,7 +21,7 @@ import (
 func TestPlatformOptionRefusedBeforeInventory(t *testing.T) {
 	dir := t.TempDir()
 	config := filepath.Join(dir, "karvi.toml")
-	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "missing.csv")+"\"\nrequired = true\n[platform.c9300]\ndriver = \"cisco_iosxe\"\n"), 0o600); err != nil {
+	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "missing.csv")+"\"\nrequired = true\n[platform.c9300]\ndriver = \"cisco_ios\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	recordDir := filepath.Join(dir, "transcripts")
@@ -39,7 +39,7 @@ func TestPlatformOptionRefusedBeforeInventory(t *testing.T) {
 	}{
 		{"command_unknown", []string{"command", "--platform", "cisco_iosx", "r1", "show", "clock"}},
 		{"command_glob", []string{"command", "--platform", "*", "r1", "show", "clock"}},
-		{"command_not", []string{"command", "--platform", "!cisco_iosxe", "r1", "show", "clock"}},
+		{"command_not", []string{"command", "--platform", "!cisco_ios", "r1", "show", "clock"}},
 		{"login_unknown", []string{"login", "--platform", "cisco_iosx", "r1"}},
 		// run: --platform is the same option under the same check, on both
 		// of run's paths (the local one and the client's draft).
@@ -53,7 +53,7 @@ func TestPlatformOptionRefusedBeforeInventory(t *testing.T) {
 			if got != exitcode.ExitUsageError || !strings.HasPrefix(stderr, "platform_option_unknown: ") {
 				t.Fatalf("exit=%d stderr=%q", got, stderr)
 			}
-			if !strings.Contains(stderr, "known platforms: generic, cisco_iosxe, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300") {
+			if !strings.Contains(stderr, "known platforms: generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300") {
 				t.Fatalf("known platforms not named: %q", stderr)
 			}
 		})

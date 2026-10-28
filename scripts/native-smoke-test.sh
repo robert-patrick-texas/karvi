@@ -178,10 +178,10 @@ EOF_PIN
   echo "native smoke: $label: $result"
 }
 
-BUILTIN='[platform.cisco_iosxe]
+BUILTIN='[platform.cisco_ios]
 ssh-port = PORT'
 ALIAS='[platform.c9300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 ssh-port = PORT'
 PROFILE_FAIL='[session-init.init]
 commands = ["show bogus", "show clock"]
@@ -207,54 +207,54 @@ REJECTED=device_error:device_command_error
 
 COMBOS='command:system command:native run:system run:native daemon:system daemon:native'
 AUTH=keyboard-interactive
-parity_case 'S1 success, a rejected command, success under continue (the daemon path too)' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S1 success, a rejected command, success under continue (the daemon path too)' accept-new cisco_ios "$BUILTIN" en '' \
   "success,$REJECTED,success" 107 "$OPEN"'"show clock"|"show bogus"|"show version"|"exit"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show bogus' --cmd 'show version'
 unset COMBOS AUTH
-parity_case 'S2 a rejected command under halt' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S2 a rejected command under halt' accept-new cisco_ios "$BUILTIN" en '' \
   "success,$REJECTED,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show bogus' --cmd 'show version'
-parity_case 'S3 a timeout under continue' accept-new cisco_iosxe "$BUILTIN" en '-slow 10s' \
+parity_case 'S3 a timeout under continue' accept-new cisco_ios "$BUILTIN" en '-slow 10s' \
   "success,timeout:command_timeout,$NOT_ATTEMPTED" 107 "$OPEN"'"show clock"|"show slow"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show slow' --cmd 'show version'
-parity_case 'S4 a session-init profile, fail-device' accept-new cisco_iosxe "$BUILTIN
+parity_case 'S4 a session-init profile, fail-device' accept-new cisco_ios "$BUILTIN
 $PROFILE_FAIL" en '' \
   "$REJECTED,$NOT_ATTEMPTED,not_attempted_session_init_failure,not_attempted_session_init_failure" 107 "$OPEN"'"show bogus"|"exit"|' \
   -- --cmd 'show version' --cmd 'show clock'
-parity_case 'S5 a session-init profile, continue' accept-new cisco_iosxe "$BUILTIN
+parity_case 'S5 a session-init profile, continue' accept-new cisco_ios "$BUILTIN
 $PROFILE_CONTINUE" en '' \
   "$REJECTED,success,success,success" 0 "$OPEN"'"show bogus"|"show clock"|"show version"|"show clock"|"exit"|' \
   -- --cmd 'show version' --cmd 'show clock'
-parity_case 'S6 an alias of cisco_iosxe' accept-new c9300 "$ALIAS" en '' \
+parity_case 'S6 an alias of cisco_ios' accept-new c9300 "$ALIAS" en '' \
   "success,$REJECTED" 107 "$OPEN"'"show clock"|"show bogus"|"exit"|' \
   -- --continue-device-on-error --cmd 'show clock' --cmd 'show bogus'
-parity_case 'S7 privilege 15 at login, no enable secret' accept-new cisco_iosxe "$BUILTIN" '' '-start-privileged' \
+parity_case 'S7 privilege 15 at login, no enable secret' accept-new cisco_ios "$BUILTIN" '' '-start-privileged' \
   'success,success' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"show version"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show version'
-parity_case 'S8 the device asks for an enable secret, none resolved' accept-new cisco_iosxe "$BUILTIN" '' '' \
+parity_case 'S8 the device asks for an enable secret, none resolved' accept-new cisco_ios "$BUILTIN" '' '' \
   "privilege_error:privilege_failed,$NOT_ATTEMPTED" 107 '"enable"|' \
   -- --cmd 'show clock' --cmd 'show version'
-parity_case 'S9 a wrong enable secret' accept-new cisco_iosxe "$BUILTIN" wrong '' \
+parity_case 'S9 a wrong enable secret' accept-new cisco_ios "$BUILTIN" wrong '' \
   'privilege_error:privilege_failed' 107 '"enable"|"<secret>"|' \
   -- --cmd 'show clock'
 parity_case 'S10 generic records a rejected command as it comes' accept-new generic '[platform.generic]
 ssh-port = PORT' '' '' \
   'success,success' 0 '"show clock"|"show bogus"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show bogus'
-parity_case 'S11 the output limit' accept-new cisco_iosxe "$BUILTIN
+parity_case 'S11 the output limit' accept-new cisco_ios "$BUILTIN
 [output]
 max-command-bytes = 2000" en '' \
   "output_limit_exceeded:output_limit_exceeded,$NOT_ATTEMPTED" 111 "$OPEN"'"show big"|' \
   -- --continue-device-on-error --cmd 'show big' --cmd 'show clock'
-parity_case 'S12a the legacy device under the defaults' accept-new cisco_iosxe "$BUILTIN" en "$LEGACY" \
+parity_case 'S12a the legacy device under the defaults' accept-new cisco_ios "$BUILTIN" en "$LEGACY" \
   'connection_error:ssh_algorithm_negotiation_failed' 110 '' \
   -- --cmd 'show clock'
-parity_case 'S12b the legacy device through an algorithm profile' accept-new cisco_iosxe "$BUILTIN
+parity_case 'S12b the legacy device through an algorithm profile' accept-new cisco_ios "$BUILTIN
 $ALGORITHM_PROFILE" en "$LEGACY" \
   'success,success' 0 "$OPEN"'"show clock"|"show version"|"exit"|' \
   -- --cmd 'show clock' --cmd 'show version'
 PASS=bad
-parity_case 'S13 a rejected password' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S13 a rejected password' accept-new cisco_ios "$BUILTIN" en '' \
   'authentication_error:authentication_failed' 108 '' \
   -- --cmd 'show clock'
 unset PASS
@@ -266,18 +266,18 @@ unset PASS
 ssh-keygen -q -t ed25519 -N '' -f "$TMP/opkey" -C parity >/dev/null
 ssh-keygen -q -t ed25519 -N '' -f "$TMP/stranger" -C parity >/dev/null
 OPKEY=$(ssh-keygen -lf "$TMP/opkey.pub" | cut -d' ' -f2)
-KEYS="[platform.cisco_iosxe]
+KEYS="[platform.cisco_ios]
 ssh-port = PORT
 fallback = [\"keys\"]"
 OPERATOR=$(id -un)
 SSH="identities = [\"$TMP/stranger\", \"$TMP/opkey\"]"
 KEYLOGIN=$OPKEY AUTH=publickey
-parity_case 'S13b a login by the operator'"'"'s key, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
+parity_case 'S13b a login by the operator'"'"'s key, no password offered' accept-new cisco_ios "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
   'success' 0 '"terminal length 0"|"terminal width 512"|"show clock"|"exit"|' \
   -- --cmd 'show clock'
 SSH="identities = [\"$TMP/stranger\"]"
 KEYLOGIN= AUTH=
-parity_case 'S13c a key the device refuses, no password offered' accept-new cisco_iosxe "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
+parity_case 'S13c a key the device refuses, no password offered' accept-new cisco_ios "$KEYS" '' "-start-privileged -user $OPERATOR -authorized-keys $TMP/opkey.pub" \
   'authentication_error:authentication_failed' 108 '' \
   -- --cmd 'show clock'
 unset SSH KEYLOGIN AUTH
@@ -285,7 +285,7 @@ unset SSH KEYLOGIN AUTH
 # answered with the password; a server that refuses keyboard-interactive
 # takes the password method.
 AUTH=password
-parity_case 'S13d a server without keyboard-interactive takes the password method' accept-new cisco_iosxe "$BUILTIN" en '-no-keyboard-interactive' \
+parity_case 'S13d a server without keyboard-interactive takes the password method' accept-new cisco_ios "$BUILTIN" en '-no-keyboard-interactive' \
   'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 unset AUTH
@@ -345,7 +345,7 @@ unset SSH KEYLOGIN AUTH
 # is refused at its first command, which never ran, and the session ends.
 CHANNELS=1 AUTH=keyboard-interactive
 parity_case 'S35f exec: a refused exec request' accept-new iosexec '[platform.iosexec]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 channel = "exec"
 ssh-port = PORT' en '' \
   "connection_error:ssh_session_channel_refused,$NOT_ATTEMPTED" 110 '"exec: show clock"|' \
@@ -355,16 +355,16 @@ unset CHANNELS AUTH PIN
 # S14: host keys. Another device's key for the changed and mismatch cases.
 ssh-keygen -q -t ed25519 -N '' -f "$TMP/other" >/dev/null
 OTHER=$(cut -d' ' -f1,2 "$TMP/other.pub")
-parity_case 'S14a secure, an empty store' secure cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S14a secure, an empty store' secure cisco_ios "$BUILTIN" en '' \
   'connection_error:host_key_not_enrolled' 109 '' \
   -- --cmd 'show clock'
 OTHERKEY=$OTHER
-parity_case 'S14b secure, another key enrolled under the identity' secure cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S14b secure, another key enrolled under the identity' secure cisco_ios "$BUILTIN" en '' \
   'connection_error:host_key_changed' 109 '' \
   -- --cmd 'show clock'
 KEYSCAN=1
 WARNING='! ssh host-key mismatch fake-iosxe proceeding at risk'
-parity_case 'S14c insecure, another key enrolled (the mismatch warning)' insecure cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S14c insecure, another key enrolled (the mismatch warning)' insecure cisco_ios "$BUILTIN" en '' \
   'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 unset OTHERKEY KEYSCAN WARNING
@@ -377,7 +377,7 @@ unset OTHERKEY KEYSCAN WARNING
 cross_pair() {  # label, enrolling activity:transport, reading activity:transport, pin
   case $1 in "${ONLY:-}"*) ;; *) return 0 ;; esac
   label=$1
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   start_fake
   : >"$KH"; chmod 600 "$KH"
   streams=
@@ -404,17 +404,17 @@ cross_pair 'S14e native enrolls, system reads under secure' run:native command:s
 # prompt stays away past both.
 EXECUTION='prompt-timeout = "1s"'
 SHELL_OPENED=1
-parity_case 'S15 no first prompt within the login allowance' accept-new cisco_iosxe "$BUILTIN" en '-login-delay 20s' \
+parity_case 'S15 no first prompt within the login allowance' accept-new cisco_ios "$BUILTIN" en '-login-delay 20s' \
   'connection_error:command_session_prompt_timeout' 110 '' \
   -- --cmd 'show clock'
 unset SHELL_OPENED
 EXECUTION='enable-timeout = "1s"'
-parity_case 'S16 no privileged prompt within the enable timeout' accept-new cisco_iosxe "$BUILTIN" en '-secret-delay 20s' \
+parity_case 'S16 no privileged prompt within the enable timeout' accept-new cisco_ios "$BUILTIN" en '-secret-delay 20s' \
   "privilege_error:privilege_failed,$NOT_ATTEMPTED" 107 '"enable"|"<secret>"|' \
   -- --cmd 'show clock' --cmd 'show version'
 COMMAND_TIMEOUT=5s
 EXECUTION='device-timeout = "2s"'
-parity_case 'S17 the device timeout cuts the second command under continue' accept-new cisco_iosxe "$BUILTIN" en '-slow 1s' \
+parity_case 'S17 the device timeout cuts the second command under continue' accept-new cisco_ios "$BUILTIN" en '-slow 1s' \
   "success,timeout:device_timeout,$NOT_ATTEMPTED" 107 "$OPEN"'"show slow"|"show slow"|' \
   -- --continue-device-on-error --cmd 'show slow' --cmd 'show slow' --cmd 'show clock'
 unset COMMAND_TIMEOUT EXECUTION
@@ -426,7 +426,7 @@ unset COMMAND_TIMEOUT EXECUTION
 COMMAND_TIMEOUT=30s
 SSH='server-alive-interval = "1s"
 server-alive-count-max = 2'
-parity_case 'S18 a device gone silent is ended by the keepalives' accept-new cisco_iosxe "$BUILTIN
+parity_case 'S18 a device gone silent is ended by the keepalives' accept-new cisco_ios "$BUILTIN
 [native-ssh]
 keepalive-interval = \"1s\"
 keepalive-count-max = 1" en '' \
@@ -441,11 +441,11 @@ unset COMMAND_TIMEOUT SSH
 # `clear counters` (the exchange in the output, <confirm> among the device's
 # lines), and never after `reload`, so the blind wait passes and the record
 # is a success with the notice, the session ended without exit.
-parity_case 'S19 a [confirm] answered by the escape, the prompt returns' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S19 a [confirm] answered by the escape, the prompt returns' accept-new cisco_ios "$BUILTIN" en '' \
   'success,success' 0 "$OPEN"'"clear counters"|"<confirm>"|"show clock"|"exit"|' \
   -- --cmd 'clear counters\r' --cmd 'show clock'
 EXECUTION='blind-wait = "1s"'
-parity_case 'S20 a [confirm] answered by the escape, the prompt never returns' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S20 a [confirm] answered by the escape, the prompt never returns' accept-new cisco_ios "$BUILTIN" en '' \
   'success' 0 "$OPEN"'"reload"|"<confirm>"|' \
   -- --cmd 'reload\r'
 unset EXECUTION
@@ -464,17 +464,17 @@ unset EXECUTION
 # <confirm>), without it the save declaration stays unconsumed and the
 # [confirm] alone is answered; either way the device goes quiet, the blind
 # wait passes, and the record is a success with the notice.
-parity_case 'S21 a value prompt answered by --expect, the prompt returns' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S21 a value prompt answered by --expect, the prompt returns' accept-new cisco_ios "$BUILTIN" en '' \
   'success,success' 0 "$OPEN"'"copy running-config startup-config"|"<value:>"|"show clock"|"exit"|' \
   -- --cmd 'copy running-config startup-config' --expect 'filename \[startup-config\]\?=' --cmd 'show clock'
-parity_case 'S22 a mistyped pattern waits out the command timeout' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S22 a mistyped pattern waits out the command timeout' accept-new cisco_ios "$BUILTIN" en '' \
   'timeout:command_timeout' 107 "$OPEN"'"copy running-config startup-config"|' \
   -- --cmd 'copy running-config startup-config' --expect 'Destinaton=x'
 EXECUTION='blind-wait = "1s"'
-parity_case 'S23 a blind reload with the save and confirm declarations, unsaved' accept-new cisco_iosxe "$BUILTIN" en '-unsaved' \
+parity_case 'S23 a blind reload with the save and confirm declarations, unsaved' accept-new cisco_ios "$BUILTIN" en '-unsaved' \
   'success' 0 "$OPEN"'"reload"|"<value:y>"|"<confirm>"|' \
   -- --cmd reload --blind --expect 'Save\? \[yes/no\]:=y' --expect 'confirm\]='
-parity_case 'S24 a blind reload with the save and confirm declarations, saved' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S24 a blind reload with the save and confirm declarations, saved' accept-new cisco_ios "$BUILTIN" en '' \
   'success' 0 "$OPEN"'"reload"|"<confirm>"|' \
   -- --cmd reload --blind --expect 'Save\? \[yes/no\]:=y' --expect 'confirm\]='
 unset EXECUTION
@@ -486,7 +486,7 @@ unset EXECUTION
 # alias name. The section's usage refusals (--platform values, the run
 # selector) never connect and are covered by the app and CLI tests.
 ALIAS_PAGING='[platform.c9300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 ssh-port = PORT
 paging-commands = ["terminal length 0"]'
 parity_case 'S25 an alias with its own paging-commands sends one paging line' accept-new c9300 "$ALIAS_PAGING" en '' \
@@ -496,7 +496,7 @@ parity_case 'S25 an alias with its own paging-commands sends one paging line' ac
 # S30: start statements for generic devices.
 # The row has no platform, as a target outside the inventory has none, so
 # under this suite's cleared platform-resolution.default (the shipped
-# value is cisco_iosxe) it runs as generic with the warning
+# value is cisco_ios) it runs as generic with the warning
 # platform_not_set. The generic table's
 # paging-commands are the platform's start statements: the fake sees them
 # before the requested command and sees no enable, the same on both
@@ -514,7 +514,7 @@ parity_case 'S30 a platform-less row receives the generic table start statements
 
 # S26: an unknown row platform under on-unknown = "warn". The row names
 # cisco_iosx, a typo; the fallback is
-# cisco_iosxe, so the fake sees enable and both paging lines on both
+# cisco_ios, so the fake sees enable and both paging lines on both
 # transports, the client prints the warning line on every path, and the
 # record's platform is the fallback with the notice platform_unknown_fallback
 # on the first record. The default, fail, never connects and is covered by
@@ -522,14 +522,14 @@ parity_case 'S30 a platform-less row receives the generic table start statements
 WARN_FALLBACK="$BUILTIN"'
 [platform-resolution]
 on-unknown = "warn"
-unknown-fallback = "cisco_iosxe"'
-WARNING='warning: platform_unknown_fallback: inventory source parity line 2: platform "cisco_iosx" is not a known platform; 1 device proceeds as cisco_iosxe (platform-resolution.unknown-fallback): fake-iosxe' \
+unknown-fallback = "cisco_ios"'
+WARNING='warning: platform_unknown_fallback: inventory source parity line 2: platform "cisco_iosx" is not a known platform; 1 device proceeds as cisco_ios (platform-resolution.unknown-fallback): fake-iosxe' \
 parity_case 'S26 an unknown row platform falls back under warn with the notice' accept-new cisco_iosx "$WARN_FALLBACK" en '' \
   'success' 0 "$OPEN"'"show clock"|"exit"|' \
   -- --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S26 ]; then
   last=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
-  jsonl_records "$last/commands.jsonl" platform 2>/dev/null | grep -qx cisco_iosxe || fail "S26: the record's platform is not the fallback cisco_iosxe"
+  jsonl_records "$last/commands.jsonl" platform 2>/dev/null | grep -qx cisco_ios || fail "S26: the record's platform is not the fallback cisco_ios"
   jsonl_records "$last/commands.jsonl" 'notices.*.code' 2>/dev/null | head -1 | tr , '\n' | grep -qx platform_unknown_fallback || fail "S26: the first record carries no platform_unknown_fallback notice"
 fi
 
@@ -539,7 +539,7 @@ fi
 # check compares both fields in all four streams; the rows below read the
 # last run's records.
 unset WARNING
-parity_case 'S27 promptbefore across a mode change, and a statement with no answer' accept-new cisco_iosxe "$BUILTIN" en '' \
+parity_case 'S27 promptbefore across a mode change, and a statement with no answer' accept-new cisco_ios "$BUILTIN" en '' \
   'success,success,success,success' 0 "$OPEN"'"configure terminal"|"interface Loopback0"|"end"|"show clock"|"exit"|' \
   -- --cmd 'configure terminal' --cmd 'interface Loopback0' --cmd 'end' --cmd 'show clock'
 if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S27 ]; then
@@ -582,7 +582,7 @@ fi
 # Through v0.12.1 the timeout's message quoted it as the "last output".
 S28_SECRET=Zq7-echoed-SECRET
 EXECUTION='enable-timeout = "1s"'
-parity_case 'S28 an echoed enable secret reaches nothing' accept-new cisco_iosxe "$BUILTIN" "$S28_SECRET" "-enable $S28_SECRET -echo-secret -secret-delay 20s" \
+parity_case 'S28 an echoed enable secret reaches nothing' accept-new cisco_ios "$BUILTIN" "$S28_SECRET" "-enable $S28_SECRET -echo-secret -secret-delay 20s" \
   "privilege_error:privilege_failed" 107 '"enable"|"<secret>"|' \
   -- --cmd 'show clock'
 unset EXECUTION
@@ -615,7 +615,7 @@ metrics-json = false'
 # folder (empty if there is none). S29 and S31 use it.
 job_run() {
   job_tag=$1; job_act=$2; job_tables=$3; job_fflags=$4; shift 4
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   # shellcheck disable=SC2086
   start_fake -port 0 $job_fflags
   : >"$KH"; chmod 600 "$KH"
@@ -753,7 +753,7 @@ fi
 
 
 # S33: the collection run. Two rows: the fake,
-# and `dead`, an alias of cisco_iosxe on a port nothing listens on. A crun
+# and `dead`, an alias of cisco_ios on a port nothing listens on. A crun
 # with no command sends the platform's crun-commands; the fake's file is
 # replaced (the marker, the blank line before the second marker, the
 # configuration and the version, mode 0660, a stale temporary swept);
@@ -775,20 +775,20 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S33 ]; then
     [ "$s33_act" != daemon ] || stop_daemon
     JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
   }
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
   start_fake -port 0 -hostname fake-iosxe
   : >"$KH"; chmod 600 "$KH"
   rm -rf "${TMP:?}/crun" "${TMP:?}/crun2"; install -d -m 770 "$TMP/crun"
   echo 'old dead' >"$TMP/crun/dead"; : >"$TMP/crun/.fake-iosxe.260924-000000-00"
   write_config accept-new "$BUILTIN
 [platform.dead]
-driver = \"cisco_iosxe\"
+driver = \"cisco_ios\"
 ssh-port = 1
 [crun]
 directory = \"$TMP/crun\""
   s33_run s33 run --target fake-iosxe --target dead
   [ "$CODE" -eq 101 ] || fail "S33: exit $CODE, expected the partial failure: $(grep -E '^[a-z_]+:' "$TMP/err.s33" | head -1)"
-  # The file under cisco_iosxe's built-in crun-filters: the byte count, the clock period, the uptime, and the constant
+  # The file under cisco_ios's built-in crun-filters: the byte count, the clock period, the uptime, and the constant
   # first line dropped; the last-change stamp kept.
   printf '! show running-config\n\n!\n! Last configuration change at 10:00:00 UTC Tue Sep 15 2026\n!\nversion 17.9\nhostname fake-iosxe\n!\ninterface GigabitEthernet1\n ip address 192.0.2.1 255.255.255.0\n!\nend\n\n! show version\nCisco IOS XE Software, Version 17.09.04a\n' >"$TMP/s33.want"
   printf '! show running-config\nBuilding configuration...\n\nCurrent configuration : 512 bytes\n!\n! Last configuration change at 10:00:00 UTC Tue Sep 15 2026\n!\nversion 17.9\nhostname fake-iosxe\n!\ninterface GigabitEthernet1\n ip address 192.0.2.1 255.255.255.0\n!\nntp clock-period 17179869\nend\n\n! show version\nCisco IOS XE Software, Version 17.09.04a\nfake-iosxe uptime is 1 day\n' >"$TMP/s33raw.want"
@@ -796,7 +796,7 @@ directory = \"$TMP/crun\""
   [ "$(stat -c %a "$TMP/crun/fake-iosxe")" = 660 ] || fail "S33: the file's mode is $(stat -c %a "$TMP/crun/fake-iosxe"), expected 660"
   [ "$(cat "$TMP/crun/dead")" = 'old dead' ] || fail "S33: dead's previous file was touched"
   [ "$(ls -A "$TMP/crun" | tr '\n' ' ')" = 'dead fake-iosxe ' ] || fail "S33: the directory holds $(ls -A "$TMP/crun" | tr '\n' ' ')"
-  [ "$(job_files)" = 'commands.cisco_iosxe.txt commands.dead.txt commands.jsonl errors.jsonl failed-devices.txt manifest.json metrics.json summary.json ' ] || fail "S33: the job folder holds $(job_files)"
+  [ "$(job_files)" = 'commands.cisco_ios.txt commands.dead.txt commands.jsonl errors.jsonl failed-devices.txt manifest.json metrics.json summary.json ' ] || fail "S33: the job folder holds $(job_files)"
   [ "$(json_get "$JOB_DIR/summary.json" collection.replace)" = 1 ] && [ "$(json_get "$JOB_DIR/summary.json" collection.keep)" = 1 ] || fail "S33: the summary's collection block: $(json_get "$JOB_DIR/summary.json" collection.replace) replaced, $(json_get "$JOB_DIR/summary.json" collection.keep) kept"
   [ "$(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)" = keep ] || fail "S33: dead is $(json_get "$JOB_DIR/summary.json" collection.devices.dead.outcome)"
   # Under jsonl the stream's last line is the summary, which carries the
@@ -808,7 +808,7 @@ directory = \"$TMP/crun\""
   [ "$CODE" -eq 101 ] || fail "S33 rejected: exit $CODE"
   printf '! show bogus\n     ^\n%% Invalid input detected at '"'"'^'"'"' marker.\n\n! show clock\n*10:00:00.000 UTC Tue Sep 15 2026\n' >"$TMP/s33b.want"
   cmp -s "$TMP/crun/fake-iosxe" "$TMP/s33b.want" || fail "S33 rejected: the file differs: $(diff "$TMP/s33b.want" "$TMP/crun/fake-iosxe" | head -3)"
-  [ -f "$JOB_DIR/commands.txt" ] && [ ! -f "$JOB_DIR/commands.cisco_iosxe.txt" ] || fail "S33 rejected: the command files are $(job_files)"
+  [ -f "$JOB_DIR/commands.txt" ] && [ ! -f "$JOB_DIR/commands.cisco_ios.txt" ] || fail "S33 rejected: the command files are $(job_files)"
   s33_run s33c daemon --target fake-iosxe --cd="$TMP/crun2"
   [ "$CODE" -eq 0 ] || fail "S33 daemon --cd: exit $CODE: $(grep -E '^[a-z_]+:' "$TMP/err.s33c" | head -1)"
   cmp -s "$TMP/crun2/fake-iosxe" "$TMP/s33.want" || fail "S33 daemon --cd: the file differs"
@@ -834,7 +834,7 @@ EOF_HOOK
   chmod 755 "$TMP/after.sh"; export AFTER_OUT="$TMP/after.out" AFTER_EXIT=0 AFTER_SLEEP=
   write_config accept-new "$BUILTIN
 [platform.dead]
-driver = \"cisco_iosxe\"
+driver = \"cisco_ios\"
 ssh-port = 1
 [crun]
 directory = \"$TMP/crun\"
@@ -882,19 +882,19 @@ crun-filters = ['^hostname ', ' uptime is ']
 directory = \"$TMP/crun\""
   s33_run s33j run --target fake-iosxe
   [ "$CODE" -eq 0 ] && grep -q '^Building configuration' "$TMP/crun/fake-iosxe" && ! grep -q '^hostname \|uptime is' "$TMP/crun/fake-iosxe" || fail "S33 site filters: exit $CODE: $(cat "$TMP/crun/fake-iosxe" | head -3)"
-  [ "$(json_get "$JOB_DIR/manifest.json" plan.platform_filters.cisco_iosxe.0)" = '^hostname ' ] || fail "S33 site filters: the manifest's plan carries $(json_get "$JOB_DIR/manifest.json" plan.platform_filters.cisco_iosxe.0)"
+  [ "$(json_get "$JOB_DIR/manifest.json" plan.platform_filters.cisco_ios.0)" = '^hostname ' ] || fail "S33 site filters: the manifest's plan carries $(json_get "$JOB_DIR/manifest.json" plan.platform_filters.cisco_ios.0)"
   write_config accept-new "$BUILTIN
 crun-filters = ['^ok$', '(']
 [crun]
 directory = \"$TMP/crun\""
   s33_run s33k run --target fake-iosxe
-  [ "$CODE" -eq 2 ] && grep -q '^config_platform_crun_filter_invalid: pattern 2 "(" does not compile: .* for platform.cisco_iosxe.crun-filters at ' "$TMP/err.s33k" || fail "S33 bad pattern: exit $CODE: $(head -2 "$TMP/err.s33k")"
+  [ "$CODE" -eq 2 ] && grep -q '^config_platform_crun_filter_invalid: pattern 2 "(" does not compile: .* for platform.cisco_ios.crun-filters at ' "$TMP/err.s33k" || fail "S33 bad pattern: exit $CODE: $(head -2 "$TMP/err.s33k")"
   # The schedule: the packaged cron script packaging/cron/karvi-crun
   # holds a lock for the run's duration, so a tick that starts while the
   # previous runs (the fake's `show slow` takes 3 s) is skipped with one line
   # and exit 75 and submits no job; a tick alone collects. The script takes
   # the executable from KARVI, so a wrapper carries the suite's configuration.
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   COMMAND_TIMEOUT=5s write_config accept-new "$BUILTIN
 [crun]
 directory = \"$TMP/crun\""
@@ -948,7 +948,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S34 ]; then
       >"$TMP/out.$s34_tag" 2>"$TMP/err.$s34_tag" || CODE=$?
     JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
   }
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\n' >"$TMP/inv.csv"
   start_fake -port 0 -hostname fake-iosxe
   : >"$KH"; chmod 600 "$KH"
   rm -rf "${TMP:?}/cd"; install -d -m 770 "$TMP/cd"
@@ -957,7 +957,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S34 ]; then
   printf '#!/bin/sh\n: >"$AFTER_OUT"\necho "hook ran"\n' >"$TMP/after34.sh"; chmod 755 "$TMP/after34.sh"
   write_config accept-new "$BUILTIN
 [platform.dead]
-driver = \"cisco_iosxe\"
+driver = \"cisco_ios\"
 ssh-port = 1
 [crun]
 after = \"$TMP/after34.sh\""
@@ -1031,7 +1031,7 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S36 ]; then
     s36_hits=$(grep -rl -- "$S36_SECRET" "$TMP/base" "$TMP/out.$1" "$TMP/err.$1" 2>/dev/null || true)
     [ -z "$s36_hits" ] || fail "S36 $1: the echoed enable secret is in $s36_hits"
   }
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\nfake2,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\nfake2,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   start_fake -port 0 -hostname Router -drip 200ms -echo-secret -enable "$S36_SECRET"
   : >"$KH"; chmod 600 "$KH"
   write_config accept-new "$BUILTIN
@@ -1044,7 +1044,7 @@ default = \"parallel\""
     s36_no_secret "s36$s36_transport"
     s36_out=$(tr -d '\r' <"$TMP/out.s36$s36_transport" | tr '\n' '|')
     case $s36_out in
-      "! fake-iosxe [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=$s36_transport||$s36_session! exit=0 elapsed="*) ;;
+      "! fake-iosxe [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=$s36_transport||$s36_session! exit=0 elapsed="*) ;;
       *) fail "S36 $s36_transport: the display is $s36_out" ;;
     esac
     [ "$(sed -n '2,3p' "$JOB_DIR/output.fake-iosxe.txt" | tr '\n' '|')" = 'Router>enable|Password:|' ] || fail "S36 $s36_transport: the text file's set-up lines are $(sed -n '2,3p' "$JOB_DIR/output.fake-iosxe.txt" | tr '\n' '|')"
@@ -1052,7 +1052,7 @@ default = \"parallel\""
   s36_run s36run run --no-daemon --live --transport native --target fake-iosxe --target fake2 --cmd 'show drip'
   [ "$CODE" -eq 0 ] || fail "S36 run: exit $CODE: $(head -1 "$TMP/err.s36run")"
   s36_no_secret s36run
-  s36_head() { printf '! %s [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native||' "$1"; }
+  s36_head() { printf '! %s [127.0.0.1] platform=cisco_ios user=netops backend=builtin-env-fallback transport=native||' "$1"; }
   s36_out=$(tr -d '\r' <"$TMP/out.s36run" | tr '\n' '|')
   case $s36_out in
     "$(s36_head fake-iosxe)$s36_session$(s36_head fake2)$s36_session! exit=0 elapsed="*) ;;
@@ -1092,12 +1092,12 @@ if [ -z "${ONLY:-}" ] || [ "${ONLY}" = S37 ]; then
     JOB_DIR=$(ls -d "$TMP"/base/jobs/*/* 2>/dev/null | tail -1)
   }
   s37_sent() { jsonl_records "$JOB_DIR/commands.jsonl" device.canonical_name command | tr '\t' ' ' | paste -sd '|' -; }
-  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_iosxe\nfake-b,127.0.0.1,cisco_iosxe\ndead,127.0.0.1,dead\nedge.example.net,127.0.0.1,cisco_iosxe\nedge.example.org,127.0.0.1,cisco_iosxe\n' >"$TMP/inv.csv"
+  printf 'name,management_address,platform\nfake-iosxe,127.0.0.1,cisco_ios\nfake-b,127.0.0.1,cisco_ios\ndead,127.0.0.1,dead\nedge.example.net,127.0.0.1,cisco_ios\nedge.example.org,127.0.0.1,cisco_ios\n' >"$TMP/inv.csv"
   start_fake -port 0 -hostname fake-iosxe
   : >"$KH"; chmod 600 "$KH"
   write_config accept-new "$BUILTIN
 [platform.dead]
-driver = \"cisco_iosxe\"
+driver = \"cisco_ios\"
 ssh-port = 1"
   rm -rf "${TMP:?}/s37"; install -d -m 700 "$TMP/s37" "$TMP/s37/lists"
   printf 'show version\n' >"$TMP/s37/a.txt"
@@ -1137,7 +1137,7 @@ show users' ] || fail "S37 folder: the copies are $(tr '\n' '|' <"$JOB_DIR/comma
   # The rerun from the job folder: dead reachable now, and fake-b's copy's \r.
   write_config accept-new "$BUILTIN
 [platform.dead]
-driver = \"cisco_iosxe\"
+driver = \"cisco_ios\"
 ssh-port = PORT"
   s37_run s37rerun run --no-daemon --transport native --tf "$TMP/s37/job/failed-devices.txt" --cf "$TMP/s37/job/commands"
   [ "$CODE" -eq 0 ] && [ "$(s37_sent)" = 'dead show clock|dead show users' ] || fail "S37 rerun: exit $CODE, sent $(s37_sent)"

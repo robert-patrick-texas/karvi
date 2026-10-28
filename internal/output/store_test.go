@@ -45,7 +45,7 @@ func TestFailedDevicesFollowRequestedRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	record := func(device, kind, status string) records.CommandRecord {
-		r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: kind, SessionInitProfile: "p", Command: "x", CommandSHA256: "x", Status: status, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
+		r := records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", JobID: "a", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_ios", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: kind, SessionInitProfile: "p", Command: "x", CommandSHA256: "x", Status: status, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
 		if status != "success" {
 			r.Error = &records.StructuredError{Code: "device_command_error", Category: "device", Message: "m", Operation: "execute_command"}
 		}
@@ -405,11 +405,11 @@ func TestWriteCommands(t *testing.T) {
 		t.Fatalf("one list: %q", got)
 	}
 	platforms := create("platforms", FileSet{})
-	if err := platforms.WriteCommands(&executionplan.ExecutionPlan{PlatformCommands: map[string][]string{"cisco_iosxe": {"show running-config", "show version"}, "juniper_junos": {"show configuration"}}}); err != nil {
+	if err := platforms.WriteCommands(&executionplan.ExecutionPlan{PlatformCommands: map[string][]string{"cisco_ios": {"show running-config", "show version"}, "juniper_junos": {"show configuration"}}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := read(filepath.Join(dir, "platforms", "commands.cisco_iosxe.txt")); got != "show running-config\nshow version\n" {
-		t.Fatalf("cisco_iosxe: %q", got)
+	if got := read(filepath.Join(dir, "platforms", "commands.cisco_ios.txt")); got != "show running-config\nshow version\n" {
+		t.Fatalf("cisco_ios: %q", got)
 	}
 	if got := read(filepath.Join(dir, "platforms", "commands.juniper_junos.txt")); got != "show configuration\n" {
 		t.Fatalf("juniper_junos: %q", got)
@@ -477,7 +477,7 @@ func TestCollectionFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec := func(device, command, status, code, out string, index int) *records.CommandRecord {
-		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: index, CommandCount: 2, CommandKind: "requested", Command: command, CommandSHA256: "x", Status: status, Output: out, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:" + device, Name: device, CanonicalName: device, Groups: []string{}}, InputTarget: device, TransformedName: device, DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_ios", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: index, CommandCount: 2, CommandKind: "requested", Command: command, CommandSHA256: "x", Status: status, Output: out, OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
 		if status != "success" {
 			r.Error = &records.StructuredError{Code: code, Category: "device", Message: "m", Operation: "command"}
 		}
@@ -627,7 +627,7 @@ func TestCollectionSuffixAndSweep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_iosxe", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "x", Status: "success", Output: "*10:00\n", OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
+		r := &records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "260924-020000-00", JobID: "260924-020000-00", ActivityType: "run", Operator: records.Operator{Username: "u"}, Device: records.DeviceProjection{ID: "name:r1", Name: "r1", CanonicalName: "r1", Groups: []string{}}, InputTarget: "r1", TransformedName: "r1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "cisco_ios", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show clock", CommandSHA256: "x", Status: "success", Output: "*10:00\n", OutputEncoding: "utf-8", OutputSHA256: "x", Notices: []records.Notice{}, Timing: records.Timing{QueuedAt: time.Now(), EndedAt: time.Now()}}
 		if _, err := appendRecord(s, r); err != nil {
 			t.Fatal(err)
 		}

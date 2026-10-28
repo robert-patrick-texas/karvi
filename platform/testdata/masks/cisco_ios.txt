@@ -1,4 +1,4 @@
-# cisco_iosxe: statements as sent (sent) and a configuration as the device prints
+# cisco_ios: statements as sent (sent) and a configuration as the device prints
 # it (line), each with the secrets it holds, tab-separated; from the
 # scratch check s4-iosxe-masks-amended.go (docs/EXAMPLES.md, chapter 63, issue 8).
 sent	snmp-server community Publ1c RO 10	Publ1c

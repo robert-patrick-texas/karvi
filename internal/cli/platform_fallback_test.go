@@ -25,12 +25,12 @@ func TestPlatformFallbackNotMatchedDryRun(t *testing.T) {
 	t.Setenv("NETUSER", "u")
 	t.Setenv("NETPASS", "p")
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "inv.csv"), []byte("name,management_address,platform\nsw-ios,127.0.0.1,cisco_iosxe\nsw-typo,127.0.0.1,cisco_iosx\nsw-empty,127.0.0.1,\nsw-generic,127.0.0.1,generic\nsw-c9300,127.0.0.1,c9300\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "inv.csv"), []byte("name,management_address,platform\nsw-ios,127.0.0.1,cisco_ios\nsw-typo,127.0.0.1,cisco_iosx\nsw-empty,127.0.0.1,\nsw-generic,127.0.0.1,generic\nsw-c9300,127.0.0.1,c9300\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	config := filepath.Join(dir, "karvi.toml")
 	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n"+
-		"[platform.c9300]\ndriver = \"cisco_iosxe\"\n[platform-resolution]\non-unknown = \"warn\"\ndefault = \"cisco_iosxe\"\n"+
+		"[platform.c9300]\ndriver = \"cisco_ios\"\n[platform-resolution]\non-unknown = \"warn\"\ndefault = \"cisco_ios\"\n"+
 		"[session-init.gen]\ncommands = []\n[session-init.cisco]\ncommands = []\n[session-init.rest]\ncommands = []\n"+
 		"[[session-init-map]]\nprofile = \"gen\"\nplatform = \"generic\"\n[[session-init-map]]\nprofile = \"cisco\"\nplatform = \"cisco*\"\n[[session-init-map]]\nprofile = \"rest\"\nname = \"*\"\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -55,16 +55,16 @@ func TestPlatformFallbackNotMatchedDryRun(t *testing.T) {
 		}
 		return strings.Join(out, " ")
 	}
-	if got := run("--select-platform", "cisco*"); got != "sw-ios:cisco_iosxe:cisco" {
+	if got := run("--select-platform", "cisco*"); got != "sw-ios:cisco_ios:cisco" {
 		t.Fatalf("cisco* selected %q, want sw-ios only", got)
 	}
-	if got := run("--select-platform", "cisco_iosxe"); got != "sw-ios:cisco_iosxe:cisco" {
-		t.Fatalf("cisco_iosxe selected %q: the blank row under the default is not set", got)
+	if got := run("--select-platform", "cisco_ios"); got != "sw-ios:cisco_ios:cisco" {
+		t.Fatalf("cisco_ios selected %q: the blank row under the default is not set", got)
 	}
 	if got := run("--select-platform", "generic"); got != "sw-generic:generic:gen" {
 		t.Fatalf("generic selected %q: the fallen-back row is not set", got)
 	}
-	if got := run("--all"); got != "sw-ios:cisco_iosxe:cisco sw-typo:generic:rest sw-empty:cisco_iosxe:rest sw-generic:generic:gen sw-c9300:c9300:rest" {
+	if got := run("--all"); got != "sw-ios:cisco_ios:cisco sw-typo:generic:rest sw-empty:cisco_ios:rest sw-generic:generic:gen sw-c9300:c9300:rest" {
 		t.Fatalf("--all: %q", got)
 	}
 }
@@ -80,11 +80,11 @@ func TestPlatformNoticesInTheDryRunReport(t *testing.T) {
 	t.Setenv("NETUSER", "u")
 	t.Setenv("NETPASS", "p")
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "inv.csv"), []byte("name,management_address,platform\nsw-ios,127.0.0.1,cisco_iosxe\nsw-typo,127.0.0.1,cisco_iosx\nsw-empty,127.0.0.1,\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "inv.csv"), []byte("name,management_address,platform\nsw-ios,127.0.0.1,cisco_ios\nsw-typo,127.0.0.1,cisco_iosx\nsw-empty,127.0.0.1,\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	config := filepath.Join(dir, "karvi.toml")
-	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n[platform-resolution]\non-unknown = \"warn\"\ndefault = \"cisco_iosxe\"\n"), 0o600); err != nil {
+	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n[platform-resolution]\non-unknown = \"warn\"\ndefault = \"cisco_ios\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	args := append([]string{"--config", config}, sets...)
@@ -110,7 +110,7 @@ func TestPlatformNoticesInTheDryRunReport(t *testing.T) {
 			findings = append(findings, tr.TargetID+":"+f.Code+"/"+f.Severity+"/"+f.Stage+"/"+f.Details["supplied"]+"/"+f.Details["source"]+"/"+f.Details["used"])
 		}
 	}
-	if got := strings.Join(findings, " "); got != "name:sw-typo:platform_unknown_fallback/warning/platform/cisco_iosx/lab line 3/generic name:sw-empty:platform_not_set/warning/platform//lab line 4/cisco_iosxe" {
+	if got := strings.Join(findings, " "); got != "name:sw-typo:platform_unknown_fallback/warning/platform/cisco_iosx/lab line 3/generic name:sw-empty:platform_not_set/warning/platform//lab line 4/cisco_ios" {
 		t.Fatalf("findings %q", got)
 	}
 	if report.Outcome != records.OutcomePlan || report.Counts.Warnings != 2 {
@@ -153,7 +153,7 @@ func TestPlatformNoticesInTheExerciseReport(t *testing.T) {
 	}
 	found := false
 	for _, f := range report.Targets[0].Findings {
-		if f.Code == "platform_not_set" && f.Severity == "warning" && f.Stage == "platform" && f.Details["used"] == "cisco_iosxe" && f.Details["source"] == "lab line 2" {
+		if f.Code == "platform_not_set" && f.Severity == "warning" && f.Stage == "platform" && f.Details["used"] == "cisco_ios" && f.Details["source"] == "lab line 2" {
 			found = true
 		}
 	}
@@ -179,7 +179,7 @@ func TestEnableRuleOnThePlatformUsed(t *testing.T) {
 	}
 	configFor := func(extra string) string {
 		config := filepath.Join(t.TempDir(), "karvi.toml")
-		if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n[platform.c9300]\ndriver = \"cisco_iosxe\"\nrequires-enable = true\n"+extra), 0o600); err != nil {
+		if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n[platform.c9300]\ndriver = \"cisco_ios\"\nrequires-enable = true\n"+extra), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		return config
@@ -212,7 +212,7 @@ func TestExerciseTakesTheClientsPlatformTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	config := filepath.Join(dir, "karvi.toml")
-	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n[platform.c9300]\ndriver = \"cisco_iosxe\"\n"), 0o600); err != nil {
+	if err := os.WriteFile(config, []byte("[[inventory-source]]\nname = \"lab\"\ntype = \"csv\"\npath = \""+filepath.Join(dir, "inv.csv")+"\"\nrequired = true\n[platform.c9300]\ndriver = \"cisco_ios\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	args := append([]string{"--config", config}, sets...)

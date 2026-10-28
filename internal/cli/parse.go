@@ -329,7 +329,7 @@ func (p *parser) apply(o *option, value string) (bool, error) {
 	inv := p.inv
 	if o.standsFor != nil {
 		// A shortcut is the option it stands for, given with its value:
-		// --pi is --platform cisco_iosxe. --pi=false gives nothing.
+		// --pi is --platform cisco_ios. --pi=false gives nothing.
 		inv.record(o, value)
 		if value == "false" {
 			return false, nil

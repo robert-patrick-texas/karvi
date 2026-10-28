@@ -39,9 +39,9 @@ func names(devices []inventory.Device) []string {
 }
 
 var testInventory = []inventory.Device{
-	invDevice("Core-1", "hq", "cisco_iosxe", "core"),
-	invDevice("core-2", "hq", "cisco_iosxe", "core"),
-	invDevice("edge-1", "branch", "cisco_iosxe", "edge"),
+	invDevice("Core-1", "hq", "cisco_ios", "core"),
+	invDevice("core-2", "hq", "cisco_ios", "core"),
+	invDevice("edge-1", "branch", "cisco_ios", "edge"),
 	invDevice("lab-1", "lab", "generic", "lab"),
 }
 
@@ -131,8 +131,8 @@ func TestAssembleExcludeAppliesToWholeList(t *testing.T) {
 // stands but never selects.
 func TestAssembleSelectorGrammar(t *testing.T) {
 	inv := append(append([]inventory.Device{}, testInventory...),
-		invDevice("NYC-1", "NYC", "cisco_iosxe", "Edge"),
-		invDevice("nyc-2", "nyc/dc1", "CISCO_IOSXE", "edge", "lab"),
+		invDevice("NYC-1", "NYC", "cisco_ios", "Edge"),
+		invDevice("nyc-2", "nyc/dc1", "CISCO_IOS", "edge", "lab"),
 	)
 	for _, tc := range []struct {
 		name     string
@@ -236,9 +236,9 @@ func TestApplyManagementAddress(t *testing.T) {
 // TestFirstDeviceOverrides covers the direct-mode overrides: --platform names the
 // definition, --transport and --port replace the device's own values.
 func TestFirstDeviceOverrides(t *testing.T) {
-	set := TargetSet{Devices: []inventory.Device{invDevice("core-1", "hq", "cisco_iosxe"), invDevice("core-2", "hq", "cisco_iosxe")}}
+	set := TargetSet{Devices: []inventory.Device{invDevice("core-1", "hq", "cisco_ios"), invDevice("core-2", "hq", "cisco_ios")}}
 	d := firstDevice(set, "", "", 0)
-	if d.CanonicalName != "core-1" || d.Platform != "cisco_iosxe" || d.TransportExplicit {
+	if d.CanonicalName != "core-1" || d.Platform != "cisco_ios" || d.TransportExplicit {
 		t.Fatalf("%+v", d)
 	}
 	d = firstDevice(set, "Generic", "Telnet", 2323)
@@ -255,9 +255,9 @@ func TestFirstDeviceOverrides(t *testing.T) {
 // an inventory row and a direct target alike, and an empty name changes
 // nothing.
 func TestOverridePlatform(t *testing.T) {
-	set := TargetSet{Devices: []inventory.Device{invDevice("core-1", "hq", "cisco_iosxe"), invDevice("direct-1", "", "")}}
+	set := TargetSet{Devices: []inventory.Device{invDevice("core-1", "hq", "cisco_ios"), invDevice("direct-1", "", "")}}
 	overridePlatform(&set, "")
-	if set.Devices[0].Platform != "cisco_iosxe" || set.Devices[1].Platform != "" {
+	if set.Devices[0].Platform != "cisco_ios" || set.Devices[1].Platform != "" {
 		t.Fatalf("an empty override changed the set: %+v", set.Devices)
 	}
 	overridePlatform(&set, "Cisco_NXOS")
@@ -356,18 +356,18 @@ func TestV0100AuthorityOverridesAndLiteralAlternates(t *testing.T) {
 // inventory source configured, a value that passes reaches
 // the loader and fails there, under a different code.
 func TestAssemblePlatformSelectorKnown(t *testing.T) {
-	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.C9300.driver="cisco_iosxe"`}})
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.C9300.driver="cisco_ios"`}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	known := "generic, cisco_iosxe, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300"
+	known := "generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell, c9300"
 	for _, tc := range []struct {
 		value   string
 		refused bool
 	}{
-		{"cisco_iosxe", false},
-		{"C9300", false},         // the alias, whatever the table's spelling
-		{" Cisco_IOSXE ", false}, // normalised before the lookup
+		{"cisco_ios", false},
+		{"C9300", false},       // the alias, whatever the table's spelling
+		{" Cisco_IOS ", false}, // normalised before the lookup
 		{"cisco*", false},
 		{"!cisco*", false}, // a not value over a known set
 		{"[cg]*", false},
@@ -437,12 +437,12 @@ func TestAssemblePlatformNotSet(t *testing.T) {
 // refuses it), and is not set for matching under "warn", so no --select-platform
 // value selects or removes it; it stays reachable by name and --all.
 func TestAssemblePlatformFallbackNotMatched(t *testing.T) {
-	inv := []inventory.Device{invDevice("sw-ios", "lab", "cisco_iosxe"), invDevice("sw-typo", "lab", "cisco_iosx"), invDevice("sw-c9300", "lab", "c9300")}
-	fail, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_iosxe"`}})
+	inv := []inventory.Device{invDevice("sw-ios", "lab", "cisco_ios"), invDevice("sw-typo", "lab", "cisco_iosx"), invDevice("sw-c9300", "lab", "c9300")}
+	fail, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_ios"`}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	warn, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_iosxe"`, `platform-resolution.on-unknown="warn"`}})
+	warn, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`platform.c9300.driver="cisco_ios"`, `platform-resolution.on-unknown="warn"`}})
 	if err != nil {
 		t.Fatal(err)
 	}

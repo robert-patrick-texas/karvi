@@ -14,7 +14,7 @@ import (
 func kindRecord(device, kind string, index, count int, command, status, output string, err *records.StructuredError) records.CommandRecord {
 	r := records.CommandRecord{
 		Device: records.DeviceProjection{ID: "name:" + device, CanonicalName: device}, InputTarget: device, SelectedAddress: "192.0.2.1",
-		Platform: "cisco_iosxe", Transport: "system", CommandKind: kind, SessionInitProfile: "none",
+		Platform: "cisco_ios", Transport: "system", CommandKind: kind, SessionInitProfile: "none",
 		CommandIndex: index, CommandCount: count, Command: command, Status: status, Output: output, OutputEncoding: "utf-8",
 		Error: err, Notices: []records.Notice{}, Timing: records.Timing{EndedAt: time.Now()},
 	}

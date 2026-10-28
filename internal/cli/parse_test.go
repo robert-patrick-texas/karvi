@@ -529,8 +529,8 @@ func TestParseDeviceShortcut(t *testing.T) {
 		// words after it, or an option of command's alone make a command.
 		{[]string{"router1", "show", "ip", "int", "brief"}, "command", []string{"router1*"}, []string{"show ip int brief"}, ""},
 		{[]string{"r1", "r2"}, "command", []string{"r1*"}, []string{"r2"}, ""},
-		{[]string{"r1", "--platform", "cisco_iosxe"}, "login", []string{"r1*"}, nil, ""},
-		{[]string{"r1", "--platform", "cisco_iosxe", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
+		{[]string{"r1", "--platform", "cisco_ios"}, "login", []string{"r1*"}, nil, ""},
+		{[]string{"r1", "--platform", "cisco_ios", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
 		{[]string{"r1", "--pi", "--port=2222", "show", "clock"}, "command", []string{"r1*"}, []string{"show clock"}, ""},
 		{[]string{"r1", "--target", "r2"}, "login", []string{"r1*", "r2"}, nil, ""},
 		{[]string{"r1", "--tl", "r2", "show", "clock"}, "command", []string{"r1*", "r2"}, []string{"show clock"}, ""},
@@ -752,7 +752,7 @@ func TestParseFreeformBoundary(t *testing.T) {
 			t.Fatalf("%s: targets %q platform %q", mode, targetValues(inv), inv.String(optPlatform))
 		}
 	}
-	// --pi is the IOS XE shortcut, a whole word; --pin is still --ping.
+	// --pi is cisco_ios's shortcut, a whole word; --pin is still --ping.
 	if inv = mustParse(t, "run", "--all", "--pin", "show", "clock"); !inv.Flag(optPing) || inv.Set(optPlatform) {
 		t.Fatalf("--pin is not --ping")
 	}
@@ -763,13 +763,13 @@ func TestParseFreeformBoundary(t *testing.T) {
 	if inv = mustParse(t, "run", "--all", "--pla", "generic", "show", "clock"); inv.String(optPlatform) != "generic" {
 		t.Fatalf("--pla is not --platform: %q", inv.String(optPlatform))
 	}
-	for short, want := range map[string]string{"--pi": "cisco_iosxe", "--pn": "cisco_nxos", "--pr": "cisco_xr", "--pj": "juniper_junos", "-pa": "arista_eos", "--pl": "linux", "--ps": "linux_shell", "--pg": "generic"} {
+	for short, want := range map[string]string{"--pi": "cisco_ios", "--pn": "cisco_nxos", "--pr": "cisco_xr", "--pj": "juniper_junos", "-pa": "arista_eos", "--pl": "linux", "--ps": "linux_shell", "--pg": "generic"} {
 		if inv = mustParse(t, "run", "--all", short, "show", "clock"); inv.String(optPlatform) != want {
 			t.Fatalf("%s is --platform %q, want %q", short, inv.String(optPlatform), want)
 		}
 	}
-	inv = mustParse(t, "command", "--platform", "cisco_iosxe", "r1", "show", "clock")
-	if !reflect.DeepEqual(targetValues(inv), []string{"target=r1"}) || inv.String(optPlatform) != "cisco_iosxe" {
+	inv = mustParse(t, "command", "--platform", "cisco_ios", "r1", "show", "clock")
+	if !reflect.DeepEqual(targetValues(inv), []string{"target=r1"}) || inv.String(optPlatform) != "cisco_ios" {
 		t.Fatalf("command --platform is not a target input: %q", targetValues(inv))
 	}
 	// --order sets dispatch.order through the lock-aware flag layer in

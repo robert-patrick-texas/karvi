@@ -64,7 +64,7 @@ done
 	factory := Factory{Binary: bin, Config: cfg, Home: home, BaseDir: filepath.Join(home, ".local", "share", "karvi"), ScratchDir: scratch, ControlRoot: filepath.Join(home, "control"), AskpassPath: "/bin/true"}
 	driver, err := factory.Open(context.Background(), platform.OpenRequest{
 		Address: "192.0.2.10", Port: 22, Username: "operator",
-		Definition: platform.Definition{Name: "cisco_iosxe"},
+		Definition: platform.Definition{Name: "cisco_ios"},
 		Metadata:   map[string]string{"canonical_name": "switch01"},
 		Password:   func(fn func([]byte) error) error { return fn([]byte("test-only")) },
 	})

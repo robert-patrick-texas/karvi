@@ -26,7 +26,7 @@ func liveRenderer(t *testing.T, activity string, quiet bool, sets ...string) (*r
 }
 
 func liveRecord(device string) records.CommandRecord {
-	return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, ActivityType: "command", Device: records.DeviceProjection{CanonicalName: device}, SelectedAddress: "192.0.2.1", Platform: "cisco_iosxe", Transport: "native",
+	return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, ActivityType: "command", Device: records.DeviceProjection{CanonicalName: device}, SelectedAddress: "192.0.2.1", Platform: "cisco_ios", Transport: "native",
 		Credential: &records.CredentialProjection{DeviceUsername: "jsmith", Backend: "env"}, Timing: records.Timing{EndedAt: time.Now()}}
 }
 
@@ -48,7 +48,7 @@ func liveCommand(device, command, status, output string, failure *records.Struct
 func TestLiveTakesTheTextDisplaysPlace(t *testing.T) {
 	r, out := liveRenderer(t, "command", false)
 	v := r.LiveDevice(liveRecord("router1"))
-	if got := out.String(); got != "! router1 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native\n" {
+	if got := out.String(); got != "! router1 [192.0.2.1] platform=cisco_ios user=jsmith backend=env transport=native\n" {
 		t.Fatalf("at the open %q", got)
 	}
 	v.Write([]byte("Router>"))
@@ -64,7 +64,7 @@ func TestLiveTakesTheTextDisplaysPlace(t *testing.T) {
 	if err := r.WriteFooter(time.Now(), 6, time.Second, nil); err != nil {
 		t.Fatal(err)
 	}
-	want := "! router1 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native\n" +
+	want := "! router1 [192.0.2.1] platform=cisco_ios user=jsmith backend=env transport=native\n" +
 		"Router>enable\r\nPassword: <removed>\r\nRouter#show clock\r\n*10:00\r\nRouter#show bogus\r\n% Invalid input\r\nRouter#\n" +
 		"karvi: target=router1 status=device_error error=device_command_error: the device reported an error\n" +
 		"exit\r\n! exit=6 elapsed=1s artifacts=/tmp/artifacts\n"
@@ -87,9 +87,9 @@ func TestLiveEachDeviceOfARunInTurn(t *testing.T) {
 	r.OnRecord(liveCommand("router2", "show clock", "success", "*10:01\n", nil))
 	v.End()
 	r.OnRecord(liveCommand("router3", "show clock", "connection_failed", "", &records.StructuredError{Code: "connection_refused", Message: "refused"}))
-	want := "! router1 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native\nRouter#show clock\r\n*10:00\r\nRouter#\n" +
-		"! router2 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native\nRouter#show clock\r\n*10:01\r\nRouter#\n" +
-		"! router3 [192.0.2.1] platform=cisco_iosxe user=jsmith backend=env transport=native\nkarvi: target=router3 status=connection_failed error=connection_refused: refused\n"
+	want := "! router1 [192.0.2.1] platform=cisco_ios user=jsmith backend=env transport=native\nRouter#show clock\r\n*10:00\r\nRouter#\n" +
+		"! router2 [192.0.2.1] platform=cisco_ios user=jsmith backend=env transport=native\nRouter#show clock\r\n*10:01\r\nRouter#\n" +
+		"! router3 [192.0.2.1] platform=cisco_ios user=jsmith backend=env transport=native\nkarvi: target=router3 status=connection_failed error=connection_refused: refused\n"
 	if got := out.String(); got != want {
 		t.Fatalf("\n got %q\nwant %q", got, want)
 	}

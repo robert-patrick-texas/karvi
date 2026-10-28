@@ -80,7 +80,7 @@ PORT=$(cat "$TMP/port")
 T=$(od -An -N4 -tx4 /dev/urandom | tr -d ' \n')
 UP=up-$T
 DEAD=dead-$T
-printf 'name,management_address,platform\n%s,127.0.0.1,cisco_iosxe\n%s,127.0.0.9,cisco_iosxe\n' "$UP" "$DEAD" >"$TMP/inv.csv"
+printf 'name,management_address,platform\n%s,127.0.0.1,cisco_ios\n%s,127.0.0.9,cisco_ios\n' "$UP" "$DEAD" >"$TMP/inv.csv"
 cat >"$TMP/karvi.toml" <<EOF_CFG
 basedir = "$TMP/base"
 sharedroot = "none"
@@ -98,7 +98,7 @@ file = "$TMP/base/audit.jsonl"
 shared-capacity-root = "$TMP/base/cap"
 [display]
 color = "never"
-[platform.cisco_iosxe]
+[platform.cisco_ios]
 ssh-port = $PORT
 [[inventory-source]]
 name = "lab"

@@ -86,7 +86,7 @@ func TestLiveShowsTheSessionAsItArrives(t *testing.T) {
 	}
 	defer srv.Close()
 	h := newGateHarness(t, nil, nil)
-	h.withAlgorithmConfig(`platform.c9300.driver="cisco_iosxe"`)
+	h.withAlgorithmConfig(`platform.c9300.driver="cisco_ios"`)
 	h.target.Device.Transport = "native"
 	h.target.Device.Platform = "c9300"
 	h.target.Device.Port = uint16(srv.Port())

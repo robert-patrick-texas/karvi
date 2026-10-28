@@ -13,10 +13,10 @@ import (
 // platforms (docs/EXAMPLES.md, chapter 63, issue 8); no lists are none; a
 // pattern the plan should have refused is the plan's fault.
 func TestJobMasks(t *testing.T) {
-	iosxe, _ := platform.Builtin("cisco_iosxe")
+	iosxe, _ := platform.Builtin("cisco_ios")
 	iosxr, _ := platform.Builtin("cisco_xr")
 	junos, _ := platform.Builtin("juniper_junos")
-	res, err := jobMasks(map[string][]string{"cisco_iosxe": iosxe.Masks, "juniper_junos": junos.Masks})
+	res, err := jobMasks(map[string][]string{"cisco_ios": iosxe.Masks, "juniper_junos": junos.Masks})
 	if err != nil || len(res) != len(iosxe.Masks)+len(junos.Masks) {
 		t.Fatalf("the union: %d %v", len(res), err)
 	}
@@ -30,7 +30,7 @@ func TestJobMasks(t *testing.T) {
 		}
 	}
 	// IOS XE and IOS XR share their URL rule.
-	if res, err = jobMasks(map[string][]string{"cisco_iosxe": iosxe.Masks, "cisco_xr": iosxr.Masks}); err != nil || len(res) != len(iosxe.Masks)+len(iosxr.Masks)-1 {
+	if res, err = jobMasks(map[string][]string{"cisco_ios": iosxe.Masks, "cisco_xr": iosxr.Masks}); err != nil || len(res) != len(iosxe.Masks)+len(iosxr.Masks)-1 {
 		t.Fatalf("a shared pattern once: %d %v", len(res), err)
 	}
 	if res, err = jobMasks(nil); res != nil || err != nil {

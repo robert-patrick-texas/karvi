@@ -100,7 +100,7 @@ The session adds two steps between the first prompt and the first requested
 command, both from the platform definition:
 
 1. **Privilege.** The first prompt is matched against the platform's
-   prompt levels (`cisco_iosxe`: `exec` at `>`, `privilege-exec` at `#`,
+   prompt levels (`cisco_ios`: `exec` at `>`, `privilege-exec` at `#`,
    `configuration` at `(config)#`). A shell that starts below the
    platform's `privileged-level` gets one `enable`, the enable secret at
    the password prompt, and must show the privileged prompt within
@@ -231,7 +231,7 @@ trailing blanks. The prompt the command was typed at holds its columns on the
 first line and is no part of the text. A repeated line matching the
 command later in legitimate device output is not silently discarded. A
 device-reported command error is the platform definition's failure
-patterns (`% Invalid input detected` and its siblings for `cisco_iosxe`);
+patterns (`% Invalid input detected` and its siblings for `cisco_ios`);
 `generic` reports none.
 
 ## Echo
@@ -296,7 +296,7 @@ session's end. Nothing waits for a command to complete, so the lines of a long
 `show` are seen as they come:
 
 ```text
-! router1 [192.0.2.1] platform=cisco_iosxe user=bob backend=env transport=native
+! router1 [192.0.2.1] platform=cisco_ios user=bob backend=env transport=native
 
 Router>enable
 Password: <removed>

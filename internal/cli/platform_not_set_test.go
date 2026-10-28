@@ -14,7 +14,7 @@ import (
 // TestPlatformNotSetDryRun: an inventory row without a platform is not set. run
 // --select-platform generic does not select it, a session-init-map rule with
 // platform = "generic" does not match it (only the catch-all does), and the
-// plan carries the shipped default, cisco_iosxe, as the platform used.
+// plan carries the shipped default, cisco_ios, as the platform used.
 // The row with platform generic is selected
 // and matched by both.
 func TestPlatformNotSetDryRun(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPlatformNotSetDryRun(t *testing.T) {
 	t.Setenv("NETUSER", "u")
 	t.Setenv("NETPASS", "p")
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "inv.csv"), []byte("name,management_address,platform\nblank-1,127.0.0.1,\ngen-1,127.0.0.1,generic\nxe-1,127.0.0.1,cisco_iosxe\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "inv.csv"), []byte("name,management_address,platform\nblank-1,127.0.0.1,\ngen-1,127.0.0.1,generic\nxe-1,127.0.0.1,cisco_ios\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	config := filepath.Join(dir, "karvi.toml")
@@ -58,10 +58,10 @@ func TestPlatformNotSetDryRun(t *testing.T) {
 	if got := summary(run("--select-platform", "generic")); got != "gen-1:generic:gen" {
 		t.Fatalf("--select-platform generic selected %q, want the generic row only", got)
 	}
-	if got := summary(run("--all")); got != "blank-1:cisco_iosxe:catch gen-1:generic:gen xe-1:cisco_iosxe:catch" {
+	if got := summary(run("--all")); got != "blank-1:cisco_ios:catch gen-1:generic:gen xe-1:cisco_ios:catch" {
 		t.Fatalf("--all: %q", got)
 	}
-	if got := summary(run("--target", "blank-1", "--target", "127.0.0.2")); got != "blank-1:cisco_iosxe:catch 127.0.0.2:cisco_iosxe:catch" {
+	if got := summary(run("--target", "blank-1", "--target", "127.0.0.2")); got != "blank-1:cisco_ios:catch 127.0.0.2:cisco_ios:catch" {
 		t.Fatalf("by name: %q", got)
 	}
 	// run --platform (here by its shortcut) acts on every device of the set

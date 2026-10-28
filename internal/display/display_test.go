@@ -91,7 +91,7 @@ func TestStyledLineUsesDistinctSemanticColors(t *testing.T) {
 		Accent: "blue", Success: "green", Warning: "magenta", Error: "red", Muted: "gray",
 	}
 	got, err := formatter.RenderStyledLine("<target> [<address>] platform=<platform> user=<user>", Values{
-		Target: "router1", Address: "192.0.2.10", Platform: "cisco_iosxe", User: "svc.operator",
+		Target: "router1", Address: "192.0.2.10", Platform: "cisco_ios", User: "svc.operator",
 	}, style)
 	if err != nil {
 		t.Fatal(err)
@@ -101,7 +101,7 @@ func TestStyledLineUsesDistinctSemanticColors(t *testing.T) {
 		"\x1b[90m [\x1b[0m",
 		"\x1b[1;33m192.0.2.10\x1b[0m",
 		"\x1b[90m] platform=\x1b[0m",
-		"\x1b[37mcisco_iosxe\x1b[0m",
+		"\x1b[37mcisco_ios\x1b[0m",
 		"\x1b[90m user=\x1b[0m",
 	} {
 		if !strings.Contains(got, want) {
@@ -109,7 +109,7 @@ func TestStyledLineUsesDistinctSemanticColors(t *testing.T) {
 		}
 	}
 	plain := regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(got, "")
-	if plain != "router1 [192.0.2.10] platform=cisco_iosxe user=svc.operator" {
+	if plain != "router1 [192.0.2.10] platform=cisco_ios user=svc.operator" {
 		t.Fatalf("plain projection = %q", plain)
 	}
 }
@@ -196,7 +196,7 @@ func TestRenderLinesSplitsAtElementBoundary(t *testing.T) {
 	}
 	lines, err := formatter.RenderLines(
 		"<target> [<address>] platform=<platform> user=<user>",
-		Values{Target: "r1", Address: "192.0.2.10", Platform: "cisco_iosxe", User: "svc.operator"},
+		Values{Target: "r1", Address: "192.0.2.10", Platform: "cisco_ios", User: "svc.operator"},
 		31,
 	)
 	if err != nil {

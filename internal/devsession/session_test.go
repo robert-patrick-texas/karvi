@@ -261,9 +261,9 @@ func (s *shell) run() {
 
 func iosxe(t *testing.T) platform.Definition {
 	t.Helper()
-	def, ok := platform.Builtin("cisco_iosxe")
+	def, ok := platform.Builtin("cisco_ios")
 	if !ok {
-		t.Fatal("no cisco_iosxe built-in")
+		t.Fatal("no cisco_ios built-in")
 	}
 	return def
 }
@@ -489,7 +489,7 @@ func TestDeviceErrorFromThePlatformPatternsAndNoneForGeneric(t *testing.T) {
 	s := open(t, sh, Options{Definition: iosxe(t)})
 	r := s.Execute(context.Background(), platform.Command{Text: "show bogus"})
 	if r.ErrorCode != "device_command_error" || !r.DeviceError || r.ErrorCategory != "device" || !strings.Contains(string(r.Output), "% Invalid input") {
-		t.Fatalf("cisco_iosxe device error: %+v output=%q", r, r.Output)
+		t.Fatalf("cisco_ios device error: %+v output=%q", r, r.Output)
 	}
 	s.Close()
 

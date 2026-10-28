@@ -99,8 +99,8 @@ func entry(event string) string {
 }
 
 const (
-	commandEvent = `{"schema_version":2,"event_name":"run.command","outcome":"device_error","operator":{"username":"netops.test"},"loginuser":"netops","job_id":"261017-143818-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_iosxe"},"action":{"command":"snmp-server community <removed> RO"}}`
-	loginEvent   = `{"schema_version":2,"event_name":"login.start","operator":{"username":"netops"},"login_id":"261017-143825-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_iosxe"},"action":{}}`
+	commandEvent = `{"schema_version":2,"event_name":"run.command","outcome":"device_error","operator":{"username":"netops.test"},"loginuser":"netops","job_id":"261017-143818-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{"command":"snmp-server community <removed> RO"}}`
+	loginEvent   = `{"schema_version":2,"event_name":"login.start","operator":{"username":"netops"},"login_id":"261017-143825-00","device":{"id":"d","canonical_name":"fake-iosxe","platform":"cisco_ios"},"action":{}}`
 )
 
 // TestDecode: an event's cells, a login's ID in place of a job's, and every

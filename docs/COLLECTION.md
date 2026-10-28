@@ -137,7 +137,7 @@ server's list is its own ([section 2.1](#21-servers-linux-and-linux_shell)).
 
 | Platform | Built-in `crun-commands` |
 |---|---|
-| `cisco_iosxe` | `show running-config`, `show version` |
+| `cisco_ios` | `show running-config`, `show version` |
 | `cisco_xr` | `show running-config`, `show version` |
 | `cisco_nxos` | `show running-config`, `show version` |
 | `juniper_junos` | `show configuration`, `show version` |
@@ -231,10 +231,10 @@ its block is the device's error text and the file is still replaced, so a
 list can carry a command only some models answer, at the cost of one error
 block in those that do not.
 
-### 3.1 `cisco_iosxe` (Cisco IOS and IOS XE)
+### 3.1 `cisco_ios` (Cisco IOS and IOS XE)
 
 ```toml
-[platform.cisco_iosxe]
+[platform.cisco_ios]
 crun-commands = [
   "show version",                 # both tools
   "show inventory",               # both tools (RANCID: show inventory raw)
@@ -385,7 +385,7 @@ model answers without sending every model every command:
 ```toml
 # Catalyst 9300 stacks: the stack, the SDM template, the licences
 [platform.c9300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 crun-commands = [
   "show version", "show inventory", "show switch detail", "show sdm prefer",
   "show license summary", "show vlan", "show vtp status", "show running-config",
@@ -393,7 +393,7 @@ crun-commands = [
 
 # Catalyst 9500 with StackWise Virtual
 [platform.c9500]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 crun-commands = [
   "show version", "show inventory", "show stackwise-virtual", "show redundancy",
   "show module", "show license summary", "show running-config",
@@ -401,7 +401,7 @@ crun-commands = [
 
 # ISR and Catalyst 8000 edge routers: install mode and the platform
 [platform.c8300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 crun-commands = [
   "show version", "show inventory", "show platform", "show install active",
   "show license summary", "show running-config",
@@ -493,7 +493,7 @@ How the sub-platform reaches a device:
    in the file name.
 
 Two rules keep the lists honest. An alias inherits the built-in
-definition of its driver, not a site's `[platform.cisco_iosxe]` table, so
+definition of its driver, not a site's `[platform.cisco_ios]` table, so
 an alias without `crun-commands` of its own sends the built-in list (the
 configuration and the version), whatever the site set on the base; a
 model's table names its whole list. A command only some models answer
@@ -583,7 +583,7 @@ the configuration last changed (`! Last configuration change at …`,
 
 | Platform | Built-in `crun-filters` |
 |---|---|
-| `cisco_iosxe` | `^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is ` |
+| `cisco_ios` | `^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is ` |
 | `cisco_xr` | `^Building configuration\.\.\.$`, ` uptime is ` |
 | `cisco_nxos` | `^!Time: `, ` uptime is ` |
 | `arista_eos` | `^! Time: `, `^Uptime: `, `^Free memory: ` |
@@ -597,7 +597,7 @@ the filter off for that platform, and an alias (a model table of section
 patterns in TOML literal strings, so a backslash stays one:
 
 ```toml
-[platform.cisco_iosxe]
+[platform.cisco_ios]
 crun-filters = [
   '^Building configuration\.\.\.$',
   '^Current configuration : \d+ bytes$',
@@ -609,7 +609,7 @@ crun-filters = [
 ]
 
 [platform.c9300]
-driver = "cisco_iosxe"
+driver = "cisco_ios"
 crun-filters = []                   # this model's files raw
 ```
 
@@ -650,7 +650,7 @@ matched against a line without its terminator, or a marker's statement
 without its `! `; the text of every capturing group of every match is replaced
 by `<removed>`, text two groups cover once, and a group that matched nothing
 is left alone. A collection file is masked by its device's own platform's
-list. `cisco_iosxe` (19 patterns), `cisco_xr` (15), `cisco_nxos` (13),
+list. `cisco_ios` (19 patterns), `cisco_xr` (15), `cisco_nxos` (13),
 `arista_eos` (13), and `juniper_junos` (10, Junos's own `## SECRET-DATA` tag
 among them) each have a built-in list, written for a statement as sent and a
 line as the device prints it alike; `linux`, `linux_shell`, and `generic` have
@@ -669,8 +669,8 @@ configuration before any device is contacted (`config_platform_mask_invalid`,
 exit 2, naming the table and the pattern):
 
 ```text
-$ karvi --set "platform.cisco_iosxe.masks=['(']" config validate
-config_platform_mask_invalid: pattern 1 "(" does not compile: error parsing regexp: missing closing ): `(` for platform.cisco_iosxe.masks at --set[1]
+$ karvi --set "platform.cisco_ios.masks=['(']" config validate
+config_platform_mask_invalid: pattern 1 "(" does not compile: error parsing regexp: missing closing ): `(` for platform.cisco_ios.masks at --set[1]
 ```
 
 An operator who needs one run's files whole writes `karvi --set

@@ -64,7 +64,7 @@ OWN_BEFORE=$(host_store_digest "$OWN_STORE")
 # The platform, the command, and the fake's persona per channel; under exec
 # the fake authorizes a key of the run's own, the operator's keys.
 case $CHANNEL in
-  shell) PLATFORM=cisco_iosxe; COMMAND='show big'; SESSIONS=$N; set -- ;;
+  shell) PLATFORM=cisco_ios; COMMAND='show big'; SESSIONS=$N; set -- ;;
   exec)
     PLATFORM=fexec; COMMAND=big; SESSIONS=0
     ssh-keygen -q -t ed25519 -N '' -C scale -f "$TMP/key" || fail "ssh-keygen"
@@ -109,7 +109,7 @@ command-timeout = "120s"
 default = "parallel"
 parallel-workers = $N
 server-max-inflight = $INFLIGHT
-[platform.cisco_iosxe]
+[platform.cisco_ios]
 ssh-port = $PORT
 [platform.fexec]
 driver = "linux"
