@@ -115,7 +115,8 @@ func TestKnownAndKnownNames(t *testing.T) {
 }
 
 func TestNormalize(t *testing.T) {
-	for in, want := range map[string]string{" Cisco_IOS ": "cisco_ios", "c9300": "c9300", "": "", "  ": "", "\tLinux": "linux"} {
+	for in, want := range map[string]string{" Cisco_IOS ": "cisco_ios", "c9300": "c9300", "": "", "  ": "", "\tLinux": "linux",
+		"cisco_xe": "cisco_ios", " CISCO_IOSXE ": "cisco_ios", "Cisco_IOSXR": "cisco_xr", "cisco_ios_xe": "cisco_ios_xe"} {
 		if got := Normalize(in); got != want {
 			t.Fatalf("Normalize(%q) = %q, want %q", in, got, want)
 		}
@@ -270,5 +271,32 @@ func TestFallback(t *testing.T) {
 	bad := Definition{Name: "lab", Fallback: []string{"agent"}}
 	if err := bad.Validate(); err == nil || !strings.Contains(err.Error(), "config_platform_fallback_invalid") {
 		t.Fatalf("bad: %v", err)
+	}
+}
+
+// TestSpellingsReadAsTheBuiltin (EXAMPLES chapter 86): a built-in's other
+// spelling is the built-in wherever it is read, its table included: the
+// site's tuning of cisco_ios reaches a row spelled cisco_xe or cisco_iosxe,
+// and a table spelled cisco_xe is cisco_ios's table, listed once.
+func TestSpellingsReadAsTheBuiltin(t *testing.T) {
+	tuned := map[string]map[string]any{"cisco_ios": {"session-cap": int64(2), "masks": []any{}}}
+	for _, name := range []string{"cisco_ios", "cisco_xe", " Cisco_IOSXE "} {
+		d := Resolve(name, tuned)
+		if !Known(name, tuned) || d.Name != "cisco_ios" || d.Base != "cisco_ios" || d.SessionCap != 2 || len(d.Masks) != 0 {
+			t.Fatalf("%q: known %v, %s base %s session-cap %d masks %d", name, Known(name, tuned), d.Name, d.Base, d.SessionCap, len(d.Masks))
+		}
+	}
+	if d := Resolve("cisco_iosxr", nil); d.Name != "cisco_xr" || d.SessionCap != 8 {
+		t.Fatalf("cisco_iosxr: %s session-cap %d", d.Name, d.SessionCap)
+	}
+	if d, ok := Builtin("CISCO_XE"); !ok || d.Name != "cisco_ios" {
+		t.Fatalf("Builtin(CISCO_XE) = %s, %v", d.Name, ok)
+	}
+	spelled := map[string]map[string]any{"cisco_xe": {"session-cap": int64(3)}}
+	if d := Resolve("cisco_ios", spelled); d.SessionCap != 3 {
+		t.Fatalf("a table spelled cisco_xe: session-cap %d", d.SessionCap)
+	}
+	if got := KnownNames(spelled); len(got) != len(Builtins()) {
+		t.Fatalf("a table spelled cisco_xe listed apart: %v", got)
 	}
 }

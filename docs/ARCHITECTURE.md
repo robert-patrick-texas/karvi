@@ -63,12 +63,13 @@ channel).
 **Where a platform is resolved.** A device's platform has two values with one
 boundary between them. The *set* platform is what the inventory row, the
 source's `defaults.platform`, or `--platform` gave, normalised (trimmed,
-lowercase) by the loader, `inventory.Direct`, and the `--platform` override
-(`app.withPlatform`: the first device in `login` and `command`, every device of
-the assembled set in `run`, `app.overridePlatform`); a device without one stays
-blank, and the loader never reads the resolution keys. What a device is *matched
-on* is `planner.SetPlatformFunc` over the set platform: blank for a blank field
-and, under `platform-resolution.on-unknown = "warn"`, for an unknown name; the
+lowercase, a built-in's other spelling read as its name) by the loader,
+`inventory.Direct`, and the `--platform` override (`app.withPlatform`: the first
+device in `login` and `command`, every device of the assembled set in `run`,
+`app.overridePlatform`); a device without one stays blank, and the loader never
+reads the resolution keys. What a device is *matched on* is
+`planner.SetPlatformFunc` over the set platform: blank for a blank field and,
+under `platform-resolution.on-unknown = "warn"`, for an unknown name; the
 target-set assembly's `--select-platform` selector and the credential planner's
 device view (which the credential-policy and session-init maps read) are its two
 readers, so a not-set or fallen-back device is matched by no `--select-platform`

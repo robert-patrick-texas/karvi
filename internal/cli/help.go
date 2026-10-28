@@ -16,10 +16,12 @@ func now() time.Time { return time.Now() }
 const platformOptionHelp = `  --platform NAME                The platform the devices of this invocation run
                                  as, whatever their inventory rows say: a
                                  built-in or a configured [platform.NAME]
-                                 table; a name, never a pattern. login and
-                                 command apply it to their one device, run to
-                                 every device of the set (a direct target in no
-                                 inventory runs as generic without it).
+                                 table; a name, never a pattern (cisco_xe and
+                                 cisco_iosxe read as cisco_ios, cisco_iosxr as
+                                 cisco_xr). login and command apply it to their
+                                 one device, run to every device of the set (a
+                                 direct target in no inventory runs as generic
+                                 without it).
                                  Without it an inventory row's platform
                                  applies, then the source default, then
                                  platform-resolution.default (else generic); an

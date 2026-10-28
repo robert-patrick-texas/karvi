@@ -2,17 +2,23 @@
 
 ## Unreleased
 
-- **Breaking: the Cisco platforms take the names the market uses.** The
-  built-in `cisco_iosxe` is `cisco_ios`, for IOS and IOS XE alike, and
-  `cisco_iosxr` is `cisco_xr`, the names Netmiko and NTC's TextFSM templates
-  give them; their definitions are unchanged, `--pi` and `--pr` are short for
-  them, and `platform-resolution.default` ships as `cisco_ios`. An inventory
-  row, a source default, `--platform`, `platform-resolution.default` or
-  `platform-resolution.unknown-fallback`, or a `[platform.NAME]` table or
-  driver naming an old name is refused as an unknown platform, and a map
-  rule's `platform` naming one matches no device; records, job folders, and
-  output carry the new names. The configuration registry stays at 32
-  ([`docs/EXAMPLES.md`, chapter 86](docs/EXAMPLES.md#86-platform-names-the-markets-2026-10-28)).
+- **Breaking: the Cisco platforms take the names the market uses.** The built-in
+  `cisco_iosxe` is `cisco_ios`, for IOS and IOS XE alike, and `cisco_iosxr` is
+  `cisco_xr`, the names Netmiko and NTC's TextFSM templates give them; their
+  definitions are unchanged, `--pi` and `--pr` are short for them, and
+  `platform-resolution.default` ships as `cisco_ios`. The other spellings in
+  use, `cisco_xe` and `cisco_iosxe` for `cisco_ios` and `cisco_iosxr` for
+  `cisco_xr`, are read as the built-in's name wherever a platform name is read:
+  an inventory row, a source default, `--platform`, `--select-platform`,
+  `platform-resolution.default` and `platform-resolution.unknown-fallback`, a
+  `[platform.NAME]` table's name and driver, and a map rule's or a credential
+  row's `platform`. Records, job folders, and output carry the built-in's name
+  where they carried `cisco_iosxe` or `cisco_iosxr`; a glob matches built-in
+  names alone; and a configuration holding `[platform.cisco_ios]` beside
+  `[platform.cisco_iosxe]` or `[platform.cisco_xe]` is refused
+  (`config_platform_name_invalid`), the two being one platform. The
+  configuration registry stays at 32 ([`docs/EXAMPLES.md`, chapter
+  86](docs/EXAMPLES.md#86-platform-names-the-markets-2026-10-28)).
 
 ## 0.37.0 - 2026-10-27
 

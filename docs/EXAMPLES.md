@@ -18200,3 +18200,119 @@ system the lists were written from.
 The evidence is kept beside the tree
 (`release-design-evidence/platform-names-2026-10-28`: `run.sh`,
 `alias_test.go`, `resolve-spellings.go`, and `run.log`).
+
+**Built.** In three sections, each committed and pushed on the operator's word:
+
+1. `02b97ae`, `cisco_iosxr` becomes `cisco_xr` (28 files): the builtins table
+   and `Builtins`' order, the native transport's admitted list, `--pr`, the help
+   and the reference configuration's comment, with the reference configuration
+   and the four manual pages regenerated; the tests and the mask corpus
+   (`platform/testdata/masks/cisco_xr.txt`); COLLECTION, DESIGN, OPERATIONS, and
+   TRANSPORT-DRIVER-ARCHITECTURE. Verified: vet, `make generated-clean`, `go
+   test -count=1 ./...` (71 packages).
+2. `6056169`, `cisco_iosxe` becomes `cisco_ios` (100 files): as section 1, with
+   `--pi`, `platform-resolution.default`'s shipped value (the registry stays at
+   32: three earlier changed defaults never moved it), the suites, the
+   examples, and the corpus `cisco_ios.txt`. Where the platform read as IOS XE
+   alone (`crun`'s manual example, COMMAND-TROUBLESHOOTING, the IOS XE
+   qualification) it reads IOS and IOS XE. The case-folding tests spell
+   `cisco_ios` in mixed case (`Cisco_IOSXE` had escaped a lowercase rename),
+   and the k03 draft is re-pinned for the configuration block's value and its
+   digest. The full battery: build, vet, `make generated-clean`, `go test
+   -count=1 ./...` (71 packages), and the 19 suites in 247 seconds, each exit 0.
+3. The spellings, in the commit carrying this record:
+   - `platform.Normalize` reads `cisco_xe` and `cisco_iosxe` as `cisco_ios`, and
+     `cisco_iosxr` as `cisco_xr`, after case and spaces; `Builtin` reads its
+     name through it.
+   - `matching.PlatformValue` reads a platform selector's literal through
+     `Normalize`, its `!` kept and a glob left as written: a map rule's and a
+     credential row's `platform` compile through it, and so does
+     `--select-platform` at assembly (its check before assembly already went
+     through `Known`).
+   - The duplicate table's refusal names a built-in's other spelling. The
+     `--platform` help, the reference configuration's comment, and the manual
+     pages name the spellings; ARCHITECTURE's set platform and DESIGN's known
+     platform set say so, and DESIGN gains the entry "The built-ins carry the
+     market's names, and the other spellings read as them". The CHANGELOG's
+     Unreleased entry says the old names are read, no longer refused.
+   - The tests: `TestSpellingsReadAsTheBuiltin` (the site's tuning of
+     `cisco_ios` reaching each spelling, and a table spelled `cisco_xe` being
+     `cisco_ios`'s, listed once) and `TestPlatformValue`, with spelling cases in
+     `TestNormalize`, `TestSelectRule`, `TestRowCells`,
+     `TestPlatformTableValidation` (two tables read as one platform refused; a
+     table and a driver by spelling accepted), `TestPlatformNamesNormalise` (a
+     row and a source default), `TestCheckPlatformOption`,
+     `TestAssemblePlatformSelectorKnown`, `TestAssembleSelectorGrammar`, and
+     `TestResolvePlatform`.
+
+**Executed after the build.** `s3-lab.sh`: a lab build of the tree with section
+3, from a copy in `/dev/shm`, with an inventory of four rows and a
+`[platform.cisco_ios]` table setting `ssh-port = 2222`, removed after; `run
+--dry-run` contacts no device, and the credential is the environment's
+(`NETUSER`, `NETPASS`). The script marks standard output `out|` and standard
+error `err|`; the inventory, then the reports' targets:
+
+```
+$ cat inv.csv
+  name,management_address,platform
+  r1,192.0.2.1,cisco_ios
+  r2,192.0.2.2,cisco_iosxe
+  r3,192.0.2.3,Cisco_XE
+  r4,192.0.2.4,cisco_iosxr
+
+$ grep -E '^\$ karvi|targets:|- name:|intended:|err\||exit' s3-lab.log
+$ karvi run --dry-run --all --cmd show clock
+  out| targets: 4 (client 4, daemon 0)
+  out| - name:r1: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r2: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r3: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r4: planned
+  out|   intended: ping=disabled transport=native port=22 platform=cisco_xr channel=shell
+  exit 0
+$ karvi run --dry-run --select-platform cisco_xe --cmd show clock
+  out| targets: 3 (client 3, daemon 0)
+  out| - name:r1: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r2: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  out| - name:r3: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  exit 0
+$ karvi run --dry-run --target r4 --platform CISCO_IOSXE --cmd show clock
+  out| targets: 1 (client 1, daemon 0)
+  out| - name:r4: planned
+  out|   intended: ping=disabled transport=native port=2222 platform=cisco_ios channel=shell
+  exit 0
+$ karvi --set platform.cisco_iosxe.session-cap=2 config validate
+  err| config_platform_name_invalid: names compare without regard to case, spaces, or a built-in's other spelling: this table and [platform.cisco_ios] are one platform "cisco_ios" for platform.cisco_iosxe.session-cap at --set[1]
+  exit 2
+```
+
+The rows spelled `cisco_iosxe` and `Cisco_XE` run as `cisco_ios` on the site's
+port, `cisco_iosxr` as `cisco_xr`; `--select-platform cisco_xe` selects the
+three `cisco_ios` rows, and `--platform CISCO_IOSXE` runs `r4` as `cisco_ios`.
+
+The full battery on a lab copy of the tree with section 3 (`battery.sh`, a copy
+in `/var/tmp`, `TMPDIR=/var/tmp`): build, vet, `make generated-clean`, `go test
+-count=1 ./...` (71 packages), and the 19 suites by `run_suites` in 241 seconds,
+each exit 0, at a load of 0.5; none left a `/var/tmp/karvi-<uid>`,
+`/dev/shm/karvi`, `~/.local/share/karvi`, or karvi process (`/tmp/karvi-1000`,
+empty and there before the session, unchanged). The first run (`s3-battery`)
+failed the spool suite's S4 ("only 0 bytes settled by the cut") at a load of
+10.5 from another project's work on the host's four CPUs, as in chapter 85; on
+the operator's word the battery ran again once the load had dropped
+(`wait-battery.sh`), the tree unchanged between the two.
+
+Found, for the release: `release/release-manifest.json` names the real-device
+qualification `real_cisco_iosxe` (0.37.0's manifest, history); the next
+release's manifest names it by the new name.
+
+**Closed.** The evidence is kept beside the tree
+(`release-design-evidence/platform-names-2026-10-28`: the design's `run.sh`,
+`alias_test.go`, `resolve-spellings.go`, and `run.log`; `s1-go-test.log`,
+`s2-go-test.log`, and `s3-go-test.log`; `s3-lab.sh` and `s3-lab.log`;
+`battery.sh`, `wait-battery.sh`, and the batteries' logs, `s2-battery`,
+`s3-battery`, and `s3-battery-2`).

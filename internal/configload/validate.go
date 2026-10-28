@@ -737,7 +737,7 @@ func (l *loader) validatePlatformTables() error {
 			return tableErr("config_platform_name_invalid", first, "a platform name does not begin with \"!\", the selector's negation")
 		}
 		if seen, dup := normalised[norm]; dup {
-			return tableErr("config_platform_name_invalid", first, fmt.Sprintf("names compare without regard to case and spaces: this table and [platform.%s] are one platform %q", seen, norm))
+			return tableErr("config_platform_name_invalid", first, fmt.Sprintf("names compare without regard to case, spaces, or a built-in's other spelling: this table and [platform.%s] are one platform %q", seen, norm))
 		}
 		normalised[norm] = name
 		driver, hasDriver := p["driver"].(string)

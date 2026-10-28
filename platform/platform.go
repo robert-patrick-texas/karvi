@@ -532,10 +532,10 @@ var builtins = map[string]Definition{
 	"linux_shell": {Name: "linux_shell", Driver: "linux_shell", Base: "linux", DefaultTransport: "native", Channel: ChannelShell, Fallback: keysFallback, SSHPort: 22, TelnetPort: 23, SessionCap: 10, CrunCommands: linuxCrun, ExitCommands: []string{"exit"}, PromptPattern: BroadPromptPattern},
 }
 
-// Builtin is the named built-in definition, its Base filled: the built-in's
-// own base, else its name.
+// Builtin is the named built-in definition, the name read by Normalize, its
+// Base filled: the built-in's own base, else its name.
 func Builtin(name string) (Definition, bool) {
-	d, ok := builtins[strings.ToLower(name)]
+	d, ok := builtins[Normalize(name)]
 	if ok && d.Base == "" {
 		d.Base = d.Name
 	}

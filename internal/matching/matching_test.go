@@ -127,6 +127,9 @@ func TestSelectRule(t *testing.T) {
 		{"earlier ordinary beats cidr", []map[string]any{rule("platform", "cisco_ios"), rule("address-cidr", "10.1.2.0/24"), rule("name", "*")}, 0},
 		{"earlier cidr beats ordinary", []map[string]any{rule("address-cidr", "10.1.2.0/24"), rule("platform", "cisco_ios")}, 0},
 		{"cidr negation", []map[string]any{rule("address-cidr", []any{"10.0.0.0/8", "!10.1.0.0/16"}), rule("name", "*")}, 1},
+		{"a spelling selects the built-in", []map[string]any{rule("platform", "cisco_iosxe"), rule("name", "*")}, 0},
+		{"a negated spelling removes the built-in", []map[string]any{rule("platform", []any{"cisco_*", "!CISCO_XE"}), rule("name", "*")}, 1},
+		{"a glob matches built-in names alone", []map[string]any{rule("platform", "cisco_iosx*"), rule("name", "*")}, 1},
 		{"none", []map[string]any{rule("site", "bos")}, -1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -151,5 +154,19 @@ func TestSelectRule(t *testing.T) {
 	}
 	if err := CheckRule(rule("device-group", []any{"core", "!"})); !errors.As(err, &re) || re.Key != "device-group" {
 		t.Fatalf("CheckRule bare negation: %v", err)
+	}
+}
+
+// TestPlatformValue: a platform selector's literal is read as a platform
+// name, its "!" kept; a glob, a blank value, and a value whose folding would
+// begin a negation are left as written.
+func TestPlatformValue(t *testing.T) {
+	for in, want := range map[string]string{
+		"cisco_xe": "cisco_ios", "!Cisco_IOSXE": "!cisco_ios", " cisco_iosxr ": "cisco_xr", "C9300": "c9300",
+		"cisco_x*": "cisco_x*", "!cisco_iosx?": "!cisco_iosx?", "": "", "!": "!", " !cisco_xe": " !cisco_xe",
+	} {
+		if got := PlatformValue(in); got != want {
+			t.Errorf("PlatformValue(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

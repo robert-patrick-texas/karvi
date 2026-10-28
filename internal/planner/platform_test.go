@@ -46,6 +46,7 @@ func TestResolvePlatform(t *testing.T) {
 		{"direct target with --platform beside the default", withDefault, inventory.Direct("r1", "generic", "system", 0), "generic", ""},
 		{"known", base, row("r1", "cisco_ios", 7), "cisco_ios", ""},
 		{"known in another spelling", base, row("r1", " Cisco_IOS ", 7), "cisco_ios", ""},
+		{"a built-in's other spelling", base, row("r1", "cisco_iosxr", 7), "cisco_xr", ""},
 		{"unknown under fail", base, row("r1", "cisco_iosx", 7), "", "platform_unknown"},
 		{"unknown under fail with a fallback", failFallback, row("r1", "cisco_iosx", 7), "", "platform_unknown"},
 		{"unknown under warn", warn, row("r1", "cisco_iosx", 7), "generic", NoticePlatformUnknownFallback},

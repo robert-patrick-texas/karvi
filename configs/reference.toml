@@ -647,7 +647,8 @@ max-physical-line-bytes = 1048576
 # cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
 # a table for any other name is an alias and needs driver = "<built-in>", inheriting
 # the whole built-in definition. Names compare without regard to case and are
-# recorded lowercase; a name holds no glob character and does not begin with "!".
+# recorded lowercase, cisco_xe and cisco_iosxe read as cisco_ios and cisco_iosxr
+# as cisco_xr; a name holds no glob character and does not begin with "!".
 # Fields: driver, default-transport, ssh-port, telnet-port, privileged-level (a
 # level of the base), requires-enable, session-cap, channel (shell or exec), paging-commands,
 # crun-commands (the collection list a crun sends when its command line names no

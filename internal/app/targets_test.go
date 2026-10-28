@@ -148,6 +148,8 @@ func TestAssembleSelectorGrammar(t *testing.T) {
 		{"a not selector before the selector", []TargetInput{{Kind: "site", Value: "!NYC"}, {Kind: "device-group", Value: "edge"}}, nil, []string{"edge-1", "nyc-2"}},
 		{"a not group removes on any group", []TargetInput{{Kind: "all"}, {Kind: "device-group", Value: "!lab"}}, nil, []string{"Core-1", "core-2", "edge-1", "NYC-1"}},
 		{"a not platform", []TargetInput{{Kind: "site", Value: "nyc*"}, {Kind: "platform", Value: "!cisco_*"}}, nil, nil},
+		{"a platform by spelling", []TargetInput{{Kind: "platform", Value: "cisco_iosxe"}, {Kind: "site", Value: "!nyc*"}}, nil, []string{"Core-1", "core-2", "edge-1"}},
+		{"a not platform by spelling", []TargetInput{{Kind: "site", Value: "nyc*"}, {Kind: "platform", Value: "!Cisco_XE"}}, nil, nil},
 		{"a not target removes by name", []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "target", Value: "!CORE-1"}}, nil, []string{"r9", "core-2"}},
 		{"a direct target has no site to remove", []TargetInput{{Kind: "target", Value: "r9"}, {Kind: "site", Value: "hq"}, {Kind: "site", Value: "!*"}}, nil, []string{"r9"}},
 		{"file names skip ! comments", []TargetInput{{Kind: "names", Names: []string{"r8", "!core-2"}, Source: "list.txt"}, {Kind: "site", Value: "hq"}}, nil, []string{"r8", "Core-1", "core-2"}},
@@ -368,6 +370,8 @@ func TestAssemblePlatformSelectorKnown(t *testing.T) {
 		{"cisco_ios", false},
 		{"C9300", false},       // the alias, whatever the table's spelling
 		{" Cisco_IOS ", false}, // normalised before the lookup
+		{"cisco_iosxe", false}, // a built-in's other spelling
+		{"!CISCO_XE", false},
 		{"cisco*", false},
 		{"!cisco*", false}, // a not value over a known set
 		{"[cg]*", false},

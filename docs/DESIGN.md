@@ -360,18 +360,42 @@ device the operator did not choose.
 **The known platform set has one definition.** A known platform is one of the
 eight built-ins (`generic`, `cisco_ios`, `cisco_xr`, `cisco_nxos`,
 `juniper_junos`, `arista_eos`, `linux`, `linux_shell`) or a configured
-`[platform.NAME]` table; names compare after trimming and case folding and are
-recorded lowercase. A table for a built-in overrides that built-in's allowed
-fields; a table for a new name is an alias whose `driver` must name a built-in
-and which inherits that built-in's whole compiled definition (prompt levels,
-prompt and failure patterns, paging, exit commands, ports, session cap), its own
-fields overriding. A table name is a literal (no glob character, no leading
-`!`), and prompt and error patterns are compiled data, never configuration.
-*Why:* before this rule a table's `driver` was only a label: a new name ran as
-`generic`, so a rejected command was recorded as succeeded. Reviewed data, not
-ad hoc configuration, decides parser behaviour. *Not taken:* lowercasing table
-names in the loader (it would change the configuration digest for a naming rule
-the platform package owns).
+`[platform.NAME]` table; names compare after trimming, case folding, and a
+built-in's other spelling, and are recorded lowercase under the built-in's name.
+A table for a built-in overrides that built-in's allowed fields; a table for a
+new name is an alias whose `driver` must name a built-in and which inherits that
+built-in's whole compiled definition (prompt levels, prompt and failure
+patterns, paging, exit commands, ports, session cap), its own fields overriding.
+A table name is a literal (no glob character, no leading `!`), and prompt and
+error patterns are compiled data, never configuration. *Why:* before this rule a
+table's `driver` was only a label: a new name ran as `generic`, so a rejected
+command was recorded as succeeded. Reviewed data, not ad hoc configuration,
+decides parser behaviour. *Not taken:* lowercasing table names in the loader (it
+would change the configuration digest for a naming rule the platform package
+owns).
+
+**The built-ins carry the market's names, and the other spellings read as
+them.** `cisco_ios` is IOS and IOS XE alike and `cisco_xr` IOS XR, as Netmiko
+and NTC's TextFSM templates name them; `cisco_xe` and `cisco_iosxe` are read as
+`cisco_ios`, and `cisco_iosxr` as `cisco_xr`, by `platform.Normalize`, wherever
+a platform name is read: an inventory row and a source default, `--platform` and
+`--select-platform`, `platform-resolution.default` and
+`platform-resolution.unknown-fallback`, a `[platform.NAME]` table's name and its
+`driver`, and a map rule's or a credential row's `platform`
+(`matching.PlatformValue`). Records, tables, rules, and output name the
+built-in; a glob matches built-in names alone; two tables read as one platform
+are refused (`config_platform_name_invalid`). A table with a `driver` is a
+derived definition, for a device family that differs, never a spelling. *Why:*
+an inventory written for Netmiko, NTC's templates, or scrapli names a karvi
+platform as it stands, and a spelling read where case is folded leaves no second
+name for a site's table or map rule to miss ([`docs/EXAMPLES.md`, chapter
+86](EXAMPLES.md#86-platform-names-the-markets-2026-10-28)). *Not taken:*
+scrapli's names kept, with the market's shipped as aliases in code or as tables
+in the generated configuration, each keeping its own name past the read (a
+table's tuning and a map rule reach one spelling alone, and a missed copy fails
+silently); aliases following their base's table and rules matching the base (a
+new mechanism where `Normalize` gives the same); Netmiko's `cisco_xe` as the
+built-in (the references name IOS and IOS XE `cisco_ios`).
 
 **One `linux` platform; a class of servers is an alias.** Every Linux server is
 the built-in `linux`, or `linux_shell` where it refuses exec, and karvi has no

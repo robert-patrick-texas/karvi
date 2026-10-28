@@ -126,13 +126,17 @@ func TestPlatformNamesNormalise(t *testing.T) {
 	devices, err := loadCSV(t,
 		"name,management_address,platform\n"+
 			"a,192.0.2.1, Cisco_IOS \n"+
-			"b,192.0.2.2,\n",
+			"b,192.0.2.2,\n"+
+			"c,192.0.2.3,cisco_iosxe\n",
 		`defaults.platform = " Juniper_JUNOS "`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if devices[0].Platform != "cisco_ios" || devices[1].Platform != "juniper_junos" {
-		t.Fatalf("platforms %q, %q", devices[0].Platform, devices[1].Platform)
+	if devices[0].Platform != "cisco_ios" || devices[1].Platform != "juniper_junos" || devices[2].Platform != "cisco_ios" {
+		t.Fatalf("platforms %q, %q, %q", devices[0].Platform, devices[1].Platform, devices[2].Platform)
+	}
+	if devices, err = loadCSV(t, "name,management_address,platform\na,192.0.2.1,\n", `defaults.platform = "Cisco_IOSXR"`); err != nil || devices[0].Platform != "cisco_xr" {
+		t.Fatalf("a source default by spelling: %v, %v", devices, err)
 	}
 }
 

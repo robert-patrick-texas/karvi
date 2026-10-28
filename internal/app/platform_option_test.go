@@ -26,7 +26,9 @@ func TestCheckPlatformOption(t *testing.T) {
 		{"   ", "", ""},
 		{"cisco_ios", "cisco_ios", ""},
 		{" Cisco_IOS ", "cisco_ios", ""}, // [2] P6: trimmed and lowercased
-		{"C9300", "c9300", ""},           // [2] P7: the alias, whatever the table's spelling
+		{"cisco_xe", "cisco_ios", ""},    // a built-in's other spelling (EXAMPLES chapter 86)
+		{"CISCO_IOSXR", "cisco_xr", ""},
+		{"C9300", "c9300", ""}, // [2] P7: the alias, whatever the table's spelling
 		{"generic", "generic", ""},
 		{"cisco_iosx", "", "is not a known platform"},                    // [2] P3
 		{"*", "", "a platform name is required, not a pattern"},          // [2] P4

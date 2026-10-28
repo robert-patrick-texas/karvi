@@ -5,11 +5,23 @@ import (
 	"strings"
 )
 
-// Normalize is the one spelling of a platform name:
-// trimmed and lowercase. Every place a name enters, an inventory row, a
-// source default, --platform, a [platform.NAME] table, applies it, and the
-// record's platform is the normalised name.
-func Normalize(name string) string { return strings.ToLower(strings.TrimSpace(name)) }
+// spellings are the other names in use for a built-in, each read as the
+// built-in's name: Netmiko's cisco_xe and scrapli's cisco_iosxe for
+// cisco_ios, scrapli's cisco_iosxr for cisco_xr (EXAMPLES chapter 86).
+var spellings = map[string]string{"cisco_xe": "cisco_ios", "cisco_iosxe": "cisco_ios", "cisco_iosxr": "cisco_xr"}
+
+// Normalize is the one spelling of a platform name: trimmed, lowercase, and
+// a built-in's other spelling read as its name. Every place a name enters,
+// an inventory row, a source default, --platform, --select-platform, a
+// [platform.NAME] table and its driver, a map rule's or a credential row's
+// platform, applies it, and the record's platform is the normalised name.
+func Normalize(name string) string {
+	n := strings.ToLower(strings.TrimSpace(name))
+	if s, ok := spellings[n]; ok {
+		return s
+	}
+	return n
+}
 
 // Known reports whether name, normalised, is a known platform: a built-in
 // definition name or the name of a configured [platform.NAME] table. The

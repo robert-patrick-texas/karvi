@@ -85,6 +85,8 @@ func TestRowCells(t *testing.T) {
 		{"an escaped ! is a literal", map[string]string{"device_name": `\!odd`}, view("!odd", "", "", ""), true},
 		{"a blank field is matched by a lone *, as in the maps", map[string]string{"platform": "*"}, view("x", "", "", ""), true},
 		{"and by no name", map[string]string{"platform": "generic"}, view("x", "", "", ""), false},
+		{"a spelling in the platform column", map[string]string{"platform": "cisco_xe"}, noAddr, true},
+		{"a negated spelling", map[string]string{"site": "nyc", "platform": "!Cisco_IOSXE"}, noAddr, false},
 	} {
 		if got := mustRow(t, tc.cells).Match(tc.f); got != tc.want {
 			t.Errorf("%s: %v, want %v", tc.name, got, tc.want)

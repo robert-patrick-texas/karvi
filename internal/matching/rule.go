@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/netip"
 	"strings"
+
+	"github.com/robert-patrick-texas/karvi/platform"
 )
 
 // RuleKeys are a map rule's match keys in evaluation order.
@@ -86,11 +88,29 @@ func compileValue(key, raw string) (compiled, bool, error) {
 		c.prefix = p.Masked()
 		return c, true, nil
 	}
-	s, err := ParseSelector(raw)
+	value := raw
+	if key == "platform" {
+		value = PlatformValue(raw)
+	}
+	s, err := ParseSelector(value)
 	if err != nil {
 		return compiled{}, false, &RuleError{Key: key, Value: raw, Err: err}
 	}
 	return compiled{negated: s.Negated, selector: s}, false, nil
+}
+
+// PlatformValue is a platform selector as a platform name is read: a
+// literal, after any "!", through platform.Normalize, so a built-in's other
+// spelling selects the built-in; a glob is left as written and matches
+// built-in names alone. A map rule, a credential row, and --select-platform
+// read their platform values through it.
+func PlatformValue(raw string) string {
+	bare := strings.TrimPrefix(raw, "!")
+	n := platform.Normalize(bare)
+	if HasMeta(bare) || n == "" || strings.HasPrefix(n, "!") {
+		return raw
+	}
+	return raw[:len(raw)-len(bare)] + n
 }
 
 // EvaluateRule reports whether every populated key of rule matches f and,

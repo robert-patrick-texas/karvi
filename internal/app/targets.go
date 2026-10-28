@@ -191,7 +191,7 @@ func assemble(configured []inventory.Device, inputs []TargetInput, excludes []st
 				return false
 			})
 		case "platform":
-			err = field(in.Kind, in.Value, func(d inventory.Device, p matching.Pattern) bool {
+			err = field(in.Kind, matching.PlatformValue(in.Value), func(d inventory.Device, p matching.Pattern) bool {
 				set := setPlatform(d)
 				return set != "" && p.Match(set)
 			})
