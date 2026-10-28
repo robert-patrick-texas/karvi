@@ -21,7 +21,7 @@ func TestBuiltinCrunFiltersCompile(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"cisco_iosxe", "cisco_iosxr", "cisco_nxos", "arista_eos"} {
+	for _, name := range []string{"cisco_iosxe", "cisco_xr", "cisco_nxos", "arista_eos"} {
 		if len(builtins[name].CrunFilters) == 0 {
 			t.Fatalf("%s ships no drop list", name)
 		}

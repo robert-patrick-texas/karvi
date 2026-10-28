@@ -22,7 +22,7 @@ import (
 )
 
 // admits is the base platforms the native transport admits.
-var admits = []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux"}
+var admits = []string{"generic", "cisco_iosxe", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos", "linux"}
 
 // Admits refuses a platform whose base driver the native transport does not
 // admit (native_platform_not_qualified); the label is never read.

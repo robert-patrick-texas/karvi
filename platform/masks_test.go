@@ -10,13 +10,13 @@ import (
 )
 
 // maskedPlatforms are the built-ins with a mask list.
-var maskedPlatforms = []string{"cisco_iosxe", "cisco_iosxr", "cisco_nxos", "arista_eos", "juniper_junos"}
+var maskedPlatforms = []string{"cisco_iosxe", "cisco_xr", "cisco_nxos", "arista_eos", "juniper_junos"}
 
 // TestBuiltinMasksCompile: every built-in list compiles with a group in
 // each pattern, the five network platforms carry one, and generic, linux,
 // and linux_shell none.
 func TestBuiltinMasksCompile(t *testing.T) {
-	sizes := map[string]int{"cisco_iosxe": 19, "cisco_iosxr": 15, "cisco_nxos": 13, "arista_eos": 13, "juniper_junos": 10}
+	sizes := map[string]int{"cisco_iosxe": 19, "cisco_xr": 15, "cisco_nxos": 13, "arista_eos": 13, "juniper_junos": 10}
 	for name, def := range builtins {
 		if _, i, err := CompileMasks(def.Masks); err != nil {
 			t.Fatalf("%s: pattern %d: %v", name, i+1, err)
@@ -136,7 +136,7 @@ func readCorpus(t *testing.T, name string) []corpusLine {
 func TestBuiltinMasksCorpus(t *testing.T) {
 	accepted := map[string][]string{
 		"cisco_iosxe": {"sent description uplink to core, password reset by noc", "line  key 1"},
-		"cisco_iosxr": {"line  key 1"},
+		"cisco_xr":    {"line  key 1"},
 	}
 	for _, name := range maskedPlatforms {
 		res, _, err := CompileMasks(builtins[name].Masks)

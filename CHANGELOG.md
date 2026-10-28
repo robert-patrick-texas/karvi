@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking: the IOS XR platform is `cisco_xr`.** The built-in `cisco_iosxr`
+  is renamed `cisco_xr`, the name Netmiko and NTC's TextFSM templates give IOS
+  XR; its definition is unchanged, and `--pr` is short for it. An inventory
+  row, a source default, `--platform`, `platform-resolution.default` or
+  `platform-resolution.unknown-fallback`, or a `[platform.NAME]` table or
+  driver naming `cisco_iosxr` is refused as an unknown platform, and a map
+  rule's `platform` naming it matches no device
+  ([`docs/EXAMPLES.md`, chapter 86](docs/EXAMPLES.md#86-platform-names-the-markets-2026-10-28)).
+
 ## 0.37.0 - 2026-10-27
 
 A minor release on 0.36.0 for the package's update from GitHub, `karvi-sysutil

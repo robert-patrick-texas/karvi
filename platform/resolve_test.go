@@ -87,7 +87,7 @@ func TestKnownAndKnownNames(t *testing.T) {
 		"edge":  {"driver": "c9300"},
 		"lab":   {},
 	}
-	builtins := []string{"generic", "cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
+	builtins := []string{"generic", "cisco_iosxe", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos", "linux", "linux_shell"}
 	if got := KnownNames(nil); !reflect.DeepEqual(got, builtins) {
 		t.Fatalf("no tables: %v", got)
 	}
@@ -158,7 +158,7 @@ func TestValidatePrivilegedLevel(t *testing.T) {
 // array included; generic has none. linux and linux_shell share a server's
 // list, the version first and the enabled units last, with no drop list.
 func TestCrunCommands(t *testing.T) {
-	for _, name := range []string{"cisco_iosxe", "cisco_iosxr", "cisco_nxos", "juniper_junos", "arista_eos"} {
+	for _, name := range []string{"cisco_iosxe", "cisco_xr", "cisco_nxos", "juniper_junos", "arista_eos"} {
 		def, _ := Builtin(name)
 		if len(def.CrunCommands) < 2 || !strings.HasPrefix(def.CrunCommands[0], "show ") || !strings.Contains(def.CrunCommands[0], "config") {
 			t.Fatalf("%s: crun-commands %q", name, def.CrunCommands)

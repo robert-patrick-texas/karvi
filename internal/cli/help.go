@@ -27,7 +27,7 @@ const platformOptionHelp = `  --platform NAME                The platform the de
                                  platform-resolution.on-unknown = "warn"
   --pi, --pn, --pr, --pj, --pa, --pl, --ps, --pg
                                  Short for --platform cisco_iosxe, cisco_nxos,
-                                 cisco_iosxr, juniper_junos, arista_eos, linux,
+                                 cisco_xr, juniper_junos, arista_eos, linux,
                                  linux_shell, generic
 `
 

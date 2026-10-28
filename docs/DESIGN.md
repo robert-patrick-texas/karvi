@@ -358,7 +358,7 @@ failover. *Why:* implicit failover would repeat a non-idempotent command on a
 device the operator did not choose.
 
 **The known platform set has one definition.** A known platform is one of the
-eight built-ins (`generic`, `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
+eight built-ins (`generic`, `cisco_iosxe`, `cisco_xr`, `cisco_nxos`,
 `juniper_junos`, `arista_eos`, `linux`, `linux_shell`) or a configured
 `[platform.NAME]` table; names compare after trimming and case folding and are
 recorded lowercase. A table for a built-in overrides that built-in's allowed
@@ -390,7 +390,7 @@ other built-in `shell`; an eighth built-in, `linux_shell`, is `linux`'s
 definition with `channel = "shell"` and `linux` as its base driver, so it is
 admitted wherever `linux` is and its records name `linux_shell`, and a table may
 name it as its driver. Any `[platform.NAME]` table may set either word on any
-driver, unchecked: an alias of `arista_eos` or `cisco_iosxr` with `channel =
+driver, unchecked: an alias of `arista_eos` or `cisco_xr` with `channel =
 "exec"` runs as asked, and a device that refuses the channel fails with
 `ssh_session_channel_refused`. A definition that leaves `channel` unset is
 `shell`. The channel is resolved once per target at planning and carried in

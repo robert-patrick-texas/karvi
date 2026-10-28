@@ -643,7 +643,7 @@ max-physical-line-bytes = 1048576
 # [ssh-algorithms-profile.NAME], [[ssh-algorithms-map]], and [platform.NAME]
 # are shown in examples/config.toml.
 #
-# A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_iosxr,
+# A [platform.NAME] table for a built-in name (generic, cisco_iosxe, cisco_xr,
 # cisco_nxos, juniper_junos, arista_eos, linux, linux_shell) overrides that platform's fields;
 # a table for any other name is an alias and needs driver = "<built-in>", inheriting
 # the whole built-in definition. Names compare without regard to case and are

@@ -143,7 +143,7 @@ var (
 	// --platform (--pla still is).
 	optPI            = shortcutOpt("pi", optPlatform, "cisco_iosxe")
 	optPN            = shortcutOpt("pn", optPlatform, "cisco_nxos")
-	optPR            = shortcutOpt("pr", optPlatform, "cisco_iosxr")
+	optPR            = shortcutOpt("pr", optPlatform, "cisco_xr")
 	optPJ            = shortcutOpt("pj", optPlatform, "juniper_junos")
 	optPA            = shortcutOpt("pa", optPlatform, "arista_eos")
 	optPL            = shortcutOpt("pl", optPlatform, "linux")

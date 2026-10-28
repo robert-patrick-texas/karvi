@@ -138,7 +138,7 @@ server's list is its own ([section 2.1](#21-servers-linux-and-linux_shell)).
 | Platform | Built-in `crun-commands` |
 |---|---|
 | `cisco_iosxe` | `show running-config`, `show version` |
-| `cisco_iosxr` | `show running-config`, `show version` |
+| `cisco_xr` | `show running-config`, `show version` |
 | `cisco_nxos` | `show running-config`, `show version` |
 | `juniper_junos` | `show configuration`, `show version` |
 | `arista_eos` | `show running-config`, `show version` |
@@ -294,10 +294,10 @@ collection command; karvi's platform table holds such lines in
 `paging-commands`. Not carried: `show processes log vdc-all`, `show
 environment fex all fan`, `dir debug:`, `dir slot0:`, `dir usb2:`.
 
-### 3.3 `cisco_iosxr` (Cisco IOS XR)
+### 3.3 `cisco_xr` (Cisco IOS XR)
 
 ```toml
-[platform.cisco_iosxr]
+[platform.cisco_xr]
 crun-commands = [
   "show version",                        # RANCID: admin show version
   "show inventory all",                  # Oxidized (RANCID: admin show inventory raw)
@@ -426,7 +426,7 @@ crun-commands = [
 
 # ASR 9000: the line cards' firmware and the admin plane
 [platform.asr9k]
-driver = "cisco_iosxr"
+driver = "cisco_xr"
 crun-commands = [
   "show version", "show inventory all", "show platform", "show redundancy",
   "show install active", "show hw-module fpd location all",
@@ -584,7 +584,7 @@ the configuration last changed (`! Last configuration change at …`,
 | Platform | Built-in `crun-filters` |
 |---|---|
 | `cisco_iosxe` | `^Building configuration\.\.\.$`, `^Current configuration : \d+ bytes$`, `^ntp clock-period \d+$`, ` uptime is `, `^Load for five secs`, `^Time source is ` |
-| `cisco_iosxr` | `^Building configuration\.\.\.$`, ` uptime is ` |
+| `cisco_xr` | `^Building configuration\.\.\.$`, ` uptime is ` |
 | `cisco_nxos` | `^!Time: `, ` uptime is ` |
 | `arista_eos` | `^! Time: `, `^Uptime: `, `^Free memory: ` |
 | `juniper_junos` | none: `show version` has no uptime, and `## Last commit:` is a stamp worth keeping |
@@ -650,7 +650,7 @@ matched against a line without its terminator, or a marker's statement
 without its `! `; the text of every capturing group of every match is replaced
 by `<removed>`, text two groups cover once, and a group that matched nothing
 is left alone. A collection file is masked by its device's own platform's
-list. `cisco_iosxe` (19 patterns), `cisco_iosxr` (15), `cisco_nxos` (13),
+list. `cisco_iosxe` (19 patterns), `cisco_xr` (15), `cisco_nxos` (13),
 `arista_eos` (13), and `juniper_junos` (10, Junos's own `## SECRET-DATA` tag
 among them) each have a built-in list, written for a statement as sent and a
 line as the device prints it alike; `linux`, `linux_shell`, and `generic` have

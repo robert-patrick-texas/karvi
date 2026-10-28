@@ -90,7 +90,7 @@ func TestPlatformTableValidation(t *testing.T) {
 	// The list of built-ins in the driver message is the documented order
 	// (an empty table has no keys and so is not a table at all in TOML).
 	_, err := load(t, "[platform.c9300]\nssh-port = 22\n")
-	if err == nil || !strings.Contains(err.Error(), "generic, cisco_iosxe, cisco_iosxr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell") {
+	if err == nil || !strings.Contains(err.Error(), "generic, cisco_iosxe, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell") {
 		t.Fatalf("%v", err)
 	}
 }

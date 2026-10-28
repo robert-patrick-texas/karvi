@@ -2190,7 +2190,7 @@ of every match of a platform's `masks` is replaced by `<removed>`. A job's
 events are masked by the lists of all its devices' platforms together, so that
 no event leaves in clear what another platform's list hides; the job's folder
 keeps every statement as sent (the run above recorded `snmp-server community
-Publ1c RO` in `commands.jsonl`). `cisco_iosxe`, `cisco_iosxr`, `cisco_nxos`,
+Publ1c RO` in `commands.jsonl`). `cisco_iosxe`, `cisco_xr`, `cisco_nxos`,
 `arista_eos`, and `juniper_junos` each have a built-in list, in force by
 default; a site's `[platform.NAME] masks` replaces a list whole, `[]` turns it
 off, and a pattern that does not compile or holds no group refuses the

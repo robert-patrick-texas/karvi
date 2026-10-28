@@ -98,7 +98,7 @@ lost connection by a keepalive request. No subprocess runs (no `ssh`,
 `ssh-keyscan`, or askpass). The package's driver opens the session on that
 stream, so both transports give the same records for the same commands. It
 admits every built-in platform by its base: `generic`, `cisco_iosxe`,
-`cisco_iosxr`, `cisco_nxos`, `juniper_junos`, `arista_eos`, and `linux`
+`cisco_xr`, `cisco_nxos`, `juniper_junos`, `arista_eos`, and `linux`
 (`linux_shell`'s base); an alias table resolves to its built-in's base, so
 `native_platform_not_qualified` is unreachable on `native`.
 [`docs/SSH-TRANSPORTS.md`](SSH-TRANSPORTS.md) holds the build composition.
