@@ -18316,3 +18316,212 @@ release's manifest names it by the new name.
 `s2-go-test.log`, and `s3-go-test.log`; `s3-lab.sh` and `s3-lab.log`;
 `battery.sh`, `wait-battery.sh`, and the batteries' logs, `s2-battery`,
 `s3-battery`, and `s3-battery-2`).
+
+## 87. The release 0.38.0 (2026-10-28)
+
+The nineteenth public release, 0.38.0, on the operator's word and number,
+carrying [chapter 86](#86-platform-names-the-markets-2026-10-28) (the Cisco
+platforms' names, `cisco_ios` and `cisco_xr`). A minor release: every counter
+is 0.37.0's, and Go and the modules are 0.37.0's; a script or a tool that looks
+for an old name in a record, a job folder, or output changes, as does a glob
+written for one (the CHANGELOG's Breaking entry). The daemon IPC schema stays
+12, so the compatibility example is the drain, beside the released 0.37.0
+daemon. The sequence is [chapter 75](#75-the-release-0341-2026-10-20)'s as
+[chapter 85](#85-the-release-0370-2026-10-27) ran it. The operator settled the
+manifest's real-device key during the baseline and gave the word to publish
+during the remaining evidence. No step failed; the build paused once, before
+1/3, for the compatibility example's record of the host.
+
+**What it gains.** A site has chapter 86 from a published, checksummed bundle
+and package, with the documents on GitHub Pages at the release. The Cisco
+platforms carry the names Netmiko and NTC's TextFSM templates give them, and
+an inventory or a configuration naming the old ones is read as before. A host
+on 0.37.0 takes the release by `sudo karvi-sysutil package update`, or by `apt
+install` as before; `releases/latest` redirects to the tag, the redirect
+`package update` reads.
+
+**Before the number.** The archive's mirror was at `2ec83e0` already, `dev` as
+the session found it (= `origin/dev`, chapter 86's Built record): a fetch found
+nothing, and its `SHA256SUMS` passed. The bridge probe reached every address,
+and `/tmp` had 3.8 GB free at load 0.16. `latest.sh` found nothing behind, so
+nothing moved before the baseline: Go and the four modules are 0.37.0's.
+`latest.sh` on the baseline's clean clone (its own lines):
+
+```text
+== Go: /usr/local/go/bin/go against go.dev
+go                               go1.27.3                               newest
+== the 4 modules /dev/shm/r380/base/karvi/go.mod requires
+github.com/yuin/goldmark         v1.8.6                                 newest
+golang.org/x/crypto              v0.58.0                                newest
+golang.org/x/sys                 v0.49.0                                newest
+golang.org/x/term                v0.47.0                                newest
+latest: Go and every module at their newest
+```
+
+**The number.** `VERSION`, the `Makefile`, `buildinfo.Version`, and the two
+verifiers; the `## Unreleased` block became `## 0.38.0 - 2026-10-28` under a
+lead paragraph: a minor release on 0.37.0 for the Cisco platforms' names,
+every counter, Go, and the modules 0.37.0's, the old names read wherever a
+platform name is read, and what a site changes where a script or a tool looks
+for `cisco_iosxe` or `cisco_iosxr` in a record, a job folder, or output, where
+a glob was written for an old name, or where a configuration holds
+`[platform.cisco_ios]` beside `[platform.cisco_iosxe]` or
+`[platform.cisco_xe]`. No code was retired this cycle, so there is no
+`retiredV0380`. `CHECKSUMS.sha256` has its four lines from the
+release-identity build.
+
+**The documents.** 2/3 is 0.37.0's with this release's values: the build
+result, the artifact index, the manifest, the compatibility example's log,
+and the build guide's, the qualification document's, the runbook's, and
+OPERATIONS' release values. One key changed its name.
+
+**The manifest's key, agreed.** `release/release-manifest.json`'s
+qualification block named the real-device qualification `real_cisco_iosxe`,
+the platform's old name. Raised with the operator before 2/3 and agreed, in
+simple terms:
+
+- The key names the platform under test: `real_cisco_ios`, its value
+  `not-run`.
+- `real_` stays: the suites test `cisco_ios` against the fake device, and only
+  the real-device lab has not run.
+- Prose naming the device's operating system stays: the qualification
+  document's title, "Cisco IOS XE qualification", the fake device's `iosxe`
+  persona, and BUILD-RESULT's "Cisco IOS XE laboratory qualification".
+
+Nothing in the tree reads the key; `grep` finds it in the manifest alone, so
+its name is for its reader. The block, before:
+
+```text
+"parity_suite_system_and_native": "passed (the fake device's IOS XE and Linux personas)",
+"real_cisco_iosxe": "not-run",
+"production_scale": "not-run",
+```
+
+**Not taken.** A bare `cisco_ios`, the operator's question: beside the parity
+suite's `passed`, `"cisco_ios": "not-run"` reads as the platform never tested,
+which it is, against the fake device. Keeping `real_cisco_iosxe`: the key would
+name a platform karvi no longer has.
+
+**The compatibility example, twice.** The first run's last section, the host,
+listed `/tmp/karvi-1000`: made at 05:33 local that morning, empty, mode 0700,
+not this session's, and untouched by the run. The log becomes
+`release/evidence/ipc-schema-compat.log`, the public record, where the line
+reads as left by the run. The operator removed the folder, and the example ran
+again before 1/3, with the same turning points and the host clean. The first
+log is kept with the evidence. Not taken: the first log with a note in
+BUILD-RESULT and here, a public record explaining a line where a clean one
+cost thirty seconds.
+
+```text
+# run 1, the host
+[11] the host
+cannot access '/var/tmp/karvi-*': No such file or directory
+cannot access '/home/netops/.local/share/karvi': No such file or directory
+/tmp/karvi-1000
+```
+
+**The release notes' glob, executed.** The notes gave `--select-platform
+'cisco_iosx*'` as a glob written for an old name, and the draft said it
+"changes". Run on the release's build before publishing, in a lab under
+`/dev/shm` whose inventory holds router1 as `cisco_iosxe` and router2 as
+`cisco_iosxr`, the glob is refused, not empty, and the notes say so. Each
+command ran with the lab's `--config` and `--no-daemon`, left out of the `$`
+labels; the `$` and `exit=` lines are the script's labels, the others karvi's,
+those naming a router, a selector, or the targets:
+
+```text
+$ karvi run --dry-run --select-platform 'cisco_iosx*' 'show clock'
+exit=4
+platform_selector_unknown: client planning: --select-platform "cisco_iosx*" matches no known platform; known platforms: generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell
+$ karvi run --dry-run --select-platform 'cisco_iosxe' 'show clock'
+exit=0
+target_data_submitted: false
+targets: 1 (client 1, daemon 0)
+- name:router1: planned
+$ karvi run --dry-run --select-platform 'cisco_*' 'show clock'
+exit=0
+target_data_submitted: false
+targets: 2 (client 2, daemon 0)
+- name:router1: planned
+- name:router2: planned
+```
+
+**The sequence, as run**, from the pre-checks at 12:38 to the published check
+at 13:25 (UTC; 08:38 to 09:25, EDT):
+
+- 12:38 to 12:40, the pre-checks: the archive's mirror at `2ec83e0` already;
+  the bridge probe passed; `latest.sh` exit 0.
+- 12:40:15 to 12:50:08, the baseline on a clean clone of `2ec83e0`:
+  `latest.sh`, gofmt, make, and the release verifier with its package and
+  container steps, exit 0 each. The manifest's key was agreed during it.
+- 12:50:49 to 13:01:22, the release-identity build, the compatibility example
+  twice, and 1/3: the build `XVaquK8HnILbatvlhwRi` by go1.27.3; the 0.37.0
+  daemon drained idle, refusing busy; `9e3e94a`.
+- 13:01:40 to 13:03:46, the core evidence: 1,109 named tests across 92
+  packages, vet 0, both socket lengths exit 0, with 3.8 GB free in `/tmp`.
+- 13:05:53, the documents: `56c204e` (2/3).
+- 13:06:05 to 13:15:30, the remaining evidence: the shipped checks exit 0, the
+  release verifier exit 0 with the nineteen suites, the package, and its
+  container test, the checksums unchanged by its rebuild; the replay skipped.
+  The operator's word to publish without stopping came during it.
+- 13:16:02, 3/3, the tag, `main`: `6d1bfac`, `karvi-v0.38.0`, `main`
+  fast-forwarded from `07f3f0b`.
+- 13:16:13 to 13:22:17, the artifacts: the bundle reproducible byte for byte
+  and verified from its own archive; the package reproducible and checked
+  against the extraction; 39,761,795 and 6,541,484 bytes.
+- 13:22 to 13:23, the package installed in a throwaway `ubuntu:26.04`: `apt
+  install` exit 0; the four installed executables `CHECKSUMS.sha256`'s;
+  `karvi-audit --help` exit 0; 22 files under `/usr/share/karvi`.
+- 13:23 to 13:25, the push, the site, the GitHub release: `dev`, `main`, and
+  the tag pushed; `pages.sh` pushed the release's site (`9391ec4`), built at
+  13:24:13, its 50 files 200 and its footer `karvi-v0.38.0`; release
+  `karvi-v0.38.0` with the five assets, marked latest, its body the notes
+  file; the assets downloaded back match, and `releases/latest` redirects to
+  the tag.
+
+**Executed.** The compatibility example's turning points
+(`release/evidence/ipc-schema-compat.log`) and the published state:
+
+```text
+[3] the client exercises a run beside the idle daemon: drained, replaced
+exit=0
+-- stderr
+daemon drained version=0.37.0 build=1bFnbnZ8vZu2v2U7sP-a
+daemon started socket=/dev/shm/r380/compat/base/socket/d.sock
+pid 3011707 gone
+[6] the client exercises a run beside the busy daemon: refused, drained
+exit=112
+-- stderr
+daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
+  daemon build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+  client build XVaquK8HnILbatvlhwRi 0.38.0
+[8] the older executable's job ends; its daemon exits after it
+the older run exit=0
+pid 3011806 gone
+$ gh api repos/robert-patrick-texas/karvi/releases/latest
+latest: karvi-v0.38.0 draft=false prerelease=false assets=5
+$ sha256sum -c karvi-v0.38.0-artifacts.sha256    # the assets downloaded back
+karvi-v0.38.0-source-linux-amd64.tar.gz: OK
+karvi_0.38.0_amd64.deb: OK
+```
+
+**Found on the way.**
+
+- The four executables keep 0.37.0's sizes, with other bytes; the bundle is
+  10,317 bytes larger and the package 5,996.
+- The default configuration's evidence ships `platform-resolution.default =
+  "cisco_ios"`, and its comments name `cisco_ios`, `cisco_xr`, and the
+  spellings read as them. The module metadata of the four executables is
+  0.37.0's, the same Go and modules, so 3/3 carries nine evidence files.
+- The site answered the old footer for a moment after `pages.sh` pushed: the
+  Pages build had not landed. `gh api
+  repos/robert-patrick-texas/karvi/pages/builds/latest` says when it has.
+- In the throwaway container `man karvi-audit` has no page, as in chapters 67,
+  70, 73, 75, 77, 80, and 85: the minimal image leaves out `/usr/share/man`.
+
+The evidence is kept beside the tree (`release-design-evidence/v0380-*`: the
+timeline, the bridge probe, the baseline with `latest.sh`'s output, the build,
+the compatibility example and its two logs, the 1/3 and 2/3 patches, the
+artifacts with their bundle verifier log, `check-deb`, the container install,
+the release notes and their glob check, the push, the site, the GitHub
+release, and the published check).
