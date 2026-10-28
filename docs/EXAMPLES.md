@@ -18083,3 +18083,120 @@ timeline, the baseline with `latest.sh`'s output, the build, the
 compatibility example, the 1/3 and 2/3 patches, the two artifacts runs with
 their bundle verifier logs, `check-deb`, the container install, and the
 release notes).
+
+## 86. Platform names: the market's (2026-10-28)
+
+Opened on the operator's question: what changing `cisco_iosxr` to `cisco_xr`
+needs. The built-in names are scrapligo's (`cisco_iosxe`, `cisco_iosxr`,
+`cisco_nxos`, `juniper_junos`, `arista_eos`), and scrapligo left the build in
+chapter 82. The operator's review of the leading references, Netmiko and NTC's
+TextFSM templates among them, found `cisco_ios` the most common name for IOS
+and IOS XE alike, with `cisco_xe` and `cisco_iosxe` other spellings of it
+rather than another platform, and `cisco_xr` the most common for IOS XR, with
+`cisco_iosxr` its other spelling. Netmiko gives `cisco_ios` and `cisco_xe` one
+driver class.
+
+**What it gains.** An operator's inventory written for Netmiko, NTC's
+templates, or scrapli names a karvi platform as it stands: one thing fewer to
+change in adopting karvi. It waits on nothing. The cost: records, collection
+files, and output name `cisco_ios` and `cisco_xr` where they named
+`cisco_iosxe` and `cisco_iosxr`, and until the spellings are built (section 3)
+the old names are refused as unknown.
+
+**Executed.** `run.sh` runs a scratch test in the tree's `platform` package
+through `go test -overlay`, the tree unchanged, at `ad796ea`; the third run puts
+`resolve-spellings.go`, whose `Normalize` reads `cisco_xe` and `cisco_ios` as
+`cisco_iosxe`, in place of `resolve.go`:
+
+```
+$ release-design-evidence/platform-names-2026-10-28/run.sh karvi
+== tree ad796ea, go version go1.27.3 linux/amd64
+== TestAliasToday
+cisco_ios known=true name=cisco_ios driver=cisco_iosxe base=cisco_iosxe masks=19 levels=4
+identical to cisco_iosxe apart from its name: true
+ok  	github.com/robert-patrick-texas/karvi/platform	0.004s
+== TestAliasTuned
+cisco_iosxe  base=cisco_iosxe session-cap=2 masks=0
+cisco_xe     base=cisco_iosxe session-cap=5 masks=19
+ok  	github.com/robert-patrick-texas/karvi/platform	0.003s
+== TestSpellings (resolve-spellings.go)
+cisco_iosxe  known=true name=cisco_iosxe session-cap=2 masks=0
+cisco_xe     known=true name=cisco_iosxe session-cap=2 masks=0
+Cisco_IOS    known=true name=cisco_iosxe session-cap=2 masks=0
+ok  	github.com/robert-patrick-texas/karvi/platform	0.004s
+```
+
+A site's alias table (`[platform.cisco_ios]`, `driver = "cisco_iosxe"`) is the
+built-in apart from its name, until the site tunes the built-in:
+`TestAliasTuned`'s site lowers `cisco_iosxe`'s session cap to 2 and turns its
+masks off, and the alias keeps 5 and 19, the built-in untuned. A map rule's
+`platform` (`credential-policy-map`, `ssh-algorithms-map`, a session-init
+rule, a credential CSV row) matches the row's own name
+(`internal/matching/rule.go`), so a rule for one name never reaches the other.
+`platform.Normalize` is already called wherever a platform name is read, for
+case; a spelling read there leaves no second name behind it.
+
+**The rule, agreed.** In simple terms: karvi's built-ins take the names the
+market uses, the other spellings in use are read as those names wherever a
+name is read, and nothing after the read sees a second name.
+
+1. The built-ins are `generic`, `cisco_ios` (IOS and IOS XE: the definition
+   `cisco_iosxe` had, none of it particular to IOS XE), `cisco_xr`,
+   `cisco_nxos`, `juniper_junos`, `arista_eos`, `linux`, and `linux_shell`.
+2. `cisco_xe` and `cisco_iosxe` are read as `cisco_ios`, and `cisco_iosxr` as
+   `cisco_xr`, wherever a platform name is read, as its case is: inventory rows
+   and source defaults, `--platform`, `platform-resolution.default` and
+   `platform-resolution.unknown-fallback`, `[platform.NAME]` table names and
+   drivers, and a map rule's `platform`. Records, tables, rules, collection
+   files, and output name the built-in; a glob matches built-in names alone;
+   two tables read as one platform are refused, as two cases of one name are.
+   A spelling, a deliberate choice, draws no warning.
+3. A `[platform.NAME]` table with a driver is a derived definition, for a
+   device family that differs (`[platform.asr9k]` in `docs/COLLECTION.md`),
+   never a spelling. The generated configuration adds no tables.
+4. `--pi` (`cisco_ios`) and `--pr` (`cisco_xr`) keep their spellings.
+   Netmiko's `_telnet` names are not taken, the transport being chosen apart;
+   another spelling (Netmiko's `juniper`) is added when an inventory brings it.
+
+Not taken:
+
+- `cisco_xr` alone, the first answer: a set mixing Netmiko's names with
+  scrapli's.
+- Netmiko's `cisco_xe` as the built-in and `cisco_ios` a site's table: the
+  references name both `cisco_ios`, and the table inherits the built-in
+  untuned (`TestAliasTuned`).
+- scrapli's names kept, with `cisco_ios`, `cisco_xe`, and `cisco_xr` shipped as
+  aliases, in code as `linux_shell` is or as tables in the generated
+  configuration: each keeps its own name past the read, so a table's tuning
+  and a map rule reach one spelling alone and a missed copy fails silently;
+  records name one kind of device three ways; tables in the generated
+  configuration reach only a site that generates one anew.
+- Aliases keeping their own name, their tables following the base's and rules
+  matching the base: a new mechanism, where `Normalize`, called at every read
+  already, gives the same with none.
+- `--pi` and `--pr` renamed: a change with no gain.
+
+**The build, in three sections**, each committed on the operator's word:
+
+1. `cisco_iosxr` becomes `cisco_xr` (49 lines in 30 files): the definition,
+   the native transport's admitted list, `--pr`, the help, the generated
+   configuration and manual pages, the tests and the mask corpus
+   (`platform/testdata/masks/cisco_xr.txt`), the current documents, and the
+   CHANGELOG's Unreleased entry.
+2. `cisco_iosxe` becomes `cisco_ios` (464 lines in 105 files, the suites among
+   them); the full battery after it.
+3. The spellings in `Normalize`, `Builtin` reading through it, a map rule's
+   `platform` read through it, the duplicate table's refusal naming the
+   spelling, the help and manual pages listing the spellings, DESIGN's entry,
+   and their tests; the full battery after it, and this chapter's Built record.
+
+History stays: the CHANGELOG's released entries, the chapters before this one,
+`release/evidence/default-config.toml` (rewritten at the next release), the
+mask corpus's note naming its scratch check `s4-iosxr-masks.go`, and Oxidized's
+model name `iosxr` in `docs/COLLECTION.md`. The Go names `ciscoIOSXRLevels`,
+`iosxrMasks`, and their IOS XE counterparts stay: they name the operating
+system the lists were written from.
+
+The evidence is kept beside the tree
+(`release-design-evidence/platform-names-2026-10-28`: `run.sh`,
+`alias_test.go`, `resolve-spellings.go`, and `run.log`).
