@@ -1,50 +1,50 @@
-# karvi 0.37.0: the released 0.36.0 daemon beside the tree's client, before 1/3; executed 2026-10-27T20:20:07Z under /dev/shm/r370/compat
-the daemon executable: karvi 0.36.0 build: kXY4cc6JRtLekvXNL0My go: go1.27.3 ; the released bytes, checked against CHECKSUMS.sha256 before the rebuild
-the client executable: karvi 0.37.0 build: 1bFnbnZ8vZu2v2U7sP-a go: go1.27.3 
+# karvi 0.38.0: the released 0.37.0 daemon beside the tree's client, before 1/3; executed 2026-10-28T13:00:58Z under /dev/shm/r380/compat
+the daemon executable: karvi 0.37.0 build: 1bFnbnZ8vZu2v2U7sP-a go: go1.27.3 ; the released bytes, checked against CHECKSUMS.sha256 before the rebuild
+the client executable: karvi 0.38.0 build: XVaquK8HnILbatvlhwRi go: go1.27.3 
 [1] the older executable starts its daemon
-daemon started socket=/dev/shm/r370/compat/base/socket/d.sock
+daemon started socket=/dev/shm/r380/compat/base/socket/d.sock
 daemon running
 exit=0
 [2] the client asks the daemon's status: another build
 status: running
-pid: 1936091
+pid: 3011707
 uid: 1000
-socket: /dev/shm/r370/compat/base/socket/d.sock
-daemon_version: 0.36.0
-client_version: 0.37.0
-daemon_commit: source-release-v0.36.0
-client_commit: source-release-v0.37.0
+socket: /dev/shm/r380/compat/base/socket/d.sock
+daemon_version: 0.37.0
+client_version: 0.38.0
+daemon_commit: source-release-v0.37.0
+client_commit: source-release-v0.38.0
 daemon_ipc_schema: 12
 client_ipc_schema: 12
-daemon_build: kXY4cc6JRtLekvXNL0My
-client_build: 1bFnbnZ8vZu2v2U7sP-a
+daemon_build: 1bFnbnZ8vZu2v2U7sP-a
+client_build: XVaquK8HnILbatvlhwRi
 compatible: false
 remediation: karvi daemon restart
-started_at: 2026-10-27T16:20:07.649817893-04:00
+started_at: 2026-10-28T09:00:58.995439089-04:00
 active_jobs: 0
 accepted_jobs: 0
 exit=0
 [3] the client exercises a run beside the idle daemon: drained, replaced
 exit=0
 -- stderr
-daemon drained version=0.36.0 build=kXY4cc6JRtLekvXNL0My
-daemon started socket=/dev/shm/r370/compat/base/socket/d.sock
-pid 1936091 gone
+daemon drained version=0.37.0 build=1bFnbnZ8vZu2v2U7sP-a
+daemon started socket=/dev/shm/r380/compat/base/socket/d.sock
+pid 3011707 gone
 [4] the client stops its daemon
 daemon stopped
 exit=0
-pid 1936129 gone
+pid 3011743 gone
 [5] the older executable: the fake's key stored, then a 10-second job through its daemon
 first contact exit=0
 status: running
-pid: 1936200
+pid: 3011806
 active_jobs: 1
 [6] the client exercises a run beside the busy daemon: refused, drained
 exit=112
 -- stderr
 daemon_draining: 1 job running; none submitted; retry when it exits, or --no-daemon
-  daemon build kXY4cc6JRtLekvXNL0My 0.36.0
-  client build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+  daemon build 1bFnbnZ8vZu2v2U7sP-a 0.37.0
+  client build XVaquK8HnILbatvlhwRi 0.38.0
 [7] the client's status of the draining daemon
 status: draining
 compatible: false
@@ -53,19 +53,19 @@ active_jobs: 1
 the older run exit=0
 ! d1 [127.0.0.1] platform=cisco_iosxe user=netops backend=builtin-env-fallback transport=native
 slow output
-! exit=0 elapsed=10.62s artifacts=/dev/shm/r370/compat/base/jobs/261027/261027-162008-00
-pid 1936200 gone
+! exit=0 elapsed=10.62s artifacts=/dev/shm/r380/compat/base/jobs/261028/261028-090059-02
+pid 3011806 gone
 -- the older daemon's log
-time=2026-10-27T16:20:07.733-04:00 level=INFO msg="stopping: drained"
-time=2026-10-27T16:20:19.237-04:00 level=INFO msg="stopping: drained"
+time=2026-10-28T09:00:59.077-04:00 level=INFO msg="stopping: drained"
+time=2026-10-28T09:01:10.573-04:00 level=INFO msg="stopping: drained"
 [9] the client exercises a run: its own daemon started
 exit=0
 -- stderr
-daemon started socket=/dev/shm/r370/compat/base/socket/d.sock
+daemon started socket=/dev/shm/r380/compat/base/socket/d.sock
 [10] the client stops its daemon
 daemon stopped
 exit=0
-pid 1936483 gone
+pid 3012003 gone
 [11] the host
 cannot access '/tmp/karvi-*': No such file or directory
 cannot access '/var/tmp/karvi-*': No such file or directory
