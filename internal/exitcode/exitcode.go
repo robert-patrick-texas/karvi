@@ -65,7 +65,7 @@ var Statuses = []Status{
 	{ExitOutputFailure, "ExitOutputFailure", "Output could not be written: a record, a file, the audit, or standard output."},
 	{ExitJobRejected, "ExitJobRejected", "The daemon refused the request, or the exchange with it failed."},
 	{ExitCancelled, "ExitCancelled", "Cancelled: job cancel, Ctrl-C, or an interrupted wait."},
-	{ExitHaltHostKeyMismatch, "ExitHaltHostKeyMismatch", "A run stopped starting devices after a changed host key (ssh.halt-run-on-host-key-mismatch)."},
+	{ExitHaltHostKeyMismatch, "ExitHaltHostKeyMismatch", "A run stopped starting devices after a changed or revoked host key (ssh.halt-run-on-host-key-mismatch)."},
 }
 
 // Lookup is the status of a code, and whether it is defined.

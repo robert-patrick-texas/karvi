@@ -287,8 +287,8 @@ halt-run-on-host-key-mismatch = true
 
 When enabled:
 
-1. the first terminal `host_key_changed` result sets halt reason
-   `host_key_mismatch`;
+1. the first terminal `host_key_changed` or `host_key_revoked` result sets
+   halt reason `host_key_mismatch`;
 2. no new device is admitted;
 3. all devices already in flight finish;
 4. never-started command-plan entries are written as `not_started_halt` with

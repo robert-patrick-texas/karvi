@@ -413,7 +413,7 @@
       "reload_class": "next-job",
       "environment": "KARVI__SSH__HALT_RUN_ON_HOST_KEY_MISMATCH",
       "cli_flags": null,
-      "documentation": "When true, the first changed SSH host key stops new run scheduling while allowing in-flight devices to finish.",
+      "documentation": "When true, the first changed or revoked SSH host key stops new run scheduling while allowing in-flight devices to finish.",
       "since": "0.5.0"
     },
     {

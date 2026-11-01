@@ -534,7 +534,8 @@ argument is device text. Run uses the per-user daemon unless --no-daemon is
 supplied.
 
 Set ssh.halt-run-on-host-key-mismatch=true to stop new scheduling after the
-first changed host key while allowing already in-flight devices to finish.
+first changed or revoked host key while allowing already in-flight devices to
+finish.
 `
 }
 

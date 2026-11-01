@@ -257,7 +257,7 @@ func containsString(values []string, want string) bool {
 }
 
 func haltReasonForErrorCode(code string) string {
-	if code == "host_key_changed" || code == "host_key_changed_during_enrollment" {
+	if code == "host_key_changed" || code == "host_key_changed_during_enrollment" || code == "host_key_revoked" {
 		return "host_key_mismatch"
 	}
 	return "error_code:" + code

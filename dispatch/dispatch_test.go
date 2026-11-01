@@ -16,19 +16,24 @@ func (f fake) Execute(_ context.Context, t Task, _ Context) Result {
 	return Result{Task: t, Success: !f.fail[t.Key], ErrorCode: f.errorCode[t.Key], StartedAt: time.Now(), EndedAt: time.Now()}
 }
 
+// TestHostKeyMismatchPolicyHaltsNewScheduling: a changed key, one changed
+// during enrollment, and a revoked key each halt the run with reason
+// host_key_mismatch.
 func TestHostKeyMismatchPolicyHaltsNewScheduling(t *testing.T) {
-	tasks := []Task{{Key: "changed-key", Position: 1}, {Key: "not-started", Position: 2}}
-	s := LocalDispatcher{}.Execute(
-		context.Background(),
-		Plan{Mode: "serial", Tasks: tasks, HaltErrorCodes: []string{"host_key_changed"}},
-		fake{fail: map[string]bool{"changed-key": true}, errorCode: map[string]string{"changed-key": "host_key_changed"}},
-		nil,
-	)
-	if s.HaltReason != "host_key_mismatch" {
-		t.Fatalf("halt reason = %q", s.HaltReason)
-	}
-	if s.Counts.Terminal != 1 || s.Counts.NotStarted != 1 {
-		t.Fatalf("unexpected counts: %+v", s.Counts)
+	for _, code := range []string{"host_key_changed", "host_key_changed_during_enrollment", "host_key_revoked"} {
+		tasks := []Task{{Key: "changed-key", Position: 1}, {Key: "not-started", Position: 2}}
+		s := LocalDispatcher{}.Execute(
+			context.Background(),
+			Plan{Mode: "serial", Tasks: tasks, HaltErrorCodes: []string{code}},
+			fake{fail: map[string]bool{"changed-key": true}, errorCode: map[string]string{"changed-key": code}},
+			nil,
+		)
+		if s.HaltReason != "host_key_mismatch" {
+			t.Errorf("%s: halt reason = %q", code, s.HaltReason)
+		}
+		if s.Counts.Terminal != 1 || s.Counts.NotStarted != 1 {
+			t.Errorf("%s: unexpected counts: %+v", code, s.Counts)
+		}
 	}
 }
 

@@ -46,7 +46,7 @@ of 111, 106, 113, 114, 102, 103, 104, and 105 is the exit.
 | 111 | `ExitOutputFailure` | Output could not be written: a record, a file, the audit, or standard output. |
 | 112 | `ExitJobRejected` | The daemon refused the request, or the exchange with it failed. |
 | 113 | `ExitCancelled` | Cancelled: job cancel, Ctrl-C, or an interrupted wait. |
-| 114 | `ExitHaltHostKeyMismatch` | A run stopped starting devices after a changed host key (ssh.halt-run-on-host-key-mismatch). |
+| 114 | `ExitHaltHostKeyMismatch` | A run stopped starting devices after a changed or revoked host key (ssh.halt-run-on-host-key-mismatch). |
 
 ## Errors
 
@@ -648,7 +648,7 @@ Codes recorded for commands that were not started or were stopped.
 | `device_errors` | device | — | no | Scoreboard summary code when one or more devices in the activity failed; per-device records carry the specific codes. |
 | `halt_error_count` | halt | 102 | no | A run-wide halt on the failure count stopped the command from starting. |
 | `halt_error_percent` | halt | 103 | no | A run-wide halt on the failure percentage stopped the command from starting. |
-| `halt_host_key_mismatch` | halt | 114 | no | A run-wide halt on a changed host key stopped the command from starting. |
+| `halt_host_key_mismatch` | halt | 114 | no | A run-wide halt on a changed or revoked host key stopped the command from starting. |
 | `halt_invalid_dispatch_mode` | internal | — | no | The dispatcher rejected an unknown dispatch mode, so no command started. |
 | `run_halted` | halt | — | no | The run halted for a reason with no more specific code. |
 | `shutdown_forced` | shutdown | 106 | no | The daemon was stopped with `--force` while the job was running; its unfinished units are `incomplete_shutdown`. |

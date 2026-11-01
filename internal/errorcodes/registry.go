@@ -347,7 +347,7 @@ var entries = []Entry{
 	reason("device_errors", "device", none, "Scoreboard summary code when one or more devices in the activity failed; per-device records carry the specific codes."),
 	reason("halt_error_count", "halt", exitcode.ExitHaltErrorCount, "A run-wide halt on the failure count stopped the command from starting."),
 	reason("halt_error_percent", "halt", exitcode.ExitHaltErrorPercent, "A run-wide halt on the failure percentage stopped the command from starting."),
-	reason("halt_host_key_mismatch", "halt", exitcode.ExitHaltHostKeyMismatch, "A run-wide halt on a changed host key stopped the command from starting."),
+	reason("halt_host_key_mismatch", "halt", exitcode.ExitHaltHostKeyMismatch, "A run-wide halt on a changed or revoked host key stopped the command from starting."),
 	reason("halt_invalid_dispatch_mode", "internal", none, "The dispatcher rejected an unknown dispatch mode, so no command started."),
 	reason("run_halted", "halt", none, "The run halted for a reason with no more specific code."),
 	reason("wave_gate_error_count", "halt", exitcode.ExitWaveGateErrorCount, "An adaptive-wave gate on the failure count stopped the command from starting."),

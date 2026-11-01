@@ -135,8 +135,8 @@ host-key-policy = "accept-new"
 # ~/.local/share/karvi/known_hosts; an explicit path is taken as given, ~ the home. config
 # show --explain ssh.known-hosts-file names the file.
 known-hosts-file = "auto"
-# When true, the first changed SSH host key stops new run scheduling while allowing in-flight
-# devices to finish.
+# When true, the first changed or revoked SSH host key stops new run scheduling while allowing
+# in-flight devices to finish.
 halt-run-on-host-key-mismatch = false
 # The operator's own keys, offered in this order where a platform's fallback reaches keys:
 # each an absolute path or ~/, the home the password database names. A file that does not
