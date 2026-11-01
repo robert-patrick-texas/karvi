@@ -1,6 +1,8 @@
 package daemon
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -268,6 +270,38 @@ func TestCancelOfAnExerciseChangesNothing(t *testing.T) {
 		}
 	default:
 		t.Fatalf("cancel_job state %q", res.State)
+	}
+}
+
+// TestExerciseLedgerClosedToTheOperatorIsRootUnusable: the exercise reads
+// the capacity ledgers without a lease; a device ledger's lock this
+// operator cannot open for writing (another member's file at 0400 to it)
+// fails the reading, and the job-level warning is capacity_root_unusable,
+// the message the open's, never a malformed ledger.
+func TestExerciseLedgerClosedToTheOperatorIsRootUnusable(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root opens every file")
+	}
+	seed := canarytest.Seed(t)
+	f := newV5FixtureWith(t, v5Options{GoFakeDevice: true})
+	devices := filepath.Join(f.cfg.String("sessions.shared-capacity-root"), "devices")
+	if err := os.Mkdir(devices, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256([]byte("127.0.0.1"))
+	lock := filepath.Join(devices, hex.EncodeToString(sum[:])+".lock")
+	if err := os.WriteFile(lock, nil, 0o400); err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, report := f.exercise(mustID(t), []string{"show clock"}, []inventory.Device{direct("127.0.0.1")}, seed)
+	var warnings []executionplan.Finding
+	for _, fd := range report.Findings {
+		if fd.Stage == "capacity" && fd.Severity == executionplan.SeverityWarning {
+			warnings = append(warnings, fd)
+		}
+	}
+	if want := "open " + lock + ": permission denied"; len(warnings) != 1 || warnings[0].Code != "capacity_root_unusable" || warnings[0].Message != want {
+		t.Fatalf("capacity warnings: %+v\nwant capacity_root_unusable: %s", warnings, want)
 	}
 }
 

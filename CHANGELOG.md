@@ -251,11 +251,14 @@
   naming the line. An unsupported statement, a wrong count of values, an unknown
   directive, and a line of 1 MiB or more are refused naming the file and line
   too ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
-- **A credential backend's refusal writes its code once.** The CSV and
-  `.cloginrc` backends' refusals, and Redis's for a coded reply, wrote the code
-  twice in their text
+- **A credential backend's refusal writes its code once, and its message stands
+  apart from its fields.** The CSV and `.cloginrc` backends' refusals, and
+  Redis's for a coded reply, wrote the code twice in their text
   (`credential_file_mode_unsafe: credential_file_mode_unsafe: …`); the text now
-  follows the code once.
+  follows the code once. A refusal's message ran on into its `policy=` and
+  `backend=` fields (`…unmatched open quote policy=default backend=clogin`); a
+  `;` now sets them apart
+  (`…unmatched open quote; policy=default backend=clogin`).
 - **Breaking: a link at a day folder's or a job folder's name is refused.**
   A shared job or transcript tree's day folders are every member's to write,
   with no sticky bit, and karvi followed a link planted at a day folder's
@@ -296,18 +299,24 @@
   ([`docs/OPERATIONS.md`](docs/OPERATIONS.md),
   [`docs/FILES.md`](docs/FILES.md)).
 - **Breaking: a link at a capacity ledger's lock or its `devices` folder is
-  refused.** A shared capacity root is every member's to write, with no
-  sticky bit, and karvi opened a ledger's lock and made or set its `devices`
-  folder by name, following a link a member put there: a link to a
-  colleague's private file widened its mode at the colleague's next lease, a
-  dangling one made its target, and a link at `devices` took every lease's
-  files where it pointed. The lock is now opened without following a link,
-  its mode set through the open file, and `devices` must be a real folder: a
-  link at either is refused (`capacity_root_unusable` when the root is
-  prepared, `capacity_admission_failed` at a lease), and nothing is made or
-  changed where it points. A link at the capacity root, or above it, is the
-  site's and is followed. A ledger that does not decode is named with its
-  `.json` (`capacity_ledger_malformed`) ([`docs/FILES.md`](docs/FILES.md)).
+  refused.** A shared capacity root is every member's to write, with no sticky
+  bit, and karvi opened a ledger's lock and made or set its `devices` folder by
+  name, following a link a member put there: a link to a colleague's private
+  file widened its mode at the colleague's next lease, a dangling one made its
+  target, and a link at `devices` took every lease's files where it pointed. The
+  lock is now opened without following a link, its mode set through the open
+  file, and `devices` must be a real folder: a link at either is refused
+  (`capacity_root_unusable` when the root is prepared,
+  `capacity_admission_failed` at a lease), the message naming the link to
+  remove, and nothing is made or changed where it points. A link at the capacity
+  root, or above it, is the site's and is followed. A ledger that does not
+  decode is named with its `.json` (`capacity_ledger_malformed`)
+  ([`docs/FILES.md`](docs/FILES.md)).
+- **`karvi exercise` names a capacity root it cannot read
+  `capacity_root_unusable`.** A ledger's lock or file the operator could not
+  open, lock, or read was reported `capacity_ledger_malformed`, whose cause is a
+  ledger that does not decode; it is now `capacity_root_unusable`, and a ledger
+  that does not decode keeps its own code.
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`

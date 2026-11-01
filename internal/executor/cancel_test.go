@@ -151,7 +151,7 @@ func TestCancelCauseDistinguishesTheThreeCancellations(t *testing.T) {
 		t.Error("a shutdown cause reads as a job cancel")
 	}
 	status, code, cause := cancelStatus(job)
-	if status != "cancel" || code != "cancelled" || errorcodes.Of(cause) != "cancelled" || bareMessage(cause) != "the job was cancelled by the operator: x" {
+	if status != "cancel" || code != "cancelled" || errorcodes.Of(cause) != "cancelled" || errorcodes.Text(cause) != "the job was cancelled by the operator: x" {
 		t.Errorf("cancelStatus(job) = %s %s %v", status, code, cause)
 	}
 	if status, code, _ := cancelStatus(down); status != "incomplete_shutdown" || code != "shutdown_incomplete" {

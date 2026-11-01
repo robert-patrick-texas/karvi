@@ -635,7 +635,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		if r.Err != nil && ctx.Err() != nil {
 			var code string
 			status, code, cancelErr = cancelStatus(ctx)
-			r.ErrorCode, r.ErrorCategory, r.Retryable, r.External, r.Err = code, "shutdown", false, false, errors.New(bareMessage(cancelErr))
+			r.ErrorCode, r.ErrorCategory, r.Retryable, r.External, r.Err = code, "shutdown", false, false, errors.New(errorcodes.Text(cancelErr))
 		}
 		// A command the device deadline cut is the device's timeout, whatever
 		// the transport made of its ended context; a command that reached its
@@ -766,7 +766,7 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 func (e *DeviceExecutor) EmitUnstarted(work Work, dc dispatch.Context, status, reason string, cause error) {
 	message := reason
 	if cause != nil {
-		message = bareMessage(cause)
+		message = errorcodes.Text(cause)
 	}
 	for pos, st := range e.sequence(work.Target).steps {
 		r := e.record(work, dc, nil, nil, st, status, nil, nil, nil, "", "", nil, 0, 0, time.Time{}, time.Now())
@@ -886,7 +886,7 @@ func (e *DeviceExecutor) notAttemptedRecord(work Work, dc dispatch.Context, cred
 	r := e.record(work, dc, cred, g, st, status, nil, nil, nil, "", "", nil, 0, 0, time.Time{}, time.Now())
 	switch status {
 	case "cancel":
-		r.Error = &records.StructuredError{Code: "cancelled", Category: "shutdown", Message: bareMessage(cause), Operation: st.operation()}
+		r.Error = &records.StructuredError{Code: "cancelled", Category: "shutdown", Message: errorcodes.Text(cause), Operation: st.operation()}
 	case "incomplete_shutdown":
 		r.Error = &records.StructuredError{Code: "shutdown_incomplete", Category: "shutdown", Message: errorcodes.Message(cause), Operation: st.operation()}
 	case "not_attempted_prior_command_failure":
@@ -1473,19 +1473,6 @@ func defaultString(s, d string) string {
 		return d
 	}
 	return s
-}
-
-// bareMessage is an error's text without its code prefix: the record's
-// error carries the code in its own field, and the renderer prints
-// "error=<code>: <message>", so the code appears once.
-func bareMessage(e error) string {
-	if e == nil {
-		return ""
-	}
-	if code := errorcodes.Of(e); code != "" {
-		return strings.TrimPrefix(errorcodes.Message(e), code+": ")
-	}
-	return e.Error()
 }
 
 func errorString(e error) string {

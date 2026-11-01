@@ -431,7 +431,7 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 // error keeps its code once, leading the text; any other is wrapped.
 func located(where string, err error) error {
 	if code := errorcodes.Of(err); code != "" {
-		return errorcodes.Errorf(code, "%s%s", where, strings.TrimPrefix(errorcodes.Message(err), code+": "))
+		return errorcodes.Errorf(code, "%s%s", where, errorcodes.Text(err))
 	}
 	return fmt.Errorf("%s%w", where, err)
 }

@@ -141,18 +141,35 @@ func (m *Manager) ensureRoot() error {
 	}
 	devices := filepath.Join(m.Root, "devices")
 	if err := m.ensureDir(devices); err != nil {
-		return errorcodes.Errorf("capacity_root_unusable", "%v; %s", err, sharedRootShape)
+		return rootUnusable(err)
 	}
 	if err := syscall.Access(devices, 0o3); err != nil { // W_OK|X_OK
 		return errorcodes.Errorf("capacity_root_unusable", "%s: %v; %s", devices, err, sharedRootShape)
 	}
 	if _, err := m.readLedger(filepath.Join(m.Root, "server")); err != nil {
-		return errorcodes.Errorf("capacity_root_unusable", "%v; %s", err, sharedRootShape)
+		return rootUnusable(err)
 	}
 	return nil
 }
 
 const sharedRootShape = "a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it"
+
+// rootUnusable is err under capacity_root_unusable with the shape a shared
+// root needs. A refusal coded so already, a link at a name of the ledger's
+// (linkRefusal), keeps its own remedy.
+func rootUnusable(err error) error {
+	if errorcodes.Of(err) == "capacity_root_unusable" {
+		return err
+	}
+	return errorcodes.Errorf("capacity_root_unusable", "%v; %s", err, sharedRootShape)
+}
+
+// linkRefusal refuses a link at path, a name the ledger makes and never
+// follows (what is "file" for a lock, "folder" for devices): the link
+// named and its removal, after which the ledger makes the name itself.
+func linkRefusal(path, what string) error {
+	return errorcodes.Errorf("capacity_root_unusable", "%s is a link, not a %s; remove it", path, what)
+}
 
 // ledgerModes are the modes of what the ledger creates under root: under a
 // root carrying the setgid bit, the group-shared root, the root's own
@@ -192,6 +209,9 @@ func (m *Manager) ensureDir(dir string) error {
 	if err != nil {
 		return err
 	}
+	if fi.Mode()&os.ModeSymlink != 0 {
+		return linkRefusal(dir, "folder")
+	}
 	if fault := notFolder(fi); fault != "" {
 		return fmt.Errorf("%s %s", dir, fault)
 	}
@@ -226,13 +246,19 @@ func notFolder(fi os.FileInfo) string {
 
 // openLock opens a ledger's lock file, created at fileMode when missing,
 // never through a link: every member writes in a shared ledger's folders,
-// so a link at the name, dangling or not, is refused (the open's ELOOP)
-// and nothing is opened or made where it points. A file this operator owns
-// at another mode (made under the umask) is set to fileMode through the
-// descriptor; another member's is left as it is.
+// so a link at the name, dangling or not, is refused (the open's ELOOP,
+// linkRefusal) and nothing is opened or made where it points. A file this
+// operator owns at another mode (made under the umask) is set to fileMode
+// through the descriptor; another member's is left as it is.
 func (m *Manager) openLock(path string) (*os.File, error) {
-	f, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, m.fileMode)
+	name := path + ".lock"
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR|syscall.O_NOFOLLOW, m.fileMode)
 	if err != nil {
+		if errors.Is(err, syscall.ELOOP) {
+			if fi, lerr := os.Lstat(name); lerr == nil && fi.Mode()&os.ModeSymlink != 0 {
+				return nil, linkRefusal(name, "file")
+			}
+		}
 		return nil, err
 	}
 	if err := ownMode(f, m.fileMode); err != nil {

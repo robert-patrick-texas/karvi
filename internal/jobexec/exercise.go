@@ -122,9 +122,12 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 			"mode": eff.Mode, "width": strconv.Itoa(eff.Width), "wave_start_width": strconv.Itoa(eff.WaveStartWidth), "wave_max_width": strconv.Itoa(eff.WaveMaxWidth), "absolute_max_width": strconv.Itoa(eff.AbsoluteMaxWidth),
 		}))
 	}
-	// Capacity: the ledgers read under a shared lock, no lease taken.
+	// Capacity: the ledgers read under a shared lock, no lease taken. A
+	// failure without a code of its own (a lock or ledger file that cannot
+	// be opened, locked, or read) is the root's; a malformed ledger, or a
+	// link refused, keeps its code.
 	if a, err := st.capManager.Assess(caps); err != nil {
-		findings = append(findings, exerciseFinding("capacity", executionplan.SeverityWarning, "", errorcodes.Ensure(err, "capacity_ledger_malformed"), nil))
+		findings = append(findings, exerciseFinding("capacity", executionplan.SeverityWarning, "", errorcodes.Ensure(err, "capacity_root_unusable"), nil))
 	} else {
 		details := map[string]string{"server_limit": strconv.Itoa(a.ServerLimit), "server_in_use": strconv.Itoa(a.ServerInUse), "devices": strconv.Itoa(len(a.Devices))}
 		names := make([]string, 0, len(a.Devices))

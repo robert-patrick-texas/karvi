@@ -20,7 +20,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 
@@ -247,7 +246,7 @@ func (r Rules) Classify(path string, err error, malformedCode string) credential
 	if code == "" {
 		code = malformedCode
 	}
-	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: strings.TrimPrefix(errorcodes.Message(err), code+": ")}
+	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: errorcodes.Text(err)}
 }
 
 // Cache holds one backend's loaded records, or its failure, for the

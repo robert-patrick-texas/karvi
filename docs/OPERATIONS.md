@@ -825,7 +825,7 @@ shell, before any later prompt and with no job made:
 
 ```text
 Username for router1:
-credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name:router1 (interrupted at the username prompt policy=default)
+credential_prompt_interrupted: 1 of 1 targets failed credential resolution: name:router1 (interrupted at the username prompt; policy=default)
 ```
 
 A script that runs karvi without a terminal sets the three variables, or
@@ -870,7 +870,7 @@ enable-var-template = "KARVI_%operator%_ENABLE_PASSWORD"
   the device at planning under the same code, naming the remedy:
 
   ```text
-  config_credential_backend_variable_invalid: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend e: password-var-template gives "KARVI_netops.adm_PASSWORD", not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform policy=default backend=e)
+  config_credential_backend_variable_invalid: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend e: password-var-template gives "KARVI_netops.adm_PASSWORD", not a variable name (letters, digits, underscores; no leading digit); remedy: replace-chars in the backend's operator transform; policy=default backend=e)
   ```
 - **One credential per operator.** Nothing in a template names the device, so
   every device the policy sends to the backend takes the same credential. A
@@ -935,7 +935,7 @@ backend-sequence = ["vault"]
   it:
 
   ```text
-  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: token-env: VAULT_TOKEN not set policy=default backend=v)
+  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: token-env: VAULT_TOKEN not set; policy=default backend=v)
   ```
 
   A token the store refuses is `vault_http_error` (`Vault returned HTTP 403`)
@@ -947,7 +947,7 @@ backend-sequence = ["vault"]
   the record, the field, and the variable:
 
   ```text
-  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: v1/secret/data/karvi/netops enable_password: NETENABLE not set policy=default backend=v)
+  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend v: v1/secret/data/karvi/netops enable_password: NETENABLE not set; policy=default backend=v)
   ```
 
   A rest that is no variable name is the record's form wrong,
@@ -999,7 +999,7 @@ auth-password-env = "REDIS_PASS"
   the device before any connection:
 
   ```text
-  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend r: auth-password-env: REDIS_PASS not set policy=default backend=r)
+  credential_env_missing: client planning: 1 of 1 targets failed credential resolution: name:d1 (credential backend r: auth-password-env: REDIS_PASS not set; policy=default backend=r)
   ```
 
   A password the server refuses is `redis_auth_failed`, exit 6. With neither
@@ -1065,7 +1065,7 @@ the client trusts is the backend's:
   before anything is sent:
 
   ```text
-  vault_unavailable: client planning: 1 of 1 targets failed credential resolution: name:d1 (Get "https://127.0.0.1:8202/v1/secret/data/karvi/netops": tls: failed to verify certificate: x509: certificate signed by unknown authority policy=default backend=v)
+  vault_unavailable: client planning: 1 of 1 targets failed credential resolution: name:d1 (Get "https://127.0.0.1:8202/v1/secret/data/karvi/netops": tls: failed to verify certificate: x509: certificate signed by unknown authority; policy=default backend=v)
   ```
 
 - **`tls-verify = false`** checks neither the chain nor the name; the
@@ -1778,9 +1778,9 @@ first run that needs it, in the root's group. One that exists but the
 operator cannot use is passed by with one warning naming it and the
 private place taken: `shared scoreboard directory unavailable`, or
 `capacity_root_unusable` in `shared capacity root unavailable`, whose
-message names the shape it needs. A scratch root an earlier release left
-behind (0700, the first operator's) is set right by `sudo karvi setup
-shared`, which reports it `repaired`.
+message names the shape it needs, or a link in it to remove. A scratch root
+an earlier release left behind (0700, the first operator's) is set right by
+`sudo karvi setup shared`, which reports it `repaired`.
 
 **The operators' roots.** Once `/opt/karvi/users` exists, an operator's
 first activity that needs the private root creates

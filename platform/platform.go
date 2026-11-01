@@ -205,7 +205,7 @@ func (d *Definition) Validate() error {
 		d.Fallback = DefaultFallback()
 	}
 	if err := CheckFallback(d.Fallback); err != nil {
-		return errorcodes.Errorf("config_platform_fallback_invalid", "platform %s: %s", d.Name, strings.TrimPrefix(err.Error(), "config_platform_fallback_invalid: "))
+		return errorcodes.Errorf("config_platform_fallback_invalid", "platform %s: %s", d.Name, errorcodes.Text(err))
 	}
 	return nil
 }

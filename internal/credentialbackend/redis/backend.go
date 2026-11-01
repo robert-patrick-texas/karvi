@@ -230,5 +230,5 @@ func malformed(err error) credentials.BackendResult {
 // ErrorCode, the error's text after it in Message, so the result's text
 // writes the code once.
 func coded(code string, err error) credentials.BackendResult {
-	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: strings.TrimPrefix(errorcodes.Message(err), code+": ")}
+	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: errorcodes.Text(err)}
 }

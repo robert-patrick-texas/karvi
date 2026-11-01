@@ -75,3 +75,28 @@ func TestExitForUsesRegistryThenFallback(t *testing.T) {
 		t.Fatalf("uncoded error should use fallback; got %d", got)
 	}
 }
+
+// TestTextIsTheMessageAfterItsCode: Text is Message's text after its code,
+// the code written however often, through any wrapping, and an uncoded
+// error's whole text.
+func TestTextIsTheMessageAfterItsCode(t *testing.T) {
+	cases := []struct {
+		err  error
+		want string
+	}{
+		{Errorf("capacity_root_unusable", "/srv/cap/server.lock is a link, not a file; remove it"), "/srv/cap/server.lock is a link, not a file; remove it"},
+		{Errorf("cloginrc_malformed", "%w", Errorf("cloginrc_malformed", "router1.rc:2: unmatched open brace")), "router1.rc:2: unmatched open brace"},
+		{fmt.Errorf("router1: %w", Errorf("dns_timeout", "lookup timed out")), "router1: lookup timed out"},
+		{Ensure(errors.New("open /srv/cap/server.lock: permission denied"), "capacity_root_unusable"), "open /srv/cap/server.lock: permission denied"},
+		{errors.New("dns_timeout: lookup timed out"), "lookup timed out"},
+		{testCodedError{"host_key_changed"}, "message without prefix"},
+		{errors.New("unregistered_code: text"), "unregistered_code: text"},
+		{errors.New("plain failure"), "plain failure"},
+		{nil, ""},
+	}
+	for _, tc := range cases {
+		if got := Text(tc.err); got != tc.want {
+			t.Errorf("Text(%v) = %q, want %q", tc.err, got, tc.want)
+		}
+	}
+}

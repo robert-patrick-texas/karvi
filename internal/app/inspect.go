@@ -192,7 +192,7 @@ func (cd *clientDraft) inspectionReport(activityID string, daemons []executionpl
 		} else {
 			intendedPing.Capability = records.CheckUnavailable
 			err := errorcodes.Errorf("icmp_capability_unavailable", "the ICMP gate is enabled but %s; a live run would refuse the job at commit", capability.Reason)
-			pingFinding = &executionplan.Finding{Code: errorcodes.Of(err), Severity: executionplan.SeverityWarning, Stage: "ping", Message: strings.TrimPrefix(err.Error(), errorcodes.Of(err)+": ")}
+			pingFinding = &executionplan.Finding{Code: errorcodes.Of(err), Severity: executionplan.SeverityWarning, Stage: "ping", Message: errorcodes.Text(err)}
 		}
 	}
 	targets := make([]records.TargetReport, 0, len(draft.Targets))

@@ -241,7 +241,7 @@ its reference, and nothing else.
   lockouts, with nothing naming the cause.
 
 ```
-credkeyref_unresolved: 1 of 1 targets failed credential resolution: name:sw-nyc-09 (device sw-nyc-09: credkeyref "break-glas": no keyed backend answered (asked: site-creds; skipped, unkeyed: none) policy=default)
+credkeyref_unresolved: 1 of 1 targets failed credential resolution: name:sw-nyc-09 (device sw-nyc-09: credkeyref "break-glas": no keyed backend answered (asked: site-creds; skipped, unkeyed: none); policy=default)
 ```
 
 (Run with `NETUSER` and `NETPASS` set and [section 1](#1-a-file-end-to-end)'s
@@ -317,7 +317,7 @@ With `NETPASS` and `NETENABLE` exported and `NETPASS_NYC` not, a run on
 `sw-nyc-01` and `sw-bos-01` is refused:
 
 ```text
-credential_env_missing: 1 of 2 targets failed credential resolution: name:sw-nyc-01 (credential backend site-creds: …/credentials.csv:2 password: NETPASS_NYC not set policy=default backend=site-creds)
+credential_env_missing: 1 of 2 targets failed credential resolution: name:sw-nyc-01 (credential backend site-creds: …/credentials.csv:2 password: NETPASS_NYC not set; policy=default backend=site-creds)
 ```
 
 The variable exported and empty says `NETPASS_NYC empty`. A run on
@@ -481,7 +481,7 @@ row taken as the header; the usual symptom is the mandatory-field message.
 Declare `mode = "numeric"` and the column numbers.
 
 When the failure is one target's, the message is wrapped as `client
-planning: N of M targets failed credential resolution: TARGET (...
+planning: N of M targets failed credential resolution: TARGET (...;
 policy=POLICY backend=BACKEND)`; a run whose every device the file serves
 fails the same way, since the file is read once.
 

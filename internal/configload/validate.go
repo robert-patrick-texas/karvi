@@ -156,7 +156,7 @@ func (l *loader) semanticErr(fallback, key string, err error) error {
 	if code == "" {
 		code = fallback
 	}
-	return l.semantic(code, key, strings.TrimPrefix(errorcodes.Message(err), code+": "))
+	return l.semantic(code, key, errorcodes.Text(err))
 }
 
 var transportNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
@@ -789,7 +789,7 @@ func (l *loader) validatePlatformTables() error {
 				words = append(words, item.(string))
 			}
 			if err := platform.CheckFallback(words); err != nil {
-				return l.dynamicErr("config_platform_fallback_invalid", key+".fallback", strings.TrimPrefix(err.Error(), "config_platform_fallback_invalid: "))
+				return l.dynamicErr("config_platform_fallback_invalid", key+".fallback", errorcodes.Text(err))
 			}
 		}
 		// Every crun-filters pattern compiles (12.19 rule 1), refused here

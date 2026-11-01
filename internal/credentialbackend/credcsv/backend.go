@@ -166,10 +166,7 @@ func (b *Backend) read(ctx context.Context, path string) (*table, error) {
 		}
 		// The reason is the reader's text without its tabular_* code: one
 		// message, one code, and a search for the code finds this cause.
-		reason := err.Error()
-		if code := errorcodes.Of(err); code != "" {
-			reason = strings.TrimPrefix(reason, code+": ")
-		}
+		reason := errorcodes.Text(err)
 		// The reader quotes a duplicated header. In a file with no header
 		// row read under header mode the "header" is the first credential
 		// row, and a row whose username and password are equal would put

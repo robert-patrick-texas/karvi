@@ -481,19 +481,22 @@ func plantLink(t *testing.T, at, kind string) func() {
 
 // TestLedgerLockLinkIsRefused: a link at a lock's name in a shared root,
 // to a file this operator owns at 0600 or to nothing, is refused, never
-// opened through: at the server lock an explicit root is
-// capacity_root_unusable, at a device lock the lease and the assessment
-// fail naming the lock, and the link's target keeps its mode, or is not
-// made.
+// opened through: at the server lock an explicit root, and at a device lock
+// the lease and the assessment, are capacity_root_unusable, the message
+// naming the link and its removal; the link's target keeps its mode, or is
+// not made.
 func TestLedgerLockLinkIsRefused(t *testing.T) {
+	refusal := func(lock string) string {
+		return "capacity_root_unusable: " + lock + " is a link, not a file; remove it"
+	}
 	for _, kind := range []string{"file", "dangling"} {
 		t.Run(kind+"/server", func(t *testing.T) {
 			root := sharedRoot(t)
 			lock := filepath.Join(root, "server.lock")
 			stands := plantLink(t, lock, kind)
 			_, err := New(root, "", "", "job", 4, nil)
-			if errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), lock) {
-				t.Errorf("New: %v", err)
+			if errorcodes.Of(err) != "capacity_root_unusable" || errorcodes.Message(err) != refusal(lock) {
+				t.Errorf("New: %v\nwant %s", err, refusal(lock))
 			}
 			stands()
 		})
@@ -514,11 +517,11 @@ func TestLedgerLockLinkIsRefused(t *testing.T) {
 				t.Fatal(err)
 			}
 			stands := plantLink(t, lock, kind)
-			if _, err := m.Acquire(context.Background(), "router1", 2); err == nil || !strings.Contains(err.Error(), lock) {
-				t.Errorf("Acquire: %v", err)
+			if _, err := m.Acquire(context.Background(), "router1", 2); errorcodes.Of(err) != "capacity_root_unusable" || errorcodes.Message(err) != refusal(lock) {
+				t.Errorf("Acquire: %v\nwant %s", err, refusal(lock))
 			}
-			if _, err := m.Assess(map[string]int{"router1": 2}); err == nil || !strings.Contains(err.Error(), lock) {
-				t.Errorf("Assess: %v", err)
+			if _, err := m.Assess(map[string]int{"router1": 2}); errorcodes.Of(err) != "capacity_root_unusable" || errorcodes.Message(err) != refusal(lock) {
+				t.Errorf("Assess: %v\nwant %s", err, refusal(lock))
 			}
 			stands()
 		})
@@ -528,9 +531,13 @@ func TestLedgerLockLinkIsRefused(t *testing.T) {
 // TestLedgerDevicesLinkIsRefused: below a shared root, devices must be a
 // real folder. A link there, to a folder this operator owns or to nothing,
 // and a file there make an explicit root capacity_root_unusable, in New
-// and in Place alike, naming devices; a link put there after New fails the
-// lease. Nothing is made, or set to another mode, where a link points.
+// and in Place alike, naming devices; New's refusal of a link, and the
+// lease's of a link put there after New, name the link and its removal.
+// Nothing is made, or set to another mode, where a link points.
 func TestLedgerDevicesLinkIsRefused(t *testing.T) {
+	refusal := func(devices string) string {
+		return "capacity_root_unusable: " + devices + " is a link, not a folder; remove it"
+	}
 	// elsewhere is a folder of this operator's at 0700, holding nothing,
 	// and a check that it stays so.
 	elsewhere := func(t *testing.T) (string, func()) {
@@ -592,6 +599,9 @@ func TestLedgerDevicesLinkIsRefused(t *testing.T) {
 			if errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), devices) {
 				t.Errorf("New: %v", err)
 			}
+			if kind != "file" && errorcodes.Message(err) != refusal(devices) {
+				t.Errorf("New: %v\nwant %s", err, refusal(devices))
+			}
 			if _, err := Place(root, "", ""); errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), devices) {
 				t.Errorf("Place: %v", err)
 			}
@@ -612,8 +622,8 @@ func TestLedgerDevicesLinkIsRefused(t *testing.T) {
 		if err := os.Symlink(dir, devices); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := m.Acquire(context.Background(), "router1", 2); err == nil || !strings.Contains(err.Error(), devices) {
-			t.Errorf("Acquire: %v", err)
+		if _, err := m.Acquire(context.Background(), "router1", 2); errorcodes.Of(err) != "capacity_root_unusable" || errorcodes.Message(err) != refusal(devices) {
+			t.Errorf("Acquire: %v\nwant %s", err, refusal(devices))
 		}
 		stands()
 	})

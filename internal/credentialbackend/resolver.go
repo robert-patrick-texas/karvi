@@ -36,15 +36,25 @@ type Error struct {
 	Retryable                      bool
 }
 
+// Error is the code and ": ", then the message and the fields (policy=P
+// backend=B, joined by a space), the two set apart by "; " where both are
+// present.
 func (e *Error) Error() string {
-	parts := []string{e.Code + ": " + e.Message}
+	var fields []string
 	if e.Policy != "" {
-		parts = append(parts, "policy="+e.Policy)
+		fields = append(fields, "policy="+e.Policy)
 	}
 	if e.Backend != "" {
-		parts = append(parts, "backend="+e.Backend)
+		fields = append(fields, "backend="+e.Backend)
 	}
-	return strings.Join(parts, " ")
+	text := e.Message
+	if len(fields) > 0 {
+		if text != "" {
+			text += "; "
+		}
+		text += strings.Join(fields, " ")
+	}
+	return e.Code + ": " + text
 }
 
 // ErrorCode returns the registered error code.

@@ -445,3 +445,36 @@ func TestFileBackendFailureWritesItsCodeOnce(t *testing.T) {
 		}
 	}
 }
+
+// TestErrorSetsItsFieldsApartFromItsMessage: a credential refusal is its
+// code, its message, and then its fields after "; ", policy= and backend=
+// joined by a space, so a message in prose does not read on into them. A
+// missing message or missing fields leave no separator behind; the text
+// always opens with the code and ": ", as errorcodes.Message renders it.
+func TestErrorSetsItsFieldsApartFromItsMessage(t *testing.T) {
+	for _, tc := range []struct {
+		err  Error
+		want string
+	}{
+		{Error{Code: "cloginrc_malformed", Message: "LAB/cloginrc:2: the password is not a Tcl list: unmatched open quote", Policy: "default", Backend: "clogin"},
+			"cloginrc_malformed: LAB/cloginrc:2: the password is not a Tcl list: unmatched open quote; policy=default backend=clogin"},
+		{Error{Code: "credential_prompt_interrupted", Message: "interrupted at the username prompt", Policy: "default"},
+			"credential_prompt_interrupted: interrupted at the username prompt; policy=default"},
+		{Error{Code: "credential_env_missing", Message: "NETPASS not set", Backend: "site-creds"},
+			"credential_env_missing: NETPASS not set; backend=site-creds"},
+		{Error{Code: "credential_incomplete", Message: "username is required"},
+			"credential_incomplete: username is required"},
+		{Error{Code: "credential_backend_error", Policy: "default", Backend: "vault1"},
+			"credential_backend_error: policy=default backend=vault1"},
+		{Error{Code: "credential_backend_error"},
+			"credential_backend_error: "},
+	} {
+		err := tc.err
+		if got := err.Error(); got != tc.want {
+			t.Errorf("%+v:\n%s\nwant\n%s", tc.err, got, tc.want)
+		}
+		if got := errorcodes.Message(&err); got != tc.want {
+			t.Errorf("errorcodes.Message of %+v:\n%s\nwant\n%s", tc.err, got, tc.want)
+		}
+	}
+}

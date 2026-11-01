@@ -295,7 +295,7 @@ func (l *loader) processFile(path, layer string, authority bool, includeDepth, d
 				if code == "" {
 					code = "config_include_path"
 				}
-				return newError(code, strings.TrimPrefix(errorcodes.Message(e), code+": "), "", SourceRef{Layer: layer, Path: canonical, Line: d.Line}, nil)
+				return newError(code, errorcodes.Text(e), "", SourceRef{Layer: layer, Path: canonical, Line: d.Line}, nil)
 			}
 			resolved = expanded
 		} else if !filepath.IsAbs(resolved) {

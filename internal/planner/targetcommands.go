@@ -64,7 +64,7 @@ func targetCommandLists(cfg configload.Snapshot, targets []executionplan.Executi
 			continue
 		}
 		if code := errorcodes.Of(err); code != "" {
-			return nil, errorcodes.Errorf(code, "%s: %s", t.Device.CanonicalName, strings.TrimPrefix(err.Error(), code+": "))
+			return nil, errorcodes.Errorf(code, "%s: %s", t.Device.CanonicalName, errorcodes.Text(err))
 		} else if err != nil {
 			return nil, err
 		}

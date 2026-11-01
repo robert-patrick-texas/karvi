@@ -198,6 +198,21 @@ func Message(err error) string {
 	return code + ": " + strings.TrimSpace(strings.ReplaceAll(msg, code+": ", ""))
 }
 
+// Text is err's message without its leading code: Message's text after
+// "code: ", or the whole text of an error that carries no code. A record
+// or result that keeps the code in its own field carries this text beside
+// it, so the code is written once.
+func Text(err error) string {
+	if err == nil {
+		return ""
+	}
+	code := Of(err)
+	if code == "" {
+		return err.Error()
+	}
+	return strings.TrimPrefix(Message(err), code+": ")
+}
+
 func isActive(code string) bool {
 	e, ok := index[code]
 	return ok && e.Status == Active

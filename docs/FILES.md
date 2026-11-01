@@ -313,7 +313,8 @@ reader never sees half a file; its group is the directory's. It is read only
 from a regular file, never through a link or from a FIFO, and at most 16 MiB of
 it; anything else under its name is a ledger that cannot be read, an error,
 never an empty ledger. A lock is never opened or made through a link, and
-`devices` must be a real folder: a link at either's name is refused, nothing
+`devices` must be a real folder: a link at either's name is refused
+(`capacity_root_unusable`, the message naming the link to remove), nothing
 made or changed where it points; a link at the ledger's root is the site's and
 is followed. A lease names its job, process, start time, and boot, and an entry
 whose process is gone is dropped at the next change, so a stopped job or a

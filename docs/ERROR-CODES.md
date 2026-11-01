@@ -81,7 +81,7 @@ Active failure causes.
 | `capacity_admission_failed` | capacity | 110 | yes | A device session slot cannot be acquired before the activity is cancelled. |
 | `capacity_ledger_malformed` | dependency | 8 | no | A capacity ledger file is not valid JSON. |
 | `capacity_root_blank` | internal | 1 | no | The capacity manager was given a blank root directory. |
-| `capacity_root_unusable` | permission | 9 | no | The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, or a directory or lock file closed to the operator. The private fallback is taken with a warning naming the cause. |
+| `capacity_root_unusable` | permission | 9 | no | The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, a directory or lock file closed to the operator, or a link at a lock's or the devices folder's name. Under `auto` the private fallback is taken with a warning naming the cause; a named root is refused. |
 | `channel_exec_declaration_refused` | usage | 4 | no | A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted. |
 | `channel_exec_over_telnet` | dependency | 8 | no | A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
