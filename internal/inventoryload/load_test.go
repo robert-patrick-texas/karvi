@@ -2,11 +2,14 @@ package inventoryload
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/netip"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
@@ -115,6 +118,116 @@ func TestV0100DuplicateRowsCompareAuthorityAndAlternates(t *testing.T) {
 		if tc.code == "" && len(devices) != 1 {
 			t.Errorf("%s: devices=%d, want 1", tc.name, len(devices))
 		}
+	}
+}
+
+// TestDuplicateRowsAgreeOnEveryField: two rows for one device become one
+// only when they agree on every field the device keeps; a row that differs
+// from the other in one field alone (a set field against a blank one
+// included) is an inventory_conflict.
+func TestDuplicateRowsAgreeOnEveryField(t *testing.T) {
+	const header = "name,management_address,name_transform,transport,session_cap,risk_tier,deployment_ring,topology_domain,owner\n"
+	const row = "router1,10.0.0.1,lower,native,4,high,canary,east,team-a\n"
+	keys := []string{`mappings.attributes.owner = "owner"`, "[name-transform.lower]\noperations = [{op = \"lowercase\"}]"}
+	for _, tc := range []struct{ name, second string }{
+		{"session_cap differs", "router1,10.0.0.1,lower,native,8,high,canary,east,team-a\n"},
+		{"session_cap against a blank one", "router1,10.0.0.1,lower,native,,high,canary,east,team-a\n"},
+		{"name differs, canonical name the same", "Router1,10.0.0.1,lower,native,4,high,canary,east,team-a\n"},
+		{"name_transform differs", "router1,10.0.0.1,default,native,4,high,canary,east,team-a\n"},
+		{"transport named against the mode default", "router1,10.0.0.1,lower,,4,high,canary,east,team-a\n"},
+		{"risk_tier differs", "router1,10.0.0.1,lower,native,4,low,canary,east,team-a\n"},
+		{"deployment_ring differs", "router1,10.0.0.1,lower,native,4,high,general,east,team-a\n"},
+		{"topology_domain differs", "router1,10.0.0.1,lower,native,4,high,canary,west,team-a\n"},
+		{"an attribute differs", "router1,10.0.0.1,lower,native,4,high,canary,east,team-b\n"},
+		{"an attribute against a blank one", "router1,10.0.0.1,lower,native,4,high,canary,east,\n"},
+	} {
+		devices, err := loadCSV(t, header+row+tc.second, keys...)
+		if errorcodes.Of(err) != "inventory_conflict" {
+			t.Errorf("%s: code=%q err=%v devices=%d, want inventory_conflict", tc.name, errorcodes.Of(err), err, len(devices))
+			continue
+		}
+		if msg := err.Error(); !strings.Contains(msg, "inv.csv:2") || !strings.Contains(msg, "inv.csv:3") {
+			t.Errorf("%s: the message does not name both lines: %s", tc.name, msg)
+		}
+	}
+	devices, err := loadCSV(t, header+row+row, keys...)
+	if err != nil || len(devices) != 1 {
+		t.Fatalf("identical rows: err=%v devices=%d, want one device", err, len(devices))
+	}
+	if d := devices[0]; d.SessionCap == nil || *d.SessionCap != 4 || d.Attributes["owner"] != "team-a" || d.CanonicalName != "router1" {
+		t.Fatalf("identical rows: %+v", d)
+	}
+}
+
+// TestDigestAndRowsComeFromOneRead: the source's digest is the digest of
+// the bytes its devices were parsed from, even when the path names other
+// content once the file has been opened. The path is a symlink to a FIFO;
+// once the loader has opened it, the symlink is moved to a regular file and
+// only then is the FIFO's content written, so a second open of the path
+// would read the other file.
+func TestDigestAndRowsComeFromOneRead(t *testing.T) {
+	dir := t.TempDir()
+	fifo := filepath.Join(dir, "first.fifo")
+	if err := syscall.Mkfifo(fifo, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	first := "name\nrouter1\n"
+	later := filepath.Join(dir, "later.csv")
+	if err := os.WriteFile(later, []byte("name\nswitch1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "inv.csv")
+	if err := os.Symlink(fifo, path); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		f, err := os.OpenFile(fifo, os.O_WRONLY, 0) // returns once a reader has opened the FIFO
+		if err != nil {
+			done <- err
+			return
+		}
+		moved := filepath.Join(dir, "inv.csv.new")
+		if err = os.Symlink(later, moved); err == nil {
+			err = os.Rename(moved, path)
+		}
+		if _, werr := f.WriteString(first); err == nil {
+			err = werr
+		}
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+		done <- err
+	}()
+	cfgPath := filepath.Join(dir, "karvi.toml")
+	toml := "[[inventory-source]]\nname = \"t\"\ntype = \"csv\"\npath = \"" + path + "\"\nrequired = true\n"
+	if err := os.WriteFile(cfgPath, []byte(toml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := configload.Load(configload.Options{ExplicitRoots: []string{cfgPath}, HomeDir: dir, SkipAuto: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	devices, prov, loadErr := Loader{Config: cfg, Home: dir}.Load(context.Background())
+	// A writer still waiting for its reader (a load that failed before it
+	// opened the file) is released by one that opens without blocking.
+	release, err := os.OpenFile(fifo, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	_ = release.Close()
+	if loadErr != nil {
+		t.Fatal(loadErr)
+	}
+	sum := sha256.Sum256([]byte(first))
+	if len(prov.Sources) != 1 || prov.Sources[0].Digest != hex.EncodeToString(sum[:]) {
+		t.Fatalf("digest %+v, want the first content's %x", prov.Sources, sum)
+	}
+	if len(devices) != 1 || devices[0].Name != "router1" {
+		t.Fatalf("devices %+v, want router1 alone, from the bytes the digest covers", devices)
 	}
 }
 

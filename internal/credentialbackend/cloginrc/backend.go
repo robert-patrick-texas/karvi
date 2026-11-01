@@ -109,13 +109,54 @@ func first(rs []record, directive, name string) *record {
 	}
 	return nil
 }
+
+// match reports whether the device name matches a record's pattern. A
+// pattern that cannot match was refused when the file was loaded
+// (canMatch), so Match reports no error here.
 func match(pattern, name string) bool {
-	pattern = normalizeNegatedClass(strings.ToLower(pattern))
-	name = strings.ToLower(name)
-	ok, _ := filepath.Match(pattern, name)
+	ok, _ := filepath.Match(glob(pattern), strings.ToLower(name))
 	return ok
 }
+
+// glob is a record's pattern as match compares it: lowercased, with a class
+// opened by "[!" negated as by "[^".
+func glob(pattern string) string            { return normalizeNegatedClass(strings.ToLower(pattern)) }
 func normalizeNegatedClass(s string) string { return strings.ReplaceAll(s, "[!", "[^") }
+
+// canMatch reports whether filepath.Match can match the pattern against any
+// name. Match checks only the parts of a pattern it reaches, each run of
+// text between stars, so each run is checked on its own; a run with an
+// unterminated class, a bad range, or a trailing backslash is an error for
+// every name. The runs are cut as Match cuts them: at a star outside a
+// class and not escaped.
+func canMatch(pattern string) bool {
+	for pattern != "" {
+		pattern = strings.TrimLeft(pattern, "*")
+		i, inClass := 0, false
+	run:
+		for ; i < len(pattern); i++ {
+			switch pattern[i] {
+			case '\\':
+				if i+1 < len(pattern) {
+					i++
+				}
+			case '[':
+				inClass = true
+			case ']':
+				inClass = false
+			case '*':
+				if !inClass {
+					break run
+				}
+			}
+		}
+		if _, err := filepath.Match(pattern[:i], ""); err != nil {
+			return false
+		}
+		pattern = pattern[i:]
+	}
+	return true
+}
 
 // flatten reads one file and its includes in physical order. root marks
 // the configured file, whose unavailability is classified by the caller;
@@ -234,6 +275,9 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 			}
 			continue
 		}
+		if !canMatch(glob(pattern)) {
+			return nil, fmt.Errorf("%s:%d: add %s pattern cannot match", canonical, line, d)
+		}
 		out = append(out, record{Directive: d, Pattern: pattern, Values: values, Path: canonical, Line: line})
 	}
 	if err := s.Err(); err != nil {
@@ -279,6 +323,10 @@ func skipSpace(s string, i int) int {
 	}
 	return i
 }
+
+// parseBraced reads a braced word as Tcl does: no substitution inside the
+// braces, so a backslash and the byte after it are kept as they stand, and
+// an escaped brace does not count toward the nesting.
 func parseBraced(s string, i int) (string, int, error) {
 	i++
 	depth := 1
@@ -289,7 +337,7 @@ func parseBraced(s string, i int) (string, int, error) {
 			if i+1 >= len(s) {
 				return "", i, fmt.Errorf("unfinished escape")
 			}
-			b.WriteByte(s[i+1])
+			b.WriteString(s[i : i+2])
 			i += 2
 			continue
 		}

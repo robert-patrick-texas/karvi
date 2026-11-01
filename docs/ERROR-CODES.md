@@ -107,7 +107,7 @@ Active failure causes.
 | `cloginrc_include_home_in_shared` | credential | 6 | no | A shared-scope `.cloginrc` file includes from a home directory, which would read differently per operator. |
 | `cloginrc_include_other_user_forbidden` | credential | 6 | no | A `.cloginrc` include uses `~otheruser`. |
 | `cloginrc_include_unavailable` | credential | 6 | no | A `.cloginrc` include names a file that cannot be read; includes are never optional. |
-| `cloginrc_malformed` | credential | 6 | no | The `.cloginrc` file cannot be read or has invalid syntax: continuation lines, unsupported statements, wrong value counts, unfinished escapes, or unterminated braces. |
+| `cloginrc_malformed` | credential | 6 | no | The `.cloginrc` file cannot be read or has invalid syntax: continuation lines, unsupported statements, wrong value counts, unfinished escapes, unterminated braces, or a pattern that cannot match. |
 | `cloginrc_tcl_substitution_forbidden` | credential | 6 | no | A `.cloginrc` value uses Tcl substitution or command chaining. |
 | `cloginrc_unknown_directive` | credential | 6 | no | The `.cloginrc` file contains a directive karvi does not recognize. |
 | `command_exit_missing` | device | 107 | no | An exec channel closed without an exit status or a signal while its connection stayed up; `exit_status` and `exit_signal` are null. |

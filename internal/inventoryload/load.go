@@ -3,6 +3,7 @@
 package inventoryload
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -107,13 +109,10 @@ func (l Loader) readFile(ctx context.Context, index int, sourceName, path string
 	if err != nil {
 		return nil, inventory.SourceRef{}, errorcodes.Errorf("inventory_source_unreadable", "inventory source %s: %w", sourceName, err)
 	}
+	// The rows are parsed from the bytes the digest covers, so the source's
+	// digest names the content its devices came from.
 	sum := sha256.Sum256(data)
 	ref := inventory.SourceRef{Name: sourceName, Path: path, Digest: hex.EncodeToString(sum[:])}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, ref, errorcodes.Errorf("inventory_source_unreadable", "inventory source %s: %w", sourceName, err)
-	}
-	defer f.Close()
 	mode, _ := src["mode"].(string)
 	if mode == "" {
 		mode = "header"
@@ -167,7 +166,7 @@ func (l Loader) readFile(ctx context.Context, index int, sourceName, path string
 		mandatory = []string{"name"}
 	}
 	requested := append([]string(nil), fields...)
-	it, err := (tabular.CSVReader{}).Read(ctx, f, tabular.Spec{Delimiter: delim, Mode: mode, CommentPrefix: '#', Requested: requested, Aliases: aliases, Mandatory: mandatory, NumericMappings: numeric, Trim: true, MaxPhysicalLineBytes: l.Config.Int("tabular.max-physical-line-bytes"), Warn: func(s string) { l.warning(path + ": " + s) }, CheckHeader: func(column int, header string) error { return secretColumn(path, column, header) }})
+	it, err := (tabular.CSVReader{}).Read(ctx, bytes.NewReader(data), tabular.Spec{Delimiter: delim, Mode: mode, CommentPrefix: '#', Requested: requested, Aliases: aliases, Mandatory: mandatory, NumericMappings: numeric, Trim: true, MaxPhysicalLineBytes: l.Config.Int("tabular.max-physical-line-bytes"), Warn: func(s string) { l.warning(path + ": " + s) }, CheckHeader: func(column int, header string) error { return secretColumn(path, column, header) }})
 	if err != nil {
 		return nil, ref, fmt.Errorf("inventory source %s: %w", sourceName, err)
 	}
@@ -314,26 +313,19 @@ func rowDevice(v map[string]string, ref inventory.SourceRef, line int, src map[s
 	}
 	return d, nil
 }
+
+// sameDevice reports whether two rows for one device agree on every field
+// the device keeps from a row (the session cap, the attributes, and whether
+// the row named its transport included), so that the first can stand for
+// both: they may differ only in where they came from. Any other difference
+// is a conflict, not a duplicate to coalesce, since the device's values
+// would depend on file order. The pins compare folded, as keys do.
 func sameDevice(a, b inventory.Device) bool {
-	return a.ID == b.ID && a.CanonicalName == b.CanonicalName && a.ManagementAddress == b.ManagementAddress && a.Platform == b.Platform && a.Transport == b.Transport && a.Port == b.Port && a.Site == b.Site && strings.Join(a.Groups, "\x00") == strings.Join(b.Groups, "\x00") &&
-		a.AddressAuthority == b.AddressAuthority && sameAddrs(a.Alternates(), b.Alternates()) &&
-		// Two rows for one device that pin different keys are a conflict, not
-		// a duplicate to coalesce: which credential the device took would
-		// depend on file order. Keys compare folded.
-		matching.FoldKey(a.CredKeyRef) == matching.FoldKey(b.CredKeyRef)
+	a.Source, b.Source = inventory.SourceRef{}, inventory.SourceRef{}
+	a.CredKeyRef, b.CredKeyRef = matching.FoldKey(a.CredKeyRef), matching.FoldKey(b.CredKeyRef)
+	return reflect.DeepEqual(a, b)
 }
 
-func sameAddrs(a, b []netip.Addr) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
 func splitList(s string) []string {
 	f := func(r rune) bool { return r == ';' || r == '|' || r == ',' || r == ' ' || r == '\t' }
 	raw := strings.FieldsFunc(s, f)
@@ -369,17 +361,4 @@ func appendUnique(a []string, s string) []string {
 		}
 	}
 	return append(a, s)
-}
-
-func stringMap(m map[string]any, k string) string {
-	if v, ok := m[k].(string); ok {
-		return v
-	}
-	return ""
-}
-func firstNonEmpty(a, b string) string {
-	if a != "" {
-		return a
-	}
-	return b
 }

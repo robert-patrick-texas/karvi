@@ -204,6 +204,24 @@
   `(UTC+10)` and words such as `Jan` or `MST` printed as dates and zones, and
   `sss` after anything but `.` printed `000`; each token now writes its own
   digits and literal text is written as it stands.
+- **Breaking: two inventory rows for one device become one only when they
+  agree on every field.** Rows naming the same device were taken as one when
+  they agreed on the address, platform, transport, port, site, groups, and
+  key, and the first row's session cap, name transform, risk tier, deployment
+  ring, topology domain, and attributes stood for both, so the device's
+  values depended on the file's order. Any difference is now
+  `inventory_conflict` naming both lines; a row naming its transport and a
+  row leaving it to the mode's default differ, and a key still compares
+  folded. The source's digest and its rows come from one read, so the digest
+  names the bytes the devices came from.
+- **Breaking: `.cloginrc` keeps a backslash inside braces, and refuses a
+  pattern that cannot match.** A braced word dropped each backslash, so
+  `{pa\ss}` read as `pass`; inside braces a backslash and the character after
+  it are now kept, as clogin's Tcl reads them, so a password holding `\` in
+  braces reads as clogin reads it, and in a braced pattern a backslash escapes
+  the glob character after it. A pattern that could match no device
+  (`router\[12`, a trailing `\\`) was passed by, so a later `*` line answered;
+  the file is now refused `cloginrc_malformed` naming the line.
 
 ## 0.38.0 - 2026-10-28
 

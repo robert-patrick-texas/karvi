@@ -286,6 +286,77 @@ func TestReadOnce(t *testing.T) {
 	}
 }
 
+func secret(t *testing.T, r credentials.BackendResult) (password, enable string) {
+	t.Helper()
+	if r.Outcome != credentials.Success {
+		t.Fatalf("%+v", r)
+	}
+	_ = r.Credential.Material.WithPassword(func(v []byte) error { password = string(v); return nil })
+	_ = r.Credential.Material.WithEnablePassword(func(v []byte) error { enable = string(v); return nil })
+	return password, enable
+}
+
+// TestPatternThatCannotMatchIsRefused: a pattern no name can match (an
+// unterminated class reached through an escaped bracket, a trailing
+// backslash, a bad class after a star) fails the load with
+// cloginrc_malformed, naming the file and the line and never a value,
+// rather than passing every device on to a later line.
+func TestPatternThatCannotMatchIsRefused(t *testing.T) {
+	d := t.TempDir()
+	for _, tc := range []struct{ name, line string }{
+		{"an escaped bracket that opens a class", `add password router\[12 {pw-a}`},
+		{"a trailing backslash", `add password router\\ {pw-a}`},
+		{"a bad class after a star", `add password router*\[ {pw-a}`},
+		{"in add user", `add user router\[12 {svc.a}`},
+	} {
+		p := filepath.Join(d, "cloginrc")
+		write(t, p, "# lab\n"+tc.line+"\nadd user * {svc.default}\nadd password * {pw-default}\n", 0o600)
+		r := resolve(newBackend(t, d, p, credfile.ScopeUser, false), "router1")
+		if r.Outcome != credentials.Malformed || r.ErrorCode != "cloginrc_malformed" {
+			t.Errorf("%s: outcome %s, code %q, want cloginrc_malformed (%s)", tc.name, r.Outcome, r.ErrorCode, r.Message)
+			continue
+		}
+		if !strings.Contains(r.Message, p+":2") || strings.Contains(r.Message, "pw-") || strings.Contains(r.Message, "svc.") || strings.Contains(r.Message, "router") {
+			t.Errorf("%s: the message does not name the file and line alone: %s", tc.name, r.Message)
+		}
+		t.Logf("%s: %s: %s", tc.name, r.ErrorCode, r.Message)
+	}
+	// An escaped class that is complete loads and matches.
+	p := filepath.Join(d, "class")
+	write(t, p, "add password router\\[12\\] {pw-a}\nadd password * {pw-default}\n", 0o600)
+	if pw, _ := secret(t, resolve(newBackend(t, d, p, credfile.ScopeUser, false), "router2")); pw != "pw-a" {
+		t.Errorf("a complete class: password %q, want pw-a", pw)
+	}
+}
+
+// TestBracedValueKeepsBackslashes: inside braces a backslash and the byte
+// after it are kept, as Tcl keeps them (no backslash substitution inside
+// braces); an escaped brace still does not count toward the nesting. A bare
+// word drops the backslash, as Tcl's substitution does.
+func TestBracedValueKeepsBackslashes(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	write(t, p, "add password router-* {pa\\ss} {en\\}a\\{b\\\\}\nadd password switch-* pa\\ss\n", 0o600)
+	b := newBackend(t, d, p, credfile.ScopeUser, false)
+	if pw, en := secret(t, resolve(b, "router-1")); pw != `pa\ss` || en != `en\}a\{b\\` {
+		t.Errorf("braced: password %q, enable %q, want %q and %q", pw, en, `pa\ss`, `en\}a\{b\\`)
+	}
+	if pw, _ := secret(t, resolve(b, "switch-1")); pw != "pass" {
+		t.Errorf("bare: password %q, want %q", pw, "pass")
+	}
+	// A braced pattern keeps its backslash too, so an escaped bracket is a
+	// literal bracket for the match, as clogin's string match reads it.
+	q := filepath.Join(d, "pattern")
+	write(t, q, "add password {router\\[1\\]} {pw-a}\nadd password * {pw-default}\n", 0o600)
+	b = newBackend(t, d, q, credfile.ScopeUser, false)
+	if pw, _ := secret(t, resolve(b, "router[1]")); pw != "pw-a" {
+		t.Errorf("router[1]: password %q, want pw-a", pw)
+	}
+	if pw, _ := secret(t, resolve(b, "router1")); pw != "pw-default" {
+		t.Errorf("router1: password %q, want pw-default", pw)
+	}
+}
+
 func TestRejectCode(t *testing.T) {
 	if _, err := tokenize("add user * $USER"); err == nil {
 		t.Fatal("expected substitution rejection")
