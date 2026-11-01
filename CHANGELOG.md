@@ -182,7 +182,7 @@
   which skipped the device `icmp_unreachable`; it is now
   `icmp_capability_unavailable`, the device's own failure kept for a probe
   that was sent.
-- **Breaking: the configuration's TOML reads strings and integers as TOML
+- **Breaking: the configuration's TOML reads strings and numbers as TOML
   does.** A multi-line basic string decoded its escapes as Go does: a
   backslash ending a line became a literal `\n` rather than joining the lines,
   and Go's own escapes (`\x41`, `\101`, `\a`, `\v`) were accepted, while a
@@ -190,12 +190,17 @@
   the next line's `include` directive from the include scan. Strings now take
   TOML's escapes alone, a backslash ending a line drops the line break and the
   white space after it, and a `\u` or `\U` that is not a Unicode character is
-  refused in every string. An integer was read as Go reads one, so `010` was
-  8, `0022` 18, and `1__2`, `_1`, `-0x10`, and `0X10` were accepted; an
-  integer is now decimal with no leading zero, or hexadecimal, octal, or
-  binary only after a lowercase `0x`, `0o`, or `0b`, an underscore only
-  between two digits. A file that used any of these is refused
-  `config_toml_syntax` (`--set` and the environment by their own codes).
+  refused in every string, and one or two quotes just before a multi-line
+  string's closing delimiter belong to the string, as TOML says, where they
+  were refused. An integer was read as Go reads one, so `010` was 8, `0022`
+  18, and `1__2`, `_1`, `-0x10`, and `0X10` were accepted; an integer is now
+  decimal with no leading zero, or hexadecimal, octal, or binary only after a
+  lowercase `0x`, `0o`, or `0b`, an underscore only between two digits. A
+  float was read as Go reads one too, so `010.5`, `.5`, `5.`, `1__0.5`, and
+  `0x1.8p1` were accepted; a float is now decimal as TOML writes it, and
+  `inf`, `nan`, and a value beyond a 64-bit float are refused, as no key
+  takes one. A file that used any of these is refused `config_toml_syntax`
+  (`--set` and the environment by their own codes).
 - **Breaking: `display.timestamp` writes what its pattern says.** A lowercase
   `mm` with a date token on one side and a time token on the other was taken
   as minutes, so `dd-mm hh:mm` showed the minutes where the month belonged; it

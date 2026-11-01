@@ -1,6 +1,9 @@
 package tomlmini
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestParseCore(t *testing.T) {
 	s := `[config]
@@ -128,6 +131,106 @@ func TestIntegersAreTOMLIntegers(t *testing.T) {
 		}
 		if d, err := Parse([]byte("x = " + text + "\n")); err == nil {
 			t.Errorf("x = %s parsed as %v, want a syntax error", text, d.Root["x"])
+		}
+	}
+}
+
+func TestFloatsAreTOMLDecimalFloats(t *testing.T) {
+	good := map[string]float64{
+		"1.0": 1, "+1.0": 1, "-1.0": -1, "0.0": 0, "3.1415": 3.1415,
+		"-0.01": -0.01, "0.5": 0.5, "5e+22": 5e22, "1e06": 1e6, "-2E-2": -0.02,
+		"6.626e-34": 6.626e-34, "1E5": 1e5, "+1e5": 1e5, "0e0": 0, "0E+0": 0,
+		"1e-0": 1, "1.0e05": 1e5, "1_0.5": 10.5, "1.0_5": 1.05,
+		"224_617.445_991_228": 224617.445991228, "0.000_1": 0.0001,
+		"1e1_0": 1e10, "1.0e5_0": 1e50, "1.7976931348623157e308": 1.7976931348623157e308,
+		"4.9e-324": 4.9e-324,
+	}
+	for text, want := range good {
+		got, err := ParseValue(text)
+		if err != nil || got != want {
+			t.Errorf("ParseValue(%q) = %v, %v; want %g", text, got, err, want)
+		}
+		d, err := Parse([]byte("x = " + text + "\n"))
+		if err != nil || d.Root["x"] != want {
+			t.Errorf("x = %s parsed as %v, %v; want %g", text, d.Root["x"], err, want)
+		}
+	}
+	bad := []string{
+		"010.5", "00.5", "-01.5", "+00.0", "0_1.5", "01e5", "00e5",
+		"1__0.5", "1_.5", "_1.5", "1.5_", "1._5", "1.5__5", "1_e5",
+		"1e_5", "1e5_", "1e1__0", "1.5e+_5",
+		".5", "+.5", "-.5", "-.0", "5.", "0.", "1.e5", "0.e1",
+		"1e", "1e+", "1.5E", "1e+-5", "e5", "1.5e5.5", "1e5.0", "1.0.0", "1E5E5",
+		"++1.5", "+-1.5", "1.5f", "0x1.8p1", "0x1p-2",
+		"inf", "+inf", "-inf", "nan", "+nan", "-nan", "Inf", "NaN", "infinity",
+		"1e500", "-1e500", "1.8e308",
+	}
+	for _, text := range bad {
+		if v, err := ParseValue(text); err == nil {
+			t.Errorf("ParseValue(%q) = %v, want an error", text, v)
+		}
+		if d, err := Parse([]byte("x = " + text + "\n")); err == nil {
+			t.Errorf("x = %s parsed as %v, want a syntax error", text, d.Root["x"])
+		}
+	}
+	if v, err := ParseValue("-0.0"); err != nil || v != 0.0 || !math.Signbit(v.(float64)) {
+		t.Errorf("ParseValue(%q) = %v, %v; want negative zero", "-0.0", v, err)
+	}
+	if v, err := ParseValue("0x1e5"); err != nil || v != int64(0x1e5) {
+		t.Errorf("ParseValue(%q) = %v, %v; want the integer %d", "0x1e5", v, err, 0x1e5)
+	}
+}
+
+func TestMultilineStringsKeepQuotesBeforeTheClosingDelimiter(t *testing.T) {
+	good := map[string]any{
+		`x = """x""""`:             `x"`,
+		`x = """x"""""`:            `x""`,
+		`x = """"x"""`:             `"x`,
+		`x = """""x"""`:            `""x`,
+		`x = """"""`:               ``,
+		`x = """""""`:              `"`,
+		`x = """"""""`:             `""`,
+		"x = \"\"\"\nx\"\"\"\"":    `x"`,
+		"x = \"\"\"a\n\"b\"\"\"\"": "a\n\"b\"",
+		`x = """x\""""`:            `x"`,
+		`x = """x\"""""`:           `x""`,
+		`x = """x\\""""`:           `x\"`,
+		`x = """x"""" # c`:         `x"`,
+		`x = """"This," she said, "is just a pointless statement.""""`: `"This," she said, "is just a pointless statement."`,
+		`x = '''x''''`:   `x'`,
+		`x = '''x'''''`:  `x''`,
+		`x = ''''x'''`:   `'x`,
+		`x = '''''x'''`:  `''x`,
+		`x = ''''''`:     ``,
+		`x = '''''''`:    `'`,
+		`x = ''''''''`:   `''`,
+		"x = '''\nx''''": `x'`,
+		`x = ''''That,' she said, 'is still pointless.''''`: `'That,' she said, 'is still pointless.'`,
+	}
+	for text, want := range good {
+		if got, err := stringValue(text + "\n"); err != nil || got != want {
+			t.Errorf("%q = %q, %v; want %q", text, got, err, want)
+		}
+	}
+	d, err := Parse([]byte("x = [\"\"\"a\"\"\"\", '''b''''']\ny = {z = \"\"\"c\"\"\"\"\"}\n"))
+	if err != nil {
+		t.Error(err)
+	} else {
+		if got := d.Root["x"].([]any); len(got) != 2 || got[0] != `a"` || got[1] != `b''` {
+			t.Errorf("x = %q, want [%q %q]", got, `a"`, `b''`)
+		}
+		if got := d.Root["y"].(map[string]any)["z"]; got != `c""` {
+			t.Errorf("y.z = %q, want %q", got, `c""`)
+		}
+	}
+	bad := []string{
+		`x = """x""""""`, `x = """x"""""""`, `x = """""""""`, `x = """a"""" "`,
+		`x = """Here are three quotation marks: """."""`,
+		`x = '''x''''''`, `x = '''x'''''''`, `x = '''''''''`, `x = '''a'''' '`,
+	}
+	for _, text := range bad {
+		if d, err := Parse([]byte(text + "\n")); err == nil {
+			t.Errorf("%q parsed as %q, want a syntax error", text, d.Root["x"])
 		}
 	}
 }

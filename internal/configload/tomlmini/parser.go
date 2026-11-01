@@ -1,8 +1,9 @@
 // Package tomlmini implements the deliberately small TOML surface needed by
 // karvi's initial release. It supports tables, arrays of tables, dotted/quoted
-// keys, strings (including multiline), numbers, booleans, arrays, and inline
-// tables while preserving leaf source lines. Unsupported TOML constructs fail
-// explicitly rather than being guessed.
+// keys, strings (including multiline), integers and decimal floats (not inf
+// or nan), booleans, arrays, and inline tables while preserving leaf source
+// lines. Unsupported TOML constructs fail explicitly rather than being
+// guessed.
 package tomlmini
 
 import (
@@ -216,8 +217,9 @@ func cleanLine(line string, state lexState) (string, lexState, error) {
 			i++
 		case 'B':
 			if strings.HasPrefix(line[i:], `"""`) && !state.escaped {
-				b.WriteString(`"""`)
-				i += 3
+				n := MultilineCloseLen(line[i:])
+				b.WriteString(line[i : i+n])
+				i += n
 				state.mode = 0
 				continue
 			}
@@ -230,8 +232,9 @@ func cleanLine(line string, state lexState) (string, lexState, error) {
 			i++
 		case 'L':
 			if strings.HasPrefix(line[i:], `'''`) {
-				b.WriteString(`'''`)
-				i += 3
+				n := MultilineCloseLen(line[i:])
+				b.WriteString(line[i : i+n])
+				i += n
 				state.mode = 0
 				continue
 			}
@@ -617,6 +620,7 @@ func (p *valueParser) multilineBasic() (any, error) {
 	if end < 0 {
 		return nil, p.err("unterminated multiline string")
 	}
+	end += MultilineCloseLen(p.s[end:]) - 3
 	var b strings.Builder
 	for p.i < end {
 		c := p.s[p.i]
@@ -658,9 +662,23 @@ func (p *valueParser) multilineLiteral() (any, error) {
 	if end < 0 {
 		return nil, p.err("unterminated multiline literal")
 	}
-	v := p.s[p.i : p.i+end]
-	p.i += end + 3
+	end += p.i
+	end += MultilineCloseLen(p.s[end:]) - 3
+	v := p.s[p.i:end]
+	p.i = end + 3
 	return v, nil
+}
+
+// MultilineCloseLen returns the bytes taken at the start of s, which begins
+// with a multi-line string's closing delimiter (three of one quote), by the
+// delimiter and the one or two quotes of the same kind TOML lets stand just
+// before it as the string's last characters.
+func MultilineCloseLen(s string) int {
+	n := 3
+	for n < 5 && n < len(s) && s[n] == s[0] {
+		n++
+	}
+	return n
 }
 func findUnescapedTriple(s string, start int, triple string) int {
 	for i := start; i+3 <= len(s); i++ {
@@ -796,12 +814,8 @@ func (p *valueParser) atom() (any, error) {
 	case "false":
 		return false, nil
 	}
-	clean := strings.ReplaceAll(tok, "_", "")
-	if strings.ContainsAny(clean, ".eE") {
-		v, err := strconv.ParseFloat(clean, 64)
-		if err == nil {
-			return v, nil
-		}
+	if v, ok := decimalFloat(tok); ok {
+		return v, nil
 	}
 	if v, ok := integer(tok); ok {
 		return v, nil
@@ -835,6 +849,65 @@ func integer(tok string) (int64, bool) {
 	v, err := strconv.ParseInt(sign+strings.ReplaceAll(digits, "_", ""), base, 64)
 	return v, err == nil
 }
+
+// decimalFloat reads tok as a TOML float: an optional sign, a decimal
+// integer part with no leading zero, then a fraction (a point and digits), an
+// exponent (e or E, an optional sign, and digits), or both; an underscore
+// stands only between two digits. inf and nan are not read, and a value
+// beyond float64's range is refused.
+func decimalFloat(tok string) (float64, bool) {
+	s := tok
+	if strings.HasPrefix(s, "+") || strings.HasPrefix(s, "-") {
+		s = s[1:]
+	}
+	n := decimalDigits(s)
+	if n == 0 || n > 1 && s[0] == '0' {
+		return 0, false
+	}
+	rest, fraction, exponent := s[n:], false, false
+	if strings.HasPrefix(rest, ".") {
+		m := decimalDigits(rest[1:])
+		if m == 0 {
+			return 0, false
+		}
+		rest, fraction = rest[1+m:], true
+	}
+	if strings.HasPrefix(rest, "e") || strings.HasPrefix(rest, "E") {
+		rest = rest[1:]
+		if strings.HasPrefix(rest, "+") || strings.HasPrefix(rest, "-") {
+			rest = rest[1:]
+		}
+		m := decimalDigits(rest)
+		if m == 0 {
+			return 0, false
+		}
+		rest, exponent = rest[m:], true
+	}
+	if rest != "" || !fraction && !exponent {
+		return 0, false
+	}
+	v, err := strconv.ParseFloat(strings.ReplaceAll(tok, "_", ""), 64)
+	return v, err == nil
+}
+
+// decimalDigits returns the length of the run of decimal digits s begins
+// with, an underscore taken only between two digits; 0 when s begins with no
+// digit.
+func decimalDigits(s string) int {
+	n := 0
+	for n < len(s) {
+		switch {
+		case s[n] >= '0' && s[n] <= '9':
+			n++
+		case s[n] == '_' && n > 0 && n+1 < len(s) && s[n+1] >= '0' && s[n+1] <= '9':
+			n += 2
+		default:
+			return n
+		}
+	}
+	return n
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a

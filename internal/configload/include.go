@@ -128,7 +128,7 @@ func scanIncludes(data []byte) (scannedFile, error) {
 			case 'B':
 				if strings.HasPrefix(line[i:], `"""`) && !escaped {
 					mode = 0
-					i += 3
+					i += tomlmini.MultilineCloseLen(line[i:])
 					continue
 				}
 				if escaped {
@@ -140,7 +140,7 @@ func scanIncludes(data []byte) (scannedFile, error) {
 			case 'L':
 				if strings.HasPrefix(line[i:], `'''`) {
 					mode = 0
-					i += 3
+					i += tomlmini.MultilineCloseLen(line[i:])
 					continue
 				}
 				i++
