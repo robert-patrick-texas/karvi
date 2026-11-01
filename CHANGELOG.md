@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- **The scratch and spool chains take only the operator's own directory.**
+  A present candidate of `tempdir`'s or `spooldir`'s `auto` chain
+  (`/dev/shm/karvi/<username>`, `<basedir>/tmp`, `/tmp/karvi-<uid>`,
+  `/var/tmp/karvi-<uid>`) was taken whoever owned it and whatever its mode, so
+  another user who made `/tmp/karvi-<uid>` first could replace the system
+  transport's ssh configuration or a spool. Such a candidate is now passed by
+  unless the operator owns it with no group or other access, judged again once
+  made, and `config show --explain` names why; an explicit `tempdir` or
+  `spooldir` is the site's choice, taken as before. Each spool is read through
+  one descriptor opened without following a link, so a file put at its path
+  after the digest's pass never reaches `output.TARGET.txt` or a collection
+  ([`docs/FILES.md`](docs/FILES.md)).
+
 ## 0.38.0 - 2026-10-28
 
 A minor release on 0.37.0 for the Cisco platforms' names, `cisco_ios` and

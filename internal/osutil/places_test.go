@@ -333,6 +333,158 @@ func TestSpoolPlaceNamesWhatTheMakerTakes(t *testing.T) {
 	}
 }
 
+// TestSpoolChainPassesByACandidateNotTheOperatorsPrivateOne: a present
+// karvi-<uid> open to the group, or owned by another uid, is passed by with
+// privateDirectoryProblem's reason, by the twin as by the maker, and the
+// next candidate taken; one absent at the judgement that the maker finds
+// another uid's once made is passed by too. An explicit spooldir is the
+// site's choice and is taken as it is.
+func TestSpoolChainPassesByACandidateNotTheOperatorsPrivateOne(t *testing.T) {
+	skipAsRoot(t)
+	dir := t.TempDir()
+	withSetupPlaces(t, dir)
+	first, second := filepath.Join(dir, "tmp"), filepath.Join(dir, "vartmp")
+	for _, d := range []string{first, second} {
+		if err := os.Mkdir(d, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	saved := SpoolRoots
+	SpoolRoots = []string{first, second}
+	t.Cleanup(func() { SpoolRoots = saved })
+	uid := os.Geteuid()
+	own := func(root string, uid int) string { return filepath.Join(root, "karvi-"+strconv.Itoa(uid)) }
+
+	// Open to the group: passed by, the next made 0700 and taken.
+	if err := os.Mkdir(own(first, uid), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(own(first, uid), 0o775); err != nil {
+		t.Fatal(err)
+	}
+	exposed := Passed{own(first, uid), "mode 0775 exposes group/other"}
+	if got, err := SpoolPlace("auto", dir, uid); err != nil || got.Path != own(second, uid) || len(got.Passed) != 1 || got.Passed[0] != exposed {
+		t.Errorf("open to the group, place: %+v %v, want %s with %+v passed", got, err, own(second, uid), exposed)
+	}
+	if made, err := ResolveSpoolDir("auto", dir, uid); err != nil || made != own(second, uid) {
+		t.Errorf("open to the group, the maker took %q %v, want %s", made, err, own(second, uid))
+	}
+	if fi, err := os.Stat(own(second, uid)); err != nil || fi.Mode().Perm() != 0o700 {
+		t.Errorf("the next candidate: %v %v, want made 0700", fi, err)
+	}
+
+	// Another uid's, as that uid's chain sees karvi-<other>: the first is
+	// present and the test's, passed by; the second is absent, so the twin
+	// names it, and the maker, which makes it the test's, passes it by once
+	// made, so none is taken.
+	other := uid + 1
+	if err := os.Mkdir(own(first, other), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	owned := Passed{own(first, other), fmt.Sprintf("owned by uid %d, expected %d", uid, other)}
+	if got, err := SpoolPlace("auto", dir, other); err != nil || got.Path != own(second, other) || len(got.Passed) != 1 || got.Passed[0] != owned {
+		t.Errorf("another uid's, place: %+v %v, want %s with %+v passed", got, err, own(second, other), owned)
+	}
+	if made, err := ResolveSpoolDir("auto", dir, other); errorcodes.Of(err) != "spool_directory_unavailable" {
+		t.Errorf("another uid's, the maker took %q %v, want spool_directory_unavailable", made, err)
+	}
+
+	// An explicit spooldir open to the group is taken, by another uid's
+	// chain too, and left as it is.
+	shared := filepath.Join(dir, "shared")
+	if err := os.Mkdir(shared, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(shared, 0o775); err != nil {
+		t.Fatal(err)
+	}
+	for _, u := range []int{uid, other} {
+		if got, err := SpoolPlace(shared, dir, u); err != nil || got.Path != shared || len(got.Passed) != 0 {
+			t.Errorf("explicit, uid %d, place: %+v %v", u, got, err)
+		}
+		if made, err := ResolveSpoolDir(shared, dir, u); err != nil || made != shared {
+			t.Errorf("explicit, uid %d, the maker took %q %v", u, made, err)
+		}
+	}
+	if fi, err := os.Stat(shared); err != nil || fi.Mode().Perm() != 0o775 {
+		t.Errorf("the explicit directory: %v %v, want left 0775", fi, err)
+	}
+}
+
+// TestScratchChainPassesByACandidateNotTheOperatorsPrivateOne: the
+// operator's folder in the scratch root open to the group is passed by with
+// privateDirectoryProblem's reason, by the twin as by the maker, and
+// <basedir>/tmp made and taken; to another uid's chain both are another's
+// and passed by. An explicit tempdir is the site's choice and is taken as
+// it is.
+func TestScratchChainPassesByACandidateNotTheOperatorsPrivateOne(t *testing.T) {
+	skipAsRoot(t)
+	dir := testdir.Short(t)
+	withSetupPlaces(t, dir)
+	base := filepath.Join(dir, "base")
+	if err := os.Mkdir(base, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(ScratchRoot, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	own, tmp := filepath.Join(ScratchRoot, "u"), filepath.Join(base, "tmp")
+	if err := os.Mkdir(own, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(own, 0o775); err != nil {
+		t.Fatal(err)
+	}
+	uid := os.Geteuid()
+	exposed := Passed{own, "mode 0775 exposes group/other"}
+	if got, err := ScratchPlace("auto", base, dir, "u", uid); err != nil || got.Path != tmp || len(got.Passed) != 1 || got.Passed[0] != exposed {
+		t.Errorf("open to the group, place: %+v %v, want %s with %+v passed", got, err, tmp, exposed)
+	}
+	if made, err := ResolveScratch("auto", base, dir, "u", uid); err != nil || made != tmp {
+		t.Errorf("open to the group, the maker took %q %v, want %s", made, err, tmp)
+	}
+	if fi, err := os.Stat(tmp); err != nil || fi.Mode().Perm() != 0o700 {
+		t.Errorf("<basedir>/tmp: %v %v, want made 0700", fi, err)
+	}
+
+	// Another uid's: the folder closed again and <basedir>/tmp are the
+	// test's, so another uid's chain passes both by (the twin alone: the
+	// maker would reach the host's /tmp for the next candidate).
+	if err := os.Chmod(own, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(tmp, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	other := uid + 1
+	reason := fmt.Sprintf("owned by uid %d, expected %d", uid, other)
+	got, _ := ScratchPlace("auto", base, dir, "u", other)
+	if len(got.Passed) < 2 || got.Passed[0] != (Passed{own, reason}) || got.Passed[1] != (Passed{tmp, reason}) || got.Path == own || got.Path == tmp {
+		t.Errorf("another uid's, place: %+v, want %s and %s passed: %s", got, own, tmp, reason)
+	}
+
+	// An explicit tempdir open to the group is taken, by another uid's
+	// chain too, and left as it is.
+	shared := filepath.Join(dir, "t")
+	if err := os.Mkdir(shared, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(shared, 0o775); err != nil {
+		t.Fatal(err)
+	}
+	for _, u := range []int{uid, other} {
+		if got, err := ScratchPlace(shared, base, dir, "u", u); err != nil || got.Path != shared || len(got.Passed) != 0 {
+			t.Errorf("explicit, uid %d, place: %+v %v", u, got, err)
+		}
+		if made, err := ResolveScratch(shared, base, dir, "u", u); err != nil || made != shared {
+			t.Errorf("explicit, uid %d, the maker took %q %v", u, made, err)
+		}
+	}
+	if fi, err := os.Stat(shared); err != nil || fi.Mode().Perm() != 0o775 {
+		t.Errorf("the explicit directory: %v %v, want left 0775", fi, err)
+	}
+}
+
 // TestTreePlaceWritesNothing: a shared tree present and closed is refused
 // by the twin with the maker's code, without a probe file; an absent one
 // gives the tree under basedir; an explicit tree under an absent shared

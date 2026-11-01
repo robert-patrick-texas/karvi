@@ -187,11 +187,27 @@ func makeableReason(path string) string {
 // chain is a list of candidates the operator writes in, the first usable
 // taken (the scratch and the spool), with the code and message of the
 // refusal when none is. maxLength, when not 0, passes by a longer candidate
-// (the scratch's, MaxScratchDir).
+// (the scratch's, MaxScratchDir). private marks an auto chain's own
+// candidates: a present one must be uid's with no group or other access
+// (privateDirectoryProblem), or it is passed by; an explicit value's one
+// candidate is the site's choice and is not judged so.
 type chain struct {
 	candidates    []string
 	maxLength     int
+	private       bool
+	uid           int
 	code, message string
+}
+
+// judge is the chain's judgement of candidate p: judgeDirectory's, and for
+// a present candidate of a private chain privateDirectoryProblem's, which
+// adds the owner and the mode to judgeDirectory's rules, in its own words.
+func (c chain) judge(p string) (present bool, reason string) {
+	present, reason = judgeDirectory(p)
+	if present && c.private {
+		reason, _ = privateDirectoryProblem(p, c.uid)
+	}
+	return present, reason
 }
 
 // tooLong is the reason a candidate longer than the chain's maxLength is
@@ -203,9 +219,9 @@ func (c chain) tooLong(p string) string {
 	return fmt.Sprintf("%d bytes, longer than the askpass socket allows (%d)", len(p), c.maxLength)
 }
 
-// place is the chain's twin: what the maker takes, by judgeDirectory,
-// creating nothing. A candidate too long is listed whether present or
-// not: its length, not the host, passed it by.
+// place is the chain's twin: what the maker takes, by the chain's
+// judgement, creating nothing. A candidate too long is listed whether
+// present or not: its length, not the host, passed it by.
 func (c chain) place() (Place, error) {
 	var pl Place
 	for _, p := range c.candidates {
@@ -213,7 +229,7 @@ func (c chain) place() (Place, error) {
 			pl.Passed = append(pl.Passed, Passed{Path: p, Reason: reason})
 			continue
 		}
-		present, reason := judgeDirectory(p)
+		present, reason := c.judge(p)
 		if reason == "" {
 			pl.Path = p
 			return pl, nil
@@ -226,22 +242,27 @@ func (c chain) place() (Place, error) {
 }
 
 // make is the chain's maker: each candidate the judgement accepts is made
-// 0700 when missing, must be a real directory and not a link, and must
-// take one temporary file, the activity's real test; the first that does
-// is the answer.
+// 0700 when missing, must then be a real directory and not a link, in a
+// private chain uid's with no group or other access (judged again once
+// made, since another user may have made it after the judgement), and
+// must take one temporary file, the activity's real test; the first that
+// does is the answer.
 func (c chain) make() (string, error) {
 	for _, p := range c.candidates {
 		if c.tooLong(p) != "" {
 			continue
 		}
-		if _, reason := judgeDirectory(p); reason != "" {
+		if _, reason := c.judge(p); reason != "" {
 			continue
 		}
 		if err := makeDirectories(p, PrivateMode); err != nil {
 			continue
 		}
-		fi, err := os.Lstat(p)
-		if err != nil || !fi.IsDir() || fi.Mode()&os.ModeSymlink != 0 {
+		if c.private {
+			if reason, _ := privateDirectoryProblem(p, c.uid); reason != "" {
+				continue
+			}
+		} else if fi, err := os.Lstat(p); err != nil || !fi.IsDir() || fi.Mode()&os.ModeSymlink != 0 {
 			continue
 		}
 		if probeWritable(p) != nil {

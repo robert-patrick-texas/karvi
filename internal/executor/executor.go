@@ -682,7 +682,9 @@ func (e *DeviceExecutor) Execute(ctx context.Context, task dispatch.Task, dc dis
 		// display and the follower take it; on the path where no record could
 		// be appended as well. A cut ending
 		// reaches here through the same result, so a cancel or a signal
-		// needs no removal of its own.
+		// needs no removal of its own. The source's spool descriptors, which
+		// every one of those consumers read through, are closed first.
+		src.Close()
 		e.removeSpool(r.Spool, d.CanonicalName, st.index+1)
 		if r.Exec != nil {
 			e.removeSpool(r.Exec.StderrSpool, d.CanonicalName, st.index+1)

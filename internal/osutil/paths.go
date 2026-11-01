@@ -666,10 +666,11 @@ func CreateExclusive(path string, flags int) (*os.File, error) {
 // socket and the system transport's ssh configuration, and makes it:
 // "auto" is the chain <ScratchRoot>/<username> (when the scratch root
 // exists), <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the
-// first the chain's maker accepts; an explicit path replaces the chain. A
-// candidate longer than MaxScratchDir is passed by, and an explicit path
-// longer is tempdir_too_long. The output spool never lives here
-// (ResolveSpoolDir).
+// first the chain's maker accepts, a present one only when it is uid's
+// with no group or other access; an explicit path replaces the chain and
+// is taken whatever its owner and mode. A candidate longer than
+// MaxScratchDir is passed by, and an explicit path longer is
+// tempdir_too_long. The output spool never lives here (ResolveSpoolDir).
 func ResolveScratch(raw, base, home, username string, uid int) (string, error) {
 	c, err := scratchChain(raw, base, home, username, uid)
 	if err != nil {
@@ -706,7 +707,7 @@ func scratchChain(raw, base, home, username string, uid int) (chain, error) {
 		candidates = append(candidates, filepath.Join(ScratchRoot, username))
 	}
 	candidates = append(candidates, filepath.Join(base, "tmp"), filepath.Join("/tmp", own), filepath.Join("/var/tmp", own))
-	return chain{candidates: candidates, maxLength: MaxScratchDir, code: code, message: message}, nil
+	return chain{candidates: candidates, maxLength: MaxScratchDir, private: true, uid: uid, code: code, message: message}, nil
 }
 
 // ScratchRoot is the site's scratch root on tmpfs, made in the operators'
@@ -838,12 +839,13 @@ const collectionDirectoryShape = "a shared collection directory needs mode 2770 
 // design (small, fast, cleared at every reboot), and the two
 // keys stay separate so that a site that wants both on one volume says so
 // with explicit paths. "auto" tries /tmp/karvi-<uid>, then
-// /var/tmp/karvi-<uid>, each made 0700 for the effective uid, a real
-// directory and not a link, probed with one file as the scratch chain
-// probes (chain.make); an explicit path (ResolvePath) replaces
-// the list. No candidate writable is spool_directory_unavailable naming
-// what was tried, reported at the job's admission before any device is
-// contacted.
+// /var/tmp/karvi-<uid>, each made 0700 for uid, a present one passed by
+// unless it is uid's with no group or other access, a real directory and
+// not a link, probed with one file as the scratch chain probes
+// (chain.make); an explicit path (ResolvePath) replaces the list, taken
+// whatever its owner and mode. No candidate writable is
+// spool_directory_unavailable naming what was tried, reported at the job's
+// admission before any device is contacted.
 func ResolveSpoolDir(raw, home string, uid int) (string, error) {
 	c, err := spoolChain(raw, home, uid)
 	if err != nil {
@@ -871,7 +873,7 @@ func spoolChain(raw, home string, uid int) (chain, error) {
 	for _, root := range SpoolRoots {
 		candidates = append(candidates, filepath.Join(root, own))
 	}
-	return chain{candidates: candidates, code: code, message: message}, nil
+	return chain{candidates: candidates, private: true, uid: uid, code: code, message: message}, nil
 }
 
 // SpoolRoots are the parents of spooldir's auto chain, /tmp then /var/tmp,

@@ -49,6 +49,14 @@ private root, the spool, the trust store, and the daemon's sockets are always
 one operator's: `basedir` is never shared, since its `socket` and `state` are
 one operator's daemon.
 
+A present candidate of the scratch's or the spool's `auto` chain is taken only
+when it is a real directory the operator owns, with no group or other access,
+that the operator can write in, on a filesystem with free inodes; any other is
+passed by for the next candidate. The activity judges it again once it has
+made the directory, since another user may have made it first. An explicit
+`tempdir` or `spooldir` is the site's choice, taken whatever its owner and
+mode when the operator can write in it.
+
 The scratch holds the askpass socket, whose path a Unix socket bounds at 107
 bytes with a name of up to 37, so the scratch may be at most 69 bytes: `auto`
 passes a longer candidate by, named on `config show --explain`'s `passed:`

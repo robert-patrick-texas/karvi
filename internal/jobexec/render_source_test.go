@@ -15,7 +15,8 @@ import (
 )
 
 // spooledRecord is a record whose output is in a spool file, and the same
-// record carrying the output as its string, for the comparison.
+// record carrying the output as its string, for the comparison; the
+// source is closed when the test ends.
 func spooledRecord(t *testing.T, raw []byte) (fromString records.CommandRecord, fromSpool records.CommandRecord, src output.Source) {
 	t.Helper()
 	text, enc, digest := output.EncodeOutput(raw)
@@ -27,7 +28,9 @@ func spooledRecord(t *testing.T, raw []byte) (fromString records.CommandRecord, 
 	if err := os.WriteFile(path, raw, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return fromString, fromSpool, output.FromSpool(path, int64(len(raw)), digest, enc)
+	src = output.FromSpool(path, int64(len(raw)), digest, enc)
+	t.Cleanup(func() { src.Close() })
+	return fromString, fromSpool, src
 }
 
 // TestRendererStreamsASpooledRecordInEveryFormat:

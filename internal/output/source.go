@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"hash"
 	"io"
+	"math"
 	"os"
 	"strings"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -27,11 +29,12 @@ import (
 // size. The string form is the common small response and its path is as
 // it was before the spool.
 type Source struct {
-	text     string // the record's Output, when the output is in the record
-	encoding string // utf-8 or base64, the record's output_encoding
-	path     string // the spool file, when the output is there
-	bytes    int64  // the spool's settled count
-	digest   string // the reader's running SHA-256 of the spool's bytes, hex
+	text     string     // the record's Output, when the output is in the record
+	encoding string     // utf-8 or base64, the record's output_encoding
+	path     string     // the spool file, when the output is there
+	spool    *spoolFile // the spool opened once, read by every pass
+	bytes    int64      // the spool's settled count
+	digest   string     // the reader's running SHA-256 of the spool's bytes, hex
 	// stderr is an exec record's standard error where it is, by the same
 	// rules; nil on a shell record and for an exec command that did not
 	// run. The record's line streams it as it streams the output.
@@ -76,11 +79,38 @@ func FromEncoded(text, encoding string) Source { return Source{text: text, encod
 // FromText is plain text that is not a record's (a set-up line's answer).
 func FromText(text string) Source { return Source{text: text, encoding: "utf-8"} }
 
+// spoolFile is a spool opened once, without following a link: every pass
+// reads it from its start through this descriptor, so each reads the file
+// the measuring pass verified, whatever is put at its path later. err is
+// the open's failure, which every pass reports.
+type spoolFile struct {
+	f   *os.File
+	err error
+}
+
 // FromSpool is the output in its spool file: the settled bytes, their
 // count, the reader's digest of them, and the encoding the record takes
-// (utf-8 when they are valid UTF-8, else base64).
+// (utf-8 when they are valid UTF-8, else base64). The file is opened here,
+// once, and stays open until Close.
 func FromSpool(path string, bytes int64, digest, encoding string) Source {
-	return Source{path: path, bytes: bytes, digest: digest, encoding: encoding}
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+	return Source{path: path, spool: &spoolFile{f: f, err: err}, bytes: bytes, digest: digest, encoding: encoding}
+}
+
+// Close closes the spools' descriptors, the output's and the standard
+// error's, once every pass is done: the executor's, before it removes the
+// files. A source without a spool has nothing to close.
+func (s Source) Close() error {
+	var err error
+	for _, src := range []*Source{&s, s.stderr} {
+		if src == nil || src.spool == nil || src.spool.f == nil {
+			continue
+		}
+		if closeErr := src.spool.f.Close(); err == nil {
+			err = closeErr
+		}
+	}
+	return err
 }
 
 // Spooled says whether the output is in a file.
@@ -93,13 +123,14 @@ func (s Source) AnySpooled() bool { return s.Spooled() || (s.stderr != nil && s.
 // asked of its own source.
 func (s Source) Empty() bool { return s.path == "" && s.text == "" }
 
-// open opens the spool for one pass; a pass reads the file once.
-func (s Source) open() (*bufio.Reader, func() error, error) {
-	f, err := os.Open(s.path)
-	if err != nil {
-		return nil, nil, errorcodes.Errorf("output_write_failed", "the output spool %s could not be read for the record: %v", s.path, err)
+// open is the spool from its start for one pass, read through the one
+// descriptor (ReadAt, so no pass moves another's offset); a pass reads the
+// file once.
+func (s Source) open() (*bufio.Reader, error) {
+	if s.spool.err != nil {
+		return nil, errorcodes.Errorf("output_write_failed", "the output spool %s could not be read for the record: %v", s.path, s.spool.err)
 	}
-	return bufio.NewReaderSize(f, lineChunk), f.Close, nil
+	return bufio.NewReaderSize(io.NewSectionReader(s.spool.f, 0, math.MaxInt64), lineChunk), nil
 }
 
 // WriteRaw writes the device's recorded bytes: the text as it is, base64
@@ -114,14 +145,11 @@ func (s Source) WriteRaw(w io.Writer) error {
 		_, err := io.WriteString(w, s.text)
 		return err
 	}
-	r, done, err := s.open()
+	r, err := s.open()
 	if err != nil {
 		return err
 	}
 	_, err = io.Copy(w, r)
-	if closeErr := done(); err == nil {
-		err = closeErr
-	}
 	return err
 }
 
@@ -136,7 +164,7 @@ func (s Source) writeEscaped(w io.Writer, h hash.Hash) error {
 	if s.path == "" {
 		return escapeText(w, s.text)
 	}
-	r, done, err := s.open()
+	r, err := s.open()
 	if err != nil {
 		return err
 	}
@@ -151,9 +179,6 @@ func (s Source) writeEscaped(w io.Writer, h hash.Hash) error {
 		}
 	} else {
 		err = escapeStream(w, src)
-	}
-	if closeErr := done(); err == nil {
-		err = closeErr
 	}
 	return err
 }

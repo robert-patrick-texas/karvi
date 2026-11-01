@@ -14,19 +14,22 @@ sharedroot = "auto"
 # auto is the chain /dev/shm/karvi/<username> (only when the site's scratch root
 # /dev/shm/karvi exists: sudo karvi setup shared makes it, and karvi never does),
 # <basedir>/tmp, /tmp/karvi-<uid>, /var/tmp/karvi-<uid>, the first that is a writable real
-# directory, made 0700 in its existing parent; an absolute path replaces the chain. The
-# directory may be at most 69 bytes, so that an askpass socket's path, its name up to 37
-# bytes, fits 107: auto passes a longer candidate by, and an explicit path longer is
+# directory, made 0700 in its existing parent, a present one only when it is the operator's
+# with no group or other access; an absolute path replaces the chain, taken whatever its owner
+# and mode. The directory may be at most 69 bytes, so that an askpass socket's path, its name
+# up to 37 bytes, fits 107: auto passes a longer candidate by, and an explicit path longer is
 # tempdir_too_long at every job's admission and a login's start.
 tempdir = "auto"
 # The directory of the output spools, one file per command in flight whose response has passed
 # output.spool-threshold-bytes. auto tries /tmp/karvi-<uid>, then /var/tmp/karvi-<uid>, each
-# made 0700 for the effective uid, a real directory and not a link, probed with one file; an
-# absolute path replaces the list; no candidate writable is spool_directory_unavailable,
-# before any device is touched. Not tempdir: the scratch is for small, short-lived files and
-# its auto chain prefers /dev/shm, a tmpfs, while a spool is infrequent and possibly large and
-# must cost disk, never memory; a site that wants both on one volume points both keys at
-# explicit paths there. Resolved and swept at the daemon's start and at every job's admission.
+# made 0700 for the effective uid, a present one only when it is the effective uid's with no
+# group or other access, a real directory and not a link, probed with one file; an absolute
+# path replaces the list, taken whatever its owner and mode; no candidate writable is
+# spool_directory_unavailable, before any device is touched. Not tempdir: the scratch is for
+# small, short-lived files and its auto chain prefers /dev/shm, a tmpfs, while a spool is
+# infrequent and possibly large and must cost disk, never memory; a site that wants both on
+# one volume points both keys at explicit paths there. Resolved and swept at the daemon's
+# start and at every job's admission.
 spooldir = "auto"
 # The folder every activity writes its scoreboard in and karvi watch reads. auto is
 # /dev/shm/karvi/scoreboards, every operator's, where the site's scratch root /dev/shm/karvi

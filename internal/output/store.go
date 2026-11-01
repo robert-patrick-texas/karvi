@@ -346,11 +346,11 @@ func (s *Store) WriteMetrics(v any) error {
 //
 // src is r's output where it is: the record's
 // string, or the command's spool file, which every consumer here streams
-// from and which the executor removes once AppendRecord and afterRecord
-// have returned. A spooled record's Output is
-// empty on the way in; the line, the errors.jsonl line, the text block, and
-// the collection block are written from the file, its digest checked on
-// the measuring pass first (4.3).
+// from through the source's one descriptor and which the executor closes
+// and removes once AppendRecord and afterRecord have returned. A spooled
+// record's Output is empty on the way in; the line, the errors.jsonl line,
+// the text block, and the collection block are written from the file, its
+// digest checked on the measuring pass first (4.3).
 func (s *Store) AppendRecord(r *records.CommandRecord, src Source) (Notice, error) {
 	notice, text, err := s.appendLine(r, src)
 	if err != nil {

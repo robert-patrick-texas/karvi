@@ -1584,15 +1584,17 @@ written and handed on ([`docs/DESIGN.md`](DESIGN.md), the output spool). The
 record is the same whether the response spooled or not.
 
 **Where.** `spooldir` is `"auto"` by default, which tries `/tmp/karvi-<uid>`
-and then `/var/tmp/karvi-<uid>`, each made 0700 for the effective user;
-an absolute path replaces the list. It is not `tempdir`: the scratch
-chain prefers `/dev/shm`, a tmpfs, by design, and a spool must cost disk.
-A site that wants both on one volume points both keys at paths under it.
-A directory that cannot be written fails the job with
-`spool_directory_unavailable` before any device is contacted. The daemon
-reads its own configuration for its jobs: a `--set` of `spooldir` or of
-the threshold on a `run` through the daemon does not reach the job, an
-in-process `cmd` or `run --no-daemon` it does.
+and then `/var/tmp/karvi-<uid>`, each made 0700 for the effective user,
+one already present passed by unless it is the effective user's with no
+group or other access; an absolute path replaces the list, taken whatever
+its owner and mode. It is not `tempdir`: the scratch chain prefers
+`/dev/shm`, a tmpfs, by design, and a spool must cost disk. A site that
+wants both on one volume points both keys at paths under it. A directory
+that cannot be written fails the job with `spool_directory_unavailable`
+before any device is contacted. The daemon reads its own configuration for
+its jobs: a `--set` of `spooldir` or of the threshold on a `run` through the
+daemon does not reach the job, an in-process `cmd` or `run --no-daemon` it
+does.
 
 **Free space.** `freecheck` decides what free space every volume an activity
 writes must have at admission, before any device is contacted: the job's folder,

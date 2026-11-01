@@ -15,7 +15,8 @@ import (
 )
 
 // spoolOf writes raw to a spool file and returns its source with the
-// reader's digest and the encoding the record takes.
+// reader's digest and the encoding the record takes, closed when the test
+// ends.
 func spoolOf(t *testing.T, raw []byte) (Source, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "a.d.1.1.spool")
@@ -23,7 +24,9 @@ func spoolOf(t *testing.T, raw []byte) (Source, string) {
 		t.Fatal(err)
 	}
 	_, enc, digest := EncodeOutput(raw)
-	return FromSpool(path, int64(len(raw)), digest, enc), enc
+	src := FromSpool(path, int64(len(raw)), digest, enc)
+	t.Cleanup(func() { src.Close() })
+	return src, enc
 }
 
 // TestStreamedLineFromASpoolEqualsTheLineFromTheString: a record whose
@@ -125,6 +128,81 @@ func TestSpoolMismatchRefusesTheRecord(t *testing.T) {
 	if _, err := os.Stat(src.path); err != nil {
 		t.Fatalf("the store removed the spool: %v", err)
 	}
+}
+
+// TestSpoolReplacedByALinkAfterTheFirstPassDoesNotReachTheOutput: a spool
+// whose path is replaced by a link once the record's commands.jsonl line is
+// durable gives the text block and the collection block the bytes the
+// measuring pass verified, never the link's target; a spool that is a link
+// when its source is made is not followed, and the record is refused.
+func TestSpoolReplacedByALinkAfterTheFirstPassDoesNotReachTheOutput(t *testing.T) {
+	raw := []byte("Building configuration...\nhostname router1\nend\n")
+	secret := filepath.Join(t.TempDir(), "cloginrc")
+	if err := os.WriteFile(secret, []byte("add password router1 {hunter2}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	record := func(src Source) records.CommandRecord {
+		return records.CommandRecord{SchemaVersion: records.CommandSchemaVersion, RecordID: "r", ActivityID: "a", ActivityType: "command", Operator: records.Operator{Username: "jsmith"}, Device: records.DeviceProjection{ID: "router1", Name: "router1", CanonicalName: "router1", Groups: []string{}}, InputTarget: "router1", TransformedName: "router1", DNSSuffixAction: "add-suffix:none", AddressCandidates: []string{}, Platform: "generic", Transport: "system", Port: 22, Dispatch: records.DispatchContext{Mode: "serial"}, CommandIndex: 1, CommandCount: 1, CommandKind: "requested", Command: "show running-config", CommandSHA256: "x", Status: "success", PromptBefore: "router1#", OutputEncoding: "utf-8", OutputBytes: int64(len(raw)), OutputSHA256: src.digest, Notices: []records.Notice{}}
+	}
+	dir := t.TempDir()
+	coll := filepath.Join(dir, "coll")
+	if err := os.Mkdir(coll, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	src, _ := spoolOf(t, raw)
+	swap := func(*records.CommandRecord, Notice) {
+		if err := os.Remove(src.path); err != nil {
+			t.Error(err)
+		}
+		if err := os.Symlink(secret, src.path); err != nil {
+			t.Error(err)
+		}
+	}
+	s, err := Create(Options{Root: filepath.Join(dir, "job"), ID: "id", Collection: &CollectionOptions{Directory: coll, FileMode: 0o640}, OnDurable: swap})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := record(src)
+	if _, err := s.AppendRecord(&r, src); err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	s.EndDevice("router1")
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for name, p := range map[string]string{"the text block": filepath.Join(s.Paths().Root, TextFileName("router1", false)), "the collection block": filepath.Join(coll, "router1"), "commands.jsonl": s.Paths().CommandsJSONL} {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+			continue
+		}
+		if strings.Contains(string(data), "hunter2") || !strings.Contains(string(data), "hostname router1") {
+			t.Errorf("%s holds the link's target, not the spool's bytes:\n%s", name, data)
+		}
+	}
+
+	// A link at the spool's path from the start, to a file of the very
+	// bytes: not followed, so the record is refused.
+	same := filepath.Join(t.TempDir(), "same")
+	if err := os.WriteFile(same, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "a.router1.1.1.spool")
+	if err := os.Symlink(same, link); err != nil {
+		t.Fatal(err)
+	}
+	_, enc, digest := EncodeOutput(raw)
+	linked := FromSpool(link, int64(len(raw)), digest, enc)
+	t.Cleanup(func() { linked.Close() })
+	s2, err := Create(Options{Root: filepath.Join(dir, "job2"), ID: "id2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2 := record(linked)
+	if _, err := s2.AppendRecord(&r2, linked); errorcodes.Of(err) != "output_write_failed" || !strings.Contains(err.Error(), link) {
+		t.Errorf("a spool that is a link: %v, want output_write_failed naming %s", err, link)
+	}
+	s2.Close()
 }
 
 // TestSpooledRecordFilesEqualTheStringForm is the spooled record at the store:
