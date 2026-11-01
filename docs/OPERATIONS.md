@@ -1267,6 +1267,16 @@ they stand. In a bare word, where Tcl would substitute or end the command,
 `$`, `[`, `]`, and `;` are refused (`cloginrc_tcl_substitution_forbidden`),
 the message naming the character and the file and line.
 
+An `add password` line's password and enable password are what clogin sends:
+clogin reads each value again as a Tcl list and joins its words with nothing
+between (`join [lindex $pswd 0] ""`), and karvi does the same. `{pass one}`
+is the password `passone`, `{pa\ss}` is `pass`, and `{"a b"}` is `a b`; a
+backslash keeps a space, a quote, or a brace as a character (`{pass\ one}`
+is `pass one`, `{\"pass}` is `"pass`). A value that is not a Tcl list, with
+an unmatched quote or brace where clogin stops with a Tcl error, fails the
+load with `cloginrc_malformed`, the message naming the file and line.
+`add user` and `add userpassword` values are taken as written.
+
 The checks are the same for every credential file backend and carry one
 code each, the message naming the backend and the path and never a value:
 

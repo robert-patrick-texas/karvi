@@ -512,20 +512,23 @@ func TestPatternRefusedOnlyWhenTclMatchesNothing(t *testing.T) {
 	}
 }
 
-// TestBracedValueKeepsBackslashes: inside braces a backslash and the byte
+// TestBracedWordKeepsBackslashes: inside braces a backslash and the byte
 // after it are kept, as Tcl keeps them (no backslash substitution inside
 // braces); an escaped brace still does not count toward the nesting. A bare
-// word drops the backslash, as Tcl's substitution does.
-func TestBracedValueKeepsBackslashes(t *testing.T) {
+// word drops the backslash, as Tcl's substitution does. The add user and
+// add userpassword values show the words as read, being taken as written.
+func TestBracedWordKeepsBackslashes(t *testing.T) {
 	d := t.TempDir()
 	p := filepath.Join(d, "cloginrc")
-	write(t, p, "add password router-* {pa\\ss} {en\\}a\\{b\\\\}\nadd password switch-* pa\\ss\n", 0o600)
+	write(t, p, "add user router-* {svc\\user}\nadd userpassword router-* {en\\}a\\{b\\\\}\nadd userpassword switch-* pa\\ss\n", 0o600)
 	b := newBackend(t, d, p, credfile.ScopeUser, false)
-	if pw, en := secret(t, resolve(b, "router-1")); pw != `pa\ss` || en != `en\}a\{b\\` {
-		t.Errorf("braced: password %q, enable %q, want %q and %q", pw, en, `pa\ss`, `en\}a\{b\\`)
+	r := resolve(b, "router-1")
+	pw, _ := secret(t, r)
+	if u := username(t, r); u != `svc\user` || pw != `en\}a\{b\\` {
+		t.Errorf("braced: user %q, user password %q, want %q and %q", u, pw, `svc\user`, `en\}a\{b\\`)
 	}
 	if pw, _ := secret(t, resolve(b, "switch-1")); pw != "pass" {
-		t.Errorf("bare: password %q, want %q", pw, "pass")
+		t.Errorf("bare: user password %q, want %q", pw, "pass")
 	}
 	// A braced pattern keeps its backslash too, so an escaped bracket is a
 	// literal bracket for the match, as clogin's string match reads it.
@@ -634,5 +637,243 @@ func TestBareWordRefusesSubstitutionCharacters(t *testing.T) {
 func TestRejectCode(t *testing.T) {
 	if _, err := tokenize("add user * $USER"); err == nil {
 		t.Fatal("expected substitution rejection")
+	}
+}
+
+// TestPasswordAndEnableJoinedAsClogin: an add password line's password and
+// enable password are what clogin sends, [join [lindex $pswd n] ""]: each
+// value read again as a Tcl list, its words joined with nothing between. An
+// add user or add userpassword value is taken as written. The answers are
+// clogin's own add and find in tclsh8.6 (8.6.17) over the same lines.
+func TestPasswordAndEnableJoinedAsClogin(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	write(t, p, `add user router1 {svc user}
+add user router2 {svc\user}
+add password router1 {pass one} {en\}a\{b\\}
+add password router2 {pa\ss} {a  b}
+add password router3 {"a b"} {{}}
+add password router4 {pa"ss} pa{ss
+add password router5 {pass\ one} {{pass one}}
+add password router6 {a\x41b} {a\101b}
+add password router7 {a\tb} {a\nb}
+add password router8 {"a\"b"} {a"b"c}
+add password router9 {} { }
+add password router10 {a\\b} {\{a}
+add password router11 {{a b} c} {a\x414b}
+add password router12 plain
+add password router13 {a\477} {a\08}
+add password router14 {\"pass}
+add userpassword switch1 {up one}
+add userpassword switch2 {up\ss}
+`, 0o600)
+	b := newBackend(t, d, p, credfile.ScopeUser, false)
+	for _, tc := range []struct{ device, user, password, enable string }{
+		{"router1", "svc user", "passone", `en}a{b\`},
+		{"router2", `svc\user`, "pass", "ab"},
+		{"router3", "me", "a b", ""},
+		{"router4", "me", `pa"ss`, "pa{ss"},
+		{"router5", "me", "pass one", "pass one"},
+		{"router6", "me", "aAb", "aAb"},
+		{"router7", "me", "a\tb", "a\nb"},
+		{"router8", "me", `a"b`, `a"b"c`},
+		{"router9", "me", "", ""},
+		{"router10", "me", `a\b`, "{a"},
+		{"router11", "me", "a bc", "aA4b"},
+		{"router12", "me", "plain", ""},
+		{"router13", "me", "a'7", "a\x008"},
+		{"router14", "me", `"pass`, ""},
+		{"switch1", "me", "up one", ""},
+		{"switch2", "me", `up\ss`, ""},
+	} {
+		r := resolve(b, tc.device)
+		if r.Outcome != credentials.Success {
+			t.Errorf("%s: outcome %s, code %q (%s)", tc.device, r.Outcome, r.ErrorCode, r.Message)
+			continue
+		}
+		pw, en := secret(t, r)
+		if u := username(t, r); u != tc.user || pw != tc.password || en != tc.enable {
+			t.Errorf("%s: user %q, password %q, enable %q; clogin sends %q, %q, %q", tc.device, u, pw, en, tc.user, tc.password, tc.enable)
+		}
+	}
+}
+
+// TestPasswordNotATclListIsRefused: a password or enable password that is
+// not a Tcl list, where clogin's join stops with a Tcl error (an unmatched
+// open quote or brace, or text after an element's closing brace or quote),
+// fails the load with cloginrc_malformed, the message naming the file and
+// the line (an included file's after the include's) and never the value.
+func TestPasswordNotATclListIsRefused(t *testing.T) {
+	d := t.TempDir()
+	root := filepath.Join(d, "cloginrc")
+	sub := filepath.Join(d, "sub.rc")
+	for _, tc := range []struct{ name, line, message string }{
+		{"an unmatched open quote", `add password router1 {"pw-a}`, "the password is not a Tcl list: unmatched open quote"},
+		{"an unmatched open quote, escaped in a bare word", `add password router1 \"pw-a`, "the password is not a Tcl list: unmatched open quote"},
+		{"an unmatched open brace", `add password router1 \{pw-a`, "the password is not a Tcl list: unmatched open brace"},
+		{"text after a closing brace", `add password router1 {{pw}-a}`, "the password is not a Tcl list: text after a closing brace"},
+		{"text after a closing quote", `add password router1 {"pw"-a}`, "the password is not a Tcl list: text after a closing quote"},
+		{"the enable password", `add password router1 {pw-a} {"en-a}`, "the enable password is not a Tcl list: unmatched open quote"},
+	} {
+		write(t, sub, tc.line+"\n", 0o600)
+		for _, f := range []struct{ where, body, want string }{
+			{"the file", "# lab\n" + tc.line + "\nadd password * {pw-default}\n", root + ":2: " + tc.message},
+			{"an included file", "include sub.rc\n", root + ":1 include: " + sub + ":1: " + tc.message},
+		} {
+			write(t, root, f.body, 0o600)
+			r := resolve(newBackend(t, d, root, credfile.ScopeUser, false), "router1")
+			if r.Outcome != credentials.Malformed || r.ErrorCode != "cloginrc_malformed" || r.Message != f.want {
+				t.Errorf("%s in %s: outcome %s, code %q, message\n  %s\nwant cloginrc_malformed,\n  %s", tc.name, f.where, r.Outcome, r.ErrorCode, r.Message, f.want)
+			}
+		}
+	}
+}
+
+// TestStatementRefusalsNameTheFileAndLine: an unsupported statement, a
+// directive with the wrong number of values, and an unknown directive fail
+// the load naming the file and the line (an included file's after the
+// include's), as the reader's other refusals do. The reader's error holds a
+// code once, leading; the backend's result holds it in its code alone.
+func TestStatementRefusalsNameTheFileAndLine(t *testing.T) {
+	d := t.TempDir()
+	root := filepath.Join(d, "cloginrc")
+	sub := filepath.Join(d, "sub.rc")
+	for _, tc := range []struct{ name, line, code, message string }{
+		{"an unsupported statement", "set password router1 {pw-a}", "", "unsupported statement"},
+		{"a statement too short", "add password router1", "", "unsupported statement"},
+		{"two users", "add user router1 {svc.a} {svc.b}", "", "add user requires exactly one value"},
+		{"two user passwords", "add userpassword router1 {pw-a} {pw-b}", "", "add userpassword requires exactly one value"},
+		{"three passwords", "add password router1 {pw-a} {pw-b} {pw-c}", "", "add password requires one or two values"},
+		{"an unknown directive", "add frobnicate router1 {x}", "cloginrc_unknown_directive", "frobnicate"},
+	} {
+		write(t, sub, tc.line+"\n", 0o600)
+		code, lead := tc.code, tc.code+": "
+		if code == "" {
+			code, lead = "cloginrc_malformed", ""
+		}
+		for _, f := range []struct{ where, body, at string }{
+			{"the file", "# lab\n" + tc.line + "\nadd password * {pw-default}\n", root + ":2: "},
+			{"an included file", "include sub.rc\n", root + ":1 include: " + sub + ":1: "},
+		} {
+			write(t, root, f.body, 0o600)
+			b := newBackend(t, d, root, credfile.ScopeUser, false)
+			if r := resolve(b, "router1"); r.Outcome != credentials.Malformed || r.ErrorCode != code || r.Message != f.at+tc.message {
+				t.Errorf("%s in %s: outcome %s, code %q, message\n  %s\nwant %s,\n  %s", tc.name, f.where, r.Outcome, r.ErrorCode, r.Message, code, f.at+tc.message)
+			}
+			_, err := b.flatten(context.Background(), root, true, nil, map[string]string{})
+			if want := lead + f.at + tc.message; err == nil || err.Error() != want {
+				t.Errorf("%s in %s: the reader's error is\n  %v\nwant\n  %s", tc.name, f.where, err, want)
+			}
+		}
+	}
+}
+
+// TestResultMessageHoldsNoCode: a failed load's result carries its code in
+// ErrorCode alone; the message is the text after it, so the code is written
+// once wherever the result is shown.
+func TestResultMessageHoldsNoCode(t *testing.T) {
+	d := t.TempDir()
+	for _, tc := range []struct{ name, body string }{
+		{"a bare word's substitution character", "add password router1 pa$$w0rd\n"},
+		{"an unknown directive", "add frobnicate router1 {x}\n"},
+		{"an include cycle", "include cloginrc\n"},
+	} {
+		p := filepath.Join(d, "cloginrc")
+		write(t, p, tc.body, 0o600)
+		r := resolve(newBackend(t, d, p, credfile.ScopeUser, false), "router1")
+		if r.Outcome != credentials.Malformed || r.ErrorCode == "" || strings.Contains(r.Message, r.ErrorCode) {
+			t.Errorf("%s: outcome %s, code %q, message %q", tc.name, r.Outcome, r.ErrorCode, r.Message)
+		}
+	}
+	wide := filepath.Join(d, "wide.rc")
+	write(t, wide, content, 0o644)
+	if r := resolve(newBackend(t, d, wide, credfile.ScopeUser, false), "router1"); r.ErrorCode != "credential_file_mode_unsafe" || strings.Contains(r.Message, r.ErrorCode) {
+		t.Errorf("an unsafe mode: code %q, message %q", r.ErrorCode, r.Message)
+	}
+}
+
+// joinCases are values as a Tcl word holds them and what tclsh8.6
+// (8.6.17) gives for [join $value ""]: the joined bytes, or the error's
+// reason. They are recorded here so that the test needs no Tcl.
+var joinCases = []struct{ value, want, err string }{
+	{`pass one`, `passone`, ""},
+	{`pa\ss`, `pass`, ""},
+	{`a  b`, `ab`, ""},
+	{`"a b"`, `a b`, ""},
+	{`{}`, ``, ""},
+	{`pa"ss`, `pa"ss`, ""},
+	{`pa{ss`, `pa{ss`, ""},
+	{`"pass`, "", "unmatched open quote"},
+	{`{pass`, "", "unmatched open brace"},
+	{`{ }`, ` `, ""},
+	{` `, ``, ""},
+	{``, ``, ""},
+	{`""`, ``, ""},
+	{`"" ""`, ``, ""},
+	{`pass\ one`, `pass one`, ""},
+	{`{pass one}`, `pass one`, ""},
+	{`en\}a\{b\\`, `en}a{b\`, ""},
+	{`{a b} c`, `a bc`, ""},
+	{`{a{b}c}`, `a{b}c`, ""},
+	{`{a\}b}`, `a\}b`, ""},
+	{`"a{b"`, `a{b`, ""},
+	{`"a\"b"`, `a"b`, ""},
+	{`a"b"c`, `a"b"c`, ""},
+	{`}a`, `}a`, ""},
+	{"a\tb\nc\rd\ve\ff", "abcdef", ""},
+	{"a\xc2\xa0b", "a\xc2\xa0b", ""},
+	{`a\x41b`, `aAb`, ""},
+	{`a\x414b`, `aA4b`, ""},
+	{`a\x4g`, "a\x04g", ""},
+	{`a\xg`, `axg`, ""},
+	{`a\` + `u0041b`, `aAb`, ""},
+	{`a\` + `u12345`, "a\xe1\x88\xb45", ""},
+	{`a\` + `ug`, `aug`, ""},
+	{`a\` + `ud83d\` + `ude00b`, "a\xf0\x9f\x98\x80b", ""},
+	{`a\` + `ud83d`, "a\xed\xa0\xbd", ""},
+	{`a\U0001F600b`, "a\xef\xbf\xbdb", ""},
+	{`a\U110000`, "a\xef\xbf\xbd0", ""},
+	{`a\U0000D800b`, "a\xed\xa0\x80b", ""},
+	{`a\Ug`, `aUg`, ""},
+	{`a\101b`, `aAb`, ""},
+	{`a\377`, "a\xc3\xbf", ""},
+	{`a\477`, `a'7`, ""},
+	{`a\777`, `a?7`, ""},
+	{`a\08`, "a\x008", ""},
+	{`a\ab\bc\fd\ne\rf\tg\vh`, "a\ab\bc\fd\ne\rf\tg\vh", ""},
+	{"a\\\n   b", `a b`, ""},
+	{"\"a\\\n  b\"", `a b`, ""},
+	{"{a\\\n  b}", "a\\\n  b", ""},
+	{"a\\\r\nb", "a\rb", ""},
+	{"a\\\xc3\xa9b", "a\xc3\xa9b", ""},
+	{"a\\\xf0\x9f\x98\x80b", "a\xef\xbf\xbdb", ""},
+	{"a\xf0\x9f\x98\x80b", "a\xf0\x9f\x98\x80b", ""},
+	{`a\`, `a\`, ""},
+	{`\`, `\`, ""},
+	{`{a}b`, "", "text after a closing brace"},
+	{`{a}}`, "", "text after a closing brace"},
+	{`{}{}`, "", "text after a closing brace"},
+	{`"a"b`, "", "text after a closing quote"},
+	{`"a b""`, "", "text after a closing quote"},
+	{`{{a}`, "", "unmatched open brace"},
+	{`{a\}`, "", "unmatched open brace"},
+	{`"a\"`, "", "unmatched open quote"},
+}
+
+// TestJoinListAsTclsh: joinList reads a value as Tcl 8.6 reads a list and
+// joins its elements with nothing between, as tclsh8.6's [join $value ""]
+// does, and fails where Tcl's list reading fails.
+func TestJoinListAsTclsh(t *testing.T) {
+	for _, tc := range joinCases {
+		got, err := joinList(tc.value)
+		if tc.err != "" {
+			if err == nil || err.Error() != tc.err {
+				t.Errorf("joinList(%q) = %q, %v; Tcl fails: %s", tc.value, got, err, tc.err)
+			}
+			continue
+		}
+		if err != nil || got != tc.want {
+			t.Errorf("joinList(%q) = %q, %v; Tcl gives %q", tc.value, got, err, tc.want)
+		}
 	}
 }

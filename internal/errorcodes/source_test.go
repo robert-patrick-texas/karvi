@@ -244,6 +244,7 @@ var detailFuncs = map[string]string{
 	"internal/credentialbackend/cloginrc/backend.go:flatten":              ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/cloginrc/backend.go:parseBraced":          ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/cloginrc/backend.go:parseBare":            ".cloginrc syntax reported under cloginrc_malformed",
+	"internal/credentialbackend/cloginrc/backend.go:listElement":          ".cloginrc syntax reported under cloginrc_malformed",
 	"internal/credentialbackend/storetls/storetls.go:*":                   "a CA file holding no certificate, reported under redis_ca_file_empty or vault_ca_file_empty",
 	"internal/termtext/timing.go:ParseTiming":                             "reported under transcript_timing_unreadable",
 	"internal/auditview/flags.go:Set":                                     "karvi-audit's --lines refusing a word, in the flag package's own words, its usage error (exit 2)",

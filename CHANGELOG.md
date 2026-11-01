@@ -219,22 +219,34 @@
   row leaving it to the mode's default differ, and a key still compares
   folded. The source's digest and its rows come from one read, so the digest
   names the bytes the devices came from.
-- **Breaking: `.cloginrc` reads braces and patterns as clogin's Tcl does.** A
-  braced word dropped each backslash, so `{pa\ss}` read as `pass`; inside braces
-  a backslash and the character after it are now kept, as Tcl reads a braced
-  word, and in a braced pattern a backslash escapes the glob character after it.
-  `$`, `[`, `]`, and `;` inside braces were refused, though Tcl takes them as
-  written, so a file clogin reads (`{pa$$w0rd}`) was refused whole; they are now
-  taken as written, and refused only in a bare word, the message naming the
-  character. A pattern was matched by Go's rules, `[!x]` and `[^x]` read as
-  negation and `*` stopping at `/`, so a line written for clogin matched other
-  devices in karvi, or none; a pattern now matches as clogin's
-  `string match -nocase` does: a class has no negation (`[!x]` matches `!` or
-  `x`), `*` and `?` cross `/`, a range reads either way round, and a class left
-  open runs to the end of the pattern. A pattern no name can match (a trailing
-  `\`, or a class that lists nothing, `[]`) was passed by, so a later `*` line
-  answered; the file is now refused `cloginrc_malformed` naming the line
+- **Breaking: `.cloginrc` reads braces, patterns, and passwords as clogin's Tcl
+  does.** A braced word dropped each backslash; inside braces a backslash and
+  the character after it are now kept, as Tcl reads a braced word, and in a
+  braced pattern a backslash escapes the glob character after it. `$`, `[`, `]`,
+  and `;` inside braces were refused, though Tcl takes them as written, so a
+  file clogin reads (`{pa$$w0rd}`) was refused whole; they are now taken as
+  written, and refused only in a bare word, the message naming the character. An
+  `add password` line's password and enable password were taken as the word
+  reads, where clogin reads each again as a Tcl list and joins its words with
+  nothing between; karvi now does the same (`{pass one}` is `passone`, `{pa\ss}`
+  is `pass`, `{"a b"}` is `a b`) and refuses a value that is not a Tcl list (an
+  unmatched quote or brace) `cloginrc_malformed`, naming the file and line;
+  `add user` and `add userpassword` are taken as written. A pattern was matched
+  by Go's rules, `[!x]` and `[^x]` read as negation and `*` stopping at `/`, so
+  a line written for clogin matched other devices in karvi, or none; a pattern
+  now matches as clogin's `string match -nocase` does: a class has no negation
+  (`[!x]` matches `!` or `x`), `*` and `?` cross `/`, a range reads either way
+  round, and a class left open runs to the end of the pattern. A pattern no name
+  can match (a trailing `\`, or a class that lists nothing, `[]`) was passed by,
+  so a later `*` line answered; the file is now refused `cloginrc_malformed`
+  naming the line. An unsupported statement, a wrong count of values, and an
+  unknown directive are refused naming the file and line too
   ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
+- **A credential backend's refusal writes its code once.** The CSV and
+  `.cloginrc` backends' refusals, and Redis's for a coded reply, wrote the code
+  twice in their text
+  (`credential_file_mode_unsafe: credential_file_mode_unsafe: …`); the text now
+  follows the code once.
 - **Breaking: a link at a day folder's or a job folder's name is refused.**
   A shared job or transcript tree's day folders are every member's to write,
   with no sticky bit, and karvi followed a link planted at a day folder's

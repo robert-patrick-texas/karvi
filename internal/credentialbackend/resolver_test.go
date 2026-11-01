@@ -406,3 +406,42 @@ type stubKeyed struct {
 }
 
 func (s *stubKeyed) HonoursCredKey() bool { return s.keyed }
+
+// TestFileBackendFailureWritesItsCodeOnce: a file backend's failure reaches
+// the resolver's error with its code written once, for the credential CSV
+// and a .cloginrc alike.
+func TestFileBackendFailureWritesItsCodeOnce(t *testing.T) {
+	home := t.TempDir()
+	csv := filepath.Join(home, "credentials.csv")
+	if err := os.WriteFile(csv, []byte("device_name,username,password,enable_password\nrouter1,svc.a,pw-a,\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	unknown := filepath.Join(home, "unknown.rc")
+	if err := os.WriteFile(unknown, []byte("add frobnicate router1 {x}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	wide := filepath.Join(home, "wide.rc")
+	if err := os.WriteFile(wide, []byte("add password router1 {pw-a}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ what, kind, path, code string }{
+		{"a CSV of mode 0644", "csv", csv, "credential_file_mode_unsafe"},
+		{"a .cloginrc of mode 0644", "cloginrc", wide, "credential_file_mode_unsafe"},
+		{"a .cloginrc with an unknown directive", "cloginrc", unknown, "cloginrc_unknown_directive"},
+	} {
+		sets := []string{"creds.interactive-prompt=false", `credential-backend.creds.type="` + tc.kind + `"`, `credential-backend.creds.scope="user"`, `credential-backend.creds.path="` + tc.path + `"`, `creds.backend-sequence=["creds"]`}
+		cfg, err := configload.Load(configload.Options{SkipAuto: true, Environment: []string{}, Sets: sets})
+		if err != nil {
+			t.Fatal(err)
+		}
+		op := credentials.Operator{Username: "jsmith", UID: os.Getuid(), Home: home}
+		r, err := New(cfg, op, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = r.Resolve(context.Background(), op, inventory.Direct("router1", "cisco_ios", "system", 22))
+		if errorcodes.Of(err) != tc.code || strings.Count(err.Error(), tc.code) != 1 {
+			t.Errorf("%s: %v; want %s written once", tc.what, err, tc.code)
+		}
+	}
+}

@@ -238,3 +238,17 @@ func TestCache(t *testing.T) {
 		t.Errorf("%d failing reads, want 1", fails)
 	}
 }
+
+// TestClassifiedMessageHoldsNoCode: a classified failure carries its code
+// in ErrorCode alone and the text after the code in Message, so a result's
+// text writes the code once; an uncoded error's text is kept whole.
+func TestClassifiedMessageHoldsNoCode(t *testing.T) {
+	rules := userRules()
+	coded := errorcodes.Errorf("credential_file_mode_unsafe", "credential backend creds: user credential file /p mode is 0644; remediation: chmod 600 /p")
+	if r := rules.Classify("/p", coded, "cloginrc_malformed"); r.ErrorCode != "credential_file_mode_unsafe" || r.Message != "credential backend creds: user credential file /p mode is 0644; remediation: chmod 600 /p" {
+		t.Errorf("coded: code %q, message %q", r.ErrorCode, r.Message)
+	}
+	if r := rules.Classify("/p", errors.New("/p:3: unsupported statement"), "cloginrc_malformed"); r.ErrorCode != "cloginrc_malformed" || r.Message != "/p:3: unsupported statement" {
+		t.Errorf("uncoded: code %q, message %q", r.ErrorCode, r.Message)
+	}
+}

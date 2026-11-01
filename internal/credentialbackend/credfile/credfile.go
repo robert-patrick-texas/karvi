@@ -20,6 +20,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -231,7 +232,9 @@ func (r Rules) ApprovedUID(uid int) bool {
 // path. An unavailable optional user file is a silent NotFound; unavailable
 // otherwise is credential_file_unavailable naming the backend, the scope,
 // and the path; every other failure keeps its own code, and an error with
-// no code takes malformedCode, the backend's own parse-failure code.
+// no code takes malformedCode, the backend's own parse-failure code. The
+// code is the result's ErrorCode and the message the error's text after
+// it, so the result's text writes the code once.
 func (r Rules) Classify(path string, err error, malformedCode string) credentials.BackendResult {
 	var u *UnavailableError
 	if errors.As(err, &u) {
@@ -244,7 +247,7 @@ func (r Rules) Classify(path string, err error, malformedCode string) credential
 	if code == "" {
 		code = malformedCode
 	}
-	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: err.Error()}
+	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: strings.TrimPrefix(errorcodes.Message(err), code+": ")}
 }
 
 // Cache holds one backend's loaded records, or its failure, for the

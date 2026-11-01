@@ -257,3 +257,25 @@ func TestAuthFailureNamesItsCause(t *testing.T) {
 		}
 	}
 }
+
+// TestCodedFailureMessageHoldsNoCode: a reply that breaks RESP, or the
+// server's error reply to HGETALL, carries its code in ErrorCode alone; the
+// message is the text after the code, so a result's text writes it once.
+func TestCodedFailureMessageHoldsNoCode(t *testing.T) {
+	for _, c := range []struct {
+		what, answer, code, message string
+		auth                        bool
+	}{
+		{"a malformed reply to AUTH", "+OK\n", "redis_protocol_error", "invalid RESP line", true},
+		{"an error reply to HGETALL", "-ERR no such key\r\n", "redis_command_rejected", "redis error: ERR no such key", false},
+	} {
+		b := backend(authStore(t, func(conn net.Conn) { _, _ = io.WriteString(conn, c.answer) }))
+		env := map[string]string{}
+		if c.auth {
+			b.AuthPasswordEnv, env["REDIS_PASS"] = "REDIS_PASS", "rpass"
+		}
+		if r := b.Resolve(context.Background(), request(env)); r.ErrorCode != c.code || r.Message != c.message {
+			t.Errorf("%s: code %q, message %q; want %q, %q", c.what, r.ErrorCode, r.Message, c.code, c.message)
+		}
+	}
+}

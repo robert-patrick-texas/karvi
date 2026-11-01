@@ -98,7 +98,7 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 			case "":
 				return unavailable(err)
 			default:
-				return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: err.Error()}
+				return coded(code, err)
 			}
 		}
 	}
@@ -111,7 +111,7 @@ func (b *Backend) Resolve(ctx context.Context, req credentials.ResolveRequest) c
 	reply, err := command(rw, "HGETALL", key)
 	if err != nil {
 		if code := errorcodes.Of(err); code != "" {
-			return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: err.Error()}
+			return coded(code, err)
 		}
 		return unavailable(err)
 	}
@@ -224,4 +224,11 @@ func unavailable(err error) credentials.BackendResult {
 }
 func malformed(err error) credentials.BackendResult {
 	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: "redis_malformed", Message: err.Error()}
+}
+
+// coded is the result of a failure whose error carries code: the code in
+// ErrorCode, the error's text after it in Message, so the result's text
+// writes the code once.
+func coded(code string, err error) credentials.BackendResult {
+	return credentials.BackendResult{Outcome: credentials.Malformed, ErrorCode: code, Message: strings.TrimPrefix(errorcodes.Message(err), code+": ")}
 }

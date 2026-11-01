@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf16"
 	"unicode/utf8"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -380,7 +381,7 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 			continue
 		}
 		if !strings.EqualFold(tokens[0], "add") || len(tokens) < 4 {
-			return nil, fmt.Errorf("unsupported statement")
+			return nil, fmt.Errorf("%s:%d: unsupported statement", canonical, line)
 		}
 		d := strings.ToLower(tokens[1])
 		pattern := tokens[2]
@@ -388,18 +389,27 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 		switch d {
 		case "user", "userpassword":
 			if len(values) != 1 {
-				return nil, fmt.Errorf("add %s requires exactly one value", d)
+				return nil, fmt.Errorf("%s:%d: add %s requires exactly one value", canonical, line, d)
 			}
 		case "password":
 			if len(values) < 1 || len(values) > 2 {
-				return nil, fmt.Errorf("add password requires one or two values")
+				return nil, fmt.Errorf("%s:%d: add password requires one or two values", canonical, line)
+			}
+			// clogin sends the password and the enable password as
+			// [join [lindex $pswd n] ""] gives them.
+			for i, v := range values {
+				joined, err := joinList(v)
+				if err != nil {
+					return nil, fmt.Errorf("%s:%d: the %s is not a Tcl list: %w", canonical, line, [2]string{"password", "enable password"}[i], err)
+				}
+				values[i] = joined
 			}
 		default:
 			if !ignored[d] {
-				return nil, fmt.Errorf("cloginrc_unknown_directive: %s", d)
+				return nil, errorcodes.Errorf("cloginrc_unknown_directive", "%s:%d: %s", canonical, line, d)
 			}
 			if len(values) < 1 {
-				return nil, fmt.Errorf("ignored directive %s requires a value", d)
+				return nil, fmt.Errorf("%s:%d: ignored directive %s requires a value", canonical, line, d)
 			}
 			if !ignoredSeen[d] && b.Warn != nil {
 				ignoredSeen[d] = true
@@ -529,4 +539,231 @@ func parseBare(s string, i int) (string, int, error) {
 		i++
 	}
 	return b.String(), i, nil
+}
+
+// joinList is value as clogin's [join $value ""] gives it, the way clogin
+// takes an add password line's password and enable password: value read as
+// a Tcl list, as Tcl 8.6 reads one, its elements joined with nothing
+// between. White space (space, tab, newline, vertical tab, form feed,
+// carriage return) separates the elements; listElement reads each one.
+func joinList(value string) (string, error) {
+	var b strings.Builder
+	for i := skipListSpace(value, 0); i < len(value); i = skipListSpace(value, i) {
+		end, err := listElement(value, i, &b)
+		if err != nil {
+			return "", err
+		}
+		i = end
+	}
+	return pairSurrogates(b.String()), nil
+}
+
+func isListSpace(c byte) bool { return c == ' ' || '\t' <= c && c <= '\r' }
+
+func skipListSpace(s string, i int) int {
+	for i < len(s) && isListSpace(s[i]) {
+		i++
+	}
+	return i
+}
+
+// listElement writes the list element at s[i] to b as Tcl 8.6's list
+// parsing gives it and returns the position after it. A braced element is
+// what stands between its braces, which nest, as written; a backslash
+// sequence there is kept and its braces do not count. A quoted element
+// runs to the next quote and a bare element to the next white space, each
+// with its backslash sequences substituted (tclBackslash). An open brace or
+// quote left unmatched, or text after an element's closing brace or quote,
+// fails as it fails in Tcl.
+func listElement(s string, i int, b *strings.Builder) (int, error) {
+	switch s[i] {
+	case '{':
+		depth := 0
+		for j := i; j < len(s); j++ {
+			switch s[j] {
+			case '\\':
+				_, n := tclBackslash(s[j:])
+				j += n - 1
+			case '{':
+				depth++
+			case '}':
+				if depth--; depth > 0 {
+					continue
+				}
+				if j+1 < len(s) && !isListSpace(s[j+1]) {
+					return 0, fmt.Errorf("text after a closing brace")
+				}
+				b.WriteString(s[i+1 : j])
+				return j + 1, nil
+			}
+		}
+		return 0, fmt.Errorf("unmatched open brace")
+	case '"':
+		for j := i + 1; j < len(s); j++ {
+			switch s[j] {
+			case '\\':
+				_, n := tclBackslash(s[j:])
+				j += n - 1
+			case '"':
+				if j+1 < len(s) && !isListSpace(s[j+1]) {
+					return 0, fmt.Errorf("text after a closing quote")
+				}
+				collapse(s[i+1:j], b)
+				return j + 1, nil
+			}
+		}
+		return 0, fmt.Errorf("unmatched open quote")
+	}
+	j := i
+	for j < len(s) && !isListSpace(s[j]) {
+		if s[j] == '\\' {
+			_, n := tclBackslash(s[j:])
+			j += n
+			continue
+		}
+		j++
+	}
+	collapse(s[i:j], b)
+	return j, nil
+}
+
+// collapse writes s to b with each backslash sequence replaced by the
+// character it stands for.
+func collapse(s string, b *strings.Builder) {
+	for i := 0; i < len(s); {
+		if s[i] != '\\' {
+			b.WriteByte(s[i])
+			i++
+			continue
+		}
+		c, n := tclBackslash(s[i:])
+		b.WriteString(c)
+		i += n
+	}
+}
+
+// tclBackslash is the backslash sequence at the start of s as Tcl 8.6
+// substitutes it (TclParseBackslash): the character it stands for and the
+// bytes it takes. \a \b \f \n \r \t \v are the control characters; \x takes
+// one or two hex digits, \u one to four, and \U one to eight, stopping
+// before a digit that would pass U+10FFFF; one to three octal digits give a
+// value up to 0377; a backslash, a newline, and the spaces and tabs after
+// it are one space; a backslash before any other character is that
+// character, and a backslash that ends s is a backslash.
+func tclBackslash(s string) (string, int) {
+	if len(s) < 2 {
+		return `\`, len(s)
+	}
+	switch c := s[1]; c {
+	case 'a':
+		return "\a", 2
+	case 'b':
+		return "\b", 2
+	case 'f':
+		return "\f", 2
+	case 'n':
+		return "\n", 2
+	case 'r':
+		return "\r", 2
+	case 't':
+		return "\t", 2
+	case 'v':
+		return "\v", 2
+	case 'x', 'u', 'U':
+		digits := 2
+		switch c {
+		case 'u':
+			digits = 4
+		case 'U':
+			digits = 8
+		}
+		v, n := tclHex(s[2:], digits)
+		if n == 0 {
+			return s[1:2], 2
+		}
+		return tclChar(v), 2 + n
+	case '\n':
+		n := 2
+		for n < len(s) && (s[n] == ' ' || s[n] == '\t') {
+			n++
+		}
+		return " ", n
+	case '0', '1', '2', '3', '4', '5', '6', '7':
+		v, n := rune(c-'0'), 2
+		if n < len(s) && '0' <= s[n] && s[n] <= '7' {
+			v, n = v<<3|rune(s[n]-'0'), n+1
+			if n < len(s) && '0' <= s[n] && s[n] <= '7' && v < 0o40 {
+				v, n = v<<3|rune(s[n]-'0'), n+1
+			}
+		}
+		return tclChar(v), n
+	}
+	r, n := utf8.DecodeRuneInString(s[1:])
+	if r == utf8.RuneError && n == 1 {
+		return s[1:2], 2
+	}
+	return tclChar(r), 1 + n
+}
+
+// tclHex reads up to max hex digits at the start of s, as TclParseHex does:
+// it stops before a digit once the value passes 0x10FFF.
+func tclHex(s string, max int) (rune, int) {
+	var v rune
+	n := 0
+	for ; n < max && n < len(s) && v <= 0x10fff; n++ {
+		switch c := rune(s[n]); {
+		case '0' <= c && c <= '9':
+			v = v<<4 | (c - '0')
+		case 'a' <= c && c <= 'f':
+			v = v<<4 | (c - 'a' + 10)
+		case 'A' <= c && c <= 'F':
+			v = v<<4 | (c - 'A' + 10)
+		default:
+			return v, n
+		}
+	}
+	return v, n
+}
+
+// tclChar is the character v in the UTF-8 tclsh8.6 (8.6.17) writes for it:
+// a character past U+FFFF is U+FFFD, and a surrogate is written in three
+// bytes of its own (pairSurrogates joins a high one followed by a low one).
+func tclChar(v rune) string {
+	switch {
+	case v > 0xffff:
+		return string(utf8.RuneError)
+	case 0xd800 <= v && v <= 0xdfff:
+		return string([]byte{0xe0 | byte(v>>12), 0x80 | byte(v>>6)&0x3f, 0x80 | byte(v)&0x3f})
+	}
+	return string(v)
+}
+
+// pairSurrogates is s with each high surrogate that comes just before a low
+// one, three bytes each, written as the one character the pair stands for,
+// as Tcl 8.6's UTF-8 encoding writes the pair.
+func pairSurrogates(s string) string {
+	if !strings.Contains(s, "\xed") {
+		return s
+	}
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		if hi, ok := surrogate(s[i:], 0xa0); ok {
+			if lo, ok := surrogate(s[i+3:], 0xb0); ok {
+				b.WriteRune(utf16.DecodeRune(hi, lo))
+				i += 5
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
+}
+
+// surrogate reads the three bytes of a surrogate at the start of s: a high
+// one for half 0xa0, a low one for 0xb0.
+func surrogate(s string, half byte) (rune, bool) {
+	if len(s) < 3 || s[0] != 0xed || s[1]&0xf0 != half || s[2]&0xc0 != 0x80 {
+		return 0, false
+	}
+	return 0xd000 | rune(s[1]&0x3f)<<6 | rune(s[2]&0x3f), true
 }
