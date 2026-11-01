@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net/netip"
 	"os/exec"
 	"regexp"
@@ -19,7 +20,10 @@ import (
 // both the interval and the wait set to the timeout, under an environment
 // of LC_ALL=C only, and parses the reply and error lines. ping sends probe
 // 2 at the interval whether or not probe 1 answered, so a
-// gate takes about one timeout on success and two on failure.
+// gate takes about one timeout on success and two on failure. A ping that
+// cannot start, or that exits refusing its socket, a permission, or its
+// arguments before answering a probe, is an error return: the pinger could
+// not run.
 type systemPinger struct{ path string }
 
 func (systemPinger) Method() string { return MethodSystem }
@@ -78,12 +82,18 @@ func (p systemPinger) Probe(ctx context.Context, address netip.Addr, count int, 
 		}
 	}
 	var exit *exec.ExitError
+	exited := errors.As(runErr, &exit)
 	switch {
 	case runCtx.Err() != nil && ctx.Err() == nil:
 		markErrors(outcomes, "ping did not finish within the gate deadline")
 	case ctx.Err() != nil:
 		markErrors(outcomes, ctx.Err().Error())
-	case errors.As(runErr, &exit) && exit.ExitCode() >= 2, runErr != nil && !errors.As(runErr, &exit):
+	case runErr != nil && !exited:
+		return nil, runErr
+	case exited && exit.ExitCode() >= 2:
+		if line, ok := cannotRun(stderr.String(), p.path); ok && Replies(outcomes) == 0 && Errors(outcomes) == 0 {
+			return nil, fmt.Errorf("%s: %s", p.path, line)
+		}
 		detail := firstLine(stderr.String())
 		if detail == "" {
 			detail = runErr.Error()
@@ -91,6 +101,29 @@ func (p systemPinger) Probe(ctx context.Context, address netip.Addr, count int, 
 		markErrors(outcomes, detail)
 	}
 	return outcomes, nil
+}
+
+// cannotRunLine matches a line of ping's stderr, lower-cased, that says ping
+// could not run at all: a socket refused, a permission or capability
+// lacking, or arguments refused.
+var cannotRunLine = regexp.MustCompile(`socket: |permission denied|operation not permitted|cap_net_raw|invalid option|unrecognized option|option requires an argument|invalid argument|^usage|cannot flood|^bad `)
+
+// cannotRun is the first line of stderr, without ping's program prefix, that
+// says ping could not run at all. A line about reaching the address
+// (connect, sendmsg, sendto) is never one: ping ran, and the address is not
+// reachable from this host.
+func cannotRun(stderr, path string) (string, bool) {
+	for _, line := range strings.Split(stderr, "\n") {
+		line = strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(line), path+": "), "ping: ")
+		l := strings.ToLower(line)
+		if strings.HasPrefix(l, "connect:") || strings.HasPrefix(l, "sendmsg:") || strings.HasPrefix(l, "sendto:") {
+			continue
+		}
+		if cannotRunLine.MatchString(l) {
+			return line, true
+		}
+	}
+	return "", false
 }
 
 func outcomeAt(outcomes []Outcome, seq int) *Outcome {

@@ -260,3 +260,75 @@ func TestFamilyAndCounts(t *testing.T) {
 		t.Error("counts")
 	}
 }
+
+// TestSystemAdapterIsAnErrorWhenPingCannotRun checks the Pinger contract for
+// the system adapter: a ping that cannot start, or that exits refusing its
+// socket, a permission, or its arguments before sending a probe, is an error
+// return, not two probe outcomes.
+func TestSystemAdapterIsAnErrorWhenPingCannotRun(t *testing.T) {
+	cases := []struct {
+		name, stderr, want string
+	}{
+		{"socket refused", "ping: socktype: SOCK_RAW\nping: socket: Operation not permitted\nping: => missing cap_net_raw+p capability or setuid?\n", "socket: Operation not permitted"},
+		{"socket family", "ping: socket: Address family not supported by protocol\n", "socket: Address family not supported by protocol"},
+		{"permission", "ping: permission denied (are you root?)\n", "permission denied (are you root?)"},
+		{"unknown option", "ping: invalid option -- 'O'\n\nUsage\n  ping [options] <destination>\n", "invalid option -- 'O'"},
+		{"interval floor", "ping: cannot flood; minimal interval allowed for user is 200ms\n", "cannot flood; minimal interval allowed for user is 200ms"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := fakePing(t, "", c.stderr, 2, 0)
+			out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 500*time.Millisecond)
+			if err == nil || !strings.Contains(err.Error(), c.want) || !strings.Contains(err.Error(), path) {
+				t.Fatalf("err=%v outcomes=%+v, want an error naming %s and %q", err, out, path, c.want)
+			}
+		})
+	}
+	t.Run("not executable", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "ping")
+		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 0\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 500*time.Millisecond)
+		if err == nil || !strings.Contains(err.Error(), path) {
+			t.Fatalf("err=%v outcomes=%+v, want an error naming %s", err, out, path)
+		}
+	})
+	t.Run("missing", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "ping")
+		out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("192.0.2.1"), Probes, 500*time.Millisecond)
+		if err == nil || !strings.Contains(err.Error(), path) {
+			t.Fatalf("err=%v outcomes=%+v, want an error naming %s", err, out, path)
+		}
+	})
+}
+
+// TestSystemAdapterKeepsANetworkRefusalAsOutcomes checks that a ping that ran
+// and found no route to the address, or drew ICMP error answers, reports
+// probe outcomes and no error: the device is unreachable, the pinger works.
+func TestSystemAdapterKeepsANetworkRefusalAsOutcomes(t *testing.T) {
+	cases := []struct {
+		name, stdout, stderr, detail string
+		exit                         int
+	}{
+		{"no route", "", "ping: connect: Network is unreachable\n", "connect: Network is unreachable", 2},
+		{"icmp errors with exit 2", v6Errors, "", "Destination unreachable: No route", 2},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := fakePing(t, c.stdout, c.stderr, c.exit, 0)
+			out, err := systemPinger{path: path}.Probe(context.Background(), netip.MustParseAddr("2001:db8::1"), Probes, 500*time.Millisecond)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(out) != Probes || Errors(out) != Probes {
+				t.Fatalf("outcomes %+v, want %d errors", out, Probes)
+			}
+			for _, o := range out {
+				if o.Detail != c.detail {
+					t.Errorf("outcome %d detail %q, want %q", o.Sequence, o.Detail, c.detail)
+				}
+			}
+		})
+	}
+}

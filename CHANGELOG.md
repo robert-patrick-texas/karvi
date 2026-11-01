@@ -159,6 +159,29 @@
   and the pane no longer panics on a target whose key is longer than the
   width. A device session that fails or closes while its output queue is full
   no longer leaves its reader blocked for ever.
+- **The system transport judges a failure by OpenSSH's own lines.** OpenSSH
+  prints a device's banner on standard error, and karvi matched words anywhere
+  in it: a banner holding `Permission denied` made a later failure an
+  authentication one, one holding `Warning: Permanently added` said
+  `host_key_enrolled` of a device already enrolled, one holding host-key words
+  made an authentication failure `host_key_changed` (a halt under
+  `ssh.halt-run-on-host-key-mismatch`), and one over 64 KiB pushed OpenSSH's
+  failure line out of the message. A failure is now decided by the last line
+  in one of OpenSSH's own forms, each matched whole, the diagnostics kept to
+  their last 64 KiB and emptied once authenticated; the enrollment line counts
+  only once and only for a device the store held nothing for. Every ssh
+  command line ends its options with `--` before the device, so a command
+  beginning with `-` is the device's, not ssh's; a failed `ssh -Q` or `ssh -G`
+  is asked again rather than kept for the process or the job.
+- **A name lookup asks the fallback family in its own time, and a ping that
+  cannot run says so.** `name.dns-timeout` bounded both address families'
+  lookups together, so when the preferred family (IPv6 by default) timed out
+  the other was never really asked; each family now has its own timeout, so a
+  lookup can take twice it. The system ping marked each probe failed when ping
+  could not run at all (not installed, its socket refused, a usage error),
+  which skipped the device `icmp_unreachable`; it is now
+  `icmp_capability_unavailable`, the device's own failure kept for a probe
+  that was sent.
 
 ## 0.38.0 - 2026-10-28
 

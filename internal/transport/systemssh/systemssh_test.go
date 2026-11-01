@@ -113,3 +113,59 @@ func TestManagedAuthentication(t *testing.T) {
 		t.Fatalf("ssh -G:\n%s\nwant %s", strings.Join(got, "\n"), want)
 	}
 }
+
+// openSSHChangedKey is OpenSSH 10.2's standard error, verbatim but for the
+// names, refusing a key that differs from the stored one.
+const openSSHChangedKey = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\r\n" +
+	"@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @\r\n" +
+	"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\r\n" +
+	"IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!\r\n" +
+	"Someone could be eavesdropping on you right now (man-in-the-middle attack)!\r\n" +
+	"It is also possible that a host key has just been changed.\r\n" +
+	"The fingerprint for the ED25519 key sent by the remote host is\r\n" +
+	"SHA256:7jTCG/CNq0DqFlsu1ZyOWI78LBfckJ48ZAIK0nQVQfs.\r\n" +
+	"Please contact your system administrator.\r\n" +
+	"Add correct host key in /home/jsmith/.local/share/karvi/known_hosts to get rid of this message.\r\n" +
+	"Offending ED25519 key in /home/jsmith/.local/share/karvi/known_hosts:1\r\n" +
+	"  remove with:\r\n" +
+	"  ssh-keygen -f '/home/jsmith/.local/share/karvi/known_hosts' -R 'switch01'\r\n" +
+	"Host key for switch01 has changed and you have requested strict checking.\r\n" +
+	"Host key verification failed.\r\n"
+
+// TestClassifyTakesOpenSSHsLastFailureLine: the code is that of the last
+// line in OpenSSH's own form for a failure, each form matched to its whole
+// line; the device text before it (a banner, OpenSSH writing it during
+// authentication) and lines in no such form decide nothing.
+func TestClassifyTakesOpenSSHsLastFailureLine(t *testing.T) {
+	banner := "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! Report changes to the NOC.\r\n" +
+		"@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @\r\n" +
+		"Host key verification failed.\r\n" +
+		"Permission denied to unauthorised users; connection refused, no route to host.\r\n"
+	for _, tc := range []struct{ name, stderr, code string }{
+		{"changed key", openSSHChangedKey, "host_key_changed"},
+		{"revoked key", openSSHRevokedKey, "host_key_revoked"},
+		{"unknown key", "No ED25519 host key is known for switch01 and you have requested strict checking.\r\nHost key verification failed.\r\n", "host_key_not_enrolled"},
+		{"bare verification failure", "Host key verification failed.\r\n", "host_key_not_enrolled"},
+		{"host-key words in a banner, then refused", banner + "operator@192.0.2.10: Permission denied (publickey,password).\r\n", "authentication_failed"},
+		{"too many failures", banner + "Received disconnect from 192.0.2.10 port 22:2: Too many authentication failures\r\nDisconnected from 192.0.2.10 port 22\r\n", "authentication_failed"},
+		{"disconnect: authentication failed", "Received disconnect from 192.0.2.10 port 22:14: Authentication failed\r\nDisconnected from 192.0.2.10 port 22\r\n", "authentication_failed"},
+		{"another disconnect", banner + "Received disconnect from 192.0.2.10 port 22:11: Idle timeout\r\nDisconnected from 192.0.2.10 port 22\r\n", "ssh_process_failed"},
+		{"refused", "ssh: connect to host 192.0.2.10 port 22: Connection refused\r\n", "connection_refused"},
+		{"refused beyond a jump host", "channel 0: open failed: connect failed: Connection refused\r\nstdio forwarding failed\r\nkex_exchange_identification: Connection closed by remote host\r\nConnection closed by UNKNOWN port 65535\r\n", "connection_refused"},
+		{"timed out", "ssh: connect to host 192.0.2.10 port 22: Connection timed out\r\n", "connection_timeout"},
+		{"banner exchange timed out", "Connection timed out during banner exchange\r\nConnection to 192.0.2.10 port 22 timed out\r\n", "connection_timeout"},
+		{"no route", "ssh: connect to host 192.0.2.10 port 22: No route to host\r\n", "network_unreachable"},
+		{"unreachable", "ssh: connect to host 2001:db8::10 port 22: Network is unreachable\r\n", "network_unreachable"},
+		{"refused by this host", "ssh: connect to host 192.0.2.10 port 22: Permission denied\r\n", "network_unreachable"},
+		{"unresolved", "ssh: Could not resolve hostname switch01.example.net: Name or service not known\r\n", "ssh_name_resolution_error"},
+		{"keepalives", banner + "Timeout, server 192.0.2.10 not responding.\r\n", "session_keepalive_timeout"},
+		{"master refused", "Master refused session request: Permission denied\r\n", "ssh_session_channel_refused"},
+		{"channel prohibited", "channel 1: open failed: administratively prohibited: open failed\r\n", "ssh_session_channel_refused"},
+		{"a key file unreadable, then refused", "Load key \"/keys/k\": Permission denied\r\noperator@192.0.2.10: Permission denied (publickey).\r\n", "authentication_failed"},
+		{"GSSAPI", "Mutual authentication failed\r\n", "ssh_process_failed"},
+	} {
+		if code, _, _, _ := classify(tc.stderr, nil); code != tc.code {
+			t.Errorf("%s: %s, want %s", tc.name, code, tc.code)
+		}
+	}
+}

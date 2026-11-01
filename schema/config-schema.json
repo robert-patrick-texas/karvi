@@ -243,7 +243,7 @@
       "cli_flags": null,
       "min": "1ms",
       "max": "60s",
-      "documentation": "1ms–60s; no karvi retry.",
+      "documentation": "Independent timeout for each address family's lookup; 1ms–60s; no karvi retry.",
       "since": "0.2.0"
     },
     {

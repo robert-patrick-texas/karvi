@@ -39,9 +39,10 @@ import (
 // takes the lines the exec channel reads and the line saying the host's key
 // was stored (to enrolled), drops OpenSSH's other debug lines, and passes
 // every other line on whole, so the diagnostics classify
-// a failure as the shell's do. A line is held until its newline.
+// a failure as the shell's do; the line naming the method empties them, as
+// authFilter's does. A line is held until its newline.
 type masterLines struct {
-	next     io.Writer
+	next     *synchronizedBuffer
 	enrolled func(label string) // the request's host_key_enrolled notice, or nil (Driver.hostKeyEnrolled)
 
 	mu      sync.Mutex
@@ -71,7 +72,7 @@ var (
 	debugLine   = regexp.MustCompile(`^debug\d: `)
 )
 
-func newMasterLines(next io.Writer) *masterLines {
+func newMasterLines(next *synchronizedBuffer) *masterLines {
 	return &masterLines{next: next, changed: make(chan struct{})}
 }
 
@@ -97,6 +98,7 @@ func (m *masterLines) take(line []byte) error {
 	text := string(bytes.TrimRight(line, "\r\n"))
 	if g := authenticatedLine.FindStringSubmatch(text); g != nil {
 		m.method = g[1]
+		m.next.reset()
 		m.notify()
 		return nil
 	}
@@ -254,7 +256,7 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 		"-o", "LogLevel=DEBUG1",
 		"-o", "BatchMode=no",
 		"-N", "-n",
-		d.req.Address,
+		"--", d.req.Address,
 	)
 	m.cmd = exec.Command(d.binary, args...)
 	m.cmd.Env = childEnvironment(d.f.Config, append(broker.Environment(),
@@ -289,7 +291,7 @@ func (d *Driver) startMaster() (*execMaster, *askpass.Broker, error) {
 
 // control runs ssh -O OPERATION against the master's socket.
 func (m *execMaster) control(operation string) error {
-	cmd := exec.Command(m.binary, "-F", "none", "-o", "LogLevel=QUIET", "-S", m.socket, "-O", operation, m.address)
+	cmd := exec.Command(m.binary, "-F", "none", "-o", "LogLevel=QUIET", "-S", m.socket, "-O", operation, "--", m.address)
 	cmd.Env = m.env
 	return cmd.Run()
 }
@@ -409,7 +411,7 @@ func (c *execConn) Start(command string) (devsession.ExecChannel, error) {
 		"-o", "ProxyCommand=false",
 		"-o", "LogLevel=QUIET",
 		"-o", "BatchMode=yes",
-		"-n", "-T", c.m.address, command)
+		"-n", "-T", "--", c.m.address, command)
 	cmd.Env = c.m.env
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

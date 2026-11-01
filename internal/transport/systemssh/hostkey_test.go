@@ -99,8 +99,8 @@ func TestHostKeyFailureClassification(t *testing.T) {
 		stderr string
 		code   string
 	}{
-		{name: "changed", stderr: "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!", code: "host_key_changed"},
-		{name: "secure unknown", stderr: "No ED25519 host key is known for switch.example and you have requested strict checking. Host key verification failed.", code: "host_key_not_enrolled"},
+		{name: "changed", stderr: openSSHChangedKey, code: "host_key_changed"},
+		{name: "secure unknown", stderr: "No ED25519 host key is known for switch.example and you have requested strict checking.\r\nHost key verification failed.\r\n", code: "host_key_not_enrolled"},
 		{name: "revoked", stderr: openSSHRevokedKey, code: "host_key_revoked"},
 	}
 	for _, tt := range tests {

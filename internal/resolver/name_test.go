@@ -2,6 +2,8 @@ package resolver
 
 import (
 	"context"
+	"errors"
+	"net"
 	"net/netip"
 	"reflect"
 	"testing"
@@ -75,5 +77,63 @@ func TestResolveFallsBackWhenPreferredFamilyHasNoRecord(t *testing.T) {
 	}
 	if got.SelectedAddress.String() != "192.0.2.10" || !reflect.DeepEqual(calls, []string{"ip6", "ip4"}) {
 		t.Fatalf("resolution=%s calls=%v", got.SelectedAddress, calls)
+	}
+}
+
+// TestResolveAsksTheFallbackFamilyAfterThePreferredOneTimesOut checks that
+// name.dns-timeout bounds each family's lookup on its own: a preferred family
+// that uses up its timeout leaves the fallback family its own, and the
+// fallback's answer is the resolution.
+func TestResolveAsksTheFallbackFamilyAfterThePreferredOneTimesOut(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{
+		"name.address-family-preference=ipv6",
+		"name.dns-timeout=50ms",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := []string{}
+	lookup := func(ctx context.Context, network, _ string) ([]netip.Addr, error) {
+		calls = append(calls, network)
+		if network == "ip6" {
+			<-ctx.Done()
+			return nil, &net.DNSError{Err: "i/o timeout", Name: "router1.example.net", IsTimeout: true}
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, &net.DNSError{Err: err.Error(), Name: "router1.example.net", IsTimeout: true}
+		}
+		return []netip.Addr{netip.MustParseAddr("192.0.2.10")}, nil
+	}
+	d := inventory.Direct("router1.example.net", "generic", "system", 0)
+	got, err := Resolve(context.Background(), cfg, d, Capabilities{IPv4: true, IPv6: true}, lookup)
+	if err != nil {
+		t.Fatalf("Resolve: %v (calls %v)", err, calls)
+	}
+	if got.SelectedAddress.String() != "192.0.2.10" || got.AddressFamily != "ipv4" || !reflect.DeepEqual(calls, []string{"ip6", "ip4"}) {
+		t.Fatalf("resolution=%s family=%s calls=%v, want 192.0.2.10 ipv4 [ip6 ip4]", got.SelectedAddress, got.AddressFamily, calls)
+	}
+}
+
+// TestResolveIsATimeoutWhenEveryFamilyTimesOut checks that a lookup whose
+// families each use up their own name.dns-timeout is dns_timeout.
+func TestResolveIsATimeoutWhenEveryFamilyTimesOut(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{
+		"name.address-family-preference=ipv6",
+		"name.dns-timeout=20ms",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := []string{}
+	lookup := func(ctx context.Context, network, _ string) ([]netip.Addr, error) {
+		calls = append(calls, network)
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	d := inventory.Direct("router1.example.net", "generic", "system", 0)
+	_, err = Resolve(context.Background(), cfg, d, Capabilities{IPv4: true, IPv6: true}, lookup)
+	var re *Error
+	if !errors.As(err, &re) || re.Code != "dns_timeout" || !reflect.DeepEqual(calls, []string{"ip6", "ip4"}) {
+		t.Fatalf("err=%v calls=%v, want dns_timeout after [ip6 ip4]", err, calls)
 	}
 }

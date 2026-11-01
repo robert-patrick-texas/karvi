@@ -2,7 +2,6 @@ package systemssh
 
 import (
 	"bytes"
-	"io"
 	"regexp"
 	"sync"
 )
@@ -30,10 +29,12 @@ func enrolledLabel(text string) (string, bool) {
 // the line naming the method that authenticated, and the line saying the
 // host's key was stored (to enrolled), out of the stream and passes every
 // other line on whole, so the diagnostics classify a failure as they did at
-// LogLevel INFO. A line is held until its newline; Flush passes on what is
-// left when the stream ends.
+// LogLevel INFO. The line naming the method also empties the diagnostics:
+// what OpenSSH wrote before it is the login's, a device's banner among it,
+// and a later failure is classified by what follows. A line is held until
+// its newline; Flush passes on what is left when the stream ends.
 type authFilter struct {
-	next     io.Writer
+	next     *synchronizedBuffer
 	enrolled func(label string) // the request's host_key_enrolled notice, or nil (Driver.hostKeyEnrolled)
 
 	mu      sync.Mutex
@@ -54,6 +55,7 @@ func (f *authFilter) Write(p []byte) (int, error) {
 		text := bytes.TrimSuffix(line, []byte("\n"))
 		if m := authenticatedLine.FindSubmatch(text); m != nil {
 			f.method = string(m[1])
+			f.next.reset()
 		} else if label, ok := enrolledLabel(string(text)); ok {
 			if f.enrolled != nil {
 				f.enrolled(label)

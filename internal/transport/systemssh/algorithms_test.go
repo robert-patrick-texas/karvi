@@ -220,3 +220,82 @@ func TestHostKeyAliasIsTheIdentity(t *testing.T) {
 		}
 	}
 }
+
+// TestAFailedCapabilityQueryIsAskedAgain: a -Q query that fails (its
+// timeout or a fork failure, here an exit of 1) leaves its list unfiltered
+// for that session and is not kept: the next session asks again and
+// filters by the answer, while the queries that answered are not repeated.
+func TestAFailedCapabilityQueryIsAskedAgain(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{"ssh.include-user-config=false"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "ssh")
+	script := `#!/bin/sh
+dir=$(dirname "$0")
+case "$1 $2" in
+  "-Q kex")
+    printf 'kex\n' >> "$dir/queries"
+    [ -e "$dir/failed" ] || { : > "$dir/failed"; exit 1; }
+    printf 'curve25519-sha256\necdh-sha2-nistp256\n' ;;
+  "-Q cipher")
+    printf 'cipher\n' >> "$dir/queries"
+    printf 'aes128-ctr\naes256-ctr\n' ;;
+esac
+exit 0
+`
+	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	first := binaryCapabilities(cfg, bin)
+	if first.answered[sshalgorithms.Kex] || !first.implements(sshalgorithms.Kex, "mlkem768x25519-sha256") || !first.answered[sshalgorithms.Ciphers] {
+		t.Fatalf("first: answered %v", first.answered)
+	}
+	second := binaryCapabilities(cfg, bin)
+	if !second.answered[sshalgorithms.Kex] || second.implements(sshalgorithms.Kex, "mlkem768x25519-sha256") || !second.implements(sshalgorithms.Kex, "curve25519-sha256") {
+		t.Fatalf("second: answered %v names %v", second.answered, second.names[sshalgorithms.Kex])
+	}
+	if first.answered[sshalgorithms.Kex] {
+		t.Fatal("the first session's capabilities changed under it")
+	}
+	binaryCapabilities(cfg, bin)
+	data, err := os.ReadFile(filepath.Join(dir, "queries"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Fields(string(data)); strings.Count(string(data), "kex") != 2 || strings.Count(string(data), "cipher") != 1 {
+		t.Fatalf("queries %v, want kex twice and cipher once", got)
+	}
+}
+
+// TestAFailedEvaluationIsAskedAgain: an ssh -G that failed gives the job no
+// lists to keep: the job's next negotiation failure runs it again and names
+// the lists it then gives.
+func TestAFailedEvaluationIsAskedAgain(t *testing.T) {
+	cfg, err := configload.Load(configload.Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "ssh")
+	script := "#!/bin/sh\necho run >>" + filepath.Join(dir, "calls") + "\n[ -e " + filepath.Join(dir, "failed") + " ] || { : >" + filepath.Join(dir, "failed") + "; exit 255; }\nprintf 'ciphers chacha20-poly1305@openssh.com,aes128-ctr\\n'\n"
+	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	job := &EffectiveLists{}
+	fail := func() error {
+		d := &Driver{f: Factory{Config: cfg, Effective: job, offered: sshalgorithms.Lists{sshalgorithms.HostKey: {"ssh-ed25519"}}}, req: platform.OpenRequest{Address: "192.0.2.10", Port: 22, Username: "operator"}, binary: bin, configPath: "/cfg"}
+		return d.sessionFailure().classify("Unable to negotiate with 192.0.2.10 port 22: no matching cipher found. Their offer: aes256-cbc", nil)
+	}
+	if err := fail(); !strings.HasSuffix(err.Error(), "system offered its own list; the device offered aes256-cbc") {
+		t.Fatalf("first: %v", err)
+	}
+	if err := fail(); !strings.HasSuffix(err.Error(), "system offered chacha20-poly1305@openssh.com,aes128-ctr; the device offered aes256-cbc") {
+		t.Fatalf("second: %v", err)
+	}
+	_ = fail()
+	if data, _ := os.ReadFile(filepath.Join(dir, "calls")); strings.Count(string(data), "run") != 2 {
+		t.Fatalf("ssh -G ran %d times, want 2", strings.Count(string(data), "run"))
+	}
+}

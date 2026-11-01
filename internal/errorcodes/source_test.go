@@ -228,6 +228,7 @@ func emittedCodes(t *testing.T) []emission {
 // "path:*" for a whole file.
 var detailFuncs = map[string]string{
 	"internal/buildinfo/build.go:readBuild":                               "the build ID's reading, reported under build_unreadable",
+	"internal/icmpgate/system.go:Probe":                                   "a pinger that cannot run, reported under icmp_capability_unavailable",
 	"internal/scoreboard/scoreboard.go:readSnapshot":                      "why a scoreboard entry is passed by, shown in its ? row",
 	"internal/scoreboard/scoreboard.go:tooLarge":                          "why a scoreboard entry is passed by, shown in its ? row",
 	"internal/configload/tomlmini/parser.go:*":                            "TOML syntax diagnostics reported under config_toml_syntax",

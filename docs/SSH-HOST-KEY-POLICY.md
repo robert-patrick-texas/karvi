@@ -51,15 +51,17 @@ The device's first record carries the notice `host_key_enrolled` with the key
 type, and its `<kind>.command` audit event `details.host_key_enrolled`.
 `native` says it when its own enrollment wrote the line; over `system`
 karvi takes OpenSSH's `Warning: Permanently added …` line from the standard
-error of the exec master and the command session. A job that finds the key
-stored meanwhile by another says nothing. A login runs OpenSSH at `LogLevel
-ERROR`, where it says nothing of the key (nor shows a device's banner), so karvi
-reads the store before the session and, when it holds nothing for the device,
-again at the session's first password prompt, OpenSSH having stored the key
-during key exchange, or at the session's end when nothing was asked; the line
-comes then, and the login's `login.end` event names the type. A login whose
-first contact overlaps another's with the same device can say it of a key the
-other stored.
+error of the exec master and the command session, the first one only and only
+for a device the store held nothing for as the session began: OpenSSH writes
+it at key exchange, before the device's banner, which can hold the same words.
+A job that finds the key stored meanwhile by another says nothing. A login
+runs OpenSSH at `LogLevel ERROR`, where it says nothing of the key (nor shows a
+device's banner), so karvi reads the store before the session and, when it
+holds nothing for the device, again at the session's first password prompt,
+OpenSSH having stored the key during key exchange, or at the session's end when
+nothing was asked; the line comes then, and the login's `login.end` event names
+the type. A login whose first contact overlaps another's with the same device
+can say it of a key the other stored.
 
 ### `secure`
 

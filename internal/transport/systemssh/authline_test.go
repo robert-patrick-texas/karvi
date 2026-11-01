@@ -1,7 +1,7 @@
 package systemssh
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -10,7 +10,7 @@ import (
 // ends, the second reported with its label; every other line passes whole,
 // and a last line without a newline at Flush.
 func TestAuthFilter(t *testing.T) {
-	var out bytes.Buffer
+	var out synchronizedBuffer
 	var labels []string
 	f := &authFilter{next: &out, enrolled: func(label string) { labels = append(labels, label) }}
 	for _, chunk := range []string{"Warning: Permanently added '[127.0.0.1]:2222' (ED", "25519) to the list of known hosts.\r\n", "Authenticated to 127.0.0.1 ([127.0.0.1]:22) us", "ing \"publickey\".\r\nConnection to 127.0.0.1 closed.\r\n", "Transferred: sent 1"} {
@@ -25,7 +25,7 @@ func TestAuthFilter(t *testing.T) {
 		t.Fatalf("passed %q, enrolled %q", out.String(), labels)
 	}
 	f.Flush()
-	if !bytes.HasSuffix(out.Bytes(), []byte("closed.\r\nTransferred: sent 1")) {
+	if !strings.HasSuffix(out.String(), "closed.\r\nTransferred: sent 1") {
 		t.Fatalf("after Flush %q", out.String())
 	}
 	g := &authFilter{next: &out}

@@ -93,10 +93,19 @@ func execDriver(t *testing.T, opts fakedevice.Options) (*Driver, *fakedevice.Ser
 // execDriverRelayed is execDriver through a TCP relay whose cut ends every
 // connection, as a device gone does.
 func execDriverRelayed(t *testing.T, opts fakedevice.Options) (*Driver, *fakedevice.Server, func()) {
+	return execDriverVia(t, opts, nil)
+}
+
+// execDriverVia is execDriverRelayed running wrap(OpenSSH's path) in place
+// of OpenSSH when wrap is not nil.
+func execDriverVia(t *testing.T, opts fakedevice.Options, wrap func(ssh string) string) (*Driver, *fakedevice.Server, func()) {
 	t.Helper()
 	ssh, err := exec.LookPath("ssh")
 	if err != nil {
 		t.Skip("no OpenSSH client")
+	}
+	if wrap != nil {
+		ssh = wrap(ssh)
 	}
 	key, _ := sshkeytest.Ed25519(t, "")
 	opts.AuthorizedKeys = sshkeytest.Authorized(t, key)
@@ -269,5 +278,77 @@ func TestExecConnectionLost(t *testing.T) {
 	r := d.Execute(context.Background(), platform.Command{Text: "slow", Timeout: 10 * time.Second})
 	if r.ErrorCode != "command_session_lost" || d.Usable() {
 		t.Fatalf("code %q err %v usable %t", r.ErrorCode, r.Err, d.Usable())
+	}
+}
+
+// loggingSSH is a stand-in for OpenSSH at ssh that writes each command line
+// to its log, one line per run (one write, as runs overlap) with each
+// argument followed by "|", then runs ssh with it.
+func loggingSSH(t *testing.T, ssh string) (bin, log string) {
+	t.Helper()
+	dir := t.TempDir()
+	bin, log = filepath.Join(dir, "ssh"), filepath.Join(dir, "argv.log")
+	script := "#!/bin/sh\nline=$(printf '%s|' \"$@\")\nprintf '%s\\n' \"$line\" >> '" + log + "'\nexec '" + ssh + "' \"$@\"\n"
+	if err := os.WriteFile(bin, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return bin, log
+}
+
+// TestExecSendsACommandThatBeginsWithADash: the master, its -O checks, and
+// each client end OpenSSH's options with "--" before the device, so a
+// command beginning with "-" is the device's to run, never an option of the
+// local client (here -E, which would append the client's log to a file).
+func TestExecSendsACommandThatBeginsWithADash(t *testing.T) {
+	var log string
+	d, _, _ := execDriverVia(t, fakedevice.Options{Persona: fakedevice.PersonaLinux}, func(ssh string) string {
+		var bin string
+		bin, log = loggingSSH(t, ssh)
+		return bin
+	})
+	local := filepath.Join(t.TempDir(), "client.log")
+	r := d.Execute(context.Background(), platform.Command{Text: "-E " + local, Timeout: 5 * time.Second})
+	status, stderr := -1, ""
+	if r.Exec != nil && r.Exec.ExitStatus != nil {
+		status, stderr = *r.Exec.ExitStatus, string(r.Exec.Stderr)
+	}
+	if r.ErrorCode != "command_exit_nonzero" || stderr != "sh: 1: -E: not found\n" || status != 127 {
+		t.Errorf("code %q stdout %q stderr %q status %d err %v", r.ErrorCode, r.Output, stderr, status, r.Err)
+	}
+	if _, err := os.Lstat(local); !os.IsNotExist(err) {
+		t.Errorf("the client took the command as its own -E option: %v", err)
+	}
+	data, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{
+		"|-N|-n|--|127.0.0.1|\n",
+		"|-O|check|--|127.0.0.1|\n",
+		"|-n|-T|--|127.0.0.1|-E " + local + "|\n",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("no command line ending %q in\n%s", want, text)
+		}
+	}
+}
+
+// TestMasterDiagnosticsStartAtAuthentication: what the master wrote before
+// OpenSSH said the session authenticated, a device's banner among it, is
+// not what classifies the master's later failure, however long it was.
+func TestMasterDiagnosticsStartAtAuthentication(t *testing.T) {
+	diagnostics := synchronizedBuffer{maxBytes: 64 << 10}
+	m := newMasterLines(&diagnostics)
+	login := "debug1: SSH2_MSG_SERVICE_ACCEPT received\nPermission denied to unauthorised users\n" + strings.Repeat("AUTHORIZED ACCESS ONLY\n", 3000) +
+		"debug1: Authentications that can continue: password\nAuthenticated to 192.0.2.10 ([192.0.2.10]:22) using \"password\".\n"
+	if _, err := m.Write([]byte(login + "Timeout, server 192.0.2.10 not responding.\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got := diagnostics.String(); got != "Timeout, server 192.0.2.10 not responding.\n" {
+		t.Fatalf("diagnostics %.200q", got)
+	}
+	if code, _, _, _ := classify(diagnostics.String(), nil); code != "session_keepalive_timeout" {
+		t.Fatalf("code %s", code)
 	}
 }

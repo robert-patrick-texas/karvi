@@ -40,8 +40,12 @@ case "\$args" in
 esac
 case "\$args" in
   *"127.0.0.1"*)
+    # OpenSSH's refusal of a changed key, its first and last lines.
     echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@' >&2
-    echo 'WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!' >&2
+    echo '@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @' >&2
+    echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@' >&2
+    echo 'Host key for 127.0.0.1 has changed and you have requested strict checking.' >&2
+    echo 'Host key verification failed.' >&2
     exit 255
     ;;
   *"127.0.0.3"*)

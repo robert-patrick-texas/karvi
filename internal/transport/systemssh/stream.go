@@ -84,14 +84,16 @@ type sessionFailure struct {
 
 // classify is the session's end under the code OpenSSH's diagnostics
 // classify to (host_key_changed, authentication_failed,
-// connection_refused, ...).
+// connection_refused, ...); a failed negotiation is read from OpenSSH's
+// last failure line alone (lastFailure).
 func (f sessionFailure) classify(diagnostic string, cause error) error {
+	line, _, _ := lastFailure(diagnostic)
 	if f.typesNotOffered != nil {
-		if offered, ok := hostKeyTypesOffered(diagnostic); ok {
+		if offered, ok := hostKeyTypesOffered(line); ok {
 			return f.typesNotOffered(offered)
 		}
 	}
-	if _, failure, ok := negotiationFailure(diagnostic, f.offered, f.effective); ok {
+	if _, failure, ok := negotiationFailure(line, f.offered, f.effective); ok {
 		return failure
 	}
 	code, _, _, _ := classify(diagnostic, cause)

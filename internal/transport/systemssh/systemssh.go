@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -258,15 +259,25 @@ var _ platform.AuthReporter = (*Driver)(nil)
 
 // hostKeyEnrolled is what OpenSSH's "Permanently added" line reports, and a
 // login's trust-store read (firstContact): the request's host_key_enrolled
-// notice under accept-new, the one policy that stores a key; nil otherwise:
-// under insecure the trust store is /dev/null and OpenSSH says the same line
-// of a key it did not keep.
+// notice under accept-new, the one policy that stores a key, said once, for
+// a device the trust store holds nothing for as the session starts; nil
+// otherwise: under insecure the trust store is /dev/null and OpenSSH says
+// the same line of a key it did not keep, and a device with a stored key
+// has no key to store. OpenSSH writes its line at key exchange, before
+// authentication and so before a device's banner, which can hold the same
+// line: the first is OpenSSH's.
 func (d *Driver) hostKeyEnrolled() func(label string) {
 	if d.f.hostKey.Mode != hostkey.AcceptNew || d.req.HostKeyNotice == nil {
 		return nil
 	}
+	if types, err := hostkey.EnrolledTypes(d.f.hostKey.KnownHostsFile, d.f.hostKeyIdentity); err != nil || len(types) > 0 {
+		return nil
+	}
+	var once sync.Once
 	return func(label string) {
-		d.req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyEnrolled, Label: label})
+		once.Do(func() {
+			d.req.HostKeyNotice(platform.HostKeyNotice{Code: platform.HostKeyEnrolled, Label: label})
+		})
 	}
 }
 
@@ -277,16 +288,14 @@ func (d *Driver) hostKeyEnrolled() func(label string) {
 // when OpenSSH has finished key exchange and stored the key if it was to,
 // else when the session ends (a login by keys alone asks nothing). A key
 // found then is the request's host_key_enrolled notice. Nil when there is
-// nothing to check. Neither read waits on the store's lock.
+// nothing to check (hostKeyEnrolled's first read). Neither read waits on the
+// store's lock.
 func (d *Driver) firstContact() func() {
 	enrolled := d.hostKeyEnrolled()
 	if enrolled == nil {
 		return nil
 	}
 	file, identity := d.f.hostKey.KnownHostsFile, d.f.hostKeyIdentity
-	if types, err := hostkey.EnrolledTypes(file, identity); err != nil || len(types) > 0 {
-		return nil
-	}
 	var once sync.Once
 	return func() {
 		once.Do(func() {
@@ -340,7 +349,7 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 // still forced, so password input never competes with device stdin.
 func (d *Driver) Interactive(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) error {
 	args := d.baseArgs()
-	args = append(args, "-tt", d.req.Address)
+	args = append(args, "-tt", "--", d.req.Address)
 	cmd := exec.CommandContext(ctx, d.binary, args...)
 	material := callbackMaterial{username: d.req.Username, password: d.req.Password}
 	firstContact := d.firstContact()
@@ -537,38 +546,97 @@ func (m callbackMaterial) WithPassword(fn func([]byte) error) error {
 func failed(start time.Time, code, cat string, external bool, err error) platform.Result {
 	return platform.Result{StartedAt: start, EndedAt: time.Now(), ErrorCode: code, ErrorCategory: cat, External: external, Err: err}
 }
-func classify(stderr string, err error) (string, string, bool, bool) {
-	s := strings.ToLower(stderr)
-	switch {
-	case strings.Contains(s, "master refused session request"),
-		strings.Contains(s, "administratively prohibited") && strings.Contains(s, "channel"):
-		return "ssh_session_channel_refused", "connection", true, false
-	case strings.Contains(s, "revoked host key detected"),
-		strings.Contains(s, "is marked as revoked"):
-		return "host_key_revoked", "connection", true, false
-	case strings.Contains(s, "remote host identification has changed"),
-		strings.Contains(s, "offending ") && strings.Contains(s, "host key"):
-		return "host_key_changed", "connection", true, false
-	case strings.Contains(s, "no ") && strings.Contains(s, "host key is known"),
-		strings.Contains(s, "host key verification failed"):
-		return "host_key_not_enrolled", "connection", true, false
-	case strings.Contains(s, "permission denied"), strings.Contains(s, "authentication failed"):
-		return "authentication_failed", "authentication", true, false
-	case strings.Contains(s, "timeout, server ") && strings.Contains(s, " not responding"):
-		// ServerAliveCountMax keepalives went unanswered.
-		return "session_keepalive_timeout", "connection", true, true
-	case strings.Contains(s, "connection timed out"), strings.Contains(s, "operation timed out"):
-		return "connection_timeout", "connection", true, true
-	case strings.Contains(s, "connection refused"):
-		return "connection_refused", "connection", true, true
-	case strings.Contains(s, "no route to host"), strings.Contains(s, "network is unreachable"):
-		return "network_unreachable", "connection", true, true
-	case strings.Contains(s, "could not resolve hostname"):
-		return "ssh_name_resolution_error", "name_resolution", true, false
-	default:
-		return "ssh_process_failed", "connection", true, false
-	}
+
+// openSSHFailure is one of the forms of OpenSSH's own lines saying why a
+// session failed, matched to the whole line as OpenSSH prints it, and the
+// classification it gives.
+type openSSHFailure struct {
+	form           *regexp.Regexp
+	code, category string
+	retryable      bool
 }
+
+// connectPrefix starts OpenSSH's line for a connection it could not make:
+// to the device, or a jump host's to its target; errorPrefix also its lines
+// for a read, the identification exchange, or the disconnect it sends.
+const (
+	connectPrefix = `(ssh: connect to host \S+ port \S+|channel \d+: open failed: connect failed)`
+	errorPrefix   = `(ssh: connect to host \S+ port \S+|channel \d+: open failed: connect failed|(kex|ssh)_exchange_identification: read|Read from remote host \S+|client_loop: send disconnect|(\S+: )?Connection (to|from) \S+ port \d+)`
+)
+
+// hostKeyFailures are OpenSSH's lines naming why it refused the device's
+// key, in the order a key is judged: revoked, changed, unknown.
+var hostKeyFailures = []openSSHFailure{
+	{form: regexp.MustCompile(`^(@ +WARNING: REVOKED HOST KEY DETECTED! +@|The \S+ host key for .+ is marked as revoked\.|\S+ host key for .+ was revoked and you have requested strict checking\.|Host key \S+ \S+ revoked by file .+)$`), code: "host_key_revoked", category: "connection", retryable: false},
+	{form: regexp.MustCompile(`^(@ +WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! +@|Host key for .+ has changed and you have requested strict checking\.|Offending \S+ key in .+:\d+)$`), code: "host_key_changed", category: "connection", retryable: false},
+	{form: regexp.MustCompile(`^No \S+ host key is known for .+ and you have requested strict checking\.$`), code: "host_key_not_enrolled", category: "connection", retryable: false},
+}
+
+// hostKeyVerificationFailed is OpenSSH's last line of every host-key
+// refusal: its code is that of the host-key line before it, or
+// host_key_not_enrolled.
+var hostKeyVerificationFailed = regexp.MustCompile(`^Host key verification failed\.$`)
+
+// openSSHFailures are the other forms. A login the device refused is every
+// method refused ("user@host: Permission denied (methods).", or without
+// "user@host: "), a password to try again, OpenSSH's own "Authentication
+// failed.", or the device's disconnect for an authentication failure
+// (OpenSSH's "Disconnected from" after it is in no form). A disconnect for
+// another reason, and a failed negotiation, whose offer sessionFailure
+// reads, end the session with no specific cause.
+var openSSHFailures = []openSSHFailure{
+	{form: regexp.MustCompile(`^(Master refused session request: .*|channel \d+: open failed: administratively prohibited(: .*)?)$`), code: "ssh_session_channel_refused", category: "connection", retryable: false},
+	{form: regexp.MustCompile(`^((\S+@\S+: )?Permission denied \(.*\)\.|Permission denied, please try again\.|Authentication failed\.|Received disconnect from \S+ port \d+:\d+: (Authentication failed|Too many authentication failures)\b.*)$`), code: "authentication_failed", category: "authentication", retryable: false},
+	{form: regexp.MustCompile(`^Timeout, server \S+ not responding\.$`), code: "session_keepalive_timeout", category: "connection", retryable: true},
+	{form: regexp.MustCompile(`^(` + errorPrefix + `: (Connection|Operation) timed out|Connection timed out during banner exchange)$`), code: "connection_timeout", category: "connection", retryable: true},
+	{form: regexp.MustCompile(`^` + connectPrefix + `: Connection refused$`), code: "connection_refused", category: "connection", retryable: true},
+	// Permission denied on the connect is this host's refusal (a local
+	// firewall or security policy): the device is unreachable from here.
+	{form: regexp.MustCompile(`^(` + connectPrefix + `: (No route to host|Network is unreachable)|ssh: connect to host \S+ port \S+: Permission denied)$`), code: "network_unreachable", category: "connection", retryable: true},
+	{form: regexp.MustCompile(`^\S+: Could not resolve hostname .+: .+$`), code: "ssh_name_resolution_error", category: "name_resolution", retryable: false},
+	{form: regexp.MustCompile(`^(Received disconnect from \S+ port \d+:\d+: .*|Unable to negotiate with \S+ port \d+: .+\. Their offer: .*)$`), code: "ssh_process_failed", category: "connection", retryable: false},
+}
+
+// lastFailure is the last line of diagnostic in one of OpenSSH's forms for
+// a failure, and its classification; ok is false when there is none. A
+// device's banner, which OpenSSH writes during authentication on the same
+// stream, comes before OpenSSH's own failure, and a line in no form (the
+// device's text, OpenSSH's closing lines) decides nothing.
+func lastFailure(diagnostic string) (line string, failure openSSHFailure, ok bool) {
+	lines := strings.Split(diagnostic, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		text := strings.TrimRight(lines[i], "\r")
+		if hostKeyVerificationFailed.MatchString(text) {
+			for j := i - 1; j >= 0; j-- {
+				for _, f := range hostKeyFailures {
+					if f.form.MatchString(strings.TrimRight(lines[j], "\r")) {
+						return text, f, true
+					}
+				}
+			}
+			return text, hostKeyFailures[len(hostKeyFailures)-1], true
+		}
+		for _, forms := range [][]openSSHFailure{hostKeyFailures, openSSHFailures} {
+			for _, f := range forms {
+				if f.form.MatchString(text) {
+					return text, f, true
+				}
+			}
+		}
+	}
+	return "", openSSHFailure{}, false
+}
+
+// classify is the code, category, externality, and retryability of the
+// failure OpenSSH's diagnostics say (lastFailure), ssh_process_failed when
+// none is said.
+func classify(stderr string, err error) (string, string, bool, bool) {
+	if _, f, ok := lastFailure(stderr); ok {
+		return f.code, f.category, true, f.retryable
+	}
+	return "ssh_process_failed", "connection", true, false
+}
+
 func safeDiagnostic(stderr string, err error) string {
 	var kept []string
 	for _, line := range strings.Split(strings.ReplaceAll(stderr, "\r", ""), "\n") {
@@ -584,8 +652,14 @@ func safeDiagnostic(stderr string, err error) string {
 	if s == "" {
 		return err.Error()
 	}
+	// OpenSSH's failure is its last line: the message keeps the end, from a
+	// line's start.
 	if len(s) > 2048 {
-		s = s[:2048] + "..."
+		tail := s[len(s)-2048:]
+		if i := strings.IndexByte(tail, '\n'); i >= 0 && i < len(tail)-1 {
+			tail = tail[i+1:]
+		}
+		s = "..." + tail
 	}
 	return s
 }

@@ -166,19 +166,24 @@ func dnsTimeout(cfg configload.Snapshot) time.Duration {
 
 // queryDNS asks for name in each usable family of order and returns the first
 // family with a usable answer, its addresses canonical and ascending
-// (numeric-lowest first). The error is the registered DNS code.
+// (numeric-lowest first). Each family's lookup has its own timeout, so the
+// fallback family is asked after the preferred one timed out. The error is
+// the registered DNS code.
 func queryDNS(ctx context.Context, name string, order []string, timeout time.Duration, lookup LookupFunc) (string, []netip.Addr, error) {
-	qctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 	var last error
+	timedOut := false
 	for _, fam := range order {
 		network := "ip4"
 		if fam == "ipv6" {
 			network = "ip6"
 		}
+		qctx, cancel := context.WithTimeout(ctx, timeout)
 		addrs, e := lookup(qctx, network, name)
+		expired := qctx.Err() == context.DeadlineExceeded
+		cancel()
 		if e != nil {
 			last = e
+			timedOut = expired
 			continue
 		}
 		valid := canonical(addrs, fam)
@@ -202,7 +207,7 @@ func queryDNS(ctx context.Context, name string, order []string, timeout time.Dur
 			}
 		}
 	}
-	if qctx.Err() == context.DeadlineExceeded {
+	if timedOut {
 		code = "dns_timeout"
 	}
 	return "", nil, &Error{Code: code, Message: message, Query: name, Cause: last}

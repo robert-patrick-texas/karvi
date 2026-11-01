@@ -43,18 +43,32 @@ var capabilityCache = struct {
 	byBinary map[string]capabilities
 }{byBinary: map[string]capabilities{}}
 
-// binaryCapabilities queries `ssh -Q` once per binary per process
-// (OpenSSH refuses a whole list for one name it lacks).
+// binaryCapabilities queries `ssh -Q` once per binary per process for each
+// list (OpenSSH refuses a whole list for one name it lacks). A query that
+// failed (its timeout, a fork failure) is not kept: its list is unfiltered
+// for this session, and the next one asks again. A list's queried names
+// are its entry in names; the cached value is replaced, never changed, as
+// earlier sessions hold it.
 func binaryCapabilities(cfg configload.Snapshot, binary string) capabilities {
 	capabilityCache.Lock()
 	defer capabilityCache.Unlock()
-	if c, ok := capabilityCache.byBinary[binary]; ok {
-		return c
-	}
+	cached := capabilityCache.byBinary[binary]
 	c := capabilities{names: map[sshalgorithms.Kind]map[string]bool{}, answered: map[sshalgorithms.Kind]bool{}}
+	for kind, names := range cached.names {
+		c.names[kind], c.answered[kind] = names, cached.answered[kind]
+	}
+	missing := map[sshalgorithms.Kind]string{}
+	for kind, query := range queryKinds {
+		if _, ok := c.names[kind]; !ok {
+			missing[kind] = query
+		}
+	}
+	if len(missing) == 0 {
+		return cached
+	}
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	for kind, query := range queryKinds {
+	for kind, query := range missing {
 		wg.Add(1)
 		go func(kind sshalgorithms.Kind, query string) {
 			defer wg.Done()
@@ -113,16 +127,18 @@ func negotiationFailure(diagnostic string, offered sshalgorithms.Lists, effectiv
 }
 
 // EffectiveLists is one job's evaluation of OpenSSH's own lists: ssh -G
-// runs at most once per binary, for the job's first negotiation failure on
-// a list OpenSSH chose, and every later one takes its lists, which are the
-// same for every device of the job (karvi writes no such list under
-// ssh-algorithms.source "transport"). A nil one runs ssh -G each time.
+// runs once per binary that answers it, for the job's first negotiation
+// failure on a list OpenSSH chose, and every later one takes its lists,
+// which are the same for every device of the job (karvi writes no such list
+// under ssh-algorithms.source "transport"); an ssh -G that failed (no lists)
+// is not kept, and the next failure runs it again. A nil one runs ssh -G
+// each time.
 type EffectiveLists struct {
 	mu       sync.Mutex
 	byBinary map[string]sshalgorithms.Lists
 }
 
-// get is binary's lists, from evaluate the first time.
+// get is binary's lists, from evaluate until it gives some.
 func (e *EffectiveLists) get(binary string, evaluate func() sshalgorithms.Lists) sshalgorithms.Lists {
 	if e == nil {
 		return evaluate()
@@ -136,7 +152,9 @@ func (e *EffectiveLists) get(binary string, evaluate func() sshalgorithms.Lists)
 		e.byBinary = map[string]sshalgorithms.Lists{}
 	}
 	lists := evaluate()
-	e.byBinary[binary] = lists
+	if len(lists) > 0 {
+		e.byBinary[binary] = lists
+	}
 	return lists
 }
 
