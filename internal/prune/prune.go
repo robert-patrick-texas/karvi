@@ -370,21 +370,16 @@ func owner(fi os.FileInfo) int {
 	return -1
 }
 
-// maxSummaryBytes bounds a summary.json read. A summary lists a job's
-// devices as its scoreboard snapshot lists its targets, so it takes the
-// snapshot's bound.
-const maxSummaryBytes = scoreboard.MaxSnapshotBytes
-
 // activityCandidates finds the job folders of a job tree that may go: a
 // finished job by its summary, and an orphan, a folder whose summary names
 // no final status or that has none (a job the daemon's death cut short),
 // when its day is older than the retention age, nothing in it is newer
 // than the cutoff, and its snapshot, if any, is not live. An orphan goes
 // under the age rule only. A summary is read by osutil.ReadRegularFile, at
-// most maxSummaryBytes: a link, a FIFO, or anything else at the name is
-// kept as a summary that does not decode is (unreadable), never followed
-// or waited on. The error is the root's alone; a folder below it that
-// cannot be read is passed by.
+// most scoreboard.MaxSummaryBytes: a link, a FIFO, or anything else at the
+// name is kept as a summary that does not decode is (unreadable), never
+// followed or waited on. The error is the root's alone; a folder below it
+// that cannot be read is passed by.
 func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	found := []candidate{}
 	examined, skipped := 0, 0
@@ -416,7 +411,7 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 		jobFolder := filepath.Dir(filepath.Dir(path)) == root
 		var terminal, unfinished bool
 		var when time.Time
-		b, e := osutil.ReadRegularFile(summary, maxSummaryBytes)
+		b, e := osutil.ReadRegularFile(summary, scoreboard.MaxSummaryBytes)
 		switch {
 		case e == nil:
 			examined++

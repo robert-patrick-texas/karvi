@@ -254,6 +254,17 @@
   a file that does not decode is, and holds no orphan live; under a metadata
   file's name it is kept as `live`, as a transcript without its end record
   is ([`docs/PRUNE.md`](docs/PRUNE.md)).
+- **`job list`, `job follow`, and the capacity ledger read a shared file only
+  from a regular file.** They read a job's `summary.json` and a ledger's file
+  by name, so a FIFO a member put there held karvi until a writer came, and a
+  link was read through. Each is now read as karvi-prune reads one: a
+  summary of at most 64 MiB, a ledger of at most 16 MiB, through one
+  descriptor that follows no link and waits on no FIFO. Anything else under
+  a summary's name is a summary that cannot be read (`job list`'s `?` row,
+  `run_output_records_unreadable`), a dangling link included, where it read
+  as no summary; under a ledger's name it is an error, never an empty
+  ledger ([`docs/OPERATIONS.md`](docs/OPERATIONS.md),
+  [`docs/FILES.md`](docs/FILES.md)).
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`

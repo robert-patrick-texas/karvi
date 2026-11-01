@@ -164,11 +164,15 @@ func InspectJobDirectory(dir string) (JobDirectoryState, error) {
 }
 
 // readSummary reads and decodes the directory's summary.json; a missing
-// file is an error that wraps fs.ErrNotExist.
+// file is an error that wraps fs.ErrNotExist. The file is read by
+// osutil.ReadRegularFile, at most scoreboard.MaxSummaryBytes: a link, a
+// FIFO, or anything else at the name is run_output_records_unreadable,
+// never followed or waited on, since any member may put an entry in a
+// shared tree's folder.
 func readSummary(dir string) (records.Summary, error) {
 	var summary records.Summary
 	path := filepath.Join(dir, "summary.json")
-	raw, err := os.ReadFile(path)
+	raw, err := osutil.ReadRegularFile(path, scoreboard.MaxSummaryBytes)
 	if err != nil {
 		return summary, errorcodes.Errorf("run_output_records_unreadable", "read %s: %w", path, err)
 	}

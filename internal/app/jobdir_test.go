@@ -89,3 +89,25 @@ func TestLocateJobDirectoryUnreachable(t *testing.T) {
 		t.Fatalf("inspect: %v %v", state, err)
 	}
 }
+
+// TestInspectJobDirectorySummaryNotARegularFile: a FIFO, a link, a link to
+// no file, and a file larger than a summary may be, at the folder's
+// summary.json, are each run_output_records_unreadable, as a summary that
+// cannot be read is: never waited on or read through.
+func TestInspectJobDirectorySummaryNotARegularFile(t *testing.T) {
+	for _, kind := range oddSummaryKinds {
+		t.Run(kind, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "261016-015356-00")
+			if err := os.Mkdir(dir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			oddSummary(t, dir, kind)
+			var state JobDirectoryState
+			var err error
+			within(t, "InspectJobDirectory", func() { state, err = InspectJobDirectory(dir) })
+			if state != JobDirectoryAbsent || errorcodes.Of(err) != "run_output_records_unreadable" {
+				t.Fatalf("inspect: %v %v", state, err)
+			}
+		})
+	}
+}

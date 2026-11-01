@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
+	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 )
 
 // listTree is an output root of job folders, each with the summary given
@@ -250,5 +253,98 @@ func TestJobListEntryJSON(t *testing.T) {
 	b, _ = json.Marshal(e)
 	if want := `{"path":"/jobs/x",` + me + `,"error":"run_output_records_unreadable: read /jobs/x/summary.json: permission denied"}`; string(b) != want {
 		t.Errorf("? row: %s, want %s", b, want)
+	}
+}
+
+// oddSummaryKinds are the entries oddSummary puts at a summary's name.
+var oddSummaryKinds = []string{"fifo", "link", "dangling", "big"}
+
+// oddSummary puts at the summary.json name of the job folder dir a FIFO
+// ("fifo"), a symbolic link to a finished summary elsewhere ("link"), a
+// link to no file ("dangling"), or a sparse regular file one byte past
+// scoreboard.MaxSummaryBytes ("big"), and returns its path. A FIFO a read
+// still waits on is released at the test's end.
+func oddSummary(t *testing.T, dir, kind string) string {
+	t.Helper()
+	path := filepath.Join(dir, "summary.json")
+	switch kind {
+	case "fifo":
+		if err := syscall.Mkfifo(path, 0o640); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { releaseFIFO(path) })
+	case "link":
+		target := filepath.Join(t.TempDir(), "summary.json")
+		if err := os.WriteFile(target, []byte(finished(filepath.Base(dir), "run", "complete", 0, "router1:success")), 0o640); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(target, path); err != nil {
+			t.Fatal(err)
+		}
+	case "dangling":
+		if err := os.Symlink(filepath.Join(t.TempDir(), "summary.json"), path); err != nil {
+			t.Fatal(err)
+		}
+	case "big":
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o640)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.Truncate(scoreboard.MaxSummaryBytes + 1); err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+	}
+	return path
+}
+
+// releaseFIFO opens a FIFO for writing and closes it, so a read waiting on
+// it for a writer returns.
+func releaseFIFO(path string) {
+	if f, err := os.OpenFile(path, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+		f.Close()
+	}
+}
+
+// within runs f and fails the test when it has not returned in ten seconds.
+func within(t *testing.T, what string, f func()) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		f()
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("%s still waits after 10s", what)
+	}
+}
+
+// TestListJobsSummaryNotARegularFile: a FIFO, a link, a link to no file,
+// and a file larger than a summary may be, at a job folder's summary.json,
+// are each a ? row naming the summary, run_output_records_unreadable, and
+// its owner, as a summary that cannot be read is: never waited on or read
+// through.
+func TestListJobsSummaryNotARegularFile(t *testing.T) {
+	for _, kind := range oddSummaryKinds {
+		t.Run(kind, func(t *testing.T) {
+			l := newListTree(t)
+			l.job("261016-003000-00", finished("261016-003000-00", "run", "complete", 0, "router1:success"))
+			path := oddSummary(t, l.job("261016-003305-00", ""), kind)
+			common := CommonOptions{Config: l.cfg, Operator: credentials.Operator{Username: l.me.Username, Home: t.TempDir()}}
+			var got []JobListEntry
+			var err error
+			within(t, "job list", func() { got, err = ListJobs(common, JobListOptions{}) })
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s := ids(got); s != "?261016-003305-00 261016-003000-00" {
+				t.Fatalf("rows: %s", s)
+			}
+			if e := got[0]; errorcodes.Of(e.Err) != "run_output_records_unreadable" || e.SummaryPath != path || e.Operator.Username != l.me.Username {
+				t.Errorf("the ? row: %v, summary %s, operator %+v", e.Err, e.SummaryPath, e.Operator)
+			}
+		})
 	}
 }

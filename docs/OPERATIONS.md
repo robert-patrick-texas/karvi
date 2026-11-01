@@ -219,7 +219,9 @@ in MODE and `u/u` in DONE, TARGET blank. A folder whose summary cannot be read
 or decoded, and a day folder that cannot be read, is a `?` row, STATUS
 `invalid`, its path in TARGET, or `…` at a terminal where the path does not
 fit; `--format json` and `karvi job follow ID` name the path and the reason. A
-list with no row prints `(no jobs)`, exit 0.
+summary is read only from a regular file, never through a link or from a FIFO,
+and at most 64 MiB of it; anything else under its name is a summary that cannot
+be read. A list with no row prints `(no jobs)`, exit 0.
 
 The filters, each judging a job before `--last` counts it:
 

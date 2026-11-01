@@ -17,6 +17,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/matching"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -303,10 +304,14 @@ func (w *listWalk) judged(e JobListEntry) bool {
 }
 
 // read is one job folder's entry. A folder without a summary is a job cut
-// short before its summary's first write, unfinished.
+// short before its summary's first write, unfinished. The summary is read
+// by osutil.ReadRegularFile, at most scoreboard.MaxSummaryBytes: a link, a
+// FIFO, or anything else at the name is a summary that cannot be read,
+// never followed or waited on, since any member may put an entry in a
+// shared tree's folder.
 func (w *listWalk) read(dir, id string) JobListEntry {
 	path := filepath.Join(dir, "summary.json")
-	raw, err := os.ReadFile(path)
+	raw, err := osutil.ReadRegularFile(path, scoreboard.MaxSummaryBytes)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		e := JobListEntry{JobID: id, Path: dir, SummaryPath: path, Operator: w.owner(dir), NoSummary: true}

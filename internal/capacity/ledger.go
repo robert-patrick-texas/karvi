@@ -9,7 +9,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -419,16 +421,31 @@ func (m *Manager) readLedger(path string) (int, error) {
 	return len(reap(entries)), nil
 }
 
+// maxLedgerBytes bounds a ledger file read. A ledger holds one entry per
+// lease, under 250 bytes, and the server's at most
+// dispatch.server-max-inflight's ceiling of 4096, under 1 MiB; a larger
+// file is not one karvi wrote and is not read.
+const maxLedgerBytes = 16 << 20
+
 // loadEntries reads a ledger's entries; a missing or empty file has none.
 // A file that cannot be read is an error, never an empty ledger: the
-// write that follows would replace another operator's leases.
+// write that follows would replace another operator's leases. The file is
+// read by osutil.ReadRegularFile, at most maxLedgerBytes: a link, a FIFO,
+// or anything else at the name is such an error, never followed or waited
+// on, since every member writes in a shared ledger's folders.
 func loadEntries(path string) ([]entry, error) {
 	entries := []entry{}
-	b, err := os.ReadFile(path + ".json")
-	if os.IsNotExist(err) {
+	name := path + ".json"
+	b, err := osutil.ReadRegularFile(name, maxLedgerBytes)
+	if errors.Is(err, fs.ErrNotExist) {
 		return entries, nil
 	}
 	if err != nil {
+		if !errors.As(err, new(*fs.PathError)) {
+			// The open's and the read's errors name the file; the
+			// helper's own do not.
+			err = fmt.Errorf("%s: %w", name, err)
+		}
 		return nil, err
 	}
 	if len(b) > 0 {

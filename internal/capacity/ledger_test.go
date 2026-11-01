@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
@@ -303,4 +304,132 @@ func TestPlaceNamesWhatNewTakes(t *testing.T) {
 			t.Fatalf("explicit, closed, place: %v", err)
 		}
 	}
+}
+
+// within runs f and fails the test when it has not returned in ten seconds.
+func within(t *testing.T, what string, f func()) {
+	t.Helper()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		f()
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("%s still waits after 10s", what)
+	}
+}
+
+// oddLedger puts at a ledger's path a FIFO ("fifo"), a symbolic link to a
+// copy of data elsewhere ("link"), or a sparse regular file one byte past
+// maxLedgerBytes ("big"), and returns a check that it stands as it was put
+// and the link's target holds data. A FIFO a read still waits on is
+// released at the test's end.
+func oddLedger(t *testing.T, path, kind string, data []byte) func() {
+	t.Helper()
+	switch kind {
+	case "fifo":
+		if err := syscall.Mkfifo(path, 0o660); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if f, err := os.OpenFile(path, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+				f.Close()
+			}
+		})
+		return func() {
+			if fi, err := os.Lstat(path); err != nil || fi.Mode()&os.ModeNamedPipe == 0 {
+				t.Errorf("the FIFO: %v %v", fi, err)
+			}
+		}
+	case "link":
+		target := filepath.Join(t.TempDir(), "ledger.json")
+		if err := os.WriteFile(target, data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(target, path); err != nil {
+			t.Fatal(err)
+		}
+		return func() {
+			if fi, err := os.Lstat(path); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+				t.Errorf("the link: %v %v", fi, err)
+			}
+			if b, err := os.ReadFile(target); err != nil || string(b) != string(data) {
+				t.Errorf("the link's target:\n%s\nwas\n%s (%v)", b, data, err)
+			}
+		}
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o660)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Truncate(maxLedgerBytes + 1); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	return func() {
+		if fi, err := os.Lstat(path); err != nil || !fi.Mode().IsRegular() || fi.Size() != maxLedgerBytes+1 {
+			t.Errorf("the large file: %v %v", fi, err)
+		}
+	}
+}
+
+// TestLedgerNotARegularFileIsAnError: a FIFO, a link to a ledger
+// elsewhere, and a file larger than a ledger may be, at a device ledger's
+// name, fail the lease with an error naming the ledger, as a ledger that
+// cannot be read does, never waited on or read through, and are left as
+// they were; a FIFO at the server ledger's name makes an explicit root
+// capacity_root_unusable.
+func TestLedgerNotARegularFileIsAnError(t *testing.T) {
+	shared := func(t *testing.T) string {
+		root := filepath.Join(t.TempDir(), "cap")
+		if err := os.Mkdir(root, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
+			t.Fatal(err)
+		}
+		return root
+	}
+	for _, kind := range []string{"fifo", "link", "big"} {
+		t.Run(kind, func(t *testing.T) {
+			m, err := New(shared(t), "", "", "job", 4, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			l, err := m.Acquire(context.Background(), "router1", 2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ledger := l.devicePath + ".json"
+			data, err := os.ReadFile(ledger)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Remove(ledger); err != nil {
+				t.Fatal(err)
+			}
+			stands := oddLedger(t, ledger, kind, data)
+			var lerr error
+			within(t, "Acquire", func() { _, lerr = m.Acquire(context.Background(), "router1", 2) })
+			if lerr == nil || !strings.Contains(lerr.Error(), ledger) {
+				t.Fatalf("a lease over the %s: %v", kind, lerr)
+			}
+			if kind == "big" && !strings.Contains(lerr.Error(), "more than the") {
+				t.Errorf("the large file's error: %v", lerr)
+			}
+			stands()
+		})
+	}
+	t.Run("server", func(t *testing.T) {
+		root := shared(t)
+		stands := oddLedger(t, filepath.Join(root, "server.json"), "fifo", nil)
+		var err error
+		within(t, "New", func() { _, err = New(root, "", "", "job", 4, nil) })
+		if errorcodes.Of(err) != "capacity_root_unusable" || !strings.Contains(err.Error(), filepath.Join(root, "server.json")) {
+			t.Fatalf("the root: %v", err)
+		}
+		stands()
+	})
 }

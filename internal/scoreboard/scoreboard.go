@@ -307,6 +307,11 @@ func Find(dirs []string, id string) (records.ScoreboardSnapshot, bool) {
 // MaxSnapshotBytes bounds a snapshot file read; a larger one is not read.
 const MaxSnapshotBytes = 64 << 20
 
+// MaxSummaryBytes bounds a job's summary.json read, by job list, job
+// follow, and karvi-prune. A summary lists a job's devices as its snapshot
+// lists its targets, so it takes the snapshot's bound.
+const MaxSummaryBytes = MaxSnapshotBytes
+
 // readSnapshot is the snapshot file at path, read by
 // osutil.ReadRegularFile: a regular file of at most MaxSnapshotBytes,
 // anything else an error. The folder may be shared, so any member's entry
