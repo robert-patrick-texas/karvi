@@ -19016,3 +19016,296 @@ The evidence is kept beside the tree
 passing runs, every merged patch, each section's checks, the batteries, and in
 `chapter-88/` this chapter's lab scripts with their logs, the two scratch
 tests, and the script that cut the shown blocks from the logs).
+
+## 89. The review's later fixes: waves 5 to 7 (2026-11-01)
+
+Opened as [chapter
+88](#88-the-code-review-of-2026-10-31-and-its-fixes-2026-11-01) closed, on the
+operator's word for each wave: the fixes of chapter 88 found more defects than
+the review, numbered on from #60, and the operator decided which to fix now.
+Waves 5 to 7 fix twelve of them, #66 to #68, #70, and #72 to #79, in nine
+sections; nine commits on `dev`, `b07d3ff` to `5b0c29c`, carry them, each
+message naming its findings ("review 2026-10-31 (new findings), #N"). Nothing is
+pushed. The findings and the plan are kept in the operator's private archive.
+
+**What it gains.** A `.cloginrc` that clogin reads is read the same way, its
+patterns, braces, and passwords as Tcl reads them, so a line written for clogin
+reaches the devices it reaches there with the password clogin sends; a FIFO or a
+link a member puts in a shared tree no longer holds or redirects karvi; a
+configuration number means what TOML says it means. It waits on nothing. The
+cost: the CHANGELOG's `Unreleased` block holds 30 entries, 14 of them Breaking,
+two more than at chapter 88's end and two widened, as a `.cloginrc`, a
+configuration, or a capacity root that relied on the old reading is now refused
+or read otherwise.
+
+**The sections**, in the plan's waves (the CHANGELOG's `Unreleased` block says
+what each changed):
+
+| Wave | Section | Findings | Commit |
+|---|---|---|---|
+| 5 | S16 tomlmini numbers and strings | #66 #67 | `b07d3ff` |
+| 5 | S18 configuration | #72 #73 | `018ff41` |
+| 5 | S17 prune reads | #70 | `5b010bc` |
+| 5 | S19 .cloginrc patterns | #68 | `54c0280` |
+| 6 | S20 shared files read by name | #74 | `ae571ff` |
+| 6 | S21 .cloginrc braces | #75 | `10181e0` |
+| 7 | S22 the capacity ledger's lock | #76 | `198e011` |
+| 7 | S23 job follow's open | #77 | `6e1508b` |
+| 7 | S24 .cloginrc passwords, messages | #78 #79 | `5b0c29c` |
+
+**How the fixes ran.** As in chapter 88: per finding, the defect confirmed, a
+test that fails on the tree as it was (its output kept), the fix, the test
+again; one worktree and one agent per section, the agents of a wave in parallel;
+the orchestrator read each diff against its finding, merged it, wrote the
+CHANGELOG, ran `go vet`, `make generated-clean`, and the whole tree's `go test`,
+and committed it. Every `.cloginrc` rule was checked against `tclsh8.6` and
+clogin's own `add` and `find` procedures on the host, the password join on 62
+recorded and 40,000 random values. The full battery passed after each wave: at
+`54c0280`, `10181e0`, and `5b0c29c`, `go test` over 73 packages and every suite
+in 236 to 238 seconds, the host clean after. The key registry moved from 32 to
+33 (#73); no other counter moved, and no error code is new.
+
+**The operator's decisions**, in simple terms:
+
+-  #66: a number in a karvi file is a TOML integer or decimal float; `inf` and
+  `nan` are refused.
+-  #68: a `.cloginrc` pattern matches exactly as clogin's Tcl `string match`
+  does: a class has no negation, so `[!x]` and `[^x]` each match only the
+  characters listed.
+-  #73: `platform.<name>.legacy-class` removed, nothing reading it; the key
+  registry moves to 33, and the execution plan's schema stays, since nothing
+  writes a platform definition's JSON.
+-  #75: inside braces every character is literal, as Tcl reads it; `$`, `[`,
+  `]`, and `;` are refused only in a bare word, where Tcl would substitute.
+-  #78: an `add password` line's password and enable are what clogin sends: each
+  value read again as a Tcl list, its words joined with nothing between; `user`
+  and `userpassword` are taken as written; a value that is not a Tcl list (an
+  unmatched quote or brace, where clogin's join stops with a Tcl error) is
+  `cloginrc_malformed`, naming the file and line.
+-  #70, #72, #74, #76, #77, #79 fixed as found, #77 by one regular-file open in
+  `osutil` that `ReadRegularFile` and `job follow` share, the daemon reading its
+  own `commands.jsonl` through the descriptor it holds.
+
+**Settled under the existing rules**, each reported to the operator: the
+stricter number forms reach `--set` and `KARVI__` overrides too, one parser; a
+link or FIFO at a scoreboard snapshot's name is "not live"; `router\[12`, an
+open class, loads, as Tcl matches `router1` with it; a bare `]` stays refused; a
+dangling link at `summary.json` is a summary that cannot be read; the ledger's
+bound is 16 MiB. In wave 7: the capacity root keeps its mode set by name, a link
+there being the site's; the operator's own `devices` folder at a mode without
+owner read is refused, as its mode is now set through a descriptor; the daemon
+holds a job's `commands.jsonl` until the job leaves its table of 1,024 jobs or
+the daemon stops, so a job folder karvi-prune removes in that time keeps its
+space until then, the idle timer (ten minutes by default) bounding it; a value
+whose join is empty (`{ }`) is a missing password, as `{}` was; Redis's coded
+replies write their code once too.
+
+**The lab.** The examples ran on a lab build of `5b0c29c` (`karvi`,
+`karvi-fake-device`) in a folder under `/var/tmp`, mode 0700, that each script
+made and removed, laid out as chapter 88's (every place karvi writes under it,
+`display.color = "never"`, `NETUSER=jsmith`). The lab's `--config`, and `run`'s
+`--no-daemon`, are left out of the `$` labels, and the lab's path is written
+`LAB`. The `$`, `exit=`, and `==` lines are the scripts'; the rest is karvi's,
+its standard output then its standard error, unless the paragraph says
+otherwise. None of `/tmp/karvi-1000`, `/var/tmp/karvi-1000`, `/dev/shm/karvi`,
+and the home's `.local/share/karvi` existed after any script.
+
+**A password as clogin sends it.** `router1` is the fake device on 127.0.0.1,
+taking the user `jsmith`, the password `passone`, and the enable secret `en 1`;
+the credential policy holds the lab's `.cloginrc` alone:
+
+```text
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {pass one} {"en 1"}
+$ karvi run --target router1 'show clock'
+exit=0
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+*10:00:00.000 UTC Tue Sep 15 2026
+! exit=0 elapsed=788ms artifacts=LAB/jobs/261101/261101-105506-00
+! ssh accepted new host-key router1 (ED25519)
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {pass one} {en 1}
+$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=clogin transport=native
+karvi: target=router1 status=privilege_error error=privilege_failed: the device stayed at the "exec" prompt "Router>" after one "enable" attempt
+! exit=101 elapsed=403ms artifacts=LAB/jobs/261101/261101-105507-00
+$ cat cloginrc
+add user router1 jsmith
+add password router1 {"pass one}
+$ karvi run --target router1 'show clock'
+exit=6
+cloginrc_malformed: 1 of 1 targets failed credential resolution: name:router1 (LAB/cloginrc:2: the password is not a Tcl list: unmatched open quote policy=default backend=clogin)
+```
+
+`{pass one}` logs in as `passone`, and `{"en 1"}` is the list of one word
+`en 1`; `{en 1}` is two words, joined `en1`, which the device refuses. Before
+`5b0c29c`, karvi sent `pass one`, a password clogin never sent. Not taken: the
+literal value kept and the difference documented, the alternative put to the
+operator; the join for `user` and `userpassword` too, which clogin does not do
+([`docs/OPERATIONS.md`, "Credential files"](OPERATIONS.md#credential-files)).
+
+**A pattern and a brace as Tcl reads them.** `run --dry-run` plans on the client
+and contacts no device; the plan's lines other than each target's name and
+credential are cut:
+
+```text
+$ cat cloginrc
+add user {router[!x]*} bob
+add user * alice
+add password * {pa$$w0rd}
+$ karvi run --dry-run --all 'show clock'
+exit=0
+- name:router1: planned
+  credential: bound 20261101T105647.734104-0500-kgmbyap0kj0vz8a6j6hg (policy=default backend=clogin user=alice; value not displayed)
+- name:routerx: planned
+  credential: bound 20261101T105647.734156-0500-9ggs8pj7pgbbpb9j5xnt (policy=default backend=clogin user=bob; value not displayed)
+- name:router!: planned
+  credential: bound 20261101T105647.734156-0500-9ggs8pj7pgbbpb9j5xnt (policy=default backend=clogin user=bob; value not displayed)
+$ cat cloginrc
+add user * alice
+add password * pa$$w0rd
+$ karvi run --dry-run --all 'show clock'
+exit=6
+cloginrc_tcl_substitution_forbidden: client planning: 3 of 3 targets failed credential resolution: name:router1 (LAB/cloginrc:2: '$' in a bare word; brace the word policy=default backend=clogin); name:routerx (LAB/cloginrc:2: '$' in a bare word; brace the word policy=default backend=clogin); name:router! (LAB/cloginrc:2: '$' in a bare word; brace the word policy=default backend=clogin)
+```
+
+`{router[!x]*}` matches `routerx` and `router!` and not `router1`: Tcl's class
+lists `!` and `x`, and has no negation. karvi had read `[!x]` as negation, any
+character but `x`, which matches `router1` and `router!` and not `routerx`.
+`{pa$$w0rd}` loads, as clogin reads it; bare, where Tcl would substitute, it is
+refused naming the character. Not taken: the negation kept as a karvi extension,
+which matches devices clogin's line does not.
+
+**A number as TOML writes it.** By `config validate` with a case file beside the
+lab's configuration; a case accepted shows `valid: true`, as `1.5` did:
+
+```text
+$ cat case.toml
+[output]
+reserve-multiplier = 01.5
+$ karvi config validate case.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/case.toml: TOML line 2 column 1: unsupported bare value "01.5"
+$ cat case.toml
+[output]
+reserve-multiplier = .5
+$ karvi config validate case.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/case.toml: TOML line 2 column 1: unsupported bare value ".5"
+$ cat case.toml
+[output]
+reserve-multiplier = inf
+$ karvi config validate case.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/case.toml: TOML line 2 column 1: unsupported bare value "inf"
+$ cat case.toml
+[output]
+reserve-multiplier = 1e0
+$ karvi config validate case.toml
+exit=0
+valid: true
+digest: 138ea3e38f59b29ddfe905b7b0486e707b20c1422bdac15711e12602a7fe9fe9
+sources: LAB/karvi.toml, LAB/case.toml
+warnings: 0
+$ cat case.toml
+[platform.cisco_ios]
+legacy-class = "ios-12"
+$ karvi config validate case.toml
+exit=2
+config_unknown_key: unknown configuration key for platform.cisco_ios.legacy-class at LAB/case.toml:2
+```
+
+`01.5`, `.5`, and `inf` were taken by Go's float reading. Not taken: `inf` and
+`nan` accepted, as TOML allows them; a `removed.go` row for `legacy-class`, a
+refusal of its own naming the removal, where it is an unknown key like any
+other.
+
+**`job follow` and a FIFO.** `router1` is 127.0.0.1 on port 2, where nothing
+listens, so the job ends at once with its summary final; no daemon runs, so
+`job follow` renders the job from its folder. Each follow is bounded by
+`timeout 10`, the script's, which would print `timeout`; the `rm` and `mkfifo`
+that put the FIFO at `commands.jsonl` are the script's steps:
+
+```text
+$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.1:2: connect: connection refused
+! exit=101 elapsed=61ms artifacts=LAB/jobs/261101/261101-105710-00
+$ karvi job follow 261101-105710-00
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.1:2: connect: connection refused
+! exit=101 elapsed=61ms artifacts=LAB/jobs/261101/261101-105710-00
+$ stat -c '%A %n' commands.jsonl
+prw------- commands.jsonl
+$ karvi job follow 261101-105710-00
+exit=111
+run_output_records_unreadable: LAB/jobs/261101/261101-105710-00/commands.jsonl is not a regular file
+```
+
+Before `6e1508b` the second follow waited for a writer that never came. Not
+taken: `ReadRegularFile` for the follow, which reads a file once to a bound
+where the follow reads one that grows; the daemon reopening the file by name and
+comparing its identity with the store's, the descriptor held instead, as the
+operator chose.
+
+**A link at a ledger's lock.** The lab's capacity root, `LAB/cap`, is named by
+`sessions.shared-capacity-root`, so no fallback is taken; `private`, a 0600 file
+of the operator's, stands for a colleague's. The `$` lines other than karvi's
+are the script's steps, each followed by what it printed:
+
+```text
+$ karvi run --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=native_session_open_failed: dial tcp 127.0.0.1:2: connect: connection refused
+! exit=101 elapsed=58ms artifacts=LAB/jobs/261101/261101-105749-00
+$ stat -c '%A %N' cap/server.lock
+-rw------- 'cap/server.lock'
+$ rm cap/server.lock
+$ printf 'not a lock\n' >private; chmod 600 private
+$ ln -s ../private cap/server.lock
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: open LAB/cap/server.lock: too many levels of symbolic links; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+$ stat -c '%A %N' private cap/server.lock
+-rw------- 'private'
+lrwxrwxrwx 'cap/server.lock' -> '../private'
+$ rm cap/server.lock private
+$ ln -s ../absent cap/server.lock
+$ karvi run --target router1 'show clock'
+exit=9
+capacity_root_unusable: open LAB/cap/server.lock: too many levels of symbolic links; a shared capacity root needs mode 2770 in the operators' group (group write and search, setgid, no sticky bit), as sudo karvi setup shared makes it
+$ ls absent 2>&1
+ls: cannot access 'absent': No such file or directory
+```
+
+Before `198e011` karvi opened the lock through the link: here it leased through
+`private`, and in a shared root, whose lock files are `0660`, a colleague's own
+lease made the colleague's private file `0660`; the dangling link made `absent`.
+The remedy after the refusal speaks of the root's mode (#88). Not taken: the
+lock checked by `Lstat` and then opened by name, a race; a link at the capacity
+root refused, the root being the site's.
+
+**Left open.** For the operator's word, or a review of their own: #63, Go's
+resolver and the host's domain (a design session); #64 and #65, two suites'
+fragilities (the shell-script review); #69 and #81, #60's and #76's checks going
+by path, not by a held descriptor (a design item); #71, internal/app's login
+tests writing to the host's journal (the test review); #80, `karvi exercise`
+coding every capacity read failure as a malformed ledger; #82, `.cloginrc`'s
+bare and quoted words read otherwise than Tcl reads them (a rule, as #68 and
+#75); #83, an empty joined password, for reading; #84 and #85, two `.cloginrc`
+checks that cannot fire and a long line refused without its file; #86, the "text
+after the code" trim written out in seven places; #87 and #88, two messages that
+run on or advise wrongly. The push, the release, and its number are the
+operator's.
+
+The evidence is kept beside the tree
+(`release-design-evidence/review-fixes-2026-11-01`: each agent's failing and
+passing runs, every merged patch, each section's checks, the batteries, and in
+`chapter-89/` this chapter's lab scripts with their logs and the blocks cut from
+them).
