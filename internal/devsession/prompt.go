@@ -9,8 +9,10 @@ import (
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
-// prompts is a platform definition's prompt shapes, compiled.
-type prompts struct {
+// Prompts is a platform definition's prompt shapes, compiled: what a
+// session's last line is matched against to be the device's prompt, the
+// device session's and the telnet driver's alike.
+type Prompts struct {
 	levels  []compiledLevel
 	generic *regexp.Regexp // when the platform has no levels
 }
@@ -26,12 +28,15 @@ type compiledLevel struct {
 // platform_prompt_pattern_invalid; a PrivilegedLevel that names no level of
 // a platform with levels is platform_privilege_level_unknown.
 func Validate(def platform.Definition) error {
-	_, err := compile(def)
+	_, err := CompilePrompts(def)
 	return err
 }
 
-func compile(def platform.Definition) (*prompts, error) {
-	p := &prompts{}
+// CompilePrompts compiles def's prompt shapes: each level's pattern (and
+// escalate prompt), or for a definition without levels its prompt pattern,
+// the broad one when it names none; its errors are Validate's.
+func CompilePrompts(def platform.Definition) (*Prompts, error) {
+	p := &Prompts{}
 	if len(def.PrivilegeLevels) == 0 {
 		pattern := def.PromptPattern
 		if pattern == "" {
@@ -74,10 +79,10 @@ func levelNames(def platform.Definition) string {
 	return strings.Join(names, ", ")
 }
 
-// match reports whether line, the last line as rendered without its
+// Match reports whether line, the last line as rendered without its
 // trailing blanks, is a prompt, and the level it belongs to ("" for a
 // platform without levels).
-func (p *prompts) match(line string) (prompt, level string, ok bool) {
+func (p *Prompts) Match(line string) (prompt, level string, ok bool) {
 	if line == "" {
 		return "", "", false
 	}

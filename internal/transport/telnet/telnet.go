@@ -15,16 +15,22 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
+	"github.com/robert-patrick-texas/karvi/internal/devsession"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/termtext"
 	"github.com/robert-patrick-texas/karvi/platform"
 )
 
+// The login's questions, matched against the last line alone (readUntil).
 var (
-	usernameRE = regexp.MustCompile(`(?im)(username|login)\s*:\s*$`)
-	passwordRE = regexp.MustCompile(`(?im)password\s*:\s*$`)
-	promptRE   = regexp.MustCompile(`(?m)[^\r\n]{0,240}[>#$]\s*$`)
+	usernameRE = regexp.MustCompile(`(?i)(username|login)\s*:\s*\z`)
+	passwordRE = regexp.MustCompile(`(?i)password\s*:\s*\z`)
 )
+
+// lineMax bounds the last line a prompt or a question is looked for in: a
+// longer line is output (the prompt patterns allow 240 characters at most),
+// and no read scans more than it and the read's own bytes.
+const lineMax = 4096
 
 type Factory struct {
 	Config         configload.Snapshot
@@ -36,6 +42,9 @@ type Driver struct {
 	conn   net.Conn
 	mu     sync.Mutex
 	prompt []byte
+	// prompts is the definition's prompt shapes as the device session
+	// compiles them, at the first read.
+	prompts *devsession.Prompts
 	// broken is set by a failure that ends the session: a later Execute
 	// writes nothing.
 	broken bool
@@ -59,10 +68,11 @@ func (d *Driver) SetupLines() []platform.SetupLine {
 }
 
 // noteSetup keeps one set-up statement that was written: buf is what was
-// read after it, up to the next prompt or the secret prompt (whose
-// `Password:` is the answer), or up to the failure.
-func (d *Driver) noteSetup(before []byte, statement string, buf []byte) {
-	output := strings.TrimRight(string(cleanOutput(buf, statement, nil)), " \t")
+// read after it, up to the next prompt (returned, removed from the answer)
+// or the secret prompt (whose `Password:` is the answer), or up to the
+// failure (returned nil).
+func (d *Driver) noteSetup(before []byte, statement string, buf, returned []byte) {
+	output := strings.TrimRight(string(cleanOutput(buf, statement, returned)), " \t")
 	d.setup = append(d.setup, platform.SetupLine{PromptBefore: strings.TrimSpace(string(before)), Statement: statement, Output: output})
 }
 
@@ -95,24 +105,29 @@ func (d *Driver) Prepare(ctx context.Context) error {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}
-	buf, kind, err := d.readUntil(ctx, timeout, d.f.MaxOutputBytes, usernameRE, passwordRE, promptRE)
+	// The login read ends at the username question, at the password
+	// question (a line password's login), or at the device's prompt (no
+	// login exchange), its kinds in that order.
+	const (
+		atUsername = iota
+		atPassword
+	)
+	buf, kind, err := d.readUntil(ctx, timeout, d.f.MaxOutputBytes, usernameRE, passwordRE)
 	if err != nil {
 		return fmt.Errorf("telnet_login_prompt: %w", err)
 	}
-	if kind == 2 {
-		// The device's prompt without a login exchange.
-		d.prompt = lastPrompt(buf)
-	}
-	if kind == 0 {
+	if kind == atUsername {
 		if err := d.writeLine(d.req.Username); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send username: %w", err)
 		}
-		_, kind, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, passwordRE, promptRE)
+		buf, kind, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, passwordRE)
 		if err != nil {
 			return errorcodes.Errorf("telnet_login_prompt", "wait for password prompt: %w", err)
 		}
+		// This read's password question and prompt, as the login read's.
+		kind += atPassword
 	}
-	if kind == 0 {
+	if kind == atPassword {
 		var pass []byte
 		if d.req.Password == nil {
 			return errorcodes.Errorf("credential_password_missing", "telnet password is unavailable")
@@ -124,14 +139,13 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		if err := d.writeSecretLine(pass); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send password: %w", err)
 		}
-		buf, kind, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, promptRE)
+		buf, _, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes)
 		if err != nil {
 			return errorcodes.Errorf("authentication_failed", "telnet authentication failed: %w", err)
 		}
-		d.prompt = lastPrompt(buf)
-	} else if kind == 1 {
-		d.prompt = lastPrompt(buf)
 	}
+	// Every path here ended its last read at the device's prompt.
+	d.prompt = lastPrompt(buf)
 	// Escalate to the definition's privileged level when the device is not
 	// already there (privilege 15 at login needs nothing). The enable secret
 	// is optional: a device that asks for one when none was resolved is
@@ -147,13 +161,17 @@ func (d *Driver) Prepare(ctx context.Context) error {
 			enableTimeout = 10 * time.Second
 		}
 		enableDeadline := time.Now().Add(enableTimeout)
-		buf, kind, err = d.readUntil(ctx, enableTimeout, d.f.MaxOutputBytes, passwordRE, promptRE)
-		d.noteSetup(d.prompt, level.Escalate, buf)
+		buf, kind, err = d.readUntil(ctx, enableTimeout, d.f.MaxOutputBytes, passwordRE)
+		var returned []byte
+		if err == nil && kind == 1 {
+			returned = lastPrompt(buf)
+		}
+		d.noteSetup(d.prompt, level.Escalate, buf, returned)
 		if err != nil {
 			return errorcodes.Errorf("privilege_failed", "wait for the prompt after %q: %w", level.Escalate, err)
 		}
 		if kind == 1 {
-			d.prompt = lastPrompt(buf)
+			d.prompt = returned
 		}
 		if kind == 0 {
 			if d.req.EnablePassword == nil {
@@ -167,7 +185,7 @@ func (d *Driver) Prepare(ctx context.Context) error {
 			if err := d.writeSecretLine(enable); err != nil {
 				return errorcodes.Errorf("telnet_write_failed", "send enable password: %w", err)
 			}
-			buf, _, err = d.readUntil(ctx, max(time.Until(enableDeadline), time.Millisecond), d.f.MaxOutputBytes, promptRE)
+			buf, _, err = d.readUntil(ctx, max(time.Until(enableDeadline), time.Millisecond), d.f.MaxOutputBytes)
 			if err != nil {
 				return errorcodes.Errorf("privilege_failed", "wait for privileged prompt: %w", err)
 			}
@@ -181,12 +199,16 @@ func (d *Driver) Prepare(ctx context.Context) error {
 		if err := d.writeLine(cmd); err != nil {
 			return errorcodes.Errorf("telnet_write_failed", "send paging command: %w", err)
 		}
-		buf, _, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes, promptRE)
-		d.noteSetup(d.prompt, cmd, buf)
+		buf, _, err = d.readUntil(ctx, timeout, d.f.MaxOutputBytes)
+		var returned []byte
+		if err == nil {
+			returned = lastPrompt(buf)
+		}
+		d.noteSetup(d.prompt, cmd, buf, returned)
 		if err != nil {
 			return errorcodes.Errorf("telnet_paging_command_failed", "telnet paging command: %w", err)
 		}
-		d.prompt = lastPrompt(buf)
+		d.prompt = returned
 	}
 	return nil
 }
@@ -220,18 +242,19 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 	// from the device; after is the one that came back, empty when none did
 	// (the same two meanings as the device session's result).
 	before := strings.TrimSpace(string(d.prompt))
-	buf, _, err := d.readUntil(ctx, timeout, limit, promptRE)
+	buf, _, err := d.readUntil(ctx, timeout, limit)
 	observed := err == nil
-	after := ""
+	var returned []byte
 	if observed {
-		after = strings.TrimSpace(string(lastPrompt(buf)))
+		returned = lastPrompt(buf)
 	}
+	after := string(returned)
 	if err != nil {
 		// A timeout, a failed read, or output over the limit before the
 		// prompt leaves the shell out of step with the next command.
 		d.broken = true
 	}
-	result := platform.Result{StartedAt: start, EndedAt: time.Now(), PromptBefore: before, Prompt: after, PromptSource: "observed", PromptObserved: &observed, Output: cleanOutput(buf, c.Text, d.prompt)}
+	result := platform.Result{StartedAt: start, EndedAt: time.Now(), PromptBefore: before, Prompt: after, PromptSource: "observed", PromptObserved: &observed, Output: cleanOutput(buf, c.Text, returned)}
 	if int64(len(result.Output)) > limit && limit > 0 {
 		result.Output = result.Output[:limit]
 		result.ErrorCode = "output_limit_exceeded"
@@ -273,7 +296,7 @@ func (d *Driver) Execute(ctx context.Context, c platform.Command) platform.Resul
 		result.External = true
 		result.Err = fmt.Errorf("device reported a command error")
 	}
-	d.prompt = lastPrompt(buf)
+	d.prompt = returned
 	return result
 }
 
@@ -306,22 +329,60 @@ func (d *Driver) writeSecretLine(secret []byte) error {
 	}
 	return d.writeLine(string(secret))
 }
-func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int64, patterns ...*regexp.Regexp) ([]byte, int, error) {
+
+// readUntil reads until the last line, the bytes after the last newline as
+// the terminal showed them, is one of questions (the kind its index) or a
+// prompt of the definition's as the device session matches it (the kind
+// len(questions)), and has stood unchanged for the session's settle
+// interval, devsession.PromptSettleDelay: a banner or output line ending in
+// '#' or '>' that a read was cut just after is not taken for the prompt. A
+// stream that ends at such a line ends the read at it too. A line a newline
+// has ended is never matched, and each read scans its own bytes and the
+// last line alone. The context's end, a cancel or a forced stop as well as
+// its deadline, ends a blocked read at once and is the read's error.
+func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int64, questions ...*regexp.Regexp) ([]byte, int, error) {
+	if d.prompts == nil {
+		prompts, err := devsession.CompilePrompts(d.req.Definition)
+		if err != nil {
+			return nil, -1, err
+		}
+		d.prompts = prompts
+	}
 	deadline := time.Now().Add(timeout)
 	// A context deadline (execution.device-timeout) ends a blocked read too.
 	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
 		deadline = ctxDeadline
 	}
-	_ = d.conn.SetReadDeadline(deadline)
+	// The context's end sets a read deadline in the past; a read that ends
+	// waits for it to be set, so that it never reaches a later read.
+	conn, woke := d.conn, make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		_ = conn.SetReadDeadline(time.Now())
+		close(woke)
+	})
+	defer func() {
+		if !stop() {
+			<-woke
+		}
+	}()
 	var out bytes.Buffer
 	tmp := make([]byte, 4096)
 	state := byte(0)
 	cmd := byte(0)
+	// line is where the last line begins in out, kind what it is (-1 for
+	// neither), and settled when it will have stood for the interval.
+	line, kind := 0, -1
+	var settled time.Time
 	for {
-		select {
-		case <-ctx.Done():
+		readDeadline, settling := deadline, false
+		if kind >= 0 && !settled.After(deadline) {
+			readDeadline, settling = settled, true
+		}
+		_ = d.conn.SetReadDeadline(readDeadline)
+		// The context is checked after the deadline is set, since setting it
+		// undoes a past one the context's end set just before.
+		if ctx.Err() != nil {
 			return out.Bytes(), -1, ctx.Err()
-		default:
 		}
 		n, err := d.conn.Read(tmp)
 		if n > 0 {
@@ -330,18 +391,27 @@ func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int
 			if len(responses) > 0 {
 				_, _ = d.conn.Write(responses)
 			}
+			if i := bytes.LastIndexByte(clean, '\n'); i >= 0 {
+				line = out.Len() + i + 1
+			}
 			out.Write(clean)
 			if d.req.Live != nil && len(clean) > 0 {
 				d.req.Live.Write(clean)
 			}
-			data := out.Bytes()
-			for i, p := range patterns {
-				if p.Match(data) {
-					return append([]byte(nil), data...), i, nil
-				}
+			if len(clean) > 0 {
+				kind = lineKind(out.Bytes()[line:], questions, d.prompts)
+				settled = time.Now().Add(devsession.PromptSettleDelay)
 			}
 		}
 		if err != nil {
+			if ctx.Err() != nil {
+				return out.Bytes(), -1, ctx.Err()
+			}
+			var ne net.Error
+			timedOut := errors.As(err, &ne) && ne.Timeout()
+			if kind >= 0 && (settling || !timedOut) {
+				return out.Bytes(), kind, nil
+			}
 			return out.Bytes(), -1, err
 		}
 		if limit > 0 && int64(out.Len()) > limit+4096 {
@@ -349,6 +419,29 @@ func (d *Driver) readUntil(ctx context.Context, timeout time.Duration, limit int
 		}
 	}
 }
+
+// lineKind is what the last line, raw, is: the index of the first of
+// questions it matches, len(questions) for a prompt, -1 for neither and for
+// a line longer than lineMax.
+func lineKind(raw []byte, questions []*regexp.Regexp, prompts *devsession.Prompts) int {
+	if len(raw) > lineMax {
+		return -1
+	}
+	text := lastLine(raw)
+	if text == "" {
+		return -1
+	}
+	for i, q := range questions {
+		if q.MatchString(text) {
+			return i
+		}
+	}
+	if _, _, ok := prompts.Match(text); ok {
+		return len(questions)
+	}
+	return -1
+}
+
 func filterTelnet(in []byte, state, verb byte) ([]byte, []byte, byte, byte) {
 	const iac = 255
 	var out, resp []byte
@@ -406,22 +499,39 @@ func rendered(buf []byte) []byte {
 	r.Close()
 	return out.Bytes()
 }
-func lastPrompt(buf []byte) []byte {
-	m := promptRE.Find(rendered(buf))
-	return append([]byte(nil), bytes.TrimSpace(m)...)
+
+// lastLine is buf's last line, the bytes after its last newline, as the
+// terminal showed it (as rendered renders it) without its trailing blanks:
+// the line a prompt or a login question is.
+func lastLine(buf []byte) string {
+	r := termtext.New(io.Discard, 0)
+	r.KeepSpaces = true
+	_, _ = r.Write(buf[bytes.LastIndexByte(buf, '\n')+1:])
+	return strings.TrimRight(r.Pending(), " \t")
 }
-func cleanOutput(buf []byte, command string, prompt []byte) []byte {
+
+// lastPrompt is the prompt a read ended at: its last line, trimmed.
+func lastPrompt(buf []byte) []byte {
+	return []byte(strings.TrimSpace(lastLine(buf)))
+}
+
+// cleanOutput is buf as the terminal showed it without the echoed command
+// line, the prompt the read ended at (returned, its last line; nil when it
+// ended at none), and the blank lines at its end.
+func cleanOutput(buf []byte, command string, returned []byte) []byte {
 	lines := strings.Split(string(rendered(buf)), "\n")
 	if len(lines) > 0 && strings.TrimSpace(lines[0]) == strings.TrimSpace(command) {
 		lines = lines[1:]
 	}
-	for len(lines) > 0 {
-		last := strings.TrimSpace(lines[len(lines)-1])
-		if last == "" || promptRE.MatchString(last) || len(prompt) > 0 && last == strings.TrimSpace(string(prompt)) {
+	trimBlank := func() {
+		for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
 			lines = lines[:len(lines)-1]
-		} else {
-			break
 		}
+	}
+	trimBlank()
+	if len(returned) > 0 && len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == string(returned) {
+		lines = lines[:len(lines)-1]
+		trimBlank()
 	}
 	return []byte(strings.Join(lines, "\n"))
 }

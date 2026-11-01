@@ -143,7 +143,7 @@ func TestLimitCountsSettledBytes(t *testing.T) {
 // ends like a prompt; its newline restores the match, and the recorded
 // bytes are the whole line.
 func TestTailIsBounded(t *testing.T) {
-	p, err := compile(iosxe(t))
+	p, err := CompilePrompts(iosxe(t))
 	if err != nil {
 		t.Fatal(err)
 	}

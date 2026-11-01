@@ -573,7 +573,7 @@ func (r *response) sinceMark() string {
 // candidate says whether the last line is a prompt of the platform's, or
 // the level's escalate prompt when a level is given (atSecret); a last line
 // that gave up its front is none.
-func (r *response) candidate(level *compiledLevel, p *prompts) (prompt, observedLevel string, atSecret bool) {
+func (r *response) candidate(level *compiledLevel, p *Prompts) (prompt, observedLevel string, atSecret bool) {
 	if r.overflow {
 		return "", "", false
 	}
@@ -581,7 +581,7 @@ func (r *response) candidate(level *compiledLevel, p *prompts) (prompt, observed
 	if level != nil && level.escalatePrompt(line) {
 		return line, "", true
 	}
-	prompt, observedLevel, ok := p.match(line)
+	prompt, observedLevel, ok := p.Match(line)
 	if !ok {
 		return "", "", false
 	}

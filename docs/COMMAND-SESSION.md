@@ -221,8 +221,11 @@ prompt patterns: the levels' patterns for a platform that declares them
 built-ins), `generic`'s prompt pattern otherwise, and a broad line ending
 in `#`, `>`, or `$` for a platform with neither. A candidate prompt must
 remain the final content for a short settle period so a banner line ending
-with a prompt character is not accepted prematurely. The prompt timeout and
-command timeout remain bounded configuration values.
+with a prompt character is not accepted prematurely. The telnet transport
+matches the same way, its login's `Username:` and `Password:` questions and
+the enable step's `Password:` included: only on the last line, once it has
+stood for the settle period. The prompt timeout and command timeout remain
+bounded configuration values.
 
 The collected response is the rendered text: one echoed command line and
 the trailing prompt removed, every line ending in `\n`, a space the device

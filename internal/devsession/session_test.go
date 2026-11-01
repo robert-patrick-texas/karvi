@@ -703,7 +703,7 @@ func renderedLastLine(data string) string {
 }
 
 func TestPromptMatchingShapes(t *testing.T) {
-	p, err := compile(iosxe(t))
+	p, err := CompilePrompts(iosxe(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -719,15 +719,15 @@ func TestPromptMatchingShapes(t *testing.T) {
 		"\x1b[?2004h\x1b]0;netops@dev: ~\x07Router#": "privilege-exec",
 		"Routx\ber#": "privilege-exec",
 	} {
-		_, level, ok := p.match(renderedLastLine("stuff\r\n" + line))
+		_, level, ok := p.Match(renderedLastLine("stuff\r\n" + line))
 		if (want == "") == ok || level != want {
 			t.Fatalf("%q: level=%q ok=%v want %q", line, level, ok, want)
 		}
 	}
 	generic, _ := platform.Builtin("generic")
-	g, _ := compile(generic)
+	g, _ := CompilePrompts(generic)
 	for line, want := range map[string]bool{"dev#": true, "server01$": true, "user@host:~$": false, "Ready.": false} {
-		if _, _, ok := g.match(renderedLastLine("x\n" + line)); ok != want {
+		if _, _, ok := g.Match(renderedLastLine("x\n" + line)); ok != want {
 			t.Fatalf("generic %q: ok=%v want %v", line, ok, want)
 		}
 	}

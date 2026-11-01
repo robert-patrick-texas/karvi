@@ -75,6 +75,20 @@
   Only a reply refusing `AUTH` is `redis_auth_failed`; a closed connection or a
   timeout is `redis_unavailable`, and a reply that is not Redis's
   `redis_protocol_error`.
+- **Telnet takes the device's prompt from the last line alone.** The telnet
+  transport took any line ending in `>`, `#`, or `$`, anywhere in what it had
+  read, for the prompt: a banner line before `Username:` made it type `enable`
+  as the username and send the enable secret as the login password, and an
+  output line ending so cut a response short, the rest landing in the next
+  record. It now matches as the device session does: the last line alone,
+  against the platform's prompt patterns, once it has stood for the settle
+  period, its login's `Username:` and `Password:` questions included, so a
+  platform needs its prompt pattern over telnet as over SSH; a login that asks
+  only `Password:` gets the login password there and the enable secret only at
+  the privilege step. A read scans only its new bytes and the last line (a
+  4 MiB response read 4 KiB at a time took minutes), and a cancel or a forced
+  stop ends a blocked read at once
+  ([`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)).
 
 ## 0.38.0 - 2026-10-28
 

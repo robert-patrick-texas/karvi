@@ -3,6 +3,7 @@ package telnet
 import (
 	"bufio"
 	"context"
+	"errors"
 	"net"
 	"strings"
 	"sync"
@@ -16,7 +17,9 @@ import (
 
 // device answers each line on its end of the pipe: show slow never, show
 // late after 450ms, show big with 3000 bytes, a device error for show bogus,
-// a prompt otherwise; it records every line.
+// show running-config in writes each cut just after a line's closing '#',
+// show running-config | format in one write of lines ending in '>', a
+// prompt otherwise; it records every line.
 type device struct {
 	mu    sync.Mutex
 	lines []string
@@ -36,6 +39,9 @@ func (dv *device) serve(conn net.Conn) {
 		switch text {
 		case "show slow":
 		case "show late":
+			// The delay is the behaviour under test (TestTelnetCommandOwnBounds):
+			// an answer after a 300ms telnet.read-timeout and within a declared
+			// 1s --timeout.
 			time.Sleep(450 * time.Millisecond)
 			_, _ = conn.Write([]byte(text + "\r\nlate\r\ndev#"))
 		case "show big":
@@ -46,6 +52,12 @@ func (dv *device) serve(conn net.Conn) {
 			_, _ = conn.Write([]byte(text + "\r\ndev#"))
 		case "show bogus":
 			_, _ = conn.Write([]byte(text + "\r\n% Invalid input detected at '^' marker.\r\ndev#"))
+		case "show running-config":
+			for _, piece := range []string{text + "\r\nbanner motd ^C\r\n##########", "\r\n# Authorized access only #", "\r\n##########\r\n^C\r\nend\r\n", "dev#"} {
+				_, _ = conn.Write([]byte(piece))
+			}
+		case "show running-config | format":
+			_, _ = conn.Write([]byte(text + "\r\n<config>\r\n  <hostname>router1</hostname>\r\n</config>\r\ndev#"))
 		default:
 			_, _ = conn.Write([]byte(text + "\r\nout\r\ndev#"))
 		}
@@ -56,6 +68,16 @@ func (dv *device) saw() []string {
 	dv.mu.Lock()
 	defer dv.mu.Unlock()
 	return append([]string(nil), dv.lines...)
+}
+
+// await is what the device has seen once it has seen n lines, or what it
+// has seen after 5s.
+func (dv *device) await(n int) []string {
+	deadline := time.Now().Add(5 * time.Second)
+	for len(dv.saw()) < n && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	return dv.saw()
 }
 
 // TestTimeoutEndsTheTelnetSession covers the session-ending rule
@@ -80,8 +102,7 @@ func TestTimeoutEndsTheTelnetSession(t *testing.T) {
 	if r := d.Execute(ctx, platform.Command{Text: "show version", Timeout: time.Second}); r.ErrorCode != "command_session_lost" || r.ErrorCategory != "connection" {
 		t.Fatalf("after the timeout: %+v", r)
 	}
-	time.Sleep(50 * time.Millisecond)
-	if got := strings.Join(dv.saw(), "|"); got != "show clock|show bogus|show slow" {
+	if got := strings.Join(dv.await(3), "|"); got != "show clock|show bogus|show slow" {
 		t.Fatalf("device saw %q", got)
 	}
 }
@@ -199,8 +220,7 @@ func TestTelnetEscalationWithOptionalEnable(t *testing.T) {
 			if tc.code == "privilege_failed" && !strings.Contains(err.Error(), "the credential has none") {
 				t.Fatalf("message: %v", err)
 			}
-			time.Sleep(50 * time.Millisecond)
-			if got := strings.Join(dv.saw(), "|"); got != tc.saw {
+			if got := strings.Join(dv.await(len(strings.Split(tc.saw, "|"))), "|"); got != tc.saw {
 				t.Fatalf("device saw %q, want %q", got, tc.saw)
 			}
 			var lines []string
@@ -301,5 +321,227 @@ func TestTelnetLiveSeesTheSession(t *testing.T) {
 	}
 	if len(live.secrets) != 1 || live.secrets[0] != "Zq7-en after dev>enable\r\nPassword: " {
 		t.Fatalf("secrets %q", live.secrets)
+	}
+}
+
+// queued is a device's end of the pipe whose writes go out in order from a
+// goroutine of their own, each still a read of its own at the driver: the
+// device reads on while the driver does not, so a driver that answers too
+// soon fails its test instead of blocking on the pipe.
+type queued struct {
+	net.Conn
+	out chan []byte
+}
+
+func queue(conn net.Conn) queued {
+	q := queued{Conn: conn, out: make(chan []byte, 64)}
+	go func() {
+		for p := range q.out {
+			if _, err := conn.Write(p); err != nil {
+				return
+			}
+		}
+	}()
+	return q
+}
+
+func (q queued) Write(p []byte) (int, error) {
+	q.out <- append([]byte(nil), p...)
+	return len(p), nil
+}
+
+// login is a telnet device with a login exchange: each piece of its banner
+// in a write of its own, then each of questions on a line of its own, each
+// answer recorded after its question, then shell at start, asking for the
+// enable secret.
+func login(conn net.Conn, banner, questions []string, start string, dv *device) {
+	for _, piece := range banner {
+		if _, err := conn.Write([]byte(piece)); err != nil {
+			return
+		}
+	}
+	reader := bufio.NewReader(conn)
+	for _, question := range questions {
+		if _, err := conn.Write([]byte("\r\n" + question)); err != nil {
+			return
+		}
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return
+		}
+		dv.mu.Lock()
+		dv.lines = append(dv.lines, question+strings.TrimRight(line, "\r\n"))
+		dv.mu.Unlock()
+	}
+	shell(conn, start, true, dv)
+}
+
+// TestTelnetLoginAnswersNoBannerLine: a banner line ending in '>' or '#',
+// arriving in a read of its own before Username: (with its newline, or cut
+// before it), is not taken for the prompt: the username and the password go
+// to the login's questions and the enable secret only to the enable step's.
+func TestTelnetLoginAnswersNoBannerLine(t *testing.T) {
+	iosxe, _ := platform.Builtin("cisco_ios")
+	linux, _ := platform.Builtin("linux_shell")
+	for _, tc := range []struct {
+		name   string
+		def    platform.Definition
+		banner []string
+		start  string
+		saw    string
+		prompt string
+	}{
+		{name: "a line ending in >", def: iosxe, banner: []string{"\r\nrouter1 is managed by the NOC\r\n", "Contact: <noc@example.com>\r\n"}, start: "\r\ndev>", saw: "Username: jsmith|Password: Zq7-pw|enable|Zq7-en|terminal length 0|terminal width 512", prompt: "dev#"},
+		{name: "a line ending in #", def: iosxe, banner: []string{"\r\n##########\r\n"}, start: "\r\ndev>", saw: "Username: jsmith|Password: Zq7-pw|enable|Zq7-en|terminal length 0|terminal width 512", prompt: "dev#"},
+		{name: "a line cut before its newline", def: iosxe, banner: []string{"\r\n##########"}, start: "\r\ndev>", saw: "Username: jsmith|Password: Zq7-pw|enable|Zq7-en|terminal length 0|terminal width 512", prompt: "dev#"},
+		{name: "a broad prompt's line cut before its newline", def: linux, banner: []string{"\r\n# Authorized access only #"}, start: "\r\ndev$ ", saw: "Username: jsmith|Password: Zq7-pw", prompt: "dev$"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client, server := net.Pipe()
+			dv := &device{}
+			go login(queue(server), tc.banner, []string{"Username: ", "Password: "}, tc.start, dv)
+			req := platform.OpenRequest{
+				Definition:     tc.def,
+				Username:       "jsmith",
+				Password:       func(f func([]byte) error) error { return f([]byte("Zq7-pw")) },
+				EnablePassword: func(f func([]byte) error) error { return f([]byte("Zq7-en")) },
+			}
+			d := &Driver{f: Factory{Config: configload.Snapshot{}, MaxOutputBytes: 1 << 20}, req: req, conn: client}
+			defer d.Close()
+			err := d.Prepare(context.Background())
+			if got := strings.Join(dv.saw(), "|"); got != tc.saw {
+				t.Fatalf("device saw %q, want %q (prepare: %v)", got, tc.saw, err)
+			}
+			if err != nil || string(d.prompt) != tc.prompt {
+				t.Fatalf("prepare: %v, prompt %q, want %q", err, d.prompt, tc.prompt)
+			}
+		})
+	}
+}
+
+// TestTelnetLoginWithPasswordAlone: a login whose first question is
+// Password: (a line password) is answered with the login password; enable
+// and its secret are sent at the privilege step, the secret only at the
+// enable step's Password:.
+func TestTelnetLoginWithPasswordAlone(t *testing.T) {
+	iosxe, _ := platform.Builtin("cisco_ios")
+	client, server := net.Pipe()
+	dv := &device{}
+	go login(queue(server), []string{"\r\nUser Access Verification\r\n"}, []string{"Password: "}, "\r\ndev>", dv)
+	req := platform.OpenRequest{
+		Definition:     iosxe,
+		Username:       "jsmith",
+		Password:       func(f func([]byte) error) error { return f([]byte("Zq7-pw")) },
+		EnablePassword: func(f func([]byte) error) error { return f([]byte("Zq7-en")) },
+	}
+	d := &Driver{f: Factory{Config: configload.Snapshot{}, MaxOutputBytes: 1 << 20}, req: req, conn: client}
+	defer d.Close()
+	err := d.Prepare(context.Background())
+	if got, want := strings.Join(dv.saw(), "|"), "Password: Zq7-pw|enable|Zq7-en|terminal length 0|terminal width 512"; got != want {
+		t.Fatalf("device saw %q, want %q (prepare: %v)", got, want, err)
+	}
+	if err != nil || string(d.prompt) != "dev#" {
+		t.Fatalf("prepare: %v, prompt %q", err, d.prompt)
+	}
+}
+
+// TestTelnetPromptIsTheLastLineOnly: a read ends at the last line alone,
+// when it is the device's prompt: a line of the output ending in '#' that a
+// read is cut just after, or lines ending in '>' before the prompt in the
+// same read, are output, kept whole in the record; the prompt is the last
+// line, and the next command is in step. The platform's level patterns and
+// the broad prompt of a platform without levels alike.
+func TestTelnetPromptIsTheLastLineOnly(t *testing.T) {
+	iosxe, _ := platform.Builtin("cisco_ios")
+	for _, def := range []struct {
+		name string
+		def  platform.Definition
+	}{{"levels", iosxe}, {"no levels", platform.Definition{}}} {
+		for _, tc := range []struct{ name, text, output string }{
+			{"a line ending in # cut by a read", "show running-config", "banner motd ^C\n##########\n# Authorized access only #\n##########\n^C\nend"},
+			{"lines ending in > in the prompt's read", "show running-config | format", "<config>\n  <hostname>router1</hostname>\n</config>"},
+		} {
+			t.Run(def.name+", "+tc.name, func(t *testing.T) {
+				client, server := net.Pipe()
+				dv := &device{}
+				go dv.serve(queue(server))
+				d := &Driver{f: Factory{Config: configload.Snapshot{}, MaxOutputBytes: 1 << 20}, req: platform.OpenRequest{Definition: def.def}, conn: client, prompt: []byte("dev#")}
+				defer d.Close()
+				for _, c := range []struct{ text, output string }{{tc.text, tc.output}, {"show clock", "out"}} {
+					r := d.Execute(context.Background(), platform.Command{Text: c.text, Timeout: 5 * time.Second})
+					if r.Err != nil || string(r.Output) != c.output || r.PromptBefore != "dev#" || r.Prompt != "dev#" {
+						t.Fatalf("%s: output %q promptbefore=%q prompt=%q err=%v, want %q", c.text, r.Output, r.PromptBefore, r.Prompt, r.Err, c.output)
+					}
+				}
+			})
+		}
+	}
+	if got := string(lastPrompt([]byte("show running-config | format\r\n<config>\r\n</config>\r\ndev#"))); got != "dev#" {
+		t.Errorf("lastPrompt: %q", got)
+	}
+}
+
+// readGate is a connection that says when each read begins.
+type readGate struct {
+	net.Conn
+	reading chan struct{}
+}
+
+func (g readGate) Read(p []byte) (int, error) {
+	select {
+	case g.reading <- struct{}{}:
+	default:
+	}
+	return g.Conn.Read(p)
+}
+
+// TestTelnetCancelEndsABlockedRead: a cancel (a job's cancel, a forced
+// stop) ends a read blocked on a silent device at once, with the context's
+// error, far inside the read's own timeout; a command so ended leaves the
+// session unusable.
+func TestTelnetCancelEndsABlockedRead(t *testing.T) {
+	cfg, err := configload.FromValues(map[string]any{"execution.prompt-timeout": "1m"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	iosxe, _ := platform.Builtin("cisco_ios")
+	for _, tc := range []struct {
+		name string
+		// run reads from the device until it returns.
+		run func(ctx context.Context, d *Driver) error
+	}{
+		{name: "a command", run: func(ctx context.Context, d *Driver) error {
+			r := d.Execute(ctx, platform.Command{Text: "show slow", Timeout: time.Minute, TimeoutSource: platform.DeclaredTimeout})
+			if d.Usable() {
+				return errors.New("the session is still usable")
+			}
+			return r.Err
+		}},
+		{name: "the login", run: func(ctx context.Context, d *Driver) error { return d.Prepare(ctx) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client, server := net.Pipe()
+			dv := &device{}
+			go dv.serve(server)
+			gate := readGate{Conn: client, reading: make(chan struct{}, 1)}
+			d := &Driver{f: Factory{Config: cfg, MaxOutputBytes: 1 << 20}, req: platform.OpenRequest{Definition: iosxe}, conn: gate, prompt: []byte("dev#")}
+			// The pipe itself is closed at the end, not the driver, whose
+			// Close waits for a read that goes on.
+			defer client.Close()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			done := make(chan error, 1)
+			go func() { done <- tc.run(ctx, d) }()
+			<-gate.reading
+			cancel()
+			select {
+			case err := <-done:
+				if !errors.Is(err, context.Canceled) {
+					t.Fatalf("error %v, want the cancel", err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("the read went on after the cancel")
+			}
+		})
 	}
 }

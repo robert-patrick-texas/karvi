@@ -67,10 +67,11 @@ type Options struct {
 	Live platform.Live
 }
 
-// promptSettleDelay is how long a prompt-shaped final line must remain
-// unchanged before it is taken as the prompt: a banner line ending in '#'
-// that arrived in its own packet is not mistaken for the prompt.
-const promptSettleDelay = 100 * time.Millisecond
+// PromptSettleDelay is how long a prompt-shaped final line must remain
+// unchanged before it is taken as the prompt, by the session and the telnet
+// driver alike: a banner line ending in '#' that arrived in its own packet
+// is not mistaken for the prompt.
+const PromptSettleDelay = 100 * time.Millisecond
 
 type chunk struct {
 	data []byte
@@ -81,7 +82,7 @@ type chunk struct {
 type Session struct {
 	stream  Stream
 	opts    Options
-	prompts *prompts
+	prompts *Prompts
 	chunks  chan chunk
 
 	opMu sync.Mutex // one device operation at a time
@@ -113,7 +114,7 @@ func defaultDuration(d, fallback time.Duration) time.Duration {
 // escalate or disable paging; Prepare does. On failure the stream is
 // closed.
 func Open(ctx context.Context, stream Stream, opts Options) (*Session, error) {
-	p, err := compile(opts.Definition)
+	p, err := CompilePrompts(opts.Definition)
 	if err != nil {
 		_ = stream.Close()
 		return nil, err
@@ -626,10 +627,10 @@ func (s *Session) readUntil(ctx context.Context, level *compiledLevel, r *respon
 	defer stopSettle()
 	armSettle := func() {
 		if settle == nil {
-			settle = time.NewTimer(promptSettleDelay)
+			settle = time.NewTimer(PromptSettleDelay)
 		} else {
 			stopSettle()
-			settle.Reset(promptSettleDelay)
+			settle.Reset(PromptSettleDelay)
 		}
 		settleC = settle.C
 	}
