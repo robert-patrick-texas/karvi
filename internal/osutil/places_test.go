@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -608,5 +609,67 @@ func TestOperatorPrivateRoots(t *testing.T) {
 	}
 	if got := OperatorPrivateRoots(home, "u"); len(got) != 2 || got[0] != site || got[1] != xdg {
 		t.Fatalf("both: %q", got)
+	}
+}
+
+// TestScratchFolderPlaceFollowsALinkUnderFollowLink: a link at the shared
+// folder is not a real directory, passed by, as the scoreboards refuse
+// one; under FollowLink the folder is what the link points to, judged
+// there and taken when usable, with judge given the folder's own path,
+// and passed by when that filesystem has no free inodes or the link points
+// to nothing. Nothing is made.
+func TestScratchFolderPlaceFollowsALinkUnderFollowLink(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "elsewhere")
+	if err := os.Mkdir(target, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "shm"), 0o770); err != nil {
+		t.Fatal(err)
+	}
+	at := filepath.Join(dir, "shm", "capacity")
+	if err := os.Symlink(target, at); err != nil {
+		t.Fatal(err)
+	}
+	fallback := filepath.Join(dir, "private")
+	var judged []string
+	judge := func(p string) string {
+		judged = append(judged, p)
+		return ""
+	}
+	place := func(follow bool) Place {
+		t.Helper()
+		pl, err := ScratchFolder{Path: at, Fallback: fallback, FollowLink: follow}.Place(judge, "capacity_root_unusable")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pl
+	}
+	passed := func(reason string) []Passed { return []Passed{{Path: at, Reason: reason}} }
+	if pl := place(false); pl.Path != fallback || !slices.Equal(pl.Passed, passed(reasonNotReal)) || len(judged) != 0 {
+		t.Errorf("a link refused: %+v, judged %q", pl, judged)
+	}
+	if pl := place(true); pl.Path != at || len(pl.Passed) != 0 || !slices.Equal(judged, []string{at}) {
+		t.Errorf("a link followed: %+v, judged %q", pl, judged)
+	}
+	withNoFreeInodes(t, resolved)
+	if pl := place(true); pl.Path != fallback || !slices.Equal(pl.Passed, passed(reasonNoInodes)) {
+		t.Errorf("no free inodes where the link points: %+v", pl)
+	}
+	if err := os.Remove(target); err != nil {
+		t.Fatal(err)
+	}
+	if pl := place(true); pl.Path != fallback || !slices.Equal(pl.Passed, passed(reasonNotReal)) {
+		t.Errorf("a link to nothing: %+v", pl)
+	}
+	if _, err := os.Lstat(target); !os.IsNotExist(err) {
+		t.Errorf("made where the link points: %v", err)
+	}
+	if _, err := os.Lstat(fallback); !os.IsNotExist(err) {
+		t.Errorf("the fallback was made: %v", err)
 	}
 }

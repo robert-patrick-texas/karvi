@@ -333,12 +333,16 @@
   (`transport_mapping_missing: selector "lab" has no …`), as did the job's
   `exercise_not_ready` line that quotes it. It is now the text after the code,
   which the finding's `code` field carries.
-- **`config show --explain` judges a capacity root's server ledger as a run
-  does.** A root whose `server.lock` was a link, a folder, or closed to the
-  operator, or whose `server.json` was a link, not a regular file, too large, or
-  unreadable, was shown as the place taken, while a run passed it by for the
-  private fallback (or refused a named root); `--explain` now passes it by, or
-  refuses it, naming the file.
+- **`config show --explain` judges a capacity root as a run does.** A link at
+  the root, which a run follows as the site's, was passed by as "not a real
+  directory", so `--explain` named the private fallback while a run used the
+  shared root. A root whose `server.lock` was a link, a folder, or closed to
+  the operator, or whose `server.json` was a link, not a regular file, too
+  large, unreadable, or not valid JSON, was shown as the place taken, while a
+  run passed it by for the private fallback (or refused a named root).
+  `--explain` now follows a link at the root and judges what it points to, and
+  passes by, or refuses, a root whose server files a run could not use, naming
+  the file.
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`

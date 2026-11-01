@@ -305,8 +305,11 @@ func explicitPath(raw, home, key string) (string, error) {
 // candidate tried first, made in an existing parent (MakeSharedDirectory),
 // "" when the chain has none; Fallback the operator's private folder
 // under basedir, "" for an explicit path, which is used or refused.
+// FollowLink, for Place, says the activity takes a link at Path as the
+// site's and follows it, as the ledger does; the scoreboards refuse one.
 type ScratchFolder struct {
 	Path, Fallback string
+	FollowLink     bool
 }
 
 // ScratchFolderChoice is that chain for key, whose folder in the scratch
@@ -332,13 +335,16 @@ func ScratchFolderChoice(raw, home, key, name, base string) (ScratchFolder, erro
 
 // Place is the chain's twin: the folder the activity would take, judged
 // by judgeDirectory and by judge, the folder's own rule ("" when the
-// folder passes it; nil for none), creating nothing. The shared folder
-// present and passed by is listed with its reason, and the private folder
-// taken; an explicit path passed by is refused with code.
+// folder passes it; nil for none), creating nothing. Under FollowLink a
+// link at Path is followed, judgeDirectory's rules made on what it points
+// to and judge given Path; a link to nothing is present and not a real
+// directory. The shared folder present and passed by is listed with its
+// reason, and the private folder taken; an explicit path passed by is
+// refused with code.
 func (f ScratchFolder) Place(judge func(string) string, code string) (Place, error) {
 	var pl Place
 	if f.Path != "" {
-		present, reason := judgeDirectory(f.Path)
+		present, reason := f.judgePath()
 		if reason == "" && present && judge != nil {
 			reason = judge(f.Path)
 		}
@@ -355,6 +361,21 @@ func (f ScratchFolder) Place(judge func(string) string, code string) (Place, err
 	}
 	pl.Path = f.Fallback
 	return pl, nil
+}
+
+// judgePath is judgeDirectory's judgement of Path, under FollowLink of
+// what a link there points to.
+func (f ScratchFolder) judgePath() (present bool, reason string) {
+	if f.FollowLink {
+		if fi, err := os.Lstat(f.Path); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+			target, err := filepath.EvalSymlinks(f.Path)
+			if err != nil {
+				return true, reasonNotReal
+			}
+			return judgeDirectory(target)
+		}
+	}
+	return judgeDirectory(f.Path)
 }
 
 // UsableDirectory is the activity's test of a folder it writes in, once

@@ -310,6 +310,135 @@ func TestPlaceNamesWhatNewTakes(t *testing.T) {
 	}
 }
 
+// TestPlaceFollowsALinkAtTheRootAsNewDoes: the root is the site's, and
+// Place follows a link at it, or above it, as New does, the root's checks
+// made on what the link points to. Under auto and for an explicit root
+// alike Place takes what New takes: a link to a shared root, or a scratch
+// root that is a link, is the root; a link to a folder closed to the
+// operator, to a root whose server lock is a link, or to nothing is passed
+// by with the reason, or refused, where New falls back with one warning or
+// refuses. Place makes nothing.
+func TestPlaceFollowsALinkAtTheRootAsNewDoes(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes every folder")
+	}
+	link := func(t *testing.T, target, at string) {
+		t.Helper()
+		if err := os.Symlink(target, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	scratchAt := func(t *testing.T, scratch string) {
+		t.Helper()
+		if err := os.Mkdir(scratch, 0o770); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tc := range []struct {
+		name string
+		// put makes the scratch root and the capacity root in it, and
+		// returns the reason Place passes the root by, "" when it is taken.
+		put func(t *testing.T, scratch, root string) string
+	}{
+		{"a link to a shared root", func(t *testing.T, scratch, root string) string {
+			scratchAt(t, scratch)
+			link(t, sharedRoot(t), root)
+			return ""
+		}},
+		{"the scratch root a link", func(t *testing.T, scratch, root string) string {
+			shm := filepath.Join(t.TempDir(), "shm")
+			scratchAt(t, shm)
+			link(t, shm, scratch)
+			if err := os.Mkdir(filepath.Join(shm, "capacity"), 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Chmod(filepath.Join(shm, "capacity"), os.ModeSetgid|0o770); err != nil {
+				t.Fatal(err)
+			}
+			return ""
+		}},
+		{"a link to a closed folder", func(t *testing.T, scratch, root string) string {
+			scratchAt(t, scratch)
+			closed := filepath.Join(t.TempDir(), "closed")
+			if err := os.Mkdir(closed, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Chmod(closed, 0o500); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { os.Chmod(closed, 0o700) })
+			link(t, closed, root)
+			return "not writable by the operator"
+		}},
+		{"a link to a root whose server lock is a link", func(t *testing.T, scratch, root string) string {
+			scratchAt(t, scratch)
+			target := sharedRoot(t)
+			plantLink(t, filepath.Join(target, "server.lock"), "file")
+			link(t, target, root)
+			return filepath.Join(root, "server.lock") + " is a link, not a file"
+		}},
+		{"a link to nothing", func(t *testing.T, scratch, root string) string {
+			scratchAt(t, scratch)
+			link(t, filepath.Join(t.TempDir(), "absent"), root)
+			return "not a real directory"
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			scratch := filepath.Join(t.TempDir(), "shm")
+			base := withScratchRoot(t, scratch)
+			fallback := filepath.Join(base, "state", "capacity")
+			root := filepath.Join(scratch, "capacity")
+			reason := tc.put(t, scratch, root)
+			// What stands in the root, through the link.
+			names := func() string {
+				entries, err := os.ReadDir(root)
+				if err != nil {
+					return err.Error()
+				}
+				out := []string{}
+				for _, e := range entries {
+					out = append(out, e.Name())
+				}
+				return strings.Join(out, " ")
+			}
+			before := names()
+			pl, perr := Place("auto", "", base)
+			explicit, xerr := Place(root, "", base)
+			if after := names(); after != before {
+				t.Errorf("Place made in the root: %q, was %q", after, before)
+			}
+			var warned []string
+			m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
+			if err != nil {
+				t.Fatalf("auto: New %v", err)
+			}
+			_, nerr := New(root, "", base, "job", 4, nil)
+			if reason == "" {
+				if perr != nil || pl.Path != root || len(pl.Passed) != 0 || xerr != nil || explicit.Path != root {
+					t.Errorf("Place: auto %+v %v; explicit %+v %v; want %s", pl, perr, explicit, xerr, root)
+				}
+				if m.Root != root || len(warned) != 0 || nerr != nil {
+					t.Errorf("New: auto took %s (warnings %q); explicit %v", m.Root, warned, nerr)
+				}
+				return
+			}
+			want := []osutil.Passed{{Path: root, Reason: reason}}
+			if perr != nil || pl.Path != fallback || !slices.Equal(pl.Passed, want) {
+				t.Errorf("auto: Place %+v %v\nwant %s passed %+v", pl, perr, fallback, want)
+			}
+			if refusal := "capacity_root_unusable: " + root + ": " + reason; errorcodes.Message(xerr) != refusal {
+				t.Errorf("explicit: Place %v\nwant %s", xerr, refusal)
+			}
+			if m.Root != fallback || len(warned) != 1 {
+				t.Errorf("auto: New took %s (warnings %q), want %s", m.Root, warned, fallback)
+			}
+			if errorcodes.Of(nerr) != "capacity_root_unusable" {
+				t.Errorf("explicit: New %v", nerr)
+			}
+		})
+	}
+}
+
 // within runs f and fails the test when it has not returned in ten seconds.
 func within(t *testing.T, what string, f func()) {
 	t.Helper()
@@ -659,14 +788,15 @@ func TestMalformedLedgerNamesItsFile(t *testing.T) {
 }
 
 // TestPlaceJudgesTheServerLedgerAsNewDoes: Place and New agree on a root
-// whose server lock or server ledger New cannot open or read: a link at
-// the lock, to a file or to nothing; a lock that is a folder, a socket, or
-// closed to the operator; a ledger that is a link, a FIFO, larger than a
-// ledger may be, or closed to the operator. Under auto Place passes the
-// shared root by, its reason naming what stands there, and takes the
-// private folder New takes; an explicit root is refused
-// capacity_root_unusable, naming it. A FIFO at the lock opens and locks,
-// so both take that root. Place makes nothing in the root.
+// whose server lock or server ledger New cannot open, read, or decode: a
+// link at the lock, to a file or to nothing; a lock that is a folder, a
+// socket, or closed to the operator; a ledger that is a link, a FIFO,
+// larger than a ledger may be, closed to the operator, or not JSON. Under
+// auto Place passes the shared root by, its reason naming what stands
+// there, and takes the private folder New takes; an explicit root is
+// refused capacity_root_unusable, naming it. A FIFO at the lock opens and
+// locks, and a ledger holding a lease decodes, so both take that root.
+// Place makes nothing in the root.
 func TestPlaceJudgesTheServerLedgerAsNewDoes(t *testing.T) {
 	for _, tc := range []struct {
 		name, file, reason string
@@ -710,6 +840,19 @@ func TestPlaceJudgesTheServerLedgerAsNewDoes(t *testing.T) {
 			}
 			return func() {}
 		}, true},
+		{"ledger not JSON", "server.json", ": invalid character 'r' looking for beginning of object key string", func(t *testing.T, p string) func() {
+			if err := os.WriteFile(p, []byte("{router1\n"), 0o660); err != nil {
+				t.Fatal(err)
+			}
+			return func() {}
+		}, false},
+		{"ledger holding a lease", "server.json", "", func(t *testing.T, p string) func() {
+			lease := `[{"ID":"a1","JobID":"job","BootID":"b","Start":"s","PID":1,"Created":"2026-11-01T09:00:00Z"}]` + "\n"
+			if err := os.WriteFile(p, []byte(lease), 0o660); err != nil {
+				t.Fatal(err)
+			}
+			return func() {}
+		}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.closed && os.Geteuid() == 0 {

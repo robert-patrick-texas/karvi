@@ -81,23 +81,29 @@ func Choice(raw, home, base string) (osutil.ScratchFolder, error) {
 	return osutil.ScratchFolderChoice(raw, home, "sessions.shared-capacity-root", "capacity", base)
 }
 
-// Place is New's twin, creating nothing: a present root is judged by the
-// file system's rule and by the ledger's own, the sticky bit on another
-// operator's root, a devices folder closed to the operator, and a server
-// lock or server ledger New could not open or read.
+// Place is New's twin, creating nothing and taking no lock: a link at the
+// root, the site's, is followed as ensureRoot follows it, and a present
+// root is judged, on what such a link points to, by the file system's
+// rule and by the ledger's own (rootReason): the sticky bit on another
+// operator's root, a devices folder closed to the operator, a server lock
+// New could not open, and a server ledger New could not read or decode.
 func Place(raw, home, base string) (osutil.Place, error) {
 	f, err := Choice(raw, home, base)
 	if err != nil {
 		return osutil.Place{}, err
 	}
+	f.FollowLink = true
 	return f.Place(rootReason, "capacity_root_unusable")
 }
 
-// rootReason is the ledger's own judgement of a present root, the reason
-// it is passed by in ensureRoot's terms, "" when it passes. The server
-// lock and ledger are judged as ensureRoot's read of them would find them
-// (openLock, loadEntries), by Lstat and access(2) alone: nothing is
-// opened or made. A ledger that is not JSON is found only by that read.
+// rootReason is the ledger's own judgement of a present root, through a
+// link at it as ensureRoot follows one, the reason it is passed by in
+// ensureRoot's terms, "" when it passes. The server lock is judged as
+// openLock would find it, by Lstat and access(2), and is not opened. The
+// server ledger is judged by Lstat and access(2), the reason naming what
+// stands there, then read and decoded as ensureRoot reads it
+// (loadEntries), without the lock: withLedger replaces the file by a
+// rename, so a read sees a whole one. Nothing is made.
 func rootReason(root string) string {
 	fi, err := os.Stat(root)
 	if err != nil {
@@ -142,6 +148,9 @@ func rootReason(root string) string {
 			return fmt.Sprintf("%s is %d bytes, more than the %d allowed", ledger, fi.Size(), maxLedgerBytes)
 		case syscall.Access(ledger, 0o4) != nil: // R_OK
 			return ledger + " not readable by the operator"
+		}
+		if _, err := loadEntries(filepath.Join(root, "server")); err != nil {
+			return errorcodes.Text(err)
 		}
 	}
 	return ""
