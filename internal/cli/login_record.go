@@ -177,6 +177,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 	if err != nil {
 		return inv.Global.reportError(stderr, "transcript_create_failed", err)
 	}
+	defer pair.Close()
 	rows, columns := 0, 0
 	if f, ok := stdout.(*os.File); ok {
 		rows, columns = osutil.TerminalSize(f)
@@ -187,7 +188,7 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		Transport: selection.Kind, DispatchOrder: set.Order, ShuffleKey: set.ShuffleKey, CandidateCount: set.CandidateCount(),
 		TranscriptFile: filepath.Base(pair.Transcript), TranscriptFormat: format, Rows: rows, Columns: columns, StartedAt: started,
 	}
-	if err := transcript.WriteStart(pair.Metadata, metaFormat, meta); err != nil {
+	if err := pair.WriteStart(metaFormat, meta); err != nil {
 		return inv.Global.reportError(stderr, "transcript_create_failed", err)
 	}
 	commandParts := []string{shellQuote(executable)}
@@ -195,9 +196,10 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		commandParts = append(commandParts, shellQuote(arg))
 	}
 	// -a appends to the pre-created 0640 file, so script(1) neither creates
-	// nor truncates it; -T with -m advanced logs the output's byte counts and
-	// each resize between them.
-	cmd := exec.Command(scriptPath, "-q", "-e", "-f", "-a", "-T", timing.Name(), "-m", "advanced", "-c", strings.Join(commandParts, " "), pair.Transcript)
+	// nor truncates it, and it is given the file by the wrapper's descriptor,
+	// never by a name another member of the folder's group can swap; -T with
+	// -m advanced logs the output's byte counts and each resize between them.
+	cmd := exec.Command(scriptPath, "-q", "-e", "-f", "-a", "-T", timing.Name(), "-m", "advanced", "-c", strings.Join(commandParts, " "), pair.RecorderPath())
 	// script(1) and the login it runs inherit the environment whole, not
 	// filtered as ssh's is: the login resolves its credential from it, as an
 	// unrecorded login does.
@@ -236,20 +238,23 @@ func recordedLogin(inv *Invocation, args []string, stdin io.Reader, stdout, stde
 		columns, resizes = meta.Columns, nil
 		jobexec.WriteWarning(stderr, cfg, errorcodes.Message(errorcodes.Errorf("transcript_timing_unreadable", "%s is rendered at %d columns without its resizes: %w", pair.Transcript, columns, err)))
 	}
-	if err := transcript.Render(pair.Transcript, columns, resizes); err != nil {
+	if err := pair.Render(columns, resizes); err != nil {
 		recordingFailed = true
 		msg := errorcodes.Message(errorcodes.Ensure(err, "transcript_create_failed"))
-		jobexec.WriteWarning(stderr, cfg, fmt.Sprintf("%s keeps the bytes script(1) wrote: %s", pair.Transcript, msg))
+		if !errors.Is(err, transcript.ErrReplaced) {
+			msg = fmt.Sprintf("%s keeps the bytes script(1) wrote: %s", pair.Transcript, msg)
+		}
+		jobexec.WriteWarning(stderr, cfg, msg)
 	}
 	meta.EndedAt = time.Now()
 	meta.ExitClassification = exitcode.ExitName(exit)
 	meta.RecordingFailed = recordingFailed
-	if sum, err := transcript.FileSHA256(pair.Transcript); err == nil {
+	if sum, err := pair.TranscriptSHA256(); err == nil {
 		meta.TranscriptSHA256 = sum
 	} else {
 		meta.RecordingFailed = true
 	}
-	if err := transcript.WriteEnd(pair.Metadata, metaFormat, meta); err != nil {
+	if err := pair.WriteEnd(metaFormat, meta); err != nil {
 		code := inv.Global.reportError(stderr, "transcript_create_failed", err)
 		if exit == 0 {
 			exit = code

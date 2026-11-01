@@ -91,6 +91,18 @@
   4 MiB response read 4 KiB at a time took minutes), and a cancel or a forced
   stop ends a blocked read at once
   ([`docs/COMMAND-SESSION.md`](docs/COMMAND-SESSION.md)).
+- **A recorded login keeps to the two files it claimed.** The transcript
+  day folder of a shared root is group-writable without the sticky bit, so
+  another member could put a link at a session's name after its claim: the
+  render republished through it, and the end record was appended wherever it
+  pointed. Every later open of the transcript and its metadata now refuses a
+  link or a file other than the one the claim made
+  (`transcript_create_failed`), nothing written through it, and script(1) is
+  given the transcript by the wrapper's descriptor, never by a name. A device
+  name holding `.meta.` pairs its own transcript and metadata (the login and
+  `karvi-prune` alike), and a header that cannot be written after
+  `login.start` ends the login through `login.end` with a final scoreboard
+  ([`docs/LOGIN-TRANSCRIPTS.md`](docs/LOGIN-TRANSCRIPTS.md)).
 
 ## 0.38.0 - 2026-10-28
 

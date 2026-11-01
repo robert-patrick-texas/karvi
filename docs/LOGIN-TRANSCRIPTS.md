@@ -63,6 +63,16 @@ the same way for itself.
   are `0640`, created exclusively without following links. An existing folder
   is accepted when the operator can create files in it, else
   `transcript_directory_not_writable`.
+- A session keeps to the two files it created. A shared tree's day folder is
+  the group's to write, with no sticky bit, so another member can rename a
+  session's files and put a link or a file in their place. `script(1)` is
+  given the transcript through karvi's own open descriptor, not its name, and
+  every later open of either file (the start and end records, the rendering,
+  the digest) goes by the name without following a link and checks that it
+  holds the file the session created. A name that no longer does is refused
+  with `transcript_create_failed`, and nothing is read or written through it;
+  a transcript refused at the session's end sets `recording_failed` in the
+  metadata's end record.
 
 ## Formats
 

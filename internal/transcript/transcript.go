@@ -9,12 +9,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -105,10 +107,89 @@ func Resolve(record, rootSetting, shared, base, home string, rootLocked bool, st
 	return Destination{Root: root, Folder: filepath.Join(root, osutil.DayFolder(started, loc))}, nil
 }
 
-// Pair is a claimed transcript and metadata file sharing one name.
+// Pair is a claimed transcript and metadata file sharing one name. A day
+// folder of a shared tree is the group's to write, with no sticky bit, so
+// another member can rename a session's files and put a link or a file of
+// its own in their place: the pair holds the files Claim created, every
+// later open goes by the name without following a link, and a name that no
+// longer holds the pair's file is refused with transcript_create_failed
+// (ErrReplaced), nothing read or written through it. The transcript stays
+// open from the claim for the recorder (RecorderPath) until Close.
 type Pair struct {
 	Transcript string
 	Metadata   string
+	// transcript and metadata are the files as Claim created them, or as the
+	// end's atomic replacement wrote them.
+	transcript, metadata os.FileInfo
+	recorder             *os.File
+}
+
+// ErrReplaced is a claimed name that no longer holds the session's file.
+var ErrReplaced = errorcodes.Errorf("transcript_create_failed", "not the session's file")
+
+// RecorderPath names the claimed transcript for script(1), which opens its
+// file by name: the wrapper's own descriptor under /proc, which reaches the
+// file Claim created whatever the folder's name holds by then.
+func (p *Pair) RecorderPath() string {
+	return "/proc/" + strconv.Itoa(os.Getpid()) + "/fd/" + strconv.FormatUint(uint64(p.recorder.Fd()), 10)
+}
+
+// Close releases the transcript held for the recorder.
+func (p *Pair) Close() {
+	if p.recorder != nil {
+		p.recorder.Close()
+	}
+}
+
+// replaced is the refusal of a name that no longer holds the pair's file.
+func replaced(path string) error {
+	return fmt.Errorf("%s is %w", path, ErrReplaced)
+}
+
+// openHeld opens path, which held is the pair's file at, by its name: never
+// through a link, never waiting on a FIFO put there, and refused when the
+// file opened is not the one held.
+func openHeld(path string, flag int, held os.FileInfo) (*os.File, error) {
+	f, err := os.OpenFile(path, flag|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if errors.Is(err, syscall.ELOOP) {
+		return nil, replaced(path)
+	}
+	if err != nil {
+		return nil, err
+	}
+	fi, err := f.Stat()
+	if err == nil && !isHeld(held, fi) {
+		err = replaced(path)
+	}
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	return f, nil
+}
+
+// checkHeld refuses a path whose name no longer holds the pair's file.
+func checkHeld(path string, held os.FileInfo) error {
+	fi, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if !isHeld(held, fi) {
+		return replaced(path)
+	}
+	return nil
+}
+
+// isHeld reports whether fi is the held file: the same device and inode, a
+// regular file, and the same owner, so an inode another member's new file
+// reuses is not taken for the session's.
+func isHeld(held, fi os.FileInfo) bool {
+	if held == nil || !os.SameFile(held, fi) || !fi.Mode().IsRegular() {
+		return false
+	}
+	a, ok := held.Sys().(*syscall.Stat_t)
+	b, ok2 := fi.Sys().(*syscall.Stat_t)
+	return ok && ok2 && a.Uid == b.Uid
 }
 
 // Claim creates the destination folder if needed (mode; a day folder under a
@@ -118,7 +199,8 @@ type Pair struct {
 // configured root the names are <device>-<HHMMSS>, then .1, .2, and on; in
 // --record=PATH they are <device>, then <device>-<YYMMDD>-<HHMMSS>, and with
 // both taken the claim is refused with transcript_name_taken. Both files
-// exist, empty and mode 0640, when Claim returns.
+// exist, empty and mode 0640, when Claim returns; the pair holds them
+// (Pair), and its caller closes it.
 func Claim(dest Destination, device string, started time.Time, loc *time.Location, ext, metaExt string, mode os.FileMode) (Pair, error) {
 	if err := osutil.EnsureOutputDirectory(dest.Folder, osutil.DayFolderMode(dest.Root, mode), "transcript_directory_not_writable"); err != nil {
 		return Pair{}, err
@@ -157,9 +239,14 @@ func Claim(dest Destination, device string, started time.Time, loc *time.Locatio
 			}
 			return Pair{}, errorcodes.Errorf("transcript_create_failed", "create %s: %w", p.Transcript, err)
 		}
-		tf.Close()
+		if p.transcript, err = tf.Stat(); err != nil {
+			tf.Close()
+			os.Remove(p.Transcript)
+			return Pair{}, errorcodes.Errorf("transcript_create_failed", "create %s: %w", p.Transcript, err)
+		}
 		mf, err := osutil.CreateExclusive(p.Metadata, 0)
 		if err != nil {
+			tf.Close()
 			os.Remove(p.Transcript)
 			if os.IsExist(err) {
 				taken = append(taken, filepath.Base(p.Metadata))
@@ -167,7 +254,15 @@ func Claim(dest Destination, device string, started time.Time, loc *time.Locatio
 			}
 			return Pair{}, errorcodes.Errorf("transcript_create_failed", "create %s: %w", p.Metadata, err)
 		}
+		p.metadata, err = mf.Stat()
 		mf.Close()
+		if err != nil {
+			tf.Close()
+			os.Remove(p.Transcript)
+			os.Remove(p.Metadata)
+			return Pair{}, errorcodes.Errorf("transcript_create_failed", "create %s: %w", p.Metadata, err)
+		}
+		p.recorder = tf
 		return p, nil
 	}
 	if dest.Chosen {
@@ -283,43 +378,51 @@ func textLines(fields []kv) []byte {
 // WriteStart writes the start record: a jsonl line or the text
 // fields appended to the claimed metadata file. A json metadata file holds
 // only the end document, so nothing is written yet.
-func WriteStart(path, format string, m Metadata) error {
+func (p *Pair) WriteStart(format string, m Metadata) error {
 	switch format {
 	case FormatJSON:
 		return nil
 	case FormatText:
-		return appendBytes(path, textLines(m.fields("start")))
+		return appendBytes(p.Metadata, p.metadata, textLines(m.fields("start")))
 	}
 	line, err := jsonObject(m.fields("start"))
 	if err != nil {
 		return err
 	}
-	return appendBytes(path, append(line, '\n'))
+	return appendBytes(p.Metadata, p.metadata, append(line, '\n'))
 }
 
 // WriteEnd writes the end record: a jsonl end line, the end fields appended
 // to a text file, or the whole json document by atomic replacement.
-func WriteEnd(path, format string, m Metadata) error {
+func (p *Pair) WriteEnd(format string, m Metadata) error {
 	switch format {
 	case FormatJSON:
 		doc, err := jsonObject(m.fields("end"))
 		if err != nil {
 			return err
 		}
-		return replaceBytes(path, append(doc, '\n'))
+		if err := checkHeld(p.Metadata, p.metadata); err != nil {
+			return err
+		}
+		fi, err := replaceBytes(p.Metadata, append(doc, '\n'))
+		if err == nil {
+			p.metadata = fi
+		}
+		return err
 	case FormatText:
 		end := m.fields("end")
-		return appendBytes(path, textLines(end[len(m.fields("start")):]))
+		return appendBytes(p.Metadata, p.metadata, textLines(end[len(m.fields("start")):]))
 	}
 	line, err := jsonObject(m.fields("end"))
 	if err != nil {
 		return err
 	}
-	return appendBytes(path, append(line, '\n'))
+	return appendBytes(p.Metadata, p.metadata, append(line, '\n'))
 }
 
-func appendBytes(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0)
+// appendBytes appends data to the held file at path.
+func appendBytes(path string, held os.FileInfo, data []byte) error {
+	f, err := openHeld(path, os.O_WRONLY|os.O_APPEND, held)
 	if err != nil {
 		return err
 	}
@@ -329,11 +432,11 @@ func appendBytes(path string, data []byte) error {
 }
 
 // replaceBytes writes data to path by exclusive temporary file and rename in
-// the same folder.
-func replaceBytes(path string, data []byte) error {
+// the same folder, and returns the file written.
+func replaceBytes(path string, data []byte) (os.FileInfo, error) {
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".karvi-transcript-")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	name := tmp.Name()
 	ok := false
@@ -344,22 +447,26 @@ func replaceBytes(path string, data []byte) error {
 		}
 	}()
 	if err := tmp.Chmod(osutil.OutputFileMode); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := tmp.Write(data); err != nil {
-		return err
+		return nil, err
 	}
 	if err := tmp.Sync(); err != nil {
-		return err
+		return nil, err
+	}
+	fi, err := tmp.Stat()
+	if err != nil {
+		return nil, err
 	}
 	if err := tmp.Close(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := os.Rename(name, path); err != nil {
-		return err
+		return nil, err
 	}
 	ok = true
-	return nil
+	return fi, nil
 }
 
 // Render rewrites a finished session's transcript as the operator saw it:
@@ -369,8 +476,13 @@ func replaceBytes(path string, data []byte) error {
 // columns and each resize from script(1)'s timing log. The file is rewritten
 // by atomic replacement, and no raw copy is kept; a session killed before
 // this runs keeps its bytes as script(1) wrote them.
-func Render(path string, columns int, resizes []termtext.Resize) error {
-	data, err := os.ReadFile(path)
+func (p *Pair) Render(columns int, resizes []termtext.Resize) error {
+	f, err := openHeld(p.Transcript, os.O_RDONLY, p.transcript)
+	if err != nil {
+		return err
+	}
+	data, err := io.ReadAll(f)
+	f.Close()
 	if err != nil {
 		return err
 	}
@@ -378,7 +490,11 @@ func Render(path string, columns int, resizes []termtext.Resize) error {
 	if bytes.Equal(out, data) {
 		return nil
 	}
-	return replaceBytes(path, out)
+	fi, err := replaceBytes(p.Transcript, out)
+	if err == nil {
+		p.transcript = fi
+	}
+	return err
 }
 
 // ReadTiming is the starting columns and the resizes in script(1)'s advanced
@@ -420,9 +536,9 @@ func stripMarkers(data []byte) []byte {
 	return out
 }
 
-// FileSHA256 is the lowercase hexadecimal digest of a file.
-func FileSHA256(path string) (string, error) {
-	f, err := os.Open(path)
+// TranscriptSHA256 is the lowercase hexadecimal digest of the transcript.
+func (p *Pair) TranscriptSHA256() (string, error) {
+	f, err := openHeld(p.Transcript, os.O_RDONLY, p.transcript)
 	if err != nil {
 		return "", err
 	}
@@ -485,15 +601,32 @@ func EndedAt(path string) (time.Time, bool) {
 	return time.Time{}, false
 }
 
+// metadataStem is name without its metadata extension (MetadataExtension's
+// values), false when name does not end in one. The stem is matched at the
+// name's end, since a device's name may hold ".meta." itself.
+func metadataStem(name string) (string, bool) {
+	for _, format := range []string{FormatJSONL, FormatJSON, FormatText} {
+		if stem, ok := strings.CutSuffix(name, MetadataExtension(format)); ok && stem != "" {
+			return stem, true
+		}
+	}
+	return "", false
+}
+
+// IsMetadata reports whether a file name is a metadata file's.
+func IsMetadata(name string) bool {
+	_, ok := metadataStem(name)
+	return ok
+}
+
 // TranscriptFor returns the transcript that shares a metadata file's name:
 // <stem>.meta.<ext> pairs with <stem>.log, .jsonl, or .json.
 func TranscriptFor(metaPath string) (string, bool) {
-	name := filepath.Base(metaPath)
-	i := strings.Index(name, ".meta.")
-	if i < 0 {
+	name, ok := metadataStem(filepath.Base(metaPath))
+	if !ok {
 		return "", false
 	}
-	stem := filepath.Join(filepath.Dir(metaPath), name[:i])
+	stem := filepath.Join(filepath.Dir(metaPath), name)
 	for _, ext := range []string{".log", ".jsonl", ".json"} {
 		if _, err := os.Lstat(stem + ext); err == nil {
 			return stem + ext, true

@@ -270,18 +270,6 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	started := time.Now()
 	mode := "serial"
 	externalTranscript := strings.TrimSpace(os.Getenv("KARVI_LOGIN_TRANSCRIPT_PATH"))
-	snap := records.ScoreboardSnapshot{SchemaVersion: records.ScoreboardSchemaVersion, ActivityID: id, Operator: osutil.RecordOperator(operator), ActivityType: "login", Mode: "login", Status: "running", DispatchMode: &mode, Width: 1, Counts: records.Counts{Total: 1, InFlight: 1}, Target: map[string]any{"name": d.CanonicalName, "address": resolution.SelectedAddress.String()}, Targets: []records.ScoreboardTarget{{Name: d.CanonicalName, State: records.TargetRunning}}, Inputs: planner.ScopeInputs(opts.Targets), Recording: externalTranscript != "", StartedAt: started, LastUpdatedAt: started, Producer: producerInfo()}
-	if err := sb.Write(snap); err != nil {
-		return failedResult("scoreboard_write_failed", err)
-	}
-	// The heartbeat: the login's snapshot rewritten
-	// every watch.refresh while the session runs, so a login longer than
-	// watch.stale-after is not shown stale.
-	stopHeartbeat := sb.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return snap })
-	if err := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, "start", "", 0, map[string]any{"diagnostic": ""}); err != nil {
-		stopHeartbeat()
-		return failedResult("audit_write_failed", err)
-	}
 	// Generated lines (header, footer) go to the terminal. Under the recording
 	// wrapper the terminal is the recorder's pseudo-terminal, so they go to the
 	// diagnostics stream instead and the transcript holds only the device
@@ -297,19 +285,36 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 		AuthBackend: resolved.Credential.Backend, Transport: selection.Kind, ReferenceID: id,
 		Artifacts: result.ArtifactDir, Status: "running",
 	}
+	// The header is rendered before the login's records begin, so a
+	// template that does not render leaves no login.start and no running
+	// snapshot.
+	var header []string
 	if !opts.CommonOptions.Quiet {
-		header, renderErr := formatter.RenderStyledLines(cfg.String("display.login.header"), displayValues, lineStyle, terminalWidth)
-		if renderErr != nil {
-			stopHeartbeat()
-			return failedResult("config_display_template_invalid", renderErr)
-		}
-		if writeErr := writeGeneratedLines(generated, header); writeErr != nil {
-			stopHeartbeat()
-			return failedResult("terminal_write_failed", writeErr)
+		if header, err = formatter.RenderStyledLines(cfg.String("display.login.header"), displayValues, lineStyle, terminalWidth); err != nil {
+			return failedResult("config_display_template_invalid", err)
 		}
 	}
-	debug(fmt.Sprintf("login interactive session starting target=%q", d.CanonicalName))
-	err = interactive.Interactive(ctx, streams.Stdin, streams.Stdout, streams.Stderr)
+	snap := records.ScoreboardSnapshot{SchemaVersion: records.ScoreboardSchemaVersion, ActivityID: id, Operator: osutil.RecordOperator(operator), ActivityType: "login", Mode: "login", Status: "running", DispatchMode: &mode, Width: 1, Counts: records.Counts{Total: 1, InFlight: 1}, Target: map[string]any{"name": d.CanonicalName, "address": resolution.SelectedAddress.String()}, Targets: []records.ScoreboardTarget{{Name: d.CanonicalName, State: records.TargetRunning}}, Inputs: planner.ScopeInputs(opts.Targets), Recording: externalTranscript != "", StartedAt: started, LastUpdatedAt: started, Producer: producerInfo()}
+	if err := sb.Write(snap); err != nil {
+		return failedResult("scoreboard_write_failed", err)
+	}
+	// The heartbeat: the login's snapshot rewritten
+	// every watch.refresh while the session runs, so a login longer than
+	// watch.stale-after is not shown stale.
+	stopHeartbeat := sb.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return snap })
+	if err := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, "start", "", 0, map[string]any{"diagnostic": ""}); err != nil {
+		stopHeartbeat()
+		return failedResult("audit_write_failed", err)
+	}
+	// After login.start a failure ends the login as a session's end does: the
+	// final snapshot, login.end, and the footer. A header that cannot be
+	// written is the session's error, and the session does not start.
+	if err = writeGeneratedLines(generated, header); err != nil {
+		err = errorcodes.Ensure(err, "terminal_write_failed")
+	} else {
+		debug(fmt.Sprintf("login interactive session starting target=%q", d.CanonicalName))
+		err = interactive.Interactive(ctx, streams.Stdin, streams.Stdout, streams.Stderr)
+	}
 	stopHeartbeat()
 	ended := time.Now()
 	debug(fmt.Sprintf("login interactive session ended target=%q elapsed=%s error=%t", d.CanonicalName, ended.Sub(started), err != nil))

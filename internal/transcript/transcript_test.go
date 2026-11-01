@@ -2,9 +2,11 @@ package transcript
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -151,24 +153,34 @@ func TestClaimInChosenFolder(t *testing.T) {
 	}
 }
 
+// claimed is a pair claimed for device in a folder of its own.
+func claimed(t *testing.T, device, metaExt string) Pair {
+	t.Helper()
+	dir := t.TempDir()
+	p, err := Claim(Destination{Root: dir, Folder: dir, Chosen: true}, device, time.Date(2026, 9, 14, 14, 30, 5, 0, time.UTC), time.UTC, ".log", metaExt, 0o750)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(p.Close)
+	return p
+}
+
 func sample() Metadata {
 	key := "k"
 	return Metadata{SessionID: "s1", OperatorUsername: "u", OperatorUID: 1000, InputTarget: "Router01", DeviceName: "router01", CanonicalName: "router01", Platform: "generic", Transport: "system", DispatchOrder: "shuffle", ShuffleKey: &key, CandidateCount: 2, TranscriptFile: "router01-143005.log", TranscriptFormat: "text", Rows: 40, Columns: 120, StartedAt: time.Date(2026, 9, 14, 14, 30, 5, 0, time.UTC), EndedAt: time.Date(2026, 9, 14, 14, 31, 0, 0, time.UTC), ExitClassification: "ExitSuccess", TranscriptSHA256: "ab", RecordingFailed: false}
 }
 
 func TestMetadataJSONL(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "m.meta.jsonl")
-	if err := os.WriteFile(path, nil, 0o640); err != nil {
-		t.Fatal(err)
-	}
+	p := claimed(t, "router01", ".meta.jsonl")
+	path := p.Metadata
 	m := sample()
-	if err := WriteStart(path, FormatJSONL, m); err != nil {
+	if err := p.WriteStart(FormatJSONL, m); err != nil {
 		t.Fatal(err)
 	}
 	if IsEnd(path) {
 		t.Fatal("start only is not ended")
 	}
-	if err := WriteEnd(path, FormatJSONL, m); err != nil {
+	if err := p.WriteEnd(FormatJSONL, m); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(path)
@@ -204,20 +216,17 @@ func TestMetadataJSONL(t *testing.T) {
 }
 
 func TestMetadataJSONAndText(t *testing.T) {
-	dir := t.TempDir()
 	m := sample()
 	m.ShuffleKey = nil
-	jsonPath := filepath.Join(dir, "m.meta.json")
-	if err := os.WriteFile(jsonPath, nil, 0o640); err != nil {
-		t.Fatal(err)
-	}
-	if err := WriteStart(jsonPath, FormatJSON, m); err != nil {
+	jp := claimed(t, "router01", ".meta.json")
+	jsonPath := jp.Metadata
+	if err := jp.WriteStart(FormatJSON, m); err != nil {
 		t.Fatal(err)
 	}
 	if data, _ := os.ReadFile(jsonPath); len(data) != 0 || IsEnd(jsonPath) {
 		t.Fatal("json metadata is written only at the end")
 	}
-	if err := WriteEnd(jsonPath, FormatJSON, m); err != nil {
+	if err := jp.WriteEnd(FormatJSON, m); err != nil {
 		t.Fatal(err)
 	}
 	var doc map[string]any
@@ -231,14 +240,12 @@ func TestMetadataJSONAndText(t *testing.T) {
 	if fi, _ := os.Stat(jsonPath); fi.Mode().Perm() != 0o640 {
 		t.Fatalf("json mode %o", fi.Mode().Perm())
 	}
-	textPath := filepath.Join(dir, "m.meta.txt")
-	if err := os.WriteFile(textPath, nil, 0o640); err != nil {
+	tp := claimed(t, "router01", ".meta.txt")
+	textPath := tp.Metadata
+	if err := tp.WriteStart(FormatText, m); err != nil {
 		t.Fatal(err)
 	}
-	if err := WriteStart(textPath, FormatText, m); err != nil {
-		t.Fatal(err)
-	}
-	if err := WriteEnd(textPath, FormatText, m); err != nil {
+	if err := tp.WriteEnd(FormatText, m); err != nil {
 		t.Fatal(err)
 	}
 	text, _ := os.ReadFile(textPath)
@@ -259,7 +266,6 @@ func TestMetadataJSONAndText(t *testing.T) {
 }
 
 func TestRender(t *testing.T) {
-	dir := t.TempDir()
 	for name, tc := range map[string]struct {
 		in      string
 		columns int
@@ -277,22 +283,30 @@ func TestRender(t *testing.T) {
 		// up a row in a line wrapped at 4, read at the width after the resize
 		"resized": {in: "Script started on x\nabcdefghij\x1b[A\x1b[DX\r\n\nScript done on y\n", columns: 4, resizes: []termtext.Resize{{Offset: 10, Columns: 8}}, want: "aXcdefghij\n"},
 	} {
-		p := filepath.Join(dir, name)
-		if err := os.WriteFile(p, []byte(tc.in), 0o640); err != nil {
+		p := claimed(t, name, ".meta.jsonl")
+		if err := os.WriteFile(p.Transcript, []byte(tc.in), 0o640); err != nil {
 			t.Fatal(err)
 		}
-		if err := Render(p, tc.columns, tc.resizes); err != nil {
+		if err := p.Render(tc.columns, tc.resizes); err != nil {
 			t.Fatal(err)
 		}
-		got, _ := os.ReadFile(p)
+		got, _ := os.ReadFile(p.Transcript)
 		if string(got) != tc.want {
 			t.Errorf("%s: %q, want %q", name, got, tc.want)
 		}
-		if fi, _ := os.Stat(p); fi.Mode().Perm() != 0o640 {
+		if fi, _ := os.Stat(p.Transcript); fi.Mode().Perm() != 0o640 {
 			t.Errorf("%s: mode %o", name, fi.Mode().Perm())
 		}
+		// The rendered file is the one the pair holds from here.
+		if sum, err := p.TranscriptSHA256(); err != nil || len(sum) != 64 {
+			t.Errorf("%s: digest after rendering: %q %v", name, sum, err)
+		}
 	}
-	if err := Render(filepath.Join(dir, "missing"), 80, nil); err == nil {
+	p := claimed(t, "missing", ".meta.jsonl")
+	if err := os.Remove(p.Transcript); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Render(80, nil); err == nil {
 		t.Error("a missing transcript rendered")
 	}
 }
@@ -310,8 +324,173 @@ func TestTranscriptForAndSHA(t *testing.T) {
 	if got, ok := TranscriptFor(meta); !ok || got != log {
 		t.Fatalf("%q %v", got, ok)
 	}
-	sum, err := FileSHA256(log)
+	p := claimed(t, "r1", ".meta.jsonl")
+	if err := os.WriteFile(p.Transcript, []byte("abc"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	sum, err := p.TranscriptSHA256()
 	if err != nil || sum != "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" {
 		t.Fatalf("%s %v", sum, err)
+	}
+}
+
+// plantLink is a member of the tree's group at work in a day folder: path
+// renamed aside when it exists, and a symbolic link to target in its place.
+func plantLink(t *testing.T, path, target string) {
+	t.Helper()
+	if _, err := os.Lstat(path); err == nil {
+		if err := os.Rename(path, path+".moved"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink(target, path); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// unchanged fails the test when a file of the operator's no longer holds
+// want or a planted link is no longer a link.
+func unchanged(t *testing.T, file, want, link string) {
+	t.Helper()
+	if b, err := os.ReadFile(file); err != nil || string(b) != want {
+		t.Errorf("%s was written through the link: %q %v", file, b, err)
+	}
+	if fi, err := os.Lstat(link); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("%s is no longer the planted link: %v %v", link, fi, err)
+	}
+}
+
+// secretKey is a file of the operator's that a planted link names.
+const secretKey = "-----BEGIN OPENSSH PRIVATE KEY-----\r\nb3BlbnNzaC1rZXktdjE=\r\n"
+
+// TestClaimPassesByALinkAtItsName: a link planted in the day folder at a
+// session's name before the claim is a taken name, the link and its
+// target untouched.
+func TestClaimPassesByALinkAtItsName(t *testing.T) {
+	root, private := t.TempDir(), t.TempDir()
+	dest := Destination{Root: root, Folder: filepath.Join(root, "261101")}
+	if err := os.Mkdir(dest.Folder, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	key := filepath.Join(private, "id_ed25519")
+	if err := os.WriteFile(key, []byte(secretKey), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	started := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	plantLink(t, filepath.Join(dest.Folder, "router1-120000.log"), key)
+	plantLink(t, filepath.Join(dest.Folder, "router1-120000.1.meta.jsonl"), key)
+	p, err := Claim(dest, "router1", started, time.UTC, ".log", ".meta.jsonl", 0o770)
+	if err != nil || filepath.Base(p.Transcript) != "router1-120000.2.log" {
+		t.Fatalf("claim: %+v %v", p, err)
+	}
+	unchanged(t, key, secretKey, filepath.Join(dest.Folder, "router1-120000.log"))
+	unchanged(t, key, secretKey, filepath.Join(dest.Folder, "router1-120000.1.meta.jsonl"))
+	if _, err := os.Lstat(filepath.Join(dest.Folder, "router1-120000.1.log")); !os.IsNotExist(err) {
+		t.Fatalf("the unpaired transcript must be removed: %v", err)
+	}
+}
+
+// TestALinkSwappedInAfterTheClaimIsRefused: after the claim another member
+// renames the session's files aside and plants links to the operator's
+// own files. The recorder's path still reaches the claimed transcript;
+// the start record, the end's rendering, digest, and end record refuse the
+// links with transcript_create_failed: nothing is read through them,
+// nothing written, and the links stay links.
+func TestALinkSwappedInAfterTheClaimIsRefused(t *testing.T) {
+	for _, format := range []string{FormatJSONL, FormatText, FormatJSON} {
+		t.Run(format, func(t *testing.T) {
+			root, private := t.TempDir(), t.TempDir()
+			dest := Destination{Root: root, Folder: filepath.Join(root, "261101")}
+			started := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+			p, err := Claim(dest, "router1", started, time.UTC, ".log", MetadataExtension(format), 0o770)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer p.Close()
+			key, profile := filepath.Join(private, "id_ed25519"), filepath.Join(private, ".profile")
+			// The key's line ends are ones rendering changes, so a
+			// rendering through the link would republish it.
+			for f, b := range map[string]string{key: secretKey, profile: "umask 077\n"} {
+				if err := os.WriteFile(f, []byte(b), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			plantLink(t, p.Transcript, key)
+			plantLink(t, p.Metadata, profile)
+			// script(1) opens the recorder's path for append, as here.
+			rec, err := os.OpenFile(p.RecorderPath(), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o666)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := rec.WriteString("router1#show clock\r\n"); err != nil {
+				t.Fatal(err)
+			}
+			rec.Close()
+			if b, err := os.ReadFile(p.Transcript + ".moved"); err != nil || string(b) != "router1#show clock\r\n" {
+				t.Errorf("the recorder's path: %q %v", b, err)
+			}
+			refused := func(what string, err error) {
+				t.Helper()
+				if errorcodes.Of(err) != "transcript_create_failed" || !errors.Is(err, ErrReplaced) {
+					t.Errorf("%s: %v", what, err)
+				}
+			}
+			if format != FormatJSON {
+				refused("start record", p.WriteStart(format, sample()))
+			}
+			refused("render", p.Render(80, nil))
+			_, err = p.TranscriptSHA256()
+			refused("digest", err)
+			refused("end record", p.WriteEnd(format, sample()))
+			unchanged(t, key, secretKey, p.Transcript)
+			unchanged(t, profile, "umask 077\n", p.Metadata)
+		})
+	}
+}
+
+// TestAFileSwappedInAfterTheClaimIsRefused: a regular file or a FIFO of
+// another's in the session's place is not the session's file: refused, the
+// file unchanged, and the FIFO's open never waits for a writer.
+func TestAFileSwappedInAfterTheClaimIsRefused(t *testing.T) {
+	p := claimed(t, "router1", ".meta.jsonl")
+	if err := os.Rename(p.Transcript, p.Transcript+".moved"); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Mkfifo(p.Transcript, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Render(80, nil); !errors.Is(err, ErrReplaced) {
+		t.Errorf("render of a FIFO: %v", err)
+	}
+	if err := os.Rename(p.Metadata, p.Metadata+".moved"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p.Metadata, []byte("planted\n"), 0o660); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.WriteEnd(FormatJSONL, sample()); !errors.Is(err, ErrReplaced) {
+		t.Errorf("end record into another file: %v", err)
+	}
+	if b, _ := os.ReadFile(p.Metadata); string(b) != "planted\n" {
+		t.Errorf("the planted file changed: %q", b)
+	}
+}
+
+// TestTranscriptForADeviceNamedWithMeta: a device name holding ".meta."
+// pairs its own transcript, and its transcript is not a metadata file.
+func TestTranscriptForADeviceNamedWithMeta(t *testing.T) {
+	dir := t.TempDir()
+	stem := filepath.Join(dir, SafeName("Router1.meta.example.net")+"-010203")
+	log := stem + ".log"
+	if err := os.WriteFile(log, []byte("abc"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	for _, ext := range []string{".meta.jsonl", ".meta.json", ".meta.txt"} {
+		if got, ok := TranscriptFor(stem + ext); !ok || got != log {
+			t.Errorf("%s: %q %v", ext, got, ok)
+		}
+	}
+	if got, ok := TranscriptFor(log); ok {
+		t.Errorf("the transcript is taken for metadata, paired with %q", got)
 	}
 }

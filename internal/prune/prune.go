@@ -492,7 +492,7 @@ func transcriptCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 			continue
 		}
 		for _, e := range entries {
-			if e.IsDir() || !strings.Contains(e.Name(), ".meta.") {
+			if e.IsDir() || !transcript.IsMetadata(e.Name()) {
 				continue
 			}
 			meta := filepath.Join(root, day.Name(), e.Name())

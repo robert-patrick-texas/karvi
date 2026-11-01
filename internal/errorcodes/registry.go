@@ -462,7 +462,7 @@ var entries = []Entry{
 	failure("scoreboard_file_limit_exceeded", "output", exitOutput, false, "The scoreboard directory holds more scoreboard files than `watch.max-files`."),
 	fallback("scoreboard_write_failed", "output", exitOutput, "A scoreboard snapshot cannot be written."),
 	fallback("terminal_write_failed", "output", exitOutput, "Rendered output cannot be written to standard output."),
-	failure("transcript_create_failed", "output", exitOutput, false, "The login transcript directory, file, or metadata cannot be created."),
+	failure("transcript_create_failed", "output", exitOutput, false, "The login transcript directory, file, or metadata cannot be created, or a file of the recording is no longer the one its claim made (a link or another file put at its name)."),
 	failure("transcript_root_locked", "usage", exitUsage, false, "`--record=PATH` is given while `transcript.root` is locked."),
 	failure("transcript_path_not_directory", "usage", exitUsage, false, "The `--record=PATH` path exists and is not a folder."),
 	failure("transcript_name_taken", "output", exitOutput, true, "Under `--record=PATH` both of a session's names are taken in PATH, the device's own and that name with the session's start (`<device>-YYMMDD-HHMMSS`), each by its transcript or its metadata. Nothing is written; a session started in another second has another second name."),

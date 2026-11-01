@@ -825,3 +825,26 @@ func TestSharedScoreboardsJudgedAsSharedTrees(t *testing.T) {
 		t.Fatalf("the private scoreboards unreadable: %+v\n%s", res, strings.Join(lines, "\n"))
 	}
 }
+
+// TestTranscriptOfADeviceNamedWithMeta: a device name holding ".meta."
+// pairs the session's transcript with its metadata, and the transcript is
+// never examined as a metadata file: a real run removes both.
+func TestTranscriptOfADeviceNamedWithMeta(t *testing.T) {
+	base := t.TempDir()
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	meta := writeTranscript(t, filepath.Join(base, "transcripts"), "260817", "router1.meta.example.net-153900", old)
+	log := strings.TrimSuffix(meta, ".meta.jsonl") + ".log"
+	lines, res := runAs(t, Options{PrivateRoots: []string{base}, Verbose: true}, os.Getuid(), false)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "removed kind=transcript path="+meta+" transcript="+log+" ") || strings.Contains(joined, "path="+log) {
+		t.Fatalf("the pair:\n%s", joined)
+	}
+	if res.Examined != 1 {
+		t.Fatalf("result %+v", res)
+	}
+	for _, p := range []string{meta, log} {
+		if _, err := os.Lstat(p); !os.IsNotExist(err) {
+			t.Errorf("%s remains: %v", p, err)
+		}
+	}
+}
