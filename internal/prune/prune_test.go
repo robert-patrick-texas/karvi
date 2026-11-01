@@ -870,33 +870,10 @@ func TestAMetadataNameThatIsNotARegularFileIsKept(t *testing.T) {
 	if err := syscall.Mkfifo(fifo, 0o640); err != nil {
 		t.Fatal(err)
 	}
-	type outcome struct {
-		out string
-		res Result
-		err error
-	}
-	done := make(chan outcome, 1)
-	go func() {
-		var out bytes.Buffer
-		res, err := Run(Options{PrivateRoots: []string{base}, Verbose: true, Now: now, Location: time.UTC, UID: os.Getuid()}, &out)
-		done <- outcome{out.String(), res, err}
-	}()
-	var got outcome
-	select {
-	case got = <-done:
-	case <-time.After(30 * time.Second):
-		// Release the run waiting on the FIFO, then fail.
-		if f, err := os.OpenFile(fifo, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
-			f.Close()
-		}
-		t.Fatal("the run waited on the FIFO for a writer")
-	}
-	if got.err != nil {
-		t.Fatal(got.err)
-	}
+	out, res := runBounded(t, Options{PrivateRoots: []string{base}}, fifo)
 	for _, want := range []string{"kept kind=transcript path=" + fifo + " reason=live", "kept kind=transcript path=" + link + " reason=live", "removed kind=transcript path=" + ended + " "} {
-		if !strings.Contains(got.out, want) {
-			t.Errorf("no line %q in:\n%s", want, got.out)
+		if !strings.Contains(out, want) {
+			t.Errorf("no line %q in:\n%s", want, out)
 		}
 	}
 	if fi, err := os.Lstat(link); err != nil || fi.Mode()&os.ModeSymlink == 0 {
@@ -911,7 +888,185 @@ func TestAMetadataNameThatIsNotARegularFileIsKept(t *testing.T) {
 	if _, err := os.Lstat(ended); !os.IsNotExist(err) {
 		t.Errorf("the ended session stayed: %v", err)
 	}
-	if got.res.Examined != 3 || got.res.Skipped != 2 || got.res.Failed != 0 {
-		t.Errorf("result %+v\n%s", got.res, got.out)
+	if res.Examined != 3 || res.Skipped != 2 || res.Failed != 0 {
+		t.Errorf("result %+v\n%s", res, out)
+	}
+}
+
+// runBounded prunes for real as the test's own user under --verbose and
+// returns the report and the counts. A run that has not returned in thirty
+// seconds fails the test, first released from any of fifos it waits on for
+// a writer.
+func runBounded(t *testing.T, opts Options, fifos ...string) (string, Result) {
+	t.Helper()
+	opts.Verbose, opts.Now, opts.Location, opts.UID = true, now, time.UTC, os.Getuid()
+	type outcome struct {
+		out string
+		res Result
+		err error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		var out bytes.Buffer
+		res, err := Run(opts, &out)
+		done <- outcome{out.String(), res, err}
+	}()
+	select {
+	case got := <-done:
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		return got.out, got.res
+	case <-time.After(30 * time.Second):
+		for _, fifo := range fifos {
+			if f, err := os.OpenFile(fifo, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+				f.Close()
+			}
+		}
+		t.Fatal("the run waited on a FIFO for a writer")
+	}
+	return "", Result{}
+}
+
+// oddEntry puts at path a FIFO (kind "fifo") or a symbolic link to target
+// (kind "link"), and returns the FIFOs it made, for runBounded.
+func oddEntry(t *testing.T, kind, path, target string) []string {
+	t.Helper()
+	if kind == "fifo" {
+		if err := syscall.Mkfifo(path, 0o640); err != nil {
+			t.Fatal(err)
+		}
+		return []string{path}
+	}
+	if err := os.Symlink(target, path); err != nil {
+		t.Fatal(err)
+	}
+	return nil
+}
+
+// stands fails the test unless path is still oddEntry's FIFO or link and
+// the link's target is still there.
+func stands(t *testing.T, kind, path, target string) {
+	t.Helper()
+	want := os.ModeNamedPipe
+	if kind == "link" {
+		want = os.ModeSymlink
+		if _, err := os.Stat(target); err != nil {
+			t.Errorf("the link's target: %v", err)
+		}
+	}
+	if fi, err := os.Lstat(path); err != nil || fi.Mode()&want == 0 {
+		t.Errorf("the %s at %s: %v %v", kind, path, fi, err)
+	}
+}
+
+// TestASummaryThatIsNotARegularFileIsKept: a FIFO at a job folder's
+// summary.json does not hold the run, and it or a link there to an old
+// finished job's summary elsewhere is kept as a summary that does not
+// decode is (unreadable): nothing is read through the link and the folder
+// stays; the old finished job beside it goes.
+func TestASummaryThatIsNotARegularFileIsKept(t *testing.T) {
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	for _, kind := range []string{"fifo", "link"} {
+		t.Run(kind, func(t *testing.T) {
+			base := t.TempDir()
+			jobs := filepath.Join(base, "jobs")
+			ended := writeJob(t, jobs, "260817", "260817-153859-00", "complete", old)
+			held := writeJob(t, jobs, "260817", "260817-153859-01", "complete", old)
+			elsewhere := filepath.Join(writeJob(t, t.TempDir(), "260817", "260817-153859-02", "complete", old), "summary.json")
+			summary := filepath.Join(held, "summary.json")
+			if err := os.Remove(summary); err != nil {
+				t.Fatal(err)
+			}
+			fifos := oddEntry(t, kind, summary, elsewhere)
+			out, res := runBounded(t, Options{PrivateRoots: []string{base}}, fifos...)
+			for _, want := range []string{"kept kind=activity path=" + held + " reason=unreadable", "removed kind=activity path=" + ended + " "} {
+				if !strings.Contains(out, want) {
+					t.Errorf("no line %q in:\n%s", want, out)
+				}
+			}
+			stands(t, kind, summary, elsewhere)
+			if res.Examined != 2 || res.Removed != 1 || res.Failed != 0 {
+				t.Errorf("result %+v\n%s", res, out)
+			}
+		})
+	}
+}
+
+// TestAScoreboardFileThatIsNotARegularFileIsKept: a FIFO at a scoreboard
+// file's name does not hold the run, and it or a link there to an old
+// finished snapshot elsewhere is kept and counted as a file that does not
+// decode is (unreadable): nothing is read through the link and the name is
+// not removed; the old finished snapshot beside it goes.
+func TestAScoreboardFileThatIsNotARegularFileIsKept(t *testing.T) {
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	for _, kind := range []string{"fifo", "link"} {
+		t.Run(kind, func(t *testing.T) {
+			base := t.TempDir()
+			score := filepath.Join(base, "score")
+			ended := writeScoreboard(t, score, "260817-153859-00", "complete", old)
+			elsewhere := writeScoreboard(t, t.TempDir(), "260817-153859-01", "complete", old)
+			name := filepath.Join(score, "260817-153859-01.json")
+			fifos := oddEntry(t, kind, name, elsewhere)
+			out, res := runBounded(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score}, fifos...)
+			for _, want := range []string{"kept kind=scoreboard path=" + name + " reason=unreadable", "removed kind=scoreboard path=" + ended + " "} {
+				if !strings.Contains(out, want) {
+					t.Errorf("no line %q in:\n%s", want, out)
+				}
+			}
+			stands(t, kind, name, elsewhere)
+			if res.Examined != 2 || res.Skipped != 1 || res.Removed != 1 || res.Failed != 0 {
+				t.Errorf("result %+v\n%s", res, out)
+			}
+		})
+	}
+}
+
+// TestASnapshotThatIsNotARegularFileHoldsNoOrphan: an old orphan whose
+// scoreboard file's name holds a FIFO, or a link to a live snapshot
+// elsewhere, is judged as one whose snapshot cannot be read, not live: the
+// run does not wait on the FIFO and reads nothing through the link, the
+// orphan goes under the age rule, and the FIFO or link stays, kept as
+// unreadable.
+func TestASnapshotThatIsNotARegularFileHoldsNoOrphan(t *testing.T) {
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	const id = "260817-153859-00"
+	for _, kind := range []string{"fifo", "link"} {
+		t.Run(kind, func(t *testing.T) {
+			base := t.TempDir()
+			score := filepath.Join(base, "score")
+			orphan := filepath.Join(base, "jobs", "260817", id)
+			if err := os.MkdirAll(orphan, 0o750); err != nil {
+				t.Fatal(err)
+			}
+			commands := filepath.Join(orphan, "commands.jsonl")
+			if err := os.WriteFile(commands, []byte("{}\n"), 0o640); err != nil {
+				t.Fatal(err)
+			}
+			for _, p := range []string{commands, orphan} {
+				if err := os.Chtimes(p, old, old); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := os.MkdirAll(score, 0o750); err != nil {
+				t.Fatal(err)
+			}
+			live := writeScoreboard(t, t.TempDir(), id, "running", now.Add(-time.Minute))
+			name := filepath.Join(score, id+".json")
+			fifos := oddEntry(t, kind, name, live)
+			out, res := runBounded(t, Options{PrivateRoots: []string{base}, ScoreboardRoot: score}, fifos...)
+			for _, want := range []string{"removed kind=orphan path=" + orphan + " ", "kept kind=scoreboard path=" + name + " reason=unreadable"} {
+				if !strings.Contains(out, want) {
+					t.Errorf("no line %q in:\n%s", want, out)
+				}
+			}
+			stands(t, kind, name, live)
+			if _, err := os.Lstat(orphan); !os.IsNotExist(err) {
+				t.Errorf("the orphan stayed: %v", err)
+			}
+			if res.Failed != 0 {
+				t.Errorf("result %+v\n%s", res, out)
+			}
+		})
 	}
 }

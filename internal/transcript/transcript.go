@@ -555,26 +555,13 @@ func (p *Pair) TranscriptSHA256() (string, error) {
 // a larger file is not one karvi wrote and is not read.
 const maxMetadataBytes = 1 << 20
 
-// readMetadata is the metadata file at path, read through one descriptor
-// opened without following a link and without waiting on a FIFO: a regular
-// file of at most maxMetadataBytes, false for anything else. A shared
-// tree's day folder is every member's to write, so any member's entry can
-// stand under the name.
+// readMetadata is the metadata file at path, read by
+// osutil.ReadRegularFile: a regular file of at most maxMetadataBytes, false
+// for anything else. A shared tree's day folder is every member's to write,
+// so any member's entry can stand under the name.
 func readMetadata(path string) ([]byte, bool) {
-	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
-	if err != nil {
-		return nil, false
-	}
-	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil || !fi.Mode().IsRegular() || fi.Size() > maxMetadataBytes {
-		return nil, false
-	}
-	data, err := io.ReadAll(io.LimitReader(f, maxMetadataBytes+1))
-	if err != nil || len(data) > maxMetadataBytes {
-		return nil, false
-	}
-	return data, true
+	data, err := osutil.ReadRegularFile(path, maxMetadataBytes)
+	return data, err == nil
 }
 
 // IsEnd reports whether a metadata file holds its end record: a jsonl line

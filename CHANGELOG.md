@@ -238,13 +238,16 @@
   `output_directory_not_writable` or `transcript_directory_not_writable`, and
   nothing is made where it points. A link at `output.root` or
   `transcript.root`, or above either, is the site's and is followed.
-- **karvi-prune reads a transcript's metadata only from a regular file.** The
-  helper read a transcript's metadata file by its name, so a FIFO there held
-  the run until a writer came and a link was read through. The file is now
-  read through one descriptor, opened without following a link and without
-  waiting on a FIFO, only when it is a regular file of at most 1 MiB;
-  anything else under the name is kept as `live`, as a transcript without
-  its end record is.
+- **karvi-prune reads a summary, a scoreboard file, and a transcript's
+  metadata only from a regular file.** The helper read them by name, so a
+  FIFO there held the run until a writer came and a link was read through.
+  Each is now read through one descriptor, opened without following a link
+  and without waiting on a FIFO, only when it is a regular file of at most
+  64 MiB (a summary or a scoreboard file) or 1 MiB (metadata). Anything else
+  under a summary's or a scoreboard file's name is kept as `unreadable`, as
+  a file that does not decode is, and holds no orphan live; under a metadata
+  file's name it is kept as `live`, as a transcript without its end record
+  is ([`docs/PRUNE.md`](docs/PRUNE.md)).
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`

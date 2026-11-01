@@ -1,7 +1,9 @@
 package osutil
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -241,4 +243,37 @@ func MakeSharedDirectory(path string, mode os.FileMode) error {
 		return err
 	}
 	return os.Chmod(path, os.ModeSetgid|fi.Mode().Perm())
+}
+
+// ReadRegularFile is the file at path read through one descriptor opened
+// without following a link and without waiting on a FIFO: a regular file
+// of at most limit bytes. Anything else is an error and is not read: a
+// link at the name (the open's ELOOP), a FIFO, a folder, a device, a
+// socket, or a file larger than limit. An absent file is the open's error,
+// fs.ErrNotExist. A shared tree's folders are every member's to write, so
+// any member's entry can stand under a name another reads there.
+func ReadRegularFile(path string, limit int64) ([]byte, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() {
+		return nil, errors.New("not a regular file")
+	}
+	if fi.Size() > limit {
+		return nil, fmt.Errorf("%d bytes, more than the %d allowed", fi.Size(), limit)
+	}
+	data, err := io.ReadAll(io.LimitReader(f, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("%d bytes, more than the %d allowed", len(data), limit)
+	}
+	return data, nil
 }

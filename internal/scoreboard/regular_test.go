@@ -11,7 +11,7 @@ import (
 
 // oddEntries puts beside a scoreboard in dir, under the names given, a FIFO,
 // a symbolic link to a readable snapshot elsewhere, and a sparse regular
-// file one byte past maxSnapshotBytes. A FIFO a read still waits on is
+// file one byte past MaxSnapshotBytes. A FIFO a read still waits on is
 // released at the test's end.
 func oddEntries(t *testing.T, dir, fifo, link, big string) {
 	t.Helper()
@@ -36,7 +36,7 @@ func oddEntries(t *testing.T, dir, fifo, link, big string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Truncate(maxSnapshotBytes + 1); err != nil {
+	if err := f.Truncate(MaxSnapshotBytes + 1); err != nil {
 		t.Fatal(err)
 	}
 	f.Close()

@@ -60,10 +60,14 @@ directory (`crun`; the latest file per device is not retention), the audit
 log, and anything in journald. Long-term audit retention is journald's and
 the central forwarder's, never this helper's; `karvi-audit` reads it
 ([`docs/OPERATIONS.md` "The audit trail"](OPERATIONS.md#the-audit-trail)).
-A transcript's metadata is read only from a regular file of at most 1 MiB,
-opened without following a link and without waiting on a FIFO; anything
-else under a metadata file's name stays, `kept` as `live`, as a transcript
-without its end record does.
+A job's `summary.json`, a scoreboard file, and a transcript's metadata are
+read only from a regular file, opened without following a link and without
+waiting on a FIFO, and only within a bound: 64 MiB for a summary or a
+scoreboard file, 1 MiB for metadata. Anything else under a summary's or a
+scoreboard file's name stays, `kept` as `unreadable` as a file that does
+not decode is, and a scoreboard file that cannot be read holds no orphan
+live; under a metadata file's name it stays, `kept` as `live`, as a
+transcript without its end record does.
 
 **The day folders' zone.** A day folder's name is a date in the zone karvi
 named it in. The helper reads no configuration, so it reads the names in

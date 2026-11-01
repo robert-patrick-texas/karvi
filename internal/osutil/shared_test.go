@@ -1,12 +1,16 @@
 package osutil
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
@@ -194,5 +198,79 @@ func TestTmpfilesRule(t *testing.T) {
 	}
 	if string(packaged) != rule {
 		t.Errorf("packaging/tmpfiles.d/karvi.conf is not the rule for netops:\n%s\nwant:\n%s", packaged, rule)
+	}
+}
+
+// TestOnlyARegularFileWithinTheLimitIsRead: a regular file of at most the limit is read whole,
+// one of exactly the limit too; a symbolic link to a regular file, a FIFO
+// with no writer, a folder, and a file one byte past the limit are each
+// refused unread, the FIFO without waiting for a writer; an absent file is
+// fs.ErrNotExist.
+func TestOnlyARegularFileWithinTheLimitIsRead(t *testing.T) {
+	dir := t.TempDir()
+	const limit = 16
+	write := func(name, content string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(content), 0o640); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	small := write("router1.json", `{"r":"router1"}`)
+	exact := write("switch1.json", strings.Repeat("x", limit))
+	large := write("austin-rtr1.json", strings.Repeat("x", limit+1))
+	link := filepath.Join(dir, "houston-rtr2.json")
+	if err := os.Symlink(small, link); err != nil {
+		t.Fatal(err)
+	}
+	fifo := filepath.Join(dir, "core-nyc-01.json")
+	if err := syscall.Mkfifo(fifo, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	folder := filepath.Join(dir, "folder.json")
+	if err := os.Mkdir(folder, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	read := func(path string) ([]byte, error) {
+		t.Helper()
+		type outcome struct {
+			data []byte
+			err  error
+		}
+		done := make(chan outcome, 1)
+		go func() {
+			data, err := ReadRegularFile(path, limit)
+			done <- outcome{data, err}
+		}()
+		select {
+		case got := <-done:
+			return got.data, got.err
+		case <-time.After(10 * time.Second):
+			if f, err := os.OpenFile(fifo, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+				f.Close()
+			}
+			t.Fatalf("reading %s still waits after 10s", path)
+		}
+		return nil, nil
+	}
+	for _, p := range []string{small, exact} {
+		want, _ := os.ReadFile(p)
+		if got, err := read(p); err != nil || string(got) != string(want) {
+			t.Errorf("%s: %q %v, want %q", p, got, err, want)
+		}
+	}
+	for _, c := range []struct{ path, why string }{
+		{link, "too many levels of symbolic links"},
+		{fifo, "not a regular file"},
+		{folder, "not a regular file"},
+		{large, "17 bytes, more than the 16 allowed"},
+	} {
+		got, err := read(c.path)
+		if err == nil || !strings.Contains(err.Error(), c.why) || got != nil {
+			t.Errorf("%s: %q %v, want an error saying %q", c.path, got, err, c.why)
+		}
+	}
+	if _, err := read(filepath.Join(dir, "absent.json")); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("an absent file: %v, want fs.ErrNotExist", err)
 	}
 }

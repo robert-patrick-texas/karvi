@@ -229,8 +229,7 @@ func emittedCodes(t *testing.T) []emission {
 var detailFuncs = map[string]string{
 	"internal/buildinfo/build.go:readBuild":                               "the build ID's reading, reported under build_unreadable",
 	"internal/icmpgate/system.go:Probe":                                   "a pinger that cannot run, reported under icmp_capability_unavailable",
-	"internal/scoreboard/scoreboard.go:readSnapshot":                      "why a scoreboard entry is passed by, shown in its ? row",
-	"internal/scoreboard/scoreboard.go:tooLarge":                          "why a scoreboard entry is passed by, shown in its ? row",
+	"internal/osutil/shared.go:ReadRegularFile":                           "why a file in a shared tree is not read, shown in a scoreboard entry's ? row",
 	"internal/configload/tomlmini/parser.go:*":                            "TOML syntax diagnostics reported under config_toml_syntax",
 	"internal/configload/include.go:parseDirectiveTarget":                 "include directive syntax reported under config_include_syntax",
 	"internal/configload/lock.go:winningLock":                             "reported under config_lock_equal_specificity",

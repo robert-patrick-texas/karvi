@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/internal/transcript"
 	"github.com/robert-patrick-texas/karvi/records"
 )
@@ -369,13 +370,21 @@ func owner(fi os.FileInfo) int {
 	return -1
 }
 
+// maxSummaryBytes bounds a summary.json read. A summary lists a job's
+// devices as its scoreboard snapshot lists its targets, so it takes the
+// snapshot's bound.
+const maxSummaryBytes = scoreboard.MaxSnapshotBytes
+
 // activityCandidates finds the job folders of a job tree that may go: a
 // finished job by its summary, and an orphan, a folder whose summary names
 // no final status or that has none (a job the daemon's death cut short),
 // when its day is older than the retention age, nothing in it is newer
 // than the cutoff, and its snapshot, if any, is not live. An orphan goes
-// under the age rule only. The error is the root's alone; a folder below it
-// that cannot be read is passed by.
+// under the age rule only. A summary is read by osutil.ReadRegularFile, at
+// most maxSummaryBytes: a link, a FIFO, or anything else at the name is
+// kept as a summary that does not decode is (unreadable), never followed
+// or waited on. The error is the root's alone; a folder below it that
+// cannot be read is passed by.
 func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	found := []candidate{}
 	examined, skipped := 0, 0
@@ -407,7 +416,7 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 		jobFolder := filepath.Dir(filepath.Dir(path)) == root
 		var terminal, unfinished bool
 		var when time.Time
-		b, e := os.ReadFile(summary)
+		b, e := osutil.ReadRegularFile(summary, maxSummaryBytes)
 		switch {
 		case e == nil:
 			examined++
@@ -422,9 +431,18 @@ func activityCandidates(root string, cutoff time.Time, opts Options, out io.Writ
 			} else {
 				keep(opts, out, "activity", path, "live")
 			}
-		case os.IsNotExist(e) && jobFolder:
+		case os.IsNotExist(e):
+			if jobFolder {
+				examined++
+				unfinished = true
+			}
+		case !os.IsPermission(e):
+			// A link, a FIFO, or anything else but a regular file within
+			// the bound, kept as a summary that does not decode is. A
+			// summary the helper may not open is passed by without a line;
+			// a folder it may not read is the walk's skipped line.
 			examined++
-			unfinished = true
+			keep(opts, out, "activity", path, "unreadable")
 		}
 		if unfinished {
 			// An orphan: a job folder directly under a day folder whose
@@ -529,8 +547,11 @@ func transcriptCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 // scoreboard directory, and the non-terminal ones last updated
 // before the cutoff, which no live job holds:
 // the file of a job the daemon's death cut short says running until the
-// directory clears at a reboot. Those go under the age rule only. The error
-// is the root's alone.
+// directory clears at a reboot. Those go under the age rule only. A file is
+// read by osutil.ReadRegularFile, at most scoreboard.MaxSnapshotBytes: a
+// link, a FIFO, or anything else under a *.json name is kept and counted
+// as unreadable, never followed or waited on. The error is the root's
+// alone.
 func scoreboardCandidates(root string, cutoff time.Time, opts Options, out io.Writer) ([]candidate, int, int, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -544,7 +565,7 @@ func scoreboardCandidates(root string, cutoff time.Time, opts Options, out io.Wr
 		}
 		examined++
 		path := filepath.Join(root, e.Name())
-		b, er := os.ReadFile(path)
+		b, er := osutil.ReadRegularFile(path, scoreboard.MaxSnapshotBytes)
 		if er != nil {
 			skipped++
 			keep(opts, out, "scoreboard", path, "unreadable")
@@ -598,10 +619,12 @@ func newestTime(root string) time.Time {
 // roots, names a live job: a non-terminal status last updated after cutoff. A snapshot
 // untouched for the retention age is no lease, by the reading the
 // watch screen makes after watch.stale-after; a file that is absent,
-// unreadable, or terminal is not live.
+// unreadable, or terminal is not live. The file is read as
+// scoreboardCandidates reads one, so a link or a FIFO at the name is
+// unreadable, never followed or waited on.
 func snapshotLive(roots []string, id string, cutoff time.Time) bool {
 	for _, root := range roots {
-		b, err := os.ReadFile(filepath.Join(root, id+".json"))
+		b, err := osutil.ReadRegularFile(filepath.Join(root, id+".json"), scoreboard.MaxSnapshotBytes)
 		if err != nil {
 			continue
 		}

@@ -3,15 +3,12 @@ package scoreboard
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -307,39 +304,13 @@ func Find(dirs []string, id string) (records.ScoreboardSnapshot, bool) {
 	return found, ok
 }
 
-// maxSnapshotBytes bounds a snapshot file read; a larger one is not read.
-const maxSnapshotBytes = 64 << 20
+// MaxSnapshotBytes bounds a snapshot file read; a larger one is not read.
+const MaxSnapshotBytes = 64 << 20
 
-// readSnapshot is the snapshot file at path, read through one descriptor
-// opened without following a link and without waiting on a FIFO: a regular
-// file of at most maxSnapshotBytes, anything else an error. The folder may
-// be shared, so any member's entry can stand under the name.
+// readSnapshot is the snapshot file at path, read by
+// osutil.ReadRegularFile: a regular file of at most MaxSnapshotBytes,
+// anything else an error. The folder may be shared, so any member's entry
+// can stand under the name.
 func readSnapshot(path string) ([]byte, error) {
-	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-	if !info.Mode().IsRegular() {
-		return nil, errors.New("not a regular file")
-	}
-	if info.Size() > maxSnapshotBytes {
-		return nil, tooLarge(info.Size())
-	}
-	data, err := io.ReadAll(io.LimitReader(f, maxSnapshotBytes+1))
-	if err != nil {
-		return nil, err
-	}
-	if len(data) > maxSnapshotBytes {
-		return nil, tooLarge(int64(len(data)))
-	}
-	return data, nil
-}
-
-func tooLarge(size int64) error {
-	return fmt.Errorf("%d bytes, more than the %d a snapshot may hold", size, maxSnapshotBytes)
+	return osutil.ReadRegularFile(path, MaxSnapshotBytes)
 }
