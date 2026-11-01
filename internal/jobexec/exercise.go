@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/dispatch"
@@ -65,8 +66,10 @@ func runExercise(ctx context.Context, req Request, st exerciseState) ActivityRes
 	validationStart := time.Now()
 	result := ActivityResult{ActivityID: st.id, JobID: st.id, ArtifactDir: st.artifact}
 	// The heartbeat for an exercise as for a run:
-	// its snapshot is the initial one until the final write.
-	stopHeartbeat := st.scoreboardWriter.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return st.initial })
+	// its snapshot is the initial one until the final write, before which
+	// it stops, and it stops on every return before that.
+	stopHeartbeat := sync.OnceFunc(st.scoreboardWriter.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return st.initial }))
+	defer stopHeartbeat()
 
 	// Host-key inputs once per job, the transport's own call.
 	hk := exerciseHostKey(cfg, req.Operator.Home, st.base)

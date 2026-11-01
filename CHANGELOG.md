@@ -125,6 +125,26 @@
   MACsec keys. The lists hold 21, 16, 14, 15, and 10 patterns; a site's copy of
   a list takes them from `platform/masks.go`
   ([`docs/COLLECTION.md` section 6.1](docs/COLLECTION.md#61-the-secrets-the-mask)).
+- **The daemon and its jobs end cleanly where they hung or leaked.** A run
+  through the daemon refused at client planning left the job folder it had
+  reserved; it is released. An idle connection, or one stopped mid-line, held
+  the daemon's stop for ever; the stop now ends every waiting read, and a
+  credential frame is read within the preparation channel's window. A commit
+  whose job could not be opened after it started left the job running; it is
+  cancelled. `daemon restart` over a socket nothing listens on (a daemon killed
+  outright) was refused `daemon_unreachable`; it starts a daemon. A daemon call
+  without a deadline ignored its context's cancel; it ends at it. An accept
+  error on either socket ended that loop without a word; a temporary one
+  (descriptors exhausted) is retried, logged, from 5 ms doubling to 1 s, and a
+  fatal one runs the daemon's normal shutdown.
+- **Breaking: `run --exercise` refuses a configuration that keeps no job
+  folder.** With `output.persist-command = false` from the configuration, an
+  exercise wrote `exercise.json` in the daemon's working directory; it is now
+  refused `run_mode_conflict`, by the client before a credential is asked and
+  by the daemon's job, as `--nof --exercise` is. An exercise's early return
+  stops its scoreboard's heartbeat; `job follow` says the admission warnings
+  once, not again at each resume; and a job without a folder is named
+  `artifacts none` on its cancel and follow lines, not a bare `artifacts`.
 
 ## 0.38.0 - 2026-10-28
 

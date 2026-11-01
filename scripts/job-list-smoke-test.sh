@@ -3,12 +3,12 @@
 # jobs of a lab output root, made against the fake IOS XE device built from
 # the tree over the native transport: a command, a run of two devices of
 # which one is unreachable, a crun, an exercise through the daemon, a run
-# killed while it ran, the empty folder of a run through the daemon refused
-# at planning, and, unless run as root, a folder whose summary cannot
-# be read and one that cannot be entered. The table to a pipe and at a
-# terminal of 80 columns, each filter, the rows under --target, the
-# refusals, and the JSON. Needs `go`; writes
-# nothing outside its own directory.
+# killed while it ran, a run through the daemon refused at planning, which
+# leaves no folder, a folder without a summary, and, unless run as root, a
+# folder whose summary cannot be read and one that cannot be entered. The
+# table to a pipe and at a terminal of 80 columns, each filter, the rows
+# under --target, the refusals, and the JSON. Needs `go`; writes nothing
+# outside its own directory.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -116,12 +116,15 @@ for pair in "$J1 cmd" "$J2 run" "$J3 crun" "$J4 run" "$J5 run"; do
 done
 json_has "$(day "$J5")/summary.json" final_status && fail "the killed run's summary is final"
 # A run through the daemon without NETPASS is refused at planning, exit 6,
-# after the daemon made its folder: a folder without a summary.
+# and releases the folder it reserved.
 CODE=0
 HOME=$TMP/home NETUSER=netops "$KARVI" --config "$TMP/karvi.toml" run --target fake-iosxe --cmd 'show version' >"$TMP/out.nocred" 2>"$TMP/err.nocred" </dev/null || CODE=$?
 expect nocred 6
-J8=$(newest)
-[ "$J8" != "$J5" ] && [ -z "$(ls -A "$(day "$J8")")" ] || fail "the refused run left no empty folder"
+[ "$(newest)" = "$J5" ] || fail "the refused run left a folder: $(newest)"
+# A folder without a summary, as a job cut short before its summary's first
+# write leaves it: the last ID of J5's second, so it stands just above J5.
+J8=${J5%-*}-zz
+mkdir "$(day "$J8")"
 UNREADABLE=
 if [ "$(id -u)" != 0 ]; then
   karvi r6 run --no-daemon --target fake-iosxe --cmd 'show version'; expect r6 0; J6=$(newest)

@@ -379,7 +379,9 @@ command line reaches these as flag-origin configuration values, in one function,
 `cli.outputOptions`: `--nof` and `--of` are `output.persist-command`, and
 `--of=PATH` is `output.root` for that invocation, on `cmd` and `run`; `run`
 refuses `--nof` with `--detach` (nothing persisted and nobody following) and
-with `--exercise` (the report is a file). A job that keeps no folder has an
+with `--exercise` (the report is a file), and `--exercise` under
+`output.persist-command = false` from the configuration, which the daemon's
+job refuses too before its acceptance. A job that keeps no folder has an
 empty `artifact_dir` in its receipt and its follow start, and its footer says
 `artifacts=none`. The store writes every file from memory and none from another,
 so no key depends on another; `Store.Paths` names only the files written, and

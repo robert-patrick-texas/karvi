@@ -2,13 +2,18 @@ package jobexec
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/audit"
+	"github.com/robert-patrick-texas/karvi/internal/capacity"
+	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/output"
+	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -54,5 +59,44 @@ func TestExerciseSummaryNamesAnAcceptedCancelAndStaysExercised(t *testing.T) {
 	}
 	if s := build(context.Background(), records.OutcomeExercise, exitcode.ExitSuccess); s.Cancellation != nil {
 		t.Errorf("without a cancel: cancellation=%+v", s.Cancellation)
+	}
+}
+
+// TestExerciseStopsItsHeartbeatOnAnEarlyReturn: an exercise that ends
+// before its final scoreboard write (here at its report's validation, for
+// a request naming no operator and no plan) stops the heartbeat it
+// started, so the scoreboard of a job that has ended is not kept fresh as
+// a live one's.
+func TestExerciseStopsItsHeartbeatOnAnEarlyReturn(t *testing.T) {
+	const id = "261101-120000-00"
+	dir := t.TempDir()
+	cfg, err := configload.Load(configload.Options{HomeDir: dir, SkipAuto: true, Environment: []string{}, Sets: []string{
+		`watch.refresh="250ms"`, `ssh.known-hosts-file="` + filepath.Join(dir, "known_hosts") + `"`,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	board, err := scoreboard.NewWriter(filepath.Join(dir, "sb"), dir, dir, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	board.Use(id)
+	ledger, err := capacity.New(filepath.Join(dir, "cap"), dir, dir, id, 32, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := exerciseState{id: id, artifact: filepath.Join(dir, "job"), scoreboardWriter: board, capManager: ledger, base: dir}
+	result := runExercise(context.Background(), Request{Config: cfg, Mode: executionplan.ModeExercise, ActivityID: id}, st)
+	if result.ExitCode == exitcode.ExitSuccess {
+		t.Fatalf("the exercise without a plan succeeded: %+v", result)
+	}
+	// A stopped heartbeat writes nothing more: the scoreboard, removed,
+	// stays removed through several of its intervals.
+	_ = os.Remove(board.Path)
+	refresh := cfg.Duration("watch.refresh")
+	for end := time.Now().Add(4 * refresh); time.Now().Before(end); time.Sleep(refresh / 10) {
+		if _, err := os.Stat(board.Path); err == nil {
+			t.Fatalf("the heartbeat still writes %s after the exercise returned %q", board.Path, result.Error)
+		}
 	}
 }

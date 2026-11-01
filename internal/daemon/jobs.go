@@ -98,6 +98,10 @@ func newJob() *job {
 	return &job{done: make(chan struct{}), subscribers: map[*subscriber]struct{}{}}
 }
 
+// lstat is os.Lstat, which job.open asks of the canonical file; a test
+// replaces it.
+var lstat = os.Lstat
+
 // open records the canonical file the job writes, which the store created
 // before acceptance; a job that writes none (no folder, or
 // output.files.commands-jsonl false for the invocation) has no path, and
@@ -107,7 +111,7 @@ func (j *job) open(artifactDir string, receipt ipc.JobReceipt) error {
 	path := ""
 	if artifactDir != "" {
 		path = filepath.Join(artifactDir, "commands.jsonl")
-		if _, err := os.Lstat(path); err != nil {
+		if _, err := lstat(path); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}

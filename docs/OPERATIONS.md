@@ -85,7 +85,9 @@ still receiving terminal records. A wait begins with a line naming the jobs
 (`daemon draining: 1 job running; waiting for it to exit`), which `--quiet`
 leaves out; interrupted, the wait ends and the daemon still finishes its jobs
 and exits. With no option, `daemon stop` and `daemon restart` are refused while
-the daemon runs a job, which it alone counts.
+the daemon runs a job, which it alone counts. A socket a daemon killed outright
+left refuses the connection: `daemon restart` finds nothing to stop there and
+starts a daemon, as `daemon start` does.
 
 An older karvi beside a newer daemon is refused, `daemon_incompatible`, the
 schemas stacked: the older client cannot speak the newer schema, so it neither
@@ -1553,8 +1555,9 @@ Relationships worth knowing:
   file, on `cmd`, `run --no-daemon`, and a run through the daemon alike: the
   invocation's keys travel in the plan and the daemon's store honours
   them. `run --nof` with `--detach` or
-  `--exercise` is refused; `run --nof --follow=false` is a run for its
-  exit code.
+  `--exercise` is refused, and so is `--exercise` under the key false from
+  the configuration (`run_mode_conflict`; the report is a file in the job
+  folder); `run --nof --follow=false` is a run for its exit code.
 - **`--of[=PATH]` is the opposite of `--nof`, and names the root**:
   `cmd --of` is `output.persist-command =
   true`; `--of=PATH` also sets `output.root` for that invocation (`~`

@@ -95,6 +95,7 @@ func Call(ctx context.Context, socket string, req Request, maxBytes int64, out a
 // CallForSchema performs one IPC exchange and validates the response against
 // expectedSchema. It is intentionally separate from Call so lifecycle recovery
 // can speak a known older envelope without weakening exact-schema job calls.
+// A cancelled ctx ends the exchange with the context's error, as Stream's.
 func CallForSchema(ctx context.Context, socket string, req Request, expectedSchema int, maxBytes int64, out any) error {
 	if expectedSchema <= 0 {
 		return errorcodes.Errorf("ipc_schema_invalid", "invalid expected IPC schema %d", expectedSchema)
@@ -111,11 +112,18 @@ func CallForSchema(ctx context.Context, socket string, req Request, expectedSche
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
 	}
+	defer closeOnDone(ctx, conn)()
 	if err := Write(conn, req, maxBytes); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return err
 	}
 	var resp Response
 	if err := Read(conn, &resp, maxBytes); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return err
 	}
 	if resp.IPCSchemaVersion != expectedSchema {
@@ -155,15 +163,7 @@ func Stream(ctx context.Context, socket string, req Request, maxBytes int64, fn 
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = conn.SetDeadline(deadline)
 	}
-	stop := make(chan struct{})
-	defer close(stop)
-	go func() {
-		select {
-		case <-ctx.Done():
-			_ = conn.Close()
-		case <-stop:
-		}
-	}()
+	defer closeOnDone(ctx, conn)()
 	if err := Write(conn, req, maxBytes); err != nil {
 		return err
 	}
@@ -195,6 +195,21 @@ func Stream(ctx context.Context, socket string, req Request, maxBytes int64, fn 
 			return err
 		}
 	}
+}
+
+// closeOnDone closes conn when ctx is done, so that a cancelled exchange
+// ends a blocked read or write whether or not ctx has a deadline; the
+// returned stop ends the watch.
+func closeOnDone(ctx context.Context, conn net.Conn) (stop func()) {
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+	return func() { close(done) }
 }
 
 // LineReader reads newline-delimited envelopes from one connection with a

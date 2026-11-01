@@ -117,6 +117,24 @@ func TestCancelledLineForms(t *testing.T) {
 	}
 }
 
+// TestCancelLinesNameNoneForAJobWithoutAFolder: a job that keeps no folder
+// (`--nof`) has an empty artifact directory, and every cancel line names
+// its artifacts "none", never a bare "artifacts ".
+func TestCancelLinesNameNoneForAJobWithoutAFolder(t *testing.T) {
+	id := fixtureJobID
+	outcome := &ipc.ActivityOutcome{ExitCode: exitcode.ExitCancelled, Summary: records.Summary{FinalStatus: "cancel"}}
+	for _, c := range []struct{ got, want string }{
+		{app.CancelledLine(id, "why", ""), "job " + id + " cancelled: why; artifacts none"},
+		{app.CancelledLine(id, "", ""), "job " + id + " cancelled; artifacts none"},
+		{cancelResultLine(ipc.CancelResult{JobID: id, State: ipc.CancelStateCancelling}), "cancel requested: job " + id + "; artifacts none"},
+		{cancelResultLine(ipc.CancelResult{JobID: id, State: ipc.CancelStateTerminal, Outcome: outcome}), "job " + id + " already ended: cancel (exit 113); artifacts none"},
+	} {
+		if c.got != c.want {
+			t.Errorf("%q\nwant %q", c.got, c.want)
+		}
+	}
+}
+
 // TestCancelledLineOnlyForAJobThatEndedCancelled: the follow reader prints the
 // cancelled line for a summary whose final status is cancelled, and the
 // result line alone for a summary that carries the block under another

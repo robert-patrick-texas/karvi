@@ -225,8 +225,12 @@ func (s *Server) prepareJob(ctx context.Context, conn net.Conn, req ipc.Request)
 
 // handleFrame is the credential channel: one frame per connection, the
 // protector, the provided-stage
-// validation, then one receipt.
+// validation, then one receipt. The frame is read within the preparation
+// lifetime, the longest any channel's token is valid after its prepare,
+// and the read ends when the daemon stops.
 func (s *Server) handleFrame(ctx context.Context, conn *net.UnixConn) {
+	_ = conn.SetReadDeadline(time.Now().Add(ipc.PreparationLifetime))
+	defer endReadsAtStop(ctx, conn)()
 	uid, err := ipc.PeerUID(conn)
 	if err != nil || int(uid) != s.UID {
 		_ = credentialframe.WriteReceipt(conn, credentialframe.Receipt{Accepted: false, Findings: []executionplan.Finding{{Code: "peer_uid_denied", Severity: executionplan.SeverityError, Stage: "credential_package", Message: "the credential channel accepts only the same effective UID"}}})
@@ -545,6 +549,11 @@ func (s *Server) commitJob(ctx context.Context, conn net.Conn, req ipc.Request) 
 		receipt.ReportPath = filepath.Join(dir, jobexec.ExerciseReportName)
 	}
 	if err := j.open(dir, receipt); err != nil {
+		// The job runs already and would go on where no follow or cancel
+		// reaches it: it is cancelled with the cause, its records
+		// accounting the units it began, and the commit refused.
+		err = errorcodes.Ensure(err, "output_store_create_failed")
+		cancelJob(err)
 		forget()
 		fail("output_store_create_failed", err)
 		return

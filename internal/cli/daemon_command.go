@@ -244,12 +244,16 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 		return g.reportError(streams.Stderr, "daemon_managed", managed(rt, "restart"))
 	}
 	if _, statErr := os.Lstat(rt.Socket); statErr == nil {
+		// A socket nothing listens on is a daemon that died: there is nothing
+		// to stop, and the start below replaces the socket.
 		stoppedProbe, stopErr := stopDaemonRuntime(ctx, rt, opts, streams.Stderr)
-		if stopErr != nil {
+		switch {
+		case stopErr == nil:
+			if !g.quiet && !stoppedProbe.Compatible {
+				fmt.Fprintf(streams.Stderr, "stopped incompatible daemon version=%s ipc_schema=%d\n", displayUnknown(stoppedProbe.Status.Version), stoppedProbe.DaemonSchema)
+			}
+		case !nothingListens(stopErr):
 			return g.reportError(streams.Stderr, "daemon_stop_failed", stopErr)
-		}
-		if !g.quiet && !stoppedProbe.Compatible {
-			fmt.Fprintf(streams.Stderr, "stopped incompatible daemon version=%s ipc_schema=%d\n", displayUnknown(stoppedProbe.Status.Version), stoppedProbe.DaemonSchema)
 		}
 	} else if !os.IsNotExist(statErr) {
 		return g.reportError(streams.Stderr, "daemon_socket_uninspectable", statErr)
@@ -263,6 +267,13 @@ func daemonRestart(ctx context.Context, inv *Invocation, streams app.IO) int {
 		fmt.Fprintln(streams.Stdout, "daemon restarted")
 	}
 	return 0
+}
+
+// nothingListens says whether a request to the daemon failed because no
+// daemon listens at its socket: the file is gone, or it refuses the
+// connection, as a daemon killed outright leaves it.
+func nothingListens(err error) bool {
+	return errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, fs.ErrNotExist)
 }
 
 // managed is daemon stop's or restart's refusal under daemon.launch =

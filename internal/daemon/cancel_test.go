@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -260,5 +261,50 @@ func TestCancelJobLeavesOtherJobsRunning(t *testing.T) {
 	}
 	if s := readSummary(t, h.dir); s.FinalStatus != "cancel" {
 		t.Errorf("the cancelled job: %s", s.FinalStatus)
+	}
+}
+
+// TestCommitThatCannotOpenItsJobCancelsIt: a job that started but whose
+// canonical file cannot be seen at the commit's end is refused
+// output_store_create_failed, and the job is cancelled: it ends, accounted
+// cancel, long before its held command would, rather than going on against
+// the devices where no follow or cancel can reach it.
+func TestCommitThatCannotOpenItsJobCancelsIt(t *testing.T) {
+	lstat = func(string) (os.FileInfo, error) { return nil, syscall.EIO }
+	t.Cleanup(func() { lstat = os.Lstat })
+	fakeDir := t.TempDir()
+	t.Setenv("KARVI_TEST_FAKE_DIR", fakeDir)
+	t.Setenv("KARVI_TEST_FAKE_HOLD", "20s")
+	for _, m := range []string{"ready-a", "ready-b"} {
+		if err := os.WriteFile(filepath.Join(fakeDir, m), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f := newV5FixtureWith(t, v5Options{GoFakeDevice: true, Sets: []string{
+		`security.child-environment-allowlist=["KARVI_TEST_FAKE_DIR","KARVI_TEST_FAKE_HOLD"]`,
+		`dispatch.default="serial"`,
+	}})
+	jobID := mustID(t)
+	sub := f.prepareAndPackageWith(jobID, []string{"show a", "show b"}, []inventory.Device{direct("127.0.0.1"), direct("127.0.0.2")}, fixedInput{"alice", "pw"})
+	if receipt, err := f.provide(sub); err != nil || !receipt.Accepted {
+		t.Fatalf("frame: %+v %v", receipt, err)
+	}
+	if _, err := CommitJob(f.ctx(), f.socket, 1<<20, sub.request); errorcodes.Of(err) != "output_store_create_failed" {
+		t.Fatalf("commit: %v", err)
+	}
+	for deadline := time.Now().Add(10 * time.Second); f.s.active.Load() != 0; time.Sleep(20 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("the job of the refused commit still runs")
+		}
+	}
+	dirs, _ := filepath.Glob(filepath.Join(f.cfg.String("basedir"), "jobs", "*", jobID))
+	if len(dirs) != 1 {
+		t.Fatalf("job directories: %v", dirs)
+	}
+	if s := readSummary(t, dirs[0]); s.FinalStatus != "cancel" {
+		t.Errorf("summary final_status=%s exit=%d, want cancel", s.FinalStatus, s.ExitCode)
+	}
+	if _, err := CancelJob(f.ctx(), f.socket, 1<<20, ipc.CancelRequest{JobID: jobID}); errorcodes.Of(err) != "job_unknown" {
+		t.Errorf("cancel_job of the refused job: %v", err)
 	}
 }

@@ -64,6 +64,9 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 		cursor   int64
 		failures int
 		lastErr  error
+		// warned is set once the start's admission warnings are said; a
+		// resume's start repeats them and they are not said again.
+		warned bool
 	)
 	// The renderer's artifacts value is the footer's label: the folder, or
 	// none for a run that keeps no files (28.4).
@@ -87,9 +90,12 @@ func followJob(ctx context.Context, o followOptions, artifactDir string, stdout 
 				if o.learned != nil {
 					*o.learned = start.ArtifactDir
 					// A follow by job ID alone did not see the receipt, so the
-					// start's admission warnings are its (IPC 10); the committing
-					// client printed them from the receipt.
-					jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
+					// first start's admission warnings are its (IPC 10); the
+					// committing client printed them from the receipt.
+					if !warned {
+						jobexec.WriteAdmissionWarnings(o.stderr, o.cfg, start.Warnings)
+						warned = true
+					}
 				}
 				if line := NotKeptLine(cursor, start.FirstSequence); line != "" {
 					jobexec.WriteWarning(o.stderr, o.cfg, line)

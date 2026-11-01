@@ -228,3 +228,43 @@ func daemonTestRuntime2(t *testing.T, base string) (string, globalOptions, strin
 	}
 	return base, g, rt.Socket
 }
+
+// TestRunExerciseRefusesAConfigurationWithoutAJobFolder: the exercise
+// report is a file in the job folder, so output.persist-command = false
+// from the configuration is refused run_mode_conflict as --nof is: on the
+// client, before a daemon is launched or a credential asked for, and with
+// nothing written in the working directory.
+func TestRunExerciseRefusesAConfigurationWithoutAJobFolder(t *testing.T) {
+	base, _, socket := daemonTestRuntime(t)
+	sets := dryRunSets(t, base)
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	t.Setenv("NETUSER", "jsmith")
+	t.Setenv("NETPASS", "p")
+	defer stopTestDaemon(t, socket, 1<<20)
+	for _, via := range []struct {
+		name string
+		sets []string
+		env  string
+	}{
+		{"--set", []string{"--set", "output.persist-command=false"}, ""},
+		{"KARVI__", nil, "false"},
+	} {
+		t.Run(via.name, func(t *testing.T) {
+			if via.env != "" {
+				t.Setenv("KARVI__OUTPUT__PERSIST_COMMAND", via.env)
+			}
+			var stdout, stderr bytes.Buffer
+			got := Main(exerciseArgs(append(append([]string{}, sets...), via.sets...)), strings.NewReader(""), &stdout, &stderr)
+			if got != exitcode.ExitUsageError || !strings.HasPrefix(stderr.String(), "run_mode_conflict: --exercise ") {
+				t.Errorf("exit=%d stderr=%q", got, stderr.String())
+			}
+			if _, err := os.Stat(socket); err == nil {
+				t.Errorf("a daemon was launched for a refused exercise")
+			}
+			if left, _ := os.ReadDir(cwd); len(left) != 0 {
+				t.Errorf("the working directory holds %v", left)
+			}
+		})
+	}
+}

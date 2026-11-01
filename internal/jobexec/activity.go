@@ -144,9 +144,15 @@ func Run(ctx context.Context, req Request, streams IO) ActivityResult {
 	// that the line does not end in a bare "artifacts=" that reads as a
 	// fault. The result's ArtifactDir is empty: there is no folder.
 	shownArtifact := artifact
-	// Every file skipped, by --nof or by all eight output.files keys, is one
+	// Every file skipped, by --nof or output.persist-command = false, is one
 	// case: no folder, so none is named.
 	if skip == output.AllFiles {
+		// An exercise's report is a file in the job folder: a job that keeps
+		// none is refused before anything of it is written, as the client
+		// refuses it.
+		if req.Mode == executionplan.ModeExercise {
+			return FailedResult("run_mode_conflict", errorcodes.Errorf("run_mode_conflict", "output.persist-command = false: the exercise report is a file in the job folder"))
+		}
 		artifact, shownArtifact = "", "none"
 	}
 	result.ArtifactDir = artifact

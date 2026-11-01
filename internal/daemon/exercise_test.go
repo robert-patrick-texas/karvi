@@ -12,6 +12,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/executionplan"
 	"github.com/robert-patrick-texas/karvi/internal/canary"
 	"github.com/robert-patrick-texas/karvi/internal/canary/canarytest"
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/exitcode"
 	"github.com/robert-patrick-texas/karvi/internal/ipc"
 	"github.com/robert-patrick-texas/karvi/inventory"
@@ -267,5 +268,31 @@ func TestCancelOfAnExerciseChangesNothing(t *testing.T) {
 		}
 	default:
 		t.Fatalf("cancel_job state %q", res.State)
+	}
+}
+
+// TestExerciseWithoutAJobFolderIsRefused: an exercise whose configuration
+// keeps no job folder (output.persist-command = false, as `--nof`) has no
+// place for its report; the commit is refused run_mode_conflict before
+// acceptance, and nothing is written in the daemon's working directory.
+func TestExerciseWithoutAJobFolderIsRefused(t *testing.T) {
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	f := newV5FixtureWith(t, v5Options{Sets: []string{"output.persist-command=false"}})
+	sub := f.prepareAndPackageMode(mustID(t), []string{"show clock"}, []inventory.Device{direct("127.0.0.1")}, fixedInput{user: "jsmith", pass: "pw"}, executionplan.ModeExercise)
+	if receipt, err := f.provide(sub); err != nil || !receipt.Accepted {
+		t.Fatalf("frame: %+v %v", receipt, err)
+	}
+	result, err := CommitJob(f.ctx(), f.socket, 1<<20, sub.request)
+	if code := errorcodes.Of(err); code != "run_mode_conflict" {
+		t.Errorf("commit: code=%q err=%v receipt=%+v", code, err, result.Receipt)
+	}
+	if err == nil {
+		// Accepted: the job's end, whose report write is what this test
+		// looks for.
+		f.followToEnd(result.Receipt.JobID)
+	}
+	if left, _ := os.ReadDir(cwd); len(left) != 0 {
+		t.Fatalf("the daemon's working directory holds %v", left)
 	}
 }

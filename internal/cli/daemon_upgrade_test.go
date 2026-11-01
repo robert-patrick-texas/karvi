@@ -314,6 +314,37 @@ func TestDaemonRestartRefusesActiveJobsWithoutForce(t *testing.T) {
 	}
 }
 
+// TestDaemonRestartStartsADaemonOverAStaleSocket: a socket file left by a
+// daemon that died refuses the connection; restart finds nothing to stop
+// and starts a daemon, which answers at the socket.
+func TestDaemonRestartStartsADaemonOverAStaleSocket(t *testing.T) {
+	base, _, socket := daemonTestRuntime(t)
+	sets := dryRunSets(t, base)
+	if err := os.MkdirAll(filepath.Dir(socket), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: socket, Net: "unix"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener.SetUnlinkOnClose(false)
+	listener.Close()
+	rt, err := testRuntime(globalsFor(sets))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopTestDaemon(t, socket, rt.MaxFrame)
+	var stdout, stderr bytes.Buffer
+	if got := Main(append(append([]string{}, sets...), "daemon", "restart"), strings.NewReader(""), &stdout, &stderr); got != 0 || stdout.String() != "daemon restarted\n" {
+		t.Fatalf("restart over a stale socket: exit=%d stdout=%q stderr=%q", got, stdout.String(), stderr.String())
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if status, err := daemon.Ping(ctx, socket, rt.MaxFrame); err != nil || status.Status != "running" {
+		t.Fatalf("after the restart: status=%+v err=%v", status, err)
+	}
+}
+
 func daemonTestRuntime(t *testing.T) (string, globalOptions, string) {
 	t.Helper()
 	tmp := testsocket.Dir(t)

@@ -127,6 +127,57 @@ func TestCallForSchemaAcceptsReleasedLifecycleEnvelope(t *testing.T) {
 	}
 }
 
+// TestCallEndsWhenItsContextIsCancelled: a call whose context has no
+// deadline returns the cancellation once the context is cancelled, while the
+// daemon holds the request unanswered.
+func TestCallEndsWhenItsContextIsCancelled(t *testing.T) {
+	socket := filepath.Join(testsocket.Dir(t), "d.sock")
+	listener, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	received := make(chan net.Conn, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		var req ipc.Request
+		if err := ipc.Read(conn, &req, 1<<20); err != nil {
+			conn.Close()
+			return
+		}
+		received <- conn
+	}()
+	req, err := ipc.NewRequest("request-4", "prepare_job", map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	returned := make(chan error, 1)
+	go func() { returned <- ipc.Call(ctx, socket, req, 1<<20, nil) }()
+	var held net.Conn
+	select {
+	case held = <-received:
+		defer held.Close()
+	case err := <-returned:
+		t.Fatalf("the call returned before the daemon held it: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("the daemon never received the request")
+	}
+	cancel()
+	select {
+	case err := <-returned:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("error=%v, want the cancellation", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the cancelled call is still waiting for the daemon's answer")
+	}
+}
+
 // TestFrameBoundNamesTheSizes: a frame over the bound is refused naming the
 // key, and a write stacks the frame's size over the bound, a request by its
 // kind (EXAMPLES chapter 79: a plan carries every target's list under a --cf

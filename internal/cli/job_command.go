@@ -169,7 +169,7 @@ func jobCancel(ctx context.Context, inv *Invocation, streams app.IO) int {
 		if c := o.Summary.CancelledBy(); c != nil {
 			fmt.Fprintf(streams.Stdout, "%s (exit %d)\n", app.CancelledLine(jobID, c.Reason, res.ArtifactDir), o.ExitCode)
 		} else {
-			fmt.Fprintf(streams.Stdout, "job %s ended: %s (exit %d); artifacts %s\n", jobID, o.Summary.FinalStatus, o.ExitCode, res.ArtifactDir)
+			fmt.Fprintf(streams.Stdout, "job %s ended: %s (exit %d); artifacts %s\n", jobID, o.Summary.FinalStatus, o.ExitCode, app.ArtifactsLabel(res.ArtifactDir))
 		}
 	}
 	return o.ExitCode
@@ -194,9 +194,9 @@ func otherSchema(verb string, probe daemon.ProbeResult, probeErr error) error {
 // cancelResultLine renders the two cancel answers.
 func cancelResultLine(res ipc.CancelResult) string {
 	if res.State == ipc.CancelStateTerminal && res.Outcome != nil {
-		return fmt.Sprintf("job %s already ended: %s (exit %d); artifacts %s", res.JobID, res.Outcome.Summary.FinalStatus, res.Outcome.ExitCode, res.ArtifactDir)
+		return fmt.Sprintf("job %s already ended: %s (exit %d); artifacts %s", res.JobID, res.Outcome.Summary.FinalStatus, res.Outcome.ExitCode, app.ArtifactsLabel(res.ArtifactDir))
 	}
-	return fmt.Sprintf("cancel requested: job %s; artifacts %s", res.JobID, res.ArtifactDir)
+	return fmt.Sprintf("cancel requested: job %s; artifacts %s", res.JobID, app.ArtifactsLabel(res.ArtifactDir))
 }
 
 // jobFollow is karvi job follow JOB-ID [--format text|jsonl|json] [--echo]

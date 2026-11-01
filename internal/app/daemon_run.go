@@ -90,6 +90,14 @@ func draftClient(ctx context.Context, opts RunOptions, dryRun bool, streams IO) 
 	if err != nil {
 		return nil, "activity_id_generation_failed", err
 	}
+	// The reservation is released on every failure after it; a draft
+	// returned is the caller's to release.
+	drafted := false
+	defer func() {
+		if !drafted {
+			cd.release()
+		}
+	}()
 	warn := func(s string) { jobexec.WriteWarning(streams.Stderr, cfg, s) }
 	draftOpts := planner.DraftOptions{
 		ActivityType: "run", Commands: opts.Commands, CommandsFiles: opts.CommandsFiles, TargetCommands: opts.TargetCommands, CommandFolders: opts.CommandFolders, Inputs: opts.Targets, BlindReturns: opts.BlindReturns, Blind: opts.Blind, Expectations: opts.Expectations, Timeouts: opts.Timeouts, MaxBytes: opts.MaxBytes,
@@ -124,6 +132,7 @@ func draftClient(ctx context.Context, opts RunOptions, dryRun bool, streams IO) 
 	}
 	cd.planner = cp
 	cd.timing.credential = time.Since(t0)
+	drafted = true
 	return cd, "", nil
 }
 
@@ -291,7 +300,7 @@ func RunViaDaemon(ctx context.Context, opts RunOptions, socket string, maxFrame 
 			r.JobID, r.ArtifactDir = jobReceipt.JobID, jobReceipt.ArtifactDir
 			return r
 		}
-		fmt.Fprintf(streams.Stderr, "job %s continues in the daemon; artifacts %s\n", jobReceipt.JobID, jobReceipt.ArtifactDir)
+		fmt.Fprintf(streams.Stderr, "job %s continues in the daemon; artifacts %s\n", jobReceipt.JobID, ArtifactsLabel(jobReceipt.ArtifactDir))
 		r := failedResult("follow_stream_lost", err)
 		r.JobID, r.ArtifactDir = jobReceipt.JobID, jobReceipt.ArtifactDir
 		return r
@@ -353,9 +362,9 @@ func CancelledLine(jobID, reason, artifactDir string) string {
 
 func cancelledLine(jobID, reason, artifactDir string) string {
 	if reason == "" {
-		return fmt.Sprintf("job %s cancelled; artifacts %s", jobID, artifactDir)
+		return fmt.Sprintf("job %s cancelled; artifacts %s", jobID, ArtifactsLabel(artifactDir))
 	}
-	return fmt.Sprintf("job %s cancelled: %s; artifacts %s", jobID, reason, artifactDir)
+	return fmt.Sprintf("job %s cancelled: %s; artifacts %s", jobID, reason, ArtifactsLabel(artifactDir))
 }
 
 // The stages of a submission, written after the code in an abort's

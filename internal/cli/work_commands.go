@@ -692,6 +692,12 @@ func commandRun(ctx context.Context, inv *Invocation, streams app.IO) int {
 	if !ok {
 		return code
 	}
+	// --nof's conflict with --exercise from the configuration, which the
+	// read decides: refused before a credential is asked for or a daemon
+	// reached.
+	if inv.Flag(optExercise) && !planner.OutputFilesOn(common.Config) {
+		return inv.Global.usageError(streams.Stderr, "run_mode_conflict", "--exercise with output.persist-command = false: the exercise report is a file in the job folder; --of")
+	}
 	read := app.ReadTiming{Start: started, Duration: time.Since(started)}
 	inputs, code, ok := targetInputs(inv, common.Config, streams)
 	if !ok {

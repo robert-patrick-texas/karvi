@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -180,5 +181,50 @@ func TestStopRejectsUnknownMode(t *testing.T) {
 	defer cancel()
 	if _, err := StopCompatible(ctx, socket, 1<<20, "later"); err == nil || !strings.Contains(err.Error(), "daemon_stop_mode_unknown") {
 		t.Fatalf("unknown stop mode error = %v", err)
+	}
+}
+
+// TestIdleConnectionsDoNotHoldTheStop: a same-UID client that connects to
+// the request socket and to the credential channel and sends nothing, or a
+// part of a line, does not keep a stopped daemon from exiting.
+func TestIdleConnectionsDoNotHoldTheStop(t *testing.T) {
+	dir := testsocket.Dir(t)
+	socket := filepath.Join(dir, "d.sock")
+	s := &Server{Socket: socket, StatePath: filepath.Join(dir, "state.json"), UID: os.Geteuid()}
+	ctx, stop := context.WithCancel(context.Background())
+	served := make(chan error, 1)
+	go func() { served <- s.Serve(ctx) }()
+	t.Cleanup(stop)
+	waitCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := ipc.Wait(waitCtx, socket); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		path, sent string
+	}{{socket, ""}, {socket, `{"ipc_schema_version":`}, {CredentialSocket(socket), ""}, {CredentialSocket(socket), "KARVI"}} {
+		conn, err := net.Dial("unix", c.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Closed at the test's end, whatever the daemon did.
+		t.Cleanup(func() { conn.Close() })
+		if _, err := conn.Write([]byte(c.sent)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := StopCompatible(waitCtx, socket, 1<<20, StopIfIdle); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-served:
+		if err != nil {
+			t.Fatalf("Serve = %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stopped daemon still waits on its idle connections")
+	}
+	if _, err := os.Stat(socket); !os.IsNotExist(err) {
+		t.Errorf("the socket remains: %v", err)
 	}
 }

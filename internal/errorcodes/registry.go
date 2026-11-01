@@ -699,7 +699,7 @@ var entries = []Entry{
 	failure("config_generate_mode_conflict", "usage", exitUsage, false, "`config generate` is given both `--minimal` and `--full`."),
 	failure("config_show_format_conflict", "usage", exitUsage, false, "`config show` is given `--format` beside keys or `--explain`; `--format` encodes the full view alone, and the view of keys is text."),
 	failure("watch_tui_requires_terminal", "usage", exitUsage, false, "`watch --format tui` is requested while stdout is not a terminal."),
-	failure("run_mode_conflict", "usage", exitUsage, false, "`run` combines `--dry-run`, `--exercise`, or `--detach` with one another, or `--detach` with `--follow` or `--no-daemon`; or `--of` without `--no-daemon`, since a job through the daemon is written under the daemon's `output.root`."),
+	failure("run_mode_conflict", "usage", exitUsage, false, "`run` combines `--dry-run`, `--exercise`, or `--detach` with one another, `--exercise` or `--detach` with `--no-daemon`, `--detach` with `--follow`, or `--nof` with `--detach` or `--exercise`; or `--exercise` runs under `output.persist-command = false`, which keeps no job folder for its report."),
 
 	// Notices.
 	notice("cloginrc_directive_ignored", "The `.cloginrc` file uses a directive karvi reads but ignores."),

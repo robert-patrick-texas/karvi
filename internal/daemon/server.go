@@ -10,6 +10,7 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
@@ -241,17 +243,13 @@ func (s *Server) Serve(parent context.Context) error {
 		go s.handleSignals(ctx)
 	}
 	var wg sync.WaitGroup
+	// The credential channel's loop ends with the daemon's, and a fatal
+	// error of its own stops the daemon as one of the request socket's does.
+	frameErr := make(chan error, 1)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for {
-			conn, err := frames.AcceptUnix()
-			if err != nil {
-				return
-			}
-			wg.Add(1)
-			go func(c *net.UnixConn) { defer wg.Done(); defer c.Close(); s.handleFrame(ctx, c) }(conn)
-		}
+		frameErr <- s.acceptLoop(ctx, frames, credentialSocket, &wg, s.handleFrame)
 	}()
 	wg.Add(1)
 	go func() {
@@ -268,22 +266,74 @@ func (s *Server) Serve(parent context.Context) error {
 			}
 		}
 	}()
-	for {
-		conn, err := listener.AcceptUnix()
-		if err != nil {
-			if ctx.Err() != nil {
-				break
-			}
-			return err
-		}
-		wg.Add(1)
-		go func(c *net.UnixConn) { defer wg.Done(); defer c.Close(); s.handle(ctx, c) }(conn)
-	}
+	err = s.acceptLoop(ctx, listener, s.Socket, &wg, s.handle)
 	_ = s.writeState("draining")
 	wg.Wait()
 	s.awaitAccounting()
 	s.preparations.destroyAll()
-	return nil
+	if err == nil {
+		err = <-frameErr
+	}
+	return err
+}
+
+// unixAccepter is the half of a Unix listener an accept loop uses.
+type unixAccepter interface {
+	AcceptUnix() (*net.UnixConn, error)
+}
+
+// acceptLoop runs serve on each connection l accepts at socket, each under
+// wg, until the daemon stops (ctx done). An accept error that passes, the
+// process or the host out of descriptors or buffers (acceptRetryable), is
+// logged and retried after a pause of 5 ms doubling to 1 s, as net/http's
+// server does. Any other is logged and stops the daemon: its context is
+// cancelled, so Serve's shutdown runs as for a stop, and the error is
+// returned for Serve to report.
+func (s *Server) acceptLoop(ctx context.Context, l unixAccepter, socket string, wg *sync.WaitGroup, serve func(context.Context, *net.UnixConn)) error {
+	var pause time.Duration
+	for {
+		conn, err := l.AcceptUnix()
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+			if !acceptRetryable(err) {
+				if s.Logger != nil {
+					s.Logger.Error("accept failed, stopping", slog.String("socket", socket), slog.String("error", err.Error()))
+				}
+				s.cancel()
+				return err
+			}
+			pause = min(max(2*pause, 5*time.Millisecond), time.Second)
+			if s.Logger != nil {
+				s.Logger.Warn("accept failed, retrying", slog.String("socket", socket), slog.String("error", err.Error()), slog.Duration("retry_in", pause))
+			}
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(pause):
+			}
+			continue
+		}
+		pause = 0
+		wg.Add(1)
+		go func(c *net.UnixConn) { defer wg.Done(); defer c.Close(); serve(ctx, c) }(conn)
+	}
+}
+
+// acceptRetryable says whether an accept error passes: descriptors used up
+// in the process or the host, memory or socket buffers short, or an accept
+// interrupted or aborted by its peer.
+func acceptRetryable(err error) bool {
+	var errno syscall.Errno
+	if !errors.As(err, &errno) {
+		return false
+	}
+	switch errno {
+	case syscall.EMFILE, syscall.ENFILE, syscall.ENOBUFS, syscall.ENOMEM, syscall.EINTR, syscall.EAGAIN, syscall.ECONNABORTED:
+		return true
+	}
+	return false
 }
 
 // awaitAccounting waits for the job goroutines to finalize their records
@@ -441,7 +491,17 @@ func (s *Server) awaitAccounting() {
 	}
 }
 
+// endReadsAtStop makes a read still waiting on conn end when the daemon
+// stops (ctx done): the read deadline becomes now, so an idle or stalled
+// client cannot hold Serve's wait for its handlers, while a reply being
+// written, a follower's terminal among them, is not cut. The returned stop
+// ends the watch.
+func endReadsAtStop(ctx context.Context, conn *net.UnixConn) (stop func() bool) {
+	return context.AfterFunc(ctx, func() { _ = conn.SetReadDeadline(time.Now()) })
+}
+
 func (s *Server) handle(ctx context.Context, conn *net.UnixConn) {
+	defer endReadsAtStop(ctx, conn)()
 	uid, err := ipc.PeerUID(conn)
 	if err != nil || int(uid) != s.UID {
 		_ = ipc.Write(conn, ipc.Response{IPCSchemaVersion: ipc.SchemaVersion, Error: &ipc.Error{Code: "peer_uid_denied", Message: "daemon accepts only the same effective UID", Details: map[string]any{}}}, s.MaxFrame)

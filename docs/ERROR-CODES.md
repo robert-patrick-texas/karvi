@@ -528,7 +528,7 @@ Active failure causes.
 | `redis_select_failed` | credential | 6 | no | The Redis server rejects `SELECT` of the configured database. |
 | `redis_tls_config_invalid` | credential | 6 | no | The Redis CA or client certificate files cannot be loaded. |
 | `redis_unavailable` | credential | 6 | yes | The Redis server cannot be reached, the TLS handshake fails, or the connection fails during the credential read. |
-| `run_mode_conflict` | usage | 4 | no | `run` combines `--dry-run`, `--exercise`, or `--detach` with one another, or `--detach` with `--follow` or `--no-daemon`; or `--of` without `--no-daemon`, since a job through the daemon is written under the daemon's `output.root`. |
+| `run_mode_conflict` | usage | 4 | no | `run` combines `--dry-run`, `--exercise`, or `--detach` with one another, `--exercise` or `--detach` with `--no-daemon`, `--detach` with `--follow`, or `--nof` with `--detach` or `--exercise`; or `--exercise` runs under `output.persist-command = false`, which keeps no job folder for its report. |
 | `run_output_format_unsupported` | usage | 4 | no | Run output is requested in a format other than text, jsonl, or json. |
 | `run_output_record_decode_failed` | output | 111 | no | A stored run command record is not valid JSON. |
 | `run_output_records_unreadable` | output | 111 | no | A completed run's commands.jsonl cannot be opened or read. |
