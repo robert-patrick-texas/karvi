@@ -8,6 +8,7 @@ package cloginrc
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -327,27 +328,29 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 	}
 	seen[canonical] = path
 	active = append(active, canonical)
+	// Each line is read alone, as clogin's source_password_file reads a line
+	// with gets and evaluates it: no line continues onto the next.
 	s := bufio.NewScanner(f)
 	s.Buffer(make([]byte, 64*1024), 1<<20)
+	s.Split(tclLines())
 	out := []record{}
 	ignoredSeen := map[string]bool{}
 	line := 0
 	for s.Scan() {
 		line++
-		raw := strings.TrimSuffix(s.Text(), "\r")
+		raw := s.Text()
 		// A command begins at the line's first word, and a "#" there begins
 		// a comment, as Tcl reads one.
 		if at := skipTclSpace(raw, 0); at == len(raw) || raw[at] == '#' {
 			continue
 		}
-		if endsContinuation(raw) {
-			return nil, fmt.Errorf("%s:%d: multiline continuation is unsupported", canonical, line)
-		}
 		tokens, err := tokenize(raw)
 		if err != nil {
 			return nil, located(fmt.Sprintf("%s:%d: ", canonical, line), err)
 		}
-		if strings.EqualFold(tokens[0], "include") {
+		// The statement and the directive are matched as clogin's Tcl matches
+		// a command's name and its find a directive, case and all.
+		if tokens[0] == "include" {
 			if len(tokens) != 2 {
 				return nil, fmt.Errorf("%s:%d: include requires exactly one value", canonical, line)
 			}
@@ -379,10 +382,10 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 			out = append(out, nested...)
 			continue
 		}
-		if !strings.EqualFold(tokens[0], "add") || len(tokens) < 4 {
+		if tokens[0] != "add" || len(tokens) < 4 {
 			return nil, fmt.Errorf("%s:%d: unsupported statement", canonical, line)
 		}
-		d := strings.ToLower(tokens[1])
+		d := tokens[1]
 		pattern := tokens[2]
 		values := tokens[3:]
 		switch d {
@@ -436,12 +439,34 @@ func located(where string, err error) error {
 	return fmt.Errorf("%s%w", where, err)
 }
 
-func endsContinuation(s string) bool {
-	n := 0
-	for i := len(s) - 1; i >= 0 && s[i] == '\\'; i-- {
-		n++
+// tclLines splits a file into lines as Tcl's gets reads them under its
+// default translation (auto): a newline, a carriage return and a newline,
+// or a carriage return alone ends a line, and is not part of it; the last
+// line needs no end. A line's first end byte is taken with it, so a line
+// and its end fit the scanner's buffer whichever end it has, and the
+// newline after a carriage return is skipped by the call that finds the
+// next line: a call that advances and gives no line ends the scan once the
+// file has been read to its end.
+func tclLines() bufio.SplitFunc {
+	afterCR := false
+	return func(data []byte, atEOF bool) (int, []byte, error) {
+		skip := 0
+		if afterCR && len(data) > 0 {
+			afterCR = false
+			if data[0] == '\n' {
+				skip = 1
+			}
+		}
+		rest := data[skip:]
+		if i := bytes.IndexAny(rest, "\r\n"); i >= 0 {
+			afterCR = rest[i] == '\r'
+			return skip + i + 1, rest[:i], nil
+		}
+		if atEOF && len(rest) > 0 {
+			return len(data), rest, nil
+		}
+		return skip, nil, nil
 	}
-	return n%2 == 1
 }
 
 // tokenize reads a line's words as Tcl reads a command's words: white space
@@ -471,18 +496,15 @@ func tokenize(s string) ([]string, error) {
 // parseBraced reads a braced word as Tcl does: no substitution inside the
 // braces, so every character is kept as it stands, "$", "[", "]", and ";"
 // among them, and a backslash with the byte after it; an escaped brace does
-// not count toward the nesting. White space or the line's end follows the
-// closing brace.
+// not count toward the nesting, and a backslash that ends the line leaves
+// the brace open. White space or the line's end follows the closing brace.
 func parseBraced(s string, i int) (string, int, error) {
 	i++
 	depth := 1
 	var b strings.Builder
 	for i < len(s) {
 		c := s[i]
-		if c == '\\' {
-			if i+1 >= len(s) {
-				return "", i, fmt.Errorf("unfinished escape")
-			}
+		if c == '\\' && i+1 < len(s) {
 			b.WriteString(s[i : i+2])
 			i += 2
 			continue

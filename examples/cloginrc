@@ -5,7 +5,9 @@
 # file. Copy it to ~/.cloginrc and chmod 600, or declare it
 # as [credential-backend.rancid] in the configuration (examples/config.toml).
 # A # as a line's first word starts a comment (elsewhere it is part of a
-# word); a continuation line (a trailing backslash) is refused.
+# word). Each line stands alone, as clogin reads it: a trailing backslash
+# continues nothing, and a comment ends with its line. add, include, and the
+# directive are in lower case, as clogin matches them.
 #
 # add user PATTERN {USERNAME}            the login name for the devices PATTERN matches
 # add password PATTERN {PASSWORD} {ENABLE}  the login and the enable password

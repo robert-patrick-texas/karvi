@@ -673,10 +673,10 @@ var wordCases = []struct {
 	{line: `add userpassword router1 pa"ss"`, pattern: "router1", values: []string{`pa"ss"`}},
 	{line: `add userpassword router1 pa{ss}`, pattern: "router1", values: []string{"pa{ss}"}},
 	// Words are separated by Tcl's white space alone: space, tab, vertical
-	// tab, form feed, carriage return; a character whose UTF-8 holds the
-	// byte 0x85 or 0xa0 is part of its word.
+	// tab, form feed (a carriage return ends a line, as lineCases show); a
+	// character whose UTF-8 holds the byte 0x85 or 0xa0 is part of its word.
 	{line: "add password router1\vpa\fss\v", pattern: "router1", values: []string{"pa", "ss"}},
-	{line: "add\tuserpassword\trouter1\tpass\r", pattern: "router1", values: []string{"pass"}},
+	{line: "add\tuserpassword\trouter1\tpass\f", pattern: "router1", values: []string{"pass"}},
 	{line: "add userpassword router1 p\xc3\xa0ss", pattern: "router1", values: []string{"p\xc3\xa0ss"}},
 	{line: "add userpassword router1 p\xc3\x85ss", pattern: "router1", values: []string{"p\xc3\x85ss"}},
 	// A quoted word is one word: white space, ";", "]", and the braces are
@@ -753,10 +753,133 @@ func TestWordsReadAsTclsh(t *testing.T) {
 	}
 }
 
+// lineCases are .cloginrc files, byte for byte, and what clogin reads from
+// each in tclsh8.6 (8.6.17): its source_password_file takes each line with
+// Tcl's gets (a newline, a carriage return and a newline, or a carriage
+// return alone ends a line, and the gets calls number the lines) and
+// evaluates the line on its own through clogin's add and include. A case
+// gives the records karvi reads (the line, the directive, the pattern, and
+// the values clogin takes), or the refusal (the code, the line, and the text
+// after the file and line) with tcl saying how clogin fails the line, or why
+// karvi refuses a line clogin reads. sub.rc, beside the file, holds "add user
+// switch1 alice". They are recorded here so that the test needs no Tcl.
+var lineCases = []struct {
+	name, file   string
+	records      []record
+	code         string
+	line         int
+	message, tcl string
+}{
+	// A newline, a carriage return and a newline, or a carriage return alone
+	// ends a line.
+	{name: "newlines", file: "add user router1 bob\nadd password router1 pw-a en-a\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{"bob"}}, {Line: 2, Directive: "password", Pattern: "router1", Values: []string{"pw-a", "en-a"}}}},
+	{name: "carriage returns and newlines", file: "add user router1 bob\r\nadd password router1 pw-a en-a\r\nadd userpassword switch2 pw-b\r\nadd password switch3 pw-c\r\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{"bob"}}, {Line: 2, Directive: "password", Pattern: "router1", Values: []string{"pw-a", "en-a"}}, {Line: 3, Directive: "userpassword", Pattern: "switch2", Values: []string{"pw-b"}}, {Line: 4, Directive: "password", Pattern: "switch3", Values: []string{"pw-c"}}}},
+	{name: "a carriage return alone mid-file", file: "add user router1 bob\radd password router1 pw-a en-a\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{"bob"}}, {Line: 2, Directive: "password", Pattern: "router1", Values: []string{"pw-a", "en-a"}}}},
+	{name: "carriage returns alone, one ending the file", file: "add user router1 bob\radd password router1 pw-a\r",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{"bob"}}, {Line: 2, Directive: "password", Pattern: "router1", Values: []string{"pw-a"}}}},
+	{name: "a carriage return alone before a carriage return and a newline", file: "add user router1 bob\r\r\nadd password router1 pw-a\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{"bob"}}, {Line: 3, Directive: "password", Pattern: "router1", Values: []string{"pw-a"}}}},
+	{name: "a newline before a carriage return alone", file: "add user router1 bob\n\radd password router1 pw-a\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{"bob"}}, {Line: 3, Directive: "password", Pattern: "router1", Values: []string{"pw-a"}}}},
+	{name: "a carriage return alone ending a comment", file: "# lab\radd password router1 pw-a\n",
+		records: []record{{Line: 2, Directive: "password", Pattern: "router1", Values: []string{"pw-a"}}}},
+	{name: "a carriage return alone inside a word", file: "add password router1 pw\r-a\n",
+		code: "cloginrc_malformed", line: 2, message: "unsupported statement", tcl: `line 1 the password "pw"; line 2 invalid command name "-a"`},
+	{name: "a refusal after carriage returns alone", file: "add user router1 bob\radd password router1 pw-a\rADD password router1 pw-b\n",
+		code: "cloginrc_malformed", line: 3, message: "unsupported statement", tcl: `invalid command name "ADD"`},
+	{name: "a refusal after a carriage return alone and a carriage return and a newline", file: "add user router1 bob\r\r\nadd password router1 {pw-a\n",
+		code: "cloginrc_malformed", line: 3, message: "unterminated brace", tcl: "missing close-brace"},
+	// A line has no continuation: a backslash that ends it is read as Tcl
+	// reads the line alone.
+	{name: "a backslash ending a bare word", file: "add userpassword router1 pass\\\n",
+		records: []record{{Line: 1, Directive: "userpassword", Pattern: "router1", Values: []string{`pass\`}}}},
+	{name: "a backslash ending a bare enable password", file: "add password router1 pass en\\\n",
+		records: []record{{Line: 1, Directive: "password", Pattern: "router1", Values: []string{"pass", `en\`}}}},
+	{name: "a backslash alone as the enable password", file: "add password router1 pass \\\n",
+		records: []record{{Line: 1, Directive: "password", Pattern: "router1", Values: []string{"pass", `\`}}}},
+	{name: "three backslashes ending a bare word", file: "add userpassword router1 pa\\\\\\\n",
+		records: []record{{Line: 1, Directive: "userpassword", Pattern: "router1", Values: []string{`pa\\`}}}},
+	{name: "three backslashes ending a bare password, joined", file: "add password router1 pa\\\\\\\n",
+		records: []record{{Line: 1, Directive: "password", Pattern: "router1", Values: []string{`pa\`}}}},
+	{name: "a backslash ending an add user value", file: "add user router1 bob\\\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "router1", Values: []string{`bob\`}}}},
+	{name: "a backslash before a carriage return and a newline", file: "add userpassword router1 pass\\\r\n",
+		records: []record{{Line: 1, Directive: "userpassword", Pattern: "router1", Values: []string{`pass\`}}}},
+	{name: "a backslash before a carriage return alone", file: "add userpassword router1 pass\\\radd user router1 bob\n",
+		records: []record{{Line: 1, Directive: "userpassword", Pattern: "router1", Values: []string{`pass\`}}, {Line: 2, Directive: "user", Pattern: "router1", Values: []string{"bob"}}}},
+	{name: "a backslash ending a comment", file: "# a comment ending in a backslash \\\nadd password router1 pw-a\n",
+		records: []record{{Line: 2, Directive: "password", Pattern: "router1", Values: []string{"pw-a"}}}},
+	{name: "a backslash in a quoted word left open", file: "add password router1 \"pass\\\n",
+		code: "cloginrc_malformed", line: 1, message: "unterminated quote", tcl: `missing "`},
+	{name: "a backslash in a braced word left open", file: "add password router1 {pass\\\n",
+		code: "cloginrc_malformed", line: 1, message: "unterminated brace", tcl: "missing close-brace"},
+	{name: "a backslash after a closing brace", file: "add password router1 {pa}\\\n",
+		code: "cloginrc_malformed", line: 1, message: "text after a closing brace", tcl: "extra characters after close-brace"},
+	{name: "a backslash after a closing quote", file: "add password router1 \"pa\"\\\n",
+		code: "cloginrc_malformed", line: 1, message: "text after a closing quote", tcl: "extra characters after close-quote"},
+	// add and include, the line's first word, and the directive are matched
+	// as Tcl matches a command's name and clogin's find a directive: case
+	// counts.
+	{name: "ADD", file: "ADD password router1 pw-a\n",
+		code: "cloginrc_malformed", line: 1, message: "unsupported statement", tcl: `invalid command name "ADD"`},
+	{name: "Add", file: "Add user router1 bob\n",
+		code: "cloginrc_malformed", line: 1, message: "unsupported statement", tcl: `invalid command name "Add"`},
+	{name: "INCLUDE", file: "INCLUDE sub.rc\n",
+		code: "cloginrc_malformed", line: 1, message: "unsupported statement", tcl: `invalid command name "INCLUDE"`},
+	{name: "Include", file: "Include sub.rc\n",
+		code: "cloginrc_malformed", line: 1, message: "unsupported statement", tcl: `invalid command name "Include"`},
+	{name: "include", file: "include sub.rc\n",
+		records: []record{{Line: 1, Directive: "user", Pattern: "switch1", Values: []string{"alice"}}}},
+	{name: "add PASSWORD", file: "add PASSWORD router1 pw-a\n",
+		code: "cloginrc_unknown_directive", line: 1, message: "PASSWORD", tcl: "clogin's add keeps the line under PASSWORD, which its find password never reads"},
+	{name: "add Password", file: "add Password router1 pw-a\n",
+		code: "cloginrc_unknown_directive", line: 1, message: "Password", tcl: "clogin's add keeps the line under Password, which its find password never reads"},
+	{name: "add USER", file: "add USER router1 bob\n",
+		code: "cloginrc_unknown_directive", line: 1, message: "USER", tcl: "clogin's add keeps the line under USER, which its find user never reads"},
+	{name: "add UserPassword", file: "add UserPassword router1 pw-a\n",
+		code: "cloginrc_unknown_directive", line: 1, message: "UserPassword", tcl: "clogin's add keeps the line under UserPassword, which its find userpassword never reads"},
+	{name: "add METHOD", file: "add METHOD router1 ssh\n",
+		code: "cloginrc_unknown_directive", line: 1, message: "METHOD", tcl: "clogin's add keeps the line under METHOD, which its find method never reads"},
+	{name: "add method", file: "add method router1 ssh\n"},
+}
+
+// TestLinesReadAsClogin: each file of lineCases is read as clogin reads it,
+// line by line, or refused with the code, line, and message recorded.
+func TestLinesReadAsClogin(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	write(t, filepath.Join(d, "sub.rc"), "add user switch1 alice\n", 0o600)
+	for _, tc := range lineCases {
+		write(t, p, tc.file, 0o600)
+		records, failed := newBackend(t, d, p, credfile.ScopeUser, false).load(context.Background())
+		if tc.code != "" {
+			want := p + ":" + strconv.Itoa(tc.line) + ": " + tc.message
+			if failed == nil {
+				t.Errorf("%s: read as %+v; want %s, %s (clogin: %s)", tc.name, records, tc.code, want, tc.tcl)
+			} else if failed.ErrorCode != tc.code || failed.Message != want {
+				t.Errorf("%s: %s: %s\nwant %s: %s (clogin: %s)", tc.name, failed.ErrorCode, failed.Message, tc.code, want, tc.tcl)
+			}
+			continue
+		}
+		if failed != nil {
+			t.Errorf("%s: %s: %s; clogin reads %+v", tc.name, failed.ErrorCode, failed.Message, tc.records)
+			continue
+		}
+		if !slices.EqualFunc(records, tc.records, func(a, b record) bool {
+			return a.Line == b.Line && a.Directive == b.Directive && a.Pattern == b.Pattern && slices.Equal(a.Values, b.Values)
+		}) {
+			t.Errorf("%s: read as %+v; clogin reads %+v", tc.name, records, tc.records)
+		}
+	}
+}
+
 // TestLongLineIsRefusedNamingTheFileAndLine: a line of 1 MiB or more (the
-// reader's bound, its newline aside) fails the load with cloginrc_malformed,
+// reader's bound, its line end aside) fails the load with cloginrc_malformed,
 // the message naming the file and the line (an included file's after the
-// include's); a line one byte shorter is read.
+// include's); a line one byte shorter is read, whichever line end ends it.
 func TestLongLineIsRefusedNamingTheFileAndLine(t *testing.T) {
 	d := t.TempDir()
 	root := filepath.Join(d, "cloginrc")
@@ -764,13 +887,16 @@ func TestLongLineIsRefusedNamingTheFileAndLine(t *testing.T) {
 	const lead = "add userpassword router1 "
 	fits := lead + strings.Repeat("a", 1<<20-1-len(lead))
 	long := fits + "a"
-	write(t, root, "# lab\n"+fits+"\n", 0o600)
-	if records, failed := newBackend(t, d, root, credfile.ScopeUser, false).load(context.Background()); failed != nil || len(records) != 1 || len(records[0].Values[0]) != len(fits)-len(lead) {
-		t.Fatalf("a line of 1 MiB less one byte: %d records, %v", len(records), failed)
+	for _, end := range []string{"\n", "\r\n", "\r"} {
+		write(t, root, "# lab\n"+fits+end+"add password * {pw-default}\n", 0o600)
+		if records, failed := newBackend(t, d, root, credfile.ScopeUser, false).load(context.Background()); failed != nil || len(records) != 2 || len(records[0].Values[0]) != len(fits)-len(lead) || records[1].Line != 3 {
+			t.Errorf("a line of 1 MiB less one byte, ended by %q: %d records, %v", end, len(records), failed)
+		}
 	}
 	write(t, sub, "# lab\n"+long+"\n", 0o600)
 	for _, f := range []struct{ where, body, want string }{
 		{"the file", "# lab\n" + long + "\nadd password * {pw-default}\n", root + ":2: a line of 1 MiB or more"},
+		{"the file, a carriage return ending the line", "# lab\n" + long + "\radd password * {pw-default}\n", root + ":2: a line of 1 MiB or more"},
 		{"the file's last line", "# lab\n" + long, root + ":2: a line of 1 MiB or more"},
 		{"an included file", "include sub.rc\n", root + ":1 include: " + sub + ":2: a line of 1 MiB or more"},
 	} {

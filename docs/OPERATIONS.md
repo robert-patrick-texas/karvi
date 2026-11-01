@@ -1249,6 +1249,17 @@ present but fails its symlink, type, owner, or mode check fails whatever
 the scope. A relative `include` resolves beside the file that includes it
 and inherits its scope; a shared file cannot include from a home directory.
 
+A `.cloginrc` line is what clogin's Tcl `gets` reads: a newline, a carriage
+return and a newline, or a carriage return alone ends it. Each line is read
+on its own, as clogin evaluates it, so no line continues onto the next: a
+backslash that ends a line is part of its last word, as Tcl reads that line
+alone (`add password router1 PASSWORD\` gives the password `PASSWORD\`), and
+in a quoted or braced word it leaves the word open on its line. `add`,
+`include`, and the directive after `add` are matched as clogin's Tcl matches
+them, case and all: `ADD` or `Include` fails the load as an unsupported
+statement (`cloginrc_malformed`), and `add PASSWORD` or `add METHOD` as an
+unknown directive (`cloginrc_unknown_directive`).
+
 A `.cloginrc` line's pattern matches a device's name as clogin matches it,
 with Tcl's `string match -nocase`: `*` matches any run of characters, `/`
 included; `?` one character; `\x` the character `x`; and a class one of the

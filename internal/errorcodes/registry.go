@@ -251,7 +251,7 @@ var entries = []Entry{
 	failure("credential_prompt_interrupted", "credential", exitCancel, false, "The operator pressed Ctrl-C at a credential prompt, or a signal ended it; no job runs without the credential, so karvi exits."),
 	failure("credential_transform_error", "credential", exitCred, false, "A credential transform cannot be applied to the username."),
 	failure("credential_username_missing", "credential", exitCred, false, "No backend answered and the platform's fallback (`NETUSER`, the terminal prompt, or the operator's keys, as its list says) supplied no username."),
-	failure("cloginrc_malformed", "credential", exitCred, false, "The `.cloginrc` file cannot be read or has invalid syntax: continuation lines, a line of 1 MiB or more, unsupported statements, wrong value counts, unterminated braces or quotes, text after a closing brace or quote, a pattern that cannot match, or a password or enable password that is not a Tcl list."),
+	failure("cloginrc_malformed", "credential", exitCred, false, "The `.cloginrc` file cannot be read or has invalid syntax: a line of 1 MiB or more, unsupported statements, wrong value counts, unterminated braces or quotes, text after a closing brace or quote, a pattern that cannot match, or a password or enable password that is not a Tcl list."),
 	failure("cloginrc_unknown_directive", "credential", exitCred, false, "The `.cloginrc` file contains a directive karvi does not recognize."),
 	failure("formula_source_invalid", "credential", exitCred, false, "A formula backend's password source returned no usable credential."),
 	failure("formula_template_missing", "credential", exitCred, false, "A formula backend's username template is empty."),

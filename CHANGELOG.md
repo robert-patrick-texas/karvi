@@ -219,38 +219,47 @@
   row leaving it to the mode's default differ, and a key still compares
   folded. The source's digest and its rows come from one read, so the digest
   names the bytes the devices came from.
-- **Breaking: `.cloginrc` reads words, patterns, and passwords as clogin's Tcl
-  does.** A braced word dropped each backslash; inside braces a backslash and
-  the character after it are now kept, as Tcl reads a braced word, and in a
-  braced pattern a backslash escapes the glob character after it. `$`, `[`, `]`,
-  and `;` inside braces were refused, though Tcl takes them as written, so a
-  file clogin reads (`{pa$$w0rd}`) was refused whole; they are now taken as
-  written, and refused only in a bare word, the message naming the character. A
-  bare word took the character after a backslash as it stood, a double-quoted
-  word was split at its spaces, text after a closing brace began another word,
-  and a `#` anywhere began a comment; a word is now read as Tcl reads one:
-  backslash sequences are substituted in a bare or a quoted word (`pa\tss` holds
-  a tab, `\x41` is `A`), a quoted word is one word (`"pa ss"`) in which `$` and
-  `[` are refused, text right after a closing brace or quote is refused
-  `cloginrc_malformed` (a `;` there `cloginrc_tcl_substitution_forbidden`), and
-  a `#` begins a comment only as a line's first word, so a comment after a
-  line's values is read as more values. An `add password` line's password and
-  enable password were taken as the word reads, where clogin reads each again as
-  a Tcl list and joins its words with nothing between; karvi now does the same
-  (`{pass one}` is `passone`, `{pa\ss}` is `pass`, `{"a b"}` is `a b`) and
-  refuses a value that is not a Tcl list (an unmatched quote or brace)
-  `cloginrc_malformed`, naming the file and line; `add user` and
-  `add userpassword` are taken as their words read. A pattern was matched by
-  Go's rules, `[!x]` and `[^x]` read as negation and `*` stopping at `/`, so a
-  line written for clogin matched other devices in karvi, or none; a pattern now
-  matches as clogin's `string match -nocase` does: a class has no negation
-  (`[!x]` matches `!` or `x`), `*` and `?` cross `/`, a range reads either way
-  round, and a class left open runs to the end of the pattern. A pattern no name
-  can match (a trailing `\`, or a class that lists nothing, `[]`) was passed by,
-  so a later `*` line answered; the file is now refused `cloginrc_malformed`
-  naming the line. An unsupported statement, a wrong count of values, an unknown
-  directive, and a line of 1 MiB or more are refused naming the file and line
-  too ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
+- **Breaking: `.cloginrc` reads lines, words, patterns, and passwords as
+  clogin's Tcl does.** A line ended only at a newline, a lone carriage return
+  read as white space; a line ending in a backslash was refused as a
+  continuation line; and `add`, `include`, and the directive were taken whatever
+  their case, so karvi used an `add PASSWORD` line clogin never finds. A line is
+  now what clogin's `gets` reads (a newline, a carriage return and a newline, or
+  a carriage return alone ends it), read alone with no continuation (a trailing
+  backslash part of its last word), and `add`, `include`, and the directive
+  match case and all: `ADD` is an unsupported statement (`cloginrc_malformed`),
+  `add PASSWORD` an unknown directive (`cloginrc_unknown_directive`). A braced
+  word dropped each backslash; inside braces a backslash and the character after
+  it are now kept, as Tcl reads a braced word, and in a braced pattern a
+  backslash escapes the glob character after it. `$`, `[`, `]`, and `;` inside
+  braces were refused, though Tcl takes them as written, so a file clogin reads
+  (`{pa$$w0rd}`) was refused whole; they are now taken as written, and refused
+  only in a bare word, the message naming the character. A bare word took the
+  character after a backslash as it stood, a double-quoted word was split at its
+  spaces, text after a closing brace began another word, and a `#` anywhere
+  began a comment; a word is now read as Tcl reads one: backslash sequences are
+  substituted in a bare or a quoted word (`pa\tss` holds a tab, `\x41` is `A`),
+  a quoted word is one word (`"pa ss"`) in which `$` and `[` are refused, text
+  right after a closing brace or quote is refused `cloginrc_malformed` (a `;`
+  there `cloginrc_tcl_substitution_forbidden`), and a `#` begins a comment only
+  as a line's first word, so a comment after a line's values is read as more
+  values. An `add password` line's password and enable password were taken as
+  the word reads, where clogin reads each again as a Tcl list and joins its
+  words with nothing between; karvi now does the same (`{pass one}` is
+  `passone`, `{pa\ss}` is `pass`, `{"a b"}` is `a b`) and refuses a value that
+  is not a Tcl list (an unmatched quote or brace) `cloginrc_malformed`, naming
+  the file and line; `add user` and `add userpassword` are taken as their words
+  read. A pattern was matched by Go's rules, `[!x]` and `[^x]` read as negation
+  and `*` stopping at `/`, so a line written for clogin matched other devices in
+  karvi, or none; a pattern now matches as clogin's `string match -nocase` does:
+  a class has no negation (`[!x]` matches `!` or `x`), `*` and `?` cross `/`, a
+  range reads either way round, and a class left open runs to the end of the
+  pattern. A pattern no name can match (a trailing `\`, or a class that lists
+  nothing, `[]`) was passed by, so a later `*` line answered; the file is now
+  refused `cloginrc_malformed` naming the line. An unsupported statement, a
+  wrong count of values, an unknown directive, and a line of 1 MiB or more are
+  refused naming the file and line too
+  ([`docs/OPERATIONS.md`](docs/OPERATIONS.md)).
 - **A credential backend's refusal writes its code once, and its message stands
   apart from its fields.** The CSV and `.cloginrc` backends' refusals, and
   Redis's for a coded reply, wrote the code twice in their text
