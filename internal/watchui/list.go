@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 )
 
 // job list's table (EXAMPLES chapter 61, issue 3): watch's headings,
@@ -66,7 +68,11 @@ type listWidths struct {
 func (t ListTable) Lines() []string {
 	m := &Model{Theme: t.Theme, Colors: t.Colors, Colour: t.Colour}
 	w := listWidths{operator: widthOperator, doneX: 3}
-	for _, r := range t.Rows {
+	rows := make([]ListRow, len(t.Rows))
+	for i, r := range t.Rows {
+		rows[i] = r.visible()
+	}
+	for _, r := range rows {
 		if n := len([]rune(r.Operator)); n > w.operator {
 			w.operator = n
 		}
@@ -81,10 +87,24 @@ func (t ListTable) Lines() []string {
 		w.target = max(t.Width-width(header), 1)
 	}
 	lines := []string{strings.TrimRight(m.render(append(header, t.lastHeading())), " ")}
-	for _, r := range t.Rows {
+	for _, r := range rows {
 		lines = append(lines, strings.TrimRight(m.render(t.row(r, w)), " "))
 	}
 	return lines
+}
+
+// visible is the row with every string as termtext.Visible writes it: a
+// summary or a folder's name in a shared tree is anyone's.
+func (r ListRow) visible() ListRow {
+	v := termtext.Visible
+	r.JobID, r.Path, r.Operator, r.Kind, r.Status = v(r.JobID), v(r.Path), v(r.Operator), v(r.Kind), v(r.Status)
+	r.Device, r.Outcome = v(r.Device), v(r.Outcome)
+	devices := make([]string, len(r.Devices))
+	for i, d := range r.Devices {
+		devices[i] = v(d)
+	}
+	r.Devices = devices
+	return r
 }
 
 // width is the cells the pieces take.

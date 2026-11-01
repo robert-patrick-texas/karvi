@@ -2839,6 +2839,19 @@ file name, the collection's counts, the metrics, and whether the daemon ran it.
 *Why:* the directory is readable by the whole group while a job's folder is its
 operator's; the statements are read in the folder.
 
+**What another member wrote reaches the terminal as text.** `watch` reads a
+`*.json` entry of the scoreboards only when it is a regular file, through one
+descriptor that follows no link and waits on no FIFO, and at most 64 MiB of it,
+a larger file being a `?` row; a link, a FIFO, or a folder is passed by. Every
+string from a snapshot or a file's name, on the screen, in the pane, and in
+`--format table`, and every cell of `job list`, is shown with its control
+characters as Go writes them in a quoted string (`\x1b`, `\u009b`), as
+`karvi-audit` shows its cells. *Why:* the scoreboards and a shared jobs tree are
+the group's, so one member's file reaches every colleague's screen: a FIFO
+would hang it, a link to `/dev/zero` or a sparse file would grow it without
+bound, and an escape in a target's name would rewrite the terminal or set its
+clipboard.
+
 **Running rows above a rule, finished below it newest first, two lines that
 never leave.** Nine columns; running rows pinned between the heading's line and
 the rule; only the finished rows scroll; a stale running row is flagged and
@@ -2886,20 +2899,21 @@ all; to a pipe or a file nothing cuts it. OPERATOR and DEVICE, heading and
 cells, are centred while the width holds the column whole, an odd cell to the
 right, and at the column's left when the width cuts into it, so DEVICE is whole
 from 99 columns. OPERATOR is `OPERATOR/LOGINUSER` when the event names a login
-user, `/LOGINUSER` kept whole and the operator's part cut first. A statement's
-control characters are written as Go writes them in a quoted string (`\t`,
-`\n`, `\x1b`). *Why:* the job ID holds the job's start to the second; one rule
-for every mode, a table read whole or followed, its first line at once and its
-memory flat, which widths measured over the rows cannot give (thirty days'
-359,728 rows held before the first line); OUTCOME at 16 tells the two
-`not_attempted_*` words apart; DEVICE at 30 shows the extended hostnames of
-switches, routers, and servers whole; on a jump box where operators `sudo` to a
-shared account the person is the part a review looks for; a newline in a
-statement would start a row with no columns. *Not taken:* TIME (19 cells);
-widths measured over every row, as `job list`'s; a longer cell whole, pushing
-the rest of its row; two cells between columns; OUTCOME at 10; DEVICE at 20,
-which cut them; `OPERATOR(LOGINUSER)`; the pair cut at its end; the control
-characters removed.
+user, `/LOGINUSER` kept whole and the operator's part cut first. Every cell's
+control characters, C1 among them, are written as Go writes them in a quoted
+string (`\t`, `\n`, `\x1b`, `\u009b`). *Why:* the job ID holds the job's start
+to the second; one rule for every mode, a table read whole or followed, its
+first line at once and its memory flat, which widths measured over the rows
+cannot give (thirty days' 359,728 rows held before the first line); OUTCOME at
+16 tells the two `not_attempted_*` words apart; DEVICE at 30 shows the extended
+hostnames of switches, routers, and servers whole; on a jump box where operators
+`sudo` to a shared account the person is the part a review looks for; a newline
+in a statement would start a row with no columns, and any local user can write
+an entry the trail's terms match, so an escape in any field would act on the
+auditor's terminal. *Not taken:* TIME (19 cells); widths measured over every
+row, as `job list`'s; a longer cell whole, pushing the rest of its row; two
+cells between columns; OUTCOME at 10; DEVICE at 20, which cut them;
+`OPERATOR(LOGINUSER)`; the pair cut at its end; the control characters removed.
 
 **`karvi-audit`'s colours go to a terminal and through a pipe, never into a
 file.** The headings in the label role, OPERATOR in the accent role, DEVICE in
@@ -3080,16 +3094,19 @@ transcript; a switch to turn rendering off; `TERM=dumb` asked of the server; a
 terminal-emulator library.
 
 **The shell's output is rendered at no width.** In `command` and `run` the
-renderer reads the shell's stream with no width: nothing wraps, and cursor up
-and down do nothing. Both transports keep asking the far end for a pty of no
-size, as `ssh -tt` does from a pipe. *Why:* karvi writes each command whole, so
-the far end echoes it as plain text whatever width it assumes (over a sizeless
-pty this host's `stty size` read `0 0`, bash took 80 columns, and a
-100-character command came back as one line with no control inside it); width
-changes the text only when the far end moves between a line's wrapped rows,
-which is interactive editing, a recorded login's case, whose width the timing
-log gives. *Not taken:* rendering at 80 (a device set to another width would be
-read at the wrong one); asking the far end for 80 or a large width (it changes
+renderer reads the shell's stream with no width: nothing wraps, cursor up and
+down and an insert do nothing, and cursor right and a column move stop at the
+line's end or its 4096th column, whichever is further. Both transports keep
+asking the far end for a pty of no size, as `ssh -tt` does from a pipe. *Why:*
+karvi writes each command whole, so the far end echoes it as plain text
+whatever width it assumes (over a sizeless pty this host's `stty size` read
+`0 0`, bash took 80 columns, and a 100-character command came back as one line
+with no control inside it); width changes the text only when the far end moves
+between a line's wrapped rows, which is interactive editing, a recorded
+login's case, whose width the timing log gives; a row without an end gives a
+move or an insert nothing to stop at, so nine bytes would open 65,535 cells.
+*Not taken:* rendering at 80 (a device set to another width would be read at
+the wrong one); asking the far end for 80 or a large width (it changes
 what devices print, wide tables and IOS XE's `terminal width`); the width of
 karvi's own terminal (a daemon's job has none).
 

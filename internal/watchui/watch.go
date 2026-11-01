@@ -19,6 +19,7 @@ import (
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -259,23 +260,24 @@ func DoneCell(c records.Counts) string {
 }
 
 // TargetCell is the TARGET column: a file input's base name
-// first, then the devices in flight, then the rest, cut at width with an
-// ellipsis; width 0 is the whole text (the table and json forms).
+// first, then the devices in flight, then the rest, each visible
+// (termtext.Visible), cut at width with an ellipsis; width 0 is the whole
+// text (the table and json forms).
 func TargetCell(s records.ScoreboardSnapshot, width int) string {
 	parts := []string{}
 	for _, in := range s.Inputs {
 		if in.Kind == "tf" {
-			parts = append(parts, in.Value)
+			parts = append(parts, termtext.Visible(in.Value))
 		}
 	}
 	for _, t := range s.Targets {
 		if t.State == records.TargetRunning {
-			parts = append(parts, t.Name)
+			parts = append(parts, termtext.Visible(t.Name))
 		}
 	}
 	for _, t := range s.Targets {
 		if t.State != records.TargetRunning {
-			parts = append(parts, t.Name)
+			parts = append(parts, termtext.Visible(t.Name))
 		}
 	}
 	text := strings.Join(parts, " ")

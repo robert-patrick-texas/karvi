@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -237,17 +238,19 @@ func helpLines() []string {
 // kind of work in one line, the operator and host, the dispatch, the
 // times, the metrics, then the targets in columns as name and state,
 // running first, then failed, then the rest, scrolled by PaneScroll
-// across the columns that do not fit; width is the pane's columns.
+// across the columns that do not fit; width is the pane's columns. Every
+// string from the file or its name is visible (termtext.Visible).
 func (m *Model) paneLines(r scoreboard.Row, height, width int) []string {
+	v := termtext.Visible
 	if r.Error != "" {
-		return []string{"   " + m.render([]piece{{"invalid snapshot", "error", false}}), "   " + r.Path, "   " + m.render([]piece{{r.Error, "error", false}})}
+		return []string{"   " + m.render([]piece{{"invalid snapshot", "error", false}}), "   " + v(r.Path), "   " + m.render([]piece{{v(r.Error), "error", false}})}
 	}
 	s := r.Snapshot
 	label := func(text string) piece { return piece{text, "label", false} }
 	value := func(text string) piece { return piece{text, "value", false} }
 	sep := piece{"  ", "", false}
-	head := []piece{{workLine(s), "accent", false}}
-	who := []piece{label("operator "), value(s.Operator.Username), sep, label("host "), value(s.Producer.Hostname), sep, label("pid "), value(strconv.Itoa(s.Producer.PID)), sep}
+	head := []piece{{v(workLine(s)), "accent", false}}
+	who := []piece{label("operator "), value(v(s.Operator.Username)), sep, label("host "), value(v(s.Producer.Hostname)), sep, label("pid "), value(strconv.Itoa(s.Producer.PID)), sep}
 	if s.Daemon {
 		who = append(who, value("daemon"))
 	} else {
@@ -255,7 +258,7 @@ func (m *Model) paneLines(r scoreboard.Row, height, width int) []string {
 	}
 	dispatch := []piece{label("dispatch ")}
 	if s.DispatchMode != nil {
-		dispatch = append(dispatch, value(*s.DispatchMode))
+		dispatch = append(dispatch, value(v(*s.DispatchMode)))
 	} else {
 		dispatch = append(dispatch, value("-"))
 	}
@@ -320,11 +323,11 @@ func workLine(s records.ScoreboardSnapshot) string {
 // overflow the width, the last line is given up to the note saying which
 // are shown (← → columns 1–4 of 12) and the targets take one row fewer,
 // so the note hides no cell and every target is reached by scrolling.
-// targetCell is a target's text in the pane: its name and state, and
-// beside a running target the settled bytes of its command so far when
+// targetCell is a target's text in the pane: its name and state, visible,
+// and beside a running target the settled bytes of its command so far when
 // there are any.
 func targetCell(t records.ScoreboardTarget) string {
-	cell := t.Name + " " + t.State
+	cell := termtext.Visible(t.Name) + " " + termtext.Visible(t.State)
 	if t.State == records.TargetRunning && t.Bytes > 0 {
 		cell += " " + strconv.FormatInt(t.Bytes, 10)
 	}

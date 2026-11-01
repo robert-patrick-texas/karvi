@@ -1,19 +1,22 @@
 package auditview
 
 import (
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/robert-patrick-texas/karvi/internal/display"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 )
 
 // The table (docs/EXAMPLES.md, chapter 64, issues 1 to 4; DEVICE's width
 // chapter 66): no TIME; the columns at fixed widths, one space between them,
 // JOB-ID 16, OPERATOR 18, MODE 5, EVENT 7, OUTCOME 16, DEVICE 30, then
-// COMMAND. A cell longer than its column is cut with …; at a terminal the
-// line is cut with … so that at least one cell stays free at its right edge,
-// COMMAND cut or not shown at all; to a pipe or a file nothing cuts the line.
+// COMMAND. Every cell's control characters are written as Go writes them in
+// a quoted string (termtext.Visible), so that a row stays one line and its
+// width is its cells. A cell longer than its column is cut with …; at a
+// terminal the line is cut with … so that at least one cell stays free at its
+// right edge, COMMAND cut or not shown at all; to a pipe or a file nothing
+// cuts the line.
 // OPERATOR and DEVICE, heading and cells, are centred in their columns, an
 // odd cell to the right, while the width holds the column whole and the cell
 // after it, and at the column's left when the width cuts into it.
@@ -53,16 +56,17 @@ func (t Table) Heading() string {
 	return t.line(cells)
 }
 
-// Line is one row's line.
+// Line is one row's line, every cell visible.
 func (t Table) Line(r Row) string {
+	v := termtext.Visible
 	return t.line([]piece{
-		{r.ID, ""},
-		{operatorCell(r.Operator, r.LoginUser), "accent"},
-		{r.Mode, ""},
-		{r.Event, ""},
-		{r.Outcome, outcomeRole(r.Outcome)},
-		{r.Device, "target"},
-		{visible(r.Command), ""},
+		{v(r.ID), ""},
+		{operatorCell(v(r.Operator), v(r.LoginUser)), "accent"},
+		{v(r.Mode), ""},
+		{v(r.Event), ""},
+		{v(r.Outcome), outcomeRole(r.Outcome)},
+		{v(r.Device), "target"},
+		{v(r.Command), ""},
 	})
 }
 
@@ -141,27 +145,6 @@ func outcomeRole(outcome string) string {
 	}
 	return "error"
 }
-
-// visible is a statement with each control character written as Go writes
-// it in a quoted string (\t, \n, \x1b), so that a row stays one line and its
-// width is its cells.
-func visible(s string) string {
-	if !strings.ContainsFunc(s, isControl) {
-		return s
-	}
-	var b strings.Builder
-	for _, r := range s {
-		if isControl(r) {
-			q := strconv.QuoteRune(r)
-			b.WriteString(q[1 : len(q)-1])
-			continue
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
-}
-
-func isControl(r rune) bool { return r < ' ' || r == 0x7f }
 
 // cut is text at most width cells, ending with … when cut.
 func cut(text string, width int) string {

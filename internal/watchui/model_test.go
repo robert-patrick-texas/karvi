@@ -314,3 +314,47 @@ func TestFrameColours(t *testing.T) {
 		t.Errorf("light accent: %q", m.Frame()[4])
 	}
 }
+
+// TestCellsAreVisible: a snapshot's strings, an unreadable file's path
+// and reason, and every value the detail pane shows reach the terminal with
+// their control characters as Go's escapes, on the screen and in the table
+// form.
+func TestCellsAreVisible(t *testing.T) {
+	const hostile = "\x1b]52;c;x\a\r\u009b"
+	const shown = `\x1b]52;c;x\a\r\u009b`
+	mode := hostile
+	s := records.ScoreboardSnapshot{SchemaVersion: 2, ActivityID: hostile, Operator: records.Operator{Username: hostile}, Mode: "crun", Status: hostile, DispatchMode: &mode,
+		Counts: records.Counts{Total: 1, InFlight: 1}, Targets: []records.ScoreboardTarget{{Name: hostile, State: hostile}}, Inputs: []executionplan.ScopeInput{{Kind: "tf", Value: hostile}},
+		Collection: &records.ScoreboardCollection{Directory: hostile}, Producer: records.Producer{Hostname: hostile},
+		StartedAt: time.Date(2026, 9, 24, 13, 44, 3, 0, time.Local), LastUpdatedAt: time.Date(2026, 9, 24, 13, 44, 3, 0, time.Local)}
+	commands := s
+	commands.Mode, commands.Collection, commands.Commands = "run", nil, &records.ScoreboardCommands{Count: 1, Files: []string{hostile}}
+	commands.ActivityID = "260924-134403-01"
+	other := s
+	other.Mode, other.Collection, other.ActivityID = hostile, nil, "260924-134403-02"
+	rows := []scoreboard.Row{
+		{Snapshot: s, Path: "/dev/shm/karvi/scoreboards/a.json"},
+		{Snapshot: commands, Path: "/dev/shm/karvi/scoreboards/b.json"},
+		{Snapshot: other, Path: "/dev/shm/karvi/scoreboards/c.json"},
+		{Path: "/dev/shm/karvi/scoreboards/" + hostile + "\xff.json", Error: "open " + hostile + ": permission denied"},
+	}
+	check := func(what string, lines []string) {
+		t.Helper()
+		for _, line := range lines {
+			if bad := rawControl(line); bad != "" {
+				t.Fatalf("%s: %s in %q", what, bad, line)
+			}
+		}
+		if !strings.Contains(strings.Join(lines, "\n"), shown) {
+			t.Errorf("%s: no cell escaped: %q", what, lines)
+		}
+	}
+	m := &Model{Rows: rows, Now: time.Date(2026, 9, 24, 13, 48, 15, 0, time.Local), Location: time.Local, Theme: "dark", Cols: 400, Lines: 30}
+	check("table", m.TableLines())
+	check("screen", m.Frame())
+	for range rows {
+		m.Key(kind(KeyEnter))
+		check("pane on "+m.Selected, m.Frame())
+		m.Key(kind(KeyDown))
+	}
+}

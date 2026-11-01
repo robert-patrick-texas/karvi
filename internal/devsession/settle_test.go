@@ -311,3 +311,29 @@ func TestInFlightBytesArePublished(t *testing.T) {
 	}
 	s.Close()
 }
+
+// TestDeviceEscapesSettleWithinTheBound: a read chunk of cursor moves far
+// right or of inserts, which the renderer at no width would turn into
+// millions of cells, settles about as many bytes as it holds, under the
+// tail's bound, and passes no output limit.
+func TestDeviceEscapesSettleWithinTheBound(t *testing.T) {
+	for _, tc := range []struct{ name, chunk string }{
+		{"moves right", strings.Repeat("\x1b[65535Cx", 50)},
+		{"a column far right", strings.Repeat("\x1b[65535Gx", 50)},
+		{"inserts", "x\r" + strings.Repeat("\x1b[65535@", 50)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			sink := newSettled(64<<10, Spool{}, 1, nil, nil)
+			r := newResponse("show x", "Router#", sink)
+			for _, c := range []string{"show x\r\n", tc.chunk, tc.chunk} {
+				if err := r.feed([]byte(c)); err != nil {
+					t.Fatalf("feed: %v", err)
+				}
+			}
+			held := len(sink.mem) + len(r.tail) + len(r.render.Pending())
+			if most := 2 * (tailMax + len(tc.chunk)); held > most {
+				t.Fatalf("%d bytes held from two chunks of %d, want at most %d", held, len(tc.chunk), most)
+			}
+		})
+	}
+}

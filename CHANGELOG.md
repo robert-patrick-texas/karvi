@@ -145,6 +145,20 @@
   stops its scoreboard's heartbeat; `job follow` says the admission warnings
   once, not again at each resume; and a job without a folder is named
   `artifacts none` on its cancel and follow lines, not a bare `artifacts`.
+- **A device's escapes and a colleague's files reach no terminal raw and grow
+  no memory.** A device's escape sequence could make the screen renderer open
+  millions of cells from a few bytes (`ESC[999999999C`, repeated cursor moves
+  or inserts with no width, cursor down far past the last row); a parameter
+  is now capped and held as it is read, moves and inserts with no width reach
+  at most column 4,096 (an insert there does nothing), and cursor down stops
+  at the last row. Every cell of `karvi-audit`, `watch` (its screen, pane, and
+  `--format table`), and `job list` shows its control characters, C1 among
+  them, escaped as Go quotes them, where only `karvi-audit`'s COMMAND was;
+  `watch` reads a scoreboard entry only when it is a regular file, through one
+  descriptor that follows no link and waits on no FIFO, at most 64 MiB of it;
+  and the pane no longer panics on a target whose key is longer than the
+  width. A device session that fails or closes while its output queue is full
+  no longer leaves its reader blocked for ever.
 
 ## 0.38.0 - 2026-10-28
 

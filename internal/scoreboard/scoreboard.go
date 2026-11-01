@@ -3,12 +3,15 @@ package scoreboard
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -243,11 +246,12 @@ func Read(directory string, max int, staleAfter time.Duration) ([]Row, error) {
 	if max <= 0 {
 		max = 10000
 	}
-	// The scoreboards alone: the claims beside them (osutil.ClaimExtension)
-	// are neither read nor counted.
+	// The scoreboards alone, each a regular file: the claims beside them
+	// (osutil.ClaimExtension), a folder, a link, or a FIFO are neither read
+	// nor counted.
 	files := []string{}
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+		if e.Type().IsRegular() && strings.HasSuffix(e.Name(), ".json") {
 			files = append(files, e.Name())
 		}
 	}
@@ -258,7 +262,7 @@ func Read(directory string, max int, staleAfter time.Duration) ([]Row, error) {
 	now := time.Now()
 	for _, name := range files {
 		path := filepath.Join(directory, name)
-		data, err := os.ReadFile(path)
+		data, err := readSnapshot(path)
 		if err != nil {
 			rows = append(rows, Row{Path: path, Error: err.Error()})
 			continue
@@ -288,7 +292,7 @@ func Find(dirs []string, id string) (records.ScoreboardSnapshot, bool) {
 	var found records.ScoreboardSnapshot
 	ok := false
 	for _, dir := range dirs {
-		data, err := os.ReadFile(filepath.Join(dir, id+".json"))
+		data, err := readSnapshot(filepath.Join(dir, id+".json"))
 		if err != nil {
 			continue
 		}
@@ -301,4 +305,41 @@ func Find(dirs []string, id string) (records.ScoreboardSnapshot, bool) {
 		}
 	}
 	return found, ok
+}
+
+// maxSnapshotBytes bounds a snapshot file read; a larger one is not read.
+const maxSnapshotBytes = 64 << 20
+
+// readSnapshot is the snapshot file at path, read through one descriptor
+// opened without following a link and without waiting on a FIFO: a regular
+// file of at most maxSnapshotBytes, anything else an error. The folder may
+// be shared, so any member's entry can stand under the name.
+func readSnapshot(path string) ([]byte, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, errors.New("not a regular file")
+	}
+	if info.Size() > maxSnapshotBytes {
+		return nil, tooLarge(info.Size())
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxSnapshotBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxSnapshotBytes {
+		return nil, tooLarge(int64(len(data)))
+	}
+	return data, nil
+}
+
+func tooLarge(size int64) error {
+	return fmt.Errorf("%d bytes, more than the %d a snapshot may hold", size, maxSnapshotBytes)
 }

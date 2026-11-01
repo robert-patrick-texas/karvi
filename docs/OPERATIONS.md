@@ -305,9 +305,13 @@ list never takes a running job out of view. With no running job the two lines
 stand together: an empty band says at once that nothing is in progress. A
 running job whose snapshot has not moved for `watch.stale-after` (`10s`) is
 flagged `!` and dimmed, its status word unchanged; a file the screen cannot read
-is flagged `?` with `invalid` as its status and its path as its target. The
-clock at the top right is the time of the last refresh. Nothing in the screen
-names a command: the statements are read in the job's folder.
+is flagged `?` with `invalid` as its status and its path as its target. Only a
+regular file is read, never through a link or from a FIFO, and at most 64 MiB of
+it, a larger one flagged `?`; a link or a FIFO is passed by. A control character
+in a snapshot's strings or a file's name is shown as Go writes it in a quoted
+string (`\x1b`), here and in `karvi job list`. The clock at the top right is the
+time of the last refresh. Nothing in the screen names a command: the statements
+are read in the job's folder.
 
 The keys: `q` or Ctrl-C leave, and the shell is as it was; `↑`/`↓` or
 `k`/`j` select a row (marked `>`), PgUp/PgDn a screen of rows, Home/End

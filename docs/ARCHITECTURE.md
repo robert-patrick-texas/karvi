@@ -444,9 +444,10 @@ Reading the audit trail is outside the daemon too: `karvi-audit`
 trail's identifier and message ID (`audit.Identifier`, `audit.MessageID`, the
 writer's own constants) and its matches, the `KARVI_*` field names the writer
 uses (`audit.Field*`), and lays out each entry's `KARVI_AUDIT_JSON` decoded
-into `records.AuditRecord` as one row of fixed widths. It reads no
-configuration: the window, the pattern, the order, and the follow are
-journalctl's, and who reads whose events journald's. Its colour is
+into `records.AuditRecord` as one row of fixed widths, every cell's controls
+escaped by `termtext.Visible`, the sanitizer `watch` and `job list` share. It
+reads no configuration: the window, the pattern, the order, and the follow
+are journalctl's, and who reads whose events journald's. Its colour is
 `display.ColorEnabled("always", …)` for a terminal and a pipe, never a file,
 the dark theme's roles. Its command line, as `karvi-prune`'s, is one
 `flagspec.Spec` that the parser, the help, the hidden word for Tab, and the man

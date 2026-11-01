@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/robert-patrick-texas/karvi/internal/display"
 )
@@ -171,4 +172,42 @@ func TestListTableColours(t *testing.T) {
 			t.Errorf("device line %d lacks %q: %q", i, want, device[i])
 		}
 	}
+}
+
+// TestListTableCellsAreVisible: a summary's strings, a folder's path, and a
+// device's outcome reach the terminal with their control characters as
+// Go's escapes, whatever the width and under --target.
+func TestListTableCellsAreVisible(t *testing.T) {
+	const hostile = "\x1b]0;x\a\r\u0085"
+	rows := []ListRow{
+		{JobID: hostile, Operator: hostile, Kind: hostile, Status: hostile, Finished: true, Total: 1, Completed: 1, Devices: []string{hostile, "router1"}, Device: hostile, Outcome: hostile},
+		{JobID: hostile, Invalid: true, Path: "/jobs/" + hostile + "\xff/summary.json", Operator: hostile},
+	}
+	for _, byDevice := range []bool{false, true} {
+		for _, width := range []int{0, 200} {
+			lines := ListTable{Rows: rows, ByDevice: byDevice, Width: width}.Lines()
+			for _, line := range lines {
+				if bad := rawControl(line); bad != "" {
+					t.Fatalf("by device %t, width %d: %s in %q", byDevice, width, bad, line)
+				}
+			}
+			if !strings.Contains(strings.Join(lines, "\n"), `\x1b]0;x\a\r\u0085`) {
+				t.Errorf("by device %t, width %d: no cell escaped: %q", byDevice, width, lines)
+			}
+		}
+	}
+}
+
+// rawControl names the first control character or byte that is not UTF-8
+// in s, "" when there is none.
+func rawControl(s string) string {
+	for i, r := range s {
+		switch {
+		case r == utf8.RuneError && !strings.HasPrefix(s[i:], "\uFFFD"):
+			return fmt.Sprintf("byte %#x", s[i])
+		case r < ' ' || r == 0x7f || (r >= 0x80 && r < 0xa0):
+			return fmt.Sprintf("control %U", r)
+		}
+	}
+	return ""
 }

@@ -14,14 +14,27 @@
 // blank inside the line and never ends one. Every other sequence and control
 // is dropped, tabs kept.
 //
+// The far end's bytes never open the line much beyond themselves. With a
+// width, cursor right, a column move, and an insert stay in the row and cursor
+// down stops at the line's last row; without one, cursor right and a column
+// move stop at the line's end or its 4096th column, whichever is further, and
+// an insert does nothing. A sequence's first parameter is read up to 65535
+// and the rest are passed over, so a sequence holds no memory however long.
+//
 // The limits are the terminal's: a key the far end does not echo cannot
 // appear, a full-screen program comes out as its text in the order drawn, and
 // a device that shows a long line as a scrolled window gives the window.
+//
+// Visible goes the other way: text another party wrote, made safe for karvi
+// to write to a terminal, every control shown as its escape.
 package termtext
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -84,8 +97,11 @@ type Renderer struct {
 	pending bool
 	held    bool
 
-	state   int
-	params  []byte
+	state int
+	// param is the sequence's first parameter as read, first that its
+	// digits are still being read; private marks a sequence not executed.
+	param   int
+	first   bool
 	private bool
 	utf     []byte
 	line    []byte // the bytes of the line being written out, reused
@@ -251,7 +267,7 @@ func (r *Renderer) escapeByte(b byte) {
 	r.state = ground
 	switch {
 	case b == '[':
-		r.state, r.params, r.private = csi, r.params[:0], false
+		r.state, r.param, r.first, r.private = csi, 0, true, false
 	case b == ']' || b == 'P' || b == 'X' || b == '^' || b == '_':
 		r.state = str
 	case b >= 0x20 && b <= 0x2f:
@@ -264,18 +280,24 @@ func (r *Renderer) escapeByte(b byte) {
 
 func (r *Renderer) csiByte(b byte) {
 	switch {
-	case b >= 0x30 && b <= 0x3f:
+	case b >= '0' && b <= '9':
+		if r.first {
+			r.param = min(r.param*10+int(b-'0'), maxParam)
+		}
+	case b >= 0x3a && b <= 0x3f:
+		// a separator ends the first parameter; a private marker makes
+		// the sequence one this renderer does not execute
 		if b == '?' || b == '>' || b == '<' || b == '=' {
 			r.private = true
 		}
-		r.params = append(r.params, b)
+		r.first = false
 	case b >= 0x20 && b <= 0x2f:
 		// an intermediate: kept out of the parameters
 		r.private = true
 	case b >= 0x40 && b <= 0x7e:
 		r.state = ground
 		if !r.private {
-			r.control(b, firstParam(r.params))
+			r.control(b, r.param)
 		}
 	case b < 0x20:
 		// a control inside the sequence is executed, as a terminal does;
@@ -292,16 +314,19 @@ func (r *Renderer) csiByte(b byte) {
 	}
 }
 
-// firstParam is the sequence's first numeric parameter, 0 when absent.
-func firstParam(p []byte) int {
-	n := 0
-	for _, b := range p {
-		if b < '0' || b > '9' {
-			break
-		}
-		n = min(n*10+int(b-'0'), 1<<16)
-	}
-	return n
+// maxParam caps a parameter's value, as a terminal keeps one in 16 bits;
+// noWidthReach is the column a cursor move right reaches without a width on
+// a shorter line.
+const (
+	maxParam     = 1<<16 - 1
+	noWidthReach = 4096
+)
+
+// farthest is the furthest index a cursor move right lands at without a
+// width: the line's end, or column noWidthReach on a shorter line, and
+// never left of the cursor.
+func (r *Renderer) farthest() int {
+	return max(len(r.cells), noWidthReach-1, r.idx)
 }
 
 func (r *Renderer) control(final byte, n int) {
@@ -350,19 +375,21 @@ func (r *Renderer) control(final byte, n int) {
 		}
 	case 'B':
 		if r.width > 0 {
-			r.idx += one * r.width
+			r.idx += min(one, max(r.lastRow()-r.row(), 0)) * r.width
 		}
 	case 'C':
-		r.idx += one
 		if r.width > 0 {
-			r.idx = min(r.idx, start+r.width-1)
+			r.idx = min(r.idx+one, start+r.width-1)
+		} else {
+			r.idx = min(r.idx+one, r.farthest())
 		}
 	case 'D':
 		r.idx = max(r.idx-one, start)
 	case 'G':
-		r.idx = start + one - 1
 		if r.width > 0 {
 			r.idx = start + min(one, r.width) - 1
+		} else {
+			r.idx = min(one-1, r.farthest())
 		}
 	case 'P':
 		end := min(r.rowEnd(), len(r.cells))
@@ -449,15 +476,11 @@ func (r *Renderer) blank(from, to int) {
 	}
 }
 
-// insert opens n blanks at the cursor; on a terminal with a width what is
-// pushed past the row's last column is lost.
+// insert opens n blanks at the cursor, what is pushed past the row's last
+// column lost; without a width the row has no last column, and it does
+// nothing.
 func (r *Renderer) insert(n int) {
-	if r.idx >= len(r.cells) {
-		return
-	}
-	if r.width == 0 {
-		r.cells = append(r.cells[:r.idx], append(make([]rune, n), r.cells[r.idx:]...)...)
-		r.blank(r.idx, r.idx+n)
+	if r.width == 0 || r.idx >= len(r.cells) {
 		return
 	}
 	end := r.rowEnd()
@@ -530,3 +553,34 @@ func (r *Renderer) emit() {
 	}
 	r.cells, r.idx, r.pending = r.cells[:0], 0, false
 }
+
+// Visible is text to be written to a terminal with each control character
+// written as Go writes it in a quoted string (\t, \n, \a, \x1b, \u009b), a
+// C1 control and DEL among them, and a byte that is not UTF-8 as \xff: the
+// terminal shows the characters and acts on none, a line stays one line,
+// and its width is its cells.
+func Visible(s string) string {
+	if !strings.ContainsFunc(s, invisible) {
+		return s
+	}
+	var b strings.Builder
+	for i, r := range s {
+		switch {
+		case r == utf8.RuneError && !strings.HasPrefix(s[i:], "\uFFFD"):
+			fmt.Fprintf(&b, `\x%02x`, s[i])
+		case isControl(r):
+			q := strconv.QuoteRune(r)
+			b.WriteString(q[1 : len(q)-1])
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// invisible is a character Visible escapes: a control, or the decoding of a
+// byte that is not UTF-8.
+func invisible(r rune) bool { return r == utf8.RuneError || isControl(r) }
+
+// isControl is a C0 control, DEL, or a C1 control.
+func isControl(r rune) bool { return r < ' ' || r == 0x7f || (r >= 0x80 && r < 0xa0) }

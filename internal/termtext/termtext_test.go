@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -157,7 +158,11 @@ func TestRules(t *testing.T) {
 		{"an incomplete character at the end is kept", 80, "ab\xe2\x9c", "ab\xe2\x9c\n"},
 		{"no width: nothing wraps", 0, "abcdefgh\x1b[AX\r\n", "abcdefghX\n"},
 		{"no width: a column move", 0, "abcdefgh\x1b[3GX\r\n", "abXdefgh\n"},
-		{"no width: insert", 0, "abcd\x1b[3D\x1b[2@X\r\n", "aX bcd\n"},
+		{"no width: an insert does nothing", 0, "abcd\x1b[3D\x1b[2@X\r\n", "aXcd\n"},
+		{"no width: a move right stops at column 4096", 0, "ab\x1b[9999CX\r\n", "ab" + strings.Repeat(" ", 4093) + "X\n"},
+		{"no width: a move right on a longer line stops at its end", 0, strings.Repeat("a", 5000) + "\x1b[9D\x1b[99CX\r\n", strings.Repeat("a", 5000) + "X\n"},
+		{"cursor down stops at the line's last row", 4, "abcdef\x1b[A\x1b[3D\x1b[9BX\r\n", "abcdXf\n"},
+		{"a parameter after the first is passed over", 80, "abcdef\x1b[3;9DX\r\n", "abcXef\n"},
 		{"an unfinished line is written at the close", 80, "$ ", "$\n"},
 		{"nothing written, nothing out", 80, "", ""},
 	} {
@@ -305,6 +310,100 @@ func TestSeed(t *testing.T) {
 		r.Write([]byte(tc.in))
 		if out.String() != tc.want || r.Pending() != tc.pending {
 			t.Errorf("seed %q, %q: wrote %q, pending %q; want %q, %q", tc.seed, tc.in, out.String(), r.Pending(), tc.want, tc.pending)
+		}
+	}
+}
+
+// A cursor move or an insert opens no more than the bound: without a width a
+// move right or to a column stops at the line's end or its 4096th column,
+// whichever is further, and an insert does nothing; with a width cursor down
+// stops at the line's last row. The far end's bytes can never make the line
+// many times longer than they are.
+func TestMovesAndInsertsOpenABoundedLine(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		columns int
+		in      string
+		most    int
+	}{
+		{"no width: a move right far past the end", 0, "x\x1b[999999999Cy", 4096},
+		{"no width: a column far past the end", 0, "x\x1b[99999999Gy", 4096},
+		{"no width: moves right repeated", 0, strings.Repeat("\x1b[65535Cy", 50), 4096 + 50},
+		{"no width: inserts repeated", 0, "abc\r" + strings.Repeat("\x1b[65535@", 50), 3},
+		{"no width: one cell inserted repeatedly", 0, "abc\r" + strings.Repeat("\x1b[@", 20000), 3},
+		{"cursor down far past the line's last row", 80, "ab" + strings.Repeat("\x1b[65535Bx", 3), 2 + 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			r := New(&out, tc.columns)
+			r.KeepSpaces = true
+			r.Write([]byte(tc.in))
+			if n := len(r.Pending()); n > tc.most {
+				t.Errorf("the unfinished line holds %d cells from %d bytes, want at most %d", n, len(tc.in), tc.most)
+			}
+			r.Close()
+			if n := out.Len(); n > tc.most+1 {
+				t.Errorf("wrote %d bytes from %d, want at most %d", n, len(tc.in), tc.most+1)
+			}
+		})
+	}
+}
+
+// A CSI sequence's parameters hold no memory, however many and however long:
+// the first is read to its cap and the rest are passed over.
+func TestCSIParametersHoldNoMemory(t *testing.T) {
+	for _, tc := range []struct {
+		name, params string
+	}{
+		{"one endless parameter", strings.Repeat("9", 1<<20)},
+		{"many parameters", strings.Repeat("1;", 1<<19)},
+		{"many sub-parameters", strings.Repeat("38:5:", 1<<18)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			r := New(&out, 0)
+			r.Write([]byte("ok\x1b["))
+			chunk := []byte(tc.params)
+			allocated := allocatedBy(func() {
+				for i := 0; i < len(chunk); i += 4096 {
+					r.Write(chunk[i:min(i+4096, len(chunk))])
+				}
+			})
+			if allocated > 64<<10 {
+				t.Errorf("%d parameter bytes allocated %d bytes, want none held", len(chunk), allocated)
+			}
+			r.Write([]byte("m!\r\n"))
+			if got := out.String(); got != "ok!\n" {
+				t.Errorf("got %q, want %q", got, "ok!\n")
+			}
+		})
+	}
+}
+
+// allocatedBy is the bytes the heap gave out while f ran.
+func allocatedBy(f func()) uint64 {
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	f()
+	runtime.ReadMemStats(&after)
+	return after.TotalAlloc - before.TotalAlloc
+}
+
+// TestVisible: control characters, C1 among them, and bytes that are not
+// UTF-8 as Go's escapes; other text, a replacement character the text holds
+// included, as it is.
+func TestVisible(t *testing.T) {
+	for in, want := range map[string]string{
+		"show\tclock\nend\x1b":         `show\tclock\nend\x1b`,
+		"a\x1b]0;x\x07b\rc\x7f":        `a\x1b]0;x\ab\rc\x7f`,
+		"csi \u009b2J nel \u0085":      `csi \u009b2J nel \u0085`,
+		"raw \x9b\xff":                 `raw \x9b\xff`,
+		"show clock":                   "show clock",
+		"café ✓ \uFFFD":                "café ✓ \uFFFD",
+		"/dev/shm/karvi/x\x1b[2J.json": `/dev/shm/karvi/x\x1b[2J.json`,
+	} {
+		if got := Visible(in); got != want {
+			t.Errorf("Visible(%q) = %q, want %q", in, got, want)
 		}
 	}
 }

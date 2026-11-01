@@ -320,3 +320,44 @@ func TestWorkLine(t *testing.T) {
 	}
 	_ = scoreboard.Row{}
 }
+
+// TestPaneTitleFitsALongKey: the pane's title on a row whose key is longer
+// than the screen is wide, an unreadable file's path or a long activity ID,
+// is the key cut with … and one cell of rule, within the width.
+func TestPaneTitleFitsALongKey(t *testing.T) {
+	path := "/home/jsmith.admin/.local/share/karvi/state/scoreboards/261031-120000-00.json"
+	long := strings.Repeat("260924-134403-00", 8)
+	for _, tc := range []struct {
+		name string
+		cols int
+		row  scoreboard.Row
+	}{
+		{"an unreadable file at 80 columns", 80, scoreboard.Row{Path: path, Error: "unexpected end of JSON input"}},
+		{"an unreadable file at 40 columns", 40, scoreboard.Row{Path: path, Error: "unexpected end of JSON input"}},
+		{"a long activity ID", 80, scoreboard.Row{Path: "/dev/shm/karvi/scoreboards/x.json", Snapshot: records.ScoreboardSnapshot{ActivityID: long, Status: "complete"}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &Model{Rows: []scoreboard.Row{tc.row}, Now: time.Date(2026, 9, 24, 13, 48, 15, 0, time.Local), Location: time.Local, Theme: "dark", Cols: tc.cols, Lines: 24}
+			m.Frame()
+			m.Key(kind(KeyEnter))
+			var frame []string
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Fatalf("Frame with the pane open panicked: %v", r)
+					}
+				}()
+				frame = m.Frame()
+			}()
+			title := ""
+			for _, l := range frame {
+				if strings.HasPrefix(l, " ── ") {
+					title = l
+				}
+			}
+			if n := len([]rune(title)); n == 0 || n > tc.cols || !strings.Contains(title, "… ─") {
+				t.Errorf("title %q, %d cells at %d columns", title, n, tc.cols)
+			}
+		})
+	}
+}

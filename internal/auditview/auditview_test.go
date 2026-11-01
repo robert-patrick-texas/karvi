@@ -269,17 +269,6 @@ func TestOutcomeRole(t *testing.T) {
 	}
 }
 
-// TestVisible: a statement's control characters as Go's escapes, so a row
-// stays one line.
-func TestVisible(t *testing.T) {
-	if got := visible("show\tclock\nend\x1b"); got != `show\tclock\nend\x1b` {
-		t.Errorf("%q", got)
-	}
-	if got := visible("show clock"); got != "show clock" {
-		t.Errorf("%q", got)
-	}
-}
-
 // fakeJournalctl puts a journalctl on PATH that records its arguments,
 // writes lines, writes msg to standard error, waits wait (a sleep(1)
 // argument, "" none), and exits with code.
@@ -378,5 +367,26 @@ func TestRun(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	if code, out, errs := runFiles(t); code != 1 || out != "" || errs != "karvi-audit: journalctl not found\n" {
 		t.Errorf("missing: %d %q %q", code, out, errs)
+	}
+}
+
+// TestEveryCellIsVisible: every cell of a row, not COMMAND alone, is
+// written with its control characters as Go's escapes: ESC, BEL, a carriage
+// return, and a C1 control reach the terminal as text, and the row stays one
+// line.
+func TestEveryCellIsVisible(t *testing.T) {
+	const hostile = "\x1b[2J\a\r\u009b"
+	const shown = `\x1b[2J\a\r\u009b`
+	row := Row{ID: hostile, Operator: hostile, LoginUser: hostile, Mode: hostile, Event: hostile, Outcome: hostile, Device: hostile, Command: hostile}
+	for _, width := range []int{0, 200} {
+		line := Table{Width: width}.Line(row)
+		for _, r := range line {
+			if r < ' ' || r == 0x7f || (r >= 0x80 && r < 0xa0) {
+				t.Fatalf("width %d: control %U in %q", width, r, line)
+			}
+		}
+		if n := strings.Count(line, shown); n < 3 {
+			t.Errorf("width %d: %q shown %d times in %q, want OPERATOR's, DEVICE's, and COMMAND's", width, shown, n, line)
+		}
 	}
 }

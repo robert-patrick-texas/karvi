@@ -84,6 +84,12 @@ type Session struct {
 	opts    Options
 	prompts *Prompts
 	chunks  chan chunk
+	// done is closed (end) once the session fails, or once Close has
+	// closed the stream, which a transport may let read to the shell's
+	// end first: nothing reads chunks after, so the pump stops handing on
+	// what it reads and ends.
+	done    chan struct{}
+	endOnce sync.Once
 
 	opMu sync.Mutex // one device operation at a time
 	// sent counts the commands Execute has written, under opMu, so
@@ -125,7 +131,7 @@ func Open(ctx context.Context, stream Stream, opts Options) (*Session, error) {
 	opts.LoginTimeout = defaultDuration(opts.LoginTimeout, 40*time.Second)
 	opts.EnableTimeout = defaultDuration(opts.EnableTimeout, 10*time.Second)
 	opts.PromptTimeout = defaultDuration(opts.PromptTimeout, 10*time.Second)
-	s := &Session{stream: stream, opts: opts, prompts: p, chunks: make(chan chunk, 32)}
+	s := &Session{stream: stream, opts: opts, prompts: p, chunks: make(chan chunk, 32), done: make(chan struct{})}
 	go s.pump()
 
 	loginCtx, cancel := context.WithTimeout(ctx, opts.LoginTimeout)
@@ -536,7 +542,9 @@ func (s *Session) Close() error {
 			}
 		}
 	}
-	return s.stream.Close()
+	err := s.stream.Close()
+	s.end()
+	return err
 }
 
 // Prompt is the prompt last observed.
@@ -555,10 +563,17 @@ func (s *Session) pump() {
 			if s.opts.Live != nil {
 				s.opts.Live.Write(buffer[:n])
 			}
-			s.chunks <- chunk{data: append([]byte(nil), buffer[:n]...)}
+			select {
+			case s.chunks <- chunk{data: append([]byte(nil), buffer[:n]...)}:
+			case <-s.done:
+				return
+			}
 		}
 		if err != nil {
-			s.chunks <- chunk{err: err}
+			select {
+			case s.chunks <- chunk{err: err}:
+			case <-s.done:
+			}
 			return
 		}
 	}
@@ -767,12 +782,16 @@ func (s *Session) fail() {
 	s.stateMu.Lock()
 	s.broken = true
 	s.stateMu.Unlock()
+	s.end()
 	if a, ok := s.stream.(Aborter); ok {
 		a.Abort()
 		return
 	}
 	_ = s.stream.Close()
 }
+
+// end closes done, once.
+func (s *Session) end() { s.endOnce.Do(func() { close(s.done) }) }
 
 // Usable reports whether the session can take another command: it is
 // neither closed nor ended by a failure.

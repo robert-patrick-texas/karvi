@@ -9,6 +9,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/display"
 	"github.com/robert-patrick-texas/karvi/internal/scoreboard"
+	"github.com/robert-patrick-texas/karvi/internal/termtext"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -107,7 +108,7 @@ const (
 func (m *Model) layout(avail int) widths {
 	w := widths{jobID: widthJobID, timeW: widthTime, status: widthStatus, operator: widthOperator, mode: widthMode, doneX: 3, fail: widthCount, actv: widthCount}
 	for _, r := range m.Rows {
-		if n := len([]rune(r.Snapshot.Operator.Username)); n > w.operator {
+		if n := len([]rune(termtext.Visible(r.Snapshot.Operator.Username))); n > w.operator {
 			w.operator = n
 		}
 		if n := len(strconv.Itoa(r.Snapshot.Counts.Total)); n > w.doneX {
@@ -161,18 +162,20 @@ func (m *Model) header(w widths) []piece {
 
 // row is one job's line (rules 1 to 5 and 7): the flag, then the cells; a
 // stale row takes muted throughout; an unreadable file shows ? and its
-// path in TARGET.
+// path in TARGET. Every string from the file or its name is visible
+// (termtext.Visible): a snapshot is anyone's in the shared folder.
 func (m *Model) row(r scoreboard.Row, w widths) []piece {
 	sep := piece{"  ", "", false}
+	v := termtext.Visible
 	if r.Error != "" {
-		name := pad(filepath.Base(r.Path), w.jobID, false)
+		name := pad(filepath.Base(v(r.Path)), w.jobID, false)
 		if w.jobID == widthJobIDShort && len([]rune(name)) > widthJobIDShort {
 			name = pad(lastRunes(name, widthJobIDShort), w.jobID, false)
 		}
-		return []piece{{"? ", "error", false}, {name, "muted", false}, sep, {pad("-", w.timeW, false), "muted", false}, sep, {pad("invalid", w.status, false), "error", false}, sep, {pad("-", w.operator, false), "muted", false}, sep, {pad("-", w.mode, false), "muted", false}, sep, {strings.Repeat(" ", w.doneX) + "-" + strings.Repeat(" ", w.doneX), "muted", false}, sep, {pad("-", w.fail, true), "muted", false}, sep, {pad("-", w.actv, true), "muted", false}, sep, {cut(r.Path, w.target), "muted", false}}
+		return []piece{{"? ", "error", false}, {name, "muted", false}, sep, {pad("-", w.timeW, false), "muted", false}, sep, {pad("invalid", w.status, false), "error", false}, sep, {pad("-", w.operator, false), "muted", false}, sep, {pad("-", w.mode, false), "muted", false}, sep, {strings.Repeat(" ", w.doneX) + "-" + strings.Repeat(" ", w.doneX), "muted", false}, sep, {pad("-", w.fail, true), "muted", false}, sep, {pad("-", w.actv, true), "muted", false}, sep, {cut(v(r.Path), w.target), "muted", false}}
 	}
 	s := r.Snapshot
-	id := s.ActivityID
+	id := v(s.ActivityID)
 	if w.jobID == widthJobIDShort {
 		id = lastRunes(id, widthJobIDShort)
 	}
@@ -189,7 +192,7 @@ func (m *Model) row(r scoreboard.Row, w widths) []piece {
 			roles[k] = "muted"
 		}
 	}
-	return []piece{flag, {pad(id, w.jobID, false), roles["plain"], false}, sep, {pad(TimeCell(s, m.Now, m.Location), w.timeW, false), roles["plain"], false}, sep, {pad(s.Status, w.status, false), roles["status"], false}, sep, {pad(s.Operator.Username, w.operator, false), roles["plain"], false}, sep, {pad(s.Mode, w.mode, false), roles["plain"], false}, sep,
+	return []piece{flag, {pad(id, w.jobID, false), roles["plain"], false}, sep, {pad(TimeCell(s, m.Now, m.Location), w.timeW, false), roles["plain"], false}, sep, {pad(v(s.Status), w.status, false), roles["status"], false}, sep, {pad(v(s.Operator.Username), w.operator, false), roles["plain"], false}, sep, {pad(v(s.Mode), w.mode, false), roles["plain"], false}, sep,
 		{pad(strconv.Itoa(s.Counts.Completed), w.doneX, true), roles["x"], false}, {"/", roles["y"], false}, {pad(strconv.Itoa(s.Counts.Total), w.doneX, false), roles["y"], false}, sep,
 		{pad(strconv.Itoa(s.Counts.Failed), w.fail, true), roles["fail"], false}, sep, {pad(strconv.Itoa(s.Counts.InFlight), w.actv, true), roles["actv"], false}, sep, {TargetCell(s, w.target), roles["target"], false}}
 }
@@ -334,7 +337,9 @@ func (m *Model) Frame() []string {
 	}
 	if pane && selected >= 0 {
 		height := m.paneHeight()
-		title := " " + m.render([]piece{{"── ", "border", false}, {rowKey(rows[selected]), "label", true}, {" " + strings.Repeat("─", avail-4-len([]rune(rowKey(rows[selected])))), "border", false}})
+		// The key, cut so that one cell of the rule stays after it.
+		key := cut(termtext.Visible(rowKey(rows[selected])), avail-5)
+		title := " " + m.render([]piece{{"── ", "border", false}, {key, "label", true}, {" " + strings.Repeat("─", max(0, avail-4-len([]rune(key)))), "border", false}})
 		frame = append(frame, title)
 		pane := m.paneLines(rows[selected], height, m.Cols)
 		if len(pane) > height {
