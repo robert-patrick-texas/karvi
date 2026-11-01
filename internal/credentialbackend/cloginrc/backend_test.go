@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -515,8 +516,8 @@ func TestPatternRefusedOnlyWhenTclMatchesNothing(t *testing.T) {
 // TestBracedWordKeepsBackslashes: inside braces a backslash and the byte
 // after it are kept, as Tcl keeps them (no backslash substitution inside
 // braces); an escaped brace still does not count toward the nesting. A bare
-// word drops the backslash, as Tcl's substitution does. The add user and
-// add userpassword values show the words as read, being taken as written.
+// word's backslash sequence is substituted, as Tcl substitutes it ("\s" is
+// "s"). The add user and add userpassword values show the words as read.
 func TestBracedWordKeepsBackslashes(t *testing.T) {
 	d := t.TempDir()
 	p := filepath.Join(d, "cloginrc")
@@ -637,6 +638,149 @@ func TestBareWordRefusesSubstitutionCharacters(t *testing.T) {
 func TestRejectCode(t *testing.T) {
 	if _, err := tokenize("add user * $USER"); err == nil {
 		t.Fatal("expected substitution rejection")
+	}
+}
+
+// wordCases are .cloginrc lines and what tclsh8.6 (8.6.17) reads from each
+// through clogin's own add, the line evaluated on its own as clogin's
+// source_password_file evaluates it: the pattern and the values clogin takes
+// (an add password line's password and enable password joined, an add user
+// or add userpassword value as the word reads), no record for a comment, or
+// a refusal (the code and the text after the file and line) where tcl gives
+// Tcl's reason for failing the line, or why karvi refuses a line Tcl reads.
+// They are recorded here so that the test needs no Tcl.
+var wordCases = []struct {
+	line, pattern string
+	values        []string
+	code, message string
+	tcl           string
+}{
+	// A bare word's backslash sequences are substituted.
+	{line: `add userpassword router1 pa\tss`, pattern: "router1", values: []string{"pa\tss"}},
+	{line: `add userpassword router1 a\ab\bc\fd\ne\rf\tg\vh`, pattern: "router1", values: []string{"a\ab\bc\fd\ne\rf\tg\vh"}},
+	{line: `add userpassword router1 pa\\ss`, pattern: "router1", values: []string{`pa\ss`}},
+	{line: `add userpassword router1 a\101b\477\08`, pattern: "router1", values: []string{"aAb'7\x008"}},
+	{line: `add userpassword router1 a\x41b\x4g\xg`, pattern: "router1", values: []string{"aAb\x04gxg"}},
+	{line: `add userpassword router1 a\` + `u00e9b\` + `ug`, pattern: "router1", values: []string{"a\xc3\xa9bug"}},
+	{line: `add userpassword router1 a\U0001F600b\U41`, pattern: "router1", values: []string{"a\xef\xbf\xbdbA"}},
+	{line: `add userpassword router1 a\` + `ud83d\` + `ude00b`, pattern: "router1", values: []string{"a\xf0\x9f\x98\x80b"}},
+	{line: `add userpassword router1 pa\ss`, pattern: "router1", values: []string{"pass"}},
+	{line: `add userpassword router1 pa\ ss`, pattern: "router1", values: []string{"pa ss"}},
+	{line: `add userpassword router1 \{pass\}`, pattern: "router1", values: []string{"{pass}"}},
+	// An escaped substitution character is a character.
+	{line: `add userpassword router1 pa\$\[\]\;ss`, pattern: "router1", values: []string{"pa$[];ss"}},
+	// A quote or a brace inside a bare word is a character.
+	{line: `add userpassword router1 pa"ss"`, pattern: "router1", values: []string{`pa"ss"`}},
+	{line: `add userpassword router1 pa{ss}`, pattern: "router1", values: []string{"pa{ss}"}},
+	// Words are separated by Tcl's white space alone: space, tab, vertical
+	// tab, form feed, carriage return; a character whose UTF-8 holds the
+	// byte 0x85 or 0xa0 is part of its word.
+	{line: "add password router1\vpa\fss\v", pattern: "router1", values: []string{"pa", "ss"}},
+	{line: "add\tuserpassword\trouter1\tpass\r", pattern: "router1", values: []string{"pass"}},
+	{line: "add userpassword router1 p\xc3\xa0ss", pattern: "router1", values: []string{"p\xc3\xa0ss"}},
+	{line: "add userpassword router1 p\xc3\x85ss", pattern: "router1", values: []string{"p\xc3\x85ss"}},
+	// A quoted word is one word: white space, ";", "]", and the braces are
+	// characters in it, and its backslash sequences are substituted.
+	{line: `add userpassword router1 "pa ss"`, pattern: "router1", values: []string{"pa ss"}},
+	{line: `add userpassword router1 "a;b]c{d}e"`, pattern: "router1", values: []string{"a;b]c{d}e"}},
+	{line: `add userpassword router1 "pa\tss\"q\$\101"`, pattern: "router1", values: []string{"pa\tss\"q$A"}},
+	{line: `add userpassword router1 ""`, pattern: "router1", values: []string{""}},
+	{line: `add user "router 1" bob`, pattern: "router 1", values: []string{"bob"}},
+	{line: `add user router1 "svc user"`, pattern: "router1", values: []string{"svc user"}},
+	// "#" begins a comment only as a line's first word.
+	{line: `add password router1 pass #en`, pattern: "router1", values: []string{"pass", "#en"}},
+	{line: `add userpassword router1 #x`, pattern: "router1", values: []string{"#x"}},
+	{line: `add userpassword router1 "#x"`, pattern: "router1", values: []string{"#x"}},
+	{line: `  # add password router1 pass`},
+	{line: `#add password router1 pass`},
+	{line: "\v# add password router1 pass"},
+	{line: `add user router1 bob # the admin`, code: "cloginrc_malformed", message: "add user requires exactly one value", tcl: `clogin takes "bob#theadmin", the four words joined`},
+	// An add password line's password and enable password are joined as
+	// clogin joins them, after the words are read; a braced word keeps its
+	// backslashes until the join.
+	{line: `add password router1 "pa ss" "a b"`, pattern: "router1", values: []string{"pass", "ab"}},
+	{line: `add password router1 pa\tss pa\x41ss`, pattern: "router1", values: []string{"pass", "paAss"}},
+	{line: `add password router1 "{a b} c" {x\ty}`, pattern: "router1", values: []string{"a bc", "x\ty"}},
+	{line: `add password router1 {pa\tss} "pa\\tss"`, pattern: "router1", values: []string{"pa\tss", "pa\tss"}},
+	{line: `add password router1 "pa]ss"`, pattern: "router1", values: []string{"pa]ss"}},
+	// Text right after a closing brace or quote fails the line.
+	{line: `add password router1 {pa}ss`, code: "cloginrc_malformed", message: "text after a closing brace", tcl: "extra characters after close-brace"},
+	{line: `add password router1 "pa"ss`, code: "cloginrc_malformed", message: "text after a closing quote", tcl: "extra characters after close-quote"},
+	{line: `add password router1 "a"{b}`, code: "cloginrc_malformed", message: "text after a closing quote", tcl: "extra characters after close-quote"},
+	{line: `add password router1 pass "en"x`, code: "cloginrc_malformed", message: "text after a closing quote", tcl: "extra characters after close-quote"},
+	// A ";" right after one is refused as chaining, where Tcl ends the command.
+	{line: `add password router1 {pa};`, code: "cloginrc_tcl_substitution_forbidden", message: "';' after a closing brace", tcl: `Tcl reads the password "pa", the ";" ending the command`},
+	{line: `add password router1 "pa";`, code: "cloginrc_tcl_substitution_forbidden", message: "';' after a closing quote", tcl: `Tcl reads the password "pa", the ";" ending the command`},
+	// A quote or a brace left open on its line fails the line.
+	{line: `add password router1 "pass`, code: "cloginrc_malformed", message: "unterminated quote", tcl: `missing "`},
+	{line: `add password router1 {pass`, code: "cloginrc_malformed", message: "unterminated brace", tcl: "missing close-brace"},
+	// "$" and "[" are refused in a quoted word, and "$", "[", "]", and ";"
+	// in a bare word, where Tcl would substitute or end the command.
+	{line: `add password router1 "pa$ss"`, code: "cloginrc_tcl_substitution_forbidden", message: `'$' in a quoted word; brace the word`, tcl: `can't read "ss": no such variable`},
+	{line: `add password router1 "pa[ss"`, code: "cloginrc_tcl_substitution_forbidden", message: `'[' in a quoted word; brace the word`, tcl: "missing close-bracket"},
+	{line: `add password router1 pa$ss`, code: "cloginrc_tcl_substitution_forbidden", message: `'$' in a bare word; brace the word`, tcl: `can't read "ss": no such variable`},
+}
+
+// TestWordsReadAsTclsh: each line of wordCases is read as tclsh8.6 reads it
+// through clogin's add, or refused with the code and message recorded.
+func TestWordsReadAsTclsh(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	for _, tc := range wordCases {
+		write(t, p, tc.line+"\n", 0o600)
+		records, failed := newBackend(t, d, p, credfile.ScopeUser, false).load(context.Background())
+		if tc.code != "" {
+			if failed == nil {
+				t.Errorf("%q: read as %+v; want %s, %s (Tcl: %s)", tc.line, records, tc.code, tc.message, tc.tcl)
+			} else if failed.ErrorCode != tc.code || failed.Message != p+":1: "+tc.message {
+				t.Errorf("%q: %s: %s\nwant %s: %s:1: %s (Tcl: %s)", tc.line, failed.ErrorCode, failed.Message, tc.code, p, tc.message, tc.tcl)
+			}
+			continue
+		}
+		if failed != nil {
+			t.Errorf("%q: %s: %s; Tcl reads %q %q", tc.line, failed.ErrorCode, failed.Message, tc.pattern, tc.values)
+			continue
+		}
+		if tc.values == nil {
+			if len(records) != 0 {
+				t.Errorf("%q: read as %+v; Tcl reads a comment", tc.line, records)
+			}
+			continue
+		}
+		if len(records) != 1 || records[0].Pattern != tc.pattern || !slices.Equal(records[0].Values, tc.values) {
+			t.Errorf("%q: read as %+v; Tcl reads %q %q", tc.line, records, tc.pattern, tc.values)
+		}
+	}
+}
+
+// TestLongLineIsRefusedNamingTheFileAndLine: a line of 1 MiB or more (the
+// reader's bound, its newline aside) fails the load with cloginrc_malformed,
+// the message naming the file and the line (an included file's after the
+// include's); a line one byte shorter is read.
+func TestLongLineIsRefusedNamingTheFileAndLine(t *testing.T) {
+	d := t.TempDir()
+	root := filepath.Join(d, "cloginrc")
+	sub := filepath.Join(d, "sub.rc")
+	const lead = "add userpassword router1 "
+	fits := lead + strings.Repeat("a", 1<<20-1-len(lead))
+	long := fits + "a"
+	write(t, root, "# lab\n"+fits+"\n", 0o600)
+	if records, failed := newBackend(t, d, root, credfile.ScopeUser, false).load(context.Background()); failed != nil || len(records) != 1 || len(records[0].Values[0]) != len(fits)-len(lead) {
+		t.Fatalf("a line of 1 MiB less one byte: %d records, %v", len(records), failed)
+	}
+	write(t, sub, "# lab\n"+long+"\n", 0o600)
+	for _, f := range []struct{ where, body, want string }{
+		{"the file", "# lab\n" + long + "\nadd password * {pw-default}\n", root + ":2: a line of 1 MiB or more"},
+		{"the file's last line", "# lab\n" + long, root + ":2: a line of 1 MiB or more"},
+		{"an included file", "include sub.rc\n", root + ":1 include: " + sub + ":2: a line of 1 MiB or more"},
+	} {
+		write(t, root, f.body, 0o600)
+		_, failed := newBackend(t, d, root, credfile.ScopeUser, false).load(context.Background())
+		if failed == nil {
+			t.Errorf("%s: read; want cloginrc_malformed, %s", f.where, f.want)
+		} else if failed.Outcome != credentials.Malformed || failed.ErrorCode != "cloginrc_malformed" || failed.Message != f.want {
+			t.Errorf("%s: %s %s: %s\nwant malformed cloginrc_malformed: %s", f.where, failed.Outcome, failed.ErrorCode, failed.Message, f.want)
+		}
 	}
 }
 

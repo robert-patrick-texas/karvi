@@ -9,6 +9,7 @@ package cloginrc
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -334,8 +335,9 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 	for s.Scan() {
 		line++
 		raw := strings.TrimSuffix(s.Text(), "\r")
-		trim := strings.TrimSpace(raw)
-		if trim == "" || strings.HasPrefix(trim, "#") {
+		// A command begins at the line's first word, and a "#" there begins
+		// a comment, as Tcl reads one.
+		if at := skipTclSpace(raw, 0); at == len(raw) || raw[at] == '#' {
 			continue
 		}
 		if endsContinuation(raw) {
@@ -344,9 +346,6 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 		tokens, err := tokenize(raw)
 		if err != nil {
 			return nil, located(fmt.Sprintf("%s:%d: ", canonical, line), err)
-		}
-		if len(tokens) == 0 {
-			continue
 		}
 		if strings.EqualFold(tokens[0], "include") {
 			if len(tokens) != 2 {
@@ -392,7 +391,7 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 				return nil, fmt.Errorf("%s:%d: add %s requires exactly one value", canonical, line, d)
 			}
 		case "password":
-			if len(values) < 1 || len(values) > 2 {
+			if len(values) > 2 {
 				return nil, fmt.Errorf("%s:%d: add password requires one or two values", canonical, line)
 			}
 			// clogin sends the password and the enable password as
@@ -408,9 +407,6 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 			if !ignored[d] {
 				return nil, errorcodes.Errorf("cloginrc_unknown_directive", "%s:%d: %s", canonical, line, d)
 			}
-			if len(values) < 1 {
-				return nil, fmt.Errorf("%s:%d: ignored directive %s requires a value", canonical, line, d)
-			}
 			if !ignoredSeen[d] && b.Warn != nil {
 				ignoredSeen[d] = true
 				b.Warn(fmt.Sprintf("cloginrc_directive_ignored: %s at %s:%d", d, canonical, line))
@@ -423,6 +419,9 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 		out = append(out, record{Directive: d, Pattern: pattern, Values: values, Path: canonical, Line: line})
 	}
 	if err := s.Err(); err != nil {
+		if errors.Is(err, bufio.ErrTooLong) {
+			return nil, fmt.Errorf("%s:%d: a line of 1 MiB or more", canonical, line+1)
+		}
 		return nil, err
 	}
 	return out, nil
@@ -444,22 +443,21 @@ func endsContinuation(s string) bool {
 	}
 	return n%2 == 1
 }
+
+// tokenize reads a line's words as Tcl reads a command's words: white space
+// (isTclSpace) between them; a word that starts with "{" is braced, one that
+// starts with '"' quoted, and any other bare.
 func tokenize(s string) ([]string, error) {
 	out := []string{}
-	i := 0
-	for {
-		i = skipSpace(s, i)
-		if i >= len(s) {
-			break
-		}
-		if s[i] == '#' {
-			break
-		}
+	for i := skipTclSpace(s, 0); i < len(s); i = skipTclSpace(s, i) {
 		var v string
 		var err error
-		if s[i] == '{' {
+		switch s[i] {
+		case '{':
 			v, i, err = parseBraced(s, i)
-		} else {
+		case '"':
+			v, i, err = parseQuoted(s, i)
+		default:
 			v, i, err = parseBare(s, i)
 		}
 		if err != nil {
@@ -469,17 +467,12 @@ func tokenize(s string) ([]string, error) {
 	}
 	return out, nil
 }
-func skipSpace(s string, i int) int {
-	for i < len(s) && unicode.IsSpace(rune(s[i])) {
-		i++
-	}
-	return i
-}
 
 // parseBraced reads a braced word as Tcl does: no substitution inside the
 // braces, so every character is kept as it stands, "$", "[", "]", and ";"
 // among them, and a backslash with the byte after it; an escaped brace does
-// not count toward the nesting.
+// not count toward the nesting. White space or the line's end follows the
+// closing brace.
 func parseBraced(s string, i int) (string, int, error) {
 	i++
 	depth := 1
@@ -506,7 +499,7 @@ func parseBraced(s string, i int) (string, int, error) {
 			depth--
 			i++
 			if depth == 0 {
-				return b.String(), i, nil
+				return b.String(), i, afterClose(s, i, "brace")
 			}
 			b.WriteByte(c)
 			continue
@@ -517,28 +510,70 @@ func parseBraced(s string, i int) (string, int, error) {
 	return "", i, fmt.Errorf("unterminated brace")
 }
 
-// parseBare reads a bare word as Tcl's substitution leaves it: a backslash
-// gives the byte after it. "$", "[", "]", and ";" are refused, where Tcl
-// would substitute or end the command.
+// parseQuoted reads a quoted word as Tcl does: it runs from its opening
+// quote to the next quote not escaped, white space, ";", "]", and the braces
+// among its characters, with its backslash sequences substituted
+// (tclBackslash). "$" and "[" are refused, where Tcl would substitute. White
+// space or the line's end follows the closing quote.
+func parseQuoted(s string, i int) (string, int, error) {
+	var b strings.Builder
+	for i++; i < len(s); {
+		switch c := s[i]; c {
+		case '"':
+			return pairSurrogates(b.String()), i + 1, afterClose(s, i+1, "quote")
+		case '\\':
+			v, n := tclBackslash(s[i:])
+			b.WriteString(v)
+			i += n
+		case '$', '[':
+			return "", i, substitution(c, "quoted")
+		default:
+			b.WriteByte(c)
+			i++
+		}
+	}
+	return "", i, fmt.Errorf("unterminated quote")
+}
+
+// parseBare reads a bare word as Tcl does: it runs to white space or the
+// line's end, a quote or a brace in it a character like any other, with its
+// backslash sequences substituted (tclBackslash). "$", "[", "]", and ";"
+// are refused, where Tcl would substitute or end the command.
 func parseBare(s string, i int) (string, int, error) {
 	var b strings.Builder
-	for i < len(s) && !unicode.IsSpace(rune(s[i])) {
-		c := s[i]
-		if c == '\\' {
-			if i+1 >= len(s) {
-				return "", i, fmt.Errorf("unfinished escape")
-			}
-			b.WriteByte(s[i+1])
-			i += 2
-			continue
+	for i < len(s) && !isTclSpace(s[i]) {
+		switch c := s[i]; c {
+		case '\\':
+			v, n := tclBackslash(s[i:])
+			b.WriteString(v)
+			i += n
+		case '$', '[', ']', ';':
+			return "", i, substitution(c, "bare")
+		default:
+			b.WriteByte(c)
+			i++
 		}
-		if c == '$' || c == '[' || c == ']' || c == ';' {
-			return "", i, errorcodes.Errorf("cloginrc_tcl_substitution_forbidden", "%q in a bare word; brace the word", rune(c))
-		}
-		b.WriteByte(c)
-		i++
 	}
-	return b.String(), i, nil
+	return pairSurrogates(b.String()), i, nil
+}
+
+// afterClose fails unless s[i], just after a braced or quoted word's closing
+// brace or quote, is white space or the line's end, as Tcl requires. A ";"
+// there is refused as chaining, where Tcl would end the command.
+func afterClose(s string, i int, closing string) error {
+	switch {
+	case i >= len(s) || isTclSpace(s[i]):
+		return nil
+	case s[i] == ';':
+		return errorcodes.Errorf("cloginrc_tcl_substitution_forbidden", "';' after a closing %s", closing)
+	}
+	return fmt.Errorf("text after a closing %s", closing)
+}
+
+// substitution refuses c in a word of the kind named, where Tcl would
+// substitute or end the command at it.
+func substitution(c byte, word string) error {
+	return errorcodes.Errorf("cloginrc_tcl_substitution_forbidden", "%q in a %s word; brace the word", rune(c), word)
 }
 
 // joinList is value as clogin's [join $value ""] gives it, the way clogin
@@ -548,7 +583,7 @@ func parseBare(s string, i int) (string, int, error) {
 // carriage return) separates the elements; listElement reads each one.
 func joinList(value string) (string, error) {
 	var b strings.Builder
-	for i := skipListSpace(value, 0); i < len(value); i = skipListSpace(value, i) {
+	for i := skipTclSpace(value, 0); i < len(value); i = skipTclSpace(value, i) {
 		end, err := listElement(value, i, &b)
 		if err != nil {
 			return "", err
@@ -558,10 +593,13 @@ func joinList(value string) (string, error) {
 	return pairSurrogates(b.String()), nil
 }
 
-func isListSpace(c byte) bool { return c == ' ' || '\t' <= c && c <= '\r' }
+// isTclSpace reports whether c is white space as Tcl reads a command's words
+// or a list's elements: space, tab, newline, vertical tab, form feed, or
+// carriage return.
+func isTclSpace(c byte) bool { return c == ' ' || '\t' <= c && c <= '\r' }
 
-func skipListSpace(s string, i int) int {
-	for i < len(s) && isListSpace(s[i]) {
+func skipTclSpace(s string, i int) int {
+	for i < len(s) && isTclSpace(s[i]) {
 		i++
 	}
 	return i
@@ -590,7 +628,7 @@ func listElement(s string, i int, b *strings.Builder) (int, error) {
 				if depth--; depth > 0 {
 					continue
 				}
-				if j+1 < len(s) && !isListSpace(s[j+1]) {
+				if j+1 < len(s) && !isTclSpace(s[j+1]) {
 					return 0, fmt.Errorf("text after a closing brace")
 				}
 				b.WriteString(s[i+1 : j])
@@ -605,7 +643,7 @@ func listElement(s string, i int, b *strings.Builder) (int, error) {
 				_, n := tclBackslash(s[j:])
 				j += n - 1
 			case '"':
-				if j+1 < len(s) && !isListSpace(s[j+1]) {
+				if j+1 < len(s) && !isTclSpace(s[j+1]) {
 					return 0, fmt.Errorf("text after a closing quote")
 				}
 				collapse(s[i+1:j], b)
@@ -615,7 +653,7 @@ func listElement(s string, i int, b *strings.Builder) (int, error) {
 		return 0, fmt.Errorf("unmatched open quote")
 	}
 	j := i
-	for j < len(s) && !isListSpace(s[j]) {
+	for j < len(s) && !isTclSpace(s[j]) {
 		if s[j] == '\\' {
 			_, n := tclBackslash(s[j:])
 			j += n

@@ -1261,11 +1261,27 @@ bracket stays a literal bracket. A pattern no name can match fails the load
 with `cloginrc_malformed`: a backslash that ends it, or a class that lists
 nothing (`[]`, or a `[` or `[a-` that ends the pattern).
 
-Inside braces every character of a pattern or a value is taken as written,
-as Tcl takes it: `{pa$$w0rd}`, `{pa;ss}`, and `{core-[!x]*}` are read as
-they stand. In a bare word, where Tcl would substitute or end the command,
-`$`, `[`, `]`, and `;` are refused (`cloginrc_tcl_substitution_forbidden`),
-the message naming the character and the file and line.
+A line's words are read as Tcl reads a command's words, separated by white
+space (spaces, tabs, vertical tabs, form feeds). Inside braces every
+character of a pattern or a value is taken as written: `{pa$$w0rd}`,
+`{pa;ss}`, and `{core-[!x]*}` are read as they stand. A word in double
+quotes is one word, its spaces, `;`, `]`, and braces characters like any
+other (`"pa ss"`). In a quoted or a bare word a backslash sequence stands
+for the character Tcl gives it: `\t` a tab, `\x41` and `\101` an `A` (`\u`
+and `\U` for Unicode), `\$` a `$`, `\ ` a space, and a backslash before any
+other character that character; a quote or a brace inside a bare word is a
+character (`pa"ss`). A `#` begins a comment only as a line's first word;
+elsewhere it is part of a word, so `add password router1 PASSWORD #en`
+gives the enable password `#en`, and no comment can follow a line's values.
+
+Where Tcl would substitute or end the command, a character is refused
+(`cloginrc_tcl_substitution_forbidden`), the message naming the character and
+the file and line: `$`, `[`, `]`, and `;` in a bare word, `$` and `[` in a
+quoted word, and `;` right after a closing brace or quote; inside braces, or
+after a backslash (`\$`), the character is taken as written. Text right after a
+closing brace or quote (`{pa}ss`), a brace or quote left open on its line, and a
+line of 1 MiB or more each fail the load with `cloginrc_malformed`, the message
+naming the file and line.
 
 An `add password` line's password and enable password are what clogin sends:
 clogin reads each value again as a Tcl list and joins its words with nothing
@@ -1275,7 +1291,7 @@ backslash keeps a space, a quote, or a brace as a character (`{pass\ one}`
 is `pass one`, `{\"pass}` is `"pass`). A value that is not a Tcl list, with
 an unmatched quote or brace where clogin stops with a Tcl error, fails the
 load with `cloginrc_malformed`, the message naming the file and line.
-`add user` and `add userpassword` values are taken as written.
+`add user` and `add userpassword` values are taken as their words read.
 
 The checks are the same for every credential file backend and carry one
 code each, the message naming the backend and the path and never a value:

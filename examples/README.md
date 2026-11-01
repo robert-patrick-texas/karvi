@@ -9,7 +9,7 @@ at are under `docs/`.
 | `config.toml` | a site configuration: an inventory source, three credential backends and the policy that orders them, a platform alias, platform resolution, the collection run, the transports, dispatch, display, and the job's folder mode; commented, the shapes a site adds: a shared `.cloginrc`, a Vault store with its TLS trust, a credential helper, a drop list, start statements for generic devices, session-init, algorithm profiles, and an audit file without journald | `#` anywhere (TOML) |
 | `inventory.csv` | an inventory file: a header the configuration maps, then one device per row with its address, platform, transport, site, groups, cap, and a `credkeyref` pin | a line whose first byte is `#` |
 | `credentials.csv` | a credential CSV: six selector columns, a key, and the three result columns, first matching row wins | a line whose first byte is `#` |
-| `cloginrc` | a RANCID `.cloginrc`, read as data: `add user` and `add password` lines | `#` to the end of the line |
+| `cloginrc` | a RANCID `.cloginrc`, read as data: `add user` and `add password` lines | a line whose first word begins with `#` |
 | `targets.txt` | a target file for `--tf`: one device name per line | a line beginning with `#` or `!` |
 | `commands.txt` | a commands file for `--cf`: one device command per line, sent as written | none: every line is sent to the device, so a comment line would be too |
 | `karvi-credh` | a credential helper: a POSIX `sh` script that prints `NETUSER`, `NETPASS`, and `NETENABLE` from `pass show` as `export` lines, with commented lines for `secret-tool`, `vault kv get`, and `git credential fill` | `#` to the end of the line (`sh`) |

@@ -4,7 +4,8 @@
 # with a warning naming the line, and refuses any other; it never runs the
 # file. Copy it to ~/.cloginrc and chmod 600, or declare it
 # as [credential-backend.rancid] in the configuration (examples/config.toml).
-# A # starts a comment; a continuation line (a trailing backslash) is refused.
+# A # as a line's first word starts a comment (elsewhere it is part of a
+# word); a continuation line (a trailing backslash) is refused.
 #
 # add user PATTERN {USERNAME}            the login name for the devices PATTERN matches
 # add password PATTERN {PASSWORD} {ENABLE}  the login and the enable password
