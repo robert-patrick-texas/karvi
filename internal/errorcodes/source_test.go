@@ -48,7 +48,7 @@ var codeArgs = map[string]int{
 	"reportCoded":     1,
 	// osutil: the not-writable code a folder check reports.
 	"writableDirectory":     1,
-	"EnsureOutputDirectory": 2,
+	"EnsureOutputDirectory": 3,
 	"usageError":            1,
 	// cli: the conflict code of two flags given together (--border with
 	// --noborder, --of with --nof).

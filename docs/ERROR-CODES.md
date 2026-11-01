@@ -602,7 +602,7 @@ Active failure causes.
 | `timeout_over_device_timeout` | usage | 4 | no | A command's `--timeout` is above a set `execution.device-timeout`, which bounds the device's whole list; refused at planning, naming both values and the `--set execution.device-timeout=…` that raises the ceiling. At the default 0 there is no ceiling. |
 | `timeout_with_blind` | usage | 4 | no | A blind command (`--blind`, `--blind-return`, or a trailing `\r`) is given `--timeout`; a blind command waits for `execution.blind-wait` (`--blind-wait`) in place of a timeout, and the prompt's absence is its success. |
 | `transcript_create_failed` | output | 111 | no | The login transcript directory, file, or metadata cannot be created, or a file of the recording is no longer the one its claim made (a link or another file put at its name). |
-| `transcript_directory_not_writable` | permission | 9 | no | A folder in the transcript tree exists and the operator cannot create files in it. |
+| `transcript_directory_not_writable` | permission | 9 | no | A folder in the transcript tree exists and the operator cannot create files in it, or a path there is not a folder. |
 | `transcript_format_unavailable` | dependency | 8 | no | `transcript.format` is `jsonl` or `json` and this executable has no transcript event recorder. |
 | `transcript_name_taken` | output | 111 | yes | Under `--record=PATH` both of a session's names are taken in PATH, the device's own and that name with the session's start (`<device>-YYMMDD-HHMMSS`), each by its transcript or its metadata. Nothing is written; a session started in another second has another second name. |
 | `transcript_path_invalid` | usage | 4 | no | The requested transcript path cannot be made absolute. |

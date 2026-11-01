@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -846,5 +847,71 @@ func TestTranscriptOfADeviceNamedWithMeta(t *testing.T) {
 		if _, err := os.Lstat(p); !os.IsNotExist(err) {
 			t.Errorf("%s remains: %v", p, err)
 		}
+	}
+}
+
+// TestAMetadataNameThatIsNotARegularFileIsKept: in a transcript day folder
+// a FIFO at a metadata name does not hold the run, and it and a link to an
+// ended session's metadata elsewhere are kept as a metadata file that
+// cannot be read is (live): nothing is read through the link and nothing
+// is removed; the ended session beside them goes.
+func TestAMetadataNameThatIsNotARegularFileIsKept(t *testing.T) {
+	base := t.TempDir()
+	old := time.Date(2026, 8, 17, 15, 38, 59, 0, time.UTC)
+	transcripts := filepath.Join(base, "transcripts")
+	ended := writeTranscript(t, transcripts, "260817", "router1-153900", old)
+	elsewhere := writeTranscript(t, t.TempDir(), "260817", "switch1-153900", old)
+	day := filepath.Join(transcripts, "260817")
+	link := filepath.Join(day, "switch1-153900.meta.jsonl")
+	if err := os.Symlink(elsewhere, link); err != nil {
+		t.Fatal(err)
+	}
+	fifo := filepath.Join(day, "austin-rtr1-153900.meta.jsonl")
+	if err := syscall.Mkfifo(fifo, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	type outcome struct {
+		out string
+		res Result
+		err error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		var out bytes.Buffer
+		res, err := Run(Options{PrivateRoots: []string{base}, Verbose: true, Now: now, Location: time.UTC, UID: os.Getuid()}, &out)
+		done <- outcome{out.String(), res, err}
+	}()
+	var got outcome
+	select {
+	case got = <-done:
+	case <-time.After(30 * time.Second):
+		// Release the run waiting on the FIFO, then fail.
+		if f, err := os.OpenFile(fifo, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+			f.Close()
+		}
+		t.Fatal("the run waited on the FIFO for a writer")
+	}
+	if got.err != nil {
+		t.Fatal(got.err)
+	}
+	for _, want := range []string{"kept kind=transcript path=" + fifo + " reason=live", "kept kind=transcript path=" + link + " reason=live", "removed kind=transcript path=" + ended + " "} {
+		if !strings.Contains(got.out, want) {
+			t.Errorf("no line %q in:\n%s", want, got.out)
+		}
+	}
+	if fi, err := os.Lstat(link); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("the link: %v %v", fi, err)
+	}
+	if fi, err := os.Lstat(fifo); err != nil || fi.Mode()&os.ModeNamedPipe == 0 {
+		t.Errorf("the FIFO: %v %v", fi, err)
+	}
+	if _, err := os.Stat(elsewhere); err != nil {
+		t.Errorf("the link's target: %v", err)
+	}
+	if _, err := os.Lstat(ended); !os.IsNotExist(err) {
+		t.Errorf("the ended session stayed: %v", err)
+	}
+	if got.res.Examined != 3 || got.res.Skipped != 2 || got.res.Failed != 0 {
+		t.Errorf("result %+v\n%s", got.res, got.out)
 	}
 }

@@ -222,6 +222,28 @@
   the glob character after it. A pattern that could match no device
   (`router\[12`, a trailing `\\`) was passed by, so a later `*` line answered;
   the file is now refused `cloginrc_malformed` naming the line.
+- **Breaking: a link at a day folder's or a job folder's name is refused.**
+  A shared job or transcript tree's day folders are every member's to write,
+  with no sticky bit, and karvi followed a link planted at a day folder's
+  name when it made a job folder there, so every member's jobs that day were
+  made where the link pointed, a folder the planter could read; a link at a
+  day folder being made was refused, but as `private_directory_not_real`.
+  Below a tree's root, a day folder, a job folder, and its `commands` folder
+  must now be real folders: a link there is refused
+  `output_directory_not_writable` or `transcript_directory_not_writable`, and
+  nothing is made where it points. A link at `output.root` or
+  `transcript.root`, or above either, is the site's and is followed.
+- **karvi-prune reads a transcript's metadata only from a regular file.** The
+  helper read a transcript's metadata file by its name, so a FIFO there held
+  the run until a writer came and a link was read through. The file is now
+  read through one descriptor, opened without following a link and without
+  waiting on a FIFO, only when it is a regular file of at most 1 MiB;
+  anything else under the name is kept as `live`, as a transcript without
+  its end record is.
+- **A login whose `login.start` cannot be written ends its scoreboard.** The
+  snapshot written just before `login.start` stayed `running` when that
+  audit write failed; the login now writes its final snapshot, at `error`
+  with the target failed and `audit_write_failed` in its errors.
 
 ## 0.38.0 - 2026-10-28
 

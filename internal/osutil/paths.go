@@ -645,13 +645,18 @@ func JobDirectory(root, id string, accepted time.Time, loc *time.Location) strin
 	return filepath.Join(root, DayFolder(accepted, loc), id)
 }
 
-// EnsureOutputDirectory prepares a folder in the job or transcript tree:
-// missing components are created with mode, an existing
-// leaf is accepted when the operator can create files in it, and nothing that
-// exists is changed. code names the not-writable failure
+// EnsureOutputDirectory prepares path, a folder in the job or transcript
+// tree whose root is root: missing components are created with mode, an
+// existing leaf is accepted when the operator can create files in it, and
+// nothing that exists is changed. root and what is above it are the site's,
+// a link there followed once; below root (a day folder, a job folder) every
+// component must be a real folder, and a link there is refused under code,
+// so a link another member of a shared tree plants at a day folder's name
+// takes no one's files elsewhere. A path that is root itself is made as the
+// root is. code names the not-writable failure
 // (output_directory_not_writable or transcript_directory_not_writable).
-func EnsureOutputDirectory(path string, mode os.FileMode, code string) error {
-	if err := makeDirectories(path, mode); err != nil {
+func EnsureOutputDirectory(root, path string, mode os.FileMode, code string) error {
+	if err := makeBelow(root, path, mode, code); err != nil {
 		if pe, ok := err.(*os.PathError); ok && pe.Err == syscall.ENOTDIR {
 			return errorcodes.Errorf(code, "%s exists and is not a folder", pe.Path)
 		}
@@ -662,6 +667,51 @@ func EnsureOutputDirectory(path string, mode os.FileMode, code string) error {
 	}
 	_, err := writableDirectory(path, code)
 	return err
+}
+
+// makeBelow is makeDirectories for path below root: root and what is above
+// it are made as mkdirs makes them, and each component below root is
+// created with mode or must be a real folder already, a link there refused
+// under code. A path that is not below root is made as makeDirectories
+// makes it.
+func makeBelow(root, path string, mode os.FileMode, code string) error {
+	rel, err := filepath.Rel(root, path)
+	if root == "" || err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return makeDirectories(path, mode)
+	}
+	if err := CheckSetupPlaces(path, ""); err != nil {
+		return err
+	}
+	if err := mkdirs(root, mode); err != nil {
+		return err
+	}
+	dir := root
+	for _, name := range strings.Split(rel, string(filepath.Separator)) {
+		dir = filepath.Join(dir, name)
+		fi, err := os.Lstat(dir)
+		if os.IsNotExist(err) {
+			if err = os.Mkdir(dir, mode); err == nil {
+				if err := chmodKeepingSetgid(dir, mode); err != nil {
+					return err
+				}
+				continue
+			}
+			if !os.IsExist(err) {
+				return err
+			}
+			fi, err = os.Lstat(dir)
+		}
+		if err != nil {
+			return err
+		}
+		if fi.Mode()&os.ModeSymlink != 0 {
+			return errorcodes.Errorf(code, "%s is a link, not a folder", dir)
+		}
+		if !fi.IsDir() {
+			return &os.PathError{Op: "mkdir", Path: dir, Err: syscall.ENOTDIR}
+		}
+	}
+	return nil
 }
 
 // CreateExclusive creates a file in the job or transcript tree:
@@ -829,7 +879,7 @@ func DaemonSockets(raw, base, home string) (string, error) {
 // case; any other cause is named alone.
 func EnsureCollectionDirectory(path string, mode os.FileMode) error {
 	const code = "crun_directory_not_writable"
-	if err := EnsureOutputDirectory(path, mode, code); err != nil {
+	if err := EnsureOutputDirectory(path, path, mode, code); err != nil {
 		msg := strings.TrimPrefix(err.Error(), code+": ")
 		if fi, serr := os.Lstat(path); serr == nil && fi.IsDir() && errors.Is(err, os.ErrPermission) {
 			return errorcodes.Errorf(code, "%s; %s", msg, collectionDirectoryShape)

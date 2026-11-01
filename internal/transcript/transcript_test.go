@@ -494,3 +494,86 @@ func TestTranscriptForADeviceNamedWithMeta(t *testing.T) {
 		t.Errorf("the transcript is taken for metadata, paired with %q", got)
 	}
 }
+
+// TestALinkAtTheDayFolderIsRefused: a link planted at the day folder's
+// name in a transcript tree is refused as
+// transcript_directory_not_writable, and nothing is made where it points;
+// a link at the root itself is the site's and is followed.
+func TestALinkAtTheDayFolderIsRefused(t *testing.T) {
+	root, elsewhere := t.TempDir(), t.TempDir()
+	dest := Destination{Root: root, Folder: filepath.Join(root, "261101")}
+	plantLink(t, dest.Folder, elsewhere)
+	started := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	if _, err := Claim(dest, "router1", started, time.UTC, ".log", ".meta.jsonl", 0o770); errorcodes.Of(err) != "transcript_directory_not_writable" {
+		t.Fatalf("claim: %v", err)
+	}
+	if entries, err := os.ReadDir(elsewhere); err != nil || len(entries) != 0 {
+		t.Fatalf("made through the link: %v %v", entries, err)
+	}
+	siteRoot := t.TempDir()
+	linked := filepath.Join(t.TempDir(), "transcripts")
+	plantLink(t, linked, siteRoot)
+	p, err := Claim(Destination{Root: linked, Folder: filepath.Join(linked, "261101")}, "router1", started, time.UTC, ".log", ".meta.jsonl", 0o770)
+	if err != nil {
+		t.Fatalf("a linked root: %v", err)
+	}
+	p.Close()
+	if _, err := os.Lstat(filepath.Join(siteRoot, "261101", "router1-120000.log")); err != nil {
+		t.Fatalf("the transcript under the root's target: %v", err)
+	}
+}
+
+// TestMetadataIsReadOnlyFromARegularFile: IsEnd and EndedAt read a
+// metadata name through one descriptor, opened without following a link
+// and without waiting on a FIFO, and only a regular file of at most
+// maxMetadataBytes: a link to an ended file, an ended file past the cap,
+// and a FIFO are not ended, and the FIFO's read returns with no writer. An
+// ended file of the cap exactly is read.
+func TestMetadataIsReadOnlyFromARegularFile(t *testing.T) {
+	dir := t.TempDir()
+	ended := `{"record":"end","ended_at":"2026-11-01T12:00:00Z"}` + "\n"
+	sized := func(name string, size int64) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(ended), 0o640); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Truncate(path, size); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	target := filepath.Join(t.TempDir(), "router1-120000.meta.jsonl")
+	if err := os.WriteFile(target, []byte(ended), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(dir, "switch1-120000.meta.jsonl")
+	plantLink(t, link, target)
+	large := sized("houston-rtr2-120000.meta.jsonl", maxMetadataBytes+1)
+	fifo := filepath.Join(dir, "austin-rtr1-120000.meta.jsonl")
+	if err := syscall.Mkfifo(fifo, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{link, large, fifo} {
+		done := make(chan [2]bool, 1)
+		go func() {
+			_, ok := EndedAt(path)
+			done <- [2]bool{IsEnd(path), ok}
+		}()
+		select {
+		case got := <-done:
+			if got[0] || got[1] {
+				t.Errorf("%s: IsEnd %v, EndedAt %v", path, got[0], got[1])
+			}
+		case <-time.After(30 * time.Second):
+			// Release the reader waiting on the FIFO, then fail.
+			if f, err := os.OpenFile(path, os.O_WRONLY|syscall.O_NONBLOCK, 0); err == nil {
+				f.Close()
+			}
+			t.Fatalf("%s: the read waited for a writer", path)
+		}
+	}
+	exact := sized("core-nyc-01-120000.meta.jsonl", maxMetadataBytes)
+	if at, ok := EndedAt(exact); !IsEnd(exact) || !ok || !at.Equal(time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)) {
+		t.Fatalf("the cap exactly: %v %v", at, ok)
+	}
+}

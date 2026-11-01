@@ -202,7 +202,7 @@ func isHeld(held, fi os.FileInfo) bool {
 // exist, empty and mode 0640, when Claim returns; the pair holds them
 // (Pair), and its caller closes it.
 func Claim(dest Destination, device string, started time.Time, loc *time.Location, ext, metaExt string, mode os.FileMode) (Pair, error) {
-	if err := osutil.EnsureOutputDirectory(dest.Folder, osutil.DayFolderMode(dest.Root, mode), "transcript_directory_not_writable"); err != nil {
+	if err := osutil.EnsureOutputDirectory(dest.Root, dest.Folder, osutil.DayFolderMode(dest.Root, mode), "transcript_directory_not_writable"); err != nil {
 		return Pair{}, err
 	}
 	if loc == nil {
@@ -550,11 +550,39 @@ func (p *Pair) TranscriptSHA256() (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// maxMetadataBytes bounds a metadata file read: a session's metadata is at
+// most its start and end records, about a kilobyte with ordinary names, so
+// a larger file is not one karvi wrote and is not read.
+const maxMetadataBytes = 1 << 20
+
+// readMetadata is the metadata file at path, read through one descriptor
+// opened without following a link and without waiting on a FIFO: a regular
+// file of at most maxMetadataBytes, false for anything else. A shared
+// tree's day folder is every member's to write, so any member's entry can
+// stand under the name.
+func readMetadata(path string) ([]byte, bool) {
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, false
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil || !fi.Mode().IsRegular() || fi.Size() > maxMetadataBytes {
+		return nil, false
+	}
+	data, err := io.ReadAll(io.LimitReader(f, maxMetadataBytes+1))
+	if err != nil || len(data) > maxMetadataBytes {
+		return nil, false
+	}
+	return data, true
+}
+
 // IsEnd reports whether a metadata file holds its end record: a jsonl line
 // with "record":"end", a non-empty json document, or a text ended_at line.
+// The file is read as readMetadata reads it; one it refuses is not ended.
 func IsEnd(path string) bool {
-	data, err := os.ReadFile(path)
-	if err != nil {
+	data, ok := readMetadata(path)
+	if !ok {
 		return false
 	}
 	switch {
@@ -573,10 +601,11 @@ func IsEnd(path string) bool {
 	return false
 }
 
-// EndedAt returns the ended_at time of a metadata file when present.
+// EndedAt returns the ended_at time of a metadata file when present, the
+// file read as readMetadata reads it.
 func EndedAt(path string) (time.Time, bool) {
-	data, err := os.ReadFile(path)
-	if err != nil {
+	data, ok := readMetadata(path)
+	if !ok {
 		return time.Time{}, false
 	}
 	if strings.HasSuffix(path, ".meta.txt") {

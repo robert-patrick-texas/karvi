@@ -314,3 +314,41 @@ func TestReserveSequence(t *testing.T) {
 		t.Errorf("every sequence taken: %v", err)
 	}
 }
+
+// TestALinkAtTheDayFolderIsRefused: in a tree whose root another member
+// can write (a shared jobs tree, no sticky bit), a link planted at the day
+// folder's name is refused as output_directory_not_writable by the
+// reservation and by the claim, and nothing is made where it points. A
+// link at the root itself is the site's and is followed.
+func TestALinkAtTheDayFolderIsRefused(t *testing.T) {
+	root, elsewhere := t.TempDir(), t.TempDir()
+	loc := jobTestNow.Location()
+	day := filepath.Join(root, DayFolder(jobTestNow, loc))
+	if err := os.Symlink(elsewhere, day); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := claimJob(t, t.TempDir(), root, 0o750, loc); errorcodes.Of(err) != "output_directory_not_writable" {
+		t.Errorf("reservation: %v", err)
+	}
+	if err := ClaimJobDirectory(filepath.Join(day, "260923-215106-00"), 0o750); errorcodes.Of(err) != "output_directory_not_writable" {
+		t.Errorf("claim: %v", err)
+	}
+	if entries, err := os.ReadDir(elsewhere); err != nil || len(entries) != 0 {
+		t.Errorf("made through the link: %v %v", entries, err)
+	}
+	siteRoot := t.TempDir()
+	linked := filepath.Join(t.TempDir(), "jobs")
+	if err := os.Symlink(siteRoot, linked); err != nil {
+		t.Fatal(err)
+	}
+	_, dir, err := claimJob(t, t.TempDir(), linked, 0o750, loc)
+	if err != nil {
+		t.Fatalf("a linked root: %v", err)
+	}
+	if err := ClaimJobDirectory(dir, 0o750); err != nil {
+		t.Fatalf("a linked root's job: %v", err)
+	}
+	if fi, err := os.Lstat(filepath.Join(siteRoot, filepath.Base(filepath.Dir(dir)), filepath.Base(dir))); err != nil || !fi.IsDir() {
+		t.Fatalf("the job folder under the root's target: %v %v", fi, err)
+	}
+}

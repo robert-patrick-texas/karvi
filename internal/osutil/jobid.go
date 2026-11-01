@@ -114,7 +114,7 @@ func ClaimActivityID(claims string, mode os.FileMode, root string, dirMode os.Fi
 func reserveJobDirectory(root, id string, mode os.FileMode, now time.Time, loc *time.Location) (string, error) {
 	day := filepath.Join(root, DayFolder(now, loc))
 	dayMode := DayFolderMode(root, mode)
-	if err := EnsureOutputDirectory(day, dayMode, "output_directory_not_writable"); err != nil {
+	if err := EnsureOutputDirectory(root, day, dayMode, "output_directory_not_writable"); err != nil {
 		return "", err
 	}
 	dir := filepath.Join(day, id)
@@ -123,7 +123,7 @@ func reserveJobDirectory(root, id string, mode os.FileMode, now time.Time, loc *
 		// Another activity's release removed the day folder between its
 		// creation above and this mkdir (ReleaseJobID leaves no empty day
 		// folder behind); make it again and try the same name once more.
-		if err = EnsureOutputDirectory(day, dayMode, "output_directory_not_writable"); err != nil {
+		if err = EnsureOutputDirectory(root, day, dayMode, "output_directory_not_writable"); err != nil {
 			return "", err
 		}
 		err = os.Mkdir(dir, mode)
@@ -211,7 +211,9 @@ func JobIDTime(id string, loc *time.Location) (time.Time, error) {
 // never write into one directory (earlier an existing directory was
 // accepted as it was). A directory that does not exist is created with
 // mode, as before: a job whose ID was made without a reservation on this
-// host. The writability check then applies as to any folder.
+// host. The writability check then applies as to any folder. dir is
+// <root>/YYMMDD/<id> (JobDirectory), so its day folder and itself are below
+// the tree's root and must be real folders (EnsureOutputDirectory).
 func ClaimJobDirectory(dir string, mode os.FileMode) error {
 	fi, err := os.Lstat(dir)
 	switch {
@@ -233,5 +235,5 @@ func ClaimJobDirectory(dir string, mode os.FileMode) error {
 	default:
 		return errorcodes.Errorf("output_directory_not_writable", "lstat %s: %w", dir, err)
 	}
-	return EnsureOutputDirectory(dir, mode, "output_directory_not_writable")
+	return EnsureOutputDirectory(filepath.Dir(filepath.Dir(dir)), dir, mode, "output_directory_not_writable")
 }

@@ -423,7 +423,7 @@ var entries = []Entry{
 	failure("setup_tmpfiles_write_failed", "permission", exitPerm, false, "`karvi setup shared` made its directories but could not read or write `/etc/tmpfiles.d/karvi.conf`; the message names the path and the system error."),
 	failure("output_directory_not_writable", "permission", exitPerm, false, "A folder in the job tree exists and the operator cannot create files in it, or a path there is not a folder."),
 	failure("output_directory_in_use", "output", exitOutput, false, "The job's directory exists and is not the empty directory the client reserved for this job: it holds entries, or another user owns it. The job is refused before anything is written, so two jobs never write into one directory."),
-	failure("transcript_directory_not_writable", "permission", exitPerm, false, "A folder in the transcript tree exists and the operator cannot create files in it."),
+	failure("transcript_directory_not_writable", "permission", exitPerm, false, "A folder in the transcript tree exists and the operator cannot create files in it, or a path there is not a folder."),
 
 	// Output store, records, scoreboards, terminal output.
 	failure("jsonl_short_write", "output", exitOutput, false, "A JSON line is only partly appended to its file."),

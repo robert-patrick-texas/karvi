@@ -251,7 +251,7 @@ func Create(opts Options) (*Store, error) {
 		mode = osutil.DefaultDirectoryMode
 	}
 	s.dirMode = mode
-	if err := osutil.EnsureOutputDirectory(opts.Root, mode, "output_directory_not_writable"); err != nil {
+	if err := osutil.EnsureOutputDirectory(opts.Root, opts.Root, mode, "output_directory_not_writable"); err != nil {
 		return nil, err
 	}
 	// A skipped .jsonl file is nil, which appendLine passes by.
@@ -298,7 +298,7 @@ func (s *Store) WriteCommands(plan *executionplan.ExecutionPlan) error {
 		return nil
 	}
 	dir := filepath.Join(s.paths.Root, "commands")
-	if err := osutil.EnsureOutputDirectory(dir, s.dirMode, "output_directory_not_writable"); err != nil {
+	if err := osutil.EnsureOutputDirectory(s.paths.Root, dir, s.dirMode, "output_directory_not_writable"); err != nil {
 		return err
 	}
 	for i := range plan.Targets {

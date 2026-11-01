@@ -303,7 +303,13 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	// watch.stale-after is not shown stale.
 	stopHeartbeat := sb.Heartbeat(cfg.Duration("watch.refresh"), func() records.ScoreboardSnapshot { return snap })
 	if err := writeLoginAudit(auditSink, operator, cfg, id, d, resolved.DeviceUsername, resolved.Credential.Backend, "start", "", 0, map[string]any{"diagnostic": ""}); err != nil {
+		// The login ends before its session starts, as one whose header
+		// cannot be written does: the final snapshot, the target failed.
+		// The audit's failure is the login's, so a snapshot that cannot be
+		// written is not reported over it.
 		stopHeartbeat()
+		endLoginSnapshot(&snap, time.Now(), err, "audit_write_failed")
+		_ = sb.Write(snap)
 		return failedResult("audit_write_failed", err)
 	}
 	// After login.start a failure ends the login as a session's end does: the
@@ -319,24 +325,12 @@ func ExecuteLogin(ctx context.Context, opts LoginOptions, streams IO) ActivityRe
 	ended := time.Now()
 	debug(fmt.Sprintf("login interactive session ended target=%q elapsed=%s error=%t", d.CanonicalName, ended.Sub(started), err != nil))
 	exit := exitcode.ExitSuccess
-	status := "complete"
 	if err != nil {
-		status = "error"
 		exit = classifyLoginExit(err)
 		result.Error = codedText("ssh_process_failed", err)
 	}
-	snap.Status, snap.LastUpdatedAt, snap.EndedAt, snap.ElapsedNS = status, ended, &ended, ended.Sub(started).Nanoseconds()
-	snap.Counts = records.Counts{Total: 1, Completed: 1}
-	if exit == 0 {
-		snap.Counts.Succeeded = 1
-		snap.Targets[0].State = records.TargetSuccess
-	} else {
-		snap.Counts.Failed = 1
-		snap.Targets[0].State = records.TargetFail
-		summaryCode := errorcodes.Of(errorcodes.Ensure(err, "ssh_process_failed"))
-		entry, _ := errorcodes.Lookup(summaryCode)
-		snap.ErrorSummary = map[string]any{"code": summaryCode, "category": entry.Category, "count": 1}
-	}
+	endLoginSnapshot(&snap, ended, err, "ssh_process_failed")
+	status := snap.Status
 	if werr := sb.Write(snap); werr != nil && exit == 0 {
 		exit, result.Error = siteFailure("scoreboard_write_failed", werr)
 	}
@@ -441,6 +435,26 @@ func platformFor(cfg configload.Snapshot, name string) (platform.Definition, err
 		return d, errorcodes.Errorf("platform_unknown", "platform %q is not a known platform (known: %s)", name, strings.Join(platform.KnownNames(cfg.NamedTables("platform")), ", "))
 	}
 	return d, d.Validate()
+}
+
+// endLoginSnapshot ends a login's snapshot at ended: complete with the
+// target succeeded when err is nil, else error with the target failed and
+// err's code (fallback when it carries none) in the error summary.
+func endLoginSnapshot(snap *records.ScoreboardSnapshot, ended time.Time, err error, fallback string) {
+	snap.LastUpdatedAt, snap.EndedAt, snap.ElapsedNS = ended, &ended, ended.Sub(snap.StartedAt).Nanoseconds()
+	snap.Counts = records.Counts{Total: 1, Completed: 1}
+	if err == nil {
+		snap.Status = "complete"
+		snap.Counts.Succeeded = 1
+		snap.Targets[0].State = records.TargetSuccess
+		return
+	}
+	snap.Status = "error"
+	snap.Counts.Failed = 1
+	snap.Targets[0].State = records.TargetFail
+	summaryCode := errorcodes.Of(errorcodes.Ensure(err, fallback))
+	entry, _ := errorcodes.Lookup(summaryCode)
+	snap.ErrorSummary = map[string]any{"code": summaryCode, "category": entry.Category, "count": 1}
 }
 
 // writeLoginAudit writes the login's login.start or login.end under its ID,

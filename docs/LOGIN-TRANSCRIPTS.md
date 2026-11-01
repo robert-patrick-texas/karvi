@@ -62,7 +62,10 @@ the same way for itself.
 - Folders karvi creates take `output.directory-mode` (default `0750`); files
   are `0640`, created exclusively without following links. An existing folder
   is accepted when the operator can create files in it, else
-  `transcript_directory_not_writable`.
+  `transcript_directory_not_writable`. The day folder is a real folder: a
+  link at its name is refused with `transcript_directory_not_writable` and
+  nothing is made where it points; a link at `transcript.root` itself is the
+  site's and is followed.
 - A session keeps to the two files it created. A shared tree's day folder is
   the group's to write, with no sticky bit, so another member can rename a
   session's files and put a link or a file in their place. `script(1)` is

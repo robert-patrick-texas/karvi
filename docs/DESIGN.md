@@ -2155,9 +2155,16 @@ folder of their own; a key to turn the claim off.
 files are `0640`, created exclusively without following symlinks; an existing
 folder is accepted when writable and never changed in mode or group. A day
 folder under a setgid root takes the root's own bits so a second operator's
-first job of the day is not refused. *Why:* teams read output through group
-membership and setgid folders with no copying and no karvi-managed ACLs; karvi
-sets permissions only on what it creates.
+first job of the day is not refused. Below a tree's root a day folder and a
+job folder are real folders: a link at either's name is refused
+(`output_directory_not_writable`, `transcript_directory_not_writable`) and
+nothing is made where it points; a link at `output.root` or
+`transcript.root`, or above either, is the site's and is followed. *Why:*
+teams read output through group membership and setgid folders with no copying
+and no karvi-managed ACLs; karvi sets permissions only on what it creates; a
+shared tree's day folders are every member's to write, with no sticky bit,
+and a link one member planted at a day's name would take every member's jobs
+or logins of that day where the link points.
 
 **The record is the authority; every file derives from it.** `commands.jsonl`
 holds one record per command, `errors.jsonl` the non-succeeded ones,

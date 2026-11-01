@@ -262,7 +262,7 @@ func TestEnsureOutputDirectory(t *testing.T) {
 	root := t.TempDir()
 	job := filepath.Join(root, "2026-09-14", "job1")
 	withUmask(t, func() {
-		if err := EnsureOutputDirectory(job, 0o750, "output_directory_not_writable"); err != nil {
+		if err := EnsureOutputDirectory(root, job, 0o750, "output_directory_not_writable"); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -274,7 +274,7 @@ func TestEnsureOutputDirectory(t *testing.T) {
 	if err := os.Chmod(filepath.Join(root, "2026-09-14"), 0o2770); err != nil {
 		t.Fatal(err)
 	}
-	if err := EnsureOutputDirectory(filepath.Join(root, "2026-09-14", "job2"), 0o700, "output_directory_not_writable"); err != nil {
+	if err := EnsureOutputDirectory(root, filepath.Join(root, "2026-09-14", "job2"), 0o700, "output_directory_not_writable"); err != nil {
 		t.Fatal(err)
 	}
 	if got := mode(t, filepath.Join(root, "2026-09-14")); got != 0o770 {
@@ -287,7 +287,7 @@ func TestEnsureOutputDirectory(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "2026-09-15"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := EnsureOutputDirectory(filepath.Join(root, "2026-09-15", "job3"), 0o750, "output_directory_not_writable"); errorcodes.Of(err) != "output_directory_not_writable" || !strings.Contains(err.Error(), filepath.Join(root, "2026-09-15")+" exists and is not a folder") {
+	if err := EnsureOutputDirectory(root, filepath.Join(root, "2026-09-15", "job3"), 0o750, "output_directory_not_writable"); errorcodes.Of(err) != "output_directory_not_writable" || !strings.Contains(err.Error(), filepath.Join(root, "2026-09-15")+" exists and is not a folder") {
 		t.Fatalf("file in the path: %v", err)
 	}
 	if os.Geteuid() == 0 {
@@ -297,11 +297,70 @@ func TestEnsureOutputDirectory(t *testing.T) {
 	if err := os.Mkdir(locked, 0o500); err != nil {
 		t.Fatal(err)
 	}
-	if err := EnsureOutputDirectory(locked, 0o750, "transcript_directory_not_writable"); errorcodes.Of(err) != "transcript_directory_not_writable" {
+	if err := EnsureOutputDirectory(root, locked, 0o750, "transcript_directory_not_writable"); errorcodes.Of(err) != "transcript_directory_not_writable" {
 		t.Fatalf("unwritable existing folder: %v", err)
 	}
-	if err := EnsureOutputDirectory(filepath.Join(locked, "job4"), 0o750, "output_directory_not_writable"); errorcodes.Of(err) != "output_directory_not_writable" {
+	if err := EnsureOutputDirectory(root, filepath.Join(locked, "job4"), 0o750, "output_directory_not_writable"); errorcodes.Of(err) != "output_directory_not_writable" {
 		t.Fatalf("cannot create below an unwritable folder: %v", err)
+	}
+}
+
+// TestEnsureOutputDirectoryRefusesALinkBelowTheRoot: below the tree's root
+// a link at a day folder's or a job folder's name, to a folder or dangling,
+// is refused under the caller's code and nothing is made where it points;
+// the root and what is above it are the site's, made when missing and a
+// link there followed; a path that is the root itself is made as the root
+// is.
+func TestEnsureOutputDirectoryRefusesALinkBelowTheRoot(t *testing.T) {
+	root, elsewhere := t.TempDir(), t.TempDir()
+	if err := os.Symlink(elsewhere, filepath.Join(root, "261101")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(elsewhere, "gone"), filepath.Join(root, "261102")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "261103"), 0o770); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(elsewhere, filepath.Join(root, "261103", "261103-120000-00")); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ path, code, link string }{
+		{filepath.Join(root, "261101", "261101-120000-00"), "output_directory_not_writable", "261101"},
+		{filepath.Join(root, "261101"), "transcript_directory_not_writable", "261101"},
+		{filepath.Join(root, "261102"), "output_directory_not_writable", "261102"},
+		{filepath.Join(root, "261103", "261103-120000-00", "commands"), "output_directory_not_writable", filepath.Join("261103", "261103-120000-00")},
+	} {
+		err := EnsureOutputDirectory(root, c.path, 0o750, c.code)
+		if errorcodes.Of(err) != c.code || !strings.Contains(err.Error(), filepath.Join(root, c.link)+" is a link, not a folder") {
+			t.Errorf("%s: %v", c.path, err)
+		}
+	}
+	if entries, err := os.ReadDir(elsewhere); err != nil || len(entries) != 0 {
+		t.Fatalf("made through a link: %v %v", entries, err)
+	}
+	siteRoot := t.TempDir()
+	linked := filepath.Join(t.TempDir(), "jobs")
+	if err := os.Symlink(siteRoot, linked); err != nil {
+		t.Fatal(err)
+	}
+	if err := EnsureOutputDirectory(linked, filepath.Join(linked, "261101", "261101-120000-00"), 0o750, "output_directory_not_writable"); err != nil {
+		t.Fatalf("a linked root: %v", err)
+	}
+	if fi, err := os.Lstat(filepath.Join(siteRoot, "261101", "261101-120000-00")); err != nil || !fi.IsDir() {
+		t.Fatalf("under the root's target: %v %v", fi, err)
+	}
+	missing := filepath.Join(t.TempDir(), "site", "jobs")
+	withUmask(t, func() {
+		if err := EnsureOutputDirectory(missing, filepath.Join(missing, "261101"), 0o750, "output_directory_not_writable"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if mode(t, missing) != 0o750 || mode(t, filepath.Join(missing, "261101")) != 0o750 {
+		t.Fatalf("a missing root made: %o %o", mode(t, missing), mode(t, filepath.Join(missing, "261101")))
+	}
+	if err := EnsureOutputDirectory(linked, linked, 0o750, "crun_directory_not_writable"); errorcodes.Of(err) != "private_directory_not_real" {
+		t.Fatalf("a path that is a linked root: %v", err)
 	}
 }
 
