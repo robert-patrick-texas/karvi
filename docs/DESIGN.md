@@ -1602,8 +1602,7 @@ share, which `--cf FILE` sends once), or the lists in a transfer of their own (a
 new channel for a limit not met); the collection refusal as an inventory one
 (the selection is not at fault); the plan recording `--literal` for the copies
 (two forms of copy, and the rerun would need to know which); every list in the
-audit `start` (the event is one journald datagram, and 2,500 devices' lists
-come to megabytes).
+audit `start` (2,500 devices' lists come to megabytes in one event).
 
 **Address authority is `client` or `daemon`, and one selection rule serves
 both.** A literal address wins, then the inventory management address, then the
@@ -2402,10 +2401,11 @@ each device's events masked by its own list ([`docs/EXAMPLES.md`, chapter
 
 **`karvi-audit` reads the trail through `journalctl`, and reads no
 configuration.** A fourth executable beside karvi, `karvi-prune`, and
-`karvi-askpass` runs `journalctl --no-pager -o json
+`karvi-askpass` runs `journalctl --no-pager -o json --all
 --output-fields=KARVI_AUDIT_JSON SYSLOG_IDENTIFIER=karvi MESSAGE_ID=…`, the
-audit's message ID, with its matches, and lays out each entry's JSON, decoded as
-the writer's `records.AuditRecord`, as one row. `-S`, `-U`, `-g`, `-r`, `-f`,
+audit's message ID, with its matches (`--all`, as journalctl writes a field over
+4,096 bytes as null without it), and lays out each entry's JSON, decoded as the
+writer's `records.AuditRecord`, as one row. `-S`, `-U`, `-g`, `-r`, `-f`,
 and `-n` are journalctl's, passed as given; `-o NAME` matches `KARVI_OPERATOR`
 or `KARVI_LOGINUSER`, `-d NAME` matches `KARVI_DEVICE` lowercased, each
 repeatable, a flag's names ORed and the two flags ANDed. An entry with no

@@ -375,17 +375,6 @@ None chosen: the operator names the next item, from "Later" or anew.
   the round trip through journald, its jobs at devices named for its run
   alone ([`docs/EXAMPLES.md`, chapter
   64](docs/EXAMPLES.md#64-karvi-audit-the-audit-trail-as-a-table-2026-10-17)).
-- **An audit event over journald's datagram bound.** The audit writes each
-  event to journald as one datagram, and the socket refuses one over its send
-  buffer (212,992 bytes on the development host, `net.core.wmem_default`): a
-  job whose `start` event carries one list of 4,000 statements, 296,785 bytes,
-  is refused at its acceptance, `audit_write_failed: … message too long`, exit
-  111, before any device is contacted ([`docs/EXAMPLES.md`, chapter
-  79](docs/EXAMPLES.md#79-a-command-file-per-target-2026-10-25)). The item: an
-  event of any size the audit accepts reaches journald, as `sd_journal_send`
-  passes a large entry in a sealed memfd over the socket. The questions: the
-  largest event karvi writes, and whether one is bounded; the audit file
-  beside it; a device command event of that size.
 - **The spool suite's timeout row waiting on a condition.** The spool suite's S4
   cuts `show big` at a one-second command timeout and needs 1 MiB settled by the
   cut. The fake builds its 65.7 MB answer before it sends it, and what settles

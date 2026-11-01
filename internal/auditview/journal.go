@@ -10,15 +10,16 @@ import (
 )
 
 // Args are journalctl's arguments for the flags (docs/EXAMPLES.md, chapter
-// 64, issue 5): JSON entries holding the event's JSON alone, no pager, the
-// options journalctl takes as given, and the matches. Every term names the
+// 64, issue 5): JSON entries holding the event's JSON alone, whole (--all:
+// journalctl writes a field over 4,096 bytes as null without it), no pager,
+// the options journalctl takes as given, and the matches. Every term names the
 // trail's identifier and message ID, which tell an audit event from the
 // daemon's log under the same identifier; the devices, lowercased, are one
 // field given once per name, which journalctl ORs; and with operators the
 // matches are two terms joined by +, the names as KARVI_OPERATOR in one and as
 // KARVI_LOGINUSER in the other, so that a name matches either.
 func Args(f *Flags) []string {
-	args := []string{"--no-pager", "--output=json", "--output-fields=" + audit.FieldJSON}
+	args := []string{"--no-pager", "--output=json", "--all", "--output-fields=" + audit.FieldJSON}
 	if *f.Follow {
 		args = append(args, "--follow")
 	}

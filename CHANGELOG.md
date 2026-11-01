@@ -103,6 +103,28 @@
   `karvi-prune` alike), and a header that cannot be written after
   `login.start` ends the login through `login.end` with a final scoreboard
   ([`docs/LOGIN-TRANSCRIPTS.md`](docs/LOGIN-TRANSCRIPTS.md)).
+- **An audit sink that is not required only warns, and an event of any size
+  reaches journald.** A write that failed on a sink not required
+  (`audit.journald-required`, `audit.file-required` false) failed the job
+  `audit_write_failed`; it is now one warning per sink in the summary's
+  `audit_sink_status.warnings`, a required sink's failure as before. An event
+  over the journal socket's datagram bound (a job's `start` with a few
+  thousand statements) was refused `message too long`, exit 111, before any
+  device; it now goes as journald's protocol passes a large entry, in a sealed
+  memfd over the socket, and `karvi-audit` reads a field over 4,096 bytes
+  whole (journalctl `--all`), where it counted such an event as not audit
+  schema 2. ROADMAP's Later item for it is closed.
+- **The built-in masks hide more secrets.** A table of 179 secret-bearing
+  lines across the five built-in lists found 39 left in clear or masked at the
+  wrong word; each is now masked: on `cisco_ios` `server-private … key`, a
+  keyring's `pre-shared-key address … key`, MSDP and OSPFv3 IPsec keys, named
+  EIGRP, GLBP, LISP, and Easy VPN keys; on `cisco_xr` `server-private` and
+  keyring forms and OSPFv3 IPsec keys; on `cisco_nxos` SNMP hosts without
+  `traps`, MACsec, BFD, and MSDP keys; on `arista_eos` type 8a, OSPFv3
+  passphrases, and TerminAttr's `-cvauth`; on `juniper_junos` manual IPsec and
+  MACsec keys. The lists hold 21, 16, 14, 15, and 10 patterns; a site's copy of
+  a list takes them from `platform/masks.go`
+  ([`docs/COLLECTION.md` section 6.1](docs/COLLECTION.md#61-the-secrets-the-mask)).
 
 ## 0.38.0 - 2026-10-28
 

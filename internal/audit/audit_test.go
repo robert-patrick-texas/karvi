@@ -29,8 +29,9 @@ func TestStatementKeysPass(t *testing.T) {
 }
 
 // TestAuditFilePath: audit.file's ~ is the load's home, never $HOME; ~user
-// is refused at the load.
+// is refused at the load. The sink's journal is the fake.
 func TestAuditFilePath(t *testing.T) {
+	fakeJournal(t)
 	home, other := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", other)
 	load := func(path string) (configload.Snapshot, error) {
@@ -57,8 +58,10 @@ func TestAuditFilePath(t *testing.T) {
 }
 
 // TestSinkStampsTheSchemaVersion: the line carries the audit's schema
-// version whatever the record held.
+// version whatever the record held, in the audit file and the journal's
+// entry alike; the journal is the fake.
 func TestSinkStampsTheSchemaVersion(t *testing.T) {
+	l := fakeJournal(t)
 	home := t.TempDir()
 	file := filepath.Join(home, "audit.jsonl")
 	cfg, err := configload.Load(configload.Options{InternalOnly: true, Environment: []string{}, Sets: []string{`audit.file="` + file + `"`, `audit.journald-required=false`}})
@@ -83,6 +86,12 @@ func TestSinkStampsTheSchemaVersion(t *testing.T) {
 		var r records.AuditRecord
 		if err := json.Unmarshal([]byte(line), &r); err != nil || r.SchemaVersion != records.AuditSchemaVersion {
 			t.Fatalf("line %s: %v", line, err)
+		}
+	}
+	for range 2 {
+		var r records.AuditRecord
+		if v := journalField(receive(t, l).data, FieldJSON); json.Unmarshal([]byte(v), &r) != nil || r.SchemaVersion != records.AuditSchemaVersion {
+			t.Fatalf("the journal's entry: %q", v)
 		}
 	}
 }

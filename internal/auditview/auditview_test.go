@@ -58,7 +58,7 @@ func parse(t *testing.T, args ...string) *Flags {
 // a space; the devices lowercased; the operators as two terms, the names as
 // the operator in one and as the login user in the other.
 func TestArgs(t *testing.T) {
-	base := []string{"--no-pager", "--output=json", "--output-fields=KARVI_AUDIT_JSON"}
+	base := []string{"--no-pager", "--output=json", "--all", "--output-fields=KARVI_AUDIT_JSON"}
 	match := []string{"SYSLOG_IDENTIFIER=karvi", "MESSAGE_ID=9cb838d10f074d8a928e9f7c2f98450a"}
 	join := func(parts ...[]string) []string {
 		var out []string

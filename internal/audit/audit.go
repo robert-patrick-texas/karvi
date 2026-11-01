@@ -4,6 +4,7 @@ package audit
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net"
@@ -13,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/robert-patrick-texas/karvi/internal/configload"
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
@@ -31,6 +34,9 @@ type Sink struct {
 	file                          *os.File
 	journalRequired, fileRequired bool
 	warnings                      []string
+	// journalWarned and fileWarned: the sink's warnings already name a
+	// failed write of that sink, which is not required.
+	journalWarned, fileWarned bool
 	// masks hide the secrets of every statement an event carries
 	// (SetMasks).
 	masks []*regexp.Regexp
@@ -41,13 +47,16 @@ type Status struct {
 	Warnings []string `json:"warnings"`
 }
 
+// journalSocket is journald's native socket; a test points it at a fake.
+var journalSocket = "/run/systemd/journal/socket"
+
 // New opens the sinks: journald, and audit.file when set, its path by
 // osutil.ResolvePath (~ home, the operator's from the password database; a
 // relative path from the working directory), its folder made 0700 when
 // missing.
 func New(cfg configload.Snapshot, home string) (*Sink, error) {
 	s := &Sink{journalRequired: cfg.Bool("audit.journald-required"), fileRequired: cfg.Bool("audit.file-required")}
-	addr := &net.UnixAddr{Name: "/run/systemd/journal/socket", Net: "unixgram"}
+	addr := &net.UnixAddr{Name: journalSocket, Net: "unixgram"}
 	conn, err := net.DialUnix("unixgram", nil, addr)
 	if err != nil {
 		if s.journalRequired {
@@ -83,6 +92,8 @@ func New(cfg configload.Snapshot, home string) (*Sink, error) {
 	return s, nil
 }
 func (s *Sink) Status() Status {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return Status{Journald: s.journal != nil, File: s.file != nil, Warnings: append([]string(nil), s.warnings...)}
 }
 
@@ -97,6 +108,10 @@ func (s *Sink) SetMasks(res []*regexp.Regexp) {
 	s.masks = res
 }
 
+// WriteAudit writes the event to every open sink. A write that fails on a
+// required sink, or a required sink that is not open, is audit_write_failed;
+// one that fails on a sink that is not required fails nothing, and the
+// sink's first such failure is one of its warnings (Status).
 func (s *Sink) WriteAudit(r records.AuditRecord) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -113,17 +128,31 @@ func (s *Sink) WriteAudit(r records.AuditRecord) error {
 	}
 	var errs []string
 	if s.journal != nil {
-		if _, err := s.journal.Write(journalEntry(r, data)); err != nil {
-			errs = append(errs, "journald: "+err.Error())
+		if err := s.writeJournal(journalEntry(r, data)); err != nil {
+			if s.journalRequired {
+				errs = append(errs, "journald: "+err.Error())
+			} else if !s.journalWarned {
+				s.journalWarned = true
+				s.warnings = append(s.warnings, "journald audit sink: "+err.Error())
+			}
 		}
 	} else if s.journalRequired {
 		errs = append(errs, "journald required but unavailable")
 	}
 	if s.file != nil {
-		if _, err := s.file.Write(append(data, '\n')); err != nil {
-			errs = append(errs, "file: "+err.Error())
-		} else if err := s.file.Sync(); err != nil {
-			errs = append(errs, "file sync: "+err.Error())
+		err := func() error {
+			if _, err := s.file.Write(append(data, '\n')); err != nil {
+				return err
+			}
+			return s.file.Sync()
+		}()
+		if err != nil {
+			if s.fileRequired {
+				errs = append(errs, "file: "+err.Error())
+			} else if !s.fileWarned {
+				s.fileWarned = true
+				s.warnings = append(s.warnings, "audit file: "+err.Error())
+			}
 		}
 	} else if s.fileRequired {
 		errs = append(errs, "file required but unavailable")
@@ -132,6 +161,44 @@ func (s *Sink) WriteAudit(r records.AuditRecord) error {
 		return errorcodes.Errorf("audit_write_failed", "audit sink failure: %s", strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+// writeJournal sends an entry to journald as its native protocol does: one
+// datagram, or, an entry the socket refuses by its size (EMSGSIZE, ENOBUFS),
+// an empty datagram carrying a memfd that holds the entry, sealed against
+// every change, as sd_journal_send passes one.
+func (s *Sink) writeJournal(entry []byte) error {
+	_, err := s.journal.Write(entry)
+	if !errors.Is(err, unix.EMSGSIZE) && !errors.Is(err, unix.ENOBUFS) {
+		return err
+	}
+	fd, err := unix.MemfdCreate("karvi-audit", unix.MFD_ALLOW_SEALING|unix.MFD_CLOEXEC)
+	if err != nil {
+		return os.NewSyscallError("memfd_create", err)
+	}
+	f := os.NewFile(uintptr(fd), "karvi-audit")
+	defer f.Close()
+	if _, err := f.Write(entry); err != nil {
+		return err
+	}
+	if _, err := unix.FcntlInt(f.Fd(), unix.F_ADD_SEALS, unix.F_SEAL_SHRINK|unix.F_SEAL_GROW|unix.F_SEAL_WRITE|unix.F_SEAL_SEAL); err != nil {
+		return os.NewSyscallError("fcntl F_ADD_SEALS", err)
+	}
+	// WriteMsgUnix refuses a connected datagram socket, so the descriptor
+	// goes by the socket's own sendmsg.
+	rc, err := s.journal.SyscallConn()
+	if err != nil {
+		return err
+	}
+	rights := unix.UnixRights(int(f.Fd()))
+	var sendErr error
+	if err := rc.Write(func(sock uintptr) bool {
+		sendErr = unix.Sendmsg(int(sock), nil, rights, nil, 0)
+		return sendErr != unix.EAGAIN
+	}); err != nil {
+		return err
+	}
+	return os.NewSyscallError("sendmsg", sendErr)
 }
 func (s *Sink) Close() error {
 	s.mu.Lock()

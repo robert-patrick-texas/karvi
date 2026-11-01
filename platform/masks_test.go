@@ -16,7 +16,7 @@ var maskedPlatforms = []string{"cisco_ios", "cisco_xr", "cisco_nxos", "arista_eo
 // each pattern, the five network platforms carry one, and generic, linux,
 // and linux_shell none.
 func TestBuiltinMasksCompile(t *testing.T) {
-	sizes := map[string]int{"cisco_ios": 19, "cisco_xr": 15, "cisco_nxos": 13, "arista_eos": 13, "juniper_junos": 10}
+	sizes := map[string]int{"cisco_ios": 21, "cisco_xr": 16, "cisco_nxos": 14, "arista_eos": 15, "juniper_junos": 10}
 	for name, def := range builtins {
 		if _, i, err := CompileMasks(def.Masks); err != nil {
 			t.Fatalf("%s: pattern %d: %v", name, i+1, err)

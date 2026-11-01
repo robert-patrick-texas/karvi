@@ -2201,9 +2201,10 @@ configuration (`config_platform_mask_invalid`, exit 2). A secret with no word
 before it, an answer to a `Password:` prompt sent as its own statement, passes
 in clear; an `--expect` response is never in the audit. The same lists mask a
 collection file under `crun.mask = true` ([`docs/COLLECTION.md` section
-6.1](COLLECTION.md#61-the-secrets-the-mask)), and chapter 63 of
+6.1](COLLECTION.md#61-the-secrets-the-mask)); each list is in the source,
+`platform/masks.go`, and chapter 63 of
 [`docs/EXAMPLES.md`](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)
-holds each list and the checks it passed.
+holds the reasons for the lists and the checks they passed.
 
 Who reads the trail is journald's: its files are `root:systemd-journal` 0640,
 an operator reads their own events, and the members of `adm` and

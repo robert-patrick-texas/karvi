@@ -654,17 +654,18 @@ matched against a line without its terminator, or a marker's statement
 without its `! `; the text of every capturing group of every match is replaced
 by `<removed>`, text two groups cover once, and a group that matched nothing
 is left alone. A collection file is masked by its device's own platform's
-list. `cisco_ios` (19 patterns), `cisco_xr` (15), `cisco_nxos` (13),
-`arista_eos` (13), and `juniper_junos` (10, Junos's own `## SECRET-DATA` tag
+list. `cisco_ios` (21 patterns), `cisco_xr` (16), `cisco_nxos` (14),
+`arista_eos` (15), and `juniper_junos` (10, Junos's own `## SECRET-DATA` tag
 among them) each have a built-in list, written for a statement as sent and a
 line as the device prints it alike; `linux`, `linux_shell`, and `generic` have
-none. Each built-in list, with the reason for each pattern and the checks it
-passed, is in [`docs/EXAMPLES.md`, chapter
-63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17), in TOML ready
-to copy. A site's array replaces the list whole, and an alias inherits its
-driver's list unless it sets its own, as with `crun-filters`; a site adding a
-pattern copies the built-in list and adds to it. The same lists mask every
-statement the audit records, always, whatever `crun.mask` says
+none. Each built-in list is in the source, `platform/masks.go`, each pattern a
+Go raw string that a TOML literal string (`'…'`) takes as written; the reasons
+for the lists and the checks they passed are in [`docs/EXAMPLES.md`, chapter
+63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17). A site's
+array replaces the list whole, and an alias inherits its driver's list unless
+it sets its own, as with `crun-filters`; a site adding a pattern copies the
+built-in list and adds to it. The same lists mask every statement the audit
+records, always, whatever `crun.mask` says
 ([`docs/OPERATIONS.md`, "The audit trail"](OPERATIONS.md#the-audit-trail)), so
 `masks = []` leaves that platform's statements in clear in the audit too.
 
