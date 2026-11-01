@@ -483,7 +483,7 @@ var entries = []Entry{
 	failure("audit_write_failed", "output", exitOutput, false, "An audit record cannot be written to a required journald or file sink."),
 	failure("capacity_ledger_malformed", "dependency", exitDep, false, "A capacity ledger file is not valid JSON."),
 	failure("capacity_root_blank", "internal", exitGen, false, "The capacity manager was given a blank root directory."),
-	failure("capacity_root_unusable", "permission", exitPerm, false, "The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, a directory or lock file closed to the operator, or a link at a lock's or the devices folder's name. Under `auto` the private fallback is taken with a warning naming the cause; a named root is refused."),
+	failure("capacity_root_unusable", "permission", exitPerm, false, "The shared capacity root cannot be leased in by this operator: the sticky bit on another operator's directory, a directory or lock file closed to the operator, a link at a lock's or the devices folder's name, a server ledger that does not decode, a filesystem with no free inodes, or a root absent whose parent is absent or closed to the operator. Under `auto` the private fallback is taken with a warning naming the cause; a named root is refused."),
 	failure("shared_capacity_unavailable", "permission", exitPerm, false, "Neither the shared nor the private capacity root can be created."),
 
 	// Inventory, tabular sources, devices, name transforms, platforms.
@@ -655,7 +655,7 @@ var entries = []Entry{
 	failure("target_selector_pattern_invalid", "usage", exitUsage, false, "A command-line selector or target-file entry is not a valid selector: a malformed class or escape, a bare `!`, a `!` in `--exclude`, or an unescaped `^` or `$`."),
 	failure("config_generate_destination_unavailable", "permission", exitPerm, false, "`config generate` cannot create the destination file."),
 	failure("config_generate_write_failed", "output", exitOutput, false, "`config generate` cannot write, flush, or close the destination file."),
-	failure("scoreboard_root_invalid", "permission", exitPerm, false, "The scoreboard directory path is a symlink or not a directory."),
+	failure("scoreboard_root_invalid", "permission", exitPerm, false, "The scoreboards folder cannot be used: a link, not a folder, closed to the operator, on a filesystem with no free inodes, or absent with its parent absent or closed to the operator."),
 
 	// Command-line parser rules, one code per rule.
 	failure("cli_command_unknown", "usage", exitUsage, false, "The first word is neither a command nor a target: it matches no command and is a pattern rather than a plain name, or, taken as a device (`karvi DEVICE`), DNS says the name does not exist."),

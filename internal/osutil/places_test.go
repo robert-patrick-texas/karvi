@@ -31,8 +31,8 @@ func withSetupPlaces(t *testing.T, dir string) {
 // no free inodes, for one test.
 func withNoFreeInodes(t *testing.T, full string) {
 	t.Helper()
-	saved := statfs
-	statfs = func(path string, st *syscall.Statfs_t) error {
+	saved := Statfs
+	Statfs = func(path string, st *syscall.Statfs_t) error {
 		if err := saved(path, st); err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func withNoFreeInodes(t *testing.T, full string) {
 		}
 		return nil
 	}
-	t.Cleanup(func() { statfs = saved })
+	t.Cleanup(func() { Statfs = saved })
 }
 
 func skipAsRoot(t *testing.T) {
@@ -671,5 +671,78 @@ func TestScratchFolderPlaceFollowsALinkUnderFollowLink(t *testing.T) {
 	}
 	if _, err := os.Lstat(fallback); !os.IsNotExist(err) {
 		t.Errorf("the fallback was made: %v", err)
+	}
+}
+
+// TestScratchFolderPlaceJudgesAnAbsentFolderByItsParent: an absent
+// scratch-root folder is judged by its parent alone, as
+// MakeSharedDirectory makes it: taken where the parent exists, followed
+// through a link, a directory the operator can write and search, on a
+// filesystem with free inodes; otherwise an explicit folder is refused
+// with the reason, and the auto chain's shared folder is passed by and
+// listed with it, as the activity warns. A missing parent is never made.
+// The scratch's explicit path, whose maker makes every missing
+// component, is still taken under missing parents.
+func TestScratchFolderPlaceJudgesAnAbsentFolderByItsParent(t *testing.T) {
+	skipAsRoot(t)
+	dir := testdir.Short(t)
+	fallback := filepath.Join(dir, "private")
+	open := filepath.Join(dir, "open")
+	closed := filepath.Join(dir, "closed")
+	full := filepath.Join(dir, "full")
+	for _, d := range []string{open, closed, full} {
+		if err := os.Mkdir(d, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Chmod(closed, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(closed, 0o700) })
+	withNoFreeInodes(t, full)
+	if err := os.Symlink(open, filepath.Join(dir, "to-open")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(dir, "nothing"), filepath.Join(dir, "to-nothing")); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ name, parent, reason string }{
+		{"parent present", open, ""},
+		{"parent a link to a folder", filepath.Join(dir, "to-open"), ""},
+		{"parent absent", filepath.Join(dir, "missing"), reasonParentAbsent},
+		{"parent a link to nothing", filepath.Join(dir, "to-nothing"), reasonParentAbsent},
+		{"parent closed", closed, reasonNotWritable},
+		{"parent out of inodes", full, reasonNoInodes},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(tc.parent, "capacity")
+			explicit, xerr := ScratchFolder{Path: path}.Place(nil, "capacity_root_unusable")
+			auto, aerr := ScratchFolder{Path: path, Fallback: fallback}.Place(nil, "capacity_root_unusable")
+			if aerr != nil {
+				t.Fatalf("auto: %v", aerr)
+			}
+			if tc.reason == "" {
+				if xerr != nil || explicit.Path != path || auto.Path != path || len(auto.Passed) != 0 {
+					t.Errorf("explicit %+v %v; auto %+v; want %s taken", explicit, xerr, auto, path)
+				}
+			} else {
+				if want := "capacity_root_unusable: " + path + ": " + tc.reason; errorcodes.Message(xerr) != want {
+					t.Errorf("explicit: %v\nwant %s", xerr, want)
+				}
+				if want := []Passed{{Path: path, Reason: tc.reason}}; auto.Path != fallback || !slices.Equal(auto.Passed, want) {
+					t.Errorf("auto: %+v\nwant %s passed %+v", auto, fallback, want)
+				}
+			}
+			if _, err := os.Lstat(path); !os.IsNotExist(err) {
+				t.Errorf("the folder was made: %v", err)
+			}
+		})
+	}
+	if _, err := os.Lstat(filepath.Join(dir, "missing")); !os.IsNotExist(err) {
+		t.Errorf("the missing parent was made: %v", err)
+	}
+	tempdir := filepath.Join(dir, "missing", "t")
+	if pl, err := ScratchPlace(tempdir, dir, dir, "u", os.Geteuid()); err != nil || pl.Path != tempdir || len(pl.Passed) != 0 {
+		t.Errorf("the scratch's explicit path under missing parents: %+v %v", pl, err)
 	}
 }

@@ -34,10 +34,10 @@ func ResolvePath(raw, home string) (string, error) {
 	return filepath.Abs(p)
 }
 
-// Passed is a candidate of a chain that is present on the host and was
-// passed by, with the reason: the activity's own words where it warns,
-// else the judgement's (`config show --explain` prints it on a `passed:`
-// line).
+// Passed is a candidate of a chain that was passed by, present on the host
+// or a scratch-root folder that cannot be made (ScratchFolder.Place), with
+// the reason: the activity's own words where it warns, else the
+// judgement's (`config show --explain` prints it on a `passed:` line).
 type Passed struct {
 	Path, Reason string
 }
@@ -46,7 +46,8 @@ type Passed struct {
 // the candidate the activity would take, Passed the candidates before it
 // that are present and were passed by. An absent candidate passed by is not
 // listed: absence is a host's ordinary state, and the activity passes it in
-// silence too.
+// silence too. The one exception is a scratch-root folder absent that
+// cannot be made, which the activity warns about (ScratchFolder.Place).
 type Place struct {
 	Path   string
 	Passed []Passed
@@ -106,26 +107,30 @@ func CheckSetupPlaces(path, key string) error {
 	return errorcodes.Errorf("shared_directory_absent", "%s is absent, and only `sudo karvi setup shared` makes it, never an operator's run: the site runs that, or %s", refused, elsewhere)
 }
 
-// statfs reads a filesystem's counts for the inode judgement; a test
-// replaces it.
-var statfs = syscall.Statfs
+// Statfs reads a filesystem's counts for the inode judgement
+// (NoFreeInodes). A test points the variable at a fake of its own
+// (osutiltest.NoFreeInodesUnder).
+var Statfs = syscall.Statfs
 
-// noFreeInodes says whether path's filesystem counts inodes and has none
-// free, where a directory or a probe file cannot be made whatever the
+// NoFreeInodes says whether path's filesystem counts inodes and has none
+// free, where a directory or a file cannot be made whatever the
 // permissions say (a full /tmp moved the spool to /var/tmp).
-func noFreeInodes(path string) bool {
+func NoFreeInodes(path string) bool {
 	var st syscall.Statfs_t
-	if statfs(path, &st) != nil {
+	if Statfs(path, &st) != nil {
 		return false
 	}
 	return st.Files > 0 && st.Ffree == 0
 }
 
-// The reasons a present candidate is passed by, in the judgement's words.
+// The reasons a candidate is passed by, in the judgement's words; the last
+// is an absent scratch-root folder's, whose maker makes only the last
+// component (ScratchFolder.Place).
 const (
-	reasonNotReal     = "not a real directory"
-	reasonNotWritable = "not writable by the operator"
-	reasonNoInodes    = "no free inodes"
+	reasonNotReal      = "not a real directory"
+	reasonNotWritable  = "not writable by the operator"
+	reasonNoInodes     = "no free inodes"
+	reasonParentAbsent = "parent absent"
 )
 
 // judgeDirectory is the judgement of a candidate the operator writes in,
@@ -146,7 +151,7 @@ func judgeDirectory(path string) (present bool, reason string) {
 		if syscall.Access(path, 0o3) != nil { // W_OK|X_OK
 			return true, reasonNotWritable
 		}
-		if noFreeInodes(path) {
+		if NoFreeInodes(path) {
 			return true, reasonNoInodes
 		}
 		return true, ""
@@ -172,7 +177,7 @@ func makeableReason(path string) string {
 				return reasonNotReal
 			case syscall.Access(a, 0o3) != nil:
 				return reasonNotWritable
-			case noFreeInodes(a):
+			case NoFreeInodes(a):
 				return reasonNoInodes
 			}
 			return ""
@@ -334,12 +339,13 @@ func ScratchFolderChoice(raw, home, key, name, base string) (ScratchFolder, erro
 }
 
 // Place is the chain's twin: the folder the activity would take, judged
-// by judgeDirectory and by judge, the folder's own rule ("" when the
-// folder passes it; nil for none), creating nothing. Under FollowLink a
-// link at Path is followed, judgeDirectory's rules made on what it points
-// to and judge given Path; a link to nothing is present and not a real
-// directory. The shared folder present and passed by is listed with its
-// reason, and the private folder taken; an explicit path passed by is
+// by judgePath and, when present, by judge, the folder's own rule (""
+// when the folder passes it; nil for none), creating nothing. Under
+// FollowLink a link at Path is followed, judgeDirectory's rules made on
+// what it points to and judge given Path; a link to nothing is present
+// and not a real directory. The shared folder passed by, present or absent
+// and not to be made, is listed with its reason, as the activity warns,
+// and the private folder taken unjudged; an explicit path passed by is
 // refused with code.
 func (f ScratchFolder) Place(judge func(string) string, code string) (Place, error) {
 	var pl Place
@@ -355,27 +361,53 @@ func (f ScratchFolder) Place(judge func(string) string, code string) (Place, err
 		if f.Fallback == "" {
 			return pl, errorcodes.Errorf(code, "%s: %s", f.Path, reason)
 		}
-		if present {
-			pl.Passed = append(pl.Passed, Passed{Path: f.Path, Reason: reason})
-		}
+		pl.Passed = append(pl.Passed, Passed{Path: f.Path, Reason: reason})
 	}
 	pl.Path = f.Fallback
 	return pl, nil
 }
 
-// judgePath is judgeDirectory's judgement of Path, under FollowLink of
-// what a link there points to.
+// judgePath is the judgement of Path as MakeSharedDirectory and the
+// activity find it: present, judgeDirectory's, under FollowLink of what a
+// link there points to; absent, its parent's alone (parentReason), since
+// the maker makes only the last component.
 func (f ScratchFolder) judgePath() (present bool, reason string) {
+	p := f.Path
 	if f.FollowLink {
-		if fi, err := os.Lstat(f.Path); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-			target, err := filepath.EvalSymlinks(f.Path)
+		if fi, err := os.Lstat(p); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+			target, err := filepath.EvalSymlinks(p)
 			if err != nil {
 				return true, reasonNotReal
 			}
-			return judgeDirectory(target)
+			p = target
 		}
 	}
-	return judgeDirectory(f.Path)
+	if _, err := os.Lstat(p); os.IsNotExist(err) {
+		return false, parentReason(filepath.Dir(p))
+	}
+	return judgeDirectory(p)
+}
+
+// parentReason says why MakeSharedDirectory cannot make a folder in
+// parent, empty when it can: the parent must exist, followed through a
+// link as os.Stat follows it, and be a directory the operator can write
+// and search (access(2)), on a filesystem with free inodes. A missing
+// parent is never made.
+func parentReason(parent string) string {
+	fi, err := os.Stat(parent)
+	switch {
+	case os.IsNotExist(err):
+		return reasonParentAbsent
+	case err != nil:
+		return reasonNotWritable
+	case !fi.IsDir():
+		return reasonNotReal
+	case syscall.Access(parent, 0o3) != nil: // W_OK|X_OK
+		return reasonNotWritable
+	case NoFreeInodes(parent):
+		return reasonNoInodes
+	}
+	return ""
 }
 
 // UsableDirectory is the activity's test of a folder it writes in, once

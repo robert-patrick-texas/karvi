@@ -1426,9 +1426,11 @@ too, an empty one none. Each chain is found by its own chooser, the one the
 activity's maker calls, without creating anything: a candidate present is judged
 by `access(2)`, its owner and mode where the place is private, and the free
 inodes of its filesystem; one absent is the folder the activity would make where
-its rule lets it. A candidate present and passed by adds a `passed:` line with
-the reason, in the activity's words where it warns, and so does a scratch
-candidate too long for the askpass socket, present or not; a refusal is
+its rule lets it, the scratch root's two folders or an explicit path for them
+only in a parent that exists. A candidate present and passed by adds a `passed:`
+line with the reason, in the activity's words where it warns, and so do a
+scratch candidate too long for the askpass socket, present or not, and a scratch
+root's folder absent that cannot be made, as the activity warns; a refusal is
 `resolved: error: CODE: message`, and the view exits 0. The lines come from the
 configuration the invocation loads, which its job runs under on every path; a
 running daemon keeps only its own sockets, state, and log under the `basedir` it
@@ -3029,10 +3031,11 @@ the same list of places, so the boot makes them again on the emptied tmpfs
 (`devices` among them, so no operator's first run after a boot owns it). An operator's process
 never creates a missing parent: it makes its own `<username>` folder
 (0700) inside an existing root, and a missing `scoreboards` or `capacity`
-folder inside an existing parent with a setgid parent's bits. A root that
-is absent gives the private places under `basedir` without a word; a
-folder that exists but is closed to the operator gives them with one
-warning naming it. The capacity ledger's files take its root's group modes
+folder inside an existing parent with a setgid parent's bits. A root
+that is absent gives the private places under `basedir` without a word;
+a folder that exists but is closed to the operator, or one absent that
+the operator cannot make in the root, gives them with one warning
+naming it. The capacity ledger's files take its root's group modes
 (2770 gives 0660), another user's process is a live lease holder, and a
 ledger that cannot be read is an error. *Why:* the first operator's run
 had created the root at 0700 and closed it to every other, whose

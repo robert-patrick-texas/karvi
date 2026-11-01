@@ -35,7 +35,8 @@ type Writer struct {
 // operator's, base the private root) and makes the folder: under "auto"
 // the scratch root's folder where the scratch root exists, made in it
 // with the root's bits when missing (osutil.MakeSharedDirectory), passed
-// by with one warning when it cannot be used; else, or then, the private
+// by with one warning when it cannot be used, its filesystem's free
+// inodes among the tests; else, or then, the private
 // <basedir>/state/scoreboards, made 0700. An explicit path is used or
 // refused. A disabled writer (watch.enabled false) resolves nothing and
 // writes nothing.
@@ -54,26 +55,32 @@ func NewWriter(raw, home, base string, enabled bool, warn func(string)) (*Writer
 // Folder is NewWriter's folder whatever watch.enabled says, the place every
 // activity claims its ID: the folder, made when missing, and the mode of
 // the files in it (0640 in the shared folder, 0600 in the private one).
-// warn is told when the shared folder is passed by; nil passes it by
-// silently, for a caller whose scoreboard writer says it.
+// The shared or explicit folder must also stand on a filesystem with free
+// inodes, where each activity makes its claim, as Place judges it; the
+// private folder is taken without that judgement, as Place takes it. warn
+// is told when the shared folder is passed by; nil passes it by silently,
+// for a caller whose scoreboard writer says it.
 func Folder(raw, home, base string, warn func(string)) (string, os.FileMode, error) {
 	f, err := Choice(raw, home, base)
 	if err != nil {
 		return "", 0, err
 	}
 	if f.Path != "" {
-		err := osutil.MakeSharedDirectory(f.Path, 0770)
-		if err == nil {
-			err = osutil.UsableDirectory(f.Path)
-		}
-		if err == nil {
+		why := ""
+		if err := osutil.MakeSharedDirectory(f.Path, 0770); err != nil {
+			why = err.Error()
+		} else if err := osutil.UsableDirectory(f.Path); err != nil {
+			why = err.Error()
+		} else if osutil.NoFreeInodes(f.Path) {
+			why = "no free inodes"
+		} else {
 			return f.Path, 0640, nil
 		}
 		if f.Fallback == "" {
-			return "", 0, errorcodes.Errorf("scoreboard_root_invalid", "the scoreboards %s cannot be used (%v); set scoreboards to a folder the operator can write", f.Path, err)
+			return "", 0, errorcodes.Errorf("scoreboard_root_invalid", "the scoreboards %s cannot be used (%s); set scoreboards to a folder the operator can write", f.Path, why)
 		}
 		if warn != nil {
-			warn(fmt.Sprintf("shared scoreboard directory unavailable (%s: %v); using private fallback %s", f.Path, err, f.Fallback))
+			warn(fmt.Sprintf("shared scoreboard directory unavailable (%s: %s); using private fallback %s", f.Path, why, f.Fallback))
 		}
 	}
 	if err := osutil.MakeDirectories(f.Fallback, 0700); err != nil {

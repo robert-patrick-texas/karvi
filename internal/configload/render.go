@@ -144,15 +144,17 @@ func tomlValue(v any) string {
 
 // Place is where a key's value comes to on this host, as the next
 // activity would find it, nothing created: Path the place taken, Passed the
-// candidates present and passed by before it, Err the activity's refusal.
+// candidates passed by before it (osutil.Place), Err the activity's
+// refusal.
 type Place struct {
 	Path   string
 	Passed []PassedCandidate
 	Err    error
 }
 
-// PassedCandidate is a candidate present on the host and passed by, with
-// the reason (a `passed:` line).
+// PassedCandidate is a candidate passed by, present on the host or a
+// scratch-root folder that cannot be made (osutil.Passed), with the reason
+// (a `passed:` line).
 type PassedCandidate struct {
 	Path, Reason string
 }

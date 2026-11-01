@@ -26,7 +26,8 @@ operator cannot use is refused, warned about, or passed by, as the last
 column says: the trees and the private root are refused, since the site made
 them for the operator and a silent fall-through would split the operator's
 work across two places; the scratch root's two folders are passed by with
-one warning, since a job can run without them.
+one warning, since a job can run without them, and so is either of them
+absent where the operator cannot make it in the scratch root.
 
 | Place | Key | Shared candidates, in order | Otherwise | A candidate present but unusable |
 |---|---|---|---|---|
@@ -81,23 +82,29 @@ device is contacted, `shared_directory_absent`, naming the place, `sudo karvi
 setup shared`, and the key to set elsewhere. Inside the places that exist an
 operator's run makes its own folders: its `<user>` folder in the scratch root,
 a missing `scoreboards` or `capacity` folder in the root's group, its folder
-under `users`, the day and job folders in the trees. `/dev/shm` is emptied at
-every boot, and `systemd-tmpfiles` makes the scratch root again from the rule
-`setup shared` writes; a host where the rule did not run is in individual mode
-for the scratch, the scoreboards, and the ledger until it does.
+under `users`, the day and job folders in the trees. The scratch root's two
+folders, and an explicit `scoreboards` or `sessions.shared-capacity-root`, are
+made only in a parent that exists, never with their parents: an explicit one
+whose parent is absent is refused (`scoreboard_root_invalid`,
+`capacity_root_unusable`). `/dev/shm` is emptied at every boot, and
+`systemd-tmpfiles` makes the scratch root again from the rule `setup shared`
+writes; a host where the rule did not run is in individual mode for the
+scratch, the scoreboards, and the ledger until it does.
 
 **A quick look at a host.** `karvi config show KEY…` names on each key's
 `resolved:` line the place the next activity would use, by the rule above and
 without creating anything: `karvi config show basedir ssh.known-hosts-file`
 names the operator's private root and trust store. A candidate present on the
-host and passed by follows on a `passed:` line with its reason, and a place the
-activity would refuse is `resolved:   error: CODE: message`. Each candidate is
-judged as the activity judges it, by its permissions (`access(2)`), its owner
-and mode where it is private, and the free inodes of its filesystem; what only
-a write shows, a network filesystem's refusal or a quota, can still differ.
-Every place at once, one line for each key that names one and for each
-candidate passed by, from the configuration this invocation loads, here on a
-host after `setup shared`, before the operator's first activity:
+host and passed by follows on a `passed:` line with its reason, as does a
+scratch root's folder absent that the operator cannot make, which the activity
+warns about; a place the activity would refuse is
+`resolved:   error: CODE: message`. Each candidate is judged as the activity
+judges it, by its permissions (`access(2)`), its owner and mode where it is
+private, and the free inodes of its filesystem; what only a write shows, a
+network filesystem's refusal or a quota, can still differ. Every place at once,
+one line for each key that names one and for each candidate passed by, from the
+configuration this invocation loads, here on a host after `setup shared`,
+before the operator's first activity:
 
 ```bash
 karvi config show --explain | awk '/^key:/{k=$2} /^(resolved|passed):/{print k": "$0}'

@@ -14,6 +14,7 @@ import (
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/osutil/osutiltest"
 	"github.com/robert-patrick-texas/karvi/internal/testdir"
 )
 
@@ -921,5 +922,133 @@ func TestPlaceJudgesTheServerLedgerAsNewDoes(t *testing.T) {
 			}
 			stands()
 		})
+	}
+}
+
+// TestAnExplicitRootWhoseParentIsAbsentIsRefused: New makes a root only in
+// a parent that exists, so Place refuses an explicit root whose parent is
+// absent, as New does, capacity_root_unusable naming the root; neither
+// makes the parent.
+func TestAnExplicitRootWhoseParentIsAbsentIsRefused(t *testing.T) {
+	dir := t.TempDir()
+	base := withScratchRoot(t, filepath.Join(dir, "shm"))
+	root := filepath.Join(dir, "missing", "capacity")
+	_, perr := Place(root, "", base)
+	if want := "capacity_root_unusable: " + root + ": parent absent"; errorcodes.Message(perr) != want {
+		t.Errorf("Place: %v\nwant %s", perr, want)
+	}
+	if _, err := New(root, "", base, "job", 4, nil); errorcodes.Of(err) != "capacity_root_unusable" {
+		t.Errorf("New: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Dir(root)); !os.IsNotExist(err) {
+		t.Errorf("the parent was made: %v", err)
+	}
+}
+
+// TestARootWithNoFreeInodesIsPassedByAsPlaceSays: a root present on a
+// filesystem with no free inodes, where no lease's temporary file could be
+// made, is passed by under auto with one warning naming it and the private
+// fallback taken, as Place lists it, and an explicit one is refused
+// capacity_root_unusable in Place's words. The fallback is taken unjudged,
+// by both, whatever its filesystem holds.
+func TestARootWithNoFreeInodesIsPassedByAsPlaceSays(t *testing.T) {
+	scratch := filepath.Join(t.TempDir(), "shm")
+	if err := os.Mkdir(scratch, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	base := withScratchRoot(t, scratch)
+	fallback := filepath.Join(base, "state", "capacity")
+	root := filepath.Join(scratch, "capacity")
+	// A first run makes the root and what it holds.
+	if m, err := New("auto", "", base, "job", 4, nil); err != nil || m.Root != root {
+		t.Fatalf("the first run: %v %v", m, err)
+	}
+	t.Cleanup(osutiltest.NoFreeInodesUnder(root, base))
+	pl, err := Place("auto", "", base)
+	if want := []osutil.Passed{{Path: root, Reason: "no free inodes"}}; err != nil || pl.Path != fallback || !slices.Equal(pl.Passed, want) {
+		t.Errorf("auto: Place %+v %v\nwant %s passed %+v", pl, err, fallback, want)
+	}
+	var warned []string
+	m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
+	if err != nil || m.Root != fallback {
+		t.Fatalf("auto: New took %v %v, want %s", m, err, fallback)
+	}
+	refusal := "capacity_root_unusable: " + root + ": no free inodes"
+	if want := []string{"shared capacity root unavailable (" + refusal + "); using private fallback " + fallback}; !slices.Equal(warned, want) {
+		t.Errorf("auto: warnings %q\nwant %q", warned, want)
+	}
+	if _, err := Place(root, "", base); errorcodes.Message(err) != refusal {
+		t.Errorf("explicit: Place %v\nwant %s", err, refusal)
+	}
+	if _, err := New(root, "", base, "job", 4, nil); errorcodes.Message(err) != refusal {
+		t.Errorf("explicit: New %v\nwant %s", err, refusal)
+	}
+}
+
+// TestASharedRootThatCannotBeMadeIsListed: with the scratch root present
+// but closed to the operator, the shared root is absent and cannot be
+// made: Place lists it passed by with the reason, as New warns once, and
+// both take the private fallback; nothing is made in the scratch root.
+func TestASharedRootThatCannotBeMadeIsListed(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes every folder")
+	}
+	scratch := filepath.Join(t.TempDir(), "shm")
+	if err := os.Mkdir(scratch, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(scratch, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(scratch, 0o700) })
+	base := withScratchRoot(t, scratch)
+	fallback := filepath.Join(base, "state", "capacity")
+	root := filepath.Join(scratch, "capacity")
+	pl, err := Place("auto", "", base)
+	if want := []osutil.Passed{{Path: root, Reason: "not writable by the operator"}}; err != nil || pl.Path != fallback || !slices.Equal(pl.Passed, want) {
+		t.Errorf("Place %+v %v\nwant %s passed %+v", pl, err, fallback, want)
+	}
+	var warned []string
+	m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) })
+	if err != nil || m.Root != fallback || len(warned) != 1 || !strings.Contains(warned[0], root) {
+		t.Errorf("New took %v %v (warnings %q), want %s", m, err, warned, fallback)
+	}
+	if _, err := os.Lstat(root); !os.IsNotExist(err) {
+		t.Errorf("the shared root was made: %v", err)
+	}
+}
+
+// TestAMalformedServerLedgerIsRefusedUnderOneCode: New refuses a root
+// whose server ledger is not JSON capacity_root_unusable, the ledger's own
+// words after it and no other code, without the mode remedy, which the
+// fault does not fit; under auto the warning carries the same.
+func TestAMalformedServerLedgerIsRefusedUnderOneCode(t *testing.T) {
+	scratch := filepath.Join(t.TempDir(), "shm")
+	if err := os.Mkdir(scratch, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	base := withScratchRoot(t, scratch)
+	fallback := filepath.Join(base, "state", "capacity")
+	root := filepath.Join(scratch, "capacity")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(root, os.ModeSetgid|0o770); err != nil {
+		t.Fatal(err)
+	}
+	ledger := filepath.Join(root, "server.json")
+	if err := os.WriteFile(ledger, []byte("{router1\n"), 0o660); err != nil {
+		t.Fatal(err)
+	}
+	refusal := "capacity_root_unusable: " + ledger + ": invalid character 'r' looking for beginning of object key string"
+	if _, err := New(root, "", base, "job", 4, nil); err == nil || err.Error() != refusal {
+		t.Errorf("explicit: %v\nwant %s", err, refusal)
+	}
+	var warned []string
+	if m, err := New("auto", "", base, "job", 4, func(s string) { warned = append(warned, s) }); err != nil || m.Root != fallback {
+		t.Fatalf("auto: New took %v %v, want %s", m, err, fallback)
+	}
+	if want := []string{"shared capacity root unavailable (" + refusal + "); using private fallback " + fallback}; !slices.Equal(warned, want) {
+		t.Errorf("auto: warnings %q\nwant %q", warned, want)
 	}
 }

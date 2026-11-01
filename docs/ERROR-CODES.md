@@ -81,7 +81,7 @@ Active failure causes.
 | `capacity_admission_failed` | capacity | 110 | yes | A device session slot cannot be acquired before the activity is cancelled. |
 | `capacity_ledger_malformed` | dependency | 8 | no | A capacity ledger file is not valid JSON. |
 | `capacity_root_blank` | internal | 1 | no | The capacity manager was given a blank root directory. |
-| `capacity_root_unusable` | permission | 9 | no | The shared capacity root exists but this operator cannot lease in it: the sticky bit on another operator's directory, a directory or lock file closed to the operator, or a link at a lock's or the devices folder's name. Under `auto` the private fallback is taken with a warning naming the cause; a named root is refused. |
+| `capacity_root_unusable` | permission | 9 | no | The shared capacity root cannot be leased in by this operator: the sticky bit on another operator's directory, a directory or lock file closed to the operator, a link at a lock's or the devices folder's name, a server ledger that does not decode, a filesystem with no free inodes, or a root absent whose parent is absent or closed to the operator. Under `auto` the private fallback is taken with a warning naming the cause; a named root is refused. |
 | `channel_exec_declaration_refused` | usage | 4 | no | A command for a target on an exec channel carries a declaration that answers a terminal: a blind send (`--blind`, `--blind-return`, or a trailing `\r`) or an `--expect`. An exec channel has no terminal and no prompt; refused at planning, and by the daemon's plan check, naming the target and the command's index. `--literal` is accepted. |
 | `channel_exec_over_telnet` | dependency | 8 | no | A target's platform asks for an exec channel and its transport is telnet, which has none; refused at planning, naming both. |
 | `cli_command_ambiguous` | usage | 4 | no | The command word prefix matches more than one command; the message names every candidate. |
@@ -536,7 +536,7 @@ Active failure causes.
 | `scoreboard_counts_inconsistent` | internal | 1 | no | A scoreboard snapshot's completed, in-flight, not-started, and incomplete counts do not sum to the total. |
 | `scoreboard_directory_unavailable` | permission | 9 | no | Unclassified. Neither the shared nor the private scoreboard directory can be created. |
 | `scoreboard_file_limit_exceeded` | output | 111 | no | The scoreboard directory holds more scoreboard files than `watch.max-files`. |
-| `scoreboard_root_invalid` | permission | 9 | no | The scoreboard directory path is a symlink or not a directory. |
+| `scoreboard_root_invalid` | permission | 9 | no | The scoreboards folder cannot be used: a link, not a folder, closed to the operator, on a filesystem with no free inodes, or absent with its parent absent or closed to the operator. |
 | `scoreboard_write_failed` | output | 111 | no | Unclassified. A scoreboard snapshot cannot be written. |
 | `scratch_directory_unavailable` | permission | 9 | no | No candidate scratch directory can be created and written. |
 | `secret_destroyed` | internal | 1 | no | A secret value is read after it was destroyed. |

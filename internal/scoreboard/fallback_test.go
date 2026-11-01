@@ -3,12 +3,14 @@ package scoreboard
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
+	"github.com/robert-patrick-texas/karvi/internal/osutil/osutiltest"
 	"github.com/robert-patrick-texas/karvi/records"
 )
 
@@ -137,5 +139,94 @@ func TestDirectoriesAndReadAll(t *testing.T) {
 		if rows, err := ReadAll(dirs, 100, 0); err != nil || len(rows) != 2 {
 			t.Fatalf("an unreadable shared folder is passed by: %d %v", len(rows), err)
 		}
+	}
+}
+
+// TestAnExplicitFolderWhoseParentIsAbsentIsRefused: Folder makes a folder
+// only in a parent that exists, so Place refuses an explicit one whose
+// parent is absent, as Folder does, scoreboard_root_invalid naming the
+// folder; neither makes the parent.
+func TestAnExplicitFolderWhoseParentIsAbsentIsRefused(t *testing.T) {
+	dir := t.TempDir()
+	base := withScratchRoot(t, filepath.Join(dir, "shm"))
+	folder := filepath.Join(dir, "missing", "scoreboards")
+	_, perr := Place(folder, "", base)
+	if want := "scoreboard_root_invalid: " + folder + ": parent absent"; errorcodes.Message(perr) != want {
+		t.Errorf("Place: %v\nwant %s", perr, want)
+	}
+	if _, _, err := Folder(folder, "", base, nil); errorcodes.Of(err) != "scoreboard_root_invalid" {
+		t.Errorf("Folder: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Dir(folder)); !os.IsNotExist(err) {
+		t.Errorf("the parent was made: %v", err)
+	}
+}
+
+// TestAFolderWithNoFreeInodesIsPassedByAsPlaceSays: a shared folder present
+// on a filesystem with no free inodes, where no activity could claim its
+// ID, is passed by under auto with one warning naming it and the private
+// folder taken, as Place lists it, and an explicit one is refused
+// scoreboard_root_invalid. The private folder is taken unjudged, by both,
+// whatever its filesystem holds.
+func TestAFolderWithNoFreeInodesIsPassedByAsPlaceSays(t *testing.T) {
+	scratch := filepath.Join(t.TempDir(), "shm")
+	shared := filepath.Join(scratch, "scoreboards")
+	if err := os.MkdirAll(shared, 0o770); err != nil {
+		t.Fatal(err)
+	}
+	base := withScratchRoot(t, scratch)
+	private := filepath.Join(base, "state", "scoreboards")
+	t.Cleanup(osutiltest.NoFreeInodesUnder(shared, base))
+	pl, err := Place("auto", "", base)
+	if want := []osutil.Passed{{Path: shared, Reason: "no free inodes"}}; err != nil || pl.Path != private || !slices.Equal(pl.Passed, want) {
+		t.Errorf("auto: Place %+v %v\nwant %s passed %+v", pl, err, private, want)
+	}
+	var warned []string
+	dir, mode, err := Folder("auto", "", base, func(s string) { warned = append(warned, s) })
+	if err != nil || dir != private || mode != 0o600 {
+		t.Fatalf("auto: Folder %s %o %v, want %s", dir, mode, err, private)
+	}
+	if want := []string{"shared scoreboard directory unavailable (" + shared + ": no free inodes); using private fallback " + private}; !slices.Equal(warned, want) {
+		t.Errorf("auto: warnings %q\nwant %q", warned, want)
+	}
+	if _, err := Place(shared, "", base); errorcodes.Message(err) != "scoreboard_root_invalid: "+shared+": no free inodes" {
+		t.Errorf("explicit: Place %v", err)
+	}
+	_, _, err = Folder(shared, "", base, nil)
+	if want := "scoreboard_root_invalid: the scoreboards " + shared + " cannot be used (no free inodes); set scoreboards to a folder the operator can write"; errorcodes.Message(err) != want {
+		t.Errorf("explicit: Folder %v\nwant %s", err, want)
+	}
+}
+
+// TestASharedFolderThatCannotBeMadeIsListed: with the scratch root present
+// but closed to the operator, the shared folder is absent and cannot be
+// made: Place lists it passed by with the reason, as Folder warns once,
+// and both take the private folder; nothing is made in the scratch root.
+func TestASharedFolderThatCannotBeMadeIsListed(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes every directory")
+	}
+	scratch := filepath.Join(t.TempDir(), "shm")
+	if err := os.Mkdir(scratch, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(scratch, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(scratch, 0o700) })
+	base := withScratchRoot(t, scratch)
+	private := filepath.Join(base, "state", "scoreboards")
+	shared := filepath.Join(scratch, "scoreboards")
+	pl, err := Place("auto", "", base)
+	if want := []osutil.Passed{{Path: shared, Reason: "not writable by the operator"}}; err != nil || pl.Path != private || !slices.Equal(pl.Passed, want) {
+		t.Errorf("Place %+v %v\nwant %s passed %+v", pl, err, private, want)
+	}
+	var warned []string
+	dir, _, err := Folder("auto", "", base, func(s string) { warned = append(warned, s) })
+	if err != nil || dir != private || len(warned) != 1 || !strings.Contains(warned[0], shared) {
+		t.Errorf("Folder took %s %v (warnings %q), want %s", dir, err, warned, private)
+	}
+	if _, err := os.Lstat(shared); !os.IsNotExist(err) {
+		t.Errorf("the shared folder was made: %v", err)
 	}
 }

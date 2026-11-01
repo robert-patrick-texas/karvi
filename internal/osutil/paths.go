@@ -108,7 +108,7 @@ func privateDirectoryProblem(p string, uid int) (reason string, err error) {
 	if syscall.Access(p, 0o3) != nil { // W_OK|X_OK
 		return reasonNotWritable, errorcodes.Errorf("private_directory_not_writable", "%s is not writable by the operator", p)
 	}
-	if noFreeInodes(p) {
+	if NoFreeInodes(p) {
 		return reasonNoInodes, errorcodes.Errorf("private_directory_not_writable", "%s is on a filesystem with no free inodes", p)
 	}
 	return "", nil

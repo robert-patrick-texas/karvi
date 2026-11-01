@@ -44,8 +44,9 @@ type entry struct {
 // New resolves the ledger's root (sessions.shared-capacity-root, raw; home
 // the operator's, base the private root) and prepares it: under "auto"
 // the scratch root's capacity folder where the scratch root exists, passed
-// by with one warning when this operator cannot lease in it; else, or
-// then, the private <basedir>/state/capacity. An explicit path is used or
+// by with one warning when this operator cannot lease in it, its
+// filesystem's free inodes among the tests; else, or then, the private
+// <basedir>/state/capacity, as Place takes it. An explicit path is used or
 // refused.
 func New(raw, home, base, jobID string, limit int, warn func(string)) (*Manager, error) {
 	if limit < 1 {
@@ -57,7 +58,7 @@ func New(raw, home, base, jobID string, limit int, warn func(string)) (*Manager,
 	}
 	m := &Manager{Root: f.Path, JobID: jobID, ServerLimit: limit, PollMin: 50 * time.Millisecond, PollMax: 250 * time.Millisecond, Warn: warn}
 	if f.Path != "" {
-		err := m.ensureRoot()
+		err := m.ensureRoot(true)
 		if err == nil {
 			return m, nil
 		}
@@ -69,7 +70,7 @@ func New(raw, home, base, jobID string, limit int, warn func(string)) (*Manager,
 		}
 	}
 	m.Root = f.Fallback
-	if err := m.ensureRoot(); err != nil {
+	if err := m.ensureRoot(false); err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -162,7 +163,11 @@ func rootReason(root string) string {
 // so a shared root that is present but closed to the operator is said once
 // here and the fallback taken, not met by every device's admission. Under
 // the sticky bit a ledger another operator wrote could not be replaced.
-func (m *Manager) ensureRoot() error {
+// judgeInodes, for the scratch root's folder or an explicit root, also
+// needs free inodes on the root's filesystem, where every lease makes a
+// temporary file, as Place judges it; the private fallback is taken
+// without that judgement, as Place takes it.
+func (m *Manager) ensureRoot(judgeInodes bool) error {
 	if m.Root == "" {
 		return errorcodes.Errorf("capacity_root_blank", "capacity root is blank")
 	}
@@ -176,6 +181,9 @@ func (m *Manager) ensureRoot() error {
 	}
 	if err := syscall.Access(m.Root, 0o3); err != nil { // W_OK|X_OK
 		return errorcodes.Errorf("capacity_root_unusable", "%s: %v; %s", m.Root, err, sharedRootShape)
+	}
+	if judgeInodes && osutil.NoFreeInodes(m.Root) {
+		return errorcodes.Errorf("capacity_root_unusable", "%s: no free inodes", m.Root)
 	}
 	if st, ok := fi.Sys().(*syscall.Stat_t); ok && fi.Mode()&os.ModeSticky != 0 && int(st.Uid) != os.Geteuid() {
 		return errorcodes.Errorf("capacity_root_unusable", "%s has the sticky bit and is owned by uid %d, not %d: a ledger another operator wrote could not be replaced; %s", m.Root, st.Uid, os.Geteuid(), sharedRootShape)
@@ -197,10 +205,15 @@ const sharedRootShape = "a shared capacity root needs mode 2770 in the operators
 
 // rootUnusable is err under capacity_root_unusable with the shape a shared
 // root needs. A refusal coded so already, a link at a name of the ledger's
-// (linkRefusal), keeps its own remedy.
+// (linkRefusal), keeps its own remedy; a server ledger that does not
+// decode (capacity_ledger_malformed) gives its text alone, under the one
+// code, since no mode would set it right.
 func rootUnusable(err error) error {
-	if errorcodes.Of(err) == "capacity_root_unusable" {
+	switch errorcodes.Of(err) {
+	case "capacity_root_unusable":
 		return err
+	case "capacity_ledger_malformed":
+		return errorcodes.Errorf("capacity_root_unusable", "%s", errorcodes.Text(err))
 	}
 	return errorcodes.Errorf("capacity_root_unusable", "%v; %s", err, sharedRootShape)
 }

@@ -333,16 +333,30 @@
   (`transport_mapping_missing: selector "lab" has no …`), as did the job's
   `exercise_not_ready` line that quotes it. It is now the text after the code,
   which the finding's `code` field carries.
-- **`config show --explain` judges a capacity root as a run does.** A link at
-  the root, which a run follows as the site's, was passed by as "not a real
-  directory", so `--explain` named the private fallback while a run used the
-  shared root. A root whose `server.lock` was a link, a folder, or closed to
-  the operator, or whose `server.json` was a link, not a regular file, too
-  large, unreadable, or not valid JSON, was shown as the place taken, while a
-  run passed it by for the private fallback (or refused a named root).
-  `--explain` now follows a link at the root and judges what it points to, and
-  passes by, or refuses, a root whose server files a run could not use, naming
-  the file.
+- **`config show --explain` judges the capacity root and the scoreboards as a
+  run does.** A link at the capacity root, which a run follows as the site's,
+  was passed by as "not a real directory", so `--explain` named the private
+  fallback while a run used the shared root. A root whose `server.lock` was a
+  link, a folder, or closed to the operator, or whose `server.json` was a link,
+  not a regular file, too large, unreadable, or not valid JSON, was shown as the
+  place taken, while a run passed it by for the private fallback (or refused a
+  named root). `--explain` now follows a link at the root and judges what it
+  points to, and passes by, or refuses, a root whose server files a run could
+  not use, naming the file. For both folders, a named path whose parent was
+  absent was shown as taken, where a run, which makes only the last folder,
+  refused it; it is now refused, `parent absent`. A shared folder the operator
+  could not make in the scratch root was passed by in silence while a run warned
+  of it; it is now listed on a `passed:` line with its reason.
+- **A scoreboards or capacity folder on a filesystem with no free inodes is
+  passed by.** A run took the shared folder, which `config show --explain`
+  passed by, and then failed each lease's or activity's file in it; under
+  `auto` it is now passed by with the run's warning for the private folder, and
+  a named one is refused (`capacity_root_unusable`,
+  `scoreboard_root_invalid`).
+- **A capacity root's server ledger that does not decode is refused under one
+  code.** The refusal read `capacity_root_unusable: capacity_ledger_malformed:
+  …/server.json: …; a shared capacity root needs mode 2770 …`, two codes and a
+  remedy no mode fits; it is now `capacity_root_unusable: …/server.json: …`.
 - **A login whose `login.start` cannot be written ends its scoreboard.** The
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`

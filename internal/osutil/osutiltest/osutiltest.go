@@ -9,12 +9,15 @@
 // after the operator's found the daemon package's jobs in /opt/karvi/jobs,
 // its TestMain being the one without the guard. Both verifiers now count
 // the host's shared entries before the Go tests and after the suites
-// (scripts/lib/host.sh).
+// (scripts/lib/host.sh). NoFreeInodesUnder gives another package's tests
+// osutil's inode count to fake.
 package osutiltest
 
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
 
 	"github.com/robert-patrick-texas/karvi/internal/osutil"
 )
@@ -71,4 +74,24 @@ func Isolate() func() {
 			os.RemoveAll(dir)
 		}
 	}
+}
+
+// NoFreeInodesUnder points osutil.Statfs at a fake that reports the
+// filesystem of every path under one of roots, a root itself included, as
+// one with no free inodes, and every other as it is; the returned function
+// restores the seam (t.Cleanup(osutiltest.NoFreeInodesUnder(root))).
+func NoFreeInodesUnder(roots ...string) (restore func()) {
+	saved := osutil.Statfs
+	osutil.Statfs = func(path string, st *syscall.Statfs_t) error {
+		if err := saved(path, st); err != nil {
+			return err
+		}
+		for _, root := range roots {
+			if path == root || strings.HasPrefix(path, root+"/") {
+				st.Files, st.Ffree = 1000, 0
+			}
+		}
+		return nil
+	}
+	return func() { osutil.Statfs = saved }
 }
