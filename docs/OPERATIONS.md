@@ -679,6 +679,9 @@ value:      ["show version", "show inventory", "show running-config"]
 - **A value that is the macro alone takes the macro's kind**, a list or a table
   as well as a string, and a list macro inside a list is spliced into it, as
   `%core%` above. Inside text a macro must be a string, a number, or a boolean.
+- **A filled value is stored as a value written out is**: an alias that
+  arrives through a macro is the word it stands for, so `[dispatch] order =
+  "%ord%"` with `ord = "name"` holds `sorted`.
 - **`%operator%` is built in**: the operator's login name from the password
   database, filled in every value as a site's macro is. `[macros] operator` is
   refused, and `%Operator%` is an ordinary macro.
@@ -708,6 +711,17 @@ Refused when the configuration loads, `config validate` included (exit 2):
 
 ```text
 config_macro_undefined: undefined macro %site% for crun.directory at FILE:2
+```
+
+**A locked key takes its macros from the global configuration.** A locked
+key whose value takes a macro, directly or through another macro, that a
+layer below the global configuration defines last (the user's file,
+`--config`, `--set`) is refused with `config_lock_violation` (exit 3), naming
+the macro, where it was set, and the lock, so no lower layer changes a locked
+value through its macro. `%operator%` is no layer's.
+
+```text
+config_lock_violation: crun.directory takes %region%: write blocked by lock "crun.directory" declared at /etc/karvi/config.toml:2 for macros.region at --set[1]
 ```
 
 `%operator%` with no name known for the operator is
@@ -1311,15 +1325,19 @@ transform = "adm"
   `crop-to-dot` (up to the first dot), `strip-chars` (`chars`),
   `replace-chars` (`pairs`, each `{from, to}`), `strip-suffix` (`suffix`),
   `replace-suffix` (`suffix`, `replacement`), and `add-suffix` (`suffix`,
-  added only to a name without a dot). A username the operations leave empty
-  is `credential_incomplete`.
+  added only to a name without a dot); an operation takes `op` and its own
+  keys alone. A username the operations leave empty is
+  `credential_incomplete`.
 - **A backend's table** is its `transform`; without one, the table named like
   the backend, and otherwise `default`, which changes nothing unless defined. A
   `transform` naming no table is refused when the configuration loads, `config
   validate` included, with `credential_transform_unknown` (exit 2), and so is a
   list that does not build in any transform table, credential or name, whether
   or not anything names the table: `transform_operation_unknown` for an
-  operation karvi does not know, naming the list and its line.
+  operation karvi does not know, `config_unknown_key` for a key the operation
+  does not take (`replacment`), and `transform_pair_rune_invalid` for a pair
+  that is not `{from, to}` of one character each, naming the list and its
+  line.
 - **The platform's fallback** (the `NET*` variables, the prompt, and the
   operator's keys) takes `default`'s `username` operations.
 

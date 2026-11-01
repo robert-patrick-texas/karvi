@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"math"
 	"sort"
 	"strings"
 )
@@ -87,8 +88,11 @@ func tableFor(name string, tables map[string]map[string]any) (map[string]any, bo
 // planner resolves every platform to a known name, and the executor and
 // login refuse an unknown one through Lookup, so the
 // port and enable readers that call Resolve on such a name are harmless.
-// The name's table then overrides the allowed fields. The name and the table names are
-// normalised before the lookup, so [platform.C9300] applies to a row c9300.
+// The name's table then overrides the allowed fields; a field of another
+// kind, a fraction, or a port outside 1..65535 is not taken (the load
+// refuses each), so a port is never cut down to another. The name and the
+// table names are normalised before the lookup, so [platform.C9300] applies
+// to a row c9300.
 // Lookup is Resolve with the answer whether the name is known: a built-in
 // or a configured table's name.
 // An unknown name still returns generic's definition under the name, so a
@@ -130,10 +134,10 @@ func Resolve(name string, tables map[string]map[string]any) Definition {
 	if s, ok := table["default-transport"].(string); ok && s != "" {
 		def.DefaultTransport = s
 	}
-	if v, ok := asInt(table["ssh-port"]); ok && v > 0 {
+	if v, ok := asInt(table["ssh-port"]); ok && v >= 1 && v <= 65535 {
 		def.SSHPort = uint16(v)
 	}
-	if v, ok := asInt(table["telnet-port"]); ok && v > 0 {
+	if v, ok := asInt(table["telnet-port"]); ok && v >= 1 && v <= 65535 {
 		def.TelnetPort = uint16(v)
 	}
 	if s, ok := table["privileged-level"].(string); ok && s != "" {
@@ -194,6 +198,8 @@ func stringList(v any) ([]string, bool) {
 	return out, true
 }
 
+// asInt reads an integer field: an int64 as the load gives it, or an
+// integral float64 as a plan's JSON gives it; a fraction is no integer.
 func asInt(v any) (int, bool) {
 	switch x := v.(type) {
 	case int:
@@ -201,7 +207,9 @@ func asInt(v any) (int, bool) {
 	case int64:
 		return int(x), true
 	case float64:
-		return int(x), true
+		if x == math.Trunc(x) && math.Abs(x) <= 1<<53 {
+			return int(x), true
+		}
 	}
 	return 0, false
 }

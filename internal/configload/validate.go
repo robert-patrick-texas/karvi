@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/robert-patrick-texas/karvi/configschema"
@@ -119,7 +120,7 @@ func (l *loader) validate() error {
 		return l.semanticErr("config_display_timestamp_invalid", key, err)
 	}
 	_ = formatter
-	for _, key := range []string{"display.login.header", "display.login.footer", "display.command.header", "display.command.footer", "display.run.header", "display.run.footer", "display.collection.footer", "display.ping.header"} {
+	for _, key := range []string{"display.login.header", "display.login.footer", "display.command.header", "display.command.footer", "display.run.header", "display.run.footer", "display.collection.footer", "display.ping.header", "display.record.header", "display.record.footer"} {
 		if err := display.ValidateLineTemplate(l.snap.String(key)); err != nil {
 			return l.semanticErr("config_display_template_invalid", key, err)
 		}
@@ -292,8 +293,14 @@ func (l *loader) validateDynamic() error {
 			if src == "" || src == name {
 				return l.dynamicErr("config_credential_formula_source_invalid", "credential-backend."+name+".password-source", "formula requires a distinct password-source backend")
 			}
-			if _, ok := backends[src]; !ok {
+			source, ok := backends[src]
+			if !ok {
 				return l.dynamicErr("config_credential_formula_source_unknown", "credential-backend."+name+".password-source", "referenced backend does not exist")
+			}
+			// The resolver asks a formula's source among its backends,
+			// which hold no formula, so the source is of another type.
+			if t, _ := source["type"].(string); t == "formula" {
+				return l.dynamicErr("config_credential_formula_source_invalid", "credential-backend."+name+".password-source", "backend "+src+" is a formula: name a backend of another type")
 			}
 		}
 	}
@@ -691,11 +698,11 @@ func (l *loader) validatePlatformResolution(sources []map[string]any) error {
 
 // validatePlatformTables checks every [platform.NAME] table, at karvi
 // config validate and at load, in this order: the name (and two spellings
-// of one name), the driver, the fields' ranges, then the resolved
-// definition's own check (the default transport, the session cap, and the
-// privileged level, a level of the base definition). The tables are
-// visited in sorted order so the first fault reported is the same on every
-// run.
+// of one name), each field's kind (the registry's), the driver, the fields'
+// ranges and words, then the resolved definition's own check (the default
+// transport, the session cap, and the privileged level, a level of the base
+// definition). The tables and their fields are visited in sorted order so
+// the first fault reported is the same on every run.
 func (l *loader) validatePlatformTables() error {
 	tables := l.snap.NamedTables("platform")
 	names := make([]string, 0, len(tables))
@@ -740,6 +747,12 @@ func (l *loader) validatePlatformTables() error {
 			return tableErr("config_platform_name_invalid", first, fmt.Sprintf("names compare without regard to case, spaces, or a built-in's other spelling: this table and [platform.%s] are one platform %q", seen, norm))
 		}
 		normalised[norm] = name
+		kinds := platformKinds()
+		for _, f := range fields {
+			if err := configschema.ValidateKind(kinds[f], p[f]); err != nil {
+				return l.dynamicErr("config_type_error", key+"."+f, err.Error())
+			}
+		}
 		driver, hasDriver := p["driver"].(string)
 		driver = platform.Normalize(driver)
 		if _, builtin := platform.Builtin(norm); builtin {
@@ -758,30 +771,15 @@ func (l *loader) validatePlatformTables() error {
 		if port := asInt(p["ssh-port"]); p["ssh-port"] != nil && (port < 1 || port > 65535) {
 			return l.dynamicErr("config_platform_ssh_port_out_of_range", key+".ssh-port", "must be 1..65535")
 		}
+		if port := asInt(p["telnet-port"]); p["telnet-port"] != nil && (port < 1 || port > 65535) {
+			return l.dynamicErr("config_platform_telnet_port_out_of_range", key+".telnet-port", "must be 1..65535")
+		}
 		if c := asInt(p["session-cap"]); p["session-cap"] != nil && (c < 1 || c > 32) {
 			return l.dynamicErr("config_platform_session_cap_out_of_range", key+".session-cap", "must be 1..32")
 		}
 		if v, ok := p["channel"]; ok {
 			if s, _ := v.(string); s != platform.ChannelShell && s != platform.ChannelExec {
 				return l.dynamicErr("config_platform_channel_invalid", key+".channel", fmt.Sprintf("must be %q or %q", platform.ChannelShell, platform.ChannelExec))
-			}
-		}
-		// The string-array fields (crun-commands since registry 14,
-		// crun-filters since registry 19, fallback since registry 25, masks
-		// since registry 31).
-		for _, field := range []string{"fallback", "paging-commands", "crun-commands", "crun-filters", "masks"} {
-			v, ok := p[field]
-			if !ok {
-				continue
-			}
-			list, isList := v.([]any)
-			for _, item := range list {
-				if _, isString := item.(string); !isString {
-					isList = false
-				}
-			}
-			if !isList {
-				return l.dynamicErr("config_type_error", key+"."+field, "must be an array of strings")
 			}
 		}
 		// A fallback names netvars, keys, and prompt, each at most once.
@@ -833,6 +831,16 @@ func (l *loader) validatePlatformTables() error {
 	}
 	return nil
 }
+
+// platformKinds is the registry's kind of each [platform.NAME] field.
+var platformKinds = sync.OnceValue(func() map[string]configschema.Kind {
+	for _, t := range configschema.ArtifactValue().DynamicTables {
+		if t.Pattern == "platform.<name>" {
+			return t.Fields
+		}
+	}
+	return nil
+})
 
 func builtinNames() []string {
 	out := []string{}

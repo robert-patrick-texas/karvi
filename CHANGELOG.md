@@ -244,6 +244,38 @@
   snapshot written just before `login.start` stayed `running` when that
   audit write failed; the login now writes its final snapshot, at `error`
   with the target failed and `audit_write_failed` in its errors.
+- **Breaking: a `[platform.NAME]` table's fields take the registry's kinds.**
+  A field of the wrong kind was passed by or misread: `requires-enable =
+  "true"` (a string), `privileged-level = 15` and `default-transport = 1`
+  (numbers), and `ssh-port = 2222.0` loaded, and `telnet-port = 70023` wrapped
+  to port 4487. Every field present is now checked against its kind in the
+  registry (`config_type_error`), `channel` included, and `telnet-port` must
+  be 1..65535 (`config_platform_telnet_port_out_of_range`, new) as `ssh-port`
+  must; a plan's platform never takes a port outside the range or a fraction.
+- **Breaking: a locked key takes its macros from the global configuration.**
+  A locked key's value could take a macro that the user's file, `--config`,
+  or `--set` defined, so a lower layer changed the locked value through the
+  macro; such a value is now refused `config_lock_violation`, naming the
+  macro, where it was set, and the lock (`%operator%` is no layer's). An
+  alias that arrived through a macro was not turned into the word it stands
+  for, so `source = "%src%"` with `src = "auto"` was refused; a filled value
+  is now stored as one written out is. The keys are filled in sorted order,
+  so a configuration with two faults names the same one on every run, and
+  `config show --explain` lists every macro a key takes.
+- **Breaking: the configuration refuses what it would refuse later.** A
+  formula backend whose `password-source` names another formula backend
+  loaded and failed at the first device; it is now
+  `config_credential_formula_source_invalid` at load.
+  `display.record.header` and `display.record.footer` were checked only when
+  a login used them; they are now checked at load with the other templates.
+  A name or credential transform's operation ignored a key it does not take,
+  so a misspelled `replacment` read as no replacement; it is now
+  `config_unknown_key`, and a `replace-chars` pair that is not an inline
+  table of `from` and `to` is `transform_pair_rune_invalid`. `config = {
+  includes = false }` written inline was not judged by the include rules (a
+  root's directives were followed, an include's own `config.includes` and
+  one after the first directive were not refused), nor was an inline
+  `schema-version` checked; both are now judged as when written out.
 
 ## 0.38.0 - 2026-10-28
 

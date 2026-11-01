@@ -123,6 +123,28 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+// TestResolveTakesNoNumberOutsideItsField: a port outside 1..65535 or a
+// fraction is not taken (the definition keeps its own), never cut down to
+// another port; an integral number, as a plan's JSON gives it, is taken.
+func TestResolveTakesNoNumberOutsideItsField(t *testing.T) {
+	iosxe, _ := Builtin("cisco_ios")
+	tables := map[string]map[string]any{
+		"wide":     {"driver": "cisco_ios", "telnet-port": int64(70023), "ssh-port": int64(65536)},
+		"negative": {"driver": "cisco_ios", "telnet-port": int64(-1), "ssh-port": int64(-65514)},
+		"fraction": {"driver": "cisco_ios", "telnet-port": 2323.5, "ssh-port": 2222.5, "session-cap": 4.5},
+		"json":     {"driver": "cisco_ios", "telnet-port": float64(2323), "ssh-port": float64(2222), "session-cap": float64(4)},
+	}
+	for _, name := range []string{"wide", "negative", "fraction"} {
+		got := Resolve(name, tables)
+		if got.TelnetPort != iosxe.TelnetPort || got.SSHPort != iosxe.SSHPort || got.SessionCap != iosxe.SessionCap {
+			t.Errorf("%s: telnet %d ssh %d session-cap %d, want the built-in's %d %d %d", name, got.TelnetPort, got.SSHPort, got.SessionCap, iosxe.TelnetPort, iosxe.SSHPort, iosxe.SessionCap)
+		}
+	}
+	if got := Resolve("json", tables); got.TelnetPort != 2323 || got.SSHPort != 2222 || got.SessionCap != 4 {
+		t.Errorf("json: telnet %d ssh %d session-cap %d", got.TelnetPort, got.SSHPort, got.SessionCap)
+	}
+}
+
 // TestValidatePrivilegedLevel: a privileged level
 // names a level of the base definition; a base without levels has none.
 func TestValidatePrivilegedLevel(t *testing.T) {

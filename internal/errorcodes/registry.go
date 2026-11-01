@@ -89,7 +89,7 @@ var entries = []Entry{
 	failure("config_set_value", "config", exitConfig, false, "A `--set` value cannot be parsed."),
 	failure("config_toml_syntax", "config", exitConfig, false, "A configuration file is not valid TOML."),
 	failure("config_unknown_environment", "config", exitConfig, false, "An unrecognized `KARVI__` environment variable is set while unknown variables are rejected."),
-	failure("config_unknown_key", "config", exitConfig, false, "A configuration key is not in the configuration registry."),
+	failure("config_unknown_key", "config", exitConfig, false, "A configuration key is not in the configuration registry, or a transform operation or one of its pairs holds a key it does not take."),
 	failure("config_unsupported_file_type", "config", exitConfig, false, "A configuration root or include target is neither a regular file nor a directory."),
 
 	// Configuration locks and macros.
@@ -98,7 +98,7 @@ var entries = []Entry{
 	failure("config_lock_equal_specificity", "config", exitConfig, false, "Two lock patterns of equal specificity match the same key."),
 	failure("config_lock_type", "config", exitConfig, false, "`config-lock` is not a table."),
 	failure("config_lock_value", "config", exitConfig, false, "A lock declaration's value is not `true`."),
-	failure("config_lock_violation", "config", exitLock, false, "A lower-authority layer writes a locked key."),
+	failure("config_lock_violation", "config", exitLock, false, "A lower-authority layer writes a locked key, or defines a macro that a locked key's value takes."),
 	failure("config_lock_zero_coverage", "config", exitConfig, false, "A lock pattern matches no configured or registered key."),
 	failure("config_macro_cycle", "config", exitConfig, false, "Macros reference each other in a cycle."),
 	failure("config_macro_scalar_type", "config", exitConfig, false, "A list or table macro is referenced inside scalar text."),
@@ -118,7 +118,7 @@ var entries = []Entry{
 	failure("config_credential_backend_scope_missing", "config", exitConfig, false, "A `csv` credential backend does not declare `scope`; only `cloginrc` defaults to `user`."),
 	failure("config_credential_backend_shared_optional", "config", exitConfig, false, "A shared-scope credential backend sets `required = false`; a shared file is always required."),
 	failure("config_credential_backend_shared_path_relative", "config", exitConfig, false, "A shared-scope credential backend's `path` is missing or not absolute."),
-	failure("config_credential_formula_source_invalid", "config", exitConfig, false, "A formula backend's `password-source` is empty or names the backend itself."),
+	failure("config_credential_formula_source_invalid", "config", exitConfig, false, "A formula backend's `password-source` is empty, names the backend itself, or names another formula backend."),
 	failure("config_credential_formula_source_unknown", "config", exitConfig, false, "A formula backend's `password-source` names a backend that does not exist."),
 	failure("config_credential_policy_backend_unknown", "config", exitConfig, false, "A credential policy's `backend-sequence` names a backend that does not exist."),
 	failure("config_credential_policy_map_catch_all_missing", "config", exitConfig, false, "The final `credential-policy-map` rule is not the catch-all `name = \"*\"` rule."),
@@ -156,6 +156,7 @@ var entries = []Entry{
 	failure("config_platform_crun_filter_invalid", "config", exitConfig, false, "A `platform.<name>.crun-filters` entry is not a regular expression Go compiles; the message names the table, the entry, and the compiler's reason. The configuration is refused before any device is contacted."),
 	failure("config_platform_mask_invalid", "config", exitConfig, false, "A `platform.<name>.masks` entry is not a regular expression Go compiles, or holds no capturing group, so it would hide nothing; the message names the table, the entry, and the reason. The configuration is refused before any device is contacted."),
 	failure("config_platform_ssh_port_out_of_range", "config", exitConfig, false, "`platform.<name>.ssh-port` is outside 1..65535."),
+	failure("config_platform_telnet_port_out_of_range", "config", exitConfig, false, "`platform.<name>.telnet-port` is outside 1..65535."),
 	failure("config_policy_cycle", "config", exitConfig, false, "Credential policy inheritance forms a cycle."),
 	failure("config_session_init_map_catch_all_missing", "config", exitConfig, false, "The final `session-init-map` rule is not the catch-all `name = \"*\"` rule."),
 	failure("config_session_init_map_profile_unknown", "config", exitConfig, false, "A `session-init-map` rule names a session-init profile that does not exist."),
@@ -527,7 +528,7 @@ var entries = []Entry{
 	failure("tabular_row_short", "inventory", exitInv, false, "A tabular row has fewer columns than mapped while short rows are errors."),
 	failure("transform_chars_empty", "config", exitConfig, false, "A `strip-chars` transform has no characters."),
 	failure("transform_operation_unknown", "config", exitConfig, false, "A transform names an unknown operation."),
-	failure("transform_pair_rune_invalid", "config", exitConfig, false, "A `replace-chars` pair's `from` or `to` is not exactly one character."),
+	failure("transform_pair_rune_invalid", "config", exitConfig, false, "A `replace-chars` pair is not an inline table, or its `from` or `to` is not exactly one character."),
 	failure("transform_pairs_empty", "config", exitConfig, false, "A `replace-chars` transform has no pairs."),
 	failure("transform_suffix_empty", "config", exitConfig, false, "A suffix transform has an empty suffix."),
 

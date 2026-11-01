@@ -3058,6 +3058,7 @@
     "config_platform_resolution_unknown",
     "config_platform_session_cap_out_of_range",
     "config_platform_ssh_port_out_of_range",
+    "config_platform_telnet_port_out_of_range",
     "config_policy_cycle",
     "config_read_error",
     "config_schema_version",

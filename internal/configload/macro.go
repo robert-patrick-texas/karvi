@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/robert-patrick-texas/karvi/configschema"
 )
 
 var macroRefRE = regexp.MustCompile(`%([A-Za-z][A-Za-z0-9_-]{0,63})%`)
@@ -56,6 +59,9 @@ func (l *loader) expandMacros() error {
 			keys = append(keys, k)
 		}
 	}
+	// In sorted order, so a configuration with two faults always names the
+	// same one.
+	sort.Strings(keys)
 	for _, k := range keys {
 		v := l.snap.Values[k]
 		resolve := fill
@@ -70,19 +76,58 @@ func (l *loader) expandMacros() error {
 			}
 			return err
 		}
-		v.Data = expanded
+		// A value is stored as the word its alias stands for (Canonical),
+		// whether it was written out or arrived through a macro.
+		v.Data = configschema.Canonical(k, expanded)
 		v.MacroTrace = dedup(trace)
+		if err := l.lockedMacros(k, v.MacroTrace); err != nil {
+			return err
+		}
 		l.snap.Values[k] = v
 	}
 	return nil
 }
 
+// authorityLayer is the layer Read reads with authority: the global graph,
+// which alone declares locks and alone writes a locked key.
+const authorityLayer = "global"
+
+// lockedMacros refuses a locked key's value that takes a macro (trace, the
+// macros it takes, those they take included) whose winning definition comes
+// from a layer below the global graph, which would change the locked value
+// through the macro. %operator%, the operator's name, is no layer's.
+func (l *loader) lockedMacros(key string, trace []string) error {
+	if len(trace) == 0 {
+		return nil
+	}
+	lock, _ := winningLock(l.snap.Locks, key)
+	if lock == nil {
+		return nil
+	}
+	for _, name := range trace {
+		if name == operatorMacro {
+			continue
+		}
+		def := l.snap.Values["macros."+name]
+		if def.Source.Layer == authorityLayer {
+			continue
+		}
+		return newError("config_lock_violation", fmt.Sprintf("%s takes %%%s%%: write blocked by lock %q declared at %s", key, name, lock.Pattern, lock.Source.String()), "macros."+name, def.Source, nil)
+	}
+	return nil
+}
+
 // macroResolver resolves a macro by its name, each site macro expanded once
-// and held: one resolver fills %operator% with the operator's name, the other
+// and held with the macros it takes, so every key taking it has the same
+// trace: one resolver fills %operator% with the operator's name, the other
 // (kept) leaves it as written, so a macro's held value is the one its key
 // takes.
 func (l *loader) macroResolver(macros map[string]any, kept bool) func(string) (any, []string, error) {
-	resolved := map[string]any{}
+	type held struct {
+		value any
+		trace []string
+	}
+	resolved := map[string]held{}
 	active := map[string]bool{}
 	var resolve func(string) (any, []string, error)
 	resolve = func(name string) (any, []string, error) {
@@ -95,8 +140,8 @@ func (l *loader) macroResolver(macros map[string]any, kept bool) func(string) (a
 			}
 			return l.operator, []string{operatorMacro}, nil
 		}
-		if v, ok := resolved[name]; ok {
-			return clone(v), []string{name}, nil
+		if h, ok := resolved[name]; ok {
+			return clone(h.value), append([]string(nil), h.trace...), nil
 		}
 		raw, ok := macros[name]
 		if !ok {
@@ -111,8 +156,9 @@ func (l *loader) macroResolver(macros map[string]any, kept bool) func(string) (a
 		if err != nil {
 			return nil, nil, err
 		}
-		resolved[name] = clone(v)
-		return v, append([]string{name}, trace...), nil
+		trace = append([]string{name}, trace...)
+		resolved[name] = held{value: clone(v), trace: trace}
+		return v, append([]string(nil), trace...), nil
 	}
 	return resolve
 }

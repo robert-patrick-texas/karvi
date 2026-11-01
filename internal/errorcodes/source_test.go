@@ -236,7 +236,7 @@ var detailFuncs = map[string]string{
 	"internal/configload/lock.go:winningLock":                             "reported under config_lock_equal_specificity",
 	"internal/configload/validate.go:validateInheritance":                 "reported under config_policy_cycle",
 	"internal/configload/validate.go:validateRule":                        "returns its rule code alongside the message",
-	"configschema/registry.go:ValidateScalar":                             "reported under config_type_error",
+	"configschema/registry.go:ValidateKind":                               "reported under config_type_error",
 	"internal/configload/fromvalues.go:FromValues":                        "a plan's configuration block reported under execution_plan_invalid",
 	"internal/configload/fromvalues.go:kindNumber":                        "a plan's configuration block reported under execution_plan_invalid",
 	"internal/credentialbackend/cloginrc/backend.go:flatten":              ".cloginrc syntax reported under cloginrc_malformed",

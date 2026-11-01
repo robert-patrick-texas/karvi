@@ -66,7 +66,7 @@ func Read(opts Options) (Reading, error) {
 			return Reading{}, err
 		}
 		if global != "" {
-			if err := l.processRoot(global, "global", true); err != nil {
+			if err := l.processRoot(global, authorityLayer, true); err != nil {
 				return Reading{}, err
 			}
 		}

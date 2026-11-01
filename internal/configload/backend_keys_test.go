@@ -1,6 +1,7 @@
 package configload
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -62,5 +63,24 @@ func TestBackendKeysByType(t *testing.T) {
 	err := load(b("sqlite")...)
 	if got := errorcodes.Of(err); got != "config_credential_backend_type_unsupported" {
 		t.Errorf("sqlite: code %q (%v)", got, err)
+	}
+}
+
+// TestFormulaSourceIsNoFormula: a formula's password-source names a backend
+// of another type; one naming a formula is refused at load as
+// config_credential_formula_source_invalid, naming the formula it names,
+// and a formula whose source is a csv backend loads.
+func TestFormulaSourceIsNoFormula(t *testing.T) {
+	_, err := Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, Sets: []string{
+		`credential-backend.a.type="formula"`, `credential-backend.a.username-template="%operator%-adm"`, `credential-backend.a.password-source="b"`,
+		`credential-backend.b.type="formula"`, `credential-backend.b.username-template="%operator%-ro"`, `credential-backend.b.password-source="c"`,
+		`credential-backend.c.type="csv"`, `credential-backend.c.scope="user"`, `credential-backend.c.path="~/c.csv"`,
+	}})
+	var ce *Error
+	if !errors.As(err, &ce) || ce.Code != "config_credential_formula_source_invalid" || ce.Key != "credential-backend.a.password-source" || ce.Source.Path != "--set[3]" {
+		t.Fatalf("err=%v, want config_credential_formula_source_invalid for credential-backend.a.password-source at --set[3]", err)
+	}
+	if !strings.Contains(ce.Message, "backend b is a formula") {
+		t.Fatalf("message %q does not name the formula", ce.Message)
 	}
 }

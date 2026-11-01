@@ -139,7 +139,7 @@ Active failure causes.
 | `config_credential_backend_type_missing` | config | 2 | no | A `credential-backend` table has no `type`. |
 | `config_credential_backend_type_unsupported` | config | 2 | no | A `credential-backend` table names an unsupported `type`. |
 | `config_credential_backend_variable_invalid` | config | 2 | no | A credential backend names a variable that is not a portable variable name (letters, digits, and underscores, not beginning with a digit): Redis's `auth-username-env` or `auth-password-env`, Vault's `token-env`, or an `env` backend's template with each `%operator%` standing for a letter, refused when the configuration loads; or an `env` backend's template filled with the operator's name after the backend's transform, which stops the device at planning and names the remedy, a transform's `replace-chars`; the message quotes the value. |
-| `config_credential_formula_source_invalid` | config | 2 | no | A formula backend's `password-source` is empty or names the backend itself. |
+| `config_credential_formula_source_invalid` | config | 2 | no | A formula backend's `password-source` is empty, names the backend itself, or names another formula backend. |
 | `config_credential_formula_source_unknown` | config | 2 | no | A formula backend's `password-source` names a backend that does not exist. |
 | `config_credential_policy_backend_unknown` | config | 2 | no | A credential policy's `backend-sequence` names a backend that does not exist. |
 | `config_credential_policy_map_catch_all_missing` | config | 2 | no | The final `credential-policy-map` rule is not the catch-all `name = "*"` rule. |
@@ -190,7 +190,7 @@ Active failure causes.
 | `config_lock_equal_specificity` | config | 2 | no | Two lock patterns of equal specificity match the same key. |
 | `config_lock_type` | config | 2 | no | `config-lock` is not a table. |
 | `config_lock_value` | config | 2 | no | A lock declaration's value is not `true`. |
-| `config_lock_violation` | config | 3 | no | A lower-authority layer writes a locked key. |
+| `config_lock_violation` | config | 3 | no | A lower-authority layer writes a locked key, or defines a macro that a locked key's value takes. |
 | `config_lock_zero_coverage` | config | 2 | no | A lock pattern matches no configured or registered key. |
 | `config_macro_cycle` | config | 2 | no | Macros reference each other in a cycle. |
 | `config_macro_name_reserved` | config | 2 | no | The `[macros]` table defines `operator`, the built-in macro holding the operator's login name. |
@@ -212,6 +212,7 @@ Active failure causes.
 | `config_platform_resolution_unknown` | config | 2 | no | `platform-resolution.default` (when set) or `platform-resolution.unknown-fallback` is not a known platform (a built-in or a configured `[platform.NAME]` table); refused at `config validate` and at load, whatever `platform-resolution.on-unknown` says. |
 | `config_platform_session_cap_out_of_range` | config | 2 | no | `platform.<name>.session-cap` is outside 1..32. |
 | `config_platform_ssh_port_out_of_range` | config | 2 | no | `platform.<name>.ssh-port` is outside 1..65535. |
+| `config_platform_telnet_port_out_of_range` | config | 2 | no | `platform.<name>.telnet-port` is outside 1..65535. |
 | `config_policy_cycle` | config | 2 | no | Credential policy inheritance forms a cycle. |
 | `config_read_error` | config | 2 | no | A configuration file cannot be read. |
 | `config_schema_version` | config | 2 | no | `config.schema-version` is missing or is not the supported configuration schema. |
@@ -245,7 +246,7 @@ Active failure causes.
 | `config_transport_slot_name_invalid` | config | 2 | no | An `ssh.transports` slot name does not match `[a-z][a-z0-9_-]{0,63}`. |
 | `config_type_error` | config | 2 | no | A value has the wrong type for its key. |
 | `config_unknown_environment` | config | 2 | no | An unrecognized `KARVI__` environment variable is set while unknown variables are rejected. |
-| `config_unknown_key` | config | 2 | no | A configuration key is not in the configuration registry. |
+| `config_unknown_key` | config | 2 | no | A configuration key is not in the configuration registry, or a transform operation or one of its pairs holds a key it does not take. |
 | `config_unsupported_file_type` | config | 2 | no | A configuration root or include target is neither a regular file nor a directory. |
 | `config_value_out_of_range` | config | 2 | no | An integer, number, or duration key is outside the range its registry row states (`Min`, `Max`, `ZeroDisables`); the message names the key and the range. |
 | `config_watch_stale_after_too_short` | config | 2 | no | `watch.stale-after` is less than twice `watch.refresh`. |
@@ -611,7 +612,7 @@ Active failure causes.
 | `transcript_root_locked` | usage | 4 | no | `--record=PATH` is given while `transcript.root` is locked. |
 | `transform_chars_empty` | config | 2 | no | A `strip-chars` transform has no characters. |
 | `transform_operation_unknown` | config | 2 | no | A transform names an unknown operation. |
-| `transform_pair_rune_invalid` | config | 2 | no | A `replace-chars` pair's `from` or `to` is not exactly one character. |
+| `transform_pair_rune_invalid` | config | 2 | no | A `replace-chars` pair is not an inline table, or its `from` or `to` is not exactly one character. |
 | `transform_pairs_empty` | config | 2 | no | A `replace-chars` transform has no pairs. |
 | `transform_suffix_empty` | config | 2 | no | A suffix transform has an empty suffix. |
 | `transport_custom_slot_default` | config | 8 | no | A custom transport slot is mapped to `default`, which only the `system` slot accepts. |

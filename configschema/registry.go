@@ -403,12 +403,11 @@ func Canonical(path string, value any) any {
 	return value
 }
 
-func ValidateScalar(path string, v any) error {
-	e, ok := Lookup(path)
-	if !ok {
-		return nil
-	}
-	switch e.Kind {
+// ValidateKind is what is wrong with v as a value of kind k, nil when
+// nothing is or k is no kind: a key's check (ValidateScalar), and a dynamic
+// table's field, which the registry gives a kind and no path of its own.
+func ValidateKind(k Kind, v any) error {
+	switch k {
 	case String, Duration, Enum:
 		if _, ok := v.(string); !ok {
 			return errors.New("must be a string")
@@ -437,6 +436,20 @@ func ValidateScalar(path string, v any) error {
 				return errors.New("must be an array of strings")
 			}
 		}
+	}
+	return nil
+}
+
+// ValidateScalar is what is wrong with v as the value of the key at path:
+// its kind (ValidateKind), then an enumerated key's words; nil for a path
+// the registry does not hold.
+func ValidateScalar(path string, v any) error {
+	e, ok := Lookup(path)
+	if !ok {
+		return nil
+	}
+	if err := ValidateKind(e.Kind, v); err != nil {
+		return err
 	}
 	if vals := enumValues[path]; len(vals) > 0 {
 		value, _ := v.(string)

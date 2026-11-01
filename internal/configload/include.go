@@ -256,17 +256,20 @@ func (l *loader) processFile(path, layer string, authority bool, includeDepth, d
 	if err != nil {
 		return newError("config_toml_syntax", "invalid TOML", "", SourceRef{Layer: layer, Path: canonical}, err)
 	}
-	if pos, ok := doc.Positions["config.schema-version"]; ok {
-		if v, ok := lookupTree(doc.Root, []string{"config", "schema-version"}); !ok || asInt(v) != configschema.ConfigSchemaVersion {
-			return newError("config_schema_version", "unsupported configuration schema version", "config.schema-version", SourceRef{Layer: layer, Path: canonical, Line: pos.Line}, nil)
-		}
+	// The two keys are found in the parsed tree, so a key written in an
+	// inline table (config = { includes = false }) is judged as one written
+	// out; its line is the statement's.
+	if v, ok := lookupTree(doc.Root, []string{"config", "schema-version"}); ok && asInt(v) != configschema.ConfigSchemaVersion {
+		return newError("config_schema_version", "unsupported configuration schema version", "config.schema-version", SourceRef{Layer: layer, Path: canonical, Line: positionLine(doc.Positions, "config.schema-version")}, nil)
 	}
-	if pos, ok := doc.Positions["config.includes"]; ok {
+	_, setsIncludes := lookupTree(doc.Root, []string{"config", "includes"})
+	if setsIncludes {
+		line := positionLine(doc.Positions, "config.includes")
 		if !isGraphRoot {
-			return newError("config_includes_not_at_file_root", "config.includes is legal only in a file graph root", "config.includes", SourceRef{Layer: layer, Path: canonical, Line: pos.Line}, nil)
+			return newError("config_includes_not_at_file_root", "config.includes is legal only in a file graph root", "config.includes", SourceRef{Layer: layer, Path: canonical, Line: line}, nil)
 		}
-		if scanned.FirstDirective > 0 && pos.Line > scanned.FirstDirective {
-			return newError("config_includes_too_late", "config.includes appears after the first active include directive", "config.includes", SourceRef{Layer: layer, Path: canonical, Line: pos.Line}, nil)
+		if scanned.FirstDirective > 0 && line > scanned.FirstDirective {
+			return newError("config_includes_too_late", "config.includes appears after the first active include directive", "config.includes", SourceRef{Layer: layer, Path: canonical, Line: line}, nil)
 		}
 	}
 	l.inc.seen[canonical] = reached
@@ -277,10 +280,8 @@ func (l *loader) processFile(path, layer string, authority bool, includeDepth, d
 	}
 	l.addSource(canonical)
 	enabled := inheritedIncludes
-	if isGraphRoot {
-		if v, ok := doc.Positions["config.includes"]; ok && v.Line > 0 {
-			enabled = l.boolValue("config.includes")
-		}
+	if isGraphRoot && setsIncludes {
+		enabled = l.boolValue("config.includes")
 	}
 	if !enabled {
 		return nil

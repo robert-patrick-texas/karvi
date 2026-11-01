@@ -4,6 +4,7 @@ package transform
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -159,12 +160,17 @@ func (o AddSuffix) Apply(s string) (string, error) {
 	return s + o.Suffix, nil
 }
 
-// FromMaps builds a validated operation sequence from decoded TOML inline tables.
+// FromMaps builds a validated operation sequence from decoded TOML inline
+// tables. An operation's keys are op and its own parameters, and a
+// replace-chars pair's are from and to; any other key is refused
+// (config_unknown_key), so a misspelled parameter never reads as one left
+// out.
 func FromMaps(items []map[string]any) (Sequence, error) {
 	seq := make(Sequence, 0, len(items))
 	for i, item := range items {
 		name, _ := item["op"].(string)
 		var op Operation
+		var params []string // the operation's keys beside op
 		switch name {
 		case "lowercase":
 			op = Lowercase{}
@@ -173,25 +179,24 @@ func FromMaps(items []map[string]any) (Sequence, error) {
 		case "crop-to-dot":
 			op = CropToDot{}
 		case "strip-chars":
-			op = StripChars{Chars: stringValue(item["chars"])}
+			op, params = StripChars{Chars: stringValue(item["chars"])}, []string{"chars"}
 		case "replace-suffix":
-			op = ReplaceSuffix{Suffix: stringValue(item["suffix"]), Replacement: stringValue(item["replacement"])}
+			op, params = ReplaceSuffix{Suffix: stringValue(item["suffix"]), Replacement: stringValue(item["replacement"])}, []string{"suffix", "replacement"}
 		case "strip-suffix":
-			op = StripSuffix{Suffix: stringValue(item["suffix"])}
+			op, params = StripSuffix{Suffix: stringValue(item["suffix"])}, []string{"suffix"}
 		case "add-suffix":
-			op = AddSuffix{Suffix: stringValue(item["suffix"])}
+			op, params = AddSuffix{Suffix: stringValue(item["suffix"])}, []string{"suffix"}
 		case "replace-chars":
-			var pairs []RunePair
-			if raw, ok := item["pairs"].([]any); ok {
-				for _, v := range raw {
-					if m, ok := v.(map[string]any); ok {
-						pairs = append(pairs, RunePair{From: stringValue(m["from"]), To: stringValue(m["to"])})
-					}
-				}
+			pairs, err := runePairs(i+1, item["pairs"])
+			if err != nil {
+				return nil, err
 			}
-			op = ReplaceChars{Pairs: pairs}
+			op, params = ReplaceChars{Pairs: pairs}, []string{"pairs"}
 		default:
 			return nil, errorcodes.Errorf("transform_operation_unknown", "operation %d has unknown op %q", i+1, name)
+		}
+		if key := otherKey(item, append([]string{"op"}, params...)); key != "" {
+			return nil, errorcodes.Errorf("config_unknown_key", "operation %d: %s has no key %q", i+1, name, key)
 		}
 		if err := op.Validate(); err != nil {
 			return nil, fmt.Errorf("operation %d: %w", i+1, err)
@@ -201,3 +206,37 @@ func FromMaps(items []map[string]any) (Sequence, error) {
 	return seq, nil
 }
 func stringValue(v any) string { s, _ := v.(string); return s }
+
+// runePairs reads the pairs of operation op, a replace-chars, each an inline
+// table of from and to.
+func runePairs(op int, v any) ([]RunePair, error) {
+	raw, _ := v.([]any)
+	var pairs []RunePair
+	for j, item := range raw {
+		m, ok := item.(map[string]any)
+		if !ok {
+			return nil, errorcodes.Errorf("transform_pair_rune_invalid", "operation %d: pair %d is not an inline table of from and to", op, j+1)
+		}
+		if key := otherKey(m, []string{"from", "to"}); key != "" {
+			return nil, errorcodes.Errorf("config_unknown_key", "operation %d: pair %d has no key %q", op, j+1, key)
+		}
+		pairs = append(pairs, RunePair{From: stringValue(m["from"]), To: stringValue(m["to"])})
+	}
+	return pairs, nil
+}
+
+// otherKey is the first of m's keys, in sorted order, that allowed does not
+// list, or "" when there is none.
+func otherKey(m map[string]any, allowed []string) string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, k := range keys {
+		if !slices.Contains(allowed, k) {
+			return k
+		}
+	}
+	return ""
+}

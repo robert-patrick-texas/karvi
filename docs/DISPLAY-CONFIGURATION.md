@@ -101,8 +101,9 @@ header is rendered. The templates may also use `<timestamp>`, `<target>`,
 `<platform>`, and `<transport>`, and the footer `<exit-status>`, `<exit-code>`,
 and `<elapsed>`. They go to standard error, on the terminal and never into the
 transcript; an empty template prints no line; `--quiet` suppresses both; a
-template that does not render refuses the login before a transcript is created
-(`config_display_template_invalid`).
+template that does not render refuses the configuration
+(`config_display_template_invalid`), so no login starts and no transcript is
+created.
 
 ## Borders as separators
 

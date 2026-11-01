@@ -331,7 +331,8 @@ formula shapes the username from the operator's name, its `username-template`'s
 `%operator%` filled with the name after the formula's transform when it is asked
 ([`docs/OPERATIONS.md`, "Configuration
 macros"](OPERATIONS.md#configuration-macros)); the CSV supplies what varies by
-device.
+device. A source that is itself a formula is refused when the configuration
+loads (`config_credential_formula_source_invalid`, exit 2).
 
 ```toml
 [credential-backend.shaped]

@@ -41,7 +41,7 @@ func TestPlatformTableValidation(t *testing.T) {
 		{"ssh-port out of range", "[platform.c9300]\ndriver = \"cisco_ios\"\nssh-port = 70000\n", "config_platform_ssh_port_out_of_range", "platform.c9300.ssh-port", "1..65535"},
 		{"session-cap out of range", "[platform.c9300]\ndriver = \"cisco_ios\"\nsession-cap = 0\n", "config_platform_session_cap_out_of_range", "platform.c9300.session-cap", "1..32"},
 		{"channel neither word", "[platform.c9300]\ndriver = \"cisco_ios\"\nchannel = \"pty\"\n", "config_platform_channel_invalid", "platform.c9300.channel", "\"shell\" or \"exec\""},
-		{"channel not a string", "[platform.c9300]\ndriver = \"cisco_ios\"\nchannel = true\n", "config_platform_channel_invalid", "platform.c9300.channel", "\"shell\" or \"exec\""},
+		{"channel not a string", "[platform.c9300]\ndriver = \"cisco_ios\"\nchannel = true\n", "config_type_error", "platform.c9300.channel", "must be a string"},
 		{"fallback an unknown word", "[platform.linux]\nfallback = [\"agent\"]\n", "config_platform_fallback_invalid", "platform.linux.fallback", "\"agent\" is not"},
 		{"fallback a word twice", "[platform.linux]\nfallback = [\"keys\", \"keys\"]\n", "config_platform_fallback_invalid", "platform.linux.fallback", "listed twice"},
 		{"fallback not an array", "[platform.linux]\nfallback = \"keys\"\n", "config_type_error", "platform.linux.fallback", "array"},
@@ -96,6 +96,60 @@ func TestPlatformTableValidation(t *testing.T) {
 	_, err := load(t, "[platform.c9300]\nssh-port = 22\n")
 	if err == nil || !strings.Contains(err.Error(), "generic, cisco_ios, cisco_xr, cisco_nxos, juniper_junos, arista_eos, linux, linux_shell") {
 		t.Fatalf("%v", err)
+	}
+}
+
+// TestPlatformTableFieldsTakeTheRegistryKinds: every field a [platform.NAME]
+// table sets is refused at load when its value is not of the registry's kind
+// for the field (a quoted boolean, a level written as a number, a fraction
+// for a port), and telnet-port is 1..65535 as ssh-port is.
+func TestPlatformTableFieldsTakeTheRegistryKinds(t *testing.T) {
+	load := func(t *testing.T, body string) (Snapshot, error) {
+		t.Helper()
+		path := filepath.Join(t.TempDir(), "karvi.toml")
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return Load(Options{HomeDir: t.TempDir(), SkipAuto: true, Environment: []string{}, ExplicitRoots: []string{path}})
+	}
+	const alias = "[platform.c9300]\ndriver = \"cisco_ios\"\n"
+	for _, tc := range []struct {
+		name, body, code, key, text string
+	}{
+		{"telnet-port above the range", alias + "telnet-port = 70023\n", "config_platform_telnet_port_out_of_range", "platform.c9300.telnet-port", "must be 1..65535"},
+		{"telnet-port zero", alias + "telnet-port = 0\n", "config_platform_telnet_port_out_of_range", "platform.c9300.telnet-port", "must be 1..65535"},
+		{"telnet-port negative", alias + "telnet-port = -1\n", "config_platform_telnet_port_out_of_range", "platform.c9300.telnet-port", "must be 1..65535"},
+		{"telnet-port a string", alias + "telnet-port = \"2323\"\n", "config_type_error", "platform.c9300.telnet-port", "must be an integer"},
+		{"ssh-port a fraction", alias + "ssh-port = 2222.5\n", "config_type_error", "platform.c9300.ssh-port", "must be an integer"},
+		{"session-cap a string", alias + "session-cap = \"4\"\n", "config_type_error", "platform.c9300.session-cap", "must be an integer"},
+		{"requires-enable a quoted boolean", alias + "requires-enable = \"true\"\n", "config_type_error", "platform.c9300.requires-enable", "must be a boolean"},
+		{"privileged-level a number", alias + "privileged-level = 15\n", "config_type_error", "platform.c9300.privileged-level", "must be a string"},
+		{"default-transport a number", alias + "default-transport = 1\n", "config_type_error", "platform.c9300.default-transport", "must be a string"},
+		{"legacy-class a boolean", alias + "legacy-class = true\n", "config_type_error", "platform.c9300.legacy-class", "must be a string"},
+		{"driver a number", "[platform.c9300]\ndriver = 5\n", "config_type_error", "platform.c9300.driver", "must be a string"},
+		{"a built-in's driver a boolean", "[platform.cisco_ios]\ndriver = true\n", "config_type_error", "platform.cisco_ios.driver", "must be a string"},
+		{"masks an array of numbers", alias + "masks = [1]\n", "config_type_error", "platform.c9300.masks", "must be an array of strings"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := load(t, tc.body)
+			var ce *Error
+			if !errors.As(err, &ce) || ce.Code != tc.code || ce.Key != tc.key {
+				t.Fatalf("err=%v, want %s at %s", err, tc.code, tc.key)
+			}
+			if !strings.Contains(err.Error(), tc.text) {
+				t.Fatalf("message %q lacks %q", err.Error(), tc.text)
+			}
+			if ce.Source.Path == "" || ce.Source.Line == 0 {
+				t.Fatalf("no source line: %+v", ce)
+			}
+		})
+	}
+	snap, err := load(t, alias+"telnet-port = 65535\nssh-port = 1\nrequires-enable = true\nlegacy-class = \"none\"\ndefault-transport = \"telnet\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := snap.NamedTables("platform")["c9300"]["telnet-port"]; got != int64(65535) {
+		t.Fatalf("telnet-port %v", got)
 	}
 }
 
