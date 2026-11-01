@@ -11,8 +11,10 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/robert-patrick-texas/karvi/credentials"
 	"github.com/robert-patrick-texas/karvi/internal/credentialbackend/credfile"
@@ -110,52 +112,185 @@ func first(rs []record, directive, name string) *record {
 	return nil
 }
 
-// match reports whether the device name matches a record's pattern. A
-// pattern that cannot match was refused when the file was loaded
-// (canMatch), so Match reports no error here.
+// match reports whether the device name matches a record's pattern as
+// clogin matches it, with Tcl's string match -nocase: both folded to lower
+// case, then compared by tclMatch.
 func match(pattern, name string) bool {
-	ok, _ := filepath.Match(glob(pattern), strings.ToLower(name))
-	return ok
+	m := tclMatch{p: fold(pattern), s: fold(name)}
+	return m.from(0, 0)
 }
 
-// glob is a record's pattern as match compares it: lowercased, with a class
-// opened by "[!" negated as by "[^".
-func glob(pattern string) string            { return normalizeNegatedClass(strings.ToLower(pattern)) }
-func normalizeNegatedClass(s string) string { return strings.ReplaceAll(s, "[!", "[^") }
+// fold is a pattern or a name as match compares it: lower case, in runes.
+func fold(s string) []rune { return []rune(strings.ToLower(s)) }
 
-// canMatch reports whether filepath.Match can match the pattern against any
-// name. Match checks only the parts of a pattern it reaches, each run of
-// text between stars, so each run is checked on its own; a run with an
-// unterminated class, a bad range, or a trailing backslash is an error for
-// every name. The runs are cut as Match cuts them: at a star outside a
-// class and not escaped.
-func canMatch(pattern string) bool {
-	for pattern != "" {
-		pattern = strings.TrimLeft(pattern, "*")
-		i, inClass := 0, false
-	run:
-		for ; i < len(pattern); i++ {
-			switch pattern[i] {
-			case '\\':
-				if i+1 < len(pattern) {
-					i++
-				}
-			case '[':
-				inClass = true
-			case ']':
-				inClass = false
-			case '*':
-				if !inClass {
-					break run
-				}
-			}
+// tclMatch is Tcl 8.6's string match (Tcl_StringCaseMatch) over runes. "*"
+// matches any run of characters, "/" included; "?" matches one character;
+// "\x" matches x; anything else matches itself. "[" opens a class, which
+// matches one character and has no negation: see class.
+type tclMatch struct {
+	p, s []rune
+	// failed holds the pattern and name positions after a star that were
+	// tried and matched nothing, so that no position is tried twice.
+	failed map[[2]int]bool
+}
+
+// from reports whether the pattern from p[pi] matches the name from s[si].
+func (m *tclMatch) from(pi, si int) bool {
+	for {
+		if pi == len(m.p) {
+			return si == len(m.s)
 		}
-		if _, err := filepath.Match(pattern[:i], ""); err != nil {
+		if si == len(m.s) && m.p[pi] != '*' {
 			return false
 		}
-		pattern = pattern[i:]
+		switch m.p[pi] {
+		case '*':
+			for pi < len(m.p) && m.p[pi] == '*' {
+				pi++
+			}
+			if pi == len(m.p) {
+				return true
+			}
+			for ; si <= len(m.s); si++ {
+				at := [2]int{pi, si}
+				if m.failed[at] {
+					continue
+				}
+				if m.from(pi, si) {
+					return true
+				}
+				if m.failed == nil {
+					m.failed = map[[2]int]bool{}
+				}
+				m.failed[at] = true
+			}
+			return false
+		case '?':
+			pi++
+		case '[':
+			next, ok := class(m.p, pi+1, m.s[si])
+			if !ok {
+				return false
+			}
+			pi = next
+		case '\\':
+			if pi++; pi == len(m.p) || m.p[pi] != m.s[si] {
+				return false
+			}
+			pi++
+		default:
+			if m.p[pi] != m.s[si] {
+				return false
+			}
+			pi++
+		}
+		si++
 	}
-	return true
+}
+
+// class matches the character c against the class whose items start at
+// p[i], just past its "[", as Tcl reads one, and returns the position after
+// the class. The items are characters and ranges ("a-z", read either way
+// round), a backslash among the characters; the first item that holds c ends
+// the class at the next "]" from there, or at the end of the pattern. The
+// class does not match c once it reaches a "]" or the end of the pattern
+// where an item would start, or a range whose dash ends the pattern.
+func class(p []rune, i int, c rune) (int, bool) {
+	for {
+		if i == len(p) || p[i] == ']' {
+			return 0, false
+		}
+		lo, hi := p[i], p[i]
+		i++
+		if i < len(p) && p[i] == '-' {
+			if i++; i == len(p) {
+				return 0, false
+			}
+			hi = p[i]
+			i++
+		}
+		if min(lo, hi) <= c && c <= max(lo, hi) {
+			break
+		}
+	}
+	if end := slices.Index(p[i:], ']'); end >= 0 {
+		return i + end + 1, true
+	}
+	return len(p), true
+}
+
+// canMatch reports whether any name matches the pattern. Tried in tclsh8.6,
+// string match fails for every name once it reaches a backslash that ends
+// the pattern, or a class that lists nothing: "[]", or a "[" or "[a-" that
+// ends the pattern. Every other part of a pattern matches some character,
+// or none for "*". A class with a range ending in "]" can end at more than
+// one place, by which item matched, so canMatch follows every place a name
+// can reach.
+func canMatch(pattern string) bool {
+	p := fold(pattern)
+	reached := map[int]bool{}
+	for todo := []int{0}; len(todo) > 0; {
+		i := todo[len(todo)-1]
+		todo = todo[:len(todo)-1]
+		for i < len(p) && p[i] != '[' {
+			if p[i] == '\\' {
+				i++
+			}
+			i++
+		}
+		if i > len(p) {
+			continue // a backslash that ends the pattern
+		}
+		if i == len(p) {
+			return true
+		}
+		for _, c := range classChars(p, i+1) {
+			if next, ok := class(p, i+1, c); ok && !reached[next] {
+				reached[next] = true
+				todo = append(todo, next)
+			}
+		}
+	}
+	return false
+}
+
+// classChars are characters a name can hold that, between them, reach
+// every item of the class at p[i:] that can be the first to match: each
+// item's lowest character and the first character a name can hold above
+// each item. Without a range ending in "]", every item ends the class at
+// the same place, and the first item's character alone reaches it.
+func classChars(p []rune, i int) []rune {
+	var cs []rune
+	places := false
+	for i < len(p) && p[i] != ']' {
+		lo, hi := p[i], p[i]
+		if i+1 < len(p) && p[i+1] == '-' {
+			if i+2 == len(p) {
+				break
+			}
+			hi = p[i+2]
+			places = places || hi == ']'
+			i += 2
+		}
+		i++
+		cs = append(cs, min(lo, hi), nameChar(max(lo, hi)+1))
+	}
+	if !places && len(cs) > 0 {
+		return cs[:1]
+	}
+	slices.Sort(cs)
+	return slices.Compact(cs)
+}
+
+// nameChar is the first character from c up that a name folded to lower
+// case can hold, or -1.
+func nameChar(c rune) rune {
+	for ; c <= unicode.MaxRune; c++ {
+		if utf8.ValidRune(c) && unicode.ToLower(c) == c {
+			return c
+		}
+	}
+	return -1
 }
 
 // flatten reads one file and its includes in physical order. root marks
@@ -275,7 +410,7 @@ func (b *Backend) flatten(ctx context.Context, path string, root bool, active []
 			}
 			continue
 		}
-		if !canMatch(glob(pattern)) {
+		if !canMatch(pattern) {
 			return nil, fmt.Errorf("%s:%d: add %s pattern cannot match", canonical, line, d)
 		}
 		out = append(out, record{Directive: d, Pattern: pattern, Values: values, Path: canonical, Line: line})

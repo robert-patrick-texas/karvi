@@ -296,18 +296,20 @@ func secret(t *testing.T, r credentials.BackendResult) (password, enable string)
 	return password, enable
 }
 
-// TestPatternThatCannotMatchIsRefused: a pattern no name can match (an
-// unterminated class reached through an escaped bracket, a trailing
-// backslash, a bad class after a star) fails the load with
+// TestPatternThatCannotMatchIsRefused: a pattern no name can match under
+// Tcl's string match (a class that lists nothing: "[]", or a "[" or "[1-"
+// that ends the pattern; a trailing backslash) fails the load with
 // cloginrc_malformed, naming the file and the line and never a value,
 // rather than passing every device on to a later line.
 func TestPatternThatCannotMatchIsRefused(t *testing.T) {
 	d := t.TempDir()
 	for _, tc := range []struct{ name, line string }{
-		{"an escaped bracket that opens a class", `add password router\[12 {pw-a}`},
+		{"a class that ends the pattern", `add password router\[ {pw-a}`},
+		{"an empty class", `add password router\[\]1 {pw-a}`},
+		{"a class whose only range has no end", `add password router\[1- {pw-a}`},
 		{"a trailing backslash", `add password router\\ {pw-a}`},
-		{"a bad class after a star", `add password router*\[ {pw-a}`},
-		{"in add user", `add user router\[12 {svc.a}`},
+		{"a class that ends the pattern after a star", `add password router*\[ {pw-a}`},
+		{"in add user", `add user router\[ {svc.a}`},
 	} {
 		p := filepath.Join(d, "cloginrc")
 		write(t, p, "# lab\n"+tc.line+"\nadd user * {svc.default}\nadd password * {pw-default}\n", 0o600)
@@ -321,11 +323,192 @@ func TestPatternThatCannotMatchIsRefused(t *testing.T) {
 		}
 		t.Logf("%s: %s: %s", tc.name, r.ErrorCode, r.Message)
 	}
-	// An escaped class that is complete loads and matches.
-	p := filepath.Join(d, "class")
-	write(t, p, "add password router\\[12\\] {pw-a}\nadd password * {pw-default}\n", 0o600)
-	if pw, _ := secret(t, resolve(newBackend(t, d, p, credfile.ScopeUser, false), "router2")); pw != "pw-a" {
-		t.Errorf("a complete class: password %q, want pw-a", pw)
+	// A class left open runs to the end of the pattern and matches one of
+	// its characters; a complete class matches as well.
+	for _, tc := range []struct{ name, line, device, want string }{
+		{"an open class", `add password router\[12 {pw-a}`, "router1", "pw-a"},
+		{"an open class, a character it does not list", `add password router\[12 {pw-a}`, "router3", "pw-default"},
+		{"a complete class", `add password router\[12\] {pw-a}`, "router2", "pw-a"},
+	} {
+		p := filepath.Join(d, "class")
+		write(t, p, tc.line+"\nadd password * {pw-default}\n", 0o600)
+		if pw, _ := secret(t, resolve(newBackend(t, d, p, credfile.ScopeUser, false), tc.device)); pw != tc.want {
+			t.Errorf("%s: %s takes password %q, want %q", tc.name, tc.device, pw, tc.want)
+		}
+	}
+}
+
+// TestClassHasNoNegation: a class matches only the characters it lists, as
+// clogin's Tcl string match reads it: "[!x]" matches "!" and "x", "[^x]"
+// matches "^" and "x", and neither matches any other character. The lines
+// write the class in a bare word with escaped brackets, which the reader
+// takes as Tcl does.
+func TestClassHasNoNegation(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "cloginrc")
+	write(t, p, "add password r\\[!x\\]* {pw-bang}\nadd password s\\[^x\\]* {pw-caret}\nadd password * {pw-default}\n", 0o600)
+	b := newBackend(t, d, p, credfile.ScopeUser, false)
+	for _, tc := range []struct{ device, want string }{
+		{"r!1", "pw-bang"},
+		{"rx1", "pw-bang"},
+		{"ry1", "pw-default"},
+		{"s^1", "pw-caret"},
+		{"sx1", "pw-caret"},
+		{"sy1", "pw-default"},
+	} {
+		if pw, _ := secret(t, resolve(b, tc.device)); pw != tc.want {
+			t.Errorf("%s: password %q, want %q", tc.device, pw, tc.want)
+		}
+	}
+}
+
+// TestPatternMatchesAsTclStringMatch: a pattern matches a name exactly as
+// clogin's [string match -nocase pattern name] does. The answers are
+// tclsh8.6's (8.6.17), recorded here so that the test needs no Tcl.
+func TestPatternMatchesAsTclStringMatch(t *testing.T) {
+	for _, tc := range []struct {
+		pattern, name string
+		want          bool
+	}{
+		{`r[!x]*`, `r!1`, true},
+		{`r[!x]*`, `rx1`, true},
+		{`r[!x]*`, `ry1`, false},
+		{`r[^x]*`, `r^1`, true},
+		{`r[^x]*`, `rx1`, true},
+		{`r[^x]*`, `ry1`, false},
+		{`[!]`, `!`, true},
+		{`[^]`, `^`, true},
+		{`[!a-c]`, `b`, true},
+		{`[!a-c]`, `d`, false},
+		{`r[0-9]`, `r5`, true},
+		{`r[9-0]`, `r5`, true},
+		{`r[z-a]`, `rm`, true},
+		{`r[a-c]`, `rd`, false},
+		{`r[Z-a]`, `rq`, true},
+		{`r[Z-a]`, `r_`, false},
+		{`[a-]`, `_`, true},
+		{`[a-]`, `]`, true},
+		{`[a-]`, `-`, false},
+		{`[-a]`, `-`, true},
+		{`[a-c-e]`, `d`, false},
+		{`[a-c-e]`, `-`, true},
+		{`[a-c-e]`, `e`, true},
+		{`[]a]`, `a`, false},
+		{`[]a]`, `]`, false},
+		{`[]a]`, `]a]`, false},
+		{`[]`, `]`, false},
+		{`r[]x]`, `r]x]`, false},
+		{`a]`, `a]`, true},
+		{`router[12`, `router1`, true},
+		{`router[12`, `router2`, true},
+		{`router[12`, `router3`, false},
+		{`router[12`, `router12`, false},
+		{`r[a-`, `ra`, false},
+		{`r[a-`, `r-`, false},
+		{`r[`, `r[`, false},
+		{`r[`, `r`, false},
+		{`r[ab-`, `ra`, true},
+		{`r[ab-`, `rb`, false},
+		{`r[x*`, `r*`, true},
+		{`r[x*`, `rx`, true},
+		{`r[x*`, `rxy`, false},
+		{`r\[1\]`, `r[1]`, true},
+		{`r\[1\]`, `r1`, false},
+		{`r\*`, `r*`, true},
+		{`r\*`, `rx`, false},
+		{`r\x`, `rx`, true},
+		{`r\`, `r\`, false},
+		{`r\`, `r`, false},
+		{`r\\`, `r\`, true},
+		{`r[\]]`, `r\]`, true},
+		{`r[\]]`, `r]`, false},
+		{`r[\]`, `r\`, true},
+		{`r[\-a]`, `r_`, true},
+		{`r[\-a]`, `r-`, false},
+		{`r[a\`, `r\`, true},
+		{`r[a\`, `ra`, true},
+		{`*`, `a/b`, true},
+		{`r*1`, `r/x/1`, true},
+		{`r?1`, `r/1`, true},
+		{`core/*`, `core/a/b`, true},
+		{`?`, ``, false},
+		{`*`, ``, true},
+		{`ROUTER-*`, `router-1`, true},
+		{`router-*`, `ROUTER-1`, true},
+		{`R[A-C]1`, `rb1`, true},
+		{`r[a-c]1`, `RB1`, true},
+		{`r[!X]`, `rx`, true},
+		{`[ab-][]`, `[`, true},
+		{`[ab-][]`, `_`, true},
+		{`[ab-][]`, `a`, false},
+		{`[ab-]x]`, `ax]`, true},
+		{`[ab-]x]`, `_`, true},
+		{`[ab-]x]`, `ax`, false},
+		{`r*[]`, `r`, false},
+		{`*\`, `x\`, false},
+		{`a**b`, `ab`, true},
+		{`*a*b*`, `xxaxxbxx`, true},
+		{`[*]`, `*`, true},
+		{`[*]`, `x`, false},
+		{`[?]`, `?`, true},
+		{`[?]`, `a`, false},
+		{`ÉCOLE-[1-3]`, `école-2`, true},
+	} {
+		if got := match(tc.pattern, tc.name); got != tc.want {
+			t.Errorf("match(%q, %q) = %v, Tcl says %v", tc.pattern, tc.name, got, tc.want)
+		}
+	}
+}
+
+// TestPatternRefusedOnlyWhenTclMatchesNothing: canMatch is false exactly for
+// the patterns Tcl's string match -nocase accepts no name with, found by
+// trying in tclsh8.6 every name of up to three characters (alone and after
+// the pattern's leading plain characters); for the others, the name Tcl
+// accepted matches here too.
+func TestPatternRefusedOnlyWhenTclMatchesNothing(t *testing.T) {
+	for _, tc := range []struct {
+		pattern string
+		can     bool
+		witness string
+	}{
+		{`\`, false, ``},
+		{`[`, false, ``},
+		{`[]`, false, ``},
+		{`[]x]`, false, ``},
+		{`[a-`, false, ``},
+		{`[--`, false, ``},
+		{`*\`, false, ``},
+		{`*[`, false, ``},
+		{`*[]*`, false, ``},
+		{`[ab-]]\`, false, ``},
+		{`router\`, false, ``},
+		{`router[`, false, ``},
+		{`router[]`, false, ``},
+		{`router[]x]`, false, ``},
+		{`router[a-`, false, ``},
+		{`router*[`, false, ``},
+		{`r[]*`, false, ``},
+		{`router[12`, true, `router1`},
+		{`router[ab-`, true, `routera`},
+		{`r[a-]`, true, `ra`},
+		{`r[a--`, true, `ra`},
+		{`r[-`, true, `r-`},
+		{`r[a\`, true, `ra`},
+		{`r[\]`, true, `r\`},
+		{`r\[1\]`, true, `r[1]`},
+		{`r[!x]*`, true, `rx`},
+		{`r[^x]*`, true, `rx`},
+		{`[ab-][]`, true, `b`},
+		{`[ab-][\`, true, `b`},
+		{`*`, true, ``},
+		{`?`, true, `a`},
+	} {
+		if got := canMatch(tc.pattern); got != tc.can {
+			t.Errorf("canMatch(%q) = %v, Tcl says %v", tc.pattern, got, tc.can)
+		}
+		if tc.can && !match(tc.pattern, tc.witness) {
+			t.Errorf("match(%q, %q) = false, Tcl says true", tc.pattern, tc.witness)
+		}
 	}
 }
 

@@ -1247,6 +1247,18 @@ present but fails its symlink, type, owner, or mode check fails whatever
 the scope. A relative `include` resolves beside the file that includes it
 and inherits its scope; a shared file cannot include from a home directory.
 
+A `.cloginrc` line's pattern matches a device's name as clogin matches it,
+with Tcl's `string match -nocase`: `*` matches any run of characters, `/`
+included; `?` one character; `\x` the character `x`; and a class one of the
+characters or ranges it lists, a range read either way round (`[a-c]`,
+`[c-a]`). A class has no negation: `[!x]` matches `!` or `x`, `[^x]`
+matches `^` or `x`. A class is written in a bare word with its brackets
+escaped (`add password core-\[!x\]* {PASSWORD}`); inside braces an escaped
+bracket stays a literal bracket, and a bracket that is not escaped is
+refused (`cloginrc_tcl_substitution_forbidden`). A pattern no name can match
+fails the load with `cloginrc_malformed`: a backslash that ends it, or a
+class that lists nothing (`[]`, or a `[` or `[a-` that ends the pattern).
+
 The checks are the same for every credential file backend and carry one
 code each, the message naming the backend and the path and never a value:
 
