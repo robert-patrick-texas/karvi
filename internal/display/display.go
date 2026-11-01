@@ -68,15 +68,14 @@ var repeatRE = regexp.MustCompile(`<repeat:([^:>]*)\:([0-9]+)>`)
 
 // Formatter is immutable and safe for concurrent use.
 type Formatter struct {
-	pattern  string
-	layout   string
+	parts    []timestampPart
 	location *time.Location
 }
 
 // NewFormatter validates the human timestamp pattern and selects the requested
 // display timezone. "auto" uses the host's local timezone.
 func NewFormatter(pattern, zone string) (Formatter, error) {
-	layout, err := CompileTimestampPattern(pattern)
+	parts, err := compileTimestampPattern(pattern)
 	if err != nil {
 		return Formatter{}, err
 	}
@@ -84,7 +83,7 @@ func NewFormatter(pattern, zone string) (Formatter, error) {
 	if err != nil {
 		return Formatter{}, err
 	}
-	return Formatter{pattern: pattern, layout: layout, location: location}, nil
+	return Formatter{parts: parts, location: location}, nil
 }
 
 // Location resolves the effective timezone setting: "auto" or empty is the
@@ -101,13 +100,51 @@ func Location(zone string) (*time.Location, error) {
 	return location, nil
 }
 
-// Timestamp formats one human-facing timestamp. Stored timestamps must use the
+// Timestamp formats one human-facing timestamp, part by part: each field its
+// digits, each literal as it is written. Stored timestamps must use the
 // original time.Time value and are not affected by this method.
 func (f Formatter) Timestamp(value time.Time) string {
 	if value.IsZero() {
 		value = time.Now()
 	}
-	return value.In(f.location).Format(f.layout)
+	value = value.In(f.location)
+	var out []byte
+	for _, part := range f.parts {
+		switch part.field {
+		case fieldYear:
+			out = appendDigits(out, value.Year(), 4)
+		case fieldYear2:
+			out = appendDigits(out, value.Year()%100, 2)
+		case fieldMonth:
+			out = appendDigits(out, int(value.Month()), 2)
+		case fieldDay:
+			out = appendDigits(out, value.Day(), 2)
+		case fieldHour:
+			out = appendDigits(out, value.Hour(), 2)
+		case fieldMinute:
+			out = appendDigits(out, value.Minute(), 2)
+		case fieldSecond:
+			out = appendDigits(out, value.Second(), 2)
+		case fieldMillisecond:
+			out = appendDigits(out, value.Nanosecond()/int(time.Millisecond), 3)
+		case fieldNone:
+			out = append(out, part.text...)
+		}
+	}
+	return string(out)
+}
+
+// appendDigits appends v in decimal, zero-padded to width digits.
+func appendDigits(out []byte, v, width int) []byte {
+	if v < 0 {
+		out = append(out, '-')
+		v = -v
+	}
+	digits := strconv.Itoa(v)
+	for i := len(digits); i < width; i++ {
+		out = append(out, '0')
+	}
+	return append(out, digits...)
 }
 
 // RenderLine expands a validated one-line header or footer template.
@@ -671,62 +708,88 @@ func RenderBorderUnchecked(template string) (string, error) {
 	return out, nil
 }
 
-// CompileTimestampPattern translates the documented operator tokens to a Go
-// layout. Capital MM is the unambiguous month token. Lowercase mm is accepted
-// as a month when adjacent to date tokens and as minutes when adjacent to time
-// tokens, which intentionally supports the examples in the operator request.
-func CompileTimestampPattern(pattern string) (string, error) {
+// timestampField is the part of the time one display.timestamp token
+// writes; fieldNone marks literal text.
+type timestampField int
+
+const (
+	fieldNone timestampField = iota
+	fieldYear
+	fieldYear2
+	fieldMonth
+	fieldDay
+	fieldHour
+	fieldMinute
+	fieldSecond
+	fieldMillisecond
+)
+
+// timestampPart is one piece of a compiled display.timestamp: a field, or
+// literal text written as it is.
+type timestampPart struct {
+	text  string
+	field timestampField
+}
+
+// compileTimestampPattern reads the documented operator tokens into the
+// parts Timestamp writes. Capital MM is the unambiguous month token.
+// Lowercase mm is a month when the fields beside it are date tokens and
+// minutes when they are time tokens; a date token on one side and a time
+// token on the other, or neither beside it, is ambiguous.
+func compileTimestampPattern(pattern string) ([]timestampPart, error) {
 	pattern = strings.TrimSpace(pattern)
 	if pattern == "" {
-		return "", errorcodes.Errorf("display_timestamp_blank", "display.timestamp must not be blank")
+		return nil, errorcodes.Errorf("display_timestamp_blank", "display.timestamp must not be blank")
 	}
 	if len(pattern) > 256 {
-		return "", errorcodes.Errorf("display_timestamp_too_long", "display.timestamp exceeds 256 bytes")
+		return nil, errorcodes.Errorf("display_timestamp_too_long", "display.timestamp exceeds 256 bytes")
 	}
 	tokens, err := tokenizeTimestamp(pattern)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	hasField := false
-	var out strings.Builder
+	var parts []timestampPart
 	for i, token := range tokens {
 		if !token.field {
-			out.WriteString(token.text)
+			parts = append(parts, timestampPart{text: token.text})
 			continue
 		}
 		hasField = true
+		var field timestampField
 		switch token.text {
 		case "YYYY", "yyyy":
-			out.WriteString("2006")
+			field = fieldYear
 		case "YY", "yy":
-			out.WriteString("06")
+			field = fieldYear2
 		case "MM":
-			out.WriteString("01")
+			field = fieldMonth
 		case "DD", "dd":
-			out.WriteString("02")
+			field = fieldDay
 		case "HH", "hh":
-			out.WriteString("15")
+			field = fieldHour
 		case "ss":
-			out.WriteString("05")
+			field = fieldSecond
 		case "SSS", "sss":
-			out.WriteString("000")
+			field = fieldMillisecond
 		case "mm":
-			kind := classifyLowerMM(tokens, i)
-			if kind == "month" {
-				out.WriteString("01")
-			} else if kind == "minute" {
-				out.WriteString("04")
-			} else {
-				return "", errorcodes.Errorf("display_timestamp_mm_ambiguous", "ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes")
+			switch classifyLowerMM(tokens, i) {
+			case "month":
+				field = fieldMonth
+			case "minute":
+				field = fieldMinute
+			default:
+				return nil, errorcodes.Errorf("display_timestamp_mm_ambiguous", "ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes")
 			}
 		default:
-			return "", errorcodes.Errorf("display_timestamp_token_unsupported", "unsupported display timestamp token %q", token.text)
+			return nil, errorcodes.Errorf("display_timestamp_token_unsupported", "unsupported display timestamp token %q", token.text)
 		}
+		parts = append(parts, timestampPart{field: field})
 	}
 	if !hasField {
-		return "", errorcodes.Errorf("display_timestamp_token_missing", "display.timestamp must contain at least one timestamp token")
+		return nil, errorcodes.Errorf("display_timestamp_token_missing", "display.timestamp must contain at least one timestamp token")
 	}
-	return out.String(), nil
+	return parts, nil
 }
 
 type timestampToken struct {
@@ -774,6 +837,9 @@ func tokenizeTimestamp(pattern string) ([]timestampToken, error) {
 	return out, nil
 }
 
+// classifyLowerMM is "month" or "minute" for the lowercase mm at index by
+// the fields beside it, or "" when one is a date token and the other a time
+// token, or neither is either.
 func classifyLowerMM(tokens []timestampToken, index int) string {
 	prev := nearestField(tokens, index, -1)
 	next := nearestField(tokens, index, 1)
@@ -783,10 +849,14 @@ func classifyLowerMM(tokens []timestampToken, index int) string {
 	isDate := func(value string) bool {
 		return value == "YYYY" || value == "yyyy" || value == "YY" || value == "yy" || value == "DD" || value == "dd" || value == "MM"
 	}
-	if isTime(prev) || isTime(next) {
+	minute := isTime(prev) || isTime(next)
+	month := isDate(prev) || isDate(next)
+	switch {
+	case minute && month:
+		return ""
+	case minute:
 		return "minute"
-	}
-	if isDate(prev) || isDate(next) {
+	case month:
 		return "month"
 	}
 	return ""

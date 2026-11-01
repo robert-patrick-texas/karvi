@@ -146,6 +146,9 @@ func scanIncludes(data []byte) (scannedFile, error) {
 				i++
 			}
 		}
+		// A backslash ending a line in a multi-line basic string joins the
+		// line to the next; it escapes nothing there.
+		escaped = false
 	}
 	return scannedFile{Clean: []byte(out.String()), Directives: dirs, FirstDirective: first}, nil
 }

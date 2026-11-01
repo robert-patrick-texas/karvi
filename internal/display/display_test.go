@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/robert-patrick-texas/karvi/internal/errorcodes"
 )
 
 func TestTimestampExamples(t *testing.T) {
@@ -25,6 +27,56 @@ func TestTimestampExamples(t *testing.T) {
 			t.Fatalf("%q = %q, want %q", pattern, got, want)
 		}
 	}
+}
+
+func TestTimestampMMBetweenDateAndTimeIsAmbiguous(t *testing.T) {
+	for _, pattern := range []string{
+		"dd-mm hh:mm",
+		"yyyy-mm hh:mm",
+		"hh:mm:ss mm/dd/yyyy",
+		"yyyy-dd-mm hh:mm:ss",
+	} {
+		_, err := NewFormatter(pattern, "UTC")
+		if got := errorcodes.Of(err); got != "display_timestamp_mm_ambiguous" {
+			t.Errorf("%q: code %q, want display_timestamp_mm_ambiguous (%v)", pattern, got, err)
+		}
+	}
+}
+
+// timestampsAt formats value by each pattern in UTC and reports each that
+// differs from the text it maps to.
+func timestampsAt(t *testing.T, value time.Time, tests map[string]string) {
+	t.Helper()
+	for pattern, want := range tests {
+		formatter, err := NewFormatter(pattern, "UTC")
+		if err != nil {
+			t.Errorf("%q: %v", pattern, err)
+			continue
+		}
+		if got := formatter.Timestamp(value); got != want {
+			t.Errorf("%q = %q, want %q", pattern, got, want)
+		}
+	}
+}
+
+func TestTimestampLiteralTextIsWrittenAsItIs(t *testing.T) {
+	value := time.Date(2026, 10, 31, 14, 25, 9, 123456789, time.UTC)
+	timestampsAt(t, value, map[string]string{
+		"hh:mm:ss yyyy-MM-dd (UTC+1)":                      "14:25:09 2026-10-31 (UTC+1)",
+		`hh:mm:ss \1 Jan Mon MST PM pm _2 Z07 002 15 2006`: "14:25:09 1 Jan Mon MST PM pm _2 Z07 002 15 2006",
+		`yyyy-MM-dd \h\h hh`:                               "2026-10-31 hh 14",
+	})
+}
+
+func TestTimestampMillisecondsWithoutADot(t *testing.T) {
+	value := time.Date(2026, 10, 31, 14, 25, 9, 123456789, time.UTC)
+	timestampsAt(t, value, map[string]string{
+		"hh:mm:ss:sss": "14:25:09:123",
+		"hh:mm:ss sss": "14:25:09 123",
+		"SSS":          "123",
+		"hh:mm:ss.sss": "14:25:09.123",
+		"hh:mm:ss,SSS": "14:25:09,123",
+	})
 }
 
 func TestThemeRoleColors(t *testing.T) {

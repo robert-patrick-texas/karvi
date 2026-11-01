@@ -242,6 +242,9 @@ func cleanLine(line string, state lexState) (string, lexState, error) {
 	if state.mode == 'b' || state.mode == 'l' {
 		return "", state, fmt.Errorf("single-line string is not closed")
 	}
+	// A backslash ending a line in a multi-line basic string joins the line
+	// to the next; it escapes nothing there.
+	state.escaped = false
 	b.WriteByte('\n')
 	return strings.TrimSuffix(b.String(), "\n"), state, nil
 }
@@ -545,45 +548,52 @@ func (p *valueParser) basic() (any, error) {
 			b.WriteByte(c)
 			continue
 		}
-		if p.i >= len(p.s) {
-			return nil, p.err("unfinished escape")
+		text, n, err := tomlEscape(p.s[p.i:])
+		if err != nil {
+			return nil, p.err(err.Error())
 		}
-		e := p.s[p.i]
-		p.i++
-		switch e {
-		case 'b':
-			b.WriteByte('\b')
-		case 't':
-			b.WriteByte('\t')
-		case 'n':
-			b.WriteByte('\n')
-		case 'f':
-			b.WriteByte('\f')
-		case 'r':
-			b.WriteByte('\r')
-		case '"':
-			b.WriteByte('"')
-		case '\\':
-			b.WriteByte('\\')
-		case 'u', 'U':
-			digits := 4
-			if e == 'U' {
-				digits = 8
-			}
-			if p.i+digits > len(p.s) {
-				return nil, p.err("short unicode escape")
-			}
-			n, err := strconv.ParseUint(p.s[p.i:p.i+digits], 16, 32)
-			if err != nil {
-				return nil, p.err("invalid unicode escape")
-			}
-			b.WriteRune(rune(n))
-			p.i += digits
-		default:
-			return nil, p.err("unsupported escape")
-		}
+		b.WriteString(text)
+		p.i += n
 	}
 	return nil, p.err("unterminated string")
+}
+
+// tomlEscape decodes the escape s begins with, the text after a backslash,
+// by TOML's table: the text it stands for and the bytes of s it takes.
+func tomlEscape(s string) (string, int, error) {
+	if s == "" {
+		return "", 0, fmt.Errorf("unfinished escape")
+	}
+	switch s[0] {
+	case 'b':
+		return "\b", 1, nil
+	case 't':
+		return "\t", 1, nil
+	case 'n':
+		return "\n", 1, nil
+	case 'f':
+		return "\f", 1, nil
+	case 'r':
+		return "\r", 1, nil
+	case '"':
+		return "\"", 1, nil
+	case '\\':
+		return "\\", 1, nil
+	case 'u', 'U':
+		digits := 4
+		if s[0] == 'U' {
+			digits = 8
+		}
+		if len(s) < 1+digits {
+			return "", 0, fmt.Errorf("short unicode escape")
+		}
+		n, err := strconv.ParseUint(s[1:1+digits], 16, 32)
+		if err != nil || !utf8.ValidRune(rune(n)) {
+			return "", 0, fmt.Errorf("invalid unicode escape")
+		}
+		return string(rune(n)), 1 + digits, nil
+	}
+	return "", 0, fmt.Errorf("unsupported escape")
 }
 func (p *valueParser) literal() (any, error) {
 	p.i++
@@ -607,9 +617,37 @@ func (p *valueParser) multilineBasic() (any, error) {
 	if end < 0 {
 		return nil, p.err("unterminated multiline string")
 	}
-	raw := p.s[p.i:end]
+	var b strings.Builder
+	for p.i < end {
+		c := p.s[p.i]
+		if c != '\\' {
+			b.WriteByte(c)
+			p.i++
+			continue
+		}
+		// A backslash with only white space after it on its line is
+		// dropped, with the newline and the white space and newlines up to
+		// the next other character.
+		j := p.i + 1
+		for j < end && (p.s[j] == ' ' || p.s[j] == '\t') {
+			j++
+		}
+		if strings.HasPrefix(p.s[j:end], "\n") || strings.HasPrefix(p.s[j:end], "\r\n") {
+			for j < end && strings.IndexByte(" \t\r\n", p.s[j]) >= 0 {
+				j++
+			}
+			p.i = j
+			continue
+		}
+		text, n, err := tomlEscape(p.s[p.i+1 : end])
+		if err != nil {
+			return nil, p.err(err.Error())
+		}
+		b.WriteString(text)
+		p.i += 1 + n
+	}
 	p.i = end + 3
-	return decodeBasicBody(raw, p.line)
+	return b.String(), nil
 }
 func (p *valueParser) multilineLiteral() (any, error) {
 	p.i += 3
@@ -637,14 +675,6 @@ func findUnescapedTriple(s string, start int, triple string) int {
 		}
 	}
 	return -1
-}
-func decodeBasicBody(raw string, line int) (string, error) {
-	q := "\"" + strings.ReplaceAll(raw, "\n", "\\n") + "\""
-	v, err := strconv.Unquote(q)
-	if err != nil {
-		return "", &syntaxError{Line: line, Column: 1, Message: "invalid multiline string escape: " + err.Error()}
-	}
-	return v, nil
 }
 func (p *valueParser) array() (any, error) {
 	p.i++
@@ -773,11 +803,37 @@ func (p *valueParser) atom() (any, error) {
 			return v, nil
 		}
 	}
-	v, err := strconv.ParseInt(clean, 0, 64)
-	if err == nil {
+	if v, ok := integer(tok); ok {
 		return v, nil
 	}
 	return nil, p.err("unsupported bare value " + strconv.Quote(tok))
+}
+
+// integer reads tok as a TOML integer: decimal with an optional sign and no
+// leading zero, or hexadecimal, octal, or binary after 0x, 0o, or 0b with no
+// sign; an underscore stands only between two digits.
+func integer(tok string) (int64, bool) {
+	sign, digits, base := "", tok, 10
+	switch {
+	case strings.HasPrefix(tok, "0x"):
+		digits, base = tok[2:], 16
+	case strings.HasPrefix(tok, "0o"):
+		digits, base = tok[2:], 8
+	case strings.HasPrefix(tok, "0b"):
+		digits, base = tok[2:], 2
+	default:
+		if strings.HasPrefix(tok, "+") || strings.HasPrefix(tok, "-") {
+			sign, digits = tok[:1], tok[1:]
+		}
+		if len(digits) > 1 && digits[0] == '0' {
+			return 0, false
+		}
+	}
+	if digits == "" || strings.ContainsAny(digits, "+-") || digits[0] == '_' || digits[len(digits)-1] == '_' || strings.Contains(digits, "__") {
+		return 0, false
+	}
+	v, err := strconv.ParseInt(sign+strings.ReplaceAll(digits, "_", ""), base, 64)
+	return v, err == nil
 }
 func max(a, b int) int {
 	if a > b {

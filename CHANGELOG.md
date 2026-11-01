@@ -182,6 +182,28 @@
   which skipped the device `icmp_unreachable`; it is now
   `icmp_capability_unavailable`, the device's own failure kept for a probe
   that was sent.
+- **Breaking: the configuration's TOML reads strings and integers as TOML
+  does.** A multi-line basic string decoded its escapes as Go does: a
+  backslash ending a line became a literal `\n` rather than joining the lines,
+  and Go's own escapes (`\x41`, `\101`, `\a`, `\v`) were accepted, while a
+  lone `"` inside the string was refused; a backslash ending a line also hid
+  the next line's `include` directive from the include scan. Strings now take
+  TOML's escapes alone, a backslash ending a line drops the line break and the
+  white space after it, and a `\u` or `\U` that is not a Unicode character is
+  refused in every string. An integer was read as Go reads one, so `010` was
+  8, `0022` 18, and `1__2`, `_1`, `-0x10`, and `0X10` were accepted; an
+  integer is now decimal with no leading zero, or hexadecimal, octal, or
+  binary only after a lowercase `0x`, `0o`, or `0b`, an underscore only
+  between two digits. A file that used any of these is refused
+  `config_toml_syntax` (`--set` and the environment by their own codes).
+- **Breaking: `display.timestamp` writes what its pattern says.** A lowercase
+  `mm` with a date token on one side and a time token on the other was taken
+  as minutes, so `dd-mm hh:mm` showed the minutes where the month belonged; it
+  is now `display_timestamp_mm_ambiguous` (`MM` is the month, `hh:mm:ss` the
+  minutes). Literal text went through Go's time layout, so `(UTC+1)` printed
+  `(UTC+10)` and words such as `Jan` or `MST` printed as dates and zones, and
+  `sss` after anything but `.` printed `000`; each token now writes its own
+  digits and literal text is written as it stands.
 
 ## 0.38.0 - 2026-10-28
 
