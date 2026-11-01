@@ -163,14 +163,16 @@ func (o AddSuffix) Apply(s string) (string, error) {
 // FromMaps builds a validated operation sequence from decoded TOML inline
 // tables. An operation's keys are op and its own parameters, and a
 // replace-chars pair's are from and to; any other key is refused
-// (config_unknown_key), so a misspelled parameter never reads as one left
-// out.
+// (config_unknown_key), and a text parameter (chars, suffix, replacement,
+// from, to) that is not a string is refused (config_type_error), so neither
+// a misspelled parameter nor one of another kind reads as one left out.
 func FromMaps(items []map[string]any) (Sequence, error) {
 	seq := make(Sequence, 0, len(items))
 	for i, item := range items {
 		name, _ := item["op"].(string)
 		var op Operation
 		var params []string // the operation's keys beside op
+		text := &textParams{table: item, where: fmt.Sprintf("operation %d", i+1)}
 		switch name {
 		case "lowercase":
 			op = Lowercase{}
@@ -179,13 +181,13 @@ func FromMaps(items []map[string]any) (Sequence, error) {
 		case "crop-to-dot":
 			op = CropToDot{}
 		case "strip-chars":
-			op, params = StripChars{Chars: stringValue(item["chars"])}, []string{"chars"}
+			op, params = StripChars{Chars: text.get("chars")}, []string{"chars"}
 		case "replace-suffix":
-			op, params = ReplaceSuffix{Suffix: stringValue(item["suffix"]), Replacement: stringValue(item["replacement"])}, []string{"suffix", "replacement"}
+			op, params = ReplaceSuffix{Suffix: text.get("suffix"), Replacement: text.get("replacement")}, []string{"suffix", "replacement"}
 		case "strip-suffix":
-			op, params = StripSuffix{Suffix: stringValue(item["suffix"])}, []string{"suffix"}
+			op, params = StripSuffix{Suffix: text.get("suffix")}, []string{"suffix"}
 		case "add-suffix":
-			op, params = AddSuffix{Suffix: stringValue(item["suffix"])}, []string{"suffix"}
+			op, params = AddSuffix{Suffix: text.get("suffix")}, []string{"suffix"}
 		case "replace-chars":
 			pairs, err := runePairs(i+1, item["pairs"])
 			if err != nil {
@@ -198,6 +200,9 @@ func FromMaps(items []map[string]any) (Sequence, error) {
 		if key := otherKey(item, append([]string{"op"}, params...)); key != "" {
 			return nil, errorcodes.Errorf("config_unknown_key", "operation %d: %s has no key %q", i+1, name, key)
 		}
+		if text.err != nil {
+			return nil, text.err
+		}
 		if err := op.Validate(); err != nil {
 			return nil, fmt.Errorf("operation %d: %w", i+1, err)
 		}
@@ -205,7 +210,24 @@ func FromMaps(items []map[string]any) (Sequence, error) {
 	}
 	return seq, nil
 }
-func stringValue(v any) string { s, _ := v.(string); return s }
+
+// textParams reads one inline table's text parameters: a key left out reads
+// as "", and the first key present that is not a string is kept in err
+// (config_type_error).
+type textParams struct {
+	table map[string]any
+	where string // the table, as the message names it: operation 1, operation 1: pair 2
+	err   error
+}
+
+func (p *textParams) get(key string) string {
+	v, present := p.table[key]
+	s, isString := v.(string)
+	if present && !isString && p.err == nil {
+		p.err = errorcodes.Errorf("config_type_error", "%s: %s must be a string", p.where, key)
+	}
+	return s
+}
 
 // runePairs reads the pairs of operation op, a replace-chars, each an inline
 // table of from and to.
@@ -220,7 +242,11 @@ func runePairs(op int, v any) ([]RunePair, error) {
 		if key := otherKey(m, []string{"from", "to"}); key != "" {
 			return nil, errorcodes.Errorf("config_unknown_key", "operation %d: pair %d has no key %q", op, j+1, key)
 		}
-		pairs = append(pairs, RunePair{From: stringValue(m["from"]), To: stringValue(m["to"])})
+		text := &textParams{table: m, where: fmt.Sprintf("operation %d: pair %d", op, j+1)}
+		pairs = append(pairs, RunePair{From: text.get("from"), To: text.get("to")})
+		if text.err != nil {
+			return nil, text.err
+		}
 	}
 	return pairs, nil
 }

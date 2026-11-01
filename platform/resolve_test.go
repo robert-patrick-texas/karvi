@@ -16,7 +16,7 @@ func TestResolve(t *testing.T) {
 		"edge":      {"driver": "c9300"},
 		"lab":       {"driver": "custom", "requires-enable": true},
 		"cisco_ios": {"driver": "cisco_nxos", "telnet-port": int64(2323)},
-		"strict":    {"driver": "cisco_ios", "requires-enable": true, "paging-commands": []any{"terminal length 0"}, "legacy-class": "none", "privileged-level": "exec"},
+		"strict":    {"driver": "cisco_ios", "requires-enable": true, "paging-commands": []any{"terminal length 0"}, "privileged-level": "exec"},
 		"collector": {"driver": "cisco_ios", "crun-commands": []any{"show running-config", "show inventory"}},
 		"silent":    {"driver": "cisco_ios", "crun-commands": []any{}},
 		"Lab-Nxos":  {"driver": "cisco_nxos"},
@@ -51,7 +51,7 @@ func TestResolve(t *testing.T) {
 	}
 
 	got = Resolve("strict", tables)
-	if !got.RequiresEnable || !reflect.DeepEqual(got.PagingCommands, []string{"terminal length 0"}) || got.LegacyClass != "none" || got.PrivilegedLevel != "exec" {
+	if !got.RequiresEnable || !reflect.DeepEqual(got.PagingCommands, []string{"terminal length 0"}) || got.PrivilegedLevel != "exec" {
 		t.Fatalf("strict: %+v", got)
 	}
 

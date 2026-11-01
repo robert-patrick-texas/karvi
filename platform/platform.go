@@ -39,7 +39,6 @@ type Definition struct {
 	// declares them.
 	PrivilegedLevel string `json:"privileged_level"`
 	RequiresEnable  bool   `json:"requires_enable"`
-	LegacyClass     string `json:"legacy_class"`
 	SessionCap      int    `json:"session_cap"`
 	// Channel is what karvi asks of the SSH session channel: ChannelShell,
 	// the interactive shell of the device session, or ChannelExec, one exec
@@ -195,9 +194,6 @@ func (d *Definition) Validate() error {
 	}
 	if d.SessionCap < 1 || d.SessionCap > 32 {
 		return errorcodes.Errorf("config_platform_session_cap_out_of_range", "session cap must be 1..32")
-	}
-	if d.LegacyClass == "" {
-		d.LegacyClass = "none"
 	}
 	if d.Channel == "" {
 		d.Channel = ChannelShell

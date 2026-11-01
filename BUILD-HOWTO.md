@@ -280,7 +280,7 @@ using `login`, `command`, or `run`, by
 ## 8. Confirm the configuration and daemon/display boundary
 
 This release requires configuration schema 6, daemon IPC schema 12, execution
-plan 13, and configuration-registry schema 29 (`karvi version`). After an
+plan 15, and configuration-registry schema 33 (`karvi version`). After an
 upgrade an operator's own daemon needs nothing run: the next submission drains
 a daemon of another build, an idle one replaced in the same invocation, a busy
 one finishing its jobs and exiting while new ones are refused, the builds

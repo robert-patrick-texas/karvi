@@ -41,7 +41,7 @@ breaking changes of v0.10.0 from v0.9.2 remain in force:
    unless `--grace`, `--after=DURATION`, or `--force` is given.
 4. Every error carries one registered code, listed in
    [`docs/ERROR-CODES.md`](docs/ERROR-CODES.md).
-5. Configuration schema 6; this tree's other counters: registry schema 32,
+5. Configuration schema 6; this tree's other counters: registry schema 33,
    daemon IPC schema 12, execution plan 15, job manifest and summary 5, plan
    report 4, scoreboard 5.
 
@@ -282,7 +282,7 @@ a statement therefore appears on that line
 
 ## SSH transport configuration
 
-Configuration schema **6** and registry schema **32** use per-mode selectors and
+Configuration schema **6** and registry schema **33** use per-mode selectors and
 named executable slots ([`docs/SSH-TRANSPORTS.md`](docs/SSH-TRANSPORTS.md)):
 
 ```toml

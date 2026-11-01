@@ -52,6 +52,8 @@ func TestTransformsCheckedAtLoad(t *testing.T) {
 		{"a name transform's list that is not an array", "[name-transform.lab]\noperations = \"lowercase\"\n", "name_transform_operations_not_array", "name-transform.lab.operations"},
 		{"a name transform's operation with a misspelled key", "[name-transform.lab]\noperations = [{op = \"replace-suffix\", suffix = \".corp\", replacment = \".lab\"}]\n", "config_unknown_key", "name-transform.lab.operations"},
 		{"a replace-chars pair that is not a table", "[name-transform.lab]\noperations = [{op = \"replace-chars\", pairs = [{from = \"_\", to = \"-\"}, [\"a\", \"b\"]]}]\n", "transform_pair_rune_invalid", "name-transform.lab.operations"},
+		{"a name transform's replacement that is a number", "[name-transform.lab]\noperations = [{op = \"replace-suffix\", suffix = \".corp\", replacement = 5}]\n", "config_type_error", "name-transform.lab.operations"},
+		{"a credential transform's chars that are a number", backend + "[credential-transform.adm]\nusername = [{op = \"strip-chars\", chars = 5}]\n", "config_type_error", "credential-transform.adm.username"},
 		{"an inventory source's name-transform naming no table", source + "name-transform = \"nope\"\n", "name_transform_profile_unknown", "inventory-source.0.name-transform"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

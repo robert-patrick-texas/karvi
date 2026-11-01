@@ -13,7 +13,7 @@ const (
 	AuditSchema          = 2
 	JobSchema            = 5
 	DaemonIPCSchema      = 12
-	ConfigRegistrySchema = 32
+	ConfigRegistrySchema = 33
 )
 
 var (

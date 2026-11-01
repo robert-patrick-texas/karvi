@@ -67,3 +67,35 @@ func TestOperationKeysAreItsOwn(t *testing.T) {
 		t.Fatalf("every operation with its own keys: %d, %v", len(seq), err)
 	}
 }
+
+// TestOperationParameterOfAnotherKindIsRefused: an operation's string
+// parameter (chars, suffix, replacement, a pair's from and to) given as a
+// number, a boolean, or an array is refused as config_type_error, naming the
+// operation and the parameter, never read as one left out.
+func TestOperationParameterOfAnotherKindIsRefused(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		item map[string]any
+		text string
+	}{
+		{"a replacement that is a number", map[string]any{"op": "replace-suffix", "suffix": ".corp", "replacement": int64(5)}, "operation 1: replacement must be a string"},
+		{"a suffix that is a number", map[string]any{"op": "replace-suffix", "suffix": int64(5), "replacement": ".lab"}, "operation 1: suffix must be a string"},
+		{"chars that are a number", map[string]any{"op": "strip-chars", "chars": int64(5)}, "operation 1: chars must be a string"},
+		{"a strip-suffix boolean", map[string]any{"op": "strip-suffix", "suffix": true}, "operation 1: suffix must be a string"},
+		{"an add-suffix array", map[string]any{"op": "add-suffix", "suffix": []any{".example.net"}}, "operation 1: suffix must be a string"},
+		{"a pair's from that is a number", map[string]any{"op": "replace-chars", "pairs": []any{map[string]any{"from": int64(5), "to": "-"}}}, "operation 1: pair 1: from must be a string"},
+		{"a pair's to that is a number", map[string]any{"op": "replace-chars", "pairs": []any{map[string]any{"from": "_", "to": "-"}, map[string]any{"from": "_", "to": int64(5)}}}, "operation 1: pair 2: to must be a string"},
+	} {
+		_, err := FromMaps([]map[string]any{tc.item})
+		if errorcodes.Of(err) != "config_type_error" || !strings.Contains(err.Error(), tc.text) {
+			t.Errorf("%s: err=%v, want config_type_error with %q", tc.name, err, tc.text)
+		}
+	}
+	seq, err := FromMaps([]map[string]any{{"op": "replace-suffix", "suffix": ".corp"}})
+	if err != nil || len(seq) != 1 {
+		t.Fatalf("a replacement left out: %d, %v", len(seq), err)
+	}
+	if got, _, _ := seq.Apply("router1.corp"); got != "router1" {
+		t.Fatalf("a replacement left out: got %q, want router1", got)
+	}
+}

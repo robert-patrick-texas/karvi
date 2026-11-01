@@ -46,6 +46,7 @@ func TestPlatformTableValidation(t *testing.T) {
 		{"fallback a word twice", "[platform.linux]\nfallback = [\"keys\", \"keys\"]\n", "config_platform_fallback_invalid", "platform.linux.fallback", "listed twice"},
 		{"fallback not an array", "[platform.linux]\nfallback = \"keys\"\n", "config_type_error", "platform.linux.fallback", "array"},
 		{"control-master is removed", "[platform.c9300]\ndriver = \"cisco_ios\"\ncontrol-master = true\n", "config_unknown_key", "platform.c9300.control-master", "unknown configuration key"},
+		{"legacy-class is removed", "[platform.c9300]\ndriver = \"cisco_ios\"\nlegacy-class = \"none\"\n", "config_unknown_key", "platform.c9300.legacy-class", "unknown configuration key"},
 		{"paging-commands not an array", "[platform.c9300]\ndriver = \"cisco_ios\"\npaging-commands = \"terminal length 0\"\n", "config_type_error", "platform.c9300.paging-commands", "array"},
 		{"crun-commands not an array of strings", "[platform.c9300]\ndriver = \"cisco_ios\"\ncrun-commands = [\"show running-config\", 1]\n", "config_type_error", "platform.c9300.crun-commands", "array"},
 		{"a privileged level the base lacks", "[platform.c9300]\ndriver = \"cisco_ios\"\nprivileged-level = \"admin\"\n", "platform_privilege_level_unknown", "platform.c9300.privileged-level", "exec, privilege-exec, configuration, tclsh"},
@@ -125,7 +126,6 @@ func TestPlatformTableFieldsTakeTheRegistryKinds(t *testing.T) {
 		{"requires-enable a quoted boolean", alias + "requires-enable = \"true\"\n", "config_type_error", "platform.c9300.requires-enable", "must be a boolean"},
 		{"privileged-level a number", alias + "privileged-level = 15\n", "config_type_error", "platform.c9300.privileged-level", "must be a string"},
 		{"default-transport a number", alias + "default-transport = 1\n", "config_type_error", "platform.c9300.default-transport", "must be a string"},
-		{"legacy-class a boolean", alias + "legacy-class = true\n", "config_type_error", "platform.c9300.legacy-class", "must be a string"},
 		{"driver a number", "[platform.c9300]\ndriver = 5\n", "config_type_error", "platform.c9300.driver", "must be a string"},
 		{"a built-in's driver a boolean", "[platform.cisco_ios]\ndriver = true\n", "config_type_error", "platform.cisco_ios.driver", "must be a string"},
 		{"masks an array of numbers", alias + "masks = [1]\n", "config_type_error", "platform.c9300.masks", "must be an array of strings"},
@@ -144,7 +144,7 @@ func TestPlatformTableFieldsTakeTheRegistryKinds(t *testing.T) {
 			}
 		})
 	}
-	snap, err := load(t, alias+"telnet-port = 65535\nssh-port = 1\nrequires-enable = true\nlegacy-class = \"none\"\ndefault-transport = \"telnet\"\n")
+	snap, err := load(t, alias+"telnet-port = 65535\nssh-port = 1\nrequires-enable = true\ndefault-transport = \"telnet\"\n")
 	if err != nil {
 		t.Fatal(err)
 	}

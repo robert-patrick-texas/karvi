@@ -275,12 +275,17 @@
   a login used them; they are now checked at load with the other templates.
   A name or credential transform's operation ignored a key it does not take,
   so a misspelled `replacment` read as no replacement; it is now
-  `config_unknown_key`, and a `replace-chars` pair that is not an inline
-  table of `from` and `to` is `transform_pair_rune_invalid`. `config = {
+  `config_unknown_key`, a text parameter of another kind (`replacement = 5`,
+  a pair's `to = 5`) read as an empty one and is now `config_type_error`, and
+  a `replace-chars` pair that is not an inline table of `from` and `to` is
+  `transform_pair_rune_invalid`. `config = {
   includes = false }` written inline was not judged by the include rules (a
   root's directives were followed, an include's own `config.includes` and
   one after the first directive were not refused), nor was an inline
   `schema-version` checked; both are now judged as when written out.
+- **Breaking: a `[platform.NAME]` table takes no `legacy-class`; registry
+  33.** The field took any word and nothing read it; it is now
+  `config_unknown_key`.
 
 ## 0.38.0 - 2026-10-28
 

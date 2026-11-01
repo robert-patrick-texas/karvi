@@ -41,7 +41,7 @@ make build
 ./bin/karvi-linux-amd64 version --format json | grep -q '"command_record_schema_version": 4'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"daemon_ipc_schema_version": 12'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"job_schema_version": 5'
-./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 32'
+./bin/karvi-linux-amd64 version --format json | grep -q '"config_registry_schema_version": 33'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "system"'
 ./bin/karvi-linux-amd64 version --format json | grep -q '"id": "native"'
 ./bin/karvi-linux-amd64 --version | grep -q '^  native: compiled-in$'

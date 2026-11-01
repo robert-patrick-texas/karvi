@@ -1335,9 +1335,10 @@ transform = "adm"
   list that does not build in any transform table, credential or name, whether
   or not anything names the table: `transform_operation_unknown` for an
   operation karvi does not know, `config_unknown_key` for a key the operation
-  does not take (`replacment`), and `transform_pair_rune_invalid` for a pair
-  that is not `{from, to}` of one character each, naming the list and its
-  line.
+  does not take (`replacment`), `config_type_error` for a parameter that is
+  not a string (`replacement = 5`), and `transform_pair_rune_invalid` for a
+  pair that is not `{from, to}` of one character each, naming the list and
+  its line.
 - **The platform's fallback** (the `NET*` variables, the prompt, and the
   operator's keys) takes `default`'s `username` operations.
 

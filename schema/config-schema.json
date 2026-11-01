@@ -1,5 +1,5 @@
 {
-  "registry_schema_version": 32,
+  "registry_schema_version": 33,
   "config_schema_version": 6,
   "keys": [
     {
@@ -2639,7 +2639,6 @@
         "default-transport": "enum",
         "driver": "string",
         "fallback": "string_array",
-        "legacy-class": "enum",
         "masks": "string_array",
         "paging-commands": "string_array",
         "privileged-level": "string",

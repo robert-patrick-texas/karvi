@@ -152,9 +152,6 @@ func Resolve(name string, tables map[string]map[string]any) Definition {
 	if s, ok := table["channel"].(string); ok && s != "" {
 		def.Channel = s
 	}
-	if s, ok := table["legacy-class"].(string); ok {
-		def.LegacyClass = s
-	}
 	// A table's fallback replaces the built-in's whole; an empty array is no
 	// fallback.
 	if list, ok := stringList(table["fallback"]); ok {
