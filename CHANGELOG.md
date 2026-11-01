@@ -34,10 +34,10 @@
   OpenSSH refusal included, and under `insecure` the comparison beside the
   connection), and under `ssh.halt-run-on-host-key-mismatch` it halts the run
   as a changed key does (exit 114); a `@cert-authority` line, or one with
-  another marker, is passed by as OpenSSH passes it, so a device it names alone
-  is not enrolled. An
-  enrolled key is appended on a line of its own when the store's last line
-  lacks its newline ([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
+  another marker, is passed by as OpenSSH passes it, so a device it names
+  alone is not enrolled. An enrolled key is appended on a line of its own when
+  the store's last line lacks its newline
+  ([`docs/SSH-HOST-KEY-POLICY.md`](docs/SSH-HOST-KEY-POLICY.md)).
 - **Breaking: `karvi-prune --days` takes one to 999, and a tree it cannot read
   fails the run.** A retention age of 106,752 days or more overflowed and put
   the cutoff in the future, so every job went, running ones included; `--days`

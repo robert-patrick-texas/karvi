@@ -492,11 +492,19 @@ likely to be mailed or committed; a headerless file read in header mode has a
 device row as its "header", so quoting it could print a password. *Not taken:*
 a warning; an override key; scanning cells.
 
+**Two rows for one device are one only when they agree on every field.** Rows
+naming one device, in one source or several, become one only when every field
+the device keeps from a row agrees, the pins compared folded; a row naming its
+transport and one leaving it to the mode's default differ. Any difference is
+`inventory_conflict`, naming both lines. *Why:* the first row stood for both,
+so the device's session cap, risk tier, and attributes hung on the file's
+order.
+
 **The inventory `credkeyref` pin.** A device row may carry `credkeyref`, a
 literal key compared case-folded; it is outside the inventory digest (which
 covers identity and connection facts alone) and outside the plan, and the key a
 pinned device took appears in the grant's match evidence. Rows for one device
-coalesce when their pins agree and conflict when they differ. *Why:* the policy
+whose pins differ conflict, as any field that differs does. *Why:* the policy
 map selects a device's policy, and a second way to choose it would need its
 own precedence rule; coalescing conflicting pins would let file order pick the
 credential.
@@ -756,6 +764,16 @@ without one, reads no `NETENABLE`, and drops one a backend holds. *Why:* many
 organisations deliver privilege 15 at login or configure enable without a
 secret; a login's operator types `enable` at the device, so nothing of the
 login would send the secret.
+
+**The askpass broker answers the username and the password alone.** Over
+`system`, OpenSSH's questions reach karvi's askpass broker, which answers the
+login's username and password, judging a prompt by its own words with
+OpenSSH's `user@host` part cut, and refuses every other question, the host-key
+one included (`askpass_prompt_unrecognized`). The enable secret goes to the
+device in-band, the command session sending it at the escalate prompt, and a
+login resolves none (above). *Why:* OpenSSH's prompt carries the device's name
+and the username, so a device or user named with `enable` drew the enable
+secret where the password was asked.
 
 **Prompting once per invocation, and a prompt left unanswered ends the
 run.** The client's input provider caches by field: the first target
@@ -1349,6 +1367,21 @@ store compared before and after a job's session (every overlapping job reports
 one enrollment); the policy as a notice on every record (one line a thousand
 times); an enrolled key's fingerprint (the store holds it).
 
+**A revoked key is refused under every policy, and a marked line enrolls
+nothing.** A presented key the trust store marks `@revoked` for the device is
+`host_key_revoked` under `secure`, `accept-new`, and `insecure`, on both
+transports (over `system`, OpenSSH's own refusal, and under `insecure` the
+`ssh-keyscan` comparison beside the connection), and under
+`ssh.halt-run-on-host-key-mismatch` it halts the run as a changed key does. A
+`@cert-authority` line, or one with another marker, is passed by, so it enrolls
+nothing; under `insecure` over `system`, a device whose comparison cannot
+complete keeps `host_key_not_compared`. *Why:* a revoked line is the store's
+word that the key is not the device's, and read as a plain line it matched over
+`native`, while a certificate authority's key made the device's own a change;
+the native transport has no certificates, and OpenSSH reads such lines itself.
+*Not taken:* `host_key_changed` for a revoked key; a store holding a
+`@cert-authority` line refused.
+
 **A login learns of a first contact from the trust store.** A login runs
 OpenSSH at `LogLevel ERROR`, where it writes neither a device's banner nor its
 first-contact line. karvi reads the store before the session and, when it
@@ -1752,6 +1785,16 @@ client's, admission is still the one check); the bound judged by the running
 pid; a shorter name (the pid is the sweep's, and any name leaves a bound); an
 abstract socket (no 0600 file, the token its only guard); a warning when `auto`
 passes a candidate by (the next is as private).
+
+**The `auto` chains take only the operator's own folder.** A present candidate
+of `tempdir`'s or `spooldir`'s `auto` chain is taken only when the operator owns
+it with no group or other access, judged when the place is resolved and again
+once the folder is made; any other is passed by, `config show --explain` naming
+why on a `passed:` line. An explicit `tempdir` or `spooldir` is the site's
+choice, taken when it is a real folder the operator can write. *Why:* the
+scratch holds the system transport's ssh configuration and a spool holds a
+device's output, and `/tmp` is every user's, so another user who made
+`/tmp/karvi-<uid>` first could replace either.
 
 **The daemon's sockets are bounded in a directory of their own.**
 `daemon.sockets` is the daemon's socket directory (`auto`: `<basedir>/socket`),
@@ -2328,8 +2371,10 @@ what the operator wants to see. *Not taken:* a record type that carries the
 file; recording nothing at a cut.
 
 **The spool lives under `spooldir`, never the scratch directory, named for its
-owner process.** `auto` tries `/tmp/karvi-<uid>` then `/var/tmp/karvi-<uid>`;
-`tempdir`'s tmpfs choice is by design and a spool under it would put the
+owner process.** `auto` tries `/tmp/karvi-<uid>` then `/var/tmp/karvi-<uid>`,
+each only when it is the operator's own
+([section 7](#7-the-plan-the-daemon-and-the-credential-channel)); `tempdir`'s
+tmpfs choice is by design and a spool under it would put the
 response back into RAM. A spool is `<activity>.<device>.<index>.<pid>.spool`,
 and at daemon start and every admission a file of that shape whose owner
 process is dead is removed and logged; anything else in the directory is not
@@ -2405,6 +2450,17 @@ with no mode, and the past-tense names; `KARVI_ACTIVITY_ID` as the link;
 journald's `_UID` alone (a host's number); the digests beside the statements;
 each device's events masked by its own list ([`docs/EXAMPLES.md`, chapter
 63](EXAMPLES.md#63-the-audit-trails-names-and-fields-2026-10-17)).
+
+**A sink that is not required only warns, and an event of any size reaches
+journald.** A write that fails on a sink not required (`audit.journald-required`
+or `audit.file-required` false) is one warning per sink in the summary's
+`audit_sink_status.warnings`, and the job goes on; a required sink's failure is
+`audit_write_failed`. An event over the journal socket's datagram bound goes as
+journald's protocol passes a large entry, in a memfd sealed against change, its
+descriptor sent over the socket. *Why:* a sink the site does not require is one
+the job need not stop for; a job's `start` naming a few thousand statements
+passes the bound, and the audit records each statement. *Not taken:* a count
+and a digest in place of the statements (nothing would read the digest).
 
 **`karvi-audit` reads the trail through `journalctl`, and reads no
 configuration.** A fourth executable beside karvi, `karvi-prune`, and
@@ -3144,13 +3200,18 @@ as root each site user root, and `jobs`, `transcripts`, and the scoreboards in
 the shared places, never `crun`, making nothing;
 ownership decides (a run removes what the invoking user owns and passes the
 rest by; root removes everything eligible); a removal that fails is one line
-and the run goes on; the free-space floor is judged per filesystem. Empty day
+and the run goes on; a root that cannot be read is a `failed kind=tree` line and
+exit 1, and a folder below it that cannot be read a `skipped` line, the walk
+going on; `--days` is one to 999, counted in calendar days, and any other value
+a usage error (exit 2); the free-space floor is judged per filesystem. Empty day
 folders older than the age are removed by their name's date; an orphan folder
 whose summary is not final and a stale non-terminal scoreboard retire by age
 alone, never under pressure. The six final statuses are one list. *Why:* the helper
 had matched a day-folder layout no writer used, so nothing it walked was ever
 pruned; a colleague's folder in a shared tree would otherwise stop a daily run
-at the first failure; three shapes stood forever. *Not taken:* a `karvi prune`
+at the first failure; a tree left unread is work a timer's exit must report; an
+age past the arithmetic's range put the cutoff in the future and removed
+running jobs; three shapes stood forever. *Not taken:* a `karvi prune`
 word; pruning by group membership; touching `crun`.
 
 **The site's unit's writable paths carry the dash and name what the command
@@ -3260,6 +3321,15 @@ site's lock on any of the nine lock-eligible keys was passed by the option
 plan's validation. *Not taken:* the command line checking each range itself (a
 second copy of the registry's ranges, the locks still passed); clamping with a
 notice; `--dispatch` outside the rule.
+
+**A locked key takes its macros from the global configuration.** A locked
+key's value takes no macro whose winning definition comes from a layer below
+the global configuration (the user's file, `--config`, `--set`); such a value
+is `config_lock_violation`, naming the macro, where it was set, and the lock.
+`%operator%`, built in, is no layer's, so a locked key takes it. *Why:* the
+lock is checked on the key written, so a lower layer's macro changed a locked
+value without writing the key. *Not taken:* every macro a locked key takes
+locked itself (no layer could then set it for an unlocked key).
 
 **A value an option sets is sourced to that option.** The flag layer carries
 each value with the option that set it, so a message and `config show` name the

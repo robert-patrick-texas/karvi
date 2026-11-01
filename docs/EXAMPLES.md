@@ -18525,3 +18525,494 @@ the compatibility example and its two logs, the 1/3 and 2/3 patches, the
 artifacts with their bundle verifier log, `check-deb`, the container install,
 the release notes and their glob check, the push, the site, the GitHub
 release, and the published check).
+
+## 88. The code review of 2026-10-31 and its fixes (2026-11-01)
+
+Opened on the operator's request for a read-only review of the shipped program,
+two reviewers to a slice reading in opposite directions and every finding
+checked: `dev` at `4a70be2`, 0.38.0 and [chapter
+87](#87-the-release-0380-2026-10-28). The review found 59 defects; the operator
+decided the eight that needed a rule and approved a plan of fourteen sections;
+the fixes found fourteen more, three of which became a fifteenth section.
+Nineteen commits on `dev`, `39a7034` to `908be92`, carry the work, each
+section's message naming its findings ("review 2026-10-31, #N"); nothing is
+pushed. The findings and the plan are kept in the operator's private archive.
+
+**What it gains.** The defects are fixed before a site meets them, each beside
+a test that failed on the tree as it was: among the three high ones, a telnet
+banner line that made karvi type `enable` as the username and send the enable
+secret as the login password, another user's `/tmp/karvi-<uid>` taken for the
+operator's spool and scratch, and a `--days` that removed every job, running
+ones included. It waits on nothing. The cost: twelve of the CHANGELOG's 26
+`Unreleased` entries are Breaking, as a configuration, an inventory, a
+`.cloginrc`, a trust store, or a schedule that relied on a misreading is now
+refused.
+
+**The review.** The shipped Go code alone: 73 packages, 218 files that are not
+tests, about 59,700 lines (not `tools/`, the tests, the shell scripts, the
+packaging, or `vendor/`), in four slices on package boundaries, each read by
+one reviewer from the entry points down and one from the leaf packages up. 88
+raw findings became 59, 26 found by both reviewers of a slice and 33 by one,
+none rejected and two narrowed: three high, 19 medium, 37 low. A
+capture-recapture estimate from the slices' overlaps put the total near 70; the
+fixes found fourteen more, #60 to #73.
+
+**The sections**, in the plan's waves (the CHANGELOG's `Unreleased` block says
+what each changed):
+
+| Wave | Section | Findings | Commit |
+|---|---|---|---|
+| 1 | S1 telnet reads | #1 #14 | `57b4c18` |
+| 1 | S2 spool and scratch chains | #2 | `395f88a` |
+| 1 | S3 the output store | #5 #6 #30 | `7bc2009` |
+| 1 | S4 credentials and secrets | #3 #12 #18 #22 #50 #58 #59 | `dd82b03` |
+| 1 | S5 host keys | #4 #48 | `672f9e8` `8bd69ca` |
+| 1 | S6 prune | #10 #27 #34 #35 | `f8357f6` |
+| 2 | S7 login recordings | #31 #36 #37 | `835ad86` |
+| 2 | S8 terminal and renderer | #7 #8 #13 #19 #49 | `f1d702f` |
+| 2 | S9 audit and masks | #11 #28 | `a0fbacc` |
+| 2 | S10 daemon and jobs | #9 #16 #17 #20 #21 #32 #38-#40 #42 | `2ccc6c4` |
+| 2 | S11 transports | #33 #41 #45-#47 | `447c51d` |
+| 3 | S12 configuration loading | #15 #29 #53-#57 | `908be92` |
+| 3 | S13 tomlmini, timestamp | #23-#26 | `70ca70b` |
+| 3 | S14 inventory, .cloginrc | #43 #44 #51 #52 | `41bcc4c` |
+| 4 | S15 found while fixing | #60-#62 | `62d7d7a` |
+
+Outside them, `39a7034` makes a test ask a rooted name, since this host's
+domain answers every name, and `c4c0afd` and `a874dca` give karvi-prune's
+command tests and k03's dry runs no free-space floor, so that the host's disk,
+at 96% used, no longer decides what they keep.
+
+**How the fixes ran.** Per finding: the defect confirmed in the code, a test
+that fails on the tree as it is (its output kept), the fix, the test again; the
+four claims the review had not run (#8, #11, #45, #46) each reproduced first.
+Each section had its own worktree and agent; the orchestrator read each diff
+against its finding, merged in section order, and wrote the CHANGELOG. The full
+battery passed after each wave: at `57b4c18`; at `447c51d` once the build cache
+was cleaned, the host's full disk having failed its first run; and at
+`908be92`, `go test` over 73 packages and every suite in 239 seconds, the host
+clean after. No schema counter moved; `host_key_revoked` and
+`config_platform_telnet_port_out_of_range` are new, and
+`askpass_enable_password_unset` is retired.
+
+**The operator's decisions**, in simple terms, each stated in its section of
+[`docs/DESIGN.md`](DESIGN.md):
+
+- #3: the askpass broker answers the login's username and password, nothing
+  else; a command session sends the enable secret in-band, as before.
+- #4: a key the trust store marks `@revoked` is `host_key_revoked` under every
+  policy, on both transports, never a match and never enrolled; a
+  `@cert-authority` line is no enrolled key and is passed by. A revoked key
+  halts the run under `ssh.halt-run-on-host-key-mismatch`, as a changed key
+  does; under `insecure` over `system`, a device whose `ssh-keyscan`
+  comparison cannot complete keeps the `host_key_not_compared` notice.
+- #10: a tree karvi-prune cannot walk makes the exit 1; a folder below a root
+  that it cannot read is reported and passed by.
+- #11: a failed write to an audit sink that is not required is a warning, not
+  `audit_write_failed`; an event too large for a journald datagram goes in a
+  sealed memfd, as journald's protocol passes one.
+- #22: the `crun.after` hook keeps the operator's shell environment without
+  `NETUSER`, `NETPASS`, and `NETENABLE`.
+- #27: `karvi-prune --days` takes one to 999; above, a usage error, exit 2.
+- #29: a locked key whose value takes a macro defined by a layer without
+  authority over the lock is `config_lock_violation`.
+- #43: two rows naming one device become one only when they agree on every
+  field; any difference is `inventory_conflict`.
+- The plan as recommended: each section committed as it completes, no push;
+  #2's owner check on the `auto` chains' own candidates, an explicit `spooldir`
+  or `tempdir` the site's choice; the mask audit of all five lists; the
+  shell-script review later, on its own.
+- #60 to #62 fixed as S15, by the same method: below a tree's root, a link at a
+  day folder's or a job folder's name is refused, the root itself the site's
+  (in this chapter's lab, a link planted at `jobs/261101` is refused
+  `output_directory_not_writable`, exit 9, nothing made where it points);
+  karvi-prune reads a transcript's metadata from a regular file alone; a
+  `login.start` that cannot be written ends the scoreboard. #63 waits for a
+  design session, #64 and #65 for the shell-script review.
+
+**Settled under the existing rules**, each reported to the operator: a login
+resolves no enable secret, nothing reading it after #3; askpass refuses the
+host-key question and judges a prompt by its own words, OpenSSH's `user@host`
+cut; telnet takes the device session's prompt rule; the shared scoreboards are
+judged as the shared trees (#10); script(1) is given the transcript by its
+descriptor, never by a name; the daemon's stop moves read deadlines to now
+rather than closing a follower's connection; the system transport judges a
+failure by OpenSSH's own last line. While the last sections merged: a lowercase
+`mm` with a date token on one side and a time token on the other is
+`display_timestamp_mm_ambiguous`, the review's rule, so `hh:mm` written before a
+date is refused, `hh:mm:ss` or `yyyy-MM-dd hh:mm` being the ways to write it; a
+`\u` or `\U` escape that is no Unicode character is refused in every TOML
+string, as TOML says; a row naming its transport and one leaving it to the
+mode's default differ, while credential key pins still compare case-folded, as
+documented; a platform field's kind is checked by the function that checks a
+scalar key's (`configschema.ValidateKind`); transcript metadata is read up to
+1 MiB.
+
+**The lab.** The examples ran on a lab build of `908be92` (`karvi`,
+`karvi-prune`, `karvi-askpass`) in a folder under `/var/tmp`, mode 0700, that
+each script made and removed: every place karvi writes under it (`basedir`,
+`sharedroot = "none"`, `spooldir`, `scoreboards`, `tempdir`, the trust store in
+a 0700 folder, the capacity root, `output.root`, `transcript.root`,
+`audit.file`), `display.color = "never"`, and the credential the environment's
+(`NETUSER=jsmith`). The lab's `--config`, and `run`'s `--no-daemon`, are left
+out of the `$` labels, and the lab's path is written `LAB`. The `$`, `exit=`,
+and `==` lines are the scripts'; the rest is karvi's, its standard output then
+its standard error, unless the paragraph says otherwise. None of
+`/tmp/karvi-1000`, `/var/tmp/karvi-1000`, `/dev/shm/karvi`, and the home's
+`.local/share/karvi` existed after any script; the jobs' audit events went to
+the host's journal, as a job's do.
+
+**A revoked host key, executed.** The lab's inventory names this host's
+OpenSSH, 127.0.0.1 port 22, `router1`; the lab's store holds the three keys
+`ssh-keyscan 127.0.0.1` returned, each on a `@revoked router1` line, and
+nothing else, so no policy reaches authentication. Every policy on both
+transports ended `host_key_revoked`. Shown are `secure` on each and the halt;
+the others printed what their transport's `secure` run printed, but for
+`insecure` over `system`, where karvi's own `ssh-keyscan` comparison refuses
+before OpenSSH starts. This host's key fingerprints are written `<redacted>`:
+
+```text
+$ karvi run --transport native --ssh-host-key-policy secure --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=host_key_revoked: ssh: handshake failed: host=router1: known_hosts=LAB/kh/known_hosts: presented=ssh-ed25519 SHA256:<redacted>
+! exit=101 elapsed=89ms artifacts=LAB/jobs/261101/261101-044147-00
+$ karvi run --transport system --ssh-host-key-policy secure --target router1 'show clock'
+exit=101
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=system
+karvi: target=router1 status=connection_error error=host_key_revoked: @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@       WARNING: REVOKED HOST KEY DETECTED!               @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+The ED25519 host key for router1 is marked as revoked.
+This could mean that a stolen key is being used to
+impersonate this host.
+ED25519 host key for router1 was revoked and you have requested strict checking.
+Host key verification failed.
+! exit=101 elapsed=150ms artifacts=LAB/jobs/261101/261101-044148-00
+$ karvi --set ssh.halt-run-on-host-key-mismatch=true run --transport native --target router1 'show clock'
+exit=114
+! router1 [127.0.0.1] platform=cisco_ios user=jsmith backend=builtin-env-fallback transport=native
+karvi: target=router1 status=connection_error error=host_key_revoked: ssh: handshake failed: host=router1: known_hosts=LAB/kh/known_hosts: presented=ssh-ed25519 SHA256:<redacted>
+! exit=114 elapsed=83ms artifacts=LAB/jobs/261101/261101-044148-03
+```
+
+A failed device makes the job's exit 101, and the halt 114, as for a changed
+key; before `672f9e8` the native transport took a revoked key for a match. Not
+taken: `host_key_changed` for a revoked key, a reviewer's first fix (the
+operator named a code of its own); a store holding a `@cert-authority` line
+refused (OpenSSH reads such lines itself, and the native transport has no
+certificates); a revoked key failing its device alone while the run goes on, as
+between `672f9e8` and `8bd69ca` ([`docs/SSH-HOST-KEY-POLICY.md`, "Marked
+lines"](SSH-HOST-KEY-POLICY.md#marked-lines)).
+
+**karvi-prune's range, and a tree it cannot read.** On the lab's private root,
+by option, since karvi-prune reads no configuration: `--basedir`,
+`--sharedroot none`, `--scoreboards`, and `--minfree 0` are left out of the
+labels; the `chmod` lines are the script's steps, and the usage text after the
+refusal's first line is cut:
+
+```text
+$ karvi-prune --days 1000 --dry-run
+exit=2
+karvi-prune: --days takes one to 999, not 1000
+$ chmod 000 jobs/261020
+$ karvi-prune --days 999 --dry-run
+exit=0
+skipped kind=activity path=LAB/base/jobs/261020 error=open LAB/base/jobs/261020: permission denied
+examined=0 removed=0 skipped=1 not_owned=0 failed=0 bytes=0 dry_run=true
+$ chmod 000 jobs
+$ karvi-prune --days 999 --dry-run
+exit=1
+failed kind=tree path=LAB/base/jobs error=open LAB/base/jobs: permission denied
+examined=0 removed=0 skipped=0 not_owned=0 failed=1 bytes=0 dry_run=true
+```
+
+999,999 days had put the cutoff in 2211; it is now counted in calendar days
+(`time.AddDate`). Not taken: a bound at the arithmetic's limit or at 36,500
+days, or `AddDate` with no bound, the review's suggestions; exit 0 for a tree
+that cannot be read, the documents changed to say so, its alternative for #10
+([`docs/PRUNE.md`, "The exits"](PRUNE.md#the-exits)).
+
+**Two rows for one device.** `run --dry-run` plans on the client and contacts
+no device. Two identical rows still become one, with a warning naming both
+lines (`ex-inventory.log`); rows that differ are refused:
+
+```text
+$ cat inv.csv
+name,management_address,platform,transport,port,risk_tier
+router1,192.0.2.11,cisco_ios,native,,low
+router1,192.0.2.11,cisco_ios,,,low
+$ karvi run --dry-run --target router1 'show clock'
+exit=5
+inventory_conflict: client planning: inventory conflict for id name:router1 between LAB/inv.csv:2 and LAB/inv.csv:3
+$ cat inv.csv
+name,management_address,platform,transport,port,risk_tier
+router1,192.0.2.11,cisco_ios,native,,low
+router1,192.0.2.11,cisco_ios,native,,high
+$ karvi run --dry-run --target router1 'show clock'
+exit=5
+inventory_conflict: client planning: inventory conflict for id name:router1 between LAB/inv.csv:2 and LAB/inv.csv:3
+```
+
+The rows were one when they agreed on the address, platform, transport, port,
+site, groups, and key, the first row's session cap, name transform, risk tier,
+deployment ring, topology domain, and attributes standing for both. Not taken:
+the documented rule narrowed to the fields compared, the reviewer's alternative.
+
+**A locked key's macro.** A lock is declared only in the global layer
+(`/etc/karvi/config.toml`, else `/opt/karvi/config.toml`), which no option or
+environment variable moves, so a lab cannot declare one. The regression test
+passes in the worktree (`go test -count=1 -run
+TestLockedValueTakesNoMacroFromBelowTheLock -v ./internal/configload/`), and a
+scratch test through `go test -overlay`, the tree untouched, points the
+package's `globalRoots` at a lab file as that test does: the global file locks
+`ssh.host-key-policy`, set to `"%policy%"` with `policy = "secure"`, and
+`user.toml` sets `policy = "insecure"`. The block is the scratch test's output;
+its `--` lines name each load's options as the command line gives them and,
+with the `loaded:` line, are the test's, and each `config_lock_violation` line
+is the load's error, the text karvi reports:
+
+```text
+-- the global file alone
+loaded: ssh.host-key-policy = "secure"
+-- --set 'macros.policy="insecure"'
+config_lock_violation: ssh.host-key-policy takes %policy%: write blocked by lock "ssh.host-key-policy" declared at LAB/global.toml:2 for macros.policy at --set[1]
+-- --config LAB/user.toml
+config_lock_violation: ssh.host-key-policy takes %policy%: write blocked by lock "ssh.host-key-policy" declared at LAB/global.toml:2 for macros.policy at LAB/user.toml:2
+-- --set 'ssh.host-key-policy="insecure"'
+config_lock_violation: write blocked by lock "ssh.host-key-policy" declared at LAB/global.toml:2 for ssh.host-key-policy at --set[1]
+```
+
+`%operator%`, built in, is no layer's, and a locked key takes it. Not taken:
+every macro a locked key takes locked where the lock is declared, the
+reviewer's other fix, under which no layer could set that macro for an unlocked
+key.
+
+**TOML as TOML reads it, and the timestamp's `mm`.** `config validate FILE`
+loads the lab's configuration and `FILE`, with no discovered layer:
+
+```text
+$ cat octal.toml
+[config]
+include-depth = 010
+$ karvi config validate octal.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/octal.toml: TOML line 2 column 1: unsupported bare value "010"
+$ cat surrogate.toml
+[display.run]
+header = "! \uD800 <target>"
+$ karvi config validate surrogate.toml
+exit=2
+config_toml_syntax: invalid TOML at LAB/surrogate.toml: TOML line 2 column 1: invalid unicode escape
+$ karvi --set 'display.timestamp="dd-mm hh:mm"' config validate
+exit=2
+display_timestamp_mm_ambiguous: ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes for display.timestamp at --set[1]
+$ karvi --set 'display.timestamp="hh:mm dd-MM"' config validate
+exit=2
+display_timestamp_mm_ambiguous: ambiguous mm in display.timestamp; use MM for month or place mm between hh and ss for minutes for display.timestamp at --set[1]
+$ karvi --set 'display.timestamp="yyyy-MM-dd hh:mm"' config validate
+exit=0
+valid: true
+```
+
+`010` was 8; an integer is decimal with no leading zero, or `0x`, `0o`, or `0b`
+written out. `\uD800`, half a surrogate pair, is no Unicode character. `dd-mm
+hh:mm` had shown the minutes where the month belonged. Not taken: `mm` decided
+by the separator beside it, the reviewer's alternative.
+
+**The mask lists, amended.** S9's audit drew up 179 secret-bearing lines across
+the five built-in lists and found 39 left in clear or masked at the wrong word;
+each is masked, the corpus tests showing no new over-masking, some forms written
+from a command's documented syntax rather than read from a device.
+[Chapter 63](#63-the-audit-trails-names-and-fields-2026-10-17), issue 8, gives
+the earlier lists and their reasons. Below are the lists as they stand, for a
+site's `[platform.NAME]` tables, where `masks` replaces the built-in list whole
+([`docs/COLLECTION.md` section 6.1](COLLECTION.md#61-the-secrets-the-mask)).
+They come from the code: a scratch test through `go test -overlay` reads each
+list and its comments from `platform/masks.go` with `go/parser`, checks that it
+equals, pattern for pattern, the `Masks` of the built-in carrying it, and writes
+each pattern as a TOML literal string, which holds its bytes as they are; the
+lab build then loaded the file beside the lab's configuration, and `config show
+--format json` read back each table's masks. The `go test` line is go test's;
+the `#` comment, the `==` lines, and the `read back equal` lines (a `jq`
+comparison with the built-in lists) are the script's:
+
+```text
+== tree 908be92, go version go1.27.3 linux/amd64
+$ go test -count=1 -overlay overlay/masks-overlay.json -run TestChapter88MasksAsTOML -v ./platform/
+ok  	github.com/robert-patrick-texas/karvi/platform	0.006s
+== masks.toml: 139 lines, 76 patterns, sha256 cf794487c6cc6800
+$ karvi config validate masks.toml
+exit=0
+valid: true
+$ karvi --config masks.toml config show --format json  # each table's masks against the built-in lists
+exit=0
+arista_eos: read back equal, 15 patterns
+cisco_ios: read back equal, 21 patterns
+cisco_nxos: read back equal, 14 patterns
+cisco_xr: read back equal, 16 patterns
+juniper_junos: read back equal, 10 patterns
+```
+
+```toml
+[platform.cisco_ios]
+masks = [
+  # SNMP: community, a host's v1/v2c community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(\S+)',
+  # password or secret anywhere: username, enable (with level), line, BGP
+  # neighbor, PPP, IS-IS, dot1x, MSDP (its peer kept whole); abbreviations
+  # pass… and sec…; encryption holds no secret
+  '(?i)\b(?:msdp\s+(?:vrf\s+\S+\s+)?password\s+peer\s+\S+\s+(?:\d\s+)?(\S+)|(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:encryption\s|(?:level\s+\d+\s+)?(?:\d\s+)?(\S+)))',
+  '(?i)\bpassword-encrypt\s+(\S+)',
+  # keys: tacacs/radius server's bare key, legacy -server key and a server
+  # group's server-private, server-key and pac key, ISAKMP, a keyring's
+  # pre-shared-key by address or hostname, IKEv2 pre-shared and pre-share
+  # (MKA's key-chain holds no secret), OSPF and NTP, key chains and HSRP
+  # key-string
+  '(?i)^\s*(?:no\s+)?key\s+(?:\d\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:(?:tacacs|radius)-server|server-private)\s.*?\bkey\s+(?:\d\s+)?(\S+)',
+  '(?i)\b(?:server-key|pac\s+key)\s+(?:\d\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?crypto\s+isakmp\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:key-chain\s|(?:address|hostname)\s.*?\skey\s+(?:\d\s+)?(\S+)|(?:(?:local|remote)\s+)?(?:\d\s+)?(\S+))',
+  '(?i)\bpre-share\s+key\s+(?:\d\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|cmac\S*|hmac\S*)\s+)?(?:\d\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:\d\s+)?(\S+)',
+  # OSPFv3's IPsec authentication and encryption keys, named EIGRP's
+  # HMAC-SHA-256 password
+  '(?i)\b(?:authentication\s+(?:mode\s+hmac-sha-256|ipsec\s+spi\s+\d+\s+(?:md5|sha1))|encryption\s+ipsec\s+spi\s+\d+\s+esp\s+(?:null|(?:des|3des|aes-cbc(?:\s+\d{3})?)\s+(?:\d\s+)?(\S+))\s+(?:md5|sha1))\s+(?:\d\s+)?(\S+)',
+  # LISP's map-server key, an Easy VPN client's group key
+  '(?i)(?:\bmap-server\s+\S+|^\s*group\s+\S+)\s+key\s+(?:\d\s+)?(\S+)',
+  # HSRP, VRRP, and GLBP plain text, wireless PSK, NHRP, a URL's password
+  '(?i)^\s*(?:no\s+)?(?:standby|vrrp|glbp)\s+\d+\s+authentication\s+(?:text\s+)?(\S+)\s*$',
+  '(?i)\b(?:wpa-psk|set-key)\s+(?:ascii|hex)\s+(?:\d\s+)?(\S+)',
+  '(?i)\bnhrp\s+authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+
+[platform.cisco_xr]
+masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?(?:\s+(?:encrypted|clear))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des\S*|3des|aes(?:\s+\d{3})?)\s+(?:(?:encrypted|clear)\s+)?(\S+)',
+  # password or secret anywhere: username, BGP and LDP neighbor, IS-IS
+  # lsp- and hello-password; abbreviations pass… and sec…
+  '(?i)\b(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:(?:hmac-md5|text)\s+)?(?:(?:encrypted|clear|\d{1,2})\s+)?(\S+)',
+  # keys: a tacacs/radius host's bare key, -server key and a server group's
+  # server-private, server-key, IKEv2 and a keyring's pre-shared-key by
+  # address or hostname, OSPF and NTP, key chains
+  '(?i)^\s*(?:no\s+)?key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)\s*$',
+  '(?i)^\s*(?:no\s+)?(?:(?:tacacs|radius)-server|server-private)\s.*?\bkey\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bserver-key\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bpre-shared-key\s+(?:(?:address|hostname)\s.*?\skey\s+(?:(?:encrypted|clear|password|\d)\s+)?(\S+)|(?:(?:local|remote)\s+)?(?:(?:clear|password|\d)\s+)?(\S+))',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*|hmac\S*)\s+)?(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:(?:encrypted|clear|\d)\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:(?:clear|password|\d)\s+)?(\S+)',
+  # OSPFv3's IPsec authentication and encryption keys
+  '(?i)\b(?:authentication\s+ipsec\s+spi\s+\d+\s+(?:md5|sha1)|encryption\s+ipsec\s+spi\s+\d+\s+esp\s+(?:null|(?:3des|des|aes(?:\s+\d{3})?)\s+(?:(?:clear|password)\s+)?(\S+))\s+authentication\s+(?:md5|sha1))\s+(?:(?:clear|password)\s+)?(\S+)',
+  # HSRP plain text (8 characters at most), VRRP text, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+(\S{1,8})\s*$',
+  '(?i)\btext-authentication\s+(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+
+[platform.cisco_nxos]
+masks = [
+  # SNMP: community, a host's community (its use-vrf, source-interface, and
+  # filter-vrf hold none), the MIB community map, a v3 user's auth and priv
+  # (printed as localized keys too)
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+("[^"]*"|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+\s+(?:use-vrf\s|source-interface\s|filter-vrf\s|(?:(?:informs|traps)\s+)?(?:version\s+(?:1|2c|3\s+\S+)\s+)?("[^"]*"|\S+))',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+mib\s+community-map\s+("[^"]*"|\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\S*)\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:aes-128\s+)?(\S+)',
+  # password or secret anywhere: username, enable, BGP neighbor, LDAP, MSDP
+  # (its peer kept whole); strength-check, secure-mode, and encryption hold
+  # no secret
+  '(?i)\b(?:msdp\s+password\s+\S+\s+(?:\d\s+)?("[^"]*"|\S+)|(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:strength-check|secure-mode|encryption\s|(?:\d\s+)?("[^"]*"|\S+)))',
+  # keys: tacacs/radius, OSPF and NTP, key chains and HSRP key-string,
+  # MACsec key-octet-string
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bkey-(?:octet-)?string\s+(?:\d\s+)?("[^"]*"|\S+)',
+  # HSRP and VRRP text, PIM hello, BFD's key, a URL's password
+  '(?i)^\s*(?:no\s+)?authentication\s+text\s+("[^"]*"|\S+)',
+  '(?i)\bhello-authentication\s+ah-md5\s+(?:\d\s+)?("[^"]*"|\S+)',
+  '(?i)\bkey-id\s+\d+\s+(?:hex-)?key\s+("[^"]*"|\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?)://[^/\s:@]+:([^@\s]+)@',
+]
+
+[platform.juniper_junos]
+masks = [
+  # the printed form: Junos tags each secret line itself
+  '(?i)\s("[^"]*"|[^\s;]+);\s*## SECRET-DATA',
+  # SNMP: the community in a statement, v3's community-name, a printed block
+  '(?i)\bsnmp\s+community\s+("[^"]*"|\S+)',
+  '(?i)^\s*community\s+("[^"]*"|\S+)\s*\{',
+  '(?i)\bcommunity-name\s+("[^"]*"|[^\s;]+)',
+  # authentication-key (BGP, IS-IS, VRRP, v3), NTP's value first
+  '(?i)\bauthentication-key\s+(?:\d+\s+type\s+\S+\s+value\s+("[^"]*"|[^\s;]+)|("[^"]*"|[^\s;]+))',
+  # passwords and secrets: login, v3 users, OSPF simple, RADIUS, TACACS+,
+  # key chains; login password rules and a printed block hold no secret
+  '(?i)\b(?:encrypted-password|plain-text-password-value|authentication-password|privacy-password|simple-password|privacy-key|secret)\s+("[^"]*"|[^\s;]+)',
+  '(?i)\bpassword\s+(?:(?:minimum|maximum)-\S+\s|format\s|change-type\s|[{;]|("[^"]*"|[^\s;]+))',
+  # OSPF MD5, IKE's pre-shared-key and a manual IPsec SA's key, MACsec CAK,
+  # a URL's password
+  '(?i)\bmd5\s+\d+\s+key\s+("[^"]*"|[^\s;]+)',
+  '(?i)\b(?:key\s+(?:ascii-text|hexadecimal)|cak)\s+("[^"]*"|[^\s;]+)',
+  '(?i)\b(?:ftp|pasvftp|tftp|scp|sftp|https?)://[^/\s:@"]+:([^@\s"]+)@',
+]
+
+[platform.arista_eos]
+masks = [
+  # SNMP: community, a host's community, a v3 user's auth and priv
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+comm\S*\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+host\s+\S+(?:\s+vrf\s+\S+)?(?:\s+(?:informs?|traps?))?(?:\s+version\s+(?:1|2c|3\s+\S+))?\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bauth\s+(?:md5|sha\d{0,3})\s+(\S+)',
+  '(?i)^\s*(?:no\s+)?snmp-s\S*\s+user\s.*?\bpriv\s+(?:des|3des|aes\d{0,3})\s+(\S+)',
+  # password or secret as a word: username, enable, aaa root, BGP neighbor,
+  # a shared-secret profile's key; management security's minimum, policy,
+  # and encryption-key hold no secret; the type a digit, 8a, or sha512
+  '(?i)(?:^|\s)(?:pass(?:w(?:o(?:r(?:d)?)?)?)?|sec(?:r(?:e(?:t)?)?)?)\s+(?:minimum\s|policy\s|encryption\S*\s|\d+\s+\d\S*\s+(\S+)\s+receive-lifetime|(?:(?:\d|8a|sha512)\s+)?(\S+))',
+  # keys: tacacs/radius, OSPF and NTP, IS-IS and VRRP, key-string, MACsec
+  # CAK, OSPFv3's IPsec passphrase; the type a digit or 8a
+  '(?i)^\s*(?:no\s+)?(?:tacacs|radius)-server\s.*?\bkey\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bauthentication-key\s+(?:\d+\s+)?(?:(?:md5|sha\S*)\s+)?(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bmessage-digest-key\s+\d+\s+md5\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bauthentication\s+(?:key|text)\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)\bkey-string\s+(?:(?:\d|8a)\s+)?(\S+)',
+  '(?i)^\s*key\s+[0-9a-f]+\s+(?:\d|8a)\s+(\S+)',
+  '(?i)\bpassphrase\s+(?:(?:\d|8a)\s+)?(\S+)',
+  # the licence key, TerminAttr's CloudVision key, a URL's password
+  '(?i)\bunsupported-transceiver\s+\S+\s+(\S+)',
+  '(?i)-cvauth=key,(\S+)',
+  '(?i)\b(?:ftp|tftp|scp|sftp|https?):(?://)?[^/\s:@]+:([^@\s]+)@',
+]
+```
+
+**Left open.** The later findings, for the operator's word or a review of their
+own: #63, Go's resolver taking the host's domain where `search .` names none (a
+design session); #64 and #65, two suites' fragilities (the shell-script
+review); #66 and #67, tomlmini's floats read as Go reads them and the quotes
+TOML allows before a closing `"""`; #68, `.cloginrc`'s `[!` read as negation,
+which clogin's Tcl has not (a behaviour change); #69, #60's link check going by
+path, not by a held descriptor (a design item); #70, karvi-prune reading a
+job's summary, a scoreboard, and a snapshot by name, as #61 found for
+transcripts; #71, internal/app's login tests writing to the host's journal (the
+test review); #72, a transform parameter of the wrong kind read as empty; #73,
+`platform.<name>.legacy-class`, unread, whose removal moves the execution
+plan's schema. The parts the review did not read wait for reviews of their own,
+the shell scripts first. The push, the release, and its number are the
+operator's.
+
+The evidence is kept beside the tree
+(`release-design-evidence/review-fixes-2026-11-01`: each agent's failing and
+passing runs, every merged patch, each section's checks, the batteries, and in
+`chapter-88/` this chapter's lab scripts with their logs, the two scratch
+tests, and the script that cut the shown blocks from the logs).
